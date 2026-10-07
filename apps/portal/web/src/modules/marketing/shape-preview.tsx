@@ -503,19 +503,23 @@ export type Typed = (key: string) => { has: boolean; value: unknown };
 /**
  * The post on its platform, beside the editor. `typed` reads a field as typed; the words come from
  * the draft box as typed. `look` is the generic feed preview, for a platform without its own card.
+ * `link` is the funnel's, appended on its own line as the post goes out.
  */
 export function PlatformPreview({
   shape,
   typed,
   look,
+  link = null,
 }: {
   shape: Shape;
   typed: Typed;
   look: MessageKind | null;
+  link?: string | null;
 }) {
   const live = useDraftText();
   const [device, setDevice] = useState<Device>("phone");
-  const text = live ?? shape.text;
+  const words = live ?? shape.text;
+  const text = link && words.trim() ? `${words.trimEnd()}\n\n${link}` : words;
   const fields = shape.fields.map((f) => {
     const t = typed(f.key);
     return t.has ? { ...f, value: t.value } : f;

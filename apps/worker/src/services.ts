@@ -937,7 +937,6 @@ export async function buildServices(
     makeMarketingConsole({ db, open: openClient, records: clientMarketing(mediaSigner) }),
     makeContentScheduler({
       db,
-      linkSite: settings.contentLinkSite ?? null,
       // A post's replies come in through reach's watch: it reads warm from now.
       posted: (ctx, p, client) => {
         if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);

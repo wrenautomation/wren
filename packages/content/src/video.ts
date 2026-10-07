@@ -13,7 +13,8 @@ import { liveOrDefault } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
-import { desc, eq, like, sql } from "drizzle-orm";
+import { and, desc, eq, like, sql } from "drizzle-orm";
+import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoTurns } from "./video-ask.js";
 
@@ -206,6 +207,25 @@ export async function approveVideo(
     if (!yt && !["rendered", "approved", "uploaded"].includes(e.state))
       throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
     const { file, title, thumbnail } = target(e, reels);
+    // The funnel (designs/2026-10-07-content-funnel.md): the long upload builds trust, its footer
+    // links the site; a Short or Reel reaches, pointing at the long upload when there is one.
+    const long = reels
+      ? (
+          await tx
+            .select({ id: contentDrafts.id })
+            .from(contentDrafts)
+            .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
+            .where(and(eq(contentIdeas.ref, videoRef(id)), eq(contentDrafts.platform, "youtube")))
+            .limit(1)
+        )[0]
+      : undefined;
+    const funnel = reels
+      ? {
+          stage: "reach" as const,
+          pointsTo: long ? ("video" as const) : ("site" as const),
+          videoDraft: long?.id ?? null,
+        }
+      : { stage: "trust" as const, pointsTo: "site" as const };
     // YouTube files a vertical of 3 min or less as a Short.
     const kind =
       o.short || (vertical && e.tracks.main.durationS - cutSeconds(e.cuts) <= SHORT_MAX_S)
@@ -256,6 +276,7 @@ export async function approveVideo(
           // Null: the next publish pass.
           scheduledFor: null,
           promptVersion: "video",
+          ...funnel,
         })
         .returning({ id: contentDrafts.id });
       if (!d) throw new Error("insert returned no draft");
@@ -295,6 +316,7 @@ export async function approveVideo(
         // Waits in To approve; his Approve gives it the next Instagram slot.
         status: "draft",
         promptVersion: "video",
+        ...funnel,
       })
       .returning({ id: contentDrafts.id });
     if (!r) throw new Error("insert returned no draft");
@@ -516,6 +538,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoApproveShort",
       "marketing.videoApproveVertical",
       "marketing.videoThumbnail",
+      "marketing.videoPromote",
       // The page's own editor: fields, cuts, Ask Claude, Undo.
       "marketing.videoSet",
       "marketing.videoCut",
@@ -526,6 +549,7 @@ export const videoRecord = (signer?: VideoSigner) => {
     calls: {
       "ContentDesk/approveVideo": "id",
       "ContentDesk/pickThumbnail": "id",
+      "ContentDesk/promote": "video",
       "VideoDesk/set": "id",
       "VideoDesk/cut": "id",
       "VideoDesk/ask": "id",
@@ -550,6 +574,8 @@ export const videoRecord = (signer?: VideoSigner) => {
         .from(contentIdeas)
         .innerJoin(contentDrafts, eq(contentDrafts.ideaId, contentIdeas.id))
         .where(like(contentIdeas.ref, `video:${e.id}/%`));
+      // Its promos (designs/2026-10-07-content-funnel.md): one draft per platform, pointing at it.
+      const upload = await videoDraftOf(db, e.id).catch(() => null);
       return {
         video: {
           title: e.title,
@@ -574,6 +600,7 @@ export const videoRecord = (signer?: VideoSigner) => {
               }
             : null,
           cuts: cutRows(e),
+          promos: upload ? await promosOf(db, upload) : null,
           render: e.render,
           state: e.state,
           turns: await videoTurns(db, e.id),

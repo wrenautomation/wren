@@ -68,10 +68,13 @@ type Video = {
   } | null;
   edit: Edit;
   cuts: CutRow[];
+  /** Its promo drafts, latest per platform; null until it's approved for YouTube. */
+  promos?: Promo[] | null;
   render: { state: string; why?: string } | null;
   state: string;
   turns: Turn[];
 };
+type Promo = { id: string; platform: string; status: string; text: string };
 
 const SET = "marketing.videoSet";
 const CUT = "marketing.videoCut";
@@ -828,6 +831,73 @@ const Thumbnails = ({ thumbnails }: { thumbnails: Video["thumbnails"] }) => (
   </div>
 );
 
+const PROMO_PLATFORMS = [
+  ["linkedin", "LinkedIn"],
+  ["x", "X"],
+  ["reddit", "Reddit"],
+  ["instagram", "Instagram"],
+] as const;
+const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "warn" | "green" }> = {
+  draft: { label: "Waiting on you", tone: "warn" },
+  approved: { label: "Scheduled", tone: "green" },
+  publishing: { label: "Posting", tone: "neutral" },
+  published: { label: "Posted", tone: "green" },
+  failed: { label: "Failed to post", tone: "warn" },
+  rejected: { label: "Rejected", tone: "neutral" },
+};
+/** Wider pieces of one recording, not built yet (designs/2026-10-07-content-funnel.md). */
+const PROMO_LATER = [
+  ["X thread", "The video as 3 to 7 posts in a chain."],
+  ["Carousel", "One slide set as an Instagram carousel and a LinkedIn PDF."],
+  ["TikTok", "The vertical cut, posted as is."],
+  ["Follows", "Follow the people who engage, on X and Instagram."],
+] as const;
+
+/** Each platform's promo: its state and first line, or not drafted yet; then what's coming. */
+function Promos({ promos }: { promos: Promo[] }) {
+  return (
+    <div className="grid gap-4">
+      <ul className="m-0 grid list-none gap-0 p-0">
+        {PROMO_PLATFORMS.map(([p, name]) => {
+          const d = promos.find((x) => x.platform === p);
+          const state = d ? (PROMO_STATE[d.status] ?? { label: d.status, tone: "neutral" }) : null;
+          return (
+            <li
+              key={p}
+              className="grid gap-1 border-b border-(--ui-hair) py-3 first:pt-0 last:border-b-0"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[14px] font-medium">{name}</span>
+                {state ? <Tag tone={state.tone}>{state.label}</Tag> : null}
+                {d ? (
+                  <a
+                    href={`/marketing/drafts/${encodeURIComponent(d.id)}`}
+                    className="ml-auto text-[13px] text-(--ui-ink-2) underline underline-offset-2"
+                  >
+                    Open
+                  </a>
+                ) : null}
+              </div>
+              <p className="m-0 line-clamp-2 text-[13px] text-(--ui-ink-2)">
+                {d ? d.text : "Not drafted. Promote drafts it."}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="grid gap-2 border-t border-(--ui-hair) pt-4">
+        {PROMO_LATER.map(([name, what]) => (
+          <div key={name} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[14px]">{name}</span>
+            <Tag tone="warn">In development</Tag>
+            <span className="text-[13px] text-(--ui-ink-3)">{what}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) => {
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
@@ -873,6 +943,7 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
   ]);
   if (edit) sections.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
   if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
+  if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
   const out: RecordExtras = { sections };

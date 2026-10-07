@@ -68,10 +68,10 @@ lander's `/go/<channel>/<campaign>/<content>`.
 
 - Columns on `content_drafts`: `stage` (reach | trust | convert, default reach), `points_to`
   (video | site | booking, default site), `video_draft` (the YouTube draft it points at, null),
-  `linked` (the post carries its link). Migration with a backfill: YouTube long videos become
-  trust/site, everything else reach/site; `linked` keeps today's rule (LinkedIn, YouTube,
-  Facebook).
-- The link is derived, never typed: `funnelLink` in `packages/content/src/funnel.ts`.
+  `linked` (his switch; null follows the platform's rule). Migration with a backfill: YouTube
+  long videos become trust/site; a Short or Reel cut from a video points at its long upload;
+  everything else reach/site.
+- The link is derived, never typed: `targetLink` and `funnelOf` in `packages/content/src/funnel.ts`.
   - video: the video draft's YouTube URL; none until it is up.
   - site: `https://wrenautomation.com/go/<code>/<stage>/<first 8 of the draft id>`.
   - booking: the same plus `?to=/book/reactivation` (the only offer with a booking page).
@@ -88,7 +88,8 @@ lander's `/go/<channel>/<campaign>/<content>`.
   goes: one site, Wren's, the one the footers name. A client's drafts never carry Wren's link.
 - Editor: a Funnel group above Basics (Stage, Points to, the video, the link and its switch);
   the preview shows the link as it will post. Lists show stage and target. CLI:
-  `wren content funnel <id> [--stage] [--to] [--video] [--link on|off]`, and `show` prints them.
+  `wren content funnel <id> [--stage] [--to] [--video] [--link on|off|auto]`, and `show` prints
+  them. A redraft keeps all four.
 
 ### (b) Promo
 
@@ -110,6 +111,8 @@ lander's `/go/<channel>/<campaign>/<content>`.
 - Surfaces: Videos (Promote, plus a Promos section on the video with each draft's state and the
   wider pieces "In development"), Posts (Promote on a YouTube post), ContentDesk `promote`,
   `wren content promote <video|draft> [--platforms]`.
+- Instagram skips when the video's own Reel already carries the same file. Wren's desk only for
+  now: a client's console has no Promote yet.
 
 ### (c) Comments learn from his decisions
 
@@ -119,8 +122,8 @@ lander's `/go/<channel>/<campaign>/<content>`.
   answered (`comments`, `reddit_threads`, `linkedin_posts`).
 - Ranked by word overlap with the post at hand, ties to the newest; 90 days, 6 at most, at
   least one no when there is one. A few hundred tokens a draft.
-- Fed to all three drafting prompts beside his edits, and to Ask Claude on those kinds.
-  `wren drafts examples [--about text]` prints them.
+- Fed to all three drafting prompts beside his edits. All three kinds feed each one: a comment
+  is one capability, and relevance picks. `wren drafts examples [--about text]` prints them.
 
 ## Build order (after this)
 
@@ -154,3 +157,6 @@ add a few hundred tokens per comment draft.
 - 2026-10-07: `WREN_CONTENT_LINK_SITE` removed (unset on prod): the footers already name
   wrenautomation.com, and two link paths would drift.
 - 2026-10-07: Instagram promo rides on a rendered vertical or Short. IG can't post words alone.
+- 2026-10-07: `linked` is nullable. Null follows the platform rule, so a rule change reaches every
+  draft he hasn't switched by hand, and no insert path has to set it.
+- 2026-10-07: Ask Claude on a comment does not read the examples yet; the drafting prompts do.

@@ -219,8 +219,10 @@ describe("content loop", () => {
       { platform: "x", error: expect.stringContaining("no x channel") },
     ]);
     const yt = posted.find((p) => p.platform === "youtube");
+    const ytId = drafts.find((d) => d.platform === "youtube")?.id.slice(0, 8);
+    // The funnel's link goes last on its own line: reach, the site (designs/2026-10-07-content-funnel.md).
     expect(yt?.post).toMatchObject({
-      text: "what it does",
+      text: `what it does\n\nhttps://wrenautomation.com/go/yt/reach/${ytId}`,
       extra: { title: "Spend gate" },
       media: { source: "https://cdn.test/gate.mp4" },
     });
@@ -231,6 +233,9 @@ describe("content loop", () => {
       publishedId: expect.stringMatching(/^linkedin-/),
       url: expect.stringContaining("linkedin.test"),
     });
+    expect(posted.find((p) => p.platform === "linkedin")?.post.text).toMatch(
+      new RegExp(`\\n\\nhttps://wrenautomation\\.com/go/li/reach/${li?.id.slice(0, 8)}$`),
+    );
     const x = after.find((d) => d.platform === "x");
     if (!x) throw new Error("no x draft");
     expect(x.status).toBe("failed");

@@ -19,13 +19,11 @@ export interface PlatformSpec {
   readonly needsMedia?: "video" | "image-or-video";
   /** What the model is told to write, one line. */
   readonly shape: string;
-  /** The lander's `/go/<channel>` code, so a visit names the platform (lander src/data/links.json). */
-  readonly goCode: string;
   /**
-   * The post ends with its own `/go` link. Only where a link is clickable and
-   * costs no reach; elsewhere the profile's `/go/<code>/bio` link counts it.
+   * The lander's `/go/<channel>` code, so a visit names the platform (lander src/data/links.json).
+   * Whether a post carries its link is the funnel's rule (`funnel.ts`).
    */
-  readonly linkInText?: boolean;
+  readonly goCode: string;
   /**
    * Lines a feed shows before "see more", on a laptop and on a phone; null shows the whole post,
    * 0 none of it. As the apps cut them in 2026: tune here when one changes.
@@ -41,7 +39,6 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a LinkedIn post: a one-line hook, short paragraphs with blank lines between them, no hashtags, no emoji, ends with one plain question or take, under 1300 characters",
     name: "LinkedIn",
     goCode: "li",
-    linkInText: true,
     feed: { laptop: 3, phone: 3 },
   },
   reddit: {
@@ -71,7 +68,6 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a YouTube title (under 70 characters, plain, says what the viewer gets) and a description: two short paragraphs of what the video shows and why it matters, no hashtags, no timestamps",
     name: "YouTube",
     goCode: "yt",
-    linkInText: true,
     feed: { laptop: 3, phone: 0 },
   },
   instagram: {
@@ -100,7 +96,6 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a Facebook Page post: two or three short paragraphs in plain words, no hashtags, one question at the end",
     name: "Facebook",
     goCode: "fb",
-    linkInText: true,
     feed: { laptop: 5, phone: 3 },
   },
 };
@@ -112,20 +107,6 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
   if (spec.needsMedia === "video" && media.kind !== "video")
     return `${spec.platform} needs a video, not an image`;
   return null;
-}
-
-/**
- * This draft's tracked link, `<site>/go/<code>/<first 8 of the draft id>`, or
- * null when links are off (no site) or the platform takes none in its text.
- * The lander records the visit under that campaign (`npm run channels`).
- */
-export function postLink(
-  site: string | null | undefined,
-  draft: Pick<ContentDraft, "id" | "platform">,
-): string | null {
-  const spec = PLATFORM_SPECS[draft.platform];
-  if (!site || !spec.linkInText) return null;
-  return `${site.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/go/${spec.goCode}/${draft.id.slice(0, 8)}`;
 }
 
 /**

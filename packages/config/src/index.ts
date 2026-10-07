@@ -224,8 +224,6 @@ export const settingsSchema = z.object({
     ),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),
-  /** The lander host posts end with a tracked `/go` link to ("wrenautomation.com"); unset = no links. */
-  contentLinkSite: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
   /** The private S3 bucket for client files (`clients/<id>/`); unset = the portal refuses uploads. */
@@ -557,7 +555,6 @@ export const ENV_KEYS = {
   daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",
   contentChannels: "WREN_CONTENT_CHANNELS",
   contentVoicePath: "WREN_CONTENT_VOICE",
-  contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   filesBucket: "WREN_FILES_BUCKET",
   pagesBucket: "WREN_PAGES_BUCKET",

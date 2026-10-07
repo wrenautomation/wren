@@ -34,8 +34,11 @@ import {
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
-/** Who wrote it: a person, the API, `AdsWatch`, or the planner (a day's commits, a reader's question). */
-export const IDEA_SOURCES = ["cli", "api", "ads", "build_log", "question"] as const;
+/**
+ * Who wrote it: a person, the API, `AdsWatch`, the planner (a day's commits, a reader's question),
+ * or a video's promo (`promo:<youtube draft>`).
+ */
+export const IDEA_SOURCES = ["cli", "api", "ads", "build_log", "question", "promo"] as const;
 export type IdeaSource = (typeof IDEA_SOURCES)[number];
 
 export const DRAFT_STATUSES = [
@@ -47,6 +50,12 @@ export const DRAFT_STATUSES = [
   "failed",
 ] as const;
 export type DraftStatus = (typeof DRAFT_STATUSES)[number];
+
+/** The funnel (designs/2026-10-07-content-funnel.md): which stage a post serves, where it points. */
+export const FUNNEL_STAGES = ["reach", "trust", "convert"] as const;
+export type FunnelStage = (typeof FUNNEL_STAGES)[number];
+export const FUNNEL_TARGETS = ["video", "site", "booking"] as const;
+export type FunnelTarget = (typeof FUNNEL_TARGETS)[number];
 
 export const contentIdeas = pgTable(
   "content_ideas",
@@ -123,6 +132,14 @@ export const contentDrafts = pgTable(
     playbookId: uuid("playbook_id"),
     /** The LLM stage's audit envelope (raw text, usage, model), or null for a hand-written draft. */
     llm: jsonb("llm").$type<Record<string, unknown>>(),
+    /** The funnel stage it serves: reach (top), trust (middle), convert (bottom). */
+    stage: varchar("stage", { length: 16, enum: FUNNEL_STAGES }).notNull().default("reach"),
+    /** Where it sends people: a video, the site, booking. Its link is derived (`funnel.ts`). */
+    pointsTo: varchar("points_to", { length: 16, enum: FUNNEL_TARGETS }).notNull().default("site"),
+    /** The YouTube draft it points at, when it points to a video. */
+    videoDraft: uuid("video_draft"),
+    /** He said the post carries its link (true) or not (false); null follows the platform's rule. */
+    linked: boolean("linked"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_drafts" }),
@@ -146,7 +163,15 @@ export const contentDrafts = pgTable(
     index("ix_content_drafts_platform_created_at").on(t.platform, t.createdAt),
     index("ix_content_drafts_redraft_of").on(t.redraftOf),
     index("ix_content_drafts_playbook_id").on(t.playbookId),
+    foreignKey({
+      columns: [t.videoDraft],
+      foreignColumns: [t.id],
+      name: "fk_content_drafts_video_draft_content_drafts",
+    }).onDelete("set null"),
+    index("ix_content_drafts_video_draft").on(t.videoDraft),
     oneOf("ck_content_drafts_platform", t.platform, PLATFORMS),
+    oneOf("ck_content_drafts_stage", t.stage, FUNNEL_STAGES),
+    oneOf("ck_content_drafts_points_to", t.pointsTo, FUNNEL_TARGETS),
     oneOf("ck_content_drafts_status", t.status, DRAFT_STATUSES),
   ],
 );
@@ -414,6 +439,8 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   written: text("written"),
   note: text("note"),
   error: text("error"),
+  stage: text("stage"),
+  to: text("to"),
   scheduled: timestamp("scheduled", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
 }).as(sql`
@@ -421,6 +448,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
     coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
     d.status::text state, length(d.text) chars,
     case when d.edited then 'edited' else 'model' end written, d.note, d.error,
+    d.stage::text stage, d.points_to::text "to",
     d.scheduled_for scheduled, d.created_at created
   from content_drafts d
   where d.status <> 'published'`);

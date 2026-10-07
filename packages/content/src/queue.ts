@@ -48,6 +48,8 @@ export async function markPublished(
   db: Queryable,
   id: string,
   published: Published,
+  /** The funnel link appended to the text, for the record. */
+  link?: string | null,
 ): Promise<void> {
   const [d] = await db
     .update(contentDrafts)
@@ -74,7 +76,11 @@ export async function markPublished(
       externalId: published.id,
       url: published.url,
       // The fields as they went out, and any the platform refused after.
-      meta: { fields: d.extra, ...(published.notes?.length ? { notes: published.notes } : {}) },
+      meta: {
+        fields: d.extra,
+        ...(link ? { link } : {}),
+        ...(published.notes?.length ? { notes: published.notes } : {}),
+      },
       // A journaled step that runs again keeps one.
       ref: `sent:draft:${id}`,
     });

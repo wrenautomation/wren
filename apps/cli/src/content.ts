@@ -15,18 +15,24 @@ import {
   draftCosts,
   draftsOfIdea,
   editDraft,
+  FUNNEL_STAGES,
+  FUNNEL_TARGETS,
   formatCosts,
   formatPlan,
   formatWhatWorked,
+  funnelLine,
   getDraft,
   IDEA_STATUSES,
   type IdeaStatus,
   listDrafts,
   listIdeas,
+  PROMO_PLATFORMS,
   planFor,
+  readFunnel,
   rejectDrafts,
   type Slot,
   setFields,
+  setFunnel,
   slotsOf,
   tomorrowOf,
   uploadMedia,
@@ -105,11 +111,14 @@ const line = (s: string, n = PREVIEW) => {
   return one.length > n ? `${one.slice(0, n - 1)}…` : one;
 };
 
+/** "reach→video": where a post sits in the funnel and where it points. */
+const funnelOf = (d: Pick<ContentDraft, "stage" | "pointsTo">) => `${d.stage}→${d.pointsTo}`;
+
 function printDraftRow(d: ContentDraft) {
   const extra =
     d.status === "published" ? (d.url ?? "") : d.status === "failed" ? (d.error ?? "") : "";
   console.log(
-    `${d.id}  ${d.platform.padEnd(9)}  ${d.status.padEnd(10)}  ${when(d.scheduledFor).padEnd(16)}  ${line(d.title ? `${d.title} — ${d.text}` : d.text)}${extra ? `  ${line(extra, 60)}` : ""}`,
+    `${d.id}  ${d.platform.padEnd(9)}  ${d.status.padEnd(10)}  ${funnelOf(d).padEnd(15)}  ${when(d.scheduledFor).padEnd(16)}  ${line(d.title ? `${d.title} — ${d.text}` : d.text)}${extra ? `  ${line(extra, 60)}` : ""}`,
   );
 }
 
@@ -238,10 +247,15 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .command("show <draftId>")
     .description("Print one draft in full")
     .action(async (id: string) => {
-      const d = await withDb((db) => getDraft(db, id));
+      const [d, f] = await withDb(async (db) => {
+        const row = await getDraft(db, id);
+        return [row, await readFunnel(db, row)] as const;
+      });
       console.log(
         `${d.platform} · ${d.status}${d.scheduledFor ? ` · due ${when(d.scheduledFor)}` : ""}${d.edited ? " · edited" : ""}`,
       );
+      console.log(`funnel: ${funnelLine(f)}`);
+      if (f.video) console.log(`video: ${f.video.id} ${f.video.title ?? ""}`.trimEnd());
       if (d.media) console.log(`media: ${d.media.kind} ${d.media.source}`);
       if (d.title) console.log(`title: ${d.title}`);
       if (d.url) console.log(`url: ${d.url}`);
@@ -325,6 +339,60 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       }
       printDraftRow(await withDb((db) => setFields(db, id, patch, { by: "cli" })));
     });
+
+  content
+    .command("promote <video>")
+    .description(
+      "Draft one post per platform pointing at a YouTube video (a video number from `wren video list`, or its YouTube draft id); each waits in To approve",
+    )
+    .option("--platforms <list>", `comma-separated subset of ${PROMO_PLATFORMS.join(",")}`)
+    .option("--again", "draft again where a promo draft exists")
+    .action(async (video: string, o: { platforms?: string; again?: boolean }) => {
+      const platforms = o.platforms
+        ?.split(",")
+        .map((p) => oneOf("platform", p.trim(), PROMO_PLATFORMS));
+      const report = await desk().promote({
+        ...(/^\d+$/.test(video) ? { video: Number(video) } : { draftId: video }),
+        ...(platforms?.length ? { platforms } : {}),
+        ...(o.again ? { again: true } : {}),
+      });
+      printReport(report);
+    });
+
+  content
+    .command("funnel <draftId>")
+    .description(
+      "Where a post sits in the funnel and where it points; its link follows (wrenautomation.com/go/… or the video's URL)",
+    )
+    .option("--stage <stage>", FUNNEL_STAGES.join(" | "))
+    .option("--to <target>", FUNNEL_TARGETS.join(" | "))
+    .option("--video <draftId>", "the YouTube draft it points at; '' clears it")
+    .option("--link <on|off|auto>", "carry the link; auto follows the platform's rule")
+    .action(
+      async (id: string, o: { stage?: string; to?: string; video?: string; link?: string }) => {
+        const linked =
+          o.link === undefined
+            ? undefined
+            : oneOf("link", o.link, ["on", "off", "auto"] as const) === "auto"
+              ? null
+              : o.link === "on";
+        const f = await withDb(async (db) => {
+          const row = await setFunnel(
+            db,
+            id,
+            {
+              ...(o.stage ? { stage: oneOf("stage", o.stage, FUNNEL_STAGES) } : {}),
+              ...(o.to ? { to: oneOf("to", o.to, FUNNEL_TARGETS) } : {}),
+              ...(o.video !== undefined ? { video: o.video || null } : {}),
+              ...(linked !== undefined ? { linked } : {}),
+            },
+            { by: "cli" },
+          );
+          return readFunnel(db, row);
+        });
+        console.log(funnelLine(f));
+      },
+    );
 
   const q = content.command("queue").description("the publish loop (ContentScheduler)");
   q.command("status").action(async () =>

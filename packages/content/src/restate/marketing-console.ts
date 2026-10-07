@@ -39,7 +39,7 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
-import { type ContentDesk, DESK_UNIT } from "./desk.js";
+import { type ContentDesk, DESK_UNIT, type FunnelRequest } from "./desk.js";
 
 export const MARKETING_STATS = "marketing.stats";
 
@@ -68,6 +68,13 @@ export interface RedraftRequest extends PortalRequest {
 export interface FieldsRequest extends PortalRequest {
   draftId: string;
   patch: Record<string, unknown>;
+}
+export interface FunnelConsoleRequest extends PortalRequest {
+  draftId: string;
+  stage?: string | null;
+  to?: string | null;
+  video?: string | null;
+  linked?: string | boolean | null;
 }
 export interface AttachRequest extends PortalRequest {
   draftId: string;
@@ -234,6 +241,31 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
               deskOf(ctx, key).fields({
                 draftId: String(req.draftId),
                 patch: req.patch,
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+      /** A client draft's stage and target. Its posts carry no Wren link. */
+      draftFunnel: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            stage: z.string().nullish(),
+            to: z.string().nullish(),
+            video: z.string().nullish(),
+            linked: z.union([z.string(), z.boolean()]).nullish(),
+          }),
+        },
+        (ctx: restate.Context, req: FunnelConsoleRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            const { stage, to, video, linked } = req;
+            return desk(() =>
+              deskOf(ctx, key).funnel({
+                draftId: String(req.draftId),
+                ...({ stage, to, video, linked } as Omit<FunnelRequest, "draftId">),
                 viewer: req.viewer,
               }),
             );

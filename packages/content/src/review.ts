@@ -8,6 +8,7 @@ import { fieldsOf, missingFields, patchFields } from "@wren/core/content/shapes"
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
+import { refuseUnlinked } from "./funnel.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
@@ -148,17 +149,13 @@ async function heldSlots(db: Queryable, platform: Platform, now: Date): Promise<
 
 /**
  * A draft is approvable only with its shape whole: every required field set (Reddit's subreddit
- * and title) and every value one its platform takes (designs/2026-10-07-post-shapes.md).
+ * and title) and every value one its platform takes (designs/2026-10-07-post-shapes.md). A post
+ * whose link points at a video needs the video up first (designs/2026-10-07-content-funnel.md).
  */
 async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
   const rows = await db
-    .select({
-      id: contentDrafts.id,
-      platform: contentDrafts.platform,
-      extra: contentDrafts.extra,
-      title: contentDrafts.title,
-    })
+    .select()
     .from(contentDrafts)
     .where(inArray(contentDrafts.id, [...ids]));
   const lacking = rows.flatMap((r) => {
@@ -171,6 +168,7 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
   });
   if (lacking.length > 0) throw new Error(`cannot approve: ${lacking.join("; ")}`);
+  await refuseUnlinked(db, rows);
 }
 
 /**

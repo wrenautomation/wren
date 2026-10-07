@@ -8,6 +8,7 @@ export const DRAFT_CALLS = {
   "ContentDesk/reject": "ids",
   "ContentDesk/redraft": "draftId",
   "ContentDesk/fields": "draftId",
+  "ContentDesk/funnel": "draftId",
   "ContentDesk/attach": "draftId",
   "DraftAsk/set": "id",
   "DraftAsk/ask": "id",

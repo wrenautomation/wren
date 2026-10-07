@@ -13,6 +13,7 @@ import { WeeklyBookings } from "./chart.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
+import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
@@ -22,6 +23,11 @@ import { videoExtras } from "./videos.js";
 
 const said = (line: string) => () => line;
 
+/** A video's promo (designs/2026-10-07-content-funnel.md): one draft per platform, none posted. */
+const PROMOTE_CONFIRM =
+  "Draft a post for LinkedIn, X, Reddit and Instagram that points to this video? Each waits in To approve.";
+const PROMOTE_DONE = said("Drafting. The promos show in To approve in a minute.");
+
 const POST_ACTIONS: Action[] = [
   {
     id: "marketing.draftAgain",
@@ -29,6 +35,14 @@ const POST_ACTIONS: Action[] = [
     handler: "marketing/draftAgain",
     confirm: "Draft this idea again for this platform?",
     done: said("Drafting. It shows in the content desk."),
+  },
+  {
+    id: "marketing.postPromote",
+    label: "Promote",
+    handler: "marketing/postPromote",
+    confirm: PROMOTE_CONFIRM,
+    when: { platform: ["youtube"] },
+    done: PROMOTE_DONE,
   },
 ];
 
@@ -38,6 +52,7 @@ const OPEN = { state: ["draft", "failed", "approved"] };
 const fieldActions = (when: NonNullable<Action["when"]>): Action[] => [
   { id: FIELDS, label: "Save", handler: "marketing/draftFields", inline: true, when },
   { id: ATTACH, label: "Upload", handler: "marketing/draftAttach", inline: true, when },
+  { id: FUNNEL, label: "Save", handler: "marketing/draftFunnel", inline: true, when },
 ];
 /** A reject's why, both optional: a quick pick and a few words. */
 const REJECT_FORM: readonly FormField[] = [
@@ -244,6 +259,14 @@ const VIDEO_ACTIONS: Action[] = [
     form: [{ field: "n", label: "Thumbnail", type: "select", options: ["1", "2", "3"] }],
     when: { state: ["rendered", "approved"] },
     done: said("Picked. It goes up with the video."),
+  },
+  {
+    id: "marketing.videoPromote",
+    label: "Promote",
+    handler: "marketing/videoPromote",
+    confirm: PROMOTE_CONFIRM,
+    when: { state: ["approved", "uploaded"] },
+    done: PROMOTE_DONE,
   },
   {
     id: "marketing.videoRender",

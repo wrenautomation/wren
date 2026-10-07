@@ -30,7 +30,8 @@ Places (subreddits) come from research ([[content/reddit-thread]]), never hard-c
 - Stage `reach | trust | convert`, target `video | site | booking`, the video it points at, whether it carries its link: columns on `content_drafts` (see [[content/draft]])
 - Link derivation and the per-platform link rule: `packages/content/src/funnel.ts`
 - Promo drafts: `packages/content/src/promo.ts`
-- Comment examples from `draft_events`: `packages/outreach/src/examples.ts`
+- Comment examples from `draft_events`: `packages/outreach/src/examples.ts` (`commentExamples`, `examplesFor`)
+- Video page Promos section: `apps/portal/web/src/modules/marketing/videos.tsx`; editor group: `apps/portal/web/src/modules/marketing/funnel.tsx`
 
 Citations: `designs/2026-10-07-content-funnel.md`
 

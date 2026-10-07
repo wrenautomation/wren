@@ -17,6 +17,7 @@ export const MARKETING_CONSOLE_ROUTES = {
   redraft: "act",
   draftFields: "act",
   draftAttach: "act",
+  draftFunnel: "act",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; a verdict is Marketing's. */
 export const MARKETING_CONSOLE_APPS = {
@@ -26,6 +27,7 @@ export const MARKETING_CONSOLE_APPS = {
   redraft: "marketing",
   draftFields: "marketing",
   draftAttach: "marketing",
+  draftFunnel: "marketing",
 } as const satisfies RouteApps<typeof MARKETING_CONSOLE_ROUTES>;
 export type MarketingConsoleRoute = keyof typeof MARKETING_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -35,4 +37,5 @@ export const MARKETING_CONSOLE_WRITES: readonly MarketingConsoleRoute[] = [
   "redraft",
   "draftFields",
   "draftAttach",
+  "draftFunnel",
 ];

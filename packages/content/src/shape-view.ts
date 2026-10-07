@@ -6,7 +6,8 @@
 import type { Platform } from "@wren/core/content";
 import { type FieldView, fieldViews, kindOf } from "@wren/core/content/shapes";
 import type { Queryable } from "@wren/db";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ne, notInArray, sql } from "drizzle-orm";
+import { type FunnelVideo, type FunnelView, readFunnel } from "./funnel.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 import type { VideoSigner } from "./video.js";
@@ -30,6 +31,30 @@ export interface ShapeView {
   scheduled: string | null;
   /** Posted: where, when, and what the platform refused after it went up. */
   published: { url: string | null; at: string | null; notes: string | null } | null;
+  /** Its stage, target and link (designs/2026-10-07-content-funnel.md), and the videos it may point at. */
+  funnel: FunnelView & { videos: FunnelVideo[] };
+}
+
+/** YouTube videos a post may point at: the newest not turned down, Shorts left out. */
+export function pickableVideos(db: Queryable, except?: string): Promise<FunnelVideo[]> {
+  return db
+    .select({
+      id: contentDrafts.id,
+      title: contentDrafts.title,
+      url: contentDrafts.url,
+      status: contentDrafts.status,
+    })
+    .from(contentDrafts)
+    .where(
+      and(
+        eq(contentDrafts.platform, "youtube"),
+        sql`coalesce(${contentDrafts.extra}->>'kind', 'video') = 'video'`,
+        notInArray(contentDrafts.status, ["rejected", "failed"]),
+        ...(except ? [ne(contentDrafts.id, except)] : []),
+      ),
+    )
+    .orderBy(desc(contentDrafts.createdAt))
+    .limit(30);
 }
 
 const EDITABLE: readonly DraftStatus[] = ["draft", "approved", "failed"];
@@ -62,6 +87,10 @@ export async function shapeView(
   const media = await linkOf(d.media?.source, signer);
   if (media) links.media = media;
   const posted = d.status === "published";
+  const funnel = await readFunnel(db, d);
+  const videos = await pickableVideos(db, d.id);
+  // The one it points at stays pickable even past the newest 30.
+  if (funnel.video && !videos.some((v) => v.id === funnel.video?.id)) videos.push(funnel.video);
   return {
     draftId: d.id,
     platform: d.platform,
@@ -79,5 +108,6 @@ export async function shapeView(
     published: posted
       ? { url: d.url, at: d.publishedAt?.toISOString() ?? null, notes: d.error }
       : null,
+    funnel: { ...funnel, videos },
   };
 }

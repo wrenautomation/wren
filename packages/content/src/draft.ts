@@ -38,7 +38,7 @@ const proposal = z.object({
   text: z.string().min(1),
   title: z.string().min(1).optional(),
 });
-type Proposal = z.infer<typeof proposal>;
+export type Proposal = z.infer<typeof proposal>;
 
 export interface DraftOptions {
   /** Who asked (his email): a redraft's record says whose note it was. */
@@ -126,7 +126,7 @@ ${tail}`;
  * flag asks once more with what was flagged; flagged again, `why` says what was made up. A guard
  * hit is a `runs` row.
  */
-async function askGuarded(
+export async function askGuarded(
   db: Queryable,
   llm: LlmClient,
   prompt: string,
@@ -155,7 +155,7 @@ async function askGuarded(
 }
 
 /** A model's post in the draft record: its words and what it was asked (a redraft: at his note). */
-async function keepGenerated(
+export async function keepGenerated(
   db: Queryable,
   llm: LlmClient,
   d: ContentDraft,
@@ -294,6 +294,11 @@ export async function redraft(
       title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
       media: previous.media,
       extra: previous.extra,
+      // Where it sits in the funnel and where it points: unchanged by new words.
+      stage: previous.stage,
+      pointsTo: previous.pointsTo,
+      videoDraft: previous.videoDraft,
+      linked: previous.linked,
       // The slot the old row held (a planner draft's); inert until approved.
       scheduledFor: slot,
       redraftOf: previous.id,

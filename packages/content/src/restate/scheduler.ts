@@ -12,6 +12,8 @@
  * `ContentScheduler/<client>/posts`: the same over the client's own database, posting on its own
  * login (`Content` with `client`). Until an admin turns its posting on, approved drafts wait:
  * nothing is claimed, the pass says how many are held. Posts carry no link to Wren's lander.
+ *
+ * A post's link is its funnel's (`funnel.ts`): read when it is claimed, appended on its own line.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
@@ -28,7 +30,8 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { clientContent } from "../clients.js";
-import { postLink, postOf } from "../platforms.js";
+import { postedLink } from "../funnel.js";
+import { postOf } from "../platforms.js";
 import { claim, dueDrafts, markFailed, markPublished, nextDue } from "../queue.js";
 
 export const SCHEDULER_KEY = "default";
@@ -49,8 +52,6 @@ export interface ContentSchedulerDeps {
   /** Sleep between passes when nothing is scheduled (default 15 min). */
   idleMs?: number;
   notifier?: Notifier;
-  /** The lander host posts link to (`/go/<code>/<draft>`); unset = posts carry no link. */
-  linkSite?: string | null;
   /** A post just went out on `platform` (a client's, or Wren's at null): its replies read warm. */
   posted?: (ctx: restate.ObjectContext, platform: Platform, client: string | null) => void;
   /** A client's database; absent, a client's key stops. */
@@ -75,7 +76,6 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       return publishPass(ctx, now, {
         db: deps.db,
         client: null,
-        linkSite: deps.linkSite ?? null,
         notifier: deps.notifier,
       });
     if (!deps.clientDb) return stoppedPass<PublishStats>(ctx, now, "no client databases here");
@@ -96,14 +96,14 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       await setLastPass(ctx, outcome);
       return outcome;
     }
-    return publishPass(ctx, now, { db, client: id, linkSite: null });
+    return publishPass(ctx, now, { db, client: id });
   });
 
   /** One pass: due drafts claimed, posted through `Content`, marked. */
   async function publishPass(
     ctx: restate.ObjectContext,
     now: Date,
-    o: { db: Db; client: string | null; linkSite: string | null; notifier?: Notifier | undefined },
+    o: { db: Db; client: string | null; notifier?: Notifier | undefined },
   ): Promise<PassOutcome<PublishStats>> {
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
     // Rows cross the journal as JSON: their Date columns are strings here; only id/platform/text/title/media/extra are read.
@@ -113,13 +113,19 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     for (const draft of batch) {
       const claimed = await ctx.run(`claim ${draft.id}`, () => claim(o.db, draft.id));
       if (!claimed) continue;
+      // A client's posts carry no Wren link; Wren's carry their funnel's.
+      const link = o.client
+        ? null
+        : await ctx.run(`link ${draft.id}`, () => postedLink(o.db, claimed));
       try {
         const published = await content.publish({
           platform: draft.platform,
-          post: postOf(claimed, postLink(o.linkSite, claimed)),
+          post: postOf(claimed, link),
           ...(o.client ? { client: o.client } : {}),
         });
-        await ctx.run(`published ${draft.id}`, () => markPublished(o.db, draft.id, published));
+        await ctx.run(`published ${draft.id}`, () =>
+          markPublished(o.db, draft.id, published, link),
+        );
         stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
         deps.posted?.(ctx, draft.platform, o.client);
       } catch (err) {

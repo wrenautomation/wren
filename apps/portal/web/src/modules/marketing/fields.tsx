@@ -1,6 +1,7 @@
 /**
- * A post's fields past its words (designs/2026-10-07-post-shapes.md): the form drawn from the
- * platform's shape in three groups (Basics, Media, Details), each field saved on its own, and the
+ * A post's fields past its words (designs/2026-10-07-post-shapes.md): its funnel first
+ * (designs/2026-10-07-content-funnel.md), then the form drawn from the platform's shape in three
+ * groups (Basics, Media, Details), each field saved on its own, and the
  * post as its platform shows it beside them, live as he types. On a draft and in To approve it
  * edits; on a posted one it shows what went out. Drafts, To approve and Posts all draw it here.
  */
@@ -10,6 +11,7 @@ import { Button, Input, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { SELECT } from "../work/bits.js";
+import { type Funnel, FunnelFields } from "./funnel.js";
 import { postLooks } from "./posts.js";
 import { PlatformPreview, type Typed } from "./shape-preview.js";
 
@@ -30,6 +32,8 @@ export type Shape = {
   /** When it posts, once approved with a time. */
   scheduled: string | null;
   published: { url: string | null; at: string | null; notes: string | null } | null;
+  /** Its stage, target and link; absent on a row read before the funnel. */
+  funnel?: Funnel;
 };
 
 export const FIELDS = "marketing.draftFields";
@@ -495,7 +499,18 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
   const details = of("details");
   return (
     <div className="@container/fields mt-2 mb-3 grid gap-6 border-t border-(--ui-hair) pt-5">
-      <section aria-label="Basics" className="grid gap-4">
+      {shape.funnel ? (
+        <FunnelFields
+          draftId={shape.draftId}
+          funnel={shape.funnel}
+          act={act}
+          editable={shape.editable}
+        />
+      ) : null}
+      <section
+        aria-label="Basics"
+        className={`grid gap-4 ${shape.funnel ? "border-t border-(--ui-hair) pt-5" : ""}`}
+      >
         <h3 className={GROUP_HEAD}>Basics</h3>
         <div className={GRID}>
           {cells(of("basics"))}
@@ -550,7 +565,14 @@ function Details({
 
 /** The post on its platform, reading the fields as typed. */
 function Preview({ shape, detail }: { shape: Shape; detail: unknown }) {
-  return <PlatformPreview shape={shape} typed={useTyped(shape.draftId)} look={postLooks(detail)} />;
+  return (
+    <PlatformPreview
+      shape={shape}
+      typed={useTyped(shape.draftId)}
+      look={postLooks(detail)}
+      link={shape.published ? null : (shape.funnel?.posts ?? null)}
+    />
+  );
 }
 
 /** What the platform refused after the post went up: the post stays, these didn't take. */

@@ -24,10 +24,26 @@ import { z } from "zod";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
 import { clientContent, clientPlan } from "../clients.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
+import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
+import {
+  draftPromo,
+  PROMO_PLATFORMS,
+  type PromoPlatform,
+  promoBase,
+  videoDraftOf,
+} from "../promo.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts, setFields } from "../review.js";
-import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
+import {
+  type ContentIdea,
+  FUNNEL_STAGES,
+  FUNNEL_TARGETS,
+  type FunnelStage,
+  type FunnelTarget,
+  IDEA_SOURCES,
+  type IdeaSource,
+} from "../schema.js";
 import { slotsOf } from "../slots.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
 import type { Brand } from "../voice.js";
@@ -139,12 +155,72 @@ const ATTACH = z.looseObject({
     .max(Math.ceil((ATTACH_MAX_BYTES * 4) / 3) + 4)
     .describe("The bytes, base64"),
 });
+const FUNNEL = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
+  draftId: z.string(),
+  stage: z.enum(FUNNEL_STAGES).nullish().describe("Reach, trust or convert; left out: unchanged"),
+  to: z.enum(FUNNEL_TARGETS).nullish().describe("Where it sends people; left out: unchanged"),
+  video: z
+    .string()
+    .nullish()
+    .describe("The YouTube draft it points at; empty clears it, left out: unchanged"),
+  linked: z
+    .union([z.boolean(), z.enum(["on", "off", "auto"])])
+    .nullish()
+    .describe("Carries its link: on, off, or auto (the platform's rule)"),
+});
+const PROMOTE = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
+  video: z.number().int().positive().nullish().describe("The video (wren video list)"),
+  draftId: z.string().nullish().describe("Or its YouTube draft"),
+  platforms: z
+    .array(z.enum(PROMO_PLATFORMS))
+    .nullish()
+    .describe(`Of ${PROMO_PLATFORMS.join(", ")}; empty = all`),
+  again: z.boolean().nullish().describe("Draft again where a promo draft exists"),
+});
 const EDIT = z.looseObject({
   viewer: PORTAL_FIELDS.viewer,
   draftId: z.string(),
   text: z.string().describe("The whole post"),
   title: z.string().nullish().describe("Left out: unchanged"),
 });
+
+export interface FunnelRequest {
+  draftId: string;
+  stage?: FunnelStage | null;
+  to?: FunnelTarget | null;
+  video?: string | null;
+  linked?: boolean | "on" | "off" | "auto" | null;
+  viewer?: unknown;
+}
+
+/** A form's values as a patch: left out or null is unchanged; an empty video clears it. */
+export function funnelPatch(req: FunnelRequest): FunnelPatch {
+  const linked =
+    req.linked === "on" || req.linked === true
+      ? true
+      : req.linked === "off" || req.linked === false
+        ? false
+        : req.linked === "auto"
+          ? null
+          : undefined;
+  return {
+    ...(req.stage ? { stage: req.stage } : {}),
+    ...(req.to ? { to: req.to } : {}),
+    ...(req.video !== undefined && req.video !== null ? { video: req.video || null } : {}),
+    ...(linked !== undefined ? { linked } : {}),
+  };
+}
+
+/** A refusal the person can fix (not approved yet, no such video) fails the call, never retries. */
+const verdictOf = async <T>(f: () => Promise<T>): Promise<T> => {
+  try {
+    return await f();
+  } catch (err) {
+    throw new restate.TerminalError((err as Error).message, { errorCode: 409 });
+  }
+};
 
 /**
  * A verdict the review refuses (not waiting, over the cap) is the person's to fix, so it fails
@@ -369,6 +445,70 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               }
               return [await setFields(db, req.draftId, req.patch, { by: byOf(req) })];
             }),
+          );
+        },
+      ),
+      /**
+       * Promote a YouTube video: one draft per platform in its tone, pointing at the video, each
+       * waiting in To approve. Nothing posts.
+       */
+      promote: exclusiveHandler(
+        { input: PROMOTE },
+        async (
+          ctx: restate.ObjectContext,
+          req: {
+            video?: number | null;
+            draftId?: string | null;
+            platforms?: PromoPlatform[] | null;
+            again?: boolean | null;
+            viewer?: unknown;
+          },
+        ): Promise<DraftReport> => {
+          const s = await scopeOf(ctx, true);
+          const video = req.video;
+          if (!req.draftId && !video)
+            throw new restate.TerminalError("name a video or its YouTube draft", {
+              errorCode: 400,
+            });
+          const base = await ctx.run("promo", () =>
+            verdictOf(async () =>
+              promoBase(s.db, req.draftId || (await videoDraftOf(s.db, video as number))),
+            ),
+          );
+          const platforms = req.platforms?.length ? req.platforms : [...PROMO_PLATFORMS];
+          const runId = await ctx.run("open run", async () => {
+            const run = await openRun(s.db, {
+              command: "content promote",
+              argv: { video: base.video.id, platforms },
+            });
+            return run.id;
+          });
+          const o = { ...options(s, runId, req.again ?? false), by: byOf(req) };
+          const results: DraftResult[] = [];
+          for (const p of platforms) {
+            const [r] = await ctx.run(`${DRAFT_STAGE} ${p} promo`, () =>
+              stopped([p], () => draftPromo(s.db, s.llm, base, p, o).then((x) => [x])),
+            );
+            if (r) results.push(r);
+          }
+          await ctx.run("finish run", () =>
+            finishRun(s.db, runId, {
+              drafted: results.filter((r) => r.ok).length,
+              skipped: results.filter((r) => !r.ok).length,
+            }),
+          );
+          return { ideaId: base.idea.id, results, runId };
+        },
+      ),
+      /** Where a post sits in the funnel and where it points; the link follows. */
+      funnel: exclusiveHandler(
+        { input: FUNNEL },
+        async (ctx: restate.ObjectContext, req: FunnelRequest) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("funnel", () =>
+            verdict(async () => [
+              await setFunnel(db, req.draftId, funnelPatch(req), { by: byOf(req) }),
+            ]),
           );
         },
       ),

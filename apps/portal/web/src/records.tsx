@@ -232,6 +232,14 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/draftFields": (id, { patch }) => desk("fields", { draftId: draftOf(id), patch }),
   "marketing/draftAttach": (id, { field, name, data }) =>
     desk("attach", { draftId: draftOf(id), field, name, data }),
+  // Its stage, target, video and link switch (designs/2026-10-07-content-funnel.md).
+  "marketing/draftFunnel": (id, { stage, to, video, linked }) =>
+    desk("funnel", { draftId: draftOf(id), stage, to, video, linked }),
+  // A video's promo: four model calls, so started, not awaited (designs/2026-10-07-content-funnel.md).
+  "marketing/videoPromote": (id) =>
+    handlerCall("ContentDesk", "promote", { video: num(id) }, { key: "default", send: true }),
+  "marketing/postPromote": (id) =>
+    handlerCall("ContentDesk", "promote", { draftId: draftOf(id) }, { key: "default", send: true }),
   // A video's yes, from its page or the Inbox (`video:3`).
   "marketing/videoApprove": (id, { privacy }) =>
     desk("approveVideo", { id: num(id), privacy: privacy || null }),
@@ -373,6 +381,10 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
   "marketing/draftAttach": (id, { field, name, data }) => [
     "marketing/draftAttach",
     { draftId: draftOf(id), field, name, data },
+  ],
+  "marketing/draftFunnel": (id, { stage, to, video, linked }) => [
+    "marketing/draftFunnel",
+    { draftId: draftOf(id), stage, to, video, linked },
   ],
 };
 /** Head actions that are another handler with something added. */

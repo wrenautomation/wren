@@ -94,6 +94,22 @@ export const draftRecordOf = (signer?: VideoSigner) =>
         },
         "Written by",
       ),
+      stage: status(
+        {
+          reach: { label: "Reach", tone: "neutral" },
+          trust: { label: "Trust", tone: "neutral" },
+          convert: { label: "Convert", tone: "neutral" },
+        },
+        "Stage",
+      ),
+      to: status(
+        {
+          video: { label: "The video", tone: "neutral" },
+          site: { label: "The site", tone: "neutral" },
+          booking: { label: "Booking", tone: "neutral" },
+        },
+        "Points to",
+      ),
       note: text("Your redraft note"),
       error: text("Last error"),
       scheduled: date("Posts at"),
@@ -132,6 +148,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       "marketing.draftAsk",
       "marketing.draftUndo",
       "marketing.draftFields",
+      "marketing.draftFunnel",
       "marketing.draftAttach",
     ],
     calls: DRAFT_CALLS,
@@ -190,7 +207,7 @@ export const postRecordOf = (signer?: VideoSigner) =>
     ],
     activity: { view: "draft_activity", by: "post", seq: "seq" },
     drafts: (id) => [`draft:${id.split("/").at(-1)}`],
-    actions: ["marketing.draftAgain"],
+    actions: ["marketing.draftAgain", "marketing.postPromote"],
     load: async (db, id) => ({
       post: await postOf(db, id.split("/")[2] ?? ""),
       shape: await shapeView(db, id.split("/")[2] ?? "", signer),
