@@ -68,8 +68,13 @@ const FLOWS: Workflow[] = [
     blurb: "",
     for: "client",
     steps: [
-      { touch: "touch", with: { step: 1 } },
-      { touch: "touch", with: { step: 2 }, after: "2 days" },
+      { touch: "touch", template: { kind: "sms", system: "t", name: "t#1" }, with: { step: 1 } },
+      {
+        touch: "touch",
+        template: { kind: "sms", system: "t", name: "t#2" },
+        with: { step: 2 },
+        after: "2 days",
+      },
     ],
   }),
 ];

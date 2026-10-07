@@ -8,7 +8,8 @@ import {
   type Person,
   people,
 } from "@wren/core";
-import { field, type Template, template, text } from "@wren/core/slots";
+import { field, type Template, template, text, toSource } from "@wren/core/slots";
+import { emailRef, saveLive } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { documents, enrichments } from "@wren/research/schema";
 import { asc, eq } from "drizzle-orm";
@@ -49,8 +50,19 @@ export const TABLES = [
   "enrichments",
   "enrollments",
   "findings",
+  "templates",
   "template_versions",
 ];
+
+/** These templates live in the store for `niche`, as a publish would leave them. */
+export async function liveCopy(
+  db: Db,
+  niche: string,
+  copy: ReadonlyMap<string, Template> = TEMPLATES,
+): Promise<void> {
+  for (const [name, tpl] of copy)
+    await saveLive(db, emailRef(niche, name), toSource(tpl), { by: "test" });
+}
 
 export async function makeCompany(
   db: Db,

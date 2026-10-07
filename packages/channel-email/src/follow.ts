@@ -5,6 +5,7 @@
  * touch releases the next step at once: the tick's business-day math still picks its day.
  */
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
+import { emailRef } from "@wren/core/templates";
 import { cadenceId, cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -22,7 +23,11 @@ export function emailCadence(niche: string, seq: Sequence): Workflow {
     label: `Email: ${niche} ${seq.name}`,
     blurb: `${seq.steps.length} emails on business days ${seq.steps.map((s) => s.day).join(", ")}, stopping when they answer.`,
     for: "client",
-    steps: seq.steps.map((s, i) => ({ touch: EMAIL_TOUCH, with: { step: i, day: s.day } })),
+    steps: seq.steps.map((s, i) => ({
+      touch: EMAIL_TOUCH,
+      template: emailRef(niche, s.template),
+      with: { step: i, day: s.day },
+    })),
   });
 }
 

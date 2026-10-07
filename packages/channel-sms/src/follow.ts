@@ -11,7 +11,7 @@ import { eq } from "drizzle-orm";
 import { TOUCH } from "./components.js";
 import { endContact } from "./deliver.js";
 import { smsContacts, smsMessages } from "./schema.js";
-import { fieldsFor, liveTexts } from "./template-store.js";
+import { fieldsFor, liveTexts, textRef } from "./template-store.js";
 import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
 
 /** One text contact as a lead on the spine. */
@@ -30,6 +30,7 @@ export function textCadence(seq: SmsSequence): Workflow {
     for: "wren",
     steps: seq.steps.map((s) => ({
       touch: TOUCH,
+      template: textRef(stepKey(seq.name, s.step)),
       with: { step: s.step },
       ...(s.afterDays > 0 ? { after: `${s.afterDays} day${s.afterDays === 1 ? "" : "s"}` } : {}),
     })),

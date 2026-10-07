@@ -6,7 +6,8 @@
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
-import type { ReachSequence } from "./sequences.js";
+import { type ReachSequence, stepKey } from "./sequences.js";
+import { dmRef } from "./store.js";
 import { type TickOptions, touch } from "./tick.js";
 
 /** One DM contact as a lead on the spine. */
@@ -25,6 +26,7 @@ export function reachCadence(seq: ReachSequence): Workflow {
     for: "wren",
     steps: seq.steps.map((s) => ({
       touch: "reach.touch",
+      template: dmRef(stepKey(seq, s.step)),
       with: { step: s.step },
       ...(s.afterDays > 0 ? { after: `${s.afterDays} day${s.afterDays === 1 ? "" : "s"}` } : {}),
     })),

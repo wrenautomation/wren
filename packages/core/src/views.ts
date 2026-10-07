@@ -4,6 +4,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   numeric,
   pgView,
   text,
@@ -111,3 +112,60 @@ export const recruitingFacts = pgView("recruiting_facts", {
 }).as(
   sql`SELECT c.id AS company_id, c.source_key, c.domain, c.name, c.country, NULLIF(round((ppp.output ->> 'jobs_reported')::numeric)::integer, 0) AS employees, NULLIF(round((ppp.output ->> 'payroll_yearly_estimate')::numeric)::bigint, 0) AS payroll_yearly_usd, substring(c.raw -> 'sba' ->> 'year_established' from '[0-9]{4}')::integer AS founded_year, op.output -> 'opener' ->> 'line' AS opener, vid.output ->> 'url' AS video_url FROM companies c LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'firmographics' AND e.model = 'ppp-foia' ORDER BY e.prompt_version DESC, e.created_at DESC LIMIT 1 ) ppp ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'opener' AND e.output -> 'opener' ->> 'line' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) op ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'video' AND e.output ->> 'url' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) vid ON true WHERE c.niche = 'recruiting'`,
 );
+
+/**
+ * Every channel's sends, replies and bookings per template version and variant: one row per
+ * (kind, system, template, version, picks), joined to the template store by its name. A send is
+ * one message out; a reply or booking after it on the same thread credits it, so a reply to a
+ * follow-up still counts for the opener. `picks` is the variant each `[[..]]` point chose (the
+ * render's provenance); texts and DMs have no booking link yet, so `booked` is null for them.
+ */
+export const templateStats = pgView("template_stats", {
+  kind: text("kind"),
+  system: text("system"),
+  template: text("template"),
+  templateId: integer("template_id"),
+  version: text("version"),
+  picks: jsonb("picks"),
+  sends: bigint("sends", { mode: "number" }),
+  replies: bigint("replies", { mode: "number" }),
+  booked: bigint("booked", { mode: "number" }),
+  lastSent: timestamp("last_sent", { withTimezone: true }),
+}).as(sql`
+  with sent as (
+    select 'email'::text kind, e.niche::text system, m.template::text template,
+      m.template_version::text version, m.provenance -> 'picks' picks, m.sent_at,
+      exists (select 1 from thread_events te where te.enrollment_id = m.enrollment_id
+        and te.kind = 'reply' and te.received_at >= m.sent_at) replied,
+      exists (select 1 from thread_events te where te.enrollment_id = m.enrollment_id
+          and te.disposition = 'meeting_booked' and te.received_at >= m.sent_at)
+        or exists (select 1 from call_invites ci where ci.enrollment_id = m.enrollment_id
+          and ci.state in ('booked', 'already_booked') and ci.created_at >= m.sent_at)
+        or exists (select 1 from call_bookings cb where cb.enrollment_id = m.enrollment_id
+          and cb.state = 'booked' and cb.booked_at >= m.sent_at) booked
+    from messages m join enrollments e on e.id = m.enrollment_id
+    where m.state = 'sent'
+    union all
+    select 'sms', 'texts', m.template, m.template_version, m.provenance -> 'picks', m.sent_at,
+      exists (select 1 from sms_messages r where r.contact_id = m.contact_id
+        and r.direction = 'in' and coalesce(r.received_at, r.created_at) >= m.sent_at),
+      null
+    from sms_messages m
+    where m.direction = 'out' and m.state in ('sent', 'delivered') and m.template is not null
+    union all
+    select 'dm', 'reach', m.template, m.template_version, m.provenance -> 'picks', m.sent_at,
+      exists (select 1 from reach_messages r where r.contact_id = m.contact_id
+        and r.direction = 'in' and coalesce(r.sent_at, r.created_at) >= m.sent_at),
+      null
+    from reach_messages m
+    where m.direction = 'out' and m.state = 'sent' and m.template is not null
+  )
+  select s.kind, s.system, s.template, t.id template_id, s.version, s.picks,
+    count(*) sends,
+    count(*) filter (where s.replied) replies,
+    case when s.kind = 'email' then count(*) filter (where s.booked) end booked,
+    max(s.sent_at) last_sent
+  from sent s
+  left join templates t on t.kind = s.kind and t.system = s.system and t.name = s.template
+  group by s.kind, s.system, s.template, t.id, s.version, s.picks
+`);

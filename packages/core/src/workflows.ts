@@ -4,6 +4,7 @@
  * the check, never a workflow; the worker collects Wren's.
  */
 import { type Component, EVENT_KINDS, type Port, type Stage } from "./components.js";
+import type { TemplateRef } from "./templates.js";
 
 /**
  * A custom step: the escape hatch for a one-off integration, kept out of the catalog. Anything
@@ -29,6 +30,8 @@ export interface WorkflowNode {
   note?: string;
   /** Its settings at this node, handed to its step: which copy, which step. */
   with?: Record<string, string | number>;
+  /** The copy it sends, in the template store: what the Library joins a step's numbers on. */
+  template?: TemplateRef;
 }
 
 export interface Wire {
@@ -61,12 +64,18 @@ type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">
 
 export const defineWorkflow = (w: Input): Workflow => ({ ...w, in: w.in ?? [], out: w.out ?? [] });
 
-/** One follow-up step: after its wait, one touch by a channel's part, in one copy slot. */
+/**
+ * One step of any channel's sequence, as the spine runs it: after its wait, one touch by a
+ * channel's part, sending one template. Email, texts and DMs each declare their steps their own
+ * way (business days from the opener, days after the last); their cadences all come out as these.
+ */
 export interface CadenceStep {
   /** The wait after the previous step went ("2 days"); none = right away. */
   after?: string;
   /** The part that makes the touch: `sms.touch`. */
   touch: string;
+  /** The copy it sends: kind (the channel's), system, name. */
+  template: TemplateRef;
   with: Record<string, string | number>;
 }
 
@@ -100,7 +109,12 @@ export function cadenceWorkflow(c: {
       { id: "replied", label: "replies", kind: "reply" },
       { id: "quiet", label: "every step sent", kind: "lead" },
     ],
-    nodes: c.steps.map((s, i) => ({ id: at(i), uses: s.touch, with: s.with })),
+    nodes: c.steps.map((s, i) => ({
+      id: at(i),
+      uses: s.touch,
+      with: s.with,
+      template: s.template,
+    })),
     wires: c.steps.flatMap((s, i) => [
       {
         from: i === 0 ? "in.leads" : `${at(i - 1)}.sent`,
