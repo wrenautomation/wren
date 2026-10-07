@@ -20,6 +20,8 @@ export interface DoRequest {
   url?: string | null;
   /** Say what would run, run nothing. */
   dryRun?: boolean;
+  /** Whose accounts it runs in; autobrowse refuses another owner's (409). None: the worker's own. */
+  owner?: string | null;
 }
 
 export interface DoOutcome {
@@ -92,17 +94,39 @@ export function autobrowseDo(o: {
   };
 }
 
-const DO = { name: "do" } as const;
 type DoService = { run: (ctx: restate.Context, req: DoRequest) => Promise<DoOutcome> };
 
-/** Through the invocation's context: one durable step; a goal that publishes runs once. */
-export function restateDo(ctx: restate.Context, wake?: Wake): Do {
-  const client = ctx.serviceClient<DoService>(DO);
+/** Wren's own autobrowse owner, whose service keeps the plain name. */
+export const DO_OWNER = "wren";
+
+/** autobrowse's Restate name for an owner's `do`: `do` for Wren's, `do_<owner>` for another's. */
+export const doServiceFor = (owner: string = DO_OWNER): string =>
+  owner === DO_OWNER ? "do" : `do_${owner}`;
+
+/**
+ * Through the invocation's context: one durable step; a goal that publishes runs once. With an
+ * `owner`, the call goes to that owner's autobrowse and names it, so no other owner runs it.
+ * With `timeoutMs`, a call still waiting then fails 504 (an owner whose worker isn't up).
+ */
+export function restateDo(
+  ctx: restate.Context,
+  wake?: Wake,
+  o: { owner?: string; timeoutMs?: number } = {},
+): Do {
+  const client = ctx.serviceClient<DoService>({ name: doServiceFor(o.owner) });
   return async (req) => {
     if (wake) await ctx.run("wake autobrowse", wake);
+    const ask = o.owner ? { ...req, owner: o.owner } : req;
     try {
-      return await client.run(req);
+      const call = client.run(ask);
+      return await (o.timeoutMs ? call.orTimeout(o.timeoutMs) : call);
     } catch (err) {
+      if (err instanceof restate.TimeoutError)
+        throw new DoFailed(
+          req.goal,
+          504,
+          `no answer in ${Math.round((o.timeoutMs ?? 0) / 60_000)} minutes`,
+        );
       if (err instanceof restate.TerminalError)
         throw new DoFailed(req.goal, err.code ?? 500, err.message);
       throw err;

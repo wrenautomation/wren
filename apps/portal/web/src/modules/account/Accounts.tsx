@@ -55,12 +55,14 @@ function Run({
   a,
   run,
   team,
+  agent,
   mayAct,
   act,
 }: {
   a: AccountRow;
   run: RunRow;
   team: boolean;
+  agent: boolean;
   mayAct: boolean;
   act: Act;
 }) {
@@ -104,7 +106,9 @@ function Run({
           ) : null}
           {team && run.mode === "for_you" && now.who !== "auto" ? (
             <p className={QUIET}>
-              The agent for done-for-you steps is in development. Do it by hand, then mark it done.
+              {agent
+                ? "Wren's agent tries it once. If it can't, do it by hand and mark it done."
+                : "Wren's agent is off. Do it by hand, then mark it done."}
             </p>
           ) : null}
           {team && run.state === "stuck" && !now.why?.startsWith("Stuck past") ? (
@@ -170,11 +174,13 @@ function Run({
 function Account({
   a,
   team,
+  agent,
   mayAct,
   act,
 }: {
   a: AccountRow;
   team: boolean;
+  agent: boolean;
   mayAct: boolean;
   act: Act;
 }) {
@@ -192,7 +198,15 @@ function Account({
     >
       <div className="grid gap-8">
         {a.runs.map((run) => (
-          <Run key={run.setup} a={a} run={run} team={team} mayAct={mayAct} act={act} />
+          <Run
+            key={run.setup}
+            a={a}
+            run={run}
+            team={team}
+            agent={agent}
+            mayAct={mayAct}
+            act={act}
+          />
         ))}
         {a.setups.map((s) => (
           <div key={s.id} className="grid gap-1.5">
@@ -316,7 +330,7 @@ export function Accounts(props: PageProps) {
             </Empty>
           ) : (
             d.accounts.map((a) => (
-              <Account key={a.id} a={a} team={team} mayAct={d.mayAct} act={act} />
+              <Account key={a.id} a={a} team={team} agent={d.agent} mayAct={d.mayAct} act={act} />
             ))
           )}
           {act.error && !team ? <p className={ERROR}>{act.error}</p> : null}

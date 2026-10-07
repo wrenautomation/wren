@@ -181,6 +181,7 @@ import { meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
+import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
 import { makeSpine, makeSpineClock, type SpineEvent, spineFire } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
@@ -1223,13 +1224,17 @@ export async function buildServices(
       components: COMPONENTS,
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
-        // Account setups: no agent yet, so done-for-you steps wait on Wren's team. A stuck
-        // step tells the team on the clients lane, named for the client; none with WREN_NOTIFY=none.
+        // Account setups. With WREN_SETUP_AGENT a done-for-you step goes to SetupAgent on its
+        // first round; off, it waits on Wren's team. A stuck step tells the team on the clients
+        // lane, named for the client; none with WREN_NOTIFY=none.
         [SETUP_STEP]: setupStep({
           main: db,
           setups: SETUPS,
           checks: setupChecks,
-          do: null,
+          agent: settings.setupAgent
+            ? (job, key) =>
+                ingressSend(ingressOf(settings), { service: SETUP_AGENT, handler: "run" }, key, job)
+            : null,
           notifierFor: (client) => {
             if (settings.notify === "none") return null;
             const lane = laneNotifier(settings.discordClientsWebhookUrl);
@@ -1348,10 +1353,17 @@ export async function buildServices(
     makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({ main: db, setups: SETUPS, checks: setupChecks, ...notify }),
+    // Done-for-you steps in the owner's autobrowse; only queued with WREN_SETUP_AGENT.
+    makeSetupAgent({
+      main: db,
+      setups: SETUPS,
+      wake: sitesHost(settings.autobrowseInstanceId).wake,
+    }),
     // A client's accounts and vendors. No key store: the role can't write SSM yet (William's).
     makeAccountsConsole({
       db,
       setups: SETUPS,
+      agent: settings.setupAgent,
       checks: new Set(Object.keys(setupChecks)),
       keys: null,
       env: "prod",

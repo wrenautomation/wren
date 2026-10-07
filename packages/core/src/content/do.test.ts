@@ -1,6 +1,6 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
-import { autobrowseDo, DoFailed, type DoOutcome, restateDo } from "./do.js";
+import { autobrowseDo, DoFailed, type DoOutcome, doServiceFor, restateDo } from "./do.js";
 
 const outcome: DoOutcome = {
   via: "site",
@@ -93,6 +93,32 @@ describe("restateDo", () => {
     expect(calls).toEqual(["run wake autobrowse", "do/run upload"]);
     await expect(restateDo(ctx)({ goal: "bad" })).rejects.toSatisfy(
       (e: unknown) => e instanceof DoFailed && e.status === 501,
+    );
+  });
+
+  it("an owner's do: its own service, the owner named; no answer in time is a 504", async () => {
+    expect(doServiceFor()).toBe("do");
+    expect(doServiceFor("wren")).toBe("do");
+    expect(doServiceFor("acme")).toBe("do_acme");
+    const seen: { service: string; req: unknown }[] = [];
+    let late = false;
+    const ctx = {
+      serviceClient: ({ name }: { name: string }) => ({
+        run: (req: unknown) => {
+          seen.push({ service: name, req });
+          const p = Promise.resolve(outcome);
+          return Object.assign(p, {
+            orTimeout: () => (late ? Promise.reject(new restate.TimeoutError()) : p),
+          });
+        },
+      }),
+    } as unknown as restate.Context;
+    const acme = restateDo(ctx, undefined, { owner: "acme", timeoutMs: 60_000 });
+    expect(await acme({ goal: "add the partner" })).toEqual(outcome);
+    expect(seen).toEqual([{ service: "do_acme", req: { goal: "add the partner", owner: "acme" } }]);
+    late = true;
+    await expect(acme({ goal: "add the partner" })).rejects.toSatisfy(
+      (e: unknown) => e instanceof DoFailed && e.status === 504,
     );
   });
 });

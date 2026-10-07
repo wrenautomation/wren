@@ -78,6 +78,13 @@ describe("updateClient: products", () => {
     expect((await updateClient(pg.db, "acme", { name: "Acme Co" })).approver).toBe("client");
   });
 
+  it("buys start off; only a change that says so turns them on or off", async () => {
+    expect((await findClient(pg.db, "acme"))?.buysOk).toBe(false);
+    expect((await updateClient(pg.db, "acme", { buysOk: true })).buysOk).toBe(true);
+    expect((await updateClient(pg.db, "acme", { name: "Acme Co" })).buysOk).toBe(true);
+    expect((await updateClient(pg.db, "acme", { buysOk: false })).buysOk).toBe(false);
+  });
+
   it("removing every product leaves an empty object, not null", async () => {
     const c = await updateClient(pg.db, "acme", { products: { reactivation: null, other: null } });
     expect(c.products).toEqual({});

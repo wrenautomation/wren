@@ -71,6 +71,7 @@ function show(c: Client): string {
     `products: ${Object.keys(c.products).join(",") || "-"}`,
     `approver: ${c.approver}`,
     `sends: ${c.sends.join(",") || "off"}`,
+    `buys: ${c.buysOk ? "yes" : "no"}`,
     `(${c.name})`,
   ].join("  ");
 }
@@ -131,6 +132,10 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     .option("--unset <product.path>", "back to the default, repeatable", collect)
     .option("--live <part>", "turn a part's sends on for this client (admin), repeatable", collect)
     .option("--live-off <part>", "turn a part's sends off for this client, repeatable", collect)
+    .option(
+      "--buys-ok <yes|no>",
+      "William's yes: done-for-you setup steps may buy or create accounts for this client",
+    )
     .action(
       async (
         id: string,
@@ -142,6 +147,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
           unset?: string[];
           live?: string[];
           liveOff?: string[];
+          buysOk?: string;
         },
       ) => {
         const switches = COMPONENTS.filter((c) => c.liveSwitch).map((c) => c.id);
@@ -151,6 +157,8 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         const approver = opts.approver;
         if (approver !== undefined && !(APPROVERS as readonly string[]).includes(approver))
           throw new Error(`--approver is one of ${APPROVERS.join(", ")}`);
+        if (opts.buysOk !== undefined && !["yes", "no"].includes(opts.buysOk))
+          throw new Error("--buys-ok is yes or no");
         const client = await withMainDb(async (db) => {
           const current = await getClient(db, id);
           const products =
@@ -160,6 +168,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
             ...(approver ? { approver: approver as Approver } : {}),
             ...(opts.account ? { accounts: accountPairs(opts.account) } : {}),
             ...(products ? { products } : {}),
+            ...(opts.buysOk !== undefined ? { buysOk: opts.buysOk === "yes" } : {}),
             ...(opts.live || opts.liveOff
               ? {
                   // The whole list: what was on, plus --live, minus --live-off. Audited by the row trigger.

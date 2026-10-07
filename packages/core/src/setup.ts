@@ -10,7 +10,7 @@ import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { clients, type SetupMode } from "./clients/schema.js";
 import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components.js";
-import type { Do } from "./content/do.js";
+import { DO_OWNER, type DoRequest } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
 import type { Notifier } from "./notify.js";
 import {
@@ -547,8 +547,8 @@ export interface SetupDeps {
   main: Db;
   setups: readonly Setup[];
   checks: Readonly<Record<string, SetupCheck>>;
-  /** autobrowse's `do`, for done-for-you steps; none: they wait on Wren's team. */
-  do?: Do | null;
+  /** Hands a done-for-you step to the agent (`SetupAgent`); none: they wait on Wren's team. */
+  agent?: AgentQueue | null;
   /** Wren's team's lane for an owner's setups (null is Wren's own); none: nobody is told. */
   notifierFor?: (client: string | null) => Notifier | null;
   now?: () => Date;
@@ -556,6 +556,69 @@ export interface SetupDeps {
 
 /** Said when a done-for-you step can't go on its own. */
 export const WAITING_ON_WREN = "Waiting on Wren's team";
+/** Said while the agent works a step. */
+export const AGENT_ON_IT = "Wren's agent is on it";
+
+/**
+ * A done-for-you step for the agent. It runs in the account owner's autobrowse (`owner`: the
+ * client, or Wren for Wren's own), never in Wren's for a client.
+ */
+export interface AgentJob {
+  accountId: number;
+  gen: number;
+  setup: string;
+  step: string;
+  owner: string;
+  request: DoRequest;
+}
+
+/** Queue a job; its answer comes back through `agentDone`. One job per account, generation and step. */
+export type AgentQueue = (job: AgentJob, key: string) => Promise<void>;
+
+/** The agent's answer: the fact is true, or why it isn't. */
+export interface AgentAnswer {
+  done: boolean;
+  why: string;
+}
+
+/**
+ * The agent finished a step. Done: the fact holds and a fresh round moves the run on. Not done:
+ * the run says why and waits on Wren's team. A run started over or past the step since is left be.
+ */
+export async function agentDone(
+  main: Db,
+  s: Setup,
+  job: AgentJob,
+  out: AgentAnswer,
+  now: Date = new Date(),
+): Promise<SetupEmit | null> {
+  const i = s.steps.findIndex((x) => x.id === job.step);
+  const step = s.steps[i];
+  const acct = step ? await account(main, job.accountId) : null;
+  const run = acct && (await runOf(main, acct.id, s.id));
+  if (!step || !acct || !run || run.gen !== job.gen || run.step !== job.step) return null;
+  if (out.done) {
+    await setFact(main, acct.id, step.fact, "ok", { why: out.why, by: "agent", now });
+    return {
+      client: acct.client,
+      workflow: s.id,
+      from: i === 0 ? "in.accounts" : `${s.steps[i - 1]?.id}.done`,
+      events: [accountEvent(`${setupSubject(acct.id, run.gen)}#a${now.getTime()}`, acct.id)],
+    };
+  }
+  await main
+    .update(setupRuns)
+    .set({ state: "waiting_wren", why: `The agent couldn't: ${out.why}`.slice(0, 2000) })
+    .where(
+      and(
+        eq(setupRuns.id, run.id),
+        eq(setupRuns.gen, job.gen),
+        eq(setupRuns.step, job.step),
+        ne(setupRuns.state, "stuck"),
+      ),
+    );
+  return null;
+}
 
 /** What a step waiting on someone says, and whose turn it is. */
 function waiting(step: SetupStep, mode: SetupMode): { state: SetupState; why: string } {
@@ -664,27 +727,30 @@ export function setupStep(d: SetupDeps): Step {
       if (step.buys && !owner?.buysOk) {
         state = "waiting_wren";
         why = WAITING_ON_WREN;
-      } else if (d.do) {
-        const out = await d.do({
-          goal: step.goal,
-          inputs: {
-            account: acct.ref,
-            site: acct.site,
-            ...(acct.client ? { client: acct.client } : {}),
-            ...(acct.login ? { login: acct.login } : {}),
+      } else if (d.agent) {
+        const job: AgentJob = {
+          accountId: acct.id,
+          gen: run.gen,
+          setup: s.id,
+          step: step.id,
+          owner: acct.client ?? DO_OWNER,
+          request: {
+            goal: step.goal,
+            inputs: {
+              account: acct.ref,
+              site: acct.site,
+              ...(acct.client ? { client: acct.client } : {}),
+              ...(acct.login ? { login: acct.login } : {}),
+            },
           },
-        });
-        if (out.status === "done") {
-          await setFact(d.main, acct.id, step.fact, "ok", {
-            why: out.summary,
-            by: "agent",
-            now,
-          });
-          await advance();
-          return done;
-        }
+        };
         state = "waiting_wren";
-        why = out.summary || WAITING_ON_WREN;
+        try {
+          await d.agent(job, `setup-agent:${acct.id}:g${run.gen}:${step.id}`);
+          why = AGENT_ON_IT;
+        } catch {
+          why = WAITING_ON_WREN;
+        }
       } else {
         state = "waiting_wren";
         why = WAITING_ON_WREN;
@@ -692,6 +758,9 @@ export function setupStep(d: SetupDeps): Step {
     }
 
     const stuck = !!step.within && now.getTime() - run.stepSince.getTime() > waitMs(step.within);
+    // Later rounds of the team's steps keep what the agent or the last round said.
+    if (ours && step.goal && run.rounds > 0 && run.state === "waiting_wren" && run.why)
+      why = run.why;
     const cause = why;
     if (stuck) {
       state = "stuck";

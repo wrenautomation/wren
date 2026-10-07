@@ -119,7 +119,14 @@ const SERVICES: Record<
   accounts: {
     routes: Object.keys(ACCOUNTS_CONSOLE_ROUTES),
     guard: { needs: ACCOUNTS_CONSOLE_ROUTES, apps: ACCOUNTS_CONSOLE_APPS, unnamed: "first" },
-    api: accountsApi({ db: main, setups: SETUPS, checks: LIVE_CHECKS, keys: null, env: "dev" }),
+    api: accountsApi({
+      db: main,
+      setups: SETUPS,
+      checks: LIVE_CHECKS,
+      keys: null,
+      env: "dev",
+      agent: process.env.WREN_SETUP_AGENT === "true",
+    }),
   },
   // A client's Marketing, from its own database. A verdict goes to its desk on Restate: not here.
   marketing: {

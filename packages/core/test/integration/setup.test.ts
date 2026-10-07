@@ -9,8 +9,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clients } from "../../src/clients/schema.js";
 import type { DoOutcome, DoRequest } from "../../src/content/do.js";
 import {
+  AGENT_ON_IT,
+  type AgentJob,
   accountsOf,
   addAccount,
+  agentDone,
   checkNow,
   defineSetup,
   factLost,
@@ -96,6 +99,8 @@ const doFake = async (req: DoRequest): Promise<DoOutcome> => {
     summary: answer === "done" ? "Done by the agent" : "The agent needs a person",
   };
 };
+// The agent queue: SetupAgent's half runs in `drain`, as the service would.
+const jobs: { job: AgentJob; key: string }[] = [];
 const told: {
   client: string | null;
   title: string;
@@ -117,7 +122,11 @@ function walker(client: string, withDo = false) {
         main: pg.db,
         setups: [SETUP],
         checks,
-        do: withDo ? doFake : null,
+        agent: withDo
+          ? async (job, key) => {
+              jobs.push({ job, key });
+            }
+          : null,
         notifierFor: (owner) => ({
           name: "test",
           notify: async (title, body, level) => {
@@ -135,7 +144,22 @@ function walker(client: string, withDo = false) {
     later: (id, ms) => later.push({ id, ms }),
     rule: async () => false,
   };
-  return { w, later, go: (e: SetupEmit) => walk(w, e.workflow, e.from, e.events) };
+  const go = (e: SetupEmit) => walk(w, e.workflow, e.from, e.events);
+  /** What SetupAgent does with each queued job: autobrowse answers, the run hears it. */
+  const drain = async () => {
+    for (let q = jobs.shift(); q; q = jobs.shift()) {
+      const out = await doFake(q.job.request);
+      const e = await agentDone(
+        pg.db,
+        SETUP,
+        q.job,
+        { done: out.status === "done", why: out.summary },
+        now,
+      );
+      if (e) await go(e);
+    }
+  };
+  return { w, later, go, drain };
 }
 
 const runOf = async (accountId: number) =>
@@ -280,10 +304,16 @@ describe("a setup run, done for you", () => {
       login: "beta-registrar",
       by: "op",
     });
-    const { go } = walker("beta", true);
-    expect(
-      (await go(await startSetup(pg.db, SETUP, { accountId: acct.id, by: "op", now }))).out,
-    ).toBe(1);
+    const { go, drain } = walker("beta", true);
+    jobs.length = 0;
+    await go(await startSetup(pg.db, SETUP, { accountId: acct.id, by: "op", now }));
+    // Queued, in the client's own autobrowse, once per account, generation and step.
+    expect(jobs.map((j) => [j.key, j.job.owner])).toEqual([
+      [`setup-agent:${acct.id}:g1:details`, "beta"],
+    ]);
+    expect(await runOf(acct.id)).toMatchObject({ state: "waiting_wren", why: AGENT_ON_IT });
+    const first = jobs[0]?.job as AgentJob;
+    await drain();
     expect(asked.map((a) => a.goal)).toEqual(["collect the details", "buy it"]);
     expect(asked[0]?.inputs).toEqual({
       account: "beta.test",
@@ -292,6 +322,8 @@ describe("a setup run, done for you", () => {
       login: "beta-registrar",
     });
     expect(await runOf(acct.id)).toMatchObject({ state: "done", mode: "for_you" });
+    // A late answer for a step the run passed moves nothing.
+    expect(await agentDone(pg.db, SETUP, first, { done: true, why: "again" }, now)).toBeNull();
 
     // The agent can't finish: the step waits on Wren's team with what it said.
     answer = "needs-human";
@@ -303,10 +335,31 @@ describe("a setup run, done for you", () => {
       by: "op",
     });
     await go(await startSetup(pg.db, SETUP, { accountId: other.id, by: "op", now }));
+    await drain();
     expect(await runOf(other.id)).toMatchObject({
       state: "waiting_wren",
       step: "details",
-      why: "The agent needs a person",
+      why: "The agent couldn't: The agent needs a person",
+    });
+    expect(asked).toHaveLength(3);
+
+    // No yes for acme: the agent does the details, never the buy.
+    const theirs = await addAccount(pg.db, {
+      client: "acme",
+      site: "domain",
+      ref: "acme2.test",
+      mode: "for_you",
+      by: "op",
+    });
+    answer = "done";
+    const acme = walker("acme", true);
+    await acme.go(await startSetup(pg.db, SETUP, { accountId: theirs.id, by: "op", now }));
+    await acme.drain();
+    expect(asked.slice(3).map((a) => a.goal)).toEqual(["collect the details"]);
+    expect(await runOf(theirs.id)).toMatchObject({
+      state: "waiting_wren",
+      step: "buy",
+      why: WAITING_ON_WREN,
     });
   });
 
@@ -335,8 +388,9 @@ describe("factLost", () => {
       mode: "for_you",
       by: "op",
     });
-    const { go } = walker("beta", true);
+    const { go, drain } = walker("beta", true);
     await go(await startSetup(pg.db, SETUP, { accountId: acct.id, by: "op", now }));
+    await drain();
     expect(await runOf(acct.id)).toMatchObject({ state: "done", gen: 1 });
     approved = false;
     const emits = await factLost(

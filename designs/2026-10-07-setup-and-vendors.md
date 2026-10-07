@@ -75,7 +75,7 @@ Waits are Restate delayed calls on the spine. Nothing polls and nothing bills wh
 | Registry | the client's accounts | the same rows, `mode = for_you`, `login` set |
 | Costs | the client's own bills | folded into Wren's managed billing for that client |
 
-Mode is per client (`setup.mode` on the client), and per setup run where it makes sense (a client may do Google itself and hand over the phone). A done-for-you step with `buys: true` and no yes from William for that client stays `waiting_wren`, said as "Waiting on Wren's team". The worker gets no `do` runner for setup in this build, so every done-for-you agent step says the same. Tests use a fake.
+Mode is per client (`setup.mode` on the client), and per setup run where it makes sense (a client may do Google itself and hand over the phone). A done-for-you step with `buys: true` and no yes from William for that client stays `waiting_wren`, said as "Waiting on Wren's team". With `WREN_SETUP_AGENT` on, a done-for-you step with a `goal` goes to `SetupAgent/run` on its first round (idempotency key `setup-agent:<account>:g<gen>:<step>`) and says "Wren's agent is on it". `SetupAgent` calls autobrowse `do` in the account owner's autobrowse (`do` for Wren's, `do_<client>` for a client's, the owner named in the request) and waits suspended, up to 2 hours. Done: the fact holds by `agent` and a fresh round moves the run on. Anything else: "The agent couldn't: <why>", waiting on Wren's team, kept on later rounds. Off (the default): every done-for-you step waits on Wren's team. Tests use a fake queue.
 
 ### Worked examples
 
@@ -213,7 +213,7 @@ Each step is committed with tests on synthetic data.
 
 ## Outside the tree
 
-- autobrowse `do` takes an `owner`, so a done-for-you step runs in the client's autobrowse owner (its accounts, its credvault path, its Keychain item), never Wren's. Today `DoRequest` has no owner. Until then the worker has no setup `do` runner.
+- autobrowse `do` takes an `owner`, so a done-for-you step runs in the client's autobrowse owner (its accounts, its credvault path, its Keychain item), never Wren's. Built: `DoRequest.owner`; none runs as before, another owner than the process's is refused 409. A client's `do_<client>` worker isn't deployed yet, so its calls wait until the 2 hour timeout.
 - autobrowse lists an owner's accounts with role and site through `sites`, so the registry can show where each login lives without reading it.
 - credvault: wren writes own keys with credvault's owner path layout through the AWS SDK. Taking credvault as a dependency is a later swap; the path stays the same.
 - The worker's IAM role needs `ssm:PutParameter` on `/wren/<env>/owners/*/keys/*` to save own keys. Not in this build (`tofu` is William's).
@@ -224,7 +224,8 @@ Each step is committed with tests on synthetic data.
 - Which vendors a client may use managed. Default: all but LinkedIn reads.
 - Each client's daily share and monthly cap. Default 0 for both, so nothing managed runs until set.
 - Wren's reserve on each managed bucket. Default half.
-- Creating a real account or buying a number or domain for a real client: per client yes. Until then "Waiting on Wren's team".
+- Creating a real account or buying a number or domain for a real client: per client yes (`wren clients set <id> --buys-ok yes`, admin CLI only). Until then "Waiting on Wren's team".
+- Turning on `WREN_SETUP_AGENT`, once each client's autobrowse owner worker is up.
 - 10DLC fees and domain prices folded into a client's managed billing: which ones and at what markup.
 - Putting usage lines on the Wise invoice: manual today.
 - The IAM grant for writing client keys to SSM.
@@ -255,4 +256,5 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step d): A client reads Vendors on its Account app, not under Billing: Billing is money only, and the page is a read.
 - 2026-10-07 (review): Vendors' "Today" is the room alone (`roomToday`); the cap is said on its own line, and hides for a free vendor. Vendor usage totals count Wren's key only: what Wren pays and may bill. Own-key use is its own line, billed to the client by the vendor.
 - 2026-10-07 (checks): Search Console, Calendar and Meta checks are live. Search Console matches the property exactly, else by bare domain (`sc-domain:` or URL), and an unverified user is not access. A refusal reads "not yet", any other error "Couldn't read", so a vendor outage never reads as the client's fault. A stuck run hides "Checks again": it has stopped.
+- 2026-10-07 (agent): The agent runs in its own Restate service, not inside `setup.step`: a step runs in a journaled `ctx.run` on Lambda, and a `do` call can outlast it. The step queues by ingress with an idempotency key, so a retried step queues once. A late answer for a run started over or past the step moves nothing. Off by default behind `WREN_SETUP_AGENT`. `buys_ok` is set from the admin CLI only.
 - 2026-10-07 (review): On a part page, an account whose setup isn't done reads "Saved", not "Connected". The team reads "Needs your account" too, the Shop's wording. What a part provides (code names) moved under System.

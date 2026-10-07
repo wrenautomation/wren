@@ -19,9 +19,10 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 
 - Tables, main only (`packages/core/src/setup-schema.ts`): `client_accounts` (`:46`, unique client+site+ref, nulls equal; null client is Wren), `account_facts` (`:81`, pk account+fact, state ok/waiting/lost), `setup_runs` (`:113`, unique account+setup; state checking/waiting_client/waiting_wren/done/stuck/lost; `gen`, `rounds`, `next_check_at`)
 - `clients.setup_mode` (self | for_you) and `clients.buys_ok` (William's yes for buys done for a client)
-- Code (`setup.ts`): `defineSetup` (`:71`), `setupWorkflow` (`:78`), `startSetup` (`:345`), `markStep` (`:398`), `factLost` (`:425`), `recheck` (`:461`), `setupStep` (`:533`, registered as `setup.step`), `dnsChecks` (`:160`), `factsHeld`/`factsLacking` (`:261`)
+- Code (`setup.ts`): `defineSetup` (`:84`), `setupWorkflow` (`:91`), `startSetup` (`:358`), `markStep` (`:411`), `factLost` (`:461`), `recheck` (`:497`), `agentDone` (`:588`), `setupStep` (`:653`, registered as `setup.step`), `dnsChecks` (`:173`), `factsHeld`/`factsLacking` (`:274`)
 - Setups: `packages/core/src/setups.ts` (Search Console, Calendar, Meta; their checks beside each vendor: `searchConsoleChecks` in `packages/channel-search/src/setups.ts`, `calendarChecks` in `packages/calendar/src/setups.ts`, `metaChecks` in `packages/channel-meta/src/setups.ts`, read through autobrowse `sites` without waking the box), `packages/channel-sms/src/setups.ts` (texting 10DLC, number; `smsChecks`), `packages/channel-email/src/setups.ts` (domain, inbox; `emailChecks`). The worker lists them in `apps/worker/src/setups.ts`
 - Stuck: the round past a step's `within` sets `stuck`, stops its rounds and, only on that transition, tells Wren's team on the clients lane (`SetupDeps.notifierFor`, `tellStuck`); never the client
+- Done for you: with `WREN_SETUP_AGENT`, a step's first round queues an `AgentJob` by ingress to `SetupAgent/run` (`packages/core/src/setup-agent.ts`), which calls autobrowse `do` in the account owner's autobrowse (`restateDo` with `owner`: `do` or `do_<client>`, 2 hour timeout) and answers through `agentDone`. A `buys` step never runs without `clients.buys_ok` (`wren clients set <id> --buys-ok yes`); Wren's own buys always wait. Off: the team does it
 - `SetupWatch/all` (`packages/core/src/setup-watch.ts`): hourly `recheck`, emits restarts; off until started
 - A part's `requires.facts` names the facts it needs; the Shop reads "Needs your account" (team and client) until each holds (`console.ts` `lacksFacts`, `factAccounts`); on the part page the account the fact sits on reads "Saved", not "Connected", until then (`Catalog.tsx` `tagOf`), and `kind: "setup"` workflows stay out of the Shop
 - `AccountsConsole` (`packages/core/src/accounts-console.ts`, routes in `accounts-console-routes.ts`): `accounts`, `start`, `mark`, `checkNow` (`setup.ts` `checkNow`, round subject `#c<ms>`), `addAccount`; a client's people start self-serve and mark `who: client` steps, the rest is the team's. Web: `apps/portal/web/src/modules/account/Accounts.tsx`
@@ -29,7 +30,7 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 ## Connected to
 
 - **owned-by:** [[platform/spine]] (runs it), [[platform/worker]] (registers `setup.step`, checks, `SetupWatch`)
-- **joins:** [[platform/vendors]] (a setup's buys fold into managed billing, Open)
+- **joins:** [[platform/vendors]] (a setup's buys fold into managed billing, Open); outside the tree, autobrowse `do` (`DoRequest.owner`, refused 409 for another owner; autobrowse map `processes/do`)
 - **looks-like-but-is-not:** `clients.accounts` (the Shop's one link per site; the registry is the superset: `updateClient`/`addClient` write each saved one's row too, `registerAccounts` in `packages/core/src/clients/index.ts`; migration 0154 backfilled them; turning a site off keeps its row)
 
 ## If you change this

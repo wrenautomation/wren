@@ -69,6 +69,8 @@ export interface AccountsDeps {
   keys: KeyStore | null;
   /** The env in an own key's SSM path. */
   env: string;
+  /** The worker hands done-for-you steps to the agent (`WREN_SETUP_AGENT`); off: the team does them. */
+  agent?: boolean;
   now?: () => Date;
 }
 
@@ -233,6 +235,7 @@ export function accountsApi(deps: AccountsDeps) {
         owner,
         team,
         mayAct: team || (await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })),
+        agent: team && !!deps.agent,
         accounts: list.map((a) => accountView(a, deps.setups, o)),
         // What the team may add: each site with the setups that run on it.
         sites: team

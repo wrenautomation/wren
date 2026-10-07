@@ -122,6 +122,8 @@ export interface ClientChange {
   approver?: Approver;
   /** Parts whose sends are on, the whole list. An admin's (`sendsOn`). */
   sends?: string[];
+  /** William's yes for setup steps that buy or create an account for this client. The CLI only. */
+  buysOk?: boolean;
 }
 
 /**
@@ -159,6 +161,7 @@ export async function updateClient(
       products,
       approver: change.approver ?? current.approver,
       sends: change.sends ? [...new Set(change.sends)].sort() : current.sends,
+      buysOk: change.buysOk ?? current.buysOk,
     })
     .where(eq(clients.id, id))
     .returning();

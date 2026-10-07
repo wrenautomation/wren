@@ -49,6 +49,7 @@
     "./buckets": "./src/buckets.ts",
     "./checks": "./src/checks.ts",
     "./setup": "./src/setup.ts",
+    "./setup-agent": "./src/setup-agent.ts",
     "./setup-schema": "./src/setup-schema.ts",
     "./setups": "./src/setups.ts",
     "./setup-watch": "./src/setup-watch.ts",

@@ -315,6 +315,11 @@ export const settingsSchema = z.object({
     .enum(["true", "false", "1", "0"])
     .default("false")
     .transform((v) => v === "true" || v === "1"),
+  /** Hand done-for-you setup steps to autobrowse `do` in the account owner's autobrowse. Off: they wait on Wren's team. */
+  setupAgent: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   /** Campaign-wide texts per fleet day, whatever the pool's size. */
   smsDailyCap: z.coerce.number().int().positive().default(1000),
   /** Most texts one phone gets in any 31 days. The consent line promises "Up to 4 texts a month": never above it. */
@@ -582,6 +587,7 @@ export const ENV_KEYS = {
   telnyxCampaignId: "WREN_TELNYX_CAMPAIGN_ID",
   telnyxPublicKey: "WREN_TELNYX_PUBLIC_KEY",
   smsLive: "WREN_SMS_LIVE",
+  setupAgent: "WREN_SETUP_AGENT",
   smsDailyCap: "WREN_SMS_DAILY_CAP",
   smsMonthlyPerContact: "WREN_SMS_MONTHLY_PER_CONTACT",
   smsNumberCap: "WREN_SMS_NUMBER_CAP",
