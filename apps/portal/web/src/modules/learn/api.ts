@@ -167,10 +167,15 @@ export interface ItemPage extends Card {
   sops: SopAsk[];
 }
 
+/** What a person hears of a source: every post, score 8 and up, or nothing (Today still lists it). */
+export type AlertPick = "every" | "top" | "off";
+
 export interface SourceRow extends SourceLine {
   url: string;
   page: string | null;
   tell: "every" | "top" | "digest";
+  /** Your own pick here. */
+  alert: AlertPick | null;
   failure: string | null;
   stopped: boolean;
   fetchedAt: string | null;
@@ -188,6 +193,48 @@ export interface BrowseAsk {
   q: string;
   sort: string;
   limit: number;
+}
+
+export interface BellLine {
+  id: number;
+  itemId: number;
+  title: string;
+  type: ItemType;
+  source: string;
+  score: number | null;
+  line: string | null;
+  why: "new" | "score" | "saved";
+  at: string;
+  seen: boolean;
+}
+export interface Bell {
+  unseen: number;
+  alerts: BellLine[];
+}
+
+export interface TodayLine {
+  id: number;
+  title: string;
+  type: ItemType;
+  url: string;
+  source: string;
+  score: number | null;
+  line: string | null;
+  told: "bell" | "digest" | null;
+  read: boolean;
+  at: string;
+}
+export interface Today {
+  since: string;
+  total: number;
+  held: number;
+  items: TodayLine[];
+}
+
+export interface AlertSettings {
+  saved: AlertPick;
+  perHour: number;
+  mail: { on: boolean; may: boolean; to: string };
 }
 
 const CHANGED = "learn:changed";
@@ -272,4 +319,17 @@ export const learn = {
     write<{ id: string; name: string; kind: SourceKind; items: number }>("follow", { url, tell }),
   tell: (id: number, tell: string) => write("tell", { ids: [String(id)], tell }),
   unfollow: (id: number) => write("unfollow", { ids: [String(id)] }),
+  today: () => call<Today>("learn/today", {}),
+  alerts: () => call<AlertSettings>("learn/alerts", {}),
+  /** Your pick for a source, or `saved` for links you save. */
+  pick: (source: number | "saved", pick: AlertPick) =>
+    write("alertPick", { source: String(source), pick }),
+  digestMail: (on: boolean) => write<{ on: boolean }>("digestMail", { on }),
+};
+
+/** The bell in `client`'s workspace, named outright: the shell draws it outside any Learn page. */
+const at = (client: string) => (client === WREN.id ? {} : { client });
+export const bell = {
+  read: (client: string) => post<Bell>("learn/bell", at(client)),
+  seen: (client: string) => post<{ n: number }>("learn/bellSeen", at(client)),
 };

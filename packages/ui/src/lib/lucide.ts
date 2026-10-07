@@ -8,6 +8,7 @@ export {
   ArchiveRestore,
   ArrowDownUp,
   ArrowLeft,
+  Bell,
   Check,
   ChevronDown,
   ChevronLeft,

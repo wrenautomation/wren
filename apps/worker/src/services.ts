@@ -1196,6 +1196,8 @@ export async function buildServices(
       ...notify,
       zone: settings.sendTimezone,
       portal: settings.portalOrigin ?? null,
+      // Each person's Learn digest, from portal@, only in a workspace that turned it on.
+      send: bookerMailer?.("Wren") ?? null,
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));

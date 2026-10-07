@@ -310,6 +310,104 @@ export const itemTags = learn.table(
   ],
 );
 
+/**
+ * What a person hears about a source's new items in the portal's bell: every post, only those
+ * that score 8 and up, or nothing (they still show in Today).
+ */
+export const ALERT_PICKS = ["every", "top", "off"] as const;
+export type AlertPick = (typeof ALERT_PICKS)[number];
+/** Why an alert: a new post, a post that scored high, a saved link that read and scored high. */
+export const ALERT_WHYS = ["new", "score", "saved"] as const;
+export type AlertWhy = (typeof ALERT_WHYS)[number];
+/** Where it went: the bell, or rolled into the person's Today once the hour's bell was full. */
+export const ALERT_STATES = ["bell", "digest"] as const;
+export type AlertState = (typeof ALERT_STATES)[number];
+/** The bell rings at most this many times an hour per person per workspace; the rest roll into Today. */
+export const ALERTS_PER_HOUR = 5;
+
+/** A person's pick for one source; no row takes the source's own `tell` (digest is off). */
+export const alertPicks = learn.table(
+  "alert_picks",
+  {
+    client: varchar("client", { length: 40 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    sourceId: integer("source_id").notNull(),
+    pick: varchar("pick", { length: 8, enum: ALERT_PICKS }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.client, t.email, t.sourceId], name: "pk_alert_picks" }),
+    index("ix_learn_alert_picks_source").on(t.sourceId),
+    foreignKey({
+      columns: [t.sourceId],
+      foreignColumns: [sources.id],
+      name: "fk_alert_picks_source_id_sources",
+    }).onDelete("cascade"),
+    oneOf("ck_learn_alert_picks_pick", t.pick, ALERT_PICKS),
+  ],
+);
+
+/** A person in a workspace's Learn: their pick for saved links, and the day their digest was mailed. */
+export const readers = learn.table(
+  "readers",
+  {
+    client: varchar("client", { length: 40 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    /** Saved links alert once read and scored 8 and up (top), or never (off). */
+    saved: varchar("saved", { length: 8, enum: ALERT_PICKS }).notNull().default("top"),
+    /** The last day (the fleet's clock) their digest mail went, or had nothing to say. */
+    mailedOn: date("mailed_on"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.client, t.email], name: "pk_readers" }),
+    oneOf("ck_learn_readers_saved", t.saved, ALERT_PICKS),
+  ],
+);
+
+/** One item told to one person: in the bell, or rolled into their Today. Never twice. */
+export const alerts = learn.table(
+  "alerts",
+  {
+    id: serial("id"),
+    client: varchar("client", { length: 40 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    itemId: integer("item_id").notNull(),
+    why: varchar("why", { length: 8, enum: ALERT_WHYS }).notNull(),
+    state: varchar("state", { length: 8, enum: ALERT_STATES }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    /** They opened the bell after it. */
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_alerts" }),
+    foreignKey({
+      columns: [t.itemId],
+      foreignColumns: [items.id],
+      name: "fk_alerts_item_id_items",
+    }).onDelete("cascade"),
+    unique("uq_learn_alerts_person_item").on(t.client, t.email, t.itemId),
+    index("ix_learn_alerts_person_at").on(t.client, t.email, t.at),
+    index("ix_learn_alerts_item").on(t.itemId),
+    oneOf("ck_learn_alerts_why", t.why, ALERT_WHYS),
+    oneOf("ck_learn_alerts_state", t.state, ALERT_STATES),
+  ],
+);
+
+/**
+ * A workspace's Learn settings. `digestMail`: mail each person their daily digest at their login
+ * address. Off until a person with manage turns it on; Wren's own needs William's yes.
+ */
+export const learnSettings = learn.table(
+  "settings",
+  {
+    client: varchar("client", { length: 40 }).notNull(),
+    digestMail: boolean("digest_mail").notNull().default(false),
+    by: varchar("by", { length: 320 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.client], name: "pk_settings" })],
+);
+
 /** One row a day the 09:00 digest went out (or had nothing to say), so a day sends one. */
 export const digests = learn.table(
   "digests",

@@ -13,6 +13,7 @@ import { ItemsPage } from "./drive.js";
 import { HomePage } from "./home.js";
 import { AddPage, SearchPage } from "./learn.js";
 import { SourcesPage } from "./sources.js";
+import { TodayPage } from "./today.js";
 
 const TEAM = { audience: "team" } as const;
 
@@ -28,6 +29,8 @@ function SavedPage(_: PageProps) {
 
 const pages: Module["pages"] = [
   { id: "overview", label: "Home", Page: HomePage, wide: true },
+  // Your daily digest: the last 24 hours, best first, and your alert picks.
+  { id: "today", label: "Today", Page: TodayPage, wide: true },
   // What the sources brought since you last looked at Items.
   { id: "items", label: "Items", Page: ItemsPage, wide: true, badge: unseenCount },
   { id: "sources", label: "Sources", Page: SourcesPage, wide: true },

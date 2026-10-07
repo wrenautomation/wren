@@ -21,6 +21,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 - `items` (`schema.ts:152`): `client`, unique (client, cleaned url), optional FK to its source; `kind` (article, video, reel, episode), `text`, `transcript`, `file` (its name under an SOP's `sources/`), `needs_mac`, `read_at`, `read_failure`, `score`, `verdict`, `changes`, `saved_at`/`saved_via`, `told_at`, `done_at`; a generated `search` tsvector (GIN)
 - `sop_sources`: one row an item and SOP; `asked` → `added` (or `failed`), `points` once extracted
 - `digests`: one row a day, so the 09:00 digest goes once
+- `alert_picks`, `readers`, `alerts`, `settings` (`alerts.ts`): per person picks, the bell and Today, held alerts past 5 an hour, the digest mail flag (off by default)
 - Views `learn.item_records`, `learn.saved_records`, `learn.source_records`: Wren's own only
 
 ## Connected to
@@ -37,11 +38,12 @@ Saved and followed items are one table, so a link saved after its feed brought i
 
 | Surface | Role |
 |---|---|
-| `Watch/all` on the box, each source hourly | writes items, emits to Spine, sends alerts and the digest |
+| `Watch/all` on the box, each source hourly | writes items, emits to Spine, sends alerts and the digest, writes each person's bell alerts |
 | Spine `learn.read`, `learn.score` (Lambda) | reads articles, marks videos for the Mac, scores |
 | `wren learn read` on the Mac | reads videos and reels for every workspace, scores, writes Wren's SOP asks into folders |
 | LearnConsole (Learn app, `/learn/add?url=`) | writes |
 | Learn app: Wren's team in Wren's own; a client's logins in theirs, by grants on app `learn` | reads |
+| The portal bell and Learn Today, per person | reads, marks seen, sets picks |
 
 ## See
 

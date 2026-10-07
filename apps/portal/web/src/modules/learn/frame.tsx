@@ -6,6 +6,7 @@
 import { cx, say } from "@wren/ui";
 import {
   Archive,
+  Bell,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -403,6 +404,10 @@ function RailBody({ here }: { here: string }) {
         <Library size={15} className="shrink-0" />
         Home
       </a>
+      <a href="/learn/today" className={cx(ROW, here === "today" ? ROW_ON : ROW_IDLE)}>
+        <Bell size={15} className="shrink-0" />
+        Today
+      </a>
       <a href="/learn/search" className={cx(ROW, here === "search" ? ROW_ON : ROW_IDLE)}>
         <Search size={15} className="shrink-0" />
         Search
@@ -471,12 +476,14 @@ export function LearnFrame({ here, children }: { here: string; children: ReactNo
       ? "Home"
       : here === "sources"
         ? "Sources"
-        : here === "search"
-          ? "Search"
-          : (PLACE_LABELS[here] ??
-            rail.collections.find((c) => `c${c.id}` === here)?.name ??
-            rail.sources.flatMap((g) => g.sources).find((s) => `s${s.id}` === here)?.name ??
-            "Browse");
+        : here === "today"
+          ? "Today"
+          : here === "search"
+            ? "Search"
+            : (PLACE_LABELS[here] ??
+              rail.collections.find((c) => `c${c.id}` === here)?.name ??
+              rail.sources.flatMap((g) => g.sources).find((s) => `s${s.id}` === here)?.name ??
+              "Browse");
   return (
     <RailCtx.Provider value={{ rail, ready: !!load.data }}>
       <div className="flex min-w-0 gap-8">

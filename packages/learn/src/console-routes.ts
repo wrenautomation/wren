@@ -31,6 +31,14 @@ export const LEARN_CONSOLE_ROUTES = {
   seen: "read",
   // Pictures and audio: only the workspace's own items'.
   media: "read",
+  // Your bell, your Today and your alert picks: about you, as a star is.
+  bell: "read",
+  bellSeen: "read",
+  today: "read",
+  alerts: "read",
+  alertPick: "read",
+  // Mailing the digest is the workspace's call: off until someone with manage turns it on.
+  digestMail: "manage",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): the Learn app. */
 export const LEARN_CONSOLE_APPS = { "*": "learn" } as const satisfies RouteApps<
@@ -52,4 +60,7 @@ export const LEARN_CONSOLE_WRITES: readonly (keyof typeof LEARN_CONSOLE_ROUTES)[
   "readAgain",
   "toSop",
   "seen",
+  "bellSeen",
+  "alertPick",
+  "digestMail",
 ];

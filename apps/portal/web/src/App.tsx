@@ -46,6 +46,7 @@ import { type Module, type ModulePage, type PageProps, WREN } from "./module.js"
 import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
 import { appsIn, MODULES } from "./modules/index.js";
+import { LearnBell } from "./modules/learn/bell.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -506,6 +507,10 @@ export function App() {
                   {team ? "View as client" : "Back to team view"}
                 </span>
               </Button>
+            ) : null}
+            {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
+            {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
+              <LearnBell key={current.id} client={current.id} />
             ) : null}
             {account ? (
               <ButtonLink href={firstOf(account)} tone="quiet" size="sm">

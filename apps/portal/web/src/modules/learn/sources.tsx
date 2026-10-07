@@ -25,15 +25,17 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { inWorkspace, keyOf, learn, onChanged, type SourceRow } from "./api.js";
+import { type AlertPick, inWorkspace, keyOf, learn, onChanged, type SourceRow } from "./api.js";
 import { LearnFrame } from "./frame.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
+import { PICKS } from "./today.js";
 
+/** What a new source rings for, for everyone here who hasn't picked their own. */
 const TELLS = [
-  ["top", "Score 8+"],
-  ["every", "Every item"],
-  ["digest", "Digest only"],
+  ["top", "Alerts: high score"],
+  ["every", "Alerts: every post"],
+  ["digest", "Alerts: off"],
 ] as const;
 
 const hostOf = (url: string) => {
@@ -145,7 +147,7 @@ function Follow() {
       />
       <div className="flex gap-2">
         <label className="inline-flex h-9 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px]">
-          <span className="sr-only">Tell me</span>
+          <span className="sr-only">Alerts for everyone here</span>
           <select
             value={tell}
             onChange={(e) => setTell(e.target.value)}
@@ -217,15 +219,15 @@ function SourceCard({ s }: { s: SourceRow }) {
         ) : (
           <>
             <label className="inline-flex h-8 items-center border border-(--ui-hair) text-[12.5px]">
-              <span className="sr-only">Tell me</span>
+              <span className="sr-only">Your alerts from {s.name}</span>
               <select
-                value={s.tell}
-                onChange={(e) => void act(learn.tell(s.id, e.target.value), "Saved")}
+                value={s.alert ?? "top"}
+                onChange={(e) => void act(learn.pick(s.id, e.target.value as AlertPick), "Saved")}
                 className="h-full cursor-pointer bg-transparent px-2 outline-none"
               >
-                {TELLS.map(([id, label]) => (
+                {PICKS.map(([id, label]) => (
                   <option key={id} value={id}>
-                    {label}
+                    Alerts: {label.toLowerCase()}
                   </option>
                 ))}
               </select>

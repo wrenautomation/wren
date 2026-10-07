@@ -2,7 +2,8 @@
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
 
-const OWN = "A client's Learn has no alerts outside the portal: no push or digest yet";
+const OWN =
+  "Digest mail is built but off in every workspace until someone who manages it turns it on";
 const from = "William's ask, 2026-10-07";
 
 export const LEARN_COMPONENTS = [

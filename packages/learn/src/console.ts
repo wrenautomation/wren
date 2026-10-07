@@ -27,6 +27,15 @@ import { spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
+import {
+  bellOf,
+  bellSeen,
+  digestMailOn,
+  picksOf,
+  setDigestMail,
+  setPick,
+  todayOf,
+} from "./alerts.js";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "./console-routes.js";
 import {
   addCollection,
@@ -53,7 +62,17 @@ import {
 import { type FetchFn, follow, itemEvent, tellSources, unfollowSources } from "./feeds.js";
 import { saveLink, searchItems } from "./items.js";
 import { cleanUrl } from "./links.js";
-import { items, TELLS, type Tell, TYPES, VIAS, type Via } from "./schema.js";
+import {
+  ALERT_PICKS,
+  ALERTS_PER_HOUR,
+  type AlertPick,
+  items,
+  TELLS,
+  type Tell,
+  TYPES,
+  VIAS,
+  type Via,
+} from "./schema.js";
 import { askSop, writeClientAsked } from "./sops.js";
 
 /** The workflow Learn's items walk, and where a save and a feed item enter it. */
@@ -112,6 +131,14 @@ export interface TagRequest extends IdsRequest {
   add?: string[] | null;
   remove?: string[] | null;
 }
+export interface PickRequest extends PortalRequest {
+  /** A source's id, or `saved` for links saved by hand. */
+  source: string;
+  pick: string;
+}
+export interface DigestMailRequest extends PortalRequest {
+  on: boolean;
+}
 export interface CollectionRequest extends PortalRequest {
   id?: string | null;
   name?: string | null;
@@ -150,6 +177,12 @@ const tellOf = (v: string | null | undefined): Tell | null => {
 const viaOf = (v: string | null | undefined): Via =>
   v && (VIAS as readonly string[]).includes(v) ? (v as Via) : "portal";
 
+const pickOf = (v: string | null | undefined): AlertPick => {
+  if (!v || !(ALERT_PICKS as readonly string[]).includes(v))
+    throw new PortalRefusal(`alerts are one of ${ALERT_PICKS.join(", ")}`, 400);
+  return v as AlertPick;
+};
+
 /** A link the save can keep, or a refusal: checked before any journaled run. */
 export function checkUrl(raw: string | null | undefined): string {
   try {
@@ -181,6 +214,15 @@ export async function learnPlace(
   if (!(await canAt(main, req, need, { client: c.id, app: "learn" })))
     throw new PortalRefusal(need === "act" ? "your role can't do that" : "no access", 403);
   return c.id;
+}
+
+/**
+ * May this viewer change the workspace's own Learn settings? Wren's: a team seat with manage at
+ * Wren (an admin). A client's: manage there (an owner, or a grant).
+ */
+export async function mayManage(main: Db, req: PortalRequest, client: string): Promise<boolean> {
+  if (client === WREN) return teamCan(req, "manage", WREN);
+  return canAt(main, req, "manage", { client, app: "learn" });
 }
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
@@ -265,7 +307,58 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: Cli
       urls: await mediaOf(db, idsOf(req), await reads(req)),
     }),
     home: async (req: PortalRequest) => home(db, await reads(req)),
-    sources: async (req: PortalRequest) => ({ kinds: await sourcesByKind(db, await reads(req)) }),
+    /** Each source with this viewer's own alert pick on it. */
+    sources: async (req: PortalRequest) => {
+      const client = await reads(req);
+      const [kinds, picks] = await Promise.all([
+        sourcesByKind(db, client),
+        picksOf(db, client, by(req)),
+      ]);
+      return {
+        kinds: kinds.map((k) => ({
+          ...k,
+          sources: k.sources.map((s) => ({ ...s, alert: picks.sources[s.id] ?? null })),
+        })),
+      };
+    },
+    /** Your bell here: what rang lately, and how many you haven't seen. */
+    bell: async (req: PortalRequest) => bellOf(db, await reads(req), by(req)),
+    bellSeen: async (req: PortalRequest) => ({
+      n: await bellSeen(db, await reads(req), by(req)),
+    }),
+    /** Your digest: the last 24 hours here, best first. */
+    today: async (req: PortalRequest) => todayOf(db, await reads(req), by(req)),
+    /** Your pick for saved links, the bell's hourly limit, and whether the digest is mailed. */
+    alerts: async (req: PortalRequest) => {
+      const client = await reads(req);
+      const [picks, mail] = await Promise.all([
+        picksOf(db, client, by(req)),
+        digestMailOn(db, client),
+      ]);
+      return {
+        saved: picks.saved,
+        perHour: ALERTS_PER_HOUR,
+        mail: { on: mail, may: await mayManage(db, req, client), to: by(req) },
+      };
+    },
+    alertPick: async (req: PickRequest) => {
+      const pick = pickOf(req.pick);
+      const on = req.source === "saved" ? ("saved" as const) : idOf(req.source);
+      if (on === "saved" && pick === "every")
+        throw new PortalRefusal("saved links alert on a high score or not at all", 400);
+      const client = await reads(req);
+      if (!(await setPick(db, client, by(req), on, pick)))
+        throw new PortalRefusal("no such source", 404);
+      return { source: String(on), pick };
+    },
+    digestMail: async (req: DigestMailRequest) => {
+      if (typeof req.on !== "boolean") throw new PortalRefusal("on or off", 400);
+      const client = await acts(req);
+      if (!(await mayManage(db, req, client)))
+        throw new PortalRefusal("only someone who manages this workspace can change that", 403);
+      await setDigestMail(db, client, req.on, by(req));
+      return { on: req.on };
+    },
     mark: async (req: MarkRequest) => {
       if (!(MARKS as readonly string[]).includes(req.mark))
         throw new PortalRefusal(`mark is one of ${MARKS.join(", ")}`, 400);
@@ -584,6 +677,43 @@ export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch, clientDb?: Cl
       seen: serviceHandler(
         { input: z.looseObject(PORTAL_FIELDS) },
         (_: restate.Context, req: PortalRequest) => answer(() => api.seen(req)),
+      ),
+      bell: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.bell(req)),
+      ),
+      bellSeen: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.bellSeen(req)),
+      ),
+      today: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.today(req)),
+      ),
+      alerts: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.alerts(req)),
+      ),
+      alertPick: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            source: z.string().describe("A source's id, or saved for links saved by hand"),
+            pick: z
+              .string()
+              .describe(`${ALERT_PICKS.join(", ")}: every post, score 8 and up, or none`),
+          }),
+        },
+        (_: restate.Context, req: PickRequest) => answer(() => api.alertPick(req)),
+      ),
+      digestMail: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            on: z.boolean().describe("Mail each person their daily digest at their login address"),
+          }),
+        },
+        (_: restate.Context, req: DigestMailRequest) => answer(() => api.digestMail(req)),
       ),
       media: serviceHandler(
         { input: z.looseObject({ ...IDS, ids: z.array(z.string()).max(200) }) },
