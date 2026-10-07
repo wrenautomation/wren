@@ -117,7 +117,7 @@ const ADDED = {
     "ix_leads_company_verified",
     "ix_people_company_created",
     "ix_template_versions_experiment_id",
-    "ix_template_versions_template_id",
+    "ix_template_versions_opened_from",
     // 2026-10-07: a restore repeats a hash, so (niche, template, version) is an index, not unique.
     "ix_template_versions_niche",
     "uq_template_versions_template_id_number",
