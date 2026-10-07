@@ -766,7 +766,7 @@ async function digestOf(
     ];
     out.push("This week", ...(week.length > 0 ? week : ["- A quiet week on the page."]), "");
     const next = mine(ms).find((m) => !m.doneOn);
-    if (next) out.push(`Next: ${next.name}${next.dueOn ? `, due ${next.dueOn}` : ""}.`);
+    if (next) out.push(`Next: ${next.name}${next.dueOn ? `, due ${dayWords(next.dueOn)}` : ""}.`);
     const open = mine(as);
     if (open.length > 0) {
       const late = open.filter((a) => a.dueOn && a.dueOn < today).length;
@@ -1091,6 +1091,9 @@ const MONTH_NAMES = [
   "November",
   "December",
 ];
+/** A day as a person says it: "2026-10-09" to "October 9". */
+const dayWords = (day: string) =>
+  `${MONTH_NAMES[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8, 10))}`;
 const monthName = (period: string) =>
   `${MONTH_NAMES[Number(period.slice(5)) - 1]} ${period.slice(0, 4)}`;
 

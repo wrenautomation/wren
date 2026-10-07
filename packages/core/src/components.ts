@@ -40,18 +40,22 @@ export interface AccountHow {
   how: string;
   /** What still waits on Wren before any client can connect it; null when nothing does. */
   waits: string | null;
+  /** Its value is a login in Wren's browser: the team's to see. Else the client sees its own. */
+  teamOnly?: true;
 }
 
 export const ACCOUNTS: Record<AccountSite, AccountHow> = {
   gmail: {
     label: "Sending mailbox",
     holds: "the mailbox's sign-in",
+    teamOnly: true,
     how: "Wren sets up the mailbox your email goes out from.",
     waits: null,
   },
   linkedin: {
     label: "LinkedIn login",
     holds: "the login's name in Wren's browser",
+    teamOnly: true,
     how: "Give Wren a LinkedIn login. Wren's team adds it to its browser.",
     waits: null,
   },
@@ -118,6 +122,7 @@ export const ACCOUNTS: Record<AccountSite, AccountHow> = {
   reddit: {
     label: "Reddit logins",
     holds: "the logins' names in Wren's browser, comma separated",
+    teamOnly: true,
     how: "Give Wren a Reddit login. Wren's team adds it to its browser.",
     waits: null,
   },

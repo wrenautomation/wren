@@ -21,7 +21,7 @@ import {
   updateClient,
   wrenSettings,
 } from "../../src/clients/index.js";
-import { defineComponent } from "../../src/components.js";
+import { ACCOUNTS, defineComponent } from "../../src/components.js";
 import { consoleApi } from "../../src/console.js";
 import { clientsFor, portalMe, type Viewer, whoIs } from "../../src/portal.js";
 import { serveRecords } from "../../src/records-serve.js";
@@ -547,7 +547,7 @@ describe("install, configure, uninstall", () => {
       expect.objectContaining({ site: "youtube", any: true, has: false }),
       expect.objectContaining({ site: "x", any: true, has: false }),
     ]);
-    // The value is the team's to see.
+    // Nothing saved yet: no value to show.
     expect(accounts[0]).not.toHaveProperty("account");
     await expect(
       api().connect({ viewer: owner, client: "acme", site: "x", account: "@acme" }),
@@ -557,6 +557,18 @@ describe("install, configure, uninstall", () => {
     ).rejects.toMatchObject({ status: 404 });
     await api().connect({ viewer: ops, client: "acme", site: "x", account: " @acme " });
     expect((await findClient(pg.db, "acme"))?.accounts).toMatchObject({ x: "@acme" });
+    // A client sees its own handle once saved; a login in Wren's browser stays the team's.
+    const seen = await api().recordsGet({
+      viewer: owner,
+      client: "acme",
+      record: "console.component",
+      id: "posts",
+    });
+    expect((seen.detail as { accounts: Record<string, unknown>[] }).accounts[1]).toMatchObject({
+      site: "x",
+      account: "@acme",
+    });
+    expect(ACCOUNTS.reddit.teamOnly).toBe(true);
     // The registry has it too, for Accounts and its setups.
     expect((await accountsOf(pg.db, "acme")).map((a) => [a.site, a.ref])).toEqual([["x", "@acme"]]);
     expect(await row(ops, "posts")).toMatchObject({ ready: "ready" });

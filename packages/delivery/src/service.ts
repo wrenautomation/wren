@@ -5,7 +5,7 @@
  * Wren's team. The demo reads its sample and writes nothing.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import type { RoleId } from "@wren/core/access";
+import type { Permission, RoleId } from "@wren/core/access";
 import {
   addMember,
   type Client,
@@ -21,6 +21,7 @@ import {
 import { roleFits } from "@wren/core/grants";
 import {
   answer,
+  canAt,
   clientsFor,
   isDemo,
   isOperator,
@@ -131,24 +132,27 @@ async function read<T>(
   return view(deps.main, client, seesInternal(req));
 }
 
+/**
+ * May this viewer do `p` on this client: Wren's team by its seat, also while it looks as the
+ * client (what the client sees, read only); a client's person by role and grants. Never the demo.
+ */
+const mayOn = async (main: Db, req: PortalRequest, p: Permission, client: string) =>
+  !isDemo(req.viewer) && (await canAt(main, req, p, { client }));
+
 /** The projects in the asking app (`app`), as records this viewer may see: a client never reads a team note. */
 type RecordsReq = PortalRequest & { app?: string };
-const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq) =>
+const recordsOf = (main: Db, c: Client, operator: boolean, req: RecordsReq) =>
   deliveryRecords(
-    db,
+    main,
     c.id,
     operator,
     typeof req.app === "string" ? req.app : undefined,
-    async () =>
-      !isDemo(req.viewer) &&
-      (operator ? teamCan(req, "money", c.id) : await isOwner(db, c.id, req.viewer.email)),
-    async () =>
-      !isDemo(req.viewer) &&
-      (operator ? teamCan(req, "manage", c.id) : await isOwner(db, c.id, req.viewer.email)),
+    () => mayOn(main, req, "money", c.id),
+    () => mayOn(main, req, "manage", c.id),
   );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) =>
-    use(serveRecords(recordsOf(db, c, operator, req), db, undefined, fenceFor(req, c.id))),
+    use(serveRecords(recordsOf(deps.main, c, operator, req), db, undefined, fenceFor(req, c.id))),
   );
 
 /**
@@ -273,8 +277,8 @@ export function deliveryApi(deps: DeliveryDeps) {
       ),
     /** What each record type shows and lets this viewer filter, sort and search. */
     recordsTypes: (req: RecordsReq): Promise<RecordMeta[]> =>
-      read(deps, req, async (db, c, operator) =>
-        recordsOf(db, c, operator, req).map((t) => metaOf(t, false)),
+      read(deps, req, async (_db, c, operator) =>
+        recordsOf(deps.main, c, operator, req).map((t) => metaOf(t, false)),
       ),
     recordsList: (req: RecordsReq & ListAsk): Promise<RecordsPage> =>
       records(deps, req, (r) => r.list(req)),
@@ -473,7 +477,7 @@ export function deliveryApi(deps: DeliveryDeps) {
       const rows = demo ? [] : await listMembers(deps.main, client.id);
       const me = isDemo(viewer) ? null : normalEmail(viewer.email);
       const role = rows.find((m) => m.email === me)?.role ?? null;
-      const owed = (seesInternal(req) ? teamCan(req, "money", client.id) : role === "owner")
+      const owed = (await mayOn(deps.main, req, "money", client.id))
         ? await invoicesOf(deps.main, client.id)
         : null;
       return {
@@ -494,7 +498,7 @@ export function deliveryApi(deps: DeliveryDeps) {
       const client = await pickClient(deps.main, req);
       const viewer = req.viewer;
       if (isDemo(viewer)) throw new PortalRefusal("no such contract", 404);
-      if (!seesInternal(req) && !(await isOwner(deps.main, client.id, viewer.email)))
+      if (!isOperator(viewer) && !(await isOwner(deps.main, client.id, viewer.email)))
         throw new PortalRefusal("the contract is for this account's owners", 403);
       const a = await agreementOf(deps.main, await engagementFor(deps.main, client, req));
       if (!a) throw new PortalRefusal("this work started without a contract", 404);

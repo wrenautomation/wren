@@ -5,7 +5,7 @@
  * ones are scaled down to fit. A foundation: the channel counts SMS parts, and knows a post's
  * or a DM's cap and where a feed cuts, and passes them in.
  */
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 
 export type MessageKind =
   | {
@@ -115,7 +115,7 @@ export function MessagePreview({
         aria-label="The message"
         className="min-w-0 overflow-hidden border border-(--ui-hair) bg-white font-[system-ui] text-black"
       >
-        <Opened from={from} subject={message.subject} body={body} size={15} pad={16} />
+        <Opened from={from} subject={message.subject} body={body} size={15} pad={16} links />
       </section>
     );
   const openedOn = (
@@ -335,18 +335,44 @@ function IosMailRow({
   );
 }
 
+/** A plain-text line that ends in an address: "The full picture: https://…". */
+const LINE_LINK = /^(.+?):\s+(https?:\/\/\S+)$/;
+
+/** The body with each such line as its words, linked, the way a mail app shows a link. */
+function linked(body: string): ReactNode {
+  return body.split("\n").map((line, i) => {
+    const m = LINE_LINK.exec(line);
+    return (
+      // biome-ignore lint/suspicious/noArrayIndexKey: lines have no other identity.
+      <Fragment key={i}>
+        {i ? "\n" : null}
+        {m ? (
+          <a href={m[2]} className="text-[#0b57d0] underline underline-offset-2">
+            {m[1]}
+          </a>
+        ) : (
+          line
+        )}
+      </Fragment>
+    );
+  });
+}
+
 function Opened({
   from,
   subject,
   body,
   size,
   pad,
+  links = false,
 }: {
   from: string;
   subject?: string | null | undefined;
   body: string;
   size: number;
   pad: number;
+  /** Lines ending in an address read as linked words (a reader's preview). */
+  links?: boolean;
 }) {
   return (
     <div style={{ padding: pad, fontSize: size }} className="grid gap-3 leading-[1.45]">
@@ -354,7 +380,9 @@ function Opened({
         <p className="text-[1.3em] font-semibold leading-[1.25] break-words">{subject}</p>
       ) : null}
       <p className="font-semibold">{from}</p>
-      <div className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{body.trim()}</div>
+      <div className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">
+        {links ? linked(body.trim()) : body.trim()}
+      </div>
     </div>
   );
 }

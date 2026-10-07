@@ -243,8 +243,9 @@ describe("facts", () => {
       {
         site: "sms.ready",
         label: "Number ready",
-        how: "Texting: Wait for it.",
+        how: "Wait for it.",
         waits: "Wren buys it.",
+        setup: "Texting",
       },
     ]);
     expect(at(new Set(["sms.ready"]))?.accounts).toEqual([]);

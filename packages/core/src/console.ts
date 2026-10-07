@@ -1614,7 +1614,7 @@ export const componentRecord = (
               [
                 ...(off(c)
                   ? [
-                      `Off: ${c.provides.loops.join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start it in Loops`,
+                      `Off: ${c.provides.loops.map(codeLabel).join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start ${c.provides.loops.length > 1 ? "them" : "it"} in Loops`,
                     ]
                   : []),
                 ...c.missing,
@@ -1772,7 +1772,8 @@ export const componentRecord = (
             has: client ? has(client, id) : null,
           })),
         ],
-        // Each account: how the client connects it, what waits on Wren, and its value for the team.
+        // Each account: how the client connects it, what waits on Wren, and its value: the team
+        // sees every one, a client its own (a property, a handle), never a login in Wren's browser.
         accounts: [
           ...c.requires.accounts.map((site) => ({ site, any: false })),
           ...c.requires.anyAccount.map((site) => ({ site, any: true })),
@@ -1783,7 +1784,10 @@ export const componentRecord = (
             // One of the any is enough: the part needs a channel, not every one.
             any,
             has: client ? !!client.accounts[site] : null,
-            ...(team && client ? { account: client.accounts[site] ?? null } : {}),
+            ...(client && team ? { account: client.accounts[site] ?? null } : {}),
+            ...(client && !team && client.accounts[site] && !ACCOUNTS[site].teamOnly
+              ? { account: client.accounts[site] }
+              : {}),
           }))
           .concat(factAccounts(c)),
         effects: c.effects,

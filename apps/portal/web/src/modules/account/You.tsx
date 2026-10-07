@@ -12,6 +12,9 @@ const MAIL: [MailLevel, string, string][] = [
   ["off", "None", "No email. You can still check everything here."],
 ];
 
+/** The preview's one-tap ratings open the page without rating: a look never votes. */
+const unTapped = (text: string) => text.replace(/&e=\d+&pulse=\d+/g, "");
+
 export function You(props: PageProps) {
   const [nonce, setNonce] = useState(0);
   const people = usePeople(props, nonce);
@@ -68,7 +71,7 @@ export function You(props: PageProps) {
             </p>
             <MessagePreview
               message={{ kind: "email", from: "Wren", subject: recap.data.recap.subject }}
-              body={recap.data.recap.text}
+              body={unTapped(recap.data.recap.text)}
               reader
             />
           </>

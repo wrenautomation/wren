@@ -124,8 +124,17 @@ export interface PlanPart {
   effects: Effect[];
   /** The block it lands with; null when none is written. */
   settings: Record<string, unknown> | null;
-  /** Accounts the client hasn't connected: it installs and waits on them. */
-  accounts: { site: AccountSite | string; label: string; how: string; waits: string | null }[];
+  /**
+   * Accounts the client hasn't connected: it installs and waits on them. A setup's step names its
+   * setup apart (`setup`), so a list can group by it and each step reads as itself.
+   */
+  accounts: {
+    site: AccountSite | string;
+    label: string;
+    how: string;
+    waits: string | null;
+    setup?: string;
+  }[];
   missing: string[];
 }
 
@@ -193,7 +202,7 @@ export function planOf(
   const applied = row?.applied ?? { added: [], blocks: {}, copy: [] };
   const off = row?.state === "off";
   const parts = t.parts.map(({ part: c, settings }): PlanPart => {
-    const base = {
+    const base: Omit<PlanPart, "status" | "settings"> = {
       id: c.id,
       name: c.name,
       blurb: c.blurb,
@@ -215,7 +224,8 @@ export function planOf(
             ? {
                 site: fact,
                 label: at.step.label,
-                how: `${at.setup.name}: ${at.step.how}`,
+                how: at.step.how,
+                setup: at.setup.name,
                 waits: at.step.who === "client" ? null : at.step.forYou,
               }
             : { site: fact, label: fact, how: "Wren's team sets it up.", waits: null },

@@ -53,7 +53,7 @@ async function refused(p: Promise<unknown>): Promise<number> {
 const acme = { client: "acme" };
 const beta = { client: "beta" };
 /** What we billed, as Billing reads it: the `delivery.invoice` record, newest first (a day's by id). */
-const bills = (viewer: Viewer, more: { client?: string } = {}) =>
+const bills = (viewer: Viewer, more: { client?: string; asClient?: boolean } = {}) =>
   api.recordsList({ viewer, ...more, record: "delivery.invoice", view: "all" });
 let acmeAsk = 0;
 let betaAsk = 0;
@@ -555,6 +555,8 @@ describe("billing and the account", () => {
     ]);
     expect((await bills(OPS, acme)).rows).toHaveLength(2);
     expect((await bills(OPS, beta)).rows).toEqual([]);
+    // Looking as the client, Wren's team sees what an owner sees.
+    expect((await bills(OPS, { ...acme, asClient: true })).rows).toHaveLength(2);
     await addMember(pg.db, "acme", "cy@acme.example");
     expect(await refused(bills(CY))).toBe(403);
     expect(await refused(bills(BO, acme))).toBe(403);
@@ -602,6 +604,9 @@ describe("billing and the account", () => {
       role: null,
       wren: true,
     });
+    expect((await api.account({ viewer: OPS, ...acme, asClient: true })).billing).toEqual(
+      a.billing,
+    );
     expect(await refused(api.account({ viewer: BO, ...acme }))).toBe(403);
     await api.remove({ viewer: AMY, email: "cy@acme.example" });
   });
@@ -761,6 +766,9 @@ describe("the project as records", () => {
     const updates = rowsOf(rows, "delivery.updates");
     expect(updates).toContain(String(acmeUpdate));
     for (const n of notes) expect(updates).not.toContain(String(n.id));
+    // Looking as the client, Wren's team reads the same list.
+    const asClient = await list(OPS, "delivery.change", { ...acme, asClient: true, view: "all" });
+    expect(asClient.rows.length).toBe(rows.length);
   });
 
   it("a member who isn't an owner is refused the changes", async () => {
