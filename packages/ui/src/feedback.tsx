@@ -92,16 +92,22 @@ export function Empty({
 
 /** A standing note on how this screen works ("Nothing sends until you approve it"). */
 export function Callout({
+  tone,
   className,
   children,
 }: {
+  /** `warn`: something is held and waits on someone, in the nav counts' amber. */
+  tone?: "warn" | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
   return (
     <p
       className={cx(
-        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) bg-(--ui-tile) px-4 py-[11px] text-[14px] text-pretty text-(--ui-ink-2)",
+        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) px-4 py-[11px] text-[14px] text-pretty",
+        tone === "warn"
+          ? "bg-(--ui-warn-tint) text-(--ui-ink)"
+          : "bg-(--ui-tile) text-(--ui-ink-2)",
         className,
       )}
     >

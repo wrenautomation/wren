@@ -2,8 +2,8 @@
  * What the work's and the account's pages share: the client's engagements, a write that
  * reloads them, a small form, dates as the client reads them, and the classes they draw with.
  */
-import { Alert, Button, Empty, Loading, Textarea } from "@wren/ui";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { Alert, Button, DictateField, Empty, Loading, Textarea } from "@wren/ui";
+import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
 import {
   ApiError,
   type CommentView,
@@ -156,6 +156,8 @@ export function Thread({
 }) {
   const [sent, setSent] = useState<string[]>([]);
   const act = useAct(props, () => undefined);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const id = useId();
   return (
     <div className="grid gap-3">
       {comments.length || sent.length ? (
@@ -187,10 +189,13 @@ export function Thread({
           return ok;
         }}
       >
-        <label className={`${FIELD} ${WIDE}`}>
-          <span>{comments.length || sent.length ? "Reply" : "Comment"}</span>
-          <Textarea name="body" required rows={2} maxLength={4000} />
-        </label>
+        {/* Not a <label> around it: a click on the mic inside one would focus the box instead. */}
+        <div className={`${FIELD} ${WIDE}`}>
+          <label htmlFor={id}>{comments.length || sent.length ? "Reply" : "Comment"}</label>
+          <DictateField target={box} label="Dictate your comment">
+            <Textarea ref={box} id={id} name="body" required rows={2} maxLength={4000} />
+          </DictateField>
+        </div>
       </Form>
     </div>
   );

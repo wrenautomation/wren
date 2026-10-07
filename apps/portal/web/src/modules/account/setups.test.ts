@@ -25,6 +25,11 @@ describe("runTag", () => {
     expect(runTag("waiting_wren", true).label).toBe("Your turn");
     expect(runTag("done", false)).toEqual({ label: "Set up", tone: "green" });
   });
+
+  it("tints a lost or stuck setup as a warning", () => {
+    expect(runTag("lost", true)).toEqual({ label: "Lost", tone: "warn" });
+    expect(runTag("stuck", false)).toEqual({ label: "Stuck", tone: "warn" });
+  });
 });
 
 describe("rail", () => {

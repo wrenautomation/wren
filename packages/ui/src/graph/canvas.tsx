@@ -145,7 +145,8 @@ const PAD = 20;
 const NARROW = 640;
 /**
  * The least it zooms at rest: a node's 13px name reads at 12px. A bigger drawing shows its start
- * (left, or top on a phone) and pans, the minimap under it; "Fit all" shows the whole on demand.
+ * and pans, the minimap under it; "Fit all" shows the whole on demand. A phone fits the width
+ * down to `FIT_LEAST` and shows the top.
  */
 const READ = 12 / 13;
 /** The least a `fit` drawing zooms at rest: past that it pans, as any other. */
@@ -771,8 +772,9 @@ export default function GraphCanvas({
       room / Math.max(1, l.width),
       narrow ? 1 : tall / Math.max(1, l.height),
     );
-    // Never under readable: past that, it shows the start and pans.
-    const zoom = Math.max(fit ? FIT_LEAST : READ, whole);
+    // Never under readable: past that, it shows the start and pans. A phone fits the width (it
+    // pans down, never sideways), so no node sits off its right edge.
+    const zoom = Math.max(fit || narrow ? FIT_LEAST : READ, whole);
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
     // The minimap sits in its own room under the drawing, so it never covers a node at rest.
     const map = !fits && !narrow;

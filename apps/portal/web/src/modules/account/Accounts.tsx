@@ -247,16 +247,29 @@ function Account({
         {!a.runs.length && !a.setups.length ? (
           <p className={QUIET}>Nothing to set up on it.</p>
         ) : null}
-        {a.paused.map((p) => (
-          <p key={p.part}>
-            <Tag tone="accent">{p.text}</Tag>{" "}
-            <span className={QUIET}>{p.name} holds until then.</span>
-          </p>
-        ))}
         <Timeline items={a.timeline} />
       </div>
     </Section>
   );
+}
+
+/**
+ * The page's one banner: each paused part once, in the warning tint, and the client's note on
+ * its turn. Each account's own setup says Lost where the fact went.
+ */
+function Banner({ paused, yourTurn }: { paused: AccountsView["paused"]; yourTurn: boolean }) {
+  const lines = paused.map(
+    (p) => `${p.name} is ${p.text.charAt(0).toLowerCase()}${p.text.slice(1)}.`,
+  );
+  if (paused.length)
+    lines.push(
+      paused.length > 1
+        ? "Each starts again once that's back."
+        : "It starts again once that's back.",
+    );
+  if (yourTurn) lines.push("Steps marked Your turn wait on you. Mark each one done when it is.");
+  if (!lines.length) return null;
+  return <Callout tone={paused.length ? "warn" : undefined}>{lines.join(" ")}</Callout>;
 }
 
 /** What happened to an account, newest first: each alert once, open ones marked. */
@@ -356,15 +369,12 @@ export function Accounts(props: PageProps) {
         <Loading lines={4} />
       ) : (
         <>
-          {d.paused.length ? (
-            <Callout>
-              {d.paused.map((p) => `${p.name}: ${p.text}.`).join(" ")} It starts again once that's
-              back.
-            </Callout>
-          ) : null}
-          {!team && d.accounts.some((a) => a.runs.some((r) => r.state === "waiting_client")) ? (
-            <Callout>Steps marked Your turn wait on you. Mark each one done when it is.</Callout>
-          ) : null}
+          <Banner
+            paused={d.paused}
+            yourTurn={
+              !team && d.accounts.some((a) => a.runs.some((r) => r.state === "waiting_client"))
+            }
+          />
           {d.accounts.length === 0 ? (
             <Empty>
               {team

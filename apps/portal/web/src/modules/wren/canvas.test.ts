@@ -69,6 +69,12 @@ describe("graphOf", () => {
     expect(card?.note).toBe("Paused: needs Calendar access");
   });
 
+  it("names an end box with a capital, as every node; its port keeps the label", () => {
+    const end = nodes.find((n) => n.id === "out.won");
+    expect(end?.label).toBe("Clients won");
+    expect(end?.ins).toEqual([{ id: "in", label: "clients won", kind: "client" }]);
+  });
+
   it("numbers each card for 30 days and today, linked to its rows", () => {
     expect(nodes.find((n) => n.id === "find")?.number).toEqual({
       value: 412,

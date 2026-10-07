@@ -17,6 +17,8 @@ import {
 } from "@wren/ui";
 import { type CountRef, countKey, type Drawn } from "../marketplace/boxes.js";
 
+const upperFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** A number over the last 30 days, and today's part of it. */
 export interface Count {
   value: number;
@@ -242,7 +244,8 @@ export function graphOf(
   const end = (id: string, p: { label: string; kind?: string }, side: "in" | "out"): GraphNode => ({
     id,
     kind: "record",
-    label: p.label,
+    // A box's name starts with a capital, as every other node's does; its port keeps the label.
+    label: upperFirst(p.label),
     role: side === "in" ? "trigger" : "deliver",
     dashed: true,
     ...(side === "in"
@@ -323,7 +326,7 @@ export function funnelOf(w: Drawn, counts: ReadonlyMap<string, Count>): BarsRow[
     const before = stages[i - 1];
     const rate = before ? percent(s.count.value, before.count.value) : "";
     return {
-      label: s.label.charAt(0).toUpperCase() + s.label.slice(1),
+      label: upperFirst(s.label),
       value: s.count.value,
       note: rate ? `${rate} of the stage before` : undefined,
     };

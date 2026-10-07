@@ -26,9 +26,9 @@ export function runTag(state: RunRow["state"], team: boolean): { label: string; 
     case "checking":
       return { label: "Checking", tone: "neutral" };
     case "stuck":
-      return { label: "Stuck", tone: "accent" };
+      return { label: "Stuck", tone: "warn" };
     case "lost":
-      return { label: "Lost", tone: "accent" };
+      return { label: "Lost", tone: "warn" };
   }
 }
 

@@ -19,9 +19,9 @@ export function nowTag(
 ): { label: string; tone: TagTone } {
   switch (x.kind) {
     case "lost":
-      return { label: "Lost", tone: "accent" };
+      return { label: "Lost", tone: "warn" };
     case "stuck":
-      return { label: "Stuck", tone: "accent" };
+      return { label: "Stuck", tone: "warn" };
     case "waiting":
       return team && x.for === "client"
         ? { label: "Waiting on the client", tone: "neutral" }

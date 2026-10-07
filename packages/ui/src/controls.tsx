@@ -127,14 +127,18 @@ export function ButtonLink({
   );
 }
 
-/** `accent` marks what needs you or what changed; `green` a result; `neutral` the rest. */
-export type TagTone = "neutral" | "accent" | "green";
+/**
+ * `accent` marks what needs you or what changed; `warn` what went wrong and waits on someone (the
+ * nav's counts' amber); `green` a result; `neutral` the rest.
+ */
+export type TagTone = "neutral" | "accent" | "warn" | "green";
 
 const TAG =
   "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   accent: "bg-(--ui-accent-tint) text-(--ui-accent)",
+  warn: "bg-(--ui-warn-tint) text-(--ui-warn-ink)",
   green: "bg-(--ui-good-tint) text-(--ui-good-ink)",
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
