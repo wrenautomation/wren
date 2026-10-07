@@ -86,9 +86,20 @@ export type ContactBasis = (typeof CONTACT_BASES)[number];
 
 /**
  * How a contact was found: a `tel_link` or `page_text` number from a crawled page, a `manual` add,
- * an `inbound` stranger, a lander `form`, a lead through a client's door (`hook`, speed to lead).
+ * an `inbound` stranger, a lander `form`, a lead through a client's door (`hook`, speed to lead),
+ * a `call` to the client's number that nobody answered (missed.ts), a client's `customer` asked
+ * for a review (reviews.ts).
  */
-export const SOURCE_KINDS = ["tel_link", "page_text", "manual", "inbound", "form", "hook"] as const;
+export const SOURCE_KINDS = [
+  "tel_link",
+  "page_text",
+  "manual",
+  "inbound",
+  "form",
+  "hook",
+  "call",
+  "customer",
+] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const DIRECTIONS = ["out", "in"] as const;
@@ -97,9 +108,21 @@ export type Direction = (typeof DIRECTIONS)[number];
 /**
  * `sequence` = a cold step; `manual` = typed by the operator in the app or CLI;
  * `reminder` = about something they booked (`ref` names it); `inbound` = theirs;
- * `follow_up` = a Follow-up or Nurture touch (`ref` names its workflow and node).
+ * `follow_up` = a Follow-up or Nurture touch (`ref` names its workflow and node);
+ * `text_back` = the text after a missed call (`ref` names the call); `review` = a review ask or
+ * its reminder (`ref` names the ask and round). One per contact and ref.
  */
-export const MESSAGE_KINDS = ["sequence", "manual", "reminder", "inbound", "follow_up"] as const;
+export const MESSAGE_KINDS = [
+  "sequence",
+  "manual",
+  "reminder",
+  "inbound",
+  "follow_up",
+  "text_back",
+  "review",
+] as const;
+/** Kinds that answer something the person did: the asked window, never cold volume. */
+export const ANSWER_KINDS: ReadonlySet<string> = new Set(["text_back", "review"]);
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
@@ -303,6 +326,9 @@ export const smsMessages = pgTable(
     uniqueIndex("uq_sms_messages_follow_up_ref")
       .on(t.contactId, t.ref)
       .where(sql`(kind)::text = 'follow_up'::text`),
+    uniqueIndex("uq_sms_messages_answer_ref")
+      .on(t.contactId, t.ref)
+      .where(sql`(kind)::text = ANY (ARRAY['text_back'::text, 'review'::text])`),
     foreignKey({
       columns: [t.contactId],
       foreignColumns: [smsContacts.id],
@@ -509,3 +535,127 @@ export const speedRuns = pgTable(
   ],
 );
 export type SpeedRun = typeof speedRuns.$inferSelect;
+
+/** How a call to the client's number ended: a person picked up, or not (missed.ts). */
+export const CALL_RESULTS = ["answered", "missed", "busy", "voicemail"] as const;
+export type CallResult = (typeof CALL_RESULTS)[number];
+
+/**
+ * What a text-back or a review ask did: `queued` for the sender, `would_send` with texts or sends
+ * off, `skipped` by a rule (texted already, in a thread, clicked), `refused` (opted out, no copy).
+ */
+export const ANSWER_STATES = ["queued", "would_send", "skipped", "refused"] as const;
+export type AnswerState = (typeof ANSWER_STATES)[number];
+
+/**
+ * Each call to a client's number, from Telnyx's call events (designs/2026-10-07-missed-call-and-
+ * reviews.md): when it rang, if a person picked up, how it ended. A missed one gets a text back
+ * within a minute when its template is live; the row keeps what that did, a reply and a booking.
+ */
+export const smsCalls = pgTable(
+  "sms_calls",
+  {
+    id: serial("id"),
+    /** Telnyx's call session id: every event of one call carries it. */
+    callId: varchar("call_id", { length: 128 }).notNull(),
+    fromE164: varchar("from_e164", { length: 32 }).notNull(),
+    toE164: varchar("to_e164", { length: 32 }).notNull(),
+    /** Our number that was called: the text back goes from it. */
+    numberId: uuid("number_id"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    /** Our call app picked up (a greeting, voicemail). */
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** A person picked up: the call was bridged to them. */
+    bridgedAt: timestamp("bridged_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    /** Telnyx's hangup cause: `normal_clearing`, `user_busy`, `timeout`. */
+    cause: varchar("cause", { length: 32 }),
+    result: varchar("result", { length: 16, enum: CALL_RESULTS }),
+    /** The caller was a contact before the call. */
+    known: boolean("known"),
+    contactId: integer("contact_id"),
+    textBack: varchar("text_back", { length: 16, enum: ANSWER_STATES }),
+    textBackAt: timestamp("text_back_at", { withTimezone: true }),
+    textBackDetail: text("text_back_detail"),
+    repliedAt: timestamp("replied_at", { withTimezone: true }),
+    bookedAt: timestamp("booked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_calls" }),
+    unique("uq_sms_calls_call_id").on(t.callId),
+    index("ix_sms_calls_from_text_back").on(t.fromE164, t.textBackAt),
+    index("ix_sms_calls_contact_id").on(t.contactId),
+    index("ix_sms_calls_number_id").on(t.numberId),
+    index("ix_sms_calls_started_at").on(t.startedAt),
+    foreignKey({
+      columns: [t.numberId],
+      foreignColumns: [smsNumbers.id],
+      name: "fk_sms_calls_number_id_sms_numbers",
+    }),
+    foreignKey({
+      columns: [t.contactId],
+      foreignColumns: [smsContacts.id],
+      name: "fk_sms_calls_contact_id_sms_contacts",
+    }).onDelete("set null"),
+    oneOf("ck_sms_calls_result", t.result, CALL_RESULTS),
+    oneOf("ck_sms_calls_text_back", t.textBack, ANSWER_STATES),
+  ],
+);
+export type SmsCall = typeof smsCalls.$inferSelect;
+
+/** What put a customer in line for a review ask. */
+export const REVIEW_SOURCES = ["won", "done", "paid", "hand", "door"] as const;
+export type ReviewSource = (typeof REVIEW_SOURCES)[number];
+
+/**
+ * One customer asked for a Google review (reviews.ts): who, what asked, the ask and its one
+ * reminder, the counted link's clicks, and private feedback when the client offers it to everyone.
+ * `token` is the link's: `/r/<client>/<token>` counts the click and goes on to Google.
+ */
+export const reviewAsks = pgTable(
+  "review_asks",
+  {
+    id: serial("id"),
+    /** The spine subject that asked: the same customer twice is one ask. */
+    subject: varchar("subject", { length: 200 }).notNull(),
+    source: varchar("source", { length: 8, enum: REVIEW_SOURCES }).notNull(),
+    name: text("name"),
+    phone: varchar("phone", { length: 64 }),
+    e164: varchar("e164", { length: 16 }),
+    email: text("email"),
+    /** 22 random url-safe characters: the counted link's key. */
+    token: varchar("token", { length: 32 }).notNull(),
+    /** The Google Place ID the link goes to, as it was when asked. */
+    placeId: varchar("place_id", { length: 200 }),
+    contactId: integer("contact_id"),
+    ask: varchar("ask", { length: 16, enum: ANSWER_STATES }).notNull(),
+    askAt: timestamp("ask_at", { withTimezone: true }).notNull(),
+    askDetail: text("ask_detail"),
+    reminder: varchar("reminder", { length: 16, enum: ANSWER_STATES }),
+    reminderAt: timestamp("reminder_at", { withTimezone: true }),
+    reminderDetail: text("reminder_detail"),
+    clicks: integer("clicks").notNull().default(0),
+    clickedAt: timestamp("clicked_at", { withTimezone: true }),
+    feedback: text("feedback"),
+    feedbackAt: timestamp("feedback_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_review_asks" }),
+    unique("uq_review_asks_subject").on(t.subject),
+    unique("uq_review_asks_token").on(t.token),
+    index("ix_review_asks_ask_at").on(t.askAt),
+    index("ix_review_asks_e164").on(t.e164),
+    index("ix_review_asks_contact_id").on(t.contactId),
+    foreignKey({
+      columns: [t.contactId],
+      foreignColumns: [smsContacts.id],
+      name: "fk_review_asks_contact_id_sms_contacts",
+    }).onDelete("set null"),
+    oneOf("ck_review_asks_source", t.source, REVIEW_SOURCES),
+    oneOf("ck_review_asks_ask", t.ask, ANSWER_STATES),
+    oneOf("ck_review_asks_reminder", t.reminder, ANSWER_STATES),
+  ],
+);
+export type ReviewAsk = typeof reviewAsks.$inferSelect;

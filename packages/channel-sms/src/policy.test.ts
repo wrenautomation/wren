@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_POLICY, fleetDay, inWindow, numberCapOn, parseClock } from "./policy.js";
+import {
+  ASKED_WINDOW,
+  DEFAULT_POLICY,
+  fleetDay,
+  inWindow,
+  numberCapOn,
+  parseClock,
+  policyFor,
+} from "./policy.js";
+
+describe("policyFor", () => {
+  it("callers and answers get the asked window; cold texts keep the cold one", () => {
+    const asked = { ...DEFAULT_POLICY, ...ASKED_WINDOW };
+    expect(policyFor("call", DEFAULT_POLICY)).toEqual(asked);
+    expect(policyFor("tel_link", DEFAULT_POLICY, "review")).toEqual(asked);
+    expect(policyFor("tel_link", DEFAULT_POLICY, "sequence")).toEqual(DEFAULT_POLICY);
+  });
+});
 
 const P = DEFAULT_POLICY; // 10:00–17:00, Mon–Fri
 

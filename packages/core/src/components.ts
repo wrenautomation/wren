@@ -25,6 +25,7 @@ export const ACCOUNT_SITES = [
   "instagram",
   "reddit",
   "postmaster",
+  "google_business",
 ] as const;
 export type AccountSite = (typeof ACCOUNT_SITES)[number];
 
@@ -45,6 +46,12 @@ export interface AccountHow {
 }
 
 export const ACCOUNTS: Record<AccountSite, AccountHow> = {
+  google_business: {
+    label: "Google Business Profile",
+    holds: "the Place ID",
+    how: "Send Wren your Google Place ID, or let Wren find it.",
+    waits: null,
+  },
   gmail: {
     label: "Sending mailbox",
     holds: "the mailbox's sign-in",

@@ -83,6 +83,7 @@ import {
   type ThreadFilter,
   type ThreadSummary,
 } from "../threads.js";
+import type { CallHooks } from "./answers.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -237,6 +238,8 @@ export function makeSmsEvents(
   > & {
     /** Each lead's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
     fire?: FireTriggers;
+    /** Missed calls and texted-back callers' replies (answers.ts). Unset, calls are rows only. */
+    calls?: CallHooks;
   },
 ) {
   return restate.service({
@@ -274,8 +277,11 @@ export function makeSmsEvents(
           await ctx.run("registered notice", () => noticeRegistered(deps.notifier, stats));
         }
         // A lead's reply: each live Reply trigger that hears texts gets it.
-        if (applied.replied !== undefined)
+        if (applied.replied !== undefined) {
           deps.fire?.(ctx, replyFired(null, "sms", applied.replied));
+          await deps.calls?.replied(ctx, null, applied.replied);
+        }
+        if (applied.missed !== undefined) deps.calls?.missed(ctx, null, applied.missed);
         return applied;
       },
       /**
@@ -311,8 +317,11 @@ export function makeSmsEvents(
             pusher: null,
           }),
         );
-        if (applied.replied !== undefined)
+        if (applied.replied !== undefined) {
           deps.fire?.(ctx, replyFired(req.client, "sms", applied.replied));
+          await deps.calls?.replied(ctx, req.client, applied.replied);
+        }
+        if (applied.missed !== undefined) deps.calls?.missed(ctx, req.client, applied.missed);
         return applied;
       },
     },
@@ -918,5 +927,12 @@ export function makeSmsWatch(wren: SmsDeps) {
 export type SmsSender = ReturnType<typeof makeSmsSender>;
 export type SmsEventsService = ReturnType<typeof makeSmsEvents>;
 export type SmsDeskService = ReturnType<typeof makeSmsDesk>;
+export {
+  type CallHooks,
+  callHooks,
+  MISSED_FLOW,
+  makeReviews,
+  REVIEWS_FLOW,
+} from "./answers.js";
 export { makeSmsConsole, type SmsConsoleService, smsConsoleApi } from "./console.js";
 export type SmsWatchObject = ReturnType<typeof makeSmsWatch>;

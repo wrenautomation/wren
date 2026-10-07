@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { classifyInbound } from "./events.js";
+import { callResult, classifyInbound } from "./events.js";
+
+describe("callResult", () => {
+  it("bridged is answered; busy; picked up by the app alone is voicemail; else missed", () => {
+    const t = new Date();
+    expect(callResult({ bridgedAt: t, answeredAt: t }, "normal_clearing")).toBe("answered");
+    expect(callResult({ bridgedAt: null, answeredAt: null }, "user_busy")).toBe("busy");
+    expect(callResult({ bridgedAt: null, answeredAt: t }, "normal_clearing")).toBe("voicemail");
+    expect(callResult({ bridgedAt: null, answeredAt: null }, "timeout")).toBe("missed");
+  });
+});
 
 describe("classifyInbound", () => {
   it("reads carrier stop words on the whole message", () => {

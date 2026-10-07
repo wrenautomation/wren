@@ -7,6 +7,7 @@
  */
 
 import type {
+  CallStage,
   CampaignState,
   DeliveryStatus,
   KeywordReplies,
@@ -336,12 +337,56 @@ export class TelnyxProvider implements SmsProvider {
   };
 }
 
+/** Call Control's events we keep, as the stage of the call each says. */
+const CALL_STAGES: Readonly<Record<string, CallStage>> = {
+  "call.initiated": "ringing",
+  "call.answered": "answered",
+  "call.bridged": "bridged",
+  "call.hangup": "ended",
+};
+
+/** An inbound call's event; null for an outbound leg or a call with no session. */
+function callEvent(
+  eventId: string,
+  type: string,
+  stage: CallStage,
+  data: Record<string, unknown>,
+): SmsEvent | null {
+  const p = (data.payload ?? {}) as {
+    call_session_id?: string;
+    call_control_id?: string;
+    direction?: string;
+    from?: string;
+    to?: string;
+    hangup_cause?: string;
+    start_time?: string;
+    end_time?: string;
+  };
+  const callId = p.call_session_id ?? p.call_control_id;
+  if (!callId || (p.direction && p.direction !== "incoming")) return null;
+  const occurred = String(data.occurred_at ?? new Date().toISOString());
+  return {
+    kind: "call",
+    eventId,
+    type,
+    callId: String(callId).slice(0, 128),
+    stage,
+    from: String(p.from ?? ""),
+    to: String(p.to ?? ""),
+    at: new Date((stage === "ended" ? p.end_time : undefined) ?? occurred),
+    cause: stage === "ended" ? String(p.hangup_cause ?? "unspecified").slice(0, 32) : null,
+  };
+}
+
 /** A Telnyx webhook body → our event. Pure: the signature was checked at the edge. */
 export function parseTelnyxEvent(body: unknown): SmsEvent {
   const data = (body as { data?: Record<string, unknown> } | null)?.data;
   const eventId = String(data?.id ?? "");
   const type = String(data?.event_type ?? "");
   if (!eventId || !type) throw new Error("telnyx webhook: no data.id or data.event_type");
+  const stage = CALL_STAGES[type];
+  if (stage && data)
+    return callEvent(eventId, type, stage, data) ?? { kind: "ignored", eventId, type };
   const p = (data?.payload ?? {}) as {
     id?: string;
     text?: string;

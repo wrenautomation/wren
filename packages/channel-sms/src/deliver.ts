@@ -27,6 +27,7 @@ import { cannotReach, numberReady, poolToday } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import {
+  ANSWER_KINDS,
   type MessageState,
   type SmsContact,
   type SmsMessage,
@@ -99,6 +100,8 @@ export async function reconcile(db: Queryable, now: Date): Promise<number> {
 
 /** Contact states a queued follow-up text never goes to. */
 const FOLLOW_ENDS = new Set(["replied", "opted_out", "unreachable", "stopped"]);
+/** Contact states an answer (a text back, a review ask) skips: they may have replied before. */
+const ANSWER_ENDS = new Set(["opted_out", "unreachable", "stopped"]);
 
 /** Queued sequence messages of a contact → `skipped`, when its thread ends. */
 export async function skipQueued(db: Queryable, contactId: number, why: string): Promise<number> {
@@ -288,6 +291,15 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       stats.skipped += 1;
       continue;
     }
+    // A text back or a review ask never goes to someone who ended texts.
+    if (ANSWER_KINDS.has(msg.kind) && ANSWER_ENDS.has(contact.state)) {
+      await db
+        .update(smsMessages)
+        .set({ state: "skipped", detail: `contact ${contact.state}` })
+        .where(eq(smsMessages.id, msg.id));
+      stats.skipped += 1;
+      continue;
+    }
     if (msg.kind === "reminder") {
       const late = now.getTime() - (msg.dueAt ?? msg.createdAt).getTime() > REMINDER_FRESH_MS;
       const words = msg.template
@@ -327,7 +339,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     // reply to someone who texted us in the last day is a conversation, not a solicitation: it goes now.
     if (
       msg.kind !== "reminder" &&
-      !inWindow(zone, now, policyFor(contact.sourceKind, policy)) &&
+      !inWindow(zone, now, policyFor(contact.sourceKind, policy, msg.kind)) &&
       !(msg.kind === "manual" && (await wroteRecently(db, contact.id, now)))
     ) {
       stats.outOfWindow += 1;

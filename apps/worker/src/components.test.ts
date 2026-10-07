@@ -263,6 +263,33 @@ describe("workflows and hypotheses", () => {
     expect(speed?.spec.door).toEqual({ input: "forms", subject: "phone" });
   });
 
+  it("missed-call text back and review requests install as templates, with their copy", () => {
+    const sold = templatesOf(WORKFLOWS, COMPONENTS);
+    for (const [id, parts, fact] of [
+      ["missed_call", ["missed_call", "sms.text_back", "sms.texts"], "number.calls_routed"],
+      ["reviews", ["reviews", "reviews.ask", "sms.texts"], "google_business.place_id"],
+    ] as const) {
+      const t = sold.find((x) => x.id === id);
+      expect(t?.parts.map((p) => p.part.id).sort(), id).toEqual([...parts].sort());
+      const top = COMPONENTS.find((x) => x.id === id);
+      // Needs setup until its fact holds.
+      expect(top?.requires.facts, id).toEqual([fact]);
+      for (const p of t?.parts ?? [])
+        for (const ref of p.part.provides.templates) {
+          const [kind = "", rest = ""] = ref.split(":");
+          const [system = "", ...name] = rest.split("/");
+          expect(
+            defaultFile({ kind: kind as "sms", system, name: name.join("/") }),
+            ref,
+          ).not.toBeNull();
+        }
+    }
+    expect(sold.find((x) => x.id === "reviews")?.spec.door).toEqual({
+      input: "customers",
+      subject: "phone",
+    });
+  });
+
   it("a part's later steps are parts still in development", () => {
     for (const c of COMPONENTS)
       for (const id of c.later)

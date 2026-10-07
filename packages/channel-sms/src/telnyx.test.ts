@@ -187,6 +187,31 @@ describe("parseTelnyxEvent", () => {
     ).toBe("ignored");
     expect(() => parseTelnyxEvent({})).toThrow();
   });
+  it("reads an inbound call's events by its session; an outbound leg is ignored", () => {
+    const call = (event_type: string, payload: Record<string, unknown>) =>
+      parseTelnyxEvent({
+        data: { id: `ev-${event_type}`, event_type, occurred_at: "2026-09-29T15:00:00Z", payload },
+      });
+    const base = {
+      call_session_id: "s1",
+      direction: "incoming",
+      from: "+12125550187",
+      to: "+12125550100",
+    };
+    expect(call("call.initiated", base)).toMatchObject({
+      kind: "call",
+      callId: "s1",
+      stage: "ringing",
+      from: "+12125550187",
+      to: "+12125550100",
+      cause: null,
+    });
+    expect(call("call.bridged", base)).toMatchObject({ stage: "bridged" });
+    expect(
+      call("call.hangup", { ...base, hangup_cause: "user_busy", end_time: "2026-09-29T15:00:20Z" }),
+    ).toMatchObject({ stage: "ended", cause: "user_busy", at: new Date("2026-09-29T15:00:20Z") });
+    expect(call("call.initiated", { ...base, direction: "outgoing" }).kind).toBe("ignored");
+  });
 });
 
 describe("10DLC registration", () => {

@@ -125,6 +125,55 @@ const FUNNELS = [
     },
   }),
   defineWorkflow({
+    id: "missed_call.steps",
+    stage: "follow",
+    name: "Missed-call text back",
+    blurb: "A text within a minute to anyone whose call nobody picked up.",
+    icon: "phone",
+    for: "client",
+    in: [{ id: "calls", label: "missed calls", kind: "call" }],
+    out: [{ id: "texted", label: "callers texted", kind: "lead" }],
+    nodes: [
+      { id: "text", uses: "sms.text_back", note: "From the number they called, in texting hours." },
+    ],
+    wires: [
+      // Telnyx's call events enter here once the template is live (SmsEvents, `onlyLive`).
+      { from: "in.calls", to: "text.calls", via: "events" },
+      { from: "text.texted", to: "out.texted", via: "events" },
+    ],
+    // A reply hands the caller to speed to lead when the client has it live (services.ts).
+    template: { parts: { "sms.texts": {}, "sms.text_back": {}, missed_call: {} } },
+  }),
+  defineWorkflow({
+    id: "reviews.steps",
+    stage: "deliver",
+    name: "Review requests",
+    blurb: "Asks every customer for a Google review, then one reminder.",
+    icon: "star",
+    for: "client",
+    in: [{ id: "customers", label: "customers", kind: "lead" }],
+    out: [{ id: "asked", label: "customers asked", kind: "lead" }],
+    nodes: [
+      { id: "ask", uses: "reviews.ask", note: "The ask, with the review link." },
+      {
+        id: "remind",
+        uses: "reviews.ask",
+        with: { round: 2 },
+        note: "One reminder, only if they haven't opened the link.",
+      },
+    ],
+    wires: [
+      // Won deals and done appointments enter from the call outcome; paid invoices by the door.
+      { from: "in.customers", to: "ask.customers", via: "events" },
+      { from: "ask.asked", to: "remind.customers", via: "events", wait: "3 days" },
+      { from: "ask.asked", to: "out.asked", via: "events" },
+    ],
+    template: {
+      parts: { "sms.texts": {}, "reviews.ask": {}, reviews: {} },
+      door: { input: "customers", subject: "phone" },
+    },
+  }),
+  defineWorkflow({
     id: "outbound",
     stage: "reach",
     name: "Outbound",

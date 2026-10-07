@@ -69,12 +69,18 @@ export interface OutcomeEmit {
   workflow: string;
   from: string;
   events: SpineEvent[];
+  /** Only into a template the client installed and set live (review requests). */
+  onlyLive?: boolean;
 }
+
+/** Outcomes where the meeting happened: each is a customer a review request asks. */
+const MET = { won: "won", not_yet: "done", not_fit: "done" } as const;
 
 /**
  * What each marked call sends on the spine. Won leaves `close` and enters `onboarding`, whose
  * contract has no step yet, so it waits there. Not yet leaves `close` by `later`, whose wire
- * waits 30 days into keep warm. A no-show or a clear moves nothing.
+ * waits 30 days into keep warm. Any meeting that happened enters review requests, where the
+ * client has them live. A no-show or a clear moves nothing.
  */
 export function outcomeEmits(marked: readonly MarkedCall[]): OutcomeEmit[] {
   const out: OutcomeEmit[] = [];
@@ -110,6 +116,24 @@ export function outcomeEmits(marked: readonly MarkedCall[]): OutcomeEmit[] {
       workflow: "close",
       from: "outcome.later",
       events: later.map((m) => eventOf(m, "lead")),
+    });
+  // A deal won or an appointment done: the customer is asked for a review, if that's live.
+  const met = marked.filter((m) => m.outcome && m.outcome in MET);
+  if (met.length)
+    out.push({
+      workflow: "reviews.steps",
+      from: "in.customers",
+      onlyLive: true,
+      events: met.map((m) => ({
+        subject: `customer:${callSubject(m.id)}`,
+        kind: "lead" as const,
+        data: {
+          call: m.id,
+          name: m.name,
+          email: m.email,
+          source: MET[m.outcome as keyof typeof MET],
+        },
+      })),
     });
   return out;
 }

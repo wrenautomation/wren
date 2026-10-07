@@ -70,7 +70,26 @@ export type SmsEvent =
       text: string;
       at: Date;
     }
+  | {
+      /**
+       * A voice call to one of our numbers (Call Control): it rang, our app picked up, a person
+       * picked up (bridged), or it ended with the carrier's cause. Every event of one call
+       * carries its `callId`.
+       */
+      kind: "call";
+      eventId: string;
+      type: string;
+      callId: string;
+      stage: CallStage;
+      from: string;
+      to: string;
+      at: Date;
+      /** On `ended`: the hangup cause (`normal_clearing`, `user_busy`, `timeout`). */
+      cause: string | null;
+    }
   | { kind: "ignored"; eventId: string; type: string };
+
+export type CallStage = "ringing" | "answered" | "bridged" | "ended";
 
 export interface SmsProvider {
   readonly name: string;

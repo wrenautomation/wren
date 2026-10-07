@@ -115,22 +115,37 @@ import { searchConsoleChecks, searchConsoleClient } from "@wren/channel-search";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
+  answerChecks,
   CalcomBookings,
   type ClientSms,
   clientSms,
   firstTextStep,
   healthFrom,
+  LINK_ORIGIN,
   NoProvider,
+  placeIdOf,
   policyFrom,
   providerFrom,
   pusherFrom,
+  reviewStep,
   SmsNotifier,
   smsChecks,
   TelnyxProvider,
+  textBackStep,
   touchStep,
 } from "@wren/channel-sms";
-import { TOUCH } from "@wren/channel-sms/components";
 import {
+  MISSED_CALL,
+  missedCallSettingsSchema,
+  REVIEW_STEP,
+  REVIEWS,
+  reviewsSettingsSchema,
+  TEXT_BACK,
+  TOUCH,
+} from "@wren/channel-sms/components";
+import {
+  callHooks,
+  makeReviews,
   makeSmsConsole,
   makeSmsDesk,
   makeSmsEvents,
@@ -1152,6 +1167,17 @@ export async function buildServices(
         : provider === "none"
           ? "no SMS provider (WREN_SMS_PROVIDER)"
           : null;
+  /** Wake whose sender, so a queued text leaves in seconds; the key wakes it once. */
+  const nudgeSender = (client: string | null) => (key: string) =>
+    ingressSend(
+      ingressOf(settings),
+      {
+        service: "SmsSender",
+        key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
+        handler: "sync",
+      },
+      key,
+    );
   /** Whose texts a spine step runs on: Wren's, a client's with texts on, or why they're off. */
   const textsOf = async (client: string | null) => {
     if (!client) return { deps: sms, off: null };
@@ -1162,7 +1188,8 @@ export async function buildServices(
   };
   services.push(
     makeSmsSender(clientTexts),
-    makeSmsEvents({ ...sms, fire: spineFire }),
+    makeSmsEvents({ ...sms, fire: spineFire, calls: callHooks({ main: db, clientDb }) }),
+    makeReviews({ main: db, clientDb }),
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
     makeSmsConsole({ db, open: openClient }),
@@ -1315,6 +1342,8 @@ export async function buildServices(
     ...(smsProvider.registration
       ? smsChecks(db, smsProvider.registration, settings.telnyxCampaignId ?? null)
       : {}),
+    // A call seen to the number; Google's review form for the Place ID (one GET).
+    ...answerChecks(async (client) => (client === null ? db : clientDb(client)), fetch),
     ...emailChecks({
       dbOf: async (client) => (client === null ? db : clientDb(client)),
       warmupOf: async (address) => {
@@ -1411,6 +1440,46 @@ export async function buildServices(
                 },
                 key,
               ),
+          };
+        }),
+        // Missed-call text back: live only with WREN_SMS_LIVE, the client's texts and its sends on.
+        [TEXT_BACK]: textBackStep(async (client) => {
+          const { deps: d, off } = await textsOf(client);
+          const c = client ? await findClient(db, client) : null;
+          const why =
+            textsWhy(d.provider.name, off) ??
+            (c && !sendsOn(c, MISSED_CALL) ? "sends are off for this client" : null);
+          const set = missedCallSettingsSchema.safeParse(c?.products[MISSED_CALL] ?? {});
+          return {
+            db: d.db,
+            live: why === null,
+            why,
+            senderName: d.senderName,
+            bookingLink: d.bookingLink ?? null,
+            onceEvery: set.success ? set.data.onceEvery : 24,
+            zone: set.success ? set.data.zone : null,
+            nudge: nudgeSender(client),
+          };
+        }),
+        // Review requests: the same gates, the Place ID the setup found.
+        [REVIEW_STEP]: reviewStep(async (client) => {
+          const { deps: d, off } = await textsOf(client);
+          const c = await findClient(db, client);
+          const why =
+            textsWhy(d.provider.name, off) ??
+            (c && !sendsOn(c, REVIEWS) ? "sends are off for this client" : null);
+          const set = reviewsSettingsSchema.safeParse(c?.products[REVIEWS] ?? {});
+          return {
+            db: d.db,
+            live: why === null,
+            why,
+            senderName: d.senderName,
+            placeId: await placeIdOf(db, client),
+            via: set.success ? set.data.via : "text",
+            feedback: set.success ? set.data.feedback : false,
+            onceEvery: set.success ? set.data.onceEvery : 90,
+            origin: LINK_ORIGIN,
+            nudge: nudgeSender(client),
           };
         }),
         // Speed to lead's call: "Call now" for the rep. No dialer until voice is set up.

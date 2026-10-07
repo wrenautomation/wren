@@ -7,8 +7,10 @@
 import { findClient } from "@wren/core/clients";
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import type { Db } from "@wren/db";
+import { eq, max } from "drizzle-orm";
 import { TEXTS, textsSettingsSchema } from "./clients.js";
 import type { Registration } from "./provider.js";
+import { smsCalls } from "./schema.js";
 
 export const TEXTING_SETUP = defineSetup({
   id: "setup.texting",
@@ -93,7 +95,94 @@ export const NUMBER_SETUP = defineSetup({
   ],
 });
 
-export const SMS_SETUPS = [TEXTING_SETUP, NUMBER_SETUP];
+/**
+ * Calls to a client's number reach Wren's call app, so a missed one can be texted back
+ * (missed.ts). The number's voice settings point at Wren's Telnyx connection; the check passes
+ * once a call to it has come in. Until then missed-call text back shows "Needs setup".
+ */
+export const CALL_ROUTING_SETUP = defineSetup({
+  id: "setup.call_routing",
+  name: "Call routing",
+  blurb: "Calls to your number reach Wren, so a missed one gets a text back.",
+  site: "number",
+  steps: [
+    {
+      id: "routed",
+      fact: "number.calls_routed",
+      label: "Calls reach Wren",
+      who: "wren",
+      how: "Wren points your number's calls at its call app, then rings it once to test.",
+      forYou: "Wren points your number's calls at its call app, then rings it once to test.",
+      check: "telnyx.calls",
+      every: "1 hour",
+      within: "7 days",
+    },
+  ],
+});
+
+/** A Google Place ID, as Google prints it: `ChIJ` and the rest, letters, digits, `-` and `_`. */
+export const PLACE_ID = /^[A-Za-z0-9_-]{16,200}$/;
+
+/** Where a customer writes a review of the place: Google's own form. */
+export const reviewUrl = (placeId: string) =>
+  `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
+
+/**
+ * The client's Google Business Profile, by its Place ID: the review link every ask carries
+ * (reviews.ts). The account's ref is the Place ID.
+ */
+export const GOOGLE_BUSINESS_SETUP = defineSetup({
+  id: "setup.google_business",
+  name: "Google review link",
+  blurb: "Your Google Business Profile, so review requests link to your review form.",
+  site: "google_business",
+  repeat: "7 days",
+  steps: [
+    {
+      id: "place",
+      fact: "google_business.place_id",
+      label: "Review link found",
+      who: "client",
+      how: "Find your business with Google's Place ID Finder and send Wren the Place ID.",
+      forYou: "Wren finds your Google Business Profile and its review link for you.",
+      goal: "find this business's Google Business Profile and its Place ID",
+      check: "google_business.place_id",
+      every: "1 hour",
+      within: "7 days",
+    },
+  ],
+});
+
+export const SMS_SETUPS = [TEXTING_SETUP, NUMBER_SETUP, CALL_ROUTING_SETUP, GOOGLE_BUSINESS_SETUP];
+
+/**
+ * The missed-call and review setups' checks: a call seen to the number in its owner's texts, and
+ * a Place ID whose review form Google serves. `fetch` is the one network read.
+ */
+export function answerChecks(
+  dbOf: (client: string | null) => Promise<Db>,
+  get: typeof fetch,
+): Record<string, SetupCheck> {
+  return {
+    "telnyx.calls": async ({ account }) => {
+      const db = await dbOf(account.client);
+      const [row] = await db
+        .select({ at: max(smsCalls.startedAt) })
+        .from(smsCalls)
+        .where(eq(smsCalls.toE164, account.ref));
+      return row?.at
+        ? { ok: true, why: "A call came through", seen: { last: row.at.toISOString() } }
+        : { ok: false, why: "No call to this number has reached Wren yet" };
+    },
+    "google_business.place_id": async ({ account }) => {
+      if (!PLACE_ID.test(account.ref)) return { ok: false, why: "That isn't a Place ID" };
+      const res = await get(reviewUrl(account.ref), { method: "GET", redirect: "manual" });
+      return res.status < 400
+        ? { ok: true, why: "Google serves its review form", seen: { status: res.status } }
+        : { ok: false, why: `Google answered ${res.status}`, seen: { status: res.status } };
+    },
+  };
+}
 
 /**
  * Telnyx's reads for the texting setups: the client's campaign (its texts settings name it) and

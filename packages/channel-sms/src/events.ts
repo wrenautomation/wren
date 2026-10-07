@@ -30,8 +30,10 @@ import { numberByE164 } from "./pool.js";
 import type { SmsEvent } from "./provider.js";
 import { type PushAlert, type Pusher, pushAll } from "./push.js";
 import {
+  type CallResult,
   type Disposition,
   type SmsContact,
+  smsCalls,
   smsContacts,
   smsEvents,
   smsMessages,
@@ -86,6 +88,8 @@ export interface ApplyResult {
   outcome: string;
   /** A lead's reply (not a STOP or START): its contact, for a Reply trigger. */
   replied?: number;
+  /** A call nobody picked up, just ended: its `sms_calls` id, for the text back. */
+  missed?: number;
 }
 
 const RANK: Record<string, number> = {
@@ -301,6 +305,62 @@ async function applyInbound(
   };
 }
 
+/**
+ * How an ended call went: bridged to a person is answered; the line busy is busy; our call app
+ * picked up but nobody did is voicemail; else nobody picked up at all.
+ */
+export function callResult(
+  c: { bridgedAt: Date | null; answeredAt: Date | null },
+  cause: string | null,
+): CallResult {
+  if (c.bridgedAt) return "answered";
+  if (cause === "user_busy") return "busy";
+  return c.answeredAt ? "voicemail" : "missed";
+}
+
+/**
+ * A call event onto its call's row: made on the first event seen, each stage's time kept once.
+ * The end sets how it went, once; a missed one answers its id.
+ */
+async function applyCall(
+  db: Queryable,
+  e: Extract<SmsEvent, { kind: "call" }>,
+): Promise<{ outcome: string; missed?: number }> {
+  const number = await numberByE164(db, e.to);
+  await db
+    .insert(smsCalls)
+    .values({
+      callId: e.callId,
+      fromE164: e.from.slice(0, 32) || "unknown",
+      toE164: e.to.slice(0, 32) || "unknown",
+      numberId: number?.id ?? null,
+      startedAt: e.at,
+    })
+    .onConflictDoNothing();
+  const [call] = await db.select().from(smsCalls).where(eq(smsCalls.callId, e.callId));
+  if (!call) return { outcome: `ignored: call ${e.callId} not kept` };
+  if (e.stage === "ringing") return { outcome: `call ringing #${call.id}` };
+  if (e.stage === "answered" || e.stage === "bridged") {
+    const col = e.stage === "answered" ? "answeredAt" : "bridgedAt";
+    if (!call[col])
+      await db
+        .update(smsCalls)
+        .set({ [col]: e.at })
+        .where(eq(smsCalls.id, call.id));
+    return { outcome: `call ${e.stage} #${call.id}` };
+  }
+  if (call.result) return { outcome: `call ended already: ${call.result} #${call.id}` };
+  const result = callResult(call, e.cause);
+  await db
+    .update(smsCalls)
+    .set({ endedAt: e.at, cause: e.cause, result })
+    .where(eq(smsCalls.id, call.id));
+  return {
+    outcome: `call ${result} #${call.id}`,
+    ...(result === "answered" ? {} : { missed: call.id }),
+  };
+}
+
 /** Apply one webhook. The raw body is stored as received; `event` is it read into our words. */
 export async function applyEvent(
   db: Db,
@@ -325,8 +385,13 @@ export async function applyEvent(
     if (id === undefined) return { duplicate: true, outcome: "duplicate event" };
     let outcome: string;
     let replied: number | undefined;
+    let missed: number | undefined;
     if (event.kind === "status") outcome = await applyStatus(tx, event, opts.now);
-    else if (event.kind === "inbound") {
+    else if (event.kind === "call") {
+      const r = await applyCall(tx, event);
+      outcome = r.outcome;
+      missed = r.missed;
+    } else if (event.kind === "inbound") {
       const r = await applyInbound(tx, event, opts);
       outcome = r.outcome;
       notify = r.notify;
@@ -334,7 +399,12 @@ export async function applyEvent(
       replied = r.replied;
     } else outcome = `ignored: ${event.type}`;
     await tx.update(smsEvents).set({ outcome }).where(eq(smsEvents.id, id));
-    return { duplicate: false, outcome, ...(replied === undefined ? {} : { replied }) };
+    return {
+      duplicate: false,
+      outcome,
+      ...(replied === undefined ? {} : { replied }),
+      ...(missed === undefined ? {} : { missed }),
+    };
   });
   if (notify && opts.notifier)
     await opts.notifier.notify(notify, "open the phone app to read and answer", "action");

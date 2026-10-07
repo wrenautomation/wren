@@ -2,6 +2,7 @@
 import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
+import { z } from "zod";
 import { REMINDERS, remindersSettingsSchema, TEXTS, textsSettingsSchema } from "./clients.js";
 
 /** One step of a text follow-up on the spine (follow.ts). */
@@ -12,6 +13,48 @@ export const SPEED = "speed-to-lead";
 export const FOLLOW_UP = "sms.follow_up";
 /** The template that installs speed to lead's parts: the part whose inside it is. */
 export const SPEED_TEMPLATE = "speed_to_lead";
+
+/** Missed-call text back (missed.ts): the template part and its step. */
+export const MISSED_CALL = "missed_call";
+export const TEXT_BACK = "sms.text_back";
+/** Review requests (reviews.ts): the template part and its step. */
+export const REVIEWS = "reviews";
+export const REVIEW_STEP = "reviews.ask";
+
+export const missedCallSettingsSchema = z
+  .object({
+    onceEvery: z
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 30)
+      .default(24)
+      .describe("One text per caller in this many hours"),
+    zone: z
+      .string()
+      .trim()
+      .min(1)
+      .nullable()
+      .default(null)
+      .describe("Your time zone, for texting hours (like America/Chicago)"),
+  })
+  .strict();
+export type MissedCallSettings = z.infer<typeof missedCallSettingsSchema>;
+
+export const reviewsSettingsSchema = z
+  .object({
+    via: z.enum(["text", "email"]).default("text").describe("Ask by text or email"),
+    feedback: z.boolean().default(false).describe("Add a private feedback form to every ask"),
+    onceEvery: z
+      .number()
+      .int()
+      .min(1)
+      .max(730)
+      .default(90)
+      .describe("Ask the same person at most once in this many days"),
+  })
+  .strict();
+export type ReviewsSettings = z.infer<typeof reviewsSettingsSchema>;
 
 export const SMS_COMPONENTS = [
   defineComponent({
@@ -234,6 +277,136 @@ export const SMS_COMPONENTS = [
           built: null,
         },
         { is: "fixed", says: "The sender still paces every text; a touch only queues it." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: MISSED_CALL,
+    stage: "follow",
+    channels: ["text", "voice"],
+    name: "Missed-call text back",
+    blurb: "Texts anyone whose call you missed within a minute, from the number they called.",
+    icon: "phone",
+    for: "client",
+    ready: true,
+    comesWith: MISSED_CALL,
+    inside: "missed_call.steps",
+    settings: missedCallSettingsSchema,
+    requires: { components: [TEXTS], facts: ["number.calls_routed"] },
+    effects: ["sends"],
+    in: [{ id: "calls", label: "missed calls", kind: "call" }],
+    out: [{ id: "texted", label: "callers texted", kind: "lead" }],
+    hypothesis: {
+      from: "Product audit item 3, 2026-10-07",
+      guesses: [
+        {
+          is: "change",
+          says: "The words, for new callers and known ones.",
+          built: "the missed-call templates",
+        },
+        { is: "change", says: "How often one caller can get a text.", built: "settings.onceEvery" },
+        {
+          is: "needs",
+          says: "Calls to the client's number routed through Wren's Telnyx call app.",
+          built: "the call routing setup",
+        },
+        { is: "fixed", says: "Texting hours, STOP, and one text per caller per window." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: TEXT_BACK,
+    stage: "follow",
+    channels: ["text"],
+    name: "Text back",
+    blurb: "Texts the caller of one missed call, once, unless they opted out or are mid-thread.",
+    icon: "reply",
+    for: "client",
+    ready: true,
+    comesWith: MISSED_CALL,
+    requires: { components: [TEXTS] },
+    provides: { templates: ["sms:texts/missed-call.new", "sms:texts/missed-call.known"] },
+    effects: ["sends"],
+    in: [{ id: "calls", label: "missed calls", kind: "call" }],
+    out: [
+      { id: "texted", label: "callers texted", kind: "lead" },
+      { id: "untexted", label: "not texted", kind: "call" },
+    ],
+    hypothesis: {
+      from: "Product audit item 3, 2026-10-07",
+      guesses: [
+        { is: "change", says: "Which words: new caller or known.", built: null },
+        { is: "fixed", says: "Opted-out callers and running threads are never texted." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: REVIEWS,
+    stage: "deliver",
+    channels: ["text"],
+    name: "Review requests",
+    blurb: "Asks every customer for a Google review, with one reminder.",
+    icon: "star",
+    for: "client",
+    ready: true,
+    comesWith: REVIEWS,
+    inside: "reviews.steps",
+    settings: reviewsSettingsSchema,
+    requires: { components: [TEXTS], facts: ["google_business.place_id"] },
+    // The counted link and the feedback form, for the phone Worker's /r/ pages.
+    provides: { services: ["Reviews"] },
+    effects: ["sends"],
+    in: [{ id: "customers", label: "customers", kind: "lead" }],
+    out: [{ id: "asked", label: "customers asked", kind: "lead" }],
+    hypothesis: {
+      from: "Product audit item 4, 2026-10-07",
+      guesses: [
+        {
+          is: "change",
+          says: "The words of the ask and the reminder.",
+          built: "the review templates",
+        },
+        { is: "change", says: "Days before the reminder.", built: "the remind wire's wait" },
+        {
+          is: "change",
+          says: "A private feedback form beside the link.",
+          built: "settings.feedback",
+        },
+        {
+          is: "needs",
+          says: "The client's Google Place ID.",
+          built: "the Google review link setup",
+        },
+        { is: "needs", says: "Reviews gained, from Google's Business Profile API.", built: null },
+        { is: "fixed", says: "Every customer is asked. Nobody is filtered by rating." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: REVIEW_STEP,
+    stage: "deliver",
+    channels: ["text"],
+    name: "Ask for a review",
+    blurb: "Texts one customer the review link, or the one reminder if they haven't opened it.",
+    icon: "star",
+    for: "client",
+    ready: true,
+    comesWith: REVIEWS,
+    requires: { components: [TEXTS] },
+    provides: {
+      templates: ["sms:texts/review.ask", "sms:texts/review.reminder", "sms:texts/review.feedback"],
+    },
+    effects: ["sends"],
+    in: [{ id: "customers", label: "customers", kind: "lead" }],
+    out: [
+      { id: "asked", label: "asked", kind: "lead" },
+      { id: "unasked", label: "not asked", kind: "lead" },
+    ],
+    hypothesis: {
+      from: "Product audit item 4, 2026-10-07",
+      guesses: [
+        { is: "change", says: "Ask or reminder: the node's round.", built: null },
+        { is: "fixed", says: "A reminder goes only if the link wasn't opened." },
       ],
     },
   }),

@@ -48,6 +48,10 @@ export interface RenderFields {
   time: string | null;
   /** Where they book: the client's texts setting, or `WREN_SMS_BOOKING_LINK`; null = none set. */
   booking_link: string | null;
+  /** A review ask's counted link to the client's Google review form; null elsewhere. */
+  review_link?: string | null;
+  /** A review ask's private feedback form; null elsewhere. */
+  feedback_link?: string | null;
 }
 
 export type RenderField = keyof RenderFields;
@@ -60,6 +64,8 @@ export function sampleFields(sender: string): RenderFields {
     sender,
     time: "2:30 PM",
     booking_link: "https://cal.example.test/book",
+    review_link: "https://wrenautomation.com/r/example/abc123",
+    feedback_link: "https://wrenautomation.com/r/example/abc123/feedback",
   };
 }
 
@@ -122,6 +128,54 @@ export const REMINDER_SLOTS: readonly TemplateSlot[] = [
     goes: "30 to 90 minutes before, in texting hours on their clock, to people who ticked the texts box",
     fields: ["first_name", "time", "sender"],
     mustSayStop: false,
+    minLength: 1,
+  },
+];
+
+/** Missed-call text back and review asks (missed.ts, reviews.ts): texts that answer something. */
+export const ANSWER_SLOTS: readonly TemplateSlot[] = [
+  {
+    key: "missed-call.new",
+    purpose: "Missed call: text to a new caller",
+    goes: "Within a minute of a call nobody picked up, in texting hours on their clock",
+    fields: ["sender", "booking_link"],
+    mustSayStop: true,
+    mustUse: ["sender"],
+    minLength: 1,
+  },
+  {
+    key: "missed-call.known",
+    purpose: "Missed call: text to someone already in your texts",
+    goes: "Within a minute of a call nobody picked up, in texting hours on their clock",
+    fields: ["first_name", "sender", "booking_link"],
+    mustSayStop: false,
+    minLength: 1,
+  },
+  {
+    key: "review.ask",
+    purpose: "Review request",
+    goes: "When a job is done, a deal is won or an invoice is paid, in texting hours",
+    fields: ["first_name", "sender", "review_link"],
+    mustSayStop: true,
+    mustUse: ["review_link"],
+    minLength: 1,
+  },
+  {
+    key: "review.reminder",
+    purpose: "Review request: the one reminder",
+    goes: "Days after the ask, only if they haven't opened the link",
+    fields: ["first_name", "sender", "review_link"],
+    mustSayStop: false,
+    mustUse: ["review_link"],
+    minLength: 1,
+  },
+  {
+    key: "review.feedback",
+    purpose: "Review request: private feedback line",
+    goes: "Added to every ask when the feedback form is on",
+    fields: ["feedback_link"],
+    mustSayStop: false,
+    mustUse: ["feedback_link"],
     minLength: 1,
   },
 ];

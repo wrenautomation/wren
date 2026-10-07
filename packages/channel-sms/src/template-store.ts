@@ -15,6 +15,7 @@ import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import type { SmsContact } from "./schema.js";
 import {
+  ANSWER_SLOTS,
   checkBody,
   firstName,
   KEYWORD_SLOTS,
@@ -54,7 +55,12 @@ export interface SlotView extends TemplateSlot {
 
 /** Every slot: each sequence's steps, the reminders, then the keyword replies. */
 export function slotsOf(sequences: Iterable<SmsSequence>): TemplateSlot[] {
-  return [...[...sequences].flatMap(sequenceSlots), ...REMINDER_SLOTS, ...KEYWORD_SLOTS];
+  return [
+    ...[...sequences].flatMap(sequenceSlots),
+    ...REMINDER_SLOTS,
+    ...ANSWER_SLOTS,
+    ...KEYWORD_SLOTS,
+  ];
 }
 
 /** What a sequence text fills in for this contact. */

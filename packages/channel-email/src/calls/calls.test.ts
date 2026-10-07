@@ -98,7 +98,7 @@ describe("outcomeEmits", () => {
     offer: null,
   });
 
-  it("won leaves close and enters onboarding; not yet goes to keep warm; the rest move nothing", () => {
+  it("won leaves close and enters onboarding; not yet goes to keep warm; met calls ask for a review", () => {
     const out = outcomeEmits([
       m(1, "won"),
       m(2, "not_yet"),
@@ -110,8 +110,12 @@ describe("outcomeEmits", () => {
       ["close", "outcome.won", ["call:1"]],
       ["onboarding", "in.clients", ["call:1"]],
       ["close", "outcome.later", ["call:2"]],
+      ["reviews.steps", "in.customers", ["customer:call:1", "customer:call:2", "customer:call:4"]],
     ]);
     expect(out[2]?.events[0]?.data).toMatchObject({ outcome: "not_yet", reason: "Budget" });
+    // Review requests enter only where the client has them live; won is its own source.
+    expect(out[3]?.onlyLive).toBe(true);
+    expect(out[3]?.events.map((e) => e.data.source)).toEqual(["won", "done", "done"]);
   });
 });
 

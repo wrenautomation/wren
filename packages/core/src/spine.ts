@@ -780,11 +780,19 @@ interface Target {
   /** Whose database; null is Wren's. */
   client: string | null;
 }
+/**
+ * Events leaving `from` in a workflow. `onlyLive`: only when the client installed the workflow's
+ * template and it is live; else nothing enters (Wren's own never does). A template's trigger that
+ * isn't a node (a missed call, a won deal) enters this way.
+ */
+export type EmitRequest = Target & {
+  workflow: string;
+  from: string;
+  events: SpineEvent[];
+  onlyLive?: boolean;
+};
 export type SpineService = {
-  emit: (
-    ctx: restate.Context,
-    req: Target & { workflow: string; from: string; events: SpineEvent[] },
-  ) => Promise<Tally>;
+  emit: (ctx: restate.Context, req: EmitRequest) => Promise<Tally>;
   release: (
     ctx: restate.Context,
     req: Target & { id: string; happened?: SpineEvent },
@@ -858,6 +866,24 @@ export async function notLive(db: Queryable, client: string): Promise<string[]> 
   return rows.map((r) => r.workflow);
 }
 
+/** Whether `client` has `workflow`'s template installed and live. */
+export async function liveFor(db: Queryable, client: string, workflow: string): Promise<boolean> {
+  const [row] = await db
+    .select({ state: workflowInstalls.state })
+    .from(workflowInstalls)
+    .where(
+      and(
+        eq(workflowInstalls.client, client),
+        eq(workflowInstalls.workflow, workflow),
+        eq(workflowInstalls.state, "live"),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+const NONE: Tally = { arrived: 0, seen: 0, waiting: 0, failed: 0, out: 0 };
+
 /** Every Reply and Booking node in `flows` that hears `facts`, as where its event leaves. */
 export function hearersOf(
   flows: Iterable<Workflow>,
@@ -894,10 +920,8 @@ export const slotEvent = (node: string, slot: Date): SpineEvent => ({
 });
 
 /** Events leaving `from` in a workflow, sent by a part's own code: a sender that sent a step. */
-export const spineEmit = (
-  ctx: restate.Context,
-  req: Target & { workflow: string; from: string; events: SpineEvent[] },
-) => ctx.serviceSendClient<SpineService>(SPINE).emit(req);
+export const spineEmit = (ctx: restate.Context, req: EmitRequest) =>
+  ctx.serviceSendClient<SpineService>(SPINE).emit(req);
 
 export interface SpineDeps {
   main: Db;
@@ -1018,10 +1042,13 @@ export function makeSpine(d: SpineDeps) {
       /** Events leaving a node's output or a workflow's input. Parts and the door send it. */
       emit: restate.handlers.handler(
         { ingressPrivate: true },
-        (
-          ctx: restate.Context,
-          req: Target & { workflow: string; from: string; events: SpineEvent[] },
-        ) => {
+        async (ctx: restate.Context, req: EmitRequest) => {
+          if (req.onlyLive) {
+            const client = req.client;
+            if (client === null) return NONE;
+            const live = await ctx.run("live", () => liveFor(d.main, client, req.workflow));
+            if (!live) return NONE;
+          }
           const event = webhookEventOfEmit(req.workflow, req.from);
           if (event && d.publish)
             for (const e of req.events)

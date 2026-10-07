@@ -9,7 +9,7 @@
  * strictest state rules), and weekends are off unless listed.
  */
 import { canonicalZone, wallClock } from "@wren/core/time";
-import type { ContactBasis, SourceKind } from "./schema.js";
+import { ANSWER_KINDS, type ContactBasis, type SourceKind } from "./schema.js";
 
 export const FLEET_ZONE = "America/New_York";
 const UNKNOWN_ZONE_CHECKS = ["America/New_York", "America/Los_Angeles"] as const;
@@ -56,12 +56,17 @@ export const ASKED_WINDOW: AskedWindow = {
   days: [1, 2, 3, 4, 5, 6, 7],
 };
 
-/** Contacts who asked to be texted: a lander form, a client's door. */
-export const ASKED: ReadonlySet<SourceKind> = new Set(["form", "hook"]);
+/** Contacts who asked to be texted: a lander form, a client's door, a call to the client. */
+export const ASKED: ReadonlySet<SourceKind> = new Set(["form", "hook", "call"]);
 
-/** The policy a contact's texts are timed by: the asked window for those who asked. */
-export function policyFor(source: SourceKind, policy: SmsPolicy): SmsPolicy {
-  return ASKED.has(source) ? { ...policy, ...(policy.asked ?? ASKED_WINDOW) } : policy;
+/**
+ * The policy a contact's texts are timed by: the asked window for those who asked, and for a
+ * text that answers something they did (a missed call, a job done), whoever they are.
+ */
+export function policyFor(source: SourceKind, policy: SmsPolicy, kind?: string): SmsPolicy {
+  return ASKED.has(source) || (kind !== undefined && ANSWER_KINDS.has(kind))
+    ? { ...policy, ...(policy.asked ?? ASKED_WINDOW) }
+    : policy;
 }
 
 export const DEFAULT_POLICY: SmsPolicy = {

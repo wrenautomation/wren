@@ -20,7 +20,7 @@ import type { Bookings } from "./bookings.js";
 import { TOUCH } from "./components.js";
 import { endContact } from "./deliver.js";
 import { ASKED } from "./policy.js";
-import { smsContacts, smsMessages, speedRuns } from "./schema.js";
+import { smsCalls, smsContacts, smsMessages, speedRuns } from "./schema.js";
 import { fieldsFor, liveTexts, textRef } from "./template-store.js";
 import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
 
@@ -63,6 +63,17 @@ export async function bookedRun(db: Db, contactId: number, at: Date): Promise<vo
     .update(speedRuns)
     .set({ bookedAt: at })
     .where(and(eq(speedRuns.smsContactId, contactId), isNull(speedRuns.bookedAt)));
+  // A caller texted back who then booked: the missed call's booking.
+  await db
+    .update(smsCalls)
+    .set({ bookedAt: at })
+    .where(
+      and(
+        eq(smsCalls.contactId, contactId),
+        eq(smsCalls.textBack, "queued"),
+        isNull(smsCalls.bookedAt),
+      ),
+    );
 }
 
 /**
