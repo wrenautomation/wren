@@ -31,7 +31,7 @@ export const resolverOf =
   };
 
 /** Up to the bucket on a signed PUT; its `src` goes in the doc. */
-async function uploadImage(client: string, id: string, file: File): Promise<string> {
+export async function uploadImage(client: string, id: string, file: File): Promise<string> {
   if (!IMAGE_TYPES.has(file.type)) throw new ApiError("Paste a PNG, JPEG, WebP or GIF.", 400);
   const up = await notes(client, "upload", {
     id,

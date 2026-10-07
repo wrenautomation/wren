@@ -81,6 +81,22 @@
   margin: 0.3em 0;
   padding-left: 1.5em;
 }
+/* Tailwind's reset takes the markers off; a doc keeps them. */
+.note-body ul {
+  list-style: disc;
+}
+.note-body ul ul {
+  list-style: circle;
+}
+.note-body ul ul ul {
+  list-style: square;
+}
+.note-body ol {
+  list-style: decimal;
+}
+.note-body ol ol {
+  list-style: lower-alpha;
+}
 .note-body li > p {
   margin: 0;
 }
@@ -333,5 +349,11 @@
   .collaboration-carets__caret,
   .collaboration-carets__label {
     display: none;
+  }
+  /* Comments live in the app; the page prints clean. */
+  .note-body .note-comment,
+  .note-body .note-comment-on {
+    background: none;
+    border-bottom: none;
   }
 }

@@ -50,6 +50,7 @@ import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
+import { googleDrive } from "@wren/notes/drive";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { dictationApi } from "@wren/voice/console";
@@ -211,6 +212,8 @@ const SERVICES: Record<
       open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
       files,
       zone: settings.sendTimezone,
+      // Public links only: the service account's key stays on the Worker.
+      drive: googleDrive({}),
     }),
   },
   // Dictation's timings only; a test call's save is Restate's.

@@ -26,12 +26,22 @@ import { z } from "zod";
 import { atLeast, clientWho, effectiveRole, isShareRole, type Reader, TEAM } from "./access.js";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "./console-routes.js";
 import { blame, counts } from "./diff.js";
-import { captureBlock, fromB64, fromMarkdown, nameOf, toB64 } from "./doc.js";
+import {
+  appendBody,
+  captureBlock,
+  cleanBody,
+  fromB64,
+  fromMarkdown,
+  nameOf,
+  toB64,
+} from "./doc.js";
+import { DriveRefusal, driveIdOf, type NoteDrive } from "./drive.js";
 import { type Note, type NoteComment, noteStars } from "./schema.js";
 import {
   addComment,
   appendNote,
   backlinks,
+  changeNote,
   childrenOf,
   commentById,
   commentsOf,
@@ -91,6 +101,8 @@ export interface NotesDeps {
   files?: NoteFiles | undefined;
   /** Capture stamps' clock. */
   zone?: string;
+  /** Google Drive, for import; left out, the import says it's off here. */
+  drive?: NoteDrive | undefined;
 }
 
 /** An image a note takes, by type. */
@@ -101,6 +113,8 @@ export const IMAGE_TYPES: Readonly<Record<string, string>> = {
   "image/gif": ".gif",
 };
 export const IMAGE_MAX = 20 * 1024 * 1024;
+/** Biggest body an import appends, as JSON: images go up on their own. */
+const BODY_MAX = 4_000_000;
 /** How an image's `src` names a stored file. */
 export const FILE_SRC = "wren-file:";
 
@@ -512,7 +526,7 @@ export function notesApi(deps: NotesDeps) {
 
     async settings(req: PortalRequest) {
       const place = await placeOf(req);
-      return settingsOf(place.db);
+      return { ...(await settingsOf(place.db)), drive: deps.drive?.who() ?? null };
     },
 
     /** The note's comment threads, each with its replies, oldest first. */
@@ -656,6 +670,46 @@ export function notesApi(deps: NotesDeps) {
         parentId: isNoteId(req.parentId) ? req.parentId : null,
       });
       return { id: note.id };
+    },
+
+    /**
+     * Blocks at the end of a note, from editor JSON: an import's body once its images are up.
+     * `from` names the file, and makes it an `import` version so the history says so.
+     */
+    async append(req: Req<{ id?: unknown; body?: unknown; from?: unknown }>) {
+      const { db, note } = await locate(req, req.id, "edit");
+      const by = byOf(req);
+      if (JSON.stringify(req.body ?? null).length > BODY_MAX)
+        throw new PortalRefusal("that's too long for one note", 400);
+      const body = cleanBody(req.body);
+      if (!body) throw new PortalRefusal("that isn't a note's body", 400);
+      const from = typeof req.from === "string" ? req.from.trim().slice(0, 200) : "";
+      const c = await changeNote(
+        db,
+        note.id,
+        by,
+        (doc) => appendBody(doc, body),
+        from ? { kind: "import", name: `From ${from}` } : {},
+      );
+      return { version: c.version };
+    },
+
+    /** A Google Doc or Word file in Drive, as `.docx` bytes for the browser to turn into a note. */
+    async drive(req: Req<{ link?: unknown }>) {
+      byOf(req);
+      const place = await placeOf(req);
+      const reader = await readerOf(req, place);
+      if (reader.cap !== "edit") throw new PortalRefusal("your role can't do that", 403);
+      if (!deps.drive) throw new PortalRefusal("Google Drive isn't set up here", 503);
+      const id = driveIdOf(str(req.link, 2000, "the link"));
+      if (!id) throw new PortalRefusal("Paste a Google Docs or Drive link.", 400);
+      try {
+        const file = await deps.drive.get(id);
+        return { name: file.name, data: toB64(file.bytes) };
+      } catch (e) {
+        if (e instanceof DriveRefusal) throw new PortalRefusal(e.message, e.status);
+        throw e;
+      }
     },
 
     /** Quick capture: a timestamped line at the end of the person's Dump note, or a new note. */
@@ -915,6 +969,12 @@ const INPUTS = {
   commentEdit: { id: ID, commentId: z.string().max(64), body: z.string().max(10_000) },
   commentDelete: { id: ID, commentId: z.string().max(64) },
   resolve: { id: ID, commentId: z.string().max(64), on: ON },
+  append: {
+    id: ID,
+    body: z.unknown().describe("Editor JSON: a doc"),
+    from: z.string().max(200).optional().describe("The file it came from: an import version"),
+  },
+  drive: { link: z.string().max(2000).describe("A Google Docs or Drive link") },
   create: {
     title: z.string().max(300).optional(),
     markdown: z.string().optional().describe("The body, as Markdown"),
@@ -978,6 +1038,9 @@ export function makeNotesConsole(deps: NotesDeps) {
       commentEdit: write("commentEdit", "edit comment"),
       commentDelete: write("commentDelete", "delete comment"),
       resolve: write("resolve", "resolve"),
+      // A Drive read: big bytes and no write, so no journal.
+      drive: read("drive"),
+      append: write("append", "append"),
       create: write("create", "create"),
       capture: write("capture", "capture"),
       rename: write("rename", "rename"),

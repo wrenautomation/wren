@@ -592,6 +592,94 @@ export function captureBlock(words: string, at: Date, zone = "America/New_York")
   };
 }
 
+// ---- Import ----
+
+/** Each block or inline the editor has, and the attrs it keeps. */
+const NODES: Readonly<Record<string, readonly string[]>> = {
+  doc: [],
+  paragraph: [],
+  heading: ["level"],
+  blockquote: [],
+  codeBlock: ["language"],
+  horizontalRule: [],
+  image: ["src", "alt", "title"],
+  bulletList: [],
+  orderedList: ["start"],
+  listItem: [],
+  taskList: [],
+  taskItem: ["checked"],
+  table: [],
+  tableRow: [],
+  tableCell: ["colspan", "rowspan"],
+  tableHeader: ["colspan", "rowspan"],
+  hardBreak: [],
+  mention: ["id", "label"],
+  text: [],
+};
+const MARKS = new Set(["bold", "italic", "strike", "underline", "code", "link"]);
+/** How many nodes an import may hold, and how deep. */
+const IMPORT_NODES = 100_000;
+const IMPORT_DEPTH = 24;
+
+/**
+ * Editor JSON from outside (a browser's import) cut to what the editor knows: unknown blocks give
+ * up their children, unknown marks and attrs go, links are web, mail or this site's and images are
+ * this note's files or https. Null when it isn't a doc.
+ */
+export function cleanBody(json: unknown): NoteJson | null {
+  let left = IMPORT_NODES;
+  const attrsOf = (type: string, raw: unknown): Record<string, unknown> | undefined => {
+    if (!raw || typeof raw !== "object") return undefined;
+    const out: Record<string, unknown> = {};
+    for (const k of NODES[type] ?? []) {
+      const v = (raw as Record<string, unknown>)[k];
+      if (typeof v === "string") out[k] = v.slice(0, 2000);
+      else if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+      else if (typeof v === "boolean") out[k] = v;
+    }
+    if (type === "heading") out.level = Math.min(Math.max(Number(out.level) || 1, 1), 3);
+    if (type === "image" && !/^(wren-file:|https:)/.test(String(out.src ?? ""))) return undefined;
+    return Object.keys(out).length ? out : undefined;
+  };
+  const markOf = (m: unknown): NonNullable<NoteJson["marks"]>[number] | null => {
+    if (!m || typeof m !== "object") return null;
+    const type = String((m as { type?: unknown }).type ?? "");
+    if (!MARKS.has(type)) return null;
+    if (type !== "link") return { type };
+    const href = String((m as { attrs?: { href?: unknown } }).attrs?.href ?? "");
+    return /^(https?:|mailto:|\/(?!\/))/i.test(href)
+      ? { type, attrs: { href: href.slice(0, 2000) } }
+      : null;
+  };
+  const walk = (n: unknown, depth: number): NoteJson[] => {
+    if (!n || typeof n !== "object" || --left < 0 || depth > IMPORT_DEPTH) return [];
+    const raw = n as {
+      type?: unknown;
+      attrs?: unknown;
+      content?: unknown;
+      text?: unknown;
+      marks?: unknown;
+    };
+    const type = String(raw.type ?? "");
+    const kids = Array.isArray(raw.content) ? raw.content.flatMap((k) => walk(k, depth + 1)) : [];
+    if (!Object.hasOwn(NODES, type)) return kids;
+    if (type === "text") {
+      const text = typeof raw.text === "string" ? raw.text : "";
+      if (!text) return [];
+      const marks = Array.isArray(raw.marks)
+        ? raw.marks.map(markOf).filter((m): m is NonNullable<typeof m> => !!m)
+        : [];
+      return [{ type, text, ...(marks.length ? { marks } : {}) }];
+    }
+    const attrs = attrsOf(type, raw.attrs);
+    if (type === "image" && !attrs) return [];
+    return [{ type, ...(attrs ? { attrs } : {}), ...(kids.length ? { content: kids } : {}) }];
+  };
+  if (!json || typeof json !== "object" || (json as { type?: unknown }).type !== "doc") return null;
+  const [doc] = walk(json, 0);
+  return doc ? { type: "doc", content: doc.content ?? [] } : null;
+}
+
 // ---- Wire ----
 
 /** Base64 both sides of the wire: no Buffer, so the browser shares it. */

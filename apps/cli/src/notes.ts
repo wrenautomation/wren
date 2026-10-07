@@ -3,8 +3,9 @@
  * Reads see every note, as the CLI does every table, unless `--as <email>` reads as that person.
  * `add` and `append` write as `agent:claude` (or `--agent <name>`), and an added note is shared
  * with the workspace so its people see what the agent wrote. Words come from the arguments, or
- * from stdin when there are none.
+ * from stdin when there are none. `export` writes a note as Word or Markdown.
  */
+import { writeFile } from "node:fs/promises";
 import { listOperators, normalEmail } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import {
@@ -15,6 +16,7 @@ import {
   isNoteId,
   type ListView,
   listNotes,
+  type NoteJson,
   nameOf,
   noteById,
   type Reader,
@@ -59,7 +61,9 @@ export function registerNotes(
   const { withDb, withMainDb } = dbs;
   const cmd = program
     .command("notes")
-    .description("Notes: list, search, read, add and append (agents write as agent:<name>)");
+    .description(
+      "Notes: list, search, read, export, add and append (agents write as agent:<name>)",
+    );
 
   /** The reader `--as` names, or every note when there's none. */
   const readerOf = async (as: string | undefined): Promise<Omit<Reader, "cap"> | null> => {
@@ -153,6 +157,31 @@ export function registerNotes(
         console.log(
           `v${v.number}  ${day(v.at)}  ${v.authors.join(", ")}${v.name ? `  "${v.name}"` : ""}${v.kind === "auto" ? "" : `  (${v.kind})`}`,
         );
+    });
+
+  cmd
+    .command("export")
+    .description("A note as a Word (.docx) or Markdown file; images stay as their alt text")
+    .argument("<id>")
+    .argument("<file>", "where to write it: name.docx or name.md")
+    .option("--as <email>", "read as this person; refused when they can't open it")
+    .action(async (id: string, file: string, o: { as?: string }) => {
+      if (!isNoteId(id)) throw new Error(`not a note id: ${id}`);
+      const kind = /\.docx$/i.test(file) ? "docx" : /\.(md|markdown)$/i.test(file) ? "md" : null;
+      if (!kind) throw new Error("the file ends in .docx or .md");
+      const r = await readerOf(o.as);
+      const note = await withDb(async (db) => {
+        const n = await noteById(db, id);
+        return n && (!r || (await roleOn(db, n, r))) ? n : null;
+      });
+      if (!note) throw new Error(r ? `no such note for ${r.email}` : "no such note");
+      const title = nameOf(note.title, note.text);
+      const body = note.body as NoteJson;
+      if (kind === "docx") {
+        const { toDocx } = await import("@wren/notes/docx");
+        await writeFile(file, await toDocx(body, { title }));
+      } else await writeFile(file, `# ${title}\n\n${toMarkdown(body)}`);
+      console.log(file);
     });
 
   cmd

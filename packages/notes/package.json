@@ -9,6 +9,8 @@
     "./console-routes": "./src/console-routes.ts",
     "./diff": "./src/diff.ts",
     "./doc": "./src/doc.ts",
+    "./docx": "./src/docx.ts",
+    "./drive": "./src/drive.ts",
     "./room": "./src/room.ts",
     "./schema": "./src/schema.ts",
     "./suggest": "./src/suggest.ts",
@@ -24,6 +26,7 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "docx": "9.9.0",
     "drizzle-orm": "0.45.2",
     "y-protocols": "1.0.7",
     "yjs": "13.6.33",
@@ -33,6 +36,7 @@
     "@testcontainers/postgresql": "12.1.0",
     "@tiptap/pm": "3.31.4",
     "@tiptap/y-tiptap": "3.0.9",
+    "mammoth": "1.13.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

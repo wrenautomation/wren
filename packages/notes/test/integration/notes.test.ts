@@ -21,6 +21,7 @@ import {
   writeBody,
   writeTitle,
 } from "../../src/doc.js";
+import { googleDrive } from "../../src/drive.js";
 import { trainingNotes } from "../../src/store.js";
 import { SUGGEST_ADD } from "../../src/types.js";
 
@@ -266,6 +267,68 @@ describe("a note in Wren's workspace", () => {
       api().upload({ viewer: ADA, id, name: "a.pdf", type: "application/pdf", size: 10 }),
       400,
     );
+  });
+
+  it("imports: a body goes in as an import version; Drive reads by link", async () => {
+    const { id } = await api().create({ viewer: ADA, title: "Vendor review" });
+    await api().append({
+      viewer: ADA,
+      id,
+      from: "Vendor review.docx",
+      body: {
+        type: "doc",
+        content: [
+          { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Pick one" }] },
+          {
+            type: "script",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Northwind" }] }],
+          },
+          { type: "image", attrs: { src: "javascript:x" } },
+        ],
+      },
+    });
+    expect((await browser(ADA, id)).text()).toBe("Pick one\nNorthwind");
+    const vs = await api().versions({ viewer: ADA, id });
+    expect(vs.versions[0]).toMatchObject({ kind: "import", name: "From Vendor review.docx" });
+    await refused(api().append({ viewer: OZ, id, body: { type: "doc", content: [] } }), 404);
+    await refused(api().append({ viewer: ADA, id, body: { type: "paragraph" } }), 400);
+
+    const docx = new Uint8Array([0x50, 0x4b, 3, 4, 9, 9]);
+    const withDrive = notesApi({
+      main: pg.db,
+      open: () => acme.db,
+      drive: googleDrive({
+        who: () => "reader@wren.test",
+        fetch: async (url) =>
+          url.includes("/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/")
+            ? new Response(docx, {
+                headers: { "content-disposition": 'attachment; filename="Plan.docx"' },
+              })
+            : new Response("<html>Sign in</html>"),
+      }),
+    });
+    expect((await withDrive.settings({ viewer: ADA })).drive).toBe("reader@wren.test");
+    const got = await withDrive.drive({
+      viewer: ADA,
+      link: "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit",
+    });
+    expect(got).toEqual({ name: "Plan", data: toB64(docx) });
+    await refused(
+      withDrive.drive({
+        viewer: ADA,
+        link: "https://docs.google.com/document/d/1ZZZZZZZZZZZZZZZZZZZZZZZZZZZZ/edit",
+      }),
+      404,
+    );
+    await refused(withDrive.drive({ viewer: ADA, link: "https://evil.test/x" }), 400);
+    await refused(
+      api().drive({
+        viewer: ADA,
+        link: "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit",
+      }),
+      503,
+    );
+    await refused(withDrive.drive({ viewer: { demo: true } as never, link: "x" }), 403);
   });
 });
 

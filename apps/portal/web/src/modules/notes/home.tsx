@@ -1,7 +1,7 @@
 /**
  * Notes' home, like Docs': Recent, Owned by me, Shared with me, Starred and Archived, and a
  * search over every note the viewer can open (Postgres full text). New note, Quick note, and
- * Markdown in; Word and Google Drive say they're coming.
+ * imports: a Word or Markdown file, or a Google Doc by its link.
  */
 import {
   Alert,
@@ -16,12 +16,20 @@ import {
   say,
   Tag,
 } from "@wren/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@wren/ui/components/ui/dialog";
 import { useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { go, href, navigate } from "../../route.js";
 import { docPath, type NoteRow, notes, VIEWS, type View } from "./api.js";
 import { QuickNote } from "./capture.js";
+import { IMPORT_ACCEPT, importDrive, importFile } from "./files.js";
 
 const PATH = "/notes/home";
 
@@ -125,16 +133,21 @@ export function NotesHome({ client, params, demo }: PageProps) {
   const data = list.data;
   const writes = !demo && !!data?.canWrite;
 
-  const create = (markdown?: string, title?: string) => {
+  const create = () => {
     setBusy(true);
-    notes(client, "create", { ...(markdown ? { markdown } : {}), ...(title ? { title } : {}) })
+    notes(client, "create", {})
       .then((r) => navigate(docPath(r.id)))
       .catch(say.failed)
       .finally(() => setBusy(false));
   };
-  const importMd = (f: File) => {
-    if (f.size > 500_000) return say.failed(new Error("Markdown files go up to 500 KB."));
-    void f.text().then((t) => create(t, f.name.replace(/\.(md|markdown|txt)$/i, "")));
+  const [drive, setDrive] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importOne = (f: File) => {
+    setImporting(true);
+    importFile(client, f)
+      .then((id) => navigate(docPath(id)))
+      .catch(say.failed)
+      .finally(() => setImporting(false));
   };
   const star = (n: NoteRow) =>
     notes(client, "star", { id: n.id, on: !n.starred })
@@ -160,24 +173,25 @@ export function NotesHome({ client, params, demo }: PageProps) {
               tone="secondary"
               size="dense"
               icon="download"
+              busy={importing}
               onClick={() => file.current?.click()}
             >
-              Import Markdown
+              Import Word or Markdown
             </Button>
             <input
               ref={file}
               type="file"
-              accept=".md,.markdown,.txt,text/markdown,text/plain"
+              accept={IMPORT_ACCEPT}
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) importMd(f);
+                if (f) importOne(f);
                 e.target.value = "";
               }}
             />
-            <span className="flex items-center gap-1.5 text-[12.5px] text-(--ui-ink-2)">
-              Word and Google Drive import <Tag>In development</Tag>
-            </span>
+            <Button tone="secondary" size="dense" onClick={() => setDrive(true)}>
+              From Google Docs
+            </Button>
           </>
         ) : null}
       </div>
@@ -233,6 +247,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
       {quick ? (
         <QuickNote client={client} open={quick} onOpenChange={setQuick} onSaved={list.retry} />
       ) : null}
+      {drive ? <FromDrive client={client} onClose={() => setDrive(false)} /> : null}
     </>
   );
 }
@@ -266,5 +281,73 @@ function Training({
         </Button>
       </div>
     </Section>
+  );
+}
+
+/** A Google Doc by its link: Wren reads it as its service account, or as anyone with the link. */
+function FromDrive({ client, onClose }: { client: string; onClose: () => void }) {
+  const [link, setLink] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+  const who = useCall(`notes:settings:${client}`, () => notes(client, "settings", {}));
+  const sa = who.data?.drive ?? null;
+  const go = () => {
+    if (!link.trim()) return;
+    setBusy(true);
+    setFailed(null);
+    importDrive(client, link.trim())
+      .then((id) => {
+        onClose();
+        navigate(docPath(id));
+      })
+      .catch((e: unknown) => setFailed(e instanceof Error ? e.message : String(e)))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Import from Google Docs</DialogTitle>
+          <DialogDescription>
+            Paste the doc's link. It comes in as a new note; the doc stays as it is.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            go();
+          }}
+        >
+          <Input
+            value={link}
+            autoFocus
+            aria-label="The doc's link"
+            placeholder="https://docs.google.com/document/d/…"
+            onChange={(e) => setLink(e.target.value)}
+          />
+          {failed ? <Alert>{failed}</Alert> : null}
+          <p className="m-0 text-[12.5px] text-(--ui-ink-2)">
+            {sa ? (
+              <>
+                Share the doc with <span className="font-mono break-all text-(--ui-ink)">{sa}</span>
+                , or set it to Anyone with the link.
+              </>
+            ) : (
+              "Set the doc to Anyone with the link first."
+            )}{" "}
+            Word files in Drive work too, up to 4 MB.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button tone="secondary" size="dense" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="dense" type="submit" busy={busy} disabled={!link.trim() || busy}>
+              Import
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

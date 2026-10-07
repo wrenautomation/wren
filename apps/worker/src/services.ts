@@ -214,6 +214,7 @@ import {
   youtubeSearchFor,
 } from "@wren/niches";
 import { makeNotesConsole, notesContext } from "@wren/notes/console";
+import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import {
   discoverySettingsSchema,
   REACH_SEQUENCES,
@@ -455,11 +456,24 @@ export async function buildServices(
     cachedDb(clientDatabaseUrl(databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
   const clients = { main: db, open: openClient, policy };
+  // Drive import reads as the service account (a doc shared with it), else by public link; the
+  // key loads on first use, so a worker without one still starts.
+  let driveKey: ReturnType<typeof loadServiceAccountKey> | null = null;
+  let driveToken: (() => Promise<string>) | null = null;
+  const driveKeyOf = () =>
+    (driveKey ??= loadServiceAccountKey(expandHome(settings.googleServiceAccount)));
   const notesDeps = {
     main: db,
     open: openClient,
     files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
     zone: settings.sendTimezone,
+    drive: googleDrive({
+      token: () => {
+        driveToken ??= serviceAccountToken(driveKeyOf(), { scopes: [DRIVE_READ_SCOPE] });
+        return driveToken();
+      },
+      who: () => driveKeyOf().clientEmail,
+    }),
   };
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
   const calcomSites = ingressSites(ingressOf(settings), {

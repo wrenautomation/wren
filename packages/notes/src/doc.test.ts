@@ -5,6 +5,7 @@ import * as Y from "yjs";
 import {
   appendBody,
   captureBlock,
+  cleanBody,
   docOf,
   fromB64,
   fromMarkdown,
@@ -255,5 +256,67 @@ describe("markdown", () => {
     const json = captureBlock("call **Sam** back", new Date("2026-10-07T15:04:00Z"), "UTC");
     expect(textOf(json)).toBe("Oct 7, 3:04 PM call Sam back");
     expect(json.content?.[0]?.content?.[0]?.marks).toEqual([{ type: "bold" }]);
+  });
+});
+
+describe("cleanBody", () => {
+  it("keeps what the editor knows", () => {
+    expect(cleanBody(NOTE)).toEqual(NOTE);
+  });
+
+  it("drops unknown marks, attrs and unsafe links and images; unwraps unknown blocks", () => {
+    const out = cleanBody({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 6, onclick: "x" },
+          content: [{ type: "text", text: "Big" }],
+        },
+        {
+          type: "section",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "a",
+                  marks: [{ type: "bold" }, { type: "font", attrs: { f: 1 } }],
+                },
+                {
+                  type: "text",
+                  text: "b",
+                  marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }],
+                },
+                { type: "text", text: "" },
+              ],
+            },
+          ],
+        },
+        { type: "image", attrs: { src: "data:image/png;base64,AAAA" } },
+        { type: "image", attrs: { src: "wren-file:notes/x/a.png", alt: "A" } },
+      ],
+    });
+    expect(out).toEqual({
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 3 }, content: [{ type: "text", text: "Big" }] },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "a", marks: [{ type: "bold" }] },
+            { type: "text", text: "b" },
+          ],
+        },
+        { type: "image", attrs: { src: "wren-file:notes/x/a.png", alt: "A" } },
+      ],
+    });
+  });
+
+  it("refuses what isn't a doc", () => {
+    expect(cleanBody(null)).toBeNull();
+    expect(cleanBody("doc")).toBeNull();
+    expect(cleanBody({ type: "paragraph" })).toBeNull();
   });
 });

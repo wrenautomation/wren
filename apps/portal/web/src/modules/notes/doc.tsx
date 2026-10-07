@@ -25,6 +25,7 @@ import {
 } from "./api.js";
 import { type Anchor, anchorOf, CommentsPanel, goTo, showThreads } from "./comments.js";
 import { type Heading, type Mode, NoteEditor, outlineOf, wordsIn } from "./editor.js";
+import { download, downloadDocx, fileName } from "./files.js";
 import { ShareDialog } from "./share.js";
 import { NoteSync, type SyncState } from "./sync.js";
 import { VersionOpen, VersionsPanel } from "./versions.js";
@@ -56,20 +57,6 @@ function setTitle(doc: Y.Doc, next: string) {
     t.insert(a, next.slice(a, next.length - b));
   });
 }
-
-function download(name: string, type: string, text: string) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-const fileName = (name: string) =>
-  name
-    .replace(/[^\p{L}\p{N} _-]+/gu, "")
-    .trim()
-    .slice(0, 80) || "note";
 
 /** A menu under a button; closes on a pick, outside, or Escape. */
 function MoreMenu({
@@ -356,6 +343,10 @@ function Doc({
     const md = toMarkdown(editor.getJSON() as never);
     download(`${fileName(note.name)}.md`, "text/markdown", title ? `# ${title}\n\n${md}` : md);
   };
+  const word = () => {
+    if (!editor) return;
+    downloadDocx(client, note.id, editor.getJSON() as never, title || note.name).catch(say.failed);
+  };
 
   const open = comments?.threads.filter((t) => !t.resolvedAt).length ?? 0;
   const status =
@@ -449,7 +440,7 @@ function Doc({
               { label: outline ? "Hide outline" : "Show outline", run: () => setOutline(!outline) },
               { label: "Print or save as PDF", run: () => print() },
               { label: "Download Markdown", run: markdown },
-              { label: "Download Word (.docx)", soon: true },
+              { label: "Download Word (.docx)", run: word },
               null,
               { label: "Turn into a task, draft or SOP", soon: true },
               null,

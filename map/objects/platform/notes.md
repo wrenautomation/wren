@@ -28,6 +28,9 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 - mentions: `person:<email>`, `note:<id>`, `console.client:<id>`, kept in `note_links` for backlinks; a person `@`ed in the body or a comment gets a `note_mentions` row, shown under Notes → Mentions only when they can open the note
 - images: S3 under `notes/<client>/<id>/`, referenced as `wren-file:` and signed on read
 - Dump: each person's capture note; Quick note (N, ⌘K "Note: …") appends a timestamped block
+- out: Markdown, print to PDF, Word (`toDocx`, `packages/notes/src/docx.ts`; open suggestions become tracked changes; images fetched by the browser)
+- in: Markdown, or Word turned to HTML in the browser (mammoth) and read by the editor's parser; images go up first, then `notes/append` cleans the body (`cleanBody`) and lands it as an `import` version named for the file (`apps/portal/web/src/modules/notes/files.ts`)
+- Google Docs by link: `notes/drive` reads it as Wren's service account (shared with it, `drive.readonly`), else as anyone with the link; no Google sign-in (`packages/notes/src/drive.ts`)
 
 ## Connected to
 
@@ -40,7 +43,8 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 
 - **Hits:** the Yjs field names (`Y_BODY`, `Y_TITLE`) are in every stored doc: renaming loses content
 - **Hits:** `toMarkdown`/`fromMarkdown` feed the CLI, imports, downloads and training
-- **Also hits:** the portal's `maxBody` for notes (5.6 MB) sits under Lambda's 6 MB
+- **Also hits:** the portal's `maxBody` for notes (5.6 MB) sits under Lambda's 6 MB; Drive files cap at 4 MB so their base64 fits
+- **Also hits:** the editor's node and mark names: `cleanBody` (`doc.ts`) and `toDocx` list them
 - **Also hits:** the portal Worker's `NOTE_ROOM` binding and its DO migration (`apps/portal/wrangler.toml`); the room's frame protocol is shared by `room.ts` and the page's `sync.ts`
 - **Does not hit:** anything that sends
 
@@ -48,15 +52,15 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 
 | Surface | Role |
 |---|---|
-| `NotesConsole` (`packages/notes/src/console.ts`, routes `notes/*`) | home, open, sync, versions, compare, share, capture, backlinks, upload, training, comments, mentions |
+| `NotesConsole` (`packages/notes/src/console.ts`, routes `notes/*`) | home, open, sync, versions, compare, share, capture, backlinks, upload, append, drive, training, comments, mentions |
 | `/api/notes/live/<id>` (`apps/portal/src/live.ts`) | the live room's WebSocket |
 | Notes app (`apps/portal/web/src/modules/notes/`) | home (views, search), Mentions, doc (editor, live cursors, outline, comments and suggestions, history, share), Quick note |
-| `wren notes add\|ls\|show\|search\|append` (`apps/cli/src/notes.ts`) | agents write as `agent:<name>`; `--as` reads as a person |
+| `wren notes add\|ls\|show\|search\|append\|export` (`apps/cli/src/notes.ts`) | agents write as `agent:<name>`; `--as` reads as a person; `export` writes `.docx` or `.md` |
 | `wren train export --notes` (`apps/cli/src/train.ts`) | opted-in notes as JSONL |
 
 ## In development
 
-Word and PDF files, Google Drive import, turn into a task, draft or SOP. Not built: a Mentions tile in Wren's Inbox and email for a mention.
+Turn into a task, draft or SOP. Not built: a Mentions tile in Wren's Inbox (Inbox tiles count record views; a per-person view needs core work) and email for a mention.
 
 ## See
 
