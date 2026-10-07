@@ -331,7 +331,7 @@ describe("score", () => {
       async call(_site, _method, path, input) {
         searched.push(`${path} ${String((input as { q: string }).q).split('"')[1] ?? ""}`);
         return {
-          results: [
+          hits: [
             {
               title: "Acme Staffing acquired by Globex",
               url: "https://news.example/acme",
