@@ -182,6 +182,8 @@ export const clientFlags = delivery.table(
       .on(t.clientId, sql`coalesce(engagement_id, 0)`, t.cause)
       .where(sql`cleared_at is null`),
     index("ix_flags_raised").on(t.raisedAt),
+    index("ix_flags_client").on(t.clientId, t.raisedAt),
+    index("ix_flags_engagement").on(t.engagementId),
   ],
 );
 export type ClientFlag = typeof clientFlags.$inferSelect;
