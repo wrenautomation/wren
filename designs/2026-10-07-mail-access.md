@@ -71,7 +71,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
   - A revoked grant (`invalid_grant`) or a 401/403 marks the connection Broken with a reason.
 - Reader (`packages/watch/src/clients.ts`): `MailReader/all`, every 15 minutes. For each client with the `mail.triage` part, it reads each connected read mailbox through the Monitor's `readMail` into the client's own `watch.mail` with `reader = 'mail'`. Then it emits to the client's `mail` workflow, where `clientTriageStep` sorts with the Monitor's rules and model and names the client in the prompt. A dead mailbox doesn't stop the others.
 - Inbox (`packages/content/src/social/records.ts`): the client's mail shows as type Mail, with sender, subject, summary and the provider's own link. Done clears it. Wren's own Monitor rows never show there.
-- Tables (migration 0179): `mail_connections`, `mail_consents` and `mail_grants` on main. `watch.mail` gets `link` and `reader`.
+- Tables (migration 0184): `mail_connections`, `mail_consents` and `mail_grants` on main. `watch.mail` gets `link` and `reader`.
 - Services: `MailAccess` (portal routes `mail`, `addMailbox`, `connect`, `consent`, `check`, `done`) and `MailCallback/land` (private, reached only through the portal Worker).
 
 ## What William must create
