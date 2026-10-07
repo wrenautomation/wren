@@ -372,6 +372,73 @@ export const changes = pgTable(
 );
 export type Change = typeof changes.$inferSelect;
 
+/**
+ * A list's filters, search, sort and columns kept under a name (`./saved-views.ts`): the viewer's
+ * own, or `shared` with everyone in the workspace (that needs `manage`). `workspace` is a client's
+ * id, or "wren" for Wren's own apps. `params` is the list's address, as a query string.
+ */
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: serial("id").notNull(),
+    workspace: varchar("workspace", { length: 64 }).notNull(),
+    viewer: varchar("viewer", { length: 200 }).notNull(),
+    record: varchar("record", { length: 64 }).notNull(),
+    name: varchar("name", { length: 60 }).notNull(),
+    params: text("params").notNull(),
+    shared: boolean("shared").default(false).notNull(),
+    position: integer("position").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_saved_views" }),
+    index("ix_saved_views_workspace_record").on(t.workspace, t.record, t.position),
+  ],
+);
+export type SavedView = typeof savedViews.$inferSelect;
+
+/**
+ * What a viewer arranged, by key (`./saved-views.ts`): a list's last view and columns
+ * (`list:<record>`), the rail's pins and order, the Overview's tiles, favorites. Reset deletes.
+ */
+export const viewerPrefs = pgTable(
+  "viewer_prefs",
+  {
+    workspace: varchar("workspace", { length: 64 }).notNull(),
+    viewer: varchar("viewer", { length: 200 }).notNull(),
+    key: varchar("key", { length: 100 }).notNull(),
+    value: jsonb("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.workspace, t.viewer, t.key], name: "pk_viewer_prefs" }),
+  ],
+);
+
+/** A saved reply or block, inserted from any draft editor or reply box (the Library). */
+export const snippets = pgTable(
+  "snippets",
+  {
+    id: serial("id").notNull(),
+    workspace: varchar("workspace", { length: 64 }).notNull(),
+    title: varchar("title", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    /** Free text, shared by the team. */
+    tags: text("tags").array().default(sql`'{}'::text[]`).notNull(),
+    /** Where it fits: "email", "sms", "dm", "comment"; null fits anywhere. */
+    channel: varchar("channel", { length: 16 }),
+    createdBy: varchar("created_by", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_snippets" }),
+    index("ix_snippets_workspace").on(t.workspace, t.title),
+  ],
+);
+export type Snippet = typeof snippets.$inferSelect;
+
 export const imports = pgTable(
   "imports",
   {
