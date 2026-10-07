@@ -18,7 +18,7 @@ export function Facts({
           className="grid grid-cols-[minmax(120px,34%)_1fr] gap-4 border-b border-(--ui-hair) py-2 max-[640px]:grid-cols-1 max-[640px]:gap-0.5"
         >
           <dt className="text-(--ui-ink-2)">{label}</dt>
-          <dd>{value}</dd>
+          <dd className="min-w-0 [overflow-wrap:anywhere]">{value}</dd>
         </div>
       ))}
     </dl>
