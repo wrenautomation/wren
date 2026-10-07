@@ -1,7 +1,9 @@
 # connect-src: S3 takes client file uploads on a signed PUT (packages/delivery/src/files.ts);
-# npm's registry lists the browser mods (Marketplace).
+# npm's registry lists the browser mods (Marketplace). Dictation's speech model
+# (src/dictation/model.worker.ts): weights from Hugging Face (redirects to *.hf.co), onnxruntime's
+# wasm from jsDelivr at the one pinned version, and 'wasm-unsafe-eval' to compile it.
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex

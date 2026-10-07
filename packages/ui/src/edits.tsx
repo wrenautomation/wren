@@ -15,6 +15,7 @@ import { UNDO_MS } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
+import { Dictate } from "./dictate.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
@@ -197,6 +198,7 @@ export function EditField({
           Cancel
         </Button>
         {long ? <InsertSnippet box={area} value={typed} onChange={setTyped} /> : null}
+        {long ? <Dictate target={area} /> : null}
         <span className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
           {long ? "⌘S saves · Esc cancels" : "Enter saves · Esc cancels"}
         </span>
@@ -561,21 +563,25 @@ export function AskClaude({
           ))}
         </ol>
       ) : null}
-      <Input
-        ref={box}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-            e.preventDefault();
-            void askNow();
-          }
-        }}
-        disabled={asking}
-        placeholder="What should change? Or ask a question"
-        aria-label="Ask Claude"
-        maxLength={2000}
-      />
+      <div className="flex min-w-0 items-center gap-2">
+        <Input
+          ref={box}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              void askNow();
+            }
+          }}
+          disabled={asking}
+          placeholder="What should change? Or ask a question"
+          aria-label="Ask Claude"
+          maxLength={2000}
+          className="min-w-0 flex-1"
+        />
+        <Dictate target={box} label="Dictate to Claude" />
+      </div>
     </section>
   );
 }

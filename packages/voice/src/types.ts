@@ -88,7 +88,13 @@ export type Heard =
 
 export interface EarStream {
   push(frame: Frame): void;
+  /** Stop now: words still in flight are dropped (a hang-up). */
   close(): void;
+  /**
+   * The audio is over: hear what's left, send its last `final`, then resolve (dictation's key
+   * release). Ears without it are closed instead.
+   */
+  finish?(): Promise<void>;
 }
 
 export interface Ears {

@@ -6,7 +6,7 @@
  * Render is the head action; its state shows on the record.
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
+import { Button, Dictate, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 
@@ -411,6 +411,7 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
 /** Ask Claude on the video: his words go with the edit; Wren writes what Claude answers. */
 function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
   const [message, setMessage] = useState("");
+  const askBox = useRef<HTMLInputElement>(null);
   const [asking, setAsking] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -441,6 +442,7 @@ function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
       {lines.length ? <DraftTurns turns={lines} /> : null}
       <div className="flex min-w-0 items-center gap-2">
         <Input
+          ref={askBox}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
@@ -455,6 +457,7 @@ function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
           maxLength={2000}
           className="min-w-0 flex-1"
         />
+        <Dictate target={askBox} label="Dictate to Claude" />
         {changed ? (
           <Button tone="quiet" size="dense" busy={undoing} onClick={() => void run("undo")}>
             Undo

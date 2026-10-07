@@ -7,6 +7,7 @@ import type { RecordsPage } from "@wren/core/records/serve";
 import {
   Alert,
   Button,
+  Dictate,
   Empty,
   exact,
   Loading,
@@ -15,7 +16,7 @@ import {
   Tag,
   Textarea,
 } from "@wren/ui";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
@@ -69,6 +70,7 @@ export function Ask() {
     call<RecordsPage>("console/recordsList", { record: "console.ask", view: "all", limit: 50 }),
   );
   const [q, setQ] = useState("");
+  const box = useRef<HTMLTextAreaElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const thinking = list.data?.rows.some((r) => r.state === "thinking") ?? false;
@@ -101,6 +103,7 @@ export function Ask() {
       />
       <form onSubmit={submit} className="mb-6 flex flex-col gap-2">
         <Textarea
+          ref={box}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
@@ -114,6 +117,7 @@ export function Ask() {
           <Button size="dense" type="submit" busy={busy} disabled={!q.trim()}>
             Ask
           </Button>
+          <Dictate target={box} label="Dictate your question" />
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       </form>

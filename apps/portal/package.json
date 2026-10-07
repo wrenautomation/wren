@@ -12,6 +12,7 @@
     "preview": "vite build web && tsx scripts/preview.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.1",
     "@wren/auth": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/delivery": "workspace:*",

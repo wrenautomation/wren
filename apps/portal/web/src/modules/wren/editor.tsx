@@ -7,7 +7,17 @@
 import { DOOR_TRIGGERS, UNTIL_WORDS, untilOf } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
-import { Button, cx, GRAPH_DROP, type GraphNode, Icon, Input, StateMark, Tag } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Dictate,
+  GRAPH_DROP,
+  type GraphNode,
+  Icon,
+  Input,
+  StateMark,
+  Tag,
+} from "@wren/ui";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -751,6 +761,7 @@ export function AskGraph({
   onAnswer: (reply: string, patch: Draft | null) => void;
 }) {
   const [message, setMessage] = useState("");
+  const askBox = useRef<HTMLInputElement>(null);
   const [run, setRun] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -797,6 +808,7 @@ export function AskGraph({
       }}
     >
       <Input
+        ref={askBox}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         maxLength={2000}
@@ -805,6 +817,7 @@ export function AskGraph({
         aria-label="Ask Claude to change the workflow"
         className="h-8 flex-1 text-[13px]"
       />
+      <Dictate target={askBox} label="Dictate to Claude" />
       <Button type="submit" tone="secondary" size="dense" busy={!!run}>
         {run ? "Thinking" : "Ask"}
       </Button>

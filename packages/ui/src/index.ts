@@ -26,6 +26,18 @@ export {
 } from "./customize.js";
 export { Facts, Settings } from "./data.js";
 export { type DaySource, RecordDay } from "./day.js";
+export {
+  DICTATE_KEYS,
+  Dictate,
+  type DictateEvents,
+  type DictateHandle,
+  type DictatePhase,
+  type DictateStatus,
+  type DictationEngine,
+  DictationProvider,
+  useDictateStatus,
+} from "./dictate.js";
+export { joinDictated } from "./dictate-text.js";
 export { Diff, pairsOf } from "./diff.js";
 export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";

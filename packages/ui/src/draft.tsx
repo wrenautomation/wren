@@ -10,6 +10,7 @@ import type { Action, Call } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { Dictate } from "./dictate.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
 import { InsertSnippet } from "./snippets.js";
 
@@ -138,6 +139,7 @@ export function DraftBox({
   const pending = useRef<Promise<boolean> | null>(null);
   const boxId = useId();
   const box = useRef<HTMLTextAreaElement>(null);
+  const askBox = useRef<HTMLInputElement>(null);
   const dirty = text.trim() !== base.trim();
 
   // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
@@ -293,6 +295,7 @@ export function DraftBox({
             }}
             channel={draft.preview?.kind}
           />
+          <Dictate target={box} className="ml-auto" />
         </div>
       ) : null}
       {draft.preview && text.trim() ? <MessagePreview message={draft.preview} body={text} /> : null}
@@ -301,6 +304,7 @@ export function DraftBox({
         <div className="flex min-w-0 items-center gap-2">
           {ask ? (
             <Input
+              ref={askBox}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => {
@@ -316,6 +320,7 @@ export function DraftBox({
               className="min-w-0 flex-1"
             />
           ) : null}
+          {ask ? <Dictate target={askBox} label="Dictate to Claude" /> : null}
           {undo && (last || dirty) ? (
             <Button tone="quiet" size="dense" busy={undoing} onClick={() => void undoNow()}>
               Undo
