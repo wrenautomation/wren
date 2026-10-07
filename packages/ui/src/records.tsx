@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
-import { type Action, applies, type Call, useRun } from "./action.js";
+import { type Action, applies, blockedOf, type Call, runs, sayBlocked, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
@@ -435,18 +435,30 @@ export function Bulk({
       {actions
         .filter((a) => a.bulk)
         .map((a) => {
-          const ids = chosen.filter((r) => applies(a, r)).map((r) => r.id);
-          return ids.length ? (
-            <Button
-              key={a.id}
-              tone="secondary"
-              size="dense"
-              busy={running?.action === a.id}
-              disabled={busy}
-              onClick={() => run(a, ids)}
-            >
-              {a.label} {num(ids.length)}
-            </Button>
+          const ids = chosen.filter((r) => runs(a, r)).map((r) => r.id);
+          // Rows it would apply to but can't run on yet: skipped, each reason said once.
+          const reasons = chosen.flatMap((r) => (applies(a, r) ? (blockedOf(a, r) ?? []) : []));
+          const skipped = reasons.length;
+          const why = [...new Set(reasons)];
+          return ids.length || skipped ? (
+            <span key={a.id} className="inline-flex flex-wrap items-center gap-2">
+              {ids.length ? (
+                <Button
+                  tone="secondary"
+                  size="dense"
+                  busy={running?.action === a.id}
+                  disabled={busy}
+                  onClick={() => run(a, ids)}
+                >
+                  {a.label} {num(ids.length)}
+                </Button>
+              ) : null}
+              {skipped ? (
+                <span className="text-(--ui-ink-2)">
+                  {a.label} skips {num(skipped)}. {why.join(" ")}
+                </span>
+              ) : null}
+            </span>
           ) : null;
         })}
       <button
@@ -957,7 +969,7 @@ function List({
         const a = keyed(e, k.actions, row);
         if (a && row) {
           e.preventDefault();
-          k.run(a, [row.id], startOf(a, row));
+          if (!sayBlocked(a, row)) k.run(a, [row.id], startOf(a, row));
         }
       }
     };
@@ -982,7 +994,7 @@ function List({
       items: [
         ...(openRow
           ? actions
-              .filter((a) => applies(a, openRow))
+              .filter((a) => runs(a, openRow))
               .map((a) => ({
                 label: a.label,
                 group: titleOf(meta, openRow),
@@ -1713,7 +1725,8 @@ export function RecordBody({
     ));
   const shown = actsOf(meta, acts, false, here).filter((a) => applies(a, row));
   const inline = box ? actsOf(meta, acts, true, here).filter((a) => applies(a, row)) : [];
-  const sendAction = box?.send ? shown.find((a) => a.id === box.send) : undefined;
+  // A blocked send (a carousel's Approve) leaves the box without one; the head says why.
+  const sendAction = box?.send ? shown.find((a) => a.id === box.send && runs(a, row)) : undefined;
   /** A head action runs on the saved draft: what's typed in the box goes first. */
   const runHead = (a: Action) =>
     void (draftBox.current?.flush() ?? Promise.resolve(true)).then(
@@ -1771,7 +1784,8 @@ export function RecordBody({
                   tone={i === 0 ? "primary" : "secondary"}
                   size={i === 0 ? "next" : "dense"}
                   busy={running?.action === a.id}
-                  disabled={busy}
+                  disabled={busy || !!blockedOf(a, row)}
+                  title={blockedOf(a, row) ?? undefined}
                   onClick={() => runHead(a)}
                 >
                   {a.label}
@@ -1795,6 +1809,14 @@ export function RecordBody({
             </Button>
           ) : null}
         </div>
+        {shown.map((a) => {
+          const why = blockedOf(a, row);
+          return why ? (
+            <p key={a.id} className="m-0 text-[13px] text-(--ui-ink-2)">
+              {why}
+            </p>
+          ) : null;
+        })}
         {states.length ? (
           <div
             onAnimationEnd={(e) => {

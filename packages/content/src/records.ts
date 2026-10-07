@@ -22,6 +22,7 @@ import { DRAFT_CALLS } from "./draft-calls.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 import { shapeView } from "./shape-view.js";
+import { FORMATS } from "./social/records.js";
 import type { VideoSigner } from "./video.js";
 
 const NAMES: Record<Platform, string> = {
@@ -110,6 +111,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
         },
         "Points to",
       ),
+      format: status(FORMATS, "Format"),
       note: text("Your redraft note"),
       error: text("Last error"),
       scheduled: date("Posts at"),

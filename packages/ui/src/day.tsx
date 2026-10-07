@@ -8,7 +8,7 @@ import type { RecordMeta, State } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type Action, applies, useRun } from "./action.js";
+import { type Action, runs, useRun } from "./action.js";
 import { Button, ButtonLink } from "./controls.js";
 import { Alert, Empty } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
@@ -331,7 +331,7 @@ function Day({
                         {mine.map((it) => {
                           const href = `${src.open}/${encodeURIComponent(String(it.row.id))}`;
                           const sub = meta.subtitle === by ? "" : subtitleOf(meta, it.row);
-                          const can = main && applies(main, it.row) ? main : null;
+                          const can = main && runs(main, it.row) ? main : null;
                           const when = it.carried
                             ? it.at
                               ? `Since ${it.at.toLocaleDateString("en-US", SHORT)}`

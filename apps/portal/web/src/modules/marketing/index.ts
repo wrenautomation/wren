@@ -69,6 +69,9 @@ const POST_ACTIONS: Action[] = [
 ];
 
 const WAITING = { state: ["draft", "failed"] };
+/** Approve on a carousel: the server refuses too (`CAROUSEL_UPLOAD_DEV`). */
+const CAROUSEL_WHY =
+  "Carousels can't post yet: the upload is in development. Download the slides to post by hand.";
 const OPEN = { state: ["draft", "failed", "approved"] };
 /** A post's fields and files, saved from inside the detail (fields.tsx), never from the head. */
 const fieldActions = (when: NonNullable<Action["when"]>): Action[] => [
@@ -99,6 +102,7 @@ const DRAFT_ACTIONS: Action[] = [
     key: "a",
     bulk: true,
     when: WAITING,
+    blocked: { format: { carousel: CAROUSEL_WHY } },
     done: said("Scheduled at its next slot"),
   },
   {

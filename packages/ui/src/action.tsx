@@ -100,6 +100,11 @@ export interface Action {
   undo?: string;
   /** The states a record must be in for it to apply: `{ status: ["awaiting"] }`. */
   when?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * Why it can't run on a record yet, by field and value: `{ format: { carousel: "..." } }`. The
+   * button shows, turned off, with the reason; a key says the reason; a selection skips the row.
+   */
+  blocked?: Readonly<Record<string, Readonly<Record<string, string>>>>;
   /** What it sets on a record, so the demo can do it in the browser: `{ status: "approved" }`. */
   sets?: Readonly<Record<string, string>>;
   /**
@@ -140,6 +145,27 @@ export function applies(action: Action, row: Record<string, unknown>): boolean {
     (!action.form || !!action.each) &&
     Object.entries(action.when ?? {}).every(([k, states]) => states.includes(String(row[k])))
   );
+}
+
+/** Why `action` can't run on this record yet, or null (`Action.blocked`). */
+export function blockedOf(action: Action, row: Record<string, unknown>): string | null {
+  for (const [k, why] of Object.entries(action.blocked ?? {})) {
+    const v = row[k];
+    if (v !== null && v !== undefined && Object.hasOwn(why, String(v)))
+      return why[String(v)] ?? null;
+  }
+  return null;
+}
+
+/** It applies to this record and nothing blocks it: it can run now. */
+export const runs = (action: Action, row: Record<string, unknown>) =>
+  applies(action, row) && !blockedOf(action, row);
+
+/** A key pressed for a blocked action: says why and runs nothing. True when it was blocked. */
+export function sayBlocked(action: Action, row: Record<string, unknown>): boolean {
+  const why = blockedOf(action, row);
+  if (why) toast(why);
+  return !!why;
 }
 
 /** A form's values: each field as typed, else as its `from` makes it. */

@@ -8,7 +8,7 @@ import type { RecordMeta } from "@wren/core/records";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { type Action, applies, useRun } from "./action.js";
+import { type Action, applies, blockedOf, sayBlocked, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, relative } from "./fields.js";
@@ -97,7 +97,7 @@ function Queue({
     meta.name,
   );
   const act = (a: Action) => {
-    if (!row) return;
+    if (!row || sayBlocked(a, row)) return;
     const after = rows[at + 1] ?? rows[at - 1];
     next.current = after ? String(after.id) : null;
     run(a, [row.id], startOf(a, row));
@@ -295,7 +295,8 @@ function Queue({
                     tone={i === 0 ? "primary" : "secondary"}
                     size={i === 0 ? "next" : "dense"}
                     busy={running?.action === a.id}
-                    disabled={busy}
+                    disabled={busy || !!(row && blockedOf(a, row))}
+                    title={(row && blockedOf(a, row)) ?? undefined}
                     onClick={() => act(a)}
                   >
                     {a.label}
@@ -306,6 +307,16 @@ function Queue({
                 ))}
               </span>
             </div>
+            {row
+              ? here.map((a) => {
+                  const why = blockedOf(a, row);
+                  return why ? (
+                    <p key={a.id} className="m-0 text-[13px] text-(--ui-ink-2)">
+                      {why}
+                    </p>
+                  ) : null;
+                })
+              : null}
             {row ? (
               <RecordBody
                 key={String(row.id)}

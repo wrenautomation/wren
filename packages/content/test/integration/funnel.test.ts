@@ -279,6 +279,18 @@ describe("funnel", () => {
     await expect(approveDrafts(pg.db, [li.id], { now: new Date() })).rejects.toThrow(
       /in development/,
     );
+    // A bulk approve with a carousel in it refuses whole; the list's format lets the UI skip it.
+    await expect(approveDrafts(pg.db, [ig.id, thread.id], { now: new Date() })).rejects.toThrow(
+      /in development/,
+    );
+    const formats = await pg.db.execute<{ id: string; format: string }>(
+      sql`select id, format from marketing_draft_records where id in (${ig.id}, ${li.id}, ${thread.id})`,
+    );
+    expect(Object.fromEntries([...formats].map((r) => [r.id, r.format]))).toEqual({
+      [ig.id]: "carousel",
+      [li.id]: "carousel",
+      [thread.id]: "thread",
+    });
 
     // Drawn with a fake painter into a fake store: both drafts keep the files, fresh.
     const puts: string[] = [];

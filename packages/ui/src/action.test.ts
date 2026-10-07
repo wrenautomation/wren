@@ -1,7 +1,16 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { type Action, applies, type FormField, inputOf, typedOf, valuesOf } from "./action.js";
+import {
+  type Action,
+  applies,
+  blockedOf,
+  type FormField,
+  inputOf,
+  runs,
+  typedOf,
+  valuesOf,
+} from "./action.js";
 import { HandlerForm } from "./handler.js";
 
 const PAUSE: Action = {
@@ -53,6 +62,21 @@ describe("form actions", () => {
     const SLIP: Action = { ...ADD, each: true, when: { state: ["now"] } };
     expect(applies(SLIP, { state: "now" })).toBe(true);
     expect(applies(SLIP, { state: "done" })).toBe(false);
+  });
+  it("applies but won't run on a blocked row, and says why", () => {
+    const APPROVE: Action = {
+      id: "approve",
+      label: "Approve",
+      handler: "x/approve",
+      when: { state: ["draft"] },
+      blocked: { format: { carousel: "Carousels can't post yet." } },
+    };
+    const carousel = { state: "draft", format: "carousel" };
+    expect(applies(APPROVE, carousel)).toBe(true);
+    expect(runs(APPROVE, carousel)).toBe(false);
+    expect(blockedOf(APPROVE, carousel)).toBe("Carousels can't post yet.");
+    expect(runs(APPROVE, { state: "draft", format: "post" })).toBe(true);
+    expect(blockedOf(APPROVE, { state: "draft" })).toBeNull();
   });
   it("leaves a file out of the typed values", () => {
     expect(valuesOf([{ field: "file", label: "File", type: "file" }], {})).toEqual({});

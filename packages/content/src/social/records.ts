@@ -148,7 +148,7 @@ const textRows = (db: Queryable) =>
 const draftRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, platform, title, text, scheduled, created from marketing_draft_records
+    sql`select id, platform, title, text, format, scheduled, created from marketing_draft_records
       where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
   );
 
@@ -194,6 +194,13 @@ const liPostRows = (db: Queryable) =>
       from linkedin_posts where state = 'queued'
       order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
   );
+
+/** What a draft goes out as: one post, an X thread, or a slide set (`marketing_draft_records`). */
+export const FORMATS = {
+  post: neutral("Post"),
+  thread: neutral("Thread"),
+  carousel: neutral("Carousel"),
+};
 
 /** A row's state, as both lists say it. */
 const STATES = status({
@@ -518,6 +525,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           who: p.title,
           platform: p.platform,
           kind: "post",
+          format: p.format,
           state: "waiting",
           body: p.text,
           post_title: null,
@@ -693,6 +701,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         "Kind",
       ),
       state: STATES,
+      format: status(FORMATS, "Format", { listed: false }),
       body: prose("Words"),
       postTitle: text("Post"),
       why: text("Picked for"),
