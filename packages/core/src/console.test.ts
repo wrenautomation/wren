@@ -203,6 +203,7 @@ describe("ConsolePortal records", () => {
       "console.setting",
       "library.snippet",
       "loops.flag",
+      "marketing.experiment",
       "library.workflow",
       "console.event",
       "console.execution",

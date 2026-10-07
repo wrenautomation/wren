@@ -17,6 +17,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type FetchLike, siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { writeFlagDays } from "@wren/core/experiment-store";
 import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass, serviceHandler } from "@wren/core/restate";
@@ -25,6 +26,8 @@ import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
+import { decideExperiments } from "../experiments.js";
+import { rollupFlags } from "../flag-days.js";
 import { rollupHeat, writeHeatDays } from "../heat.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
 import { ENGINES, type Engine } from "../schema.js";
@@ -75,8 +78,9 @@ type SearchWeekApi = { run: (ctx: restate.Context, req: { today: string }) => Pr
 type Step<T> = T | { error: string };
 type WatchStats = SyncStats & {
   week: string | null;
-  site?: Step<{ days: number }>;
+  site?: Step<{ days: number; flags: number }>;
   heat?: Step<{ rows: number }>;
+  experiments?: Step<{ moved: number; settled: number }>;
 };
 
 export function makeSearchWatch(deps: SearchDeps) {
@@ -107,13 +111,19 @@ export function makeSearchWatch(deps: SearchDeps) {
       const got = await ctx.run("site days", async () => {
         try {
           const o = { ...site, fetch: deps.fetch };
-          const [hits, apps, ours] = await Promise.all([
+          const [hits, apps, ours, seen] = await Promise.all([
             siteExport("hits", o),
             siteExport("applications", o),
             callsAndPaid(deps.db),
+            // An older lander has no exposures table: no experiment days, the rest as before.
+            siteExport("exposures", o).catch(() => []),
           ]);
           const rows = rollupSite(hits, apps, ours.calls, ours.paid);
-          return { days: await upsertSiteDays(deps.db, rows) };
+          const days = await upsertSiteDays(deps.db, rows);
+          return {
+            days,
+            flags: await writeFlagDays(deps.db, rollupFlags(seen, hits, apps, ours.calls)),
+          };
         } catch (err) {
           // Any error, not just the export's: a throw here retried the pass into a pause (10-06).
           return { error: err instanceof Error ? err.message : String(err) };
@@ -135,6 +145,15 @@ export function makeSearchWatch(deps: SearchDeps) {
       if (outcome.stats)
         outcome.stats.heat = "error" in heat ? { error: heat.error } : { rows: heat.rows };
     }
+    // The bandit moves running experiments' shares on the days just written; the push carries them.
+    const moved = await ctx.run("experiments", async () => {
+      try {
+        return await decideExperiments(deps.db);
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : String(err) };
+      }
+    });
+    if (outcome.stats) outcome.stats.experiments = moved;
     const edge = deps.edge;
     if (edge) await ctx.run("edge flags", () => pushEdge(deps.db, edge));
     const changes = outcome.stats?.changes ?? [];

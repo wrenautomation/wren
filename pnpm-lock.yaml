@@ -668,6 +668,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/experiments':
+        specifier: workspace:*
+        version: link:../experiments
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm

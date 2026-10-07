@@ -155,3 +155,29 @@ export function formatRules(rules: readonly FlagRule[]): string {
     })
     .join("\n");
 }
+
+/*
+ * Experiments (§3): a site flag with a goal. While one runs, the edge gets its shares as
+ * percent rules in place of the flag's own, so the bandit moves traffic without a lander push.
+ */
+export const EXPERIMENT_GOALS = ["forms", "calls", "paid"] as const;
+export type ExperimentGoal = (typeof EXPERIMENT_GOALS)[number];
+/** draft → running → settled (P(best) ≥ 0.95, shares held) → shipped; or stopped. */
+export const EXPERIMENT_STATES = ["draft", "running", "settled", "shipped", "stopped"] as const;
+export type ExperimentState = (typeof EXPERIMENT_STATES)[number];
+
+/** Shares (0 to 1, by variant) as rules: cumulative percents on the flag's one bucket, the last everyone. */
+export function shareRules(
+  variants: readonly string[],
+  shares: Readonly<Record<string, number>>,
+): FlagRule[] {
+  const live = variants.filter((v) => (shares[v] ?? 0) > 0);
+  const total = live.reduce((t, v) => t + (shares[v] ?? 0), 0);
+  if (!total) return [];
+  let at = 0;
+  return live.map((variant, i) => {
+    if (i === live.length - 1) return { variant };
+    at += ((shares[variant] ?? 0) / total) * 100;
+    return { variant, percent: Math.round(at * 100) / 100 };
+  });
+}

@@ -1,7 +1,8 @@
 /**
  * Flags in the database (designs/2026-10-06-flags-experiments-surveys-heatmaps.md §2): the
  * `loops.flag` record with edits (History, Undo, Ask Claude), add and remove, evaluation for a
- * login, and the push of site flags to the lander's edge on every change.
+ * login, and the push of site flags to the lander's edge on every change. A running experiment's
+ * shares stand in for its flag's rules there (`./experiment-store.ts`).
  */
 import type { Queryable } from "@wren/db";
 import { asc, eq, inArray } from "drizzle-orm";
@@ -14,6 +15,7 @@ import {
   parseRules,
   SURFACES,
   type Surface,
+  shareRules,
 } from "./flags.js";
 import { PortalRefusal } from "./portal.js";
 import {
@@ -25,7 +27,7 @@ import {
   text,
   type Values,
 } from "./records.js";
-import { flags } from "./schema.js";
+import { flagExperiments, flags } from "./schema.js";
 
 export const FLAG = "loops.flag";
 
@@ -75,9 +77,20 @@ export async function flagsFor(db: Queryable, s: FlagSubject): Promise<Record<st
 /** Push the site's flags; a failed push is logged, never fails the change (the next one resends). */
 export async function pushEdge(db: Queryable, push: EdgePush | undefined): Promise<void> {
   if (!push) return;
+  const testing = new Map(
+    (
+      await db
+        .select({ flag: flagExperiments.flag, shares: flagExperiments.shares })
+        .from(flagExperiments)
+        .where(inArray(flagExperiments.state, ["running", "settled"]))
+    ).map((e) => [e.flag, e.shares]),
+  );
   const site = (await flagDefs(db))
     .filter((f) => f.surface !== "portal")
-    .map(({ surface: _, ...f }) => f);
+    .map(({ surface: _, ...f }) => {
+      const shares = testing.get(f.key);
+      return shares ? { ...f, rules: shareRules(f.variants, shares) } : f;
+    });
   try {
     await push(site);
   } catch (err) {

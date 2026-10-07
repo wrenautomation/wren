@@ -142,3 +142,23 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
     `WREN_SITE_EDGE_TOKEN`) and again on each SearchWatch pass. The push runs inside the edit's
     transaction: on a rare rollback the edge is one change ahead until the next pass. A failed
     push is logged and never fails the change. No token, no push.
+- 2026-10-06, experiments built, dark (no markup on the site, no edge token yet, nothing started):
+  - The table is `flag_experiments`, keyed by flag; `experiments` was already channel-email's.
+    Day rows are `flag_days`.
+  - The edge gets shares as the flag's rules: cumulative percents on the flag's one bucket, the
+    last variant taking the rest. A running or settled experiment's shares replace the flag's
+    rules in every push. Stop goes back to the flag's rules. Ship writes the winner as the rule.
+  - The middleware runs only on pages whose built HTML has `data-flag`: `scripts/routes.mjs`
+    writes `dist/_routes.json` (each function's path plus those pages). Without it wrangler
+    routes `/*` and every asset is a billed Function call. The build fails if the middleware's
+    own skip list misses a function path.
+  - A flag wren hasn't pushed shows its first variant in the markup, so a page reads right with
+    no edge config.
+  - No cookie yes: a fresh random id each view. The visitor still splits by share, but the
+    exposure is stored without a visitor and never counted.
+  - The bandit runs in SearchWatch after the day rollup. It drops a variant under 2% P(best)
+    and settles at 95% only after 200 visitors per variant. Settled holds 90% on the leader
+    until Ship or Stop.
+  - Forms match the exposed visitor's applications after exposure. Calls match by email code or
+    application email, on or after the exposure day. Paid stays 0 until a paid join exists.
+  - Add, Start, Ship, Stop and Remove need `manage` at Wren.

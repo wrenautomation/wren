@@ -33,6 +33,12 @@ export const CONSOLE_ROUTES = {
   // Flags: the team at Wren, a release decision (the handler checks `manage`).
   flagAdd: "wren:run",
   flagRemove: "wren:run",
+  // Experiments: Start and Ship put a variant live on the site (the handler checks `manage`).
+  experimentAdd: "wren:run",
+  experimentStart: "wren:run",
+  experimentShip: "wren:run",
+  experimentStop: "wren:run",
+  experimentRemove: "wren:run",
   addClient: "wren:manage",
   // A handler with an effect needs `effect` too, checked once the handler is known.
   call: "wren:run",
@@ -68,6 +74,11 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "snippetRemove",
   "flagAdd",
   "flagRemove",
+  "experimentAdd",
+  "experimentStart",
+  "experimentShip",
+  "experimentStop",
+  "experimentRemove",
   "addClient",
   "call",
   "setLook",

@@ -6,6 +6,7 @@ import {
   fnv,
   formatRules,
   parseRules,
+  shareRules,
   variantOf,
 } from "./flags.js";
 
@@ -54,5 +55,19 @@ describe("flags", () => {
     });
     expect(parseRules("on: 120%", ["off", "on"])).toMatchObject({ error: /0 to 100/ });
     expect(parseRules("on: tuesdays", ["off", "on"])).toMatchObject({ error: /isn't roles/ });
+  });
+
+  it("shares become cumulative percents on the one bucket, the last everyone", () => {
+    expect(shareRules(["a", "b", "c"], { a: 0.2, b: 0.3, c: 0.5 })).toEqual([
+      { variant: "a", percent: 20 },
+      { variant: "b", percent: 50 },
+      { variant: "c" },
+    ]);
+    // A dropped variant gets nothing; what's left still covers everyone.
+    expect(shareRules(["a", "b", "c"], { a: 1 / 3, c: 2 / 3 })).toEqual([
+      { variant: "a", percent: 33.33 },
+      { variant: "c" },
+    ]);
+    expect(shareRules(["a", "b"], {})).toEqual([]);
   });
 });

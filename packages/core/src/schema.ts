@@ -22,7 +22,15 @@ import {
 } from "drizzle-orm/pg-core";
 import { clients } from "./clients/schema.js";
 import { EVENT_KINDS, type EventKind } from "./components.js";
-import { type FlagRule, SURFACES, type Surface } from "./flags.js";
+import {
+  EXPERIMENT_GOALS,
+  EXPERIMENT_STATES,
+  type ExperimentGoal,
+  type ExperimentState,
+  type FlagRule,
+  SURFACES,
+  type Surface,
+} from "./flags.js";
 import type { WorkflowEdits } from "./workflows.js";
 
 // ---- Ported from emails_gen (exact DDL; integer ids kept for data continuity) ----
@@ -500,6 +508,68 @@ export const flags = pgTable(
   ],
 );
 export type Flag = typeof flags.$inferSelect;
+
+/**
+ * A site flag under test (`./experiment-store.ts`): its goal, state, and the bandit's latest
+ * shares and P(best) by variant, which the edge serves in place of the flag's rules while it runs.
+ */
+export const flagExperiments = pgTable(
+  "flag_experiments",
+  {
+    flag: varchar("flag", { length: 60 }).notNull(),
+    goal: varchar("goal", { length: 8 }).$type<ExperimentGoal>().notNull(),
+    state: varchar("state", { length: 10 }).$type<ExperimentState>().default("draft").notNull(),
+    shares: jsonb("shares").$type<Record<string, number>>().default(sql`'{}'::jsonb`).notNull(),
+    pBest: jsonb("p_best").$type<Record<string, number>>().default(sql`'{}'::jsonb`).notNull(),
+    /** Variants the bandit dropped (P(best) under 2% after enough visitors). */
+    retired: text("retired").array().default(sql`'{}'::text[]`).notNull(),
+    best: varchar("best", { length: 40 }),
+    winner: varchar("winner", { length: 40 }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    startedBy: varchar("started_by", { length: 200 }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endedBy: varchar("ended_by", { length: 200 }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdBy: varchar("created_by", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.flag], name: "pk_flag_experiments" }),
+    oneOf("ck_flag_experiments_goal", t.goal, EXPERIMENT_GOALS),
+    oneOf("ck_flag_experiments_state", t.state, EXPERIMENT_STATES),
+    foreignKey({
+      columns: [t.flag],
+      foreignColumns: [flags.key],
+      name: "fk_flag_experiments_flag_flags",
+    }).onDelete("cascade"),
+  ],
+);
+export type FlagExperiment = typeof flagExperiments.$inferSelect;
+
+/**
+ * Each site flag's variants per day of first exposure and first-touch channel: visitors who saw
+ * it (`exp.seen`, cookie yes), and how many of them went on to a form, a call, a payment.
+ * Rolled up from the lander's export by SearchWatch (`@wren/channel-search` flag-days), whole.
+ */
+export const flagDays = pgTable(
+  "flag_days",
+  {
+    flag: varchar("flag", { length: 60 }).notNull(),
+    day: date("day").notNull(),
+    variant: varchar("variant", { length: 40 }).notNull(),
+    channel: varchar("channel", { length: 40 }).notNull(),
+    visitors: integer("visitors").default(0).notNull(),
+    forms: integer("forms").default(0).notNull(),
+    calls: integer("calls").default(0).notNull(),
+    paid: integer("paid").default(0).notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.flag, t.day, t.variant, t.channel], name: "pk_flag_days" }),
+  ],
+);
+export type FlagDay = typeof flagDays.$inferSelect;
 
 export const imports = pgTable(
   "imports",

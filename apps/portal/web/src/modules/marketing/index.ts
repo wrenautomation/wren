@@ -10,6 +10,7 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
+import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
@@ -894,6 +895,18 @@ export const marketing: Module = {
       record: "marketing.heat",
       empty: "Heatmaps show here a day after visitors click on the site.",
       extras: heatExtras,
+    },
+    {
+      id: "experiments",
+      label: "Experiments",
+      group: "Numbers",
+      template: "list",
+      record: "marketing.experiment",
+      empty: {
+        all: "No experiments yet. New experiment tests a site flag's variants.",
+        running: "Nothing running.",
+      },
+      actions: EXPERIMENT_ACTIONS,
     },
     {
       id: "search-days",

@@ -89,6 +89,8 @@ export interface SiteTables {
   applications: SiteApplication;
   replays: SiteReplay;
   events: SiteEvent;
+  /** `exp.seen` events with a visitor (cookie yes): what experiments count. */
+  exposures: SiteEvent;
 }
 
 /** Every row of one lander table after id `since` (all of them by default), paged forward by id. */
