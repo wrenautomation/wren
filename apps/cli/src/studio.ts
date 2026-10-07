@@ -39,6 +39,7 @@ import {
   LOOK_PROVIDERS,
   type Looker,
   longProps,
+  longSrt,
   type Matte,
   type OnSkip,
   obsRecordingDir,
@@ -208,6 +209,13 @@ export function registerStudio(
     .description("the edit as JSON (what wren video set takes, plus words and tracks)")
     .action((v: string) => withDb(async (db) => console.log(editJson(await getEdit(db, id(v))))));
 
+  type SetOpts = {
+    file?: string;
+    captionsStyle?: string;
+    behind?: string;
+    captionsLong?: string;
+    captionsShort?: string;
+  };
   video
     .command("set <id>")
     .description(
@@ -216,10 +224,20 @@ export function registerStudio(
     .option("--file <f>", "read the JSON from this file; else stdin")
     .option("--captions-style <s>", `no JSON: the caption style, ${CAPTION_STYLES.join(", ")}`)
     .option("--behind <on|off>", "no JSON: stressed words behind the speaker (wren video stress)")
-    .action(async (v: string, o: { file?: string; captionsStyle?: string; behind?: string }) => {
+    .option(
+      "--captions-long <screen|track>",
+      "no JSON: the long video's captions burned in, or only the English CC track (default)",
+    )
+    .option(
+      "--captions-short <screen|track>",
+      "no JSON: the vertical's and Shorts' captions burned in (default), or none",
+    )
+    .action(async (v: string, o: SetOpts) => {
       if (o.behind !== undefined && o.behind !== "on" && o.behind !== "off")
         throw new Error("--behind is on or off");
-      const flags = o.captionsStyle !== undefined || o.behind !== undefined;
+      const flags = [o.captionsStyle, o.behind, o.captionsLong, o.captionsShort].some(
+        (x) => x !== undefined,
+      );
       const r = await withDb(async (db) => {
         if (!flags) {
           const text = (await readText(o.file)).trim();
@@ -231,6 +249,8 @@ export function registerStudio(
           ...captions,
           ...(o.captionsStyle !== undefined ? { style: o.captionsStyle } : {}),
           ...(o.behind !== undefined ? { behind: o.behind === "on" } : {}),
+          ...(o.captionsLong !== undefined ? { long: o.captionsLong } : {}),
+          ...(o.captionsShort !== undefined ? { short: o.captionsShort } : {}),
         };
         return setEdit(db, id(v), { captions: next }, { by: "cli" });
       });
@@ -581,6 +601,12 @@ export function registerStudio(
             );
           }
         else console.log("WREN_MEDIA_BUCKET unset: previews and Reels not uploaded");
+        // The long video's English subtitles, for YouTube's CC (approve sends them): the desk
+        // reads this Mac's path.
+        if (want("long")) {
+          files.captions = join(e.dir, "out", "long.en.srt");
+          await writeFile(files.captions, longSrt(e));
+        }
         await setRendered(db, e.id, files, keys);
         return {
           files,

@@ -101,7 +101,7 @@ export const videoEdits = pgTable(
     cuts: jsonb("cuts").$type<Cut[]>().notNull().default([]),
     /** Ranges that are not the default corner layout. */
     layout: jsonb("layout").$type<LayoutRange[]>().notNull().default([]),
-    /** On or off, the style (`CAPTION_STYLES`), and `behind`: stressed words behind the speaker. */
+    /** The style, where each format shows them (`onScreen`), `behind`: stressed words behind him. */
     captions: jsonb("captions").$type<Captions>().notNull().default({ on: true, style: "word" }),
     /** Stressed words (step 6), as indexes into `words`: the `stress` style, the words behind. */
     stress: jsonb("stress").$type<number[]>().notNull().default([]),

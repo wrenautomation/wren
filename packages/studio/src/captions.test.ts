@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lineAt, REEL, reelLines } from "./captions.js";
+import { lineAt, REEL, reelLines, SUBS, srt } from "./captions.js";
 import type { Word } from "./schema.js";
 
 /** Words said one after another, `gap` s apart unless a word says otherwise ("word|0.8"). */
@@ -72,5 +72,43 @@ describe("reel lines", () => {
     expect(lineAt(lines, 0.1)?.word).toBe(0);
     expect(lineAt(lines, (ws[1] as Word).s + 0.01)?.word).toBe(1);
     expect(lineAt(lines, (ws[2] as Word).e + 0.1)?.word).toBe(2);
+  });
+});
+
+describe("English subtitles (srt)", () => {
+  it("numbers short lines, each shown from its first word to its last", () => {
+    const ws = said(
+      "Hello there.|0.8 We cut every video for you, so you never touch the editor again.",
+    );
+    const out = srt(ws);
+    expect(out.startsWith("1\n00:00:00,000 --> 00:00:00,550\nHello there.\n")).toBe(true);
+    const cues = out
+      .trim()
+      .split("\n\n")
+      .map((c) => c.split("\n"));
+    expect(cues.map((c) => c[0])).toEqual(cues.map((_, i) => String(i + 1)));
+    for (const [, time, text] of cues) {
+      expect((text ?? "").length).toBeLessThanOrEqual(SUBS.maxChars);
+      expect(time).toMatch(/^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/);
+    }
+    // Every word once, in order, and no cue outlasts its words.
+    expect(cues.map((c) => c[2]).join(" ")).toBe(ws.map((w) => w.w).join(" "));
+    const lines = reelLines(ws, SUBS);
+    for (const l of lines) expect(l.e).toBe((l.words.at(-1) as Word).e);
+  });
+
+  it("writes hours, and nothing for no words", () => {
+    expect(srt([{ w: "late", s: 3723.5, e: 3724.25 }])).toBe(
+      "1\n01:02:03,500 --> 01:02:04,250\nlate\n",
+    );
+    expect(srt([])).toBe("");
+    // Overlapping word times: a cue never runs into the next.
+    const overlap = said("one two three four.|0.8 five six seven eight.");
+    (overlap[3] as Word).e = (overlap[4] as Word).s + 0.1;
+    const ends = srt(overlap)
+      .trim()
+      .split("\n\n")
+      .map((c) => c.split("\n")[1]?.split(" --> ") ?? []);
+    expect(ends[0]?.[1]).toBe(ends[1]?.[0]);
   });
 });

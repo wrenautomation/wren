@@ -7,13 +7,26 @@
 export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
 export {
   bigWordState,
+  CAPTION_SHOWS,
   CAPTION_STYLES,
+  type CaptionShow,
   type CaptionStyle,
   type Captions,
   isCaptionStyle,
+  onScreen,
   wordState,
 } from "./caption-styles.js";
-export { type Line, lineAt, pages, phrases, REEL, reelLines } from "./captions.js";
+export {
+  type Line,
+  type LineRules,
+  lineAt,
+  pages,
+  phrases,
+  REEL,
+  reelLines,
+  SUBS,
+  srt,
+} from "./captions.js";
 export {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -90,6 +103,7 @@ export {
   faceRect,
   type LongProps,
   longProps,
+  longSrt,
   type Matte,
   type OnSkip,
   SHORT_COUNT,

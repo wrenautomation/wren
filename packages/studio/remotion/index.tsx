@@ -24,7 +24,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
-import { bigWordState, wordState } from "../src/caption-styles.ts";
+import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
 import type {
   BehindWord,
@@ -381,7 +381,7 @@ export const Long: FC<LongProps> = ({
           </AbsoluteFill>
         )}
       />
-      {captions.on ? (
+      {onScreen(captions, "long") ? (
         <Captions words={words} look={look} t={t} style={captions.style} stress={stressed} />
       ) : null}
     </AbsoluteFill>
@@ -481,7 +481,7 @@ export const Short: FC<ShortProps> = ({
         }
       />
       {/* Split: on the seam between face and screen; full frame: two thirds down. */}
-      {captions.on ? (
+      {onScreen(captions, "short") ? (
         <ReelCaptions
           words={words}
           look={look}
@@ -527,7 +527,7 @@ export const Vertical: FC<VerticalProps> = ({
         look={look}
         draw={(file) => <OffthreadVideo src={staticFile(file)} transparent muted style={place} />}
       />
-      {captions.on ? (
+      {onScreen(captions, "short") ? (
         <ReelCaptions
           words={words}
           look={look}
@@ -613,7 +613,7 @@ const PLACEHOLDER: LongProps = {
   durationInFrames: 300,
   words: [],
   layout: [],
-  captions: { on: true, style: "word" },
+  captions: { style: "word", long: "screen" },
   stress: [],
   behind: [],
   look: DEFAULT_LOOK,

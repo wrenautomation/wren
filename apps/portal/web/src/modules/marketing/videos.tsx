@@ -33,7 +33,14 @@ type CutRow = {
 };
 type Short = { from: number; to: number; title: string };
 type Format = "long" | "vertical";
-type Captions = { on: boolean; style: string; behind?: boolean };
+/** `long`/`short`: burned in (`screen`) or not; `on` is a row from before per-format captions. */
+type Captions = {
+  style: string;
+  long?: "screen" | "track";
+  short?: "screen" | "track";
+  behind?: boolean;
+  on?: boolean;
+};
 type Edit = {
   captions?: Captions;
   stress?: number[];
@@ -86,7 +93,7 @@ const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(e
 
 const Player = ({ src }: { src: string | null }) =>
   src ? (
-    // biome-ignore lint/a11y/useMediaCaption: captions are burned into the render.
+    // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
     <video controls preload="metadata" src={src} className="w-full rounded bg-black" />
   ) : (
     <Empty>The preview shows here once the video is rendered.</Empty>
@@ -263,7 +270,21 @@ const STYLES: [string, string, string][] = [
   ["stress", "Stress", "Stressed words show bigger, in a heavier face."],
 ];
 
-/** The caption style and the stressed words behind him. Saved on each change. */
+/** Where each format's captions show, as the render reads them (studio `onScreen`). */
+const SHOWS = [
+  [
+    "long",
+    "On screen in the long video",
+    "When off, viewers turn on English subtitles with CC on YouTube.",
+  ],
+  ["short", "On screen in the vertical and Shorts", "Short clips are often watched muted."],
+] as const;
+const shown = (c: Captions, f: "long" | "short") =>
+  f === "long"
+    ? c.long === "screen"
+    : (c.short ?? (c.on === false ? "track" : "screen")) === "screen";
+
+/** The caption style, where they show, and the stressed words behind him. Saved on each change. */
 function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct }) {
   const [said, setSaid] = useState<string | null>(null);
   const [bad, setBad] = useState(false);
@@ -304,6 +325,20 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
           </span>
         </label>
       ))}
+      {SHOWS.map(([f, label, hint]) => (
+        <label key={f} className="mt-1 flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={shown(captions, f)}
+            onChange={(e) => void save({ ...captions, [f]: e.target.checked ? "screen" : "track" })}
+            className="mt-1 size-4 accent-(--ui-accent)"
+          />
+          <span className="grid gap-0.5">
+            <span className="text-[14px]">{label}</span>
+            <span className="text-[13px] text-(--ui-ink-2)">{hint}</span>
+          </span>
+        </label>
+      ))}
       <label className="mt-1 flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
@@ -327,7 +362,7 @@ function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
   return (
     <div className="grid gap-4">
       <Formats formats={edit.formats} act={act} />
-      <CaptionStyle captions={edit.captions ?? { on: true, style: "word" }} act={act} />
+      <CaptionStyle captions={edit.captions ?? { style: "word" }} act={act} />
       <Field label="Title" value={edit.title} max={100} act={act} patch={(title) => ({ title })} />
       <Field
         label="Description"
@@ -767,7 +802,7 @@ const Shorts = ({ shorts }: { shorts: Video["shorts"] }) => (
           {s.upload ? <Tag tone="green">{s.upload.status}</Tag> : null}
         </p>
         {s.preview ? (
-          // biome-ignore lint/a11y/useMediaCaption: captions are burned into the render.
+          // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
           <video
             controls
             preload="metadata"
@@ -808,7 +843,7 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
           </p>
         ) : null}
         {v.vertical.preview ? (
-          // biome-ignore lint/a11y/useMediaCaption: captions are burned into the render.
+          // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
           <video
             controls
             preload="metadata"

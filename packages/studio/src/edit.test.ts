@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkPatch, editPatchSchema, formatsFor } from "./edit.js";
-import { longProps, shortProps, verticalProps, verticalWindow } from "./props.js";
+import { longProps, longSrt, shortProps, verticalProps, verticalWindow } from "./props.js";
 import type { Cut, VideoEdit } from "./schema.js";
 
 const short = (from: number, to: number) => ({ from, to, title: "t" });
@@ -52,7 +52,7 @@ describe("shortProps", () => {
         { w: "in", s: 31, e: 32 },
       ],
       layout: [],
-      captions: { on: true, style: "word" },
+      captions: { style: "word" },
       shorts: [short(30, 60)],
       files: { cutMain: "/d/cut-main.mp4" },
     } as unknown as VideoEdit;
@@ -62,6 +62,25 @@ describe("shortProps", () => {
     expect(p.words).toEqual([{ w: "in", s: 1, e: 2 }]);
     expect(p.face.file).toBeNull();
     expect(() => shortProps(edit, 2)).toThrow(/no 2/);
+  });
+});
+
+describe("longSrt", () => {
+  it("writes the words left after the cuts on the cut timeline", () => {
+    const edit = {
+      id: 1,
+      tracks: { main: { path: "/m.mp4", durationS: 100, width: 1920, height: 1080, fps: 30 } },
+      cuts: [{ from: 10, to: 20, why: "silence", state: "cut" }],
+      words: [
+        { w: "before", s: 5, e: 6 },
+        { w: "gone", s: 12, e: 13 },
+        { w: "after", s: 31, e: 32 },
+      ],
+      captions: { style: "word" },
+    } as unknown as VideoEdit;
+    expect(longSrt(edit)).toBe(
+      "1\n00:00:05,000 --> 00:00:06,000\nbefore\n\n2\n00:00:21,000 --> 00:00:22,000\nafter\n",
+    );
   });
 });
 
@@ -92,7 +111,7 @@ describe("verticalProps", () => {
       cuts: [],
       words: [],
       layout: [],
-      captions: { on: true, style: "word" },
+      captions: { style: "word" },
       shorts: [],
       files,
     }) as unknown as VideoEdit;
@@ -141,12 +160,23 @@ describe("verticalProps", () => {
 
 describe("captions and stress (step 6)", () => {
   it("takes a style from the list and behind on or off", () => {
-    expect(editPatchSchema.parse({ captions: { on: true, style: "pill", behind: true } })).toEqual({
-      captions: { on: true, style: "pill", behind: true },
+    expect(editPatchSchema.parse({ captions: { style: "pill", behind: true } })).toEqual({
+      captions: { style: "pill", behind: true },
     });
-    expect(editPatchSchema.safeParse({ captions: { on: true, style: "neon" } }).success).toBe(
+    // Per format; an old row's `on` turns into `short` and goes.
+    expect(editPatchSchema.parse({ captions: { style: "word", long: "screen" } })).toEqual({
+      captions: { style: "word", long: "screen" },
+    });
+    expect(editPatchSchema.parse({ captions: { on: false, style: "word" } })).toEqual({
+      captions: { style: "word", short: "track" },
+    });
+    expect(editPatchSchema.parse({ captions: { on: true, style: "word" } })).toEqual({
+      captions: { style: "word" },
+    });
+    expect(editPatchSchema.safeParse({ captions: { style: "word", long: "on" } }).success).toBe(
       false,
     );
+    expect(editPatchSchema.safeParse({ captions: { style: "neon" } }).success).toBe(false);
     expect(editPatchSchema.safeParse({ stress: [1.5] }).success).toBe(false);
   });
 
@@ -176,7 +206,7 @@ describe("captions and stress (step 6)", () => {
       cuts: [{ from: 0, to: 1, why: "silence", state: "cut" }],
       words,
       layout: [],
-      captions: { on: true, style: "stress", behind: true },
+      captions: { style: "stress", behind: true },
       stress: [5, 20],
       shorts: [],
       files: { cutMain: "/d/cut-main.mp4" },
@@ -204,7 +234,7 @@ describe("captions and stress (step 6)", () => {
     });
     expect(none.behind).toEqual([]);
     expect(skipped).toEqual(["w5@1 long"]);
-    expect(longProps({ ...edit, captions: { on: true, style: "stress" } }, [])).toMatchObject({
+    expect(longProps({ ...edit, captions: { style: "stress" } }, [])).toMatchObject({
       behind: [],
     });
   });

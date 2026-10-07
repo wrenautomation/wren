@@ -23,7 +23,7 @@ import {
   previewOf,
   type SiteClient,
 } from "@wren/core/content";
-import { fieldsOf } from "@wren/core/content/shapes";
+import { fieldsOf, languageName } from "@wren/core/content/shapes";
 
 export interface YouTubeContentOptions {
   now?: () => Date;
@@ -129,14 +129,18 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
           }),
         );
       const captions = f.captions;
-      if (captions)
+      if (captions) {
+        const language = f.captionsLanguage ?? "en";
+        // The track's name in the CC menu: the language's ("English").
         await after("Subtitles", async () =>
           sites.call("youtube", "POST", "/upload/youtube/v3/captions", {
             videoId: v.id,
-            language: f.captionsLanguage ?? "en",
+            language,
+            name: languageName(language),
             file: await mediaFileOf(captions, o.host, "youtube"),
           }),
         );
+      }
       if (f.playlistId) {
         const playlistId = f.playlistId;
         await after("Playlist", () =>

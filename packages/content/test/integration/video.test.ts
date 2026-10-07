@@ -57,6 +57,7 @@ describe("marketing.video", () => {
         tags: ["demo"],
         files: {
           long: "/rec/out/long.mp4",
+          captions: "/rec/out/long.en.srt",
           "short-1": "/rec/out/short-1.mp4",
           "thumb-1": "/rec/out/thumb-1.jpg",
           "thumb-2": "/rec/out/thumb-2.jpg",
@@ -92,7 +93,14 @@ describe("marketing.video", () => {
         ),
       ),
       media: { kind: "video", source: "/rec/out/long.mp4" },
-      extra: { privacyStatus: "private", tags: ["demo"], thumbnail: "/rec/out/thumb-2.jpg" },
+      extra: {
+        privacyStatus: "private",
+        tags: ["demo"],
+        thumbnail: "/rec/out/thumb-2.jpg",
+        // The English CC track render wrote; a Short gets none.
+        captions: "/rec/out/long.en.srt",
+        captionsLanguage: "en",
+      },
     });
     const short = await approveVideo(pg.db, id, { source: "cli", short: 1, privacy: "public" });
     const [s] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, short.id));
@@ -102,6 +110,7 @@ describe("marketing.video", () => {
       extra: { privacyStatus: "public" },
     });
     expect(s?.extra).not.toHaveProperty("thumbnail");
+    expect(s?.extra).not.toHaveProperty("captions");
     // A Short's links can't be clicked: the plain footer.
     expect(s?.text).toBe(`What it does.\n\nwrenautomation.com\n\n${BIO}`);
 

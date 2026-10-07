@@ -5,6 +5,7 @@
 import { basename } from "node:path";
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import type { Captions } from "./caption-styles.js";
+import { srt } from "./captions.js";
 import { keepSegments, onCut, toCutTime } from "./cuts.js";
 import type { MatteWindow } from "./matte.js";
 import { cutSize, FPS, portrait } from "./media.js";
@@ -124,6 +125,22 @@ export function longProps(
   };
 }
 
+const r = (x: number) => Math.round(x * 1000) / 1000;
+
+/** Each word left after the cuts, on the cut timeline, with its index in the edit's words. */
+function keptWords(edit: VideoEdit) {
+  const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
+  return edit.words.flatMap((w, i) => {
+    const s = toCutTime(w.s, keep);
+    return s === null ? [] : [{ i, w: { w: w.w, s: r(s), e: r(Math.max(s, onCut(w.e, keep))) } }];
+  });
+}
+
+/** The long video's English subtitles (`out/long.en.srt`): its words as fixed, on the cut. */
+export function longSrt(edit: VideoEdit): string {
+  return srt(keptWords(edit).map(({ w }) => w));
+}
+
 function longBase(
   edit: VideoEdit,
   mattes: readonly Matte[],
@@ -132,12 +149,7 @@ function longBase(
     throw new Error(`video ${edit.id}: not cut yet; run wren video cut ${edit.id}`);
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   const total = keep.reduce((n, k) => n + (k.e - k.s), 0);
-  const r = (x: number) => Math.round(x * 1000) / 1000;
-  // Each word left after the cuts, on the cut timeline, with its index in the edit's words.
-  const kept = edit.words.flatMap((w, i) => {
-    const s = toCutTime(w.s, keep);
-    return s === null ? [] : [{ i, w: { w: w.w, s: r(s), e: r(Math.max(s, onCut(w.e, keep))) } }];
-  });
+  const kept = keptWords(edit);
   const stressed = new Set(edit.stress ?? []);
   const main = basename(edit.files.cutMain);
   const cam = edit.files.cutCam ? basename(edit.files.cutCam) : null;

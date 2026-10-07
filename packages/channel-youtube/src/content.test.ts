@@ -180,6 +180,7 @@ describe("youtube content channel", () => {
     expect(calls[1]?.[2]).toEqual({
       videoId: "v3",
       language: "es",
+      name: "Spanish",
       file: "https://example.com/c.vtt",
     });
     expect(calls[2]?.[2]).toEqual({ playlistId: "PLabcdefghij", videoId: "v3" });

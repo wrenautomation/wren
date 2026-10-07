@@ -12,7 +12,7 @@ import { atomic, type Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { capMeta, capTracks, isCap } from "./cap.js";
-import { CAPTION_STYLES } from "./caption-styles.js";
+import { CAPTION_SHOWS, CAPTION_STYLES } from "./caption-styles.js";
 import {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -224,8 +224,18 @@ export const editPatchSchema = z
     cuts: z.array(z.object({ ...span, why: z.enum(CUT_WHYS), state: z.enum(CUT_STATES) }).strict()),
     layout: z.array(z.object({ ...span, show: z.enum(LAYOUTS) }).strict()),
     captions: z
-      .object({ on: z.boolean(), style: z.enum(CAPTION_STYLES), behind: z.boolean().optional() })
-      .strict(),
+      .object({
+        style: z.enum(CAPTION_STYLES),
+        long: z.enum(CAPTION_SHOWS).optional(),
+        short: z.enum(CAPTION_SHOWS).optional(),
+        behind: z.boolean().optional(),
+        // A row from before per-format captions: its `on` becomes `short` and goes.
+        on: z.boolean().optional(),
+      })
+      .strict()
+      .transform(({ on, ...c }) =>
+        on === false && !c.short ? { ...c, short: "track" as const } : c,
+      ),
     /** Stressed words, as indexes into `words` (step 6). */
     stress: z.array(z.number().int().min(0)).max(500),
     shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()),

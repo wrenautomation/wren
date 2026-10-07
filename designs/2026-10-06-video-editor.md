@@ -455,3 +455,15 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   answered the first, Cohere the rest; 46 offered, 31 kept (about 2.5 a minute). Picks read right
   (million, ROI, leverage, arbitrage, psychology), though "AI" is picked 6 times. Prod's run waits
   for 0169 to deploy (prod has no `stress` column yet).
+- 2026-10-07: William: YouTube gets the English CC track, not burned-in captions; on-screen
+  captions stay for short form. `captions.long` and `captions.short` (vertical and Shorts) are
+  `screen` or `track`; unset, long is `track` and short `screen` (`onScreen`). No migration: a row's
+  old `on` reads as before for short (false hides them) and any write drops it. The words behind
+  the speaker still draw in a long video without on-screen captions (they're the design, not the
+  captions). Render writes `out/long.en.srt` with the long video (`longSrt`: the edit's words, as
+  fixed, on the cut; lines broken like the Reels lines but up to 42 characters and 10 words, a
+  cue from its first word to its last, cut short by the next where Whisper's times overlap) and
+  keeps it as `files.captions`; approve puts it in the long draft's `extra.captions`, `en`, and
+  channel-youtube names the track by its language ("English"). Video 3 left as uploaded: its srt
+  built from the prod edit (441 cues, cut 790.7 s vs 790.8 s file) and uploaded once through the
+  desk; autobrowse's YouTube reads now take `captions` to read it back (English, standard, serving).

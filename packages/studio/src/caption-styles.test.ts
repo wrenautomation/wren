@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { bigWordState, CAPTION_STYLES, DIM, ENTRY_S, wordState } from "./caption-styles.js";
+import {
+  bigWordState,
+  CAPTION_STYLES,
+  DIM,
+  ENTRY_S,
+  onScreen,
+  wordState,
+} from "./caption-styles.js";
 
 // A word said from 1.0 to 1.4 s; the next word of its line starts at 1.5 s.
 const w = { s: 1, e: 1.4 };
@@ -78,5 +85,17 @@ describe("big word", () => {
     expect(bigWordState(2, 1, 3).scale).toBeCloseTo(1);
     expect(bigWordState(2.85, 1, 3).opacity).toBeLessThan(1);
     expect(bigWordState(3, 1, 3).opacity).toBe(0);
+  });
+});
+
+describe("captions per format", () => {
+  it("long: the CC track unless set; vertical and Shorts: burned in unless set", () => {
+    expect(onScreen({ style: "word" }, "long")).toBe(false);
+    expect(onScreen({ style: "word" }, "short")).toBe(true);
+    expect(onScreen({ style: "word", long: "screen", short: "track" }, "long")).toBe(true);
+    expect(onScreen({ style: "word", long: "screen", short: "track" }, "short")).toBe(false);
+    // Rows from before: on true reads as the defaults, on false hid them all.
+    expect(onScreen({ on: true, style: "word" }, "long")).toBe(false);
+    expect(onScreen({ on: false, style: "word" }, "short")).toBe(false);
   });
 });

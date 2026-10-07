@@ -15,11 +15,30 @@
 export const CAPTION_STYLES = ["word", "pill", "sweep", "pop", "wipe", "stress"] as const;
 export type CaptionStyle = (typeof CAPTION_STYLES)[number];
 
-/** The caption settings on the edit. `behind`: stressed words drawn behind the speaker. */
+/**
+ * Where a format's captions go: `screen` burned into the picture, `track` only the English
+ * subtitles file YouTube shows as CC (the long video's; a vertical or Short has none).
+ */
+export const CAPTION_SHOWS = ["screen", "track"] as const;
+export type CaptionShow = (typeof CAPTION_SHOWS)[number];
+
+/**
+ * The caption settings on the edit. `long`: the 16:9 video, `track` unless set. `short`: the
+ * vertical and Shorts, `screen` unless set. `behind`: stressed words drawn behind the speaker.
+ * `on`: rows from before 2026-10-07 only; false hid every caption (a write drops it).
+ */
 export interface Captions {
-  on: boolean;
   style: string;
+  long?: CaptionShow | undefined;
+  short?: CaptionShow | undefined;
   behind?: boolean | undefined;
+  on?: boolean | undefined;
+}
+
+/** Are this format's captions burned in? */
+export function onScreen(c: Captions, format: "long" | "short"): boolean {
+  if (format === "long") return c.long === "screen";
+  return (c.short ?? (c.on === false ? "track" : "screen")) === "screen";
 }
 
 export const isCaptionStyle = (s: string): s is CaptionStyle =>

@@ -162,6 +162,9 @@ const LANGUAGE_NAMES: Record<(typeof LANGUAGES)[number], string> = {
   "zh-Hans": "Chinese",
   hi: "Hindi",
 };
+/** A language's name, "English" for "en"; the code itself when the list lacks it. */
+export const languageName = (code: string): string =>
+  (LANGUAGE_NAMES as Record<string, string>)[code] ?? code;
 /** YouTube's assignable categories (US), by id. */
 const CATEGORIES = {
   "1": "Film & Animation",

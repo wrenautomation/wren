@@ -246,6 +246,10 @@ export async function approveVideo(
             madeForKids: false,
             ...(e.tags.length ? { tags: e.tags } : {}),
             ...(thumbnail && kind === "video" ? { thumbnail } : {}),
+            // The long video's English subtitles (render writes them): YouTube's CC track.
+            ...(!reels && e.files.captions
+              ? { captions: e.files.captions, captionsLanguage: "en" }
+              : {}),
           }),
           status: "approved",
           approvedAt: now,
