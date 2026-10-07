@@ -78,7 +78,9 @@ describe("a post's record", () => {
     const [gen, edit, approved, sent] = rows;
     expect(gen?.text).toContain("Shipped the spend gate.");
     expect(gen?.llm).toMatchObject({ stage: "content_draft", model: "fake" });
-    expect(String((gen?.llm as { prompt?: string }).prompt)).toContain("The spend gate shipped");
+    expect(String((gen?.llm as { prompt?: string } | null)?.prompt)).toContain(
+      "The spend gate shipped",
+    );
     expect(edit?.text).toBe("Shipped it. Every buy asks me.");
     expect(edit?.by).toBe("william@example.com");
     expect(approved?.slot?.toISOString()).toBe(at.toISOString());
