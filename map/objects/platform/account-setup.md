@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-07 @ 238ddda
+verified: 2026-10-07 @ f23c6bb
 entity: packages/core/src/setup.ts:1
 ---
 
