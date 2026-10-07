@@ -54,7 +54,7 @@ describe("redraftPrompt", () => {
 
 describe("unfitProposal", () => {
   it("refuses over-length text, a missing or long title, empty text", () => {
-    expect(unfitProposal(PLATFORM_SPECS.x, { text: "a".repeat(281) })).toMatch(/over 280/);
+    expect(unfitProposal(PLATFORM_SPECS.linkedin, { text: "a".repeat(3001) })).toMatch(/over 3000/);
     expect(unfitProposal(PLATFORM_SPECS.x, { text: "fine" })).toBeNull();
     expect(unfitProposal(PLATFORM_SPECS.youtube, { text: "d" })).toBe("no title");
     expect(unfitProposal(PLATFORM_SPECS.youtube, { text: "d", title: "t".repeat(101) })).toMatch(

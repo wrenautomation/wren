@@ -77,6 +77,17 @@ describe("x content channel", () => {
     ]);
   });
 
+  it("posts a long single post whole, in one call", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+      "POST /2/tweets": () => ({ data: { id: "t1" } }),
+    });
+    const text = `${"a".repeat(1500)}\n\n---\n\n${"b".repeat(1500)}`;
+    await xContent(sites, { now }).publish({ text });
+    const posts = calls.filter(([m, p]) => m === "POST" && p === "/2/tweets");
+    expect(posts).toEqual([["POST", "/2/tweets", { text }]]);
+  });
+
   it("answers no comments when search is a tier the account lacks", async () => {
     const sites: SiteClient = {
       async call(_s, _m, path) {

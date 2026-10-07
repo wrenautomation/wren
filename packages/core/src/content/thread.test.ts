@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isThread, threadPosts, threadText, threadUnfit, withLink, xLength } from "./thread.js";
+import {
+  isThread,
+  threadPosts,
+  threadText,
+  threadUnfit,
+  withLink,
+  xLength,
+  xPostMax,
+} from "./thread.js";
 
 describe("thread", () => {
   it("splits on a line of dashes and joins back", () => {
@@ -11,6 +19,13 @@ describe("thread", () => {
       "Three.",
     ]);
     expect(threadPosts("Just one --- inline")).toEqual(["Just one --- inline"]);
+  });
+
+  it("caps one post by the account's subscription", () => {
+    expect(xPostMax("None")).toBe(280);
+    expect(xPostMax("Basic")).toBe(280);
+    expect(xPostMax("Premium")).toBe(25_000);
+    expect(xPostMax("PremiumPlus")).toBe(25_000);
   });
 
   it("counts a link as 23, like X", () => {

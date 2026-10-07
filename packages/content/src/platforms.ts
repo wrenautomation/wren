@@ -11,7 +11,9 @@ import {
   threadPosts,
   threadText,
   threadUnfit,
+  WREN_X_SUBSCRIPTION,
   withLink,
+  xPostMax,
 } from "@wren/core/content/thread";
 import type { ContentDraft } from "./schema.js";
 
@@ -61,7 +63,8 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
   },
   x: {
     platform: "x",
-    maxChars: 280,
+    // Wren's account fact: Premium posts one long post. A thread's posts stay at 280 each.
+    maxChars: xPostMax(WREN_X_SUBSCRIPTION),
     shape: "one post on X: a single sharp point in plain words, no hashtags, under 240 characters",
     name: "X",
     goCode: "x",
