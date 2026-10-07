@@ -33,6 +33,7 @@ import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/bo
 import { dayLabel, ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
 import {
   type Count,
+  deeper,
   dotsOf,
   type EventRow,
   funnelOf,
@@ -40,6 +41,7 @@ import {
   type PortRef,
   portKey,
   portsIn,
+  trailIsFor,
   type Where,
 } from "./canvas.js";
 import { Executions } from "./executions.js";
@@ -111,7 +113,9 @@ export function Workflows({ params, team, can }: PageProps) {
       ),
     ),
   );
-  const d = trail.data?.at(-1) ?? null;
+  // The loader keeps the last path's answer while this one loads: never draw it as this path's.
+  const current = trailIsFor(path, trail.data);
+  const d = current ? (trail.data?.at(-1) ?? null) : null;
   const w = d?.workflow ?? null;
   // A workflow card with no number of its own shows its inside's: read those drawings too.
   const opens = w?.nodes.filter((n) => n.opens && !n.count).map((n) => n.opens as string) ?? [];
@@ -161,7 +165,7 @@ export function Workflows({ params, team, can }: PageProps) {
     },
   );
   if (trail.error && !trail.data) return <Alert onRetry={trail.retry}>{trail.error.message}</Alert>;
-  if (!trail.data) return <Loading lines={6} />;
+  if (!trail.data || (!current && trail.loading)) return <Loading lines={6} />;
   if (!d || !w) return <Alert>No workflow called {path.at(-1)}.</Alert>;
   return (
     <>
@@ -192,7 +196,10 @@ export function Workflows({ params, team, can }: PageProps) {
           counts={counts.data ?? undefined}
           inner={inner.data ?? undefined}
           where={{
-            canvas: (n) => (n.opens ? canvasAt([...path, n.opens]) : undefined),
+            canvas: (n) => {
+              const to = n.opens ? deeper(path, n.opens) : null;
+              return to ? canvasAt(to) : undefined;
+            },
             rows: recordsAt,
           }}
           params={params}

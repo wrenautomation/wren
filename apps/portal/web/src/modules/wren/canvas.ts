@@ -75,6 +75,28 @@ export function insideOf(
   });
 }
 
+/** How deep the canvas opens: past it, a card no longer opens. */
+export const DEPTH_MAX = 8;
+
+/**
+ * The canvas path one level into `opens`, or null when that would loop: `opens` is already on
+ * the path (a workflow inside itself), or the path is `DEPTH_MAX` deep. Play follows it on its
+ * own, so a loop here would open forever.
+ */
+export function deeper(path: readonly string[], opens: string): string[] | null {
+  if (path.includes(opens) || path.length >= DEPTH_MAX) return null;
+  return [...path, opens];
+}
+
+/**
+ * The trail read for `path` is this path's, not the one before it: the loader keeps the last
+ * answer while the next one loads, and drawing it under the new path opens the old card again.
+ */
+export const trailIsFor = (
+  path: readonly string[],
+  trail: readonly ({ workflow?: { id: string } | null } | null)[] | null,
+) => !!trail && trail.length === path.length && trail.at(-1)?.workflow?.id === path.at(-1);
+
 export interface Where {
   /** The canvas a card opens into. */
   canvas: (n: DrawnNode) => string | undefined;

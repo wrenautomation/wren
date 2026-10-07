@@ -2,7 +2,17 @@
 import { wireLines } from "@wren/ui";
 import { describe, expect, it } from "vitest";
 import type { Drawn } from "../marketplace/boxes.js";
-import { type Count, dotsOf, funnelOf, graphOf, portKey, portsIn } from "./canvas.js";
+import {
+  type Count,
+  DEPTH_MAX,
+  deeper,
+  dotsOf,
+  funnelOf,
+  graphOf,
+  portKey,
+  portsIn,
+  trailIsFor,
+} from "./canvas.js";
 
 const node = (id: string, more: Partial<Drawn["nodes"][number]> = {}) => ({
   id,
@@ -131,5 +141,25 @@ describe("dotsOf", () => {
         root,
       ),
     ).toEqual([{ id: "4", node: "sales", tone: "warn" }]);
+  });
+});
+
+describe("deeper", () => {
+  it("never opens a workflow already on the path, and stops at the cap", () => {
+    expect(deeper(["wren"], "outbound")).toEqual(["wren", "outbound"]);
+    expect(deeper(["wren", "outbound"], "outbound")).toBeNull();
+    expect(deeper(["wren", "outbound", "email"], "wren")).toBeNull();
+    const far = Array.from({ length: DEPTH_MAX }, (_, i) => `w${i}`);
+    expect(deeper(far, "next")).toBeNull();
+  });
+
+  it("draws a trail only under its own path", () => {
+    const wren = { workflow: { id: "wren" } };
+    const outbound = { workflow: { id: "outbound" } };
+    // The old answer, still shown while the next path loads: Play must not start on it.
+    expect(trailIsFor(["wren", "outbound"], [wren])).toBe(false);
+    expect(trailIsFor(["wren", "outbound"], [wren, wren])).toBe(false);
+    expect(trailIsFor(["wren", "outbound"], [wren, outbound])).toBe(true);
+    expect(trailIsFor(["wren"], null)).toBe(false);
   });
 });
