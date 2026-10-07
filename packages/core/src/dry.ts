@@ -18,6 +18,7 @@ import {
   type Walk,
   walk,
 } from "./spine.js";
+import { fillText } from "./webhook-events.js";
 import type { Workflow, WorkflowNode } from "./workflows.js";
 
 /** One arrival in a test, in order: what came in, what it sent on, what it would have done. */
@@ -57,6 +58,16 @@ const WOULD: Record<Effect, string> = {
   spends: "Would spend",
   posts: "Would post",
 };
+
+/** "Would POST to api.example.com": a Send webhook's URL with the test event's slots in. */
+function webhookWould(w: Readonly<Record<string, string | number>>, e: SpineEvent): string {
+  const method = String(w.method ?? "POST") || "POST";
+  try {
+    return `Would ${method} to ${new URL(fillText(String(w.url ?? ""), e, true)).host}`;
+  } catch {
+    return "Would send a webhook, once it has a URL";
+  }
+}
 
 /** What a stubbed node would do, in words. */
 function wouldOf(n: WorkflowNode, part: Component | undefined): string {
@@ -157,6 +168,12 @@ export async function dryWalk(o: {
   const rule = async () => o.rules ?? true;
   const logic = logicSteps(rule);
   const dry = (n: WorkflowNode): Step => {
+    // Send webhook posts nothing in a test: it says where, and the event leaves as answered.
+    if (n.uses === "logic.webhook")
+      return async (_port, e, at) => {
+        would.set(`${at.node}|${e.subject}`, webhookWould(n.with ?? {}, e));
+        return [{ port: "answered", event: e }];
+      };
     if (n.uses && logicOf(n.uses)) return logic[n.uses] ?? (async () => []);
     const part = n.uses ? o.parts.get(n.uses) : undefined;
     const outs = outsOf(n, o.parts, o.flows);

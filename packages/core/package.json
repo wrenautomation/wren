@@ -90,6 +90,8 @@
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",
     "./warm": "./src/warm.ts",
+    "./webhooks": "./src/webhooks.ts",
+    "./webhook-events": "./src/webhook-events.ts",
     "./workflows": "./src/workflows.ts",
     "./html": "./src/html.ts",
     "./http": "./src/http.ts"

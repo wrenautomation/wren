@@ -173,7 +173,9 @@ import { pausedParts, pausedText } from "./setup-alerts.js";
 import {
   clocksOf,
   editsOf,
+  failedOf,
   hookEvent,
+  REPLAY_MOST,
   type SavedWorkflow,
   SPINE,
   type SpineEvent,
@@ -331,6 +333,8 @@ export interface WorkflowSaveRequest extends PortalRequest {
   steps?: unknown;
   /** Built-in logic nodes' settings as the draft has them (`WorkflowEdits.settings`). */
   settings?: unknown;
+  /** Auto-retry tries, 0 (off) to 5 (`WorkflowEdits.retry`). */
+  retry?: unknown;
   reset?: boolean;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
@@ -383,6 +387,8 @@ const PORT = z.object({
   label: z.string().trim().min(1).max(60),
   kind: z.enum(Object.keys(EVENT_KINDS) as [string, ...string[]]),
 });
+/** A setting's most characters: a Send webhook's body and headers run long. */
+const SETTING_MAX = 2000;
 /** What the canvas sends; unknown fields (a drawn wire's label and count) are dropped. */
 const EDITS = z.object({
   wires: z
@@ -405,7 +411,7 @@ const EDITS = z.object({
           /** A logic node, a trigger, or a part or workflow from the catalog. */
           uses: z.string().max(80).optional(),
           with: z
-            .record(z.string().max(40), z.union([z.string().max(300), z.number()]))
+            .record(z.string().max(40), z.union([z.string().max(SETTING_MAX), z.number()]))
             .refine((w) => Object.keys(w).length <= 12, "has too many settings")
             .optional(),
           own: z
@@ -426,11 +432,13 @@ const EDITS = z.object({
     .record(
       NAME,
       z
-        .record(z.string().max(40), z.union([z.string().max(300), z.number()]))
+        .record(z.string().max(40), z.union([z.string().max(SETTING_MAX), z.number()]))
         .refine((w) => Object.keys(w).length <= 12, "has too many settings"),
     )
     .refine((s) => Object.keys(s).length <= 40, "has too many nodes")
     .optional(),
+  /** Auto-retry: a failed step tries again on its own, 0 (off) to 5 times. */
+  retry: z.number().int().min(0).max(5).optional(),
 });
 
 /** A stored look stays small: inputs, not tokens. */
@@ -682,7 +690,7 @@ export const eventRecord = defineRecord({
         }
       : null;
   },
-  actions: ["console.retryEvent"],
+  actions: ["console.retryEvent", "console.replay"],
 });
 
 /** One step of an execution: what arrived at a node's input, and what its step sent on. */
@@ -802,8 +810,9 @@ export const executionRecordOf = (labels: Readonly<Record<string, string>> = {})
       { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-lastAt", at: "entered" },
       { id: "done", label: "Done", where: { state: "done" }, sort: "-lastAt", at: "entered" },
     ],
-    // Retry is on its failed step, by that event's id.
+    // Retry is on its failed step, by that event's id; Replay takes many executions at once.
     load: async (db, id) => ({ steps: await executionSteps(db, id) }),
+    actions: ["console.replay"],
   });
 export const executionRecord = executionRecordOf();
 
@@ -2857,7 +2866,12 @@ export function consoleApi({
       const { w, client, by } = await workflowFor(req);
       let edits: WorkflowEdits | null = null;
       if (!req.reset) {
-        const got = EDITS.safeParse({ wires: req.wires, steps: req.steps, settings: req.settings });
+        const got = EDITS.safeParse({
+          wires: req.wires,
+          steps: req.steps,
+          settings: req.settings,
+          retry: req.retry,
+        });
         if (!got.success) {
           const i = got.error.issues[0];
           throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
@@ -3121,6 +3135,19 @@ export function consoleApi({
       const id = typeof req.id === "string" ? req.id : "";
       if (!/^[0-9a-f-]{36}$/.test(id)) throw new PortalRefusal("no such event", 404);
       return id;
+    },
+
+    /** What Replay was given: up to 200 event ids or `workflow/subject` executions. */
+    toReplay(req: PortalRequest & { ids?: unknown }): string[] {
+      team(req);
+      if (!teamCan(req, "effect", WREN)) throw new PortalRefusal("your role can't run that", 403);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const ids = Array.isArray(req.ids)
+        ? req.ids.filter((x): x is string => typeof x === "string" && x.length <= 300)
+        : [];
+      if (!ids.length) throw new PortalRefusal("pick what to replay", 400);
+      if (ids.length > REPLAY_MOST) throw new PortalRefusal(`at most ${REPLAY_MOST} at once`, 400);
+      return ids;
     },
 
     /** Let a hold go: the unit runs again, or the source resumes. */
@@ -3457,6 +3484,19 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const got = await ctx.serviceClient<SpineService>(SPINE).retry({ client: null, id });
           if (!got) throw new PortalRefusal("it isn't failed now", 409);
           return { done: [id], ...got };
+        }),
+      /**
+       * Many failed runs again at once: each failed step behind them gets `Spine/retry`. Sent,
+       * not waited on; the list shows them leave Failed as each runs.
+       */
+      replay: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(async () => {
+          const refs = api.toReplay(req);
+          const ids = await ctx.run("failed steps", () => failedOf(deps.main, refs));
+          if (!ids.length) throw new PortalRefusal("none of them is failed now", 409);
+          for (const id of ids)
+            ctx.serviceSendClient<SpineService>(SPINE).retry({ client: null, id });
+          return { done: refs, replayed: ids.length };
         }),
       releaseHold: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(() => api.releaseHold(req)),

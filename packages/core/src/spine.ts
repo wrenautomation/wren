@@ -31,6 +31,14 @@ import {
 } from "./logic.js";
 import { hooks, type SentEvent, workflowInstalls, workflowSaves } from "./schema.js";
 import type { TemplateRef } from "./templates.js";
+import {
+  RETRY_LADDER_MS,
+  retryTriesOf,
+  type WebhookEvent,
+  webhookEventOfDoor,
+  webhookEventOfEmit,
+  webhookEventOfFired,
+} from "./webhook-events.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
 export interface SpineEvent {
@@ -94,8 +102,8 @@ export interface SpineStore {
   entered?(workflow: string, subject: string): Promise<number | null | undefined>;
   /** Take a waiting arrival for `by`; null when another call took it. */
   release(id: string, by: string): Promise<Arrival | null>;
-  /** Its step failed past its retries: the event stops here, with why. */
-  fail(a: Arrival, error: string): Promise<void>;
+  /** Its step failed past its retries: the event stops here, with why. Its id, when kept. */
+  fail(a: Arrival, error: string): Promise<string | null | undefined | void>;
   /** Take a failed arrival for `by` to run again, its error cleared; null when it isn't failed. */
   retry(id: string, by: string): Promise<Arrival | null>;
   /** What the arrival's step sent on, kept for its execution's page. */
@@ -124,6 +132,8 @@ export interface Walk {
   later(id: string, ms: number): void;
   /** Does the event pass a wire's rule, in words? */
   rule(when: string, e: SpineEvent): Promise<boolean>;
+  /** A step in `workflow` failed past its tries and stopped as `id`: auto-retry's turn. */
+  failed?(id: string, workflow: string): void;
   /**
    * A test (`./dry.ts`): every node that would run a step runs this one's instead, and code
    * wires carry events as events wires do, as the parts' code would. Nothing leaves the walk.
@@ -322,9 +332,10 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       );
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
-      await w.run(`failed ${a.node}.${port} ${m.e.subject}`, () =>
-        w.store.fail(a, err.message.slice(0, 2000)),
+      const stopped = await w.run(`failed ${a.node}.${port} ${m.e.subject}`, async () =>
+        ((await w.store.fail(a, err.message.slice(0, 2000))) ?? null),
       );
+      if (stopped) w.failed?.(stopped, workflow);
       tally.failed++;
       continue;
     }
@@ -439,6 +450,63 @@ export function sentOf(outs: ReadonlyArray<{ port: string; event: SpineEvent }>)
   }));
 }
 
+/** One workflow's failed runs, for the error digest: how many subjects stopped, and why most. */
+export interface FailedRuns {
+  workflow: string;
+  runs: number;
+  /** The error most of its failed steps share. */
+  top: string;
+  last: Date;
+}
+
+/** Every workflow with a failed step now, most runs first. */
+export async function failedRuns(db: Queryable): Promise<FailedRuns[]> {
+  const rows = (await db.execute(sql`
+    SELECT workflow, count(DISTINCT subject)::int runs,
+      mode() WITHIN GROUP (ORDER BY left(error, 300)) top, max(at) last
+    FROM events WHERE error IS NOT NULL
+    GROUP BY workflow ORDER BY runs DESC, workflow`)) as unknown as Array<{
+    workflow: string;
+    runs: number;
+    top: string;
+    last: string | Date;
+  }>;
+  return rows.map((r) => ({ ...r, last: new Date(r.last) }));
+}
+
+/** The most a Replay takes at once. */
+export const REPLAY_MOST = 200;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The failed steps behind what Replay was given: events by id, executions by `workflow/subject`
+ * (each failed step in it). What isn't failed is skipped.
+ */
+export async function failedOf(db: Queryable, refs: readonly string[]): Promise<string[]> {
+  const ids = refs.filter((r) => UUID.test(r));
+  const runs = refs.flatMap((r) => {
+    const at = r.indexOf("/");
+    return !UUID.test(r) && at > 0 ? [[r.slice(0, at), r.slice(at + 1)] as const] : [];
+  });
+  if (!ids.length && !runs.length) return [];
+  const which = [
+    ...(ids.length ? [sql`id IN (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})`] : []),
+    ...(runs.length
+      ? [
+          sql`(workflow, subject) IN (${sql.join(
+            runs.map(([w, s]) => sql`(${w}, ${s})`),
+            sql`, `,
+          )})`,
+        ]
+      : []),
+  ];
+  const rows = (await db.execute(sql`
+    SELECT id::text id FROM events
+    WHERE error IS NOT NULL AND (${sql.join(which, sql` OR `)})
+    ORDER BY at LIMIT ${REPLAY_MOST}`)) as unknown as Array<{ id: string }>;
+  return rows.map((r) => r.id);
+}
+
 export function pgSpineStore(db: Db): SpineStore {
   type Row = {
     workflow: string;
@@ -491,10 +559,12 @@ export function pgSpineStore(db: Db): SpineStore {
     },
 
     async fail(a, error) {
-      await db.execute(sql`
+      const rows = (await db.execute(sql`
         UPDATE events SET error = ${pgSafe(error)}
         WHERE workflow = ${a.workflow} AND node = ${a.node} AND port = ${a.port}
-          AND subject = ${a.event.subject}`);
+          AND subject = ${a.event.subject}
+        RETURNING id`)) as unknown as Array<{ id: string }>;
+      return rows[0]?.id ?? null;
     },
     async sent(id, outs) {
       await db.execute(sql`
@@ -712,7 +782,7 @@ export type SpineService = {
     ctx: restate.Context,
     req: Target & { id: string; happened?: SpineEvent },
   ) => Promise<Tally | null>;
-  retry: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
+  retry: (ctx: restate.Context, req: Target & { id: string; auto?: number }) => Promise<Tally | null>;
   fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number; resolved: number }>;
   /** A payload through a hook's door by the hook's id: Sites' forms. */
   door: (
@@ -826,6 +896,11 @@ export interface SpineDeps {
   components: readonly Component[];
   steps: Readonly<Record<string, Step>>;
   rule(when: string, e: SpineEvent): Promise<boolean>;
+  /** An event a client's webhooks may hear (`./webhooks.ts`): sent on, journaled. */
+  publish?(
+    ctx: restate.Context,
+    p: { client: string | null; event: WebhookEvent; subject: string; data: Record<string, unknown> },
+  ): void;
 }
 
 const STEP_RETRY = { maxRetryAttempts: 3 };
@@ -841,10 +916,11 @@ export function makeSpine(d: SpineDeps) {
     new Map(flowsWith(d.workflows, edits, d.components).flows.map((f) => [f.id, f]));
   const flowsFor = async (ctx: restate.Context, client: string | null) =>
     flowsOf(editsOf(await savesFor(ctx, client)));
-  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => {
+  const walkFor = async (ctx: restate.Context, t: Target & { auto?: number }): Promise<Walk> => {
     const saves = await savesFor(ctx, t.client);
+    const flows = flowsOf(editsOf(saves));
     return {
-      flows: flowsOf(editsOf(saves)),
+      flows,
       // A workflow's newest live save: the wiring a new subject enters on.
       liveOf: (workflow) => saves[workflow]?.id ?? 0,
       // A save that no longer checks runs as the code's, the same as `flowsWith` drops it.
@@ -869,6 +945,17 @@ export function makeSpine(d: SpineDeps) {
           .serviceSendClient<SpineService>(SPINE)
           .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
       rule: d.rule,
+      // Auto-retry: the next rung of the ladder, counted in the call, until the workflow's tries.
+      failed: (id, workflow) => {
+        const n = t.auto ?? 0;
+        if (n >= retryTriesOf(flows.get(workflow)?.retry)) return;
+        ctx
+          .serviceSendClient<SpineService>(SPINE)
+          .retry(
+            { client: t.client, id, auto: n + 1 },
+            restate.rpc.sendOpts({ delay: RETRY_LADDER_MS[n] ?? 0 }),
+          );
+      },
     };
   };
 
@@ -898,6 +985,9 @@ export function makeSpine(d: SpineDeps) {
     if ("error" in got) return got;
     // The lead's facts by this hook's field map, for every lead step after (./door.ts).
     got.event.data = { ...got.event.data, lead: leadOf(payload, h.fields) };
+    const event = webhookEventOfDoor(got.event.kind);
+    if (event && d.publish)
+      d.publish(ctx, { client: h.client, event, subject: got.event.subject, data: got.event.data });
     ctx.serviceSendClient<SpineService>(SPINE).emit({
       client: h.client,
       workflow: h.workflow,
@@ -916,7 +1006,13 @@ export function makeSpine(d: SpineDeps) {
         (
           ctx: restate.Context,
           req: Target & { workflow: string; from: string; events: SpineEvent[] },
-        ) => walkFor(ctx, req).then((w) => walk(w, req.workflow, req.from, req.events)),
+        ) => {
+          const event = webhookEventOfEmit(req.workflow, req.from);
+          if (event && d.publish)
+            for (const e of req.events)
+              d.publish(ctx, { client: req.client, event, subject: e.subject, data: e.data });
+          return walkFor(ctx, req).then((w) => walk(w, req.workflow, req.from, req.events));
+        },
       ),
       /**
        * A wait is over. Only the spine sends it: delayed, when its time is up; from `fire`, with
@@ -927,10 +1023,13 @@ export function makeSpine(d: SpineDeps) {
         (ctx: restate.Context, req: Target & { id: string; happened?: SpineEvent }) =>
           walkFor(ctx, req).then((w) => resume(w, req.id, req.happened)),
       ),
-      /** A failed step, again: the console's Retry sends it once its cause is fixed. */
+      /**
+       * A failed step, again: the console's Retry and Replay send it once its cause is fixed;
+       * auto-retry sends it delayed, with its count. Nothing failed by then: nothing to do.
+       */
       retry: restate.handlers.handler(
         { ingressPrivate: true },
-        (ctx: restate.Context, req: Target & { id: string }) =>
+        (ctx: restate.Context, req: Target & { id: string; auto?: number }) =>
           walkFor(ctx, req).then((w) => retry(w, req.id)),
       ),
       /**
@@ -940,6 +1039,14 @@ export function makeSpine(d: SpineDeps) {
       fire: restate.handlers.handler(
         { ingressPrivate: true },
         async (ctx: restate.Context, req: Fired) => {
+          const event = webhookEventOfFired(req.facts);
+          if (event && d.publish)
+            d.publish(ctx, {
+              client: req.client,
+              event,
+              subject: req.event.subject,
+              data: req.event.data,
+            });
           const flows = await flowsFor(ctx, req.client);
           const client = req.client;
           const quiet = new Set(

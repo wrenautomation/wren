@@ -79,6 +79,8 @@ export interface Workflow {
   wires: Wire[];
   /** Set: the Shop sells it as a template a client installs in one go. */
   template?: TemplateSpec;
+  /** A failed step tries again on its own this many times (0 to 5), on Zapier's ladder. */
+  retry?: number;
 }
 
 type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">>;
@@ -281,10 +283,13 @@ export interface WorkflowEdits {
   steps: WorkflowNode[];
   /** A built-in logic node's settings as the save has them (a Wait's "at most"), by node id. */
   settings?: Record<string, Record<string, string | number>>;
+  /** Auto-retry: a failed step tries again on its own this many times, 0 (off) to 5. */
+  retry?: number;
 }
 
 export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
   ...w,
+  ...(e.retry !== undefined ? { retry: e.retry } : {}),
   nodes: [
     ...w.nodes.map((n) => {
       const set = e.settings?.[n.id];

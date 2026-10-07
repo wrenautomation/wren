@@ -9,6 +9,14 @@ import type { EventKind, Port } from "./components.js";
 import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
 import type { SpineEvent, Step } from "./spine.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
+import {
+  bodyProblem,
+  fillText,
+  headersOf,
+  keepOf,
+  urlProblem,
+  WEBHOOK_METHODS,
+} from "./webhook-events.js";
 import type { WorkflowNode } from "./workflows.js";
 
 /** Every event kind, as `EVENT_KINDS` names them (a test keeps the two the same). */
@@ -29,11 +37,11 @@ export const KINDS = [
   "account",
 ] as const satisfies readonly EventKind[];
 
-/** One setting on a logic node: a line he types, a number, or one of a few. */
+/** One setting on a logic node: a line he types, a few lines, a number, or one of a few. */
 export interface LogicSetting {
   field: string;
   label: string;
-  type: "text" | "number" | "choice";
+  type: "text" | "long" | "number" | "choice";
   options?: readonly string[];
   /** A choice's words, by option; the option itself when unset. */
   labels?: Readonly<Record<string, string>>;
@@ -50,7 +58,8 @@ export interface LogicPart {
   name: string;
   blurb: string;
   icon: string;
-  group: "logic" | "trigger";
+  /** Actions reach outside Wren: Send webhook. */
+  group: "logic" | "trigger" | "action";
   /** Runs on the spine. Not yet: drawn faded, "In development", and publishing refuses it. */
   ready: boolean;
   settings: readonly LogicSetting[];
@@ -370,6 +379,51 @@ export const LOGIC: readonly LogicPart[] = [
     says: () => "Either way in",
   },
   {
+    id: "logic.webhook",
+    name: "Send webhook",
+    blurb: "Posts the event to any URL, with your headers and body, and keeps the answer.",
+    icon: "external",
+    group: "action",
+    ready: true,
+    settings: [
+      { field: "url", label: "URL", type: "text", hint: "https://api.example.com/leads" },
+      {
+        field: "method",
+        label: "Method",
+        type: "choice",
+        options: WEBHOOK_METHODS,
+        start: "POST",
+      },
+      {
+        field: "headers",
+        label: "Headers, one per line",
+        type: "long",
+        hint: "Authorization: Bearer {{data.key}}",
+      },
+      {
+        field: "body",
+        label: "Body (JSON, empty sends the event)",
+        type: "long",
+        hint: '{"email": "{{data.lead.email}}"}',
+      },
+      { field: "keep", label: "Keep from the answer", type: "text", hint: "id=body.id" },
+      KIND,
+    ],
+    ports: (w) => ({
+      in: [one("in", "in", kindOf(w))],
+      out: [one("answered", "answered", kindOf(w)), one("refused", "refused", kindOf(w))],
+    }),
+    says: (w) => {
+      const url = text(w.url);
+      if (!url) return "Set a URL";
+      try {
+        return `${text(w.method) || "POST"} to ${new URL(fillText(url, {})).host}`;
+      } catch {
+        return "Set a URL";
+      }
+    },
+  },
+  {
     id: "trigger.hook",
     name: "Webhook",
     blurb: "Events posted to a door URL enter here.",
@@ -545,6 +599,17 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   if (l.id === "logic.split" && w.a !== undefined && shareOf(w.a) !== Number(w.a))
     out.push(`${at}: Split's share is 1 to 99`);
+  if (l.id === "logic.webhook") {
+    // Slots may fill the URL's path and query; its host must read as written.
+    const url = urlProblem(fillText(text(w.url), {}, true));
+    if (url) out.push(`${at}: ${url}`);
+    if (w.method !== undefined && !(WEBHOOK_METHODS as readonly string[]).includes(text(w.method)))
+      out.push(`${at}: ${text(w.method)} is no method`);
+    const body = bodyProblem(w.body);
+    if (body) out.push(`${at}: ${body}`);
+    out.push(...headersOf(w.headers, {}).problems.map((p) => `${at}: ${p}`));
+    out.push(...keepOf(w.keep).problems.map((p) => `${at}: ${p}`));
+  }
   if (l.id === "trigger.hook" && !/^[A-Za-z0-9_.]+$/.test(text(w.subject)))
     out.push(`${at}: a webhook names the payload field it's about`);
   if (l.id === "trigger.hook" || l.id === "trigger.form")

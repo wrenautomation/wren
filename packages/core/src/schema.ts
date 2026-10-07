@@ -310,6 +310,8 @@ export const events = pgTable(
     unique("uq_events_entry").on(t.workflow, t.node, t.port, t.subject),
     index("ix_events_subject").on(t.subject),
     index("ix_events_until").on(t.until, t.about).where(sql`due is not null and until is not null`),
+    // The error digest and Replay read failed steps only.
+    index("ix_events_failed").on(t.workflow).where(sql`error is not null`),
     oneOf("ck_events_kind", t.kind, Object.keys(EVENT_KINDS)),
   ],
 );
@@ -501,6 +503,111 @@ export const workflowTemplates = pgTable(
   ],
 );
 export type WorkflowTemplateRow = typeof workflowTemplates.$inferSelect;
+
+/**
+ * Outbound webhooks (designs/2026-10-07-webhooks-out.md): a client's https URL and the events it
+ * hears. The secret is sealed with `WREN_HOOK_KEY` and shown once; after a rotate the old one
+ * signs too until `prev_until`. Main only.
+ */
+export const webhookSubscriptions = pgTable(
+  "webhook_subscriptions",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** Whose; null is Wren's. */
+    client: varchar("client", { length: 40 }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    /** `WEBHOOK_EVENTS` names. */
+    events: text("events").array().notNull(),
+    /** `whsec_…`, sealed (`./doors.ts`). */
+    secret: text("secret").notNull(),
+    prevSecret: text("prev_secret"),
+    prevUntil: timestamp("prev_until", { withTimezone: true }),
+    /** Off: events are skipped, and a pending delivery stops. */
+    active: boolean("active").default(true).notNull(),
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_webhook_subscriptions" }),
+    index("ix_webhook_subscriptions_client").on(t.client),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_webhook_subscriptions_client_clients",
+    }).onDelete("cascade"),
+  ],
+);
+export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
+
+export const DELIVERY_STATES = ["pending", "delivered", "failed"] as const;
+export type DeliveryState = (typeof DELIVERY_STATES)[number];
+
+/**
+ * One event to one subscription: the body as signed, where it stands, and its last try. One row
+ * per subscription and event id, so a retried call delivers once. Main only.
+ */
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    subscription: uuid("subscription").notNull(),
+    event: varchar("event", { length: 40 }).notNull(),
+    /** The Standard Webhooks `webhook-id`: the same on every try. */
+    eventId: varchar("event_id", { length: 80 }).notNull(),
+    payload: jsonb("payload").notNull(),
+    state: varchar("state", { length: 12, enum: DELIVERY_STATES })
+      .$type<DeliveryState>()
+      .default("pending")
+      .notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    status: integer("status"),
+    latencyMs: integer("latency_ms"),
+    /** The first 1,000 characters of the last answer. */
+    response: text("response"),
+    error: text("error"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    lastAt: timestamp("last_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_webhook_deliveries" }),
+    unique("uq_webhook_deliveries_event").on(t.subscription, t.eventId),
+    index("ix_webhook_deliveries_subscription_at").on(t.subscription, t.at),
+    foreignKey({
+      columns: [t.subscription],
+      foreignColumns: [webhookSubscriptions.id],
+      name: "fk_webhook_deliveries_subscription_webhook_subscriptions",
+    }).onDelete("cascade"),
+    oneOf("ck_webhook_deliveries_state", t.state, DELIVERY_STATES),
+  ],
+);
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+
+/** Each try of a delivery: its status (null: no answer), time, what came back, or why not. */
+export const webhookAttempts = pgTable(
+  "webhook_attempts",
+  {
+    id: serial("id").notNull(),
+    delivery: uuid("delivery").notNull(),
+    n: integer("n").notNull(),
+    status: integer("status"),
+    latencyMs: integer("latency_ms").notNull(),
+    response: text("response"),
+    error: text("error"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_webhook_attempts" }),
+    index("ix_webhook_attempts_delivery").on(t.delivery, t.n),
+    foreignKey({
+      columns: [t.delivery],
+      foreignColumns: [webhookDeliveries.id],
+      name: "fk_webhook_attempts_delivery_webhook_deliveries",
+    }).onDelete("cascade"),
+  ],
+);
+export type WebhookAttempt = typeof webhookAttempts.$inferSelect;
 
 export const INSTALL_STATES = ["draft", "waiting", "live", "off"] as const;
 /** draft: installed, nothing runs. waiting: in To approve. live: approved. off: uninstalled. */

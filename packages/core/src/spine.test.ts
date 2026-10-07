@@ -151,6 +151,7 @@ function memStore() {
     async fail(a, error) {
       const r = rows.get(key(a));
       if (r) r.error = error;
+      return r?.id ?? null;
     },
     async retry(id, by) {
       const r = [...rows.values()].find((x) => x.id === id);
@@ -292,6 +293,16 @@ describe("walk", () => {
     expect(bad?.error).toBeUndefined();
     expect(await retry(walkWith(store, "inv3").w, bad?.id as string)).toBeNull();
     modelDown = true;
+  });
+
+  it("hands each failed step to auto-retry, by its id and top workflow", async () => {
+    const { store, rows } = memStore();
+    const { w } = walkWith(store, "auto1");
+    const failed: Array<[string, string]> = [];
+    w.failed = (id, workflow) => failed.push([id, workflow]);
+    await walk(w, "top", "in.leads", [lead("bad"), lead("3")]);
+    const bad = [...rows.values()].find((r) => r.a.event.subject === "lead:bad");
+    expect(failed).toEqual([[bad?.id, "top"]]);
   });
 
   it("tells a step inside a part which part it runs in, and its node's copy", async () => {

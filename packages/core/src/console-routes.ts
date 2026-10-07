@@ -99,6 +99,7 @@ export const CONSOLE_ROUTES = {
   doorRotate: "wren:manage",
   // A failed spine step, run again: it may send, so it needs what an effect does.
   retryEvent: "wren:effect",
+  replay: "wren:effect",
   // A held unit runs again, a paused source resumes.
   releaseHold: "wren:run",
   // Ask: a question to Claude Code on William's Mac, read only (`ask.ts`).
@@ -153,6 +154,7 @@ export const CONSOLE_APPS = {
   doorReveal: "workflows",
   doorRotate: "workflows",
   retryEvent: "workflows",
+  replay: "workflows",
   releaseHold: "workflows",
   question: "ask",
   teamSet: "team",
@@ -215,6 +217,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "doorReveal",
   "doorRotate",
   "retryEvent",
+  "replay",
   "releaseHold",
   "question",
   "teamSet",
