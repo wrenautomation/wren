@@ -937,14 +937,25 @@ export const audienceRecord = defineRecord({
   app: "marketing",
   channel: null,
   name: { one: "platform", many: "platforms" },
+  // Followers from social_days; the account's own last 7 days from account_metric_days.
   rows: async (db) =>
     (
       await rowsOf(
         db,
         sql`select distinct on (d.platform) d.platform id, d.platform, d.followers, d.day,
           d.followers - (select w.followers from social_days w
-            where w.platform = d.platform and w.day <= d.day - 7 order by w.day desc limit 1) week
-        from social_days d order by d.platform, d.day desc`,
+            where w.platform = d.platform and w.day <= d.day - 7 order by w.day desc limit 1) week,
+          a.reach, a.visits, a.links, a.gained, a.lost
+        from social_days d
+        left join lateral (select
+            sum(m.value) filter (where m.metric = 'reach')::int reach,
+            sum(m.value) filter (where m.metric = 'profile_visits')::int visits,
+            sum(m.value) filter (where m.metric = 'link_clicks')::int links,
+            sum(m.value) filter (where m.metric = 'follows')::int gained,
+            sum(m.value) filter (where m.metric = 'unfollows')::int lost
+          from account_metric_days m where m.platform = d.platform and m.key = ''
+            and m.day > current_date - 7) a on true
+        order by d.platform, d.day desc`,
       )
     ).map((r) => ({ ...r, site: PLATFORM_NAMES[r.platform as keyof typeof PLATFORM_NAMES] })),
   key: "id",
@@ -953,6 +964,11 @@ export const audienceRecord = defineRecord({
     site: name("Platform"),
     followers: number("Followers"),
     week: number("Change in 7 days"),
+    gained: number("Gained in 7 days", { listed: false }),
+    lost: number("Lost in 7 days", { listed: false }),
+    reach: number("Reach in 7 days"),
+    visits: number("Profile visits in 7 days"),
+    links: number("Link clicks in 7 days"),
     day: date("As of"),
   },
   views: [{ id: "all", label: "All", sort: "-followers", at: "day" }],

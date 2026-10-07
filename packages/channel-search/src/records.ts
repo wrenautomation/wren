@@ -6,6 +6,7 @@ import {
   date,
   defineRecord,
   link,
+  money,
   number,
   rate,
   type State,
@@ -208,6 +209,53 @@ export const funnelRecord = defineRecord({
   ],
 });
 
+/** Each `/go/` link's day: who came by it and what they did after, first and last touch. */
+export const linkDayRecord = defineRecord({
+  id: "marketing.link_day",
+  app: "marketing",
+  channel: null,
+  name: { one: "link day", many: "link days" },
+  view: "marketing_link_day_records",
+  key: "id",
+  title: "postTitle",
+  subtitle: "campaign",
+  fields: {
+    postTitle: text("Post"),
+    source: text("Source"),
+    campaign: text(),
+    content: text("Link", { listed: false }),
+    day: date(),
+    clicks: number("Visitors"),
+    hops: number("YouTube hops"),
+    formsFirst: number("Forms (first touch)"),
+    formsLast: number("Forms (last touch)", { listed: false }),
+    callsFirst: number("Calls (first touch)"),
+    callsLast: number("Calls (last touch)", { listed: false }),
+    wonFirst: number("Won (first touch)"),
+    wonLast: number("Won (last touch)", { listed: false }),
+    revenueFirst: money("Revenue (first touch)"),
+    revenueLast: money("Revenue (last touch)"),
+    toForm: rate("clicks", "Visitor to form", { from: "forms_first" }),
+    post: text("Post id", { listed: false }),
+    age: status(
+      { week: neutral("Last 7 days"), month: neutral("Last 30 days"), earlier: neutral("Earlier") },
+      "When",
+      { listed: false },
+    ),
+  },
+  views: [
+    { id: "month", label: "Last 30", where: { age: ["week", "month"] }, sort: "-day", at: "day" },
+    {
+      id: "posts",
+      label: "From posts",
+      where: { post: { empty: false } },
+      sort: "-day",
+      at: "day",
+    },
+    { id: "all", label: "All", sort: "-day", at: "day" },
+  ],
+});
+
 export const SEARCH_RECORDS = [
   searchPageRecord,
   keywordRecord,
@@ -215,6 +263,7 @@ export const SEARCH_RECORDS = [
   answerRecord,
   siteDayRecord,
   funnelRecord,
+  linkDayRecord,
 ];
 
 /** Where sessions come from: the lander's export, and a short signed GET per chunk. */

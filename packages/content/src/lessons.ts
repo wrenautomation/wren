@@ -3,11 +3,13 @@
  * the author's recent redraft notes ("shorter", "keep the discord line") and
  * the posts that did best. Both go into the prompt as short lists, so a note
  * given once shapes the next idea too, and a winner's shape is copied. Read
- * only; the rows already exist (notes on redrafts, metrics snapshots).
+ * only; the rows already exist (notes on redrafts, metrics snapshots). The
+ * week's digest (`analytics/digest.ts`) adds what moved and what to make next.
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { latestDigest } from "./analytics/digest.js";
 import { scoreOf } from "./metrics.js";
 import { contentDrafts, contentMetrics } from "./schema.js";
 
@@ -16,6 +18,8 @@ export interface Lessons {
   notes: string[];
   /** Best posts by engagement per 100 views, best first. */
   winners: { text: string; views: number; score: number }[];
+  /** The latest weekly digest's lines for the platform: top, bottom, what moved, what next. */
+  digest?: string[];
 }
 
 export const NO_LESSONS: Lessons = { notes: [], winners: [] };
@@ -62,7 +66,10 @@ export async function lessonsFor(db: Queryable, platform: Platform): Promise<Les
     .map((s) => ({ text: s.text.slice(0, WINNER_CHARS), views: s.views, score: scoreOf(s) }))
     .sort((a, b) => b.score - a.score || b.views - a.views)
     .slice(0, MAX_WINNERS);
-  return { notes, winners };
+  const digest = (await latestDigest(db, platform))
+    .filter((l) => l.kind !== "cadence")
+    .map((l) => l.text);
+  return { notes, winners, ...(digest.length ? { digest } : {}) };
 }
 
 /** The prompt section; "" when there is nothing learned yet. */
@@ -77,6 +84,10 @@ export function lessonsBlock(l: Lessons): string {
       `Posts of this kind that did best (engagement per 100 views); match their shape, not their words:\n${l.winners
         .map((w) => `- (${w.score.toFixed(1)}, ${w.views} views) """${w.text}"""`)
         .join("\n")}`,
+    );
+  if (l.digest?.length)
+    parts.push(
+      `Last week's numbers on this platform; lean toward what worked:\n${l.digest.map((d) => `- ${d}`).join("\n")}`,
     );
   return parts.length ? `\n${parts.join("\n\n")}\n` : "";
 }

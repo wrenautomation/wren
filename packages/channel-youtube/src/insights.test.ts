@@ -59,7 +59,7 @@ describe("youtube insights", () => {
           );
         if (i.dimensions === "insightTrafficSourceDetail")
           return table(["insightTrafficSourceDetail", "views"], [["crm automation", 12]]);
-        return table(String(i.metrics).split(","), [[50, 75, 42, 35.5, 3, 1, 4, 2, 1, 0]]);
+        return table(String(i.metrics).split(","), [[75, 42, 35.5, 3, 1, 1, 0]]);
       },
     });
     const ch = youtubeContent(sites, { now: () => NOW });
@@ -73,7 +73,8 @@ describe("youtube insights", () => {
       filters: "video==v1",
     });
     expect(of("duration_secs")).toBe(120);
-    expect(of("views")).toBe(50);
+    expect(of("watch_minutes")).toBe(75);
+    expect(of("views")).toBeUndefined();
     expect(of("avg_view_pct")).toBe(35.5);
     expect(of("follows")).toBe(3);
     expect(of("unfollows")).toBe(1);
@@ -97,6 +98,7 @@ describe("youtube insights", () => {
     expect(got?.values).toEqual([{ metric: "duration_secs", value: 120 }]);
     const states = new Map(got?.gaps.map((g) => [g.metric, g.state]));
     expect(states.get("avg_view_pct")).toBe("needs_scope");
+    expect(states.has("views")).toBe(false);
     expect(states.get("retention")).toBe("needs_scope");
     expect(states.get("search_term")).toBe("needs_scope");
     expect(states.get("skip_rate")).toBe("no_api");
@@ -106,7 +108,7 @@ describe("youtube insights", () => {
   it("no route on the box: not built, not a throw", async () => {
     const { sites } = sitesWith({ refuse: 404 });
     const got = await youtubeContent(sites, { now: () => NOW }).insights?.({ id: "v1" });
-    expect(got?.gaps.find((g) => g.metric === "views")?.state).toBe("not_built");
+    expect(got?.gaps.find((g) => g.metric === "watch_minutes")?.state).toBe("not_built");
   });
 
   it("a timeout throws, so the step retries", async () => {

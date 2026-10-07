@@ -8,6 +8,7 @@
 import {
   ACTIVITY_KINDS,
   type ActivityKind,
+  GAP_STATES,
   type Media,
   PLATFORMS,
   type Platform,
@@ -17,6 +18,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -264,6 +266,101 @@ export const socialDays = pgTable(
   ],
 );
 
+// ---- Analytics (designs/2026-10-07-content-analytics.md) ----
+
+/**
+ * A post's numbers per day, long: one row per metric (and `key`: the tenth of the video for
+ * `retention`, the source for `traffic_source`, the words for `search_term`). A later look the
+ * same day replaces that day's row; past days are never touched.
+ */
+export const postMetricDays = pgTable(
+  "post_metric_days",
+  {
+    draftId: uuid("draft_id").notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    metric: varchar("metric", { length: 32 }).notNull(),
+    key: varchar("key", { length: 200 }).default("").notNull(),
+    value: doublePrecision("value").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.draftId, t.day, t.metric, t.key], name: "pk_post_metric_days" }),
+    foreignKey({
+      columns: [t.draftId],
+      foreignColumns: [contentDrafts.id],
+      name: "fk_post_metric_days_draft_id_content_drafts",
+    }).onDelete("cascade"),
+  ],
+);
+
+/** An account's numbers per day (reach, profile visits, link clicks, follows), long like a post's. */
+export const accountMetricDays = pgTable(
+  "account_metric_days",
+  {
+    platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    metric: varchar("metric", { length: 32 }).notNull(),
+    key: varchar("key", { length: 200 }).default("").notNull(),
+    value: doublePrecision("value").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.platform, t.day, t.metric, t.key],
+      name: "pk_account_metric_days",
+    }),
+    oneOf("ck_account_metric_days_platform", t.platform, PLATFORMS),
+  ],
+);
+
+/** A metric's state on a platform: read today, or why not. */
+export const SOURCE_STATES = ["live", ...GAP_STATES] as const;
+export type SourceState = (typeof SOURCE_STATES)[number];
+
+/**
+ * Whether each metric came back on its last look, per platform, with the platform's words when
+ * it didn't. The page says "Needs scope" from this, not from a guess.
+ */
+export const metricSources = pgTable(
+  "metric_sources",
+  {
+    platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
+    metric: varchar("metric", { length: 32 }).notNull(),
+    state: varchar("state", { length: 16, enum: SOURCE_STATES }).notNull(),
+    why: text("why"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The last time it came back; null = never. */
+    liveAt: timestamp("live_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.platform, t.metric], name: "pk_metric_sources" }),
+    oneOf("ck_metric_sources_platform", t.platform, PLATFORMS),
+    oneOf("ck_metric_sources_state", t.state, SOURCE_STATES),
+  ],
+);
+
+/**
+ * The Monday "what worked" note: top and bottom posts, the number that moved, the next post to
+ * make. One per week and platform (`all` for every platform); a second run that week replaces it.
+ */
+export const contentDigests = pgTable(
+  "content_digests",
+  {
+    week: date("week", { mode: "string" }).notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    lines: jsonb("lines").$type<DigestLine[]>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.week, t.platform], name: "pk_content_digests" })],
+);
+
+/** One line of a digest: what it is, and the post it names (a `marketing.post` id) when it names one. */
+export interface DigestLine {
+  kind: "top" | "bottom" | "moved" | "next" | "cadence";
+  text: string;
+  post?: string;
+}
+
 export type SocialActivity = typeof socialActivity.$inferSelect;
 export type ContentIdea = typeof contentIdeas.$inferSelect;
 export type NewContentIdea = typeof contentIdeas.$inferInsert;
@@ -277,30 +374,168 @@ export type ContentPlaybook = typeof contentPlaybooks.$inferSelect;
  * so drafting again knows the idea. `engaged` is reactions, comments
  * and shares; `recent` is the last 7 days, as `wren content results` reads them.
  */
+/** A draft's format (`formatOf` in analytics/catalog.ts) over `content_drafts d`. */
+export const formatSql = `case
+      when d.platform = 'youtube' then case when d.extra->>'kind' = 'short' then 'short' else 'long' end
+      when d.platform = 'tiktok' then 'video'
+      when d.platform = 'instagram' and d.extra->>'kind' = 'video' then 'reel'
+      when (d.platform = 'instagram' and d.extra->>'kind' = 'carousel')
+        or (d.platform = 'linkedin' and d.extra->>'kind' = 'document') then 'carousel'
+      when d.platform = 'x' and d.extra->>'kind' = 'thread' then 'thread'
+      else 'post' end`;
+
+/**
+ * Published posts (`marketing.post`) with their latest counts, their insights' latest day
+ * (designs/2026-10-07-content-analytics.md), what their own links brought to the site
+ * (`link_days`: a post's `/go/` link by its draft's first 8, a long video's footer by its video
+ * id), and their comments answered. Revenue is USD, by first and by last touch.
+ */
 export const marketingPostRecords = pgView("marketing_post_records", {
   id: text("id"),
   platform: text("platform"),
   title: text("title"),
   published: timestamp("published", { withTimezone: true }),
+  stage: text("stage"),
+  format: text("format"),
   views: integer("views"),
   reactions: integer("reactions"),
   comments: integer("comments"),
   shares: integer("shares"),
   engaged: integer("engaged"),
+  score: doublePrecision("score"),
+  impressions: doublePrecision("impressions"),
+  reach: doublePrecision("reach"),
+  ctr: doublePrecision("ctr"),
+  avgViewPct: doublePrecision("avg_view_pct"),
+  avgViewSecs: doublePrecision("avg_view_secs"),
+  hold: doublePrecision("hold"),
+  watchMinutes: doublePrecision("watch_minutes"),
+  saves: doublePrecision("saves"),
+  follows: doublePrecision("follows"),
+  linkClicks: doublePrecision("link_clicks"),
+  clicks: integer("clicks"),
+  forms: integer("forms"),
+  calls: integer("calls"),
+  won: integer("won"),
+  revenueFirst: doublePrecision("revenue_first"),
+  revenueLast: doublePrecision("revenue_last"),
+  currency: text("currency"),
+  theirs: integer("theirs"),
+  answered: integer("answered"),
   measured: timestamp("measured", { withTimezone: true }),
   url: text("url"),
   recent: text("recent"),
 }).as(sql`
   select concat_ws('/', d.idea_id, d.platform, d.id) id, d.platform::text platform,
     coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title,
-    d.published_at published, m.views, m.reactions, m.comments, m.shares,
-    m.reactions + m.comments + m.shares engaged, m.as_of measured, d.url::text url,
+    d.published_at published, d.stage::text stage, ${sql.raw(formatSql)} format,
+    m.views, m.reactions, m.comments, m.shares,
+    m.reactions + m.comments + m.shares engaged,
+    case when m.views > 0
+      then round((m.reactions + m.comments + m.shares) * 100.0 / m.views, 2)::float8 end score,
+    i.impressions, i.reach, i.ctr / 100 ctr, i.avg_view_pct / 100 avg_view_pct, i.avg_view_secs,
+    i.hold, i.watch_minutes, i.saves, i.follows, i.link_clicks,
+    coalesce(l.clicks, 0) clicks, coalesce(l.forms, 0) forms, coalesce(l.calls, 0) calls,
+    coalesce(l.won, 0) won, coalesce(l.revenue_first, 0) / 100.0 revenue_first,
+    coalesce(l.revenue_last, 0) / 100.0 revenue_last, 'USD'::text currency,
+    coalesce(c.theirs, 0) theirs, coalesce(c.answered, 0) answered,
+    m.as_of measured, d.url::text url,
     case when d.published_at >= now() - interval '7 days' then 'recent' else 'earlier' end recent
   from content_drafts d
+  join content_ideas idea on idea.id = d.idea_id
   left join lateral (
     select c.views, c.reactions, c.comments, c.shares, c.as_of from content_metrics c
     where c.draft_id = d.id order by c.created_at desc limit 1) m on true
+  left join lateral (
+    select max(v.value) filter (where v.metric = 'impressions') impressions,
+      max(v.value) filter (where v.metric = 'reach') reach,
+      max(v.value) filter (where v.metric = 'ctr') ctr,
+      max(v.value) filter (where v.metric = 'avg_view_pct') avg_view_pct,
+      max(v.value) filter (where v.metric = 'avg_view_secs') avg_view_secs,
+      max(v.value) filter (where v.metric = 'hold_30s') hold,
+      max(v.value) filter (where v.metric = 'watch_minutes') watch_minutes,
+      max(v.value) filter (where v.metric = 'saves') saves,
+      max(v.value) filter (where v.metric = 'follows') follows,
+      max(v.value) filter (where v.metric = 'link_clicks') link_clicks
+    from (select distinct on (p.metric) p.metric, p.value from post_metric_days p
+      where p.draft_id = d.id and p.key = '' order by p.metric, p.day desc) v) i on true
+  left join lateral (
+    select sum(k.clicks)::int clicks, sum(k.forms_first)::int forms, sum(k.calls_first)::int calls,
+      sum(k.won_first)::int won, sum(k.revenue_first)::int revenue_first,
+      sum(k.revenue_last)::int revenue_last
+    from link_days k
+    where k.content = left(d.id::text, 8)
+      or (d.platform = 'youtube' and k.source = 'youtube' and k.content = ''
+        and substring(idea.ref from '^video:([0-9]+)(~|$)') is not null
+        and (k.campaign = substring(idea.ref from '^video:([0-9]+)(~|$)')
+          or k.campaign like substring(idea.ref from '^video:([0-9]+)(~|$)') || '-%'))) l on true
+  left join lateral (
+    select count(*) filter (where o.sort is distinct from 'ours' and o.state <> 'dropped')::int theirs,
+      count(*) filter (where o.sort is distinct from 'ours' and o.state = 'answered')::int answered
+    from comments o where o.post = d.published_id and o.platform::text = d.platform::text) c on true
   where d.status = 'published'`);
+
+/**
+ * How conversations go (`marketing.conversation`), per platform and for all of them, over the
+ * last 7 days, 30 days and all time: their comments answered and how fast, the commenters we
+ * DMed, DMs they answered, and DMs that led to a booked call (their email, by the person behind
+ * the contact, booked after our first DM). Comments we dropped are out of the base.
+ */
+export const marketingConversation = pgView("marketing_conversation", {
+  id: text("id"),
+  span: text("span"),
+  platform: text("platform"),
+  since: timestamp("since", { withTimezone: true }),
+  comments: integer("comments"),
+  answered: integer("answered"),
+  replySecs: doublePrecision("reply_secs"),
+  dmed: integer("dmed"),
+  dms: integer("dms"),
+  dmsAnswered: integer("dms_answered"),
+  booked: integer("booked"),
+}).as(sql`
+  with spans(span, since) as (values
+    ('7d', now() - interval '7 days'), ('30d', now() - interval '30 days'),
+    ('all', '-infinity'::timestamptz)),
+  theirs as (
+    select c.platform::text platform, c.at, c.state, c.answered_at, c.contact_id from comments c
+    where c.sort is distinct from 'ours' and c.state <> 'dropped'),
+  firsts as (
+    select r.id contact, r.platform::text platform, r.person_id,
+      min(m.sent_at) first_out from reach_contacts r
+    join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
+    group by r.id),
+  threads as (
+    select f.platform, f.first_out,
+      exists (select 1 from reach_messages i where i.contact_id = f.contact and i.direction = 'in'
+        and i.created_at > f.first_out) answered,
+      exists (select 1 from leads ld join call_bookings b on lower(b.email) = lower(ld.email)
+        where ld.person_id = f.person_id and b.booked_at > f.first_out) booked
+    from firsts f),
+  cs as (
+    select s.span, case when grouping(t.platform) = 1 then 'all' else t.platform end platform,
+      count(t.at)::int comments,
+      count(t.answered_at)::int answered,
+      (percentile_cont(0.5) within group (order by extract(epoch from t.answered_at - t.at))
+        filter (where t.answered_at is not null))::float8 reply_secs,
+      count(t.contact_id)::int dmed
+    from spans s left join theirs t on t.at >= s.since
+    group by grouping sets ((s.span, t.platform), (s.span))),
+  ds as (
+    select s.span, case when grouping(h.platform) = 1 then 'all' else h.platform end platform,
+      count(h.first_out)::int dms, count(*) filter (where h.answered)::int dms_answered,
+      count(*) filter (where h.booked)::int booked
+    from spans s join threads h on h.first_out >= s.since
+    group by grouping sets ((s.span, h.platform), (s.span)))
+  select k.span || ':' || k.platform id, k.span, k.platform, s.since,
+    coalesce(cs.comments, 0) comments, coalesce(cs.answered, 0) answered, cs.reply_secs,
+    coalesce(cs.dmed, 0) dmed, coalesce(ds.dms, 0) dms,
+    coalesce(ds.dms_answered, 0) dms_answered, coalesce(ds.booked, 0) booked
+  from (select span, platform from cs where platform is not null
+    union select span, platform from ds where platform is not null) k
+  join spans s on s.span = k.span
+  left join cs on cs.span = k.span and cs.platform = k.platform
+  left join ds on ds.span = k.span and ds.platform = k.platform`);
 
 /**
  * A draft's timeline (designs/2026-10-07-training-record.md, View), each draft page's Activity

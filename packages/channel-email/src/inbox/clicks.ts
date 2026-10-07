@@ -39,6 +39,8 @@ export interface SiteHit {
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
+  /** A `/go/` link's third part: the post (`<first 8 of the draft>`), when it names one. */
+  utm_content?: string;
   ref?: string;
 }
 
@@ -53,6 +55,8 @@ export interface SiteApplication {
   email?: string | null;
   /** The visitor's first touch, JSON. */
   first_touch?: string | null;
+  /** This tab's touch when they sent it, JSON. */
+  last_touch?: string | null;
 }
 
 /** One recorded view (`replays`): its rrweb chunks live in S3 under `site/replays/<view>/`. */

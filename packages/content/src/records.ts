@@ -9,8 +9,11 @@ import {
   cued,
   date,
   defineRecord,
+  duration,
   link,
+  money,
   number,
+  percent,
   rate,
   type State,
   status,
@@ -18,6 +21,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
+import { ANALYTICS_RECORDS, postAnalytics } from "./analytics/records.js";
 import { DRAFT_CALLS } from "./draft-calls.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
@@ -60,6 +64,22 @@ async function postOf(db: Queryable, draftId: string) {
   };
 }
 
+const STAGE_STATES = {
+  reach: { label: "Reach", tone: "neutral" },
+  trust: { label: "Trust", tone: "neutral" },
+  convert: { label: "Convert", tone: "neutral" },
+} as const satisfies Record<string, State>;
+/** A published post's format (`formatSql`): a long video and a Short read apart. */
+const POST_FORMATS: Record<string, State> = {
+  long: { label: "Long video", tone: "neutral" },
+  short: { label: "Short", tone: "neutral" },
+  reel: { label: "Reel", tone: "neutral" },
+  video: { label: "Video", tone: "neutral" },
+  carousel: { label: "Carousel", tone: "neutral" },
+  thread: { label: "Thread", tone: "neutral" },
+  post: { label: "Post", tone: "neutral" },
+};
+
 const DRAFT_STATES: Record<DraftStatus, State> = {
   draft: { label: "Waiting on you", tone: "warn" },
   failed: { label: "Failed to post", tone: "bad" },
@@ -95,14 +115,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
         },
         "Written by",
       ),
-      stage: status(
-        {
-          reach: { label: "Reach", tone: "neutral" },
-          trust: { label: "Trust", tone: "neutral" },
-          convert: { label: "Convert", tone: "neutral" },
-        },
-        "Stage",
-      ),
+      stage: status(STAGE_STATES, "Stage"),
       to: status(
         {
           video: { label: "The video", tone: "neutral" },
@@ -179,11 +192,35 @@ export const postRecordOf = (signer?: VideoSigner) =>
       title: text("Post"),
       platform: status(PLATFORM_STATES),
       published: date(),
+      format: status(POST_FORMATS, "Format"),
+      stage: status(STAGE_STATES, "Stage", { listed: false }),
       views: number(),
       reactions: number(),
       comments: number(),
       shares: number(),
       engagement: rate("views", "Engagement", { from: "engaged" }),
+      score: number("Per 100 views", { listed: false }),
+      // The platform's deeper numbers, latest day (designs/2026-10-07-content-analytics.md).
+      impressions: number("Impressions", { listed: false, group: "How it did" }),
+      reach: number("Reach", { listed: false, group: "How it did" }),
+      ctr: percent("Impression CTR", { listed: false, group: "How it did" }),
+      avgViewPct: percent("Average % viewed", { listed: false, group: "How it did" }),
+      avgViewSecs: duration("Average view", { listed: false, group: "How it did" }),
+      hold: percent("Still watching at 30s", { listed: false, group: "How it did" }),
+      watchMinutes: number("Watch minutes", { listed: false, group: "How it did" }),
+      saves: number("Saves", { listed: false, group: "How it did" }),
+      follows: number("Follows from it", { listed: false, group: "How it did" }),
+      linkClicks: number("Link clicks (platform)", { listed: false, group: "How it did" }),
+      // Its own link's visitors and what they did, by first touch; revenue by both.
+      clicks: number("Site clicks", { group: "What it brought" }),
+      toSite: rate("views", "Post to site", { from: "clicks", group: "What it brought" }),
+      forms: number("Forms", { listed: false, group: "What it brought" }),
+      calls: number("Calls booked", { listed: false, group: "What it brought" }),
+      won: number("Clients won", { listed: false, group: "What it brought" }),
+      revenueFirst: money("Revenue, first touch", { listed: false, group: "What it brought" }),
+      revenueLast: money("Revenue, last touch", { listed: false, group: "What it brought" }),
+      theirs: number("Their comments", { listed: false, group: "Its conversation" }),
+      replied: rate("theirs", "Comments answered", { from: "answered", group: "Its conversation" }),
       // When the numbers were counted, and the week filter's key: in the detail, not the list.
       measured: date("Counted", { listed: false }),
       url: link("Link"),
@@ -206,6 +243,21 @@ export const postRecordOf = (signer?: VideoSigner) =>
         at: "published",
       },
       { id: "top", label: "Top", sort: "-views", at: "published" },
+      // The leaderboard: engagement per 100 views; filter it by format, stage and date.
+      {
+        id: "leaderboard",
+        label: "Leaderboard",
+        where: { views: { gte: 1 } },
+        sort: "-score",
+        at: "published",
+      },
+      {
+        id: "site",
+        label: "Brought visits",
+        where: { clicks: { gte: 1 } },
+        sort: "-clicks",
+        at: "published",
+      },
       { id: "platform", label: "By platform", sort: "platform", at: "published" },
     ],
     activity: { view: "draft_activity", by: "post", seq: "seq" },
@@ -214,6 +266,7 @@ export const postRecordOf = (signer?: VideoSigner) =>
     load: async (db, id) => ({
       post: await postOf(db, id.split("/")[2] ?? ""),
       shape: await shapeView(db, id.split("/")[2] ?? "", signer),
+      analytics: await postAnalytics(db, id.split("/")[2] ?? ""),
     }),
   });
 
@@ -223,6 +276,7 @@ export const postRecord = postRecordOf();
 export const contentRecords = (signer?: VideoSigner) => [
   draftRecordOf(signer),
   postRecordOf(signer),
+  ...ANALYTICS_RECORDS,
 ];
 export const CONTENT_RECORDS = contentRecords();
 export { mediaRecord, sopRecord } from "./library.js";

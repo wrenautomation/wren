@@ -262,6 +262,43 @@ export const siteDays = pgTable(
 );
 export type SiteDay = typeof siteDays.$inferSelect;
 
+/**
+ * The lander's export per day and link (designs/2026-10-07-content-analytics.md): a `/go/` link's
+ * source, campaign and content (`/go/yt/<video slug>`, `/go/li/<stage>/<first 8 of the draft>`).
+ * Clicks are visitors arriving on it that day; forms, calls and won count under the first and
+ * the last touch of the person who sent them, so a post gets credit both ways. Re-read and
+ * upserted like `site_days`.
+ */
+export const linkDays = pgTable(
+  "link_days",
+  {
+    day: date("day").notNull(),
+    /** `utm_source`: youtube, linkedin, instagram. */
+    source: varchar("source", { length: 40 }).notNull(),
+    campaign: varchar("campaign", { length: 100 }).notNull(),
+    content: varchar("content", { length: 100 }).notNull(),
+    /** Visitors who arrived on the link that day. */
+    clicks: integer("clicks").notNull(),
+    /** Hops to a YouTube video (`/go/...?v=`), which load no page of ours. */
+    hops: integer("hops").notNull(),
+    formsFirst: integer("forms_first").notNull(),
+    formsLast: integer("forms_last").notNull(),
+    callsFirst: integer("calls_first").notNull(),
+    callsLast: integer("calls_last").notNull(),
+    wonFirst: integer("won_first").notNull(),
+    wonLast: integer("won_last").notNull(),
+    /** Paid invoices of the clients it won, in cents (USD). */
+    revenueFirst: integer("revenue_first").notNull(),
+    revenueLast: integer("revenue_last").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.source, t.campaign, t.content], name: "pk_link_days" }),
+    index("ix_link_days_content").on(t.content),
+  ],
+);
+export type LinkDay = typeof linkDays.$inferSelect;
+
 /** The lander's width buckets (its `src/scripts/hit.ts`): under 768, 1024, 1440, and wider. */
 export const HEAT_WIDTHS = ["phone", "tablet", "laptop", "wide"] as const;
 export type HeatWidth = (typeof HEAT_WIDTHS)[number];
@@ -421,6 +458,46 @@ export const marketingSiteDayRecords = pgView("marketing_site_day_records", {
     case when day > current_date - 7 then 'week'
       when day > current_date - 30 then 'month' else 'earlier' end age
   from site_days`);
+
+/**
+ * Each `/go/` link's day (`marketing.link_day`, designs/2026-10-07-content-analytics.md): its
+ * visitors, then forms, calls and clients won by first and by last touch, revenue in USD. A
+ * post's own link names it (`content` = its draft's first 8); `post` is its record id.
+ */
+export const marketingLinkDayRecords = pgView("marketing_link_day_records", {
+  id: text("id"),
+  day: date("day"),
+  source: text("source"),
+  campaign: text("campaign"),
+  content: text("content"),
+  post: text("post"),
+  postTitle: text("post_title"),
+  clicks: integer("clicks"),
+  hops: integer("hops"),
+  formsFirst: integer("forms_first"),
+  formsLast: integer("forms_last"),
+  callsFirst: integer("calls_first"),
+  callsLast: integer("calls_last"),
+  wonFirst: integer("won_first"),
+  wonLast: integer("won_last"),
+  revenueFirst: doublePrecision("revenue_first"),
+  revenueLast: doublePrecision("revenue_last"),
+  currency: text("currency"),
+  age: text("age"),
+}).as(sql`
+  select concat_ws('/', l.day, l.source, nullif(l.campaign, ''), nullif(l.content, '')) id, l.day,
+    l.source::text source, nullif(l.campaign, '')::text campaign,
+    nullif(l.content, '')::text "content", p.id post, p.title post_title, l.clicks, l.hops,
+    l.forms_first, l.forms_last, l.calls_first, l.calls_last, l.won_first, l.won_last,
+    l.revenue_first / 100.0 revenue_first, l.revenue_last / 100.0 revenue_last,
+    'USD'::text currency,
+    case when l.day > current_date - 7 then 'week'
+      when l.day > current_date - 30 then 'month' else 'earlier' end age
+  from link_days l
+  left join lateral (select concat_ws('/', d.idea_id, d.platform, d.id) id,
+      coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title
+    from content_drafts d where l.content <> '' and left(d.id::text, 8) = l.content
+    limit 1) p on true`);
 
 /**
  * Each channel's funnel (`marketing.funnel`) over the last 30 days, 90 days and all time: new

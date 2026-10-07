@@ -100,15 +100,13 @@ export function isoSeconds(d: string | undefined): number | null {
 }
 
 /** The video's totals: one report, its columns renamed to ours. */
+// Views, likes and comments come from the Data API (live; Analytics lags a day or two).
 const TOTALS: Record<string, string> = {
-  views: M.views,
   estimatedMinutesWatched: M.watchMinutes,
   averageViewDuration: M.avgViewSecs,
   averageViewPercentage: M.avgViewPct,
   subscribersGained: M.follows,
   subscribersLost: M.unfollows,
-  likes: M.likes,
-  comments: M.comments,
   shares: M.shares,
   videosAddedToPlaylists: M.saves,
 };

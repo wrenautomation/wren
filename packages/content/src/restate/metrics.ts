@@ -6,9 +6,19 @@
  *
  * `ContentMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
  * own database. No Monday report: that goes to Wren's lane.
+ *
+ * Each look also reads the post's insights (designs/2026-10-07-content-analytics.md) into
+ * `post_metric_days`, and once a day each account's into `account_metric_days`. A refused
+ * insight is a gap row, never a failed look. Monday's pass keeps the week's digest.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Metrics, Platform } from "@wren/core/content";
+import type {
+  AccountInsights,
+  Insights,
+  InsightValue,
+  Metrics,
+  Platform,
+} from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -19,11 +29,15 @@ import {
   stoppedPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { writeDigest } from "../analytics/digest.js";
+import { writeAccountInsights, writeInsights } from "../analytics/store.js";
 import { clientContent } from "../clients.js";
 import { formatWhatWorked, metricsDue, recordMetrics, whatWorked } from "../metrics.js";
 
 export const METRICS_KEY = "default";
 const REPORTED = "reported";
+/** The UTC day accounts were last read. */
+const ACCOUNTS = "accounts";
 const DEFAULT_EVERY_MS = 6 * 60 * 60 * 1000;
 const REPORT_DAYS = 7;
 const MONDAY = 1;
@@ -34,7 +48,39 @@ type ContentService = {
     ctx: restate.Context,
     req: { platform: Platform; id: string; client?: string | null },
   ) => Promise<Metrics>;
+  insights: (
+    ctx: restate.Context,
+    req: {
+      platform: Platform;
+      id: string;
+      published?: string | null;
+      kind?: string | null;
+      client?: string | null;
+    },
+  ) => Promise<Insights | null>;
+  platforms: (ctx: restate.Context) => Promise<Platform[]>;
+  accountInsights: (
+    ctx: restate.Context,
+    req: { platform: Platform; client?: string | null },
+  ) => Promise<AccountInsights | null>;
 };
+
+/** The counts every look reads, under the names insights use; insights' own win a tie. */
+export function withCounts(m: Metrics, i: Insights | null): Insights {
+  const got = new Set((i?.values ?? []).map((v) => `${v.metric}|${v.key ?? ""}`));
+  const counts: InsightValue[] = [
+    { metric: "views", value: m.views },
+    { metric: "likes", value: m.reactions },
+    { metric: "comments", value: m.comments },
+    { metric: "shares", value: m.shares },
+    ...(typeof m.follows === "number" ? [{ metric: "follows", value: m.follows }] : []),
+  ];
+  return {
+    values: [...(i?.values ?? []), ...counts.filter((c) => !got.has(`${c.metric}|`))],
+    gaps: i?.gaps ?? [],
+    asOf: i?.asOf ?? m.asOf,
+  };
+}
 
 export interface ContentMetricsDeps {
   db: Db;
@@ -46,9 +92,12 @@ export interface ContentMetricsDeps {
 }
 
 export interface MetricsStats {
-  looked: { id: string; platform: Platform; views: number }[];
+  looked: { id: string; platform: Platform; views: number; insights?: number; gaps?: number }[];
   failed: { id: string; platform: Platform; error: string }[];
   reported: boolean;
+  /** Account rows written per platform, once a day; an error's text where a read failed. */
+  accounts?: Partial<Record<Platform, number | string>>;
+  digest?: boolean;
 }
 
 /** The week label a Monday report belongs to (ISO date of that Monday). */
@@ -84,14 +133,58 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
           ...(client ? { client } : {}),
         });
         await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, m));
-        stats.looked.push({ id: draft.id, platform: draft.platform, views: m.views });
+        // Insights after the counts: a refusal here costs the deeper numbers, never the look.
+        let i: Insights | null = null;
+        try {
+          i = await content.insights({
+            platform: draft.platform,
+            id,
+            published: draft.publishedAt?.toISOString() ?? null,
+            kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
+            ...(client ? { client } : {}),
+          });
+        } catch (err) {
+          if (!(err instanceof restate.TerminalError)) throw err;
+        }
+        const all = withCounts(m, i);
+        const rows = await ctx.run(`insights ${draft.id}`, () =>
+          writeInsights(db, draft.id, draft.platform, all, now),
+        );
+        stats.looked.push({
+          id: draft.id,
+          platform: draft.platform,
+          views: m.views,
+          insights: rows,
+          gaps: all.gaps.length,
+        });
       } catch (err) {
         if (!(err instanceof restate.TerminalError)) throw err;
         stats.failed.push({ id: draft.id, platform: draft.platform, error: errorText(err) });
       }
     }
+    // The accounts' days, once a UTC day: Wren's own only.
+    const today = now.toISOString().slice(0, 10);
+    if (!client && (await ctx.get<string>(ACCOUNTS)) !== today) {
+      stats.accounts = {};
+      for (const platform of await content.platforms()) {
+        try {
+          const a = await content.accountInsights({ platform });
+          if (!a) continue;
+          stats.accounts[platform] = await ctx.run(`account ${platform}`, () =>
+            writeAccountInsights(db, platform, a, now),
+          );
+        } catch (err) {
+          if (!(err instanceof restate.TerminalError)) throw err;
+          stats.accounts[platform] = errorText(err);
+        }
+      }
+      ctx.set(ACCOUNTS, today);
+    }
     const notifier = client ? undefined : deps.notifier;
     const week = weekOf(now);
+    // The week's digest, kept for the drafts' prompts and the Overview, whether or not it's sent.
+    if (!client && now.getUTCDay() === MONDAY)
+      stats.digest = await ctx.run("digest", () => writeDigest(deps.db, now, weekOf(now)));
     if (notifier && now.getUTCDay() === MONDAY && (await ctx.get<string>(REPORTED)) !== week) {
       const lines = await ctx.run("what worked", async () =>
         formatWhatWorked(await whatWorked(deps.db, now, { days: REPORT_DAYS })),

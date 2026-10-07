@@ -46,6 +46,7 @@ import { decideExperiments } from "../experiments.js";
 import { rollupFlags } from "../flag-days.js";
 import { rollupHeat, writeHeatDays } from "../heat.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
+import { rollupLinks, upsertLinkDays, wonClients } from "../link-days.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
 import { callsAndPaid, rollupSite, upsertSiteDays } from "../site-days.js";
@@ -208,8 +209,14 @@ export function makeSearchWatch(deps: SearchDeps) {
           ]);
           const rows = rollupSite(hits, apps, ours.calls, ours.paid);
           const days = await upsertSiteDays(deps.db, rows);
+          // Per `/go/` link, so a post keeps its clicks, forms, calls and won clients.
+          const links = await upsertLinkDays(
+            deps.db,
+            rollupLinks(hits, apps, ours.calls, await wonClients(deps.db)),
+          );
           return {
             days,
+            links,
             flags: await writeFlagDays(deps.db, rollupFlags(seen, hits, apps, ours.calls)),
             surveys: await writeSurveyDays(
               deps.db,
