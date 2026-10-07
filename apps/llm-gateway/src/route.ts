@@ -7,7 +7,8 @@ import { ALIASES, PROVIDERS, type Provider, resolve, type Target } from "./catal
 import { classify, describe, type Outcome } from "./ledger.js";
 
 export interface Env {
-  GATEWAY_TOKEN: string;
+  /** "name sha256hex" per line, one per caller in guard.ts CALLERS. */
+  GATEWAY_CALLERS?: string;
   GEMINI_KEYS?: string;
   OPENROUTER_KEYS?: string;
   COHERE_KEYS?: string;
@@ -15,6 +16,10 @@ export interface Env {
 
 /** Tries per model before moving down the chain. */
 const TRIES_PER_MODEL = 6;
+/** One upstream try: until the reply is read, or for a stream until its headers. */
+export const ATTEMPT_MS = 20_000;
+/** The whole request, every try included. */
+export const DEADLINE_MS = 100_000;
 
 /** One key per line; after the first space a line is a note, and `#` lines are comments. */
 export function keysOf(env: Env, p: Provider): string[] {
@@ -42,24 +47,21 @@ export function json(status: number, body: unknown, headers: HeadersInit = {}): 
 export const error = (status: number, message: string, headers?: HeadersInit) =>
   json(status, { error: { message, type: "gateway_error" } }, headers);
 
-export function authorized(req: Request, env: Env): boolean {
-  const got = new TextEncoder().encode(req.headers.get("authorization") ?? "");
-  const want = new TextEncoder().encode(`Bearer ${env.GATEWAY_TOKEN}`);
-  if (!env.GATEWAY_TOKEN || got.byteLength !== want.byteLength) return false;
-  return crypto.subtle.timingSafeEqual(got, want);
-}
-
 /** The ledger as the Worker sees it: the Durable Object's stub, or a test double. */
 export interface LedgerApi {
   acquire(t: Target): Promise<number | null> | number | null;
   report(t: Target, idx: number, outcome: Outcome, detail?: string): Promise<void> | void;
 }
 
+/** Which model answered (null: none did) and the reply's total tokens when it said. */
+export type OnDone = (winner: Target | null, totalTokens: number | null) => Promise<void> | void;
+
 export async function complete(
   body: Record<string, unknown>,
   env: Env,
   ledger: LedgerApi,
   fetcher: typeof fetch = fetch,
+  onDone: OnDone = () => {},
 ): Promise<Response> {
   const chain = resolve(typeof body.model === "string" ? body.model : undefined);
   if (!chain)
@@ -68,31 +70,52 @@ export async function complete(
       `unknown model '${String(body.model)}': use an alias (${Object.keys(ALIASES).join(", ")}) or <provider>/<model>`,
     );
   const tried: string[] = [];
-  for (const t of chain) {
+  const started = Date.now();
+  models: for (const t of chain) {
     const keys = keysOf(env, t.provider);
     if (!keys.length) continue;
     for (let n = 0; n < TRIES_PER_MODEL; n++) {
+      if (Date.now() - started > DEADLINE_MS) break models;
       const idx = await ledger.acquire(t);
       if (idx === null) break;
-      const res = await fetcher(`${PROVIDERS[t.provider].baseURL}/chat/completions`, {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${keys[idx]}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ ...body, model: t.model }),
-      });
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), ATTEMPT_MS);
+      let res: Response;
+      let text: string | null = null;
+      try {
+        res = await fetcher(`${PROVIDERS[t.provider].baseURL}/chat/completions`, {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${keys[idx]}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ ...body, model: t.model }),
+          signal: abort.signal,
+        });
+        if (!(res.ok && body.stream === true)) text = await res.text();
+      } catch {
+        // Too slow (or the connection dropped): the model's trouble, not the key's.
+        tried.push(`${t.provider}/${t.model}#${idx}:timeout`);
+        await ledger.report(t, idx, "model", `timeout after ${ATTEMPT_MS / 1000}s`);
+        break;
+      } finally {
+        clearTimeout(timer);
+      }
       if (res.ok) {
         await ledger.report(t, idx, "ok");
         const headers = new Headers(res.headers);
         headers.set("x-gateway-model", `${t.provider}/${t.model}`);
         headers.set("x-gateway-key", `${t.provider}#${idx}`);
-        if (body.stream === true) return new Response(res.body, { status: res.status, headers });
+        if (text === null) {
+          await onDone(t, null);
+          return new Response(res.body, { status: res.status, headers });
+        }
         headers.delete("content-length");
         headers.delete("content-encoding");
-        return new Response(splitThought(await res.text()), { status: res.status, headers });
+        await onDone(t, totalTokens(text));
+        return new Response(splitThought(text), { status: res.status, headers });
       }
-      const text = await res.text();
+      text ??= "";
       const outcome = classify(res.status, text);
       tried.push(`${t.provider}/${t.model}#${idx}:${res.status}`);
       if (outcome) {
@@ -103,12 +126,19 @@ export async function complete(
       // Not the key's fault. A model the provider doesn't serve moves down the chain;
       // anything else is the request's own problem and goes back as it came.
       if (res.status === 404) break;
+      await onDone(null, null);
       return new Response(text, {
         status: res.status,
         headers: { "content-type": "application/json" },
       });
     }
   }
+  await onDone(null, null);
+  if (Date.now() - started > DEADLINE_MS)
+    return error(
+      504,
+      `no model answered within ${DEADLINE_MS / 1000}s (tried ${tried.join(", ")})`,
+    );
   return error(
     429,
     `every free key is spent or cooling for '${String(body.model ?? "free")}' (tried ${tried.length ? tried.join(", ") : "none with room"})`,
@@ -138,5 +168,14 @@ export function splitThought(text: string): string {
     return JSON.stringify(j);
   } catch {
     return text;
+  }
+}
+
+function totalTokens(text: string): number | null {
+  try {
+    const t = (JSON.parse(text) as { usage?: { total_tokens?: unknown } }).usage?.total_tokens;
+    return typeof t === "number" ? t : null;
+  } catch {
+    return null;
   }
 }

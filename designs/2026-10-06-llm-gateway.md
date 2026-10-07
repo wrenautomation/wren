@@ -38,9 +38,40 @@ we hold: 89 Gemini, 31 OpenRouter, 1 Cohere. Source in `apps/llm-gateway`.
 - `GET /usage`: per model, keys ready, cooling, spent, dead, today's count and recent errors.
   Keys show by index only. `POST /reset` clears the ledger.
 
+## Guardrails
+
+- **Callers.** Each caller has its own random 256-bit bearer token. The Worker's
+  `GATEWAY_CALLERS` secret holds only their sha256 hashes.
+  - `prod` is the Lambda and the box. Its token is in `deploy/prod.env` and SSM.
+  - `william` is the Mac. Its token is in llm.env.
+  - To revoke or rotate one, change it and rerun the keys script.
+  - Not JWTs: there are two server-side callers, a hash revokes at once, and the limits cap
+    any leak.
+- **Limits per caller and for all callers together** (`src/guard.ts`):
+
+  | | requests a minute (faucet) | requests a day | paid tokens a day |
+  |---|---|---|---|
+  | prod | 300 | 50,000 | 250,000 |
+  | william | 120 | 20,000 | 1,000,000 |
+  | all | 600 | 100,000 | 1,000,000 |
+
+  - The faucet is a bucket of that many requests that refills evenly over each minute: a
+    burst, then a drip.
+  - Days are UTC.
+  - A paid request (Cohere) reserves prompt bytes / 4 plus its max completion, then settles
+    on the reply's `usage`. 1M paid tokens a day costs at most about $10 of Command A.
+- **Over a limit:** 429 with `Retry-After` and `x-ratelimit-*` headers showing what's left
+  this minute, today, and in paid tokens today. Every reply carries those headers.
+- **Requests:** body up to 1 MB, `max_tokens` cut to 8,192, `n` must be 1, messages
+  required, listed providers only.
+- **Slow upstreams:** each try gets 20 s; a stream gets 20 s to send its headers. A timeout
+  or a full shared pool skips that model for 10 min. The whole request gets 100 s, then 504.
+- `POST /reset` is admin only (william) and never clears the callers' counts.
+- Workers Logs: one line per request (caller, model, winner, status, ms), never content.
+
 ## Run it
 
-- Bearer `WREN_LLM_GATEWAY_TOKEN` (in `deploy/prod.env`) on every route but `/health`.
+- A caller's bearer `WREN_LLM_GATEWAY_TOKEN` on every route but `/health`.
 - In wren: `WREN_LLM=gateway` or `gateway:<model>`, with `WREN_LLM_GATEWAY_URL` and
   `WREN_LLM_GATEWAY_TOKEN` set.
 - Keys change: `node scripts/secrets.mjs run deploy/prod.env -- 'node scripts/llm-gateway-keys.mjs'`.
@@ -58,6 +89,8 @@ already hold.
 
 ## Decisions
 
+- 2026-10-07: per-caller tokens and limits, timeouts and model skip, after William said he
+  "still want[s] these safeguards".
 - 2026-10-06: Worker + DO, not a container on the box or the Mac (memory). $0.
 - 2026-10-06: prod `WREN_LLM` flipped from `cohere:command-a-03-2025` to `gateway` (William).
   `WREN_FILL_LLM` stays on Cohere direct.

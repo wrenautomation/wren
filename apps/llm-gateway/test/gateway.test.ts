@@ -136,6 +136,23 @@ describe("complete", () => {
     ]);
   });
 
+  it("a model that times out is skipped for a while; the next model answers", async () => {
+    const l = new Ledger();
+    const ledger = {
+      acquire: (t: Target) => l.acquire(t, 2, T0),
+      report: (t: Target, i: number, o: never, d?: string) => l.report(t, i, o, T0, d),
+    };
+    const fetcher = (async (_url: string, init: RequestInit) => {
+      const model = JSON.parse(String(init.body)).model as string;
+      if (model === "gemini-3.8-flash") throw new DOMException("aborted", "AbortError");
+      return new Response(JSON.stringify({ choices: [] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const res = await complete({ model: "free", messages: [] }, env, ledger, fetcher);
+    expect(res.headers.get("x-gateway-model")).toBe("gemini/gemini-3.7-flash");
+    expect(l.acquire(FLASH, 2, T0 + 60_000)).toBeNull(); // still skipped
+    expect(l.acquire(FLASH, 2, T0 + 11 * 60_000)).not.toBeNull();
+  });
+
   it("returns the request's own error as is, and 429 when every key is spent", async () => {
     const l = new Ledger();
     const ledger = {

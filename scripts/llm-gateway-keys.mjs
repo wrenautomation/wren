@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// Load every LLM key into the gateway Worker (apps/llm-gateway) and deploy it. Run inside
-// `secrets.mjs run deploy/prod.env` so the Cloudflare token and WREN_LLM_GATEWAY_TOKEN
-// are in the environment:
+// Load every LLM key and every caller into the gateway Worker (apps/llm-gateway) and deploy
+// it. Run inside `secrets.mjs run deploy/prod.env` so the Cloudflare token and prod's
+// WREN_LLM_GATEWAY_TOKEN are in the environment:
 //   node scripts/secrets.mjs run deploy/prod.env -- node scripts/llm-gateway-keys.mjs [../llm.env]
 // Reads llm.env (keycycle format: NUM_<P> + <P>_API_KEY_n), writes the keys one per line to
 // the Worker's GEMINI_KEYS / OPENROUTER_KEYS / COHERE_KEYS through a 0600 temp file that is
-// deleted after, resets the gateway's ledger, and prints counts only.
+// deleted after, resets the gateway's key ledger, and prints counts only. Callers (guard.ts):
+// `prod` is deploy/prod.env's WREN_LLM_GATEWAY_TOKEN, `william` is the one in the LLM env
+// file; the Worker gets only their sha256 hashes. Rotate one: change it, run this again.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -26,11 +29,18 @@ function fleet(provider) {
   return [...new Set(keys.filter(Boolean))];
 }
 
-const token = process.env.WREN_LLM_GATEWAY_TOKEN;
-if (!token)
-  throw new Error("WREN_LLM_GATEWAY_TOKEN missing: run inside secrets.mjs run deploy/prod.env");
+const callers = {
+  prod: process.env.WREN_LLM_GATEWAY_TOKEN,
+  william: llmEnv.WREN_LLM_GATEWAY_TOKEN,
+};
+for (const [name, t] of Object.entries(callers))
+  if (!t || t.length < 32) throw new Error(`no gateway token for caller ${name}`);
+if (callers.prod === callers.william) throw new Error("prod and william share a token");
+const sha256 = (t) => createHash("sha256").update(t).digest("hex");
 const secrets = {
-  GATEWAY_TOKEN: token,
+  GATEWAY_CALLERS: Object.entries(callers)
+    .map(([name, t]) => `${name} ${sha256(t)}`)
+    .join("\n"),
   GEMINI_KEYS: fleet("gemini").join("\n"),
   OPENROUTER_KEYS: fleet("openrouter").join("\n"),
   COHERE_KEYS: fleet("cohere").join("\n"),
@@ -54,10 +64,10 @@ try {
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
-// Key indexes may have moved: start the ledger over.
+// Key indexes may have moved: start the key ledger over (callers' caps stay).
 const reset = await fetch("https://llm.wrenautomation.com/reset", {
   method: "POST",
-  headers: { authorization: `Bearer ${token}` },
+  headers: { authorization: `Bearer ${callers.william}` },
 });
 if (!reset.ok) console.error(`ledger reset failed: ${reset.status}`);
 console.log(

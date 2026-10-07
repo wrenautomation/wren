@@ -11,7 +11,10 @@
  */
 import { dayKey, limitsFor, type Provider, type Target } from "./catalog.js";
 
-/** `model`: the model is limited for everyone (a shared upstream pool), not this key. */
+/**
+ * `model`: the model itself is the trouble (a shared upstream pool is full, or it timed
+ * out), not this key: the model is skipped for MODEL_COOL_MS.
+ */
 export type Outcome = "ok" | "rate" | "daily" | "auth" | "server" | "model";
 
 export interface Slot {
@@ -31,23 +34,28 @@ export interface Slot {
 const BACKOFF_MIN = [2, 4, 8, 15];
 const SERVER_COOL_MS = 30_000;
 const AUTH_DEAD_MS = 24 * 60 * 60_000;
+export const MODEL_COOL_MS = 10 * 60_000;
 
 export type Saved =
   | { kind: "slot"; id: string; slot: Slot }
   | { kind: "dead"; id: string; until: number }
-  | { kind: "cursor"; id: string; at: number };
+  | { kind: "cursor"; id: string; at: number }
+  | { kind: "model"; id: string; until: number };
 
 export class Ledger {
   readonly slots = new Map<string, Slot>();
   /** Key → epoch ms until which it is skipped on every model (failed auth). */
   readonly dead = new Map<string, number>();
   private readonly cursors = new Map<string, number>();
+  /** "provider|model" → epoch ms until which the model is skipped (slow or overloaded). */
+  readonly modelCool = new Map<string, number>();
 
   constructor(private readonly save: (s: Saved) => void = () => {}) {}
 
   load(s: Saved): void {
     if (s.kind === "slot") this.slots.set(s.id, s.slot);
     else if (s.kind === "dead") this.dead.set(s.id, s.until);
+    else if (s.kind === "model") this.modelCool.set(s.id.slice("model:".length), s.until);
     else this.cursors.set(s.id, s.at);
   }
 
@@ -60,6 +68,7 @@ export class Ledger {
     const minute = Math.floor(now / 60_000);
     const day = dayKey(t.provider, now);
     const cursorId = `${t.provider}|${t.model}`;
+    if ((this.modelCool.get(cursorId) ?? 0) > now) return null;
     const start = this.cursors.get(cursorId) ?? 0;
     for (let i = 0; i < keyCount; i++) {
       const idx = (start + i) % keyCount;
@@ -80,7 +89,11 @@ export class Ledger {
   }
 
   report(t: Target, idx: number, outcome: Outcome, now: number, detail?: string): void {
-    if (outcome === "model") return;
+    if (outcome === "model") {
+      const id = `${t.provider}|${t.model}`;
+      this.modelCool.set(id, now + MODEL_COOL_MS);
+      this.save({ kind: "model", id: `model:${id}`, until: now + MODEL_COOL_MS });
+    }
     if (outcome === "auth") {
       const until = now + AUTH_DEAD_MS;
       this.dead.set(keyId(t.provider, idx), until);
@@ -88,7 +101,8 @@ export class Ledger {
     }
     const s = this.slot(t, idx);
     if (detail) s.last = detail;
-    if (outcome === "ok") {
+    if (outcome === "model") s.fail++;
+    else if (outcome === "ok") {
       s.ok++;
       s.backoff = 0;
     } else {
@@ -128,8 +142,10 @@ export class Ledger {
         else if (dayCount >= lim.rpd) spent++;
         else ready++;
       }
+      const modelCool = (this.modelCool.get(`${t.provider}|${t.model}`) ?? 0) - now;
       return {
         model: `${t.provider}/${t.model}`,
+        skippedForSec: modelCool > 0 ? Math.ceil(modelCool / 1000) : 0,
         keys: keyCounts[t.provider],
         ready,
         cooling,

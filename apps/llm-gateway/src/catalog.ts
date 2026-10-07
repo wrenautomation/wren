@@ -22,6 +22,8 @@ export interface ProviderSpec {
   timeZone: string;
   defaults: Limits;
   models: Record<string, Limits>;
+  /** Billed per token (from credits): counts against the guard's paid-token caps. */
+  paid?: true;
 }
 
 export const PROVIDERS: Record<Provider, ProviderSpec> = {
@@ -55,6 +57,7 @@ export const PROVIDERS: Record<Provider, ProviderSpec> = {
   cohere: {
     baseURL: "https://api.cohere.ai/compatibility/v1",
     secret: "COHERE_KEYS",
+    paid: true,
     timeZone: "UTC",
     // Our key is production tier (paid from credits): 500 a minute, no daily cap. A trial
     // key would be 20 a minute and 1,000 a month.
