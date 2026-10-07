@@ -10,7 +10,7 @@ import { cn } from "cn";
 import { useState } from "react";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
-import { FieldCell, filterShape } from "./fields.js";
+import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
 import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import {
@@ -131,6 +131,17 @@ function Shop({
                 {g.name ? (
                   <header className="grid gap-0.5">
                     <h2 className="flex items-baseline gap-2 text-[15px] leading-6 font-semibold">
+                      {(() => {
+                        const cue = cueOf(
+                          meta.fields.find((f) => f.key === sections?.field),
+                          g.id,
+                        );
+                        return cue ? (
+                          <span className="self-center">
+                            <Cue state={cue} size={15} />
+                          </span>
+                        ) : null;
+                      })()}
                       {g.name}
                       <span className="text-[13px] font-normal text-(--ui-ink-3) tabular-nums">
                         {num(g.rows.length)}

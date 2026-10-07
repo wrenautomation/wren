@@ -21,7 +21,7 @@ import {
   calendarOwner,
   ownerDeps,
 } from "@wren/calendar/restate";
-import { callRecord } from "@wren/channel-email/records";
+import { callRecord, firmRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
@@ -50,7 +50,7 @@ import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
-import { CLIENT_MARKETING } from "../../worker/src/marketing.js";
+import { CLIENT_MARKETING, MARKETING_NUMBERS } from "../../worker/src/marketing.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
@@ -120,6 +120,9 @@ const SERVICES: Record<
         // Inbox > Calls, and a client's page (/clients/all/<id>), as the worker registers them.
         callRecord,
         clientRecord,
+        // Marketing's own pages (drafts, posts, comments, DMs, Inbox) and Pipeline's companies.
+        ...MARKETING_NUMBERS,
+        firmRecord,
       ],
     }),
   },

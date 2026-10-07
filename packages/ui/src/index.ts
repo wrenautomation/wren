@@ -30,6 +30,8 @@ export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {
   type CiteTo,
+  Cue,
+  cueOf,
   dateOf,
   exact,
   FieldCell,
@@ -84,6 +86,7 @@ export { PageHeader, Section } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";
 export { type Look, LookEditor, lookOf } from "./look.js";
+export { hostMark, markName, PlatformMark, TintSwatch, tintColor, tintWash } from "./marks.js";
 export {
   type OverviewProps,
   type OverviewTile,

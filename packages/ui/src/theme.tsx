@@ -56,6 +56,14 @@ export const TOKENS = [
   "chart-3",
   "chart-4",
   "chart-5",
+  "cue-1",
+  "cue-2",
+  "cue-3",
+  "cue-4",
+  "cue-5",
+  "cue-6",
+  "cue-7",
+  "cue-8",
 ] as const;
 
 export type Token = (typeof TOKENS)[number];

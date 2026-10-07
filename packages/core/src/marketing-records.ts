@@ -2,12 +2,12 @@
  * Opt-in marketing as console records (`./records.ts`): subscribers and topics. Views in
  * `./marketing-views.ts`; the writers in `./marketing.ts`. No action marks anyone as consented.
  */
-import { actor, date, defineRecord, number, rate, status, text } from "./records.js";
+import { actor, cued, date, defineRecord, number, rate, status, text } from "./records.js";
 
-const CHANNELS = {
+const CHANNELS = cued({
   email: { label: "Email", tone: "neutral" },
   sms: { label: "SMS", tone: "neutral" },
-} as const;
+} as const);
 
 export const subscriberRecord = defineRecord({
   id: "marketing.subscriber",

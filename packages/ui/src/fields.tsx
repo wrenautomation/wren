@@ -5,13 +5,22 @@
  */
 
 import { wordsOf } from "@wren/core/models/labels";
-import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/records";
+import {
+  type Cell,
+  type FieldMeta,
+  type Filter,
+  type Op,
+  type State,
+  type Tone,
+  tintOf,
+} from "@wren/core/records";
 import type { Total } from "@wren/core/records/serve";
 import { codeLabel } from "@wren/core/templates/labels";
 import { cn } from "cn";
 import { Check } from "lucide-react";
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { duration, linkLabel, money, num } from "./format.js";
+import { PlatformMark, TintSwatch } from "./marks.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
 const TONE: Record<Tone, string> = {
@@ -21,14 +30,31 @@ const TONE: Record<Tone, string> = {
   neutral: "bg-(--ui-ink-3)",
 };
 
-/** A state as a dot in its tone and its label. */
-export function StateMark({ state }: { state: State }) {
+/**
+ * A value's cue, by one rule (designs/2026-10-07-visual-cues.md): a platform or channel's mark, a
+ * kind of thing's tint swatch, else its tone's dot. `mono` draws a mark in the text's color.
+ */
+export function Cue({ state, mono, size }: { state: State; mono?: boolean; size?: number }) {
+  if (state.mark) return <PlatformMark mark={state.mark} mono={mono ?? false} size={size ?? 14} />;
+  if (state.tint !== undefined) return <TintSwatch tint={state.tint} />;
+  return <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE[state.tone])} />;
+}
+
+/** A state as its cue and its label: a dot in its tone, a platform's mark, or a kind's tint. */
+export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-      <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE[state.tone])} />
+      <Cue state={state} mono={mono ?? false} />
       {state.label}
     </span>
   );
+}
+
+/** A field's cue for a value, when its state has a mark or a tint; null for a plain state. */
+export function cueOf(f: FieldMeta | undefined, value: string): State | null {
+  if (!f || !value) return null;
+  const s = f.states?.[value] ?? (f.kind === "choice" ? stateOf(f, value) : undefined);
+  return s && (s.mark || s.tint !== undefined) ? s : null;
 }
 
 const WIDTH = { s: 108, m: 144, l: 200 } as const;
@@ -44,7 +70,10 @@ export function widthOf(f: FieldMeta, title = false): number {
 }
 
 const stateOf = (f: FieldMeta, c: string): State =>
-  f.states?.[c] ?? { label: f.kind === "choice" ? codeLabel(c) : c, tone: "neutral" };
+  f.states?.[c] ??
+  (f.kind === "choice"
+    ? { label: codeLabel(c), tone: "neutral", tint: tintOf(c) }
+    : { label: c, tone: "neutral" });
 
 /** A month as it reads: "Oct 2026". */
 const monthOf = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
@@ -110,6 +139,25 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
+/**
+ * An address (a domain, a URL, an email) that may wrap only after its dots, slashes and @, never
+ * mid-word: "harbortalent1." then "example.com". Text with spaces, or none of those, stays as is.
+ */
+export function breaks(s: string): ReactNode {
+  if (/\s/.test(s) || !/[./@]/.test(s)) return s;
+  const parts = s.split(/(?<=[./@])/);
+  // A break chance after each; a part longer than the line still wraps as a last resort.
+  return parts.length < 2
+    ? s
+    : parts.map((p, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string.
+        <Fragment key={i}>
+          {p}
+          {i < parts.length - 1 ? <wbr /> : null}
+        </Fragment>
+      ));
+}
+
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
@@ -134,7 +182,7 @@ function Out({ href, children }: { href: string; children: ReactNode }) {
 export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell | undefined }) {
   if (c === null || c === undefined || c === "") return null;
   if (typeof c === "object") {
-    if ("name" in c) return <span>{c.name}</span>;
+    if ("name" in c) return <span>{breaks(c.name)}</span>;
     if ("amount" in c) return <span>{money(c.amount, c.currency)}</span>;
     return c.of < FEW ? (
       <span title="Too few to tell">{quiet(`${num(c.n)} of ${num(c.of)}`)}</span>
@@ -149,16 +197,20 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "verdict":
       return <StateMark state={stateOf(f, String(c))} />;
     case "choice":
-      return <span>{stateOf(f, String(c)).label}</span>;
-    case "tags":
-      return (
-        <span>
-          {String(c)
-            .split(",")
-            .map((s) => stateOf(f, s).label)
-            .join(", ")}
+      return <StateMark state={stateOf(f, String(c))} />;
+    case "tags": {
+      const ids = String(c).split(",");
+      // Tags that name channels show each one's mark; plain tags stay words.
+      return ids.some((id) => cueOf(f, id)) ? (
+        <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+          {ids.map((id) => (
+            <StateMark key={id} state={stateOf(f, id)} />
+          ))}
         </span>
+      ) : (
+        <span>{ids.map((id) => stateOf(f, id).label).join(", ")}</span>
       );
+    }
     case "number":
       return <span>{num(Number(c))}</span>;
     case "percent":
@@ -176,7 +228,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       ) : null;
     }
     case "link":
-      return <Out href={String(c)}>{linkLabel(String(c), f.label)}</Out>;
+      return <Out href={String(c)}>{breaks(linkLabel(String(c), f.label))}</Out>;
     case "cited":
       return <span>{stripMarks(String(c))}</span>;
     case "actor":
@@ -187,7 +239,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       ) : f.slots ? (
         <Slotted text={String(c)} slots={f.slots} />
       ) : (
-        <span>{c}</span>
+        <span>{typeof c === "string" ? breaks(c) : c}</span>
       );
   }
 }
@@ -239,7 +291,7 @@ export function actorParts(value: string): [kind: string, who: string] | null {
 
 function Actor({ value }: { value: string }) {
   const parts = actorParts(value);
-  if (!parts) return <span>{value}</span>;
+  if (!parts) return <span>{breaks(value)}</span>;
   return (
     <span>
       {quiet(`${parts[0]} · `)}
@@ -375,7 +427,7 @@ export function FieldLine({
         {c.domain ? (
           <>
             {" · "}
-            <Out href={`https://${c.domain}`}>{c.domain}</Out>
+            <Out href={`https://${c.domain}`}>{breaks(c.domain)}</Out>
           </>
         ) : null}
       </span>
@@ -407,7 +459,7 @@ export function FieldLine({
           ? "Open"
           : String(c).startsWith("tel:")
             ? `Call ${String(c).slice(4)}`
-            : String(c)}
+            : breaks(String(c))}
       </Out>
     );
   if (f.kind === "cited")
@@ -759,7 +811,7 @@ function StatesFilter({
         >
           <Tick on={on.has(id)} />
           <span className="min-w-0 flex-1 truncate">
-            {f.kind === "choice" ? st.label : <StateMark state={st} />}
+            <StateMark state={st} />
           </span>
           {counts ? (
             <span className="text-[12px] text-(--ui-ink-3) tabular-nums">

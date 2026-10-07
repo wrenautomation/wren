@@ -37,8 +37,37 @@ The shell then draws the cue wherever the value shows: list cells, filter option
 
 ## Where cues apply
 
-Filled in as built.
+Batch 1 (marks, cues, domain breaks):
+
+| Where | Field | Cue |
+|---|---|---|
+| Marketing: Drafts, Posts | Platform | mark |
+| Marketing: Comments | Site; Kind | mark; tint |
+| Marketing: DMs, Threads, Invites, People | Site | mark |
+| Marketing: Activity, Followers | Site; Kind | mark; tint |
+| Marketing: Media library, SOPs | Platform; Kind | mark; tint |
+| Marketing: Subscribers, Topics | Channel | mark |
+| Marketing: Site, Sessions | First touch | mark for email and texts, tint for the rest |
+| Inbox: Waiting on you (and Marketing → Inbox) | Type; Site; Kind | mark for DM, email, text, tint for the rest; mark; same |
+| Inbox, Marketing: To approve | Type; Site (incl. email, texts); Kind | tint; mark; tint |
+| Inbox: Calls; Email replies | Campaign | tint (a choice) |
+| Pipeline: Companies | Campaign; Stage | tint (a choice); dot (a state) |
+| Library: templates, snippets | Channel; Fits | mark for email, text, DM, tint for post, prompt, comment, anywhere |
+| Workflows: Components and Shop | Type; Stage; Channels | tint; tint; mark for email, texts, calls, DMs, web, tint for ads and social |
+| Workflows: Executions | Waiting for | tint (a choice) |
+| Books: Unit economics, cohorts | Channel | mark for email and SMS, tint for the rest |
+| Accounts | each site's section | mark when the site is a known platform, nothing otherwise |
+| Runs, setups | site | `SiteMark`: the mark for a known host, the letter otherwise |
+| Record pages | the subtitle under the title | its field's cue |
+| Queue rows, form sections, shop groups | the subtitle or group field | its cue |
+| Filter options and pills | any cued field | its cue before the label |
+
+Not cued: "Where" (reach account or our post) stays plain; with Type and Kind beside it a third swatch was noise. Status fields keep their dots everywhere.
 
 ## Decision log
 
 - 2026-10-07: Written from William's note above. One rule (mark, tint, dot), declared on the records, drawn by the shell. Content gets a platform switch and a Today page on a new generic Day template.
+- 2026-10-07: One set of tints for both themes. Mid-light hues read on the paper by day and by night, so no second set. Never red, green or amber: those are the tones.
+- 2026-10-07: "Reach" is not a DM mark. A reach account sends comments and invites too.
+- 2026-10-07: Domain breaks use `<wbr>` after dots, slashes and @. Truncating hid the end of the domain, the part people read.
+- 2026-10-07: The local preview registers Marketing's records and Pipeline's companies, so these pages draw there.

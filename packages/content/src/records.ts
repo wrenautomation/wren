@@ -5,6 +5,7 @@
 import { draftTurns } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import {
+  cued,
   date,
   defineRecord,
   link,
@@ -29,8 +30,8 @@ const NAMES: Record<Platform, string> = {
   facebook: "Facebook",
   tiktok: "TikTok",
 };
-const PLATFORM_STATES: Record<string, State> = Object.fromEntries(
-  Object.entries(NAMES).map(([p, label]) => [p, { label, tone: "neutral" }]),
+const PLATFORM_STATES: Record<string, State> = cued(
+  Object.fromEntries(Object.entries(NAMES).map(([p, label]) => [p, { label, tone: "neutral" }])),
 );
 
 /** What a preview needs past the row: the whole text, the platform's name, cap and feed cut. */

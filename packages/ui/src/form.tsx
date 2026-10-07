@@ -7,7 +7,7 @@ import { cn } from "cn";
 import { applies, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
-import { FieldCell } from "./fields.js";
+import { Cue, FieldCell } from "./fields.js";
 import {
   actsOf,
   cap,
@@ -40,9 +40,14 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
   const rows = page.data.rows;
   const sections = part?.states
     ? Object.entries(part.states)
-        .map(([k, s]) => ({ key: k, label: s.label, rows: rows.filter((r) => r[part.key] === k) }))
+        .map(([k, s]) => ({
+          key: k,
+          label: s.label,
+          cue: s.mark || s.tint !== undefined ? s : null,
+          rows: rows.filter((r) => r[part.key] === k),
+        }))
         .filter((s) => s.rows.length)
-    : [{ key: "all", label: "", rows }];
+    : [{ key: "all", label: "", cue: null, rows }];
 
   return (
     <div className={cn(ROOT, "grid max-w-[760px] min-w-0 gap-6")}>
@@ -56,7 +61,12 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
       ) : null}
       {sections.map((s) => (
         <section key={s.key} className="grid gap-1">
-          {s.label ? <h2 className="text-[14px] font-semibold">{s.label}</h2> : null}
+          {s.label ? (
+            <h2 className="flex items-center gap-2 text-[14px] font-semibold">
+              {s.cue ? <Cue state={s.cue} size={15} /> : null}
+              {s.label}
+            </h2>
+          ) : null}
           <dl className="m-0 grid">
             {s.rows.map((r) => {
               const here = actions.filter((a) => applies(a, r));

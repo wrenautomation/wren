@@ -8,7 +8,17 @@
 
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
-import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
+import {
+  cued,
+  date,
+  defineRecord,
+  link,
+  name,
+  number,
+  prose,
+  status,
+  text,
+} from "@wren/core/records";
 import { refText, waitingAsks } from "@wren/core/templates";
 import { approvalId, templateAt } from "@wren/core/templates/console";
 import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
@@ -53,7 +63,7 @@ export const activityRecord = defineRecord({
     who: name("Who"),
     actorUrl: link("Their page"),
     platform: status(PLATFORM_LABELS, "Site"),
-    kind: status(KIND_LABELS, "Kind"),
+    kind: status(cued(KIND_LABELS), "Kind"),
     state: status({ new: { label: "New", tone: "warn" }, seen: neutral("Seen") }),
     at: date("When"),
     url: link("Open"),
@@ -281,18 +291,18 @@ export const inboxRecord = defineRecord({
   fields: {
     who: name("Who"),
     type: status(
-      {
+      cued({
         comment: neutral("Comment"),
         dm: neutral("DM"),
         email: neutral("Email"),
         text: neutral("Text"),
         activity: neutral("Activity"),
-      },
+      }),
       "Type",
     ),
     platform: status(PLATFORM_LABELS, "Site"),
     kind: status(
-      {
+      cued({
         post_reply: neutral("On our post"),
         comment_reply: neutral("Under our comment"),
         username_mention: neutral("Mention"),
@@ -300,10 +310,13 @@ export const inboxRecord = defineRecord({
         email: neutral("Email reply"),
         text: neutral("Text"),
         ...KIND_LABELS,
-      },
+      }),
       "Kind",
     ),
-    channel: status({ reach: neutral("Reach account"), content: neutral("Our post") }, "Where"),
+    channel: status(
+      cued({ reach: neutral("Reach account"), content: neutral("Our post") }),
+      "Where",
+    ),
     state: STATES,
     company: text("Company"),
     answer: status(
@@ -479,29 +492,29 @@ export const approvalRecord = defineRecord({
   fields: {
     who: name("Item"),
     type: status(
-      {
+      cued({
         draft: neutral("Post"),
         video: neutral("Video"),
         thread: neutral("Thread"),
         invite: neutral("Invite"),
         template: neutral("Template"),
         workflow: neutral("Workflow"),
-      },
+      }),
       "Type",
     ),
     platform: status(
-      { ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") },
+      cued({ ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") }),
       "Site",
     ),
     kind: status(
-      {
+      cued({
         post: neutral("Post draft"),
         video: neutral("Video to approve"),
         thread: neutral("Thread to answer"),
         invite: neutral("Accepted your invite"),
         template: neutral("Copy to make live"),
         workflow: neutral("Workflow to make live"),
-      },
+      }),
       "Kind",
     ),
     state: STATES,

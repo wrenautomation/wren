@@ -35,12 +35,15 @@ export function PageHeader({
 
 export function Section({
   title,
+  cue,
   note,
   actions,
   className,
   children,
 }: {
   title?: string | undefined;
+  /** A mark before the title: the platform or site this section is about. */
+  cue?: ReactNode;
   note?: ReactNode;
   actions?: ReactNode;
   className?: string | undefined;
@@ -51,7 +54,12 @@ export function Section({
       {title || note || actions ? (
         <div className="mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div>
-            {title ? <h2 className="text-[15px]/[1.3] font-semibold">{title}</h2> : null}
+            {title ? (
+              <h2 className="flex items-center gap-2 text-[15px]/[1.3] font-semibold">
+                {cue}
+                {title}
+              </h2>
+            ) : null}
             {note ? (
               <p className="mt-1 max-w-[68ch] text-[14px] text-pretty text-(--ui-ink-2)">{note}</p>
             ) : null}

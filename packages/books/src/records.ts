@@ -3,7 +3,17 @@
  * (months, channels, cohorts) and the chart of accounts. Team only; amounts in dollars.
  */
 import { IN_HOUSE, monthlyOf } from "@wren/core/in-house";
-import { date, defineRecord, link, money, number, percent, status, text } from "@wren/core/records";
+import {
+  cued,
+  date,
+  defineRecord,
+  link,
+  money,
+  number,
+  percent,
+  status,
+  text,
+} from "@wren/core/records";
 import { UNKNOWN_CHANNEL } from "./economics.js";
 
 export const spendRecord = defineRecord({
@@ -81,7 +91,7 @@ export const subscriptionRecord = defineRecord({
   ],
 });
 
-const CHANNEL_STATES = {
+const CHANNEL_STATES = cued({
   email: { label: "Email", tone: "neutral" },
   sms: { label: "SMS", tone: "neutral" },
   ads: { label: "Ads", tone: "neutral" },
@@ -89,7 +99,7 @@ const CHANNEL_STATES = {
   search: { label: "Search", tone: "neutral" },
   reach: { label: "Reach", tone: "neutral" },
   [UNKNOWN_CHANNEL]: { label: "Unknown", tone: "neutral" },
-} as const;
+} as const);
 /** Each figure is CAD; a month is Toronto's. */
 const cad = (label: string, from?: string) => money(`${label} (CAD)`, from ? { from } : {});
 

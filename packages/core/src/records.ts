@@ -18,6 +18,107 @@ export type Op = "eq" | "in" | "contains" | "gte" | "lte" | "empty";
 export interface State {
   label: string;
   tone: Tone;
+  /** It names a platform or channel: the shell draws this mark in place of the tone's dot. */
+  mark?: Mark;
+  /** It names a kind of thing: a swatch in this of the kit's 8 tints (0 to 7), in place of the dot. */
+  tint?: number;
+}
+
+/**
+ * The platforms and channels the kit draws a mark for (`PlatformMark` in `@wren/ui`): one rule
+ * for every screen (designs/2026-10-07-visual-cues.md). A platform, site or channel shows its
+ * mark; a kind of thing (campaign, stage, type) a tint; a state keeps its tone's dot.
+ */
+export const MARKS = [
+  "youtube",
+  "linkedin",
+  "instagram",
+  "x",
+  "tiktok",
+  "reddit",
+  "facebook",
+  "meta",
+  "discord",
+  "google",
+  "email",
+  "text",
+  "call",
+  "dm",
+  "web",
+] as const;
+export type Mark = (typeof MARKS)[number];
+/** Other keys records use for the same platform or channel. */
+const MARK_ALIASES: Readonly<Record<string, Mark>> = {
+  twitter: "x",
+  ig: "instagram",
+  fb: "facebook",
+  gmail: "google",
+  google_ads: "google",
+  mail: "email",
+  sms: "text",
+  texts: "text",
+  phone: "call",
+  voice: "call",
+  calls: "call",
+  dms: "dm",
+  site: "web",
+  lander: "web",
+  website: "web",
+};
+/** The mark a key names ("youtube", "sms" as text), or none. */
+export function markOf(key: string): Mark | undefined {
+  const k = key.toLowerCase();
+  return (MARKS as readonly string[]).includes(k) ? (k as Mark) : MARK_ALIASES[k];
+}
+/** Hosts of the platforms we mark, by their registrable name. */
+const HOSTS: Readonly<Record<string, Mark>> = {
+  "youtube.com": "youtube",
+  "youtu.be": "youtube",
+  "linkedin.com": "linkedin",
+  "instagram.com": "instagram",
+  "x.com": "x",
+  "twitter.com": "x",
+  "tiktok.com": "tiktok",
+  "reddit.com": "reddit",
+  "facebook.com": "facebook",
+  "fb.com": "facebook",
+  "meta.com": "meta",
+  "discord.com": "discord",
+  "discord.gg": "discord",
+  "google.com": "google",
+};
+/** A host's mark ("www.reddit.com/r/x" is Reddit; a bare site key like "youtube" too), or none. */
+export function markOfHost(site: string): Mark | undefined {
+  const host = (site.replace(/^[a-z]+:\/\//i, "").split("/")[0] ?? "").toLowerCase();
+  const parts = host.split(".");
+  if (parts.length === 1) return markOf(host);
+  for (let i = 0; i < parts.length - 1; i++) {
+    const m = HOSTS[parts.slice(i).join(".")];
+    if (m) return m;
+  }
+  return undefined;
+}
+/** A key's tint, 0 to 7: the same key always gets the same one. */
+export function tintOf(key: string): number {
+  let h = 0;
+  for (const ch of key) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
+  return h % 8;
+}
+/**
+ * States that name platforms, channels or kinds of things, with their cue: a known platform or
+ * channel gets its mark (or the one `marks` names), any other key a stable tint. Tones stay, so
+ * a filter and a CSV read the same.
+ */
+export function cued<K extends string>(
+  states: Readonly<Record<K, State>>,
+  marks?: Readonly<Partial<Record<K, Mark>>>,
+): Record<K, State> {
+  return Object.fromEntries(
+    (Object.entries(states) as Array<[K, State]>).map(([k, s]) => {
+      const mark = marks?.[k] ?? markOf(k);
+      return [k, mark ? { ...s, mark } : { ...s, tint: tintOf(k) }];
+    }),
+  ) as Record<K, State>;
 }
 /** What a cell holds once it leaves the server. */
 export type Cell =
@@ -687,10 +788,15 @@ export function allowed(f: Field, demo: boolean) {
   };
 }
 
-/** A choice's labels as states the web already draws: a picklist, a title's words. */
+/**
+ * A choice's labels as states the web already draws: a picklist, a title's words. A choice names
+ * a kind of thing (a campaign), so each gets its cue: a mark when it names a platform, else a tint.
+ */
 const statesOf = (labels: Readonly<Record<string, string>>): Record<string, State> =>
-  Object.fromEntries(
-    Object.entries(labels).map(([k, label]) => [k, { label, tone: "neutral" as const }]),
+  cued(
+    Object.fromEntries(
+      Object.entries(labels).map(([k, label]) => [k, { label, tone: "neutral" as const }]),
+    ),
   );
 
 export function metaOf(type: RecordType, demo: boolean): RecordMeta {

@@ -7,6 +7,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import {
   actor,
+  cued,
   date,
   defineRecord,
   named,
@@ -21,13 +22,13 @@ import {
 import { TEMPLATE_EDITS, templateDetail } from "./template-edits.js";
 import type { Workflow } from "./workflows.js";
 
-const KIND: Record<string, State> = {
+const KIND: Record<string, State> = cued({
   email: { label: "Email", tone: "neutral" },
   sms: { label: "Text", tone: "neutral" },
   dm: { label: "DM", tone: "neutral" },
   post: { label: "Post", tone: "neutral" },
   prompt: { label: "Prompt", tone: "neutral" },
-};
+});
 /** `TemplateStatus`: waiting on a yes, Wren's default, a newer default unused, its own, nothing. */
 const STATUS: Record<string, State> = {
   waiting: { label: "Waiting approval", tone: "warn" },

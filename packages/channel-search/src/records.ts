@@ -2,6 +2,7 @@
 import { type SiteReplay, siteExport } from "@wren/channel-email";
 import { touchChannel } from "@wren/core/clients";
 import {
+  cued,
   date,
   defineRecord,
   link,
@@ -17,7 +18,7 @@ import { firstChannels } from "./flag-days.js";
 import type { HeatWidth } from "./schema.js";
 
 const neutral = (label: string): State => ({ label, tone: "neutral" });
-const SITE_CHANNEL_STATES = {
+const SITE_CHANNEL_STATES = cued({
   email: neutral("Email"),
   sms: neutral("Texts"),
   ads: neutral("Ads"),
@@ -26,7 +27,7 @@ const SITE_CHANNEL_STATES = {
   reach: neutral("Reach"),
   other: neutral("Other"),
   direct: neutral("Direct"),
-};
+});
 /** Its week against the week before, as `marketing_search_page_records` reads Search Console. */
 const WEEK = {
   clicks: number(),

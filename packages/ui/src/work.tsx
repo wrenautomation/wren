@@ -4,9 +4,11 @@
  * said, then the fact it kept and how sure it is. Kept steps lead to the answer;
  * dropped ones were dead ends, shown so nothing looks hidden.
  */
+
 import { type ReactNode, useId } from "react";
 import { cx } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { hostMark, PlatformMark } from "./marks.js";
 import { Sure } from "./sources.js";
 
 export type RunWorkIcon = "mail" | "search" | "page" | "board" | "wait" | "rank" | "write";
@@ -66,8 +68,18 @@ const ICONS: Record<RunWorkIcon, IconName> = {
   write: "reply",
 };
 
-/** A site's mark: its first letter on a tint, so no third-party image loads. */
+/**
+ * A site's mark: a platform's own (`PlatformMark`) for the ones we know, else its first letter on
+ * a dot. No third-party image loads either way.
+ */
 export function SiteMark({ site }: { site: string }) {
+  const known = hostMark(site);
+  if (known)
+    return (
+      <span className="grid size-[18px] flex-none place-items-center" aria-hidden="true">
+        <PlatformMark mark={known} size={14} />
+      </span>
+    );
   const host = site.replace(/^[a-z]+:\/\//i, "").split("/")[0] ?? site;
   const letter =
     host

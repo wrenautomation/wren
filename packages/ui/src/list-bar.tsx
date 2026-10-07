@@ -40,7 +40,7 @@ import {
   SheetTitle,
 } from "./components/ui/sheet.js";
 import { Button } from "./controls.js";
-import { FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
+import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
 import type { Place } from "./records.js";
 
@@ -742,11 +742,22 @@ function FilterPill({
   panel: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const { op, value } = filterParts(field, place.params.get(field.key) ?? "");
+  const raw = place.params.get(field.key) ?? "";
+  const { op, value } = filterParts(field, raw);
+  // The picked platforms' marks or kinds' tints lead the value: "Platform is [YT] YouTube".
+  const cues =
+    filterShape(field) === "states" ? raw.split(",").flatMap((id) => cueOf(field, id) ?? []) : [];
   const face = (
     <>
       <span className="shrink-0 text-(--ui-ink-2)">{field.label}</span>
       <span className="shrink-0 text-(--ui-ink-3)">{op}</span>
+      {cues.length ? (
+        <span className="inline-flex shrink-0 items-center gap-1">
+          {cues.slice(0, 3).map((c) => (
+            <Cue key={c.label} state={c} />
+          ))}
+        </span>
+      ) : null}
       <span className="min-w-0 max-w-[180px] truncate text-(--ui-ink)">{value}</span>
     </>
   );

@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { type Action, applies, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
-import { relative } from "./fields.js";
+import { Cue, relative } from "./fields.js";
 import { num } from "./format.js";
 import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
 import {
@@ -29,6 +29,7 @@ import {
   type RecordTemplateProps,
   ROOT,
   startOf,
+  subtitleCue,
   subtitleOf,
   titleOf,
   typing,
@@ -239,7 +240,13 @@ function Queue({
                         ) : null}
                       </span>
                       {meta.subtitle && r[meta.subtitle] ? (
-                        <span className="truncate text-(--ui-ink-2)">{subtitleOf(meta, r)}</span>
+                        <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-2)">
+                          {(() => {
+                            const cue = subtitleCue(meta, r);
+                            return cue ? <Cue state={cue} /> : null;
+                          })()}
+                          <span className="truncate">{subtitleOf(meta, r)}</span>
+                        </span>
                       ) : null}
                     </a>
                   </li>

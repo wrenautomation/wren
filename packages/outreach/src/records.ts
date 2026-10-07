@@ -7,6 +7,7 @@
 
 import { draftTurns } from "@wren/core/ask";
 import {
+  cued,
   date,
   defineRecord,
   link,
@@ -83,7 +84,7 @@ export const dmRecord = defineRecord({
   fields: {
     who: name("Who"),
     headline: text(),
-    platform: status({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }, "Site"),
+    platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
     account: text("From"),
     state: status({
       new: neutral("Found"),
@@ -145,7 +146,7 @@ export const dmRecord = defineRecord({
 });
 
 /** Every platform's names, for a comment from any of them. */
-export const PLATFORM_LABELS = {
+export const PLATFORM_LABELS = cued({
   reddit: neutral("Reddit"),
   linkedin: neutral("LinkedIn"),
   youtube: neutral("YouTube"),
@@ -153,7 +154,7 @@ export const PLATFORM_LABELS = {
   instagram: neutral("Instagram"),
   facebook: neutral("Facebook"),
   tiktok: neutral("TikTok"),
-};
+});
 
 /**
  * Comments on our posts and under our comments, every platform, newest first: a reach account's
@@ -188,8 +189,11 @@ export const commentRecord = defineRecord({
     who: name("Who"),
     about: text("Who they are"),
     platform: status(PLATFORM_LABELS, "Site"),
-    channel: status({ reach: neutral("Reach account"), content: neutral("Our post") }, "Where"),
-    kind: status(COMMENT_KIND_LABELS, "Kind"),
+    channel: status(
+      cued({ reach: neutral("Reach account"), content: neutral("Our post") }),
+      "Where",
+    ),
+    kind: status(cued(COMMENT_KIND_LABELS), "Kind"),
     place: text("Place"),
     postTitle: text("Post"),
     body: prose("Their words"),
@@ -266,7 +270,7 @@ export function dmCopyRecord(sender: string) {
     subtitle: "body",
     fields: {
       purpose: text("Slot"),
-      platform: status({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }, "Site"),
+      platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
       body: prose("Your words"),
       filled: status(
         { filled: { label: "Written", tone: "good" }, empty: neutral("Empty: never goes") },
@@ -597,7 +601,7 @@ export const personRecord = defineRecord({
     who: name("Who"),
     headline: text(),
     company: text("Company"),
-    platform: status({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }, "Site"),
+    platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
     can: status(
       {
         message: { label: "Can message", tone: "good" },

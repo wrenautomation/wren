@@ -73,6 +73,16 @@
   --ui-chart-3: var(--ui-good);
   --ui-chart-4: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-paper));
   --ui-chart-5: var(--ui-ink-3);
+  /* Kinds of things (a campaign, a stage, a type): 8 muted hues, mid-light so a swatch reads on
+     the paper by day and by night. Never red, green or amber: those are the status tones. */
+  --ui-cue-1: #6b84b8;
+  --ui-cue-2: #4f9a8f;
+  --ui-cue-3: #9a8fc4;
+  --ui-cue-4: #b77a62;
+  --ui-cue-5: #a86f9e;
+  --ui-cue-6: #5f97b8;
+  --ui-cue-7: #8f9a5c;
+  --ui-cue-8: #b8738a;
   --ui-shadow: /* overlays only: dialogs, menus, the record panel */
     0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent),
     0 30px 80px -30px color-mix(in srgb, var(--ui-shade) 45%, transparent);

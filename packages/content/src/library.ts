@@ -4,6 +4,7 @@
  * the content loop holds as a platform's playbook (`wren sop push`), its newest text.
  */
 import {
+  cued,
   date,
   defineRecord,
   link,
@@ -20,11 +21,11 @@ import { desc, eq, like, sql } from "drizzle-orm";
 import { contentDrafts, contentIdeas } from "./schema.js";
 import { longOf, numbered, type VideoSigner, videoRef } from "./video.js";
 
-const KIND: Record<string, State> = {
+const KIND: Record<string, State> = cued({
   video: { label: "Video", tone: "neutral" },
   short: { label: "Short", tone: "neutral" },
   thumbnail: { label: "Thumbnail", tone: "neutral" },
-};
+});
 const USED: Record<string, State> = {
   published: { label: "Posted", tone: "good" },
   picked: { label: "Picked", tone: "good" },
@@ -167,7 +168,7 @@ export const mediaRecord = (signer?: VideoSigner) =>
     },
   });
 
-const PLATFORM: Record<string, State> = {
+const PLATFORM: Record<string, State> = cued({
   youtube: { label: "YouTube", tone: "neutral" },
   linkedin: { label: "LinkedIn", tone: "neutral" },
   x: { label: "X", tone: "neutral" },
@@ -175,7 +176,7 @@ const PLATFORM: Record<string, State> = {
   facebook: { label: "Facebook", tone: "neutral" },
   tiktok: { label: "TikTok", tone: "neutral" },
   reddit: { label: "Reddit", tone: "neutral" },
-};
+});
 
 /** SOPs: the newest text of each SOP the content loop follows, with how many times it changed. */
 export const sopRecord = defineRecord({

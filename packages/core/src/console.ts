@@ -128,6 +128,7 @@ import {
 } from "./portal.js";
 import {
   choice,
+  cued,
   date,
   defineRecord,
   metaOf,
@@ -1737,9 +1738,12 @@ export const componentRecord = (
       name: text("Name"),
       blurb: text("What it does"),
       instead: text("In place of"),
-      type: status(neutral({ template: "Template", part: "Part", workflow: "Workflow" }), "Type"),
-      stage: status(neutral(STAGES), "Stage"),
-      channels: tags(neutral(CHANNELS), "Channels"),
+      type: status(
+        cued(neutral({ template: "Template", part: "Part", workflow: "Workflow" })),
+        "Type",
+      ),
+      stage: status(cued(neutral(STAGES)), "Stage"),
+      channels: tags(cued(neutral(CHANNELS)), "Channels"),
       ready: status(
         {
           ready: { label: "Ready", tone: "good" },

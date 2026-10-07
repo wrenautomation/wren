@@ -12,6 +12,7 @@ import { logicOf } from "./logic.js";
 import { PortalRefusal } from "./portal.js";
 import {
   actor,
+  cued,
   date,
   defineRecord,
   number,
@@ -29,13 +30,13 @@ import { flowsWith, type Workflow } from "./workflows.js";
 export const SNIPPET = "library.snippet";
 export const CHANNELS = ["any", "email", "sms", "dm", "comment"] as const;
 export type SnippetChannel = (typeof CHANNELS)[number];
-const CHANNEL: Record<SnippetChannel, State> = {
+const CHANNEL: Record<SnippetChannel, State> = cued({
   any: { label: "Anywhere", tone: "neutral" },
   email: { label: "Email", tone: "neutral" },
   sms: { label: "Text", tone: "neutral" },
   dm: { label: "DM", tone: "neutral" },
   comment: { label: "Comment", tone: "neutral" },
-};
+});
 
 const TITLE_MAX = 120;
 const BODY_MAX = 8000;

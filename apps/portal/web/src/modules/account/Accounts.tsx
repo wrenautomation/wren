@@ -9,9 +9,11 @@ import {
   Button,
   Callout,
   Empty,
+  hostMark,
   Input,
   Loading,
   PageHeader,
+  PlatformMark,
   Rail,
   Section,
   soon,
@@ -185,9 +187,11 @@ function Account({
   act: Act;
 }) {
   const login = (a as AccountRow & { login?: string | null }).login;
+  const mark = hostMark(a.site);
   return (
     <Section
       title={a.siteLabel}
+      cue={mark ? <PlatformMark mark={mark} size={15} /> : null}
       note={
         <span className="break-all">
           {a.ref}

@@ -48,6 +48,8 @@ import { Alert } from "./feedback.js";
 import {
   actorParts,
   type CiteTo,
+  Cue,
+  cueOf,
   dateOf,
   exact,
   FieldCell,
@@ -287,6 +289,14 @@ const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
 export const titleOf = (meta: RecordMeta, row: Row) => wordsOf(meta, row, meta.title);
 export const subtitleOf = (meta: RecordMeta, row: Row) =>
   meta.subtitle ? wordsOf(meta, row, meta.subtitle) : "";
+/** The subtitle's cue when it names a platform or a kind (a draft's "LinkedIn"), else null. */
+export const subtitleCue = (meta: RecordMeta, row: Row) =>
+  meta.subtitle
+    ? cueOf(
+        meta.fields.find((f) => f.key === meta.subtitle),
+        textOf(row[meta.subtitle]),
+      )
+    : null;
 
 /** Where an action that asks starts its text: the record's own value of that field (an edit). */
 export const startOf = (a: Action, row: Row) =>
@@ -1622,6 +1632,7 @@ export function RecordBody({
     (f.kind === "status" || f.kind === "prose" || f.kind === "cited" || f.key === box?.field);
   // The header says each field once; the Details below leave out what it shows.
   const { sub, states, keys, shown: inHead } = recordHead(meta, row, long);
+  const subCue = subtitleCue(meta, row);
   // Long text reads as its own section, above the facts.
   const cited = meta.fields.filter(
     (f) =>
@@ -1699,6 +1710,11 @@ export function RecordBody({
             </h2>
             {sub ? (
               <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)">
+                {subCue ? (
+                  <span className="mr-1.5 inline-flex align-[-0.1em]">
+                    <Cue state={subCue} size={15} />
+                  </span>
+                ) : null}
                 {subtitleOf(meta, row)}
               </p>
             ) : null}
