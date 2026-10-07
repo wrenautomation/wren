@@ -111,6 +111,16 @@ export async function rangeOf(
   return { zone: rules.zone, length: rules.length, open, calls };
 }
 
+/** A client's week, and what its people need about its page: where it is, whether it sends. */
+export interface ClientRange extends CalendarRange {
+  /** Its booking page. */
+  page: string;
+  /** Bookers get the invite, the mails and texts: its sends flag and Wren's gate both on. */
+  sends: boolean;
+  /** A Google calendar is connected: busy times read, events made. */
+  connected: boolean;
+}
+
 export interface CalendarConsoleDeps {
   /** Wren's own calendar, on main. */
   wren: CalendarDeps;
@@ -122,7 +132,10 @@ export interface CalendarConsoleDeps {
 const isWren = (req: PortalRequest) => !req.client || req.client === WREN;
 
 /** The client records half, as plain functions: the service wraps them, the preview calls them. */
-export function calendarRecordsApi(main: Db, open: ClientCalendarDeps["open"]) {
+export function calendarRecordsApi(
+  d: Pick<ClientCalendarDeps, "main" | "open" | "portal"> & { mailer?: unknown },
+) {
+  const { main, open } = d;
   const installed = async (req: PortalRequest) => {
     if (isWren(req)) throw new PortalRefusal("Wren's calls are under the console", 404);
     const client = await pickClient(main, req);
@@ -149,9 +162,16 @@ export function calendarRecordsApi(main: Db, open: ClientCalendarDeps["open"]) {
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
     /** A client's week: its calls from its own database, its open hours from its settings. */
-    range: async (req: RangeRequest) => {
+    range: async (req: RangeRequest): Promise<ClientRange> => {
       const client = await installed(req);
-      return rangeOf(open(client), client.id, client.products[CALENDAR], req);
+      const owner = await calendarOwner(main, d.portal, client.id);
+      const week = await rangeOf(open(client), client.id, owner.settings, req);
+      return {
+        ...week,
+        page: `${owner.site}/book`,
+        sends: owner.sends && Boolean(d.mailer),
+        connected: owner.account !== null,
+      };
     },
   };
 }
@@ -160,7 +180,7 @@ const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
 
 export function makeCalendarConsole(deps: CalendarConsoleDeps) {
   const wren = calendarFlows(deps.wren);
-  const records = deps.clients ? calendarRecordsApi(deps.clients.main, deps.clients.open) : null;
+  const records = deps.clients ? calendarRecordsApi(deps.clients) : null;
   const clientsOnly = () => {
     if (!records) throw new PortalRefusal("not found", 404);
     return records;

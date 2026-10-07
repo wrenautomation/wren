@@ -12,6 +12,15 @@
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
+import { calendarRecordsApi } from "@wren/calendar/console";
+import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "@wren/calendar/console-routes";
+import {
+  bookingPage,
+  type ClientCalendarDeps,
+  calendarFlows,
+  calendarOwner,
+  ownerDeps,
+} from "@wren/calendar/restate";
 import { callRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
@@ -138,6 +147,17 @@ const SERVICES: Record<
       records: CLIENT_MARKETING,
     }),
   },
+  // A client's Calendar app (its week and its calls), from its own database. Outcomes and cancel
+  // run on Restate: not here.
+  calendar: {
+    routes: Object.keys(CALENDAR_CONSOLE_ROUTES),
+    guard: { needs: CALENDAR_CONSOLE_ROUTES, apps: CALENDAR_CONSOLE_APPS, unnamed: "wren" },
+    api: calendarRecordsApi({
+      main,
+      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      portal: `http://localhost:${port}`,
+    }),
+  },
   // The Library's templates, in Wren's own database.
   templates: {
     routes: Object.keys(TEMPLATES_CONSOLE_ROUTES),
@@ -157,6 +177,51 @@ const viewer: Viewer = demo
     ? { email: as, ...((await teamSeat(main, as)) ? { operator: true } : {}) }
     : { email: "preview@localhost", operator: true };
 const dist = join(import.meta.dirname, "..", "dist");
+
+/**
+ * A client's booking page at /c/<client>/book, its API at /c/<client>/__book/<handler>: the same
+ * flows as ClientCalendar, in-process on a stand-in for Restate's context. No Google and no mail
+ * here: a booking holds its slot and sends nothing; reminders and the spine are dropped.
+ */
+const BOOK_PAGE =
+  /^\/c\/[a-z][a-z0-9_]{0,39}\/(?:book(?:\/[A-Za-z0-9_-]{1,64})?|booking\/[A-Za-z0-9._-]{1,80})\/?$/;
+const BOOK_API = /^\/c\/([a-z][a-z0-9_]{0,39})\/__book\/(slots|book|booking|reschedule|cancel)$/;
+const bookDeps: ClientCalendarDeps = {
+  main,
+  open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+  host: null,
+  shared: "preview-only-secret",
+  portal: `http://localhost:${port}`,
+  mailer: null,
+};
+type Ctx = Parameters<ReturnType<typeof calendarFlows>["slots"]>[0];
+const drop: object = new Proxy({}, { get: () => () => undefined });
+const standIn = {
+  run: async (_name: string, fn: () => unknown) => fn(),
+  date: { now: async () => Date.now() },
+  serviceSendClient: () => drop,
+  objectSendClient: () => drop,
+  console,
+} as unknown as Ctx;
+async function book(client: string, handler: string, req: Record<string, unknown>) {
+  const owner = await calendarOwner(main, bookDeps.portal, client);
+  const d = ownerDeps(bookDeps, owner);
+  const f = calendarFlows(d);
+  const page = bookingPage(owner, d);
+  const token = req.token;
+  if (handler === "slots") return { ...page, ...(await f.slots(standIn)) };
+  if (handler === "booking") return { ...page, ...(await f.view(standIn, f.bookingOf(token))) };
+  if (handler === "book")
+    return f.book(standIn, {
+      ...(req as unknown as Parameters<typeof f.book>[1]),
+      offer: typeof req.tag === "string" && req.tag ? req.tag : null,
+    });
+  if (handler === "reschedule") return f.reschedule(standIn, f.bookingOf(token), String(req.start));
+  return f.cancel(standIn, f.bookingOf(token), {
+    by: "booker",
+    reason: typeof req.reason === "string" ? req.reason : null,
+  });
+}
 const TYPES: Record<string, string> = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -182,6 +247,27 @@ createServer(async (req, res) => {
       "content-disposition": `attachment; filename="${fileNameOf(key)}"`,
     });
     return res.end(f.bytes);
+  }
+  const booking = BOOK_API.exec(path);
+  if (booking) {
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    const out = (status: number, body: unknown) =>
+      res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
+    try {
+      const { client: _c, ...input } = (raw ? JSON.parse(raw) : {}) as Record<string, unknown>;
+      return out(200, await book(booking[1] as string, booking[2] as string, input));
+    } catch (err) {
+      // A refusal (Restate's TerminalError) carries its status.
+      const e = err as { name?: string; code?: number; message?: string };
+      if (e.name === "TerminalError") return out(e.code ?? 400, { error: e.message });
+      console.error(err);
+      return out(502, { error: "Booking is down for a moment. Try again soon." });
+    }
+  }
+  if (BOOK_PAGE.test(path)) {
+    res.writeHead(200, { "content-type": "text/html" });
+    return createReadStream(join(dist, "book.html")).pipe(res);
   }
   const route = path.startsWith("/api/") ? path.slice(5) : null;
   if (route !== null) {

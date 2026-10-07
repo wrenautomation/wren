@@ -257,6 +257,10 @@ export interface Component {
   wrenSettings: boolean;
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
+  /** Top-level settings only Wren's own block reads: never on a client's form. */
+  wrenOnly: string[];
+  /** Top-level settings only a client's block reads: never on Wren's own form. */
+  clientOnly: string[];
   /**
    * Components and accounts it needs, each; accounts it needs one of (a channel to post on); and
    * facts a setup leaves on an account (`search_console.service_account_added`).
@@ -325,6 +329,8 @@ export const defineComponent = (c: Input): Component => ({
   // A part for Wren has no client to save to, whatever a spread copied.
   wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
   priced: c.priced ?? [],
+  wrenOnly: c.wrenOnly ?? [],
+  clientOnly: c.clientOnly ?? [],
   requires: { components: [], accounts: [], anyAccount: [], facts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],

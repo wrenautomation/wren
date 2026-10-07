@@ -149,7 +149,15 @@ const waitFor = async (ok: () => boolean) => {
 describe("ClientCalendar", () => {
   it("shows the client's name and its own open times; none for a client without the part", async () => {
     const page = await cal().slots({ client: "acme" });
-    expect(page).toMatchObject({ owner: "Acme Dental", zone: "UTC", length: 10 });
+    expect(page).toMatchObject({
+      owner: "Acme Dental",
+      mails: false,
+      meet: true,
+      contact: [],
+      zone: "UTC",
+      length: 10,
+    });
+    expect((await cal().slots({ client: "gamma" })).mails).toBe(true);
     expect(page.title).toBe("Consult with {name}");
     expect(page.slots.length).toBeGreaterThan(100);
     await expect(cal().slots({ client: "beta" })).rejects.toThrow(/no booking page/);

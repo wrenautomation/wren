@@ -43,6 +43,7 @@ import {
   setEvent,
   Unchangeable,
 } from "./book.js";
+import { contactLinks } from "./contact.js";
 import { type CalendarHost, eventIdOf } from "./google.js";
 import { bookSigned, manageUrl, readManage } from "./links.js";
 import { type Kind, mailFor, titleFor } from "./mail.js";
@@ -691,6 +692,17 @@ export function ownerDeps(d: ClientCalendarDeps, o: CalendarOwner): CalendarDeps
   };
 }
 
+/**
+ * What the page says about the client: its name, whether the booker hears from it (the invite
+ * and mails), whether a Google calendar makes the Meet link, and its links to message it directly.
+ */
+export const bookingPage = (owner: CalendarOwner, d: CalendarDeps) => ({
+  owner: owner.name,
+  mails: d.send !== null,
+  meet: owner.account !== null,
+  contact: contactLinks(owner.settings.contact),
+});
+
 const CLIENT = { client: z.string().min(1).max(40).describe("The client whose page it is") };
 const CLIENT_BOOK = z.looseObject({
   ...CLIENT,
@@ -703,7 +715,9 @@ export function makeClientCalendar(deps: ClientCalendarDeps) {
   const flowsFor = async (ctx: restate.Context, client: unknown) => {
     const id = typeof client === "string" ? client : "";
     const owner = await ctx.run("client", () => calendarOwner(deps.main, deps.portal, id));
-    return { owner, f: calendarFlows(ownerDeps(deps, owner)) };
+    const d = ownerDeps(deps, owner);
+    const page = bookingPage(owner, d);
+    return { owner, page, f: calendarFlows(d) };
   };
   return restate.service({
     name: CLIENT_CALENDAR_SERVICE.name,
@@ -712,8 +726,8 @@ export function makeClientCalendar(deps: ClientCalendarDeps) {
       slots: serviceHandler(
         { input: z.looseObject({ ...CLIENT, tag: z.string().optional() }) },
         async (ctx: restate.Context, req: { client: string }) => {
-          const { owner, f } = await flowsFor(ctx, req?.client);
-          return { owner: owner.name, ...(await f.slots(ctx)) };
+          const { page, f } = await flowsFor(ctx, req?.client);
+          return { ...page, ...(await f.slots(ctx)) };
         },
       ),
 
@@ -728,8 +742,8 @@ export function makeClientCalendar(deps: ClientCalendarDeps) {
       booking: serviceHandler(
         { input: z.looseObject({ ...CLIENT, token: z.string() }) },
         async (ctx: restate.Context, req: { client: string; token: string }) => {
-          const { owner, f } = await flowsFor(ctx, req?.client);
-          return { owner: owner.name, ...(await f.view(ctx, f.bookingOf(req?.token))) };
+          const { page, f } = await flowsFor(ctx, req?.client);
+          return { ...page, ...(await f.view(ctx, f.bookingOf(req?.token))) };
         },
       ),
 

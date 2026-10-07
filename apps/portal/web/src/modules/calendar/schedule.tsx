@@ -1,5 +1,6 @@
 /**
- * The Schedule: Wren's calls the way a calendar shows them, on the viewer's own clock. Week is
+ * The Schedule: a calendar's calls the way a calendar shows them, on the viewer's own clock: Wren's
+ * in Wren's workspace, the client's own in a client's (its database, through `calendar/*`). Week is
  * the default (Day on a phone): a time grid with a column per day, each call a block as long as
  * the call, the open hours shaded and a line at now. Month and List too. The arrows step, T comes
  * back to today, D W M L switch views. A call opens beside it in the records panel, with its
@@ -23,7 +24,7 @@ import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { callExtras } from "../calls/brief.js";
-import { CALL_ACTIONS } from "./actions.js";
+import { CALL_ACTIONS, CLIENT_CALL_ACTIONS } from "./actions.js";
 import {
   dayKey,
   daysOf,
@@ -59,6 +60,10 @@ interface Range {
   length: number;
   open: { start: string; end: string }[];
   calls: CallBlock[];
+  /** A client's only: its booking page, whether bookers hear from it, a calendar connected. */
+  page?: string;
+  sends?: boolean;
+  connected?: boolean;
 }
 type Call = Omit<CallBlock, "start" | "end"> & { start: Date; end: Date };
 
@@ -83,7 +88,7 @@ function title(view: View, days: Date[], anchor: Date): string {
 }
 
 /** The console's record calls for Wren's own calendar: what the side panel reads. */
-const API: RecordsApi = {
+const WREN_API: RecordsApi = {
   types: () => call("console/recordsTypes", {}),
   list: (a) => call("console/recordsList", { ...a }),
   get: (a) => call("console/recordsGet", { ...a }),
@@ -92,6 +97,25 @@ const API: RecordsApi = {
   edit: (a) => call("console/recordsEdit", { ...a }),
   undo: (a) => call("console/recordsUndo", { ...a }),
 };
+const CLIENT_APIS = new Map<string, RecordsApi>();
+/** A client's calls as records, from its own database: read only. */
+function clientApi(client: string, asClient: boolean): RecordsApi {
+  const key = `${client}:${asClient}`;
+  let api = CLIENT_APIS.get(key);
+  if (!api) {
+    const ask = <T,>(handler: string, body: object) =>
+      call<T>(`calendar/${handler}`, { client, app: "calendar", asClient, ...body });
+    api = {
+      types: () => ask("recordsTypes", {}),
+      list: (a) => ask("recordsList", a),
+      get: (a) => ask("recordsGet", a),
+      export: (a) => ask("recordsExport", a),
+      stats: (a) => ask("recordsStats", a),
+    };
+    CLIENT_APIS.set(key, api);
+  }
+  return api;
+}
 
 const Kbd = ({ children }: { children: ReactNode }) => (
   <kbd className="border border-(--ui-hair) px-1 font-[inherit] text-[12px]">{children}</kbd>
@@ -110,13 +134,41 @@ function useNow(): Date {
 }
 
 export function Schedule(props: PageProps) {
-  if (props.client !== WREN.id) {
-    return <p className="text-[14px] text-(--ui-ink-2)">The schedule is Wren's own calendar.</p>;
-  }
   return <Board {...props} />;
 }
 
-function Board({ params, team, demo, can }: PageProps) {
+/** A client's page and whether bookers hear from it, above its week. */
+function PageLine({ range }: { range: Range }) {
+  if (!range.page) return null;
+  const shown = range.page.replace(/^https?:\/\//, "");
+  const notes = [
+    range.connected === false
+      ? "No Google calendar is connected, so your busy times aren't read."
+      : null,
+    range.sends === false
+      ? "Sending is off, so bookers get no invite, email or text yet. Wren turns it on with you."
+      : null,
+  ].filter((n): n is string => n !== null);
+  return (
+    <div className="grid gap-1 border border-(--ui-hair) px-4 py-3 text-[14px]">
+      <p className="m-0 flex flex-wrap items-baseline gap-x-2 text-(--ui-ink-2)">
+        Your booking page
+        <a href={range.page} target="_blank" rel="noreferrer" className="break-all text-(--ui-ink)">
+          {shown}
+        </a>
+      </p>
+      {notes.map((n) => (
+        <p key={n} className="m-0 text-[13px] text-(--ui-ink-2)">
+          {n}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function Board({ client: workspace, params, team, demo, can }: PageProps) {
+  const client = workspace === WREN.id ? null : workspace;
+  const API = client ? clientApi(client, !team) : WREN_API;
   const now = useNow();
   const asked = params.get("v");
   const view: View = (VIEWS as readonly string[]).includes(asked ?? "")
@@ -130,8 +182,14 @@ function Board({ params, team, demo, can }: PageProps) {
   const days = daysOf(view, anchor);
   const { from, to } = rangeOf(view, anchor);
   const [rev, setRev] = useState(0);
-  const got = useCall(`calendar-range:${from.toISOString()}:${to.toISOString()}:${rev}`, () =>
-    call<Range>("calendar/range", { from: from.toISOString(), to: to.toISOString() }),
+  const got = useCall(
+    `calendar-range:${client}:${from.toISOString()}:${to.toISOString()}:${rev}`,
+    () =>
+      call<Range>("calendar/range", {
+        ...(client ? { client } : {}),
+        from: from.toISOString(),
+        to: to.toISOString(),
+      }),
   );
   const calls: Call[] = useMemo(
     () =>
@@ -181,16 +239,17 @@ function Board({ params, team, demo, can }: PageProps) {
     .concat(calls.filter((c) => c.state !== "booked"));
   const index = ordered.findIndex((c) => String(c.id) === openId);
   const acts: RecordActs = {
-    actions: CALL_ACTIONS.map((a) => {
+    actions: (client ? CLIENT_CALL_ACTIONS : CALL_ACTIONS).map((a) => {
       const needs = a.requires?.needs ?? permissionOf(a.handler);
       return needs ? { ...a, requires: { ...a.requires, needs } } : a;
     }),
     viewer: { team, demo, ...(can ? { can } : {}) },
-    call: (handler, input) => call(handler, input),
+    call: (handler, input) => call(handler, client ? { client, ...input } : input),
   };
 
   return (
     <div className="grid gap-4">
+      {got.data ? <PageLine range={got.data} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button tone="secondary" size="dense" onClick={() => go({ d: null })} title="Today (T)">
           Today

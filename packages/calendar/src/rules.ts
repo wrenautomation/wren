@@ -6,6 +6,7 @@
  */
 import { canonicalZone } from "@wren/core/time";
 import { z } from "zod";
+import { contactSchema } from "./contact.js";
 
 export const CALENDAR = "calendar.booking";
 
@@ -93,6 +94,8 @@ export const calendarSettingsSchema = z
     buffer: minutes(10, 120, "Minutes kept free before and after each call"),
     perDay: z.number().int().min(1).max(48).default(6).describe("The most calls in one day"),
     days: z.number().int().min(1).max(90).default(21).describe("How many days ahead it books"),
+    // A client's own; Wren's page lists Wren's from the lander's site.yaml.
+    contact: contactSchema.prefault({}),
   })
   .strict();
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;

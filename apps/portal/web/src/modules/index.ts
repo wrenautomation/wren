@@ -4,7 +4,7 @@
  */
 import type { Module } from "../module.js";
 import { account } from "./account/index.js";
-import { calendar } from "./calendar/index.js";
+import { calendar, clientCalendar } from "./calendar/index.js";
 import { calls } from "./calls/index.js";
 import { library } from "./library/index.js";
 import { clientMarketing, marketing } from "./marketing/index.js";
@@ -27,6 +27,8 @@ export const MODULES: Module[] = [
   marketing,
   ...WREN_APPS,
   library,
+  // One address, two apps, as Marketing.
+  clientCalendar,
   calendar,
   voice,
   account,

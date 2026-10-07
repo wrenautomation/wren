@@ -16,3 +16,15 @@ export const CALL_ACTIONS: Action[] = [
     done: said("Cancelled. They got an email."),
   },
 ];
+
+/** A client's: the same, and cancel says what its sends flag decides. */
+export const CLIENT_CALL_ACTIONS: Action[] = CALL_ACTIONS.map((a) =>
+  a.id === "calendar.cancel"
+    ? {
+        ...a,
+        confirm:
+          "Cancel the call? It comes off your calendar. If sending is on, they get an email.",
+        done: said("Cancelled."),
+      }
+    : a,
+);

@@ -17,7 +17,8 @@ const sonnerStyles: Plugin = {
   },
 };
 
-// Built into ../dist, which the Worker serves as its assets. `replay.html` is the session player.
+// Built into ../dist, which the Worker serves as its assets. `replay.html` is the session player,
+// `book.html` a client's public booking page (`src/book.ts`).
 export default defineConfig({
   root: import.meta.dirname,
   plugins: [react(), tailwindcss(), sonnerStyles],
@@ -28,6 +29,7 @@ export default defineConfig({
       input: {
         main: `${import.meta.dirname}/index.html`,
         replay: `${import.meta.dirname}/replay.html`,
+        book: `${import.meta.dirname}/book.html`,
       },
     },
   },

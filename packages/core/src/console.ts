@@ -1091,10 +1091,11 @@ export function shownSettings(c: Component, block: unknown): Record<string, unkn
 }
 
 /** A component's settings as form boxes, prices left out. */
-export function settingsForm(c: Component): HandlerField[] | null {
+export function settingsForm(c: Component, forClient = false): HandlerField[] | null {
   const schema = z.toJSONSchema(c.settings, { io: "input", unrepresentable: "any" }) as Schema;
   const properties = { ...schema.properties };
   for (const k of c.priced) delete properties[k];
+  for (const k of forClient ? c.wrenOnly : c.clientOnly) delete properties[k];
   return formOf({ ...schema, properties });
 }
 
@@ -1849,7 +1850,7 @@ export const componentRecord = (
           ? {
               // Saving goes to Wren's block (`configure` with no client): the part isn't the client's.
               wrenSettings: c.wrenSettings && !installed,
-              form: settingsForm(c),
+              form: settingsForm(c, !!client && (installed || !c.wrenSettings)),
               // The block a save writes: the client's when installed, else Wren's (`wren_settings`).
               values: shownSettings(
                 c,

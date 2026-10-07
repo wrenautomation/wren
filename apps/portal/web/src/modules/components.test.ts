@@ -42,8 +42,10 @@ describe("apps and components", () => {
       "calls",
       "marketplace",
       "marketing",
+      "calendar",
       "account",
     ]);
+    expect(ids(false, ["calendar.booking"])).toEqual(["marketplace", "calendar", "account"]);
     expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "account"]);
     expect(ids(false, ["calls.outcome"])).toEqual(["calls", "marketplace", "account"]);
     expect(ids(false, ["marketing.stats"])).toEqual(["marketplace", "marketing", "account"]);

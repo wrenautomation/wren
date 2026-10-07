@@ -315,7 +315,8 @@ export function catalogExtras(
     return { sections };
   }
   const d = got;
-  const installable = row.for === "client" && row.ready === "ready";
+  // An installed part keeps its settings form while it waits on an account: its rules still edit.
+  const installable = row.for === "client" && (row.ready === "ready" || d.installed);
   const sections: [string, ReactNode][] = [];
   const io = ports(d.in, d.out);
   if (io) sections.push(io);

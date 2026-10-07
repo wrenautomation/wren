@@ -17,6 +17,10 @@ export const CALENDAR_COMPONENTS = [
     for: "client",
     ready: true,
     wrenSettings: true,
+    // A client's calendar is the Google account it connected (Accounts), not a setting.
+    wrenOnly: ["account"],
+    // Wren's own page lists Wren's links from the lander's site.yaml.
+    clientOnly: ["contact"],
     requires: { accounts: ["google_calendar"], facts: ["google_calendar.delegated"] },
     // The booker's mail and Google's invite wait on the client's sends flag.
     liveSwitch: true,
