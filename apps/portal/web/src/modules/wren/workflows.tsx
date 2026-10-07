@@ -43,6 +43,7 @@ import {
   type Where,
 } from "./canvas.js";
 import { WREN_APPS } from "./index.js";
+import { usePlay } from "./playback.js";
 import {
   allEnds,
   type Draft,
@@ -282,6 +283,7 @@ function Canvas({
   );
   const dots = useEvents(w, !client);
   const funnel = useMemo(() => funnelOf(w, counts ?? new Map()), [w, counts]);
+  const play = usePlay(w, client);
   const open = params.get("component");
 
   const edit = useMemo((): GraphEdit | undefined => {
@@ -327,12 +329,14 @@ function Canvas({
         label={`What runs in ${w.name}`}
         name={w.id}
         edit={edit}
-        dots={draft ? [] : dots}
+        dots={draft ? [] : [...dots, ...play.dots]}
+        focus={draft ? undefined : play.focus}
         onOpen={(id) => {
           const uses = shown.nodes.find((n) => n.id === id)?.uses;
           if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
         }}
       />
+      {draft ? null : play.panel}
       {funnel.length && !draft ? (
         <Section title="Funnel" className="mt-8">
           <BarsChart rows={funnel} label={`${w.name} stages`} />
@@ -353,6 +357,7 @@ function Canvas({
               ? `Saved by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
               : `Back to the built-in wiring by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
             : "The built-in wiring."}
+          {play.button}
           {team ? (
             <Button tone="secondary" size="dense" onClick={() => setDraft(first)}>
               Edit wiring
