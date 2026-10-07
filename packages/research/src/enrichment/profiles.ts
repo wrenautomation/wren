@@ -131,33 +131,38 @@ const localHour = (now: Date, timezone: string): number =>
 /**
  * Google searches this stage may still spend today: none outside daytime or
  * once a search was stopped today, else what is left of `perDay`. `signals`
- * caps the signal collectors' share of it (`signal_checks`).
+ * caps the signal collectors' share of it (`signal_checks`). `also` is main's
+ * database when `db` is a client's: one day's budget across both.
  */
 export async function googleLeft(
   db: Queryable,
-  opts: { now: Date; timezone: string; perDay?: number; signals?: number },
+  opts: { now: Date; timezone: string; perDay?: number; signals?: number; also?: Queryable | null },
 ): Promise<number> {
   const hour = localHour(opts.now, opts.timezone);
   if (hour < GOOGLE_HOURS[0] || hour >= GOOGLE_HOURS[1]) return 0;
   const midnight = sql`(date_trunc('day', ${opts.now.toISOString()}::timestamptz at time zone ${opts.timezone}) at time zone ${opts.timezone})`;
-  const [row] = await db.execute<{ spent: number; signals: number; stopped: boolean }>(sql`
-    with today as (
-      select t, false sig from person_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
-      union all
-      select t, false from company_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
-      union all
-      select t, false from company_event_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
-      union all
-      select t, true from signal_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
-    )
-    select count(*)::int as spent, count(*) filter (where sig)::int as signals,
-      coalesce(bool_or(t ->> 'outcome' like 'stopped%'), false) as stopped
-    from today where t ->> 'step' = 'google'`);
-  if (!row || row.stopped) return 0;
-  const left = Math.max(0, (opts.perDay ?? GOOGLE_PER_DAY) - row.spent);
-  return opts.signals === undefined
-    ? left
-    : Math.min(left, Math.max(0, opts.signals - row.signals));
+  const spentOn = async (on: Queryable) => {
+    const [row] = await on.execute<{ spent: number; signals: number; stopped: boolean }>(sql`
+      with today as (
+        select t, false sig from person_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
+        union all
+        select t, false from company_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
+        union all
+        select t, false from company_event_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
+        union all
+        select t, true from signal_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
+      )
+      select count(*)::int as spent, count(*) filter (where sig)::int as signals,
+        coalesce(bool_or(t ->> 'outcome' like 'stopped%'), false) as stopped
+      from today where t ->> 'step' = 'google'`);
+    return row ?? null;
+  };
+  const rows = [await spentOn(db), ...(opts.also ? [await spentOn(opts.also)] : [])];
+  if (rows.some((r) => !r || r.stopped)) return 0;
+  const spent = rows.reduce((n, r) => n + (r?.spent ?? 0), 0);
+  const signals = rows.reduce((n, r) => n + (r?.signals ?? 0), 0);
+  const left = Math.max(0, (opts.perDay ?? GOOGLE_PER_DAY) - spent);
+  return opts.signals === undefined ? left : Math.min(left, Math.max(0, opts.signals - signals));
 }
 
 const HREF = /href\s*=\s*["']([^"']*linkedin\.com\/(?:in|company)\/[^"']*)["']/gi;

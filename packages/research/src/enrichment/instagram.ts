@@ -169,7 +169,7 @@ export interface InstagramWork {
  */
 export async function instagramWork(
   db: Queryable,
-  opts: { niche: string; limit: number },
+  opts: { niche: string | null; limit: number },
 ): Promise<InstagramWork[]> {
   const rows = await db.execute<{ id: number; link: string }>(sql`
     select id, link from (
@@ -179,7 +179,8 @@ export async function instagramWork(
       from companies c
       join own_contact_points cp on cp.company_id = c.id and cp.kind = 'instagram'
         and cp.person_id is null
-      where c.niche = ${opts.niche} and c.decline_reason is null and ${instagramDue(sql`c.id`)}
+      where (${opts.niche}::text is null or c.niche = ${opts.niche})
+        and c.decline_reason is null and ${instagramDue(sql`c.id`)}
       order by c.id, cp.pages desc, cp.id
     ) t
     order by mailable desc, id
@@ -187,23 +188,26 @@ export async function instagramWork(
   return rows.map((r) => ({ companyId: Number(r.id), link: r.link }));
 }
 
-/** Reads the bucket allows now (every niche's), and when the next one is. */
+/**
+ * Reads the bucket allows now (every niche's), and when the next one is. A client's room also
+ * counts main's reads (`also`): one bucket per source.
+ */
 export async function instagramRoom(
   db: Queryable,
   now: Date,
   bucket: Bucket = INSTAGRAM_BUCKET,
+  also: Queryable | null = null,
 ): Promise<{ room: number; nextInMs: number }> {
   // One profile finding per read; two days covers any refill.
-  const rows = await db.execute<{ at: string }>(sql`
-    select observed_at as at from findings
-    where kind = 'profile' and via = 'instagram'
-      and observed_at > ${now.toISOString()}::timestamptz - interval '2 days'
-    order by observed_at`);
-  return bucketRoom(
-    rows.map((r) => new Date(r.at).getTime()),
-    now.getTime(),
-    bucket,
-  );
+  const reads = async (on: Queryable) =>
+    (
+      await on.execute<{ at: string }>(sql`
+        select observed_at as at from findings
+        where kind = 'profile' and via = 'instagram'
+          and observed_at > ${now.toISOString()}::timestamptz - interval '2 days'`)
+    ).map((r) => new Date(r.at).getTime());
+  const at = [...(await reads(db)), ...(also ? await reads(also) : [])].sort((a, b) => a - b);
+  return bucketRoom(at, now.getTime(), bucket);
 }
 
 /**

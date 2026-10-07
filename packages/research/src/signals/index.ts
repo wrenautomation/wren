@@ -79,6 +79,8 @@ export interface SignalDeps {
   llm: LlmClient | null;
   /** The LinkedIn account to read as: `readAccount`'s answer, else null. */
   linkedin: string | null;
+  /** Main's database when `db` is a client's: its reads count against the same budgets. */
+  also?: Queryable | null;
   /** Google searches this unit may still spend. */
   googleLeft: number;
   now: Date;
@@ -200,6 +202,22 @@ export async function personOf(db: Queryable, id: number): Promise<Person | null
   };
 }
 
+/**
+ * A client's signal queue: its firms with a lead it can still mail, least recently checked
+ * first. Wren's comes from compose's next people per niche instead.
+ */
+export async function queuedFirms(db: Queryable, limit: number): Promise<number[]> {
+  const rows = await db.execute<{ id: number }>(sql`
+    select c.id from companies c
+    where c.decline_reason is null
+      and exists (select 1 from leads l where l.company_id = c.id
+        and l.status in ('imported', 'verified'))
+    order by (select max(k.checked_at) from signal_checks k where k.subject = 'c' || c.id)
+      asc nulls first, c.id
+    limit ${limit}`);
+  return rows.map((r) => Number(r.id));
+}
+
 /** A pass over these people: they, then their firms, in that order, each once. */
 export async function passOf(
   db: Queryable,
@@ -258,21 +276,24 @@ export async function dueSubjects(
   return [...new Set(rows.map((r) => r.subject))];
 }
 
-/** How many subjects the collector's bucket allows now: its checks in the last two days. */
+/**
+ * How many subjects the collector's bucket allows now: its checks in the last two days. A
+ * client's room also counts main's checks (`also`): one bucket per source.
+ */
 export async function collectorRoom(
   db: Queryable,
   c: Pick<Collector, "name" | "bucket">,
   now: Date,
+  also: Queryable | null = null,
 ): Promise<{ room: number; nextInMs: number }> {
-  const rows = await db.execute<{ at: string }>(sql`
-    select checked_at as at from signal_checks
-    where collector = ${c.name} and checked_at > ${now.toISOString()}::timestamptz - interval '2 days'
-    order by checked_at`);
-  return bucketRoom(
-    rows.map((r) => new Date(r.at).getTime()),
-    now.getTime(),
-    c.bucket,
-  );
+  const checks = async (on: Queryable) =>
+    (
+      await on.execute<{ at: string }>(sql`
+        select checked_at as at from signal_checks
+        where collector = ${c.name} and checked_at > ${now.toISOString()}::timestamptz - interval '2 days'`)
+    ).map((r) => new Date(r.at).getTime());
+  const at = [...(await checks(db)), ...(also ? await checks(also) : [])].sort((a, b) => a - b);
+  return bucketRoom(at, now.getTime(), c.bucket);
 }
 
 /** One collector's share of a call: its due subjects with room, or why none. */
@@ -293,7 +314,15 @@ export async function signalPlan(
   collectors: readonly Collector[],
   settings: SignalsSettings,
   pass: Pass,
-  opts: { now: Date; limit?: number | undefined; only?: string | null | undefined },
+  opts: {
+    now: Date;
+    limit?: number | undefined;
+    only?: string | null | undefined;
+    /** Main's database when `db` is a client's (`collectorRoom`). */
+    also?: Queryable | null;
+    /** A client's pass: metered collectors (they spend) stay Wren's. */
+    free?: boolean;
+  },
 ): Promise<CollectorPlan[]> {
   const limit = opts.limit ?? SIGNALS_LIMIT;
   const out: CollectorPlan[] = [];
@@ -306,7 +335,11 @@ export async function signalPlan(
       plan([], c.built ? "off in settings" : "not built");
       continue;
     }
-    const { room, nextInMs } = await collectorRoom(db, c, opts.now);
+    if (opts.free && c.metered) {
+      plan([], "metered: Wren's only");
+      continue;
+    }
+    const { room, nextInMs } = await collectorRoom(db, c, opts.now, opts.also ?? null);
     if (room < Math.min(limit, c.bucket.burst)) {
       plan([], `bucket low (${room}): next in ${Math.ceil(nextInMs / 1000)}s`);
       continue;
@@ -357,6 +390,7 @@ export async function signalUnit(
     now,
     timezone: opts.timezone,
     signals: SIGNALS_GOOGLE_PER_DAY,
+    also: base.also ?? null,
   });
   const deps: SignalDeps = { ...base, googleLeft: left, now };
   const { on: _on, ...own } = s;

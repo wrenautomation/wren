@@ -45,9 +45,13 @@ export const signalsSettingsSchema = z
   )
   .strict();
 
-/** Wren's signal settings; a bad block reads as the defaults. */
-export async function signalSettings(db: Queryable): Promise<SignalsSettings> {
-  const blocks = await settingsFor(db, null);
-  const parsed = signalsSettingsSchema.safeParse(blocks[SIGNALS_COMPONENT] ?? {});
+/** A `research.signals` block as settings; a bad block reads as the defaults. */
+export const signalSettingsOf = (block: unknown): SignalsSettings => {
+  const parsed = signalsSettingsSchema.safeParse(block ?? {});
   return (parsed.success ? parsed.data : signalsSettingsSchema.parse({})) as SignalsSettings;
+};
+
+/** Wren's signal settings (`wren_settings`). A client's are its block in `clients.products`. */
+export async function signalSettings(db: Queryable): Promise<SignalsSettings> {
+  return signalSettingsOf((await settingsFor(db, null))[SIGNALS_COMPONENT]);
 }

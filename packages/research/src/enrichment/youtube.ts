@@ -343,12 +343,12 @@ export interface YouTubeWork {
 }
 
 /**
- * Due firms in the niche with a YouTube link of their own (the one on most of their pages), a
- * lead we can still mail first.
+ * Due firms in the niche (null: every niche, a client's whole pool) with a YouTube link of their
+ * own (the one on most of their pages), a lead we can still mail first.
  */
 export async function youtubeWork(
   db: Queryable,
-  opts: { niche: string; limit: number },
+  opts: { niche: string | null; limit: number },
 ): Promise<YouTubeWork[]> {
   const rows = await db.execute<{ id: number; link: string }>(sql`
     select id, link from (
@@ -358,7 +358,8 @@ export async function youtubeWork(
       from companies c
       join own_contact_points cp on cp.company_id = c.id and cp.kind = 'youtube'
         and cp.person_id is null
-      where c.niche = ${opts.niche} and c.decline_reason is null and ${youtubeDue(sql`c.id`)}
+      where (${opts.niche}::text is null or c.niche = ${opts.niche})
+        and c.decline_reason is null and ${youtubeDue(sql`c.id`)}
       order by c.id, cp.pages desc, cp.id
     ) t
     order by mailable desc, id
@@ -366,23 +367,26 @@ export async function youtubeWork(
   return rows.map((r) => ({ companyId: Number(r.id), link: r.link }));
 }
 
-/** Reads the bucket allows now (every niche's), and when the next one is. */
+/**
+ * Reads the bucket allows now (every niche's), and when the next one is. A client's room also
+ * counts main's reads (`also`): one bucket per source.
+ */
 export async function youtubeRoom(
   db: Queryable,
   now: Date,
   bucket: Bucket = YOUTUBE_BUCKET,
+  also: Queryable | null = null,
 ): Promise<{ room: number; nextInMs: number }> {
   // One profile finding per read; two days covers any refill.
-  const rows = await db.execute<{ at: string }>(sql`
-    select observed_at as at from findings
-    where kind = 'profile' and via = 'youtube'
-      and observed_at > ${now.toISOString()}::timestamptz - interval '2 days'
-    order by observed_at`);
-  return bucketRoom(
-    rows.map((r) => new Date(r.at).getTime()),
-    now.getTime(),
-    bucket,
-  );
+  const reads = async (on: Queryable) =>
+    (
+      await on.execute<{ at: string }>(sql`
+        select observed_at as at from findings
+        where kind = 'profile' and via = 'youtube'
+          and observed_at > ${now.toISOString()}::timestamptz - interval '2 days'`)
+    ).map((r) => new Date(r.at).getTime());
+  const at = [...(await reads(db)), ...(also ? await reads(also) : [])].sort((a, b) => a - b);
+  return bucketRoom(at, now.getTime(), bucket);
 }
 
 export type YouTubeOutcome = "read" | "missing" | "quota" | "error";

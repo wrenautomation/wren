@@ -19,12 +19,14 @@ import {
   openRun,
   runScreen,
 } from "@wren/core";
+import { findClient } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { SOCIAL, socialSettingsSchema } from "../components.js";
 import {
   AD_LIBRARY_COMMAND,
   type AdLibraryStats,
@@ -182,10 +184,12 @@ import {
   planStats,
   readAccount,
   SIGNALS_COMMAND,
+  SIGNALS_COMPONENT,
   SIGNALS_HELD,
   type SignalsStats,
   signalPlan,
   signalSettings,
+  signalSettingsOf,
   signalUnit,
 } from "../signals/collectors.js";
 import {
@@ -319,6 +323,34 @@ export function keyScope(
   };
 }
 const keyShard = (ctx: restate.ObjectContext): string | undefined => ctx.key.split("@")[1];
+
+/**
+ * The client a key names, with its `component` block, or null for Wren's keys. Refuses when the
+ * client is gone, is the demo, or doesn't have the part installed.
+ */
+export async function clientBlock(
+  main: Queryable,
+  key: string,
+  component: string,
+): Promise<{ client: string; block: unknown } | null> {
+  const owner = clientOfKey(key.split("@")[0] as string);
+  if (!owner) return null;
+  const client = await findClient(main, owner.client);
+  if (!client || client.demo) throw new restate.TerminalError(`no such client: ${owner.client}`);
+  const block = (client.products as Record<string, unknown> | null)?.[component];
+  if (block === undefined) throw new restate.TerminalError(`${component} is not installed`);
+  return { client: owner.client, block };
+}
+
+/** A client key's social block says this network is on; Wren's keys always read. */
+async function socialOn(main: Queryable, key: string, network: "youtube" | "instagram") {
+  const got = await clientBlock(main, key, SOCIAL);
+  if (!got) return null;
+  const parsed = socialSettingsSchema.safeParse(got.block);
+  if (!parsed.success) throw new restate.TerminalError(`${SOCIAL} settings do not parse`);
+  if (!parsed.data[network]) throw new restate.TerminalError(`${network} is off for ${got.client}`);
+  return got.client;
+}
 
 export interface CrawlInput {
   limit?: number;
@@ -983,10 +1015,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       signals: exclusiveHandler(
         { input: SIGNALS },
         async (ctx: restate.ObjectContext, input: SignalsInput): Promise<SignalsStats> => {
-          // The findings land on main: Wren's niches only.
-          if (clientOfKey(ctx.key.split("@")[0] as string))
-            throw new restate.TerminalError("signals run on Wren's niches only");
+          // A client's key reads its own block and writes its own database; its buckets and
+          // Google's day count main's reads too. Metered collectors and LinkedIn stay Wren's.
+          const own = await ctx.run("client", () =>
+            clientBlock(deps.db, ctx.key, SIGNALS_COMPONENT),
+          );
           const { db, niche } = scope(ctx);
+          const also = own ? deps.db : null;
           const { personIds, companyIds, ...rest } = input;
           const runId = await open(ctx, SIGNALS_COMMAND, {
             ...rest,
@@ -998,9 +1033,15 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             signalPlan(
               db,
               COLLECTORS,
-              await signalSettings(db),
+              own ? signalSettingsOf(own.block) : await signalSettings(db),
               await passOf(db, niche, personIds, companyIds ?? []),
-              { now, limit: input.limit ?? undefined, only: input.collector ?? null },
+              {
+                now,
+                limit: input.limit ?? undefined,
+                only: input.collector ?? null,
+                also,
+                free: own !== null,
+              },
             ),
           );
           const base: BaseDeps = {
@@ -1011,7 +1052,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             pages: deps.pages ?? null,
             youtube: deps.youtube ?? null,
             llm: deps.llm,
-            linkedin: readAccount(deps.linkedin),
+            linkedin: own ? null : readAccount(deps.linkedin),
+            also,
           };
           const stats = emptySignalsStats();
           // A unit's hold subject is `<collector>:<subject>`.
@@ -1047,18 +1089,23 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       youtube: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<YouTubeStats> => {
-          // The findings land on main: Wren's niches only.
-          if (clientOfKey(ctx.key.split("@")[0] as string))
-            throw new restate.TerminalError("YouTube reads run on Wren's niches only");
+          // A client's key reads its own firms into its own database, when its block has it on.
+          const client = await ctx.run("client", () => socialOn(deps.db, ctx.key, "youtube"));
           const get = deps.youtube;
           if (!get)
             throw new restate.TerminalError("no YouTube reader (WREN_GOOGLE_SERVICE_ACCOUNT)");
           const { db, niche } = scope(ctx);
-          if (niche === null) throw new restate.TerminalError("YouTube reads need a niche key");
+          if (niche === null && client === null)
+            throw new restate.TerminalError("YouTube reads need a niche key");
           const limit = input?.limit ?? 20;
           const runId = await open(ctx, YOUTUBE_COMMAND, { limit, niche });
           const plan = await ctx.run("select", async () => {
-            const { room, nextInMs } = await youtubeRoom(db, new Date());
+            const { room, nextInMs } = await youtubeRoom(
+              db,
+              new Date(),
+              undefined,
+              client === null ? null : deps.db,
+            );
             if (room < Math.min(limit, YOUTUBE_MIN_BATCH))
               return {
                 why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,
@@ -1098,17 +1145,22 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       instagram: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<InstagramStats> => {
-          // The findings land on main: Wren's niches only.
-          if (clientOfKey(ctx.key.split("@")[0] as string))
-            throw new restate.TerminalError("Instagram reads run on Wren's niches only");
+          // A client's key reads its own firms into its own database, when its block has it on.
+          const client = await ctx.run("client", () => socialOn(deps.db, ctx.key, "instagram"));
           const sites = deps.instagram;
           if (!sites) throw new restate.TerminalError("no sites client for Instagram");
           const { db, niche } = scope(ctx);
-          if (niche === null) throw new restate.TerminalError("Instagram reads need a niche key");
+          if (niche === null && client === null)
+            throw new restate.TerminalError("Instagram reads need a niche key");
           const limit = input?.limit ?? 30;
           const runId = await open(ctx, INSTAGRAM_COMMAND, { limit, niche });
           const plan = await ctx.run("select", async () => {
-            const { room, nextInMs } = await instagramRoom(db, new Date());
+            const { room, nextInMs } = await instagramRoom(
+              db,
+              new Date(),
+              undefined,
+              client === null ? null : deps.db,
+            );
             if (room < Math.min(limit, INSTAGRAM_MIN_BATCH))
               return {
                 why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,

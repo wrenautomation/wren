@@ -336,3 +336,60 @@ export function dossierText(d: Dossier): string {
   }
   return out.join("\n");
 }
+
+/** One fact as a page shows it: what, a short value, its source, how, and when. */
+export interface BriefFact {
+  what: string;
+  text: string;
+  source: string | null;
+  via: string;
+  seen: string;
+}
+
+/** A dossier as a page shows it: the firm's facts, its newest posts, its people. JSON-safe. */
+export interface DossierBrief {
+  facts: BriefFact[];
+  posts: {
+    site: string;
+    kind: string;
+    text: string;
+    url: string | null;
+    published: string | null;
+  }[];
+  people: {
+    name: string;
+    title: string | null;
+    linkedinUrl: string | null;
+    origin: string;
+    facts: BriefFact[];
+  }[];
+}
+
+const briefFact = (f: Fact): BriefFact => ({
+  what: f.what.replaceAll("_", " "),
+  text: short(f.value),
+  source: f.source,
+  via: f.via,
+  seen: f.seenAt.toISOString().slice(0, 10),
+});
+
+/** The same facts `dossierText` prints, shaped for the firm page. */
+export function dossierBrief(d: Dossier): DossierBrief {
+  return {
+    facts: d.facts.filter((f) => f.what !== "post").map(briefFact),
+    posts: recentPosts(d).map((p) => ({
+      site: p.site,
+      kind: p.kind,
+      text: short(p.text.replace(/\s+/g, " ").trim(), 160),
+      url: p.url,
+      published: p.publishedAt?.toISOString().slice(0, 10) ?? null,
+    })),
+    people: d.people.map((p) => ({
+      name: p.name,
+      title: p.title,
+      linkedinUrl: p.linkedinUrl,
+      origin: p.origin,
+      facts: p.facts.map(briefFact),
+    })),
+  };
+}

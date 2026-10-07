@@ -13,6 +13,7 @@ import { ClientLook } from "../account/Look.js";
 import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
+import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
 import {
   CANDIDATE_ACTIONS,
@@ -884,6 +885,9 @@ const sheetPages = (base: string): Module["pages"] => [
     template: "list",
     record: "email.firm",
     empty: "Firms show here once a source finds them.",
+    extras: (_, { client, row }) => ({
+      sections: [["Dossier", createElement(FirmDossier, { client, id: String(row.id) })]],
+    }),
   },
   {
     id: "stalls",

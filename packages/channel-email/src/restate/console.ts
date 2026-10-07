@@ -12,6 +12,7 @@
  * drop through `Disposition/<client>/replies`).
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { WREN } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -37,7 +38,8 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
-import { LEAD_SHEET } from "@wren/research/components";
+import { DOSSIER, LEAD_SHEET } from "@wren/research/components";
+import { dossierBrief, dossiers } from "@wren/research/dossier";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_ROUTES } from "../console-routes.js";
@@ -344,6 +346,32 @@ export function emailConsoleApi({
     recordsGet: (req: PortalRequest & GetAsk) => sheet(req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk) => sheet(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => sheet(req, (r) => r.stats(req)),
+    /**
+     * One firm's dossier, read only: Wren's from main for the team, a client's from its own
+     * database once `research.dossier` is installed, only for a firm this login may read.
+     */
+    dossier: async (req: PortalRequest & { id?: unknown }) => {
+      const id = Number(req.id);
+      if (!Number.isSafeInteger(id) || id <= 0) throw new PortalRefusal("no such firm", 404);
+      if (!req.client || req.client === WREN) {
+        team(req);
+        const [d] = await snapshot(db, (tx) => dossiers(tx, [id]));
+        if (!d) throw new PortalRefusal("no such firm", 404);
+        return dossierBrief(d);
+      }
+      if (!clients) throw new PortalRefusal("not found", 404);
+      const client = await pickClient(clients.main, req);
+      if (!client.products || !(DOSSIER in client.products))
+        throw new PortalRefusal(`${DOSSIER} is not installed`, 404);
+      const { db: on, fence } = await sheetOf(req);
+      return snapshot(on, async (tx) => {
+        // The firm row first: a fence that hides it hides its dossier too.
+        await serveRecords(SHEET_RECORDS, tx, undefined, fence).get({ record: firmRecord.id, id });
+        const [d] = await dossiers(tx, [id]);
+        if (!d) throw new PortalRefusal("no such firm", 404);
+        return dossierBrief(d);
+      });
+    },
     /** Warm replies waiting on William: who, their words, the proposed time and zone, the draft. */
     answers: async (req: PortalRequest) => {
       team(req);
@@ -479,6 +507,11 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
       recordsList: serviceHandler(
         { input: z.looseObject(PORTAL_FIELDS) },
         (_: restate.Context, req: PortalRequest & ListAsk) => answer(() => api.recordsList(req)),
+      ),
+      dossier: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+          answer(() => api.dossier(req)),
       ),
       recordsGet: serviceHandler(
         { input: z.looseObject(PORTAL_FIELDS) },

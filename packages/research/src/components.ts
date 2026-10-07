@@ -42,6 +42,17 @@ export const leadSheetSettingsSchema = z
 export type LeadSheetSettings = z.infer<typeof leadSheetSettingsSchema>;
 export const LEAD_SHEET = "research.lead_sheet";
 
+/** A client's social reads: which networks its pool reads. `{}` reads both. */
+export const socialSettingsSchema = z
+  .object({
+    youtube: z.boolean().default(true).meta({ title: "Read YouTube" }),
+    instagram: z.boolean().default(true).meta({ title: "Read Instagram" }),
+  })
+  .strict();
+export type SocialSettings = z.infer<typeof socialSettingsSchema>;
+export const SOCIAL = "research.social";
+export const DOSSIER = "research.dossier";
+
 const LEADS: Port = {
   id: "leads",
   label: "firms with a verified lead",
@@ -235,7 +246,7 @@ export const RESEARCH_COMPONENTS = [
     },
   }),
   defineComponent({
-    id: "research.social",
+    id: SOCIAL,
     stage: "find",
     channels: ["social"],
     name: "Social reads",
@@ -243,9 +254,12 @@ export const RESEARCH_COMPONENTS = [
       "Reads the public channel a firm links from its site and keeps its recent posts, so a first line can mention one.",
     icon: "search",
     for: "client",
-    ready: false,
-    missing: ["Runs on Wren's niches; a client's pool doesn't read networks yet"],
-    requires: { components: ["research.crawl"] },
+    ready: true,
+    missing: [],
+    settings: socialSettingsSchema,
+    // Rides the lead sheet's pool (`PoolScheduler/<client>/all`), which reads this block each
+    // pass: no loop of its own, so uninstalling never stops the pool.
+    requires: { components: [LEAD_SHEET] },
     in: [{ id: "firms", label: "firms with a channel link", kind: "firm" }],
     out: [{ id: "posts", label: "firms with recent posts", kind: "firm" }],
     hypothesis: {
@@ -254,7 +268,7 @@ export const RESEARCH_COMPONENTS = [
         {
           is: "change",
           says: "Which networks, per niche: YouTube first, Instagram and the Ad Library next.",
-          built: null,
+          built: "settings: youtube, instagram",
         },
         { is: "change", says: "Firms read a day.", built: "PoolScheduler limits.youtube" },
         {
@@ -280,12 +294,13 @@ export const RESEARCH_COMPONENTS = [
       "Reads dated, linked facts about each firm and person (news, hiring, posts, talks), so a message can say why now.",
     icon: "search",
     for: "client",
-    ready: false,
-    missing: ["Runs on Wren's niches only, not per client"],
+    ready: true,
+    missing: [],
     settings: signalsSettingsSchema,
-    // The collectors read Wren's block: saved in Wren's workspace.
+    // Wren's niches read Wren's block (`wren_settings`); a client's pool reads its own. Metered
+    // collectors (they spend) stay Wren's. Rides the pool, as social reads do.
     wrenSettings: true,
-    requires: { components: ["research.crawl"] },
+    requires: { components: [LEAD_SHEET] },
     in: [{ id: "firms", label: "firms in the queue", kind: "firm" }],
     out: [{ id: "signals", label: "firms with a fresh signal", kind: "firm" }],
     hypothesis: {
@@ -306,15 +321,16 @@ export const RESEARCH_COMPONENTS = [
     },
   }),
   defineComponent({
-    id: "research.dossier",
+    id: DOSSIER,
     stage: "find",
     name: "Firm dossier",
     blurb: "A sourced brief on one firm before a call.",
     icon: "flag",
     for: "client",
-    ready: false,
-    missing: ["A command for Wren's team; no client sees a dossier yet"],
-    effects: ["spends"],
+    ready: true,
+    missing: [],
+    // Read only: the firm page shows what the sheet already holds, with sources.
+    requires: { components: [LEAD_SHEET] },
     in: [{ id: "firms", label: "firms", kind: "firm" }],
     hypothesis: {
       from: "Wren's briefs before calls, 2026-10",
@@ -322,7 +338,7 @@ export const RESEARCH_COMPONENTS = [
         {
           is: "change",
           says: "Clients want one on each of their own prospects before a call.",
-          built: null,
+          built: "the firm page's Dossier",
         },
         {
           is: "change",

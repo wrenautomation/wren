@@ -13,6 +13,8 @@ export const EMAIL_CONSOLE_ROUTES = {
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",
+  // A firm's dossier on its page: Wren's, or a client's with research.dossier.
+  dossier: "read",
   // Warm replies and inboxes.
   approve: "act",
   drop: "act",
@@ -42,9 +44,10 @@ export const EMAIL_CONSOLE_APPS = {
   recordsGet: null,
   recordsExport: null,
   recordsStats: null,
+  dossier: null,
 } as const satisfies RouteApps<typeof EMAIL_CONSOLE_ROUTES>;
 export type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const EMAIL_CONSOLE_WRITES: readonly EmailConsoleRoute[] = (
   Object.keys(EMAIL_CONSOLE_ROUTES) as EmailConsoleRoute[]
-).filter((r) => r !== "answers" && !r.startsWith("records"));
+).filter((r) => EMAIL_CONSOLE_ROUTES[r] !== "read");

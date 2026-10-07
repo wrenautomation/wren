@@ -40,6 +40,9 @@
  * O1): the same chain on `Discovery`/`Enrichment` keyed alike, in the client's database,
  * sized by its `research.lead_sheet` block. Each pass reads the block from main; a client
  * gone, the demo, or the component uninstalled stops the loop. No profiles, no re-checks.
+ * With `research.social` installed it also reads YouTube and Instagram for the client's firms,
+ * and with `research.signals` it runs the free collectors on them
+ * (designs/2026-10-07-per-client-runs.md).
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -59,6 +62,9 @@ import {
   LEAD_SHEET,
   type LeadSheetSettings,
   leadSheetSettingsSchema,
+  SOCIAL,
+  type SocialSettings,
+  socialSettingsSchema,
 } from "@wren/research/components";
 import {
   INSTAGRAM_MIN_BATCH,
@@ -68,7 +74,12 @@ import {
   youtubeRoom,
 } from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
-import { anyCollectorBuilt, SIGNALS_LIMIT } from "@wren/research/signals";
+import {
+  anyCollectorBuilt,
+  queuedFirms,
+  SIGNALS_COMPONENT,
+  SIGNALS_LIMIT,
+} from "@wren/research/signals";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
 import type { RecontactPolicy } from "../recontact.js";
@@ -273,8 +284,18 @@ export interface PoolSchedulerDeps {
   clientDb?: ((client: string) => Db) | null;
 }
 
-/** One client's pool this pass, or why it stops. */
-type ClientPlan = { kind: "gone"; why: string } | { kind: "work"; settings: LeadSheetSettings };
+/** Firms a client's signals stage considers a pass; the collectors take the due ones. */
+const CLIENT_SIGNAL_QUEUE = 200;
+
+/** One client's pool this pass, or why it stops. Social and signals: null when not installed. */
+type ClientPlan =
+  | { kind: "gone"; why: string }
+  | {
+      kind: "work";
+      settings: LeadSheetSettings;
+      social: SocialSettings | null;
+      signals: boolean;
+    };
 
 async function clientPlan(main: Db, id: string): Promise<ClientPlan> {
   const client = await findClient(main, id);
@@ -284,7 +305,15 @@ async function clientPlan(main: Db, id: string): Promise<ClientPlan> {
   if (block === undefined) return { kind: "gone", why: "the lead sheet is not installed" };
   const parsed = leadSheetSettingsSchema.safeParse(block);
   if (!parsed.success) return { kind: "gone", why: "the lead sheet settings do not parse" };
-  return { kind: "work", settings: parsed.data };
+  const products = client.products as Record<string, unknown>;
+  // A social block that doesn't parse reads nothing rather than stopping the pool.
+  const social = SOCIAL in products ? socialSettingsSchema.safeParse(products[SOCIAL]) : null;
+  return {
+    kind: "work",
+    settings: parsed.data,
+    social: social?.success ? social.data : null,
+    signals: SIGNALS_COMPONENT in products,
+  };
 }
 
 /** Mail-server checks the client's walks asked for in the last 24 hours; main's shared verdicts cost none. */
@@ -396,6 +425,8 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     // Wren's key is its niche; a client's is `<client>/<niche>`, "all" its whole pool.
     const niche = owner ? (owner.unit === "all" ? null : owner.unit) : ctx.key;
     let sheet: LeadSheetSettings | null = null;
+    let social: SocialSettings | null = null;
+    let signals = false;
     let db = deps.db;
     if (client !== null) {
       if (!deps.clientDb) throw new restate.TerminalError("no client databases here");
@@ -419,6 +450,8 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         return outcome;
       }
       sheet = plan.settings;
+      social = plan.social;
+      signals = plan.signals;
       db = deps.clientDb(client);
     }
     const limits: StageLimits = { ...base, ...definedOnly(sheet?.perPass ?? {}) };
@@ -432,15 +465,17 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     }
     const settings = await loopSettings<PoolSettings>(ctx);
     const wren = client === null && niche !== null;
+    // A client's buckets also count main's reads (`also`).
+    const also = client === null ? null : deps.db;
     const runnable = stagesToRun(settings, deps.modelStages, deps.freeVerifier, {
       profiles: client === null && deps.profiles !== undefined,
-      youtube: wren && (deps.youtube ?? false),
-      instagram: wren && (deps.instagram ?? false),
+      youtube: (wren || (social?.youtube ?? false)) && (deps.youtube ?? false),
+      instagram: (wren || (social?.instagram ?? false)) && (deps.instagram ?? false),
       adLibrary: wren && (deps.adLibrary ?? false),
       fbGroups: wren && (deps.fbGroups ?? false),
       exaSearch: wren && (deps.exaSearch ?? false),
       youtubeSearch: wren && (deps.youtubeSearch ?? false),
-      signals: wren && deps.signals !== undefined && anyCollectorBuilt(),
+      signals: (wren || signals) && deps.signals !== undefined && anyCollectorBuilt(),
     });
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
@@ -495,14 +530,16 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         // A busy loop passes every minute and the bucket refills a firm at a time: one step
         // here instead of a whole Enrichment call while it does.
         const n = limits.youtube;
-        const { room } = await ctx.run("youtube room", () => youtubeRoom(deps.db, now));
+        const { room } = await ctx.run("youtube room", () => youtubeRoom(db, now, undefined, also));
         if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
         return enrichment.youtube({ limit: n });
       },
       instagram: async () => {
         // As youtube: skip the Enrichment call while the bucket is low.
         const n = limits.instagram;
-        const { room } = await ctx.run("instagram room", () => instagramRoom(deps.db, now));
+        const { room } = await ctx.run("instagram room", () =>
+          instagramRoom(db, now, undefined, also),
+        );
         if (room < Math.min(n, INSTAGRAM_MIN_BATCH)) return { read: 0, missing: 0, room };
         return enrichment.instagram({ limit: n });
       },
@@ -524,6 +561,18 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       },
       signals: async () => {
         const p = deps.signals;
+        if (client !== null) {
+          // A client's queue: its own firms with a lead, least recently checked first.
+          const companyIds = await ctx.run("signal queue", () =>
+            queuedFirms(db, CLIENT_SIGNAL_QUEUE),
+          );
+          return enrichment.signals({
+            personIds: [],
+            companyIds,
+            limit: limits.signals,
+            timezone: deps.policy.timezone,
+          });
+        }
         if (!p || niche === null) throw new restate.TerminalError("signals stage is off");
         const personIds = await ctx.run("signal queue", async () =>
           nextToEnroll(deps.db, {
