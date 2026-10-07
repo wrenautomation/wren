@@ -19,6 +19,10 @@ export const STRESS = {
   gapS: 0.6,
   /** A pick stays this long after its word ends (behind the speaker, and its matte window). */
   holdS: 1.2,
+  /** The same word (case folded, punctuation stripped) kept at most this many times a video, */
+  repeatMax: 2,
+  /** and never within this many seconds of its last pick. */
+  repeatGapS: 180,
   /** Words sent to the model per ask. */
   chunk: 300,
 } as const;
@@ -45,10 +49,15 @@ export function clash(words: readonly Word[], beats: readonly number[], i: numbe
   return null;
 }
 
+/** "AI," and "ai" are the same word. */
+const folded = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+const sameWord = (a: Word, b: Word) => folded(a.w) !== "" && folded(a.w) === folded(b.w);
+
 /**
  * Keep picks that follow the rule, earliest-listed first (the model lists the strongest first):
  * one per beat, no two on screen at once, `gapS` apart, and with `perMinute`, at most that many in
- * any minute. Answers the kept indexes in time order.
+ * any minute; the same word at most `repeatMax` times, `repeatGapS` apart. Answers the kept
+ * indexes in time order.
  */
 export function spaceStress(
   words: readonly Word[],
@@ -62,6 +71,10 @@ export function spaceStress(
     const w = words[i];
     if (!w || kept.includes(i)) continue;
     if (kept.some((k) => clash(words, beats, k, i))) continue;
+    // A stronger pick of the same word came first: this one is a third, or too close to it.
+    const same = kept.filter((k) => sameWord(words[k] as Word, w));
+    if (same.length >= STRESS.repeatMax) continue;
+    if (same.some((k) => Math.abs((words[k] as Word).s - w.s) < STRESS.repeatGapS)) continue;
     const minute = Math.floor(w.s / 60);
     if (o.perMinute && (perMin.get(minute) ?? 0) >= o.perMinute) continue;
     perMin.set(minute, (perMin.get(minute) ?? 0) + 1);

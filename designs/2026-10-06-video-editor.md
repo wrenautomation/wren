@@ -467,3 +467,8 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   channel-youtube names the track by its language ("English"). Video 3 left as uploaded: its srt
   built from the prod edit (441 cues, cut 790.7 s vs 790.8 s file) and uploaded once through the
   desk; autobrowse's YouTube reads now take `captions` to read it back (English, standard, serving).
+- 2026-10-07: coordinator: the same word (case folded, punctuation stripped) is kept at most twice a
+  video and never within 3 minutes of its other pick (`STRESS.repeatMax`/`repeatGapS` in
+  `spaceStress`). Picks are kept strongest first, so trimming keeps the stronger; across asks
+  "stronger" is each ask's own order, earlier asks first. It binds the model's picks only: a word he
+  stresses by hand (`--add`, the page) isn't refused.

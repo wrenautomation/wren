@@ -105,6 +105,22 @@ describe("proposeStress", () => {
     expect(r).toEqual({ stress: [102, 112], asked: 1, offered: 3 });
   });
 
+  it("keeps a word at most twice a video, 3 minutes apart, the stronger pick first", () => {
+    // One single-word sentence every 30 s: "AI.", with "Leverage." at 90, 210 and 330 s.
+    const at = (w: string, s: number): Word => ({ w, s, e: s + 0.3 });
+    const words = Array.from({ length: 12 }, (_, k) =>
+      at(k % 4 === 3 ? "Leverage." : "AI.", k * 30),
+    );
+    words[5] = at("ai,", 150);
+    // Strongest first: 6 (180 s) stays; 8 (240 s) is a minute from it; 0 is 180 s away, kept;
+    // 10 would be a third.
+    expect(spaceStress(words, [6, 8, 0, 10])).toEqual([0, 6]);
+    // "ai," at 150 s counts as "AI.": under 3 minutes from 0, dropped.
+    expect(spaceStress(words, [0, 5])).toEqual([0]);
+    // Another word is its own count.
+    expect(spaceStress(words, [0, 6, 3, 11])).toEqual([0, 3, 6, 11]);
+  });
+
   it("falls back to the paid model once the free keys are spent, and says who answered", async () => {
     const calls: string[] = [];
     const model = (name: string, fail?: string) => ({
