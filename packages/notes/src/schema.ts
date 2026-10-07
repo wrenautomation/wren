@@ -13,6 +13,7 @@ import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   customType,
   foreignKey,
   index,
@@ -278,14 +279,43 @@ export const noteComments = pgTable(
 );
 export type NoteComment = typeof noteComments.$inferSelect;
 
-/** Someone `@`ed in a note's body or a comment: their Mentions, until they open it. */
+/**
+ * An Inbox note (designs/2026-10-07-inbox-reply.md): the team's words on a thread (`dm:5`) or on a
+ * person, never sent. Shown in the conversation, styled apart from messages.
+ */
+export const inboxNotes = pgTable(
+  "inbox_notes",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** The thread's typed id it was written on. */
+    thread: varchar("thread", { length: 80 }).notNull(),
+    /** The person it is about, so it shows on their other threads too; null with none. */
+    personId: integer("person_id"),
+    body: text("body").notNull(),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_inbox_notes" }),
+    index("ix_inbox_notes_thread").on(t.thread, t.at),
+    index("ix_inbox_notes_person").on(t.personId),
+  ],
+);
+export type InboxNote = typeof inboxNotes.$inferSelect;
+
+/**
+ * Someone `@`ed in a note's body, a comment or an Inbox note: their Mentions, until they open it.
+ * Exactly one of `note_id` and `inbox_note_id` is set.
+ */
 export const noteMentions = pgTable(
   "note_mentions",
   {
     id: uuid("id").defaultRandom().notNull(),
-    noteId: uuid("note_id").notNull(),
+    noteId: uuid("note_id"),
     /** The comment it's in; null for the body. */
     commentId: uuid("comment_id"),
+    /** The Inbox note it's in; null for a note's. */
+    inboxNoteId: uuid("inbox_note_id"),
     who: varchar("who", { length: 200 }).notNull(),
     by: varchar("by", { length: 200 }).notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
@@ -303,9 +333,16 @@ export const noteMentions = pgTable(
       foreignColumns: [noteComments.id],
       name: "fk_note_mentions_comment",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.inboxNoteId],
+      foreignColumns: [inboxNotes.id],
+      name: "fk_note_mentions_inbox_note",
+    }).onDelete("cascade"),
     index("ix_note_mentions_who").on(t.who, t.at),
     index("ix_note_mentions_note").on(t.noteId),
     index("ix_note_mentions_comment").on(t.commentId),
+    index("ix_note_mentions_inbox_note").on(t.inboxNoteId),
+    check("ck_note_mentions_place", sql`num_nonnulls(${t.noteId}, ${t.inboxNoteId}) = 1`),
   ],
 );
 export type NoteMention = typeof noteMentions.$inferSelect;

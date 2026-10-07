@@ -452,3 +452,68 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
     d.scheduled_for scheduled, d.created_at created
   from content_drafts d
   where d.status <> 'published'`);
+
+// ---- Inbox: who has a thread, its status, replies that wait on a yes (2026-10-07-inbox-reply.md) ----
+
+export const INBOX_STATUSES = ["open", "waiting", "closed"] as const;
+export type InboxStatus = (typeof INBOX_STATUSES)[number];
+
+/**
+ * One Inbox thread's team state, by its typed id (`dm:5`, `text:8`). No row: its status follows
+ * the channel's own state. A message in after `status_at` opens it again.
+ */
+export const inboxThreads = pgTable(
+  "inbox_threads",
+  {
+    thread: varchar("thread", { length: 80 }).notNull(),
+    assignee: varchar("assignee", { length: 200 }),
+    status: varchar("status", { length: 8, enum: INBOX_STATUSES }).notNull(),
+    statusAt: timestamp("status_at", { withTimezone: true }).notNull().defaultNow(),
+    snoozeUntil: timestamp("snooze_until", { withTimezone: true }),
+    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.thread], name: "pk_inbox_threads" }),
+    index("ix_inbox_threads_assignee").on(t.assignee),
+    oneOf("ck_inbox_threads_status", t.status, INBOX_STATUSES),
+  ],
+);
+export type InboxThread = typeof inboxThreads.$inferSelect;
+
+export const INBOX_CHANNELS = ["email", "text", "dm", "comment"] as const;
+export type InboxChannel = (typeof INBOX_CHANNELS)[number];
+export const INBOX_REPLY_STATES = ["waiting", "sent", "dropped", "failed"] as const;
+export type InboxReplyState = (typeof INBOX_REPLY_STATES)[number];
+
+/**
+ * A reply from the Inbox that waits on a yes (Ask to send): To approve lists it as `reply:<id>`,
+ * and Approve sends it on the channel's own path. `target` is that path's id: the reach contact,
+ * the text contact, the comment, the email's call invite or reply.
+ */
+export const inboxReplies = pgTable(
+  "inbox_replies",
+  {
+    id: serial("id").notNull(),
+    thread: varchar("thread", { length: 80 }).notNull(),
+    channel: varchar("channel", { length: 8, enum: INBOX_CHANNELS }).notNull(),
+    target: varchar("target", { length: 80 }).notNull(),
+    who: text("who"),
+    body: text("body").notNull(),
+    why: text("why"),
+    state: varchar("state", { length: 8, enum: INBOX_REPLY_STATES }).notNull().default("waiting"),
+    detail: text("detail"),
+    askedBy: varchar("asked_by", { length: 200 }).notNull(),
+    askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
+    decidedBy: varchar("decided_by", { length: 200 }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_inbox_replies" }),
+    index("ix_inbox_replies_state").on(t.state, t.askedAt),
+    index("ix_inbox_replies_thread").on(t.thread),
+    oneOf("ck_inbox_replies_channel", t.channel, INBOX_CHANNELS),
+    oneOf("ck_inbox_replies_state", t.state, INBOX_REPLY_STATES),
+  ],
+);
+export type InboxReply = typeof inboxReplies.$inferSelect;
