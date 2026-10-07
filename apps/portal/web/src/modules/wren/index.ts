@@ -18,6 +18,7 @@ import {
 } from "./experiments.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
+import { Infra } from "./infra.js";
 import { REPLY_ACTIONS } from "./replies.js";
 import { Workflows } from "./workflows.js";
 
@@ -552,6 +553,7 @@ export const loops: Module = {
       empty: { failing: "Nothing is failing.", stopped: "Every loop is running." },
       actions: LOOP_ACTIONS,
     },
+    { id: "infra", label: "Infra", Page: Infra },
   ],
 };
 
