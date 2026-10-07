@@ -162,3 +162,15 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   Rotate is a new hash and seal; the old URL stops at once. "Send a test lead" posts made-up
   data through the door's own reading (`hookEvent`, `leadOf`), shows what it read, and walks
   dry.
+- 2026-10-07: Step 5, the four triggers, built; none says "In development" now. Form is a door
+  like Webhook: any form (about its email, by its field map) or a known form's preset. Reply and
+  Booking are fired: each channel's ingest hands the event to the private `Spine/fire`, which
+  sends it to every live node that hears it. A reply is about its thread (`reply:sms:<contact>`,
+  as the channels' own touch steps say it), so a lead enters a node once and a STOP never fires.
+  Booking hears booked or moved, cancelled, or either; cal.com's payload has no event type, so
+  it can't filter by calendar. Schedule runs on `SpineClock`, a virtual object per node: it keeps
+  its next slot and sends itself a delayed tick; a tick for a slot it no longer keeps is stale,
+  so changing the time never fires twice. Clients keep no time zone, so the node has one
+  (America/New_York to start). Publish and a template approve start the clocks; uninstall stops
+  them. Firing is a dep each channel gets from the worker, so a test without a Spine fires
+  nothing.

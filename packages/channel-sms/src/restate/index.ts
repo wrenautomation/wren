@@ -35,7 +35,7 @@ import {
   setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
+import { type FireTriggers, replyFired, spineEmit } from "@wren/core/spine";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
@@ -234,7 +234,10 @@ export function makeSmsEvents(
   deps: Pick<
     SmsDeps,
     "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId" | "clientDb"
-  >,
+  > & {
+    /** Each lead's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+    fire?: FireTriggers;
+  },
 ) {
   return restate.service({
     name: "SmsEvents",
@@ -270,6 +273,9 @@ export function makeSmsEvents(
           );
           await ctx.run("registered notice", () => noticeRegistered(deps.notifier, stats));
         }
+        // A lead's reply: each live Reply trigger that hears texts gets it.
+        if (applied.replied !== undefined)
+          deps.fire?.(ctx, replyFired(null, "sms", applied.replied));
         return applied;
       },
       /**
@@ -296,7 +302,7 @@ export function makeSmsEvents(
         }
         const now = await nowFor(ctx, deps.clock);
         const notifier = deps.notifier ? namedFor(deps.notifier, req.client) : null;
-        return ctx.run("apply", () =>
+        const applied = await ctx.run("apply", () =>
           // The phone app reads Wren's threads only: no push for a client's reply.
           applyEvent(clientDb(req.client), req.body, event, {
             provider: deps.provider.name,
@@ -305,6 +311,9 @@ export function makeSmsEvents(
             pusher: null,
           }),
         );
+        if (applied.replied !== undefined)
+          deps.fire?.(ctx, replyFired(req.client, "sms", applied.replied));
+        return applied;
       },
     },
   });

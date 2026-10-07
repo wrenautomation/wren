@@ -25,7 +25,7 @@ Citations: `packages/channel-sms/src/schema.ts:300`
 
 ## Connected to
 
-- **produces:** [[sms/sms-message]] (inbound rows, delivery states), [[leads/suppression]] (phone), [[sms/sms-contact]] state, reply alerts (web push to the phone app)
+- **produces:** [[sms/sms-message]] (inbound rows, delivery states), [[leads/suppression]] (phone), [[sms/sms-contact]] state, reply alerts (web push to the phone app), a lead's reply to the spine's Reply triggers (`ApplyResult.replied`, the `fire` dep; [[platform/spine]])
 - **joins:** [[platform/phone-worker]] (the door), [[sms/sms-provider]] (the body shape)
 
 ## If you change this

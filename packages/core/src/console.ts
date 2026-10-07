@@ -167,6 +167,7 @@ import {
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import {
+  clocksOf,
   editsOf,
   hookEvent,
   type SavedWorkflow,
@@ -2767,6 +2768,8 @@ export function consoleApi({
       id: number;
       asked?: string;
       doors?: Array<{ node: string; id: string; token: string }>;
+      /** Its Schedule nodes' clocks, which the handler starts. */
+      start?: LoopKey[];
     }> {
       const { w, client, by } = await workflowFor(req);
       // A client's template: publishing asks in To approve; a person's yes makes it live.
@@ -2798,7 +2801,7 @@ export function consoleApi({
         // Each Webhook or Form node's door, made once and kept across publishes.
         const flow = next.flows.find((f) => f.id === w.id) as Workflow;
         const made = await ensureDoors(tx, { client, flow, open: true });
-        return { id: row?.id ?? 0, doors: made };
+        return { id: row?.id ?? 0, doors: made, start: clocksOf(client, flow) };
       });
     },
     /** The doors into a workflow, for its node panel: masked, with their calls. */
@@ -3262,8 +3265,12 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => ctx.run("connect", () => answer(() => api.connect(req)))),
       workflowSave: (ctx: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => ctx.run("save draft", () => answer(() => api.workflowSave(req)))),
+      // Its Schedule nodes' clocks start after the commit, as a template's loops do.
       workflowPublish: (ctx: restate.Context, req: WorkflowSaveRequest) =>
-        answer(() => ctx.run("publish", () => answer(() => api.workflowPublish(req)))),
+        changeLoops(ctx, "publish", async () => {
+          const out = await api.workflowPublish(req);
+          return { ...out, start: out.start ?? [], stop: [] };
+        }),
       workflowDiscard: (ctx: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => ctx.run("discard draft", () => answer(() => api.workflowDiscard(req)))),
       workflowAsk: (ctx: restate.Context, req: WorkflowSaveRequest & { message?: unknown }) =>

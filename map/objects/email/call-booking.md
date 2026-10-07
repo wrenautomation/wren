@@ -22,6 +22,7 @@ A lead who books from an email's link must stop getting mail, and the booking mu
 - every booking write emits `bookingEmit` into `close` at `in.calls`, one arrival per call and start (`calls/restate.ts:32`); its brief is [[email/call-brief]]
 - in: `CallBookings/ingest` (`restate/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
 - a client's cal.com: `CallBookings/ingestFor {client, body}` (`restate/call-bookings.ts:37`), same rules, into its database
+- each booking, move or cancel also fires the spine's Booking triggers (`bookingFired`, the `fire` dep; [[platform/spine]])
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 
 Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/src/inbox/bookings.ts:66`, `packages/channel-email/src/calls/outcome.ts:36`

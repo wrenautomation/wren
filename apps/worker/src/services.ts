@@ -176,7 +176,7 @@ import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupWatch } from "@wren/core/setup-watch";
-import { makeSpine, type SpineEvent } from "@wren/core/spine";
+import { makeSpine, makeSpineClock, type SpineEvent, spineFire } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
 import { gate } from "@wren/core/vendors";
@@ -660,14 +660,16 @@ export async function buildServices(
               disposition: clientKey(owner.client, "replies"),
               // A bounce or opt-out in a client's inbox suppresses everywhere.
               shared: sharedFor(db, owner.client),
+              client: owner.client,
             }
-          : { db, disposition: DISPOSITION_KEY };
+          : { db, disposition: DISPOSITION_KEY, client: null };
       },
       syncMs,
       tickMs,
       classify,
       ...(watch ? { watch } : {}),
       ...emailNotify,
+      fire: spineFire,
     }),
     inboxPush,
     makeDisposition({
@@ -707,7 +709,7 @@ export async function buildServices(
     }),
     // cal.com's booking webhook, through the phone Worker: a booked lead stops getting mail.
     // A client's comes in by its own path and secret, into its database.
-    makeCallBookings({ db, clientDb }),
+    makeCallBookings({ db, clientDb, fire: spineFire }),
     // The lander's signup form and preference center, through the phone Worker. Wren's own
     // lists only; the confirm email goes from portal@.
     makeMarketing({
@@ -1038,7 +1040,7 @@ export async function buildServices(
   };
   services.push(
     makeSmsSender(clientTexts),
-    makeSmsEvents(sms),
+    makeSmsEvents({ ...sms, fire: spineFire }),
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
     makeSmsConsole({ db, open: openClient }),
@@ -1050,6 +1052,7 @@ export async function buildServices(
   if (!settings.reachLive) log.info("WREN_REACH_LIVE off: reach plans and holds, nothing is sent");
   const reach = {
     db,
+    fire: spineFire,
     policy: reachPolicyFrom(settings),
     sequences: REACH_SEQUENCES,
     live: settings.reachLive,
@@ -1311,6 +1314,8 @@ export async function buildServices(
         return /^\s*yes/i.test(r.text);
       },
     }),
+    // Each Schedule node's clock: started by publish and approve, a tick at each slot.
+    makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({ main: db, setups: SETUPS, checks: setupChecks, ...notify }),
     // A client's accounts and vendors. No key store: the role can't write SSM yet (William's).

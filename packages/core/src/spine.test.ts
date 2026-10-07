@@ -4,14 +4,20 @@ import { defineComponent } from "./components.js";
 import { logicSteps } from "./logic.js";
 import {
   type Arrival,
+  clockKey,
+  clockOfKey,
+  clocksOf,
+  hearersOf,
   hookEvent,
   passOn,
+  replyFired,
   resume,
   retry,
   type SpineEvent,
   type SpineStore,
   type Step,
   sentOf,
+  slotEvent,
   type Walk,
   waitMs,
   walk,
@@ -414,5 +420,49 @@ describe("logic nodes", () => {
     expect(
       hookEvent({ workflow: "logic", input: "vip", subject: "email" }, flows, { email: "a@b.co" }),
     ).toMatchObject({ status: 410 });
+  });
+});
+
+describe("fired triggers", () => {
+  const flow = defineWorkflow({
+    ...base,
+    id: "heard",
+    name: "heard",
+    nodes: [
+      { id: "texts", uses: "trigger.reply", with: { channel: "sms" } },
+      { id: "any", uses: "trigger.reply", with: { channel: "any" } },
+      { id: "booked", uses: "trigger.booking", with: { on: "booked" } },
+      { id: "daily", uses: "trigger.schedule", with: { every: "day", at: "09:00" } },
+    ],
+    wires: [],
+  });
+
+  it("send a reply to each node that hears it, about the thread", () => {
+    const fired = replyFired("acme", "dm", 7);
+    expect(fired.event).toEqual({
+      subject: "reply:reach:7",
+      kind: "reply",
+      data: { channel: "dm", contactId: 7 },
+    });
+    expect(hearersOf([flow], fired.facts)).toEqual([{ workflow: "heard", from: "any.out" }]);
+    expect(hearersOf([flow], replyFired(null, "sms", 1).facts).map((h) => h.from)).toEqual([
+      "texts.out",
+      "any.out",
+    ]);
+    expect(replyFired(null, "email", 3).event.data).toEqual({ channel: "email", enrollmentId: 3 });
+  });
+
+  it("keep one clock per Schedule node, and a slot enters once", () => {
+    expect(clocksOf("acme", flow)).toEqual([{ service: "SpineClock", key: "acme|heard|daily" }]);
+    expect(clockOfKey("acme|heard|daily")).toEqual({
+      client: "acme",
+      workflow: "heard",
+      node: "daily",
+    });
+    expect(clockOfKey(clockKey(null, "heard", "daily"))).toMatchObject({ client: null });
+    expect(clockOfKey("x|y")).toBeNull();
+    expect(slotEvent("daily", new Date("2026-10-08T13:00:00Z")).subject).toBe(
+      "item:schedule:daily@2026-10-08T13:00:00.000Z",
+    );
   });
 });

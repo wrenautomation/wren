@@ -50,7 +50,7 @@ import {
   setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
+import { type FireTriggers, replyFired, spineEmit } from "@wren/core/spine";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
@@ -160,6 +160,8 @@ const INVITES_EVERY_MS = 6 * 60 * 60 * 1000;
 
 export interface ReachDeps {
   db: Db;
+  /** Each lead's DM reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+  fire?: FireTriggers;
   policy: ReachPolicy;
   sequences: ReadonlyMap<string, ReachSequence>;
   /** The live gate: off = the loop plans and holds, nothing leaves. */
@@ -543,6 +545,9 @@ async function watchPass(
         replies.checked += r.checked;
         replies.received += r.received;
         replies.optedOut += r.optedOut;
+        // Each lead's reply: every live Reply trigger that hears DMs gets it.
+        if (deps.fire)
+          for (const id of r.replied ?? []) deps.fire(ctx, replyFired(scope.client, "dm", id));
       } catch (err) {
         stop(err);
         replies.errors.push(`${a.account}: ${errorText(err)}`);

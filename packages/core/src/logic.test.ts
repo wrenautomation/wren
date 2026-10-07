@@ -3,14 +3,17 @@ import { EVENT_KINDS } from "./components.js";
 import {
   bucketOf,
   casesOf,
+  doorOf,
   holdOf,
   KINDS,
   LOGIC,
   logicOf,
   logicProblems,
   logicSteps,
+  nextSlot,
   shareOf,
   startWith,
+  triggerHears,
 } from "./logic.js";
 import type { SpineEvent, StepAt } from "./spine.js";
 
@@ -63,7 +66,15 @@ describe("logic parts", () => {
     ]);
     expect(n("logic.wait", { for: "soon" })).toEqual(['f.n: a wait reads like "2 days"']);
     expect(n("logic.split", { a: 120 })).toEqual(["f.n: Split's share is 1 to 99"]);
-    expect(n("trigger.schedule")).toEqual(["f.n: Schedule triggers are in development"]);
+    expect(n("trigger.schedule")).toEqual([]);
+    expect(n("trigger.schedule", { every: "day", at: "9am", zone: "Mars/Base" })).toEqual([
+      "f.n: a time reads like 09:00",
+      "f.n: Mars/Base is no time zone (like America/Chicago)",
+    ]);
+    expect(n("trigger.schedule", { every: "hours", hours: 0 })).toEqual([
+      "f.n: every 1 to 168 hours",
+    ]);
+    expect(n("trigger.form", { form: "nope" })).toEqual(["f.n: no form called nope"]);
     expect(n("logic.merge", { kind: "nope" })).toEqual(["f.n: nope is no event kind"]);
     expect(n("x.part")).toEqual([]);
     expect(holdOf({ id: "w", uses: "logic.wait", with: {} })).toBe("1 day");
@@ -99,5 +110,66 @@ describe("logic steps", () => {
     }
     expect(a).toBeGreaterThan(240);
     expect(a).toBeLessThan(360);
+  });
+});
+
+describe("triggers", () => {
+  it("are all ready", () => {
+    expect(LOGIC.filter((l) => !l.ready).map((l) => l.id)).toEqual([]);
+  });
+
+  it("set a day's slot in its zone, across a DST change", () => {
+    const w = { every: "day", at: "09:00", zone: "America/New_York" };
+    // 13:00Z is 09:00 in New York on summer time.
+    expect(nextSlot(w, new Date("2026-10-07T12:00:00Z"))?.toISOString()).toBe(
+      "2026-10-07T13:00:00.000Z",
+    );
+    expect(nextSlot(w, new Date("2026-10-07T13:00:00Z"))?.toISOString()).toBe(
+      "2026-10-08T13:00:00.000Z",
+    );
+    // Clocks go back on 2026-11-01: 09:00 is 14:00Z after.
+    expect(nextSlot(w, new Date("2026-10-31T13:30:00Z"))?.toISOString()).toBe(
+      "2026-11-01T14:00:00.000Z",
+    );
+    expect(nextSlot({ ...w, zone: "Mars/Base" }, new Date())).toBeNull();
+  });
+
+  it("set every few hours on the hour", () => {
+    const w = { every: "hours", hours: 4 };
+    expect(nextSlot(w, new Date("2026-10-07T05:30:00Z"))?.toISOString()).toBe(
+      "2026-10-07T08:00:00.000Z",
+    );
+    expect(nextSlot(w, new Date("2026-10-07T08:00:00Z"))?.toISOString()).toBe(
+      "2026-10-07T12:00:00.000Z",
+    );
+    expect(nextSlot({ every: "hours" }, new Date())).toBeNull();
+  });
+
+  it("hear a reply or booking by their settings", () => {
+    const reply = (channel?: string) => ({
+      id: "r",
+      uses: "trigger.reply",
+      with: channel ? { channel } : {},
+    });
+    const sms = { trigger: "trigger.reply", channel: "sms" } as const;
+    expect(triggerHears(reply(), sms)).toBe(true);
+    expect(triggerHears(reply("sms"), sms)).toBe(true);
+    expect(triggerHears(reply("email"), sms)).toBe(false);
+    const booking = (on?: string) => ({ id: "b", uses: "trigger.booking", with: on ? { on } : {} });
+    const cancelled = { trigger: "trigger.booking", change: "cancelled" } as const;
+    expect(triggerHears(booking(), cancelled)).toBe(false);
+    expect(triggerHears(booking("cancelled"), cancelled)).toBe(true);
+    expect(triggerHears(booking("any"), cancelled)).toBe(true);
+    expect(triggerHears(reply(), cancelled)).toBe(false);
+  });
+
+  it("give a Form its door: a known form's shape, else by email and its map", () => {
+    expect(doorOf({ id: "f", uses: "trigger.form", with: { form: "site" } })).toMatchObject({
+      subject: "id",
+      fields: { consent: "sms_consent" },
+    });
+    expect(
+      doorOf({ id: "f", uses: "trigger.form", with: { form: "any", "map.email": "contact.mail" } }),
+    ).toEqual({ subject: "contact.mail", fields: { email: "contact.mail" } });
   });
 });

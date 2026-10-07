@@ -249,6 +249,7 @@ describe("reddit sequence", () => {
     });
     const r = await pullReplies(db(), accounts, channelFor, at(0.06));
     expect(r.received).toBe(1);
+    expect(r.replied).toEqual([c.id]);
     expect((await contactById(db(), c.id)).state).toBe("replied");
     const threads = await listThreads(db(), { unread: true });
     expect(threads).toHaveLength(1);
@@ -275,6 +276,7 @@ describe("reddit sequence", () => {
     });
     const again = await pullReplies(db(), accounts, channelFor, at(0.11));
     expect(again.optedOut).toBe(1);
+    expect(again.replied).toEqual([]);
     expect((await contactById(db(), c.id)).state).toBe("opted_out");
     const thread = await getThread(db(), c.id);
     expect(thread.messages.filter((m) => m.direction === "in")).toHaveLength(2);

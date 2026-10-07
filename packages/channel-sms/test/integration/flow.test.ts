@@ -490,6 +490,7 @@ describe("enroll → send → receipts → reply", () => {
       at: OPEN,
     });
     expect(r.outcome).toMatch(/^reply/);
+    expect(r.replied).toBe((await contact(to))?.id);
     expect((await contact(to))?.state).toBe("replied");
     expect(
       (await messages()).find((m) => m.contactId === sent[0]?.contactId && m.step === 2)?.state,
@@ -554,6 +555,7 @@ describe("enroll → send → receipts → reply", () => {
       at: OPEN,
     });
     expect(r.outcome).toMatch(/^stop/);
+    expect(r.replied).toBeUndefined();
     expect(await activeSuppressionOf(db(), "phone", to)).not.toBeNull();
     expect((await contact(to))?.state).toBe("opted_out");
     await expect(

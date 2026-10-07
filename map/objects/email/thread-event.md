@@ -25,6 +25,7 @@ Citations: `packages/channel-email/src/schema.ts:306`
 
 - **owned-by:** [[email/enrollment]]
 - **joins:** [[email/message]], [[leads/suppression]] (the evidence a stop cites), [[email/sender-pause]] (hard bounces trip the switch)
+- **produces:** each human reply's enrollment in `SyncStats.replied`, which `InboxScheduler` fires at the spine's Reply triggers (its `fire` dep; [[platform/spine]])
 
 ## If you change this
 

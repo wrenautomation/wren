@@ -32,7 +32,7 @@ import {
   workflowSaves,
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
-import { makeHook } from "./spine.js";
+import { clocksOf, makeHook } from "./spine.js";
 import { covers, type DefaultFile, installDefaults, loadDefaults } from "./template-defaults.js";
 import { nameLabel } from "./template-labels.js";
 import { refText } from "./templates.js";
@@ -648,25 +648,10 @@ export async function approveInstall(
     }
     if (row.hook) await tx.update(hooks).set({ open: true }).where(eq(hooks.id, row.hook));
     // Its Webhook and Form nodes' doors, made or opened, as a publish makes them.
-    const live = await tx
-      .select({ edits: workflowSaves.edits })
-      .from(workflowSaves)
-      .where(
-        and(
-          eq(workflowSaves.client, row.client),
-          eq(workflowSaves.workflow, row.workflow),
-          eq(workflowSaves.live, true),
-        ),
-      )
-      .orderBy(desc(workflowSaves.id))
-      .limit(1);
-    const edits = live[0]?.edits;
-    const flow = flowsWith(
-      deps.workflows,
-      edits ? { [row.workflow]: edits } : {},
-      deps.components,
-    ).flows.find((f) => f.id === row.workflow);
+    const flow = await liveFlow(tx, row.client, row.workflow, deps);
     if (flow) await ensureDoors(tx, { client: row.client, flow, open: true });
+    // Its Schedule nodes' clocks start with its loops.
+    const clocks = flow ? clocksOf(row.client, flow) : [];
     await tx
       .update(workflowInstalls)
       .set({ state: "live", approvedBy: deps.by, approvedAt: new Date() })
@@ -679,9 +664,34 @@ export async function approveInstall(
       id: installApprovalId(row.id),
       client: row.client,
       template: row.template,
-      start: loopsOf(deps.components, client, ids),
+      start: [...loopsOf(deps.components, client, ids), ...clocks],
     };
   });
+}
+
+/** A client's workflow as its newest live save wires it. */
+async function liveFlow(
+  tx: Queryable,
+  client: string,
+  workflow: string,
+  deps: { workflows: readonly Workflow[]; components: readonly Component[] },
+): Promise<Workflow | undefined> {
+  const [live] = await tx
+    .select({ edits: workflowSaves.edits })
+    .from(workflowSaves)
+    .where(
+      and(
+        eq(workflowSaves.client, client),
+        eq(workflowSaves.workflow, workflow),
+        eq(workflowSaves.live, true),
+      ),
+    )
+    .orderBy(desc(workflowSaves.id))
+    .limit(1);
+  const edits = live?.edits;
+  return flowsWith(deps.workflows, edits ? { [workflow]: edits } : {}, deps.components).flows.find(
+    (f) => f.id === workflow,
+  );
 }
 
 /** A person's no: back to a draft; nothing ran. */
@@ -770,7 +780,10 @@ export async function uninstallTemplate(
         askedAt: null,
       })
       .where(eq(workflowInstalls.id, row.id));
-    return { removed, kept, stop: loopsOf(deps.components, client, removed) };
+    // Its Schedule nodes' clocks stop with its loops.
+    const flow = await liveFlow(tx, ask.client, row.workflow, deps);
+    const clocks = flow ? clocksOf(ask.client, flow) : [];
+    return { removed, kept, stop: [...loopsOf(deps.components, client, removed), ...clocks] };
   });
 }
 

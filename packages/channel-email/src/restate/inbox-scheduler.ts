@@ -28,6 +28,7 @@ import {
   sharedHandler,
   unitOfKey,
 } from "@wren/core/restate";
+import { type FireTriggers, replyFired } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import type { SharedSuppressions } from "../guards.js";
@@ -40,6 +41,8 @@ export interface InboxScope {
   disposition: string;
   /** A client's mailbox: its opt-outs and bounces also land on main's list. */
   shared?: SharedSuppressions | null;
+  /** Whose workflows a reply here may start: a client's id, null for Wren's. */
+  client?: string | null;
 }
 
 export interface InboxSchedulerDeps {
@@ -63,6 +66,8 @@ export interface InboxSchedulerDeps {
   watch?: (sender: string) => Promise<number | null>;
   /** Between passes while the watch is live: the net under the push (default 30 min). */
   netMs?: number;
+  /** Each person's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+  fire?: FireTriggers;
 }
 
 export const INBOX_SYNC_COMMAND = "outreach inbox sync";
@@ -101,6 +106,10 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
       ctx.objectSendClient<Disposition>({ name: "Disposition" }, scope.disposition).classify();
     }
     if (deps.notifier && outcome.stats) await tell(ctx, deps.notifier, sender, outcome.stats);
+    // Each person's reply: every live Reply trigger that hears email gets it.
+    if (deps.fire)
+      for (const id of outcome.stats?.replied ?? [])
+        deps.fire(ctx, replyFired(scope.client ?? null, "email", id));
     return outcome;
   });
 }

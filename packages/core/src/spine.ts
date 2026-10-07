@@ -10,10 +10,19 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import type { Component, EventKind } from "./components.js";
+import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
-import { dig, doorOf, holdOf, logicOf, logicSteps } from "./logic.js";
+import {
+  dig,
+  doorOf,
+  holdOf,
+  logicOf,
+  logicSteps,
+  nextSlot,
+  type TriggerFacts,
+  triggerHears,
+} from "./logic.js";
 import { hooks, type SentEvent, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
@@ -605,7 +614,77 @@ export type SpineService = {
   ) => Promise<Tally>;
   release: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
   retry: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
+  fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number }>;
 };
+
+/** Something happened that a Reply or Booking trigger may hear: the event it enters with. */
+export type Fired = Target & { facts: TriggerFacts; event: SpineEvent };
+
+/**
+ * A reply or a booking, told to every live workflow of `client` with a trigger node that hears it
+ * (`triggerHears`). Send-only, so the channel's own step never waits on a walk.
+ */
+export const spineFire = (ctx: restate.Context, req: Fired) => {
+  ctx.serviceSendClient<SpineService>(SPINE).fire(req);
+};
+/** A channel's way to tell the spine: `spineFire` on the worker; unset where no Spine runs. */
+export type FireTriggers = (ctx: restate.Context, req: Fired) => void;
+
+/**
+ * A lead's reply as a Reply trigger hears it: about the thread, as the channel's own touch step
+ * says it (`reply:sms:<contact>`), so one lead enters a node once.
+ */
+export function replyFired(
+  client: string | null,
+  channel: "email" | "sms" | "dm",
+  id: number,
+): Fired {
+  const thread = channel === "email" ? { enrollmentId: id } : { contactId: id };
+  return {
+    client,
+    facts: { trigger: "trigger.reply", channel },
+    event: {
+      subject: `reply:${channel === "dm" ? "reach" : channel}:${id}`,
+      kind: "reply",
+      data: { channel, ...thread },
+    },
+  };
+}
+
+/** Every Reply and Booking node in `flows` that hears `facts`, as where its event leaves. */
+export function hearersOf(
+  flows: Iterable<Workflow>,
+  facts: TriggerFacts,
+): Array<{ workflow: string; from: string }> {
+  const out: Array<{ workflow: string; from: string }> = [];
+  for (const f of flows)
+    for (const n of f.nodes)
+      if (triggerHears(n, facts)) out.push({ workflow: f.id, from: `${n.id}.out` });
+  return out;
+}
+
+export const SPINE_CLOCK = { name: "SpineClock" } as const;
+/** One Schedule node's clock: `<client>|<workflow>|<node>`, the client blank for Wren. */
+export const clockKey = (client: string | null, workflow: string, node: string) =>
+  `${client ?? ""}|${workflow}|${node}`;
+export function clockOfKey(
+  key: string,
+): { client: string | null; workflow: string; node: string } | null {
+  const [client = "", workflow, node, ...rest] = key.split("|");
+  return workflow && node && !rest.length ? { client: client || null, workflow, node } : null;
+}
+/** The clocks a flow's Schedule nodes run on: started on publish and approve, like loops. */
+export const clocksOf = (client: string | null, flow: Workflow): LoopKey[] =>
+  flow.nodes
+    .filter((n) => n.uses === "trigger.schedule")
+    .map((n) => ({ service: SPINE_CLOCK.name, key: clockKey(client, flow.id, n.id) }));
+
+/** A Schedule node's event for one slot: the same slot enters once, however often it's sent. */
+export const slotEvent = (node: string, slot: Date): SpineEvent => ({
+  subject: `item:schedule:${node}@${slot.toISOString()}`,
+  kind: "item",
+  data: { at: slot.toISOString() },
+});
 
 /** Events leaving `from` in a workflow, sent by a part's own code: a sender that sent a step. */
 export const spineEmit = (
@@ -688,6 +767,18 @@ export function makeSpine(d: SpineDeps) {
         (ctx: restate.Context, req: Target & { id: string }) =>
           walkFor(ctx, req).then((w) => retry(w, req.id)),
       ),
+      /** A reply or booking: each live trigger node that hears it gets it at its output. */
+      fire: restate.handlers.handler(
+        { ingressPrivate: true },
+        async (ctx: restate.Context, req: Fired) => {
+          const at = hearersOf((await flowsFor(ctx, req.client)).values(), req.facts);
+          for (const h of at)
+            ctx
+              .serviceSendClient<SpineService>(SPINE)
+              .emit({ client: req.client, ...h, events: [req.event] });
+          return { entered: at.length };
+        },
+      ),
       /**
        * The door: the phone Worker's `POST /hooks/<token>`. Answers a status for the sender; the
        * walk runs after, on its own call.
@@ -729,3 +820,90 @@ export function makeSpine(d: SpineDeps) {
     },
   });
 }
+
+const NEXT = "next";
+
+/**
+ * Each Schedule node's clock (designs/2026-10-06-workflow-editor.md, step 5): one virtual object
+ * per client, workflow and node. It keeps the next slot and sends itself `tick` at it, delayed.
+ * `start` (publish, approve) sets the slot from the live settings; a tick whose slot isn't the
+ * kept one is stale and does nothing, so a changed time never fires twice. A tick that finds no
+ * Schedule node live there stops.
+ */
+export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "components">) {
+  type Self = {
+    tick: (ctx: restate.ObjectContext, req: { slot: string }) => Promise<void>;
+  };
+  const nodeOf = async (ctx: restate.ObjectContext) => {
+    const k = clockOfKey(ctx.key);
+    if (!k) return null;
+    const saves = await ctx.run("saved workflows", () => savedWorkflows(d.main, k.client));
+    const flow = flowsWith(d.workflows, editsOf(saves), d.components).flows.find(
+      (f) => f.id === k.workflow,
+    );
+    const n = flow?.nodes.find((x) => x.id === k.node && x.uses === "trigger.schedule");
+    return n ? { ...k, with: n.with ?? {} } : null;
+  };
+  /** The next slot after `after`, kept and sent; none clears the clock. */
+  const arm = async (ctx: restate.ObjectContext, after: Date) => {
+    const n = await nodeOf(ctx);
+    const slot = n ? nextSlot(n.with, after) : null;
+    if (!slot) {
+      ctx.clear(NEXT);
+      return null;
+    }
+    const iso = slot.toISOString();
+    if ((await ctx.get<string>(NEXT)) === iso) return iso;
+    ctx.set(NEXT, iso);
+    ctx
+      .objectSendClient<Self>(SPINE_CLOCK, ctx.key)
+      .tick(
+        { slot: iso },
+        restate.rpc.sendOpts({ delay: Math.max(0, slot.getTime() - after.getTime()) }),
+      );
+    return iso;
+  };
+  return restate.object({
+    name: SPINE_CLOCK.name,
+    handlers: {
+      /** From the live settings: the next slot. Again with the same settings changes nothing. */
+      start: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext) => ({
+          next: await arm(ctx, new Date(await ctx.date.now())),
+        }),
+      ),
+      /** No more ticks: the pending one is stale. */
+      stop: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext) => {
+          ctx.clear(NEXT);
+        },
+      ),
+      /** A slot is due: its event enters at the node's output, then the next one is set. */
+      tick: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext, req: { slot: string }) => {
+          if ((await ctx.get<string>(NEXT)) !== req.slot) return;
+          const n = await nodeOf(ctx);
+          if (!n) {
+            ctx.clear(NEXT);
+            return;
+          }
+          spineEmit(ctx, {
+            client: n.client,
+            workflow: n.workflow,
+            from: `${n.node}.out`,
+            events: [slotEvent(n.node, new Date(req.slot))],
+          });
+          const now = new Date(await ctx.date.now());
+          const after = new Date(Math.max(now.getTime(), Date.parse(req.slot)));
+          ctx.clear(NEXT);
+          await arm(ctx, after);
+        },
+      ),
+    },
+  });
+}
+
+export type SpineClock = ReturnType<typeof makeSpineClock>;

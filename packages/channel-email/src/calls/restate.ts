@@ -8,7 +8,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { MeetingOutcome } from "@wren/core/calls";
 import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
-import { type SpineEvent, type Step, spineEmit } from "@wren/core/spine";
+import { type Fired, type SpineEvent, type Step, spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -33,6 +33,36 @@ export const bookingEmit = (o: { id: number; state: string; start: Date | string
   o.state === "booked"
     ? { workflow: "close", from: "in.calls", events: [bookedCall(o.id, o.start)] }
     : null;
+
+/**
+ * A booking as a Booking trigger hears it: a booked or moved call as `close` takes it, a cancel
+ * as its own arrival. Who booked rides along, for the steps after.
+ */
+export const bookingFired = (
+  client: string | null,
+  o: { id: number; state: "booked" | "cancelled" },
+  b: {
+    start: Date | string | null;
+    email: string | null;
+    name: string | null;
+    offer: string | null;
+  },
+): Fired => {
+  const call = bookedCall(o.id, b.start);
+  const who = { email: b.email, name: b.name, offer: b.offer };
+  return {
+    client,
+    facts: { trigger: "trigger.booking", change: o.state },
+    event:
+      o.state === "booked"
+        ? { ...call, data: { ...call.data, ...who, change: "booked" } }
+        : {
+            subject: `${callSubject(o.id)}:cancelled`,
+            kind: "call",
+            data: { ...call.data, ...who, change: "cancelled" },
+          },
+  };
+};
 
 /**
  * Mark calls' outcome as one person, in one transaction, then move them on the spine

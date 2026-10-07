@@ -307,6 +307,7 @@ describe("auto-replies, unsubscribes, receipts", () => {
       const stats = await runSync(reader);
 
       expect(stats.auto_replies).toBe(1);
+      expect(stats.replied).toEqual([]);
       expect(stats.matched_by_in_reply_to).toBe(1);
       expect(first(await events()).kind).toBe("auto_reply");
       expect((await reload(enrollment)).state).toBe("active");
@@ -408,6 +409,8 @@ describe("replies", () => {
     const stats = await runSync(reader);
 
     expect([stats.replies, stats.stopped_reply]).toEqual([1, 1]);
+    // The enrollment it replied on, for a Reply trigger.
+    expect(stats.replied).toEqual([expect.any(Number)]);
     // Gmail's own reply carries References but no In-Reply-To.
     expect(stats.matched_by_references).toBe(1);
     const event = first(await events());

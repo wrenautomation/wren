@@ -6,8 +6,9 @@
  * wires. A hook trigger is the door into a node. Pure, so the web reads it too.
  */
 import type { EventKind, Port } from "./components.js";
-import { type FieldMap, fieldMapOfWith, fieldMapProblems } from "./door.js";
+import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
 import type { SpineEvent, Step } from "./spine.js";
+import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 import type { WorkflowNode } from "./workflows.js";
 
 /** Every event kind, as `EVENT_KINDS` names them (a test keeps the two the same). */
@@ -34,6 +35,8 @@ export interface LogicSetting {
   label: string;
   type: "text" | "number" | "choice";
   options?: readonly string[];
+  /** A choice's words, by option; the option itself when unset. */
+  labels?: Readonly<Record<string, string>>;
   hint?: string;
   /** What a new node starts with. */
   start?: string | number;
@@ -93,24 +96,90 @@ export const shareOf = (v: unknown) => {
   return Number.isFinite(n) && n >= 1 && n <= 99 ? n : 50;
 };
 
+/** A trigger: no inputs, one output of `kind`, entered by the spine when its event happens. */
 const trigger = (
   id: string,
   name: string,
   blurb: string,
   icon: string,
   kind: EventKind,
-  setting: LogicSetting,
+  settings: readonly LogicSetting[],
+  says: (w: Readonly<Record<string, string | number>>) => string,
 ): LogicPart => ({
   id: `trigger.${id}`,
   name,
   blurb,
   icon,
   group: "trigger",
-  ready: false,
-  settings: [setting],
+  ready: true,
+  settings,
   ports: () => ({ in: [], out: [one("out", name.toLowerCase(), kind)] }),
-  says: (w) => text(w[setting.field]) || "In development",
+  says,
 });
+
+/** A schedule's zone when it names none: clients keep no zone yet. */
+export const SCHEDULE_ZONE = "America/New_York";
+const HH_MM = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+/** Every N hours: 1 to 168. */
+const hoursOf = (v: unknown) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n >= 1 && n <= 168 ? n : null;
+};
+
+/**
+ * A schedule's next slot strictly after `after`, or null when its settings don't read. Every day
+ * at HH:MM in its zone, or every N hours on the hour (counted from midnight UTC).
+ */
+export function nextSlot(w: Readonly<Record<string, string | number>>, after: Date): Date | null {
+  if (text(w.every) === "hours") {
+    const n = hoursOf(w.hours);
+    if (!n) return null;
+    const step = n * 3_600_000;
+    return new Date((Math.floor(after.getTime() / step) + 1) * step);
+  }
+  const hm = HH_MM.exec(text(w.at) || "09:00");
+  const zone = canonicalZone(text(w.zone) || SCHEDULE_ZONE);
+  if (!hm || !zone) return null;
+  const day = wallClock(zone, after);
+  // Today's slot, else tomorrow's (a calendar day on, so DST never skips or doubles one).
+  for (let d = 0; d < 3; d++) {
+    const on = new Date(Date.UTC(day.year, day.month - 1, day.day + d));
+    const at = zonedInstant(
+      zone,
+      on.getUTCFullYear(),
+      on.getUTCMonth() + 1,
+      on.getUTCDate(),
+      Number(hm[1]),
+      Number(hm[2]),
+    );
+    if (at.getTime() > after.getTime()) return at;
+  }
+  return null;
+}
+
+/** What each fired trigger's event is about, and which nodes hear it (`triggerHears`). */
+export type TriggerFacts =
+  | { trigger: "trigger.reply"; channel: "email" | "sms" | "dm" }
+  | { trigger: "trigger.booking"; change: "booked" | "cancelled" };
+
+/** A Reply or Booking node hears this event by its settings. */
+export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
+  if (n.uses !== f.trigger) return false;
+  const w = n.with ?? {};
+  if (f.trigger === "trigger.reply") {
+    const on = text(w.channel) || "any";
+    return on === "any" || on === f.channel;
+  }
+  const on = text(w.on) || "booked";
+  return on === "any" || on === f.change;
+}
+
+const CHANNEL_WORDS: Record<string, string> = {
+  any: "any channel",
+  email: "email",
+  sms: "texts",
+  dm: "DMs",
+};
 
 export const LOGIC: readonly LogicPart[] = [
   {
@@ -207,28 +276,95 @@ export const LOGIC: readonly LogicPart[] = [
     ports: (w) => ({ in: [], out: [one("out", "posted", kindOf(w))] }),
     says: (w) => `POST /hooks/<token>, about ${text(w.subject) || "a field"}`,
   },
-  trigger("schedule", "Schedule", "Starts on a schedule.", "clock", "item", {
-    field: "every",
-    label: "Every",
-    type: "text",
-    hint: "weekday 9am",
-  }),
-  trigger("form", "Form", "Starts when a form is filled.", "form", "form", {
-    field: "form",
-    label: "Form",
-    type: "text",
-  }),
-  trigger("reply", "Reply", "Starts when a lead replies.", "mail", "reply", {
-    field: "channel",
-    label: "Channel",
-    type: "choice",
-    options: ["any", "email", "sms", "dm"],
-  }),
-  trigger("booking", "Booking", "Starts when a call is booked.", "calendar", "call", {
-    field: "calendar",
-    label: "Calendar",
-    type: "text",
-  }),
+  trigger(
+    "schedule",
+    "Schedule",
+    "Starts on a schedule: every day at a time, or every few hours.",
+    "clock",
+    "item",
+    [
+      {
+        field: "every",
+        label: "Every",
+        type: "choice",
+        options: ["day", "hours"],
+        labels: { day: "Day, at a time", hours: "Few hours" },
+        start: "day",
+      },
+      { field: "at", label: "At (24h)", type: "text", hint: "09:00", start: "09:00" },
+      { field: "hours", label: "Every how many hours", type: "number", hint: "4" },
+      {
+        field: "zone",
+        label: "Time zone",
+        type: "text",
+        hint: SCHEDULE_ZONE,
+        start: SCHEDULE_ZONE,
+      },
+    ],
+    (w) =>
+      text(w.every) === "hours"
+        ? `Every ${hoursOf(w.hours) ?? "?"} hours`
+        : `Every day at ${text(w.at) || "09:00"}, ${text(w.zone) || SCHEDULE_ZONE}`,
+  ),
+  trigger(
+    "form",
+    "Form",
+    "Starts when a form is filled: its own door URL, or a known form's.",
+    "form",
+    "form",
+    [
+      {
+        field: "form",
+        label: "Form",
+        type: "choice",
+        options: ["any", ...Object.keys(HOOK_PRESETS)],
+        labels: { any: "Any form (by email)", site: "Our site's forms" },
+        start: "any",
+      },
+    ],
+    (w) => (text(w.form) === "site" ? "Our site's forms" : "Any form, by email"),
+  ),
+  trigger(
+    "reply",
+    "Reply",
+    "Starts when a lead replies by email, text or DM. Once per lead.",
+    "mail",
+    "reply",
+    [
+      {
+        field: "channel",
+        label: "Channel",
+        type: "choice",
+        options: ["any", "email", "sms", "dm"],
+        labels: { any: "Any", email: "Email", sms: "Texts", dm: "DMs" },
+        start: "any",
+      },
+    ],
+    (w) => `A reply by ${CHANNEL_WORDS[text(w.channel) || "any"] ?? "any channel"}`,
+  ),
+  trigger(
+    "booking",
+    "Booking",
+    "Starts when a call is booked on cal.com, moved, or cancelled.",
+    "calendar",
+    "call",
+    [
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["booked", "cancelled", "any"],
+        labels: { booked: "Booked or moved", cancelled: "Cancelled", any: "Either" },
+        start: "booked",
+      },
+    ],
+    (w) =>
+      text(w.on) === "cancelled"
+        ? "A call cancelled"
+        : text(w.on) === "any"
+          ? "A call booked or cancelled"
+          : "A call booked",
+  ),
 ];
 
 const BY_ID = new Map(LOGIC.map((l) => [l.id, l]));
@@ -267,18 +403,41 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     out.push(`${at}: Split's share is 1 to 99`);
   if (l.id === "trigger.hook" && !/^[A-Za-z0-9_.]+$/.test(text(w.subject)))
     out.push(`${at}: a webhook names the payload field it's about`);
-  if (l.id === "trigger.hook")
+  if (l.id === "trigger.hook" || l.id === "trigger.form")
     out.push(...fieldMapProblems(fieldMapOfWith(w)).map((p) => `${at}: ${p}`));
+  if (
+    l.id === "trigger.form" &&
+    w.form !== undefined &&
+    text(w.form) !== "any" &&
+    !HOOK_PRESETS[text(w.form)]
+  )
+    out.push(`${at}: no form called ${text(w.form)}`);
+  if (l.id === "trigger.schedule") {
+    if (text(w.every) === "hours") {
+      if (!hoursOf(w.hours)) out.push(`${at}: every 1 to 168 hours`);
+    } else {
+      if (!HH_MM.test(text(w.at) || "09:00")) out.push(`${at}: a time reads like 09:00`);
+      if (!canonicalZone(text(w.zone) || SCHEDULE_ZONE))
+        out.push(`${at}: ${text(w.zone)} is no time zone (like America/Chicago)`);
+    }
+  }
   return out;
 }
 
 /** Triggers that enter by a door URL: Publish makes each one's hook. */
-export const DOOR_TRIGGERS: ReadonlySet<string> = new Set(["trigger.hook"]);
+export const DOOR_TRIGGERS: ReadonlySet<string> = new Set(["trigger.hook", "trigger.form"]);
 
 /** A node's door: the payload field it's about and its field map; null when it has none. */
 export function doorOf(n: WorkflowNode): { subject: string; fields: FieldMap } | null {
   const w = n.with ?? {};
   if (n.uses === "trigger.hook") return { subject: text(w.subject), fields: fieldMapOfWith(w) };
+  if (n.uses === "trigger.form") {
+    // A known form posts its own shape; any other is read by its map, and is about its email.
+    const preset = HOOK_PRESETS[text(w.form)];
+    if (preset) return { subject: preset.subject, fields: preset.fields };
+    const fields = fieldMapOfWith(w);
+    return { subject: fields.email ?? "email", fields };
+  }
   return null;
 }
 

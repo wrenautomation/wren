@@ -84,6 +84,8 @@ export interface ApplyOptions {
 export interface ApplyResult {
   duplicate: boolean;
   outcome: string;
+  /** A lead's reply (not a STOP or START): its contact, for a Reply trigger. */
+  replied?: number;
 }
 
 const RANK: Record<string, number> = {
@@ -173,7 +175,12 @@ async function applyInbound(
   db: Queryable,
   e: Extract<SmsEvent, { kind: "inbound" }>,
   opts: ApplyOptions,
-): Promise<{ outcome: string; notify: string | null; alert: PushAlert | null }> {
+): Promise<{
+  outcome: string;
+  notify: string | null;
+  alert: PushAlert | null;
+  replied?: number;
+}> {
   // A short code or alphanumeric sender (Google's sign-in codes) is no contact:
   // it cannot be texted back. The raw event row keeps it; the note and the
   // alert carry the text so a code is readable at once.
@@ -286,7 +293,12 @@ async function applyInbound(
       notify: `SMS signup to ${topic.publicName} from ${who}`,
       alert: alert(`${name} signed up`),
     };
-  return { outcome: `reply #${msgId}`, notify: `SMS reply from ${who}`, alert: alert(name) };
+  return {
+    outcome: `reply #${msgId}`,
+    notify: `SMS reply from ${who}`,
+    alert: alert(name),
+    replied: contact.id,
+  };
 }
 
 /** Apply one webhook. The raw body is stored as received; `event` is it read into our words. */
@@ -312,15 +324,17 @@ export async function applyEvent(
     const id = claimed[0]?.id;
     if (id === undefined) return { duplicate: true, outcome: "duplicate event" };
     let outcome: string;
+    let replied: number | undefined;
     if (event.kind === "status") outcome = await applyStatus(tx, event, opts.now);
     else if (event.kind === "inbound") {
       const r = await applyInbound(tx, event, opts);
       outcome = r.outcome;
       notify = r.notify;
       alert = r.alert;
+      replied = r.replied;
     } else outcome = `ignored: ${event.type}`;
     await tx.update(smsEvents).set({ outcome }).where(eq(smsEvents.id, id));
-    return { duplicate: false, outcome };
+    return { duplicate: false, outcome, ...(replied === undefined ? {} : { replied }) };
   });
   if (notify && opts.notifier)
     await opts.notifier.notify(notify, "open the phone app to read and answer", "action");

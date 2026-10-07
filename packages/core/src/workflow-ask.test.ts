@@ -43,7 +43,7 @@ describe("workflowAskPrompt", () => {
     expect(question).toContain(JSON.stringify(draft));
     expect(question).toContain("- logic.wait (Wait)");
     // Triggers still in development aren't offered.
-    expect(question).not.toContain("trigger.schedule");
+    expect(question).toContain("trigger.schedule (Schedule)");
     expect(question).toContain("His request: add a text after the email");
     expect(system).toContain('"patch"');
     expect(WORKFLOW_ASK).toBe("console.workflow");

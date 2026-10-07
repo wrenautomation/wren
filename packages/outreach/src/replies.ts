@@ -21,6 +21,8 @@ export interface RepliesStats {
   received: number;
   optedOut: number;
   errors: string[];
+  /** Contacts who replied (not asking to stop), for a Reply trigger. */
+  replied?: number[];
 }
 
 export async function pullReplies(
@@ -29,7 +31,7 @@ export async function pullReplies(
   channelFor: (a: ReachAccount) => OutreachChannel | null,
   now: Date,
 ): Promise<RepliesStats> {
-  const stats: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
+  const stats: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [], replied: [] };
   for (const a of accounts) {
     const ch = channelFor(a);
     if (!ch) continue;
@@ -45,6 +47,7 @@ export async function pullReplies(
       const n = await receive(db, a.platform, a.id, r, now);
       stats.received += n.received;
       stats.optedOut += n.optedOut;
+      if (n.received && !n.optedOut && n.contactId !== undefined) stats.replied?.push(n.contactId);
     }
   }
   return stats;
@@ -57,7 +60,7 @@ export async function receive(
   accountId: string,
   r: Reply,
   now: Date,
-): Promise<{ received: number; optedOut: number }> {
+): Promise<{ received: number; optedOut: number; contactId?: number }> {
   await addProspects(db, platform, [
     { handle: r.handle, url: r.threadUrl ?? "", name: r.name, headline: null, foundIn: "inbound" },
   ]);
@@ -97,5 +100,5 @@ export async function receive(
         eq(reachMessages.kind, "sequence"),
       ),
     );
-  return { received: 1, optedOut: optOut ? 1 : 0 };
+  return { received: 1, optedOut: optOut ? 1 : 0, contactId: contact.id };
 }

@@ -144,6 +144,8 @@ export type SyncCounts = Record<SyncCounter, number>;
 export interface SyncStats extends SyncCounts {
   senders: number;
   per_sender: Record<string, SyncCounts>;
+  /** Enrollments a person replied on this pass, for a Reply trigger. */
+  replied?: number[];
 }
 
 function counts(): SyncCounts {
@@ -598,6 +600,8 @@ async function handleMessage(
     runId: string | null;
     counts: SyncCounts;
     shared: SharedSuppressions | null;
+    /** Enrollments a person replied on: this message's goes on when it's one. */
+    replied?: number[];
   },
 ): Promise<number | null> {
   const { reader, sender, gmailId, now, counts: c } = opts;
@@ -666,6 +670,7 @@ async function handleMessage(
     } else {
       c[CLASS_COUNTER[inbound.kind]] += 1;
     }
+    if (inbound.kind === "reply") opts.replied?.push(m.enrollment.id);
 
     await act(tx, {
       enrollment: m.enrollment,
@@ -713,7 +718,7 @@ export async function syncInbox(db: Db, opts: SyncInboxOptions): Promise<SyncSta
   const firstSyncLookbackMs = opts.firstSyncLookbackMs ?? 30 * DAY_MS;
   const overlapMs = opts.overlapMs ?? DAY_MS;
   const warn = opts.onWarn ?? (() => {});
-  const overall: SyncStats = { ...counts(), senders: 0, per_sender: {} };
+  const overall: SyncStats = { ...counts(), senders: 0, per_sender: {}, replied: [] };
 
   for (const sender of opts.senders) {
     const c = counts();
@@ -763,6 +768,7 @@ export async function syncInbox(db: Db, opts: SyncInboxOptions): Promise<SyncSta
             runId,
             counts: c,
             shared: opts.shared ?? null,
+            replied: overall.replied as number[],
           });
         } catch (err) {
           warn(`inbox sync: reading ${sender}/${gmailId} failed`, err);

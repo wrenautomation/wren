@@ -19,9 +19,19 @@ import type { Draft } from "./wiring.js";
 /** A made-up event of `kind` to start from: about no one real. */
 export const SAMPLE: Record<string, Record<string, unknown>> = {
   lead: { name: "Sam Test", email: "sam@example.com", phone: "+15555550100" },
+  reply: { channel: "sms", contactId: 1 },
+  call: {
+    call: 1,
+    start: "2026-10-08T15:00:00.000Z",
+    email: "sam@example.com",
+    name: "Sam Test",
+    change: "booked",
+  },
+  item: { at: "2026-10-08T13:00:00.000Z" },
 };
 /** A made-up form post for a door: a lead who ticked the text box. */
 export const SAMPLE_POST = {
+  id: "test-1",
   name: "Sam Test",
   email: "sam@example.com",
   phone: "+15555550100",

@@ -371,6 +371,17 @@ export function PanelHead({
   );
 }
 
+/** What a trigger hears, said once in its panel. */
+const TRIGGER_NOTE: Readonly<Record<string, string>> = {
+  "trigger.schedule":
+    "Fires at each slot once published. Clients keep no time zone yet, so it's set here.",
+  "trigger.form": "Each post enters once per email. Its URL comes with Publish.",
+  "trigger.reply":
+    "Fires when a lead replies to an email, a text or a DM. A lead enters once. A STOP never fires it.",
+  "trigger.booking":
+    "Fires on each cal.com booking, move or cancel, by the booking webhook. Who booked rides along.",
+};
+
 /** A logic node's settings as a form; read only when the node is the code's. */
 function LogicForm({
   logic,
@@ -400,7 +411,9 @@ function LogicForm({
               >
                 {v === "" ? <option value="">Pick one</option> : null}
                 {(s.options ?? []).map((o) => (
-                  <option key={o}>{o}</option>
+                  <option key={o} value={o}>
+                    {s.labels?.[o] ?? o}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -597,13 +610,24 @@ export function NodePanel({
         )}
       </Block>
 
+      {TRIGGER_NOTE[n.uses ?? ""] ? (
+        <p className={cx("text-[13px]", QUIET)}>{TRIGGER_NOTE[n.uses ?? ""]}</p>
+      ) : null}
+
       {DOOR_TRIGGERS.has(n.uses ?? "") ? (
         <>
           <Block title="Field map">
-            <FieldMapForm
-              values={n.with ?? {}}
-              set={added && draft ? (f, v) => setDraft(withSet(draft, id, f, v)) : null}
-            />
+            {n.uses === "trigger.form" && n.with?.form === "site" ? (
+              <p className={QUIET}>
+                Our site's forms post their own shape, so there's nothing to map. Put the door URL
+                in the site's WREN_DOOR_URL.
+              </p>
+            ) : (
+              <FieldMapForm
+                values={n.with ?? {}}
+                set={added && draft ? (f, v) => setDraft(withSet(draft, id, f, v)) : null}
+              />
+            )}
           </Block>
           <Block title="Door">
             <DoorBlock
