@@ -23,7 +23,7 @@ export const REVIEW_STEP = "reviews.ask";
 
 export const missedCallSettingsSchema = z
   .object({
-    onceEvery: z
+    hoursBetween: z
       .number()
       .int()
       .min(1)
@@ -45,7 +45,7 @@ export const reviewsSettingsSchema = z
   .object({
     via: z.enum(["text", "email"]).default("text").describe("Ask by text or email"),
     feedback: z.boolean().default(false).describe("Add a private feedback form to every ask"),
-    onceEvery: z
+    daysBetween: z
       .number()
       .int()
       .min(1)
@@ -304,7 +304,11 @@ export const SMS_COMPONENTS = [
           says: "The words, for new callers and known ones.",
           built: "the missed-call templates",
         },
-        { is: "change", says: "How often one caller can get a text.", built: "settings.onceEvery" },
+        {
+          is: "change",
+          says: "How often one caller can get a text.",
+          built: "settings.hoursBetween",
+        },
         {
           is: "needs",
           says: "Calls to the client's number routed through Wren's Telnyx call app.",
@@ -325,7 +329,7 @@ export const SMS_COMPONENTS = [
     ready: true,
     comesWith: MISSED_CALL,
     requires: { components: [TEXTS] },
-    provides: { templates: ["sms:texts/missed-call.new", "sms:texts/missed-call.known"] },
+    provides: { templates: ["sms:texts/missed-call-new", "sms:texts/missed-call-known"] },
     effects: ["sends"],
     in: [{ id: "calls", label: "missed calls", kind: "call" }],
     out: [
@@ -394,7 +398,7 @@ export const SMS_COMPONENTS = [
     comesWith: REVIEWS,
     requires: { components: [TEXTS] },
     provides: {
-      templates: ["sms:texts/review.ask", "sms:texts/review.reminder", "sms:texts/review.feedback"],
+      templates: ["sms:texts/review-ask", "sms:texts/review-reminder", "sms:texts/review-feedback"],
     },
     effects: ["sends"],
     in: [{ id: "customers", label: "customers", kind: "lead" }],

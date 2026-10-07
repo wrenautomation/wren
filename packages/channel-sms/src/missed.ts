@@ -30,9 +30,9 @@ import { fieldsFor, textRef } from "./template-store.js";
 import { render, textSeed } from "./templates.js";
 
 /** The text a caller gets who isn't in the client's texts yet. Must say STOP. */
-export const MISSED_NEW = "missed-call.new";
+export const MISSED_NEW = "missed-call-new";
 /** The text a caller gets who is: it can use their name. */
-export const MISSED_KNOWN = "missed-call.known";
+export const MISSED_KNOWN = "missed-call-known";
 
 /** One text back per caller in this many hours, unless the client's setting says otherwise. */
 export const ONCE_EVERY_HOURS = 24;

@@ -116,7 +116,7 @@ describe("text back", () => {
     const got = await textBack(pg.db, missed as number, opts());
     expect(got.call).toMatchObject({ textBack: "queued", known: false });
     const [msg] = await pg.db.select().from(smsMessages);
-    expect(msg).toMatchObject({ kind: "text_back", template: "missed-call.new", toE164: CALLER });
+    expect(msg).toMatchObject({ kind: "text_back", template: "missed-call-new", toE164: CALLER });
     expect(msg?.body).toContain("Test Co");
     expect(msg?.body).toContain("STOP");
     const [c] = await pg.db.select().from(smsContacts);
@@ -174,7 +174,7 @@ describe("text back", () => {
     const got = await textBack(pg.db, missed as number, opts());
     expect(got.call).toMatchObject({ textBack: "queued", known: true });
     const [msg] = await pg.db.select().from(smsMessages);
-    expect(msg).toMatchObject({ template: "missed-call.known" });
+    expect(msg).toMatchObject({ template: "missed-call-known" });
     expect(msg?.body).toContain("Hi Ada");
   });
 
@@ -234,9 +234,9 @@ describe("text back", () => {
       steps: [
         { step: "Called", said: "new caller" },
         { step: "Call", said: "missed" },
-        { step: "Text back", said: "queued" },
-        { step: "Replied", said: "replied" },
-        { step: "Booked", said: "booked" },
+        { step: "Text back", said: "texted back" },
+        { step: "Replied", said: "yes" },
+        { step: "Booked", said: "yes" },
       ],
     });
   });
@@ -289,7 +289,7 @@ describe("review requests", () => {
     const a = await askReview(pg.db, customer("hand:1"), ask());
     expect(a).toMatchObject({ ask: "queued", e164: CALLER, placeId: PLACE });
     const [msg] = await pg.db.select().from(smsMessages);
-    expect(msg).toMatchObject({ kind: "review", template: "review.ask" });
+    expect(msg).toMatchObject({ kind: "review", template: "review-ask" });
     expect(msg?.body).toContain(`https://phone.example.test/r/acme/${a.token}`);
     expect(msg?.body).toContain("STOP");
     expect(msg?.body).not.toContain("feedback");
@@ -315,7 +315,7 @@ describe("review requests", () => {
     expect(r.reminder).toBe("queued");
     await remindReview(pg.db, a.id, ask({ feedback: true }));
     const msgs = await pg.db.select().from(smsMessages).orderBy(smsMessages.id);
-    expect(msgs.map((m) => m.template)).toEqual(["review.ask", "review.reminder"]);
+    expect(msgs.map((m) => m.template)).toEqual(["review-ask", "review-reminder"]);
     for (const m of msgs) expect(m.body).toContain(`/r/acme/${a.token}/feedback`);
     expect(await saveFeedback(pg.db, a.token, "  Great work  ", OPEN)).toBe(true);
     expect((await pg.db.select().from(reviewAsks))[0]?.feedback).toBe("Great work");

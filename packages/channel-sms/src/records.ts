@@ -358,9 +358,14 @@ export const missedCallRecord = defineRecord({
           why: null,
         },
         { step: "Call", at: c.endedAt, said: c.result, why: c.cause },
-        { step: "Text back", at: c.textBackAt, said: c.textBack, why: c.textBackDetail },
-        { step: "Replied", at: c.repliedAt, said: c.repliedAt ? "replied" : null, why: null },
-        { step: "Booked", at: booked, said: booked ? "booked" : null, why: null },
+        {
+          step: "Text back",
+          at: c.textBackAt,
+          said: c.textBack === "queued" ? "texted back" : c.textBack,
+          why: c.textBackDetail,
+        },
+        { step: "Replied", at: c.repliedAt, said: c.repliedAt ? "yes" : null, why: null },
+        { step: "Booked", at: booked, said: booked ? "yes" : null, why: null },
       ],
     };
   },
@@ -447,8 +452,18 @@ export const reviewRecord = defineRecord({
     if (!a) return null;
     return {
       steps: [
-        { step: "Asked", at: a.askAt, said: a.ask, why: a.askDetail },
-        { step: "Reminder", at: a.reminderAt, said: a.reminder, why: a.reminderDetail },
+        {
+          step: "Asked",
+          at: a.askAt,
+          said: a.ask === "queued" ? "asked" : a.ask,
+          why: a.askDetail,
+        },
+        {
+          step: "Reminder",
+          at: a.reminderAt,
+          said: a.reminder === "queued" ? "sent" : a.reminder,
+          why: a.reminderDetail,
+        },
         {
           step: "Opened the link",
           at: a.clickedAt,

@@ -32,7 +32,7 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
   return (
     <form
       onSubmit={submit}
-      className="flex w-full min-w-0 flex-1 basis-full flex-col gap-1.5 sm:max-w-xl"
+      className="flex w-full min-w-0 flex-1 basis-full flex-col gap-1.5 sm:max-w-lg lg:basis-auto"
     >
       <div className="flex min-w-0 flex-wrap gap-2">
         <Input

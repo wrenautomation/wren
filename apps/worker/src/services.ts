@@ -1456,7 +1456,7 @@ export async function buildServices(
             why,
             senderName: d.senderName,
             bookingLink: d.bookingLink ?? null,
-            onceEvery: set.success ? set.data.onceEvery : 24,
+            onceEvery: set.success ? set.data.hoursBetween : 24,
             zone: set.success ? set.data.zone : null,
             nudge: nudgeSender(client),
           };
@@ -1477,7 +1477,7 @@ export async function buildServices(
             placeId: await placeIdOf(db, client),
             via: set.success ? set.data.via : "text",
             feedback: set.success ? set.data.feedback : false,
-            onceEvery: set.success ? set.data.onceEvery : 90,
+            onceEvery: set.success ? set.data.daysBetween : 90,
             origin: LINK_ORIGIN,
             nudge: nudgeSender(client),
           };

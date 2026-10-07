@@ -32,9 +32,9 @@ import { reviewUrl } from "./setups.js";
 import { fieldsFor, textRef } from "./template-store.js";
 import { render, textSeed } from "./templates.js";
 
-export const REVIEW_ASK = "review.ask";
-export const REVIEW_REMINDER = "review.reminder";
-export const REVIEW_FEEDBACK = "review.feedback";
+export const REVIEW_ASK = "review-ask";
+export const REVIEW_REMINDER = "review-reminder";
+export const REVIEW_FEEDBACK = "review-feedback";
 
 /** Where the counted links live: the phone Worker. */
 export const LINK_ORIGIN = "https://phone.wrenautomation.com";
