@@ -10,6 +10,7 @@ import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Sparkline, TrendChart } from "./charts/index.js";
+import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { money, month, num } from "./format.js";
@@ -64,6 +65,8 @@ export interface OverviewProps {
   api: RecordsApi;
   tiles: OverviewTile[];
   top?: OverviewTop[] | undefined;
+  /** The pref his tile order and hidden tiles are kept under ("tiles:inbox.overview"). */
+  keepAs?: string | undefined;
 }
 
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -117,8 +120,11 @@ export function perRow(n: number): number[] {
 }
 const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-span-3"];
 
-export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
+export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: OverviewProps) {
   const types = useTypes(api);
+  const keep = keepAs ? api.keep : undefined;
+  const pref = usePref<TilesPref>(keep, keepAs ?? "tiles");
+  const tiles = arrangeTiles(all, pref.value).shown;
   // Each period tile's answer, for the chart under them: asked once, by the tile.
   const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
@@ -128,7 +134,12 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
     setStats((s) => (s[label]?.stat === shown.stat ? s : { ...s, [label]: shown }));
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
-      <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
+        {keep && all.length > 1 ? (
+          <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />
+        ) : null}
+      </div>
       <div className="grid grid-cols-2 gap-px p-px lg:grid-cols-12">
         {tiles.map((t, i) => {
           const meta = metaOf(t.record);
@@ -136,7 +147,11 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
           const wide = i === tiles.length - 1 && tiles.length % 2 === 1;
           return (
             <div key={t.label} className={cn("grid", spans[i], wide && "max-lg:col-span-2")}>
-              {meta ? <Tile tile={t} meta={meta} api={api} onStat={told} /> : <TileGhost />}
+              {meta && pref.ready ? (
+                <Tile tile={t} meta={meta} api={api} onStat={told} />
+              ) : (
+                <TileGhost />
+              )}
             </div>
           );
         })}

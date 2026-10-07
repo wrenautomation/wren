@@ -9,6 +9,15 @@ export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.j
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
+export {
+  moved,
+  type PinLine,
+  PinnedRow,
+  RAIL_PREF,
+  type RailPref,
+  togglePin,
+  usePref,
+} from "./customize.js";
 export { Facts } from "./data.js";
 export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
@@ -125,6 +134,7 @@ export {
   Gate,
   type NavItem,
   type OpenApp,
+  type RailPins,
   type Workspace,
   type WorkspaceOption,
 } from "./shell.js";

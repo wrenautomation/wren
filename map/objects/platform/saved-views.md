@@ -9,7 +9,7 @@ entity: packages/core/src/saved-views.ts:40
 
 # saved-views
 
-What a viewer keeps of the portal (designs/2026-10-06-library-and-views.md, steps 1 and 2): saved views of any list, and prefs by key (a list's last view and columns, his tab order; later the rail and Overview tiles).
+What a viewer keeps of the portal (designs/2026-10-06-library-and-views.md, steps 1 and 2): saved views of any list, and prefs by key (a list's last view and columns, his tab order, his rail pins, his Overview tiles).
 
 ## Why this shape
 
@@ -18,10 +18,11 @@ The list's address already holds its whole state, so a saved view is that addres
 ## Shape
 
 - `saved_views` (`packages/core/src/schema.ts:380`, migration 0130): workspace (a client's id or `wren`), viewer, record, name, params, shared, position
-- `viewer_prefs` (`:405`): workspace, viewer, key, value; keys `list:<record>` (`{sv, view, sort, cols}`), `views:<record>` (his tab order); null deletes (Reset)
+- `viewer_prefs` (`:405`): workspace, viewer, key, value; keys `list:<record>` (`{sv, view, sort, cols}`), `views:<record>` (his tab order), `rail` (`{pins}`, page paths), `tiles:<app>.<page>` (`{order, hidden}` by tile label); null deletes (Reset)
 - `savedViewsOf`, `saveView`, `removeView`, `moveViews`, `prefsOf`, `setPref` (`packages/core/src/saved-views.ts`); a save drops `after`, `sv`, `tab`
 - served by `ConsolePortal{savedViews,saveView,removeView,moveViews,prefs,setPref}`, need `read`; `keeper` (`packages/core/src/console.ts:1285`) scopes to Wren's apps or the client asked for, refuses the demo's writes, and sharing or changing a shared view needs `manage` there
 - drawn by `ViewTabs`, `ListBar`, `SaveView`, `FilterSheet`, `useLastUsed` (`packages/ui/src/list-bar.tsx`) in `RecordList` and `RecordQueue`; the portal binds `RecordsApi.keep` per workspace (`keepOf`, `apps/portal/web/src/records.tsx`)
+- Customize (`packages/ui/src/customize.tsx`): `PinnedRail` on every app's rail (drag or Alt+arrow to move, × unpins, Unpin all), `PinButton` at the rail's foot and in a phone's head, `PinnedRow` on the launcher, `TilesMenu` beside an Overview's title (tick, move, Reset to default). `usePref` changes the screen first, reads back on a failed write. A pin to a page he can't see now stays kept, unshown (`pinLines`, `apps/portal/web/src/App.tsx`)
 - A list opens on the viewer's last view (a saved one with its filters) unless the link names a view, sort or columns; a link with only filters still gets his columns
 
 ## Connected to

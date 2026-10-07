@@ -57,3 +57,8 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
   apps or the client asked for. Filter now offers every filterable field, searchable text
   too, so no list goes without it. The Library shell and its Templates and Sequences tabs went
   to the graph builder; Snippets, Media, SOPs and Workflows stay here.
+- 2026-10-06: Customize built ahead of the Library (its shell is the graph builder's). Pins are
+  pages, not filtered addresses: a saved view already keeps filters. Pins live in the rail of
+  every app and on the launcher, so a phone sees them too. Drag moves them, Alt with an arrow
+  key does the same from the keyboard. App order on the launcher stays the code's. The tile
+  menu keeps a hidden tile in its row so a tick never moves the list, and one tile always shows.

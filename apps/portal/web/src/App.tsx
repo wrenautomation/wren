@@ -17,12 +17,20 @@ import {
   Empty,
   Gate,
   Loading,
+  moved,
   PageHeader,
   type PaletteItem,
+  type PinLine,
+  PinnedRow,
+  RAIL_PREF,
+  type RailPins,
+  type RailPref,
   readTheme,
   Tag,
   type Theme,
   Toasts,
+  togglePin,
+  usePref,
   type Viewer,
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
@@ -34,7 +42,7 @@ import { appsIn, MODULES } from "./modules/index.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
-import { TemplatePage } from "./records.js";
+import { keepOf, TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
 
 const STAMP = "/wren-icon.png";
@@ -176,6 +184,16 @@ const shown = (viewer: Viewer) =>
 
 const withCan = (can: readonly Permission[] | undefined) => (can ? { can } : {});
 
+/** His pins that still open a page he may see, named by their app; the rest wait unshown. */
+export function pinLines(pins: readonly string[], apps: Module[]): PinLine[] {
+  return pins.flatMap((href) => {
+    const at = place(href.split("/").filter(Boolean), apps, true);
+    if (at.kind !== "page") return [];
+    const first = at.module.pages[0]?.id === at.page.id;
+    return [{ href, label: first ? at.module.name : at.page.label, icon: at.module.icon }];
+  });
+}
+
 /** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
 type Place =
   | { kind: "page"; module: Module; page: ModulePage }
@@ -276,6 +294,31 @@ export function App() {
   const account = apps.find((m) => m.menu);
 
   const at = place(route.path, apps, me.data !== null);
+  // What he keeps here (pins, tiles): Wren's apps, or this client; never on a demo.
+  const sample = onDemo !== false || !!clients.find((c) => c.id === current?.id)?.demo;
+  const keeper =
+    current && !sample ? keepOf(wren ? null : current.id, { app: "", asClient: !team }) : undefined;
+  const rail = usePref<RailPref>(keeper, RAIL_PREF);
+  const pinned = rail.value?.pins ?? [];
+  const pins = pinLines(pinned, apps);
+  const onPage = at.kind === "page" ? pathOf(at.module, at.page) : undefined;
+  const setPins = (next: string[]) => rail.set(next.length ? { pins: next } : null);
+  const railPins: RailPins | undefined =
+    keeper && rail.ready
+      ? {
+          pins,
+          here: !!onPage && pinned.includes(onPage),
+          current: onPage,
+          onToggle: () => onPage && setPins(togglePin(pinned, onPage)),
+          // Moves count among the shown pins; one he can't see now keeps its place after them.
+          onMove: (from, to) => {
+            const shown = pins.map((p) => p.href);
+            setPins([...moved(shown, from, to), ...pinned.filter((h) => !shown.includes(h))]);
+          },
+          onRemove: (href) => setPins(pinned.filter((h) => h !== href)),
+          onClear: () => setPins([]),
+        }
+      : undefined;
   const to = at.kind === "go" ? at.to : null;
   useEffect(() => {
     if (to) navigate(to, true);
@@ -359,6 +402,7 @@ export function App() {
           onPick: pick,
         }}
         launcher={launcher}
+        pins={railPins}
         app={
           open
             ? {
@@ -447,6 +491,7 @@ export function App() {
         ) : wren ? (
           <>
             <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
+            <PinnedRow pins={pins} />
             <AppGrid>{cards.map((m) => card(m))}</AppGrid>
           </>
         ) : (
@@ -456,6 +501,7 @@ export function App() {
             apps={cards}
             installed={installed}
             props={props(current.id)}
+            pins={pins}
           />
         )}
       </AppShell>
@@ -498,11 +544,13 @@ function Launcher({
   apps,
   installed,
   props,
+  pins,
 }: {
   name: string;
   apps: Module[];
   installed: ReadonlySet<string>;
   props: PageProps;
+  pins: PinLine[];
 }) {
   const account = useAccount(props);
   if (!account.data && !account.error) return <Loading lines={8} heading />;
@@ -518,6 +566,7 @@ function Launcher({
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
+      <PinnedRow pins={pins} />
       {props.team || props.demo ? null : (
         <AddOn
           offered={(account.data?.bought ?? []).map((b) => b.addOn)}

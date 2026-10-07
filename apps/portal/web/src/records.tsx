@@ -358,6 +358,7 @@ export function TemplatePage({
           api={apiOf(product, client, scope)}
           tiles={page.tiles}
           top={page.top}
+          keepAs={props.demo ? undefined : `tiles:${path.split("/").filter(Boolean).join(".")}`}
         />
         {Below ? <Below {...props} /> : null}
       </>

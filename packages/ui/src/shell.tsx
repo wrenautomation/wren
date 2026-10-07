@@ -7,6 +7,7 @@
  */
 import { type ReactNode, useEffect, useRef } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
+import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { type Theme, usePageTheme } from "./theme.js";
@@ -32,6 +33,19 @@ export interface OpenApp {
   current: string;
   /** Its one button, at the head's right. */
   action?: ReactNode;
+}
+
+/** His pinned pages, on the rail of every app, and the button that pins the one on screen. */
+export interface RailPins {
+  pins: PinLine[];
+  /** The page on screen is pinned. */
+  here: boolean;
+  /** The page on screen, to mark its pin. */
+  current?: string | undefined;
+  onToggle: () => void;
+  onMove: (from: number, to: number) => void;
+  onRemove: (href: string) => void;
+  onClear: () => void;
 }
 
 export interface WorkspaceOption {
@@ -64,6 +78,7 @@ export function AppShell({
   workspace,
   launcher,
   app,
+  pins,
   actions,
   page,
   theme,
@@ -77,6 +92,8 @@ export function AppShell({
   launcher?: string | undefined;
   /** Null on the launcher. */
   app: OpenApp | null;
+  /** His pins; left out where nothing is kept (the demo). */
+  pins?: RailPins | undefined;
   /** The viewer's own buttons, top right. */
   actions?: ReactNode;
   /** Changes when the page does, which scrolls back to the top. */
@@ -138,7 +155,7 @@ export function AppShell({
       </header>
 
       <div className="flex min-h-0 flex-1 max-[900px]:block">
-        {app ? <AppSide app={app} launcher={launcher} /> : null}
+        {app ? <AppSide app={app} launcher={launcher} pins={pins} /> : null}
         <div
           className={cx(
             "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius) bg-(--ui-paper) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
@@ -146,7 +163,7 @@ export function AppShell({
           )}
           ref={scroller}
         >
-          {app ? <AppHead app={app} launcher={launcher} /> : null}
+          {app ? <AppHead app={app} launcher={launcher} pins={pins} /> : null}
           <main
             className={cx(
               "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
@@ -196,7 +213,15 @@ const total = (tabs: NavItem[]) =>
     : undefined;
 
 /** The open app beside the window: back to all apps, its name, its pages, its one button. */
-function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
+function AppSide({
+  app,
+  launcher,
+  pins,
+}: {
+  app: OpenApp;
+  launcher: string | undefined;
+  pins: RailPins | undefined;
+}) {
   return (
     <aside className="flex w-[236px] flex-none flex-col gap-3.5 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden">
       {launcher ? (
@@ -204,6 +229,15 @@ function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined
           <Icon name="apps" />
           <span>All apps</span>
         </a>
+      ) : null}
+      {pins ? (
+        <PinnedRail
+          pins={pins.pins}
+          current={pins.current}
+          onMove={pins.onMove}
+          onRemove={pins.onRemove}
+          onClear={pins.onClear}
+        />
       ) : null}
       <a className={cx(APPNAME, "px-2.5 pt-0.5 pb-1")} href={app.href}>
         <span className={APPMARK} aria-hidden="true">
@@ -240,6 +274,11 @@ function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined
         </ul>
       </nav>
       {app.action ? <div className="px-2.5">{app.action}</div> : null}
+      {pins ? (
+        <div className="mt-auto">
+          <PinButton pinned={pins.here} onToggle={pins.onToggle} />
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -278,7 +317,15 @@ function PhoneTabs({
  * The same on a phone, as the window's head: pages as tabs that wrap, so none is cut off. With
  * groups, the first row is the groups and the second the pages of the one on screen.
  */
-function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
+function AppHead({
+  app,
+  launcher,
+  pins,
+}: {
+  app: OpenApp;
+  launcher: string | undefined;
+  pins: RailPins | undefined;
+}) {
   const groups = runs(app.tabs);
   const here = groups.find((r) => r.tabs.some((t) => t.id === app.current));
   return (
@@ -300,7 +347,12 @@ function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined
           </span>
           {app.name}
         </a>
-        {app.action ? <div className="ml-auto flex items-center gap-2">{app.action}</div> : null}
+        {app.action || pins ? (
+          <div className="ml-auto flex items-center gap-2">
+            {app.action}
+            {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
+          </div>
+        ) : null}
       </div>
       <PhoneTabs
         label={`${app.name} pages`}
