@@ -13,6 +13,8 @@
 @import "shadcn/tailwind.css";
 /* Sonner injects its styles at run time, which the portal's CSP (no inline styles) blocks. */
 @import "sonner/dist/styles.css";
+/* Figtree, self-hosted: the app asks no third party for its face. */
+@import "@fontsource-variable/figtree";
 @source "./";
 
 /* What a theme sets. Leave one out and it keeps Wren's. */
@@ -31,7 +33,7 @@
   --ui-warn: #b7791f; /* waiting on you: needs counts, the amber status tone */
   --ui-warn-ink: #8a5a12; /* amber small text, 5.9:1 on white */
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
-  --ui-font: "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --ui-font: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
   --ui-font-display: var(--ui-font); /* headings and big figures */
   --ui-display-weight: 500;
   --ui-display-squeeze: 1; /* how tight headings sit: 1 is Wren's, 0 is none */

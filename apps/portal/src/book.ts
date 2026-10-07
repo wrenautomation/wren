@@ -30,8 +30,8 @@ const json = (body: unknown, status = 200) =>
 
 /** The page allows Turnstile's script and frame, nothing else from outside. */
 const CSP =
-  "default-src 'self'; img-src 'self' data:; style-src 'self' https://api.fontshare.com; " +
-  "font-src https://cdn.fontshare.com; script-src 'self' https://challenges.cloudflare.com; " +
+  "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; " +
+  "script-src 'self' https://challenges.cloudflare.com; " +
   "frame-src https://challenges.cloudflare.com; connect-src 'self'; frame-ancestors 'none'; " +
   "base-uri 'none'; form-action 'self'";
 

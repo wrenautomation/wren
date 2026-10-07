@@ -239,6 +239,7 @@ One implementer per phase, from this doc. Commit and push each step.
 
 - 2026-10-03: Started after William's review of Phase 1. Records, field kinds and five templates become the standard. Phase 2's app pages and Phase 3 fold into S1 to S3. Phase 2's server routes and views stay.
 - 2026-10-03: The brand stays (General Sans, rust, square corners). App buttons go to sentence case and the lander keeps uppercase. My call; William can reverse it.
+- 2026-10-07: The app face is Figtree, not General Sans. William asked for a rounder font. It is self-hosted (`@fontsource-variable/figtree`, imported in `packages/ui/src/tailwind.css`), so the app, booking page and sign-in call no font host, and their CSPs drop Fontshare. Videos keep General Sans.
 - 2026-10-03: "Least friction" read as the fewest steps to a result: demo actions run in the browser, and nothing invented is shown as real.
 - 2026-10-03 (product depth): `contact_scores.next_step` says what to do: `reach_out` (a move to a named firm, or open roles at their firm), `keep_warm` (no signal, the portal's Keep warm), `none` (left). Compose writes only to `reach_out`. Null means scored before the column, so it rescores.
 - 2026-10-03 (product depth): "Not found yet" with no open roles is keep warm. A `job_change` with no new firm counts as left. Posts and news are not signals yet; nothing writes them.
