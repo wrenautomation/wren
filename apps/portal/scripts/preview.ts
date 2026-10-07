@@ -11,7 +11,7 @@
  */
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, resolve } from "node:path";
 import { calendarRecordsApi } from "@wren/calendar/console";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "@wren/calendar/console-routes";
 import {
@@ -48,6 +48,9 @@ import { healthConsoleApi } from "@wren/delivery/health/console";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/health/console-routes";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
+import { learnConsoleApi } from "@wren/learn/console";
+import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
+import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { googleDrive } from "@wren/notes/drive";
@@ -155,6 +158,9 @@ const SERVICES: Record<
         ...HEALTH_RECORDS,
         // The Inbox's Mentions: the signed-in person's own.
         ...NOTES_RECORDS,
+        // Learn, with the SOP library read from the local folders.
+        ...LEARN_RECORDS,
+        sopRecordFor(resolve(rootDir, settings.sopsDir)),
       ],
     }),
   },
@@ -218,6 +224,12 @@ const SERVICES: Record<
       // Public links only: the service account's key stays on the Worker.
       drive: googleDrive({}),
     }),
+  },
+  // Learn: a save is kept here; its read and score run on the spine, which isn't here.
+  learn: {
+    routes: Object.keys(LEARN_CONSOLE_ROUTES),
+    guard: { needs: LEARN_CONSOLE_ROUTES, apps: LEARN_CONSOLE_APPS, unnamed: "wren" },
+    api: learnConsoleApi(main),
   },
   // Dictation's timings only; a test call's save is Restate's.
   voice: {

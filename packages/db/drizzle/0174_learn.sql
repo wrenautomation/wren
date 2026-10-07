@@ -87,7 +87,7 @@ CREATE INDEX "ix_learn_items_search" ON "learn"."items" USING gin ("search");-->
 CREATE INDEX "ix_learn_sop_sources_sop" ON "learn"."sop_sources" USING btree ("sop");--> statement-breakpoint
 CREATE VIEW "learn"."item_records" AS (
     select i.id, i.title, i.kind::text kind, i.creator,
-      coalesce(s.name, 'Saved') source, s.kind::text source_kind,
+      coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,
       i.score::int score, i.summary,
       (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,
       i.why, i.verdict::text verdict,
@@ -107,7 +107,7 @@ CREATE VIEW "learn"."item_records" AS (
     from learn.items i left join learn.sources s on s.id = i.source_id);--> statement-breakpoint
 CREATE VIEW "learn"."saved_records" AS (select * from (
     select i.id, i.title, i.kind::text kind, i.creator,
-      coalesce(s.name, 'Saved') source, s.kind::text source_kind,
+      coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,
       i.score::int score, i.summary,
       (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,
       i.why, i.verdict::text verdict,

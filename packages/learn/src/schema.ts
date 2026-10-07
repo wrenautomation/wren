@@ -199,7 +199,7 @@ export const digests = learn.table(
  */
 const ITEM_SELECT = sql`
     select i.id, i.title, i.kind::text kind, i.creator,
-      coalesce(s.name, 'Saved') source, s.kind::text source_kind,
+      coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,
       i.score::int score, i.summary,
       (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,
       i.why, i.verdict::text verdict,
@@ -225,6 +225,7 @@ const ITEM_COLUMNS = {
   creator: text("creator"),
   source: text("source"),
   sourceKind: text("source_kind"),
+  sourceId: integer("source_id"),
   score: integer("score"),
   summary: text("summary"),
   changes: text("changes"),

@@ -80,7 +80,7 @@ export const itemRecord = defineRecord({
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   load,
-  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop"],
+  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop", "learn.readAgain"],
 });
 
 export const savedRecord = defineRecord({
@@ -108,7 +108,7 @@ export const savedRecord = defineRecord({
     { id: "waiting", label: "Waiting", where: WAITING, sort: "-savedAt", at: "savedAt" },
   ],
   load,
-  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop"],
+  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop", "learn.readAgain"],
 });
 
 export const sourceRecord = defineRecord({
@@ -160,7 +160,7 @@ export const sourceRecord = defineRecord({
     { id: "failing", label: "Failing", where: { state: "failing" } },
     { id: "stopped", label: "Stopped", where: { state: "stopped" } },
   ],
-  related: [{ record: "learn.item", by: "source" }],
+  related: [{ record: "learn.item", by: "source_id" }],
   actions: ["learn.follow", "learn.tell", "learn.unfollow"],
 });
 

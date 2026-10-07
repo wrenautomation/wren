@@ -372,51 +372,12 @@ const RULE_ACTIONS: Action[] = [
   },
 ];
 
-const ITEM_ACTIONS: Action[] = [
-  {
-    id: "watch.itemDone",
-    label: "Done",
-    handler: "watch/itemDone",
-    undo: "watch/itemUndone",
-    bulk: true,
-    key: "e",
-    when: { queue: ["needs_you", "held"] },
-    done: said("Done"),
-  },
-];
-
-const FEED_ACTIONS: Action[] = [
-  {
-    id: "watch.follow",
-    label: "Follow a feed",
-    handler: "watch/follow",
-    form: [
-      {
-        field: "url",
-        label: "Feed address",
-        hint: "RSS or Atom: a Substack's /feed, a YouTube channel's feed, a GitHub releases.atom.",
-      },
-      { field: "name", label: "Name", optional: true, hint: "Blank takes the feed's own title." },
-    ],
-    done: said("Following. New items are scored from the next read."),
-  },
-  {
-    id: "watch.unfollow",
-    label: "Stop following",
-    handler: "watch/unfollow",
-    bulk: true,
-    confirm: "Stop reading this feed? Its items stay.",
-    done: said("Stopped"),
-  },
-];
-
 export const inbox: Module = {
   id: "inbox",
   name: "Inbox",
   component: "email.replies",
   icon: "reply",
-  blurb:
-    "Every lead's answer, by email, text or DM, the mail that needs you, and what's worth reading.",
+  blurb: "Every lead's answer, by email, text or DM, and the mail that needs you.",
   requires: TEAM,
   pages: [
     {
@@ -459,12 +420,6 @@ export const inbox: Module = {
           label: "Asks for access",
           record: "access.ask",
           href: "/inbox/asks?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Worth reading",
-          record: "watch.item",
-          href: "/inbox/reading?view=needs_you",
           needs: true,
         },
       ],
@@ -536,29 +491,6 @@ export const inbox: Module = {
       record: "watch.rule",
       empty: { all: "No rules yet. Hide like this on any email writes one." },
       actions: RULE_ACTIONS,
-    },
-    {
-      id: "reading",
-      label: "Worth reading",
-      template: "list",
-      record: "watch.item",
-      empty: {
-        needs_you:
-          "Feed items that should change how Wren works show here, scored against the SOPs.",
-        held: "Items worth knowing, with no SOP to change, show here.",
-        waiting: "Every item is scored.",
-        done: "Items you mark done show here.",
-        all: "Items from the feeds Wren follows show here. Follow one under Feeds.",
-      },
-      actions: ITEM_ACTIONS,
-    },
-    {
-      id: "feeds",
-      label: "Feeds",
-      template: "list",
-      record: "watch.feed",
-      empty: { all: "No feeds yet. Follow one: a Substack, a YouTube channel, a blog." },
-      actions: FEED_ACTIONS,
     },
   ],
 };

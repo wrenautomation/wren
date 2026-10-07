@@ -32401,6 +32401,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "source_id": {
+          "name": "source_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "score": {
           "name": "score",
           "type": "integer",
@@ -32486,7 +32492,7 @@
           "notNull": false
         }
       },
-      "definition": "\n    select i.id, i.title, i.kind::text kind, i.creator,\n      coalesce(s.name, 'Saved') source, s.kind::text source_kind,\n      i.score::int score, i.summary,\n      (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,\n      i.why, i.verdict::text verdict,\n      case when i.done_at is not null then 'done'\n        when i.read_at is null and i.read_failure is not null then 'failed'\n        when i.read_at is null and i.needs_mac is not null then 'mac'\n        when i.read_at is null then 'reading'\n        when i.verdict is null then 'scoring'\n        when i.verdict = 'show' then 'show' when i.verdict = 'hold' then 'hold'\n        else 'drop' end state,\n      i.read_failure failure,\n      (select string_agg(x.sop, ', ' order by x.sop) from learn.sop_sources x\n        where x.item_id = i.id) sops,\n      coalesce(i.published_at, i.created_at) at, i.saved_at, i.saved_via::text saved_via,\n      i.created_at, i.url open,\n      length(coalesce(i.transcript, i.text))::int chars\n    from learn.items i left join learn.sources s on s.id = i.source_id",
+      "definition": "\n    select i.id, i.title, i.kind::text kind, i.creator,\n      coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,\n      i.score::int score, i.summary,\n      (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,\n      i.why, i.verdict::text verdict,\n      case when i.done_at is not null then 'done'\n        when i.read_at is null and i.read_failure is not null then 'failed'\n        when i.read_at is null and i.needs_mac is not null then 'mac'\n        when i.read_at is null then 'reading'\n        when i.verdict is null then 'scoring'\n        when i.verdict = 'show' then 'show' when i.verdict = 'hold' then 'hold'\n        else 'drop' end state,\n      i.read_failure failure,\n      (select string_agg(x.sop, ', ' order by x.sop) from learn.sop_sources x\n        where x.item_id = i.id) sops,\n      coalesce(i.published_at, i.created_at) at, i.saved_at, i.saved_via::text saved_via,\n      i.created_at, i.url open,\n      length(coalesce(i.transcript, i.text))::int chars\n    from learn.items i left join learn.sources s on s.id = i.source_id",
       "name": "item_records",
       "schema": "learn",
       "isExisting": false,
@@ -32530,6 +32536,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "source_id": {
+          "name": "source_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "score": {
           "name": "score",
           "type": "integer",
@@ -32615,7 +32627,7 @@
           "notNull": false
         }
       },
-      "definition": "select * from (\n    select i.id, i.title, i.kind::text kind, i.creator,\n      coalesce(s.name, 'Saved') source, s.kind::text source_kind,\n      i.score::int score, i.summary,\n      (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,\n      i.why, i.verdict::text verdict,\n      case when i.done_at is not null then 'done'\n        when i.read_at is null and i.read_failure is not null then 'failed'\n        when i.read_at is null and i.needs_mac is not null then 'mac'\n        when i.read_at is null then 'reading'\n        when i.verdict is null then 'scoring'\n        when i.verdict = 'show' then 'show' when i.verdict = 'hold' then 'hold'\n        else 'drop' end state,\n      i.read_failure failure,\n      (select string_agg(x.sop, ', ' order by x.sop) from learn.sop_sources x\n        where x.item_id = i.id) sops,\n      coalesce(i.published_at, i.created_at) at, i.saved_at, i.saved_via::text saved_via,\n      i.created_at, i.url open,\n      length(coalesce(i.transcript, i.text))::int chars\n    from learn.items i left join learn.sources s on s.id = i.source_id) x where x.saved_at is not null",
+      "definition": "select * from (\n    select i.id, i.title, i.kind::text kind, i.creator,\n      coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,\n      i.score::int score, i.summary,\n      (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,\n      i.why, i.verdict::text verdict,\n      case when i.done_at is not null then 'done'\n        when i.read_at is null and i.read_failure is not null then 'failed'\n        when i.read_at is null and i.needs_mac is not null then 'mac'\n        when i.read_at is null then 'reading'\n        when i.verdict is null then 'scoring'\n        when i.verdict = 'show' then 'show' when i.verdict = 'hold' then 'hold'\n        else 'drop' end state,\n      i.read_failure failure,\n      (select string_agg(x.sop, ', ' order by x.sop) from learn.sop_sources x\n        where x.item_id = i.id) sops,\n      coalesce(i.published_at, i.created_at) at, i.saved_at, i.saved_via::text saved_via,\n      i.created_at, i.url open,\n      length(coalesce(i.transcript, i.text))::int chars\n    from learn.items i left join learn.sources s on s.id = i.source_id) x where x.saved_at is not null",
       "name": "saved_records",
       "schema": "learn",
       "isExisting": false,
