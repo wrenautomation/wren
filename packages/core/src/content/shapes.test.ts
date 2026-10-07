@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PLATFORMS } from "./index.js";
 import {
-  fieldViews,
   fieldsOf,
+  fieldViews,
   missingFields,
   patchFields,
   SHAPES,

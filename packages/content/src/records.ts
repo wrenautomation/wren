@@ -19,10 +19,10 @@ import {
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { DRAFT_CALLS } from "./draft-calls.js";
-import { shapeView } from "./shape-view.js";
-import type { VideoSigner } from "./video.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
+import { shapeView } from "./shape-view.js";
+import type { VideoSigner } from "./video.js";
 
 const NAMES: Record<Platform, string> = {
   linkedin: "LinkedIn",
@@ -206,6 +206,6 @@ export const contentRecords = (signer?: VideoSigner) => [
 ];
 export const CONTENT_RECORDS = contentRecords();
 export { mediaRecord, sopRecord } from "./library.js";
-export * from "./social/records.js";
 export { type ShapeView, shapeView } from "./shape-view.js";
+export * from "./social/records.js";
 export { type VideoSigner, videoRecord } from "./video.js";

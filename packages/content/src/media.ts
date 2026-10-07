@@ -49,7 +49,11 @@ export async function uploadMedia(path: string, o: MediaStoreOptions): Promise<s
 }
 
 /** Put bytes in the store under their content hash, `ext` naming the type (".jpg"). */
-export async function putMedia(bytes: Uint8Array, ext: string, o: MediaStoreOptions): Promise<string> {
+export async function putMedia(
+  bytes: Uint8Array,
+  ext: string,
+  o: MediaStoreOptions,
+): Promise<string> {
   const key = `media/${createHash("sha256").update(bytes).digest("hex").slice(0, 32)}${ext}`;
   await clientOf(o).send(
     new PutObjectCommand({

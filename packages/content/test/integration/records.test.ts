@@ -103,9 +103,19 @@ describe("marketing.draft", () => {
         max: 280,
         feed: { laptop: null, phone: null },
       },
+      shape: expect.objectContaining({
+        platform: "x",
+        site: "X",
+        editable: true,
+        text: "a draft post",
+        published: null,
+      }),
       ask: [],
       record: null,
     });
+    // Every field X takes, as the editor draws it; nothing set yet.
+    const shape = (one.detail as { shape: { fields: { key: string; status: string }[] } }).shape;
+    expect(shape.fields.map((f) => f.key)).toContain("replySettings");
   });
 });
 
@@ -244,6 +254,7 @@ describe("marketing.approval: what we'd send", () => {
     const inbox = (await api.list({ record: inboxRecord.id, view: "all", limit: 500 })).rows;
     expect(inbox.some((r) => outbound.includes(String(r.type)))).toBe(false);
     expect(await approvalRecord.load?.(pg.db, `draft:${d!.id}`)).toEqual({
+      shape: expect.objectContaining({ draftId: d!.id, editable: true }),
       ask: [],
       record: null,
     });

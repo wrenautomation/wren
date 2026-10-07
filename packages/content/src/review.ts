@@ -197,7 +197,9 @@ export async function setFields(
     .update(contentDrafts)
     .set({
       extra: next.extra,
-      ...(retitled ? { title: next.title ?? null, edited: true, status: "draft", error: null } : {}),
+      ...(retitled
+        ? { title: next.title ?? null, edited: true, status: "draft", error: null }
+        : {}),
     })
     .where(eq(contentDrafts.id, id))
     .returning();

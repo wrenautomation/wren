@@ -39,7 +39,9 @@ export function attachmentOf(
   const max = Math.min(f.maxBytes ?? ATTACH_MAX_BYTES, ATTACH_MAX_BYTES);
   if (bytes.length > max) throw new Error(`${f.label}: up to ${max / 1024 / 1024} MB`);
   if (kind.magic && !kind.magic.every((b, i) => bytes[i] === b))
-    throw new Error(`${f.label}: the file isn't the ${kind.ext.slice(1).toUpperCase()} its name says`);
+    throw new Error(
+      `${f.label}: the file isn't the ${kind.ext.slice(1).toUpperCase()} its name says`,
+    );
   return kind.ext;
 }
 

@@ -170,7 +170,11 @@ describe("youtube content channel", () => {
     ]);
     expect(calls[0]?.[2]).toMatchObject({
       snippet: { title: "T", categoryId: "27", defaultLanguage: "en", defaultAudioLanguage: "es" },
-      status: { privacyStatus: "private", selfDeclaredMadeForKids: true, containsSyntheticMedia: true },
+      status: {
+        privacyStatus: "private",
+        selfDeclaredMadeForKids: true,
+        containsSyntheticMedia: true,
+      },
       notifySubscribers: false,
     });
     expect(calls[1]?.[2]).toEqual({
@@ -190,7 +194,7 @@ describe("youtube content channel", () => {
         media: { kind: "video", source: "/v.mp4", title: "T" },
         extra: { privacyStatus: "friends" },
       }),
-    ).rejects.toThrow("Visibility");
+    ).rejects.toThrow("Who sees it");
     expect(calls).toEqual([]);
   });
 
