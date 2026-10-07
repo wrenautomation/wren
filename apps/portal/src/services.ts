@@ -12,6 +12,7 @@ import { type Need, needOf, type Permission } from "@wren/core/access";
 import { CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
+import { VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_WRITES } from "@wren/voice/console-routes";
 import { WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES } from "@wren/watch/console-routes";
 
 export interface Service {
@@ -42,6 +43,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES),
   // Our booking calendar: how a call went, and cancel.
   calendar: service("CalendarConsole", CALENDAR_CONSOLE_ROUTES, CALENDAR_CONSOLE_WRITES),
+  // The voice agent: test calls saved with their turns' timings.
+  voice: service("VoiceConsole", VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_WRITES),
 };
 
 /**

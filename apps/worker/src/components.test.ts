@@ -27,6 +27,7 @@ import { deliveryRecords } from "@wren/delivery/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
+import { VOICE_RECORDS } from "@wren/voice/records";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
@@ -87,6 +88,7 @@ const RECORD_TYPES = [
   ...BOOKS_RECORDS,
   ...WATCH_RECORDS,
   ...CALENDAR_RECORDS,
+  ...VOICE_RECORDS,
   ...MARKETING_NUMBERS,
   sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
   videoRecord(),
@@ -217,10 +219,11 @@ describe("workflows and hypotheses", () => {
     }
   });
 
-  it("a part in development is never ready and provides nothing yet", () => {
+  it("a part in development is never ready and runs nothing yet", () => {
     for (const c of COMPONENTS.filter((x) => x.planned)) {
       expect(c.ready, c.id).toBe(false);
-      expect(Object.values(c.provides).flat(), c.id).toEqual([]);
+      // A scaffold may show its app, records and test buttons (the voice agent); no loop runs.
+      expect(c.provides.loops, c.id).toEqual([]);
     }
   });
 });

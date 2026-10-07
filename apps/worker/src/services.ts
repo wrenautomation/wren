@@ -203,6 +203,8 @@ import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
+import { makeVoiceConsole } from "@wren/voice/console";
+import { VOICE_RECORDS } from "@wren/voice/records";
 import { type Practice, practiceOf, scoreStep, triageStep, mail as watchMail } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
@@ -688,6 +690,8 @@ export async function buildServices(
     // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
     makeCalendar(calendarDeps),
     makeCalendarConsole(calendarDeps),
+    // The voice agent's portal writes: test calls saved (designs/2026-10-06-voice-agent.md).
+    makeVoiceConsole({ db }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1129,6 +1133,7 @@ export async function buildServices(
         ...BOOKS_RECORDS,
         ...WATCH_RECORDS,
         ...CALENDAR_RECORDS,
+        ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
         ...MARKETING_NUMBERS,
         // Replays: read live from the lander, chunks signed from the files bucket.

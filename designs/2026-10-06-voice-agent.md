@@ -98,3 +98,21 @@ Its Shop part reads "In development" until setup.
 
 - 2026-10-06: William asked for the scaffold now, setup deferred, and our own infra over market
   platforms. Building steps 1 to 3.
+- 2026-10-06: Steps 1 to 3 built in `packages/voice`, the box service `deploy/voice` (not
+  installed) and the portal's Voice app (Wren's team only).
+  - The core is isomorphic: the portal's test call runs the real loop in the browser on fakes
+    and a rule-based brain, then saves it through `VoiceConsole.saveTest`. Calls and Latency
+    read tests and real calls alike.
+  - The brain starts on each final transcript and holds the answer until the pause ends the
+    turn; more words drop it. `voice_turns` keeps five stage times per turn: words final, turn
+    over, first token, first audio, heard. All are ms after the caller stopped.
+  - `placeCall` is the only way to dial, and runs `mayDial` first: the agent's `outbound` yes,
+    written consent that names an AI voice, no phone suppression, the SMS channel's quiet hours.
+  - The agent lives in `wren_settings` and is edited in Loops > Settings. A planned part may now
+    provide services, records and apps, but no loops (`components.test.ts`).
+  - Left for setup: booking through `calendarIn` claims the slot and mirrors it to
+    `call_bookings`, but doesn't create the Google event or send the booker's email.
+    Messages stay on `voice_calls.message`, not the lead's SMS thread. `LlmBrain` waits for the
+    whole reply, since `@wren/llm` doesn't stream. No recording to S3. Area codes don't map to
+    states yet, so a recording agent asks every caller. The box's busy times fail closed.
+    Telnyx play time is estimated (8 kB/s); `mark` events aren't used.

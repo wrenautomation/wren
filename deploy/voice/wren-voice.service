@@ -1,0 +1,27 @@
+# The voice agent's call loop on the box (designs/2026-10-06-voice-agent.md): a long-lived
+# process holding each call's media socket, which Lambda can't. NOT INSTALLED: setup copies it to
+# /etc/systemd/system/ once William says yes, with a bundle of packages/voice/src/box/main.ts at
+# /opt/wren-voice/voice.mjs and /wren/prod/voice in SSM (WREN_VOICE_TOKEN, TELNYX_API_KEY).
+# Loopback only: Caddy (or the tunnel) fronts /media for Telnyx at setup.
+[Unit]
+Description=wren voice agent (call loop)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker rm -f wren-voice
+ExecStart=/usr/bin/docker run --name wren-voice --init --network host --memory 256m \
+  --log-opt max-size=20m --log-opt max-file=3 \
+  -v /opt/wren-voice:/app:ro -w /app \
+  -e AWS_REGION=us-east-1 \
+  -e WREN_SSM_ENV_PARAM=/wren/prod/env \
+  -e WREN_SSM_VOICE_PARAM=/wren/prod/voice \
+  -e WREN_VOICE_PORT=8790 \
+  -e NODE_OPTIONS=--max-old-space-size=192 \
+  node:22-slim node voice.mjs
+ExecStop=/usr/bin/docker stop -t 20 wren-voice
+
+[Install]
+WantedBy=multi-user.target

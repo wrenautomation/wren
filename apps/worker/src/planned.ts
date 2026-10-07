@@ -105,35 +105,6 @@ export const PLANNED_COMPONENTS = [
   }),
   defineComponent({
     ...planned,
-    id: "voice.agent",
-    stage: "follow",
-    channels: ["voice"],
-    name: "Voice agent",
-    blurb: "Answers and makes calls for the client, qualifies the lead and books the call.",
-    icon: "phone",
-    for: "client",
-    in: [{ id: "leads", label: "leads", kind: "lead" }],
-    out: [
-      { id: "booked", label: "calls booked", kind: "call" },
-      { id: "missed", label: "not booked", kind: "lead" },
-    ],
-    effects: ["spends"],
-    hypothesis: {
-      from,
-      guesses: [
-        {
-          is: "change",
-          says: "The questions and what counts as qualified, per offer.",
-          built: null,
-        },
-        { is: "change", says: "The voice, and the booking rules.", built: null },
-        { is: "needs", says: "A voice model's minutes, priced per call.", built: null },
-        { is: "fixed", says: "Says it's an assistant, and hands off to a person when asked." },
-      ],
-    },
-  }),
-  defineComponent({
-    ...planned,
     id: "follow_up",
     stage: "follow",
     channels: ["email", "text"],

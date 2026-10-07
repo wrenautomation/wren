@@ -10,6 +10,7 @@ import { marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { texts } from "./texts/index.js";
+import { voice } from "./voice/index.js";
 import { work } from "./work/index.js";
 import { leads, WREN_APPS } from "./wren/index.js";
 
@@ -23,6 +24,7 @@ export const MODULES: Module[] = [
   ...WREN_APPS,
   library,
   calendar,
+  voice,
   account,
 ];
 
