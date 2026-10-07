@@ -17,7 +17,7 @@ export function Included({ client }: { client: string }) {
   return (
     <p className="text-[13px] text-(--ui-ink-2)">
       {monthly > 0
-        ? `Your plan includes ${n} that cost about ${usd(monthly)} a month bought separately. `
+        ? `Your plan includes ${n} that ${tools.length === 1 ? "costs" : "cost"} about ${usd(monthly)} a month bought separately. `
         : `Your plan includes ${n} you'd otherwise buy separately. `}
       <a href={`/marketplace/catalog?view=installed&client=${encodeURIComponent(client)}`}>
         See them
