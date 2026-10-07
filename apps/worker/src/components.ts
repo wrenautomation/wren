@@ -78,6 +78,7 @@ export const PLATFORM = {
     review: "the Friday review of parked ideas",
     library: "every template, prompt and sequence, with their numbers",
     notes: "docs for Wren's team and each client's people, with versions and sharing",
+    learn: "saved links and followed sources, read and kept like a drive, in every workspace",
   },
   records: {
     "console.ask": "every question asked of Claude Code",

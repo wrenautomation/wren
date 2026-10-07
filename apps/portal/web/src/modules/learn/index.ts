@@ -41,7 +41,6 @@ const hidden: Module["pages"] = [
 export const learn: Module = {
   id: "learn",
   name: "Learn",
-  component: "learn.save",
   icon: "note",
   blurb:
     "Saved links and followed sources, read, scored against Wren's SOPs, and kept like a drive.",
