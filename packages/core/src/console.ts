@@ -1343,6 +1343,7 @@ export function consoleApi({
     settingRecord(components),
     snippetRecord(),
     flagRecord(edge),
+    experimentRecord(),
     workflowRecord(workflows, components),
     eventRecord,
     executionRecord,
@@ -1449,7 +1450,6 @@ export function consoleApi({
       await setAuditActor(tx, by);
       return change(tx, t, id, by);
     });
-    experimentRecord(),
   };
   /** Accept names the ask its patch came from: it must be this record's, and answered. */
   const askOn = async (db: Queryable, run: string, record: string, id: string) => {
@@ -1466,14 +1466,6 @@ export function consoleApi({
   const teamWrite = async <T>(
     req: TeamSeatRequest,
     change: (tx: Queryable, email: string) => Promise<T>,
-  /** An experiment button's writer (`manage` at Wren) and the flags it names. */
-  const experimentIds = (req: PortalRequest & { ids?: unknown }): [string, string[]] => {
-    const by = teamWriter(req);
-    if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
-    const ids = Array.isArray(req.ids) ? req.ids.filter((x) => typeof x === "string") : [];
-    if (!ids.length) throw new PortalRefusal("say which experiment", 400);
-    return [by, ids];
-  };
   ): Promise<T> => {
     team(req);
     const email = typeof req.email === "string" ? normalEmail(req.email) : "";
@@ -1488,6 +1480,14 @@ export function consoleApi({
       if (err instanceof LastAdmin) throw new PortalRefusal(err.message, 409);
       throw err;
     }
+  };
+  /** An experiment button's writer (`manage` at Wren) and the flags it names. */
+  const experimentIds = (req: PortalRequest & { ids?: unknown }): [string, string[]] => {
+    const by = teamWriter(req);
+    if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+    const ids = Array.isArray(req.ids) ? req.ids.filter((x) => typeof x === "string") : [];
+    if (!ids.length) throw new PortalRefusal("say which experiment", 400);
+    return [by, ids];
   };
   /**
    * A seat's client list, each a client or `wren`; undefined leaves it as it is. A form's text
@@ -1750,6 +1750,28 @@ export function consoleApi({
       if (!ids.length) throw new PortalRefusal("say which flag", 400);
       return { done: await removeFlags(main, ids, edge) };
     },
+    /** Experiments: Start and Ship put a variant live on the public site, so `manage` (William). */
+    experimentAdd: async (req: PortalRequest & ExperimentInput) => {
+      const by = teamWriter(req);
+      if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+      return addExperiment(main, { flag: req.flag, goal: req.goal }, by);
+    },
+    experimentStart: async (req: PortalRequest & { ids?: unknown }) => {
+      const [by, ids] = experimentIds(req);
+      return { done: await startExperiments(main, ids, by, edge) };
+    },
+    experimentShip: async (req: PortalRequest & { ids?: unknown }) => {
+      const [by, ids] = experimentIds(req);
+      return { done: await shipExperiments(main, ids, by, edge) };
+    },
+    experimentStop: async (req: PortalRequest & { ids?: unknown }) => {
+      const [by, ids] = experimentIds(req);
+      return { done: await stopExperiments(main, ids, by, edge) };
+    },
+    experimentRemove: async (req: PortalRequest & { ids?: unknown }) => {
+      const [, ids] = experimentIds(req);
+      return { done: await removeExperiments(main, ids) };
+    },
     /** A record action: `{ids}`, each removed. */
     snippetRemove: async (req: PortalRequest & { ids?: unknown }) => {
       teamWriter(req);
@@ -1856,28 +1878,6 @@ export function consoleApi({
             409,
           );
         return null;
-    /** Experiments: Start and Ship put a variant live on the public site, so `manage` (William). */
-    experimentAdd: async (req: PortalRequest & ExperimentInput) => {
-      const by = teamWriter(req);
-      if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
-      return addExperiment(main, { flag: req.flag, goal: req.goal }, by);
-    },
-    experimentStart: async (req: PortalRequest & { ids?: unknown }) => {
-      const [by, ids] = experimentIds(req);
-      return { done: await startExperiments(main, ids, by, edge) };
-    },
-    experimentShip: async (req: PortalRequest & { ids?: unknown }) => {
-      const [by, ids] = experimentIds(req);
-      return { done: await shipExperiments(main, ids, by, edge) };
-    },
-    experimentStop: async (req: PortalRequest & { ids?: unknown }) => {
-      const [by, ids] = experimentIds(req);
-      return { done: await stopExperiments(main, ids, by, edge) };
-    },
-    experimentRemove: async (req: PortalRequest & { ids?: unknown }) => {
-      const [, ids] = experimentIds(req);
-      return { done: await removeExperiments(main, ids) };
-    },
       }),
     /**
      * A workflow's wiring from the canvas, for Wren or a client: checked as the spine would run it,
@@ -2076,6 +2076,16 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => ctx.run("add flag", () => answer(() => api.flagAdd(req)))),
       flagRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
         answer(() => ctx.run("remove flag", () => answer(() => api.flagRemove(req)))),
+      experimentAdd: (ctx: restate.Context, req: PortalRequest & ExperimentInput) =>
+        answer(() => ctx.run("add experiment", () => answer(() => api.experimentAdd(req)))),
+      experimentStart: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("start experiment", () => answer(() => api.experimentStart(req)))),
+      experimentShip: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("ship experiment", () => answer(() => api.experimentShip(req)))),
+      experimentStop: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("stop experiment", () => answer(() => api.experimentStop(req)))),
+      experimentRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("remove experiment", () => answer(() => api.experimentRemove(req)))),
       setPref: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>
@@ -2162,13 +2172,3 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     },
   });
 }
-      experimentAdd: (ctx: restate.Context, req: PortalRequest & ExperimentInput) =>
-        answer(() => ctx.run("add experiment", () => answer(() => api.experimentAdd(req)))),
-      experimentStart: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
-        answer(() => ctx.run("start experiment", () => answer(() => api.experimentStart(req)))),
-      experimentShip: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
-        answer(() => ctx.run("ship experiment", () => answer(() => api.experimentShip(req)))),
-      experimentStop: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
-        answer(() => ctx.run("stop experiment", () => answer(() => api.experimentStop(req)))),
-      experimentRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
-        answer(() => ctx.run("remove experiment", () => answer(() => api.experimentRemove(req)))),
