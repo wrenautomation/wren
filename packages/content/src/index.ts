@@ -20,6 +20,7 @@ export { PaintUnavailable, slidePainter } from "./slide-paint.js";
 export * from "./slots.js";
 export * from "./social/store.js";
 export * from "./status.js";
+export * from "./touches.js";
 export * from "./train-backfill.js";
 export {
   type ApprovedVideo,

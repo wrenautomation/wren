@@ -34,6 +34,7 @@ import {
   reachMessages,
 } from "./schema.js";
 import { queueManual } from "./tick.js";
+import { keepTouch, touchFromAnswer, touchFromComment } from "./touches.js";
 
 /** The workflow, and the node the reader is in it. */
 export const COMMENTS_FLOW = "reach.comments";
@@ -89,10 +90,12 @@ export async function keepComments(
     post: comments.post,
     sort: comments.sort,
   });
-  return kept
+  const theirs = kept
     .filter((k) => k.sort !== "ours")
     .map(({ sort: _, ...k }) => k)
     .sort((a, b) => a.id - b.id);
+  for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  return theirs;
 }
 
 /** One kept comment on the spine. */
@@ -325,6 +328,7 @@ export async function markAnswered(
     .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
     .where(eq(comments.id, id))
     .returning({ platform: comments.platform });
+  await keepTouch(`ca:${id}`, () => touchFromAnswer(db, id));
   if (c)
     await recordDraft(db, {
       item: `comment:${id}`,

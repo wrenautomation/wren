@@ -19,6 +19,7 @@ import { type ReachPolicy, standingOf } from "./policy.js";
 import { type InviteFit, type ReachAccount, reachContacts, reachMessages } from "./schema.js";
 import type { ReachSequence } from "./sequences.js";
 import type { Journal } from "./tick.js";
+import { keepTouch, touchInvites } from "./touches.js";
 
 export const INVITES_COMPONENT = "linkedin.invites";
 export const INVITE_SEQUENCE = "linkedin-invite";
@@ -453,7 +454,9 @@ export async function markAccepted(
       ),
     )
     .returning({ id: reachContacts.id });
-  return rows.map((r) => r.id);
+  const ids = rows.map((r) => r.id);
+  await keepTouch("accepted", () => touchInvites(db, ids, "accepted", now));
+  return ids;
 }
 
 /** Invites from `account` still pending after `days`, oldest first. */
@@ -488,6 +491,7 @@ export async function applyWithdraw(
       reason: `invite withdrawn after ${days} days`,
       now,
     });
+    await keepTouch("withdrawn", () => touchInvites(db, [contactId], "ignored", now));
     return "withdrawn";
   }
   if (r.relationship === "connected") {
@@ -495,6 +499,7 @@ export async function applyWithdraw(
       .update(reachContacts)
       .set({ state: "connected", connectedAt: now, stateReason: null })
       .where(eq(reachContacts.id, contactId));
+    await keepTouch("accepted", () => touchInvites(db, [contactId], "accepted", now));
     return "accepted";
   }
   if (r.relationship === "none") {
@@ -502,6 +507,7 @@ export async function applyWithdraw(
       reason: "invite no longer pending: declined, or withdrawn by hand",
       now,
     });
+    await keepTouch("gone", () => touchInvites(db, [contactId], "ignored", now));
     return "gone";
   }
   return "unknown";

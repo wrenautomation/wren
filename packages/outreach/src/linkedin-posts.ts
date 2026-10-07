@@ -23,6 +23,7 @@ import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { ReachRefusal } from "./refusal.js";
 import { type LinkedinPost, linkedinPosts, reachAccounts } from "./schema.js";
+import { keepTouch, touchFromLinkedinPost } from "./touches.js";
 
 export const COMMENTS_COMPONENT = "linkedin.comments";
 /** The comment route's cap on LinkedIn. */
@@ -966,6 +967,7 @@ export async function markPostCommented(
     .update(linkedinPosts)
     .set({ state: "commented", comment: r.body, commentedAt: r.now, commentedBy: r.by })
     .where(eq(linkedinPosts.id, post.id));
+  await keepTouch(`lp:${post.id}`, () => touchFromLinkedinPost(db, post.id));
   await keepSentEdit(db, {
     record: "lipost",
     id: String(post.id),

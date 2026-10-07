@@ -9,7 +9,8 @@
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",
-    "./sequences": "./src/sequences.ts"
+    "./sequences": "./src/sequences.ts",
+    "./touches": "./src/touches.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

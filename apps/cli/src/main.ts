@@ -52,6 +52,7 @@ import { registerSocial } from "./social.js";
 import { registerSop } from "./sop.js";
 import { registerStudy } from "./study.js";
 import { registerTemplates } from "./templates.js";
+import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
 import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
@@ -267,6 +268,7 @@ registerSocial(program, settings);
 registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
+registerTouches(program, withMainDb);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
 registerSitePages(

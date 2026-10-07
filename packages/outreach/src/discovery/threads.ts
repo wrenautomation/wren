@@ -28,6 +28,7 @@ import {
   redditThreads,
   THREAD_KINDS,
 } from "../schema.js";
+import { keepTouch, touchFromThread } from "../touches.js";
 import { personLine } from "./people.js";
 import type { Audience } from "./places.js";
 import type { Post } from "./reads.js";
@@ -436,6 +437,7 @@ export async function markCommented(
       accountId: r.accountId,
     })
     .where(eq(redditThreads.id, id));
+  await keepTouch(`rt:${id}`, () => touchFromThread(db, id));
   await recordDraft(db, {
     item: `thread:${id}`,
     kind: "thread",

@@ -7,8 +7,10 @@ import type { ActivityRow, Audience, CommentRow, Platform } from "@wren/core/con
 import { plural } from "@wren/core/notify";
 import type { Queryable } from "@wren/db";
 import { askedInWords, type Comment, comments } from "@wren/outreach";
+import { keepTouch, touchFromComment } from "@wren/outreach/touches";
 import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
+import { touchFromActivity } from "../touches.js";
 
 const DAY = 86_400_000;
 /** Posts this young are read for comments. */
@@ -115,10 +117,12 @@ export async function keepPostComments(
     body: comments.body,
     sort: comments.sort,
   });
-  return kept
+  const theirs = kept
     .filter((k) => k.sort !== "ours")
     .map(({ sort: _, body, ...k }) => ({ ...k, asked: askedInWords(body) }))
     .sort((a, b) => a.id - b.id);
+  for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  return theirs;
 }
 
 /** The newest kept activity time on the platform: the next read starts there. */
@@ -140,7 +144,7 @@ export async function keepActivity(
   now: Date,
 ): Promise<Array<{ id: number; kind: ActivityRow["kind"] }>> {
   if (!rows.length) return [];
-  return db
+  const kept = await db
     .insert(socialActivity)
     .values(
       rows.map((a) => ({
@@ -157,6 +161,8 @@ export async function keepActivity(
     )
     .onConflictDoNothing()
     .returning({ id: socialActivity.id, kind: socialActivity.kind });
+  for (const k of kept) await keepTouch(`sa:${k.id}`, () => touchFromActivity(db, k.id));
+  return kept;
 }
 
 /** Whether the platform's count for `day` is already kept. */

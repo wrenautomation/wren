@@ -40,6 +40,7 @@ import {
 } from "./schema.js";
 import { dmSeed, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
 import { liveDms } from "./store.js";
+import { keepTouch, touchFromMessage } from "./touches.js";
 
 /** A `sending` row older than this lost its platform call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
@@ -420,6 +421,7 @@ export async function recordSent(
     .update(reachMessages)
     .set({ state: "sent", sentAt: o.now, ref: sent.ref })
     .where(eq(reachMessages.id, c.row.id));
+  await keepTouch(`rm:${c.row.id}`, () => touchFromMessage(db, c.row.id));
   stats.sent++;
   const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
   if (!seq) return;

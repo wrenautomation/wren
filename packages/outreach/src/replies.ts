@@ -10,6 +10,7 @@ import type { Queryable } from "@wren/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { addProspects, contactByHandle, setContactState } from "./contacts.js";
 import { type Platform, type ReachAccount, reachContacts, reachMessages } from "./schema.js";
+import { keepTouch, touchFromMessage } from "./touches.js";
 
 const OPT_OUT =
   /\b(stop|unsubscribe|remove me|leave me alone|do not (contact|message|dm)|don'?t (contact|message|dm))\b/i;
@@ -80,6 +81,8 @@ export async function receive(
     .onConflictDoNothing()
     .returning({ id: reachMessages.id });
   if (inserted.length === 0) return { received: 0, optedOut: 0 };
+  const messageId = inserted[0]?.id;
+  if (messageId) await keepTouch(`rm:${messageId}`, () => touchFromMessage(db, messageId));
   const optOut = isOptOut(r.text);
   // A draft answered their older word: stale now, the watch drafts again (drafts.ts).
   await db
