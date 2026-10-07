@@ -4,7 +4,7 @@
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
 import type { Action } from "@wren/ui";
-import type { ListPage, Module } from "../../module.js";
+import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
 import { threadExtras } from "../texts/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
@@ -562,6 +562,85 @@ const TEXT_COPY_ACTIONS: Action[] = [
   },
 ];
 
+/** Content's platform switch: what waits on him on each platform, kept from page to page. */
+const BY_PLATFORM: PageAcross = {
+  field: "platform",
+  label: "Platform",
+  waits: [
+    { record: "marketing.draft", view: "waiting" },
+    { record: "marketing.comment", view: "waiting" },
+    { record: "marketing.dm", view: "waiting" },
+    { record: "marketing.video", view: "waiting" },
+  ],
+};
+
+/**
+ * Content's day, by platform: what posts and posted, and what waits on him. Waiting work dated
+ * before today (a draft by when it was drafted, a comment or DM by when it came, a video by its
+ * last change) sits on today until it's done.
+ */
+const TODAY: DayPage = {
+  id: "today",
+  label: "Today",
+  group: "Content",
+  template: "day",
+  by: "platform",
+  across: BY_PLATFORM,
+  sources: [
+    {
+      record: "marketing.draft",
+      label: "Scheduled",
+      view: "scheduled",
+      at: "scheduled",
+      open: "/marketing/drafts",
+    },
+    {
+      record: "marketing.post",
+      label: "Posted",
+      view: "all",
+      at: "published",
+      open: "/marketing/content",
+    },
+    {
+      record: "marketing.draft",
+      label: "Drafts waiting",
+      view: "waiting",
+      at: "created",
+      carry: true,
+      action: "marketing.approveDraft",
+      open: "/marketing/drafts",
+    },
+    {
+      record: "marketing.comment",
+      label: "Comments to answer",
+      view: "waiting",
+      at: "at",
+      carry: true,
+      action: "marketing.commentAnswer",
+      open: "/marketing/comments",
+    },
+    {
+      record: "marketing.dm",
+      label: "DMs to answer",
+      view: "waiting",
+      at: "lastAt",
+      carry: true,
+      action: "marketing.dmReply",
+      open: "/marketing/dms",
+    },
+    {
+      record: "marketing.video",
+      label: "Videos to approve",
+      view: "waiting",
+      at: "updated",
+      carry: true,
+      action: "marketing.videoApprove",
+      open: "/marketing/videos",
+    },
+  ],
+  actions: [...DRAFT_ACTIONS, ...COMMENT_ACTIONS, ...DM_ACTIONS, VIDEO_APPROVE],
+};
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
@@ -572,10 +651,12 @@ export const marketing: Module = {
   pages: [
     { id: "inbox", ...INBOX_PAGE },
     APPROVAL_PAGE,
+    TODAY,
     {
       id: "drafts",
       label: "Drafts",
       group: "Content",
+      across: BY_PLATFORM,
       template: "list",
       record: "marketing.draft",
       empty: {
@@ -590,6 +671,7 @@ export const marketing: Module = {
       id: "content",
       label: "Posts",
       group: "Content",
+      across: BY_PLATFORM,
       template: "list",
       record: "marketing.post",
       empty: "Posts show here once one is published.",
@@ -600,6 +682,7 @@ export const marketing: Module = {
       id: "comments",
       label: "Comments",
       group: "Content",
+      across: BY_PLATFORM,
       template: "list",
       record: "marketing.comment",
       empty: {
@@ -614,6 +697,7 @@ export const marketing: Module = {
       id: "videos",
       label: "Videos",
       group: "Content",
+      across: BY_PLATFORM,
       template: "list",
       record: "marketing.video",
       empty: {

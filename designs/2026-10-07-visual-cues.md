@@ -62,6 +62,20 @@ Batch 1 (marks, cues, domain breaks):
 | Queue rows, form sections, shop groups | the subtitle or group field | its cue |
 | Filter options and pills | any cued field | its cue before the label |
 
+Batch 2 (Content by platform and by day):
+
+| Where | What | Date it sits on |
+|---|---|---|
+| Content: Today, Drafts, Posts, Comments, Videos | platform switch: All, then each platform's mark and what waits (drafts, comments, DMs, videos waiting) | none |
+| Content: Today | Scheduled drafts | `scheduled` (Posts at) |
+| Content: Today | Posted | `published` |
+| Content: Today | Drafts waiting, with Approve | `created` (Drafted); no post date until approved |
+| Content: Today | Comments to answer, with Answer | `at` (when it came) |
+| Content: Today | DMs to answer, with Reply | `lastAt` (the last message) |
+| Content: Today | Videos to approve, with Approve | `updated` (the last change; under YouTube) |
+
+Waiting work dated before today, or with no date, sits on today until it's done, not on its own past day. A platform with nothing that day is named on one line under the groups. A switch pick a page's type can't hold (LinkedIn on Videos) says "No LinkedIn videos here."
+
 Not cued: "Where" (reach account or our post) stays plain; with Type and Kind beside it a third swatch was noise. Status fields keep their dots everywhere.
 
 ## Decision log
@@ -70,4 +84,7 @@ Not cued: "Where" (reach account or our post) stays plain; with Type and Kind be
 - 2026-10-07: One set of tints for both themes. Mid-light hues read on the paper by day and by night, so no second set. Never red, green or amber: those are the tones.
 - 2026-10-07: "Reach" is not a DM mark. A reach account sends comments and invites too.
 - 2026-10-07: Domain breaks use `<wbr>` after dots, slashes and @. Truncating hid the end of the domain, the part people read.
+- 2026-10-07: The switch's key is `platform` on every Content page, so a tab link carries it (`across` on the page). DMs count toward it: Today lists them.
+- 2026-10-07: Today reads drafts, posts, comments, DMs and videos from their own records, not the Inbox, so each row's action is that page's own.
+- 2026-10-07: Waiting work moves to today rather than staying on its past day. The past shows what happened; today shows what waits.
 - 2026-10-07: The local preview registers Marketing's records and Pipeline's companies, so these pages draw there.

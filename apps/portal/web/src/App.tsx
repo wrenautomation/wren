@@ -48,7 +48,7 @@ import { AddOn } from "./modules/marketplace/AddOn.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { keepOf, TemplatePage } from "./records.js";
-import { navigate, useRoute } from "./route.js";
+import { href, navigate, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
 
 const STAMP = "/wren-icon.png";
@@ -57,6 +57,12 @@ const THEME_KEY = "wren.portal.theme";
 const AS_CLIENT_KEY = "wren.portal.asClient";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
+/** A tab's link: a filter across both pages (Content's platform) goes along. */
+const tabOf = (m: Module, from: ModulePage, to: ModulePage, params: URLSearchParams) => {
+  const field = from.across?.field;
+  if (!field || to.across?.field !== field) return pathOf(m, to);
+  return href(pathOf(m, to), { [field]: params.get(field) });
+};
 const firstOf = (m: Module) => (m.pages[0] ? pathOf(m, m.pages[0]) : "/");
 const teamOnly = (m: Module) => m.requires?.audience === "team";
 
@@ -440,7 +446,7 @@ export function App() {
                   .map((p) => ({
                     id: p.id,
                     label: p.label,
-                    href: pathOf(open.module, p),
+                    href: tabOf(open.module, open.page, p, route.params),
                     ...(p.group ? { group: p.group } : {}),
                     ...(counts[p.id] ? { count: counts[p.id] } : {}),
                   })),

@@ -25,6 +25,7 @@ export {
   usePref,
 } from "./customize.js";
 export { Facts, Settings } from "./data.js";
+export { type DaySource, RecordDay } from "./day.js";
 export { Diff, pairsOf } from "./diff.js";
 export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
@@ -188,6 +189,7 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
+export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export {
   applyTheme,
   PRESETS,

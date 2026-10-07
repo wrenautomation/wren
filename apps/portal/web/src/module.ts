@@ -6,12 +6,14 @@ import type { Row } from "@wren/core/records/serve";
 import type {
   Access,
   Action,
+  DaySource,
   IconName,
   OverviewTile,
   OverviewTop,
   RecordAct,
   RecordExtras,
   ShopSections,
+  SwitchWait,
 } from "@wren/ui";
 import type { ComponentType, ReactNode } from "react";
 
@@ -43,6 +45,19 @@ interface PageBase {
   hidden?: true;
   /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */
   requires?: Access;
+  /**
+   * A filter across its top, kept moving between pages that share it: Content's platforms. The
+   * field is the list's own filter in the address; `waits` count what waits in each state.
+   */
+  across?: PageAcross;
+}
+
+export interface PageAcross {
+  /** The field and the param: "platform". */
+  field: string;
+  /** What it's called, read aloud: "Platform". */
+  label: string;
+  waits: readonly SwitchWait[];
 }
 
 /** A page drawn by hand. */
@@ -91,7 +106,20 @@ export interface OverviewPage extends PageBase {
   below?: ComponentType<PageProps>;
 }
 
-export type ModulePage = HandPage | ListPage | OverviewPage;
+/**
+ * One day of work across record types, grouped by a field under its cue: Content's Today. Each
+ * source names its date field; its rows' main action comes from `actions`.
+ */
+export interface DayPage extends PageBase {
+  template: "day";
+  /** Each a record of one product, which serves the page: "marketing.draft". */
+  sources: readonly DaySource[];
+  /** The field rows are grouped by: "platform". */
+  by: string;
+  actions?: Action[];
+}
+
+export type ModulePage = HandPage | ListPage | OverviewPage | DayPage;
 
 export interface Module {
   /** The first path segment. */

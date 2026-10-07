@@ -1,8 +1,8 @@
 /**
- * A page declared as data (`template: "list"`, `"queue"` or `"overview"`), drawn by @wren/ui's
- * templates. The record type's product serves it at /api/<product>/records*; in Wren's own
- * workspace the console serves every record. The address is the state. On the demo, actions run
- * on a copy in the browser; a reload resets it.
+ * A page declared as data (`template: "list"`, `"queue"`, `"overview"` or `"day"`), drawn by
+ * @wren/ui's templates. The record type's product serves it at /api/<product>/records*; in
+ * Wren's own workspace the console serves every record. The address is the state. On the demo,
+ * actions run on a copy in the browser; a reload resets it.
  */
 import { WREN as CORE_WREN } from "@wren/core/access";
 import type { Row } from "@wren/core/records/serve";
@@ -13,18 +13,21 @@ import {
   localRecords,
   type Place,
   type RecordAct,
+  RecordDay,
   RecordForm,
   RecordList,
   RecordOverview,
   RecordPage,
   RecordQueue,
   RecordShop,
+  RecordSwitch,
   type RecordsApi,
 } from "@wren/ui";
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
-import { type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
+import { type DayPage, type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
 import { href, navigate } from "./route.js";
 
 type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
@@ -374,6 +377,17 @@ async function eachOf(
   return { done, skipped };
 }
 
+/** A page's actions as the portal runs them: one record's handler per id, else as named. */
+const callOf =
+  (client: string | null) =>
+  async (handler: string, input: Input): Promise<unknown> => {
+    const sent = await uploaded(client, input);
+    const one = (client && CLIENT_ONE[handler]) || ONE[handler];
+    if (one) return eachOf(one, sent, client);
+    const [to, add] = AS[handler] ?? [handler, {}];
+    return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });
+  };
+
 export function TemplatePage({
   page,
   path,
@@ -381,7 +395,7 @@ export function TemplatePage({
   app,
   ...props
 }: PageProps & {
-  page: ListPage | OverviewPage;
+  page: ListPage | OverviewPage | DayPage;
   path: string;
   id: string | undefined;
   app: string;
@@ -395,7 +409,12 @@ export function TemplatePage({
 
   const wren = props.client === WREN.id;
   const client = wren ? null : props.client;
-  const record = page.template === "overview" ? (page.tiles[0]?.record ?? "") : page.record;
+  const record =
+    page.template === "overview"
+      ? (page.tiles[0]?.record ?? "")
+      : page.template === "day"
+        ? (page.sources[0]?.record ?? "")
+        : page.record;
   // The console serves Wren's records, and access's anywhere.
   const product = wren || record.startsWith("access.") ? "console" : (record.split(".")[0] ?? "");
   const scope = { app: path.split("/")[1] ?? "", asClient: !props.team };
@@ -423,7 +442,6 @@ export function TemplatePage({
     list: path,
     go: navigate,
   };
-  const { extras, head } = page;
   // Each action needs what its route needs, unless it says otherwise: a button the login can't
   // press is hidden.
   // View as reads only: no actions.
@@ -431,29 +449,53 @@ export function TemplatePage({
     const needs = a.requires?.needs ?? permissionOf(AS[a.handler]?.[0] ?? a.handler);
     return needs ? { ...a, requires: { ...a.requires, needs } } : a;
   });
+  const viewer = {
+    team: props.team,
+    demo: props.demo,
+    ...(props.can ? { can: props.can } : {}),
+    ...(props.who !== undefined ? { who: props.who } : {}),
+  };
   const local = props.demo && client ? localOf(product, client, scope) : null;
+  const api = local?.api ?? apiOf(product, client, scope);
+  // A filter across the top that the page's own list reads: Content's platforms.
+  const { across } = page;
+  const switched = (body: ReactNode, list?: string) =>
+    across ? (
+      <RecordSwitch
+        api={api}
+        place={place}
+        field={across.field}
+        label={across.label}
+        waits={across.waits}
+        record={list}
+      >
+        {body}
+      </RecordSwitch>
+    ) : (
+      body
+    );
+  if (page.template === "day")
+    return switched(
+      <RecordDay
+        title={page.label}
+        api={api}
+        place={place}
+        sources={page.sources}
+        by={page.by}
+        acts={{ actions, viewer, call: callOf(client) }}
+      />,
+    );
+
+  const { extras, head } = page;
   const shared = {
     record: page.record,
     title: page.label,
-    api: local?.api ?? apiOf(product, client, scope),
+    api,
     place,
     acts: {
       actions,
-      viewer: {
-        team: props.team,
-        demo: props.demo,
-        ...(props.can ? { can: props.can } : {}),
-        ...(props.who !== undefined ? { who: props.who } : {}),
-      },
-      call:
-        local?.callFor(page.record, actions) ??
-        (async (handler: string, input: Input) => {
-          const sent = await uploaded(client, input);
-          const one = (client && CLIENT_ONE[handler]) || ONE[handler];
-          if (one) return eachOf(one, sent, client);
-          const [to, add] = AS[handler] ?? [handler, {}];
-          return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });
-        }),
+      viewer,
+      call: local?.callFor(page.record, actions) ?? callOf(client),
     },
     empty: page.empty,
     example: props.demo ? page.example : undefined,
@@ -468,5 +510,8 @@ export function TemplatePage({
   if (id) return <RecordPage {...shared} id={id} />;
   if (page.template === "form") return <RecordForm {...shared} />;
   if (page.template === "shop") return <RecordShop {...shared} />;
-  return page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />;
+  return switched(
+    page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />,
+    page.record,
+  );
 }
