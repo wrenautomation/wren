@@ -198,6 +198,8 @@ import { gate } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
+import { HEALTH_RECORDS } from "@wren/delivery/health";
+import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
@@ -1034,6 +1036,8 @@ export async function buildServices(
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));
+  // Health and flags: Wren's rating, an override, a flag taken, addressed or cleared.
+  services.push(makeHealthConsole(db));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,
@@ -1495,6 +1499,8 @@ export async function buildServices(
         ...MARKETING_RECORDS,
         ...templateRecords(WORKFLOWS),
         clientRecord,
+        // Each client's health and the flags about it (Clients).
+        ...HEALTH_RECORDS,
         reviewRecord(),
         askRecord,
       ],

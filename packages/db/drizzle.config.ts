@@ -27,6 +27,7 @@ export default defineConfig({
     "../auth/src/schema.ts",
     "../delivery/src/schema.ts",
     "../delivery/src/health/schema.ts",
+    "../delivery/src/health/views.ts",
     "../outreach/src/schema.ts",
     "../watch/src/schema.ts",
     "../studio/src/schema.ts",

@@ -324,4 +324,46 @@ export const settingOf = (client: Client) =>
     actions: ["reactivation.change"],
   });
 
-export const REACTIVATION_RECORDS: readonly RecordType[] = [person, email, reply, finding];
+const SIGNAL = {
+  champion_left: { label: "Champion left", tone: "bad" },
+  overdue: { label: "Past the usual gap", tone: "warn" },
+  hiring: { label: "Hiring again", tone: "good" },
+  news: { label: "In the news", tone: "good" },
+  steady: { label: "Steady", tone: "neutral" },
+} as const;
+
+/** Keep: the accounts placed with lately, by the risk of losing them (designs/2026-10-07-health.md). */
+export const keep = defineRecord({
+  id: "reactivation.keep",
+  app: "reactivation",
+  channel: null,
+  name: { one: "account", many: "accounts" },
+  view: "reactivation_keep",
+  key: "id",
+  title: "company",
+  subtitle: "why",
+  fields: {
+    company: company(undefined, { domain: "domain" }),
+    signal: status(SIGNAL, "Signal"),
+    risk: score("Risk", { max: 100 }),
+    why: text("Why"),
+    champion: name("Champion"),
+    lastPlacement: date("Last placement"),
+    placements: number("Placements"),
+    usualGap: number("Usual gap, days"),
+    since: number("Days since"),
+    lastContact: date("Last contact"),
+  },
+  views: [
+    { id: "risk", label: "At risk", where: { risk: { gte: 30 } }, sort: "-risk" },
+    {
+      id: "call",
+      label: "Reason to call",
+      where: { signal: ["hiring", "news"] },
+      sort: "-lastPlacement",
+    },
+    { id: "all", label: "All accounts", sort: "-risk" },
+  ],
+});
+
+export const REACTIVATION_RECORDS: readonly RecordType[] = [person, email, reply, finding, keep];

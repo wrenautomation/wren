@@ -21,6 +21,7 @@ export const REACTIVATION_COMPONENTS = [
         "reactivation.person",
         "reactivation.email",
         "reactivation.finding",
+        "reactivation.keep",
         "reactivation.reply",
         "reactivation.setting",
       ],

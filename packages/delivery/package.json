@@ -12,7 +12,9 @@
     "./routes": "./src/routes.ts",
     "./files": "./src/files.ts",
     "./sample": "./src/sample.ts",
-    "./health": "./src/health/index.ts"
+    "./health": "./src/health/index.ts",
+    "./health/console": "./src/health/console.ts",
+    "./health/console-routes": "./src/health/console-routes.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",

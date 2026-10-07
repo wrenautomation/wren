@@ -43,6 +43,9 @@ import {
 } from "@wren/core/templates/console-routes";
 import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
+import { HEALTH_RECORDS } from "@wren/delivery/health";
+import { healthConsoleApi } from "@wren/delivery/health/console";
+import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/health/console-routes";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { notesApi } from "@wren/notes/console";
@@ -146,6 +149,8 @@ const SERVICES: Record<
         firmRecord,
         // Voice's calls and Latency, as the worker registers them.
         ...VOICE_RECORDS,
+        // Clients' health and flags.
+        ...HEALTH_RECORDS,
       ],
     }),
   },
@@ -192,6 +197,12 @@ const SERVICES: Record<
     api: templatesApi({ db: main }),
   },
   // Notes, in each workspace's own database; images in memory like client files.
+  // Health and flags: rate, override, raise, take, address, clear.
+  health: {
+    routes: Object.keys(HEALTH_CONSOLE_ROUTES),
+    guard: { needs: HEALTH_CONSOLE_ROUTES, apps: HEALTH_CONSOLE_APPS, unnamed: "wren" },
+    api: healthConsoleApi(main),
+  },
   notes: {
     routes: Object.keys(NOTES_CONSOLE_ROUTES),
     guard: { needs: NOTES_CONSOLE_ROUTES, apps: NOTES_CONSOLE_APPS, unnamed: "wren" },

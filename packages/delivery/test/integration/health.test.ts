@@ -5,9 +5,12 @@
  */
 import { addMember, clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
+import type { Viewer } from "@wren/core/portal";
+import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { healthConsoleApi } from "../../src/health/console.js";
 import {
   addressFlag,
   clearFlag,
@@ -25,6 +28,7 @@ import {
   syncFlags,
   tellFlags,
 } from "../../src/health/index.js";
+import { HEALTH_RECORDS } from "../../src/health/records.js";
 import { addInvoice, engagementOf, startEngagement } from "../../src/index.js";
 
 let pg: TestPostgres;
@@ -297,5 +301,64 @@ describe("flags", () => {
     expect((await flagsToFire(pg.db, NOW)).map((f) => [f.event.subject, f.facts])).toEqual([
       [`flag:${person?.id}`, { trigger: "trigger.flag", change: "cleared", side: "opportunity" }],
     ]);
+  });
+});
+
+describe("the console", () => {
+  const ops: Viewer = { email: OPS, operator: true };
+  it("reads health, its inputs, its days and the flags as records", async () => {
+    await healthPass(pg.db, "UTC", NOW);
+    const api = serveRecords(HEALTH_RECORDS, pg.db);
+    const health = await api.list({ record: "console.health", view: "all" });
+    expect(health.rows).toEqual([
+      expect.objectContaining({ id: "acme", name: "Acme Staffing", score: 47, band: "watch" }),
+    ]);
+    const got = await api.get({ record: "console.health", id: "acme" });
+    expect(got.row).toMatchObject({
+      weights: "Results 40% · Engagement 20% · Sentiment 25% · Money 15%",
+      resultsWhy: "3 of 4.7 expected by now",
+      rating: 2,
+    });
+    const inputs = await api.list({
+      record: "console.health_input",
+      view: "all",
+      where: { client: "acme" },
+    });
+    expect(inputs.rows.map((r) => [r.part, r.age])).toContainEqual(["results", "fresh"]);
+    expect(inputs.rows.find((r) => r.part === "results")?.rows).toBe(
+      "/reactivation/results?client=acme",
+    );
+    const days = await api.list({ record: "console.health_day", view: "all" });
+    expect(days.rows.map((r) => r.id)).toContain("acme:2026-11-02");
+    const flags = await api.list({ record: "console.flag", view: "open" });
+    expect(flags.rows.every((r) => r.state !== "cleared")).toBe(true);
+    expect(JSON.stringify(flags.rows)).not.toContain("how");
+  });
+
+  it("rates, overrides and works flags as the signed-in teammate", async () => {
+    const api = healthConsoleApi(pg.db);
+    await api.rate({ viewer: ops, ids: ["acme"], score: "4", note: "Better call" });
+    await expect(api.rate({ viewer: ops, ids: ["acme"], score: "7" })).rejects.toThrow(/1 to 5/);
+    await api.override({ viewer: ops, ids: ["acme"], score: 55, reason: "New champion" });
+    const raised = await api.flagRaise({
+      viewer: ops,
+      ids: ["acme"],
+      side: "opportunity",
+      what: "Asked about a second offer",
+    });
+    await api.flagTake({ viewer: ops, ids: [raised.id ?? ""] });
+    await api.flagAddress({ viewer: ops, ids: [raised.id ?? ""], note: "Call booked" });
+    const [row] = await pg.db.execute<{ owner: string; addressed_by: string }>(
+      sql`select owner, addressed_by from delivery.flags where id = ${Number(raised.id)}`,
+    );
+    expect(row).toEqual({ owner: OPS, addressed_by: OPS });
+    await expect(
+      api.flagOwn({ viewer: ops, ids: [raised.id ?? ""], owner: "not an address" }),
+    ).rejects.toThrow(/email address/);
+    await api.flagClear({ viewer: ops, ids: [raised.id ?? ""] });
+    await api.clearOverride({ viewer: ops, ids: ["acme"] });
+    await expect(api.rate({ viewer: { demo: true }, ids: ["acme"], score: 3 })).rejects.toThrow(
+      /read-only/,
+    );
   });
 });

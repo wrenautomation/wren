@@ -32,6 +32,7 @@ import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
+import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { deliveryRecords } from "@wren/delivery/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
@@ -106,6 +107,7 @@ const RECORD_TYPES = [
   dmCopyRecord("x"),
   textCopyRecord([], "x"),
   clientRecord,
+  ...HEALTH_RECORDS,
   teamRecord,
   changeRecord,
   loopRecord(async () => []),

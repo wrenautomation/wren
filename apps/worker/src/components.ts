@@ -53,6 +53,7 @@ export const PLATFORM = {
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
+    HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
   },
   apps: {
     account: "every client's account: people, look, billing",
@@ -70,6 +71,10 @@ export const PLATFORM = {
   records: {
     "console.ask": "every question asked of Claude Code",
     "console.client": "the client registry",
+    "console.health": "each client's health, its four parts and the override beside it",
+    "console.health_day": "every client's health, a row a day, kept",
+    "console.health_input": "the rows behind each client's latest health",
+    "console.flag": "risks and opportunities about each client, raised to cleared",
     "console.loop": "every loop",
     "console.handler": "every handler",
     "console.component": "every component",

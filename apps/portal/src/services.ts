@@ -41,6 +41,11 @@ import {
   TEMPLATES_CONSOLE_ROUTES,
   TEMPLATES_CONSOLE_WRITES,
 } from "@wren/core/templates/console-routes";
+import {
+  HEALTH_CONSOLE_APPS,
+  HEALTH_CONSOLE_ROUTES,
+  HEALTH_CONSOLE_WRITES,
+} from "@wren/delivery/health/console-routes";
 import { DELIVERY_APPS, DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import {
   NOTES_CONSOLE_APPS,
@@ -105,6 +110,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Monitor: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
+  // Clients' health and flags: Wren's rating, an override, a flag's owner and state.
+  health: service(
+    "HealthConsole",
+    HEALTH_CONSOLE_ROUTES,
+    HEALTH_CONSOLE_APPS,
+    HEALTH_CONSOLE_WRITES,
+  ),
   // Booking calendars, Wren's and each client's: the week, the calls, how one went, cancel.
   calendar: service(
     "CalendarConsole",

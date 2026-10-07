@@ -5,7 +5,7 @@
  */
 import { sql } from "drizzle-orm";
 import { integer, pgView, real, text, timestamp } from "drizzle-orm/pg-core";
-import { hiringFinding, whereConflict, whereFinding } from "../score.js";
+import { hiringFinding, newsFinding, whereConflict, whereFinding } from "../score.js";
 
 const NAME = (p: string) =>
   sql.raw(`nullif(concat_ws(' ', nullif(${p}.first_name, ''), nullif(${p}.last_name, '')), '')`);
@@ -175,3 +175,85 @@ export const reactivationPersonActivity = pgView("reactivation_person_activity",
   where f.person_id is not null
   union all
   select k.person_id, k.called_at, 'called', k.called_by from calls k`);
+
+/**
+ * Keep (designs/2026-10-07-health.md): each company placed with in the last 24 months, scored
+ * for the risk of losing it. Its usual gap is the median between its placement days; with
+ * fewer than two, the client's median; with none, 180 days. The champion is the person behind
+ * the latest placement. Signal, first that holds: champion left, past the usual gap by 25%,
+ * hiring again, news in 6 months, steady. Risk: champion left 50, past the gap 30, no contact
+ * in 6 months 20; hiring and news are reasons to call, not risk.
+ */
+export const reactivationKeep = pgView("reactivation_keep", {
+  id: integer("id"),
+  company: text("company"),
+  domain: text("domain"),
+  champion: text("champion"),
+  championId: integer("champion_id"),
+  signal: text("signal"),
+  risk: integer("risk"),
+  why: text("why"),
+  lastPlacement: timestamp("last_placement", { withTimezone: true }),
+  placements: integer("placements"),
+  usualGap: integer("usual_gap"),
+  since: integer("since"),
+  lastContact: timestamp("last_contact", { withTimezone: true }),
+}).as(sql`
+  with placed as (
+    select company_id, person_id, last_placement_on d from crm_contacts
+    where last_placement_on is not null),
+  dates as (select distinct company_id, d from placed),
+  gaps as (
+    select company_id, d - lag(d) over (partition by company_id order by d) gap from dates),
+  own as (
+    select company_id, percentile_cont(0.5) within group (order by gap) gap from gaps
+    where gap is not null group by company_id),
+  usual as (
+    select percentile_cont(0.5) within group (order by gap) gap from gaps where gap is not null),
+  latest as (
+    select distinct on (company_id) company_id, person_id champion, d last_placement from placed
+    order by company_id, d desc, person_id),
+  counts as (select company_id, count(*)::int placements from dates group by company_id),
+  cur as (
+    select l.company_id, l.champion, l.last_placement, k.placements,
+      round(coalesce(o.gap, u.gap, 180))::int usual_gap,
+      (current_date - l.last_placement)::int since,
+      ${whereFinding(sql`l.champion`)} where_id, ${hiringFinding(sql`l.company_id`)} hiring_id,
+      ${newsFinding(sql`l.company_id`, sql`null::int`)} news_id
+    from latest l join counts k on k.company_id = l.company_id
+    left join own o on o.company_id = l.company_id cross join usual u
+    where l.last_placement > current_date - interval '24 months'),
+  touched as (
+    select c.company_id,
+      greatest(max(c.last_contacted_on)::timestamptz, max(k.called_at)) last_contact
+    from crm_contacts c left join calls k on k.person_id = c.person_id group by c.company_id),
+  sig as (
+    select cur.*, w.kind where_kind, w.value ->> 'to' moved_to, t.last_contact,
+      cur.since > 1.25 * cur.usual_gap overdue,
+      coalesce(w.kind in ('job_change', 'left'), false) gone,
+      (select coalesce(n.value ->> 'title', n.value ->> 'event') from findings n
+        where n.id = cur.news_id) news
+    from cur left join findings w on w.id = cur.where_id
+    left join touched t on t.company_id = cur.company_id)
+  select s.company_id id, coalesce(co.name, co.domain, '?') company, co.domain,
+    coalesce(${NAME("p")}, p.full_name, '(no name)') champion, s.champion champion_id,
+    case when s.gone then 'champion_left' when s.overdue then 'overdue'
+      when s.hiring_id is not null then 'hiring' when s.news_id is not null then 'news'
+      else 'steady' end signal,
+    ((case when s.gone then 50 else 0 end) + (case when s.overdue then 30 else 0 end)
+      + (case when s.last_contact is null or s.last_contact < now() - interval '6 months'
+        then 20 else 0 end))::int risk,
+    case when s.where_kind = 'job_change' then
+        coalesce(${NAME("p")}, p.full_name, 'The champion') || ' moved'
+          || coalesce(' to ' || s.moved_to, '')
+      when s.where_kind = 'left' then coalesce(${NAME("p")}, p.full_name, 'The champion') || ' left'
+      when s.overdue then s.since || ' days since the last placement; usually ' || s.usual_gap
+      when s.hiring_id is not null then 'Open roles found in the last 30 days'
+      when s.news_id is not null then coalesce(s.news, 'In the news')
+      else s.placements || case when s.placements = 1 then ' placement' else ' placements' end
+        || ', the last ' || s.since || ' days ago' end why,
+    s.last_placement::timestamptz last_placement, s.placements, s.usual_gap, s.since,
+    s.last_contact
+  from sig s
+  join companies co on co.id = s.company_id
+  join people p on p.id = s.champion`);
