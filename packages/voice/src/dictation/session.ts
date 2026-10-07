@@ -13,7 +13,7 @@ import { applyCommands } from "./commands.js";
 export const DICTATION_STAGES = {
   load: "Model load",
   mic: "Mic open",
-  first: "First words",
+  first: "Talk to first words",
   final: "Release to last words",
 } as const;
 export type DictationStage = keyof typeof DICTATION_STAGES;
@@ -21,7 +21,10 @@ export type DictationStage = keyof typeof DICTATION_STAGES;
 export interface DictationRun {
   /** Press to the mic's first frame. */
   micMs: number | null;
-  /** Press to the first words shown, partial or final. */
+  /**
+   * The person starts talking (the ears' `speech`) to the first words shown, partial or final.
+   * From the press when the ears never say (the browser's own speech).
+   */
   firstMs: number | null;
   /** Release to the last words in the box; null when nothing was heard. */
   finalMs: number | null;
@@ -56,6 +59,7 @@ export function startDictation(o: {
   const now = o.now ?? (() => performance.now());
   const pressed = now();
   let micAt: number | null = null;
+  let speechAt: number | null = null;
   let firstAt: number | null = null;
   let releasedAt: number | null = null;
   let lastFinalAt: number | null = null;
@@ -67,7 +71,8 @@ export function startDictation(o: {
   };
   const ear: EarStream = o.ears.open((h) => {
     if (over) return;
-    if (h.kind === "partial") {
+    if (h.kind === "speech") speechAt ??= now();
+    else if (h.kind === "partial") {
       shown();
       o.on.partial(applyCommands(h.text));
     } else if (h.kind === "final") {
@@ -93,7 +98,7 @@ export function startDictation(o: {
       const released = releasedAt;
       return {
         micMs: micAt === null ? null : Math.round(micAt - pressed),
-        firstMs: firstAt === null ? null : Math.round(firstAt - pressed),
+        firstMs: firstAt === null ? null : Math.round(firstAt - (speechAt ?? pressed)),
         finalMs: lastFinalAt === null ? null : Math.max(0, Math.round(lastFinalAt - released)),
         words: count,
         audioMs: Math.round(audio),

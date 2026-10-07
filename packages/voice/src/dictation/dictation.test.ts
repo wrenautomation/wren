@@ -124,6 +124,18 @@ describe("TranscriberEars", () => {
     const first = model.runs.find((r) => r.final);
     expect(first?.samples).toBe((300 + 600 + 700 + 600) * 16);
   });
+  it("runs the first partial after 150 ms of speech, not on the quiet before it", async () => {
+    const model = new FakeTranscriber(["Reply"]);
+    const ear = new TranscriberEars(model).open(() => {});
+    for (const f of [...hush(500), ...talk(100)]) {
+      ear.push(f);
+      await settle();
+    }
+    expect(model.runs).toEqual([]);
+    for (const f of talk(100)) ear.push(f);
+    await settle();
+    expect(model.runs.length).toBe(1);
+  });
   it("hears nothing in silence", async () => {
     const model = new FakeTranscriber(["never"]);
     const heard: string[] = [];
@@ -191,7 +203,8 @@ describe("startDictation", () => {
     const run = await s.stop();
     expect(out.at(-1)).toBe("Thanks.\nDana");
     expect(out.some((o) => o.startsWith("~"))).toBe(true);
-    expect(run).toEqual({ micMs: 40, firstMs: 40, finalMs: 0, words: 2, audioMs: 700 });
+    // First words count from the talking, not the press.
+    expect(run).toEqual({ micMs: 40, firstMs: 0, finalMs: 0, words: 2, audioMs: 700 });
   });
   it("has no final time when nothing was said", async () => {
     const s = startDictation({

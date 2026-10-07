@@ -1,6 +1,7 @@
 /**
  * Ears from any batch model (designs/2026-10-07-dictation.md). The audio is cut into segments on
- * a pause or at a length cap. While a segment grows, the model runs on it again for a partial,
+ * a pause or at a length cap. While a segment grows, the model runs on it again for a partial
+ * (the first after 150 ms of speech, then every 250 ms of new audio),
  * one run at a time and never queued behind another; when the segment ends, one more run gives
  * its final. Every run is padded with silence: Moonshine drops last words without it.
  */
@@ -10,6 +11,8 @@ import { DICTATION_RATE, levelOf, samplesOf, type Transcriber } from "./transcri
 export interface TranscriberEarsOptions {
   /** New audio a partial needs since the last run, in ms. Default 250; a server takes 1500. */
   partialEveryMs?: number;
+  /** Speech the first partial of a segment waits for, ms. Default 150: the first word shows sooner. */
+  firstPartialMs?: number;
   /** Quiet that ends a segment, ms. Default 700. */
   pauseMs?: number;
   /** A segment is cut here even mid-speech, ms. Default 20 s (Whisper hears 30 s at most). */
@@ -37,6 +40,7 @@ export class TranscriberEars implements Ears {
     const model = this.model;
     const o = this.o;
     const every = ms(o.partialEveryMs ?? 250);
+    const firstGap = ms(o.firstPartialMs ?? 150);
     const pause = ms(o.pauseMs ?? 700);
     const cap = ms(o.maxSegmentMs ?? 20_000);
     const preroll = ms(300);
@@ -50,6 +54,8 @@ export class TranscriberEars implements Ears {
     /** Background loudness, so a fan doesn't count as talking. */
     let noise = floor / 2;
     let ranAt = 0;
+    /** New audio the next partial waits for: less for a segment's first. */
+    let gap = every;
     /** Bumped per segment: a partial from an old one is dropped. */
     let segment = 0;
     let running = false;
@@ -71,9 +77,10 @@ export class TranscriberEars implements Ears {
     };
 
     const partial = () => {
-      if (running || !speaking || length - ranAt < every) return;
+      if (running || !speaking || length - ranAt < gap) return;
       running = true;
       ranAt = length;
+      gap = every;
       const mine = segment;
       model
         .transcribe(joined(), { final: false, signal: abort.signal })
@@ -124,6 +131,9 @@ export class TranscriberEars implements Ears {
         if (!speaking) {
           if (loud) {
             speaking = true;
+            // The first run waits for some speech: the quiet before it alone gives no words.
+            ranAt = length - samples.length;
+            gap = firstGap;
             on({ kind: "speech" });
           } else {
             // Keep a little before the first word, so its start isn't clipped.

@@ -114,15 +114,27 @@ synthetic WAV as the mic (`--use-file-for-fake-audio-capture`), 2026-10-07:
 
 ## Measuring
 
-Each dictation is timed: mic open (press to the first frame), first words (press to the first
-partial or final), and final (release to the last final in the box). It goes to the run ledger
+Each dictation is timed: mic open (press to the first frame), first words (the person starts
+talking to the first partial or final; from the press for the browser's own speech, which doesn't
+say when talking starts), and final (release to the last final in the box). It goes to the run ledger
 as a `dictate` run (adapter, model, the three times, words, audio length; no text, no person),
 pruned after 30 days like the other chatty commands. Model load (a first press only) is timed
 too. Voice > Latency shows p50 and p95 per adapter and stage under the agent's pipeline stats.
 
 Only Wren's team reports (`voice/dictated`, `wren:read`): a client's dictations aren't timed,
-since the route is Wren's and the timings are ours to tune. Measured in the preview: first words
-about 1.5 s from press, because the test WAV opens with 1 s of quiet.
+since the route is Wren's and the timings are ours to tune.
+
+First words, measured in the preview (Moonshine base, WebGPU, 6 dictations each, half on a cold
+press). Counted from the press it read 1.4 to 1.8 s, but the test WAV opens with 1 s of quiet,
+so the stage now starts when talking does. Then:
+
+| | p50 | range |
+|---|---|---|
+| Before: first run at the onset, on the quiet before it, then 250 ms more | 489 ms | 354 to 603 |
+| After: the first run waits for 150 ms of speech | 242 ms | 183 to 319 |
+
+Warm presses land at 175 to 195 ms. A cold press pays WebGPU's shader compile on its first run:
+one slow batch read 690 ms. Release to last words didn't move (82 to 344 ms).
 
 ## The GPU plan (his money call)
 
@@ -159,4 +171,6 @@ Not built, not configured.
   jsDelivr first). The weights stay on Hugging Face: R2 is a bucket and a prod write.
 - 2026-10-07: The mic sits inside the box, not on a row under it.
 - 2026-10-07: Only Wren's team's dictations are timed: the report route is a Wren one.
+- 2026-10-07: First words count from talking, not the press, and the first partial waits for
+  150 ms of speech instead of running on the quiet before it: 489 to 242 ms p50. Same model.
 - 2026-10-07: Dictate also in action dialogs' message box and long fields, and ⌘K's box.

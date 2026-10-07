@@ -48,6 +48,7 @@ import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
+import { VOICE_RECORDS } from "@wren/voice/records";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { videoRecord } from "../../../packages/content/src/video.js";
@@ -132,6 +133,8 @@ const SERVICES: Record<
         ...MARKETING_NUMBERS,
         videoRecord(),
         firmRecord,
+        // Voice's calls and Latency, as the worker registers them.
+        ...VOICE_RECORDS,
       ],
     }),
   },
