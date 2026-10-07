@@ -10,7 +10,6 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
-import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
@@ -885,15 +884,6 @@ export const marketing: Module = {
         recent: "Replays show here once a visitor says yes to cookies.",
       },
       extras: sessionExtras,
-    },
-    {
-      id: "heatmaps",
-      label: "Heatmaps",
-      group: "Numbers",
-      template: "list",
-      record: "marketing.heat",
-      empty: "Heatmaps show here a day after visitors click on the site.",
-      extras: heatExtras,
     },
     {
       id: "search-days",
