@@ -17,7 +17,7 @@ Consent basis is a column, not a comment: `published` (the business put the numb
 
 ## Shape
 
-- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0181) (`schema.ts:152`–`182`)
+- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0182) (`schema.ts:152`–`182`)
 - one enrolled row per number (`uq_sms_contacts_enrolled_e164`, `:189`); one row per site application (`uq_sms_contacts_source_ref`, `:187`)
 
 Citations: `packages/channel-sms/src/schema.ts:149`
