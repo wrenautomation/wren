@@ -728,7 +728,9 @@ export function serveRecords(
               await db.execute<Raw>(sql`
                 select r.at, r.kind, r.what from ${viewSql(t.activity.view)} r
                 where (${ref(t.activity.by)})::text = ${id}
-                order by r.at desc nulls last limit ${ACTIVITY}`)
+                order by r.at desc nulls last
+                  ${t.activity.seq ? sql`, ${ref(t.activity.seq)} desc nulls last` : sql``}
+                limit ${ACTIVITY}`)
             ).map((a) => ({
               at: a.at instanceof Date ? a.at.toISOString() : String(a.at),
               kind: a.kind === null ? null : String(a.kind),

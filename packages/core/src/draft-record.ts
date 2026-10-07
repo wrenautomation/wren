@@ -86,8 +86,10 @@ export interface DraftStep {
   /** Set by the backfill, which knows the rounds; else counted from the item's last step. */
   round?: number;
   /**
-   * Left out, the database's clock, so one draft's steps sort on one clock. Set for a time the
-   * step happened elsewhere: the platform's publish, the backfill's history.
+   * Left out, the database's clock as the row is written (`clock_timestamp()`), so one draft's
+   * steps sort on one clock and a later step in one transaction sorts after an earlier one.
+   * Set only for history the record never saw live: the backfill's, a video's first words.
+   * Read order is `(at, id)` everywhere.
    */
   at?: Date;
 }
@@ -102,7 +104,7 @@ export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
   const kindSql = s.kind
     ? sql`${s.kind}`
     : sql`coalesce((select k.kind from draft_events k where k.item = ${s.item}
-        order by k.id limit 1), ${kind})`;
+        order by k.at, k.id limit 1), ${kind})`;
   const opens = ROUNDS.has(kind)
     ? s.event === "generated"
       ? sql`true`
@@ -123,7 +125,7 @@ export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
       ${s.by ?? null}, ${s.text ?? null}, ${s.title ?? null}, ${s.ask ?? null}, ${s.reason ?? null},
       ${s.note ?? null}, ${json(s.llm)}::jsonb, ${s.slot ? s.slot.toISOString() : null}::timestamptz,
       ${s.externalId ?? null}, ${s.url ?? null}, ${json(s.meta ?? {})}::jsonb, ${s.runId ?? null}::uuid,
-      ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, now())
+      ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, clock_timestamp())
     on conflict (ref) do nothing`);
 }
 

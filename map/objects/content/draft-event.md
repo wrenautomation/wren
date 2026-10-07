@@ -19,7 +19,7 @@ Append-only, so the first version and its prompt can't be written over. One narr
 
 - `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id`, `url`, `meta`, `run_id`, `ref`, `at`
 
-Live steps take the database's clock unless the time came from elsewhere (a platform's publish, the backfill), so one draft sorts on one clock.
+Live steps take the database's clock as each row is written (`clock_timestamp()`); only the backfill and a video's first words set `at`. Reads order by `(at, id)`; `draft_activity.seq` is the step's id for the Activity tab.
 
 Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts:93`, `packages/core/src/train.ts`, `packages/content/src/train-backfill.ts`
 
@@ -30,7 +30,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 ## If you change this
 
-- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
+- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,linkedin-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
 - **Does not hit:** `changes` (the records layer's field edits) or `runs` (still written as before)
 
 ## Surfaces

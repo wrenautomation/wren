@@ -522,7 +522,10 @@ export async function backfillTraining(
         )})`)
     : [];
   const kept = new Set(keptRows.map((r) => r.ref));
-  const fresh = steps.filter((s) => !s.ref || !kept.has(s.ref));
+  // Oldest first, so ids follow time and break a tie in `at` the way the history ran.
+  const fresh = steps
+    .filter((s) => !s.ref || !kept.has(s.ref))
+    .sort((a, b) => (a.at?.getTime() ?? 0) - (b.at?.getTime() ?? 0));
   if (!o.dryRun) for (const s of fresh) await recordDraft(db, s);
   return {
     items: items.length - live.size,

@@ -118,7 +118,7 @@ export const draftRecord = defineRecord({
       at: "created",
     },
   ],
-  activity: { view: "draft_activity", by: "draft" },
+  activity: { view: "draft_activity", by: "draft", seq: "seq" },
   drafts: (id) => [`draft:${id}`],
   actions: [
     "marketing.approveDraft",
@@ -179,7 +179,7 @@ export const postRecord = defineRecord({
     { id: "top", label: "Top", sort: "-views", at: "published" },
     { id: "platform", label: "By platform", sort: "platform", at: "published" },
   ],
-  activity: { view: "draft_activity", by: "post" },
+  activity: { view: "draft_activity", by: "post", seq: "seq" },
   drafts: (id) => [`draft:${id.split("/").at(-1)}`],
   actions: ["marketing.draftAgain"],
   load: async (db, id) => ({ post: await postOf(db, id.split("/")[2] ?? "") }),

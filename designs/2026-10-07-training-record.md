@@ -193,3 +193,9 @@ right after the deploy.
   database's clock unless the time came from elsewhere (a platform's publish, the backfill), so
   one draft's steps sort on one clock. Engagement is the plain sum, not per 100 views: early
   snapshots often have no views. Decision pairs use the idea and platform, not the slot time.
+- 2026-10-07, ordering fix: a live step's `at` is `clock_timestamp()` as the row is written,
+  so a later step in one transaction sorts after an earlier one. A post's `sent` no longer takes
+  the platform's publish time: it has milliseconds only and could sort before the approve. Every
+  read orders by `(at, id)`; `draft_activity` gains `seq` (the step's id) for the Activity tab,
+  and `draft_outcomes` breaks reply ties by id (migration 0165). The backfill writes oldest
+  first, so ids follow time.

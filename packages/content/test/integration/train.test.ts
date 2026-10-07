@@ -194,7 +194,8 @@ const shipped = async (o: { edit?: string; views?: number; reactions?: number } 
     comments: 0,
     shares: 0,
     follows: 1,
-    asOf: new Date(),
+    // Measured after the send: the steps' clock is the database's, to the microsecond.
+    asOf: new Date(Date.now() + 1000),
     fetchedWith: "api",
   });
   return { idea, draft };
@@ -210,7 +211,7 @@ describe("the record page", () => {
     ]);
     expect(r?.decisions.map((d) => d.event)).toEqual(["approved", "sent"]);
     const lines = await pg.db.execute<{ kind: string; what: string; post: string }>(sql`
-      select kind, what, post from draft_activity where draft = ${draft.id} order by at, kind`);
+      select kind, what, post from draft_activity where draft = ${draft.id} order by at, seq`);
     expect(lines.map((l) => l.kind)).toEqual([
       "generated",
       "edited",

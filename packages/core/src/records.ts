@@ -529,8 +529,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   views: readonly SavedView[];
   /** Records that point at this one: `by` is their view's column holding this key. */
   related?: readonly { record: string; by: string }[];
-  /** A view of (`by`, at, what) lines about one record, newest first. */
-  activity?: { view: string; by: string };
+  /**
+   * A view of (`by`, at, what) lines about one record, newest first; `seq`, a column that breaks
+   * a tie in `at`, the higher written later.
+   */
+  activity?: { view: string; by: string; seq?: string };
   /** Action ids the web offers on it. */
   actions?: readonly string[];
   /** What opening it needs past `read` (`@wren/core/access`): Wren's Money records need `money`. */
@@ -675,7 +678,7 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     decl.view,
     decl.key,
     ...(decl.related ?? []).map((r) => r.by),
-    ...(decl.activity ? [decl.activity.view, decl.activity.by] : []),
+    ...(decl.activity ? [decl.activity.view, decl.activity.by, decl.activity.seq] : []),
     ...Object.values(fields).flatMap((f) => [f.from, f.domain, f.currency, f.of]),
   ];
   for (const c of columns)

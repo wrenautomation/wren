@@ -387,7 +387,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       },
       { id: "all", label: "All", sort: "-updated", at: "updated" },
     ],
-    activity: { view: "draft_activity", by: "video" },
+    activity: { view: "draft_activity", by: "video", seq: "seq" },
     drafts: (id) => [`video:${id}`],
     actions: [
       "marketing.videoRender",

@@ -117,7 +117,7 @@ export const dmRecord = defineRecord({
     { id: "replied", label: "Replied", where: { state: "replied" }, sort: "-lastAt", at: "lastAt" },
     { id: "all", label: "All", sort: "-lastAt", at: "lastAt" },
   ],
-  activity: { view: "draft_activity", by: "contact" },
+  activity: { view: "draft_activity", by: "contact", seq: "seq" },
   drafts: (id) => draftItemsOf("dm", id),
   actions: [
     "marketing.dmReply",
@@ -235,7 +235,7 @@ export const commentRecord = defineRecord({
     { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  activity: { view: "draft_activity", by: "comment" },
+  activity: { view: "draft_activity", by: "comment", seq: "seq" },
   drafts: (id) => [`comment:${id}`],
   actions: [
     "marketing.commentAnswer",
@@ -473,7 +473,7 @@ export const threadRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
-  activity: { view: "draft_activity", by: "thread" },
+  activity: { view: "draft_activity", by: "thread", seq: "seq" },
   drafts: (id) => [`thread:${id}`],
   actions: [
     "marketing.threadComment",
@@ -570,7 +570,7 @@ export const inviteRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
   ],
-  activity: { view: "draft_activity", by: "contact" },
+  activity: { view: "draft_activity", by: "contact", seq: "seq" },
   drafts: (id) => draftItemsOf("invite", id),
   actions: [
     "marketing.connectApprove",

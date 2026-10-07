@@ -371,7 +371,7 @@ export const inboxRecord = defineRecord({
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  activity: { view: "draft_activity", by: "item" },
+  activity: { view: "draft_activity", by: "item", seq: "seq" },
   drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
   actions: [
     "marketing.commentAnswer",
@@ -611,7 +611,7 @@ export const approvalRecord = defineRecord({
     { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  activity: { view: "draft_activity", by: "item" },
+  activity: { view: "draft_activity", by: "item", seq: "seq" },
   drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
   actions: [
     "marketing.approveDraft",

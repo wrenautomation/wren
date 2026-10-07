@@ -74,7 +74,6 @@ export async function markPublished(
       url: published.url,
       // A journaled step that runs again keeps one.
       ref: `sent:draft:${id}`,
-      at: new Date(published.publishedAt),
     });
 }
 

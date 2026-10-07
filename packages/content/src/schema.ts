@@ -291,11 +291,13 @@ export const draftActivity = pgView("draft_activity", {
   contact: text("contact"),
   video: text("video"),
   at: timestamp("at", { withTimezone: true }),
+  /** A step's `draft_events` id, breaking a tie in `at`; null on a metrics or reply line. */
+  seq: integer("seq"),
   kind: text("kind"),
   what: text("what"),
 }).as(sql`
   with lines as (
-    select e.item, e.at, e.event kind,
+    select e.item, e.at, e.id seq, e.event kind,
       case e.event
         when 'generated' then case e.via when 'model' then 'Drafted by ' || coalesce(e.by, 'the model')
           else 'Written by ' || coalesce(e.by, 'Wren') end
@@ -315,12 +317,12 @@ export const draftActivity = pgView("draft_activity", {
         else 'Failed' || coalesce(': ' || left(e.note, 200), '') end what
     from draft_events e
     union all
-    select 'draft:' || d.id, m.as_of, 'metrics',
+    select 'draft:' || d.id, m.as_of, null, 'metrics',
       concat_ws(' · ', m.views || ' views', m.reactions || ' reactions', m.comments || ' comments',
         m.shares || ' shares', m.follows || ' follows')
     from content_metrics m join content_drafts d on d.id = m.draft_id
     union all
-    select 'draft:' || d.id, c.at, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 200)
+    select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 200)
     from comments c join content_drafts d on d.published_id = c.post and d.platform::text = c.platform::text
     where c.sort is distinct from 'ours'
   )
@@ -331,7 +333,7 @@ export const draftActivity = pgView("draft_activity", {
     case when l.item like 'thread:%' then split_part(l.item, ':', 2) end thread,
     case when l.item like 'dm:%' or l.item like 'invite:%' then split_part(l.item, ':', 2) end contact,
     case when l.item like 'video:%' then split_part(l.item, ':', 2) end video,
-    l.at, l.kind, l.what
+    l.at, l.seq, l.kind, l.what
   from lines l
   left join content_drafts d on l.item like 'draft:%' and d.id::text = split_part(l.item, ':', 2)`);
 
@@ -354,28 +356,28 @@ export const draftOutcomes = pgView("draft_outcomes", {
   select 'draft:' || d.id item, m.as_of measured, m.views, m.reactions, m.comments, m.shares,
     m.follows, (select count(*)::int from content_metrics x where x.draft_id = d.id) snapshots,
     coalesce((select jsonb_agg(jsonb_build_object('author', c.author, 'text', c.body, 'at', c.at)
-      order by c.at) from comments c where c.post = d.published_id
+      order by c.at, c.id) from comments c where c.post = d.published_id
         and c.platform::text = d.platform::text and c.sort is distinct from 'ours'), '[]') replies
   from content_drafts d
   left join lateral (select * from content_metrics c where c.draft_id = d.id
-    order by c.created_at desc limit 1) m on true
+    order by c.created_at desc, c.id desc limit 1) m on true
   where d.published_id is not null
   union all
   select 'comment:' || a.id, null, null, null, null, null, null, 0,
     coalesce((select jsonb_agg(jsonb_build_object('author', c.author, 'text', c.body, 'at', c.at)
-      order by c.at) from comments c where c.parent = a.answer_ref
+      order by c.at, c.id) from comments c where c.parent = a.answer_ref
         and c.sort is distinct from 'ours'), '[]')
   from comments a where a.answer_ref is not null
   union all
   select 'thread:' || t.id, null, null, null, null, null, null, 0,
     coalesce((select jsonb_agg(jsonb_build_object('author', c.author, 'text', c.body, 'at', c.at)
-      order by c.at) from comments c where c.parent = t.answer_ref
+      order by c.at, c.id) from comments c where c.parent = t.answer_ref
         and c.sort is distinct from 'ours'), '[]')
   from reddit_threads t where t.answer_ref is not null
   union all
   select k.prefix || r.id, null, null, null, null, null, null, 0,
     coalesce((select jsonb_agg(jsonb_build_object('author', coalesce(r.name, r.handle),
-      'text', i.body, 'at', i.created_at) order by i.created_at) from reach_messages i
+      'text', i.body, 'at', i.created_at) order by i.created_at, i.id) from reach_messages i
       where i.contact_id = r.id and i.direction = 'in'), '[]')
   from reach_contacts r cross join (values ('dm:'), ('invite:')) k(prefix)
   where exists (select 1 from reach_messages o where o.contact_id = r.id and o.direction = 'out'

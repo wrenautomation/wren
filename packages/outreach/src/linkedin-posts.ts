@@ -306,7 +306,6 @@ export async function draftPost(
     text,
     llm: llmOf(out, "linkedin.comment_draft", { urn: p.urn }),
     runId: out.call?.run_id ?? null,
-    at: o.now,
   });
   return "queued";
 }
@@ -483,7 +482,6 @@ export async function markPostCommented(
     externalId: post.urn,
     url: post.url,
     ref: `sent:lipost:${post.id}`,
-    at: r.now,
   });
 }
 
