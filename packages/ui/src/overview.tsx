@@ -450,12 +450,13 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
             <li key={String(r.id)} className="border-t border-(--ui-hair)">
               <a
                 href={open(r)}
+                // Counts that don't fit beside the title go under it, as on a phone.
                 className={cn(
-                  "flex items-center gap-4 px-1 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
-                  line ? "py-2.5" : "h-10",
+                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-1 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+                  line ? "py-2.5" : "min-h-10 py-1.5",
                 )}
               >
-                <span className="grid min-w-0 flex-1 gap-0.5">
+                <span className="grid min-w-0 flex-1 basis-40 gap-0.5">
                   <span className="truncate font-medium">
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
@@ -468,7 +469,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                 {fields.map((f) => (
                   <span
                     key={f.key}
-                    className="max-w-[40%] shrink-0 truncate text-(--ui-ink-2)"
+                    className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
                     title={f.label}
                   >
                     {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}
