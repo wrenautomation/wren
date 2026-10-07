@@ -17,6 +17,7 @@
     "./model": "./src/model.ts",
     "./records": "./src/records.ts",
     "./render": "./src/render.ts",
+    "./scan": "./src/scan.ts",
     "./schema": "./src/schema.ts",
     "./service": "./src/service.ts",
     "./split": "./src/split.ts",

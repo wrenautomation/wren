@@ -3,11 +3,14 @@
  * data, code pages registered by URL. Same calls as the portal's Sites app (`sitesApi`), on
  * Wren's database, as the operator at this terminal. `--client` names the page's owner.
  */
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { pageApprovalId, sitesApi } from "@wren/sites/console";
+import { WREN_SITE } from "@wren/sites/model";
+import { type Found, landerPages, type RepoFile, sitemapUrls, unlisted } from "@wren/sites/scan";
 import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import { sql } from "drizzle-orm";
@@ -267,7 +270,71 @@ export function registerSitePages(
         ),
     );
 
+  sites
+    .command("scan")
+    .description(
+      "Live pages not in the list: the lander repo's pages and each live host's sitemap. Read only",
+    )
+    .option("--lander <dir>", "the lander repo", "../lander")
+    .option("--no-fetch", "skip the sitemaps: the repo only")
+    .action(async (o: { lander: string; fetch: boolean }) => {
+      const dir = resolve(rootDir, o.lander);
+      const found = landerPages(await landerFiles(dir), `https://${WREN_SITE}`);
+      const { known, hosts } = await withMainDb(async (db) => ({
+        known: (await db.execute(sql`select url from site_page_records where url is not null`)).map(
+          (r) => String(r.url),
+        ),
+        hosts: (
+          await db.execute(
+            sql`select hostname, client_id from client_domains where status = 'active' order by hostname`,
+          )
+        ).map((r) => ({ host: String(r.hostname), client: String(r.client_id) })),
+      }));
+      const misses: string[] = [];
+      if (o.fetch)
+        for (const host of [WREN_SITE, ...hosts.map((h) => h.host)]) {
+          const got = await sitemapOf(host);
+          if (typeof got === "string") misses.push(`${host}: ${got}`);
+          else found.push(...got);
+        }
+      const client = new Map(hosts.map((h) => [h.host, h.client]));
+      print({
+        unlisted: unlisted(known, found, (h) => client.get(h)),
+        ...(misses.length ? { sitemapsMissed: misses } : {}),
+      });
+    });
+
   return sites;
+}
+
+/** The lander's page sources: its content YAML and its top-level Astro pages. */
+async function landerFiles(dir: string): Promise<RepoFile[]> {
+  const out: RepoFile[] = [];
+  const add = async (rel: string, test: RegExp) => {
+    const names = await readdir(join(dir, rel)).catch((e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") return [] as string[];
+      throw e;
+    });
+    for (const name of names.filter((n) => test.test(n)).sort())
+      out.push({ path: `${rel}/${name}`, text: await readFile(join(dir, rel, name), "utf8") });
+  };
+  for (const c of ["hub", "pitches", "niches"]) await add(`src/content/${c}`, /\.ya?ml$/);
+  await add("src/pages", /\.astro$/);
+  if (out.length === 0) throw new Error(`no lander pages under ${dir}; pass --lander <dir>`);
+  return out;
+}
+
+/** A host's sitemap URLs, or why it couldn't be read. A host with none has none to add. */
+async function sitemapOf(host: string): Promise<Found[] | string> {
+  const at = `https://${host}/sitemap.xml`;
+  try {
+    const res = await fetch(at, { signal: AbortSignal.timeout(10_000), redirect: "follow" });
+    if (res.status === 404) return [];
+    if (!res.ok) return `HTTP ${res.status}`;
+    return sitemapUrls(await res.text(), at);
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
 }
 
 async function stdin(): Promise<string> {
