@@ -236,9 +236,6 @@ export const events = pgTable(
     by: varchar("by", { length: 64 }).notNull(),
     /** Why its step failed after its retries: the event stopped here. */
     error: text("error"),
-    /** What its step sent on, by output (`[{port, subject, kind, data}]`), cut to fit; and when. */
-    sent: jsonb("sent").$type<SentEvent[]>(),
-    sentAt: timestamp("sent_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_events" }),
@@ -248,13 +245,6 @@ export const events = pgTable(
   ],
 );
 export type SpineRow = typeof events.$inferSelect;
-/** One event a step sent on, as `events.sent` keeps it. */
-export interface SentEvent {
-  port: string;
-  subject: string;
-  kind: string;
-  data: Record<string, unknown>;
-}
 
 /** The spine's arrivals as the console lists them (`console.event`): failed, waiting, or passed on. */
 export const spineEvents = pgView("spine_events", {
@@ -273,31 +263,6 @@ export const spineEvents = pgView("spine_events", {
     case when error is not null then 'failed' when due is not null then 'waiting' else 'passed' end state,
     at, due, error
   from events`);
-
-/**
- * One subject's walk through one workflow (`console.execution`): when it entered, where it is now
- * (the failed node, else the waiting one, else the last it reached) and how many steps it took.
- */
-export const spineExecutions = pgView("spine_executions", {
-  id: text("id"),
-  workflow: text("workflow"),
-  subject: text("subject"),
-  kind: text("kind"),
-  state: text("state"),
-  node: text("node"),
-  entered: timestamp("entered", { withTimezone: true }),
-  lastAt: timestamp("last_at", { withTimezone: true }),
-  due: timestamp("due", { withTimezone: true }),
-  error: text("error"),
-  steps: integer("steps"),
-}).as(sql`
-  select workflow || '/' || subject id, workflow, subject, min(kind) kind,
-    case when bool_or(error is not null) then 'failed'
-      when bool_or(due is not null) then 'waiting' else 'done' end state,
-    (array_agg(node order by (error is not null) desc, (due is not null) desc, at desc))[1] node,
-    min(at) entered, max(coalesce(sent_at, at)) last_at, min(due) due, max(error) error,
-    count(*)::int steps
-  from events group by workflow, subject`);
 
 /**
  * The door's hooks: `POST /hooks/<token>` on the phone Worker enters `workflow` at its input

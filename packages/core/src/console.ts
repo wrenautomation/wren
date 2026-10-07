@@ -120,7 +120,7 @@ import {
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
-import { runs, type SentEvent, workflowSaves } from "./schema.js";
+import { runs, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
@@ -475,84 +475,6 @@ export const eventRecord = defineRecord({
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: ["console.retryEvent"],
-});
-
-/** One step of an execution: what arrived at a node's input, and what its step sent on. */
-export interface ExecutionStep {
-  id: string;
-  node: string;
-  port: string;
-  kind: string;
-  data: Record<string, unknown>;
-  at: string;
-  due: string | null;
-  error: string | null;
-  sent: SentEvent[] | null;
-  sentAt: string | null;
-}
-
-/** An execution's id: its workflow and subject, as `spine_executions` keys it. */
-export const executionId = (workflow: string, subject: string) => `${workflow}/${subject}`;
-
-/** Every step one subject took through one workflow, in the order it took them. */
-export async function executionSteps(db: Queryable, id: string): Promise<ExecutionStep[]> {
-  const at = id.indexOf("/");
-  if (at < 1) return [];
-  const rows = (await db.execute(sql`
-    select id::text id, node, port, kind, data, at, due, error, sent, sent_at "sentAt"
-    from events where workflow = ${id.slice(0, at)} and subject = ${id.slice(at + 1)}
-    order by at, id limit 500`)) as unknown as Array<
-    Omit<ExecutionStep, "at" | "due" | "sentAt"> & {
-      at: Date | string;
-      due: Date | string | null;
-      sentAt: Date | string | null;
-    }
-  >;
-  const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
-  return [...rows].map((r) => ({
-    ...r,
-    at: iso(r.at) as string,
-    due: iso(r.due),
-    sentAt: iso(r.sentAt),
-  }));
-}
-
-/**
- * Wren's executions (`spine_executions`): each subject's walk through a workflow, where it is now
- * and how long since it entered. Its page lights the path and shows each step's data. ponytail:
- * main only, as `console.event`.
- */
-export const executionRecord = defineRecord({
-  id: "console.execution",
-  name: { one: "execution", many: "executions" },
-  view: "spine_executions",
-  key: "id",
-  title: "subject",
-  subtitle: "workflow",
-  fields: {
-    subject: text("About"),
-    workflow: text("Workflow"),
-    kind: text("Kind"),
-    state: status({
-      failed: { label: "Failed", tone: "bad" },
-      waiting: { label: "Waiting", tone: "neutral" },
-      done: { label: "Done", tone: "good" },
-    }),
-    node: text("Now at"),
-    entered: date("Entered"),
-    lastAt: date("Last step"),
-    due: date("Waiting until"),
-    error: text("Why it failed"),
-    steps: number("Steps"),
-  },
-  views: [
-    { id: "all", label: "All", sort: "-lastAt", at: "entered" },
-    { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "entered" },
-    { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-lastAt", at: "entered" },
-    { id: "done", label: "Done", where: { state: "done" }, sort: "-lastAt", at: "entered" },
-  ],
-  // Retry is on its failed step, by that event's id.
-  load: async (db, id) => ({ steps: await executionSteps(db, id) }),
 });
 
 /**
@@ -1336,7 +1258,6 @@ export function consoleApi({
     flagRecord(edge),
     workflowRecord(workflows, components),
     eventRecord,
-    executionRecord,
     holdRecord,
     checkRecord,
   ];
