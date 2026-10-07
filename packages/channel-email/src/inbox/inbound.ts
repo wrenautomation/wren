@@ -163,12 +163,24 @@ const QUOTE_HEADERS = [
 // and out of the unsubscribe word count.
 const SIGNATURE = /^--\s*$/;
 
+// "On <date>, <name> wrote:" in the languages clients reply in: the line's first word, then the
+// verb within the lookahead.
+const ATTRIBUTIONS: readonly [lead: RegExp, verb: RegExp][] = [
+  [/^on\b/i, /\bwrote\s*:/i],
+  [/^le\b/i, /\ba écrit\s*:/i],
+  [/^am\b/i, /\bschrieb\b/i],
+  [/^el\b/i, /\bescribió\s*:/i],
+  [/^em\b/i, /\bescreveu\s*:/i],
+  [/^il\b/i, /\bha scritto\s*:/i],
+  [/^op\b/i, /\bschreef\b/i],
+];
+
 function isQuoteStart(lines: readonly string[], index: number): boolean {
   const line = (lines[index] ?? "").trim();
   if (QUOTE_HEADERS.some((pattern) => pattern.test(line))) return true;
-  if (!/^on\b/i.test(line)) return false;
-  const window = lines.slice(index, index + ON_WROTE_LOOKAHEAD).join(" ");
-  return window.toLowerCase().includes("wrote:");
+  const said = ATTRIBUTIONS.find(([lead]) => lead.test(line));
+  if (!said) return false;
+  return said[1].test(lines.slice(index, index + ON_WROTE_LOOKAHEAD).join(" "));
 }
 
 /** The message's OWN new text: quoted lines and everything from the first attribution line onward removed. */

@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { getAddresses, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { describe, expect, it } from "vitest";
-import { classify, type Inbound, normalizeMessageId, ownText } from "./inbound.js";
+import { classify, type Inbound, normalizeMessageId, ownText, stripQuoted } from "./inbound.js";
 
 const FIXTURES = new URL("../../test/fixtures/inbound/", import.meta.url);
 // The Message-ID of the outreach message these fixtures answer.
@@ -421,6 +421,20 @@ describe("helpers the sync reuses", () => {
     expect(text).not.toContain("\n");
     expect(text).not.toContain(">");
     expect(text).not.toContain("wrote:");
+  });
+
+  it("stripQuoted cuts attribution lines in other languages, wrapped or not", () => {
+    for (const said of [
+      "Le lun. 5 oct. 2026 à 09:12, Dana <dana@example.com> a écrit :",
+      "Am Mo., 5. Okt. 2026 um 09:12 Uhr schrieb Dana <dana@example.com>:",
+      "El lun, 5 oct 2026 a las 9:12, Dana (<dana@example.com>)\nescribió:",
+      "Em seg., 5 de out. de 2026 às 09:12, Dana escreveu:",
+      "Il giorno lun 5 ott 2026, Dana ha scritto:",
+      "Op ma 5 okt 2026 om 09:12 schreef Dana <dana@example.com>:",
+    ])
+      expect(stripQuoted(`Sounds good.\n\n${said}\nold text`)).toBe("Sounds good.");
+    // A line that only starts like one stays.
+    expect(stripQuoted("Le meeting est jeudi.\nMerci")).toBe("Le meeting est jeudi. Merci");
   });
 });
 
