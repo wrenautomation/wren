@@ -107,10 +107,8 @@ function Run({
               The agent for done-for-you steps is in development. Do it by hand, then mark it done.
             </p>
           ) : null}
-          {team && run.state === "stuck" ? (
-            <p className={QUIET}>
-              Past its {now.within}. Telling the team on its own is in development.
-            </p>
+          {team && run.state === "stuck" && !now.why?.startsWith("Stuck past") ? (
+            <p className={QUIET}>Past its {now.within}.</p>
           ) : null}
         </div>
       ) : run.doneAt ? (

@@ -7,11 +7,12 @@
  */
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { clients, type SetupMode } from "./clients/schema.js";
 import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components.js";
 import type { Do } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
+import type { Notifier } from "./notify.js";
 import {
   type AccountRow,
   accountFacts,
@@ -548,6 +549,8 @@ export interface SetupDeps {
   checks: Readonly<Record<string, SetupCheck>>;
   /** autobrowse's `do`, for done-for-you steps; none: they wait on Wren's team. */
   do?: Do | null;
+  /** Wren's team's lane for an owner's setups (null is Wren's own); none: nobody is told. */
+  notifierFor?: (client: string | null) => Notifier | null;
   now?: () => Date;
 }
 
@@ -559,6 +562,25 @@ function waiting(step: SetupStep, mode: SetupMode): { state: SetupState; why: st
   if (step.who === "auto") return { state: "checking", why: step.label };
   if (step.who === "client" && mode === "self") return { state: "waiting_client", why: step.how };
   return { state: "waiting_wren", why: step.forYou };
+}
+
+/** Wren's team hears once that a step is stuck; never the client. A ping that fails is logged by the notifier. */
+async function tellStuck(
+  d: SetupDeps,
+  acct: { id: number; client: string | null; site: string },
+  s: Setup,
+  step: SetupStep,
+  why: string,
+): Promise<void> {
+  const notifier = d.notifierFor?.(acct.client);
+  if (!notifier) return;
+  await notifier
+    .notify(
+      `${s.name} is stuck`,
+      `${siteLabel(acct.site)} (account ${acct.id}): "${step.label}" isn't done after ${step.within}. ${why.slice(0, 300)}\nOpen Account, then Accounts.`,
+      "action",
+    )
+    .catch(() => false);
 }
 
 /**
@@ -670,17 +692,26 @@ export function setupStep(d: SetupDeps): Step {
     }
 
     const stuck = !!step.within && now.getTime() - run.stepSince.getTime() > waitMs(step.within);
+    const cause = why;
     if (stuck) {
       state = "stuck";
       why = `Stuck past ${step.within}: ${why}`;
     }
-    await atomic(d.main, async (tx) => {
+    const turnedStuck = await atomic(d.main, async (tx) => {
       await setFact(tx, acct.id, step.fact, "waiting", {
         why,
         seen,
         by: step.check ? `check:${step.check}` : "setup",
         now,
       });
+      // Only the round that turns it stuck tells the team: a check now on a stuck run doesn't.
+      const turned = stuck
+        ? await tx
+            .update(setupRuns)
+            .set({ state: "stuck" })
+            .where(and(eq(setupRuns.id, run.id), ne(setupRuns.state, "stuck")))
+            .returning({ id: setupRuns.id })
+        : [];
       await tx
         .update(setupRuns)
         .set({
@@ -691,7 +722,9 @@ export function setupStep(d: SetupDeps): Step {
           nextCheckAt: step.every && !stuck ? new Date(now.getTime() + waitMs(step.every)) : null,
         })
         .where(eq(setupRuns.id, run.id));
+      return turned.length > 0;
     });
+    if (turnedStuck) await tellStuck(d, acct, s, step, cause);
     if (!step.every || stuck) return [];
     return [{ port: "again", event: accountEvent(`${subj.base}#${run.rounds + 1}`, acct.id) }];
   };

@@ -102,7 +102,7 @@ function runView(
   const held = new Map(a.facts.map((f) => [f.fact, f]));
   const at = run.step ? s.steps.findIndex((x) => x.id === run.step) : s.steps.length;
   const current = s.steps[at];
-  // Past its step's `within`: the page says so; telling the team on its own is in development.
+  // Past its step's `within`: the page says stuck even before the round that tells the team runs.
   const late =
     !!current?.within &&
     run.state !== "done" &&

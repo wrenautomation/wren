@@ -23,7 +23,7 @@ Citations: `packages/core/src/notify.ts:21`
 
 ## Connected to
 
-- **joins:** `DigestScheduler`, `SmsWatch`, `AdsWatch`, `ContentPlanner`, `ContentMetrics`, `TokenRenewal` (all in [[platform/loop-object]])
+- **joins:** `DigestScheduler`, `SmsWatch`, `AdsWatch`, `ContentPlanner`, `ContentMetrics`, `TokenRenewal` (all in [[platform/loop-object]]); `setup.step` on the clients lane, once when a setup step turns stuck ([[platform/account-setup]])
 
 ## If you change this
 

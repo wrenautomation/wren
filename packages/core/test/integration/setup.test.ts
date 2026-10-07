@@ -11,6 +11,7 @@ import type { DoOutcome, DoRequest } from "../../src/content/do.js";
 import {
   accountsOf,
   addAccount,
+  checkNow,
   defineSetup,
   factLost,
   factsHeld,
@@ -95,6 +96,12 @@ const doFake = async (req: DoRequest): Promise<DoOutcome> => {
     summary: answer === "done" ? "Done by the agent" : "The agent needs a person",
   };
 };
+const told: {
+  client: string | null;
+  title: string;
+  body?: string | undefined;
+  level?: string | undefined;
+}[] = [];
 const checks = {
   "t.approved": async () =>
     approved ? { ok: true, why: "Approved" } : { ok: false, why: "Still in review" },
@@ -111,6 +118,13 @@ function walker(client: string, withDo = false) {
         setups: [SETUP],
         checks,
         do: withDo ? doFake : null,
+        notifierFor: (owner) => ({
+          name: "test",
+          notify: async (title, body, level) => {
+            told.push({ client: owner, title, body, level });
+            return true;
+          },
+        }),
         now: () => now,
       }),
     },
@@ -227,8 +241,9 @@ describe("a setup run, self-serve", () => {
     await resume(w, later[1]?.id as string);
     expect(await runOf(acct.id)).toEqual(gen2);
 
-    // Past `within`: stuck, and no more rounds.
+    // Past `within`: stuck, no more rounds, and Wren's team is told once.
     const before = later.length;
+    told.length = 0;
     now = new Date(T0.getTime() + 14 * DAY);
     await resume(w, later.at(-1)?.id as string);
     expect(await runOf(acct.id)).toMatchObject({
@@ -236,6 +251,18 @@ describe("a setup run, self-serve", () => {
       why: expect.stringMatching(/^Stuck past 3 days/),
     });
     expect(later.length).toBe(before);
+    expect(told).toEqual([
+      {
+        client: "acme",
+        title: "Test setup is stuck",
+        body: expect.stringContaining('"Approved" isn\'t done after 3 days. Still in review'),
+        level: "action",
+      },
+    ]);
+    // A check now on the stuck run checks, but tells nobody again.
+    await go((await checkNow(pg.db, SETUP, { accountId: acct.id, now })) as SetupEmit);
+    expect(await runOf(acct.id)).toMatchObject({ state: "stuck" });
+    expect(told).toHaveLength(1);
   });
 });
 

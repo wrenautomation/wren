@@ -1223,8 +1223,19 @@ export async function buildServices(
       components: COMPONENTS,
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
-        // Account setups: no agent yet, so done-for-you steps wait on Wren's team.
-        [SETUP_STEP]: setupStep({ main: db, setups: SETUPS, checks: setupChecks, do: null }),
+        // Account setups: no agent yet, so done-for-you steps wait on Wren's team. A stuck
+        // step tells the team on the clients lane, named for the client; none with WREN_NOTIFY=none.
+        [SETUP_STEP]: setupStep({
+          main: db,
+          setups: SETUPS,
+          checks: setupChecks,
+          do: null,
+          notifierFor: (client) => {
+            if (settings.notify === "none") return null;
+            const lane = laneNotifier(settings.discordClientsWebhookUrl);
+            return client ? namedFor(lane, client) : lane;
+          },
+        }),
         [TOUCH]: touchStep(async (client) => (await textsOf(client)).deps),
         // Speed to lead's first text: live only with WREN_SMS_LIVE and the client's texts on.
         "sms.forms": firstTextStep(async (client) => {
