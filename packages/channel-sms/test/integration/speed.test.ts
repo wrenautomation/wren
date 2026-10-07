@@ -10,10 +10,12 @@ import { addHook, makeSpine, SPINE } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { FakeBookings } from "../../src/bookings.js";
 import { SMS_COMPONENTS } from "../../src/components.js";
 import { tick } from "../../src/deliver.js";
+import { touch } from "../../src/follow.js";
 import { FakeProvider } from "../../src/provider.js";
 import { smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
 import { firstText, firstTextStep, SPEED, SPEED_SEQUENCES } from "../../src/speed.js";
@@ -85,7 +87,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, [...TABLES, "speed_runs", "hooks", "events"]);
+  await truncate(pg.db, [...TABLES, "speed_runs", "hooks", "events", "enrollments"]);
   await fillTemplates(pg.db, WORDS);
   await numbers(pg.db, provider, ["+13125550100"]);
   looked.length = 0;
@@ -243,5 +245,70 @@ describe("firstText", () => {
       .from(smsContacts)
       .where(eq(smsContacts.id, one.contactId as number));
     expect(c?.state).toBe("enrolled");
+  });
+});
+
+describe("the follow-up", () => {
+  const SEQS = new Map(SPEED_SEQUENCES.map((q) => [q.name, q]));
+  const lead = {
+    name: "Di Test",
+    phone: "(212) 555-0102",
+    email: "di@example.test",
+    consent: true,
+    consentDetail: "ticked the box",
+    source: "site",
+    zone: null,
+  };
+  const start = async () => {
+    const got = await firstText(
+      pg.db,
+      { workflow: "w", subject: "form:di", lead, leadAt: new Date() },
+      texts(),
+      new Date(),
+    );
+    return got.contactId as number;
+  };
+
+  it("a booking ends it, and the run shows booked", async () => {
+    const id = await start();
+    const bookings = new FakeBookings(["di@example.test"]);
+    const now = new Date();
+    expect(
+      await touch(pg.db, id, 2, { sequences: SEQS, senderName: "Test Co", bookings, now }),
+    ).toBe("booked");
+    const [c] = await pg.db.select().from(smsContacts).where(eq(smsContacts.id, id));
+    expect(c).toMatchObject({ state: "finished", stateReason: "booked a call on fake" });
+    const [run] = await pg.db.select().from(speedRuns);
+    expect(run?.bookedAt).toEqual(now);
+  });
+
+  it("a lead in an active email sequence gets no follow-up texts", async () => {
+    const id = await start();
+    const [firm] = (await pg.db.execute(
+      sql`INSERT INTO companies (domain) VALUES ('di.example') RETURNING id`,
+    )) as unknown as { id: number }[];
+    const f = (firm as { id: number }).id;
+    await pg.db.execute(sql`
+      INSERT INTO enrollments (niche, sequence_name, sequence_snapshot, offer, state, company_id,
+        kind, to_email, sender)
+      VALUES ('test', 's', '{}', 'o', 'active', ${f}, 'role_inbox', 'hi@di.example', 'me@wren.example')`);
+    await pg.db.update(smsContacts).set({ companyId: f }).where(eq(smsContacts.id, id));
+    const opts = { sequences: SEQS, senderName: "Test Co", bookings: null, now: new Date() };
+    expect(await touch(pg.db, id, 2, opts)).toBe("ended");
+    const [c] = await pg.db.select().from(smsContacts).where(eq(smsContacts.id, id));
+    expect(c?.stateReason).toMatch(/active email sequence/);
+    expect(await pg.db.select().from(smsMessages)).toHaveLength(1);
+  });
+
+  it("no booking, no other sequence: the next text is queued", async () => {
+    const id = await start();
+    const opts = {
+      sequences: SEQS,
+      senderName: "Test Co",
+      bookings: new FakeBookings(),
+      now: new Date(),
+    };
+    expect(await touch(pg.db, id, 2, opts)).toBe("queued");
+    expect(await pg.db.select().from(smsMessages)).toHaveLength(2);
   });
 });

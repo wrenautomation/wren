@@ -15,6 +15,7 @@ import { linkPeople } from "@wren/core/leads";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
+import { SPEED } from "./components.js";
 import { enroll } from "./enroll.js";
 import { countryOf, toPhoneE164 } from "./phone.js";
 import type { SmsPolicy } from "./policy.js";
@@ -24,7 +25,7 @@ import { type FirstTouch, type SpeedRun, smsContacts, speedRuns } from "./schema
 import { liveTexts } from "./template-store.js";
 import { checkSequence, type SmsSequence, stepKey } from "./templates.js";
 
-export const SPEED = "speed-to-lead";
+export { SPEED };
 
 /** The first text, then day 1, 3 and 7 after it. Empty until the client's words are in. */
 export const SPEED_SEQUENCE: SmsSequence = checkSequence({

@@ -208,6 +208,7 @@ import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import { makeVoiceConsole } from "@wren/voice/console";
+import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { VOICE_RECORDS } from "@wren/voice/records";
 import { type Practice, practiceOf, scoreStep, triageStep, mail as watchMail } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
@@ -1148,6 +1149,11 @@ export async function buildServices(
                 key,
               ),
           };
+        }),
+        // Speed to lead's call: "Call now" for the rep. No dialer until voice is set up.
+        [CALL_NOW]: callNowStep(async (client) => {
+          const { deps: d } = await textsOf(client);
+          return { db: d.db, bookings: d.bookings ?? null, dialer: null };
         }),
         [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),

@@ -5,7 +5,36 @@
 import { defineComponent } from "@wren/core/components";
 import { agentSettingsSchema, VOICE_AGENT } from "./agent.js";
 
+/** Speed to lead's call (call-now.ts): "Call now" for the rep until a dialer is set up. */
+export const CALL_NOW = "voice.call_now";
+
 export const VOICE_COMPONENTS = [
+  defineComponent({
+    id: CALL_NOW,
+    stage: "follow",
+    channels: ["voice"],
+    name: "Call now",
+    blurb: 'Puts "Call now" in front of the client\'s rep, or dials once voice is set up.',
+    icon: "phone",
+    for: "client",
+    ready: true,
+    missing: [],
+    effects: ["sends"],
+    in: [{ id: "leads", label: "leads to call", kind: "lead" }],
+    out: [{ id: "booked", label: "booked already", kind: "call" }],
+    hypothesis: {
+      from: "Speed to lead, 2026-10-07",
+      guesses: [
+        { is: "change", says: "How long after the text it calls.", built: "the wire's wait" },
+        { is: "change", says: "Who calls: the rep, or the voice dialer.", built: null },
+        { is: "fixed", says: "A lead who booked isn't called." },
+        {
+          is: "fixed",
+          says: "The dialer calls only with written AI-call consent, in quiet hours' bounds, never a suppressed number.",
+        },
+      ],
+    },
+  }),
   defineComponent({
     id: VOICE_AGENT,
     stage: "follow",

@@ -1,10 +1,15 @@
 /** The SMS channel's components: texts, booking reminders, site form follow-ups. */
 import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
+import { cadenceId } from "@wren/core/workflows";
 import { REMINDERS, remindersSettingsSchema, TEXTS, textsSettingsSchema } from "./clients.js";
 
 /** One step of a text follow-up on the spine (follow.ts). */
 export const TOUCH = "sms.touch";
+/** Speed to lead's texts (speed.ts): the first, then the follow-up's. */
+export const SPEED = "speed-to-lead";
+/** The text follow-up as a part: speed to lead's cadence, reusable by any template. */
+export const FOLLOW_UP = "sms.follow_up";
 
 const FOR_WREN = "Texts from Wren's numbers and reads Wren's main database, not per client";
 
@@ -114,6 +119,36 @@ export const SMS_COMPONENTS = [
         },
         { is: "change", says: "How fast the first text goes.", built: null },
         { is: "fixed", says: "Only someone who asked for texts gets one." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: FOLLOW_UP,
+    stage: "follow",
+    channels: ["text"],
+    name: "Text follow-up",
+    blurb: "Texts a lead on day 1, 3 and 7 after the first, until they answer, book or say stop.",
+    icon: "cycle",
+    for: "client",
+    ready: true,
+    missing: [],
+    inside: cadenceId(SPEED),
+    requires: { components: [TEXTS] },
+    effects: ["sends"],
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [
+      { id: "replied", label: "replies", kind: "reply" },
+      { id: "quiet", label: "every text sent", kind: "lead" },
+    ],
+    hypothesis: {
+      from: "Speed to lead, 2026-10-07",
+      guesses: [
+        { is: "change", says: "The copy of each text.", built: "the speed-to-lead#2-4 templates" },
+        { is: "change", says: "The days between texts.", built: "each step's wait" },
+        {
+          is: "fixed",
+          says: "Stops on a reply, a booking, STOP, or another channel's sequence holding them.",
+        },
       ],
     },
   }),
