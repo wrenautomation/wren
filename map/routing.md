@@ -30,6 +30,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs, demo videos |
 | `books/` | the money: vendors, bills, their documents, the journal |
 | `watch/` | the Monitor: William's mail, triaged by rules and a model into Needs you |
+| `learn/` | Learn: saved links and followed sources, read, scored against the SOPs, searchable |
 | `calendar/` | our own booking calendar: bookings, slots, the lander's /book page |
 | `voice/` | the phone agent, in development: calls, timed turns, consent to AI calls |
 | `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |

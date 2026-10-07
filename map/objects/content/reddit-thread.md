@@ -30,5 +30,5 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 - **joins:** [[content/comment]] (replies to our thread comments come back as comments; one daily cap counts both, `commentsToday`; a comment's author is read into `reddit_people`, shown as "Who they are" and in Replies)
 - **joins:** reach accounts (the pool; `warmupOf` sets each one's comments a day)
 - **joins:** [[content/playbook]] (the SOP texts a draft reads, matched by shared words)
-- **looks-like-but-is-not:** the radar's feeds (`packages/watch`): those read to learn, these read to find places to talk
+- **looks-like-but-is-not:** [[learn/item]] (`packages/learn`): those read to learn, these read to find places to talk
 - **joins:** [[content/funnel]] (places pick a promo's subreddit; thread decisions become comment examples)
