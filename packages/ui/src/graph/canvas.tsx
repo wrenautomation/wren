@@ -131,6 +131,10 @@ export interface GraphProps {
   minHeight?: number | undefined;
   /** Px each side that panels cover: the drawing fits between them. */
   inset?: { left?: number; right?: number } | undefined;
+  /** The least it zooms at rest: an editor keeps words readable and pans, the minimap under it. */
+  floor?: number | undefined;
+  /** Nodes it pans to at rest when the drawing is wider than the frame: a diff's changes. */
+  show?: readonly string[] | undefined;
 }
 
 const PAD = 20;
@@ -615,6 +619,8 @@ export default function GraphCanvas({
   onDrop,
   onPane,
   minHeight,
+  floor,
+  show,
   inset,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
@@ -761,7 +767,7 @@ export default function GraphCanvas({
     // `FLOOR`) and pans down instead.
     const across = room / Math.max(1, l.width);
     const zoom = Math.max(
-      narrow ? FLOOR.narrow : FLOOR.wide,
+      floor ?? (narrow ? FLOOR.narrow : FLOOR.wide),
       Math.min(across, Math.max(narrow ? LEAST.narrow : LEAST.wide, whole)),
     );
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
@@ -774,15 +780,35 @@ export default function GraphCanvas({
         Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0)),
       ),
     );
-    const x =
+    const centered =
       left + (dir === "DOWN" ? Math.max(PAD, (width - left - right - l.width * zoom) / 2) : PAD);
+    // Too wide for the frame: it pans to what it's asked to show, never past either end.
+    const boxes = (show ?? []).flatMap((id) => (l.nodes[id] ? [l.nodes[id]] : []));
+    const over = l.width * zoom - room;
+    const x =
+      boxes.length && over > 0
+        ? left +
+          PAD -
+          Math.min(
+            over,
+            Math.max(
+              0,
+              ((Math.min(...boxes.map((b) => b.x)) + Math.max(...boxes.map((b) => b.x + b.width))) /
+                2) *
+                zoom -
+                room / 2,
+            ),
+          )
+        : centered;
+    // An editor's room taller than the drawing: it sits in the middle, not at the top.
+    const spare = height - l.height * zoom - 2 * PAD - TOOLS_ROOM - (map ? MAP_ROOM : 0);
     return {
-      rest: { x, y: PAD, zoom },
+      rest: { x, y: PAD + Math.max(0, spare / 2), zoom },
       height,
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, least, left, right, dir]);
+  }, [l, width, most, least, left, right, dir, floor, show]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;

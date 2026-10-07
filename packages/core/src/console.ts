@@ -68,6 +68,7 @@ import {
   STAGES,
 } from "./components.js";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
+import { type DryResult, dryStep, dryWalk, sampleEvent } from "./dry.js";
 import {
   ASK_COMMAND,
   ASK_MESSAGE_MAX,
@@ -147,7 +148,15 @@ import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
 import { runs, type SentEvent, workflowSaves } from "./schema.js";
-import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
+import {
+  editsOf,
+  type SavedWorkflow,
+  SPINE,
+  type SpineService,
+  savedWorkflows,
+  type WorkflowVersion,
+  workflowHistory,
+} from "./spine.js";
 import {
   addSurvey,
   answerSurvey,
@@ -158,7 +167,15 @@ import {
   surveyRecord,
   surveysDue,
 } from "./survey-store.js";
-import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
+import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
+import {
+  flowsWith,
+  partsIn,
+  portsOf,
+  type Workflow,
+  type WorkflowEdits,
+  withEdits,
+} from "./workflows.js";
 
 /** One of the access types (`./access-records.ts`), served to anyone signed in there. */
 const isAccess = (id: unknown) => (ACCESS_TYPES as readonly unknown[]).includes(id);
@@ -249,6 +266,23 @@ export interface WorkflowSaveRequest extends PortalRequest {
   reset?: boolean;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
+}
+
+/** A dry test of a draft: from its first input, or one `node` at `port`; a sample or a real event. */
+export interface WorkflowTestRequest extends PortalRequest {
+  workflow: string;
+  wires?: unknown;
+  steps?: unknown;
+  node?: unknown;
+  port?: unknown;
+  kind?: unknown;
+  data?: unknown;
+  /** Where a whole test enters: "in.<port>" or a trigger's "<node>.<port>". */
+  from?: unknown;
+  /** A real arrival's id: its data, pinned. */
+  event?: unknown;
+  /** What every rule answers; yes when left out. */
+  rules?: unknown;
 }
 
 /**
@@ -1147,8 +1181,24 @@ export const componentRecord = (
   client: Client | null,
   team: boolean,
   workflows: readonly Workflow[] = [],
-  /** The client's saves, and why one was left out: the team's, for the canvas's editing. */
-  saves: { saved: Record<string, SavedWorkflow>; broken: Record<string, string[]> } = {
+  /**
+   * The client's live saves, why one was left out, and one workflow's draft and versions: the
+   * team's, for the canvas's editing.
+   */
+  saves: {
+    saved: Record<string, SavedWorkflow>;
+    broken: Record<string, string[]>;
+    /** Read on the load's own connection: a second one inside its snapshot can starve the pool. */
+    history?: (
+      db: Queryable,
+      workflow: string,
+    ) => Promise<{
+      draft: WorkflowVersion | null;
+      versions: WorkflowVersion[];
+    }>;
+    /** The workflows as the code has them, before any save: what a draft is checked over. */
+    code?: readonly Workflow[];
+  } = {
     saved: {},
     broken: {},
   },
@@ -1225,6 +1275,32 @@ export const componentRecord = (
         ready: flowReady(partsIn(x.id, flows, all)),
       })),
   });
+  /**
+   * What the canvas's editor opens on: the live save, its draft with what won't run in it, the
+   * live versions for History, and the palette.
+   */
+  const editing = async (db: Queryable, w: Workflow) => {
+    const h = saves.history ? await saves.history(db, w.id) : { draft: null, versions: [] };
+    const code = saves.code ?? workflows;
+    const raw = code.find((x) => x.id === w.id) ?? w;
+    const draft = h.draft
+      ? {
+          ...h.draft,
+          problems: h.draft.edits
+            ? (flowsWith(code, { [w.id]: h.draft.edits }, all).broken[w.id] ?? [])
+            : [],
+        }
+      : null;
+    return {
+      // The code's own routed wires: what "Back to built-in" and a version saved as it open on.
+      code: { wires: raw.wires.filter((x) => x.via === "events"), steps: [] },
+      saved: saves.saved[w.id] ?? null,
+      broken: saves.broken[w.id] ?? [],
+      draft,
+      versions: h.versions,
+      palette: paletteFor(w),
+    };
+  };
   /**
    * A workflow's nodes, each with what it uses and its main number's source (its first counted
    * port), and its wires with what moves on each and that number's source, for the drawings.
@@ -1397,13 +1473,7 @@ export const componentRecord = (
         return {
           workflow: drawn(w),
           usedIn: usedIn(id),
-          ...(team
-            ? {
-                saved: saves.saved[id] ?? null,
-                broken: saves.broken[id] ?? [],
-                palette: paletteFor(w),
-              }
-            : {}),
+          ...(team ? await editing(db, w) : {}),
         };
       const c = all.find((x) => x.id === id);
       if (!c) return null;
@@ -1507,6 +1577,17 @@ export function consoleApi({
     holdRecord,
     checkRecord,
   ];
+  /** The workflow a canvas call names, for Wren or a client it may write, and who's asking. */
+  const workflowFor = async (req: WorkflowSaveRequest) => {
+    team(req);
+    if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+    // No client is Wren's own, as the catalog reads it.
+    const client = req.client ? (await pickForWrite(main, req)).client.id : null;
+    const w = workflows.find((x) => x.id === req.workflow);
+    if (!w) throw new PortalRefusal("no such workflow", 404);
+    if (client && w.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
+    return { w, client, by: (req.viewer as SignedViewer).email };
+  };
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
   };
@@ -1516,6 +1597,14 @@ export function consoleApi({
     if (!teamCan(req, "run", WREN)) throw new PortalRefusal("your role can't change that", 403);
     if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
     return (req.viewer as SignedViewer).email;
+  };
+  /** An experiment button's writer (`manage` at Wren) and the flags it names. */
+  const experimentIds = (req: PortalRequest & { ids?: unknown }): [string, string[]] => {
+    const by = teamWriter(req);
+    if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+    const ids = Array.isArray(req.ids) ? req.ids.filter((x) => typeof x === "string") : [];
+    if (!ids.length) throw new PortalRefusal("say which experiment", 400);
+    return [by, ids];
   };
   /** The rows of each of Wren's types this teammate may read; the catalog is everyone's. */
   const fenceOf =
@@ -1597,7 +1686,12 @@ export function consoleApi({
         client,
         internal,
         flows,
-        { saved, broken },
+        {
+          saved,
+          broken,
+          history: (db, wf) => workflowHistory(db, client?.id ?? null, wf),
+          code: workflows,
+        },
         internal && admin ? runningLoops(admin) : undefined,
       ),
     ];
@@ -1695,14 +1789,6 @@ export function consoleApi({
       if (err instanceof LastAdmin) throw new PortalRefusal(err.message, 409);
       throw err;
     }
-  };
-  /** An experiment button's writer (`manage` at Wren) and the flags it names. */
-  const experimentIds = (req: PortalRequest & { ids?: unknown }): [string, string[]] => {
-    const by = teamWriter(req);
-    if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
-    const ids = Array.isArray(req.ids) ? req.ids.filter((x) => typeof x === "string") : [];
-    if (!ids.length) throw new PortalRefusal("say which experiment", 400);
-    return [by, ids];
   };
   /**
    * A seat's client list, each a client or `wren`; undefined leaves it as it is. A form's text
@@ -2135,17 +2221,12 @@ export function consoleApi({
         return null;
       }),
     /**
-     * A workflow's wiring from the canvas, for Wren or a client: checked as the spine would run it,
-     * then kept as a new version. A client gets only workflows for clients.
+     * A workflow's draft from the canvas, for Wren or a client: kept as it reads, whether or not
+     * it would run, with what won't. It runs nowhere until Publish. A client gets only workflows
+     * for clients.
      */
-    async workflowSave(req: WorkflowSaveRequest): Promise<{ id: number }> {
-      team(req);
-      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
-      // No client is Wren's own, as the catalog reads it.
-      const client = req.client ? (await pickForWrite(main, req)).client : null;
-      const w = workflows.find((x) => x.id === req.workflow);
-      if (!w) throw new PortalRefusal("no such workflow", 404);
-      if (client && w.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
+    async workflowSave(req: WorkflowSaveRequest): Promise<{ id: number; problems: string[] }> {
+      const { w, client, by } = await workflowFor(req);
       let edits: WorkflowEdits | null = null;
       if (!req.reset) {
         const got = EDITS.safeParse({ wires: req.wires, steps: req.steps });
@@ -2154,30 +2235,180 @@ export function consoleApi({
           throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
         }
         edits = got.data as WorkflowEdits;
-        const next = flowsWith(workflows, { [w.id]: edits }, components);
-        const bad = next.broken[w.id];
-        if (bad) throw new PortalRefusal(bad.join("; "), 400);
-        const effects = workflowEffects(w.id, next.flows, components);
-        if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
-          throw new PortalRefusal("it sends: only an admin can make it live", 403);
-        if (effects.includes("spends") && !teamCan(req, "money", WREN))
-          throw new PortalRefusal("it spends: only an admin can make it live", 403);
-        if (effects.length && req.confirm !== w.id)
-          throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
       }
+      const problems = edits
+        ? (flowsWith(workflows, { [w.id]: edits }, components).broken[w.id] ?? [])
+        : [];
+      const id = await main.transaction(async (tx) => {
+        // One draft at a time: the newer one replaces it.
+        await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
+          AND client IS NOT DISTINCT FROM ${client}`);
+        const [row] = await tx
+          .insert(workflowSaves)
+          .values({ client, workflow: w.id, edits, live: false, by })
+          .returning({ id: workflowSaves.id });
+        return row?.id ?? 0;
+      });
+      return { id, problems };
+    },
+    /**
+     * Publish: the draft goes live, checked as the spine would run it. A workflow with a part that
+     * sends needs `effect`, one that spends `money`, and either needs its id typed back. Subjects
+     * already in it keep the wiring they entered on.
+     */
+    async workflowPublish(req: WorkflowSaveRequest): Promise<{ id: number }> {
+      const { w, client, by } = await workflowFor(req);
+      const { draft } = await workflowHistory(main, client, w.id);
+      if (!draft) throw new PortalRefusal("there's no draft to publish", 409);
+      const next = flowsWith(workflows, draft.edits ? { [w.id]: draft.edits } : {}, components);
+      const bad = next.broken[w.id];
+      if (bad) throw new PortalRefusal(bad.join("; "), 400);
+      const effects = workflowEffects(w.id, next.flows, components);
+      if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+        throw new PortalRefusal("it sends: only an admin can make it live", 403);
+      if (effects.includes("spends") && !teamCan(req, "money", WREN))
+        throw new PortalRefusal("it spends: only an admin can make it live", 403);
+      if (effects.length && req.confirm !== w.id)
+        throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
+      return main.transaction(async (tx) => {
+        const [row] = await tx
+          .insert(workflowSaves)
+          .values({ client, workflow: w.id, edits: draft.edits, live: true, by })
+          .returning({ id: workflowSaves.id });
+        await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
+          AND client IS NOT DISTINCT FROM ${client}`);
+        return { id: row?.id ?? 0 };
+      });
+    },
+    /** The draft dropped: the live wiring stays as it is. */
+    async workflowDiscard(req: WorkflowSaveRequest): Promise<{ done: number }> {
+      const { w, client } = await workflowFor(req);
+      const gone = (await main.execute(sql`DELETE FROM workflow_saves WHERE NOT live
+        AND workflow = ${w.id} AND client IS NOT DISTINCT FROM ${client}
+        RETURNING id`)) as unknown as unknown[];
+      return { done: gone.length };
+    },
+    /**
+     * Ask Claude on the graph: the run row holding the prompt, for `Ask/edit` to answer with the
+     * next draft. Nothing changes until he accepts it and publishes.
+     */
+    async workflowAskOpen(req: WorkflowSaveRequest & { message?: unknown }): Promise<string> {
+      const { w, client, by } = await workflowFor(req);
+      const message = typeof req.message === "string" ? req.message.trim() : "";
+      if (!message) throw new PortalRefusal("say what to change", 400);
+      if (message.length > ASK_MESSAGE_MAX)
+        throw new PortalRefusal(`keep it under ${ASK_MESSAGE_MAX} characters`, 400);
+      const got = EDITS.safeParse({ wires: req.wires ?? [], steps: req.steps ?? [] });
+      const draft = got.success ? (got.data as WorkflowEdits) : { wires: [], steps: [] };
+      const flows = workflows.filter(
+        (x) => x.id !== w.id && (w.for === "wren" || x.for === "client"),
+      );
+      const prompt = workflowAskPrompt({
+        w: withEdits(w, draft),
+        draft,
+        parts: components.filter((c) => w.for === "wren" || c.for === "client"),
+        flows,
+        message,
+      });
+      const argv = { record: WORKFLOW_ASK, id: `${client ?? ""}:${w.id}`, by, message, ...prompt };
+      return (await openRun(main, { command: ASK_COMMAND, argv, model: "claude-code:sonnet" })).id;
+    },
+    /** Claude's answer on the graph, while the canvas waits: thinking, or its reply and draft. */
+    async workflowAnswer(req: PortalRequest & { id?: unknown }) {
+      team(req);
+      const id = typeof req.id === "string" && /^[0-9a-f-]{36}$/.test(req.id) ? req.id : "";
+      if (!id) throw new PortalRefusal("no such ask", 404);
       const [row] = await main
-        .insert(workflowSaves)
-        .values({
-          client: client?.id ?? null,
-          workflow: w.id,
-          edits,
-          by: (req.viewer as SignedViewer).email,
-        })
-        .returning({ id: workflowSaves.id });
-      return { id: row?.id ?? 0 };
+        .select({ argv: runs.argv, stats: runs.stats, finishedAt: runs.finishedAt })
+        .from(runs)
+        .where(
+          and(
+            eq(runs.id, id),
+            eq(runs.command, ASK_COMMAND),
+            sql`${runs.argv}->>'record' = ${WORKFLOW_ASK}`,
+          ),
+        );
+      if (!row) throw new PortalRefusal("no such ask", 404);
+      const stats = (row.stats ?? {}) as { reply?: string; patch?: unknown; error?: string };
+      if (!row.finishedAt) return { state: "thinking" as const };
+      if (stats.error) return { state: "failed" as const, error: stats.error };
+      return {
+        state: "done" as const,
+        reply: stats.reply ?? "",
+        patch: patchOf(stats.patch),
+      };
     },
 
-    /** The failed event Retry names, checked before any step runs. */
+    /**
+     * Test the draft, dry (`./dry.ts`): the whole workflow from an input, or one node. On a
+     * sample event, or a real arrival's data read from `events`. Nothing is claimed or sent.
+     */
+    async workflowTest(req: WorkflowTestRequest): Promise<DryResult> {
+      team(req);
+      const w = workflows.find((x) => x.id === req.workflow);
+      if (!w) throw new PortalRefusal("no such workflow", 404);
+      const got = EDITS.safeParse({ wires: req.wires ?? [], steps: req.steps ?? [] });
+      if (!got.success) throw new PortalRefusal("that draft doesn't read", 400);
+      const { flows, broken } = flowsWith(
+        workflows,
+        { [w.id]: got.data as WorkflowEdits },
+        components,
+      );
+      if (broken[w.id]) throw new PortalRefusal(`it won't run: ${broken[w.id]?.join("; ")}`, 400);
+      const map = new Map(flows.map((f) => [f.id, f]));
+      const flow = map.get(w.id) as Workflow;
+      const node = typeof req.node === "string" ? req.node : null;
+      // Where a whole test enters: one of its inputs, or a trigger's output ("node.port").
+      const from = node
+        ? null
+        : typeof req.from === "string"
+          ? req.from
+          : flow.in[0]
+            ? `in.${flow.in[0].id}`
+            : null;
+      const [head = "", out = ""] = from?.split(".") ?? [];
+      const source = flow.nodes.find((n) => n.id === head);
+      const entry = from
+        ? (head === "in"
+            ? flow.in
+            : source
+              ? (portsOf(source, new Map(components.map((c) => [c.id, c])), map)?.out ?? [])
+              : []
+          ).find((p) => p.id === out)
+        : undefined;
+      if (from && !entry) throw new PortalRefusal("no such input", 400);
+      const port = node ? (typeof req.port === "string" ? req.port : undefined) : out;
+      if (!port) throw new PortalRefusal("say which input", 400);
+      const kindIn =
+        entry?.kind ??
+        (typeof req.kind === "string" && req.kind in EVENT_KINDS
+          ? (req.kind as Port["kind"])
+          : "lead");
+      const data =
+        req.data && typeof req.data === "object" && !Array.isArray(req.data)
+          ? (req.data as Record<string, unknown>)
+          : {};
+      let event = sampleEvent(kindIn, data);
+      // A real arrival's data, pinned: read only, on the team's main database.
+      if (typeof req.event === "string") {
+        if (!/^[0-9a-f-]{36}$/.test(req.event)) throw new PortalRefusal("no such event", 404);
+        const [row] = (await main.execute(sql`SELECT subject, kind, data FROM events
+          WHERE id = ${req.event}::uuid`)) as unknown as Array<typeof event>;
+        if (!row) throw new PortalRefusal("no such event", 404);
+        event = row;
+      }
+      const base = {
+        flows: map,
+        parts: new Map(components.map((c) => [c.id, c])),
+        workflow: w.id,
+        client: null,
+        rules: req.rules !== false,
+      };
+      return node
+        ? dryStep({ ...base, node, port, event })
+        : dryWalk({ ...base, from: from as string, events: [event] });
+    },
+
     eventToRetry(req: PortalRequest & { id?: unknown }): string {
       team(req);
       if (!teamCan(req, "effect", WREN)) throw new PortalRefusal("your role can't run that", 403);
@@ -2461,8 +2692,22 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       uninstall: (ctx: restate.Context, req: ComponentRequest) =>
         changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
-      workflowSave: (_: restate.Context, req: WorkflowSaveRequest) =>
-        answer(() => api.workflowSave(req)),
+      workflowSave: (ctx: restate.Context, req: WorkflowSaveRequest) =>
+        answer(() => ctx.run("save draft", () => answer(() => api.workflowSave(req)))),
+      workflowPublish: (ctx: restate.Context, req: WorkflowSaveRequest) =>
+        answer(() => ctx.run("publish", () => answer(() => api.workflowPublish(req)))),
+      workflowDiscard: (ctx: restate.Context, req: WorkflowSaveRequest) =>
+        answer(() => ctx.run("discard draft", () => answer(() => api.workflowDiscard(req)))),
+      workflowAsk: (ctx: restate.Context, req: WorkflowSaveRequest & { message?: unknown }) =>
+        answer(async () => {
+          const id = await ctx.run("open run", () => answer(() => api.workflowAskOpen(req)));
+          ctx.serviceSendClient<AskService>(ASK).edit({ id });
+          return { id };
+        }),
+      workflowAnswer: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => api.workflowAnswer(req)),
+      workflowTest: (_: restate.Context, req: WorkflowTestRequest) =>
+        answer(() => api.workflowTest(req)),
       /** A failed spine step, again, waited on so the button says how it went. */
       retryEvent: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(async () => {

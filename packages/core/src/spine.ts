@@ -8,9 +8,9 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { dig, holdOf, logicOf, logicSteps } from "./logic.js";
@@ -54,6 +54,8 @@ export interface Arrival {
   node: string;
   port: string;
   event: SpineEvent;
+  /** The wiring its subject entered on (`events.version`): a save's id, 0 the code's. */
+  version?: number | null;
 }
 
 export interface SpineStore {
@@ -62,6 +64,11 @@ export interface SpineStore {
    * null when another call kept it first. With `due`, it waits on its wire until then.
    */
   claim(a: Arrival, by: string, due?: Date): Promise<string | null>;
+  /**
+   * The wiring `subject` entered `workflow` on: a save's id, 0 the code's, null from before
+   * versions (it walks the live one), undefined when it never entered.
+   */
+  entered?(workflow: string, subject: string): Promise<number | null | undefined>;
   /** Take a waiting arrival for `by`; null when another call took it. */
   release(id: string, by: string): Promise<Arrival | null>;
   /** Its step failed past its retries: the event stops here, with why. */
@@ -74,6 +81,12 @@ export interface SpineStore {
 
 export interface Walk {
   flows: ReadonlyMap<string, Workflow>;
+  /** The wiring this walk is on, kept on each arrival: a save's id, 0 the code's. */
+  version?: number;
+  /** A workflow's live wiring: its newest live save's id, 0 the code's. */
+  liveOf?(workflow: string): number;
+  /** The flows with `workflow` on an older wiring, for a subject that entered on it. */
+  flowsAt?(workflow: string, version: number): Promise<ReadonlyMap<string, Workflow>>;
   parts: ReadonlyMap<string, Component>;
   /** By part id, or a custom step's registered name. */
   steps: Readonly<Record<string, Step>>;
@@ -88,6 +101,11 @@ export interface Walk {
   later(id: string, ms: number): void;
   /** Does the event pass a wire's rule, in words? */
   rule(when: string, e: SpineEvent): Promise<boolean>;
+  /**
+   * A test (`./dry.ts`): every node that would run a step runs this one's instead, and code
+   * wires carry events as events wires do, as the parts' code would. Nothing leaves the walk.
+   */
+  dry?: (n: WorkflowNode) => Step;
 }
 
 export interface Tally {
@@ -164,7 +182,13 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
   const tally: Tally = { arrived: 0, seen: 0, waiting: 0, failed: 0, out: 0 };
   const arrival = (m: Move): Arrival => {
     const [id, port] = m.ref.split(".") as [string, string];
-    return { workflow, node: [...m.at, id].join("."), port, event: m.e };
+    return {
+      workflow,
+      node: [...m.at, id].join("."),
+      port,
+      event: m.e,
+      ...(w.version !== undefined ? { version: w.version } : {}),
+    };
   };
   // A Merge passes a subject once, by whichever side it came: both sides claim one entry.
   const entry = (flow: Workflow, m: Move): Arrival => {
@@ -181,7 +205,8 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       // What leaves a Wait node is held on every wire out of it, unless the wire says its own.
       const hold = holdOf(flow.nodes.find((n) => n.id === id));
       for (const wire of flow.wires) {
-        if (wire.from !== m.ref || wire.via !== "events") continue;
+        // A part's code moves events on its code wires; a dry test plays those as wires too.
+        if (wire.from !== m.ref || (wire.via !== "events" && !w.dry)) continue;
         const e = m.e;
         if (wire.when) {
           const when = wire.when;
@@ -221,12 +246,13 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
 
     const node = flow.nodes.find((n) => n.id === id);
     if (!node) throw new restate.TerminalError(`${flow.id}: no node ${id}`);
-    const step = stepOf(w, node);
-    const inner = step ? undefined : innerOf(w, node);
+    const real = stepOf(w, node);
+    const inner = real ? undefined : innerOf(w, node);
     if (inner) {
       queue.push({ arrive: false, at: [...m.at, id], ref: `in.${port}`, e: m.e });
       continue;
     }
+    const step = w.dry ? w.dry(node) : real;
     const a = entry(flow, m);
     let outs: Awaited<ReturnType<Step>> | null;
     try {
@@ -261,13 +287,44 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
   return tally;
 }
 
-/** Events leaving `from` ("node.port", or "in.port" for the workflow's own input). */
-export const walk = (w: Walk, workflow: string, from: string, batch: SpineEvent[]) =>
-  walkMoves(
-    w,
-    workflow,
-    batch.map((e) => ({ arrive: false, at: [], ref: from, e })),
-  );
+/** `w` on the wiring a subject entered on; the live one when it's new or from before versions. */
+async function pinned(w: Walk, workflow: string, entered: number | null | undefined) {
+  if (!w.liveOf) return w;
+  const live = w.liveOf(workflow);
+  const version = entered ?? live;
+  if (version === live || !w.flowsAt) return { ...w, version: live };
+  return { ...w, flows: await w.flowsAt(workflow, version), version };
+}
+
+const add = (a: Tally, b: Tally): Tally => ({
+  arrived: a.arrived + b.arrived,
+  seen: a.seen + b.seen,
+  waiting: a.waiting + b.waiting,
+  failed: a.failed + b.failed,
+  out: a.out + b.out,
+});
+
+/**
+ * Events leaving `from` ("node.port", or "in.port" for the workflow's own input). A subject
+ * already in the workflow walks the wiring it entered on; a new one takes the live wiring.
+ */
+export async function walk(w: Walk, workflow: string, from: string, batch: SpineEvent[]) {
+  const moves = (es: SpineEvent[]): Move[] =>
+    es.map((e) => ({ arrive: false, at: [], ref: from, e }));
+  const entered = w.store.entered;
+  if (!entered || !w.liveOf) return walkMoves(w, workflow, moves(batch));
+  const by = new Map<number | null, SpineEvent[]>();
+  for (const e of batch) {
+    const v = await w.run(`entered ${e.subject}`, () =>
+      entered.call(w.store, workflow, e.subject).then((x) => x ?? null),
+    );
+    by.set(v, [...(by.get(v) ?? []), e]);
+  }
+  let tally: Tally = { arrived: 0, seen: 0, waiting: 0, failed: 0, out: 0 };
+  for (const [v, es] of by)
+    tally = add(tally, await walkMoves(await pinned(w, workflow, v), workflow, moves(es)));
+  return tally;
+}
 
 /** A waiting arrival whose time came: it arrives now. */
 export const resume = (w: Walk, id: string) =>
@@ -286,7 +343,7 @@ async function arriveAgain(
   if (!a) return null;
   const path = a.node.split(".");
   const last = path.pop() as string;
-  return walkMoves(w, a.workflow, [
+  return walkMoves(await pinned(w, a.workflow, a.version), a.workflow, [
     { arrive: true, at: path, ref: `${last}.${a.port}`, e: a.event },
   ]);
 }
@@ -314,33 +371,43 @@ export function pgSpineStore(db: Db): SpineStore {
     subject: string;
     kind: EventKind;
     data: Record<string, unknown>;
+    version: number | null;
   };
+  const arrivalOf = (r: Row | undefined): Arrival | null =>
+    r
+      ? {
+          workflow: r.workflow,
+          node: r.node,
+          port: r.port,
+          event: { subject: r.subject, kind: r.kind, data: r.data },
+          version: r.version,
+        }
+      : null;
   return {
     async claim(a, by, due) {
       const e = pgSafe(a.event);
       const rows = (await db.execute(sql`
-        INSERT INTO events (workflow, node, port, subject, kind, data, due, by)
+        INSERT INTO events (workflow, node, port, subject, kind, data, due, by, version)
         VALUES (${a.workflow}, ${a.node}, ${a.port}, ${e.subject}, ${e.kind},
-          ${JSON.stringify(e.data)}::jsonb, ${due?.toISOString() ?? null}::timestamptz, ${by})
+          ${JSON.stringify(e.data)}::jsonb, ${due?.toISOString() ?? null}::timestamptz, ${by},
+          ${a.version ?? null}::int)
         ON CONFLICT ON CONSTRAINT uq_events_entry DO UPDATE SET by = excluded.by
           WHERE events.by = excluded.by
         RETURNING id::text`)) as unknown as Array<{ id: string }>;
       return rows[0]?.id ?? null;
     },
+    async entered(workflow, subject) {
+      const rows = (await db.execute(sql`
+        SELECT version FROM events WHERE subject = ${subject} AND workflow = ${workflow}
+        ORDER BY at LIMIT 1`)) as unknown as Array<{ version: number | null }>;
+      return rows.length ? (rows[0]?.version ?? null) : undefined;
+    },
     async release(id, by) {
       const rows = (await db.execute(sql`
         UPDATE events SET due = NULL, by = ${by}
         WHERE id = ${id}::uuid AND (due IS NOT NULL OR by = ${by})
-        RETURNING workflow, node, port, subject, kind, data`)) as unknown as Row[];
-      const r = rows[0];
-      return r
-        ? {
-            workflow: r.workflow,
-            node: r.node,
-            port: r.port,
-            event: { subject: r.subject, kind: r.kind, data: r.data },
-          }
-        : null;
+        RETURNING workflow, node, port, subject, kind, data, version`)) as unknown as Row[];
+      return arrivalOf(rows[0]);
     },
     async fail(a, error) {
       await db.execute(sql`
@@ -357,16 +424,8 @@ export function pgSpineStore(db: Db): SpineStore {
       const rows = (await db.execute(sql`
         UPDATE events SET error = NULL, by = ${by}
         WHERE id = ${id}::uuid AND (error IS NOT NULL OR by = ${by})
-        RETURNING workflow, node, port, subject, kind, data`)) as unknown as Row[];
-      const r = rows[0];
-      return r
-        ? {
-            workflow: r.workflow,
-            node: r.node,
-            port: r.port,
-            event: { subject: r.subject, kind: r.kind, data: r.data },
-          }
-        : null;
+        RETURNING workflow, node, port, subject, kind, data, version`)) as unknown as Row[];
+      return arrivalOf(rows[0]);
     },
   };
 }
@@ -428,6 +487,8 @@ export function hookEvent(
 
 /** A workflow's newest save for a client. */
 export interface SavedWorkflow {
+  /** Its `workflow_saves` id: the version a subject enters on. */
+  id: number;
   edits: WorkflowEdits | null;
   by: string;
   at: string;
@@ -441,11 +502,78 @@ export async function savedWorkflows(
   const rows = await db
     .selectDistinctOn([workflowSaves.workflow])
     .from(workflowSaves)
-    .where(client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client))
+    .where(
+      and(
+        client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client),
+        eq(workflowSaves.live, true),
+      ),
+    )
     .orderBy(workflowSaves.workflow, desc(workflowSaves.id));
   return Object.fromEntries(
-    rows.map((r) => [r.workflow, { edits: r.edits, by: r.by, at: r.at.toISOString() }]),
+    rows.map((r) => [r.workflow, { id: r.id, edits: r.edits, by: r.by, at: r.at.toISOString() }]),
   );
+}
+
+/** A live save of a workflow, as History lists it. */
+export interface WorkflowVersion {
+  id: number;
+  edits: WorkflowEdits | null;
+  by: string;
+  at: string;
+}
+
+/**
+ * A workflow's draft (a save newer than its newest live one, not live) and its live versions,
+ * newest first: what the canvas's editor opens and its History lists.
+ */
+export async function workflowHistory(
+  db: Queryable,
+  client: string | null,
+  workflow: string,
+): Promise<{ draft: WorkflowVersion | null; versions: WorkflowVersion[] }> {
+  const rows = await db
+    .select({
+      id: workflowSaves.id,
+      edits: workflowSaves.edits,
+      live: workflowSaves.live,
+      by: workflowSaves.by,
+      at: workflowSaves.at,
+    })
+    .from(workflowSaves)
+    .where(
+      and(
+        client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client),
+        eq(workflowSaves.workflow, workflow),
+      ),
+    )
+    .orderBy(desc(workflowSaves.id))
+    .limit(30);
+  const one = (r: (typeof rows)[number]): WorkflowVersion => ({
+    id: r.id,
+    edits: r.edits,
+    by: r.by,
+    at: r.at.toISOString(),
+  });
+  const first = rows[0];
+  return {
+    draft: first && !first.live ? one(first) : null,
+    versions: rows
+      .filter((r) => r.live)
+      .slice(0, 15)
+      .map(one),
+  };
+}
+
+/** One save's wiring, live or not: what a subject that entered on it still walks. */
+export async function savedVersion(
+  db: Db,
+  id: number,
+): Promise<{ workflow: string; edits: WorkflowEdits | null } | null> {
+  const [r] = await db
+    .select({ workflow: workflowSaves.workflow, edits: workflowSaves.edits })
+    .from(workflowSaves)
+    .where(eq(workflowSaves.id, id));
+  return r ?? null;
 }
 
 export const editsOf = (saved: Readonly<Record<string, SavedWorkflow>>) =>
@@ -487,28 +615,42 @@ export function makeSpine(d: SpineDeps) {
   const parts = new Map(d.components.map((c) => [c.id, c]));
   const steps = { ...logicSteps(d.rule), ...d.steps };
   // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
+  const savesFor = (ctx: restate.Context, client: string | null) =>
+    ctx.run("saved workflows", () => savedWorkflows(d.main, client));
+  const flowsOf = (edits: Record<string, WorkflowEdits | null>) =>
+    new Map(flowsWith(d.workflows, edits, d.components).flows.map((f) => [f.id, f]));
   const flowsFor = async (ctx: restate.Context, client: string | null) =>
-    new Map(
-      flowsWith(
-        d.workflows,
-        editsOf(await ctx.run("saved workflows", () => savedWorkflows(d.main, client))),
-        d.components,
-      ).flows.map((f) => [f.id, f]),
-    );
-  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => ({
-    flows: await flowsFor(ctx, t.client),
-    parts,
-    steps,
-    store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
-    client: t.client,
-    by: ctx.request().id,
-    run: (name, fn, capped) => ctx.run(name, fn, capped ? STEP_RETRY : {}),
-    later: (id, ms) =>
-      ctx
-        .serviceSendClient<SpineService>(SPINE)
-        .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
-    rule: d.rule,
-  });
+    flowsOf(editsOf(await savesFor(ctx, client)));
+  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => {
+    const saves = await savesFor(ctx, t.client);
+    return {
+      flows: flowsOf(editsOf(saves)),
+      // A workflow's newest live save: the wiring a new subject enters on.
+      liveOf: (workflow) => saves[workflow]?.id ?? 0,
+      // A save that no longer checks runs as the code's, the same as `flowsWith` drops it.
+      flowsAt: async (workflow, version) => {
+        const old =
+          version === 0
+            ? { workflow, edits: null }
+            : await ctx.run(`wiring ${version}`, () => savedVersion(d.main, version));
+        return flowsOf({
+          ...editsOf(saves),
+          [workflow]: old?.workflow === workflow ? old.edits : null,
+        });
+      },
+      parts,
+      steps,
+      store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
+      client: t.client,
+      by: ctx.request().id,
+      run: (name, fn, capped) => ctx.run(name, fn, capped ? STEP_RETRY : {}),
+      later: (id, ms) =>
+        ctx
+          .serviceSendClient<SpineService>(SPINE)
+          .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
+      rule: d.rule,
+    };
+  };
 
   return restate.service({
     name: SPINE.name,

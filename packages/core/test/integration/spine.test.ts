@@ -53,7 +53,7 @@ describe("pgSpineStore", () => {
 
   it("releases a waiting arrival to one call, and again to that call only", async () => {
     const store = pgSpineStore(pg.db);
-    const w = { ...a, node: "out", port: "replied" };
+    const w = { ...a, node: "out", port: "replied", version: 3 };
     const id = (await store.claim(w, "inv1", new Date(Date.now() + 60_000))) as string;
     expect(await store.release(id, "inv2")).toEqual({
       ...w,
@@ -139,36 +139,90 @@ describe("workflow saves", () => {
     ],
   });
   const operator = { viewer: { email: "op@example.test", operator: true } } as PortalRequest;
-  it("checks a save, keeps every version, and draws the newest", async () => {
+  it("keeps a draft as it reads, publishes it checked, and lists each version", async () => {
     const api = consoleApi({ main: pg.db, views: [], components: [part], workflows: [flow] });
     const wait = { from: "n.replied", to: "out.replied", via: "events", wait: "2 days" };
-    await expect(
-      api.workflowSave({ ...operator, workflow: "f", wires: [], steps: [] }),
-    ).rejects.toThrow("f: out.replied gets nothing");
     await expect(
       api.workflowSave({ ...operator, workflow: "nope", wires: [], steps: [] }),
     ).rejects.toThrow("no such workflow");
     await expect(
       api.workflowSave({ viewer: { email: "x@client.example" }, workflow: "f" } as never),
     ).rejects.toThrow("that's for Wren's team");
+    await expect(api.workflowPublish({ ...operator, workflow: "f" })).rejects.toThrow(
+      "there's no draft to publish",
+    );
+    // A draft that won't run is kept, with why; publishing it is refused.
+    expect(await api.workflowSave({ ...operator, workflow: "f", wires: [], steps: [] })).toEqual({
+      id: expect.any(Number),
+      problems: ["f: out.replied gets nothing"],
+    });
+    await expect(api.workflowPublish({ ...operator, workflow: "f" })).rejects.toThrow(
+      "f: out.replied gets nothing",
+    );
+    expect(await savedWorkflows(pg.db, null)).toEqual({});
+    // A newer draft replaces it; Publish makes it live and drops the draft.
     await api.workflowSave({
       ...operator,
       workflow: "f",
       wires: [{ ...wait, label: "replies" }],
       steps: [],
     });
+    expect(await pg.db.select().from(workflowSaves)).toHaveLength(1);
+    const { id } = await api.workflowPublish({ ...operator, workflow: "f" });
     expect((await savedWorkflows(pg.db, null)).f).toMatchObject({
+      id,
       edits: { wires: [wait], steps: [] },
       by: "op@example.test",
     });
     const got = await api.recordsGet({ ...operator, record: "console.component", id: "f" });
-    const detail = got.detail as { workflow: { wires: unknown[] }; broken: string[] };
+    const detail = got.detail as {
+      workflow: { wires: unknown[] };
+      broken: string[];
+      draft: unknown;
+      versions: { id: number }[];
+      code: { wires: unknown[] };
+    };
     expect(detail.workflow.wires).toMatchObject([flow.wires[0], wait]);
     expect(detail.broken).toEqual([]);
+    expect(detail.draft).toBeNull();
+    expect(detail.versions.map((v) => v.id)).toEqual([id]);
+    expect(detail.code.wires).toEqual([flow.wires[1]]);
 
+    // Back to built-in is a draft too; Discard drops it and the live one stays.
     await api.workflowSave({ ...operator, workflow: "f", reset: true });
+    const open = await api.recordsGet({ ...operator, record: "console.component", id: "f" });
+    expect(open.detail).toMatchObject({ draft: { edits: null, problems: [] } });
+    expect(await api.workflowDiscard({ ...operator, workflow: "f" })).toEqual({ done: 1 });
+    expect((await savedWorkflows(pg.db, null)).f?.id).toBe(id);
+    await api.workflowSave({ ...operator, workflow: "f", reset: true });
+    await api.workflowPublish({ ...operator, workflow: "f" });
     expect((await savedWorkflows(pg.db, null)).f?.edits).toBeNull();
     expect(await savedWorkflows(pg.db, "someone")).toEqual({});
     expect(await pg.db.select().from(workflowSaves)).toHaveLength(2);
+  });
+
+  it("asks a sending workflow's id typed back before it goes live", async () => {
+    const sends = defineComponent({ ...part, id: "s", effects: ["sends"] });
+    const loud = defineWorkflow({ ...flow, id: "loud", nodes: [{ id: "n", uses: "s" }] });
+    const api = consoleApi({ main: pg.db, views: [], components: [sends], workflows: [loud] });
+    await api.workflowSave({ ...operator, workflow: "loud", wires: [flow.wires[1]], steps: [] });
+    await expect(api.workflowPublish({ ...operator, workflow: "loud" })).rejects.toThrow(
+      "it sends: type loud to confirm",
+    );
+    await expect(
+      api.workflowPublish({ ...operator, workflow: "loud", confirm: "loud" }),
+    ).resolves.toMatchObject({ id: expect.any(Number) });
+  });
+
+  it("keeps the wiring each subject entered on", async () => {
+    const store = pgSpineStore(pg.db);
+    const at = { ...a, workflow: "pinned", event: { ...a.event, subject: "lead:p" } };
+    expect(await store.entered?.("pinned", "lead:p")).toBeUndefined();
+    await store.claim({ ...at, version: 7 }, "inv1");
+    await store.claim({ ...at, node: "y", version: 9 }, "inv1");
+    expect(await store.entered?.("pinned", "lead:p")).toBe(7);
+    // A row from before versions walks the live wiring.
+    await store.claim({ ...at, workflow: "legacy" }, "inv1");
+    expect(await store.entered?.("legacy", "lead:p")).toBeNull();
   });
 });

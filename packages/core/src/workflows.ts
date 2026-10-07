@@ -135,7 +135,7 @@ const NODE_ID = /^[a-z][a-z0-9_]*$/;
 const WAIT = /^(\d+ (minute|hour|day|week)s?|until [a-z]+)$/;
 
 /** A node's ports, from whatever it uses; null when that's unknown. */
-function portsOf(
+export function portsOf(
   n: WorkflowNode,
   parts: ReadonlyMap<string, Component>,
   flows: ReadonlyMap<string, Workflow>,

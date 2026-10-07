@@ -24,7 +24,7 @@ import {
   Section,
   useTypes,
 } from "@wren/ui";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -44,10 +44,21 @@ import {
   trailIsFor,
   type Where,
 } from "./canvas.js";
-import { EditBar, NodePanel, PaletteDrawer, WirePanel } from "./editor.js";
+import { type DryStep, dryNodes } from "./dry.js";
+import {
+  AskGraph,
+  EditBar,
+  HistoryMenu,
+  NodePanel,
+  PaletteDrawer,
+  Proposal,
+  type Version,
+  WirePanel,
+} from "./editor.js";
 import { Executions } from "./executions.js";
 import { WREN_APPS } from "./index.js";
 import { usePlay } from "./playback.js";
+import { TestPanel, TestStep } from "./tester.js";
 import {
   addNode,
   allEnds,
@@ -75,7 +86,19 @@ const PAGE = "/workflows/canvas";
 const POLL_MS = 8000;
 const MOST_DOTS = 24;
 
-type Detail = { workflow?: Drawn; saved?: Saved | null; broken?: string[]; palette?: Palette };
+type Detail = {
+  workflow?: Drawn;
+  saved?: Saved | null;
+  broken?: string[];
+  palette?: Palette;
+  /** The team's: the draft kept on the server, each live version, and the code's own wires. */
+  draft?: (Version & { problems: string[] }) | null;
+  versions?: Version[];
+  code?: Draft;
+};
+const EMPTY: Draft = { wires: [], steps: [] };
+/** How far Undo goes back. */
+const UNDO_MOST = 50;
 
 /** The first of Wren's lists over `c`'s record, on its view. */
 const recordsAt = (c: CountRef) => {
@@ -195,7 +218,7 @@ export function Workflows({ params, team, can }: PageProps) {
         <Executions w={w} params={params} can={can} />
       ) : (
         <Canvas
-          key={`${path.join("/")}:${nonce}`}
+          key={path.join("/")}
           w={w}
           d={d}
           counts={counts.data ?? undefined}
@@ -328,26 +351,56 @@ function Canvas({
 }) {
   const broken = d.broken ?? [];
   const palette = d.palette ?? NO_PALETTE;
+  // What's live, as a draft: every diff and change count is against it.
   const first = useMemo(() => draftOf(w, d.saved ?? null, broken.length > 0), [w, d, broken]);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const code = d.code ?? EMPTY;
+  // The draft kept on the server, or what's live when there's none.
+  const stored = d.draft ? (d.draft.edits ?? code) : first;
+  const [draft, setDraftNow] = useState<Draft | null>(null);
+  const [undo, setUndo] = useState<Draft[]>([]);
   const [picked, setPicked] = useState<{ from: string; to: string } | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [choices, setChoices] = useState<Wire[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Saving a workflow that sends or spends asks its id typed back: the server names the effects.
+  // Claude's answer on the graph: shown as a diff over the draft until he accepts or rejects it.
+  const [proposal, setProposal] = useState<{ reply: string; patch: Draft | null } | null>(null);
+  // Publishing a workflow that sends or spends asks its id typed back: the server names the effects.
   const [confirm, setConfirm] = useState<{ asks: string; typed: string } | null>(null);
-  const shown = useMemo(
-    () => (draft ? drawnWith(w, first, draft, palette) : w),
-    [w, first, draft, palette],
-  );
+  // Test workflow: its panel, and the steps of the last dry run, lit until the draft changes.
+  const [testing, setTesting] = useState(false);
+  const [tested, setTested] = useState<{ steps: readonly DryStep[]; from: string } | null>(null);
+  /** Every change to the draft goes through here, so Undo can step back. */
+  const setDraft = (next: Draft) => {
+    if (draft) setUndo((u) => [...u.slice(-(UNDO_MOST - 1)), draft]);
+    setDraftNow(next);
+    setTested(null);
+  };
+  const shown = useMemo(() => {
+    if (!draft) return w;
+    if (proposal?.patch) return drawnDiff(w, first, draft, proposal.patch, palette).drawn;
+    return drawnWith(w, first, draft, palette);
+  }, [w, first, draft, proposal, palette]);
   const marks = useMemo(() => {
     if (!draft) return undefined;
+    // Claude's patch rings what it adds and takes out; the draft alone, what it adds.
+    if (proposal?.patch) {
+      const x = drawnDiff(w, first, draft, proposal.patch, palette);
+      return { nodes: x.nodes, edges: x.edges };
+    }
     const x = drawnDiff(w, first, first, draft, palette);
     const live = <K,>(m: Map<K, GraphMark>) => new Map([...m].filter(([, v]) => v !== "removed"));
     return { nodes: live(x.nodes), edges: live(x.edges) };
-  }, [w, first, draft, palette]);
+  }, [w, first, draft, proposal, palette]);
+  // Claude's changes, so the frame pans to them on a wide drawing.
+  const changed = useMemo(
+    () =>
+      proposal?.patch && marks
+        ? [...marks.nodes.keys(), ...[...marks.edges.keys()].flatMap((k) => k.split(">"))]
+        : undefined,
+    [proposal, marks],
+  );
   const graph = useMemo(
     () =>
       graphOf(shown, {
@@ -360,6 +413,11 @@ function Canvas({
         ...(marks ? { marks } : {}),
       }),
     [shown, counts, inner, where, team, draft, marks],
+  );
+  // A dry test's path, lit over the draft: each card it reached says how it went.
+  const lit = useMemo(
+    () => (tested ? dryNodes(graph.nodes, shown, tested.steps, tested.from) : null),
+    [tested, graph, shown],
   );
   const dots = useEvents(w, !client);
   const funnel = useMemo(() => funnelOf(w, counts ?? new Map()), [w, counts]);
@@ -374,21 +432,35 @@ function Canvas({
   });
   const open = params.get("component");
 
-  // `/` opens the palette while editing, unless he's typing.
+  const back = () => {
+    const last = undo.at(-1);
+    if (!last) return;
+    setUndo((u) => u.slice(0, -1));
+    setDraftNow(last);
+    setTested(null);
+  };
+  // `/` opens the palette and Ctrl or Cmd Z undoes while editing, unless he's typing.
   useEffect(() => {
     if (!draft) return;
     const key = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (e.key !== "/" || t?.closest("input, textarea, select, [contenteditable]")) return;
-      e.preventDefault();
-      setAdding(true);
+      if (t?.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        setAdding(true);
+      } else if (e.key === "z" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        back();
+      }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [draft]);
+  });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setDraft reads draft, a dependency
   const edit = useMemo((): GraphEdit | undefined => {
-    if (!draft) return undefined;
+    // A proposal on the canvas is read until he accepts or rejects it.
+    if (!draft || proposal) return undefined;
     return {
       ends: (id) => ({
         from: endsOf(shown, id, "from").length > 0,
@@ -405,10 +477,10 @@ function Canvas({
         setPicked({ from: a, to: b });
       },
     };
-  }, [draft, shown]);
+  }, [draft, shown, proposal]);
 
   const add = (uses: string) => {
-    if (!draft) return;
+    if (!draft || proposal) return;
     const got = addNode(shown, draft, uses, palette);
     if (!got) return;
     setDraft(got.draft);
@@ -416,47 +488,103 @@ function Canvas({
     setSel(got.id);
   };
 
-  const save = async (reset: boolean, typed?: string) => {
+  const answered = useCallback((reply: string, patch: Draft | null) => {
+    setSel(null);
+    setPicked(null);
+    setAdding(false);
+    setProposal({ reply, patch });
+  }, []);
+
+  const body = (x: Draft) => ({
+    workflow: w.id,
+    ...(client ? { client } : {}),
+    wires: x.wires,
+    steps: x.steps,
+  });
+  const failed = (err: unknown) => {
+    const m = err instanceof Error ? err.message : String(err);
+    if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
+    else setError(m);
+  };
+  const keep = async () => {
+    if (!draft) return;
     setBusy(true);
     setError(null);
     try {
-      await call("console/workflowSave", {
-        workflow: w.id,
-        ...(client ? { client } : {}),
-        ...(reset ? { reset: true } : { wires: draft?.wires ?? [], steps: draft?.steps ?? [] }),
-        ...(typed ? { confirm: typed } : {}),
-      });
-      setConfirm(null);
+      await call("console/workflowSave", body(draft));
       onSaved();
     } catch (err) {
-      const m = err instanceof Error ? err.message : String(err);
-      if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
-      else setError(m);
-      setBusy(false);
+      failed(err);
     }
+    setBusy(false);
   };
   const close = () => {
-    setDraft(null);
+    setDraftNow(null);
+    setUndo([]);
+    setProposal(null);
     setChoices([]);
     setError(null);
     setConfirm(null);
     setSel(null);
     setPicked(null);
     setAdding(false);
+    setTesting(false);
+    setTested(null);
+  };
+  /** Publish: kept first when it changed since, then live. A sending one asks its id typed. */
+  const publish = async (typed?: string) => {
+    if (!draft) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (!d.draft || changesOf(stored, draft) > 0) await call("console/workflowSave", body(draft));
+      await call("console/workflowPublish", {
+        workflow: w.id,
+        ...(client ? { client } : {}),
+        ...(typed ? { confirm: typed } : {}),
+      });
+      close();
+      onSaved();
+    } catch (err) {
+      failed(err);
+      onSaved();
+    }
+    setBusy(false);
+  };
+  const discard = async () => {
+    if (d.draft) {
+      setBusy(true);
+      try {
+        await call("console/workflowDiscard", { workflow: w.id, ...(client ? { client } : {}) });
+      } catch (err) {
+        setBusy(false);
+        return failed(err);
+      }
+      setBusy(false);
+      onSaved();
+    }
+    close();
   };
 
   const graphEl = (
     <Graph
       {...graph}
+      {...(lit ? { nodes: lit.nodes } : {})}
       label={`What runs in ${w.name}`}
       name={w.id}
       edit={edit}
       tools={!draft}
       {...(draft
-        ? { minHeight: 640, inset: { left: adding ? 292 : 0, right: sel || picked ? 372 : 0 } }
+        ? {
+            minHeight: 640,
+            // A test reads as a whole path, so it may zoom out further than editing does.
+            floor: lit ? 0.45 : 0.7,
+            show: changed,
+            inset: { left: adding ? 292 : 0, right: sel || picked || testing ? 372 : 0 },
+          }
         : {})}
       dots={draft ? [] : [...dots, ...play.dots]}
-      focus={draft ? undefined : play.focus}
+      focus={draft ? lit?.lit : play.focus}
       {...(draft
         ? {
             selected: sel,
@@ -466,6 +594,7 @@ function Canvas({
               setPicked(null);
             },
             onOpen: (id: string) => {
+              if (proposal) return;
               setPicked(null);
               setSel(id);
             },
@@ -480,6 +609,8 @@ function Canvas({
   );
 
   if (draft) {
+    const unsaved = changesOf(stored, draft) > 0;
+    const problems = [...problemsOf(draft), ...(unsaved ? [] : (d.draft?.problems ?? []))];
     const side = sel ? (
       <NodePanel
         key={sel}
@@ -493,6 +624,7 @@ function Canvas({
         workflow={w.id}
         onOpenPart={(uses) => navigate(href(PAGE, { component: uses, tab: null }, params))}
         onClose={() => setSel(null)}
+        test={<TestStep w={shown} workflow={w.id} client={client} draft={draft} node={sel} />}
       />
     ) : picked ? (
       <WirePanel
@@ -506,35 +638,70 @@ function Canvas({
     ) : null;
     return (
       <>
-        <EditBar changes={changesOf(first, draft)} problems={problemsOf(draft)}>
+        <EditBar
+          changes={changesOf(first, draft)}
+          problems={[...new Set(problems)]}
+          note={unsaved ? "Not saved" : d.draft ? `Saved ${dayLabel(d.draft.at)}` : null}
+        >
           {adding ? null : (
             <Button tone="secondary" size="dense" onClick={() => setAdding(true)}>
               Add node <kbd className="ml-1 text-[11px] text-(--ui-ink-3)">/</kbd>
             </Button>
           )}
-          <Button size="dense" busy={busy} onClick={() => save(false)}>
-            Save
+          <Button tone="quiet" size="dense" onClick={back} disabled={!undo.length || busy}>
+            Undo
           </Button>
-          <Button size="dense" tone="secondary" onClick={close} disabled={busy}>
-            Discard
+          <Button
+            tone="secondary"
+            size="dense"
+            disabled={!!proposal}
+            onClick={() => {
+              if (testing) setTested(null);
+              setTesting(!testing);
+              setSel(null);
+              setPicked(null);
+            }}
+          >
+            {testing ? "Close test" : "Test workflow"}
           </Button>
+          <HistoryMenu
+            versions={d.versions ?? []}
+            onOpen={(v) => {
+              setProposal(null);
+              setDraft(v.edits ?? code);
+            }}
+          />
           {d.saved?.edits ? (
-            <Button tone="quiet" size="dense" onClick={() => save(true)} disabled={busy}>
+            <Button tone="quiet" size="dense" onClick={() => setDraft(code)} disabled={busy}>
               Back to built-in
             </Button>
           ) : null}
+          <Button tone="secondary" size="dense" onClick={discard} disabled={busy}>
+            Discard
+          </Button>
+          <Button tone="secondary" size="dense" busy={busy} onClick={keep} disabled={!unsaved}>
+            Save draft
+          </Button>
+          <Button
+            size="dense"
+            busy={busy}
+            onClick={() => publish()}
+            disabled={!!proposal || (!unsaved && !d.draft)}
+          >
+            Publish
+          </Button>
         </EditBar>
         {confirm ? (
           <form
             className="mb-3 flex flex-wrap items-end gap-3 border border-(--warn) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]"
             onSubmit={(e) => {
               e.preventDefault();
-              void save(false, confirm.typed.trim());
+              void publish(confirm.typed.trim());
             }}
           >
             <label className={`${FIELD} grow basis-[260px]`}>
               <span>
-                {confirm.asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type {w.id} to save
+                {confirm.asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type {w.id} to make
                 it live.
               </span>
               <Input
@@ -544,7 +711,7 @@ function Canvas({
               />
             </label>
             <Button type="submit" size="dense" busy={busy} disabled={confirm.typed.trim() !== w.id}>
-              Save live
+              Publish
             </Button>
             <Button tone="quiet" size="dense" onClick={() => setConfirm(null)}>
               Cancel
@@ -552,6 +719,21 @@ function Canvas({
           </form>
         ) : null}
         {error ? <Alert className="mb-3">{error}</Alert> : null}
+        {proposal ? (
+          <Proposal
+            reply={proposal.reply}
+            changes={proposal.patch ? changesOf(draft, proposal.patch) : null}
+            onAccept={() => {
+              if (proposal.patch) setDraft(proposal.patch);
+              setProposal(null);
+            }}
+            onReject={() => setProposal(null)}
+          />
+        ) : (
+          <div className="mb-3 flex">
+            <AskGraph workflow={w.id} client={client} draft={draft} onAnswer={answered} />
+          </div>
+        )}
         {choices.length ? (
           <div className="mb-3 flex flex-wrap items-center gap-2 text-[13.5px]">
             <span className={QUIET}>Which wire?</span>
@@ -575,9 +757,25 @@ function Canvas({
             <PaletteDrawer palette={palette} onAdd={add} onClose={() => setAdding(false)} />
           ) : null}
           {graphEl}
-          {side}
+          {proposal ? null : side}
+          {testing && !proposal ? (
+            // Kept while a node's panel is over it, so its result stays.
+            <div className={sel || picked ? "hidden" : undefined}>
+              <TestPanel
+                w={shown}
+                workflow={w.id}
+                client={client}
+                draft={draft}
+                onResult={setTested}
+                onClose={() => {
+                  setTesting(false);
+                  setTested(null);
+                }}
+              />
+            </div>
+          ) : null}
         </div>
-        <Editor w={shown} draft={draft} setDraft={setDraft} />
+        {proposal ? null : <Editor w={shown} draft={draft} setDraft={setDraft} />}
         {open ? (
           <PartPanel id={open} params={params} client={client} team={team} where={where} />
         ) : null}
@@ -613,18 +811,19 @@ function Canvas({
       <p className={`mt-4 flex flex-wrap items-center gap-3 text-[13.5px] ${QUIET}`}>
         {d.saved
           ? d.saved.edits
-            ? `Saved by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
+            ? `Published by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
             : `Back to the built-in wiring by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
           : "The built-in wiring."}
+        {team && d.draft ? ` A draft by ${d.draft.by} isn't live yet.` : null}
         {play.button}
         {team ? (
           <Button
             tone="secondary"
             size="dense"
             className="max-[900px]:hidden"
-            onClick={() => setDraft(first)}
+            onClick={() => setDraftNow(d.draft ? (d.draft.edits ?? code) : first)}
           >
-            Edit
+            {d.draft ? "Open draft" : "Edit"}
           </Button>
         ) : null}
       </p>

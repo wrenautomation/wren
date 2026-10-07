@@ -69,8 +69,15 @@ export const CONSOLE_ROUTES = {
   configure: "manage",
   uninstall: "manage",
   ask: "manage",
-  // A workflow's wiring, saved for Wren or a client from the canvas: the team's.
+  // A workflow's wiring, saved for Wren or a client from the canvas: the team's. A draft runs
+  // nowhere; Publish of one that sends or spends also checks `effect` and `money` inside.
   workflowSave: "wren:manage",
+  workflowPublish: "wren:manage",
+  workflowDiscard: "wren:manage",
+  workflowAsk: "wren:manage",
+  workflowAnswer: "wren:manage",
+  // A dry test of a draft: nothing is claimed or sent, so running things is enough.
+  workflowTest: "wren:run",
   // A failed spine step, run again: it may send, so it needs what an effect does.
   retryEvent: "wren:effect",
   // A held unit runs again, a paused source resumes.
@@ -108,6 +115,11 @@ export const CONSOLE_APPS = {
   uninstall: "marketplace",
   ask: "marketplace",
   workflowSave: "workflows",
+  workflowPublish: "workflows",
+  workflowDiscard: "workflows",
+  workflowAsk: "workflows",
+  workflowAnswer: "workflows",
+  workflowTest: "workflows",
   retryEvent: "workflows",
   releaseHold: "workflows",
   question: "ask",
@@ -157,6 +169,9 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "uninstall",
   "ask",
   "workflowSave",
+  "workflowPublish",
+  "workflowDiscard",
+  "workflowAsk",
   "retryEvent",
   "releaseHold",
   "question",

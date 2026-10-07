@@ -68,6 +68,7 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
 /** Ask Claude's handler is Restate's (it opens a run, then the desk answers): here, only the run. */
 const local = SERVICES.console?.api as Record<string, (i: unknown) => Promise<unknown>>;
 local.recordsAsk = async (i) => ({ id: await local.recordsAskOpen?.(i) });
+local.workflowAsk = async (i) => ({ id: await local.workflowAskOpen?.(i) });
 const as = process.argv[process.argv.indexOf("--as") + 1];
 const viewer: Viewer = demo
   ? { demo: true }

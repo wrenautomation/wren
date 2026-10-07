@@ -132,3 +132,23 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   workflow that sends needs `effect`, one that spends `money`, and both need the id typed
   back. Panels float over the canvas, n8n-style, and the drawing fits between them (`inset`).
   The Webhook node's door URL and token wait on Publish (Step 3): "In development".
+- 2026-10-06: Step 3 built. A draft is a `workflow_saves` row with `live = false`, one per
+  client and workflow. Save keeps it whatever it says, with what won't run; Publish checks it,
+  runs the sends/spends gate, and inserts a live row. History lists live rows; Open loads one
+  as the draft, to publish again. Running subjects stay on their version: `events.version`
+  keeps the save id each subject entered on (0 the code's), and the walker groups a batch by
+  it. Ask Claude reuses the record asks (`record-ask` runs, `Ask/edit`); the patch is the whole
+  next draft, drawn as a diff, panned to the changes. Undo is client side. The editor zooms no
+  lower than 0.7 and pans, so words stay readable. Not built: Save as template and install on
+  a client ("In development"); a full `checkWorkflows` on every keystroke (settings and waits
+  check live, the rest on Save).
+- 2026-10-06: Step 4 built. Dry mode is `Walk.dry`, a step per node, and `packages/core/src/dry.ts`
+  runs the spine's own walker on a store in memory with the Postgres claim rules, so nothing is
+  claimed, and on its own clock, so a 30-day wait passes at once (capped at 200 arrivals and 50
+  waits). Logic runs for real; every rule (wire `when`, If) answers what the test picks, not a
+  model. Every other step is a stub: it says "Would send", "Would spend", "Would post to
+  <host>" or "Would run <name>", and passes the event on by its outputs of that kind, else down
+  every branch. A dry walk follows code wires too, as the parts' code would. Test workflow
+  enters at an input or a trigger's output and lights the path on the draft; Test step runs one
+  node, or walks the workflow it opens. "Use its last real input" pins a real arrival's data.
+  `console/workflowTest` needs `wren:run` only: it writes nothing.

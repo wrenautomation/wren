@@ -277,6 +277,36 @@ describe("walk", () => {
     expect(await resume(w, later[1]?.id as string)).toMatchObject({ arrived: 1, out: 1 });
   });
 
+  it("keeps a subject on the wiring it entered on; a new one takes the live wiring", async () => {
+    const { store, rows } = memStore();
+    store.entered = async (workflow, subject) => {
+      const r = [...rows.values()].find(
+        (x) => x.a.workflow === workflow && x.a.event.subject === subject,
+      );
+      return r ? (r.a.version ?? null) : undefined;
+    };
+    let live = 1;
+    const asked: number[] = [];
+    const pin = (w: Walk): Walk => ({
+      ...w,
+      liveOf: () => live,
+      flowsAt: async (_workflow, v) => {
+        asked.push(v);
+        return w.flows;
+      },
+    });
+    await walk(pin(walkWith(store, "i1").w), "top", "in.leads", [lead("1")]);
+    // Version 2 goes live: lead 1 stays on 1, lead 2 enters on 2.
+    live = 2;
+    await walk(pin(walkWith(store, "i2").w), "top", "in.leads", [lead("2"), lead("1")]);
+    expect(await resume(pin(walkWith(store, "i3").w), "2")).toMatchObject({ out: 1 });
+    const on = (s: string) =>
+      [...rows.values()].filter((r) => r.a.event.subject === s).map((r) => r.a.version);
+    expect(on("lead:1")).toEqual([1, 1]);
+    expect(on("lead:2")).toEqual([2, 2]);
+    expect(asked).toEqual([1, 1]);
+  });
+
   it("knows timed waits and refuses until waits", () => {
     expect(waitMs("2 minutes")).toBe(120_000);
     expect(waitMs("1 week")).toBe(604_800_000);

@@ -1,8 +1,8 @@
 /**
  * The canvas's editor, n8n-style (designs/2026-10-06-workflow-editor.md, Edit like n8n): a
  * palette of logic nodes, triggers, parts and workflows to drag on or add with `/`; a node panel
- * with its settings, copy, last output, numbers and wires; a wire panel with its rule and wait;
- * and the bar that counts the draft's changes and what won't run. Desktop only.
+ * with its settings, test, copy, last output, numbers and wires; a wire panel with its rule and
+ * wait; and the bar that counts the draft's changes and what won't run. Desktop only.
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
@@ -28,12 +28,12 @@ import {
 
 const WAIT = /^\d+ (minute|hour|day|week)s?$/;
 /** A panel floats over the canvas's edge, n8n-style, and scrolls inside. */
-const PANEL =
+export const PANEL =
   "absolute top-3 z-10 grid max-h-[calc(100%-24px)] min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5 overflow-x-hidden overflow-y-auto border border-(--ui-hair) bg-(--ui-paper) p-4 text-[13.5px] shadow-(--ui-shadow)";
 const LEFT = "left-3 w-[280px]";
-const RIGHT = "right-3 w-[360px]";
+export const RIGHT = "right-3 w-[360px]";
 const HEAD = "text-[11.5px] font-semibold tracking-[0.04em] text-(--ui-ink-3) uppercase";
-const PRE =
+export const PRE =
   "m-0 max-h-[220px] overflow-auto bg-(--ui-tile) p-2.5 font-mono text-[11.5px] leading-[1.5] whitespace-pre-wrap text-(--ui-ink)";
 const ROLE_TINT: Record<string, string> = {
   trigger: "oklch(0.64 0.15 150)",
@@ -44,7 +44,7 @@ const ROLE_TINT: Record<string, string> = {
   deliver: "oklch(0.62 0.15 30)",
 };
 
-function Block({ title, children }: { title: string; children: ReactNode }) {
+export function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid gap-2">
       <h3 className={HEAD}>{title}</h3>
@@ -194,14 +194,19 @@ export function PaletteDrawer({
   );
 }
 
-/** The draft's state, over the canvas: its changes and what won't run, and its buttons. */
+/**
+ * The draft's state, over the canvas: its changes against what's live, whether it's kept, what
+ * won't run, and its buttons.
+ */
 export function EditBar({
   changes,
   problems,
+  note,
   children,
 }: {
   changes: number;
   problems: readonly string[];
+  note?: string | null;
   children: ReactNode;
 }) {
   return (
@@ -213,6 +218,7 @@ export function EditBar({
             : { label: "No changes", tone: "neutral" }
         }
       />
+      {note ? <span className={`text-[12.5px] ${QUIET}`}>{note}</span> : null}
       {problems.length ? (
         <details className="relative">
           <summary className="cursor-pointer text-(--ui-bad)">{problems.length} won't run</summary>
@@ -324,7 +330,7 @@ export function WirePanel({
   );
 }
 
-function PanelHead({
+export function PanelHead({
   title,
   kind,
   state,
@@ -425,9 +431,9 @@ type EventDetail = {
   sentAt: string | null;
 };
 
-/** The node's last event on the spine: what came in, and what its step sent on. */
-function LastOutput({ workflow, node }: { workflow: string; node: string }) {
-  const got = useCall(`node-last:${workflow}:${node}`, async () => {
+/** The node's last event on the spine, read once per node and shared. */
+export function useLast(workflow: string, node: string) {
+  return useCall(`node-last:${workflow}:${node}`, async () => {
     const page = await call<RecordsPage>("console/recordsList", {
       record: "console.event",
       view: "all",
@@ -445,6 +451,11 @@ function LastOutput({ workflow, node }: { workflow: string; node: string }) {
       ...((a.detail as EventDetail | null) ?? { data: {}, sent: null, sentAt: null }),
     };
   });
+}
+
+/** The node's last event on the spine: what came in, and what its step sent on. */
+function LastOutput({ workflow, node }: { workflow: string; node: string }) {
+  const got = useLast(workflow, node);
   if (got.error) return <p className={QUIET}>Couldn't read it: {got.error.message}</p>;
   if (!got.data)
     return got.loading ? (
@@ -520,6 +531,7 @@ export function NodePanel({
   workflow,
   onOpenPart,
   onClose,
+  test,
 }: {
   w: Drawn;
   id: string;
@@ -531,6 +543,8 @@ export function NodePanel({
   workflow: string;
   onOpenPart: (uses: string) => void;
   onClose: () => void;
+  /** Test step, while editing: this node on one event, dry. */
+  test?: ReactNode;
 }) {
   const n = w.nodes.find((x) => x.id === id);
   if (!n) return null;
@@ -577,6 +591,8 @@ export function NodePanel({
           <p className={QUIET}>Its door URL and token: In development.</p>
         ) : null}
       </Block>
+
+      {test ? <Block title="Test step">{test}</Block> : null}
 
       {n.uses && !logic ? (
         <Block title="Copy">
@@ -638,5 +654,179 @@ export function NodePanel({
         </span>
       ) : null}
     </aside>
+  );
+}
+
+type Answer =
+  | { state: "thinking" }
+  | { state: "failed"; error: string }
+  | { state: "done"; reply: string; patch: Draft | null };
+
+/**
+ * Ask Claude on the graph: he says what to change, the desk's Claude answers with the next draft,
+ * and the canvas shows it as a diff to accept or not. Polls every 2 s while Claude thinks.
+ */
+export function AskGraph({
+  workflow,
+  client,
+  draft,
+  onAnswer,
+}: {
+  workflow: string;
+  client: string | null;
+  draft: Draft;
+  onAnswer: (reply: string, patch: Draft | null) => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [run, setRun] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!run) return;
+    let live = true;
+    const ask = async () => {
+      const a = await call<Answer>("console/workflowAnswer", { id: run }).catch((e: Error) => ({
+        state: "failed" as const,
+        error: e.message,
+      }));
+      if (!live || a.state === "thinking") return;
+      setRun(null);
+      if (a.state === "failed") setError(a.error);
+      else {
+        setMessage("");
+        onAnswer(a.reply, a.patch);
+      }
+    };
+    const timer = setInterval(() => void ask(), 2000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [run, onAnswer]);
+  return (
+    <form
+      className="flex min-w-[280px] flex-1 items-center gap-2"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!message.trim()) return;
+        setError(null);
+        try {
+          const got = await call<{ id: string }>("console/workflowAsk", {
+            workflow,
+            ...(client ? { client } : {}),
+            message: message.trim(),
+            wires: draft.wires,
+            steps: draft.steps,
+          });
+          setRun(got.id);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      }}
+    >
+      <Input
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        maxLength={2000}
+        disabled={!!run}
+        placeholder="Ask Claude: add a text 2 days after the second email if no reply"
+        aria-label="Ask Claude to change the workflow"
+        className="h-8 flex-1 text-[13px]"
+      />
+      <Button type="submit" tone="secondary" size="dense" busy={!!run}>
+        {run ? "Thinking" : "Ask"}
+      </Button>
+      {error ? <span className="text-[12.5px] text-(--ui-bad)">{error}</span> : null}
+    </form>
+  );
+}
+
+/** Claude's answer over the canvas: what it says, and Accept or Reject when it changed the graph. */
+export function Proposal({
+  reply,
+  changes,
+  onAccept,
+  onReject,
+}: {
+  reply: string;
+  changes: number | null;
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-start gap-3 border border-(--ui-accent) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]">
+      <span className="grid min-w-0 flex-1 gap-1">
+        <span className="font-semibold">Claude</span>
+        <span className="whitespace-pre-wrap text-(--ui-ink-2)">{reply || "Done."}</span>
+        {changes !== null ? (
+          <span className={`text-[12.5px] ${QUIET}`}>
+            {changes} change{changes === 1 ? "" : "s"} on the canvas: green added, red removed.
+          </span>
+        ) : null}
+      </span>
+      {changes !== null ? (
+        <span className="flex gap-2">
+          <Button size="dense" onClick={onAccept}>
+            Accept
+          </Button>
+          <Button tone="secondary" size="dense" onClick={onReject}>
+            Reject
+          </Button>
+        </span>
+      ) : (
+        <Button tone="quiet" size="dense" onClick={onReject}>
+          Close
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export interface Version {
+  id: number;
+  edits: Draft | null;
+  by: string;
+  at: string;
+}
+
+/** History: each live version, newest first; one opens as the draft to publish again. */
+export function HistoryMenu({
+  versions,
+  onOpen,
+}: {
+  versions: readonly Version[];
+  onOpen: (v: Version) => void;
+}) {
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none border border-(--ui-hair) px-2.5 py-1 text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)">
+        History
+      </summary>
+      <div className="absolute right-0 z-30 mt-1 grid w-[320px] gap-1 border border-(--ui-hair) bg-(--ui-paper) p-2 text-[13px] shadow-(--ui-shadow)">
+        {versions.length ? (
+          versions.map((v, i) => (
+            <div key={v.id} className="flex items-center gap-2 px-1 py-1">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">{i === 0 ? "Live" : `Version ${v.id}`}</span>
+                <span className={QUIET}>
+                  {" "}
+                  · {v.by}, {new Date(v.at).toLocaleDateString()}
+                  {v.edits ? "" : " · built-in"}
+                </span>
+              </span>
+              {i === 0 ? null : (
+                <Button tone="quiet" size="dense" onClick={() => onOpen(v)}>
+                  Open
+                </Button>
+              )}
+            </div>
+          ))
+        ) : (
+          <p className={`px-1 ${QUIET}`}>Never published: the built-in wiring runs.</p>
+        )}
+        <p className={`border-t border-(--ui-hair) px-1 pt-2 text-[12.5px] ${QUIET}`}>
+          Save as template: In development.
+        </p>
+      </div>
+    </details>
   );
 }

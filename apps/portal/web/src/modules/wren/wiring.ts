@@ -238,7 +238,18 @@ export function withSet(d: Draft, id: string, field: string, v: string | number)
 }
 
 const wireKey = (x: Pick<Wire, "from" | "to">) => `${x.from}>${x.to}`;
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/** Its keys in order, all the way down: a save read back from jsonb comes in another order. */
+const sorted = (v: unknown): unknown =>
+  Array.isArray(v)
+    ? v.map(sorted)
+    : v && typeof v === "object"
+      ? Object.fromEntries(
+          Object.entries(v)
+            .sort(([a], [b]) => (a < b ? -1 : 1))
+            .map(([k, x]) => [k, sorted(x)]),
+        )
+      : v;
+const same = (a: unknown, b: unknown) => JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 
 /** How `next` differs from `base`: each added, removed or changed node and wire, by id. */
 export function diffOf(base: Draft, next: Draft) {

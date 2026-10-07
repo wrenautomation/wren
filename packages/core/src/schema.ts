@@ -258,6 +258,12 @@ export const events = pgTable(
     /** What its step sent on, by output (`[{port, subject, kind, data}]`), cut to fit; and when. */
     sent: jsonb("sent").$type<SentEvent[]>(),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /**
+     * The `workflow_saves` id of the wiring its subject entered this workflow on, 0 the code's;
+     * null is from before versions and walks the live one. A subject keeps its wiring until it's
+     * done, while new ones take the live one.
+     */
+    version: integer("version"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_events" }),
@@ -367,6 +373,8 @@ export const workflowSaves = pgTable(
     workflow: varchar("workflow", { length: 64 }).notNull(),
     /** `WorkflowEdits`; null: back to the code's. */
     edits: jsonb("edits").$type<WorkflowEdits | null>(),
+    /** False: a draft. It runs nowhere until Publish copies it into a live row. */
+    live: boolean("live").default(true).notNull(),
     by: text("by").notNull(),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
   },

@@ -158,6 +158,12 @@ describe("editor", () => {
       ["a.replied>out.replied", "removed"],
     ]);
     expect(changesOf(first, next)).toBe(3);
+    // A draft read back from jsonb has its keys in another order: no change.
+    const back = {
+      steps: [],
+      wires: first.wires.map((x) => Object.fromEntries(Object.entries(x).reverse()) as typeof x),
+    };
+    expect(changesOf(first, back)).toBe(0);
     const dd = drawnDiff(w, first, first, next, palette);
     expect(dd.drawn.wires.map((x) => x.from)).toContain("a.replied");
     expect(dd.edges.get("a>out.replied")).toBe("removed");
