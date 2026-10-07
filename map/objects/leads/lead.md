@@ -25,6 +25,7 @@ Citations: `packages/core/src/schema.ts:219`
 
 ## Connected to
 
+- **owns:** [[leads/touch]] (`social_handles.lead_id`, when a handle matches the lead's `social_url` or person)
 - **owned-by:** [[leads/company]], [[ledger/import]]
 - **owns:** [[research/verification]] (`lead_id`), [[research/lead-check]] (`lead_id`)
 - **joins:** [[research/contact-candidate]] (`lead_id` once promoted), [[leads/suppression]] (`suppression_id`)

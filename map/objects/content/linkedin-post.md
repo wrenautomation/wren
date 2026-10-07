@@ -28,5 +28,6 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 
 ## Connected to
 
+- **joins:** [[leads/touch]] (our comment on their post is an ours touch `lp:<id>`)
 - **joins:** [[content/linkedin-invite]] (key people: accepted invites), [[content/draft-event]] (`lipost:` items)
 - **looks-like-but-is-not:** [[content/comment]], comments others leave on our posts

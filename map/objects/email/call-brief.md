@@ -28,6 +28,7 @@ Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-em
 
 ## Connected to
 
+- **joins:** [[leads/touch]] ("Earlier touches" part and lines in the question context)
 - **owned-by:** [[email/call-booking]]
 - **joins:** [[platform/spine]] (`close`), [[platform/llm-client]] (questions, through the gateway), [[platform/notifier]] (the ping), [[research/signal]]
 - **looks-like-but-is-not:** the research dossier (`wren dossier`): the brief reads it, cites it, and adds the thread and how they came in

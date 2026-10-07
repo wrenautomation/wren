@@ -27,6 +27,7 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 
 ## Connected to
 
+- **joins:** [[leads/touch]] (our comment is an ours touch `rt:<id>` on the OP, or a reply to the commenter who asked)
 - **joins:** [[content/comment]] (replies to our thread comments come back as comments; one daily cap counts both, `commentsToday`; a comment's author is read into `reddit_people`, shown as "Who they are" and in Replies)
 - **joins:** reach accounts (the pool; `warmupOf` sets each one's comments a day)
 - **joins:** [[content/playbook]] (the SOP texts a draft reads, matched by shared words)

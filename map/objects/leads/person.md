@@ -25,6 +25,7 @@ Citations: `packages/core/src/schema.ts:135`
 
 ## Connected to
 
+- **owns:** [[leads/touch]] (`social_handles.person_id`: every follow, invite, comment, reply and DM with them; Marketing → People Touches tab)
 - **owned-by:** [[leads/company]]
 - **owns:** [[research/contact-candidate]] (`person_id`), [[email/enrollment]] when `kind = person`
 - **joins:** `person_facts` (`packages/core/src/views.ts:14`), [[leads/sighting]]

@@ -35,6 +35,7 @@ William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `l
 
 ## Connected to
 
+- **joins:** [[leads/touch]] (each sent invite and DM is a touch `rm:<id>`; accept, withdraw and gone set its response)
 - **joins:** [[leads/person]] (`people.linkedin_url` is the source; contacts carry `person_id`, `company_id`)
 - **joins:** [[content/comment]] (the same reach accounts, tick and live gate)
 - **looks-like-but-is-not:** `linkedin-connect`, an invite plus two automatic DMs; kept in code, unused, since auto DMs break the replies rule

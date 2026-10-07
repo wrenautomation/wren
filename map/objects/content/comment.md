@@ -28,6 +28,7 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 
 ## Connected to
 
+- **joins:** [[leads/touch]] (each comment is a theirs touch `c:<id>`, our answer an ours reply `ca:<id>`; a reply to our answer marks it replied)
 - **joins:** reach accounts and contacts (a DM makes a `reach_contacts` row and a manual `reach_messages` row the sender sends with the live gate off)
 - **joins:** [[content/draft]] (the posts these comments sit under are content drafts)
 - **looks-like-but-is-not:** `content_metrics.comments` (a count per post, no bodies)
