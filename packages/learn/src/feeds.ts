@@ -10,7 +10,7 @@ import type { SpineEvent } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
-import { cleanUrl, creatorSite, kindOf } from "./links.js";
+import { cleanUrl, creatorSite, kindOf, typeOf, youtubeThumb } from "./links.js";
 import { items, type SourceKind, sources, type Tell } from "./schema.js";
 
 export interface FeedItem {
@@ -20,14 +20,22 @@ export interface FeedItem {
   publishedAt: Date | null;
   /** Who made it, when the feed says. */
   creator: string | null;
-  /** An audio or video file the item carries: a podcast's episode. */
+  /** The audio file the item carries: a podcast's episode. */
   enclosure: string | null;
+  /** Its picture: media:thumbnail, an image media:content, itunes:image. */
+  thumbnail: string | null;
+  /** Seconds long, when the feed says: itunes:duration, media:content's duration. */
+  duration: number | null;
 }
 
 export interface Feed {
   title: string;
   /** A podcast's: its items carry audio. */
   podcast: boolean;
+  /** The feed's own picture: a podcast's artwork, a channel's image, an Atom icon. */
+  image: string | null;
+  /** What wrote it, when it says ("Substack"). */
+  generator: string;
   items: FeedItem[];
 }
 
@@ -76,10 +84,69 @@ function dateOf(block: string): Date | null {
   return d && !Number.isNaN(d.getTime()) ? d : null;
 }
 
+const AUDIO = /\.(mp3|m4a|aac|ogg|opus|wav)(\?|$)/i;
+
+/** The item's audio enclosure; a video or image enclosure isn't one. */
 function enclosureOf(block: string): string | null {
-  const m = /<enclosure\b([^>]*?)\/?>/i.exec(block);
-  const url = m ? attr(m[1] ?? "", "url") : undefined;
-  return url ? decode(url).trim() : null;
+  for (const m of block.matchAll(/<enclosure\b([^>]*?)\/?>/gi)) {
+    const a = m[1] ?? "";
+    const url = attr(a, "url");
+    if (!url) continue;
+    const type = attr(a, "type") ?? "";
+    if (/^audio\//i.test(type) || (!type && AUDIO.test(url))) return httpsOr(decode(url).trim());
+  }
+  return null;
+}
+
+/** An https address, or null: the app loads nothing over http. */
+const httpsOr = (url: string | undefined | null): string | null => {
+  const u = url?.trim();
+  if (!u) return null;
+  if (u.startsWith("https://")) return u;
+  return u.startsWith("http://") ? `https://${u.slice(7)}` : null;
+};
+
+/** The item's picture: a thumbnail, an image media:content or enclosure, an itunes:image. */
+function thumbnailOf(block: string): string | null {
+  const thumb = /<media:thumbnail\b([^>]*?)\/?>/i.exec(block);
+  if (thumb && attr(thumb[1] ?? "", "url"))
+    return httpsOr(decode(attr(thumb[1] ?? "", "url") ?? ""));
+  for (const m of block.matchAll(/<(media:content|enclosure)\b([^>]*?)\/?>/gi)) {
+    const a = m[2] ?? "";
+    const url = attr(a, "url");
+    if (url && (/^image\//i.test(attr(a, "type") ?? "") || attr(a, "medium") === "image"))
+      return httpsOr(decode(url));
+  }
+  const itunes = /<itunes:image\b([^>]*?)\/?>/i.exec(block);
+  return itunes ? httpsOr(decode(attr(itunes[1] ?? "", "href") ?? "")) : null;
+}
+
+/** "1:02:03", "12:34" or "754" as seconds; null for anything else. */
+export function secondsOf(raw: string): number | null {
+  const s = raw.trim();
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s)) || null;
+  const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/.exec(s);
+  if (!m) return null;
+  return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]) || null;
+}
+
+function durationOf(block: string): number | null {
+  const itunes = plain(first(block, ["itunes:duration"]));
+  if (itunes) return secondsOf(itunes);
+  const media = /<media:content\b([^>]*?)\/?>/i.exec(block);
+  const d = media ? attr(media[1] ?? "", "duration") : undefined;
+  return d ? secondsOf(d) : null;
+}
+
+/** The feed's own picture, from its head. */
+function imageOf(head: string): string | null {
+  const itunes = /<itunes:image\b([^>]*?)\/?>/i.exec(head);
+  const href = itunes ? attr(itunes[1] ?? "", "href") : undefined;
+  if (href) return httpsOr(decode(href));
+  const rss = /<image\b[^>]*>([\s\S]*?)<\/image>/i.exec(head);
+  const url = rss ? plain(first(rss[1] ?? "", ["url"])) : "";
+  if (url) return httpsOr(url);
+  return httpsOr(plain(first(head, ["logo", "icon"])));
 }
 
 /** A link we can keep, or "" for one that isn't a web address. */
@@ -110,11 +177,19 @@ export function parseFeed(xml: string): Feed {
         publishedAt: dateOf(b),
         creator: author || null,
         enclosure: enclosureOf(b),
+        thumbnail: thumbnailOf(b),
+        duration: durationOf(b),
       };
     })
     .filter((i) => i.url);
   const podcast = /xmlns:itunes=|<itunes:/i.test(head) && found.some((i) => i.enclosure);
-  return { title: plain(first(head, ["title"])), podcast, items: found };
+  return {
+    title: plain(first(head, ["title"])),
+    podcast,
+    image: imageOf(head),
+    generator: plain(first(head, ["generator"])),
+    items: found,
+  };
 }
 
 export type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
@@ -157,8 +232,13 @@ export function sourceKindOf(feedUrl: string, feed: Feed): SourceKind {
   const host = new URL(feedUrl).hostname.replace(/^www\./, "");
   if (/(^|\.)youtube\.com$/.test(host)) return "youtube";
   if (feed.podcast) return "podcast";
-  if (/(^|\.)(reddit\.com|news\.ycombinator\.com|hnrss\.org|lobste\.rs)$/.test(host))
-    return "forum";
+  if (/(^|\.)reddit\.com$/.test(host)) return "reddit";
+  if (/(^|\.)(news\.ycombinator\.com|hnrss\.org|lobste\.rs)$/.test(host)) return "forum";
+  if (
+    /(^|\.)(substack\.com|beehiiv\.com|buttondown\.(email|com))$/.test(host) ||
+    /substack|beehiiv|buttondown/i.test(feed.generator)
+  )
+    return "newsletter";
   if (/(^|\.)github\.com$/.test(host) || /\/releases(\.atom)?$/.test(feedUrl)) return "releases";
   return "blog";
 }
@@ -167,29 +247,53 @@ export function sourceKindOf(feedUrl: string, feed: Feed): SourceKind {
 export async function findFeed(
   fetchFn: FetchFn,
   url: string,
-): Promise<{ feedUrl: string; page: string | null; feed: Feed }> {
+): Promise<{ feedUrl: string; page: string | null; feed: Feed; pageImage: string | null }> {
   const site = creatorSite(url);
   if (site)
     throw new Error(
       `${site} creators are in development: public reads only. Save their posts one at a time for now.`,
     );
   const body = await get(fetchFn, url);
-  if (isFeed(body)) return { feedUrl: url, page: null, feed: parseFeed(body) };
+  if (isFeed(body)) return { feedUrl: url, page: null, feed: parseFeed(body), pageImage: null };
   const found = feedLinkOf(body, url);
   if (!found) throw new Error(`${url}: no RSS or Atom feed on this page`);
-  return { feedUrl: found, page: url, feed: await fetchFeed(fetchFn, found) };
+  return {
+    feedUrl: found,
+    page: url,
+    feed: await fetchFeed(fetchFn, found),
+    pageImage: ogImageOf(body),
+  };
 }
 
-/** A new item's row: the kind its link says, its feed's text kept. */
-const rowOf = (sourceId: number, i: FeedItem) => ({
-  sourceId,
-  url: i.url,
-  kind: kindOf(i.url, i.enclosure),
-  title: pgSafe(i.title),
-  creator: pgSafe(i.creator),
-  text: pgSafe(i.text),
-  publishedAt: i.publishedAt,
-});
+/** A page's og:image (a channel's avatar on its page), https only. */
+export function ogImageOf(html: string): string | null {
+  for (const m of html.matchAll(/<meta\b([^>]*)>/gi)) {
+    const a = m[1] ?? "";
+    const key = attr(a, "property") ?? attr(a, "name");
+    if (key?.toLowerCase() !== "og:image") continue;
+    const content = attr(a, "content");
+    if (content) return httpsOr(decode(content));
+  }
+  return null;
+}
+
+/** A new item's row: the kind and type its link says, its feed's text and picture kept. */
+const rowOf = (sourceId: number, sourceKind: SourceKind, i: FeedItem) => {
+  const kind = kindOf(i.url, i.enclosure);
+  return {
+    sourceId,
+    url: i.url,
+    kind,
+    type: typeOf(i.url, kind, sourceKind),
+    title: pgSafe(i.title),
+    creator: pgSafe(i.creator),
+    text: pgSafe(i.text),
+    publishedAt: i.publishedAt,
+    thumbnailUrl: youtubeThumb(i.url) ?? i.thumbnail,
+    duration: i.duration,
+    mediaUrl: i.enclosure,
+  };
+};
 
 /**
  * Follow a source: read it once, so a bad address fails here, not an hour later. Its current
@@ -200,16 +304,26 @@ export async function follow(
   fetchFn: FetchFn,
   p: { url: string; name?: string | null; tell?: Tell | null; by?: string | null },
 ): Promise<{ id: number; name: string; kind: SourceKind; items: number }> {
-  const { feedUrl, page, feed } = await findFeed(fetchFn, p.url.trim());
+  const { feedUrl, page, feed, pageImage } = await findFeed(fetchFn, p.url.trim());
   const name = p.name?.trim() || feed.title || new URL(feedUrl).hostname;
   const kind = sourceKindOf(feedUrl, feed);
   const tell = p.tell ?? "top";
+  const avatarUrl = feed.image ?? pageImage;
   const [row] = await db
     .insert(sources)
-    .values({ url: feedUrl, page, name, kind, tell, by: p.by ?? null, fetchedAt: new Date() })
+    .values({
+      url: feedUrl,
+      page,
+      name,
+      kind,
+      avatarUrl,
+      tell,
+      by: p.by ?? null,
+      fetchedAt: new Date(),
+    })
     .onConflictDoUpdate({
       target: sources.url,
-      set: { name, kind, tell, stoppedAt: null, failure: null },
+      set: { name, kind, avatarUrl, tell, stoppedAt: null, failure: null },
     })
     .returning({ id: sources.id });
   if (!row) throw new Error("insert returned no row");
@@ -218,9 +332,9 @@ export async function follow(
       .insert(items)
       .values(
         feed.items.map((i) => ({
-          ...rowOf(row.id, i),
+          ...rowOf(row.id, kind, i),
           why: "In the feed before you followed it.",
-          doneAt: new Date(),
+          archivedAt: new Date(),
         })),
       )
       .onConflictDoNothing({ target: items.url });
@@ -255,12 +369,15 @@ export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<Pu
       if (feed.items.length) {
         const rows = await db
           .insert(items)
-          .values(feed.items.map((i) => rowOf(s.id, i)))
+          .values(feed.items.map((i) => rowOf(s.id, s.kind, i)))
           .onConflictDoNothing({ target: items.url })
           .returning({ id: items.id });
         stats.added.push(...rows.map((r) => r.id));
       }
-      await db.update(sources).set({ fetchedAt: now, failure: null }).where(eq(sources.id, s.id));
+      await db
+        .update(sources)
+        .set({ fetchedAt: now, failure: null, ...(s.avatarUrl ? {} : { avatarUrl: feed.image }) })
+        .where(eq(sources.id, s.id));
     } catch (err) {
       const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
       stats.failed.push({ source: s.name, error });

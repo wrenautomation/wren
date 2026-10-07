@@ -8,7 +8,8 @@ import type { Db } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { items, sources, type Verdict } from "./schema.js";
+import { secondsOf } from "./feeds.js";
+import { items, type Moment, sources, type Verdict } from "./schema.js";
 
 /** Text the model sees per item. */
 const PROMPT_TEXT = 6_000;
@@ -35,7 +36,34 @@ export const scoreSchema = z.object({
   summary: z.string().min(1),
   changes: z.array(z.string()).default([]),
   why: z.string().min(1),
+  /** Moments worth jumping to, when the text carries [m:ss] marks. */
+  moments: z
+    .array(z.object({ at: z.string(), label: z.string().min(1) }))
+    .max(8)
+    .default([]),
 });
+
+/** Text with [m:ss] or [h:mm:ss] marks: a transcript the scorer can point into. */
+export const timed = (text: string): boolean => /\[\d{1,2}:\d{2}(:\d{2})?\]/.test(text);
+
+/** The scorer's moments as seconds, in order, dropping any it can't place. */
+export function momentsOf(raw: readonly { at: string; label: string }[]): Moment[] {
+  return raw
+    .map((m) => ({ t: secondsOf(m.at) ?? (m.at.trim() === "0:00" ? 0 : null), label: m.label }))
+    .filter((m): m is Moment => m.t !== null)
+    .sort((a, b) => a.t - b.t);
+}
+
+/** A transcript's chapter headings (`## [m:ss] Name`) as moments: the fallback when none were scored. */
+export function chaptersOf(transcript: string | null): Moment[] {
+  if (!transcript) return [];
+  const out: Moment[] = [];
+  for (const m of transcript.matchAll(/^##\s+\[(\d{1,2}(?::\d{2}){1,2})\]\s+(.+)$/gm)) {
+    const t = m[1] === "0:00" ? 0 : secondsOf(m[1] ?? "");
+    if (t !== null) out.push({ t, label: (m[2] ?? "").trim() });
+  }
+  return out;
+}
 
 /** 7 and up shows, 4 to 6 holds, the rest drops. */
 export const verdictOf = (score: number): Verdict =>
@@ -50,6 +78,8 @@ export interface ScoredItem {
   publishedAt: Date | null;
   /** Its source's name, or "saved" for one William shared in. */
   from: string;
+  /** The text carries [m:ss] marks, so it asks for moments. */
+  timed?: boolean;
 }
 
 export function scorePrompt(item: ScoredItem, practices: readonly Practice[]): string {
@@ -68,7 +98,7 @@ Score how much this item should change what Wren does, 0 to 10:
 7-8: a concrete better way to do a step an SOP covers, or a tool that replaces one.
 9-10: urgent: a platform rule, ban, price or deliverability change that breaks what Wren runs now.
 
-Answer {"score": n, "summary": "two plain sentences on what the item says", "changes": ["the SOP names it would change, from the list above"], "why": "one sentence: what Wren would do differently, or why nothing"}.
+Answer {"score": n, "summary": "two plain sentences on what the item says", "changes": ["the SOP names it would change, from the list above"], "why": "one sentence: what Wren would do differently, or why nothing"${item.timed ? ', "moments": [{"at": "m:ss from the [m:ss] marks", "label": "what happens there, under 8 words"}] (up to 6, only the ones worth jumping to)' : ""}}.
 
 Item from ${item.from}${item.publishedAt ? `, ${item.publishedAt.toISOString().slice(0, 10)}` : ""}:
 Title: ${item.title}
@@ -102,15 +132,17 @@ export async function scoreItem(
       .where(and(eq(items.id, id), isNull(items.verdict)));
     return "show";
   }
+  const text = item.transcript ?? item.text;
   const scored: ScoredItem = {
     title: item.title,
     url: item.url,
-    text: item.transcript ?? item.text,
+    text,
     publishedAt: item.publishedAt,
     from: row.from ?? "saved by William",
+    timed: timed(text),
   };
   const out = await completeAndParse(llm, scorePrompt(scored, practices), scoreSchema, {
-    maxTokens: 600,
+    maxTokens: 900,
     system: SYSTEM,
     name: "learn.score",
   });
@@ -132,6 +164,7 @@ export async function scoreItem(
       summary: v.summary,
       changes: v.changes.filter((c) => names.has(c)),
       why: v.why,
+      moments: scored.timed ? momentsOf(v.moments) : [],
       tries: item.tries + 1,
       scoredAt: new Date(),
     })

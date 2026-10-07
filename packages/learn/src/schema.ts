@@ -6,6 +6,7 @@
 import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   customType,
   date,
@@ -32,8 +33,42 @@ export const VERDICTS = ["show", "hold", "drop"] as const;
 export type Verdict = (typeof VERDICTS)[number];
 
 /** What a source is, by its feed: shown, and picks the reader its items get. */
-export const SOURCE_KINDS = ["youtube", "podcast", "blog", "forum", "releases"] as const;
+export const SOURCE_KINDS = [
+  "youtube",
+  "podcast",
+  "newsletter",
+  "blog",
+  "reddit",
+  "forum",
+  "releases",
+] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+/**
+ * How an item is consumed, shown everywhere with its own mark: a YouTube video, a short (YouTube
+ * Shorts), a podcast episode, a newsletter post, a blog post, a Reddit thread, an X post, an
+ * Instagram or TikTok reel, a release note, or a link saved by hand.
+ */
+export const TYPES = [
+  "youtube",
+  "shorts",
+  "podcast",
+  "newsletter",
+  "blog",
+  "reddit",
+  "x",
+  "instagram",
+  "tiktok",
+  "releases",
+  "link",
+] as const;
+export type ItemType = (typeof TYPES)[number];
+
+/** A moment worth jumping to: seconds in, and what happens there. */
+export interface Moment {
+  t: number;
+  label: string;
+}
 
 /** When a source's new item reaches William: every one, 8 and up, or in the 09:00 digest only. */
 export const TELLS = ["every", "top", "digest"] as const;
@@ -63,6 +98,8 @@ export const sources = learn.table(
     page: text("page"),
     name: text("name").notNull(),
     kind: varchar("kind", { length: 12, enum: SOURCE_KINDS }).notNull().default("blog"),
+    /** Its picture: a channel's avatar, a podcast's artwork, a site's icon. */
+    avatarUrl: text("avatar_url"),
     tell: varchar("tell", { length: 8, enum: TELLS }).notNull().default("top"),
     /** The last read that worked. */
     fetchedAt: timestamp("fetched_at", { withTimezone: true }),
@@ -81,6 +118,28 @@ export const sources = learn.table(
   ],
 );
 
+/** A collection of items, nested like folders in a drive. */
+export const collections = learn.table(
+  "collections",
+  {
+    id: serial("id"),
+    name: varchar("name", { length: 80 }).notNull(),
+    /** The collection it sits in; none at the top. */
+    parentId: integer("parent_id"),
+    by: varchar("by", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_collections" }),
+    foreignKey({
+      columns: [t.parentId],
+      foreignColumns: [t.id],
+      name: "fk_collections_parent_id_collections",
+    }).onDelete("cascade"),
+    index("ix_learn_collections_parent").on(t.parentId),
+  ],
+);
+
 /**
  * One item: from a source's feed, or saved by hand (no source). Kept before it's read, read before
  * it's scored. `score` (0-10) is how much it should change how Wren works, against the SOPs.
@@ -93,6 +152,8 @@ export const items = learn.table(
     /** Cleaned of tracking params, so a share and its feed entry are one item. */
     url: text("url").notNull(),
     kind: varchar("kind", { length: 8, enum: ITEM_KINDS }).notNull().default("article"),
+    /** How it's consumed: picks its mark, its player and its shelf. */
+    type: varchar("type", { length: 12, enum: TYPES }).notNull().default("link"),
     title: text("title").notNull(),
     /** Who made it: a channel, an author, a handle. */
     creator: text("creator"),
@@ -108,6 +169,14 @@ export const items = learn.table(
     /** The last read's error; the item waits for the next try. */
     readFailure: text("read_failure"),
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** Its picture: a video's thumbnail, a post's og:image, an episode's artwork. */
+    thumbnailUrl: text("thumbnail_url"),
+    /** Seconds long, for video and audio. */
+    duration: integer("duration"),
+    /** The audio file an episode plays. */
+    mediaUrl: text("media_url"),
+    /** Moments worth jumping to, from the scorer. */
+    moments: jsonb("moments").$type<Moment[]>().notNull().default([]),
     score: smallint("score"),
     /** Null until scored. */
     verdict: varchar("verdict", { length: 8, enum: VERDICTS }),
@@ -124,7 +193,21 @@ export const items = learn.table(
     savedVia: varchar("saved_via", { length: 8, enum: VIAS }),
     /** An alert or a digest named it. */
     toldAt: timestamp("told_at", { withTimezone: true }),
-    doneAt: timestamp("done_at", { withTimezone: true }),
+    /** First opened: read, not new. */
+    openedAt: timestamp("opened_at", { withTimezone: true }),
+    /** Out of the way: archived. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /** Seconds watched or heard, to resume. */
+    position: integer("position"),
+    /** Last played: orders Continue watching. */
+    playedAt: timestamp("played_at", { withTimezone: true }),
+    starredAt: timestamp("starred_at", { withTimezone: true }),
+    /** In the Watch later queue since. */
+    laterAt: timestamp("later_at", { withTimezone: true }),
+    /** Kept at the top of every list it's in. */
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }),
+    /** The collection it sits in, like a file in a folder. */
+    collectionId: integer("collection_id"),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -138,6 +221,13 @@ export const items = learn.table(
       foreignColumns: [sources.id],
       name: "fk_items_source_id_sources",
     }),
+    foreignKey({
+      columns: [t.collectionId],
+      foreignColumns: [collections.id],
+      name: "fk_items_collection_id_collections",
+    }).onDelete("set null"),
+    index("ix_learn_items_collection").on(t.collectionId),
+    index("ix_learn_items_type").on(t.type),
     unique("uq_learn_items_url").on(t.url),
     index("ix_learn_items_source").on(t.sourceId),
     index("ix_learn_items_created").on(t.createdAt),
@@ -145,6 +235,7 @@ export const items = learn.table(
     index("ix_learn_items_search").using("gin", t.search),
     check("ck_learn_items_score", sql`${t.score} between 0 and 10`),
     oneOf("ck_learn_items_kind", t.kind, ITEM_KINDS),
+    oneOf("ck_learn_items_type", t.type, TYPES),
     oneOf("ck_learn_items_verdict", t.verdict, VERDICTS),
     oneOf("ck_learn_items_saved_via", t.savedVia, VIAS),
   ],
@@ -181,6 +272,25 @@ export const sopSources = learn.table(
   ],
 );
 
+/** An item's tags: short words, any number per item. */
+export const itemTags = learn.table(
+  "item_tags",
+  {
+    itemId: integer("item_id").notNull(),
+    tag: varchar("tag", { length: 40 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.tag], name: "pk_item_tags" }),
+    foreignKey({
+      columns: [t.itemId],
+      foreignColumns: [items.id],
+      name: "fk_item_tags_item_id_items",
+    }).onDelete("cascade"),
+    index("ix_learn_item_tags_tag").on(t.tag),
+  ],
+);
+
 /** One row a day the 09:00 digest went out (or had nothing to say), so a day sends one. */
 export const digests = learn.table(
   "digests",
@@ -198,30 +308,38 @@ export const digests = learn.table(
  * waiting for a score, or its verdict; done once marked. `source` is the source's name, or Saved.
  */
 const ITEM_SELECT = sql`
-    select i.id, i.title, i.kind::text kind, i.creator,
+    select i.id, i.title, i.kind::text kind, i.type::text type, i.creator,
       coalesce(s.name, 'Saved') source, s.kind::text source_kind, i.source_id,
       i.score::int score, i.summary,
       (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,
       i.why, i.verdict::text verdict,
-      case when i.done_at is not null then 'done'
+      case when i.archived_at is not null then 'archived'
         when i.read_at is null and i.read_failure is not null then 'failed'
         when i.read_at is null and i.needs_mac is not null then 'mac'
         when i.read_at is null then 'reading'
         when i.verdict is null then 'scoring'
         when i.verdict = 'show' then 'show' when i.verdict = 'hold' then 'hold'
         else 'drop' end state,
+      case when i.archived_at is not null then 'archived' when i.opened_at is not null then 'read'
+        else 'unread' end status,
       i.read_failure failure,
+      (select string_agg(t.tag, ', ' order by t.tag) from learn.item_tags t
+        where t.item_id = i.id) tags,
+      col.name collection, i.starred_at is not null starred, i.later_at is not null later,
+      i.duration,
       (select string_agg(x.sop, ', ' order by x.sop) from learn.sop_sources x
         where x.item_id = i.id) sops,
       coalesce(i.published_at, i.created_at) at, i.saved_at, i.saved_via::text saved_via,
       i.created_at, i.url open,
       length(coalesce(i.transcript, i.text))::int chars
-    from learn.items i left join learn.sources s on s.id = i.source_id`;
+    from learn.items i left join learn.sources s on s.id = i.source_id
+      left join learn.collections col on col.id = i.collection_id`;
 
 const ITEM_COLUMNS = {
   id: integer("id"),
   title: text("title"),
   kind: text("kind"),
+  type: text("type"),
   creator: text("creator"),
   source: text("source"),
   sourceKind: text("source_kind"),
@@ -232,7 +350,13 @@ const ITEM_COLUMNS = {
   why: text("why"),
   verdict: text("verdict"),
   state: text("state"),
+  status: text("status"),
   failure: text("failure"),
+  tags: text("tags"),
+  collection: text("collection"),
+  starred: boolean("starred"),
+  later: boolean("later"),
+  duration: integer("duration"),
   sops: text("sops"),
   at: timestamp("at", { withTimezone: true }),
   savedAt: timestamp("saved_at", { withTimezone: true }),
@@ -257,6 +381,7 @@ export const sourceRecords = learn
     url: text("url"),
     page: text("page"),
     kind: text("kind"),
+    avatarUrl: text("avatar_url"),
     tell: text("tell"),
     state: text("state"),
     items: integer("items"),
@@ -267,7 +392,7 @@ export const sourceRecords = learn
     createdAt: timestamp("created_at", { withTimezone: true }),
   })
   .as(sql`
-    select s.id, s.name, s.url, s.page, s.kind::text kind, s.tell::text tell,
+    select s.id, s.name, s.url, s.page, s.kind::text kind, s.avatar_url, s.tell::text tell,
       case when s.stopped_at is not null then 'stopped' when s.failure is not null then 'failing'
         else 'following' end state,
       count(i.id)::int items, (count(i.id) filter (where i.verdict = 'show'))::int shown,

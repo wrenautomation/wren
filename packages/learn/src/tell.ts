@@ -56,7 +56,7 @@ export async function tellLearn(
   const fresh = and(
     isNull(items.toldAt),
     isNull(items.savedAt),
-    isNull(items.doneAt),
+    isNull(items.archivedAt),
     isNotNull(items.scoredAt),
     gte(items.scoredAt, new Date(p.now.getTime() - FRESH_MS)),
   );

@@ -44,6 +44,8 @@ export interface VideoInfo {
   upload_date?: string;
   webpage_url?: string;
   duration?: number;
+  /** Its thumbnail's address. */
+  thumbnail?: string;
   chapters?: { start_time: number; end_time: number; title: string }[] | null;
   subtitles?: Record<string, { ext: string; url: string }[]>;
   automatic_captions?: Record<string, { ext: string; url: string }[]>;
@@ -97,6 +99,8 @@ export function captionsMarkdown(
     ...(info.channel ? { channel: info.channel } : {}),
     ...(uploaded ? { uploaded } : {}),
     priority,
+    ...(info.duration ? { duration: Math.round(info.duration) } : {}),
+    ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
   })}# ${info.title}\n\n${body.join("\n")}`;
 }
 
@@ -342,6 +346,8 @@ export async function videoSource(
         ...(by ? { channel: by } : {}),
         ...(uploaded ? { uploaded } : {}),
         priority,
+        ...(info.duration ? { duration: Math.round(info.duration) } : {}),
+        ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
       })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}## Speech\n\n${speech.text}\n\n## On screen\n\n${shown}\n`,
     };
   } finally {

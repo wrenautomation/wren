@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { decode, feedLinkOf, parseFeed, sourceKindOf } from "./feeds.js";
-import { cleanUrl, creatorSite, kindOf, needsMac } from "./links.js";
+import { tagOf } from "./drive.js";
+import { decode, feedLinkOf, ogImageOf, parseFeed, secondsOf, sourceKindOf } from "./feeds.js";
+import { cleanUrl, creatorSite, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
 import { articleMd, fileOf, frontField, pageText } from "./read.js";
+import { chaptersOf, momentsOf, timed } from "./score.js";
 
 describe("cleanUrl", () => {
   it("makes a share and its feed entry one address", () => {
@@ -61,6 +63,51 @@ describe("kindOf", () => {
   });
 });
 
+describe("typeOf", () => {
+  it("tells each type by address, kind and source", () => {
+    expect(typeOf("https://youtube.com/watch?v=abc123XYZ_-", "video")).toBe("youtube");
+    expect(typeOf("https://youtube.com/shorts/abc123XYZ_-", "reel")).toBe("shorts");
+    expect(typeOf("https://instagram.com/reel/Cabc", "reel")).toBe("instagram");
+    expect(typeOf("https://www.tiktok.com/@a/video/1", "reel")).toBe("tiktok");
+    expect(typeOf("https://x.com/a/status/1", "reel")).toBe("x");
+    expect(typeOf("https://www.reddit.com/r/a/comments/1", "article")).toBe("reddit");
+    expect(typeOf("https://show.example/1", "episode")).toBe("podcast");
+    expect(typeOf("https://a.substack.com/p/b", "article")).toBe("newsletter");
+    expect(typeOf("https://blog.example/p", "article", "releases")).toBe("releases");
+    expect(typeOf("https://blog.example/p", "article", "forum")).toBe("blog");
+    expect(typeOf("https://blog.example/p", "article")).toBe("link");
+    expect(youtubeThumb("https://youtube.com/watch?v=abc123XYZ_-")).toBe(
+      "https://i.ytimg.com/vi/abc123XYZ_-/hqdefault.jpg",
+    );
+    expect(youtubeThumb("https://blog.example/p")).toBeNull();
+  });
+});
+
+describe("drive helpers", () => {
+  it("keeps tags short and plain", () => {
+    expect(tagOf("  #Cold Email! ")).toBe("cold-email");
+    expect(tagOf("x".repeat(60))).toHaveLength(40);
+  });
+
+  it("reads moments from chapters and from the scorer", () => {
+    expect(chaptersOf("## [0:00] Intro\n\ntext\n\n## [1:02:03] Late\n## Not timed")).toEqual([
+      { t: 0, label: "Intro" },
+      { t: 3723, label: "Late" },
+    ]);
+    expect(
+      momentsOf([
+        { at: "2:00", label: "b" },
+        { at: "0:30", label: "a" },
+        { at: "x", label: "c" },
+      ]),
+    ).toEqual([
+      { t: 30, label: "a" },
+      { t: 120, label: "b" },
+    ]);
+    expect([timed("[1:05] said"), timed("no marks")]).toEqual([true, false]);
+  });
+});
+
 describe("feeds", () => {
   it("finds a page's feed", () => {
     const html = `<html><head><link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml"></head></html>`;
@@ -85,6 +132,41 @@ describe("feeds", () => {
     expect(sourceKindOf("https://www.youtube.com/feeds/videos.xml?channel_id=x", feed)).toBe(
       "youtube",
     );
+  });
+
+  it("keeps each item's picture, length and audio, and the feed's own picture", () => {
+    const xml = `<rss xmlns:itunes="x" xmlns:media="y"><channel><title>Show</title><generator>Substack</generator>
+      <image><url>http://cdn.example.com/show.png</url></image>
+      <item><title>A</title><link>https://show.example.com/a</link><itunes:duration>1:02:03</itunes:duration>
+      <enclosure url="https://cdn.example.com/a.jpg" type="image/jpeg"/><enclosure url="https://cdn.example.com/a.mp3" type="audio/mpeg"/></item>
+      <item><title>B</title><link>https://show.example.com/b</link><media:thumbnail url="https://cdn.example.com/b.jpg"/></item>
+      </channel></rss>`;
+    const feed = parseFeed(xml);
+    expect(feed.image).toBe("https://cdn.example.com/show.png");
+    expect(feed.items.map((i) => [i.thumbnail, i.duration, i.enclosure])).toEqual([
+      ["https://cdn.example.com/a.jpg", 3723, "https://cdn.example.com/a.mp3"],
+      ["https://cdn.example.com/b.jpg", null, null],
+    ]);
+    expect(sourceKindOf("https://letters.example.com/feed", { ...feed, podcast: false })).toBe(
+      "newsletter",
+    );
+    expect(
+      sourceKindOf("https://www.reddit.com/r/synthetic/.rss", {
+        ...feed,
+        podcast: false,
+        generator: "",
+      }),
+    ).toBe("reddit");
+  });
+
+  it("reads lengths and a page's og:image", () => {
+    expect([secondsOf("754"), secondsOf("12:34"), secondsOf("1:02:03"), secondsOf("soon")]).toEqual(
+      [754, 754, 3723, null],
+    );
+    expect(ogImageOf(`<meta property="og:image" content="https://site.example/a.png">`)).toBe(
+      "https://site.example/a.png",
+    );
+    expect(ogImageOf(`<meta property="og:image" content="/a.png">`)).toBeNull();
   });
 
   it("knows the full named table and keeps nbsp a plain space", () => {

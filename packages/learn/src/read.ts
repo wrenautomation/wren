@@ -9,7 +9,7 @@ import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { FetchFn } from "./feeds.js";
-import { decode, plain } from "./feeds.js";
+import { decode, ogImageOf, plain, secondsOf } from "./feeds.js";
 import { needsMac, youtubeId } from "./links.js";
 import { type ItemKind, items } from "./schema.js";
 import { itemIdOf } from "./score.js";
@@ -20,7 +20,12 @@ const WHOLE_POST = 1_500;
 const KEEP_PAGE = 60_000;
 
 /** What a page says: its title, author and main text, paragraphs kept. */
-export function pageText(html: string): { title: string; creator: string | null; text: string } {
+export function pageText(html: string): {
+  title: string;
+  creator: string | null;
+  text: string;
+  image: string | null;
+} {
   const meta = (name: string) => {
     for (const m of html.matchAll(/<meta\b([^>]*)>/gi)) {
       const a = m[1] ?? "";
@@ -59,7 +64,7 @@ export function pageText(html: string): { title: string; creator: string | null;
     .filter(Boolean);
   const description = meta("og:description") || meta("description");
   const out = paras.join("\n\n") || description;
-  return { title, creator, text: out.slice(0, KEEP_PAGE) };
+  return { title, creator, text: out.slice(0, KEEP_PAGE), image: ogImageOf(html) };
 }
 
 const yaml = (fields: Record<string, string | number | null | undefined>) =>
@@ -126,7 +131,7 @@ export async function readItem(db: Db, fetchFn: FetchFn, id: number): Promise<Re
       await db.update(items).set({ needsMac: new Date() }).where(eq(items.id, id));
     return "mac";
   }
-  let { title, creator, text } = item;
+  let { title, creator, text, thumbnailUrl } = item;
   if (text.length < WHOLE_POST) {
     try {
       const res = await fetchFn(item.url, {
@@ -138,6 +143,7 @@ export async function readItem(db: Db, fetchFn: FetchFn, id: number): Promise<Re
       if (page.text.length > text.length) text = page.text;
       if (page.title && (title === item.url || title === "(untitled)")) title = page.title;
       creator ??= page.creator;
+      thumbnailUrl ??= page.image;
     } catch (err) {
       // A feed item with some text still reads; a bare saved link fails until a retry.
       if (!text) {
@@ -152,6 +158,7 @@ export async function readItem(db: Db, fetchFn: FetchFn, id: number): Promise<Re
     .update(items)
     .set({
       ...pgSafe({ title, creator, text, transcript: md }),
+      thumbnailUrl,
       file: fileOf(item.url),
       readAt: new Date(),
       readFailure: null,
@@ -178,7 +185,7 @@ export async function waitingForMac(db: Db, opts: { limit?: number; retry?: bool
       and(
         isNull(items.readAt),
         isNotNull(items.needsMac),
-        isNull(items.doneAt),
+        isNull(items.archivedAt),
         opts.retry ? undefined : isNull(items.readFailure),
       ),
     )
@@ -195,6 +202,8 @@ export async function readOnMac(db: Db, reader: VideoReader, id: number): Promis
     const { file, md } = await reader(item.url, item.kind);
     const title = frontField(md, "title");
     const creator = frontField(md, "channel");
+    const duration = secondsOf(frontField(md, "duration") ?? "");
+    const thumbnail = frontField(md, "thumbnail");
     const better = (t: string) => t === item.url || t === "(untitled)";
     await db
       .update(items)
@@ -205,6 +214,10 @@ export async function readOnMac(db: Db, reader: VideoReader, id: number): Promis
           ...(creator && !item.creator ? { creator } : {}),
         }),
         file,
+        ...(duration && !item.duration ? { duration } : {}),
+        ...(thumbnail?.startsWith("https://") && !item.thumbnailUrl
+          ? { thumbnailUrl: thumbnail }
+          : {}),
         readAt: new Date(),
         readFailure: null,
       })

@@ -15,7 +15,7 @@ const STATE = status(
     mac: { label: "Waits for the Mac", tone: "warn" },
     scoring: { label: "Scoring", tone: "neutral" },
     failed: { label: "Read failed", tone: "bad" },
-    done: { label: "Done", tone: "good" },
+    archived: { label: "Archived", tone: "good" },
   },
   "State",
 );
@@ -30,8 +30,26 @@ const KIND = status(
   "Kind",
 );
 
+const TYPE = status(
+  {
+    youtube: { label: "YouTube", tone: "neutral" },
+    shorts: { label: "Shorts", tone: "neutral" },
+    podcast: { label: "Podcast", tone: "neutral" },
+    newsletter: { label: "Newsletter", tone: "neutral" },
+    blog: { label: "Blog", tone: "neutral" },
+    reddit: { label: "Reddit", tone: "neutral" },
+    x: { label: "X", tone: "neutral" },
+    instagram: { label: "Instagram", tone: "neutral" },
+    tiktok: { label: "TikTok", tone: "neutral" },
+    releases: { label: "Releases", tone: "neutral" },
+    link: { label: "Link", tone: "neutral" },
+  },
+  "Type",
+);
+
 const ITEM_FIELDS = {
   title: text(),
+  type: TYPE,
   kind: KIND,
   creator: name("By"),
   source: name("Source"),
@@ -40,6 +58,17 @@ const ITEM_FIELDS = {
   changes: text("Would change"),
   why: text("What this changes"),
   state: STATE,
+  status: status(
+    {
+      unread: { label: "Unread", tone: "warn" },
+      read: { label: "Read", tone: "neutral" },
+      archived: { label: "Archived", tone: "neutral" },
+    },
+    "Status",
+  ),
+  tags: text("Tags"),
+  collection: name("Collection"),
+  duration: number("Seconds"),
   failure: text("Read error"),
   sops: text("In SOPs"),
   at: date("Published"),
@@ -76,11 +105,11 @@ export const itemRecord = defineRecord({
     { id: "show", label: "Worth reading", where: { state: "show" }, sort: "-score", at: "at" },
     { id: "hold", label: "Worth knowing", where: { state: "hold" }, sort: "-at", at: "at" },
     { id: "waiting", label: "Waiting", where: WAITING, sort: "-at", at: "at" },
-    { id: "done", label: "Done", where: { state: "done" }, sort: "-at", at: "at" },
+    { id: "archived", label: "Archived", where: { state: "archived" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   load,
-  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop", "learn.readAgain"],
+  actions: ["learn.archive", "learn.toSop", "learn.readAgain"],
 });
 
 export const savedRecord = defineRecord({
@@ -108,7 +137,7 @@ export const savedRecord = defineRecord({
     { id: "waiting", label: "Waiting", where: WAITING, sort: "-savedAt", at: "savedAt" },
   ],
   load,
-  actions: ["learn.itemDone", "learn.itemUndone", "learn.toSop", "learn.readAgain"],
+  actions: ["learn.archive", "learn.toSop", "learn.readAgain"],
 });
 
 export const sourceRecord = defineRecord({
@@ -127,7 +156,9 @@ export const sourceRecord = defineRecord({
       {
         youtube: { label: "YouTube", tone: "neutral" },
         podcast: { label: "Podcast", tone: "neutral" },
+        newsletter: { label: "Newsletter", tone: "neutral" },
         blog: { label: "Blog", tone: "neutral" },
+        reddit: { label: "Reddit", tone: "neutral" },
         forum: { label: "Forum", tone: "neutral" },
         releases: { label: "Releases", tone: "neutral" },
       },

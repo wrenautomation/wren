@@ -5,7 +5,7 @@
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { cleanUrl, kindOf, needsMac } from "./links.js";
+import { cleanUrl, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
 import { type ItemKind, items, sopSources, sources, type Via } from "./schema.js";
 
 export interface Saved {
@@ -34,6 +34,8 @@ export async function saveLink(
     .values({
       url,
       kind,
+      type: typeOf(url, kind),
+      thumbnailUrl: youtubeThumb(url),
       title: pgSafe(p.title?.trim() || url),
       savedAt: now,
       savedBy: p.by,
@@ -46,7 +48,7 @@ export async function saveLink(
         savedAt: sql`coalesce(${items.savedAt}, ${now.toISOString()}::timestamptz)`,
         savedBy: sql`coalesce(${items.savedBy}, ${p.by})`,
         savedVia: sql`coalesce(${items.savedVia}, ${p.via})`,
-        doneAt: null,
+        archivedAt: null,
       },
     })
     .returning({
@@ -139,7 +141,7 @@ export async function listItems(
     .where(
       and(
         o.saved ? sql`${items.savedAt} is not null` : undefined,
-        o.waiting ? sql`${items.readAt} is null and ${items.doneAt} is null` : undefined,
+        o.waiting ? sql`${items.readAt} is null and ${items.archivedAt} is null` : undefined,
       ),
     )
     .orderBy(sql`coalesce(${items.savedAt}, ${items.createdAt}) desc`, desc(items.id))

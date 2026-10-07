@@ -3,7 +3,7 @@
  * carries tracking params (igsh, si, utm_*) and short hosts (youtu.be); its feed entry doesn't.
  * Both clean to the same url, so they're one item.
  */
-import type { ItemKind } from "./schema.js";
+import type { ItemKind, ItemType, SourceKind } from "./schema.js";
 
 const TRACKING = /^(utm_[a-z]+|igsh|igshid|si|fbclid|gclid|mc_[a-z]+|ref_src|_r|_t)$/i;
 /** X and TikTok add their own on every share. */
@@ -44,9 +44,9 @@ export function cleanUrl(raw: string): string {
 
 const REEL_HOST = /(^|\.)(instagram\.com|tiktok\.com|x\.com|twitter\.com|threads\.net)$/i;
 
-/** What an address is: a YouTube video, a short video elsewhere, or text. */
-export function kindOf(clean: string, enclosure?: string | null): ItemKind {
-  if (enclosure && /\.(mp3|m4a|aac|ogg|wav)(\?|$)/i.test(enclosure)) return "episode";
+/** What an address is: a YouTube video, a short video elsewhere, or text. An audio enclosure is an episode. */
+export function kindOf(clean: string, audio?: string | null): ItemKind {
+  if (audio) return "episode";
   const url = new URL(clean);
   if (youtubeId(url)) return url.pathname.startsWith("/shorts/") ? "reel" : "video";
   if (REEL_HOST.test(url.hostname)) {
@@ -76,4 +76,32 @@ export function creatorSite(raw: string): string | null {
   if (/(^|\.)(x|twitter)\.com$/.test(host)) return "X";
   if (/(^|\.)threads\.net$/.test(host)) return "Threads";
   return null;
+}
+
+const NEWSLETTER_HOST = /(^|\.)(substack\.com|beehiiv\.com|buttondown\.(email|com))$/i;
+
+/**
+ * How an item is consumed, from its address, its kind and its source's kind. A saved link with
+ * nothing else to go on is a link.
+ */
+export function typeOf(clean: string, kind: ItemKind, sourceKind?: SourceKind | null): ItemType {
+  const url = new URL(clean);
+  const host = url.hostname;
+  if (youtubeId(url)) return url.pathname.startsWith("/shorts/") ? "shorts" : "youtube";
+  if (/(^|\.)instagram\.com$/i.test(host)) return "instagram";
+  if (/(^|\.)tiktok\.com$/i.test(host)) return "tiktok";
+  if (/(^|\.)(x\.com|twitter\.com)$/i.test(host)) return "x";
+  if (/(^|\.)reddit\.com$/i.test(host) || sourceKind === "reddit") return "reddit";
+  if (kind === "episode" || sourceKind === "podcast") return "podcast";
+  if (sourceKind === "newsletter" || NEWSLETTER_HOST.test(host)) return "newsletter";
+  if (sourceKind === "releases") return "releases";
+  if (sourceKind === "youtube") return "youtube";
+  if (sourceKind === "blog" || sourceKind === "forum") return "blog";
+  return "link";
+}
+
+/** A YouTube video's thumbnail, from its address; null for anything else. */
+export function youtubeThumb(clean: string): string | null {
+  const id = youtubeId(new URL(clean));
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
 }

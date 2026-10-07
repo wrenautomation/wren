@@ -2,7 +2,9 @@
  * Learn end to end on a real Postgres: a source followed (its back catalog seen, not read), new
  * items read and scored along the `learn` workflow, a saved reel waiting for the Mac and read
  * there, search over transcripts, alerts and the digest, and an item written into an SOP's
- * folder. Feeds, pages, the video reader and the model are fakes; every address is made up.
+ * folder, and the drive: types, thumbnails, places, filters, marks, collections, tags and
+ * where playback is. Feeds, pages, the video reader and the model are fakes; every address is
+ * made up.
  */
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -41,7 +43,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await pg.db.execute(
-    sql`TRUNCATE learn.sop_sources, learn.items, learn.sources, learn.digests, events RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE learn.item_tags, learn.collections, learn.sop_sources, learn.items, learn.sources, learn.digests, events RESTART IDENTITY CASCADE`,
   );
 });
 
@@ -163,7 +165,7 @@ describe("Learn", () => {
     expect(rows[3]?.transcript).toContain("warm up slowly over four weeks");
 
     const states = await pg.db.execute(sql`SELECT state FROM learn.item_records ORDER BY id`);
-    expect([...states].map((r) => r.state)).toEqual(["done", "show", "drop", "show"]);
+    expect([...states].map((r) => r.state)).toEqual(["archived", "show", "drop", "show"]);
 
     // Score 8+ (the default) alerts both 8s and 9s at once; the digest then has nothing new.
     const { n, sent } = notifier();
@@ -346,5 +348,201 @@ describe("Learn", () => {
     expect((await pullFeeds(pg.db, fetchFn, later)).failed).toEqual([]);
     const [src] = await pg.db.execute(sql`SELECT state FROM learn.source_records`);
     expect(src).toEqual({ state: "stopped" });
+  });
+
+  it("browses like a drive: types and pictures from feeds, places, filters, marks, folders, tags, resume", async () => {
+    const yt = { entries: [] as string[] };
+    // The show's back catalog is seen, not new.
+    const pod = { entries: ["zero"] };
+    const atom = (ids: string[]) =>
+      `<?xml version="1.0"?><feed xmlns:media="http://search.yahoo.com/mrss/"><title>Synthetic Channel</title><icon>https://yt.example/avatar.jpg</icon>${ids
+        .map(
+          (id) =>
+            `<entry><title>Video ${id}</title><link rel="alternate" href="https://www.youtube.com/watch?v=${id}"/><published>2026-10-06T10:00:00Z</published><media:group><media:thumbnail url="https://i.ytimg.com/vi/${id}/hqdefault.jpg"/><media:description>About ${id}. ${LONG}</media:description></media:group></entry>`,
+        )
+        .join("")}</feed>`;
+    const show = (eps: string[]) =>
+      `<?xml version="1.0"?><rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel><title>Synthetic Show</title><itunes:image href="https://cdn.example/art.jpg"/>${eps
+        .map(
+          (e) =>
+            `<item><title>Episode ${e}</title><link>https://show.example/ep/${e}</link><enclosure url="https://cdn.example/${e}.mp3" type="audio/mpeg" length="1"/><itunes:duration>12:34</itunes:duration><itunes:image href="https://cdn.example/${e}.jpg"/><description>${e}: ${LONG}</description><pubDate>Tue, 06 Oct 2026 10:00:00 GMT</pubDate></item>`,
+        )
+        .join("")}</channel></rss>`;
+    const fetchFn: FetchFn = async (url) => {
+      if (url.startsWith("https://www.youtube.com/feeds/")) return new Response(atom(yt.entries));
+      if (url === "https://show.example/feed") return new Response(show(pod.entries));
+      return new Response("gone", { status: 404 });
+    };
+    const api = learnConsoleApi(pg.db, fetchFn);
+    await api.follow({
+      ...viewer,
+      url: "https://www.youtube.com/feeds/videos.xml?channel_id=synth",
+    });
+    await api.follow({ ...viewer, url: "https://show.example/feed" });
+    yt.entries = ["synthVid01", "synthVid02"];
+    pod.entries = ["zero", "one"];
+    const later = new Date(Date.now() + 2 * 3_600_000);
+    expect((await pullFeeds(pg.db, fetchFn, later)).added).toHaveLength(3);
+    const saved = await api.save({ ...viewer, url: "https://www.youtube.com/shorts/synthShort1" });
+
+    const rows = (await pg.db.select().from(items).orderBy(asc(items.id))).filter(
+      (r) => !r.archivedAt,
+    );
+    expect(rows.map((r) => [r.type, r.thumbnailUrl, r.duration, r.mediaUrl])).toEqual([
+      ["youtube", "https://i.ytimg.com/vi/synthVid01/hqdefault.jpg", null, null],
+      ["youtube", "https://i.ytimg.com/vi/synthVid02/hqdefault.jpg", null, null],
+      ["podcast", "https://cdn.example/one.jpg", 754, "https://cdn.example/one.mp3"],
+      ["shorts", "https://i.ytimg.com/vi/synthShort1/hqdefault.jpg", null, null],
+    ]);
+    const srcs = await pg.db.select().from(sources).orderBy(asc(sources.id));
+    expect(srcs.map((s) => [s.kind, s.avatarUrl])).toEqual([
+      ["youtube", "https://yt.example/avatar.jpg"],
+      ["podcast", "https://cdn.example/art.jpg"],
+    ]);
+
+    // Inbox: everything new, counted by type and by source.
+    const inbox = await api.browse({ ...viewer });
+    expect(inbox.total).toBe(4);
+    expect(inbox.types).toEqual({ youtube: 2, podcast: 1, shorts: 1 });
+    expect(inbox.sources.map((s) => [s.name, s.n])).toEqual([
+      ["Synthetic Channel", 2],
+      ["Synthetic Show", 1],
+    ]);
+    const vids = await api.browse({ ...viewer, types: ["youtube"], sort: "title" });
+    expect(vids.items.map((c) => c.title)).toEqual(["Video synthVid01", "Video synthVid02"]);
+    expect(vids.items[0]).toMatchObject({
+      type: "youtube",
+      status: "unread",
+      source: { name: "Synthetic Channel", kind: "youtube" },
+    });
+    await expect(api.browse({ ...viewer, place: "nowhere" })).rejects.toThrow(/no such place/);
+
+    // Marks: star, watch later, archive, pin first.
+    const [v1, v2, ep, short] = rows.map((r) => String(r.id));
+    if (!v1 || !v2 || !ep || !short) throw new Error("four items");
+    await api.mark({ ...viewer, ids: [v1], mark: "star" });
+    await api.mark({ ...viewer, ids: [v2, ep], mark: "later" });
+    await api.mark({ ...viewer, ids: [short], mark: "pin" });
+    await expect(api.mark({ ...viewer, ids: [v1], mark: "loud" })).rejects.toThrow(/mark is/);
+    expect((await api.browse({ ...viewer, place: "starred" })).items.map((c) => c.id)).toEqual([
+      Number(v1),
+    ]);
+    expect((await api.browse({ ...viewer, place: "later" })).total).toBe(2);
+    expect((await api.browse({ ...viewer, place: "all", sort: "title" })).items[0]?.id).toBe(
+      Number(short),
+    );
+    expect((await api.mark({ ...viewer, ids: [v2], mark: "archive" })).done).toEqual([v2]);
+    // Archiving takes it off Watch later too.
+    expect((await api.browse({ ...viewer, place: "later" })).total).toBe(1);
+    expect((await api.browse({ ...viewer, place: "archived" })).total).toBe(2);
+    expect((await api.mark({ ...viewer, ids: [v2], mark: "archive" })).done).toEqual([]);
+
+    // Collections nest like folders; never inside themselves; deleting keeps the items.
+    const top = await api.collectionAdd({ ...viewer, name: "Deliverability" });
+    const sub = await api.collectionAdd({ ...viewer, name: "Warmup", parent: top.id });
+    await expect(api.collectionAdd({ ...viewer, name: "  " })).rejects.toThrow(/a name/);
+    await expect(api.collectionEdit({ ...viewer, id: top.id, parent: sub.id })).rejects.toThrow(
+      /inside itself/,
+    );
+    await api.collectionEdit({ ...viewer, id: sub.id, name: "Warmup rules" });
+    await api.move({ ...viewer, ids: [v1, ep], collection: sub.id });
+    await expect(api.move({ ...viewer, ids: [v1], collection: "999" })).rejects.toThrow(
+      /no such collection/,
+    );
+    const inSub = await api.browse({ ...viewer, place: `c${sub.id}` });
+    expect(inSub.items.map((c) => c.id).sort()).toEqual([Number(v1), Number(ep)].sort());
+    const r1 = await api.rail();
+    expect(r1.collections.map((c) => [c.name, c.parentId, c.n])).toEqual([
+      ["Deliverability", null, 0],
+      ["Warmup rules", Number(top.id), 2],
+    ]);
+    expect(r1.places).toMatchObject({ inbox: 3, later: 1, starred: 1, archived: 2, saved: 1 });
+    expect(r1.sources.map((g) => g.kind)).toEqual(["youtube", "podcast"]);
+
+    // Tags, kept short and lower case.
+    await api.tag({ ...viewer, ids: [v1, ep], add: ["Cold Email", "#warmup"] });
+    await api.tag({ ...viewer, ids: [ep], remove: ["warmup"] });
+    expect(
+      (await api.browse({ ...viewer, place: "all", tag: "warmup" })).items.map((c) => c.id),
+    ).toEqual([Number(v1)]);
+    expect((await api.rail()).tags).toEqual([
+      { tag: "cold-email", n: 2 },
+      { tag: "warmup", n: 1 },
+    ]);
+
+    // Where playback is: resume, Continue watching, and the item's page.
+    await api.progress({ ...viewer, id: ep, position: 300.4 });
+    await api.progress({ ...viewer, id: v1, position: 95, duration: 600 });
+    await pg.db
+      .update(items)
+      .set({ transcript: "## [0:00] Intro\n\nHello.\n\n## [1:30] The rule\n\nForty a day." })
+      .where(eq(items.id, Number(v1)));
+    const page = await api.item({ ...viewer, id: v1 });
+    expect(page).toMatchObject({
+      status: "read",
+      position: 95,
+      duration: 600,
+      starred: true,
+      collection: { name: "Warmup rules" },
+      tags: ["cold-email", "warmup"],
+      moments: [
+        { t: 0, label: "Intro" },
+        { t: 90, label: "The rule" },
+      ],
+    });
+    const home = await api.home();
+    expect(home.continue.map((c) => c.id)).toEqual([Number(v1), Number(ep)]);
+    expect(home.shelves.map((s) => [s.type, s.total])).toEqual([["shorts", 1]]);
+    expect(home.top).toEqual([]);
+
+    await api.collectionDrop({ ...viewer, id: top.id });
+    expect((await api.rail()).collections).toEqual([]);
+    const [after] = await pg.db
+      .select()
+      .from(items)
+      .where(eq(items.id, Number(v1)));
+    expect(after?.collectionId).toBeNull();
+    const kinds = await api.sources();
+    expect(kinds.kinds.find((k) => k.kind === "podcast")?.sources[0]).toMatchObject({
+      name: "Synthetic Show",
+      items: 2,
+      avatar: "https://cdn.example/art.jpg",
+    });
+    expect(saved.kind).toBe("reel");
+  });
+
+  it("asks the scorer for moments when the transcript is timed", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const s = await api.save({ ...viewer, url: "https://youtu.be/synthVid03" });
+    const md = `---\nsource: "youtube:synthVid03"\ntitle: "Synthetic talk"\nchannel: "Synthetic Channel"\npriority: 5\nduration: 640\n---\n\n# Synthetic talk\n\n[0:00] Hello.\n\n[2:05] The warmup rule.\n`;
+    expect(
+      await readOnMac(pg.db, async () => ({ file: "youtube-synthVid03.md", md }), Number(s.id)),
+    ).toBe("read");
+    let asked = "";
+    const llm = new FakeLlm({
+      respond: (p) => {
+        asked = p;
+        return JSON.stringify({
+          score: 5,
+          summary: "It says a thing.",
+          changes: [],
+          why: "Because.",
+          moments: [
+            { at: "2:05", label: "The warmup rule" },
+            { at: "soon", label: "Unplaced" },
+          ],
+        });
+      },
+    });
+    expect(await scoreItem(pg.db, llm, await practices(), Number(s.id))).toBe("hold");
+    expect(asked).toContain('"moments"');
+    const [row] = await pg.db
+      .select()
+      .from(items)
+      .where(eq(items.id, Number(s.id)));
+    expect(row).toMatchObject({
+      duration: 640,
+      moments: [{ t: 125, label: "The warmup rule" }],
+    });
   });
 });
