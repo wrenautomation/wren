@@ -334,3 +334,79 @@ describe("the demo cache", () => {
     expect(restate).toHaveLength(2);
   });
 });
+
+describe("Learn's media", () => {
+  let upstream: { url: string; range: string | null }[];
+  beforeEach(() => {
+    upstream = [];
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `${AUTH}/api/auth/jwks`) {
+        const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
+        return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
+      }
+      const range = new Headers(init?.headers).get("range");
+      upstream.push({ url, range });
+      if (url === "https://img.example/a.jpg")
+        return new Response("jpg", { headers: { "content-type": "image/jpeg" } });
+      if (url === "https://cdn.example/1.mp3")
+        return new Response("mp3", {
+          status: range ? 206 : 200,
+          headers: {
+            "content-type": "application/octet-stream",
+            ...(range ? { "content-range": "bytes 0-2/100" } : {}),
+          },
+        });
+      return new Response("<html>", { headers: { "content-type": "text/html" } });
+    });
+  });
+
+  const grant = async (claims: Record<string, unknown>) => {
+    const t = await token(claims);
+    return worker.fetch(
+      post("app.test", "media/grant", {}, { authorization: `Bearer ${t}` }),
+      env(),
+    );
+  };
+  const media = (u: string, g: string, headers: HeadersInit = {}) =>
+    worker.fetch(
+      new Request(`https://app.test/media?u=${encodeURIComponent(u)}&g=${g}`, { headers }),
+      env(),
+    );
+
+  it("grants an operator, never a client or the demo", async () => {
+    expect((await grant({ email: "ops@wren.example", operator: true })).status).toBe(200);
+    expect((await grant({})).status).toBe(403);
+    expect((await worker.fetch(post("demo.test", "media/grant"), env())).status).toBe(401);
+    expect((await worker.fetch(post("app.test", "media/grant"), env())).status).toBe(401);
+  });
+
+  it("passes pictures and audio with a grant, ranges through, sandboxed; nothing else", async () => {
+    const { grant: g } = (await (
+      await grant({ email: "ops@wren.example", operator: true })
+    ).json()) as { grant: string };
+    const img = await media("https://img.example/a.jpg", g);
+    expect(img.status).toBe(200);
+    expect(img.headers.get("content-type")).toBe("image/jpeg");
+    expect(img.headers.get("content-security-policy")).toContain("sandbox");
+    expect(await img.text()).toBe("jpg");
+
+    const audio = await media("https://cdn.example/1.mp3", g, { range: "bytes=0-2" });
+    expect(audio.status).toBe(206);
+    expect(audio.headers.get("content-type")).toBe("audio/mpeg");
+    expect(audio.headers.get("content-range")).toBe("bytes 0-2/100");
+    expect(upstream.at(-1)?.range).toBe("bytes=0-2");
+
+    expect((await media("https://page.example/", g)).status).toBe(415);
+    expect((await media("http://img.example/a.jpg", g)).status).toBe(400);
+    expect((await media("https://127.0.0.1/a.jpg", g)).status).toBe(400);
+    expect((await media("https://localhost/a.jpg", g)).status).toBe(400);
+    const before = upstream.length;
+    expect(
+      (await media("https://img.example/a.jpg", `${g.slice(0, -1)}${g.endsWith("0") ? "1" : "0"}`))
+        .status,
+    ).toBe(403);
+    expect((await media("https://img.example/a.jpg", "1.abc")).status).toBe(403);
+    expect(upstream.length).toBe(before);
+  });
+});

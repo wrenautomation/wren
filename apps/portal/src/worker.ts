@@ -8,6 +8,8 @@
  *   the email. The token marks Wren's operators: they see every client.
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
+ * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
+ *   for an operator.
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -31,6 +33,7 @@ import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { liveRoute, NoteRoom } from "./live.js";
+import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "./media.js";
 import { SERVICES } from "./services.js";
 import { sitesRoute } from "./sites.js";
 
@@ -149,6 +152,23 @@ async function replayPage(req: Request, env: Env): Promise<Response> {
   return out;
 }
 
+/** The media key, from the Restate token the Worker already holds; null when it holds none. */
+const keyOf = (env: Env) => (env.RESTATE_AUTH_TOKEN ? mediaKey(env.RESTATE_AUTH_TOKEN) : null);
+
+/** `POST /api/media/grant`: an operator's grant to load Learn's pictures and audio. */
+async function mediaGrant(req: Request, env: Env, site: Site): Promise<Response> {
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (site.kind === "demo") return json({ error: "Sign in." }, 401);
+  const viewer = await viewerOf(req, env);
+  if (viewer instanceof Response) return viewer;
+  if ("demo" in viewer || !viewer.operator) return json({ error: "Wren's team only." }, 403);
+  const key = await keyOf(env);
+  if (!key) return json({ error: "Media isn't set up yet." }, 503);
+  const out = json(await grantFor(key));
+  out.headers.set("cache-control", "no-store");
+  return out;
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -174,6 +194,11 @@ export default {
         },
       });
     if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
+    if (pathname === MEDIA_GRANT_PATH) return mediaGrant(req, env, site);
+    if (pathname === MEDIA_PATH) {
+      const key = site.kind === "demo" ? null : await keyOf(env);
+      return key ? mediaProxy(req, key) : new Response(null, { status: 404 });
+    }
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);

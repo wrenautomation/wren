@@ -2,9 +2,11 @@
 # connect-src: S3 takes client file uploads on a signed PUT (packages/delivery/src/files.ts);
 # npm's registry lists the browser mods (Marketplace). Dictation's speech model
 # (src/dictation/model.worker.ts): weights from Hugging Face (redirects to *.hf.co); onnxruntime's
-# wasm is ours (/ort/), and 'wasm-unsafe-eval' compiles it.
+# wasm is ours (/ort/), and 'wasm-unsafe-eval' compiles it. frame-src: the session player is ours
+# (/replay); Learn plays YouTube (no-cookie), Instagram, TikTok and X posts in their own embeds.
+# Learn's thumbnails and audio come through our /media (src/media.ts), so img-src stays put.
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.s3.us-east-1.amazonaws.com; style-src 'self'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.s3.us-east-1.amazonaws.com; style-src 'self'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex

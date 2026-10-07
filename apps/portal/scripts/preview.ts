@@ -80,6 +80,7 @@ import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 import { type DictateEnv, dictate } from "../src/dictate.js";
+import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "../src/media.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -364,6 +365,8 @@ const TYPES: Record<string, string> = {
   ".png": "image/png",
 };
 
+const previewMediaKey = mediaKey(crypto.randomUUID());
+
 const server = createServer(async (req, res) => {
   const path = new URL(req.url ?? "/", "http://x").pathname;
   if (path.startsWith("/files/")) {
@@ -456,6 +459,24 @@ const server = createServer(async (req, res) => {
     });
     res.writeHead(out.status, { "content-type": "application/json" });
     return res.end(await out.text());
+  }
+  // Learn's pictures and audio, as the Worker serves them (src/media.ts), on a key of this run's.
+  if (path === MEDIA_GRANT_PATH || path === MEDIA_PATH) {
+    const key = await previewMediaKey;
+    if (path === MEDIA_GRANT_PATH)
+      return res
+        .writeHead(200, { "content-type": "application/json" })
+        .end(JSON.stringify(await grantFor(key)));
+    const range = req.headers.range;
+    const out = await mediaProxy(
+      new Request(`http://localhost${req.url ?? "/"}`, {
+        method: req.method ?? "GET",
+        headers: range ? { range } : {},
+      }),
+      key,
+    );
+    res.writeHead(out.status, Object.fromEntries(out.headers));
+    return res.end(Buffer.from(await out.arrayBuffer()));
   }
   const route = path.startsWith("/api/") ? path.slice(5) : null;
   if (route !== null) {
