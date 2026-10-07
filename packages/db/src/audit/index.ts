@@ -19,6 +19,7 @@ export * from "./schema.js";
  */
 export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   runs: "the run ledger, already a log of every stage",
+  site_events: "page views and clicks from the tracker, append-only",
   inbox_syncs: "a sync cursor, rewritten every pass",
   open_syncs: "a sync cursor, rewritten every pass",
   documents: "fetched page bodies, a cache",

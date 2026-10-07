@@ -9,7 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
@@ -714,6 +714,11 @@ export type SpineService = {
   ) => Promise<Tally | null>;
   retry: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
   fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number; resolved: number }>;
+  /** A payload through a hook's door by the hook's id: Sites' forms. */
+  door: (
+    ctx: restate.Context,
+    req: { hook: string; payload: unknown },
+  ) => Promise<{ status: number; error?: string; subject?: string }>;
 };
 
 /**
@@ -824,6 +829,7 @@ export interface SpineDeps {
 }
 
 const STEP_RETRY = { maxRetryAttempts: 3 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function makeSpine(d: SpineDeps) {
   const parts = new Map(d.components.map((c) => [c.id, c]));
@@ -864,6 +870,41 @@ export function makeSpine(d: SpineDeps) {
           .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
       rule: d.rule,
     };
+  };
+
+  /** A hook's row, its call counted; null when there's none. */
+  const countHook = async (where: SQL) => {
+    const [row] = await d.main
+      .update(hooks)
+      .set({ calls: sql`${hooks.calls} + 1`, lastAt: sql`now()` })
+      .where(where)
+      .returning({
+        client: hooks.client,
+        workflow: hooks.workflow,
+        input: hooks.input,
+        subject: hooks.subject,
+        fields: hooks.fields,
+        open: hooks.open,
+      });
+    return row ?? null;
+  };
+  type Counted = Awaited<ReturnType<typeof countHook>>;
+  /** A payload through a hook's door: its event, the lead's facts, sent on to the walk. */
+  const enter = async (ctx: restate.Context, h: Counted, payload: unknown) => {
+    if (!h) return { status: 404, error: "no such hook" };
+    // A template's door before its workflow is approved: counted, nothing enters.
+    if (!h.open) return { status: 409, error: SHUT };
+    const got = hookEvent(h, await flowsFor(ctx, h.client), payload);
+    if ("error" in got) return got;
+    // The lead's facts by this hook's field map, for every lead step after (./door.ts).
+    got.event.data = { ...got.event.data, lead: leadOf(payload, h.fields) };
+    ctx.serviceSendClient<SpineService>(SPINE).emit({
+      client: h.client,
+      workflow: h.workflow,
+      from: got.from,
+      events: [got.event],
+    });
+    return { status: 202, subject: got.event.subject };
   };
 
   return restate.service({
@@ -936,36 +977,22 @@ export function makeSpine(d: SpineDeps) {
         if (typeof req.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(req.token))
           return { status: 404, error: "no such hook" };
         const tokenHash = hashToken(req.token);
-        const h = await ctx.run("hook", async () => {
-          const [row] = await d.main
-            .update(hooks)
-            .set({ calls: sql`${hooks.calls} + 1`, lastAt: sql`now()` })
-            .where(eq(hooks.tokenHash, tokenHash))
-            .returning({
-              client: hooks.client,
-              workflow: hooks.workflow,
-              input: hooks.input,
-              subject: hooks.subject,
-              fields: hooks.fields,
-              open: hooks.open,
-            });
-          return row ?? null;
-        });
-        if (!h) return { status: 404, error: "no such hook" };
-        // A template's door before its workflow is approved: counted, nothing enters.
-        if (!h.open) return { status: 409, error: SHUT };
-        const got = hookEvent(h, await flowsFor(ctx, h.client), req.payload);
-        if ("error" in got) return got;
-        // The lead's facts by this hook's field map, for every lead step after (./door.ts).
-        got.event.data = { ...got.event.data, lead: leadOf(req.payload, h.fields) };
-        ctx.serviceSendClient<SpineService>(SPINE).emit({
-          client: h.client,
-          workflow: h.workflow,
-          from: got.from,
-          events: [got.event],
-        });
-        return { status: 202, subject: got.event.subject };
+        const h = await ctx.run("hook", () => countHook(eq(hooks.tokenHash, tokenHash)));
+        return enter(ctx, h, req.payload);
       },
+      /**
+       * A page of ours (Sites' forms, `@wren/sites`): the door by the hook's id, so no token
+       * travels. Only another service calls it.
+       */
+      door: restate.handlers.handler(
+        { ingressPrivate: true },
+        async (ctx: restate.Context, req: { hook: string; payload: unknown }) => {
+          if (typeof req.hook !== "string" || !UUID.test(req.hook))
+            return { status: 404, error: "no such hook" };
+          const h = await ctx.run("door", () => countHook(eq(hooks.id, req.hook)));
+          return enter(ctx, h, req.payload);
+        },
+      ),
     },
   });
 }
