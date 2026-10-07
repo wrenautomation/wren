@@ -441,6 +441,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   error: text("error"),
   stage: text("stage"),
   to: text("to"),
+  format: text("format"),
   scheduled: timestamp("scheduled", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
 }).as(sql`
@@ -449,6 +450,11 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
     d.status::text state, length(d.text) chars,
     case when d.edited then 'edited' else 'model' end written, d.note, d.error,
     d.stage::text stage, d.points_to::text "to",
+    case
+      when (d.platform = 'instagram' and d.extra->>'kind' = 'carousel')
+        or (d.platform = 'linkedin' and d.extra->>'kind' = 'document') then 'carousel'
+      when d.platform = 'x' and d.extra->>'kind' = 'thread' then 'thread'
+      else 'post' end format,
     d.scheduled_for scheduled, d.created_at created
   from content_drafts d
   where d.status <> 'published'`);

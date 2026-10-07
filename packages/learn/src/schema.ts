@@ -208,6 +208,8 @@ export const items = learn.table(
     pinnedAt: timestamp("pinned_at", { withTimezone: true }),
     /** The collection it sits in, like a file in a folder. */
     collectionId: integer("collection_id"),
+    /** The client it was learned for; none is Wren's own. Its pictures and audio load for them. */
+    client: varchar("client", { length: 40 }),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -239,6 +241,16 @@ export const items = learn.table(
     oneOf("ck_learn_items_verdict", t.verdict, VERDICTS),
     oneOf("ck_learn_items_saved_via", t.savedVia, VIAS),
   ],
+);
+
+/** When each person last looked at what their sources brought: Learn's badge counts past it. */
+export const seen = learn.table(
+  "seen",
+  {
+    email: varchar("email", { length: 320 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.email], name: "pk_seen" })],
 );
 
 /** An item asked into an SOP's folder; the Mac writes it there and marks it added. */

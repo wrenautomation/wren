@@ -1268,6 +1268,13 @@
       "when": 1791406247726,
       "tag": "0180_inbox_reply",
       "breakpoints": true
+    },
+    {
+      "idx": 181,
+      "version": "7",
+      "when": 1791406569631,
+      "tag": "0181_learn_seen_draft_format",
+      "breakpoints": true
     }
   ]
 }
