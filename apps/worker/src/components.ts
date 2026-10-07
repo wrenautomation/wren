@@ -58,7 +58,8 @@ export const PLATFORM = {
     AccountsConsole: "a client's accounts, setups and vendor modes",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
-    Webhooks: "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
+    Webhooks:
+      "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
   },
   apps: {
     account: "every client's account: people, look, billing",
