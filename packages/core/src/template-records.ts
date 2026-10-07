@@ -17,6 +17,7 @@ import {
   status,
   text,
 } from "./records.js";
+import { TEMPLATE_EDITS, templateDetail } from "./template-edits.js";
 import type { Workflow } from "./workflows.js";
 
 const KIND: Record<string, State> = {
@@ -52,6 +53,7 @@ export const templateRecord = defineRecord({
         CASE WHEN t.draft_version_id IS NOT NULL THEN 'draft'
           WHEN t.live_version_id IS NOT NULL THEN 'live' ELSE 'empty' END state,
         lv.version live_version, dv.version draft_version,
+        coalesce(dv.source, lv.source, '') words,
         (SELECT count(*)::int FROM template_versions v WHERE v.template_id = t.id) versions,
         coalesce(s.sends, 0) sends, coalesce(s.replies, 0) replies, s.booked, s.last_sent,
         t.updated_at
@@ -78,6 +80,7 @@ export const templateRecord = defineRecord({
     booked: number(),
     lastSent: date("Last sent"),
     updatedAt: date("Updated"),
+    words: prose("Words"),
   },
   views: [
     { id: "all", label: "All", sort: "name" },
@@ -89,6 +92,11 @@ export const templateRecord = defineRecord({
     { record: "templates.variant", by: "template_id" },
     { record: "templates.step", by: "template_id" },
   ],
+  // The Library's page: words with a sample, slots, variants, versions and campaigns.
+  load: templateDetail,
+  // Save keeps a draft; Publish is the same edit setting the live version (`template-edits.ts`).
+  edits: TEMPLATE_EDITS,
+  actions: ["templates.publish"],
 });
 
 export const versionRecord = defineRecord({
@@ -216,6 +224,56 @@ export function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
     },
     views: [{ id: "all", label: "All", sort: "name" }],
     related: [{ record: "templates.step", by: "sequence_id" }],
+    // Its steps in order, each with its template's numbers and its live version's variants.
+    load: async (db, id) => {
+      const own = steps.filter((s) => s.w.id === id);
+      if (!own.length) return null;
+      const ids = await templateIds(db);
+      const found = own.map((s) => ({
+        s,
+        t: ids.get(`${s.ref.kind}\0${s.ref.system}\0${s.ref.name}`),
+      }));
+      const known = found.flatMap(({ t }) => (t ? [Number(t.id)] : []));
+      const picks = known.length
+        ? await rowsOf(
+            db,
+            sql`
+            SELECT s.template_id, s.picks, s.sends::int sends, s.replies::int replies
+            FROM template_stats s JOIN templates t ON t.id = s.template_id
+            JOIN template_versions v ON v.id = t.live_version_id AND v.version = s.version
+            WHERE s.template_id IN (${sql.join(
+              known.map((k) => sql`${k}`),
+              sql`, `,
+            )})
+            ORDER BY s.sends DESC`,
+          )
+        : [];
+      return {
+        steps: found.map(({ s, t }) => ({
+          node: s.n.id,
+          step: s.step,
+          wait: s.wait,
+          touch: s.n.uses ?? null,
+          kind: s.ref.kind,
+          system: s.ref.system,
+          template: s.ref.name,
+          templateId: t ? String(t.id) : null,
+          liveVersion: (t?.live_version as string | null) ?? null,
+          sends: Number(t?.sends ?? 0),
+          replies: Number(t?.replies ?? 0),
+          booked: t?.booked === null || t?.booked === undefined ? null : Number(t.booked),
+          variants: t
+            ? picks
+                .filter((p) => String(p.template_id) === String(t.id))
+                .map((p) => ({
+                  picks: p.picks ?? {},
+                  sends: Number(p.sends ?? 0),
+                  replies: Number(p.replies ?? 0),
+                }))
+            : [],
+        })),
+      };
+    },
   });
   const step = defineRecord({
     id: "templates.step",
