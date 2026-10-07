@@ -68,7 +68,9 @@ describe("the voice box server", () => {
     });
     ws.onmessage = (m) => got.push(String(m.data));
     ws.send(JSON.stringify({ event: "start", start: { call_control_id: "v3:test" } }));
-    await new Promise((ok) => setTimeout(ok, 100));
+    // Wait for the opener's frames, not a fixed time: a slow runner may take longer than 100 ms.
+    const frames = () => got.filter((m) => JSON.parse(m).event === "media").length;
+    for (let i = 0; i < 100 && frames() <= 3; i++) await new Promise((ok) => setTimeout(ok, 20));
     ws.send(JSON.stringify({ event: "stop" }));
     for (let i = 0; i < 50 && !saved.length; i++) await new Promise((ok) => setTimeout(ok, 20));
     ws.close();
