@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
 const { MODULES, appsIn } = await import("./index.js");
+const { clientSites, sites } = await import("./sites/index.js");
 
 describe("apps and components", () => {
   it("every app is one component's, or the platform's", () => {
@@ -50,6 +51,7 @@ describe("apps and components", () => {
       "marketplace",
       "marketing",
       "learn",
+      "sites",
       "notes",
       "calendar",
       "account",
@@ -90,5 +92,17 @@ describe("apps and components", () => {
     expect(
       appsIn(MODULES, { wren: true, team: true, installed: new Set() }).map((m) => m.id),
     ).not.toContain("work");
+    // A client's Sites is its own pages; Wren's workspace keeps Wren's.
+    const sitesOf = (wren: boolean) =>
+      appsIn(MODULES, { wren, team: true, installed: new Set() }).find((m) => m.id === "sites");
+    expect(sitesOf(false)).toBe(clientSites);
+    expect(sitesOf(true)).toBe(sites);
+    expect(ids(false, ["sites.pages"])).toEqual([
+      "marketplace",
+      "learn",
+      "sites",
+      "notes",
+      "account",
+    ]);
   });
 });
