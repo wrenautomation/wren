@@ -38,7 +38,7 @@ export const SEARCH_COMPONENTS = [
         {
           is: "needs",
           says: "The client's Search Console property, with Wren's service account on it.",
-          built: "the search_console account",
+          built: "the Search Console account",
         },
         { is: "fixed", says: "Numbers come from Search Console once a day." },
       ],

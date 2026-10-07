@@ -1392,6 +1392,8 @@ export const componentRecord = (
         readyOf(c) === "coming" &&
         c.provides.loops.length > 0 &&
         !c.provides.loops.some((l) => on.has(l));
+      // A client sees one "In development" for both: built only for Wren, or not built at all.
+      const shown = <R extends string>(r: R) => (!team && r === "coming" ? "planned" : r);
       // Built for clients, but this client hasn't connected an account it needs.
       const unconnected = (c: Component) =>
         !!client &&
@@ -1409,7 +1411,7 @@ export const componentRecord = (
           stage: c.stage,
           channels: c.channels.join(",") || null,
           for: c.for,
-          ready: off(c) ? "off" : unconnected(c) ? "account" : readyOf(c),
+          ready: off(c) ? "off" : unconnected(c) ? "account" : shown(readyOf(c)),
           // Wren's own parts are never on a client: no "not installed" for them.
           installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
           effects: c.effects.join(",") || null,
@@ -1443,7 +1445,7 @@ export const componentRecord = (
               stage: w.stage,
               channels: union(parts.map((c) => c.channels)).join(",") || null,
               for: w.for,
-              ready: flowReady(parts),
+              ready: shown(flowReady(parts)),
               installed: null,
               effects: union(parts.map((c) => c.effects)).join(",") || null,
               instead: null,
@@ -1493,7 +1495,8 @@ export const componentRecord = (
       ),
       for: status(neutral({ client: "For clients", wren: "Wren's own" }), "For"),
       icon: text("Icon", { group: "System" }),
-      needs: text("Needs"),
+      // Ids, for the Map's lines; the page says them in words under Needs and Accounts.
+      needs: text("Needs", { group: "System" }),
       missing: text("Missing"),
     },
     views: [

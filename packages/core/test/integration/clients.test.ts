@@ -527,6 +527,9 @@ describe("install, configure, uninstall", () => {
     const owner = { email: "owner@acme.example" };
     expect(await row(ops, "dms")).toMatchObject({ ready: "account" });
     expect(await row(owner, "posts")).toMatchObject({ ready: "account" });
+    // Built only for Wren reads "In development" to a client, the same as not built.
+    expect(await row(ops, "soon")).toMatchObject({ ready: "coming" });
+    expect(await row(owner, "soon")).toMatchObject({ ready: "planned" });
     const got = await api().recordsGet({
       viewer: owner,
       client: "acme",
