@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-06 @ d8f1d9f
+verified: 2026-10-07 @ 2cdad29
 entity: packages/core/src/spine.ts:1
 ---
 
@@ -23,7 +23,7 @@ A workflow is data (`packages/core/src/workflows.ts`), so one walker runs any of
 - `spine_events` (view): every arrival with `state` failed, waiting or passed. Record `console.event`, the Workflows app's Events page; Retry is `ConsolePortal/retryEvent` (`wren:effect`), which waits on `Spine/retry` and says "Ran again" or "Failed again". Main only.
 - `events.sent`, `events.sent_at`: what the arrival's step sent on (`[{port, subject, kind, data}]`, data dropped past 32 KB, `sentOf`), written by `SpineStore.sent` inside the same journaled step. `[]`: the step sent nothing (its own code moves it). Null: not kept (older rows, a wait).
 - `spine_executions` (view): one row per workflow and subject. `state` failed, waiting or done; `node` is where it is now (the failed node, else the waiting one, else the newest); `entered`, `last_at`, `steps`. Record `console.execution`; its `load` is every step with in and out data (`executionSteps`, `console.ts`). Main only.
-- Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`, `watch.triage` ([[watch/mail]]), `sms.forms` and `voice.call_now` (speed to lead, [[sms/speed-run]]). A node with no step keeps the arrival and stops.
+- Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`, `watch.triage` ([[watch/mail]]), `sms.forms` and `voice.call_now` (speed to lead, [[sms/speed-run]]), `calls.brief` ([[email/call-brief]]). A booked call enters `close` at `in.calls`; its outcome leaves by `outcome.won` (and enters `onboarding` at `in.clients`) or `outcome.later` ([[email/call-booking]]). A node with no step keeps the arrival and stops.
 - Follow-ups: `cadenceWorkflow` (`workflows.ts`) makes a cadence a workflow `follow_up.<name>` of touch nodes `s<n>`, waits on the wires. Each text sequence is one (`textCadence`, `packages/channel-sms/src/follow.ts`), and each DM sequence (`reachCadence`, `packages/outreach/src/follow.ts`). A part's own code emits a node's output with `spineEmit`: `SmsSender` and `ReachSender` send `s<n>.sent` for every step they sent, so a wait counts from the send, not the queue. A custom step at an https URL is POSTed `{port, event}` and answers `{out}`.
 - `workflow_saves`: main only; one row per save from the canvas, `client` (null is Wren), `workflow`, `edits` (`WorkflowEdits`: the routed wires and custom steps, whole; null is back to the code's), `live`, `by`, `at`. `live = false` is the draft: at most one per client and workflow, newer than the live one. The newest live row runs; older live rows are History (`workflowHistory`). `flowsWith` (`workflows.ts`) merges a save over the code's nodes and built-in wires and checks it. A save that stops passing after a code change is skipped, and the canvas says why. The spine reads the client's live saves once per `emit` or `release` call, journaled.
 - Versions: `events.version` is the wiring a subject entered on (a live save's id, 0 the code's, null from before versions). `walk` groups a batch by `SpineStore.entered` and walks each group on its own wiring (`Walk.liveOf`, `Walk.flowsAt`, which reads `savedVersion`); a resume or retry walks its arrival's `version`. New subjects take the live one.

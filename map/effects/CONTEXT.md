@@ -21,6 +21,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | spam score | [[email/spam-score]] | [[email/template]], the gates |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
 | a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts`, `evolve/stats.ts` |
+| how a call went, or its pre-call brief | [[email/call-booking]], [[email/call-brief]] | [[calendar/booking]] (mirror and view), [[platform/spine]] (`close`, `onboarding`), `packages/core/src/calls.ts`, `apps/portal/web/src/modules/calls` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
