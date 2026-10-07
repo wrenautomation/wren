@@ -727,6 +727,8 @@ export interface TemplateRow extends TemplateRef {
   /** Who wrote its newest version, and when. */
   by: string | null;
   at: Date | null;
+  /** The words an editor opens (the draft, else live), for search. */
+  words: string;
 }
 
 export interface ListOpts {
@@ -742,12 +744,13 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
   const rows = (await db.execute(sql`
     SELECT t.id, t.kind, t.system, t.name, t.folder, t.follows_default,
       coalesce(lv.number, CASE WHEN t.follows_default THEN nd.number END) live,
-      dv.number draft, wv.number waiting, nd.number newest_default, top.created_by, top.created_at
+      dv.number draft, wv.number waiting, nd.number newest_default, top.created_by, top.created_at,
+      coalesce(dv.source, lv.source, CASE WHEN t.follows_default THEN nd.source END, '') words
     FROM templates t
     LEFT JOIN template_versions lv ON lv.id = t.live_version_id
     LEFT JOIN template_versions dv ON dv.id = t.draft_version_id
     LEFT JOIN template_versions wv ON wv.id = t.waiting_version_id
-    LEFT JOIN LATERAL (SELECT d.number FROM template_versions d
+    LEFT JOIN LATERAL (SELECT d.number, d.source FROM template_versions d
       WHERE d.template_id = t.id AND d.origin = 'default' ORDER BY d.number DESC LIMIT 1) nd ON true
     LEFT JOIN LATERAL (SELECT v.created_by, v.created_at FROM template_versions v
       WHERE v.template_id = t.id ORDER BY v.number DESC LIMIT 1) top ON true
@@ -773,6 +776,7 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
       newestDefault: num(r.newest_default),
       by: (r.created_by as string | null) ?? null,
       at: r.created_at ? new Date(r.created_at as string) : null,
+      words: String(r.words ?? ""),
     };
     const status = statusOf({
       followsDefault: Boolean(r.follows_default),

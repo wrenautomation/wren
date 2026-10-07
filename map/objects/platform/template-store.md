@@ -52,7 +52,9 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 | marketing Texts and DMs pages | save texts and DMs with each slot's rules |
 | `TemplatesConsole` (`packages/core/src/templates-console.ts`, routes `templates/*`) | the Library's reads and writes; checks `act` at each template's app and channel (`templateAt`) |
 | Marketing To approve (`marketing.approval`, ids `template:<id>:<n>`) | a person approves or declines a waiting version (`waitingAsks`) |
-| the Library, Templates and Sequences (`apps/portal/web/src/modules/library/`) | edits, publishes, reads numbers |
+| the Library, Templates (`apps/portal/web/src/modules/library/templates.tsx`) | folder browser: search, filters, editor with live preview, history, diff, restore, conflict banner, publish, reset, move |
+| the Library, Sequences (`apps/portal/web/src/modules/library/`) | reads numbers |
+| `Browser`, `Diff` (`packages/ui/src/browser.tsx`, `diff.tsx`) | the kit's tree, list, detail and line diff; niches, SOPs, offers and settings can reuse them |
 | Workflows' Play | each step's live template, rendered for the made-up lead |
 
 ## See

@@ -133,7 +133,11 @@ export interface IdsRequest extends PortalRequest {
   ids: string[];
 }
 
-export function makeTemplatesConsole(deps: { db: Db }) {
+/**
+ * The handlers as plain calls, each checking its own access and throwing `PortalRefusal`: the
+ * Restate service wraps them (writes journaled once), and the local preview calls them straight.
+ */
+export function templatesApi(deps: { db: Db }) {
   const { db } = deps;
   /** The ref, once the viewer may `p` at its app and channel. */
   const refFor = async (req: RefRequest, p: "read" | "act") => {
@@ -161,9 +165,6 @@ export function makeTemplatesConsole(deps: { db: Db }) {
     if (!s) throw new PortalRefusal("no such template", 404);
     return stateView(s);
   };
-  /** One write, journaled once; refusals come back as the Worker's status. */
-  const write = <T>(ctx: restate.Context, name: string, fn: () => Promise<T>) =>
-    ctx.run(name, () => answer(() => fn().catch(refusal)));
   /** The asks a person approves or declines, each still the one they saw. */
   const asksOf = async (req: IdsRequest) => {
     if (isDemo(req.viewer) || !by(req)) throw new PortalRefusal("only a person approves", 403);
@@ -181,69 +182,178 @@ export function makeTemplatesConsole(deps: { db: Db }) {
       }),
     );
   };
+  /** A save's answer: the new state, or the version there now when the one opened moved. */
+  const casOf = async (fn: () => Promise<TemplateState>) => {
+    try {
+      return { saved: stateView(await fn()), conflict: null };
+    } catch (err) {
+      if (err instanceof TemplateConflict) return { saved: null, conflict: head(err.current) };
+      return refusal(err);
+    }
+  };
 
+  return {
+    /** Every template the viewer may read, by folder then name, with its status. */
+    async list(req: PortalRequest) {
+      const out = [];
+      for (const r of await listTemplates(db))
+        if (await canAt(db, req, "read", templateAt(r)))
+          out.push({
+            ...r,
+            ref: `${r.kind}:${r.system}/${r.name}`,
+            app: templateAt(r).app as string,
+            at: r.at?.toISOString() ?? null,
+            editable: LIBRARY_EDITS.has(r.kind),
+          });
+      return { templates: out };
+    },
+    /** One template: where it stands, every version with its words, and whether it may be edited. */
+    async detail(req: RefRequest) {
+      const ref = await refFor(req, "read");
+      const versions = (await versionsOf(db, ref)).map((v) => ({
+        ...(head(v) as NonNullable<ReturnType<typeof head>>),
+        why: v.why,
+        openedFrom: v.openedFrom,
+        publishedAt: v.publishedAt?.toISOString() ?? null,
+        publishedBy: v.publishedBy,
+      }));
+      return {
+        ...(await stateOf(ref)),
+        versions,
+        mayAct: await canAt(db, req, "act", templateAt(ref)),
+      };
+    },
+    /** Words with the made-up lead in them, or why they don't render. Nothing is kept. */
+    async preview(req: RefRequest & { words: string }) {
+      const ref = await refFor(req, "read");
+      return sampleOf(ref.kind, ref.name, String(req.words ?? ""));
+    },
+    /**
+     * Keep the words as the next version and make it the draft. `expect` is the version the
+     * editor opened (null for an empty one); when it moved, nothing is kept and the answer is
+     * the version there now, so the editor can show the diff and offer reload or save on top.
+     */
+    async save(req: SaveRequest) {
+      const ref = await writable(req);
+      return casOf(() =>
+        saveDraft(db, ref, String(req.words ?? ""), {
+          by: by(req),
+          why: req.why ?? null,
+          expect: req.expect ?? null,
+        }),
+      );
+    },
+    /**
+     * Ask for the draft (or version `number`) to go live: a prompt goes live now; copy that
+     * sends waits in To approve for a person's yes.
+     */
+    async publish(req: NumberRequest) {
+      const ref = await writable(req);
+      return stateView(
+        await askPublish(db, ref, {
+          by: by(req),
+          ...(req.number ? { number: req.number } : {}),
+          why: req.why ?? null,
+        }).catch(refusal),
+      );
+    },
+    /** A person's yes on To approve items (`template:<id>:<number>`): each goes live. */
+    async approve(req: IdsRequest) {
+      const done: string[] = [];
+      for (const a of await asksOf(req)) {
+        const s = await approve(db, a.ref, { by: by(req), number: a.number }).catch((err) => {
+          if (err instanceof TemplateConflict)
+            throw new PortalRefusal("A newer version waits now. Open it again.", 409);
+          return refusal(err);
+        });
+        done.push(approvalId(s.id, a.number));
+      }
+      return { done };
+    },
+    /** A person's no: the ask goes away, the version stays in history. */
+    async decline(req: IdsRequest) {
+      const done: string[] = [];
+      for (const a of await asksOf(req)) {
+        const s = await templateState(db, a.ref);
+        if (s?.waiting?.number !== a.number) continue;
+        await decline(db, a.ref, { by: by(req) }).catch(refusal);
+        done.push(approvalId(s.id, a.number));
+      }
+      return { done };
+    },
+    /** A new draft copying version `number`; nothing is overwritten. */
+    async restore(req: NumberRequest) {
+      const ref = await writable(req);
+      return casOf(() =>
+        restore(db, ref, Number(req.number), {
+          by: by(req),
+          why: req.why ?? null,
+          ...(req.expect !== undefined ? { expect: req.expect } : {}),
+        }),
+      );
+    },
+    /** Follow the default again: Wren's own words go live now. */
+    async reset(req: RefRequest & { why?: string | null }) {
+      const ref = await writable(req);
+      return stateView(
+        await reset(db, ref, { by: by(req), why: req.why || "reset to default" }).catch(refusal),
+      );
+    },
+    /** Move one template to a folder; its ref, and every send, stay. */
+    async move(req: RefRequest & { folder: string }) {
+      const ref = await refFor(req, "act");
+      await moveTemplate(db, ref, String(req.folder ?? ""), by(req)).catch(refusal);
+      return stateOf(ref);
+    },
+    /** Rename a folder: everything in or under it moves along. */
+    async renameFolder(req: PortalRequest & { from: string; to: string }) {
+      return {
+        moved: await renameFolder(db, String(req.from ?? ""), String(req.to ?? ""), by(req)).catch(
+          refusal,
+        ),
+      };
+    },
+  };
+}
+export type TemplatesApi = ReturnType<typeof templatesApi>;
+/** A row of the Library's browser. */
+export type TemplateListRow = Awaited<ReturnType<TemplatesApi["list"]>>["templates"][number];
+/** An open template: its state, every version with its words, and whether the viewer may act. */
+export type TemplateOpen = Awaited<ReturnType<TemplatesApi["detail"]>>;
+/** A save's or restore's answer. */
+export type TemplateSaved = Awaited<ReturnType<TemplatesApi["save"]>>;
+
+const NUMBER = z.number().int().positive();
+
+export function makeTemplatesConsole(deps: { db: Db }) {
+  const api = templatesApi(deps);
+  /** A read: not journaled, read again on a retry. */
+  const read =
+    <R extends PortalRequest, T>(fn: (req: R) => Promise<T>) =>
+    (_: restate.Context, req: R) =>
+      answer(() => fn(req));
+  /** A write: journaled once, so a retry returns the same answer and never writes twice. */
+  const write =
+    <R extends PortalRequest, T>(name: string, fn: (req: R) => Promise<T>) =>
+    (ctx: restate.Context, req: R) =>
+      answer(() => ctx.run(name, () => answer(() => fn(req))));
+  const ids = z.looseObject({ ...PORTAL_FIELDS, ids: z.array(z.string()) });
   return portalService({
     name: "TemplatesConsole",
-    main: db,
+    main: deps.db,
     routes: TEMPLATES_CONSOLE_ROUTES,
     apps: TEMPLATES_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
-      /** Every template the viewer may read, by folder then name, with its status. */
-      list: serviceHandler(
-        { input: z.looseObject(PORTAL_FIELDS) },
-        (ctx: restate.Context, req: PortalRequest) =>
-          ctx.run("list", () =>
-            answer(async () => {
-              const rows = await listTemplates(db);
-              const out = [];
-              for (const r of rows)
-                if (await canAt(db, req, "read", templateAt(r)))
-                  out.push({
-                    ...r,
-                    ref: `${r.kind}:${r.system}/${r.name}`,
-                    at: r.at?.toISOString() ?? null,
-                  });
-              return { templates: out };
-            }),
-          ),
-      ),
-      /** One template: where it stands, every version with its words, and whether it may be edited. */
+      list: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.list)),
       detail: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, ref: REF }) },
-        (ctx: restate.Context, req: RefRequest) =>
-          ctx.run("detail", () =>
-            answer(async () => {
-              const ref = await refFor(req, "read");
-              const versions = (await versionsOf(db, ref)).map((v) => ({
-                ...head(v),
-                why: v.why,
-                openedFrom: v.openedFrom,
-                publishedAt: v.publishedAt?.toISOString() ?? null,
-                publishedBy: v.publishedBy,
-              }));
-              return {
-                ...(await stateOf(ref)),
-                versions,
-                mayAct: await canAt(db, req, "act", templateAt(ref)),
-              };
-            }),
-          ),
+        read(api.detail),
       ),
-      /** Words with the made-up lead in them, or why they don't render. Nothing is kept. */
       preview: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, ref: REF, words: z.string().max(WORDS_MAX) }) },
-        (_ctx: restate.Context, req: RefRequest & { words: string }) =>
-          answer(async () => {
-            const ref = await refFor(req, "read");
-            return sampleOf(ref.kind, ref.name, String(req.words ?? ""));
-          }),
+        read(api.preview),
       ),
-      /**
-       * Keep the words as the next version and make it the draft. `expect` is the version the
-       * editor opened (null for an empty one); when it moved, nothing is kept and the answer is
-       * the version there now, so the editor can show the diff and offer reload or save on top.
-       */
       save: serviceHandler(
         {
           input: z.looseObject({
@@ -254,142 +364,41 @@ export function makeTemplatesConsole(deps: { db: Db }) {
             expect: z.number().int().nullable().describe("The version opened, null for none"),
           }),
         },
-        async (ctx: restate.Context, req: SaveRequest) => {
-          const ref = await answer(() => writable(req));
-          return write(ctx, "save", async () => {
-            try {
-              const s = await saveDraft(db, ref, String(req.words ?? ""), {
-                by: by(req),
-                why: req.why ?? null,
-                expect: req.expect ?? null,
-              });
-              return { saved: stateView(s), conflict: null };
-            } catch (err) {
-              if (err instanceof TemplateConflict)
-                return { saved: null, conflict: head(err.current) };
-              throw err;
-            }
-          });
-        },
+        write("save", api.save),
       ),
-      /**
-       * Ask for the draft (or version `number`) to go live: a prompt goes live now; copy that
-       * sends waits in To approve for a person's yes.
-       */
       publish: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             ref: REF,
-            number: z
-              .number()
-              .int()
-              .positive()
-              .nullish()
-              .describe("A version; the draft when left out"),
+            number: NUMBER.nullish().describe("A version; the draft when left out"),
             why: WHY,
           }),
         },
-        async (ctx: restate.Context, req: NumberRequest) => {
-          const ref = await answer(() => writable(req));
-          return write(ctx, "publish", async () =>
-            stateView(
-              await askPublish(db, ref, {
-                by: by(req),
-                ...(req.number ? { number: req.number } : {}),
-                why: req.why ?? null,
-              }),
-            ),
-          );
-        },
+        write("publish", api.publish),
       ),
-      /** A person's yes on To approve items (`template:<id>:<number>`): each goes live. */
-      approve: serviceHandler(
-        { input: z.looseObject({ ...PORTAL_FIELDS, ids: z.array(z.string()) }) },
-        async (ctx: restate.Context, req: IdsRequest) => {
-          const asks = await answer(() => asksOf(req));
-          return write(ctx, "approve", async () => {
-            const done: string[] = [];
-            for (const a of asks) {
-              const s = await approve(db, a.ref, { by: by(req), number: a.number }).catch((err) => {
-                if (err instanceof TemplateConflict)
-                  throw new PortalRefusal("A newer version waits now. Open it again.", 409);
-                throw err;
-              });
-              done.push(approvalId(s.id, a.number));
-            }
-            return { done };
-          });
-        },
-      ),
-      /** A person's no: the ask goes away, the version stays in history. */
-      decline: serviceHandler(
-        { input: z.looseObject({ ...PORTAL_FIELDS, ids: z.array(z.string()) }) },
-        async (ctx: restate.Context, req: IdsRequest) => {
-          const asks = await answer(() => asksOf(req));
-          return write(ctx, "decline", async () => {
-            const done: string[] = [];
-            for (const a of asks) {
-              const s = await templateState(db, a.ref);
-              if (s?.waiting?.number !== a.number) continue;
-              await decline(db, a.ref, { by: by(req) });
-              done.push(approvalId(s.id, a.number));
-            }
-            return { done };
-          });
-        },
-      ),
-      /** A new draft copying version `number`; nothing is overwritten. */
+      approve: serviceHandler({ input: ids }, write("approve", api.approve)),
+      decline: serviceHandler({ input: ids }, write("decline", api.decline)),
       restore: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             ref: REF,
-            number: z.number().int().positive(),
+            number: NUMBER,
             why: WHY,
             expect: z.number().int().nullish(),
           }),
         },
-        async (ctx: restate.Context, req: NumberRequest) => {
-          const ref = await answer(() => writable(req));
-          return write(ctx, "restore", async () => {
-            try {
-              const s = await restore(db, ref, Number(req.number), {
-                by: by(req),
-                why: req.why ?? null,
-                ...(req.expect !== undefined ? { expect: req.expect } : {}),
-              });
-              return { saved: stateView(s), conflict: null };
-            } catch (err) {
-              if (err instanceof TemplateConflict)
-                return { saved: null, conflict: head(err.current) };
-              throw err;
-            }
-          });
-        },
+        write("restore", api.restore),
       ),
-      /** Follow the default again: Wren's own words go live now. */
       reset: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, ref: REF, why: WHY }) },
-        async (ctx: restate.Context, req: RefRequest & { why?: string | null }) => {
-          const ref = await answer(() => writable(req));
-          return write(ctx, "reset", async () =>
-            stateView(await reset(db, ref, { by: by(req), why: req.why || "reset to default" })),
-          );
-        },
+        write("reset", api.reset),
       ),
-      /** Move one template to a folder; its ref, and every send, stay. */
       move: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, ref: REF, folder: z.string().max(200) }) },
-        async (ctx: restate.Context, req: RefRequest & { folder: string }) => {
-          const ref = await answer(() => refFor(req, "act"));
-          return write(ctx, "move", async () => {
-            await moveTemplate(db, ref, String(req.folder ?? ""), by(req));
-            return stateOf(ref);
-          });
-        },
+        write("move", api.move),
       ),
-      /** Rename a folder: everything in or under it moves along. */
       renameFolder: serviceHandler(
         {
           input: z.looseObject({
@@ -398,10 +407,7 @@ export function makeTemplatesConsole(deps: { db: Db }) {
             to: z.string().max(200),
           }),
         },
-        (ctx: restate.Context, req: PortalRequest & { from: string; to: string }) =>
-          write(ctx, "rename", async () => ({
-            moved: await renameFolder(db, String(req.from ?? ""), String(req.to ?? ""), by(req)),
-          })),
+        write("rename", api.renameFolder),
       ),
     },
   });

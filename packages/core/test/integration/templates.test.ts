@@ -322,6 +322,7 @@ describe("listing and history", () => {
       [refText(TEXT), "edited"],
     ]);
     expect(all[0]).toMatchObject({ live: 1, draft: 2, waiting: 2, newestDefault: 1, by: "ann" });
+    expect(all[0]?.words).toBe((await templateState(pg.db, EMAIL))?.draft?.source);
     expect(await listTemplates(pg.db, { kind: "sms" })).toHaveLength(1);
     expect(await listTemplates(pg.db, { folder: EMAIL.system })).toHaveLength(1);
     expect(await listTemplates(pg.db, { status: "edited" })).toHaveLength(1);

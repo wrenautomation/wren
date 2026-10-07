@@ -98,7 +98,15 @@ export function registerTemplates(program: Command, dbs: TemplateDbs) {
             ...(o.status ? { status: o.status as TemplateStatus } : {}),
           }),
         );
-        if (o.json) return console.log(JSON.stringify(rows, null, 2));
+        // Words come with `get`; the listing stays short.
+        if (o.json)
+          return console.log(
+            JSON.stringify(
+              rows.map(({ words: _, ...r }) => r),
+              null,
+              2,
+            ),
+          );
         if (!rows.length) return console.log("no templates");
         let at: string | null = null;
         for (const r of rows) {

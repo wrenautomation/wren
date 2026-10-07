@@ -477,6 +477,12 @@ export function useRun(
 }
 
 /** The one place toasts show; an app mounts it once. */
+/** A line at the bottom of the screen after a hand-drawn page's write: done, or why not. */
+export const say = {
+  done: (line: string) => void toast.success(line),
+  failed: (err: unknown) => void toast.error(err instanceof Error ? err.message : String(err)),
+};
+
 export function Toasts() {
   return <Toaster position="bottom-center" />;
 }

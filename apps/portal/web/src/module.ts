@@ -47,6 +47,8 @@ interface PageBase {
 /** A page drawn by hand. */
 export interface HandPage extends PageBase {
   Page: ComponentType<PageProps>;
+  /** Past the reading width, as a list page is: a browser's three columns. */
+  wide?: true;
 }
 
 /**

@@ -4,7 +4,13 @@
  * tokens in `@wren/ui/tailwind.css`; every token is one a Theme can set (theme.tsx).
  */
 export { type Access, can, canAt, type Viewer } from "./access.js";
-export { type Action, type Call, type FormField, Toasts } from "./action.js";
+export { type Action, type Call, type FormField, say, Toasts } from "./action.js";
+export {
+  Browser,
+  type BrowserFolder,
+  BrowserRow,
+  folderTree,
+} from "./browser.js";
 export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
@@ -19,6 +25,7 @@ export {
   usePref,
 } from "./customize.js";
 export { Facts } from "./data.js";
+export { Diff, pairsOf } from "./diff.js";
 export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {

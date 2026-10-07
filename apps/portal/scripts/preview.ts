@@ -20,6 +20,11 @@ import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
+import { templatesApi } from "@wren/core/templates/console";
+import {
+  TEMPLATES_CONSOLE_APPS,
+  TEMPLATES_CONSOLE_ROUTES,
+} from "@wren/core/templates/console-routes";
 import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
@@ -79,6 +84,12 @@ const SERVICES: Record<
         sopRecord,
       ],
     }),
+  },
+  // The Library's templates, in Wren's own database.
+  templates: {
+    routes: Object.keys(TEMPLATES_CONSOLE_ROUTES),
+    guard: { needs: TEMPLATES_CONSOLE_ROUTES, apps: TEMPLATES_CONSOLE_APPS, unnamed: "wren" },
+    api: templatesApi({ db: main }),
   },
 };
 /** Ask Claude's handler is Restate's (it opens a run, then the desk answers): here, only the run. */

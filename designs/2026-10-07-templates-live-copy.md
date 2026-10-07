@@ -225,3 +225,22 @@ the counts match, then drops both tables. Code that still reads them moves to `r
   seen. Approve refuses when a newer version waits ("Open it again"), so no one makes live words
   they didn't read. Approve and decline refuse a demo login or a caller with no email; an agent
   or the CLI (`by` = `cli`) only asks.
+- 2026-10-07, step 5: `Browser` (`@wren/ui`) takes folders as paths with counts and builds the
+  tree; a folder exists while something is in it. So "create" is "Move to folder" with a new name,
+  and renaming moves every template under it (`renameFolder`). Rows drag onto a folder to move. At
+  `lg` and up it is tree, list, detail; under it the tree folds to a breadcrumb with child chips
+  and the open template replaces the list, with a back link. `Diff` sits beside it in the kit:
+  side by side from `md`, unified under it, so the 390 view is unified.
+- 2026-10-07, step 5: Templates is a hand page marked `wide`, not a records list. The nav count of
+  waiting versions is dropped: To approve holds them. Old `/library/templates/<id>` links redirect
+  to `?open=<id>`. The record detail stays for the Numbers tab (campaign sends per version).
+- 2026-10-07, step 5: list rows carry the current words (draft, else live, else the default when
+  following), so search covers words with no second call. The CLI's `ls --json` leaves them out.
+  The app filter is `templateAt`'s app, the same place the permission check uses.
+- 2026-10-07, step 5: the console's handlers are plain functions (`templatesApi`), wrapped by the
+  Restate service. The local preview serves them in process, which is how the screenshots ran on
+  synthetic data.
+- 2026-10-07, step 5: the editor previews as you type (300 ms) and saves against what it opened.
+  A refused save shows the banner with theirs against yours; "Reload theirs" drops your words,
+  "Save yours on top" saves against their version. Texts and DMs open read only, with a link to
+  their copy page.

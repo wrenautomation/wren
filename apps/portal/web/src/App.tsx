@@ -480,7 +480,7 @@ export function App() {
         }
         page={open ? pathOf(open.module, open.page) : "/"}
         theme={theme}
-        wide={!!open && "template" in open.page}
+        wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
       >
         {!current ? (
           <Loading lines={8} heading />
