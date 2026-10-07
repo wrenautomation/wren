@@ -1,0 +1,2 @@
+DROP INDEX "ix_template_versions_template_id";--> statement-breakpoint
+CREATE INDEX "ix_template_versions_opened_from" ON "template_versions" USING btree ("opened_from" int4_ops) WHERE (opened_from IS NOT NULL);

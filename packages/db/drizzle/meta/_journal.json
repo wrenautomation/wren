@@ -1009,6 +1009,13 @@
       "when": 1791344538330,
       "tag": "0143_speed_call_done",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1791346167450,
+      "tag": "0144_templates_indexes",
+      "breakpoints": true
     }
   ]
 }

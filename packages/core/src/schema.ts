@@ -1146,8 +1146,10 @@ export const templateVersions = pgTable(
   (t): PgTableExtraConfigValue[] => [
     primaryKey({ columns: [t.id], name: "pk_template_versions" }),
     index("ix_template_versions_niche").on(t.niche, t.template, t.version),
-    index("ix_template_versions_template_id").on(t.templateId),
     unique("uq_template_versions_template_id_number").on(t.templateId, t.number),
+    index("ix_template_versions_opened_from")
+      .using("btree", t.openedFrom.asc().nullsLast().op("int4_ops"))
+      .where(sql`(opened_from IS NOT NULL)`),
     oneOf("ck_template_versions_origin", t.origin, TEMPLATE_ORIGINS),
     foreignKey({
       columns: [t.openedFrom],
