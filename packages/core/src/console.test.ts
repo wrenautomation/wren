@@ -209,6 +209,10 @@ describe("ConsolePortal records", () => {
       "console.execution",
       "console.hold",
       "console.check",
+      "access.role",
+      "access.grant",
+      "access.issue",
+      "access.ask",
       "console.component",
     ]);
   });

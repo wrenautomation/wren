@@ -148,6 +148,72 @@ export const grants = pgTable(
 export type GrantRow = typeof grants.$inferSelect;
 
 /**
+ * An issue raised on one record by someone with `comment` there: a short note, open until
+ * someone with `act` on that record resolves it. `app` and `channel` are the record's, so the
+ * Inbox finds who can act on it.
+ */
+export const issues = pgTable(
+  "issues",
+  {
+    id: serial("id").notNull(),
+    /** A client id, or `wren` for Wren's own apps. */
+    client: varchar("client", { length: 40 }).notNull(),
+    /** `<type>:<id>`. */
+    record: text("record").notNull(),
+    title: text("title"),
+    app: varchar("app", { length: 40 }).notNull(),
+    channel: varchar("channel", { length: 40 }),
+    body: text("body").notNull(),
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    resolvedBy: text("resolved_by"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_issues" }),
+    index("ix_issues_record").on(t.client, t.record),
+    index("ix_issues_open").on(t.client, t.resolvedAt),
+  ],
+);
+export type IssueRow = typeof issues.$inferSelect;
+
+/**
+ * Someone asking for more: verbs over a scope, until a time, with a reason. It waits in the Inbox
+ * of whoever could grant it; approving makes the grant, declining closes it.
+ */
+export const accessAsks = pgTable(
+  "access_asks",
+  {
+    id: serial("id").notNull(),
+    email: text("email").notNull(),
+    client: varchar("client", { length: 40 }).notNull(),
+    verbs: text("verbs").array().$type<Permission[]>().notNull(),
+    apps: text("apps").array(),
+    channels: text("channels").array(),
+    record: text("record"),
+    until: timestamp("until", { withTimezone: true }),
+    reason: text("reason"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    approved: boolean("approved"),
+    grantId: integer("grant_id"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_access_asks" }),
+    foreignKey({
+      columns: [t.grantId],
+      foreignColumns: [grants.id],
+      name: "fk_access_asks_grant",
+    }).onDelete("set null"),
+    index("ix_access_asks_grant").on(t.grantId),
+    index("ix_access_asks_open").on(t.client, t.decidedAt),
+    index("ix_access_asks_email").on(t.email),
+  ],
+);
+export type AccessAskRow = typeof accessAsks.$inferSelect;
+
+/**
  * Who sees which client in the portal, by sign-in email (lowercase). Auth says
  * who someone is; this says what they see. An owner invites teammates.
  */

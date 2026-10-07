@@ -4,6 +4,7 @@
  * view, filters, search, sort, columns, page and open record each ride in it.
  */
 
+import type { Target } from "@wren/core/access";
 import type { EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
@@ -29,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { can, type Viewer } from "./access.js";
+import { can, canAt, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
@@ -69,6 +70,13 @@ import {
   ViewTabs,
 } from "./list-bar.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
+import {
+  type AccessApi,
+  AskAccess,
+  type IssueLine,
+  RecordIssues,
+  rowTarget,
+} from "./record-access.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
 /** The four record calls, bound to a workspace. */
@@ -85,6 +93,8 @@ export interface RecordsApi {
   ask?(ask: RecordAskAsk): Promise<{ id: string }>;
   /** Saved views and prefs (`./list-bar.tsx`), where the workspace keeps them. */
   keep?: KeepApi;
+  /** Issues and asks for access on a record (`./record-access.tsx`), where the workspace has them. */
+  access?: AccessApi;
 }
 
 export { SearchBox, ViewTabs } from "./list-bar.js";
@@ -282,21 +292,34 @@ export const emptyOf = (
 
 /**
  * The actions this record type lists that this viewer may run: `act` unless one says otherwise.
- * `inline` ones (a draft box's) only when asked for, and only those.
+ * `inline` ones (a draft box's) only when asked for, and only those. Checked where the type sits
+ * (its app, its channel if it has one), or where one row sits when `at` names it.
  */
 export const actsOf = (
   meta: RecordMeta,
   acts: RecordActs | undefined,
   inline = false,
+  at: Target = typeAt(meta),
 ): readonly Action[] =>
   acts
     ? acts.actions.filter(
         (a) =>
           !!a.inline === inline &&
           meta.actions.includes(a.id) &&
-          can(acts.viewer, { needs: "act", ...a.requires }),
+          can(acts.viewer, { needs: "act", at, ...a.requires }),
       )
     : [];
+
+/** Where a type sits: its app, and its channel when the whole type is one. */
+const typeAt = (meta: RecordMeta): Target =>
+  meta.app === undefined
+    ? {}
+    : {
+        app: meta.app,
+        ...(meta.channel === null || typeof meta.channel === "string"
+          ? { channel: meta.channel }
+          : {}),
+      };
 
 const NO_CALL: Call = () => Promise.reject(new Error("Nothing to run this."));
 
@@ -1286,13 +1309,24 @@ export function RecordBody({
     onActed?.(ids);
   };
   const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  // Issues sit on every record a signed-in login reads, but not on access's own lists.
+  const access =
+    api.access && acts && !acts.viewer.demo && !meta.id.startsWith("access.") ? api.access : null;
+  const issues = useLoad<IssueLine[] | null>(
+    `issues:${meta.id}:${id}:${rev}`,
+    () => (access ? access.issues({ record: meta.id, id }) : Promise.resolve(null)),
+    api,
+  );
   /** The draft box, when the record holds one: what's typed is saved before any head action. */
   const draftBox = useRef<DraftHandle | null>(null);
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
+  // Where this row sits, for what its head may show: the YouTube editor acts on YouTube's alone.
+  const here: Target = got.data ? rowTarget(meta, got.data.row, api.access?.client ?? "") : {};
+  if (!api.access) delete here.client;
   const act: RecordAct = async (action, input = {}) => {
-    const a = actsOf(meta, acts, true).find((x) => x.id === action);
+    const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
     if (!a || !acts || !got.data) throw new Error("You can't do that here.");
     const rowId = got.data.row.id as string | number;
     const out = await acts.call(a.handler, { ids: [rowId], ...input });
@@ -1440,8 +1474,8 @@ export function RecordBody({
         <FieldLine field={f} cell={row[f.key]} cite={cite} />
       </Line>
     ));
-  const shown = actsOf(meta, acts).filter((a) => applies(a, row));
-  const inline = box ? actsOf(meta, acts, true).filter((a) => applies(a, row)) : [];
+  const shown = actsOf(meta, acts, false, here).filter((a) => applies(a, row));
+  const inline = box ? actsOf(meta, acts, true, here).filter((a) => applies(a, row)) : [];
   const sendAction = box?.send ? shown.find((a) => a.id === box.send) : undefined;
   /** A head action runs on the saved draft: what's typed in the box goes first. */
   const runHead = (a: Action) =>
@@ -1456,6 +1490,15 @@ export function RecordBody({
     }),
     ...(activity ? [{ id: "activity", label: "Activity", count: activity.length }] : []),
     ...(state ? [{ id: "history", label: "History", count: state.history.length }] : []),
+    ...(access && issues.data
+      ? [
+          {
+            id: "issues",
+            label: "Issues",
+            count: issues.data.filter((i) => !i.resolvedAt).length,
+          },
+        ]
+      : []),
     ...(more.sources ? [{ id: "sources", label: "Sources", count: sources.length }] : []),
   ];
   const relatedType = types.find(
@@ -1492,6 +1535,16 @@ export function RecordBody({
               ))}
               {dialog}
             </div>
+          ) : access && acts && issues.data && canAt(acts.viewer, "comment", here) ? (
+            // Nothing here they may do: raising an issue takes the actions' place.
+            <Button
+              tone="secondary"
+              size="dense"
+              className="shrink-0"
+              onClick={() => place.go(place.link({ tab: "issues" }), true)}
+            >
+              Raise issue
+            </Button>
           ) : null}
         </div>
         {states.length ? (
@@ -1511,6 +1564,9 @@ export function RecordBody({
               </span>
             ))}
           </div>
+        ) : null}
+        {access && acts ? (
+          <AskAccess meta={meta} row={row} access={access} viewer={acts.viewer} />
         ) : null}
         {keys.length ? (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-y border-(--ui-hair) py-3 sm:grid-cols-4">
@@ -1554,6 +1610,16 @@ export function RecordBody({
         <Activity lines={activity} one={meta.name.one} />
       ) : tab === "history" && state ? (
         <History meta={meta} lines={state.history} values={state.values} editing={editing} />
+      ) : tab === "issues" && access && acts && issues.data ? (
+        <RecordIssues
+          meta={meta}
+          row={row}
+          title={titleOf(meta, row)}
+          access={access}
+          viewer={acts.viewer}
+          lines={issues.data}
+          reload={issues.retry}
+        />
       ) : tab === "sources" ? (
         sources.length ? (
           <SourceList>

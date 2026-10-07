@@ -143,3 +143,12 @@ LinkedIn this week, and may publish one post once.
   needs `on {record, id}`, a handler the type lists in `calls`, and an input that names that
   row. Built-in roles see no change, since every team role with `act` also has `run`.
   `marketing.audience` is channel-less, as its rows are keyed by platform and hold no posts.
+- 2026-10-06: Phase 3 built. Issues and asks are two tables (migration 0137), and roles, grants,
+  issues and asks are console record types built per reader, so the portal draws them with the
+  List template at Wren and at a client alike. An issue's target is the record's app and
+  channel, read off the row when the type keeps one. It is in the Inbox of whoever has `act`
+  there ("Waiting on you"). An ask is listed for whoever `refusal` lets grant it, never for the
+  asker. A client's people get Issues and Asks under Account, since a client workspace has no
+  Inbox. The web gets the same `Who` from `portalMe`, and a record page checks its head
+  actions at that row, so the YouTube editor sees Approve on YouTube posts only. Raise issue
+  replaces the head actions only when there are none; otherwise it lives in the Issues tab.

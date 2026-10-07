@@ -26,6 +26,19 @@ export const CONSOLE_ROUTES = {
   moveViews: "read",
   prefs: "read",
   setPref: "read",
+  // Access (`access-console.ts`): roles, grants, issues and asks where the viewer looks; each
+  // handler checks what it names (manage, comment, act, or who could grant it).
+  issues: "read",
+  roleSave: "read",
+  roleCopy: "read",
+  roleGrant: "read",
+  roleRemove: "read",
+  grantAdd: "read",
+  grantEnd: "read",
+  issueRaise: "read",
+  issueResolve: "read",
+  accessAsk: "read",
+  askDecide: "read",
   // The Library's snippets: the team reads them anywhere it drafts, changes them at Wren.
   snippets: "read",
   snippetAdd: "wren:run",
@@ -92,6 +105,16 @@ export const CONSOLE_APPS = {
 export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
+  "roleSave",
+  "roleCopy",
+  "roleGrant",
+  "roleRemove",
+  "grantAdd",
+  "grantEnd",
+  "issueRaise",
+  "issueResolve",
+  "accessAsk",
+  "askDecide",
   "setLoop",
   "recordsEdit",
   "recordsUndo",

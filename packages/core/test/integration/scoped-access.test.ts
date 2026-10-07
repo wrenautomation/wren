@@ -285,3 +285,71 @@ describe("handing out", () => {
     );
   });
 });
+
+describe("issues and asks through the console", () => {
+  const waiting = async (email: string, record: string) =>
+    ids((await api().recordsList({ ...(await as(email)), record, view: "waiting" })).rows as never);
+
+  it("the YouTube editor raises an issue on a LinkedIn post; an admin resolves it", async () => {
+    const editor = await as(EDITOR);
+    const { id } = await api().issueRaise({
+      ...editor,
+      record: "test.post",
+      id: "l1",
+      body: "The hook has a typo.",
+      title: "A short post",
+    });
+    expect(await waiting(EDITOR, "access.issue")).toEqual([]);
+    expect(await waiting(ADMIN, "access.issue")).toEqual([String(id)]);
+    const on = await api().issues({ ...(await as(EDITOR)), record: "test.post", id: "l1" });
+    expect(on.map((i) => i.body)).toEqual(["The hook has a typo."]);
+    await refused(api().issueResolve({ ...(await as(EDITOR)), id }), 403);
+    await api().issueResolve({ ...(await as(ADMIN)), id });
+    expect(await waiting(ADMIN, "access.issue")).toEqual([]);
+  });
+
+  it("a read-only login can't raise one, nor raise one on a row it can't see", async () => {
+    await refused(
+      api().issueRaise({ ...(await as(LI)), record: "test.post", id: "l1", body: "Hm" }),
+      403,
+    );
+    await refused(
+      api().issueRaise({ ...(await as(EDITOR)), record: "nope.type", id: "1", body: "Hm" }),
+      404,
+    );
+  });
+
+  it("an ask lands with an admin; approving lets them act", async () => {
+    const { id } = await api().accessAsk({
+      ...(await as(LI)),
+      verbs: ["act"],
+      apps: ["marketing"],
+      record: "test.post:l1",
+      reason: "fixing the typo",
+    });
+    expect(await waiting(EDITOR, "access.ask")).toEqual([]);
+    expect(await waiting(ADMIN, "access.ask")).toEqual([String(id)]);
+    await api().askDecide({ ...(await as(ADMIN)), id, approve: true });
+    const req = await as(LI, "wren:act");
+    const out = await api().recordsEdit({
+      ...req,
+      record: "test.post",
+      id: "l1",
+      patch: { title: "Fixed" },
+    });
+    expect(out.values.title).toBe("Fixed");
+  });
+
+  it("roles and grants are for whoever manages", async () => {
+    const types = async (email: string) =>
+      (await api().recordsTypes(await as(email))).map((t) => t.id);
+    expect(await types(ADMIN)).toEqual(
+      expect.arrayContaining(["access.role", "access.grant", "access.issue", "access.ask"]),
+    );
+    expect(await types(EDITOR)).not.toContain("access.grant");
+    const { id } = await api().roleCopy({ ...(await as(ADMIN)), id: "viewer", name: "Reader" });
+    const roles = await api().recordsList({ ...(await as(ADMIN)), record: "access.role" });
+    expect(roles.rows.find((r) => r.id === id)).toMatchObject({ kind: "custom", name: "Reader" });
+    await refused(api().roleCopy({ ...(await as(EDITOR)), id: "viewer" }), 403);
+  });
+});

@@ -2,6 +2,7 @@
 import { Alert, Button, Empty, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
+import { PersonAccess } from "../access/PersonAccess.js";
 import {
   BLOCK,
   dayLabel,
@@ -17,11 +18,15 @@ import {
 } from "../work/bits.js";
 import { usePeople } from "./load.js";
 
+const BUILT_IN: Record<string, string> = { owner: "Owner", viewer: "Viewer" };
+
 export function People(props: PageProps) {
   const [nonce, setNonce] = useState(0);
   const people = usePeople(props, nonce);
   const act = useAct(props, () => setNonce((n) => n + 1));
   const manage = people.data?.canManage ?? false;
+  // Whose access is open below their row.
+  const [open, setOpen] = useState<string | null>(null);
 
   return (
     <>
@@ -39,11 +44,11 @@ export function People(props: PageProps) {
         ) : (
           <ul className={LIST}>
             {people.data.people.map((m) => (
-              <li key={m.email} className={SPLIT}>
+              <li key={m.email} className={`${SPLIT} flex-wrap`}>
                 <span>
                   <b>{m.email}</b>{" "}
                   {m.role === "member" ? null : (
-                    <Tag tone="neutral">{m.role === "owner" ? "Owner" : "Viewer"}</Tag>
+                    <Tag tone="neutral">{BUILT_IN[m.role] ?? m.role}</Tag>
                   )}
                   <span className={`${QUIET} ${BLOCK}`}>
                     {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
@@ -51,17 +56,32 @@ export function People(props: PageProps) {
                   </span>
                 </span>
                 {manage ? (
-                  <Button
-                    size="sm"
-                    tone="quiet"
-                    disabled={act.busy}
-                    onClick={() => {
-                      if (confirm(`Remove ${m.email}? They lose access right away.`))
-                        void act.run("remove", { email: m.email });
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  <span className="flex shrink-0 gap-1">
+                    <Button
+                      size="sm"
+                      tone="quiet"
+                      aria-expanded={open === m.email}
+                      onClick={() => setOpen(open === m.email ? null : m.email)}
+                    >
+                      Access
+                    </Button>
+                    <Button
+                      size="sm"
+                      tone="quiet"
+                      disabled={act.busy}
+                      onClick={() => {
+                        if (confirm(`Remove ${m.email}? They lose access right away.`))
+                          void act.run("remove", { email: m.email });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </span>
+                ) : null}
+                {open === m.email ? (
+                  <div className="basis-full pt-3">
+                    <PersonAccess client={props.client} email={m.email} role={m.role} />
+                  </div>
                 ) : null}
               </li>
             ))}

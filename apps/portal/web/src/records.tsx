@@ -4,8 +4,10 @@
  * workspace the console serves every record. The address is the state. On the demo, actions run
  * on a copy in the browser; a reload resets it.
  */
+import { WREN as CORE_WREN } from "@wren/core/access";
 import type { Row } from "@wren/core/records/serve";
 import {
+  type AccessApi,
   type KeepApi,
   type LocalRecords,
   localRecords,
@@ -55,10 +57,31 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
             ask: (a) => ask("recordsAsk", { ...a }),
           }
         : {}),
+      access: accessOf(client, scope),
     };
     APIS.set(key, api);
   }
   return api;
+}
+
+const ACCESS = new Map<string, AccessApi>();
+/** Issues and asks on a record: the console keeps them for Wren and for every client. */
+function accessOf(client: string | null, scope: Scope): AccessApi {
+  const key = `${client}:${scope.asClient}`;
+  let access = ACCESS.get(key);
+  if (!access) {
+    const ask = <T,>(handler: string, body: Record<string, unknown>) =>
+      call<T>(`console/${handler}`, client ? { client, asClient: scope.asClient, ...body } : body);
+    access = {
+      client: client ?? CORE_WREN,
+      issues: (a) => ask("issues", { ...a }),
+      raise: (a) => ask("issueRaise", { ...a }),
+      resolve: (id) => ask("issueResolve", { id }),
+      ask: (a) => ask("accessAsk", { ...a }),
+    };
+    ACCESS.set(key, access);
+  }
+  return access;
 }
 
 const KEEPS = new Map<string, KeepApi>();
@@ -156,6 +179,19 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     { email: id, clients: clients ?? "" },
   ],
   "console/teamRemove": (id) => ["console/teamRemove", { email: id }],
+  // Access (`./modules/access`): a role's, a grant's, an issue's or an ask's id.
+  "console/roleCopy": (id, { name }) => ["console/roleCopy", { id, ...(name ? { name } : {}) }],
+  "console/roleGrant": (id, { verbs, apps, channels }) => [
+    "console/roleGrant",
+    { id, verbs, apps, channels },
+  ],
+  "console/roleGive": (id, { email }) => ["console/teamSet", { email, role: id }],
+  "delivery/roleGive": (id, { email }) => ["delivery/invite", { email, role: id }],
+  "console/roleRemove": (id) => ["console/roleRemove", { id }],
+  "console/grantEnd": (id) => ["console/grantEnd", { id: Number(id) }],
+  "console/issueResolve": (id) => ["console/issueResolve", { id: Number(id) }],
+  "console/askApprove": (id) => ["console/askDecide", { id: Number(id), approve: true }],
+  "console/askDecline": (id) => ["console/askDecide", { id: Number(id), approve: false }],
   "delivery/grant": access("granted"),
   "delivery/revoke": access("revoked"),
   "delivery/decline": access("declined"),
@@ -349,7 +385,8 @@ export function TemplatePage({
   const wren = props.client === WREN.id;
   const client = wren ? null : props.client;
   const record = page.template === "overview" ? (page.tiles[0]?.record ?? "") : page.record;
-  const product = wren ? "console" : (record.split(".")[0] ?? "");
+  // The console serves Wren's records, and access's anywhere.
+  const product = wren || record.startsWith("access.") ? "console" : (record.split(".")[0] ?? "");
   const scope = { app: path.split("/")[1] ?? "", asClient: !props.team };
   if (page.template === "overview") {
     const Below = page.below;
@@ -390,7 +427,12 @@ export function TemplatePage({
     place,
     acts: {
       actions,
-      viewer: { team: props.team, demo: props.demo, ...(props.can ? { can: props.can } : {}) },
+      viewer: {
+        team: props.team,
+        demo: props.demo,
+        ...(props.can ? { can: props.can } : {}),
+        ...(props.who !== undefined ? { who: props.who } : {}),
+      },
       call:
         local?.callFor(page.record, actions) ??
         (async (handler: string, input: Input) => {

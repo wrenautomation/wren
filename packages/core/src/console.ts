@@ -39,6 +39,8 @@ import {
   WREN,
   whole,
 } from "./access.js";
+import { accessApi, accessHandlers } from "./access-console.js";
+import { ACCESS_TYPES, accessRecords } from "./access-records.js";
 import { ASK, type AskService, ask, type QuestionRequest } from "./ask.js";
 import { release } from "./checks.js";
 import {
@@ -102,6 +104,7 @@ import {
   accessOf,
   answer,
   isDemo,
+  isOperator,
   PortalRefusal,
   type PortalRequest,
   pickClient,
@@ -146,6 +149,9 @@ import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from 
 import { runs, type SentEvent, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
+
+/** One of the access types (`./access-records.ts`), served to anyone signed in there. */
+const isAccess = (id: unknown) => (ACCESS_TYPES as readonly unknown[]).includes(id);
 
 export { toCsv };
 
@@ -1504,7 +1510,7 @@ export function consoleApi({
   const fenceOf =
     (req: PortalRequest): Fence =>
     (t) =>
-      t.id === COMPONENT
+      t.id === COMPONENT || isAccess(t.id)
         ? null
         : reach(accessOf(req), "read", {
             client: WREN,
@@ -1559,8 +1565,22 @@ export function consoleApi({
     const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
     const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
     const { flows, broken } = flowsWith(workflows, editsOf(saved), components);
+    // Roles, grants, issues and asks in this workspace, as this login reads them.
+    const access =
+      !isDemo(req.viewer) && (asked === undefined || isAccess(asked))
+        ? accessRecords({
+            // What the guard read; a login called straight is read fresh.
+            who:
+              (req.viewer as SignedViewer).access || isOperator(req.viewer)
+                ? accessOf(req)
+                : await whoIs(main, req.viewer, client?.id),
+            email: (req.viewer as SignedViewer).email,
+            client: client?.id ?? WREN,
+          })
+        : [];
     return [
       ...mine,
+      ...access,
       componentRecord(
         shown,
         client,
@@ -1579,7 +1599,7 @@ export function consoleApi({
     req: PortalRequest & { record?: unknown },
     use: (api: RecordsApi) => Promise<T>,
   ): Promise<T> => {
-    if (req.record !== COMPONENT) team(req);
+    if (req.record !== COMPONENT && !isAccess(req.record)) team(req);
     const all = await typesFor(req);
     return snapshot(main, (tx) => use(serveRecords(all, tx, undefined, fenceOf(req))));
   };
@@ -1790,6 +1810,7 @@ export function consoleApi({
     return admin;
   };
   return {
+    ...accessApi({ main, typesFor, rowAt }),
     adminFor,
     async view(req: ViewRequest): Promise<ViewAnswer> {
       team(req);
@@ -2271,6 +2292,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     apps: CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
+      ...accessHandlers(api),
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
       recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),

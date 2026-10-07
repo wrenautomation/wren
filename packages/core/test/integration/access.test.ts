@@ -89,7 +89,8 @@ afterAll(async () => {
 describe("access, read fresh per call", () => {
   it("a client viewer reads but is refused a write", async () => {
     const types = await portal().recordsTypes({ ...MEMBER_VIEWER, client: "acme" });
-    expect(types.map((t) => t.id)).toEqual(["console.component"]);
+    // Issues and asks are anyone's; roles and grants only a manager's.
+    expect(types.map((t) => t.id)).toEqual(["access.issue", "access.ask", "console.component"]);
     await expect(portal().setLook({ ...MEMBER_VIEWER, look: "slate" })).rejects.toThrow(
       "your role can't do that",
     );

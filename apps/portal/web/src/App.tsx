@@ -5,7 +5,7 @@
  * own workspace, its apps on Wren's records; the switcher moves to the demo or a client.
  */
 
-import type { Permission } from "@wren/core/access";
+import type { Permission, Who } from "@wren/core/access";
 import { inHouseOfApp, insteadLine } from "@wren/core/in-house";
 import {
   Alert,
@@ -37,6 +37,7 @@ import {
   type Viewer,
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
+import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl } from "./api.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
@@ -187,6 +188,7 @@ const shown = (viewer: Viewer) =>
   }));
 
 const withCan = (can: readonly Permission[] | undefined) => (can ? { can } : {});
+const withWho = (who: Who | undefined) => (who !== undefined ? { who } : {});
 
 /** His pins that still open a page he may see, named by their app; the rest wait unshown. */
 export function pinLines(pins: readonly string[], apps: Module[]): PinLine[] {
@@ -397,6 +399,7 @@ export function App() {
     team,
     params: route.params,
     ...withCan(canAt(id)),
+    ...withWho(whoAt(me.data, id)),
   });
   const open = at.kind === "page" ? at : null;
   // The team sees every app; one this client hasn't installed points at its Marketplace row.

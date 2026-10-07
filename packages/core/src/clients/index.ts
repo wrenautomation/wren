@@ -352,10 +352,13 @@ export const teamRecord = defineRecord({
   rows: async (db) =>
     (
       await db.execute<Record<string, unknown>>(
-        sql`select o.email, o.role, coalesce(array_to_string(o.clients, ', '), 'All') clients,
+        // A custom role reads as its name; a built-in as its state.
+        sql`select o.email, coalesce(r.name, o.role) role,
+              coalesce(array_to_string(o.clients, ', '), 'All') clients,
               o.added_at added, (select max(s.updated_at) from auth.session s
                 join auth."user" u on u.id = s.user_id where lower(u.email) = o.email) last_seen
-            from operators o order by o.email`,
+            from operators o left join roles r on r.id = o.role and r.client is not null
+            order by o.email`,
       )
     ).map((r) => ({ ...r, id: r.email })),
   key: "id",

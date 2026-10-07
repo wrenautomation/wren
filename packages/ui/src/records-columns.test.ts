@@ -21,6 +21,8 @@ const note = field("note");
 const city = field("city");
 const meta = {
   id: "test.thing",
+  app: "test",
+  channel: null,
   name: { one: "thing", many: "things" },
   title: "name",
   subtitle: null,

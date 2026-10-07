@@ -3,7 +3,7 @@
  * each product maps its own data onto these props. Styles are Tailwind classes over the `--ui-`
  * tokens in `@wren/ui/tailwind.css`; every token is one a Theme can set (theme.tsx).
  */
-export { type Access, can, type Viewer } from "./access.js";
+export { type Access, can, canAt, type Viewer } from "./access.js";
 export { type Action, type Call, type FormField, Toasts } from "./action.js";
 export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
@@ -100,6 +100,7 @@ export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
 export { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
+export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";
 export {
   Panel as RecordPanel,
   type Place,

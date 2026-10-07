@@ -1,6 +1,7 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
 import { createElement } from "react";
 import type { Module } from "../../module.js";
+import { inboxPages, managePages } from "../access/index.js";
 import { Domain } from "./Domain.js";
 import { Included } from "./Included.js";
 import { Look } from "./Look.js";
@@ -36,6 +37,8 @@ export const account: Module = {
       columns: ["status", "amount", "due", "description", "link"],
       head: (_meta, _reload, { client }) => createElement(Included, { client }),
     },
+    ...managePages(false),
+    ...inboxPages(),
     {
       id: "changes",
       label: "Changes",

@@ -590,6 +590,9 @@ export interface RecordMeta {
   edits?: readonly string[] | null;
   /** What editing needs, when it isn't `run`. */
   editNeeds?: "manage";
+  /** Where its rows sit, for access checks on the web: the app, and the channel or its field. */
+  app: string;
+  channel: RecordChannel;
 }
 
 /**
@@ -636,6 +639,8 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     // The demo reads only: its edits would land nowhere.
     edits: type.edits && !demo ? type.edits.fields : null,
     ...(type.edits?.needs === "manage" && !demo ? { editNeeds: "manage" as const } : {}),
+    app: type.app,
+    channel: type.channel,
   };
 }
 

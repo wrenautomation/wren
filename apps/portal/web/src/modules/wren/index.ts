@@ -7,6 +7,8 @@ import { IN_HOUSE, totalOf } from "@wren/core/in-house";
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
+import { inboxPages, managePages } from "../access/index.js";
+import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
 import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
@@ -436,6 +438,18 @@ export const inbox: Module = {
           needs: true,
         },
         {
+          label: "Issues for you",
+          record: "access.issue",
+          href: "/inbox/issues?view=waiting",
+          needs: true,
+        },
+        {
+          label: "Asks for access",
+          record: "access.ask",
+          href: "/inbox/asks?view=waiting",
+          needs: true,
+        },
+        {
           label: "Worth reading",
           record: "watch.item",
           href: "/inbox/reading?view=needs_you",
@@ -462,6 +476,7 @@ export const inbox: Module = {
     // What came in, Marketing → Inbox's page; "waiting" keeps old links landing. What we'd send
     // waits in Marketing → To approve.
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
+    ...inboxPages(),
     {
       id: "replies",
       label: "Email replies",
@@ -998,7 +1013,21 @@ export const team: Module = {
       record: "console.team",
       empty: "Your team shows here once someone is invited.",
       actions: TEAM_ACTIONS,
+      // Their role and extra grants, as sentences, with Add and End now.
+      extras: (_detail, { client, row }) => ({
+        sections: [
+          [
+            "Access",
+            createElement(PersonAccess, {
+              client,
+              email: String(row.id),
+              role: String(row.role),
+            }),
+          ],
+        ],
+      }),
     },
+    ...managePages(true),
     {
       id: "changes",
       label: "Changes",
