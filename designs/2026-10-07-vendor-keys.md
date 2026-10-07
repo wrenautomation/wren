@@ -105,4 +105,3 @@ Prices: Telnyx gives dollars per text. Models and Exa use the `VENDORS` micros w
 
 - CLI `crm` model calls: the CLI holds only the store's public key, so it can't read a client's key. They stay on Wren's.
 - Reactivation's sites legs run only in CLI `crm run` (the loop passes `sites: null`): same reason.
-- `research/src/companies/events.ts` reads `results` from `web /search`, which answers `hits`. Exa news hits come back empty on both keys. Found here, not fixed.
