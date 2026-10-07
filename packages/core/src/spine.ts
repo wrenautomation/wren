@@ -12,6 +12,7 @@ import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
+import { dig, holdOf, logicOf, logicSteps } from "./logic.js";
 import { hooks, type SentEvent, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
@@ -149,6 +150,7 @@ const httpStep =
     return Array.isArray(body.out) ? (body.out as Awaited<ReturnType<Step>>) : [];
   };
 
+/** A part's step, a logic node's, or a custom step's. */
 function stepOf(w: Walk, n: WorkflowNode): Step | undefined {
   const name = n.own?.run ?? n.uses;
   if (!name) return undefined;
@@ -163,12 +165,20 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
     const [id, port] = m.ref.split(".") as [string, string];
     return { workflow, node: [...m.at, id].join("."), port, event: m.e };
   };
+  // A Merge passes a subject once, by whichever side it came: both sides claim one entry.
+  const entry = (flow: Workflow, m: Move): Arrival => {
+    const a = arrival(m);
+    const id = m.ref.split(".")[0];
+    return flow.nodes.find((n) => n.id === id)?.uses === "logic.merge" ? { ...a, port: "in" } : a;
+  };
 
   for (let m = queue.shift(); m; m = queue.shift()) {
     const flow = flowAt(w, top, m.at);
     const [id, port] = m.ref.split(".") as [string, string];
 
     if (!m.arrive) {
+      // What leaves a Wait node is held on every wire out of it, unless the wire says its own.
+      const hold = holdOf(flow.nodes.find((n) => n.id === id));
       for (const wire of flow.wires) {
         if (wire.from !== m.ref || wire.via !== "events") continue;
         const e = m.e;
@@ -178,13 +188,14 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
           if (!pass) continue;
         }
         const to: Move = { arrive: true, at: m.at, ref: wire.to, e };
-        if (!wire.wait) {
+        const wait = wire.wait ?? hold;
+        if (!wait) {
           queue.push(to);
           continue;
         }
-        const ms = waitMs(wire.wait);
+        const ms = waitMs(wait);
         const held = await w.run(`wait ${wire.to} ${e.subject}`, () =>
-          w.store.claim(arrival(to), w.by, new Date(Date.now() + ms)),
+          w.store.claim(entry(flow, to), w.by, new Date(Date.now() + ms)),
         );
         if (held) {
           w.later(held, ms);
@@ -215,7 +226,7 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       queue.push({ arrive: false, at: [...m.at, id], ref: `in.${port}`, e: m.e });
       continue;
     }
-    const a = arrival(m);
+    const a = entry(flow, m);
     let outs: Awaited<ReturnType<Step>> | null;
     try {
       outs = await w.run(
@@ -224,7 +235,7 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
           const kept = await w.store.claim(a, w.by);
           if (!kept) return null;
           const at = { client: w.client, workflow, node: a.node, with: node.with ?? {} };
-          const out = step ? await step(port, a.event, at) : [];
+          const out = step ? await step(a.port, a.event, at) : [];
           await w.store.sent?.(kept, out);
           return out;
         },
@@ -373,22 +384,23 @@ export async function addHook(
   return token;
 }
 
-/** A payload's value at a dotted path. */
-function dig(v: unknown, path: string): unknown {
-  for (const k of path.split("."))
-    v = v && typeof v === "object" ? (v as Record<string, unknown>)[k] : undefined;
-  return v;
-}
-
 const PAYLOAD_MAX = 64_000;
 
-/** A hook's payload as the event it enters with, or the status the sender gets. */
+/**
+ * A hook's payload as the event it enters with, and where it leaves from: the workflow's input
+ * `input`, or the Webhook trigger node of that id (`trigger.hook`, out by `out`). Else the status
+ * the sender gets.
+ */
 export function hookEvent(
   h: Pick<typeof hooks.$inferSelect, "workflow" | "input" | "subject">,
   flows: ReadonlyMap<string, Workflow>,
   payload: unknown,
-): { port: string; event: SpineEvent } | { status: number; error: string } {
-  const port = flows.get(h.workflow)?.in.find((p) => p.id === h.input);
+): { from: string; event: SpineEvent } | { status: number; error: string } {
+  const f = flows.get(h.workflow);
+  const node = f?.nodes.find((n) => n.id === h.input && n.uses === "trigger.hook");
+  const port = node
+    ? logicOf(node.uses)?.ports(node.with ?? {}).out[0]
+    : f?.in.find((p) => p.id === h.input);
   if (!port) return { status: 410, error: `${h.workflow} has no input ${h.input} now` };
   if (JSON.stringify(payload ?? null).length > PAYLOAD_MAX)
     return { status: 413, error: `keep it under ${PAYLOAD_MAX} bytes` };
@@ -400,7 +412,10 @@ export function hookEvent(
       ? (payload as Record<string, unknown>)
       : { payload };
   const subject = `${port.kind}:${String(who).trim().slice(0, 180)}`;
-  return { port: port.id, event: { subject, kind: port.kind, data } };
+  return {
+    from: node ? `${node.id}.${port.id}` : `in.${port.id}`,
+    event: { subject, kind: port.kind, data },
+  };
 }
 
 /** A workflow's newest save for a client. */
@@ -461,19 +476,21 @@ export interface SpineDeps {
 const STEP_RETRY = { maxRetryAttempts: 3 };
 
 export function makeSpine(d: SpineDeps) {
-  const flows = new Map(d.workflows.map((f) => [f.id, f]));
   const parts = new Map(d.components.map((c) => [c.id, c]));
-  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => ({
-    // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
-    flows: new Map(
+  const steps = { ...logicSteps(d.rule), ...d.steps };
+  // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
+  const flowsFor = async (ctx: restate.Context, client: string | null) =>
+    new Map(
       flowsWith(
         d.workflows,
-        editsOf(await ctx.run("saved workflows", () => savedWorkflows(d.main, t.client))),
+        editsOf(await ctx.run("saved workflows", () => savedWorkflows(d.main, client))),
         d.components,
       ).flows.map((f) => [f.id, f]),
-    ),
+    );
+  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => ({
+    flows: await flowsFor(ctx, t.client),
     parts,
-    steps: d.steps,
+    steps,
     store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
     client: t.client,
     by: ctx.request().id,
@@ -530,12 +547,12 @@ export function makeSpine(d: SpineDeps) {
           return row ?? null;
         });
         if (!h) return { status: 404, error: "no such hook" };
-        const got = hookEvent(h, flows, req.payload);
+        const got = hookEvent(h, await flowsFor(ctx, h.client), req.payload);
         if ("error" in got) return got;
         ctx.serviceSendClient<SpineService>(SPINE).emit({
           client: h.client,
           workflow: h.workflow,
-          from: `in.${got.port}`,
+          from: got.from,
           events: [got.event],
         });
         return { status: 202, subject: got.event.subject };

@@ -63,7 +63,12 @@ export interface GraphNode {
   lane?: string | undefined;
   /** What the filters read: { State: "Built", Channel: "Email" }. */
   facets?: Readonly<Record<string, string>> | undefined;
+  /** A change shown as a diff: added green, removed red, changed in its settings. */
+  mark?: GraphMark | undefined;
 }
+
+/** How a node or wire differs from what's live, in a diff. */
+export type GraphMark = "added" | "removed" | "changed";
 
 export interface GraphEdge {
   from: string;
@@ -84,9 +89,13 @@ export interface GraphEdge {
   wait?: string | undefined;
   /** More lines, said as they are. */
   notes?: readonly string[] | undefined;
+  mark?: GraphMark | undefined;
 }
 
 export const edgeId = (e: Pick<GraphEdge, "from" | "to">) => `${e.from}>${e.to}`;
+
+/** What a palette item carries when dragged onto a graph (`onDrop`): its id as text. */
+export const GRAPH_DROP = "application/x-wren-node";
 
 const num = (n: number) => n.toLocaleString("en-US");
 

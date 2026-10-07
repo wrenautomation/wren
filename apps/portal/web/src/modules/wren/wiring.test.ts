@@ -3,7 +3,22 @@
 import type { Port } from "@wren/core/components";
 import { describe, expect, it } from "vitest";
 import type { Drawn } from "../marketplace/boxes.js";
-import { draftOf, drawnWith, endText, pairsOf, stepOf, wired, withoutStep } from "./wiring.js";
+import {
+  addNode,
+  changesOf,
+  diffOf,
+  draftOf,
+  drawnDiff,
+  drawnWith,
+  endText,
+  type Palette,
+  pairsOf,
+  problemsOf,
+  stepOf,
+  wired,
+  withoutStep,
+  withSet,
+} from "./wiring.js";
 
 const lead = (id: string) => ({ id, label: id, kind: "lead" as const });
 const reply = (id: string) => ({ id, label: id, kind: "reply" as const });
@@ -70,5 +85,86 @@ describe("wiring", () => {
     ]);
     expect(pairsOf(shown, "their_crm", "out.replied")).toHaveLength(1);
     expect(withoutStep(d, "their_crm")).toEqual(first);
+  });
+
+  it("narrows a drag to the ports it joined", () => {
+    const two = { ...w, nodes: [...w.nodes, node("b", [lead("x"), lead("y")], [])] };
+    expect(pairsOf(two, "a", "b")).toHaveLength(2);
+    expect(pairsOf(two, "a", "b", { from: "sent", to: "y" })).toEqual([
+      { from: "a.sent", to: "b.y", via: "events" },
+    ]);
+  });
+});
+
+const palette: Palette = {
+  logic: [],
+  parts: [
+    {
+      id: "x.mail",
+      name: "Mail",
+      blurb: "Sends a mail.",
+      icon: "mail",
+      in: [lead("leads")],
+      out: [reply("replied")],
+      effects: ["sends"],
+      ready: "ready",
+    },
+  ],
+  workflows: [],
+};
+
+describe("editor", () => {
+  it("adds a logic node with its start settings, its ports following its kind", () => {
+    const first = draftOf(w, null, false);
+    const got = addNode(w, first, "logic.if", palette);
+    expect(got?.id).toBe("if");
+    const d = withSet(got?.draft ?? first, "if", "kind", "reply");
+    const shown = drawnWith(w, first, d, palette);
+    const n = shown.nodes.find((x) => x.id === "if");
+    expect(n?.out?.map((p) => [p.id, p.kind])).toEqual([
+      ["yes", "reply"],
+      ["no", "reply"],
+    ]);
+    expect(addNode(w, d, "logic.if", palette)?.id).toBe("if_2");
+    expect(addNode(w, d, "nothing", palette)).toBeNull();
+    expect(withSet(d, "if", "kind", "").steps[0]?.with).toEqual({});
+  });
+
+  it("adds a part from the palette with its ports", () => {
+    const got = addNode(w, draftOf(w, null, false), "x.mail", palette);
+    const shown = drawnWith(
+      w,
+      draftOf(w, null, false),
+      got?.draft ?? { wires: [], steps: [] },
+      palette,
+    );
+    expect(shown.nodes.find((n) => n.id === "mail")).toMatchObject({
+      uses: "x.mail",
+      name: "Mail",
+      in: [lead("leads")],
+    });
+  });
+
+  it("counts changes, marks the diff, and says what won't run", () => {
+    const first = draftOf(w, null, false);
+    const next = wired(
+      { wires: [], steps: [{ id: "if", uses: "logic.if", with: { kind: "lead" } }] },
+      { from: "a.sent", to: "if.in", via: "events" },
+    );
+    const diff = diffOf(first, next);
+    expect([...diff.nodes]).toEqual([["if", "added"]]);
+    expect([...diff.wires]).toEqual([
+      ["a.sent>if.in", "added"],
+      ["a.replied>out.replied", "removed"],
+    ]);
+    expect(changesOf(first, next)).toBe(3);
+    const dd = drawnDiff(w, first, first, next, palette);
+    expect(dd.drawn.wires.map((x) => x.from)).toContain("a.replied");
+    expect(dd.edges.get("a>out.replied")).toBe("removed");
+    expect(dd.edges.get("a>if")).toBe("added");
+    expect(problemsOf(next)).toEqual(["if: If needs a rule"]);
+    expect(
+      problemsOf({ steps: [], wires: [{ from: "a.x", to: "b.y", via: "events", wait: "soon" }] }),
+    ).toHaveLength(1);
   });
 });

@@ -14,6 +14,7 @@ import {
   Graph,
   type GraphDot,
   type GraphEdit,
+  type GraphMark,
   Input,
   Loading,
   PageHeader,
@@ -21,7 +22,6 @@ import {
   RecordPanel,
   type RecordsApi,
   Section,
-  Tag,
   useTypes,
 } from "@wren/ui";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +30,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
-import { dayLabel, ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
+import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
 import {
   type Count,
   deeper,
@@ -44,33 +44,38 @@ import {
   trailIsFor,
   type Where,
 } from "./canvas.js";
+import { EditBar, NodePanel, PaletteDrawer, WirePanel } from "./editor.js";
 import { Executions } from "./executions.js";
 import { WREN_APPS } from "./index.js";
 import { usePlay } from "./playback.js";
 import {
+  addNode,
   allEnds,
+  changesOf,
   type Draft,
   draftOf,
+  drawnDiff,
   drawnWith,
   endsOf,
   endText,
+  NO_PALETTE,
+  type Palette,
   pairsOf,
+  problemsOf,
   type Saved,
   stepOf,
   wired,
-  withoutStep,
 } from "./wiring.js";
 
 const ROOT = "wren";
 const DAYS = 30;
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const WAIT = /^\d+ (minute|hour|day|week)s?$/;
 const PAGE = "/workflows/canvas";
 /** How often the canvas asks the spine for new events, and the most dots in flight. */
 const POLL_MS = 8000;
 const MOST_DOTS = 24;
 
-type Detail = { workflow?: Drawn; saved?: Saved | null; broken?: string[] };
+type Detail = { workflow?: Drawn; saved?: Saved | null; broken?: string[]; palette?: Palette };
 
 /** The first of Wren's lists over `c`'s record, on its view. */
 const recordsAt = (c: CountRef) => {
@@ -244,12 +249,6 @@ function Panes({ params }: { params: URLSearchParams }) {
   );
 }
 
-/** Which box a wire end sits on: a node's id, or the workflow's own `in.x` and `out.x`. */
-const boxOf = (ref: string) => {
-  const [head = ""] = ref.split(".");
-  return head === "in" || head === "out" ? ref : head;
-};
-
 /** The console's records, for the part a click opens beside the canvas. */
 const APIS = new Map<string, RecordsApi>();
 const consoleApi = (client: string | null): RecordsApi => {
@@ -328,23 +327,39 @@ function Canvas({
   onSaved: () => void;
 }) {
   const broken = d.broken ?? [];
+  const palette = d.palette ?? NO_PALETTE;
   const first = useMemo(() => draftOf(w, d.saved ?? null, broken.length > 0), [w, d, broken]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [picked, setPicked] = useState<{ from: string; to: string } | null>(null);
+  const [sel, setSel] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [choices, setChoices] = useState<Wire[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const shown = useMemo(() => (draft ? drawnWith(w, first, draft) : w), [w, first, draft]);
+  // Saving a workflow that sends or spends asks its id typed back: the server names the effects.
+  const [confirm, setConfirm] = useState<{ asks: string; typed: string } | null>(null);
+  const shown = useMemo(
+    () => (draft ? drawnWith(w, first, draft, palette) : w),
+    [w, first, draft, palette],
+  );
+  const marks = useMemo(() => {
+    if (!draft) return undefined;
+    const x = drawnDiff(w, first, first, draft, palette);
+    const live = <K,>(m: Map<K, GraphMark>) => new Map([...m].filter(([, v]) => v !== "removed"));
+    return { nodes: live(x.nodes), edges: live(x.edges) };
+  }, [w, first, draft, palette]);
   const graph = useMemo(
     () =>
       graphOf(shown, {
         counts: counts ?? new Map(),
         inner: inner ?? new Map(),
-        where,
+        // While editing, a click picks a card rather than opening it.
+        where: draft ? { ...where, canvas: () => undefined } : where,
         team,
         allOut: !!draft,
+        ...(marks ? { marks } : {}),
       }),
-    [shown, counts, inner, where, team, draft],
+    [shown, counts, inner, where, team, draft, marks],
   );
   const dots = useEvents(w, !client);
   const funnel = useMemo(() => funnelOf(w, counts ?? new Map()), [w, counts]);
@@ -359,6 +374,19 @@ function Canvas({
   });
   const open = params.get("component");
 
+  // `/` opens the palette while editing, unless he's typing.
+  useEffect(() => {
+    if (!draft) return;
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "/" || t?.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+      setAdding(true);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [draft]);
+
   const edit = useMemo((): GraphEdit | undefined => {
     if (!draft) return undefined;
     return {
@@ -366,20 +394,29 @@ function Canvas({
         from: endsOf(shown, id, "from").length > 0,
         to: endsOf(shown, id, "to").length > 0,
       }),
-      fits: (a, b) => pairsOf(shown, a, b).length > 0,
-      connect: (a, b) => {
-        const ps = pairsOf(shown, a, b);
+      fits: (a, b, ports) => pairsOf(shown, a, b, ports).length > 0,
+      connect: (a, b, ports) => {
+        const ps = pairsOf(shown, a, b, ports);
         if (ps.length === 1 && ps[0]) setDraft(wired(draft, ps[0]));
         else setChoices(ps);
       },
       pick: (a, b) => {
+        setSel(null);
         setPicked({ from: a, to: b });
-        document.getElementById(`wire-${a}-${b}`)?.scrollIntoView({ block: "nearest" });
       },
     };
   }, [draft, shown]);
 
-  const save = async (reset: boolean) => {
+  const add = (uses: string) => {
+    if (!draft) return;
+    const got = addNode(shown, draft, uses, palette);
+    if (!got) return;
+    setDraft(got.draft);
+    setPicked(null);
+    setSel(got.id);
+  };
+
+  const save = async (reset: boolean, typed?: string) => {
     setBusy(true);
     setError(null);
     try {
@@ -387,38 +424,180 @@ function Canvas({
         workflow: w.id,
         ...(client ? { client } : {}),
         ...(reset ? { reset: true } : { wires: draft?.wires ?? [], steps: draft?.steps ?? [] }),
+        ...(typed ? { confirm: typed } : {}),
       });
+      setConfirm(null);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const m = err instanceof Error ? err.message : String(err);
+      if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
+      else setError(m);
       setBusy(false);
     }
   };
+  const close = () => {
+    setDraft(null);
+    setChoices([]);
+    setError(null);
+    setConfirm(null);
+    setSel(null);
+    setPicked(null);
+    setAdding(false);
+  };
+
+  const graphEl = (
+    <Graph
+      {...graph}
+      label={`What runs in ${w.name}`}
+      name={w.id}
+      edit={edit}
+      tools={!draft}
+      {...(draft
+        ? { minHeight: 640, inset: { left: adding ? 292 : 0, right: sel || picked ? 372 : 0 } }
+        : {})}
+      dots={draft ? [] : [...dots, ...play.dots]}
+      focus={draft ? undefined : play.focus}
+      {...(draft
+        ? {
+            selected: sel,
+            onDrop: add,
+            onPane: () => {
+              setSel(null);
+              setPicked(null);
+            },
+            onOpen: (id: string) => {
+              setPicked(null);
+              setSel(id);
+            },
+          }
+        : {
+            onOpen: (id: string) => {
+              const uses = shown.nodes.find((n) => n.id === id)?.uses;
+              if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
+            },
+          })}
+    />
+  );
+
+  if (draft) {
+    const side = sel ? (
+      <NodePanel
+        key={sel}
+        w={shown}
+        id={sel}
+        draft={draft}
+        setDraft={setDraft}
+        palette={palette}
+        node={graph.nodes.find((n) => n.id === sel)}
+        client={client}
+        workflow={w.id}
+        onOpenPart={(uses) => navigate(href(PAGE, { component: uses, tab: null }, params))}
+        onClose={() => setSel(null)}
+      />
+    ) : picked ? (
+      <WirePanel
+        w={shown}
+        draft={draft}
+        setDraft={setDraft}
+        from={picked.from}
+        to={picked.to}
+        onClose={() => setPicked(null)}
+      />
+    ) : null;
+    return (
+      <>
+        <EditBar changes={changesOf(first, draft)} problems={problemsOf(draft)}>
+          {adding ? null : (
+            <Button tone="secondary" size="dense" onClick={() => setAdding(true)}>
+              Add node <kbd className="ml-1 text-[11px] text-(--ui-ink-3)">/</kbd>
+            </Button>
+          )}
+          <Button size="dense" busy={busy} onClick={() => save(false)}>
+            Save
+          </Button>
+          <Button size="dense" tone="secondary" onClick={close} disabled={busy}>
+            Discard
+          </Button>
+          {d.saved?.edits ? (
+            <Button tone="quiet" size="dense" onClick={() => save(true)} disabled={busy}>
+              Back to built-in
+            </Button>
+          ) : null}
+        </EditBar>
+        {confirm ? (
+          <form
+            className="mb-3 flex flex-wrap items-end gap-3 border border-(--warn) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void save(false, confirm.typed.trim());
+            }}
+          >
+            <label className={`${FIELD} grow basis-[260px]`}>
+              <span>
+                {confirm.asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type {w.id} to save
+                it live.
+              </span>
+              <Input
+                value={confirm.typed}
+                onChange={(e) => setConfirm({ ...confirm, typed: e.target.value })}
+                aria-label={`Type ${w.id} to confirm`}
+              />
+            </label>
+            <Button type="submit" size="dense" busy={busy} disabled={confirm.typed.trim() !== w.id}>
+              Save live
+            </Button>
+            <Button tone="quiet" size="dense" onClick={() => setConfirm(null)}>
+              Cancel
+            </Button>
+          </form>
+        ) : null}
+        {error ? <Alert className="mb-3">{error}</Alert> : null}
+        {choices.length ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[13.5px]">
+            <span className={QUIET}>Which wire?</span>
+            {choices.map((x) => (
+              <Button
+                key={`${x.from}>${x.to}`}
+                tone="secondary"
+                size="dense"
+                onClick={() => {
+                  setDraft(wired(draft, x));
+                  setChoices([]);
+                }}
+              >
+                {endText(shown, x.from, "from")} → {endText(shown, x.to, "to")}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+        <div className="relative">
+          {adding ? (
+            <PaletteDrawer palette={palette} onAdd={add} onClose={() => setAdding(false)} />
+          ) : null}
+          {graphEl}
+          {side}
+        </div>
+        <Editor w={shown} draft={draft} setDraft={setDraft} />
+        {open ? (
+          <PartPanel id={open} params={params} client={client} team={team} where={where} />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>
       <div
         className={
-          play.panel && !draft
+          play.panel
             ? "grid items-start gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"
             : undefined
         }
       >
-        <Graph
-          {...graph}
-          label={`What runs in ${w.name}`}
-          name={w.id}
-          edit={edit}
-          dots={draft ? [] : [...dots, ...play.dots]}
-          focus={draft ? undefined : play.focus}
-          onOpen={(id) => {
-            const uses = shown.nodes.find((n) => n.id === id)?.uses;
-            if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
-          }}
-        />
-        {draft ? null : play.panel}
+        {graphEl}
+        {play.panel}
       </div>
-      {funnel.length && !draft ? (
+      {funnel.length ? (
         <Section title="Funnel" className="mt-8">
           <BarsChart rows={funnel} label={`${w.name} stages`} />
         </Section>
@@ -431,86 +610,35 @@ function Canvas({
           The saved wiring no longer fits, so the built-in one runs: {broken.join("; ")}
         </Alert>
       ) : null}
-      {!draft ? (
-        <p className={`mt-4 flex flex-wrap items-center gap-3 text-[13.5px] ${QUIET}`}>
-          {d.saved
-            ? d.saved.edits
-              ? `Saved by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
-              : `Back to the built-in wiring by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
-            : "The built-in wiring."}
-          {play.button}
-          {team ? (
-            <Button tone="secondary" size="dense" onClick={() => setDraft(first)}>
-              Edit wiring
-            </Button>
-          ) : null}
-        </p>
-      ) : (
-        <Editor
-          w={shown}
-          draft={draft}
-          setDraft={setDraft}
-          picked={picked}
-          choices={choices}
-          choose={(x) => {
-            setDraft(wired(draft, x));
-            setChoices([]);
-          }}
-          error={error}
-          busy={busy}
-          save={() => save(false)}
-          reset={d.saved?.edits ? () => save(true) : null}
-          discard={() => {
-            setDraft(null);
-            setChoices([]);
-            setError(null);
-          }}
-        />
-      )}
+      <p className={`mt-4 flex flex-wrap items-center gap-3 text-[13.5px] ${QUIET}`}>
+        {d.saved
+          ? d.saved.edits
+            ? `Saved by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
+            : `Back to the built-in wiring by ${d.saved.by}, ${dayLabel(d.saved.at)}.`
+          : "The built-in wiring."}
+        {play.button}
+        {team ? (
+          <Button
+            tone="secondary"
+            size="dense"
+            className="max-[900px]:hidden"
+            onClick={() => setDraft(first)}
+          >
+            Edit
+          </Button>
+        ) : null}
+      </p>
     </>
   );
 }
 
-function Editor({
-  w,
-  draft,
-  setDraft,
-  picked,
-  choices,
-  choose,
-  error,
-  busy,
-  save,
-  reset,
-  discard,
-}: {
-  w: Drawn;
-  draft: Draft;
-  setDraft: (d: Draft) => void;
-  picked: { from: string; to: string } | null;
-  choices: Wire[];
-  choose: (x: Wire) => void;
-  error: string | null;
-  busy: boolean;
-  save: () => void;
-  reset: (() => void) | null;
-  discard: () => void;
-}) {
+/**
+ * Below the canvas while editing: a wire by name from two lists, for the keyboard, and a custom
+ * step that posts each event to its URL.
+ */
+function Editor({ w, draft, setDraft }: { w: Drawn; draft: Draft; setDraft: (d: Draft) => void }) {
   const [note, setNote] = useState<string | null>(null);
-  const text = (x: Wire) => `${endText(w, x.from, "from")} → ${endText(w, x.to, "to")}`;
-  const set = (i: number, k: "when" | "wait", v: string) =>
-    setDraft({
-      ...draft,
-      wires: draft.wires.map((x, j) => {
-        if (j !== i) return x;
-        const { [k]: _, ...rest } = x;
-        return v ? { ...rest, [k]: v } : rest;
-      }),
-    });
   const kinds = [...new Set(allEnds(w, "from").map((e) => e.port.kind))].sort();
-  const hit = (x: Wire) => !!picked && boxOf(x.from) === picked.from && boxOf(x.to) === picked.to;
-  const row = (x: Wire) =>
-    `scroll-mt-20 ${hit(x) ? "bg-(--ui-tile) outline outline-(--ui-ink-3)" : ""}`;
 
   const addWire = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -539,88 +667,10 @@ function Editor({
 
   return (
     <div className="mt-6 grid gap-8">
-      <p className={`text-[13.5px] ${QUIET}`}>
-        Drag from a card's right dot onto another's left dot to wire them; the kinds must match.
-        Click a line to find its wires below. Built-in wires are the parts' own code and stay put.
-      </p>
-      {choices.length ? (
-        <Section title="Which wire?">
-          <div className="flex flex-wrap gap-2">
-            {choices.map((x) => (
-              <Button
-                key={`${x.from}>${x.to}`}
-                tone="secondary"
-                size="dense"
-                onClick={() => choose(x)}
-              >
-                {text(x)}
-              </Button>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
-      <Section title="Wires">
-        <ul className={`list-none ${LIST}`}>
-          {w.wires
-            .filter((x) => x.via === "code")
-            .map((x) => (
-              <li
-                key={`code:${x.from}>${x.to}`}
-                id={`wire-${boxOf(x.from)}-${boxOf(x.to)}`}
-                className={row(x)}
-              >
-                <div className={SPLIT}>
-                  <span>{text(x)}</span>
-                  <Tag>Built in</Tag>
-                </div>
-              </li>
-            ))}
-          {draft.wires.map((x, i) => (
-            <li
-              key={`${x.from}>${x.to}`}
-              id={`wire-${boxOf(x.from)}-${boxOf(x.to)}`}
-              className={row(x)}
-            >
-              <div className={SPLIT}>
-                <span>{text(x)}</span>
-                <Button
-                  tone="quiet"
-                  size="dense"
-                  onClick={() =>
-                    setDraft({ ...draft, wires: draft.wires.filter((_, j) => j !== i) })
-                  }
-                >
-                  Remove
-                </Button>
-              </div>
-              <div className={FORM}>
-                <label className={`${FIELD} grow basis-[260px]`}>
-                  <span>Only if (in words)</span>
-                  <Input
-                    value={x.when ?? ""}
-                    maxLength={300}
-                    placeholder="Every event"
-                    onChange={(e) => set(i, "when", e.target.value)}
-                  />
-                </label>
-                <label className={FIELD}>
-                  <span>Wait</span>
-                  <Input
-                    value={x.wait ?? ""}
-                    maxLength={40}
-                    placeholder="None"
-                    aria-invalid={!!x.wait && !WAIT.test(x.wait.trim())}
-                    onChange={(e) => set(i, "wait", e.target.value)}
-                  />
-                </label>
-              </div>
-              {x.wait && !WAIT.test(x.wait.trim()) ? (
-                <p className={ERROR}>A wait reads like "2 days", "6 hours" or "1 week".</p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+      <Section
+        title="Wire by name"
+        note="Or drag from a dot onto another of the same color. Click a wire to set its rule."
+      >
         <form className={FORM} onSubmit={addWire}>
           <label className={FIELD}>
             <span>From</span>
@@ -650,27 +700,9 @@ function Editor({
       </Section>
 
       <Section
-        title="Custom steps"
+        title="Custom step"
         note="A one-off integration: each event is posted to your URL, which answers what goes out."
       >
-        {draft.steps.length ? (
-          <ul className={`list-none ${LIST}`}>
-            {draft.steps.map((s) => (
-              <li key={s.id} className={SPLIT}>
-                <span>
-                  {s.own.name} <span className={QUIET}>{s.own.run}</span>
-                </span>
-                <Button
-                  tone="quiet"
-                  size="dense"
-                  onClick={() => setDraft(withoutStep(draft, s.id))}
-                >
-                  Remove
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
         <form className={FORM} onSubmit={addStep}>
           <label className={FIELD}>
             <span>Name</span>
@@ -712,21 +744,6 @@ function Editor({
           </Button>
         </form>
       </Section>
-
-      {error ? <Alert>{error}</Alert> : null}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="dense" busy={busy} onClick={save}>
-          Save wiring
-        </Button>
-        <Button size="dense" tone="secondary" onClick={discard} disabled={busy}>
-          Discard
-        </Button>
-        {reset ? (
-          <Button tone="quiet" onClick={reset} disabled={busy}>
-            Back to the built-in wiring
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 }

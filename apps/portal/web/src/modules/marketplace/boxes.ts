@@ -102,6 +102,8 @@ export interface Drawn {
     /** Its ports, for wiring on the canvas. */
     in?: Port[];
     out?: Port[];
+    /** A logic node's settings, or a part's on this node. */
+    with?: Record<string, string | number>;
   }[];
   wires: (Wire & { label?: string; count?: CountRef | null })[];
 }

@@ -1,6 +1,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { defineComponent } from "./components.js";
+import { logicSteps } from "./logic.js";
 import {
   type Arrival,
   hookEvent,
@@ -300,7 +301,7 @@ describe("hookEvent", () => {
 
   it("turns a payload into its input's event, about the named field", () => {
     expect(hookEvent(h, flows, { contact: { email: " jane@example.com " } })).toEqual({
-      port: "leads",
+      from: "in.leads",
       event: {
         subject: "lead:jane@example.com",
         kind: "lead",
@@ -317,5 +318,71 @@ describe("hookEvent", () => {
         status: 413,
       },
     );
+  });
+});
+
+describe("logic nodes", () => {
+  const flow = defineWorkflow({
+    ...base,
+    id: "logic",
+    name: "logic",
+    nodes: [
+      { id: "door", uses: "trigger.hook", with: { subject: "email", kind: "lead" } },
+      { id: "vip", uses: "logic.if", with: { when: "a vip" } },
+      { id: "hold", uses: "logic.wait", with: { for: "3 hours" } },
+      { id: "join", uses: "logic.merge" },
+      { id: "ab", uses: "logic.split", with: { a: 50 } },
+    ],
+    wires: [
+      { from: "door.out", to: "vip.in", via: "events" },
+      { from: "in.leads", to: "vip.in", via: "events" },
+      { from: "vip.yes", to: "hold.in", via: "events" },
+      { from: "vip.no", to: "join.a", via: "events" },
+      { from: "hold.out", to: "join.b", via: "events" },
+      { from: "join.out", to: "ab.in", via: "events" },
+      { from: "ab.a", to: "out.replied", via: "events" },
+      { from: "ab.b", to: "out.replied", via: "events" },
+    ],
+  });
+  const logicWalk = (store: SpineStore, by: string, vip: boolean) => {
+    const rule = async () => vip;
+    const got = walkWith(store, by, rule);
+    got.w = {
+      ...got.w,
+      flows: new Map([[flow.id, flow]]),
+      steps: { ...logicSteps(rule), answer, touch },
+    };
+    return got;
+  };
+
+  it("sends by a rule, holds after a Wait, and a Merge passes a subject once", async () => {
+    const { store, rows } = memStore();
+    const no = logicWalk(store, "inv1", false);
+    expect(await walk(no.w, "logic", "in.leads", [lead("1")])).toMatchObject({ out: 1 });
+    const yes = logicWalk(store, "inv2", true);
+    expect(await walk(yes.w, "logic", "in.leads", [lead("2")])).toMatchObject({ waiting: 1 });
+    expect(yes.later).toEqual([{ id: expect.any(String), ms: 3 * 3_600_000 }]);
+    const held = [...rows.values()].find((r) => r.due) as { id: string };
+    expect(await resume(logicWalk(store, "inv3", true).w, held.id)).toMatchObject({ out: 1 });
+    // Lead 2 again by the other side of the Merge: it passed there once already.
+    const again = logicWalk(store, "inv4", false);
+    expect(await walk(again.w, "logic", "vip.no", [lead("2")])).toMatchObject({ seen: 1, out: 0 });
+    expect([...rows.values()].filter((r) => r.a.node === "join").map((r) => r.a.port)).toEqual([
+      "in",
+      "in",
+    ]);
+  });
+
+  it("enters at a Webhook node", () => {
+    const flows = new Map([[flow.id, flow]]);
+    expect(
+      hookEvent({ workflow: "logic", input: "door", subject: "email" }, flows, { email: "a@b.co" }),
+    ).toEqual({
+      from: "door.out",
+      event: { subject: "lead:a@b.co", kind: "lead", data: { email: "a@b.co" } },
+    });
+    expect(
+      hookEvent({ workflow: "logic", input: "vip", subject: "email" }, flows, { email: "a@b.co" }),
+    ).toMatchObject({ status: 410 });
   });
 });

@@ -126,7 +126,7 @@ describe("flowsWith", () => {
     expect(broken.f).toEqual([
       "f: in.leads to n.leads is built in, so it can't be rewired yet",
       "f: waits until an event aren't built yet (n.replied to out.replied)",
-      "f.hook: an added step is a custom step at an https URL",
+      "f.hook: an added custom step runs at an https URL",
     ]);
     expect(flowsWith([code], { f: { wires: [], steps: [] } }, [part("a")]).broken.f).toEqual([
       "f: out.replied gets nothing",

@@ -64,6 +64,35 @@ function sampleOf(id: string, client: string | null): Promise<Sample | null> {
   return got;
 }
 
+/** A node's template: its own cadence step's, or the first step's of the sequence it opens. */
+function templateOf(rows: readonly Row[], w: Drawn, node: string): string | null {
+  const own = rows.find((r) => r.id === `${w.id}/${node}`);
+  const opens = w.nodes.find((n) => n.id === node)?.opens;
+  const r =
+    own ??
+    (opens
+      ? rows
+          .filter((x) => x.sequence_id === opens)
+          .sort((a, b) => Number(a.step) - Number(b.step))[0]
+      : undefined);
+  return r?.template_id ? String(r.template_id) : null;
+}
+
+/** A node's copy for the node panel: its template and the words the made-up lead gets. */
+export async function copyOf(
+  w: Drawn,
+  node: string,
+  client: string | null,
+): Promise<{ template: string; words: string | null } | null> {
+  const id = templateOf(await stepRows(client), w, node);
+  if (!id) return null;
+  const t = await sampleOf(id, client);
+  return {
+    template: id,
+    words: t ? fill(t.subject ? `Subject: ${t.subject}\n\n${t.body}` : t.body) : null,
+  };
+}
+
 /**
  * What the lead got at each step, from the step's own template: a cadence step's, or for a
  * node that opens a sequence, its first step's. A reply or a booking is the lead's own line.
@@ -74,17 +103,9 @@ async function wordsOf(
   client: string | null,
 ): Promise<(string | null)[]> {
   const rows = await stepRows(client);
-  const first = (seq: string) =>
-    rows.filter((r) => r.sequence_id === seq).sort((a, b) => Number(a.step) - Number(b.step))[0];
-  const templateOf = (s: PlayStep) => {
-    const own = rows.find((r) => r.id === `${w.id}/${s.box}`);
-    const opens = w.nodes.find((n) => n.id === s.box)?.opens;
-    const r = own ?? (opens ? first(opens) : undefined);
-    return r?.template_id ? String(r.template_id) : null;
-  };
   return Promise.all(
     walk.map(async (s) => {
-      const id = templateOf(s);
+      const id = templateOf(rows, w, s.box);
       if (id) {
         const t = await sampleOf(id, client);
         return t ? fill(t.subject ? `Subject: ${t.subject}\n\n${t.body}` : t.body) : null;

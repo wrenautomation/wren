@@ -10,8 +10,10 @@ export type { GraphDot, GraphEdit, GraphProps } from "./canvas.js";
 export { journeyOf, type Touch } from "./journey.js";
 export {
   edgeId,
+  GRAPH_DROP,
   type GraphEdge,
   type GraphKind,
+  type GraphMark,
   type GraphNode,
   type GraphNumber,
   type GraphPort,

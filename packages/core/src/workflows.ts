@@ -4,6 +4,7 @@
  * the check, never a workflow; the worker collects Wren's.
  */
 import { type Component, EVENT_KINDS, type Port, type Stage } from "./components.js";
+import { logicOf, logicProblems } from "./logic.js";
 import type { TemplateRef } from "./templates.js";
 
 /**
@@ -140,6 +141,8 @@ function portsOf(
   flows: ReadonlyMap<string, Workflow>,
 ): { in: Port[]; out: Port[] } | null {
   if (n.own) return n.own;
+  const l = logicOf(n.uses);
+  if (l) return l.ports(n.with ?? {});
   const p = (n.uses && (parts.get(n.uses) ?? flows.get(n.uses))) || null;
   return p ? { in: p.in, out: p.out } : null;
 }
@@ -176,6 +179,7 @@ export function checkWorkflows(
         out.push(`${w.id}.${n.id}: uses ${n.uses}, which isn't one`);
       if (n.own && !/^(https:\/\/\S+|[a-z][a-z0-9_.]*)$/.test(n.own.run))
         out.push(`${w.id}.${n.id}: run is no step name or https URL`);
+      out.push(...logicProblems(`${w.id}.${n.id}`, n));
     }
 
     /** The port a wire end names, on the side it must be. */
@@ -240,8 +244,9 @@ export function checkWorkflows(
 
 /**
  * A workflow as one client saved it on the canvas (designs/2026-10-05-workflows.md, Editing): its
- * routed wires and its custom steps, whole. The code's nodes and built-in wires always come from
- * code, so a change there still reaches every saved copy.
+ * routed wires and the nodes it added, whole. An added node is a custom step, a logic node or
+ * trigger (`./logic.ts`), or a part or workflow from the catalog. The code's nodes and built-in
+ * wires always come from code, so a change there still reaches every saved copy.
  */
 export interface WorkflowEdits {
   wires: Wire[];
@@ -254,8 +259,20 @@ export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
   wires: [...w.wires.filter((x) => x.via === "code"), ...e.wires],
 });
 
-/** What a save may not do that the check allows: rewire a built-in wire, add a part, wait "until". */
-function editRules(w: Workflow, e: WorkflowEdits): string[] {
+/**
+ * What a save may not do that the check allows: rewire a built-in wire, wait "until", add a
+ * custom step that isn't an https URL, or give a client's workflow one of Wren's own parts.
+ */
+function editRules(
+  w: Workflow,
+  e: WorkflowEdits,
+  parts: ReadonlyMap<string, Component>,
+  flows: ReadonlyMap<string, Workflow>,
+): string[] {
+  const wrens = (s: WorkflowNode) =>
+    w.for === "client" &&
+    !!s.uses &&
+    (parts.get(s.uses)?.for === "wren" || flows.get(s.uses)?.for === "wren");
   return [
     ...e.wires
       .filter((x) => x.via !== "events")
@@ -264,8 +281,11 @@ function editRules(w: Workflow, e: WorkflowEdits): string[] {
       .filter((x) => x.wait?.startsWith("until "))
       .map((x) => `${w.id}: waits until an event aren't built yet (${x.from} to ${x.to})`),
     ...e.steps
-      .filter((s) => s.uses || !s.own?.run.startsWith("https://"))
-      .map((s) => `${w.id}.${s.id}: an added step is a custom step at an https URL`),
+      .filter((s) => s.own && !s.own.run.startsWith("https://"))
+      .map((s) => `${w.id}.${s.id}: an added custom step runs at an https URL`),
+    ...e.steps
+      .filter(wrens)
+      .map((s) => `${w.id}.${s.id}: ${s.uses} runs Wren's own business, not a client's`),
   ];
 }
 
@@ -281,13 +301,15 @@ export function flowsWith(
 ): { flows: Workflow[]; broken: Record<string, string[]> } {
   const flows = [...workflows];
   const broken: Record<string, string[]> = {};
+  const parts = new Map(components.map((c) => [c.id, c]));
+  const byId = new Map(workflows.map((w) => [w.id, w]));
   for (const [id, e] of Object.entries(saves)) {
     const i = workflows.findIndex((w) => w.id === id);
     const w = workflows[i];
     if (!w || !e) continue;
     const next = withEdits(w, e);
     const lines = [
-      ...editRules(w, e),
+      ...editRules(w, e, parts, byId),
       ...checkWorkflows(
         workflows.map((x) => (x === w ? next : x)),
         components,

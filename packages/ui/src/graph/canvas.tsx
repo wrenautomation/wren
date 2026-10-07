@@ -55,6 +55,7 @@ import {
 import {
   edgeId,
   facetsOf,
+  GRAPH_DROP,
   type GraphEdge,
   type GraphKind,
   type GraphNode,
@@ -71,15 +72,25 @@ import {
   wireLines,
 } from "./model.js";
 
+/** The ports a drag joined, when the nodes name theirs: an output and an input. */
+export interface GraphEnds {
+  from?: string | undefined;
+  to?: string | undefined;
+}
+
 /** Wiring by hand: a line dragged from one node onto another, and a line clicked. */
 export interface GraphEdit {
   /** Which handles a node shows: a line starts at `from`, ends at `to`. */
   ends(id: string): { from: boolean; to: boolean };
-  /** Whether a line from `from` may end at `to`. */
-  fits(from: string, to: string): boolean;
-  connect(from: string, to: string): void;
+  /** Whether a line from `from` may end at `to`, port to port when both name theirs. */
+  fits(from: string, to: string, ports?: GraphEnds): boolean;
+  connect(from: string, to: string, ports?: GraphEnds): void;
   pick(from: string, to: string): void;
 }
+
+/** A port's id from its handle's ("out:replied"). */
+const portOf = (handle: string | null | undefined) =>
+  handle?.split(":").slice(1).join(":") || undefined;
 
 /** One real event: a dot rides its wire once, or its node washes once when no wire shows it. */
 export interface GraphDot {
@@ -110,6 +121,16 @@ export interface GraphProps {
   focus?: readonly string[] | undefined;
   /** "layered": elk works out columns from the wires. "lanes": the nodes' order is time, a row per lane. */
   layout?: "layered" | "lanes" | undefined;
+  /** The node ringed as picked, held by the page; the graph keeps its own when left out. */
+  selected?: string | null | undefined;
+  /** A palette item dropped on the graph (`GRAPH_DROP`): its id. */
+  onDrop?: ((id: string) => void) | undefined;
+  /** A click on the empty ground: the page drops its pick. */
+  onPane?: (() => void) | undefined;
+  /** The least it draws (px): an editor's room for its panels. */
+  minHeight?: number | undefined;
+  /** Px each side that panels cover: the drawing fits between them. */
+  inset?: { left?: number; right?: number } | undefined;
 }
 
 const PAD = 20;
@@ -172,6 +193,8 @@ interface Shared {
   byId: ReadonlyMap<string, GraphNode>;
   /** The node last clicked: its ring. */
   selected: string | null;
+  /** A wire being dragged: the kind it carries and the side it'll land on; the rest dim. */
+  drag: { kind: string | undefined; lands: "in" | "out" } | null;
 }
 const Ctx = createContext<Shared | null>(null);
 const useShared = () => {
@@ -195,6 +218,7 @@ function KitNode({ id }: NodeProps) {
   const end = n.kind === "account" || n.dashed;
   const tone = n.state?.tone;
   const rows = portRows(n);
+  const mark = n.mark;
   return (
     <>
       <Handles n={n} side="in" across={across} live={!!ends?.to} />
@@ -233,6 +257,10 @@ function KitNode({ id }: NodeProps) {
           faded && "opacity-20",
           g.lit?.has(id) && "shadow-[inset_0_0_0_2px_var(--ui-accent)]",
           g.selected === id && "outline-2 outline-offset-2 outline-(--ui-accent)",
+          mark === "added" && "shadow-[inset_0_0_0_2px_var(--ui-good)]",
+          mark === "changed" && "shadow-[inset_0_0_0_2px_var(--warn)]",
+          mark === "removed" &&
+            "opacity-60 shadow-[inset_0_0_0_2px_var(--ui-bad)] [&_.kit-name]:line-through",
           flash && "animate-ui-changed",
           flash && FLASH[flash.tone],
         )}
@@ -250,7 +278,7 @@ function KitNode({ id }: NodeProps) {
             <Mark className="size-4" aria-hidden="true" />
           </span>
           <span className="grid min-w-0 flex-1">
-            <span className="truncate text-[13px] leading-4 font-semibold" title={n.label}>
+            <span className="kit-name truncate text-[13px] leading-4 font-semibold" title={n.label}>
               {n.label}
             </span>
             {n.note ? (
@@ -261,6 +289,18 @@ function KitNode({ id }: NodeProps) {
           </span>
           {n.stacked ? (
             <ArrowUpRight className="size-3.5 shrink-0 text-(--ui-ink-3)" aria-label="Opens" />
+          ) : null}
+          {mark ? (
+            <span
+              className={cn(
+                "shrink-0 self-start rounded-full px-1.5 text-[10.5px] leading-4 font-semibold",
+                mark === "added" && "bg-(--ui-good) text-(--ui-paper)",
+                mark === "removed" && "bg-(--ui-bad) text-(--ui-paper)",
+                mark === "changed" && "bg-(--warn) text-(--ui-paper)",
+              )}
+            >
+              {mark === "added" ? "New" : mark === "removed" ? "Gone" : "Changed"}
+            </span>
           ) : null}
           {n.state ? (
             <span
@@ -331,7 +371,11 @@ function Handles({
   across: boolean;
   live: boolean;
 }) {
+  const { drag } = useShared();
   const list = (side === "in" ? n.ins : n.outs) ?? [];
+  // While a wire drags, the ends it can land on stand out and the wrong kinds dim.
+  const lands = (kind: string | undefined) =>
+    !drag || drag.lands !== side ? null : !drag.kind || !kind || drag.kind === kind;
   const type = side === "in" ? "target" : "source";
   const position = across
     ? side === "in"
@@ -350,8 +394,14 @@ function Handles({
           type={type}
           position={position}
           isConnectable={live}
-          title={p ? p.label : undefined}
-          className={cn(HANDLE, live && "hover:bg-(--ui-accent)!")}
+          title={p ? `${p.label}${p.kind ? ` (${p.kind})` : ""}` : undefined}
+          data-lands={String(lands(p?.kind ?? list[0]?.kind))}
+          className={cn(
+            HANDLE,
+            live && "hover:bg-(--ui-accent)!",
+            lands(p?.kind ?? list[0]?.kind) === true && "scale-150 bg-(--ui-accent)!",
+            lands(p?.kind ?? list[0]?.kind) === false && "opacity-20",
+          )}
           style={{
             ...(across ? { top: portY(n, side, p?.id) } : {}),
             borderColor: hueOf(p?.kind ?? (across ? undefined : list[0]?.kind)),
@@ -404,6 +454,7 @@ function Num({
 }
 
 type WireData = {
+  mark: GraphEdge["mark"];
   lines: string[];
   d: string;
   arrow: string;
@@ -427,13 +478,24 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
           "transition-opacity duration-200 ease-(--ui-ease) motion-reduce:transition-none",
           faded && "opacity-20",
         )}
-        style={{ color: dots.length ? "var(--ui-accent)" : on ? "var(--ui-ink)" : data.hue }}
+        style={{
+          color: dots.length
+            ? "var(--ui-accent)"
+            : data.mark === "added"
+              ? "var(--ui-good)"
+              : data.mark === "removed"
+                ? "var(--ui-bad)"
+                : on
+                  ? "var(--ui-ink)"
+                  : data.hue,
+        }}
       >
         <path
           d={data.d}
           className={cn(
             "fill-none stroke-current [stroke-linecap:round]",
-            on ? "stroke-[2]" : "stroke-[1.5]",
+            on || data.mark ? "stroke-[2]" : "stroke-[1.5]",
+            data.mark === "removed" && "[stroke-dasharray:5_4]",
           )}
         />
         <path d={data.arrow} className="fill-current" />
@@ -549,6 +611,11 @@ export default function GraphCanvas({
   maxHeight,
   layout: arrange = "layered",
   focus,
+  selected: held,
+  onDrop,
+  onPane,
+  minHeight,
+  inset,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -607,7 +674,9 @@ export default function GraphCanvas({
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const live = useMemo(() => dots.filter((d) => !gone.has(d.id)), [dots, gone]);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [own, setSelected] = useState<string | null>(null);
+  const selected = held === undefined ? own : held;
+  const [drag, setDrag] = useState<Shared["drag"]>(null);
 
   const l = laid?.laid ?? null;
   const rfNodes = useMemo(
@@ -656,6 +725,7 @@ export default function GraphCanvas({
                 ...(into ? { targetHandle: `in:${e.toPort}` } : {}),
                 type: "kit",
                 data: {
+                  mark: e.mark,
                   lines,
                   d: c.d,
                   arrow: arrowAt(c.end, across),
@@ -670,11 +740,17 @@ export default function GraphCanvas({
     [l, wires, byId, dir],
   );
 
-  const most = maxHeight ?? Math.max(360, Math.round((globalThis.innerHeight || 900) * 0.72));
+  const least = minHeight ?? 0;
+  const most = Math.max(
+    least,
+    maxHeight ?? Math.max(360, Math.round((globalThis.innerHeight || 900) * 0.72)),
+  );
+  const left = inset?.left ?? 0;
+  const right = inset?.right ?? 0;
   const view = useMemo(() => {
     if (!l) return null;
     const narrow = width < NARROW;
-    const room = Math.max(1, width - 2 * PAD);
+    const room = Math.max(1, width - 2 * PAD - left - right);
     const tall = Math.max(1, most - 2 * PAD - TOOLS_ROOM);
     const whole = Math.min(
       1,
@@ -691,18 +767,22 @@ export default function GraphCanvas({
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
     // The minimap sits in its own room under the drawing, so it never covers a node at rest.
     const map = !fits && !narrow;
-    const height = Math.min(
-      most + (map ? MAP_ROOM : 0),
-      Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0)),
+    const height = Math.max(
+      least,
+      Math.min(
+        most + (map ? MAP_ROOM : 0),
+        Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0)),
+      ),
     );
-    const x = dir === "DOWN" ? Math.max(PAD, (width - l.width * zoom) / 2) : PAD;
+    const x =
+      left + (dir === "DOWN" ? Math.max(PAD, (width - left - right - l.width * zoom) / 2) : PAD);
     return {
       rest: { x, y: PAD, zoom },
       height,
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, dir]);
+  }, [l, width, most, least, left, right, dir]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;
@@ -728,6 +808,7 @@ export default function GraphCanvas({
         done: (id) => setGone((s) => new Set(s).add(id)),
         byId,
         selected,
+        drag,
       }
     : null;
 
@@ -775,7 +856,23 @@ export default function GraphCanvas({
           </span>
         </div>
       ) : null}
-      <div ref={box} className="relative w-full max-w-full">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the palette adds by click and key too. */}
+      <div
+        ref={box}
+        className="relative w-full max-w-full"
+        onDragOver={(e) => {
+          if (onDrop && e.dataTransfer.types.includes(GRAPH_DROP)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }
+        }}
+        onDrop={(e) => {
+          const id = onDrop ? e.dataTransfer.getData(GRAPH_DROP) : "";
+          if (!id) return;
+          e.preventDefault();
+          onDrop?.(id);
+        }}
+      >
         {shared && view ? (
           <Ctx value={shared}>
             <GraphFrame
@@ -791,8 +888,28 @@ export default function GraphCanvas({
               flow={{
                 nodesConnectable: !!edit,
                 autoPanOnConnect: false,
-                onConnect: (c) => edit?.connect(c.source, c.target),
-                isValidConnection: (c) => !!edit?.fits(c.source, c.target),
+                onConnect: (c) =>
+                  edit?.connect(c.source, c.target, {
+                    from: portOf(c.sourceHandle),
+                    to: portOf(c.targetHandle),
+                  }),
+                isValidConnection: (c) =>
+                  !!edit?.fits(c.source, c.target, {
+                    from: portOf(c.sourceHandle),
+                    to: portOf(c.targetHandle),
+                  }),
+                onConnectStart: (_, { nodeId, handleId, handleType }) => {
+                  const n = nodeId ? byId.get(nodeId) : undefined;
+                  const from = handleType !== "target";
+                  const list = (from ? n?.outs : n?.ins) ?? [];
+                  const p = list.find((x) => x.id === portOf(handleId)) ?? list[0];
+                  setDrag({ kind: p?.kind, lands: from ? "in" : "out" });
+                },
+                onConnectEnd: () => setDrag(null),
+                onPaneClick: () => {
+                  setSelected(null);
+                  onPane?.();
+                },
                 connectionLineStyle: { stroke: "var(--ui-ink-3)", strokeWidth: 1.5 },
                 onNodeClick: (_, n) => {
                   setSelected(n.id);

@@ -97,6 +97,7 @@ import {
   snippetTags,
   workflowRecord,
 } from "./library.js";
+import { LOGIC, logicOf, startWith } from "./logic.js";
 import {
   accessOf,
   answer,
@@ -230,6 +231,20 @@ export interface WorkflowSaveRequest extends PortalRequest {
   wires?: unknown;
   steps?: unknown;
   reset?: boolean;
+  /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
+  confirm?: string;
+}
+
+/**
+ * What a workflow does outside Wren once live: every effect of every part in it, nested ones
+ * too. Publishing one with any is William's yes (designs/2026-10-06-workflow-editor.md).
+ */
+export function workflowEffects(
+  id: string,
+  flows: readonly Workflow[],
+  components: readonly Component[],
+): string[] {
+  return union(partsIn(id, flows, components).map((c) => c.effects));
 }
 
 const NAME = z
@@ -256,20 +271,30 @@ const EDITS = z.object({
     .max(200),
   steps: z
     .array(
-      z.object({
-        id: NAME,
-        note: z.string().trim().max(200).optional(),
-        own: z.object({
-          name: z.string().trim().min(1).max(60),
-          blurb: z.string().trim().max(200),
-          icon: z.string().max(40),
-          in: z.array(PORT).max(8),
-          out: z.array(PORT).max(8),
-          run: z.string().max(500),
-        }),
-      }),
+      z
+        .object({
+          id: NAME,
+          note: z.string().trim().max(200).optional(),
+          /** A logic node, a trigger, or a part or workflow from the catalog. */
+          uses: z.string().max(80).optional(),
+          with: z
+            .record(z.string().max(40), z.union([z.string().max(300), z.number()]))
+            .refine((w) => Object.keys(w).length <= 12, "has too many settings")
+            .optional(),
+          own: z
+            .object({
+              name: z.string().trim().min(1).max(60),
+              blurb: z.string().trim().max(200),
+              icon: z.string().max(40),
+              in: z.array(PORT).max(8),
+              out: z.array(PORT).max(8),
+              run: z.string().max(500),
+            })
+            .optional(),
+        })
+        .refine((s) => !s.uses !== !s.own, "is a custom step or uses one thing"),
     )
-    .max(20),
+    .max(40),
 });
 
 /** A stored look stays small: inputs, not tokens. */
@@ -505,6 +530,21 @@ export const eventRecord = defineRecord({
     { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
+  // What came in and what its step sent on: the canvas's node panel shows the last of them.
+  load: async (db, id) => {
+    if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+    const rows = (await db.execute(
+      sql`select data, sent, sent_at "sentAt" from events where id = ${id}::uuid`,
+    )) as unknown as Array<{ data: unknown; sent: SentEvent[] | null; sentAt: unknown }>;
+    const r = rows[0];
+    return r
+      ? {
+          data: r.data,
+          sent: r.sent,
+          sentAt: r.sentAt ? new Date(r.sentAt as string).toISOString() : null,
+        }
+      : null;
+  },
   actions: ["console.retryEvent"],
 });
 
@@ -1128,6 +1168,48 @@ export const componentRecord = (
   const portsOf = (uses: string | undefined): readonly Port[] =>
     all.find((x) => x.id === uses)?.out ?? workflows.find((x) => x.id === uses)?.out ?? [];
   /**
+   * What the canvas's palette may add to `w`: logic nodes and triggers, then parts and workflows
+   * from the catalog, a client's workflow only the client's. Each with its ports and effects.
+   */
+  const paletteFor = (w: Workflow) => ({
+    logic: LOGIC.map((l) => ({
+      id: l.id,
+      name: l.name,
+      blurb: l.blurb,
+      icon: l.icon,
+      group: l.group,
+      ready: l.ready,
+      settings: l.settings,
+      start: startWith(l),
+    })),
+    parts: all
+      .filter((c) => w.for === "wren" || c.for === "client")
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        blurb: c.blurb,
+        icon: c.icon,
+        stage: c.stage,
+        in: c.in,
+        out: c.out,
+        effects: c.effects,
+        ready: readyOf(c),
+      })),
+    workflows: flows
+      .filter((x) => x.id !== w.id && shownAs(x) === x && (w.for === "wren" || x.for === "client"))
+      .map((x) => ({
+        id: x.id,
+        name: x.name,
+        blurb: x.blurb,
+        icon: x.icon,
+        stage: x.stage,
+        in: x.in,
+        out: x.out,
+        effects: union(partsIn(x.id, flows, all).map((c) => c.effects)),
+        ready: flowReady(partsIn(x.id, flows, all)),
+      })),
+  });
+  /**
    * A workflow's nodes, each with what it uses and its main number's source (its first counted
    * port), and its wires with what moves on each and that number's source, for the drawings.
    */
@@ -1137,6 +1219,19 @@ export const componentRecord = (
     in: w.in,
     out: w.out,
     nodes: w.nodes.map((n) => {
+      const l = logicOf(n.uses);
+      if (l)
+        return {
+          id: n.id,
+          uses: l.id,
+          ...l.ports(n.with ?? {}),
+          name: l.name,
+          note: n.note ?? l.says(n.with ?? {}),
+          ready: l.ready ? "ready" : "planned",
+          opens: null,
+          count: null,
+          with: n.with ?? {},
+        };
       const c = all.find((x) => x.id === n.uses);
       const f = workflows.find((x) => x.id === n.uses);
       const main = portsOf(n.uses)
@@ -1155,13 +1250,18 @@ export const componentRecord = (
         /** The workflow it opens into: one it uses, or the part's own steps. */
         opens: f ? f.id : (c?.inside ?? null),
         count: main ? { ...main.count, label: main.label } : null,
+        ...(n.with ? { with: n.with } : {}),
       };
     }),
     wires: w.wires.map((x) => {
       const [node = "", port = ""] = x.from.split(".");
-      const uses = w.nodes.find((n) => n.id === node)?.uses;
-      const label =
-        (node === "in" ? w.in : portsOf(uses)).find((p) => p.id === port)?.label ?? port;
+      const n = w.nodes.find((y) => y.id === node);
+      const uses = n?.uses;
+      const outs =
+        node === "in"
+          ? w.in
+          : (n?.own?.out ?? logicOf(uses)?.ports(n?.with ?? {}).out ?? portsOf(uses));
+      const label = outs.find((p) => p.id === port)?.label ?? port;
       return { ...x, label, count: node === "in" ? null : countOf(uses, port) };
     }),
   });
@@ -1281,7 +1381,13 @@ export const componentRecord = (
         return {
           workflow: drawn(w),
           usedIn: usedIn(id),
-          ...(team ? { saved: saves.saved[id] ?? null, broken: saves.broken[id] ?? [] } : {}),
+          ...(team
+            ? {
+                saved: saves.saved[id] ?? null,
+                broken: saves.broken[id] ?? [],
+                palette: paletteFor(w),
+              }
+            : {}),
         };
       const c = all.find((x) => x.id === id);
       if (!c) return null;
@@ -1979,8 +2085,16 @@ export function consoleApi({
           throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
         }
         edits = got.data as WorkflowEdits;
-        const bad = flowsWith(workflows, { [w.id]: edits }, components).broken[w.id];
+        const next = flowsWith(workflows, { [w.id]: edits }, components);
+        const bad = next.broken[w.id];
         if (bad) throw new PortalRefusal(bad.join("; "), 400);
+        const effects = workflowEffects(w.id, next.flows, components);
+        if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+          throw new PortalRefusal("it sends: only an admin can make it live", 403);
+        if (effects.includes("spends") && !teamCan(req, "money", WREN))
+          throw new PortalRefusal("it spends: only an admin can make it live", 403);
+        if (effects.length && req.confirm !== w.id)
+          throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
       }
       const [row] = await main
         .insert(workflowSaves)

@@ -51,11 +51,13 @@ export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
 export {
   edgeId,
+  GRAPH_DROP,
   Graph,
   type GraphDot,
   type GraphEdge,
   type GraphEdit,
   type GraphKind,
+  type GraphMark,
   type GraphNode,
   type GraphNumber,
   type GraphPort,

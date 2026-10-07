@@ -9,6 +9,7 @@ import {
   type BarsRow,
   type GraphDot,
   type GraphEdge,
+  type GraphMark,
   type GraphNode,
   type GraphRole,
   type GraphTone,
@@ -107,7 +108,8 @@ export interface Where {
 /** What a part does, by its id's area: its tile's color on the canvas. */
 export function roleOfPart(uses: string | null | undefined): GraphRole {
   const [area = "", what = ""] = (uses ?? "").split(".");
-  if (!uses || uses === "planned") return "logic";
+  if (!uses || uses === "planned" || area === "logic") return "logic";
+  if (area === "trigger") return "trigger";
   if (
     /score|triage|draft|planner|sort|answer|study/.test(what) ||
     ["watch", "comments"].includes(area)
@@ -150,6 +152,7 @@ export function graphOf(
     where,
     team,
     allOut = false,
+    marks,
   }: {
     counts: ReadonlyMap<string, Count>;
     /** The drawings of the workflows its cards open into, for their numbers. */
@@ -158,6 +161,8 @@ export function graphOf(
     team: boolean;
     /** Every output, wired or not: something to wire to while editing. */
     allOut?: boolean;
+    /** A diff's marks: by node id, and by wire as `from>to` boxes. */
+    marks?: { nodes: ReadonlyMap<string, GraphMark>; edges: ReadonlyMap<string, GraphMark> };
   },
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const into = new Map<string, number>();
@@ -192,6 +197,7 @@ export function graphOf(
       count: c,
       when: x.when,
       wait: x.wait,
+      mark: marks?.edges.get(id),
     };
     edges.set(
       id,
@@ -277,6 +283,7 @@ export function graphOf(
       href: n.opens ? where.canvas(n) : undefined,
       dim: !(n.uses && n.opens === n.uses) && n.ready === "planned",
       stacked: !!n.opens,
+      mark: marks?.nodes.get(n.id),
       facets: {
         Kind: n.opens ? "Workflow" : n.uses ? "Part" : "Custom step",
         ...(state ? { State: state.label } : {}),

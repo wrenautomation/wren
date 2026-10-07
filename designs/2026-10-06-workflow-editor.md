@@ -123,3 +123,12 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   (⌘K jumps to pages; the page searches by subject). Not built: search by person or firm.
   Spine subjects are channel contact ids (`lead:sms:<id>`), and journeys live in client
   workspaces while the spine is main only, so there's no lead key to join on yet.
+- 2026-10-06: Step 2 built. Logic nodes are pure entries in `packages/core/src/logic.ts`, not
+  Shop parts: every workflow may add them, outside the catalog. Each takes any event kind by a
+  `kind` setting, so its ports follow what it's wired to. Wait holds what leaves it, so its
+  step just passes. Merge claims both inputs as one port, so a subject passes once. Split
+  hashes node and subject, so a subject always lands the same side. The hook trigger works;
+  schedule, form, reply and booking draw "In development" and refuse to save. Saving a
+  workflow that sends needs `effect`, one that spends `money`, and both need the id typed
+  back. Panels float over the canvas, n8n-style, and the drawing fits between them (`inset`).
+  The Webhook node's door URL and token wait on Publish (Step 3): "In development".
