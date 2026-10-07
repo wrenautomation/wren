@@ -113,3 +113,15 @@ parallel, then meet in 4.
   `record-ask`) that the Ask service answers on the desk; Accept goes through the same edit
   with the run id. Text and DM copy moved first. A keyword reply keeps its Edit action, since
   saving it also sets the provider's own reply, which a database write can't do.
+- 2026-10-06: step 3 built (a010145, b4bf24b, 195b220, 6268a2a, 4037f8e; the email switch
+  follows the prod import). The spine's `Step` is already its handler type, so the one step is
+  `CadenceStep`, which now names its template. Texts and DMs read live from the store, and
+  every send keeps its version and picks. `template_stats` (0128) counts sends and replies per
+  version and variant on every channel. Booked is email only: texts and DMs can't tie a booking
+  to a send yet. Prompts seed themselves: the code's words become version 1 on first use, and
+  after that only a store edit changes them. A prompt renders exactly, facts untrimmed and ""
+  a value. Reactivation keeps `COMPOSE_VERSION` as its cache key, so a prompt edit redrafts no
+  one, and records the store version in `compositions.prompt_version`. Parity tests hold every
+  `.email` file and all three prompts byte for byte against the old code. `review` and
+  `deliverability` still read the files; they author, they don't send. `sms_templates` and
+  `reach_templates` stay until a later migration drops them.

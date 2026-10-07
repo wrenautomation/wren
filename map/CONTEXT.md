@@ -29,7 +29,7 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | campaign | worker `Campaign` (a niche's templates + sequences + plan, `apps/worker/src/services.ts:176`); a Meta campaign id in `ad_launches`; the 10DLC campaign that `WREN_SMS_LIVE` stands for. |
 | verification | `verifications` rows (address verdicts); `Discovery.verify` (does this domain belong to this company); `Resolution.verifyLeads`. |
 | sync | loop handler `sync` = one pass now (`packages/core/src/restate/loop.ts`); `syncInbox` = read a mailbox; `inbox_syncs` / `open_syncs` = cursors. |
-| template | an `.email` file parsed to a `Template` tree; `template_versions` = the stored source per content hash; an SMS `SmsStep` body. |
+| template | a row of `templates` ([[platform/template-store]]): email, text, DM or prompt, versions in `template_versions`; before 2026-10-06 an `.email` file, an `sms_templates` or `reach_templates` row; `Template` = the parsed tree. |
 | sender | a roster `Sender` (an inbox address); `SmsSender` (the SMS loop object); `enrollments.sender` (the address chosen at compose). |
 | run | `runs` ledger row; one pass of a loop object. |
 | post | a published content draft; LinkedIn's `/rest/posts`; `wren books post` (make the journal match the bills). |
