@@ -115,7 +115,7 @@ export interface GraphProps {
   tools?: boolean | undefined;
   /** The exported file's name. */
   name?: string | undefined;
-  /** The tallest it draws (px) before it scrolls inside; about 3/4 of the window by default. */
+  /** The tallest it draws (px) before it pans inside; the window's height, less the page's top, by default. */
   maxHeight?: number | undefined;
   /** Lights these nodes and fades the rest, as a search does: Play's step. */
   focus?: readonly string[] | undefined;
@@ -129,11 +129,12 @@ export interface GraphProps {
   onPane?: (() => void) | undefined;
   /** The least it draws (px): an editor's room for its panels. */
   minHeight?: number | undefined;
+  /** Takes the tallest it may draw, however short the drawing: an editor's pane. */
+  fill?: boolean | undefined;
   /** Px each side that panels cover: the drawing fits between them. */
   inset?: { left?: number; right?: number } | undefined;
-  /** The least it zooms at rest: an editor keeps words readable and pans, the minimap under it. */
-  floor?: number | undefined;
-  /** Nodes it pans to at rest when the drawing is wider than the frame: a diff's changes. */
+  /** Nodes it pans to at rest when the drawing is wider than the frame: a diff's changes. Play's
+   * `focus` when left out. */
   show?: readonly string[] | undefined;
 }
 
@@ -141,13 +142,12 @@ const PAD = 20;
 /** Narrower than this, "auto" runs top to bottom. */
 const NARROW = 640;
 /**
- * On a wide screen the whole drawing shows at rest, down to this zoom; a taller one pans down
- * instead, the minimap under it. Across, every node shows: a wider drawing zooms out to its
- * width, down to `FLOOR`. A phone keeps words readable and pans down.
+ * The least it zooms at rest: a node's 13px name reads at 12px. A bigger drawing shows its start
+ * (left, or top on a phone) and pans, the minimap under it; "Fit all" shows the whole on demand.
  */
-const LEAST = { wide: 0.75, narrow: 0.8 };
-/** The least a drawing zooms to fit its width at rest; wider than that, it pans. */
-const FLOOR = { wide: 0.3, narrow: 0.15 };
+const READ = 12 / 13;
+/** The window's height less the page's header and a margin: the tallest a graph draws by default. */
+const CHROME = 96;
 /** Room under the drawing for the zoom buttons. */
 const TOOLS_ROOM = 40;
 /** Room under the drawing for the minimap, shown only when the drawing doesn't fit. */
@@ -619,12 +619,18 @@ export default function GraphCanvas({
   onDrop,
   onPane,
   minHeight,
-  floor,
+  fill,
   show,
   inset,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [screen, setScreen] = useState(() => globalThis.innerHeight || 900);
+  useEffect(() => {
+    const measure = () => setScreen(globalThis.innerHeight || 900);
+    globalThis.addEventListener?.("resize", measure);
+    return () => globalThis.removeEventListener?.("resize", measure);
+  }, []);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -747,10 +753,7 @@ export default function GraphCanvas({
   );
 
   const least = minHeight ?? 0;
-  const most = Math.max(
-    least,
-    maxHeight ?? Math.max(360, Math.round((globalThis.innerHeight || 900) * 0.72)),
-  );
+  const most = Math.max(least, maxHeight ?? Math.max(360, screen - CHROME));
   const left = inset?.left ?? 0;
   const right = inset?.right ?? 0;
   const view = useMemo(() => {
@@ -763,27 +766,21 @@ export default function GraphCanvas({
       room / Math.max(1, l.width),
       narrow ? 1 : tall / Math.max(1, l.height),
     );
-    // Every node shows across at rest: past the floor, it zooms out to the width (never under
-    // `FLOOR`) and pans down instead.
-    const across = room / Math.max(1, l.width);
-    const zoom = Math.max(
-      floor ?? (narrow ? FLOOR.narrow : FLOOR.wide),
-      Math.min(across, Math.max(narrow ? LEAST.narrow : LEAST.wide, whole)),
-    );
+    // Never under readable: past that, it shows the start and pans.
+    const zoom = Math.max(READ, whole);
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
     // The minimap sits in its own room under the drawing, so it never covers a node at rest.
     const map = !fits && !narrow;
     const height = Math.max(
       least,
-      Math.min(
-        most + (map ? MAP_ROOM : 0),
-        Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0)),
-      ),
+      fill
+        ? most
+        : Math.min(most, Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0))),
     );
     const centered =
       left + (dir === "DOWN" ? Math.max(PAD, (width - left - right - l.width * zoom) / 2) : PAD);
     // Too wide for the frame: it pans to what it's asked to show, never past either end.
-    const boxes = (show ?? []).flatMap((id) => (l.nodes[id] ? [l.nodes[id]] : []));
+    const boxes = (show ?? focus ?? []).flatMap((id) => (l.nodes[id] ? [l.nodes[id]] : []));
     const over = l.width * zoom - room;
     const x =
       boxes.length && over > 0
@@ -808,7 +805,7 @@ export default function GraphCanvas({
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, least, left, right, dir, floor, show]);
+  }, [l, width, most, least, fill, left, right, dir, show, focus]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;

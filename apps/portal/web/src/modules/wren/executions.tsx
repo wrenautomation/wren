@@ -259,7 +259,6 @@ export function ExecutionTrace({
         name={`${w.id}-execution`}
         focus={t.lit}
         tools={false}
-        maxHeight={480}
         onOpen={setCard}
       />
       <ol className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Steps in order">

@@ -577,8 +577,7 @@ function Canvas({
       {...(draft
         ? {
             minHeight: 640,
-            // A test reads as a whole path, so it may zoom out further than editing does.
-            floor: lit ? 0.45 : 0.7,
+            fill: true,
             show: changed,
             inset: { left: adding ? 292 : 0, right: sel || picked || testing ? 372 : 0 },
           }

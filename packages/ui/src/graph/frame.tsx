@@ -1,8 +1,9 @@
 /**
  * The kit's React Flow shell, the same for every graph: pan, zoom, fit, a minimap and controls.
  * Drag pans once the drawing is bigger than its box or zoomed; the wheel zooms once the graph is
- * clicked, so the page still scrolls past it. Keys while it has focus: arrows pan, + and - zoom,
- * F fits, 0 goes back to where it started. Phone: one finger pans, two pinch.
+ * clicked, so the page still scrolls past it. At rest it never zooms below readable; a bigger
+ * drawing shows its start, and "Fit all" (F) shows the whole. Keys while it has focus: arrows pan,
+ * + and - zoom, F fits all, 0 goes back to where it started. Phone: one finger pans, two pinch.
  */
 import {
   Background,
@@ -58,7 +59,18 @@ export interface FrameProps {
 const TOOL =
   "inline-flex size-8 items-center justify-center border-0 bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) hover:text-(--ui-ink) cursor-pointer";
 
-function Controls({ rest, moved, quiet }: { rest: Viewport; moved: () => void; quiet: boolean }) {
+function Controls({
+  rest,
+  moved,
+  quiet,
+  fits,
+}: {
+  rest: Viewport;
+  moved: () => void;
+  quiet: boolean;
+  /** All of it shows at rest; when not, the fit button says so in words. */
+  fits: boolean;
+}) {
   const rf = useReactFlow();
   return (
     <Panel
@@ -96,9 +108,9 @@ function Controls({ rest, moved, quiet }: { rest: Viewport; moved: () => void; q
       </button>
       <button
         type="button"
-        className={TOOL}
-        title="Fit (F)"
-        aria-label="Fit"
+        className={cn(TOOL, !fits && "w-auto gap-1.5 px-2.5 text-[12.5px] font-medium")}
+        title="Fit all (F). Double-click: back to the start (0)"
+        aria-label="Fit all"
         onClick={() => {
           moved();
           void rf.fitView({ padding: 0.08, ...EASE });
@@ -106,6 +118,7 @@ function Controls({ rest, moved, quiet }: { rest: Viewport; moved: () => void; q
         onDoubleClick={() => void rf.setViewport(rest, EASE)}
       >
         <Maximize className="size-3.5" />
+        {fits ? null : "Fit all"}
       </button>
     </Panel>
   );
@@ -179,7 +192,7 @@ export function GraphFrame({
       ref={box}
       // biome-ignore lint/a11y/noNoninteractiveTabindex: the graph takes keys to pan and zoom.
       tabIndex={0}
-      aria-label={`${label}. Arrows pan, plus and minus zoom, F fits.`}
+      aria-label={`${label}. Arrows pan, plus and minus zoom, F fits all.`}
       className={cn(
         "group/frame relative w-full max-w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)",
         !bare && "border border-(--ui-hair) bg-(--ui-graph)",
@@ -232,7 +245,7 @@ export function GraphFrame({
             color="color-mix(in oklch, var(--ui-ink-3) 45%, transparent)"
           />
         )}
-        <Controls rest={rest} moved={touched} quiet={!!bare} />
+        <Controls rest={rest} moved={touched} quiet={!!bare} fits={fits} />
         {minimap ? (
           <MiniMap
             pannable
