@@ -56,6 +56,7 @@ import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
 import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
+import { registerWebhooks } from "./webhooks.js";
 import { registerWorkflows } from "./workflows.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
@@ -243,6 +244,7 @@ registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerHooks(program, withMainDb);
+registerWebhooks(program, withMainDb, settings);
 registerWorkflows(program, withMainDb, withClientDb, settings);
 registerEnrich(program, withMainDb, settings, rootDir);
 registerEvolve(program, withMainDb, settings, rootDir);

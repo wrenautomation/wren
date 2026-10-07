@@ -51,6 +51,7 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
+import { WEBHOOKS, type WebhooksService } from "@wren/core/webhooks";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
 import { domainsApi } from "./domains.js";
 import { type FileStore, newFileKey } from "./files.js";
@@ -89,6 +90,7 @@ import { deliveryRecords } from "./records.js";
 import { DELIVERY_APPS, DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
 import { type BoardRow, type DeliveryWatch, opsBoard, recapOf, WATCH, WATCH_KEY } from "./watch.js";
+import { webhooksApi } from "./webhooks.js";
 
 export interface DeliveryDeps {
   /** The main database: the registry and the delivery schema. */
@@ -723,6 +725,7 @@ export { type DomainView, makeDomainsResolver } from "./domains.js";
 export function makeDeliveryPortal(deps: DeliveryDeps) {
   const api = deliveryApi(deps);
   const hosts = domainsApi({ target: DEFAULT_TARGET, ...deps.domains, main: deps.main });
+  const hooks = webhooksApi({ main: deps.main });
   type Req<K extends keyof DeliveryApi> = Parameters<DeliveryApi[K]>[0];
   return portalService({
     name: "DeliveryPortal",
@@ -787,6 +790,26 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
         answer(() => hosts.addDomain(req)),
       removeDomain: (_: restate.Context, req: PortalRequest & { hostname: string }) =>
         answer(() => hosts.removeDomain(req)),
+      webhooks: (_: restate.Context, req: PortalRequest) => answer(() => hooks.webhooks(req)),
+      webhookDelivery: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => hooks.webhookDelivery(req)),
+      webhookAdd: (_: restate.Context, req: PortalRequest & Record<string, unknown>) =>
+        answer(() => hooks.webhookAdd(req)),
+      webhookEdit: (_: restate.Context, req: PortalRequest & Record<string, unknown>) =>
+        answer(() => hooks.webhookEdit(req)),
+      webhookRemove: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => hooks.webhookRemove(req)),
+      webhookRotate: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => hooks.webhookRotate(req)),
+      webhookTest: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => hooks.webhookTest(req)),
+      // Set going again here, then sent to `Webhooks/deliver`, which tries on its ladder.
+      webhookRedeliver: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(async () => {
+          const id = await hooks.webhookRedeliver(req);
+          ctx.serviceSendClient<WebhooksService>(WEBHOOKS).deliver({ id });
+          return { id };
+        }),
       interest: async (ctx: restate.Context, req: Req<"interest">) => {
         const out = await answer(() => api.interest(req));
         if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();

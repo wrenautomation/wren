@@ -188,6 +188,7 @@ export const flagRecord = defineRecord({
       {
         delivery: { label: "Delivery", tone: "neutral" },
         health: { label: "Health", tone: "neutral" },
+        workflows: { label: "Workflows", tone: "neutral" },
         person: { label: "A person", tone: "neutral" },
       },
       "From",

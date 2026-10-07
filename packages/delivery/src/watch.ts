@@ -36,7 +36,15 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { amount, WREN_PARTY } from "./contract.js";
-import { type FlagFind, flagsToFire, syncFlags, tellFlags } from "./health/flags.js";
+import {
+  type FailedRun,
+  type FlagFind,
+  failedLines,
+  flagsToFire,
+  syncFlags,
+  tellFlags,
+  workflowFlags,
+} from "./health/flags.js";
 import { healthPass } from "./health/pass.js";
 import {
   addDays,
@@ -115,6 +123,14 @@ export interface WatchDeps {
   notifier?: Notifier;
   /** Tells the spine of each flag raised or cleared; unset where no Spine runs. */
   fire?: FireTriggers;
+  /**
+   * Failed workflow runs in a database (null: Wren's), and a workflow's name: the error digest.
+   * Unset: no workflow flags.
+   */
+  failures?: {
+    of(client: string | null): Promise<FailedRun[]>;
+    name(workflow: string): string;
+  };
 }
 
 export interface WatchStats {
@@ -1159,6 +1175,25 @@ const dayWords = (day: string) =>
 const monthName = (period: string) =>
   `${MONTH_NAMES[Number(period.slice(5)) - 1]} ${period.slice(0, 4)}`;
 
+/**
+ * Failed workflow runs: a flag per client and workflow, and Wren's own as digest lines. A client
+ * database that won't answer is skipped this pass, never the whole watch.
+ */
+async function failingRuns(deps: WatchDeps): Promise<{ flags: FlagFind[]; wren: string[] }> {
+  const f = deps.failures;
+  if (!f) return { flags: [], wren: [] };
+  const ids = (
+    await deps.main.select({ id: clients.id }).from(clients).where(eq(clients.demo, false))
+  ).map((c) => c.id);
+  const flags: FlagFind[] = [];
+  for (const id of ids) {
+    const runs = await f.of(id).catch(() => []);
+    flags.push(...workflowFlags(id, runs, f.name));
+  }
+  const wren = failedLines(await f.of(null).catch(() => []), f.name);
+  return { flags, wren };
+}
+
 /** Causes told on the next pass, not in the morning digest: a client waiting on us. */
 const URGENT = /^reply:/;
 
@@ -1201,11 +1236,20 @@ async function flagClients(
   stats.heard = heard.found.length;
   const health = await healthPass(main, deps.zone, now);
   const fromHealth = await syncFlags(main, "health", health.flags, now);
+  const failing = await failingRuns(deps);
+  const fromRuns = await syncFlags(main, "workflows", failing.flags, now);
   stats.scored = health.scored;
-  stats.raised = delivery.raised + fromHealth.raised;
-  stats.cleared = delivery.cleared + fromHealth.cleared;
+  stats.raised = delivery.raised + fromHealth.raised + fromRuns.raised;
+  stats.cleared = delivery.cleared + fromHealth.cleared + fromRuns.cleared;
   if (deps.notifier) {
-    const told = await tellFlags(main, deps.notifier, today, wallClock(deps.zone, now).hour, now);
+    const told = await tellFlags(
+      main,
+      deps.notifier,
+      today,
+      wallClock(deps.zone, now).hour,
+      now,
+      failing.wren,
+    );
     stats.alerted = told.urgent + told.digest;
   }
   if (deps.fire) stats.fired = await flagsToFire(main, now);

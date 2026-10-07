@@ -102,6 +102,42 @@ export async function syncFlags(
   return { raised, cleared: gone.length };
 }
 
+// --- failed workflow runs ------------------------------------------------------------
+
+/** One workflow's failed runs, as `failedRuns` (`@wren/core/spine`) reads them. */
+export interface FailedRun {
+  workflow: string;
+  runs: number;
+  top: string;
+}
+
+const runsWords = (r: FailedRun, name: string) =>
+  `${r.runs} ${r.runs === 1 ? "run" : "runs"} failed in ${name}`;
+const topWords = (r: FailedRun) => `Top error: ${r.top.replace(/\s+/g, " ").slice(0, 200)}`;
+
+/**
+ * A client's failed runs as flags, one per workflow: told in the digest, again each day while
+ * any still fails, cleared once none do (`syncFlags`, source `workflows`).
+ */
+export const workflowFlags = (
+  clientId: string,
+  runs: readonly FailedRun[],
+  name: (workflow: string) => string,
+): FlagFind[] =>
+  runs.map((r) => ({
+    clientId,
+    engagementId: null,
+    side: "risk",
+    cause: `workflow:${r.workflow}`,
+    what: runsWords(r, name(r.workflow)),
+    how: `${topWords(r)}. Replay them from Workflows, Executions.`,
+    remindDays: 1,
+  }));
+
+/** Wren's own failed runs, as lines for the same digest. */
+export const failedLines = (runs: readonly FailedRun[], name: (workflow: string) => string) =>
+  runs.map((r) => `${runsWords(r, name(r.workflow))}\n    ${topWords(r)}`);
+
 // --- a person's hand ---------------------------------------------------------------
 
 export class FlagRefusal extends Error {}
@@ -206,6 +242,8 @@ export async function tellFlags(
   today: string,
   hour: number,
   now: Date,
+  /** Wren's own failed workflow runs (`failedLines`), at the digest's foot. */
+  wren: readonly string[] = [],
 ): Promise<{ urgent: number; digest: number }> {
   const told = { urgent: 0, digest: 0 };
   const urgent = await db
@@ -250,7 +288,7 @@ export async function tellFlags(
   const due = open.filter(
     (f) => !f.toldAt || f.toldAt.getTime() <= now.getTime() - f.remindDays * DAY + SLACK,
   );
-  if (due.length) {
+  if (due.length || wren.length) {
     const owners = [...new Set(due.map((f) => f.owner))].sort((a, b) =>
       a === null ? -1 : b === null ? 1 : a.localeCompare(b),
     );
@@ -266,17 +304,24 @@ export async function tellFlags(
         ].join("\n");
       })
       .join("\n\n");
-    if (!(await notifier.notify(`Clients: ${due.length} to look at`, text, "action"))) return told;
-    await db
-      .update(clientFlags)
-      .set({ toldAt: now })
-      .where(
-        inArray(
-          clientFlags.id,
-          due.map((f) => f.id),
-        ),
-      );
-    told.digest = due.length;
+    const all = [text, ...(wren.length ? [`Wren's workflows:\n${wren.join("\n")}`] : [])]
+      .filter(Boolean)
+      .join("\n\n");
+    const title = due.length
+      ? `Clients: ${due.length} to look at`
+      : `Workflows: ${wren.length} failing`;
+    if (!(await notifier.notify(title, all, "action"))) return told;
+    if (due.length)
+      await db
+        .update(clientFlags)
+        .set({ toldAt: now })
+        .where(
+          inArray(
+            clientFlags.id,
+            due.map((f) => f.id),
+          ),
+        );
+    told.digest = due.length + wren.length;
   }
   await db
     .insert(flagDigests)

@@ -45,6 +45,15 @@ export const DELIVERY_ROUTES = {
   domains: "read",
   addDomain: "manage",
   removeDomain: "manage",
+  // Outbound webhooks (designs/2026-10-07-webhooks-out.md).
+  webhooks: "read",
+  webhookDelivery: "read",
+  webhookAdd: "manage",
+  webhookEdit: "manage",
+  webhookRemove: "manage",
+  webhookRotate: "manage",
+  webhookTest: "manage",
+  webhookRedeliver: "manage",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Work, or the Account pages; records check each type. */
 export const DELIVERY_APPS = {
@@ -67,6 +76,14 @@ export const DELIVERY_APPS = {
   domains: "account",
   addDomain: "account",
   removeDomain: "account",
+  webhooks: "account",
+  webhookDelivery: "account",
+  webhookAdd: "account",
+  webhookEdit: "account",
+  webhookRemove: "account",
+  webhookRotate: "account",
+  webhookTest: "account",
+  webhookRedeliver: "account",
 } as const satisfies RouteApps<typeof DELIVERY_ROUTES>;
 export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -93,6 +110,12 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "mail",
   "addDomain",
   "removeDomain",
+  "webhookAdd",
+  "webhookEdit",
+  "webhookRemove",
+  "webhookRotate",
+  "webhookTest",
+  "webhookRedeliver",
 ];
 
 /** Client files (D11): at most this big, and only these types. The web checks first; the service decides. */

@@ -198,10 +198,17 @@ import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
-import { makeSpine, makeSpineClock, type SpineEvent, spineFire } from "@wren/core/spine";
+import {
+  failedRuns,
+  makeSpine,
+  makeSpineClock,
+  type SpineEvent,
+  spineFire,
+} from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
 import { gate } from "@wren/core/vendors";
+import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
@@ -1274,6 +1281,11 @@ export async function buildServices(
         app: portal,
         zone: settings.sendTimezone,
         fire: spineFire,
+        // The error digest: each database's failed runs, a flag per client and workflow.
+        failures: {
+          of: (client) => failedRuns(client ? clientDb(client) : db),
+          name: (id) => WORKFLOWS.find((w) => w.id === id)?.name ?? id,
+        },
         ...clientsNotify,
       }),
     );
@@ -1473,7 +1485,11 @@ export async function buildServices(
           },
           () => wrenFacts(db),
         ),
+        // Send webhook: any https URL past the SSRF guard (designs/2026-10-07-webhooks-out.md).
+        "logic.webhook": webhookStep(),
       },
+      // What a client's own URLs hear: deliveries signed and tried on Webhooks' ladder.
+      publish: webhooksPublish,
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(
           `Rule: ${when}\n\nEvent (${e.kind}, ${e.subject}):\n${JSON.stringify(e.data).slice(0, 4000)}`,
@@ -1484,6 +1500,7 @@ export async function buildServices(
     }),
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.
     makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
+    makeWebhooks({ main: db }),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({
       main: db,
