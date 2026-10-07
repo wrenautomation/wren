@@ -152,7 +152,7 @@ describe("funnel", () => {
     expect(redditPrompt).toContain("No self-promotion.");
     expect(redditPrompt).toContain("recorded a walkthrough");
 
-    // Not on YouTube yet: a linked promo waits; once it's up, it carries the video's URL.
+    // Not on YouTube yet: a linked promo waits; once it's up, it carries the lander's counted hop.
     const li = by.linkedin?.ok ? by.linkedin.draft : null;
     if (!li) throw new Error("no linkedin promo");
     await expect(approveDrafts(pg.db, [li.id], { now: new Date() })).rejects.toThrow(
@@ -163,7 +163,7 @@ describe("funnel", () => {
       .set({ status: "published", url: "https://www.youtube.com/watch?v=synthetic01" })
       .where(eq(contentDrafts.id, long.id));
     expect(await readFunnel(pg.db, li)).toMatchObject({
-      posts: "https://www.youtube.com/watch?v=synthetic01",
+      posts: `https://wrenautomation.com/go/li/reach/${li.id.slice(0, 8)}?v=synthetic01`,
     });
     const view = await shapeView(pg.db, li.id);
     expect(view?.funnel).toMatchObject({ to: "video", video: { id: long.id } });

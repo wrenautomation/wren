@@ -2,7 +2,8 @@
  * The funnel on a post (designs/2026-10-07-content-funnel.md): video → site → booking. Every draft
  * says which stage it serves and where it points; the link it carries is derived from that, never
  * typed, so it can't go stale when the video uploads or the target changes. `linked` is his only
- * stored choice: null follows the platform's rule.
+ * stored choice: null follows the platform's rule. Every link of Wren's goes through the lander's
+ * `/go/`, a video's too (`?v=`), so each click is counted against its post.
  */
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
@@ -78,11 +79,42 @@ export interface FunnelView {
 const isShort = (d: Pick<ContentDraft, "platform" | "extra">) =>
   d.platform === "youtube" && d.extra?.kind === "short";
 
-/** The target's link: the video's YouTube URL, or the lander's `/go/<code>/<stage>/<post>`. */
-export function targetLink(d: FunnelRow, video: FunnelVideo | null): string | null {
-  if (d.pointsTo === "video") return video?.url ?? null;
-  const go = `${WREN_SITE}/go/${PLATFORM_SPECS[d.platform].goCode}/${d.stage}/${d.id.slice(0, 8)}`;
-  return d.pointsTo === "booking" ? `${go}?to=${BOOKING_PATH}` : go;
+/** A YouTube video's id from its URL (`watch?v=`, `youtu.be/`, `shorts/`), or null. */
+export function youtubeId(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www|m)\./, "");
+  const id =
+    host === "youtu.be"
+      ? u.pathname.slice(1)
+      : host === "youtube.com"
+        ? (u.searchParams.get("v") ?? /^\/(?:shorts|live)\/([^/]+)/.exec(u.pathname)?.[1] ?? "")
+        : "";
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+}
+
+/** The lander's tracked link for a post: `/go/<channel>/<stage>/<first 8 of the draft id>`. */
+const goLink = (d: Pick<FunnelRow, "id" | "platform" | "stage">) =>
+  `${WREN_SITE}/go/${PLATFORM_SPECS[d.platform].goCode}/${d.stage}/${d.id.slice(0, 8)}`;
+
+/**
+ * The target's link. Wren's posts go through the lander's `/go/<channel>/<stage>/<post>`, which
+ * counts the click: to the video with `?v=<YouTube id>` (none until it's up), to booking with
+ * `?to=`. A client's post links only its own video, straight: Wren's lander never carries a
+ * client's traffic.
+ */
+export function targetLink(d: FunnelRow, video: FunnelVideo | null, client = false): string | null {
+  if (d.pointsTo === "video") {
+    if (!video?.url) return null;
+    const id = client ? null : youtubeId(video.url);
+    return id ? `${goLink(d)}?v=${id}` : video.url;
+  }
+  if (client) return null;
+  return d.pointsTo === "booking" ? `${goLink(d)}?to=${BOOKING_PATH}` : goLink(d);
 }
 
 /**
@@ -131,25 +163,26 @@ export function linkRule(
 /** The funnel of a draft, given its context. Pure: the scheduler and the editor read the same. */
 export function funnelOf(d: FunnelRow, ctx: FunnelContext): FunnelView {
   const rule = linkRule(d, ctx.place);
-  const link = targetLink(d, ctx.video);
+  const link = targetLink(d, ctx.video, ctx.client);
   const linked = d.linked ?? rule.on;
   const inText =
     Boolean(link && d.text.includes(link)) || d.text.includes(`${WREN_SITE.slice(8)}/go/`);
-  const note = ctx.client
-    ? "A client's posts carry no Wren link"
-    : !rule.allowed
-      ? rule.why
-      : !linked
-        ? d.linked === false
-          ? "Off for this post"
-          : rule.why
-        : !link
-          ? ctx.video
-            ? "Fills in when the video is on YouTube"
-            : "Pick the video it points to"
-          : inText
-            ? "Already in the text"
-            : null;
+  const note =
+    ctx.client && d.pointsTo !== "video"
+      ? "A client's posts link only its own videos"
+      : !rule.allowed
+        ? rule.why
+        : !linked
+          ? d.linked === false
+            ? "Off for this post"
+            : rule.why
+          : !link
+            ? ctx.video
+              ? "Fills in when the video is on YouTube"
+              : "Pick the video it points to"
+            : inText
+              ? "Already in the text"
+              : null;
   return {
     stage: d.stage,
     to: d.pointsTo,
@@ -285,7 +318,7 @@ export async function refuseUnlinked(db: Queryable, rows: readonly FunnelRow[]):
     if (r.pointsTo !== "video") continue;
     const ctx = await funnelContext(db, r);
     const f = funnelOf(r, ctx);
-    if (ctx.client || !f.linked || !f.allowed || f.link) continue;
+    if (!f.linked || !f.allowed || f.link) continue;
     waiting.push(
       f.video
         ? `${r.id}: its video isn't on YouTube yet; approve once it is, or turn the link off`

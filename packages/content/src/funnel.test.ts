@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type FunnelContext, funnelLine, funnelOf, linkRule, targetLink } from "./funnel.js";
+import {
+  type FunnelContext,
+  funnelLine,
+  funnelOf,
+  linkRule,
+  targetLink,
+  youtubeId,
+} from "./funnel.js";
 
 const id = "3f2a9c1e-7b4d-4e8a-9c2f-1a2b3c4d5e6f";
 const base = {
@@ -16,18 +23,46 @@ const ctx: FunnelContext = { video: null, place: null, client: false };
 const video = {
   id: "v",
   title: "How we cut setup time",
-  url: "https://youtu.be/abc",
+  url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   status: "published" as const,
 };
 
 describe("funnel links", () => {
-  it("site and booking go through the lander with the stage; video goes straight to YouTube", () => {
+  it("site, booking and video all go through the lander with the stage", () => {
     expect(targetLink(base, null)).toBe("https://wrenautomation.com/go/li/reach/3f2a9c1e");
     expect(targetLink({ ...base, pointsTo: "booking", stage: "convert" }, null)).toBe(
       "https://wrenautomation.com/go/li/convert/3f2a9c1e?to=/book/reactivation",
     );
-    expect(targetLink({ ...base, pointsTo: "video" }, video)).toBe("https://youtu.be/abc");
+    expect(targetLink({ ...base, pointsTo: "video" }, video)).toBe(
+      "https://wrenautomation.com/go/li/reach/3f2a9c1e?v=dQw4w9WgXcQ",
+    );
     expect(targetLink({ ...base, pointsTo: "video" }, { ...video, url: null })).toBeNull();
+  });
+
+  it("a client's post links its own video straight, and nothing of Wren's", () => {
+    expect(targetLink({ ...base, pointsTo: "video" }, video, true)).toBe(video.url);
+    expect(targetLink(base, null, true)).toBeNull();
+    const promo = { ...base, pointsTo: "video" as const, videoDraft: "v" };
+    expect(funnelOf(promo, { ...ctx, video, client: true }).posts).toBe(video.url);
+    expect(funnelOf(base, { ...ctx, client: true }).note).toBe(
+      "A client's posts link only its own videos",
+    );
+  });
+
+  it("reads a YouTube id from each URL shape, and nothing else", () => {
+    for (const u of [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10",
+      "https://youtu.be/dQw4w9WgXcQ",
+      "https://m.youtube.com/shorts/dQw4w9WgXcQ",
+    ])
+      expect(youtubeId(u)).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://example.com/watch?v=dQw4w9WgXcQ")).toBeNull();
+    expect(youtubeId("https://youtu.be/short")).toBeNull();
+    expect(youtubeId("not a url")).toBeNull();
+    // An id that isn't one: the post links the video straight rather than through a bad hop.
+    expect(
+      targetLink({ ...base, pointsTo: "video" }, { ...video, url: "https://youtu.be/x" }),
+    ).toBe("https://youtu.be/x");
   });
 
   it("captions and Shorts never carry one; LinkedIn does", () => {
@@ -43,7 +78,9 @@ describe("funnel links", () => {
   it("X and Reddit link only a promo, and Reddit only where the sub allows", () => {
     expect(funnelOf({ ...base, platform: "x" }, ctx).posts).toBeNull();
     const promo = { ...base, platform: "x" as const, pointsTo: "video" as const, videoDraft: "v" };
-    expect(funnelOf(promo, { ...ctx, video }).posts).toBe("https://youtu.be/abc");
+    expect(funnelOf(promo, { ...ctx, video }).posts).toBe(
+      "https://wrenautomation.com/go/x/reach/3f2a9c1e?v=dQw4w9WgXcQ",
+    );
     const reddit = { ...promo, platform: "reddit" as const, extra: { subreddit: "smallbusiness" } };
     expect(funnelOf(reddit, { ...ctx, video }).note).toMatch(/researched/);
     expect(
@@ -51,7 +88,7 @@ describe("funnel links", () => {
     ).toBe("r/smallbusiness doesn't allow links");
     expect(
       funnelOf(reddit, { ...ctx, video, place: { name: "smallbusiness", links: true } }).posts,
-    ).toBe("https://youtu.be/abc");
+    ).toBe("https://wrenautomation.com/go/rd/reach/3f2a9c1e?v=dQw4w9WgXcQ");
     // A text post stays organic even where links are allowed.
     expect(
       funnelOf(
@@ -74,7 +111,7 @@ describe("funnel links", () => {
     );
   });
 
-  it("no second link when the text has one, and none on a client's post", () => {
+  it("no second link when the text has one, and no Wren link on a client's post", () => {
     const footer = {
       ...base,
       platform: "youtube" as const,

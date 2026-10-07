@@ -386,6 +386,8 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
     "marketing/draftFunnel",
     { draftId: draftOf(id), stage, to, video, linked },
   ],
+  // A promo of its YouTube post, on its own logins: checked, then started.
+  "marketing/postPromote": (id) => ["marketing/promote", { draftId: draftOf(id) }],
 };
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {

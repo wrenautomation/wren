@@ -16,9 +16,11 @@ import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates
 import { defaultSource } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import {
+  COMMENT_KINDS_LEARNED,
   comments,
   DRAFT_MAX,
   dmContext,
+  examplesFor,
   COMMENT_MAX as LINKEDIN_COMMENT_MAX,
   linkedinPosts,
   reachContacts,
@@ -51,6 +53,10 @@ export interface DraftItem {
   guide: string;
   /** His last 5 edits of this kind as a prompt block (`readDraft` adds it); "" = none. */
   edits?: string;
+  /** A comment: what it answers, to pick his past decisions closest to it. */
+  about?: string;
+  /** A comment: his past sent and turned-down comments as a prompt block (`readDraft`); "" = none. */
+  examples?: string;
 }
 
 export interface Waiting {
@@ -175,6 +181,7 @@ const comment: DraftKind = {
         [`${c.author} wrote`, c.body],
         ["Read as", c.why ? `${c.sort}: ${c.why}` : c.sort],
       ]),
+      about: `${c.postTitle ?? ""} ${c.body}`,
       guide: await commentGuide(db, c.platform as Platform),
     };
   },
@@ -222,6 +229,7 @@ const thread: DraftKind = {
         ["Angle", t.angle],
         ["Read for the draft", t.sources?.map((s) => `${s.label}: ${s.text}`).join("\n\n")],
       ]),
+      about: `${t.title} ${t.body}`,
       guide: await commentGuide(db, "reddit"),
     };
   },
@@ -271,6 +279,7 @@ const lipost: DraftKind = {
         [`Post by ${p.author}`, `${p.headline ? `${p.headline}\n\n` : ""}${p.text}`],
         ["Why it was picked", p.why],
       ]),
+      about: p.text,
       guide: await commentGuide(db, "linkedin"),
     };
   },
@@ -388,12 +397,17 @@ export function itemOf(item: string): { record: string; id: string; kind: DraftK
   return { record, id: item.slice(at + 1), kind };
 }
 
-/** The draft and what it needs, or a throw that says why not. */
+/**
+ * The draft and what it needs, or a throw that says why not. A comment also gets his past
+ * decisions on comments, closest to what it answers: the same few-shot its drafting prompt reads.
+ */
 export async function readDraft(db: Queryable, item: string) {
   const { kind, id, record } = itemOf(item);
   const got = await kind.read(db, id);
   if (!got) throw new Error(`no ${record} ${id}`);
-  return { ...got, edits: await editsFor(db, editRecords(record)) };
+  const examples =
+    got.about !== undefined ? await examplesFor(db, COMMENT_KINDS_LEARNED, got.about) : "";
+  return { ...got, edits: await editsFor(db, editRecords(record)), examples };
 }
 
 /** Drafts waiting on William, every kind or one, newest first. */
@@ -494,8 +508,8 @@ export const ASK_MESSAGE_MAX = 2000;
 
 /**
  * The system prompt (kind prompt, system `content`, name `draft-ask`); its words ship as
- * `packages/templates/defaults/prompt/content/draft-ask.prompt`. His edits come before the SOP:
- * the cut takes the end, and his edits say the most.
+ * `packages/templates/defaults/prompt/content/draft-ask.prompt`. His edits, then his past
+ * decisions on comments, come before the SOP: the cut takes the end, and his own say the most.
  */
 export const DRAFT_ASK_REF = { system: "content", name: "draft-ask" } as const;
 /** The shipped words, parsed. */
@@ -519,6 +533,7 @@ export function askPrompt(
     max: String(d.max),
     draft: d.draft ? `"""\n${d.draft}\n"""` : "(none yet)",
     edits: d.edits || null,
+    examples: d.examples || null,
     guide: d.guide || null,
   });
   return {

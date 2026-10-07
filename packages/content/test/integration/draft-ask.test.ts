@@ -4,13 +4,15 @@
  * puts the text back, a hand edit meanwhile is never overwritten, a closed comment is refused.
  * Then `wren drafts`' reads and writes: the waiting list, the cap, the Inbox's thread; a DM
  * reply and an accepted invite's first message on `reach_contacts.draft`. His edits: the box's
- * save and a changed send kept as before and after, read back per kind into the next ask.
+ * save and a changed send kept as before and after, read back per kind into the next ask. His
+ * past decisions on comments: the same few-shot the comment drafters read, in a comment's ask.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
+import { recordDraft } from "@wren/core/draft-record";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import {
@@ -70,6 +72,7 @@ beforeEach(async () => {
     "reach_contacts",
     "reach_accounts",
     "linkedin_posts",
+    "draft_events",
   ]);
   answers.length = 0;
   asked.length = 0;
@@ -322,6 +325,42 @@ describe("his edits", () => {
     expect(asked[0]?.system).toContain("How he edited earlier drafts");
     expect(asked[0]?.system).toContain("Start with the task you do every day.");
     expect(asked[0]?.system).not.toContain("His words.");
+  });
+});
+
+describe("his past decisions", () => {
+  it("a comment's ask reads the comments he sent and turned down; a post's doesn't", async () => {
+    const sent = await comment("answered", null);
+    await recordDraft(pg.db, {
+      item: `comment:${sent}`,
+      kind: "comment",
+      platform: "linkedin",
+      event: "sent",
+      via: "person",
+      text: "Pick the task you repeat every morning.",
+    });
+    await recordDraft(pg.db, {
+      item: "comment:999",
+      kind: "comment",
+      platform: "linkedin",
+      event: "rejected",
+      via: "person",
+      text: "Great question! Automation is a journey.",
+      reason: "voice",
+    });
+    const c = await comment("waiting", "Start with the daily one.");
+    answers.push('{"reply": "Fine.", "draft": null}');
+    await desk().ask({ record: "comment", id: c, message: "ok?" });
+    await settled("comment", c);
+    expect(asked[0]?.system).toContain("His past decisions on comment drafts");
+    expect(asked[0]?.system).toContain("Pick the task you repeat every morning.");
+    expect(asked[0]?.system).toContain("Great question! Automation is a journey.");
+
+    const p = await post("Most teams skip the CRM.");
+    answers.push('{"reply": "Fine.", "draft": null}');
+    await desk().ask({ record: "draft", id: p, message: "ok?" });
+    await settled("draft", p);
+    expect(asked[1]?.system).not.toContain("His past decisions");
   });
 });
 

@@ -26,12 +26,13 @@ function legacyAsk(
   const head = `${DRAFT_SYSTEM}\n\nIt is a ${d.what}, at most ${d.max} characters.\n\nThe draft now:\n${
     d.draft ? `"""\n${d.draft}\n"""` : "(none yet)"
   }`;
-  // His edits before the SOP: the cut takes the end, and his edits say the most.
+  // His edits and his past comment decisions before the SOP: the cut takes the end.
   const edits = d.edits ? `\n\n${d.edits}` : "";
+  const examples = d.examples ? `\n\n${d.examples}` : "";
   const guide = d.guide ? `\n\nHow we write here:\n${d.guide}` : "";
   return {
     question: `${ask.by} asks: ${ask.message}\n\n${d.context}`.slice(0, QUESTION_MAX),
-    system: (head + edits + guide).slice(0, SYSTEM_MAX),
+    system: (head + edits + examples + guide).slice(0, SYSTEM_MAX),
   };
 }
 
@@ -86,6 +87,8 @@ describe("Ask Claude prompts as templates", () => {
       { ...item, draft: "", edits: "" },
       { ...item, guide: "x".repeat(9000) },
       { ...item, draft: "y".repeat(5001) },
+      { ...item, examples: 'His past decisions on comment drafts:\n1. Draft: "{x}"\nHe sent it.' },
+      { ...item, edits: "", examples: "His past decisions on comment drafts: one." },
     ];
     for (const d of items) expect(askPrompt(d, ask)).toEqual(legacyAsk(d, ask));
     expect(draftAskDefault().version).toMatch(/^[0-9a-f]{12}$/);

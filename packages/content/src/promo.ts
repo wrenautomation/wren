@@ -135,10 +135,10 @@ export async function videoDraftOf(db: Queryable, video: number): Promise<string
 }
 
 /**
- * The promo's idea for a YouTube video draft, made once (ref `promo:<draft>`): the video's title
- * and description without its footer. Refuses a Short, or a video not approved to go up.
+ * The YouTube video draft a promo starts from, or a throw saying why not: not YouTube, a Short, or
+ * not approved to go up. Read only, so the portal can ask before it starts one.
  */
-export async function promoBase(db: Queryable, videoDraft: string): Promise<PromoBase> {
+export async function promotable(db: Queryable, videoDraft: string) {
   const [v] = await db
     .select({
       id: contentDrafts.id,
@@ -159,6 +159,15 @@ export async function promoBase(db: Queryable, videoDraft: string): Promise<Prom
     throw new Error("a Short can't be promoted: promote its long video");
   if (!(PROMOTABLE as readonly string[]).includes(v.status))
     throw new Error(`the video is ${v.status}: approve it for YouTube first`);
+  return v;
+}
+
+/**
+ * The promo's idea for a YouTube video draft, made once (ref `promo:<draft>`): the video's title
+ * and description without its footer. Refuses what `promotable` refuses.
+ */
+export async function promoBase(db: Queryable, videoDraft: string): Promise<PromoBase> {
+  const v = await promotable(db, videoDraft);
   const editId = /^video:(\d+)/.exec(v.ref ?? "")?.[1];
   const [e] = editId
     ? await db

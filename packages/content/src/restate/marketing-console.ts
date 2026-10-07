@@ -39,7 +39,8 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
-import { type ContentDesk, DESK_UNIT, type FunnelRequest } from "./desk.js";
+import { PROMO_PLATFORMS, type PromoPlatform, promotable } from "../promo.js";
+import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 
 export const MARKETING_STATS = "marketing.stats";
 
@@ -76,6 +77,10 @@ export interface FunnelConsoleRequest extends PortalRequest {
   video?: string | null;
   linked?: string | boolean | null;
 }
+export interface PromoteRequest extends PortalRequest {
+  /** The client's YouTube post. */
+  draftId: string;
+}
 export interface AttachRequest extends PortalRequest {
   draftId: string;
   field: string;
@@ -84,6 +89,7 @@ export interface AttachRequest extends PortalRequest {
 }
 
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps) {
@@ -110,18 +116,40 @@ export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps)
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
     /** The client's desk key, or the refusal: never the demo, installed, its approver only. */
-    deciding: async (req: PortalRequest): Promise<string> => {
-      const { client } = await pickForWrite(db, req);
-      if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
-        throw new PortalRefusal("Marketing numbers is not installed", 404);
-      const v = req.viewer;
-      const who =
-        !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client.id) : accessOf(req);
-      if (!mayApprove(who, client.id, client.approver))
-        throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
-      return clientKey(client.id, DESK_UNIT);
+    deciding: async (req: PortalRequest): Promise<string> => (await decide(req)).key,
+    /**
+     * A promo of the client's YouTube post, checked before it starts: its approver, its plan and
+     * model gate open, the post a video approved to go up. The platforms are its own logins'.
+     */
+    promoting: async (req: PromoteRequest) => {
+      const { client, key } = await decide(req);
+      const draftId = String(req.draftId ?? "");
+      if (!UUID.test(draftId)) throw new PortalRefusal("pick a YouTube post first", 400);
+      const plan = await clientDrafting(db, client.id);
+      if (!plan.ok) throw new PortalRefusal(plan.why, 409);
+      try {
+        await promotable(open(client), draftId);
+      } catch (err) {
+        throw new PortalRefusal((err as Error).message, 409);
+      }
+      const platforms: PromoPlatform[] = PROMO_PLATFORMS.filter((p) => plan.platforms.includes(p));
+      if (!platforms.length)
+        throw new PortalRefusal("none of this client's logins takes a promo yet", 409);
+      return { key, draftId, platforms };
     },
   };
+
+  async function decide(req: PortalRequest) {
+    const { client } = await pickForWrite(db, req);
+    if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+      throw new PortalRefusal("Marketing numbers is not installed", 404);
+    const v = req.viewer;
+    const who =
+      !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client.id) : accessOf(req);
+    if (!mayApprove(who, client.id, client.approver))
+      throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
+    return { client, key: clientKey(client.id, DESK_UNIT) };
+  }
 }
 
 /** Draft ids from a browser: strings, one page's worth. */
@@ -269,6 +297,27 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
                 viewer: req.viewer,
               }),
             );
+          }),
+      ),
+      /**
+       * Promote the client's YouTube post: one draft per platform its logins post on, pointing at
+       * the video, each waiting in its To approve. Checked here, then started, not awaited (a
+       * model call per platform). Nothing posts.
+       */
+      promote: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The YouTube post's draft id"),
+          }),
+        },
+        (ctx: restate.Context, req: PromoteRequest) =>
+          answer(async () => {
+            const go = await ctx.run("check", () => answer(() => api.promoting(req)));
+            ctx
+              .objectSendClient<ContentDesk>({ name: "ContentDesk" }, go.key)
+              .promote({ draftId: go.draftId, platforms: go.platforms, viewer: req.viewer });
+            return { started: true, platforms: go.platforms };
           }),
       ),
       /** A file on a client draft's field (thumbnail, subtitles, cover). */

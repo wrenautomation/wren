@@ -25,7 +25,7 @@ const said = (line: string) => () => line;
 
 /** A video's promo (designs/2026-10-07-content-funnel.md): one draft per platform, none posted. */
 const PROMOTE_CONFIRM =
-  "Draft a post for LinkedIn, X, Reddit and Instagram that points to this video? Each waits in To approve.";
+  "Draft a post on each channel that points to this video? Each waits in To approve. Nothing posts.";
 const PROMOTE_DONE = said("Drafting. The promos show in To approve in a minute.");
 
 const POST_ACTIONS: Action[] = [
@@ -1238,7 +1238,8 @@ const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
 
 /**
  * A client's Marketing, once `marketing.stats` is installed: its drafts, posts, ads and search
- * (`MarketingConsole`, its own database). Drafts take its approver's verdict; the rest read only.
+ * (`MarketingConsole`, its own database). Drafts take its approver's verdict, a YouTube post its
+ * approver's Promote (drafts on its own logins); the rest read only.
  * Same address as Wren's; the workspace picks which.
  */
 export const clientMarketing: Module = {
@@ -1249,7 +1250,7 @@ export const clientMarketing: Module = {
   blurb: "Your posts, drafts, ads and search in one place.",
   pages: [
     asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
-    asClient("content"),
+    asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
     asClient("search"),
     asClient("keywords"),

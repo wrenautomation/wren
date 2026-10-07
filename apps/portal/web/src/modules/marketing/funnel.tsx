@@ -1,7 +1,8 @@
 /**
  * A post's place in the funnel (designs/2026-10-07-content-funnel.md): its stage, where it points
- * and the link it carries. The link is derived, never typed: the video's YouTube URL, or the
- * lander's `/go/<channel>/<stage>/<post>`. Each choice saves on its own, like a field.
+ * and the link it carries. The link is derived, never typed: the lander's
+ * `/go/<channel>/<stage>/<post>`, which counts the click and, for a video, hops on to YouTube
+ * (`?v=`). A client's post links its own video straight. Each choice saves on its own.
  */
 import type { RecordAct } from "@wren/ui";
 import { Tag } from "@wren/ui";
@@ -134,6 +135,9 @@ function LinkLine({
 }) {
   const { said, bad, run } = useSave(act);
   const shown = funnel.posts ?? funnel.link;
+  // Through the lander to the video: say where it lands, since the link reads as our site.
+  const hop =
+    funnel.to === "video" && Boolean(shown && funnel.video?.url && shown !== funnel.video.url);
   return (
     <div className="grid min-w-0 gap-1.5 @min-[440px]/fields:col-span-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -155,7 +159,11 @@ function LinkLine({
         )}
         {funnel.posts ? <Tag tone="green">In the post</Tag> : null}
       </div>
-      {funnel.note ? <span className={HINT}>{funnel.note}</span> : null}
+      {funnel.note ? (
+        <span className={HINT}>{funnel.note}</span>
+      ) : hop ? (
+        <span className={HINT}>Counts the click, then opens the video on YouTube.</span>
+      ) : null}
       {editable && funnel.allowed ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <label className="flex cursor-pointer items-center gap-2.5">

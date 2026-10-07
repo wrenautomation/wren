@@ -49,6 +49,21 @@ import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from ".
 import type { Brand } from "../voice.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
+/**
+ * May this client's desk draft now, and on which platforms? Its plan installed with an About, a
+ * login that posts, and its `models` gate open. Read only: the portal asks it before starting one.
+ */
+export async function clientDrafting(main: Db, id: string) {
+  const c = await clientContent(main, id, "content.planner");
+  if (c.kind === "gone") return { ok: false as const, why: c.why };
+  const p = clientPlan(c.client);
+  if (!p.ok) return p;
+  const g = await gate(main, id, "models", 1, new Date());
+  return g.ok
+    ? { ...p, platforms: c.platforms as Platform[] }
+    : { ok: false as const, why: `models: ${g.why}` };
+}
+
 export const DESK_KEY = "default";
 /** A client's desk is `ContentDesk/<client>/desk`. */
 export const DESK_UNIT = "desk";
@@ -213,6 +228,9 @@ export function funnelPatch(req: FunnelRequest): FunnelPatch {
   };
 }
 
+/** Why a client's promo skips a platform: none of its logins posts there yet. */
+export const NOT_CONNECTED = "no login of this client's posts here yet";
+
 /** A refusal the person can fix (not approved yet, no such video) fails the call, never retries. */
 const verdictOf = async <T>(f: () => Promise<T>): Promise<T> => {
   try {
@@ -260,16 +278,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
     const id = owner.client;
     const db = clients.clientDb(id);
     if (!drafts) return { db, llm: deps.llm };
-    const plan = await ctx.run("client", async () => {
-      const c = await clientContent(deps.db, id, "content.planner");
-      if (c.kind === "gone") return { ok: false as const, why: c.why };
-      const p = clientPlan(c.client);
-      if (!p.ok) return p;
-      const g = await gate(deps.db, id, "models", 1, new Date());
-      return g.ok
-        ? { ...p, platforms: c.platforms as Platform[] }
-        : { ok: false as const, why: `models: ${g.why}` };
-    });
+    const plan = await ctx.run("client", () => clientDrafting(deps.db, id));
     if (!plan.ok || !clients.llm)
       throw new restate.TerminalError(plan.ok ? "no model here" : plan.why, { errorCode: 409 });
     return {
@@ -475,7 +484,10 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               promoBase(s.db, req.draftId || (await videoDraftOf(s.db, video as number))),
             ),
           );
-          const platforms = req.platforms?.length ? req.platforms : [...PROMO_PLATFORMS];
+          const asked = req.platforms?.length ? req.platforms : [...PROMO_PLATFORMS];
+          // A client's promos only where its own logins post; the rest say why.
+          const own = s.platforms;
+          const platforms = own ? asked.filter((p) => own.includes(p)) : asked;
           const runId = await ctx.run("open run", async () => {
             const run = await openRun(s.db, {
               command: "content promote",
@@ -484,7 +496,9 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             return run.id;
           });
           const o = { ...options(s, runId, req.again ?? false), by: byOf(req) };
-          const results: DraftResult[] = [];
+          const results: DraftResult[] = asked
+            .filter((p) => !platforms.includes(p))
+            .map((platform) => ({ platform, ok: false, reason: NOT_CONNECTED }));
           for (const p of platforms) {
             const [r] = await ctx.run(`${DRAFT_STAGE} ${p} promo`, () =>
               stopped([p], () => draftPromo(s.db, s.llm, base, p, o).then((x) => [x])),
