@@ -134,6 +134,8 @@ import {
   planPostComment,
   postReader,
   postsPass,
+  type RedraftResult,
+  redraftPosts,
   skipPost,
 } from "../linkedin-posts.js";
 import type { ReachPolicy } from "../policy.js";
@@ -199,9 +201,16 @@ export interface ReachDeps {
   postedAt?: (platform: Platform) => Promise<string | null>;
   /**
    * DM drafts: the model and the `outbound-copy` SOP. No model, no drafts. Comments on others'
-   * LinkedIn posts: the comments SOP (`commentGuide`) and his voice.
+   * LinkedIn posts: the comments SOP (`commentGuide`) and his voice. `facts`: what is true about
+   * the writer, the only first-person claims a draft may make; none, and it claims nothing.
    */
-  drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: DmGuide; voice?: string };
+  drafts?: {
+    llm: LlmClient | null;
+    guide?: DmGuide;
+    commentGuide?: DmGuide;
+    voice?: string;
+    facts?: () => Promise<readonly string[]>;
+  };
   /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
   clients?: ReachClients;
 }
@@ -435,6 +444,7 @@ function postsFor(
     llm: deps.drafts?.llm ?? null,
     ...(guide ? { guide: () => guide("linkedin") } : {}),
     ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
+    ...(deps.drafts?.facts ? { facts: deps.drafts.facts } : {}),
     now,
     step: (name, fn) => ctx.run(name, fn),
     capped: (err) => err instanceof SiteCallError && err.status === 429,
@@ -453,6 +463,9 @@ async function draftsPass(
   const due = await ctx.run("drafts due", async () =>
     contactsToDraft(deps.db, DRAFTS_PER_DAY - (await draftsToday(deps.db, now))),
   );
+  const factsOf = deps.drafts?.facts;
+  const facts =
+    due.length && factsOf ? await ctx.run("facts", async () => [...(await factsOf())]) : [];
   for (const id of due) {
     // A failed call is kept as its words, not thrown: the next pass asks again.
     const r = await ctx.run(`draft ${id}`, async () => {
@@ -460,6 +473,7 @@ async function draftsPass(
         const draft = await draftDm(deps.db, llm, id, {
           sender: deps.senderName,
           ...(deps.drafts?.guide ? { guide: deps.drafts.guide } : {}),
+          facts,
           now,
         });
         return { written: draft ? 1 : 0, error: null };
@@ -1235,14 +1249,51 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: POST_IDS },
         async (
           ctx: restate.Context,
-          req: { ids: number[]; reason?: unknown; note?: unknown },
+          req: { ids: number[]; by?: unknown; reason?: unknown; note?: unknown },
         ): Promise<{ skipped: number[] }> => {
           const why = terminalWhy(req);
+          // The portal's viewer when there is one; else who the CLI names.
+          const by =
+            (req as { viewer?: { email?: string } }).viewer?.email ??
+            (typeof req.by === "string" && req.by.trim() ? req.by.trim().slice(0, 200) : byOf(req));
           return {
-            skipped: await ctx.run("skip", () =>
-              skipPost(deps.db, req.ids, { by: byOf(req), ...why }),
-            ),
+            skipped: await ctx.run("skip", () => skipPost(deps.db, req.ids, { by, ...why })),
           };
+        },
+      ),
+      /**
+       * Write queued drafts again from the posts kept at read time (no LinkedIn read): ranked
+       * again, guarded, and the new words replace the old in To approve. One now off target, or
+       * one the guard drops, leaves To approve.
+       */
+      redraftPosts: serviceHandler(
+        { input: POST_IDS },
+        async (ctx: restate.Context, req: { ids: number[] }): Promise<RedraftResult> => {
+          const llm = deps.drafts?.llm;
+          if (!llm) throw new restate.TerminalError("no model is set for drafts");
+          const now = await nowOf(ctx);
+          const settings = await ctx.run("settings", () => commentsSettings(deps.db));
+          const guide = deps.drafts?.commentGuide;
+          const g = guide ? await ctx.run("guide", () => guide("linkedin")) : "";
+          const facts = deps.drafts?.facts;
+          const truths = facts ? await ctx.run("facts", async () => [...(await facts())]) : [];
+          const out: RedraftResult = { redrafted: [], dropped: [], skipped: [] };
+          // One step a post: a retry after a crash does not ask the model twice for one done.
+          for (const id of [...new Set(req.ids)]) {
+            const r = await ctx.run(`redraft ${id}`, () =>
+              redraftPosts(deps.db, llm, [id], {
+                settings,
+                guide: g,
+                facts: truths,
+                ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
+                now,
+              }),
+            );
+            out.redrafted.push(...r.redrafted);
+            out.dropped.push(...r.dropped);
+            out.skipped.push(...r.skipped);
+          }
+          return out;
         },
       ),
       /** Posts to comment on, newest first; a state narrows them. */
@@ -1288,6 +1339,7 @@ export function makeReachDesk(deps: ReachDeps) {
               return await draftDm(deps.db, llm, contact.id, {
                 sender: deps.senderName,
                 ...(deps.drafts?.guide ? { guide: deps.drafts.guide } : {}),
+                facts: deps.drafts?.facts ? await deps.drafts.facts() : [],
                 now,
               });
             } catch (err) {

@@ -3,7 +3,8 @@
  * 4), so a Claude Code session reads and rewrites the drafts the console shows. Ids are the
  * Inbox's: draft:<id>, comment:3, thread:t3_x. `set` writes the field the console edits and
  * leaves a runs row, so the item's Ask Claude thread shows it. `edits` prints how William changed
- * drafts (before and after), the same examples every drafting call reads. Nothing sends.
+ * drafts (before and after), the same examples every drafting call reads. `facts` lists and edits
+ * what is true about him: the only first-person claims a draft may make. Nothing sends.
  */
 import {
   DRAFT_TYPES,
@@ -14,7 +15,9 @@ import {
   writeDraft,
 } from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
-import type { Db } from "@wren/db";
+import { setWrenSettings } from "@wren/core/clients";
+import { DEFAULT_FACTS, FACTS_COMPONENT, factsSettingsSchema, wrenFacts } from "@wren/core/facts";
+import { atomic, type Db, setAuditActor } from "@wren/db";
 import type { Command } from "commander";
 import { readText } from "./content.js";
 
@@ -104,4 +107,47 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
       );
       console.log(`${item}: set (${text.length} chars), was ${out.before?.length ?? 0}`);
     });
+
+  const facts = drafts
+    .command("facts")
+    .description(
+      "What is true about you: drafts may claim only these (Shop → Facts for drafts). Public repo: no amounts, no client names",
+    );
+  const save = (next: string[]) =>
+    withDb(async (db) => {
+      const block = factsSettingsSchema.parse({ facts: next });
+      await atomic(db, async (tx) => {
+        await setAuditActor(tx, "cli");
+        await setWrenSettings(tx, FACTS_COMPONENT, block, "cli");
+      });
+      return block.facts;
+    });
+  const print = (list: readonly string[]) =>
+    list.forEach((f, i) => {
+      console.log(`${i + 1}\t${f}`);
+    });
+  facts
+    .command("list", { isDefault: true })
+    .description("Each fact, numbered")
+    .action(async () => print(await withDb((db) => wrenFacts(db))));
+  facts
+    .command("add <fact...>")
+    .description("Add one fact, in your words")
+    .action(async (words: string[]) => {
+      const fact = words.join(" ").trim();
+      print(await save([...(await withDb((db) => wrenFacts(db))), fact]));
+    });
+  facts
+    .command("remove <n>")
+    .description("Remove fact n (from list)")
+    .action(async (n: string) => {
+      const list = await withDb((db) => wrenFacts(db));
+      const i = Number(n) - 1;
+      if (!Number.isInteger(i) || !list[i]) throw new Error(`no fact ${n}: 1 to ${list.length}`);
+      print(await save(list.filter((_, j) => j !== i)));
+    });
+  facts
+    .command("reset")
+    .description("Back to the default facts")
+    .action(async () => print(await save([...DEFAULT_FACTS])));
 }

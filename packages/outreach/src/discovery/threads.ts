@@ -8,6 +8,8 @@
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
+import { factsBlock } from "@wren/core/facts";
+import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -266,12 +268,14 @@ export interface ThreadRead {
   comments: Array<{ name: string; author?: string; body?: string; depth: number; score?: number }>;
 }
 
-const DRAFT_SYSTEM = (voice: string) => `You write one Reddit comment for William, who runs a \
-one-person automation agency. He edits it before it goes. Reddit rules: no links, no pitch, no \
-"DM me", at most 4 sentences, concrete (what he built, what broke, a number), adds something the \
-thread doesn't already say. Pick what to answer: the post itself, or one top-level comment in it \
-that asks the question better. His voice:\n${voice}\nAnswer JSON only: {"target": "<the post id \
-or a comment id from the list>", "comment": "<the comment>"}`;
+const DRAFT_SYSTEM = (voice: string, truths: readonly string[]) => `You write one Reddit comment \
+for William, who runs a one-person automation agency. He edits it before it goes. Reddit rules: \
+no links, no pitch, no "DM me", at most 4 sentences, specific (a practical step, a sharp \
+question, what the thread's own numbers mean), adds something the thread doesn't already say. \
+Pick what to answer: the post itself, or one top-level comment in it that asks the question \
+better. Our notes are how we work, not stories to retell as his.\n${factsBlock(truths)}\nHis \
+voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
+"comment": "<the comment>"}`;
 
 const DRAFT = z.object({ target: z.string(), comment: z.string() });
 
@@ -284,6 +288,8 @@ export async function draftThread(
     read: ThreadRead;
     op: RedditPerson | null;
     facts: readonly { label: string; text: string }[];
+    /** What is true about the writer (`wrenFacts`); none, and it claims nothing first-person. */
+    truths?: readonly string[];
     voice: string;
     ours: readonly string[];
   },
@@ -313,16 +319,32 @@ export async function draftThread(
   const opLine = o.op ? personLine(o.op) : null;
   // His last 5 edits of thread comments (content desk, 6).
   const edits = await editsFor(db, ["thread"]);
-  const out = await completeAndParse(
-    llm,
-    `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}`,
-    DRAFT,
-    {
-      maxTokens: 400,
-      system: edits ? `${DRAFT_SYSTEM(o.voice)}\n\n${edits}` : DRAFT_SYSTEM(o.voice),
-      name: "reddit.draft",
+  const truths = o.truths ?? [];
+  const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}`;
+  const system = edits
+    ? `${DRAFT_SYSTEM(o.voice, truths)}\n\n${edits}`
+    : DRAFT_SYSTEM(o.voice, truths);
+  // Numbers may come from the thread or our notes; a first-person claim only from the truths.
+  const g = await guardDraft(
+    async (fix) => {
+      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
+        maxTokens: 400,
+        system,
+        name: "reddit.draft",
+      });
+      return { text: out.parsed?.comment.trim() ?? "", result: out };
     },
+    { facts: truths, sources: [prompt] },
   );
+  await recordGuard(db, "reddit.draft", `thread:${id}`, g);
+  const out = g.result;
+  if (g.text === null) {
+    await db
+      .update(redditThreads)
+      .set({ state: "dropped", dropped: droppedWhy(g) })
+      .where(eq(redditThreads.id, id));
+    return "dropped";
+  }
   if (!out.parsed) return "unread";
   const target = top.find((c) => c.name === out.parsed?.target);
   const sources = [
@@ -333,7 +355,7 @@ export async function draftThread(
   await db
     .update(redditThreads)
     .set({
-      draft: out.parsed.comment.trim(),
+      draft: g.text,
       target: target?.name ?? t.id,
       targetText: target ? `u/${target.author}: ${target.body ?? ""}` : null,
       sources,
@@ -346,7 +368,7 @@ export async function draftThread(
     event: "generated",
     via: "model",
     by: llm.name,
-    text: out.parsed.comment.trim(),
+    text: g.text,
     llm: llmOf(out, "reddit.draft", { target: target?.name ?? t.id }),
     runId: out.call?.run_id ?? null,
   });

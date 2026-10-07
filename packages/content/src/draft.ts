@@ -3,10 +3,13 @@
  * The model proposes; the code disposes: a draft over the platform's length,
  * missing a required title, or unparseable is not stored, and the platform's
  * row in the result says why. A platform the idea cannot go to (a Reel with
- * no video) is skipped before any call.
+ * no video) is skipped before any call. The facts guard (`@wren/core/grounded`)
+ * checks every draft against the idea (his words) and the facts: a made-up
+ * claim or number is asked for once more, then the platform's row says why.
  */
 import type { Platform } from "@wren/core/content";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
+import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome, type Tracer } from "@wren/llm";
 import { and, count, eq, gte, inArray, isNotNull } from "drizzle-orm";
@@ -23,8 +26,9 @@ import {
 } from "./schema.js";
 import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
-// v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. Bump when the prompt or the platform shapes change.
-export const DRAFT_PROMPT_VERSION = "v3";
+// v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. v4 (2026-10-07): the
+// facts rule and guard. Bump when the prompt or the platform shapes change.
+export const DRAFT_PROMPT_VERSION = "v4";
 export const DRAFT_STAGE = "content_draft";
 // The answer is a few hundred tokens; a reasoning model thinks inside the same budget.
 const MAX_TOKENS = 4000;
@@ -45,6 +49,8 @@ export interface DraftOptions {
   runId?: string | null;
   /** Draft again for platforms that already have a live draft (default: skip them). */
   again?: boolean;
+  /** What is true about the author beyond the idea (`wrenFacts`); claims may come from these too. */
+  facts?: readonly string[];
 }
 
 export type DraftResult =
@@ -59,8 +65,12 @@ export function draftPrompt(
     brand: Brand;
     lessons?: Lessons;
     playbook?: Pick<ContentPlaybook, "text"> | null;
+    facts?: readonly string[];
   },
 ): string {
+  const facts = o.facts?.length
+    ? `\nBesides the idea, what is true about the author:\n${o.facts.map((f) => `- ${f}`).join("\n")}`
+    : "";
   const media = idea.media
     ? `\nThe post carries a ${idea.media.kind}${idea.media.title ? `: "${idea.media.title}"` : ""}. Write for someone who will watch or look at it.`
     : "";
@@ -72,7 +82,7 @@ Write in this voice:
 ${o.voice}
 ${playbookBlock(o.playbook ?? null)}
 Write ${spec.shape}. Stay inside ${spec.maxChars} characters.${spec.title ? ` The title stays inside ${spec.title.maxChars} characters.` : ""}
-Use only what the idea says; invent no numbers, names or events. Keep the author's wording where it already reads well.
+Use only what the idea says; invent no numbers, names or events. Claim no experience, client or result the idea${facts ? " or the facts below" : ""} doesn't give. Keep the author's wording where it already reads well.${facts}
 ${media}${lessonsBlock(o.lessons ?? NO_LESSONS)}
 The idea, in the author's own words:
 """
@@ -93,6 +103,7 @@ export function redraftPrompt(
     brand: Brand;
     lessons?: Lessons;
     playbook?: Pick<ContentPlaybook, "text"> | null;
+    facts?: readonly string[];
   },
 ): string {
   const base = draftPrompt(idea, spec, o);
@@ -108,6 +119,39 @@ ${previous.text}
 The author read it and says: "${note.trim().slice(0, 1000)}"
 Rewrite the draft to do what the author says and keep everything else that worked.
 ${tail}`;
+}
+
+/**
+ * Ask for one post, guarded: his idea (and his note) back claims and numbers, as do the facts. A
+ * flag asks once more with what was flagged; flagged again, `why` says what was made up. A guard
+ * hit is a `runs` row.
+ */
+async function askGuarded(
+  db: Queryable,
+  llm: LlmClient,
+  prompt: string,
+  own: readonly string[],
+  o: Pick<DraftOptions, "runId" | "tracer" | "facts"> & {
+    item: string;
+    metadata: Record<string, unknown>;
+  },
+): Promise<{ outcome: Outcome<Proposal>; why: string | null }> {
+  const g = await guardDraft(
+    async (fix) => {
+      const outcome = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, proposal, {
+        maxTokens: MAX_TOKENS,
+        runId: o.runId ?? null,
+        tracer: o.tracer ?? null,
+        name: DRAFT_STAGE,
+        metadata: o.metadata,
+      });
+      const p = outcome.parsed;
+      return { text: p ? [p.title ?? "", p.text].join("\n").trim() : "", result: outcome };
+    },
+    { facts: o.facts ?? [], sources: [], own },
+  );
+  await recordGuard(db, DRAFT_STAGE, o.item, g);
+  return { outcome: g.result, why: g.text === null ? droppedWhy(g) : null };
 }
 
 /** A model's post in the draft record: its words and what it was asked (a redraft: at his note). */
@@ -220,12 +264,11 @@ export async function redraft(
     brand: o.brand ?? DEFAULT_BRAND,
     lessons: await lessonsFor(db, platform),
     playbook,
+    ...(o.facts ? { facts: o.facts } : {}),
   });
-  const outcome = await completeAndParse(llm, prompt, proposal, {
-    maxTokens: MAX_TOKENS,
-    runId: o.runId ?? null,
-    tracer: o.tracer ?? null,
-    name: DRAFT_STAGE,
+  const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text, note], {
+    ...o,
+    item: `draft:${previous.id}`,
     metadata: {
       platform,
       ideaId: previous.ideaId,
@@ -233,6 +276,7 @@ export async function redraft(
       version: DRAFT_PROMPT_VERSION,
     },
   });
+  if (why) return { platform, ok: false, reason: why };
   if (!outcome.parsed)
     return {
       platform,
@@ -302,18 +346,22 @@ export async function draftIdea(
       continue;
     }
     const playbook = await playbookFor(db, platform);
-    const outcome = await completeAndParse(
-      llm,
-      draftPrompt(idea, spec, { voice, brand, lessons: await lessonsFor(db, platform), playbook }),
-      proposal,
-      {
-        maxTokens: MAX_TOKENS,
-        runId: o.runId ?? null,
-        tracer: o.tracer ?? null,
-        name: DRAFT_STAGE,
-        metadata: { platform, ideaId: idea.id, version: DRAFT_PROMPT_VERSION },
-      },
-    );
+    const prompt = draftPrompt(idea, spec, {
+      voice,
+      brand,
+      lessons: await lessonsFor(db, platform),
+      playbook,
+      ...(o.facts ? { facts: o.facts } : {}),
+    });
+    const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text], {
+      ...o,
+      item: `idea:${idea.id}/${platform}`,
+      metadata: { platform, ideaId: idea.id, version: DRAFT_PROMPT_VERSION },
+    });
+    if (why) {
+      results.push({ platform, ok: false, reason: why });
+      continue;
+    }
     if (!outcome.parsed) {
       results.push({
         platform,

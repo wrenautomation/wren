@@ -181,6 +181,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
@@ -1123,12 +1124,14 @@ export async function buildServices(
       return r?.at ? r.at.toISOString() : null;
     },
     // DM drafts in the watch's model, steered by the `outbound-copy` SOP and his DM edits.
-    // Comments on others' LinkedIn posts: the comments SOP and his voice.
+    // Comments on others' LinkedIn posts: the comments SOP and his voice. Both claim only his
+    // facts (Shop → Facts for drafts).
     drafts: {
       llm: watchLlm,
       guide: (p: "reddit" | "linkedin") => dmGuide(db, p),
       commentGuide: (p: "reddit" | "linkedin") => commentGuide(db, p),
       voice: voice ?? DEFAULT_VOICE,
+      facts: () => wrenFacts(db),
     },
     // A client's runs: its database, the same model metered on its own gate, its own SOPs.
     clients: {
@@ -1150,6 +1153,7 @@ export async function buildServices(
         llm: watchLlm,
         voice: voice ?? DEFAULT_VOICE,
         facts: () => playbooksOf(db),
+        truths: () => wrenFacts(db),
         // Wren's saved block (Shop → Reddit discovery); a bad one reads as the default.
         audience: async () => {
           const got = discoverySettingsSchema.safeParse(
@@ -1406,6 +1410,7 @@ export async function buildServices(
               guide: (p) => commentGuide(d, p as Platform),
             };
           },
+          () => wrenFacts(db),
         ),
       },
       rule: async (when: string, e: SpineEvent) => {

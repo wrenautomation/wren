@@ -9,6 +9,8 @@
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
+import { factsBlock } from "@wren/core/facts";
+import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import type { SpineEvent, Step } from "@wren/core/spine";
@@ -110,17 +112,19 @@ const NAMES: Record<string, string> = {
   tiktok: "TikTok",
 };
 
-/** The sort's instructions; `guide` (the platform's playbook and comments SOP) goes after them. */
-export const systemFor = (platform: string, guide = "") =>
+/**
+ * The sort's instructions; `guide` (the platform's playbook and comments SOP) goes after them.
+ * `facts`: what is true about us, the only first-person claims an answer may make.
+ */
+export const systemFor = (platform: string, guide = "", facts: readonly string[] = []) =>
   `You read a comment someone left on our ${NAMES[platform] ?? platform} post or under our comment. We are \
 Wren Automation; our posts give something useful and never pitch. Sort it: "asked" = they asked \
 for what the post offered, or to be messaged; "question" = they asked us something; "chat" = \
 anything else friendly or neutral; "hostile" = an attack, spam or a troll. For asked and question \
 only, write the answer we'd post under it: casual and plain, at most 2 short sentences, no links, \
 no pitch, no emojis; for asked, say you'll DM them. Otherwise answer "". Answer JSON only: \
-{"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}${
-    guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""
-  }`;
+{"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}
+${factsBlock(facts)}${guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""}`;
 
 export const promptFor = (c: Comment) => {
   const reddit = c.platform === "reddit";
@@ -144,13 +148,16 @@ const line = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 300);
 /**
  * Sort one comment and draft its answer. Null when there's no such row; a second call answers the
  * first's sort. With no model, or an answer that doesn't read, it waits unsorted: a missed comment
- * costs more than a glance. A provider failure throws, so the step tries again.
+ * costs more than a glance. A provider failure throws, so the step tries again. An answer that
+ * makes up a claim or number is asked for once more, then left undrafted for him to write.
  */
 export async function sortComment(
   db: Db,
   llm: LlmClient | null,
   id: number,
   guide?: CommentGuide,
+  /** What is true about us (`wrenFacts`); left out, an answer claims nothing first-person. */
+  facts: readonly string[] = [],
 ): Promise<CommentSort | null> {
   const [c] = await db.select().from(comments).where(eq(comments.id, id));
   if (!c) return null;
@@ -165,16 +172,29 @@ export async function sortComment(
       guide ? guide(c.platform) : "",
       editsFor(db, ["comment"]),
     ]);
+    const prompt = promptFor(c);
+    const system = systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n"), facts);
+    const asked = sort;
     // A client's model gate saying no leaves it to the words, as with no model.
-    out = await completeAndParse(llm, promptFor(c), ANSWER, {
-      maxTokens: 300,
-      system: systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n")),
-      name: "comments.sort",
-    }).catch((err) => {
+    const g = await guardDraft(
+      async (fix) => {
+        const r = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, ANSWER, {
+          maxTokens: 300,
+          system,
+          name: "comments.sort",
+        });
+        const s = asked ?? r.parsed?.sort;
+        const answers = s === "asked" || s === "question";
+        return { text: answers ? (r.parsed?.answer.trim() ?? "") : "", result: r };
+      },
+      { facts, sources: [prompt] },
+    ).catch((err) => {
       if (!isVendorStop(err)) throw err;
       if (!sort) why = `${err.why}, so it waits unsorted.`;
       return null;
     });
+    if (g) await recordGuard(db, "comments.sort", `comment:${id}`, g);
+    out = g?.result ?? null;
     if (!out) {
       // Kept as the words left it.
     } else if (out.parsed) {
@@ -182,7 +202,8 @@ export async function sortComment(
         sort = out.parsed.sort;
         why = line(out.parsed.why);
       }
-      if (sort === "asked" || sort === "question") draft = out.parsed.answer.trim() || null;
+      // The guard dropped it: no draft, he writes it.
+      if (sort === "asked" || sort === "question") draft = g?.text || null;
     } else if (!sort) why = "The model's answer didn't read, so it waits unsorted.";
   }
   const [kept] = await db
@@ -215,14 +236,19 @@ export const sortStep =
     forClient?: (
       client: string,
     ) => Promise<{ db: Db; llm: LlmClient | null; guide?: CommentGuide }>,
+    /** Wren's facts (`wrenFacts`); a client's answers claim nothing first-person. */
+    facts?: () => Promise<readonly string[]>,
   ): Step =>
   async (_port, e, at) => {
     const id = Number(e.data.commentId);
     if (!Number.isInteger(id)) throw new Error(`${e.subject} is no kept comment`);
     if (at.client && !forClient)
       throw new Error(`comments.sort: no client databases for ${at.client}`);
-    const on = at.client && forClient ? await forClient(at.client) : { db, llm, guide };
-    const sort = await sortComment(on.db, on.llm, id, on.guide);
+    const on =
+      at.client && forClient
+        ? { ...(await forClient(at.client)), facts: [] as readonly string[] }
+        : { db, llm, guide, facts: facts ? await facts() : [] };
+    const sort = await sortComment(on.db, on.llm, id, on.guide, on.facts);
     return sort === "ours" ? [] : [{ port: sort ?? "chat", event: e }];
   };
 

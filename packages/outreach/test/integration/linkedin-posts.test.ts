@@ -2,7 +2,10 @@
  * Comments on others' LinkedIn posts, end to end on Postgres and Restate with fakes: the watch's
  * daily pass reads as linkedin@wren (topics, companies), keeps and ranks the posts, drafts the
  * day's cap and queues them. Nothing posts until his Comment: then `Content.reply` on the post's
- * urn, once. Skip drops it with his why. Off, or on his own login, nothing is read.
+ * urn, once. Skip drops it with his why. Off, or on his own login, nothing is read. Job ads,
+ * posts outside the audience's world and posts under the minimum fit get no draft; a draft that
+ * makes things up is asked for again, then dropped; redraft rewrites queued drafts from the kept
+ * post.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -21,6 +24,8 @@ import {
   COMMENTS_COMPONENT,
   commentsSettingsSchema,
   type FeedPost,
+  isJobAd,
+  MIN_FIT,
   rankPost,
 } from "../../src/linkedin-posts.js";
 import { DEFAULT_POLICY } from "../../src/policy.js";
@@ -83,7 +88,22 @@ const fakeContent = restate.service({
     },
   },
 });
-const llm = new FakeLlm({ default: JSON.stringify({ comment: "We moved scheduling to texts." }) });
+/** The comment the fake model writes next; `invent` makes it make things up. */
+const GOOD = "Which slot do candidates drop most: the first call or the reschedule?";
+let invent = 0;
+const asked: string[] = [];
+const llm = new FakeLlm({
+  respond: (prompt, system) => {
+    asked.push(`${system ?? ""}\n${prompt}`);
+    if (invent > 0) {
+      invent--;
+      return JSON.stringify({
+        comment: `We built a scheduler that booked ${30 + invent} interviews.`,
+      });
+    }
+    return JSON.stringify({ comment: GOOD });
+  },
+});
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -121,6 +141,7 @@ beforeAll(async () => {
       llm,
       commentGuide: async () => "Short. One fact.",
       voice: "Plain, first person.",
+      facts: async () => ["I built an interview reminder tool for recruiters."],
     },
   };
   env = await startTestRestate({
@@ -145,6 +166,8 @@ beforeEach(async () => {
   ]);
   routes = {};
   calls.length = 0;
+  invent = 0;
+  asked.length = 0;
   now = new Date(now.getTime() + 25 * HOUR);
   replies.length = 0;
   // Our own page, paused: its posts are never ours to answer; the watch doesn't read it.
@@ -167,10 +190,24 @@ const settings = (o: Record<string, unknown>) =>
 const rows = () => db().select().from(linkedinPosts).orderBy(linkedinPosts.id);
 const events = () =>
   db().execute(
-    sql`select item, kind, event, via, text, reason from draft_events order by id`,
+    sql`select item, kind, event, via, by, text, reason, note, meta from draft_events order by id`,
   ) as unknown as Promise<
-    { item: string; kind: string; event: string; via: string; text: string; reason: string }[]
+    {
+      item: string;
+      kind: string;
+      event: string;
+      via: string;
+      by: string | null;
+      text: string;
+      reason: string;
+      note: string | null;
+      meta: Record<string, unknown> | null;
+    }[]
   >;
+const guardRuns = () =>
+  db().execute(
+    sql`select argv, stats from runs where command = 'guard' order by started_at`,
+  ) as unknown as Promise<{ argv: Record<string, unknown>; stats: Record<string, unknown> }[]>;
 const statsOf = (o: PassOutcome<WatchStats>) => {
   if (o.error) throw new Error(o.error);
   return o.stats;
@@ -178,7 +215,12 @@ const statsOf = (o: PassOutcome<WatchStats>) => {
 
 describe("settings", () => {
   it("off by default; never his own login or the research alt", () => {
-    expect(commentsSettingsSchema.parse({})).toMatchObject({ account: "", perDay: 10 });
+    expect(commentsSettingsSchema.parse({})).toMatchObject({
+      account: "",
+      perDay: 10,
+      minFit: MIN_FIT,
+    });
+    expect(MIN_FIT).toBe(70);
     expect(commentsSettingsSchema.safeParse({ account: "linkedin" }).success).toBe(false);
     expect(commentsSettingsSchema.safeParse({ account: "linkedin@alt" }).success).toBe(false);
     expect(commentsSettingsSchema.safeParse({ account: "reddit@wren" }).success).toBe(false);
@@ -191,14 +233,56 @@ describe("settings", () => {
       key: false,
     });
     const topic = rankPost(post(1), { ...o, key: false });
-    const founder = rankPost(post(1, { headline: "Founder at Acme" }), { ...o, key: false });
-    const vp = rankPost(post(1, { headline: "Vice President, Sales" }), { ...o, key: false });
+    const founder = rankPost(post(1, { headline: "Founder, Acme Recruiting" }), {
+      ...o,
+      key: false,
+    });
+    const vp = rankPost(post(1, { headline: "Vice President, Recruiting" }), { ...o, key: false });
     const known = rankPost(post(1), { ...o, key: true });
     expect(topic.fit).toBeGreaterThan(plain.fit);
     expect(founder.fit).toBeGreaterThan(vp.fit);
     expect(vp.fit).toBeGreaterThan(topic.fit);
     expect(known.fit).toBeGreaterThan(founder.fit);
     expect(founder.why).toContain('On "recruiting agency".');
+  });
+
+  it("off target: job ads, and posts outside the audience's world", () => {
+    const o = { topics: ["client reactivation"], foundBy: "x", key: false, maxAgeHours: 72, now };
+    const ads = [
+      "#hiring Office Coordinator. Apply here: https://example.com/job. Job Title: Office Coordinator.",
+      "WE'RE HIRING: Business Development Officer. Location: Remote. Requirements: 3 years of experience, full-time.",
+      "A clinic is actively looking for a night nurse. Full-time, day shift or night shift, benefits include dental.",
+      "I am currently looking for a part-time, remote role as a recruiter. Open to work.",
+    ];
+    for (const text of ads) {
+      expect(isJobAd(text), text).toBe(true);
+      expect(rankPost(post(1, { text }), o).off).toBe("a job ad");
+    }
+    const elsewhere = rankPost(
+      post(2, {
+        text: "Most contractors stop following up the day the job is done. The CRM holds the money.",
+      }),
+      o,
+    );
+    expect(elsewhere.off).toMatch(/^not about recruit/);
+    const ours = rankPost(post(3), o);
+    expect(ours.off).toBeNull();
+    expect(isJobAd(post(3).text)).toBe(false);
+  });
+
+  it("growing a recruiting firm ranks above a recruiter's day", () => {
+    const o = { topics: ["recruiting agency"], foundBy: "x", key: false, maxAgeHours: 72, now };
+    const growth = rankPost(
+      post(1, {
+        headline: "Founder, a search firm",
+        text: "Our recruiting agency lost two retainer clients last year. The pipeline was all referrals and no outreach. Revenue now comes from old clients we follow up with.",
+      }),
+      o,
+    );
+    const day = rankPost(post(2, { headline: "Recruiter" }), o);
+    expect(growth.fit).toBeGreaterThanOrEqual(MIN_FIT);
+    expect(day.fit).toBeLessThan(MIN_FIT);
+    expect(growth.why).toContain("Talks");
   });
 });
 
@@ -216,6 +300,7 @@ describe("the daily pass", () => {
       topics: ["recruiting agency"],
       companies: ["acme-staffing"],
       people: false,
+      minFit: 0,
     });
     routes["/search/results/content"] = () => ({
       posts: [
@@ -252,10 +337,9 @@ describe("the daily pass", () => {
       post(1).urn,
       post(6).urn,
     ]);
-    expect(by(1)).toMatchObject({
-      draft: "We moved scheduling to texts.",
-      account: "linkedin@wren",
-    });
+    expect(by(1)).toMatchObject({ draft: GOOD, account: "linkedin@wren" });
+    // The prompt carries his facts.
+    expect(asked[0]).toContain("- I built an interview reminder tool for recruiters.");
     expect(by(5)?.state).toBe("found");
     expect(by(1)?.why).toContain("Founder at Acme Staffing");
     const ev = await events();
@@ -282,6 +366,158 @@ describe("the daily pass", () => {
     const out = statsOf(await sync())?.posts;
     expect(out).toMatchObject({ reads: 0, capped: true, queued: 0 });
     expect(calls.filter((c) => c.path === "/search/results/content")).toHaveLength(1);
+  });
+});
+
+/** A recruiting firm's growth, by a founder: over the minimum fit. */
+const GROWTH_TEXT =
+  "Our recruiting agency lost two retainer clients last year. The pipeline was all referrals and no outreach. Revenue now comes from old clients we follow up with.";
+const growthPost = (n: number) =>
+  post(n, { headline: "Founder, a search firm", text: `${GROWTH_TEXT} (${n})` });
+
+describe("what gets a draft", () => {
+  const on = () =>
+    settings({ account: "linkedin@wren", topics: ["recruiting agency"], people: false });
+
+  it("under the minimum fit, or off target: no draft", async () => {
+    await on();
+    routes["/search/results/content"] = () => ({
+      posts: [
+        growthPost(1),
+        post(2), // a recruiter's day: under 70, stays found
+        post(3, {
+          text: "#hiring Recruitment Administrator. Apply here: https://example.com/apply. Job Title: Recruitment Administrator.",
+        }),
+        post(4, {
+          text: "Most contractors stop following up the day the job is done. The money is in the CRM.",
+        }),
+      ],
+      dropped: 0,
+    });
+    const out = statsOf(await sync());
+    expect(out?.posts).toMatchObject({ kept: 2, dropped: 2, queued: 1 });
+    const got = await rows();
+    const by = (n: number) => got.find((r) => r.urn === post(n).urn);
+    expect(by(1)?.state).toBe("queued");
+    expect(by(1)?.fit).toBeGreaterThanOrEqual(MIN_FIT);
+    expect(by(2)).toMatchObject({ state: "found", draft: null });
+    expect(by(2)?.fit).toBeLessThan(MIN_FIT);
+    expect(by(3)).toMatchObject({ state: "dropped", stateReason: "a job ad" });
+    expect(by(4)?.state).toBe("dropped");
+    expect(by(4)?.stateReason).toMatch(/^not about recruit/);
+  });
+
+  it("made up once: asked again; made up twice: dropped; both in the run ledger", async () => {
+    await on();
+    routes["/search/results/content"] = () => ({ posts: [growthPost(5)], dropped: 0 });
+    invent = 1;
+    expect(statsOf(await sync())?.posts).toMatchObject({ queued: 1 });
+    const [first] = await rows();
+    expect(first).toMatchObject({ state: "queued", draft: GOOD });
+    expect(asked[1]).toContain("a number from nowhere: 30");
+
+    now = new Date(now.getTime() + 25 * HOUR);
+    routes["/search/results/content"] = () => ({ posts: [growthPost(6)], dropped: 0 });
+    invent = 2;
+    expect(statsOf(await sync())?.posts).toMatchObject({ queued: 0 });
+    const second = (await rows()).find((r) => r.urn === post(6).urn);
+    expect(second?.state).toBe("dropped");
+    expect(second?.stateReason).toMatch(/^made things up: "We built a scheduler/);
+    expect(second?.draft).toBeNull();
+
+    const runs = await guardRuns();
+    expect(runs.map((r) => [r.argv.stage, r.stats.outcome])).toEqual([
+      ["linkedin.comment_draft", "redrafted"],
+      ["linkedin.comment_draft", "dropped"],
+    ]);
+    expect(runs[1]?.argv.item).toBe(`lipost:${second?.id}`);
+    // Only the clean draft reached the training record.
+    expect((await events()).map((e) => [e.event, e.text])).toEqual([["generated", GOOD]]);
+  });
+});
+
+describe("redraft", () => {
+  const keep = async (p: FeedPost, draft: string, state: "queued" | "found" = "queued") => {
+    const [r] = await db()
+      .insert(linkedinPosts)
+      .values({
+        urn: p.urn,
+        author: p.author,
+        authorUrl: p.authorUrl,
+        headline: p.headline ?? null,
+        text: p.text,
+        url: p.url,
+        postedAt: new Date(p.at ?? now),
+        reactions: p.reactions,
+        comments: p.comments,
+        foundBy: "topic: recruiting agency",
+        account: "linkedin@wren",
+        fit: 80,
+        why: "old rank",
+        state,
+        draft: state === "queued" ? draft : null,
+        queuedAt: state === "queued" ? now : null,
+        raw: {},
+      })
+      .returning();
+    if (!r) throw new Error("no row");
+    return r;
+  };
+
+  it("rewrites from the kept post, ranks again, records the model's redraft; no LinkedIn read", async () => {
+    await settings({ account: "linkedin@wren", topics: ["recruiting agency"], people: false });
+    const made = "We built a scheduler that booked 40 interviews.";
+    const good = await keep(growthPost(11), made);
+    const ad = await keep(
+      post(12, {
+        text: "WE'RE HIRING: Recruitment Consultant. Location: Remote. Requirements: 2 years of experience, full-time.",
+      }),
+      made,
+    );
+    const low = await keep(post(13), made);
+    const found = await keep(growthPost(14), "", "found");
+
+    const out = await desk().redraftPosts({ ids: [good.id, ad.id, low.id, found.id, 999] });
+    expect(out.redrafted).toEqual([good.id]);
+    expect(out.dropped).toEqual([
+      { id: ad.id, why: "a job ad" },
+      { id: low.id, why: expect.stringMatching(/^fit \d+ under 70$/) },
+    ]);
+    expect(out.skipped).toEqual([
+      { id: found.id, why: "that post is found" },
+      { id: 999, why: "no such post" },
+    ]);
+    expect(calls).toEqual([]);
+
+    const got = await rows();
+    const by = (id: number) => got.find((r) => r.id === id);
+    expect(by(good.id)).toMatchObject({ state: "queued", draft: GOOD });
+    expect(by(ad.id)).toMatchObject({ state: "dropped", stateReason: "a job ad", draft: made });
+    expect(by(low.id)?.state).toBe("dropped");
+
+    // The redraft is the model's, not his no; a post off target is Wren's no, by the rank.
+    const ev = await events();
+    expect(ev.map((e) => [e.item, e.event, e.via, e.by, e.reason])).toEqual([
+      [`lipost:${good.id}`, "generated", "model", "fake", null],
+      [`lipost:${ad.id}`, "rejected", "wren", "rank", "topic"],
+      [`lipost:${low.id}`, "rejected", "wren", "rank", "topic"],
+    ]);
+    expect(ev[0]?.meta).toMatchObject({ redraft: "facts guard" });
+    expect(ev[1]?.note).toBe("a job ad");
+  });
+
+  it("the guard drops a redraft that makes things up twice: out of To approve as Wren's no", async () => {
+    await settings({ account: "linkedin@wren", topics: ["recruiting agency"], people: false });
+    const p = await keep(growthPost(15), "We built a scheduler that booked 40 interviews.");
+    invent = 2;
+    const out = await desk().redraftPosts({ ids: [p.id] });
+    expect(out.redrafted).toEqual([]);
+    expect(out.dropped[0]?.why).toMatch(/^made things up/);
+    const ev = await events();
+    expect(ev.map((e) => [e.event, e.via, e.by, e.reason])).toEqual([
+      ["rejected", "wren", "guard", "facts"],
+    ]);
+    expect((await guardRuns()).map((r) => r.stats.outcome)).toEqual(["dropped"]);
   });
 });
 
@@ -337,10 +573,24 @@ describe("his Comment", () => {
       skipped: [p.id],
     });
     const ev = await events();
-    expect(ev.map((e) => [e.event, e.reason, e.text])).toEqual([
-      ["rejected", "voice", "Draft words."],
+    expect(ev.map((e) => [e.event, e.via, e.by, e.reason, e.text])).toEqual([
+      ["rejected", "person", "console", "voice", "Draft words."],
     ]);
     await expect(desk().commentPost({ id: p.id })).rejects.toThrow(/that post is skipped/);
     expect(replies).toEqual([]);
+  });
+
+  it("Skip from the CLI names who said no, with a note", async () => {
+    const p = await queued(4);
+    await desk().skipPost({
+      ids: [p.id],
+      by: "william@example.com",
+      reason: "facts",
+      note: "made up a story",
+    } as never);
+    const ev = await events();
+    expect(ev.map((e) => [e.via, e.by, e.reason, e.note])).toEqual([
+      ["person", "william@example.com", "facts", "made up a story"],
+    ]);
   });
 });

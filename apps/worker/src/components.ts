@@ -10,6 +10,7 @@ import { SEARCH_COMPONENTS } from "@wren/channel-search/components";
 import { SMS_COMPONENTS } from "@wren/channel-sms/components";
 import { CONTENT_COMPONENTS } from "@wren/content/components";
 import type { Component } from "@wren/core/components";
+import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";
 import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
 import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
@@ -34,6 +35,7 @@ export const COMPONENTS: readonly Component[] = [
   ...WATCH_COMPONENTS,
   ...VOICE_COMPONENTS,
   ...FOLLOW_COMPONENTS,
+  ...FACTS_COMPONENTS,
   ...PLANNED_COMPONENTS,
 ];
 

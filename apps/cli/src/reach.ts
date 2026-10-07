@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { setWrenSettings } from "@wren/core/clients";
+import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
   COMMENTS_COMPONENT,
@@ -45,6 +46,7 @@ import {
 } from "@wren/outreach/restate";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { longCallKey, pollOutput } from "./poll.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -59,6 +61,24 @@ function oneOf<T extends string>(what: string, value: string, allowed: readonly 
 export function registerReach(program: Command, withDb: WithDb, settings: Settings): Command {
   const ingress = () => clients.connect(ingressOf(settings));
   const desk = () => ingress().serviceClient<ReachDeskService>({ name: "ReachDesk" });
+  const deskSend = () => ingress().serviceSendClient<ReachDeskService>({ name: "ReachDesk" });
+  /** A desk call longer than one HTTP request may wait: sent, then its output polled. */
+  const long = async <T>(
+    what: string,
+    send: (
+      d: ReturnType<typeof deskSend>,
+      idempotencyKey: string,
+    ) => Promise<{ invocationId: string }>,
+  ): Promise<T> => {
+    const sent = await send(deskSend(), longCallKey(what));
+    console.error(`sent ${what}: ${sent.invocationId}; waiting for it`);
+    const { url, headers } = ingressOf(settings);
+    return pollOutput<T>(sent.invocationId, {
+      url,
+      ...(headers ? { headers } : {}),
+      log: (l) => console.error(l),
+    });
+  };
   const sender = () => ingress().objectClient<ReachSender>({ name: "ReachSender" }, SENDER_KEY);
   const watch = () => ingress().objectClient<ReachWatchObject>({ name: "ReachWatch" }, WATCH_KEY);
 
@@ -430,6 +450,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--companies <list>", "comma separated company page handles")
     .option("--people <on|off>", "also read people who accepted our invites or engaged")
     .option("--max-age-hours <n>", "posts older than this are left")
+    .option("--min-fit <n>", "the rank (0 to 100) a post needs for a draft")
+    .option("--audience <list>", "comma separated word starts a post must have (recruit,staffing)")
     .action(
       async (o: {
         account?: string;
@@ -438,6 +460,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         companies?: string;
         people?: string;
         maxAgeHours?: string;
+        minFit?: string;
+        audience?: string;
       }) => {
         const list = (v: string) =>
           v
@@ -453,6 +477,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.companies !== undefined && { companies: list(o.companies) }),
           ...(o.people !== undefined && { people: o.people === "on" }),
           ...(o.maxAgeHours !== undefined && { maxAgeHours: Number(o.maxAgeHours) }),
+          ...(o.minFit !== undefined && { minFit: Number(o.minFit) }),
+          ...(o.audience !== undefined && { audience: list(o.audience) }),
         };
         json(
           await withDb(async (db) => {
@@ -471,8 +497,26 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     );
   posts
     .command("run")
-    .description("Read, rank and draft up to the day's cap now; nothing posts")
-    .action(async () => json(await desk().postsNow()));
+    .description("Read, rank and draft up to the day's cap now; nothing posts. Waits for the pass")
+    .action(async () =>
+      json(
+        await long("posts run", (d, key) =>
+          d.postsNow(clients.rpc.sendOpts({ idempotencyKey: key })),
+        ),
+      ),
+    );
+  posts
+    .command("redraft <ids...>")
+    .description(
+      "Write queued drafts again from the posts kept at read time (no LinkedIn read): ranked again, facts-guarded, replaced in To approve; one now off target leaves it",
+    )
+    .action(async (ids: string[]) =>
+      json(
+        await long("posts redraft", (d, key) =>
+          d.redraftPosts({ ids: ids.map(Number) }, clients.rpc.sendOpts({ idempotencyKey: key })),
+        ),
+      ),
+    );
   posts
     .command("list")
     .description("Posts, newest first")
@@ -500,8 +544,21 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     );
   posts
     .command("skip <ids...>")
-    .description("Your no")
-    .action(async (ids: string[]) => json(await desk().skipPost({ ids: ids.map(Number) })));
+    .description("Your no; --reason and --note are kept with the draft in the training record")
+    .option("--by <who>", "who said no (an email); default console")
+    .option("--reason <r>", REJECT_REASONS.join(" | "))
+    .option("--note <text>", "the rest of why")
+    .action(async (ids: string[], o: { by?: string; reason?: string; note?: string }) => {
+      if (o.reason) oneOf("--reason", o.reason, REJECT_REASONS);
+      json(
+        await desk().skipPost({
+          ids: ids.map(Number),
+          ...(o.by ? { by: o.by } : {}),
+          ...(o.reason ? { reason: o.reason } : {}),
+          ...(o.note ? { note: o.note } : {}),
+        }),
+      );
+    });
 
   const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
   const d = cmd

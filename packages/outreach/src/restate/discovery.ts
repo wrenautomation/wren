@@ -81,6 +81,11 @@ export interface DiscoveryDeps {
   voice: string;
   /** Our own facts: each pushed SOP's newest text. */
   facts: () => Promise<{ label: string; text: string }[]>;
+  /**
+   * What is true about the writer, the only first-person claims a draft may make (`wrenFacts`).
+   * Left out (a client's pass), a draft claims nothing first-person.
+   */
+  truths?: () => Promise<readonly string[]>;
   /** Who we talk to: the `reddit.discovery` setting. */
   audience: () => Promise<Audience>;
 }
@@ -266,6 +271,9 @@ async function readsPass(
   const llm = d.llm;
   if (llm) {
     const facts = await step("facts", () => d.facts());
+    const truths = d.truths
+      ? await step("truths", async () => [...((await d.truths?.()) ?? [])])
+      : [];
     for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS)))
       await reading(`draft ${t.id}`, async () => {
         const read = await r.thread(t.id);
@@ -281,7 +289,7 @@ async function readsPass(
                 return null;
               });
         const out = await step(`draft ${t.id}`, () =>
-          draftThread(db, llm, t.id, { read, op, facts, voice: d.voice, ours }),
+          draftThread(db, llm, t.id, { read, op, facts, truths, voice: d.voice, ours }),
         );
         if (out === "drafted") s.drafted++;
       });

@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-06 @ 2141c60
+verified: 2026-10-07 @ 42b1013e (facts guard: grounded-drafts)
 entity: packages/outreach/src/schema.ts:414
 ---
 
@@ -20,7 +20,7 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 - `reddit_places` (`schema.ts:381`): subreddit pk; `found_by`, raw about/rules/sample, `judged` (fit, rules in words, may comment/post, karma and age floors, pace), `state` found/watching/skipped, `account_id` (one pool account per place), `read_at` (monthly), `threads_at` (every 2 h)
 - `reddit_threads` (`:414`): post fullname pk; raw post, `dropped` (code's reason), `kind`/`fit`/`angle` (model), `target` (the post or a top-level comment that asks), `draft`, `sources`, `state` new/dropped/ranked/queued/commented/skipped, `answer_ref`, `score` (read back after 2 days)
 - `reddit_people` (`:345`): handle pk (lowercase); raw reads, code `facts` (age, karma, places, domains, peak hour), model `read` (quoted facts), `fit`, `site` (only a host in their own words)
-- Code: `packages/outreach/src/discovery/`: `reads.ts` (`signedOut`, `reader`: `searchPlaces` Reddit, `exaPlaces` Exa via `web /search`, `subredditsIn`), `places.ts` (`discoverySettingsSchema`, `topicsOf`, `judgePlace`, `keepPlace` flags rule changes, `accountFor`, `watchPlace`), `threads.ts` (`dropReason`, `rankThreads`, `queueThreads` under the rung's cap, `draftThread` with the thread guard, `planThreadComment`, `commentsToday`), `people.ts` (`personFacts`, `readWords`, `readPerson` 30-day fresh, `peopleToRead`: commenters on our posts and Reddit DM contacts)
+- Code: `packages/outreach/src/discovery/`: `reads.ts` (`signedOut`, `reader`: `searchPlaces` Reddit, `exaPlaces` Exa via `web /search`, `subredditsIn`), `places.ts` (`discoverySettingsSchema`, `topicsOf`, `judgePlace`, `keepPlace` flags rule changes, `accountFor`, `watchPlace`), `threads.ts` (`dropReason`, `rankThreads`, `queueThreads` under the rung's cap, `draftThread` (the prompt carries Wren's facts, `factsBlock`; then the facts guard, `guardDraft`: made up twice is `dropped`, a `runs` row `guard`), `planThreadComment`, `commentsToday`), `people.ts` (`personFacts`, `readWords`, `readPerson` 30-day fresh, `peopleToRead`: commenters on our posts and Reddit DM contacts)
 - Per client: `RedditReads/<c>/daily` on the client's own About (never Wren's default), into its database, reads metered on its `reddit` and `exa` vendors, model on `models`; posting a comment waits on its live flag
 - Loop: `RedditReads/wren` (`restate/discovery.ts:92`); desk handlers on `ReachDesk` (`discoveryHandlers`, `:259`): `watchPlace`, `skipPlace`, `movePlace`, `commentThread` (effect sends), `skipThread`. One pass on demand: `wren reach discovery run` (alias of `sync`) and Places/Threads → Read now (`RedditReads/wren/sync` through `ConsolePortal.call`); neither starts the loop
 - Console: records `marketing.place`, `marketing.thread` (Marketing → Places, Threads); component `reddit.discovery` (settings: about, topics, subreddits, floors, `exaSearches`, in `wren_settings` via `settingsFor(db, null)`)
