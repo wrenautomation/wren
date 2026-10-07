@@ -138,7 +138,7 @@ describe("searchEvents", () => {
       "web GET /search": (input) => {
         expect(input.via).toBe("exa");
         return {
-          results: [
+          hits: [
             {
               title: "Acme Staffing raises $12M",
               url: "https://n.example/2",
@@ -282,7 +282,7 @@ describe("searchEvents with RSS", () => {
   });
 
   it("not a feed: Exa when Google is out", async () => {
-    const { sites, keys } = fakeSites({ "web GET /search": () => ({ results: [] }) });
+    const { sites, keys } = fakeSites({ "web GET /search": () => ({ hits: [] }) });
     const { fetcher } = fakeFetcher({ status: 200, text: "<html></html>" });
     const r = await searchEvents(sites, firm, { google: false, fetcher, ...opts });
     expect(r.state).toBe("none");

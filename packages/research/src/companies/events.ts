@@ -261,8 +261,9 @@ export const eventFinding = (
 interface GoogleSerp {
   results?: { title: string; url: string; snippet?: string | null; date?: string | null }[];
 }
+/** autobrowse `web /search`: its hits, each with the backend's whole result as `raw`. */
 interface WebSerp {
-  results?: { title: string | null; url: string; snippet?: string | null; raw?: unknown }[];
+  hits?: { title: string | null; url: string; snippet?: string | null; raw?: unknown }[];
 }
 
 /**
@@ -354,7 +355,7 @@ export async function searchEvents(
       n: EVENT_RESULTS,
       via: "exa",
     });
-    const hits = (res.results ?? []).map((r) => ({
+    const hits = (res.hits ?? []).map((r) => ({
       title: r.title ?? "",
       url: r.url,
       snippet: r.snippet ?? null,
