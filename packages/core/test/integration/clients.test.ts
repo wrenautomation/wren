@@ -95,6 +95,10 @@ describe("updateClient: accounts", () => {
   it("accounts merge; an empty value turns a site off", async () => {
     const c = await updateClient(pg.db, "acme", { accounts: { web: "", x: "x@acme" } });
     expect(c.accounts).toEqual({ linkedin: "linkedin@acme", x: "x@acme" });
+    // A saved one is in the registry too, so Accounts lists it.
+    expect((await accountsOf(pg.db, "acme")).map((a) => [a.site, a.ref])).toEqual([
+      ["x", "x@acme"],
+    ]);
   });
 
   it("an unknown client throws", async () => {

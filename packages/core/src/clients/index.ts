@@ -14,7 +14,9 @@ import {
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { Approver, RoleId } from "../access.js";
+import { ACCOUNT_SITES } from "../components.js";
 import { actor, date, defineRecord, named, number, status, text } from "../records.js";
+import { clientAccounts } from "../setup-schema.js";
 import {
   type Client,
   type ClientMember,
@@ -37,6 +39,25 @@ export interface NewClient {
   accounts?: Record<string, string>;
   products?: Record<string, unknown>;
   demo?: boolean;
+}
+
+/**
+ * Saved accounts go in the registry too (`client_accounts`), so Accounts lists each one and a
+ * setup can start on it: the registry is the superset (designs/2026-10-07-setup-and-vendors.md).
+ * Taking one off the client leaves its registry row.
+ */
+async function registerAccounts(
+  main: Queryable,
+  client: string,
+  accounts: Readonly<Record<string, string>> | undefined,
+  by: string,
+): Promise<void> {
+  const rows = Object.entries(accounts ?? {}).flatMap(([site, ref]) =>
+    ref?.trim() && (ACCOUNT_SITES as readonly string[]).includes(site)
+      ? [{ client, site, ref: ref.trim().slice(0, 200), createdBy: by }]
+      : [],
+  );
+  if (rows.length) await main.insert(clientAccounts).values(rows).onConflictDoNothing();
 }
 
 /**
@@ -71,6 +92,7 @@ export async function addClient(
         demo: input.demo ?? false,
       })
       .onConflictDoNothing();
+    await registerAccounts(tx, input.id, input.accounts, by ?? "clients");
   });
   return getClient(main, input.id);
 }
@@ -119,6 +141,7 @@ export async function updateClient(
   main: Queryable,
   id: string,
   change: ClientChange,
+  by = "clients",
 ): Promise<Client> {
   const current = await getClient(main, id);
   const accounts = { ...current.accounts, ...change.accounts };
@@ -140,6 +163,7 @@ export async function updateClient(
     .where(eq(clients.id, id))
     .returning();
   if (!row) throw new Error(`client ${id}: update returned nothing`);
+  await registerAccounts(main, id, change.accounts, by);
   return row;
 }
 

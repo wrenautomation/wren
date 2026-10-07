@@ -83,7 +83,7 @@ export const draftRecord = defineRecord({
     chars: number("Characters"),
     written: status(
       {
-        model: { label: "Model", tone: "neutral" },
+        model: { label: "Wren", tone: "neutral" },
         edited: { label: "You edited it", tone: "neutral" },
       },
       "Written by",
@@ -147,7 +147,8 @@ export const postRecord = defineRecord({
     comments: number(),
     shares: number(),
     engagement: rate("views", "Engagement", { from: "engaged" }),
-    measured: date("Counted"),
+    // When the numbers were counted, and the week filter's key: in the detail, not the list.
+    measured: date("Counted", { listed: false }),
     url: link("Link"),
     recent: status(
       {
@@ -155,6 +156,7 @@ export const postRecord = defineRecord({
         earlier: { label: "Earlier", tone: "neutral" },
       },
       "When",
+      { listed: false },
     ),
   },
   views: [

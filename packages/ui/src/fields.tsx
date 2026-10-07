@@ -10,7 +10,7 @@ import type { Total } from "@wren/core/records/serve";
 import { codeLabel } from "@wren/core/templates/labels";
 import { cn } from "cn";
 import type { ReactNode } from "react";
-import { duration, hostOf, money, num } from "./format.js";
+import { duration, linkLabel, money, num } from "./format.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
 const TONE: Record<Tone, string> = {
@@ -110,9 +110,6 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
-const linkLabel = (href: string) =>
-  href.startsWith("/") ? "Open" : href.startsWith("tel:") ? "Call" : (hostOf(href) ?? href);
-
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
   // A page of this app ("/inbox/replies/12") opens in place, a phone number dials; anything else
@@ -121,6 +118,7 @@ function Out({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a
       href={href}
+      title={away ? href : undefined}
       target={away ? "_blank" : undefined}
       rel={away ? "noreferrer" : undefined}
       onClick={(e) => e.stopPropagation()}
@@ -177,7 +175,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       ) : null;
     }
     case "link":
-      return <Out href={String(c)}>{linkLabel(String(c))}</Out>;
+      return <Out href={String(c)}>{linkLabel(String(c), f.label)}</Out>;
     case "cited":
       return <span>{stripMarks(String(c))}</span>;
     case "actor":

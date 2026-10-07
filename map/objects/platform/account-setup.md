@@ -29,7 +29,7 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 
 - **owned-by:** [[platform/spine]] (runs it), [[platform/worker]] (registers `setup.step`, checks, `SetupWatch`)
 - **joins:** [[platform/vendors]] (a setup's buys fold into managed billing, Open)
-- **looks-like-but-is-not:** `clients.accounts` (the Shop's one link per site; the registry is the superset)
+- **looks-like-but-is-not:** `clients.accounts` (the Shop's one link per site; the registry is the superset: `updateClient`/`addClient` write each saved one's row too, `registerAccounts` in `packages/core/src/clients/index.ts`; migration 0154 backfilled them; turning a site off keeps its row)
 
 ## If you change this
 

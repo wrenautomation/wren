@@ -59,7 +59,7 @@ import {
   totalSays,
   widthOf,
 } from "./fields.js";
-import { num } from "./format.js";
+import { linkLabel, num } from "./format.js";
 import {
   CHIP,
   filtersOf,
@@ -590,23 +590,44 @@ export function RecordList(props: RecordTemplateProps) {
 const blank = (c: Cell | undefined) =>
   c === null || c === undefined || c === "" || (Array.isArray(c) && !c.length);
 
+/** A canvas to measure words in the list's own font; null off a browser. */
+let pen: CanvasRenderingContext2D | null | undefined;
+/**
+ * Words' width in characters of 7.2px, the unit the widths count in: measured in the page's
+ * 13px font when there is one ("Companies" is 7, not 9), else one per character.
+ */
+function lenOf(s: string): number {
+  if (pen === undefined) {
+    try {
+      pen =
+        typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+    } catch {
+      pen = null;
+    }
+  }
+  if (!pen) return s.length;
+  pen.font = `13px ${getComputedStyle(document.body).fontFamily}`;
+  return pen.measureText(s).width / 7.2;
+}
+
 /** How many characters a cell takes on screen: a state by its label, a date as "10 minutes ago". */
 function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (blank(c)) return 0;
   if (f.kind === "date") return 14;
   // A state's dot and its gaps take about four characters (measured: "Changed" needs 101px).
   if (f.kind === "status" || f.kind === "verdict")
-    return (f.states?.[String(c)]?.label ?? String(c)).length + 4;
-  if (f.kind === "choice" || f.words) return shownOf(f, String(c)).length;
+    return lenOf(f.states?.[String(c)]?.label ?? String(c)) + 4;
+  if (f.kind === "choice" || f.words) return lenOf(shownOf(f, String(c)));
+  if (f.kind === "link") return lenOf(linkLabel(String(c), f.label));
   // A score's bar and its gap take about seven characters.
   if (f.kind === "score") return String(c).length + (f.max ? 7 : 0);
-  if (Array.isArray(c)) return c.join(", ").length;
+  if (Array.isArray(c)) return lenOf(c.join(", "));
   if (c && typeof c === "object") {
-    if ("name" in c) return c.name.length;
+    if ("name" in c) return lenOf(c.name);
     if ("amount" in c) return c.amount.toFixed(2).length + 3;
     return `${c.n} of ${c.of}`.length;
   }
-  return String(c).length + (f.column?.align === "end" ? 3 : 0);
+  return f.column?.align === "end" ? String(c).length + 3 : lenOf(String(c));
 }
 
 /** A cell's width in px: about 7.2 a character at 13px, and the cell's padding. */
@@ -637,7 +658,44 @@ export function fitOf(f: FieldMeta, rows: Row[]): number {
  */
 export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[], room?: number) {
   const widths = sharedOf(meta, cols, rows);
-  return room ? fitRoom(meta, cols, widths, room) : widths;
+  return room ? growRoom(meta, cols, rows, fitRoom(meta, cols, widths, room), room) : widths;
+}
+
+/** What a column needs to show every cell whole, past its max. */
+const needOf = (f: FieldMeta, rows: Row[]) =>
+  Math.max(0, ...rows.map((r) => pxOf(charsOf(f, r[f.key]))));
+
+/** What the title needs to show every row's whole: it reads in a heavier weight. */
+const titleNeed = (meta: RecordMeta, rows: Row[]) =>
+  Math.ceil(Math.max(0, ...rows.map((r) => lenOf(titleOf(meta, r)))) * 7.6) + 24;
+
+/**
+ * Widths that use spare room: a word column cut short grows toward what its cells need before
+ * the title takes the rest, sharing with the title by how much each is short.
+ */
+export function growRoom(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  widths: Record<string, number | undefined>,
+  room: number,
+) {
+  const fixed = cols.reduce((n, f) => n + (widths[f.key] ?? 0), 72);
+  const free = cols.filter((f) => widths[f.key] === undefined);
+  const want = free.reduce((n, f) => n + (f.key === meta.title ? TITLE_MIN : widthOf(f)), 0);
+  const spare = room - fixed - want;
+  if (spare <= 0 || !rows.length) return widths;
+  const short = cols
+    .filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind))
+    .map((f) => [f, needOf(f, rows) - (widths[f.key] ?? 0)] as const)
+    .filter(([, d]) => d > 0);
+  if (!short.length) return widths;
+  const title = free.some((f) => f.key === meta.title);
+  const titleShort = title ? Math.max(0, titleNeed(meta, rows) - TITLE_MIN) : 0;
+  const share = Math.min(1, spare / short.reduce((n, [, d]) => n + d, titleShort));
+  const out = { ...widths };
+  for (const [f, d] of short) out[f.key] = (widths[f.key] ?? 0) + Math.floor(d * share);
+  return out;
 }
 
 /** An element's width as it changes: a list fits its columns to it. */
@@ -665,14 +723,17 @@ const YIELDS: ReadonlySet<FieldMeta["kind"]> = new Set([
 ]);
 /** The least a list's title keeps, so what the row is stays readable. */
 const TITLE_MIN = 220;
+/** The least a title gives up to before a column of short values cuts. */
+const TITLE_LEAST = 160;
 /** A column this wide or less holds short values; it keeps them whole while a longer one can give. */
 const SHORT = 168;
 
 /**
  * Widths that fit `room` px: when the columns past the title leave it less than its least, the
  * word columns give up room in proportion, so no column is pushed past the right edge. Long ones
- * give first; a column of short values cuts, down to its head, only when they can't. Only when
- * every one is at its least does the list scroll sideways.
+ * (past SHORT) give first, then the title down to TITLE_LEAST; a column of short values cuts,
+ * down to its head, only when they can't.
+ * Only when every one is at its least does the list scroll sideways.
  */
 export function fitRoom(
   meta: RecordMeta,
@@ -689,10 +750,16 @@ export function fitRoom(
   const yields = cols.filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind));
   const head = (f: FieldMeta) => Math.max(96, pxOf(f.label.length));
   const out = { ...widths };
-  // Long words give first, down to SHORT; a short value ("Companies") cuts only when they can't.
-  for (const least of [(f: FieldMeta) => Math.max(SHORT, head(f)), head]) {
+  const title = free.some((f) => f.key === meta.title);
+  // Long words give first, down to their head; then the title, down to TITLE_LEAST; a short value
+  // ("Companies") cuts only when none of them can.
+  for (const least of [
+    (f: FieldMeta) => ((widths[f.key] ?? 0) > SHORT ? head(f) : Infinity),
+    head,
+  ]) {
     const floor = (f: FieldMeta) => Math.min(out[f.key] ?? 0, least(f));
     const spare = yields.reduce((n, f) => n + (out[f.key] ?? 0) - floor(f), 0);
+    if (least === head && title && over > 0) over -= Math.min(over, TITLE_MIN - TITLE_LEAST);
     if (over <= 0 || spare <= 0) continue;
     const share = Math.min(1, over / spare);
     for (const f of yields) {
@@ -714,7 +781,7 @@ function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
   const cut = cols.filter(
     (f) => f !== title && rows.some((r) => pxOf(charsOf(f, r[f.key])) > maxOf(f)),
   );
-  const words = Math.max(title.label.length, ...rows.map((r) => titleOf(meta, r).length));
+  const words = Math.max(title.label.length, ...rows.map((r) => lenOf(titleOf(meta, r))));
   const needs = Math.ceil(words * 7.6) + 24;
   if (!cut.length || needs > 360) return widths;
   widths[title.key] = Math.max(needs, widthOf(title));
@@ -723,7 +790,7 @@ function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
 }
 
 /**
- * The columns a list draws: what's picked, less those blank on every row shown (unless picked
+ * The columns a list draws: what's picked, less those blank on every row shown or only repeating the title (unless picked
  * by hand), and on a phone only the title and the first state that tells the rows apart.
  */
 export function shownColumns(
@@ -732,10 +799,20 @@ export function shownColumns(
   rows: Row[],
   { byHand, narrow }: { byHand: boolean; narrow: boolean },
 ): FieldMeta[] {
+  const title = (r: Row) => r[meta.title];
+  // A column that only says the title again ("Text" whose first line is the "Post") is left out.
+  const repeats = (f: FieldMeta) =>
+    f.kind === "text" &&
+    rows.every((r) => {
+      const [t, c] = [title(r), r[f.key]];
+      return typeof t === "string" && t !== "" && typeof c === "string" && c.startsWith(t);
+    });
   const filled =
     byHand || !rows.length
       ? cols
-      : cols.filter((f) => f.key === meta.title || rows.some((r) => !blank(r[f.key])));
+      : cols.filter(
+          (f) => f.key === meta.title || (rows.some((r) => !blank(r[f.key])) && !repeats(f)),
+        );
   if (!narrow) return filled;
   const states = filled.filter((f) => f.key !== meta.title && f.kind === "status");
   const state =

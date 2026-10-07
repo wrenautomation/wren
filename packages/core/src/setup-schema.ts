@@ -41,7 +41,7 @@ export type SetupState = (typeof SETUP_STATES)[number];
 /**
  * One account an owner has on a site: a phone number, a sending domain, an inbox, a Search
  * Console property, an ad account, a login. `clients.accounts` keeps the Shop's one per site;
- * connecting writes a row here too, so this is the superset.
+ * saving one there writes a row here too (`registerAccounts`), so this is the superset.
  */
 export const clientAccounts = pgTable(
   "client_accounts",

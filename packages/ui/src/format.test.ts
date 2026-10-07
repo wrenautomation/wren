@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ago, cx, duration, hostOf, initials, money, month, num, soon } from "./format.js";
+import {
+  ago,
+  cx,
+  duration,
+  hostOf,
+  initials,
+  linkLabel,
+  money,
+  month,
+  num,
+  soon,
+} from "./format.js";
 
 describe("money", () => {
   it("shows cents in a list and whole units in a tile", () => {
@@ -308,4 +319,18 @@ describe("soon", () => {
     expect(soon("not-a-date", now)).toBeNull();
     expect(soon("2026-13-45", now)).toBeNull();
   });
+});
+
+describe("linkLabel", () => {
+  it.each([
+    ["/inbox/replies/12", "Link", "Open"],
+    ["tel:+15555550100", "Phone", "Call"],
+    ["https://www.linkedin.com/in/jane-doe-4a1b2c", "Profile", "Jane Doe"],
+    ["linkedin.com/company/acme-co", "Company", "Acme Co"],
+    ["https://www.linkedin.com/feed/update/urn:li:activity:1", "Link", "Open in LinkedIn"],
+    ["https://x.com/acme", "Profile", "@acme"],
+    ["https://www.youtube.com/@acme", "Channel", "@acme"],
+    ["https://wise.com/pay/r/abc", "In Wise", "Open"],
+    ["https://www.acme.example/jobs", "Site", "acme.example"],
+  ])("%s reads %s", (href, label, want) => expect(linkLabel(href, label)).toBe(want));
 });

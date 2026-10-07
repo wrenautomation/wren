@@ -79,6 +79,58 @@ export function hostOf(url: string | null): string | null {
   }
 }
 
+/** Sites known by name: a link there reads as the site, or the profile it opens. */
+const SITES: Readonly<Record<string, string>> = {
+  "linkedin.com": "LinkedIn",
+  "x.com": "X",
+  "twitter.com": "X",
+  "facebook.com": "Facebook",
+  "instagram.com": "Instagram",
+  "youtube.com": "YouTube",
+  "tiktok.com": "TikTok",
+  "reddit.com": "Reddit",
+  "wise.com": "Wise",
+  "stripe.com": "Stripe",
+  "cal.com": "Cal.com",
+  "github.com": "GitHub",
+};
+
+/** A path segment as words: "jane-doe-4a1b2c" -> "Jane Doe". */
+const slugWords = (s: string) =>
+  decodeURIComponent(s)
+    .split(/[-_]/)
+    .filter((w) => w && !/\d/.test(w))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+/**
+ * A link as people read it, the address on hover: a page of this app "Open", a phone "Call", a
+ * profile its name ("Jane Doe", "@acme"), another page on a known site "Open in Wise", any other
+ * site its host ("acme.com"). `label` is the field's: "In Wise" needs no "Wise" again.
+ */
+export function linkLabel(href: string, label = ""): string {
+  if (href.startsWith("/")) return "Open";
+  if (href.startsWith("tel:")) return "Call";
+  const full = /^[a-z][a-z0-9+.-]*:/i.test(href) ? href : `https://${href}`;
+  let url: URL;
+  try {
+    url = new URL(full);
+  } catch {
+    return href;
+  }
+  const host = url.hostname.replace(/^(www|m|mobile)\./, "");
+  const site = SITES[host];
+  if (!site) return host || href;
+  const [a = "", b = ""] = url.pathname.split("/").filter(Boolean);
+  if (host === "linkedin.com" && (a === "in" || a === "company") && b) return slugWords(b) || site;
+  if (a.startsWith("@")) return a;
+  if (["x.com", "twitter.com", "instagram.com"].includes(host) && /^[a-z0-9_.]+$/i.test(a))
+    return a === "home" ? site : `@${a}`;
+  if (host === "reddit.com" && (a === "r" || a === "u" || a === "user") && b)
+    return `${a === "r" ? "r" : "u"}/${b}`;
+  return label.toLowerCase().includes(site.toLowerCase()) ? "Open" : `Open in ${site}`;
+}
+
 /** "Sample recruiting firm" -> "SR": the first letters of the first two words. */
 export const initials = (name: string) =>
   name

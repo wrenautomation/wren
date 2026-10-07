@@ -47,6 +47,21 @@ describe("shownColumns", () => {
       city,
     ]);
   });
+  it("drops a column that only repeats the title", () => {
+    const text = field("text");
+    const drafts = [
+      { id: 1, name: "Before a candidate", text: "Before a candidate takes a counter" },
+      { id: 2, name: "Most placements", text: "Most placements fall through" },
+    ];
+    expect(shownColumns(meta, [name, text], drafts, { byHand: false, narrow: false })).toEqual([
+      name,
+    ]);
+    const titled = [...drafts, { id: 3, name: "How we vet", text: "A video on vetting" }];
+    expect(shownColumns(meta, [name, text], titled, { byHand: false, narrow: false })).toEqual([
+      name,
+      text,
+    ]);
+  });
   it("keeps every column picked by hand, and every column with no rows", () => {
     expect(shownColumns(meta, cols, rows, { byHand: true, narrow: false })).toEqual(cols);
     expect(shownColumns(meta, cols, [], { byHand: false, narrow: false })).toEqual(cols);
@@ -203,6 +218,24 @@ describe("fitRoom", () => {
     const fit = widthsOf(meta, all, rows, 900);
     expect(fit.table).toBe(widths.table);
     expect(fit.note).toBeLessThan(widths.note ?? 0);
+  });
+  it("gives the title's slack before a column of short values cuts", () => {
+    const table = field("table");
+    const rows = long.map((r) => ({ ...r, table: "Company event checks" }));
+    const all = [name, table, note, city];
+    const widths = widthsOf(meta, all, rows);
+    // Long ones at their head (96 each) and the title at its least still leave the table whole.
+    const room = 72 + 96 * 2 + (widths.table ?? 0) + 160;
+    expect(widthsOf(meta, all, rows, room).table).toBe(widths.table);
+    expect(widthsOf(meta, all, rows, room - 40).table).toBeLessThan(widths.table ?? 0);
+  });
+  it("grows a cut word column into spare room before the title takes it", () => {
+    const short = long.map((r) => ({ ...r, note: "z".repeat(50), city: "Springfield" }));
+    const widths = widthsOf(meta, cols, short);
+    const fit = widthsOf(meta, cols, short, 4000);
+    expect(widths.note).toBe(280);
+    expect(fit.note).toBeGreaterThanOrEqual(50 * 7.2 + 24);
+    expect(fit.city).toBe(widths.city);
   });
   it("stops at each column's head", () => {
     const fit = widthsOf(meta, cols, long, 200);

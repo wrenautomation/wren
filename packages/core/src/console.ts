@@ -163,7 +163,7 @@ import {
   workflowInstalls,
   workflowSaves,
 } from "./schema.js";
-import { addAccount, factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
+import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import {
   editsOf,
   type SavedWorkflow,
@@ -2708,10 +2708,8 @@ export function consoleApi({
       try {
         await serializable(main, async (tx) => {
           await setAuditActor(tx, by);
-          await updateClient(tx, client.id, { accounts: { [site]: account } });
+          await updateClient(tx, client.id, { accounts: { [site]: account } }, by);
         });
-        // The registry keeps it too, so Accounts lists it and a setup can start on it.
-        if (account) await addAccount(main, { client: client.id, site, ref: account, by });
       } catch (err) {
         await finishRun(main, run.id, { error: String(err).slice(0, 500) });
         throw err;
