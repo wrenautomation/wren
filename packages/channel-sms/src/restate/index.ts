@@ -254,22 +254,25 @@ export function makeSmsEvents(
        * for the phone Worker to check it against (signer.ts). The answer is public: Telnyx
        * publishes each account's public key to whoever holds the account.
        */
-      signer: async (
-        ctx: restate.Context,
-        req: { number?: string | null; client?: string | null },
-      ): Promise<Signer> => {
-        const clientDb = deps.clientDb;
-        const number = typeof req?.number === "string" ? req.number.slice(0, 16) : null;
-        const client = typeof req?.client === "string" && req.client ? req.client : null;
-        // No client databases here: every number is Wren's.
-        if (!clientDb)
-          return client
-            ? { ok: false, why: "client texts are not wired on this worker" }
-            : { ok: true, client: null, publicKey: null };
-        return ctx.run("signer", () =>
-          telnyxSigner({ main: deps.db, clientDb, keys: deps.keys ?? null }, { number, client }),
-        );
-      },
+      signer: serviceHandler(
+        { input: SIGNER },
+        async (
+          ctx: restate.Context,
+          req: { number?: string | null; client?: string | null },
+        ): Promise<Signer> => {
+          const clientDb = deps.clientDb;
+          const number = typeof req?.number === "string" ? req.number.slice(0, 16) : null;
+          const client = typeof req?.client === "string" && req.client ? req.client : null;
+          // No client databases here: every number is Wren's.
+          if (!clientDb)
+            return client
+              ? { ok: false, why: "client texts are not wired on this worker" }
+              : { ok: true, client: null, publicKey: null };
+          return ctx.run("signer", () =>
+            telnyxSigner({ main: deps.db, clientDb, keys: deps.keys ?? null }, { number, client }),
+          );
+        },
+      ),
       /** One webhook body, as the provider sent it. A body we cannot read is terminal: retrying will not help. */
       ingest: async (
         ctx: restate.Context,
@@ -376,6 +379,11 @@ export interface NumbersView {
 
 /** Empty = Wren's; a client id = that client's texts (`sms.texts` installed). */
 const CLIENT_ID = z.string().nullish().describe("A client's texts; empty = Wren's");
+/** A Telnyx webhook's number and path, for whose key checks it. */
+const SIGNER = z.looseObject({
+  number: z.string().nullish().describe("Our number on the event, as +15551234567"),
+  client: CLIENT_ID,
+});
 const CONTACT = z.looseObject({ contactId: z.number(), client: CLIENT_ID });
 const NUMBER = z.looseObject({ e164: z.string().describe("The number, as +15551234567") });
 const NICHE = z.string().nullish();
