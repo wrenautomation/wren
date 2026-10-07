@@ -116,11 +116,13 @@ const PAD = 20;
 /** Narrower than this, "auto" runs top to bottom. */
 const NARROW = 640;
 /**
- * On a wide screen the whole drawing shows at rest, down to this zoom; past it, words get too
- * small (12px type reads 9px at 0.75) and it pans instead, the minimap under it. A phone keeps
- * words readable and pans.
+ * On a wide screen the whole drawing shows at rest, down to this zoom; a taller one pans down
+ * instead, the minimap under it. Across, every node shows: a wider drawing zooms out to its
+ * width, down to `FLOOR`. A phone keeps words readable and pans down.
  */
 const LEAST = { wide: 0.75, narrow: 0.8 };
+/** The least a drawing zooms to fit its width at rest; wider than that, it pans. */
+const FLOOR = { wide: 0.3, narrow: 0.15 };
 /** Room under the drawing for the zoom buttons. */
 const TOOLS_ROOM = 40;
 /** Room under the drawing for the minimap, shown only when the drawing doesn't fit. */
@@ -679,7 +681,13 @@ export default function GraphCanvas({
       room / Math.max(1, l.width),
       narrow ? 1 : tall / Math.max(1, l.height),
     );
-    const zoom = Math.max(narrow ? LEAST.narrow : LEAST.wide, whole);
+    // Every node shows across at rest: past the floor, it zooms out to the width (never under
+    // `FLOOR`) and pans down instead.
+    const across = room / Math.max(1, l.width);
+    const zoom = Math.max(
+      narrow ? FLOOR.narrow : FLOOR.wide,
+      Math.min(across, Math.max(narrow ? LEAST.narrow : LEAST.wide, whole)),
+    );
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
     // The minimap sits in its own room under the drawing, so it never covers a node at rest.
     const map = !fits && !narrow;

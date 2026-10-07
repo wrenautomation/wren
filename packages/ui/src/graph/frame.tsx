@@ -32,7 +32,7 @@ import {
 } from "react";
 
 const PAN_STEP = 80;
-const ZOOM = { min: 0.25, max: 2 };
+const ZOOM = { min: 0.15, max: 2 };
 const EASE = { duration: 180 };
 
 export interface FrameProps {
