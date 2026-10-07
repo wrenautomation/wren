@@ -26,7 +26,7 @@ import { addIdea, getIdea } from "../ideas.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
 import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
 import { slotsOf } from "../slots.js";
-import { approveVideo, pickThumbnail } from "../video.js";
+import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
 import type { Brand } from "../voice.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
@@ -99,6 +99,7 @@ const VIDEO = z.looseObject({
     .positive()
     .nullish()
     .describe("A Short, 1 for the first; none: the long video"),
+  privacy: z.enum(VIDEO_PRIVACY).nullish().describe("Who sees the upload; none: private"),
 });
 const THUMBNAIL = z.looseObject({
   id: z.number().int().positive(),
@@ -274,16 +275,20 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           );
         },
       ),
-      /** His yes on a rendered video or one Short: a private YouTube draft, posted on the next pass. */
+      /** His yes on a rendered video or one Short: a YouTube draft (private unless asked), posted on the next pass. */
       approveVideo: exclusiveHandler(
         { input: VIDEO },
-        async (ctx: restate.ObjectContext, req: { id: number; short?: number | null }) => {
+        async (
+          ctx: restate.ObjectContext,
+          req: { id: number; short?: number | null; privacy?: VideoPrivacy | null },
+        ) => {
           const { db } = await scopeOf(ctx);
           return ctx.run("approve video", () =>
             verdict(async () => [
               await approveVideo(db, req.id, {
                 source: "api",
                 ...(req.short ? { short: req.short } : {}),
+                ...(req.privacy ? { privacy: req.privacy } : {}),
               }),
             ]),
           );

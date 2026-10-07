@@ -70,8 +70,14 @@ export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
   });
 }
 
+/** Who sees the upload on YouTube. */
+export const VIDEO_PRIVACY = ["private", "unlisted", "public"] as const;
+export type VideoPrivacy = (typeof VIDEO_PRIVACY)[number];
+
 export interface ApproveVideo {
   short?: number;
+  /** Private unless he says otherwise: then he publishes or schedules it on YouTube. */
+  privacy?: VideoPrivacy;
   source: IdeaSource;
   now?: Date;
 }
@@ -144,13 +150,13 @@ export async function approveVideo(
           title,
           media: { kind: "video", source: file, title },
           extra: {
-            privacyStatus: "private",
+            privacyStatus: o.privacy ?? "private",
             ...(e.tags.length ? { tags: e.tags } : {}),
             ...(thumbnail ? { thumbnail } : {}),
           },
           status: "approved",
           approvedAt: now,
-          // Null: the next publish pass. Private, so he publishes or schedules it on YouTube.
+          // Null: the next publish pass.
           scheduledFor: null,
           promptVersion: "video",
         })

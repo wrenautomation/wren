@@ -16,5 +16,13 @@ export * from "./slots.js";
 export * from "./social/store.js";
 export * from "./status.js";
 export * from "./train-backfill.js";
-export { type ApprovedVideo, approveVideo, pickThumbnail, reelKey, videoRef } from "./video.js";
+export {
+  type ApprovedVideo,
+  approveVideo,
+  pickThumbnail,
+  reelKey,
+  VIDEO_PRIVACY,
+  type VideoPrivacy,
+  videoRef,
+} from "./video.js";
 export * from "./voice.js";

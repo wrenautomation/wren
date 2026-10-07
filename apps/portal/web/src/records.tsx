@@ -228,9 +228,10 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     desk("reject", { ids: [bare(id)], reason, note }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
   // A video's yes, from its page or the Inbox (`video:3`).
-  "marketing/videoApprove": (id) => desk("approveVideo", { id: num(id) }),
-  "marketing/videoApproveShort": (id, { short }) =>
-    desk("approveVideo", { id: num(id), short: Number(short) }),
+  "marketing/videoApprove": (id, { privacy }) =>
+    desk("approveVideo", { id: num(id), privacy: privacy || null }),
+  "marketing/videoApproveShort": (id, { short, privacy }) =>
+    desk("approveVideo", { id: num(id), short: Number(short), privacy: privacy || null }),
   "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
   "marketing/videoSet": (id, { patch }) => handlerCall("VideoDesk", "set", { id: num(id), patch }),
   "marketing/videoCut": (id, { from, to, state }) =>

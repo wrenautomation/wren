@@ -261,3 +261,9 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   on the folder pairs it); a Cap project whose segments lack the camera in some loses the camera.
   Checked with synthetic rows and a synthetic Cap project; OBS isn't installed and Cap has no
   recordings yet, so the watcher's first real pickup waits for his first take.
+- 2026-10-07: William: "upload should be configurable". Approve takes who sees it: `wren video
+  approve <id> --privacy private|unlisted|public` (default private), the same `privacy` on the
+  desk's `approveVideo`, and an optional "Who sees it" select on both Approve actions (blank:
+  private). First real takes: OBS's noise gate at open -20 / close -30 dB muted 78% of take one
+  to digital zero (Whisper got 809 words in 18 min); RNNoise and a -45 / -55 gate fixed take two.
+  He wants no inner cuts on these talking takes, only the dead start and end.

@@ -185,15 +185,26 @@ const ACTIVITY_ACTIONS: Action[] = [
   },
 ];
 
-/** Approve is his yes: the file uploads to YouTube, private, on the next pass. */
+/** Who sees an upload (content VIDEO_PRIVACY); blank is private. */
+const PRIVACY = {
+  field: "privacy",
+  label: "Who sees it",
+  type: "select",
+  options: ["private", "unlisted", "public"],
+  optional: true,
+  hint: "Blank: private.",
+} as const;
+
+/** Approve is his yes: the file uploads to YouTube on the next pass, private unless he picks. */
 const VIDEO_APPROVE: Action = {
   id: "marketing.videoApprove",
   label: "Approve",
   handler: "marketing/videoApprove",
-  confirm: "Upload the long video to YouTube, private?",
+  confirm: "Upload the long video to YouTube?",
   key: "a",
+  form: [PRIVACY],
   when: { state: ["rendered"] },
-  done: said("Approved. It uploads, private, on the next pass."),
+  done: said("Approved. It uploads on the next pass."),
 };
 const VIDEO_ACTIONS: Action[] = [
   VIDEO_APPROVE,
@@ -202,9 +213,12 @@ const VIDEO_ACTIONS: Action[] = [
     label: "Approve a Short",
     handler: "marketing/videoApproveShort",
     each: true,
-    form: [{ field: "short", label: "Short", type: "number", hint: "1 is the first Short." }],
+    form: [
+      { field: "short", label: "Short", type: "number", hint: "1 is the first Short." },
+      PRIVACY,
+    ],
     when: { state: ["rendered", "approved", "uploaded"] },
-    done: said("Approved. The Short uploads, private, on the next pass."),
+    done: said("Approved. The Short uploads on the next pass."),
   },
   {
     id: "marketing.videoThumbnail",

@@ -78,9 +78,13 @@ describe("marketing.video", () => {
       media: { kind: "video", source: "/rec/out/long.mp4" },
       extra: { privacyStatus: "private", tags: ["demo"], thumbnail: "/rec/out/thumb-2.jpg" },
     });
-    const short = await approveVideo(pg.db, id, { source: "cli", short: 1 });
+    const short = await approveVideo(pg.db, id, { source: "cli", short: 1, privacy: "public" });
     const [s] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, short.id));
-    expect(s).toMatchObject({ title: "The one trick", media: { source: "/rec/out/short-1.mp4" } });
+    expect(s).toMatchObject({
+      title: "The one trick",
+      media: { source: "/rec/out/short-1.mp4" },
+      extra: { privacyStatus: "public" },
+    });
     expect(s?.extra).not.toHaveProperty("thumbnail");
 
     // The Short's Reel: an Instagram draft of the uploaded full render, waiting for his yes.

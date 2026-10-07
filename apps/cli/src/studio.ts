@@ -7,7 +7,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { approveVideo, reelKey, uploadMedia } from "@wren/content";
+import { approveVideo, reelKey, uploadMedia, VIDEO_PRIVACY } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
@@ -177,19 +177,23 @@ export function registerStudio(
   video
     .command("approve <id>")
     .description(
-      "his yes: a private YouTube draft of the rendered file, uploaded by the desk on the next pass",
+      "his yes: a YouTube draft of the rendered file, uploaded by the desk on the next pass",
     )
     .option("--short <n>", "a Short instead of the long video, 1 for the first", (n) => id(n))
-    .action((v: string, o: { short?: number }) =>
+    .option("--privacy <p>", `who sees it: ${VIDEO_PRIVACY.join(", ")}`, "private")
+    .action((v: string, o: { short?: number; privacy: string }) =>
       withDb(async (db) => {
+        const privacy = VIDEO_PRIVACY.find((p) => p === o.privacy);
+        if (!privacy) throw new Error(`--privacy ${o.privacy}: one of ${VIDEO_PRIVACY.join(", ")}`);
         const d = await approveVideo(db, id(v), {
           source: "cli",
+          privacy,
           ...(o.short ? { short: o.short } : {}),
         });
         console.log(
           d.again
             ? `video ${v}: already approved as draft ${d.id}`
-            : `video ${v}: draft ${d.id} approved; it uploads, private, on the next pass`,
+            : `video ${v}: draft ${d.id} approved; it uploads, ${privacy}, on the next pass`,
         );
         if (d.reel && "missing" in d.reel) console.log(d.reel.missing);
         else if (d.reel && !d.reel.again)
