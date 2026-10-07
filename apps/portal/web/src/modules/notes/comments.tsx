@@ -177,7 +177,9 @@ function Compose({
   const [text, setText] = useState(initial);
   const [list, setList] = useState<NotePeople["people"]>([]);
   const [q, setQ] = useState<string | null>(null);
+  const [hi, setHi] = useState(0);
   const box = useRef<HTMLTextAreaElement>(null);
+  const choosing = q !== null && list.length > 0;
   useEffect(() => {
     if (q === null) return;
     let live = true;
@@ -185,6 +187,7 @@ function Compose({
       if (!live) return;
       const needle = q.toLowerCase();
       setList((p?.people ?? []).filter((x) => x.email.includes(needle)).slice(0, 6));
+      setHi(0);
     });
     return () => {
       live = false;
@@ -226,6 +229,19 @@ function Compose({
           read(e.target.value, e.target.selectionStart);
         }}
         onKeyDown={(e) => {
+          // The people list takes the arrows, Enter and Tab while it's open.
+          if (choosing && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            const n = list.length;
+            setHi((i) => (i + (e.key === "ArrowDown" ? 1 : n - 1)) % n);
+            return;
+          }
+          if (choosing && (e.key === "Enter" || e.key === "Tab") && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            const p = list[hi] ?? list[0];
+            if (p) pick(p.email);
+            return;
+          }
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
             void send();
@@ -237,15 +253,16 @@ function Compose({
         }}
         className={FIELD}
       />
-      {q !== null && list.length ? (
+      {choosing ? (
         <ul aria-label="People" className="m-0 list-none border border-(--ui-hair) p-0">
-          {list.map((p) => (
+          {list.map((p, i) => (
             <li key={p.email}>
               <button
                 type="button"
+                aria-current={i === hi ? "true" : undefined}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(p.email)}
-                className="w-full truncate border-0 bg-transparent px-2 py-1 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)"
+                className="w-full truncate border-0 bg-transparent px-2 py-1 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:bg-(--ui-hover)"
               >
                 {p.email}
                 {p.opens === false ? (

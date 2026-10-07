@@ -269,6 +269,14 @@
   --who: var(--ui-cue-8);
 }
 
+/* ProseMirror's own CSS can't load under our CSP: a widget at a line's end (a cursor) adds this
+   image, which the base reset would make a block and a blank line. */
+.note-body img.ProseMirror-separator {
+  display: inline;
+  border: none;
+  margin: 0;
+}
+
 /* Others' cursors and selections, live. */
 .collaboration-carets__caret {
   position: relative;

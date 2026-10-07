@@ -18,13 +18,17 @@ import {
   readBody,
   textOf,
   toB64,
+  writeBody,
   writeTitle,
 } from "../../src/doc.js";
 import { trainingNotes } from "../../src/store.js";
+import { SUGGEST_ADD } from "../../src/types.js";
 
 let pg: TestPostgres;
 let acme: DbHandle;
 const TABLES = [
+  "note_mentions",
+  "note_comments",
   "note_updates",
   "note_versions",
   "note_links",
@@ -262,6 +266,95 @@ describe("a note in Wren's workspace", () => {
       api().upload({ viewer: ADA, id, name: "a.pdf", type: "application/pdf", size: 10 }),
       400,
     );
+  });
+});
+
+describe("comments, suggestions and mentions", () => {
+  const ANCHOR = {
+    from: { item: { client: 1, clock: 0 }, assoc: 0 },
+    to: { item: null, assoc: -1 },
+  };
+
+  it("threads comments on a range, tells whoever is @ed, and opening the note marks it seen", async () => {
+    const { id } = await api().create({ viewer: ADA, title: "Launch", markdown: "Ship Friday." });
+    await api().share({ viewer: ADA, id, who: "oz@example.test", role: "comment" });
+
+    const t = await api().comment({
+      viewer: ADA,
+      id,
+      body: "@oz@example.test can you check the date?",
+      anchor: ANCHOR,
+      quote: "Friday",
+    });
+    expect(t).toMatchObject({ quote: "Friday", mentions: ["oz@example.test"] });
+    // A thread needs its words; a reply doesn't.
+    await refused(api().comment({ viewer: ADA, id, body: "no range" }), 400);
+
+    let m = await api().mentions({ viewer: OZ });
+    expect(m.unseen).toBe(1);
+    expect(m.mentions[0]).toMatchObject({ noteId: id, name: "Launch", commentId: t.id });
+
+    await api().comment({ viewer: OZ, id, body: "Friday works.", parentId: t.id });
+    await api().resolve({ viewer: OZ, id, commentId: t.id });
+    const c = await api().comments({ viewer: ADA, id });
+    expect(c.threads).toHaveLength(1);
+    expect(c.threads[0]?.replies.map((r) => r.body)).toEqual(["Friday works."]);
+    expect(c.threads[0]?.resolvedBy).toBe("oz@example.test");
+    // Only its author changes the words.
+    await refused(api().commentEdit({ viewer: OZ, id, commentId: t.id, body: "mine now" }), 403);
+
+    await api().open({ viewer: OZ, id });
+    m = await api().mentions({ viewer: OZ });
+    expect(m.unseen).toBe(0);
+    expect(m.mentions[0]?.seen).toBe(true);
+  });
+
+  it("a mention never shares: it shows once the note is shared", async () => {
+    const { id } = await api().create({ viewer: ADA, title: "Private" });
+    await api().share({ viewer: ADA, id, who: "team", role: "comment" });
+    await api().comment({ viewer: ADA, id, body: "for @oz@example.test", anchor: ANCHOR });
+    await api().share({ viewer: ADA, id, who: "team", role: null });
+    expect((await api().mentions({ viewer: OZ })).unseen).toBe(0);
+    await api().share({ viewer: ADA, id, who: "oz@example.test", role: "view" });
+    expect((await api().mentions({ viewer: OZ })).unseen).toBe(1);
+  });
+
+  it("a commenter's change goes in only as their own suggestion", async () => {
+    const { id } = await api().create({ viewer: ADA, title: "Copy", markdown: "Hello there." });
+    await api().share({ viewer: ADA, id, who: "oz@example.test", role: "comment" });
+    const o = await browser(OZ, id);
+    expect(o.opened.role).toBe("comment");
+
+    // A plain edit is refused.
+    appendBody(o.doc, fromMarkdown("sneaky"));
+    await refused(o.sync(), 403);
+
+    // Their suggestion is taken, and the owner sees it marked.
+    const o2 = await browser(OZ, id);
+    const body = readBody(o2.doc);
+    const para = body.content?.[0];
+    para?.content?.push({
+      type: "text",
+      text: " Welcome!",
+      marks: [{ type: SUGGEST_ADD, attrs: { by: "oz@example.test", at: "2026-10-07T10:00" } }],
+    });
+    writeBody(o2.doc, body);
+    expect((await o2.sync()).role).toBe("comment");
+    const a = await browser(ADA, id);
+    expect(a.text()).toBe("Hello there. Welcome!");
+    const marks = readBody(a.doc).content?.[0]?.content?.[1]?.marks;
+    expect(marks?.[0]).toMatchObject({ type: SUGGEST_ADD, attrs: { by: "oz@example.test" } });
+
+    // Someone else's suggestion isn't theirs to suggest.
+    const o3 = await browser(OZ, id);
+    const forged = readBody(o3.doc);
+    forged.content?.[0]?.content?.push({
+      type: "text",
+      text: " Forged.",
+      marks: [{ type: SUGGEST_ADD, attrs: { by: "ada@example.test", at: "2026-10-07T10:00" } }],
+    });
+    writeBody(o3.doc, forged);
+    await refused(o3.sync(), 403);
   });
 });
 

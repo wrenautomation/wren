@@ -395,10 +395,23 @@ server.on("upgrade", (req, socket, head) => {
   const id = url.pathname.startsWith(LIVE_PREFIX) ? url.pathname.slice(LIVE_PREFIX.length) : "";
   if (!id || demo) return socket.destroy();
   const client = url.searchParams.get("client");
-  const who = url.searchParams.get("as");
-  const me: Viewer = who ? { email: who } : viewer;
-  const email = "email" in me ? me.email : "";
+  // A second person in the room: `?as=` on the socket, or a `preview_as` cookie for a browser.
+  const who =
+    url.searchParams.get("as") ??
+    /(?:^|;\s*)preview_as=([^;]+)/.exec(req.headers.cookie ?? "")?.[1] ??
+    null;
   sockets.handleUpgrade(req, socket, head, async (ws) => {
+    // Frames that come before the room lets them in wait, as the Durable Object's do.
+    const early: string[] = [];
+    let take = (f: string) => void early.push(f);
+    ws.on("message", (data: unknown) => take(String(data)));
+    const me: Viewer = who
+      ? {
+          email: decodeURIComponent(who),
+          ...((await teamSeat(main, decodeURIComponent(who))) ? { operator: true } : {}),
+        }
+      : viewer;
+    const email = "email" in me ? me.email : "";
     let room = rooms.get(id);
     if (!room || room.closed) {
       const fresh: Room = new Room(id, {
@@ -423,7 +436,8 @@ server.on("upgrade", (req, socket, head) => {
     };
     try {
       const peer = await r.join(s, { email, as: { ...(client ? { client } : {}), viewer: me } });
-      ws.on("message", (data: unknown) => r.message(peer, String(data)));
+      take = (f) => void r.message(peer, f);
+      for (const f of early.splice(0)) take(f);
       ws.on("close", () => r.leave(peer));
     } catch (err) {
       ws.close(4000 + (err instanceof RoomRefusal ? err.status : 503), "refused");
