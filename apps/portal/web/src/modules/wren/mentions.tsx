@@ -25,8 +25,13 @@ export const MENTION_ACTIONS: Action[] = [
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
-/** The note at the mention: its comment opened when the mention is in one. */
+/**
+ * The note at the mention: its comment opened when the mention is in one. An Inbox note's
+ * mention opens its thread.
+ */
 export function mentionLink(row: Row): string {
+  const thread = str(row.thread);
+  if (thread) return `/inbox/waiting/${encodeURIComponent(thread)}`;
   const note = str(row.noteId);
   const comment = str(row.commentId);
   return comment ? `${docPath(note)}?comment=${encodeURIComponent(comment)}` : docPath(note);
@@ -35,7 +40,7 @@ export function mentionLink(row: Row): string {
 export const mentionExtras = (_: unknown, { row }: { row: Row }) => ({
   lead: (
     <ButtonLink tone="primary" icon="note" href={mentionLink(row)}>
-      Open note
+      {row.thread ? "Open thread" : "Open note"}
     </ButtonLink>
   ),
 });

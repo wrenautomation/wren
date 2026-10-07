@@ -228,6 +228,8 @@ describe("InboxDesk", () => {
     await expect(
       desk().assign({ thread: thread(), assignee: "nobody@else.example.test", ...as(s.admin) }),
     ).rejects.toThrow(/not on the team/);
+    await desk().take({ thread: thread(), ...as(s.admin) });
+    expect((await rowOf(thread()))?.assignee).toBe(s.admin);
     await desk().status({ thread: thread(), status: "closed", ...as(s.admin) });
     expect((await rowOf(thread()))?.status).toBe("closed");
     const until = new Date(Date.now() + 3_600_000).toISOString();

@@ -16,7 +16,7 @@ import {
 } from "@tiptap/y-tiptap";
 import { Y_BODY } from "@wren/notes/types";
 import { Button, Icon, relative, say } from "@wren/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
 import { hueOf, type NoteComments, type NotePeople, notes } from "./api.js";
 import { resolveSuggestions, type Suggestion, suggestionsIn } from "./suggesting.js";
@@ -156,8 +156,11 @@ export function goTo(editor: Editor, t: Thread) {
 const FIELD =
   "w-full resize-y border border-(--ui-hair) bg-(--ui-paper) px-2 py-1.5 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-accent)";
 
-/** A text box where `@` offers the people here, and inserts their email. */
-function Compose({
+/**
+ * A text box where `@` offers the people here, and inserts their email. The Inbox's note box is
+ * this one too (designs/2026-10-07-inbox-reply.md).
+ */
+export function Compose({
   people,
   placeholder,
   initial = "",
@@ -165,6 +168,8 @@ function Compose({
   submit,
   onCancel,
   autoFocus,
+  button,
+  box: outer,
 }: {
   people: () => Promise<NotePeople | null>;
   placeholder: string;
@@ -173,12 +178,17 @@ function Compose({
   submit: (body: string) => Promise<boolean>;
   onCancel?: () => void;
   autoFocus?: boolean;
+  /** The submit button's word: "Comment" (or "Save" when editing) when left out. */
+  button?: string;
+  /** The text box, for a caller that focuses it (a key). */
+  box?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const [text, setText] = useState(initial);
   const [list, setList] = useState<NotePeople["people"]>([]);
   const [q, setQ] = useState<string | null>(null);
   const [hi, setHi] = useState(0);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const own = useRef<HTMLTextAreaElement>(null);
+  const box = outer ?? own;
   const choosing = q !== null && list.length > 0;
   useEffect(() => {
     if (q === null) return;
@@ -275,7 +285,7 @@ function Compose({
       ) : null}
       <div className="flex items-center gap-2">
         <Button size="dense" disabled={!text.trim() || busy} onClick={() => void send()}>
-          {initial ? "Save" : "Comment"}
+          {button ?? (initial ? "Save" : "Comment")}
         </Button>
         {onCancel ? (
           <Button size="dense" tone="quiet" onClick={onCancel}>

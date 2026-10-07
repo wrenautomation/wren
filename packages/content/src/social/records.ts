@@ -442,6 +442,13 @@ export const inboxRecord = defineRecord({
     "inbox.snooze",
     "inbox.wake",
   ],
+  // The Inbox's handlers on one thread: a login limited to a channel may call them on its rows.
+  calls: Object.fromEntries(
+    ["reply", "ask", "suggest", "note", "assign", "take", "status", "snooze"].map((h) => [
+      `InboxDesk/${h}`,
+      "thread",
+    ]),
+  ),
   /**
    * The whole conversation with the person (every channel, touches, notes) and where a reply can
    * go; a DM thread's or a text thread's own messages; a draft's Ask Claude thread.
@@ -746,7 +753,12 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "inbox.replyDrop",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
-    calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
+    calls: {
+      ...DRAFT_CALLS,
+      "ContentDesk/approveVideo": "id",
+      "InboxDesk/approve": "id",
+      "InboxDesk/drop": "id",
+    },
     /** An accepted invite's messages; a draft's Ask Claude thread. */
     load: async (db, id) => {
       const [type, rest] = typed(id);

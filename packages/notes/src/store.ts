@@ -879,7 +879,8 @@ export function mentionsOf(db: Queryable, r: Omit<Reader, "cap">, limit = 50) {
   return db
     .select({
       id: noteMentions.id,
-      noteId: noteMentions.noteId,
+      // The joined note's own id: never null, as an Inbox note's mention has none.
+      noteId: notes.id,
       commentId: noteMentions.commentId,
       by: noteMentions.by,
       at: noteMentions.at,

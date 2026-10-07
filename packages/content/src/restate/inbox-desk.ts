@@ -328,6 +328,20 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           return { assignee: who };
         },
       ),
+      /** Take the thread: it's the caller's. */
+      take: serviceHandler(
+        { input: BASE },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string },
+        ): Promise<{ assignee: string }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          const now = await nowOf(ctx);
+          await ctx.run("take", () => setThread(db, req.thread, { assignee: me }, me, now));
+          return { assignee: me };
+        },
+      ),
       /** Open, waiting on them, or closed. Closing touches nothing on the channel. */
       status: serviceHandler(
         { input: BASE.extend({ status: z.enum(INBOX_STATUSES) }) },

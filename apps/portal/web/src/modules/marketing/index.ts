@@ -6,10 +6,10 @@ import { KEYWORDS } from "@wren/channel-sms/templates";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
-import { threadExtras } from "../texts/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
+import { askedReplyExtras, conversationExtras } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { FactsPage, factsDropped } from "./facts.js";
@@ -493,17 +493,111 @@ const only = (type: string, a: Action, when: Action["when"] = a.when): Action =>
 const WAITS = { state: ["waiting"] };
 /** A page's own draft box and its Read now stay there; the Inbox has one box of each kind. */
 const own = (a: Action) => !a.form && !DRAFT_BOX.includes(a.id);
+/** What the Inbox's thread does (designs/2026-10-07-inbox-reply.md): assign, close, snooze. */
+const THREAD_LIVE = { status: ["open", "waiting", "snoozed"] };
+const INBOX_THREAD_ACTIONS: Action[] = [
+  {
+    id: "inbox.take",
+    label: "Take it",
+    handler: "inbox/take",
+    bulk: true,
+    key: "t",
+    done: said("It's yours"),
+  },
+  {
+    id: "inbox.assign",
+    label: "Assign",
+    handler: "inbox/assign",
+    form: [
+      {
+        field: "assignee",
+        label: "Teammate's email",
+        optional: true,
+        hint: "Leave it empty for nobody.",
+      },
+    ],
+    each: true,
+    bulk: true,
+    key: "a",
+    done: said("Assigned"),
+  },
+  {
+    id: "inbox.close",
+    label: "Close",
+    handler: "inbox/close",
+    bulk: true,
+    key: "e",
+    when: THREAD_LIVE,
+    sets: { status: "closed" },
+    done: said("Closed. It opens again when they write."),
+  },
+  {
+    id: "inbox.open",
+    label: "Open again",
+    handler: "inbox/open",
+    bulk: true,
+    when: { status: ["closed", "waiting"] },
+    sets: { status: "open" },
+    done: said("Open"),
+  },
+  {
+    id: "inbox.snooze",
+    label: "Snooze",
+    handler: "inbox/snooze",
+    form: [
+      {
+        field: "until",
+        label: "Until",
+        type: "select",
+        options: ["1h", "4h", "tomorrow", "monday"],
+        labels: {
+          "1h": "In an hour",
+          "4h": "In 4 hours",
+          tomorrow: "Tomorrow at 9:00",
+          monday: "Monday at 9:00",
+        },
+      },
+    ],
+    each: true,
+    bulk: true,
+    key: "z",
+    when: { status: ["open", "waiting"] },
+    done: said("Snoozed. It comes back then, or when they write."),
+  },
+  {
+    id: "inbox.wake",
+    label: "Wake",
+    handler: "inbox/wake",
+    bulk: true,
+    when: { status: ["snoozed"] },
+    done: said("Back in the Inbox"),
+  },
+  // The conversation's boxes: never a button or a key.
+  { id: "inbox.reply", label: "Send", handler: "inbox/reply", inline: true },
+  { id: "inbox.ask", label: "Ask to send", handler: "inbox/ask", inline: true },
+  { id: "inbox.suggest", label: "Suggest", handler: "inbox/suggest", inline: true },
+  { id: "inbox.note", label: "Add note", handler: "inbox/note", inline: true },
+];
+/** The box sends now: a page's own send is left out, and R and E are the thread's. */
+const BOXED = ["marketing.dmReply", "marketing.commentAnswer", "email.approve"];
+const unkeyed = (a: Action): Action => {
+  if (a.key !== "r" && a.key !== "e") return a;
+  const { key: _, ...rest } = a;
+  return rest;
+};
 const INBOX_ACTIONS: Action[] = [
-  ...COMMENT_ACTIONS.map((a) => only("comment", a)),
-  ...DM_ACTIONS.filter(own).map((a) =>
-    only("dm", a, a.id === "marketing.dmReply" ? a.when : WAITS),
-  ),
-  // SMS copy is William's: Mark read only, no Ask Claude.
-  ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
-  // A reply's call invite, as its replies page answers it; a reply with none has no actions.
-  ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
-  ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
-  ...draftActions("inbox", { type: ["comment", "dm"], state: ["new", "waiting", "read"] }),
+  ...INBOX_THREAD_ACTIONS,
+  ...[
+    ...COMMENT_ACTIONS.map((a) => only("comment", a)),
+    ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
+    // SMS copy is William's: Mark read only.
+    ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
+    // A reply's call invite, as its replies page answers it; a reply with none has no actions.
+    ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
+    ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  ]
+    .filter((a) => !BOXED.includes(a.id))
+    .map(unkeyed),
 ];
 /** A template version asked to go live (`templates/publish`): only a person's yes makes it live. */
 const TEMPLATE_ACTIONS: Action[] = [
@@ -559,6 +653,24 @@ const PAGE_ACTIONS: Action[] = [
     done: said("Declined. The version stays in its history."),
   },
 ];
+/** A reply typed in the Inbox that waits on a yes: Approve sends it on its channel. */
+const ASKED_REPLY_ACTIONS: Action[] = [
+  {
+    id: "inbox.replyApprove",
+    label: "Approve",
+    handler: "inbox/replyApprove",
+    confirm: "Send this reply on its channel now?",
+    key: "a",
+    done: said("Sent"),
+  },
+  {
+    id: "inbox.replyDrop",
+    label: "Drop",
+    handler: "inbox/replyDrop",
+    key: "x",
+    done: said("Dropped. Nothing was sent."),
+  },
+];
 /** To approve: what we'd send, each with its own page's yes and edit. */
 const APPROVAL_ACTIONS: Action[] = [
   // A post's words are the row's body here.
@@ -576,6 +688,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ),
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
   ...LIPOST_ACTIONS.map((a) => only("lipost", a, WAITS)),
+  ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a, WAITS)),
   ...fieldActions({ type: ["draft"], state: ["new", "waiting", "read"] }),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
@@ -619,11 +732,6 @@ const LIPOST_DRAFT: DraftOf = {
   label: "Your comment, posted under their post",
   send: "marketing.lipostComment",
 };
-/** The Inbox row's type picks its box. */
-const INBOX_DRAFT: Record<string, DraftOf> = {
-  comment: COMMENT_DRAFT,
-  dm: DM_DRAFT,
-};
 /** To approve's row type picks its box; a post's words are the row's body there. */
 const APPROVAL_DRAFT: Record<string, DraftOf> = {
   draft: { ...POST_DRAFT, field: "body" },
@@ -642,6 +750,9 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   record: "marketing.inbox",
   empty: {
     waiting: "Nothing waits on you.",
+    mine: "Nothing is assigned to you. Take a thread with T.",
+    unassigned: "Every open thread has someone.",
+    snoozed: "Nothing is snoozed.",
     comments: "Comments on our posts show here.",
     dms: "Threads show here once reach messages someone.",
     email: "Email replies from leads show here.",
@@ -650,16 +761,9 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     all: "Comments, DMs, email replies, texts and activity show here.",
   },
   actions: INBOX_ACTIONS,
-  extras: withDraft(
-    (row) => INBOX_DRAFT[String(row.type)] ?? null,
-    (detail, at) =>
-      at.row.type === "text"
-        ? threadExtras(detail, at)
-        : (detail as { messages?: unknown } | null)?.messages
-          ? dmExtras(detail, at)
-          : { sections: [] },
-  ),
-  count: { state: ["new", "waiting"] },
+  // The whole conversation with its reply and note boxes; activity has none.
+  extras: conversationExtras,
+  count: { status: ["open"] },
 };
 
 /** What we'd send, waiting on William's yes (`marketing.approval`): Marketing → To approve. */
@@ -680,13 +784,18 @@ const APPROVAL_PAGE: ListPage = {
     invites: "No accepted invite waits on a first message.",
     templates: "No template version waits on a yes.",
     workflows: "No client workflow waits on a yes.",
-    all: "Post drafts, videos, thread comments, first messages, copy and workflows show here.",
+    replies: "No Inbox reply waits on a yes.",
+    all: "Post drafts, videos, thread comments, first messages, copy, workflows and replies show here.",
   },
   actions: APPROVAL_ACTIONS,
   extras: withDraft(
     (row) => APPROVAL_DRAFT[String(row.type)] ?? null,
     withShape((detail, at) =>
-      (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+      at.row.type === "reply"
+        ? askedReplyExtras(detail)
+        : (detail as { messages?: unknown } | null)?.messages
+          ? dmExtras(detail, at)
+          : { sections: [] },
     ),
   ),
   count: { state: ["new", "waiting"] },

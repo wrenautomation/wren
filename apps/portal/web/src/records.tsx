@@ -286,6 +286,26 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("ReachDesk", "dmComment", { id: num(id), body }, { confirm: "dmComment" }),
   "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: num(id) }),
   "marketing/activitySeen": (id) => handlerCall("SocialDesk", "markSeen", { ids: [num(id)] }),
+  // The Inbox's thread (designs/2026-10-07-inbox-reply.md): the id is the thread's, typed.
+  "inbox/reply": (id, { channel, target, body }) =>
+    handlerCall("InboxDesk", "reply", { thread: id, channel, target, body }, { confirm: "reply" }),
+  "inbox/ask": (id, { channel, target, body }) =>
+    handlerCall("InboxDesk", "ask", { thread: id, channel, target, body }),
+  "inbox/suggest": (id, { channel, target }) =>
+    handlerCall("InboxDesk", "suggest", { thread: id, channel, target }),
+  "inbox/note": (id, { body }) => handlerCall("InboxDesk", "note", { thread: id, body }),
+  "inbox/assign": (id, { assignee }) =>
+    handlerCall("InboxDesk", "assign", { thread: id, assignee: assignee || null }),
+  "inbox/take": (id) => handlerCall("InboxDesk", "take", { thread: id }),
+  "inbox/close": (id) => handlerCall("InboxDesk", "status", { thread: id, status: "closed" }),
+  "inbox/open": (id) => handlerCall("InboxDesk", "status", { thread: id, status: "open" }),
+  "inbox/snooze": (id, { until }) =>
+    handlerCall("InboxDesk", "snooze", { thread: id, until: snoozeUntil(until) }),
+  "inbox/wake": (id) => handlerCall("InboxDesk", "snooze", { thread: id, until: null }),
+  // To approve's asked reply: `reply:<id>`. The yes sends.
+  "inbox/replyApprove": (id) =>
+    handlerCall("InboxDesk", "approve", { id: num(id) }, { confirm: "approve" }),
+  "inbox/replyDrop": (id) => handlerCall("InboxDesk", "drop", { id: num(id) }),
   // Withdrawing can't be undone: the console asks first.
   "marketing/inviteWithdraw": (id) =>
     handlerCall(
@@ -355,6 +375,17 @@ function drafting(page: string, record: string | null) {
       handlerCall("DraftAsk", "ask", { ...item(id), message }),
     [`marketing/${page}Undo`]: (id: string) => handlerCall("DraftAsk", "undo", item(id)),
   };
+}
+/** When a snooze ends, from the form's pick: in hours, or 9:00 tomorrow or next Monday. */
+function snoozeUntil(pick: unknown, now = new Date()): string {
+  const at = new Date(now);
+  if (pick === "1h" || pick === "4h") at.setHours(at.getHours() + (pick === "1h" ? 1 : 4));
+  else {
+    const days = pick === "monday" ? (8 - at.getDay()) % 7 || 7 : 1;
+    at.setDate(at.getDate() + days);
+    at.setHours(9, 0, 0, 0);
+  }
+  return at.toISOString();
 }
 /** A template's new words. The box leaves out unchanged text, and an empty body clears it. */
 const changed = ({ body }: Input) => {
@@ -441,17 +472,19 @@ async function eachOf(
   const ids = (input.ids ?? []) as (string | number)[];
   const done: (string | number)[] = [];
   const skipped: (string | number)[] = [];
+  // One record's call keeps its answer: a suggestion's words, whether a reply sent or asked.
+  let answer: unknown = null;
   for (const id of ids) {
     const [handler, body] = one(String(id), input);
     try {
-      await call(handler, client ? { client, ...body } : body);
+      answer = await call(handler, client ? { client, ...body } : body);
       done.push(id);
     } catch (err) {
       if (ids.length === 1) throw err;
       skipped.push(id);
     }
   }
-  return { done, skipped };
+  return ids.length === 1 ? { done, skipped, answer } : { done, skipped };
 }
 
 /** A page's actions as the portal runs them: one record's handler per id, else as named. */
