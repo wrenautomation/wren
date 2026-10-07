@@ -14,7 +14,7 @@ import {
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { Approver, RoleId } from "../access.js";
-import { actor, date, defineRecord, number, status, text } from "../records.js";
+import { actor, date, defineRecord, named, number, status, text } from "../records.js";
 import {
   type Client,
   type ClientMember,
@@ -403,7 +403,7 @@ export const CHANGE_FIELDS = {
     },
     "What",
   ),
-  table: text("Table"),
+  table: named("Table"),
   row: text("Row"),
   change: text("Change", { total: false }),
   area: status(

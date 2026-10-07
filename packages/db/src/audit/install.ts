@@ -236,8 +236,15 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     e.op,
     coalesce(e.row_key ->> 'id', e.row_key::text) "row",
     CASE e.op WHEN 'update' THEN (
-        SELECT string_agg(n.k || ': ' || left(coalesce(e.old_values ->> n.k, 'empty'), 40)
-          || ' → ' || left(coalesce(n.v, 'empty'), 40), '; ' ORDER BY n.k)
+        -- Words, not code: "domain verified at: empty → 2026-10-07 06:45 UTC"; a JSON value says
+        -- only that it changed.
+        SELECT string_agg(replace(n.k, '_', ' ') || CASE
+            WHEN n.v ~ '^[[{]' THEN ' updated'
+            ELSE ': ' || left(coalesce(regexp_replace(e.old_values ->> n.k,
+                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty'), 40)
+              || ' → ' || left(coalesce(regexp_replace(n.v,
+                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty'), 40) END,
+          '; ' ORDER BY n.k)
         FROM jsonb_each_text(e.new_values) n(k, v))
       WHEN 'delete' THEN 'removed' WHEN 'truncate' THEN 'emptied' ELSE 'added' END change,
     CASE WHEN e.at >= date_trunc('day', now()) THEN 'today' ELSE 'week' END age
