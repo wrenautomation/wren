@@ -205,6 +205,7 @@ describe("ConsolePortal records", () => {
       "loops.flag",
       "library.workflow",
       "console.event",
+      "console.execution",
       "console.hold",
       "console.check",
       "console.component",

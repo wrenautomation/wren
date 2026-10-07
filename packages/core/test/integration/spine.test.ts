@@ -3,7 +3,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { defineComponent } from "../../src/components.js";
-import { consoleApi } from "../../src/console.js";
+import { consoleApi, executionSteps } from "../../src/console.js";
 import type { PortalRequest } from "../../src/portal.js";
 import { events, hooks, workflowSaves } from "../../src/schema.js";
 import { addHook, pgSpineStore, savedWorkflows } from "../../src/spine.js";
@@ -62,6 +62,33 @@ describe("pgSpineStore", () => {
     expect(await store.release(id, "inv2")).not.toBeNull();
     expect(await store.release(id, "inv3")).toBeNull();
     expect(await store.claim(w, "inv2")).toBe(id);
+  });
+  it("keeps what a step sent on, and lists each subject's walk as one execution", async () => {
+    const store = pgSpineStore(pg.db);
+    const one = { ...a, workflow: "runs", node: "a", event: { ...a.event, subject: "lead:9" } };
+    const first = (await store.claim(one, "inv1")) as string;
+    await store.sent?.(first, [{ port: "replied", event: { ...one.event, kind: "reply" } }]);
+    const two = { ...one, node: "b", port: "replies" };
+    await store.claim(two, "inv1", new Date(Date.now() + 60_000));
+    const [row] = await pg.db.select().from(events).where(eq(events.id, first));
+    expect(row?.sent).toEqual([
+      { port: "replied", subject: "lead:9", kind: "reply", data: { cut: "half " } },
+    ]);
+    expect(row?.sentAt).toBeInstanceOf(Date);
+    const runs = await pg.db.execute<{ id: string; state: string; node: string; steps: number }>(
+      sql`select id, state, node, steps from spine_executions where workflow = 'runs'`,
+    );
+    expect(runs).toEqual([{ id: "runs/lead:9", state: "waiting", node: "b", steps: 2 }]);
+    const steps = await executionSteps(pg.db, "runs/lead:9");
+    expect(steps.map((s) => [s.node, s.port, !!s.sent, !!s.due])).toEqual([
+      ["a", "leads", true, false],
+      ["b", "replies", false, true],
+    ]);
+    await store.fail(two, "it broke");
+    const [failed] = await pg.db.execute<{ state: string; error: string }>(
+      sql`select state, error from spine_executions where id = 'runs/lead:9'`,
+    );
+    expect(failed).toEqual({ state: "failed", error: "it broke" });
   });
 });
 

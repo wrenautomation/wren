@@ -42,6 +42,7 @@ import {
   portsIn,
   type Where,
 } from "./canvas.js";
+import { Executions } from "./executions.js";
 import { WREN_APPS } from "./index.js";
 import { usePlay } from "./playback.js";
 import {
@@ -93,7 +94,7 @@ function servedBy(client: string | null): Promise<ReadonlySet<string> | null> {
   return got;
 }
 
-export function Workflows({ params, team }: PageProps) {
+export function Workflows({ params, team, can }: PageProps) {
   const path = (params.get("path") ?? ROOT).split("/").filter(Boolean);
   const client = params.get("client") || null;
   const canvasAt = (p: readonly string[]) =>
@@ -180,22 +181,59 @@ export function Workflows({ params, team }: PageProps) {
         title={w.name}
         lede={`${client ? `Wired for ${client}. ` : ""}Numbers are the last ${DAYS} days. A stacked card opens what runs inside it. Faded: not built yet.`}
       />
-      <Canvas
-        key={`${path.join("/")}:${nonce}`}
-        w={w}
-        d={d}
-        counts={counts.data ?? undefined}
-        inner={inner.data ?? undefined}
-        where={{
-          canvas: (n) => (n.opens ? canvasAt([...path, n.opens]) : undefined),
-          rows: recordsAt,
-        }}
-        params={params}
-        client={client}
-        team={team}
-        onSaved={() => setNonce((n) => n + 1)}
-      />
+      {client ? null : <Panes params={params} />}
+      {!client && params.get("pane") === "runs" ? (
+        <Executions w={w} params={params} can={can} />
+      ) : (
+        <Canvas
+          key={`${path.join("/")}:${nonce}`}
+          w={w}
+          d={d}
+          counts={counts.data ?? undefined}
+          inner={inner.data ?? undefined}
+          where={{
+            canvas: (n) => (n.opens ? canvasAt([...path, n.opens]) : undefined),
+            rows: recordsAt,
+          }}
+          params={params}
+          client={client}
+          team={team}
+          onSaved={() => setNonce((n) => n + 1)}
+        />
+      )}
     </>
+  );
+}
+
+/** The canvas, or what ran through it. */
+function Panes({ params }: { params: URLSearchParams }) {
+  const pane = params.get("pane") === "runs" ? "runs" : "canvas";
+  const tabs = [
+    { id: "canvas", label: "Canvas" },
+    { id: "runs", label: "Executions" },
+  ] as const;
+  return (
+    <div role="tablist" aria-label="Show" className="mb-4 flex gap-4 border-b border-(--ui-hair)">
+      {tabs.map((t) => (
+        <a
+          key={t.id}
+          role="tab"
+          aria-selected={pane === t.id}
+          href={href(
+            PAGE,
+            { pane: t.id === "canvas" ? null : t.id, run: null, runs: null },
+            params,
+          )}
+          className={`-mb-px border-b-2 pb-2 text-[14px] no-underline ${
+            pane === t.id
+              ? "border-(--ui-ink) font-medium text-(--ui-ink)"
+              : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)"
+          }`}
+        >
+          {t.label}
+        </a>
+      ))}
+    </div>
   );
 }
 

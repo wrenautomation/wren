@@ -11,6 +11,7 @@ import { ClientLook } from "../account/Look.js";
 import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
+import { executionExtras } from "./executions.js";
 import {
   CANDIDATE_ACTIONS,
   candidateExtras,
@@ -1079,6 +1080,20 @@ export const workflows: Module = {
   requires: TEAM,
   pages: [
     { id: "canvas", label: "Canvas", Page: Workflows },
+    {
+      id: "runs",
+      label: "Executions",
+      template: "list",
+      record: "console.execution",
+      requires: { ...TEAM, needs: "read" },
+      empty: {
+        all: "Nothing has run through a workflow on the spine yet.",
+        waiting: "Nothing is waiting.",
+        failed: "Nothing has failed.",
+        done: "Nothing has finished yet.",
+      },
+      extras: executionExtras,
+    },
     {
       id: "events",
       label: "Events",

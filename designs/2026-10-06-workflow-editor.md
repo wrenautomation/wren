@@ -116,3 +116,10 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   the SVG export. Roles come from the part id's area (`roleOfPart`). The ground is
   `--ui-graph`, paper with 11% of the accent, so it follows the night theme. Fit zoom floors
   at 0.75 and pans past it. Play's wire turns accent and stays lit while its dot rides.
+- 2026-10-06: Step 1 built. A step's outputs land on its own `events` row (`sent`, `sent_at`),
+  written in the same journaled step, so an execution needs no new table. `spine_executions`
+  groups `events` by workflow and subject; record `console.execution`. Executions is a tab on
+  the canvas (list left, path lit right) and a page of its own, which is how ⌘K reaches it
+  (⌘K jumps to pages; the page searches by subject). Not built: search by person or firm.
+  Spine subjects are channel contact ids (`lead:sms:<id>`), and journeys live in client
+  workspaces while the spine is main only, so there's no lead key to join on yet.

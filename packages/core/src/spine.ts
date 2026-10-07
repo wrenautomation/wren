@@ -12,7 +12,7 @@ import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
-import { hooks, workflowSaves } from "./schema.js";
+import { hooks, type SentEvent, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
 export interface SpineEvent {
@@ -66,6 +66,8 @@ export interface SpineStore {
   fail(a: Arrival, error: string): Promise<void>;
   /** Take a failed arrival for `by` to run again, its error cleared; null when it isn't failed. */
   retry(id: string, by: string): Promise<Arrival | null>;
+  /** What the arrival's step sent on, kept for its execution's page. */
+  sent?(id: string, outs: Array<{ port: string; event: SpineEvent }>): Promise<void>;
 }
 
 export interface Walk {
@@ -219,9 +221,12 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       outs = await w.run(
         `${a.node}.${port} ${m.e.subject}`,
         async () => {
-          if (!(await w.store.claim(a, w.by))) return null;
+          const kept = await w.store.claim(a, w.by);
+          if (!kept) return null;
           const at = { client: w.client, workflow, node: a.node, with: node.with ?? {} };
-          return step ? step(port, a.event, at) : [];
+          const out = step ? await step(port, a.event, at) : [];
+          await w.store.sent?.(kept, out);
+          return out;
         },
         true,
       );
@@ -274,6 +279,21 @@ async function arriveAgain(
   ]);
 }
 
+/** The most of one step's outputs an execution keeps; past it, the data is dropped. */
+const SENT_MAX = 32_000;
+
+/** A step's outputs as `events.sent` keeps them: each one's data dropped when they don't fit. */
+export function sentOf(outs: ReadonlyArray<{ port: string; event: SpineEvent }>): SentEvent[] {
+  const all = outs.map((o) => ({
+    port: o.port,
+    subject: o.event.subject,
+    kind: o.event.kind,
+    data: o.event.data,
+  }));
+  if (JSON.stringify(all).length <= SENT_MAX) return all;
+  return all.map((o) => ({ ...o, data: { cut: "too big to keep" } }));
+}
+
 export function pgSpineStore(db: Db): SpineStore {
   type Row = {
     workflow: string;
@@ -315,6 +335,11 @@ export function pgSpineStore(db: Db): SpineStore {
         UPDATE events SET error = ${pgSafe(error)}
         WHERE workflow = ${a.workflow} AND node = ${a.node} AND port = ${a.port}
           AND subject = ${a.event.subject}`);
+    },
+    async sent(id, outs) {
+      await db.execute(sql`
+        UPDATE events SET sent = ${JSON.stringify(pgSafe(sentOf(outs)))}::jsonb, sent_at = now()
+        WHERE id = ${id}::uuid`);
     },
     async retry(id, by) {
       const rows = (await db.execute(sql`

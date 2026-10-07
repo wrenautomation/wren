@@ -65,6 +65,7 @@ export const PLATFORM = {
     "console.team": "Wren's team",
     "console.change": "who changed what, from the audit log",
     "console.event": "every spine arrival, failed ones with Retry",
+    "console.execution": "each subject's walk through a workflow, its path lit",
     "delivery.change": "who changed an account's rows, from the audit log",
     "wren.parked": "parked ideas and their triggers",
   },

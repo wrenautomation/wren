@@ -10,6 +10,7 @@ import {
   type SpineEvent,
   type SpineStore,
   type Step,
+  sentOf,
   type Walk,
   waitMs,
   walk,
@@ -91,7 +92,14 @@ const TOUCH = defineComponent({
 function memStore() {
   const rows = new Map<
     string,
-    { id: string; a: Arrival; by: string; due: Date | null; error?: string }
+    {
+      id: string;
+      a: Arrival;
+      by: string;
+      due: Date | null;
+      error?: string;
+      sent?: Array<{ port: string; event: SpineEvent }>;
+    }
   >();
   const key = (a: Arrival) => [a.workflow, a.node, a.port, a.event.subject].join("|");
   const store: SpineStore = {
@@ -121,6 +129,10 @@ function memStore() {
       delete r.error;
       r.by = by;
       return r.a;
+    },
+    async sent(id, outs) {
+      const r = [...rows.values()].find((x) => x.id === id);
+      if (r) r.sent = outs;
     },
   };
   return { store, rows };
@@ -183,6 +195,23 @@ describe("walk", () => {
     const done = walkWith(store, "inv2");
     expect(await resume(done.w, "2")).toMatchObject({ out: 1 });
     expect(await resume(walkWith(store, "inv3").w, "2")).toBeNull();
+  });
+
+  it("keeps what each step sent on, for its execution", async () => {
+    const { store, rows } = memStore();
+    await walk(walkWith(store, "inv1").w, "top", "in.leads", [lead("1")]);
+    const step = [...rows.values()].find((r) => r.a.node === "x.a");
+    expect(step?.sent).toEqual([
+      { port: "replied", event: { subject: "lead:1", kind: "reply", data: { n: "1" } } },
+    ]);
+  });
+
+  it("cuts a step's outputs that are too big to keep", () => {
+    const big = { subject: "lead:1", kind: "lead" as const, data: { x: "y".repeat(40_000) } };
+    expect(sentOf([{ port: "a", event: big }])).toEqual([
+      { port: "a", subject: "lead:1", kind: "lead", data: { cut: "too big to keep" } },
+    ]);
+    expect(sentOf([{ port: "a", event: lead("2") }])[0]?.data).toEqual({ n: "2" });
   });
 
   it("lets nothing enter twice, but a retry of the same call steps again", async () => {
