@@ -11,6 +11,7 @@ import {
   clientOfHost,
   DomainRefusal,
   type DomainsDeps,
+  HOST_LOOKUP,
   isLive,
   isOwner,
   listDomains,
@@ -26,6 +27,7 @@ import {
   seesInternal,
   teamCan,
 } from "@wren/core/portal";
+import { serviceHandler } from "@wren/core/restate";
 
 export interface DomainView {
   hostname: string;
@@ -111,9 +113,12 @@ export const makeDomainsResolver = (deps: Pick<DomainsDeps, "main">) =>
   restate.service({
     name: "Domains",
     handlers: {
-      resolve: async (_: restate.Context, req: { host: string }) =>
-        answer(async () => ({
-          client: await clientOfHost(deps.main, String(req?.host ?? "").toLowerCase()),
-        })),
+      resolve: serviceHandler(
+        { input: HOST_LOOKUP },
+        async (_: restate.Context, req: { host: string }) =>
+          answer(async () => ({
+            client: await clientOfHost(deps.main, req.host.toLowerCase()),
+          })),
+      ),
     },
   });

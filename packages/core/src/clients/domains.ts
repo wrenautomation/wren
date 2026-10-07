@@ -6,6 +6,7 @@
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, eq } from "drizzle-orm";
 import { getDomain, parse } from "tldts";
+import { z } from "zod";
 import {
   type ClientDomain,
   clientDomains,
@@ -146,6 +147,9 @@ export async function listDomains(main: Queryable, clientId: string): Promise<Cl
     .where(eq(clientDomains.clientId, clientId))
     .orderBy(asc(clientDomains.createdAt));
 }
+
+/** `Domains/resolve`'s input: the host the portal Worker was asked for. */
+export const HOST_LOOKUP = z.object({ host: z.string().max(253).describe("The request's host") });
 
 /** The client a live host belongs to, or null. The portal Worker pins requests to it. */
 export async function clientOfHost(main: Queryable, host: string): Promise<string | null> {
