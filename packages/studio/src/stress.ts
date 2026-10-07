@@ -215,6 +215,45 @@ export interface StressModel {
   complete(prompt: string, o?: { system?: string; maxTokens?: number }): Promise<{ text: string }>;
 }
 
+/** The gateway's answer when every free key is spent or cooling (a 503 upstream included). */
+export const OUT_OF_FREE = /spent or cooling/;
+
+/**
+ * `primary`, and `backup` once `primary` fails with an error `when` matches; after that the
+ * backup answers every later ask (no second wait on keys that are cooling). `answered` names each
+ * model that answered, in order, for the runs row.
+ */
+export function withFallback(
+  primary: StressModel & { name: string },
+  backup: (StressModel & { name: string }) | null,
+  when: RegExp = OUT_OF_FREE,
+): StressModel & { answered: string[] } {
+  let fell = false;
+  const answered: string[] = [];
+  const use = async (
+    m: StressModel & { name: string },
+    p: string,
+    o?: Parameters<StressModel["complete"]>[1],
+  ) => {
+    const r = await m.complete(p, o);
+    if (!answered.includes(m.name)) answered.push(m.name);
+    return r;
+  };
+  return {
+    answered,
+    async complete(prompt, o) {
+      if (fell && backup) return use(backup, prompt, o);
+      try {
+        return await use(primary, prompt, o);
+      } catch (err) {
+        if (!backup || !when.test(String((err as Error)?.message ?? err))) throw err;
+        fell = true;
+        return use(backup, prompt, o);
+      }
+    },
+  };
+}
+
 /**
  * Ask the model for the stressed words of what's left after the cuts: `chunk` words an ask, each
  * pick checked against its words, then spaced (`spaceStress`, at most `perMinute` a minute) on the

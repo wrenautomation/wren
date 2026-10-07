@@ -7,6 +7,7 @@ import {
   remapStress,
   spaceStress,
   stressPrompt,
+  withFallback,
   wordAt,
 } from "./stress.js";
 
@@ -102,5 +103,32 @@ describe("proposeStress", () => {
     const model = { complete: async () => ({ text: "[2, 3, 12]" }) };
     const r = await proposeStress(model, cut);
     expect(r).toEqual({ stress: [102, 112], asked: 1, offered: 3 });
+  });
+
+  it("falls back to the paid model once the free keys are spent, and says who answered", async () => {
+    const calls: string[] = [];
+    const model = (name: string, fail?: string) => ({
+      name,
+      complete: async () => {
+        calls.push(name);
+        if (fail) throw new Error(fail);
+        return { text: "{}" };
+      },
+    });
+    const free = model("gateway:free", "every free key is spent or cooling for 'free'");
+    const m = withFallback(free, model("gateway:cohere"));
+    await m.complete("a");
+    await m.complete("b");
+    // The second ask goes straight to the backup.
+    expect(calls).toEqual(["gateway:free", "gateway:cohere", "gateway:cohere"]);
+    expect(m.answered).toEqual(["gateway:cohere"]);
+    const ok = withFallback(model("gateway:free"), model("gateway:cohere"));
+    await ok.complete("a");
+    expect(ok.answered).toEqual(["gateway:free"]);
+    // Any other failure, or no backup, still fails.
+    await expect(withFallback(model("x", "bad request"), model("y")).complete("a")).rejects.toThrow(
+      /bad request/,
+    );
+    await expect(withFallback(free, null).complete("a")).rejects.toThrow(/spent or cooling/);
   });
 });

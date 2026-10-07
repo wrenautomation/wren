@@ -73,6 +73,7 @@ import {
   type VideoEdit,
   verticalProps,
   videoEdits,
+  withFallback,
   wordAt,
 } from "@wren/studio";
 import type { Command } from "commander";
@@ -244,7 +245,12 @@ export function registerStudio(
     .option("--add <s>", "stress the word said at this second of the recording", Number)
     .option("--drop <s>", "unstress the word said at this second of the recording", Number)
     .option("--llm <spec>", "model for the proposal", "gateway")
-    .action((v: string, o: { add?: number; drop?: number; llm: string }) =>
+    .option(
+      "--fallback <spec>",
+      'model when the gateway\'s free keys are spent or cooling (paid credits); "none" to fail instead',
+      "gateway:cohere",
+    )
+    .action((v: string, o: { add?: number; drop?: number; llm: string; fallback: string }) =>
       withDb(async (db) => {
         const e = await getEdit(db, id(v));
         const show = (list: number[]) =>
@@ -262,7 +268,11 @@ export function registerStudio(
           return;
         }
         loadLlmEnv(settings.llmEnvPath, rootDir);
-        const llm = makeLlm(o.llm, process.env);
+        // Free keys first; the paid fallback only answers once they're spent or cooling.
+        const llm = withFallback(
+          makeLlm(o.llm, process.env),
+          o.fallback === "none" ? null : makeLlm(o.fallback, process.env),
+        );
         const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
         const cut = e.words.flatMap((w, i) => {
           const s = toCutTime(w.s, keep);
@@ -272,10 +282,10 @@ export function registerStudio(
         const p = await proposeStress(llm, cut);
         const r = await setStress(db, e.id, p.stress, {
           by: "cli",
-          stats: { asked: p.asked, offered: p.offered, model: llm.name },
+          stats: { asked: p.asked, offered: p.offered, model: llm.answered.join(", ") },
         });
         console.log(
-          `video ${e.id}: ${p.stress.length} stressed of ${p.offered} offered: ${show(p.stress)} (run ${r.run})`,
+          `video ${e.id}: ${p.stress.length} stressed of ${p.offered} offered: ${show(p.stress)} (${llm.answered.join(", ")}, run ${r.run})`,
         );
       }),
     );

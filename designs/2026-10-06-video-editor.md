@@ -447,3 +447,11 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   contained, cam covered; Vertical's window; a Short's face box or contained recording); the
   composition only draws at `place`. Video 3 at 55.7 s: his head reaches the top, so "lock-in"
   sits right of him, smaller, fully readable.
+- 2026-10-07: William (through the coordinator): when the gateway's free keys fail, `wren video
+  stress` falls back to the paid Cohere credits. `withFallback` (`stress.ts`) wraps two `makeLlm`
+  clients: `--llm` (default `gateway`) first, `--fallback` (default `gateway:cohere`, `none` to fail)
+  once the gateway says its free keys are spent or cooling, and then for every later chunk. The
+  runs row's `model` lists who answered. Real run on the throwaway copy of video 3: 8 asks, free
+  answered the first, Cohere the rest; 46 offered, 31 kept (about 2.5 a minute). Picks read right
+  (million, ROI, leverage, arbitrage, psychology), though "AI" is picked 6 times. Prod's run waits
+  for 0169 to deploy (prod has no `stress` column yet).

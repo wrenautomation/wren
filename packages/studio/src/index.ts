@@ -121,12 +121,14 @@ export {
 export * from "./schema.js";
 export {
   checkStress,
+  OUT_OF_FREE,
   parseStress,
   proposeStress,
   remapStress,
   STRESS,
   spaceStress,
   stressPrompt,
+  withFallback,
   wordAt,
 } from "./stress.js";
 export { fixWordAt, fixWords } from "./words.js";
