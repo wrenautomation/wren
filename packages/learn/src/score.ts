@@ -7,11 +7,12 @@
  */
 import { WREN } from "@wren/core/access";
 import { findClient } from "@wren/core/clients";
+import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import type { Step } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
-import { completeAndParse, type LlmClient } from "@wren/llm";
+import { completeAndParse, type LlmClient, llmForKey } from "@wren/llm";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { secondsOf } from "./feeds.js";
@@ -114,6 +115,8 @@ export function judges(o: {
   llm: LlmClient | null;
   wrenPractices: () => Promise<Practice[]>;
   now?: () => Date;
+  /** Clients' own keys: a client on its own model key scores on it. */
+  keys?: KeyStore | null;
 }): JudgeFor {
   const now = o.now ?? (() => new Date());
   return async (client) => {
@@ -129,7 +132,14 @@ export function judges(o: {
     if (!g.ok) return { ...base, llm: null, wait: `models: ${g.why}` };
     return {
       ...base,
-      llm: meteredModel(o.llm, { main: o.db, client, part: "learn.score", now }),
+      llm: meteredModel(o.llm, {
+        main: o.db,
+        client,
+        part: "learn.score",
+        now,
+        store: o.keys ?? null,
+        own: llmForKey,
+      }),
     };
   };
 }

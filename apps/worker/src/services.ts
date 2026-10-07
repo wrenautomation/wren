@@ -1638,7 +1638,7 @@ export async function buildServices(
         // and an SOP it asked for written into its Notes once read.
         "learn.score": scoreStep(
           db,
-          learnJudges({ db, llm: watchLlm, wrenPractices: () => practicesOf(db) }),
+          learnJudges({ db, llm: watchLlm, keys, wrenPractices: () => practicesOf(db) }),
           clientAskedOnRead(db, clientDb),
         ),
         // A bill in the Monitor's mail runs the books now; the books' pass is the box's.

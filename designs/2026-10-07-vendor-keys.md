@@ -55,6 +55,7 @@ Client in context, routed through the resolver:
 | Models | `content/src/restate/inbox-desk.ts` Suggest | now `meteredModel` (it gated before but never metered) |
 | Models | `outreach/src/restate/index.ts` client drafts | `meteredModel` with store |
 | Models | `services.ts` `mail.triage`, `comments.sort` | `meteredModel` with store |
+| Models | `learn/src/score.ts` `judges` (a client's `learn.score`) | `meteredModel` with store |
 | Models | `channel-sms` reply labels, via worker `forClient` | `meteredModel`, `unset: "managed"` |
 | Models | `channel-email/src/restate/disposition.ts` reply labels and invites | `clientLlm`, `unset: "managed"` |
 | Models | `reactivation/src/loop.ts` pass | `clientLlm`, `unset: "managed"` |
@@ -65,7 +66,7 @@ Wren's own work (no client in context), staying managed:
 - X: `channel-x` content and every `x` site call. Clients have no X channel yet. `meteredSites` maps `x GET /2/*`, so a client's X reads route once one exists.
 - YouTube: `youtube-search`, `channel-youtube` content, the `youtube` handler on Wren's niche keys.
 - Exa: Wren's niche passes (`exaSearch`, `people`, `profiles`) and the CLI.
-- Models: books, search-week, fill, evolve, `watch.triage`, `learn.score`, reach on Wren's account, and the Wren pass of every call site above.
+- Models: books, search-week, fill, evolve, `watch.triage`, reach on Wren's account, and the Wren pass of every call site above.
 - Telnyx: Wren's own texts, `listNumbers`, operator texts, voice calls (`apps/phone`).
 
 ## Usage
