@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
 import { hooks } from "@wren/core/schema";
-import { type Db, type Queryable, serializable } from "@wren/db";
+import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   type Channel,
@@ -25,8 +25,11 @@ import {
   type SitePageVersion,
   siteEvents,
   siteForms,
+  siteHops,
   sitePages,
   sitePageVersions,
+  siteSplitArms,
+  siteSplits,
 } from "./schema.js";
 import { ContentProblem, checkContent, templateOf } from "./templates/index.js";
 import type { Content } from "./templates/types.js";
@@ -242,13 +245,42 @@ export async function askPublish(
   return out as SitePage;
 }
 
-/** A person's yes: the version asked for goes live, and the page with it. */
+/** After a page's yes or no on `number`: a split waiting on that version ships or runs again. */
+async function settleShip(db: Queryable, page: string, number: number, yes: boolean, by: string) {
+  await db
+    .update(siteSplits)
+    .set(
+      yes
+        ? { state: "shipped", endedAt: sql`now()`, endedBy: by, updatedAt: sql`now()` }
+        : { state: "running", winner: null, shipVersion: null, updatedAt: sql`now()` },
+    )
+    .where(
+      and(
+        eq(siteSplits.page, page),
+        eq(siteSplits.state, "shipping"),
+        eq(siteSplits.shipVersion, number),
+      ),
+    );
+}
+
+/**
+ * A person's yes: the version asked for goes live, and the page with it. A split that asked for
+ * it (its winner's copy) ships.
+ */
 export async function approvePage(
   db: Db,
   id: string,
   number: number,
   by: string,
 ): Promise<SitePage> {
+  return atomic(db, async (tx) => {
+    const out = await approveOne(tx, id, number, by);
+    await settleShip(tx, id, number, true, by);
+    return out;
+  });
+}
+
+async function approveOne(db: Queryable, id: string, number: number, by: string) {
   const [out] = await db
     .update(sitePages)
     .set({
@@ -266,13 +298,24 @@ export async function approvePage(
   return out;
 }
 
-/** A person's no: the ask goes, the version stays in history. Already gone: nothing. */
+/**
+ * A person's no: the ask goes, the version stays in history. Already gone: nothing. A split that
+ * asked for it runs again.
+ */
 export async function declinePage(
   db: Db,
   id: string,
   number: number,
   by: string,
 ): Promise<boolean> {
+  return atomic(db, async (tx) => {
+    const done = await declineOne(tx, id, number, by);
+    if (done) await settleShip(tx, id, number, false, by);
+    return done;
+  });
+}
+
+async function declineOne(db: Queryable, id: string, number: number, by: string) {
   const out = await db
     .update(sitePages)
     .set({
@@ -480,9 +523,12 @@ export async function recordEvent(
     name: EventName;
     touch: unknown;
     width?: number | null;
+    /** The split that served the page; kept only when the page is one of its arms. */
+    split?: string | null;
   },
 ): Promise<boolean> {
   const page = e.page && UUID.test(e.page) ? e.page : null;
+  const split = e.split && UUID.test(e.split) ? e.split : null;
   const form = e.form && UUID.test(e.form) ? e.form : null;
   if (!page && !form) return false;
   const t = touchOf(e.touch);
@@ -492,8 +538,10 @@ export async function recordEvent(
       ? Math.max(0, Math.min(10_000, Math.round(e.width)))
       : null;
   const rows = await db.execute(sql`
-    insert into site_events (page, form, view, name, channel, source, medium, campaign, content, ref, width)
-    select p.id, f.id, ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}
+    insert into site_events (page, form, split, view, name, channel, source, medium, campaign, content, ref, width)
+    select p.id, f.id,
+      (select a.split from site_split_arms a where a.split = ${split}::uuid and a.page = p.id),
+      ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}
     from (select 1) one
     left join site_pages p on p.id = ${page}::uuid and p.status <> 'retired'
     left join site_form_defs f on f.id = ${form}::uuid and f.status = 'live'
@@ -535,9 +583,11 @@ export async function keepForm(
     view: string | null;
     fields: Record<string, string>;
     touch: unknown;
+    split?: string | null;
   } & EntryMeta,
 ) {
   const t = touchOf(f.touch);
+  const split = await splitOfArm(db, f.split, f.page?.id ?? null);
   const { channel, ...touch } = t;
   const page = f.page?.id ?? null;
   const form = f.form ?? null;
@@ -547,6 +597,7 @@ export async function keepForm(
     .values({
       page,
       form,
+      split,
       fields: f.fields,
       touch,
       channel,
@@ -558,6 +609,7 @@ export async function keepForm(
   await db.insert(siteEvents).values({
     page,
     form,
+    split,
     view: clip(f.view, 36) ?? "form",
     name: "form",
     channel,
@@ -569,6 +621,16 @@ export async function keepForm(
   });
   if (!row) throw new Error("insert returned nothing");
   return row;
+}
+
+/** The split, when the page is one of its arms; else null (a stale or forged id). */
+async function splitOfArm(db: Queryable, split: string | null | undefined, page: string | null) {
+  if (!split || !page || !UUID.test(split)) return null;
+  const [a] = await db
+    .select({ split: siteSplitArms.split })
+    .from(siteSplitArms)
+    .where(and(eq(siteSplitArms.split, split), eq(siteSplitArms.page, page)));
+  return a?.split ?? null;
 }
 
 export async function markForm(db: Db, id: string, entered: boolean, why: string | null) {
@@ -660,4 +722,54 @@ export async function pageNumbers(db: Queryable, id: string) {
     days: [...days] as unknown as DayNumbers[],
     sources: [...sources] as unknown as SourceNumbers[],
   };
+}
+
+/**
+ * A click on a client's `/go/` link, counted before the hop: the link, its utm, where it went
+ * and the page that is when it's one of the owner's. The Worker leaves bots out.
+ */
+export async function recordHop(
+  db: Queryable,
+  h: {
+    client: string | null;
+    link: string;
+    source?: string | null;
+    medium?: string | null;
+    campaign?: string | null;
+    content?: string | null;
+    to: string;
+    slug?: string | null;
+    ref?: string | null;
+  },
+): Promise<boolean> {
+  const t = touchOf({
+    source: h.source,
+    medium: h.medium,
+    campaign: h.campaign,
+    content: h.content,
+    ref: h.ref,
+  });
+  const link = clip(h.link, 80);
+  const to = clip(h.to, 200);
+  if (!link || !to) return false;
+  const slug = h.slug && SLUG.test(h.slug) ? h.slug : null;
+  const [page] = slug
+    ? await db
+        .select({ id: sitePages.id })
+        .from(sitePages)
+        .where(and(ownerIs(h.client), eq(sitePages.slug, slug)))
+    : [];
+  await db.insert(siteHops).values({
+    client: h.client,
+    link,
+    channel: t.channel,
+    source: t.source,
+    medium: t.medium,
+    campaign: t.campaign,
+    content: t.content,
+    to,
+    page: page?.id ?? null,
+    ref: t.ref,
+  });
+  return true;
 }

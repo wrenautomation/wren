@@ -14,6 +14,7 @@ import { checkEntry, consentOf, type FormSpec } from "./forms.js";
 import { EVENT_NAMES, type EventName, formUrl, pageUrl, WREN_SITE } from "./model.js";
 import { goneHtml, renderFormPage, renderPage } from "./render.js";
 import type { SiteFormDef, SitePage } from "./schema.js";
+import { armToServe, SPLIT_COOKIE_DAYS, splitCookieValue } from "./split.js";
 import {
   doorFor,
   doorOf,
@@ -24,6 +25,7 @@ import {
   pageById,
   pageToServe,
   recordEvent,
+  recordHop,
   touchOf,
 } from "./store.js";
 import { templateOf } from "./templates/index.js";
@@ -33,6 +35,8 @@ import type { Content } from "./templates/types.js";
 export interface Served {
   status: 200 | 404 | 410;
   html: string;
+  /** Set when a split served it: the arm, and the cookie that keeps the visitor on it. */
+  split?: { id: string; label: string; cookie: string; days: number } | null;
 }
 
 /** Enters a form's payload through a hook: the spine's `door`, or nothing where none runs. */
@@ -91,6 +95,7 @@ export function sitesPublicApi(main: Db) {
     const kept = await keepForm(main, {
       page,
       form: form.id,
+      split: req.split ?? null,
       view: req.view ?? null,
       fields: values,
       touch: req.touch,
@@ -112,6 +117,7 @@ export function sitesPublicApi(main: Db) {
         form_id: form.id,
         page: page ? addressOf(page, req.host ?? null) : formAddressOf(form, req.host ?? null),
         ...(page ? { page_id: page.id, offer: page.offer, angle: page.angle } : {}),
+        ...(kept.split ? { split: kept.split } : {}),
         ...(consent ? { consent_text: consent.text, consent_version: consent.version } : {}),
         visitor: req.visitor ?? null,
         utm_source: t.source ?? values.utm_source ?? null,
@@ -129,6 +135,12 @@ export function sitesPublicApi(main: Db) {
       client?: string | null;
       slug?: string;
       preview?: { id: string; token: string } | null;
+      /** The `wab` cookie: the arm this visitor saw before. */
+      arm?: string | null;
+      /** A crawler or link preview: always A, never split, never counted in one. */
+      bot?: boolean | null;
+      /** The edge's random number in [0, 1) that picks a new visitor's arm. */
+      roll?: number | null;
     }): Promise<Served> {
       if (req.preview) {
         const d = await draftToPreview(main, String(req.preview.id), String(req.preview.token));
@@ -149,15 +161,28 @@ export function sitesPublicApi(main: Db) {
       if (client !== null && !CLIENT.test(client)) return { status: 404, html: goneHtml(404) };
       const got = await pageToServe(main, client, String(req.slug ?? ""));
       if ("status" in got) return { status: got.status, html: goneHtml(got.status) };
-      const t = templateOf(got.page.template);
+      const roll =
+        typeof req.roll === "number" && req.roll >= 0 && req.roll < 1 ? req.roll : Math.random();
+      const arm = req.bot ? null : await armToServe(main, got.page, req.arm ?? null, roll);
+      const { page, content } = arm ?? got;
+      const t = templateOf(page.template);
       return {
         status: 200,
-        html: renderPage(t, got.content, {
-          page: got.page.id,
+        html: renderPage(t, content, {
+          page: page.id,
           base: "",
           track: true,
-          form: await sectionForm(main, got.page, got.content),
+          form: await sectionForm(main, page, content),
+          split: arm?.split ?? null,
         }),
+        split: arm
+          ? {
+              id: arm.split,
+              label: arm.label,
+              cookie: splitCookieValue(arm.split, arm.label),
+              days: SPLIT_COOKIE_DAYS,
+            }
+          : null,
       };
     },
 
@@ -181,6 +206,7 @@ export function sitesPublicApi(main: Db) {
     async track(req: {
       page?: string | null;
       form?: string | null;
+      split?: string | null;
       view?: string;
       name?: string;
       touch?: unknown;
@@ -196,6 +222,35 @@ export function sitesPublicApi(main: Db) {
         name: name as EventName,
         touch: req.touch,
         width: typeof req.w === "number" ? req.w : null,
+        split: req.split ? String(req.split) : null,
+      });
+      return { kept };
+    },
+
+    /** A click on a client's `/go/` link, from its host's Worker. Unknown clients are dropped. */
+    async hop(req: {
+      client?: string | null;
+      link?: string;
+      source?: string | null;
+      medium?: string | null;
+      campaign?: string | null;
+      content?: string | null;
+      to?: string;
+      slug?: string | null;
+      ref?: string | null;
+    }) {
+      const client = req.client ?? null;
+      if (client !== null && !CLIENT.test(client)) return { kept: false };
+      const kept = await recordHop(main, {
+        client,
+        link: String(req.link ?? ""),
+        source: req.source ?? null,
+        medium: req.medium ?? null,
+        campaign: req.campaign ?? null,
+        content: req.content ?? null,
+        to: String(req.to ?? ""),
+        slug: req.slug ?? null,
+        ref: req.ref ?? null,
       });
       return { kept };
     },
@@ -220,6 +275,7 @@ export function sitesPublicApi(main: Db) {
         return { status: 400, error: "Add an email or a phone number." };
       const kept = await keepForm(main, {
         page,
+        split: req.split ?? null,
         view: req.view ?? null,
         fields,
         touch: req.touch,
@@ -245,6 +301,7 @@ export function sitesPublicApi(main: Db) {
           page_id: page.id,
           offer: page.offer,
           angle: page.angle,
+          ...(kept.split ? { split: kept.split } : {}),
           ...(fields.sms_consent === "yes"
             ? { consent_text: DEFAULT_CONSENT, consent_version: consentVersion(DEFAULT_CONSENT) }
             : {}),
@@ -283,6 +340,8 @@ export function sitesPublicApi(main: Db) {
 
 export interface FormRequest {
   page?: string | null;
+  /** The split that served the page (the kit's `data-split`). */
+  split?: string | null;
   /** A hosted form's id: checked against its spec. */
   form?: string | null;
   view?: string | null;
@@ -322,6 +381,7 @@ const TOUCH = z
   .describe("The utm and referrer the visit arrived on");
 const PAGE = z.string().max(64).describe("The page's id");
 const FORM = z.string().max(64).nullish().describe("A hosted form's id");
+const SPLIT = z.string().max(64).nullish().describe("The split that served the page");
 
 export const SITES = { name: "Sites" } as const;
 
@@ -337,6 +397,9 @@ export function makeSites(deps: { main: Db }) {
             client: z.string().max(40).nullish().describe("The host's client; null is Wren's"),
             slug: z.string().max(80).optional(),
             preview: z.object({ id: PAGE, token: z.string().max(64) }).nullish(),
+            arm: z.string().max(16).nullish().describe("The wab cookie: the arm seen before"),
+            bot: z.boolean().nullish().describe("A crawler: served A, never split"),
+            roll: z.number().min(0).max(1).nullish().describe("The edge's pick for a new visitor"),
           }),
         },
         (_: restate.Context, req: Parameters<typeof api.serve>[0]) => api.serve(req),
@@ -356,6 +419,7 @@ export function makeSites(deps: { main: Db }) {
           input: z.looseObject({
             page: PAGE.nullish(),
             form: FORM,
+            split: SPLIT,
             view: z.string().max(64).optional(),
             name: z.string().max(8),
             touch: TOUCH,
@@ -364,12 +428,29 @@ export function makeSites(deps: { main: Db }) {
         },
         (_: restate.Context, req: Parameters<typeof api.track>[0]) => api.track(req),
       ),
+      hop: serviceHandler(
+        {
+          input: z.looseObject({
+            client: z.string().max(40).nullish().describe("The host's client"),
+            link: z.string().max(80).describe("The short name: ads, ig, sms"),
+            source: z.string().max(120).nullish(),
+            medium: z.string().max(120).nullish(),
+            campaign: z.string().max(120).nullish(),
+            content: z.string().max(120).nullish().describe("The post or ad id"),
+            to: z.string().max(200).describe("The path it hopped to"),
+            slug: z.string().max(80).nullish(),
+            ref: z.string().max(200).nullish(),
+          }),
+        },
+        (_: restate.Context, req: Parameters<typeof api.hop>[0]) => api.hop(req),
+      ),
       // Kept once (journaled), then the spine's door: a Restate call of its own, then marked.
       form: serviceHandler(
         {
           input: z.looseObject({
             page: PAGE.nullish(),
             form: FORM,
+            split: SPLIT,
             view: z.string().max(64).nullish(),
             fields: z.record(z.string(), z.unknown()),
             touch: TOUCH,

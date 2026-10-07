@@ -16,7 +16,8 @@
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
  * - `/oauth/mail/<provider>`: a mailbox's sign-in or an admin's consent lands (./mail-oauth.ts).
- * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public.
+ * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public; `/go/*` on a client's
+ *   host, its tracked links.
  * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
  *   host, public, with its own API at `__book/<handler>`.
  * - everything else: the built app in dist/.
@@ -47,7 +48,7 @@ import {
 } from "./media.js";
 import { payRoute } from "./pay.js";
 import { SERVICES } from "./services.js";
-import { sitesRoute } from "./sites.js";
+import { goRoute, sitesRoute } from "./sites.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
 export { NoteRoom };
@@ -241,6 +242,11 @@ export default {
     if (site.kind === "ours") return fetch(req);
     if (site.kind === "unknown") return unknownHost();
     if (site.kind === "client") {
+      // A tracked link on the client's own host: counted, then on to its page (./sites.ts).
+      if (pathname.startsWith("/go/")) {
+        const hop = await goRoute(req, env, site, ctx);
+        if (hop) return hop;
+      }
       const auth = await authRoute(req, env);
       if (auth) return auth;
     }

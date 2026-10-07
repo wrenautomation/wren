@@ -11,9 +11,16 @@
  *   Every form submit passes Turnstile first when TURNSTILE_SECRET is set; the `wv` cookie rides
  *   along where the browser sends it.
  *
+ * - `/o/<slug>` with a split running: each new visitor gets an arm by weight and a `wab` cookie
+ *   (the arm only, scoped to that page's path) that keeps them on it; each arm is cached under
+ *   its own key. Bots get A, uncounted in the split.
+ * - `/go/<link>/<campaign>/<content>?to=/o/<slug>` on a client's host: a tracked link. Counted
+ *   (bots left out), then a 302 to the page with utm on it (`@wren/sites/hops`).
+ *
  * Bodies come as text/plain JSON (no preflight) or, for a form without JS, urlencoded.
  */
 import { readBody } from "@wren/core/http";
+import { hopOf, isBot } from "@wren/sites/hops";
 import { FORM_PATH, KIT_PATH, kitJs, TRACK_PATH } from "@wren/sites/kit";
 import { FORM_CSP, goneHtml, PAGE_CSP } from "@wren/sites/render";
 import type { Env } from "./env.js";
@@ -27,6 +34,8 @@ const PREVIEW = /^\/o\/__preview\/([0-9a-f-]{36})$/;
 const FORM_PAGE = /^\/o\/f\/([a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?|[0-9a-f-]{36})\/?$/;
 const TOKEN = "cf-turnstile-response";
 const VISITOR = /(?:^|;\s*)wv=([A-Za-z0-9_.-]{1,64})(?:;|$)/;
+/** The split arm this visitor saw: `<split 8 hex>.<arm>` (`@wren/sites/split`). */
+const ARM = /(?:^|;\s*)wab=([0-9a-f]{8}\.[A-E])(?:;|$)/;
 const OPEN = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
@@ -76,17 +85,26 @@ function ownerOf(req: Request, env: Env, site: Site): { client: string | null } 
   return null;
 }
 
-async function served(
-  env: Env,
-  body: unknown,
-  handler = "Sites/serve",
-): Promise<{ status: number; html: string }> {
+interface Served {
+  status: number;
+  html: string;
+  split?: { id: string; label: string; cookie: string; days: number } | null;
+}
+
+async function served(env: Env, body: unknown, handler = "Sites/serve"): Promise<Served> {
   try {
     const res = await ingress(env, handler, body);
-    if (res.ok) return (await res.json()) as { status: number; html: string };
+    if (res.ok) return (await res.json()) as Served;
   } catch {}
   return { status: 503, html: goneHtml(404) };
 }
+
+/** A new visitor's roll for a split arm, in [0, 1). */
+const roll = () => (crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) / 2 ** 32;
+
+/** The split cookie for a page: only the arm, on that page's path, for its days. */
+const armCookie = (slug: string, value: string, days: number) =>
+  `wab=${value}; Path=/o/${slug}; Max-Age=${days * 86400}; Secure; HttpOnly; SameSite=Lax`;
 
 /** A form without JS: urlencoded fields, the page named in a hidden field. */
 function formOf(raw: string, type: string): Record<string, unknown> | null {
@@ -230,19 +248,95 @@ export async function sitesRoute(
   }
   const slug = SLUG.exec(path);
   if (!slug || !owner) return null;
-  const key = new Request(`${url.origin}/o/${slug[1]}`);
-  const hit = await cache?.match(key);
-  if (hit) return hit;
-  const got = await served(env, { client: owner.client, slug: slug[1] });
-  const out = html(
-    got.html,
-    got.status,
-    got.status === 200 ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store",
-  );
-  if (cache && got.status === 200) {
-    const put = cache.put(key, out.clone());
-    if (ctx) ctx.waitUntil(put);
-    else await put;
+  return page(req, env, url, slug[1] as string, owner.client, cache, ctx);
+}
+
+const keep = (cache: Cache | undefined, key: Request, out: Response, ctx?: ExecutionContext) => {
+  if (!cache) return Promise.resolve();
+  const put = cache.put(key, out).catch(() => {});
+  if (ctx) {
+    ctx.waitUntil(put);
+    return Promise.resolve();
   }
+  return put;
+};
+
+/**
+ * A data page, split or not. Not split: one cached copy per page. Split: one cached copy per arm,
+ * keyed by the visitor's cookie; a new visitor (no cookie, or one from an old split) misses and
+ * gets an arm by weight and a cookie. Split pages go to the browser uncached, so the cookie
+ * decides each visit. Bots get A under their own key, never split.
+ */
+async function page(
+  req: Request,
+  env: Env,
+  url: URL,
+  slug: string,
+  client: string | null,
+  cache: Cache | undefined,
+  ctx?: ExecutionContext,
+): Promise<Response> {
+  const bot = isBot(req.headers.get("user-agent"));
+  const arm = bot ? null : (ARM.exec(req.headers.get("cookie") ?? "")?.[1] ?? null);
+  const base = `${url.origin}/o/${slug}`;
+  const key = new Request(bot ? `${base}?bot=1` : arm ? `${base}?arm=${arm}` : base);
+  const hit = await cache?.match(key);
+  if (hit) {
+    // A split arm's copy: back to the browser uncached. A plain copy as it was kept.
+    if (!arm) return hit;
+    const out = new Response(hit.body, hit);
+    out.headers.set("cache-control", "private, no-store");
+    return out;
+  }
+  const got = await served(env, { client, slug, arm, bot, roll: roll() });
+  const ok = got.status === 200;
+  const shared = ok ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store";
+  if (!got.split) {
+    const out = html(got.html, got.status, shared);
+    // A cookie from a split that's over: cleared, so the page caches as one again.
+    if (arm) out.headers.append("set-cookie", armCookie(slug, "", 0));
+    if (ok) await keep(cache, new Request(bot ? `${base}?bot=1` : base), out.clone(), ctx);
+    return out;
+  }
+  const { cookie, days } = got.split;
+  if (ok) await keep(cache, new Request(`${base}?arm=${cookie}`), html(got.html, 200, shared), ctx);
+  const out = html(got.html, got.status, "private, no-store");
+  if (cookie !== arm) out.headers.append("set-cookie", armCookie(slug, cookie, days));
   return out;
+}
+
+/**
+ * A client's `/go/` link: counted unless a bot, then a 302 to its page with the utm. Null when
+ * the path isn't one, or the host isn't a client's (Wren's `/go/` is the lander's).
+ */
+export async function goRoute(
+  req: Request,
+  env: Env,
+  site: Site,
+  ctx?: ExecutionContext,
+): Promise<Response | null> {
+  if (site.kind !== "client" || (req.method !== "GET" && req.method !== "HEAD")) return null;
+  const url = new URL(req.url);
+  const hop = hopOf(url.pathname, url.searchParams);
+  if (!hop) return null;
+  if (!isBot(req.headers.get("user-agent"))) {
+    const counted = ingress(env, "Sites/hop", {
+      client: site.client,
+      link: hop.link,
+      source: hop.source,
+      medium: hop.medium,
+      campaign: hop.campaign,
+      content: hop.content,
+      to: hop.to,
+      slug: hop.slug,
+      ref: (req.headers.get("referer") ?? "").slice(0, 200) || null,
+    }).catch(() => null);
+    // Counted after the answer: a click never waits on the count.
+    if (ctx) ctx.waitUntil(counted);
+    else await counted;
+  }
+  return new Response(null, {
+    status: 302,
+    headers: { location: hop.location, "cache-control": "no-store" },
+  });
 }

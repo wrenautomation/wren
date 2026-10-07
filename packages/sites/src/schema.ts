@@ -8,6 +8,9 @@
  * - `site_forms`: every form sent, kept whole, and whether it entered the door.
  * - `site_form_defs`: hosted forms (designs/2026-10-07-forms-and-pay.md), each a spec of fields
  *   served at `/o/f/<slug>` and usable as a page's form section.
+ * - `site_splits` and `site_split_arms`: a page's A/B split at the edge, each arm a live page of
+ *   the same owner with its weight. Events and forms that came through a split name it.
+ * - `site_hops`: each click on a client's `/go/` link (bots left out), with the utm it carried.
  */
 import { clients } from "@wren/core/clients";
 import { hooks } from "@wren/core/schema";
@@ -31,12 +34,17 @@ import {
 } from "drizzle-orm/pg-core";
 import type { FormSpec } from "./forms.js";
 import {
+  ARM_LABELS,
   CHANNELS,
   EVENT_NAMES,
   PAGE_KINDS,
   PAGE_SOURCES,
   PAGE_STAGES,
   PAGE_STATUSES,
+  SPLIT_GOALS,
+  SPLIT_STATES,
+  type SplitGoal,
+  type SplitState,
   VERSION_ORIGINS,
 } from "./model.js";
 import type { Content } from "./templates/types.js";
@@ -135,6 +143,78 @@ export const sitePageVersions = pgTable(
 );
 export type SitePageVersion = typeof sitePageVersions.$inferSelect;
 
+/**
+ * A page's split: its address serves one of its arms per visitor, by weight, sticky by a cookie
+ * holding the arm. At most one running (or waiting to ship) per page.
+ */
+export const siteSplits = pgTable(
+  "site_splits",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** Whose; null is Wren's. Always the page's owner. */
+    client: varchar("client", { length: 40 }),
+    /** The page whose address is split: arm A. */
+    page: uuid("page").notNull(),
+    state: varchar("state", { length: 10 }).$type<SplitState>().notNull().default("running"),
+    goal: varchar("goal", { length: 8 }).$type<SplitGoal>().notNull().default("forms"),
+    /** The arm asked to become the page, and the version on A that carries its copy. */
+    winner: varchar("winner", { length: 2 }),
+    shipVersion: integer("ship_version"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    startedBy: text("started_by").notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endedBy: text("ended_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_site_splits" }),
+    uniqueIndex("uq_site_splits_live").on(t.page).where(sql`${t.state} in ('running', 'shipping')`),
+    index("ix_site_splits_client").on(t.client),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_site_splits_client",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.page],
+      foreignColumns: [sitePages.id],
+      name: "fk_site_splits_page",
+    }).onDelete("cascade"),
+    oneOf("ck_site_splits_state", t.state, SPLIT_STATES),
+    oneOf("ck_site_splits_goal", t.goal, SPLIT_GOALS),
+  ],
+);
+export type SiteSplit = typeof siteSplits.$inferSelect;
+
+/** One arm of a split: a live page and its share, as a whole-number weight. */
+export const siteSplitArms = pgTable(
+  "site_split_arms",
+  {
+    split: uuid("split").notNull(),
+    label: varchar("label", { length: 2 }).notNull(),
+    page: uuid("page").notNull(),
+    weight: integer("weight").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.split, t.label], name: "pk_site_split_arms" }),
+    uniqueIndex("uq_site_split_arms_page").on(t.split, t.page),
+    index("ix_site_split_arms_page").on(t.page),
+    foreignKey({
+      columns: [t.split],
+      foreignColumns: [siteSplits.id],
+      name: "fk_site_split_arms_split",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.page],
+      foreignColumns: [sitePages.id],
+      name: "fk_site_split_arms_page",
+    }).onDelete("cascade"),
+    oneOf("ck_site_split_arms_label", t.label, ARM_LABELS),
+    check("ck_site_split_arms_weight", sql`${t.weight} between 1 and 100`),
+  ],
+);
+export type SiteSplitArm = typeof siteSplitArms.$inferSelect;
+
 export const siteFormDefs = pgTable(
   "site_form_defs",
   {
@@ -182,6 +262,8 @@ export const siteEvents = pgTable(
     /** The hosted form it counts for: its page, or a page's form section. */
     form: uuid("form"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    /** The split that served it, when one did: counted for the arm whose page this is. */
+    split: uuid("split"),
     /** Random per page load: events of one view share it. */
     view: varchar("view", { length: 36 }).notNull(),
     name: varchar("name", { length: 8 }).notNull(),
@@ -197,6 +279,7 @@ export const siteEvents = pgTable(
     primaryKey({ columns: [t.id], name: "pk_site_events" }),
     index("ix_site_events_page_at").on(t.page, t.at),
     index("ix_site_events_form_at").on(t.form, t.at),
+    index("ix_site_events_split").on(t.split).where(sql`${t.split} is not null`),
     foreignKey({
       columns: [t.page],
       foreignColumns: [sitePages.id],
@@ -207,6 +290,11 @@ export const siteEvents = pgTable(
       foreignColumns: [siteFormDefs.id],
       name: "fk_site_events_form",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.split],
+      foreignColumns: [siteSplits.id],
+      name: "fk_site_events_split",
+    }).onDelete("set null"),
     check("ck_site_events_where", sql`${t.page} is not null or ${t.form} is not null`),
     oneOf("ck_site_events_name", t.name, EVENT_NAMES),
     oneOf("ck_site_events_channel", t.channel, CHANNELS),
@@ -237,6 +325,8 @@ export const siteForms = pgTable(
     page: uuid("page"),
     /** The hosted form it filled; null for a page's default form. */
     form: uuid("form"),
+    /** The split that served its page, when one did. */
+    split: uuid("split"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     fields: jsonb("fields").$type<Record<string, string>>().notNull(),
     /** The text consent it ticked, with the words shown; null when it didn't. */
@@ -255,6 +345,7 @@ export const siteForms = pgTable(
     primaryKey({ columns: [t.id], name: "pk_site_forms" }),
     index("ix_site_forms_page_at").on(t.page, t.at),
     index("ix_site_forms_form_at").on(t.form, t.at),
+    index("ix_site_forms_split").on(t.split).where(sql`${t.split} is not null`),
     foreignKey({
       columns: [t.page],
       foreignColumns: [sitePages.id],
@@ -265,9 +356,58 @@ export const siteForms = pgTable(
       foreignColumns: [siteFormDefs.id],
       name: "fk_site_forms_form",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.split],
+      foreignColumns: [siteSplits.id],
+      name: "fk_site_forms_split",
+    }).onDelete("set null"),
     check("ck_site_forms_where", sql`${t.page} is not null or ${t.form} is not null`),
     oneOf("ck_site_forms_human", t.human, ["yes", "off"]),
     oneOf("ck_site_forms_channel", t.channel, CHANNELS),
   ],
 );
 export type SiteForm = typeof siteForms.$inferSelect;
+
+/**
+ * A click on a client's `/go/<channel>/<campaign>/<content>` link, counted at its host's edge
+ * before the hop to the page with its utm. `content` is the post or ad id. Bots aren't counted.
+ * Not audited (high volume), like `site_events`.
+ */
+export const siteHops = pgTable(
+  "site_hops",
+  {
+    id: bigserial("id", { mode: "number" }).notNull(),
+    /** The host's client; null is Wren's (its `/go/` is the lander's today). */
+    client: varchar("client", { length: 40 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    /** The short name in the link: `ads`, `ig`, `sms`. */
+    link: varchar("link", { length: 80 }).notNull(),
+    channel: varchar("channel", { length: 10 }).notNull(),
+    source: varchar("source", { length: 120 }),
+    medium: varchar("medium", { length: 120 }),
+    campaign: varchar("campaign", { length: 120 }),
+    content: varchar("content", { length: 120 }),
+    /** Where it sent them, a path on the same host. */
+    to: varchar("to", { length: 200 }).notNull(),
+    /** The page that path is, when it's one of the owner's. */
+    page: uuid("page"),
+    ref: varchar("ref", { length: 200 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_site_hops" }),
+    index("ix_site_hops_client_at").on(t.client, t.at),
+    index("ix_site_hops_page_at").on(t.page, t.at),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_site_hops_client",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.page],
+      foreignColumns: [sitePages.id],
+      name: "fk_site_hops_page",
+    }).onDelete("set null"),
+    oneOf("ck_site_hops_channel", t.channel, CHANNELS),
+  ],
+);
+export type SiteHop = typeof siteHops.$inferSelect;

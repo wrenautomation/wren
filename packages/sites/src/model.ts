@@ -38,6 +38,21 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const CHANNELS = ["ads", "organic", "outreach", "referral", "direct", "other"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
+/**
+ * A page split (an A/B test at the edge): running, a winner asked to become the page (waiting in
+ * To approve), shipped on that yes, or stopped.
+ */
+export const SPLIT_STATES = ["running", "shipping", "shipped", "stopped"] as const;
+export type SplitState = (typeof SPLIT_STATES)[number];
+
+/** What a split is judged on: forms sent, booking clicks, or won deals (Wren's pages). */
+export const SPLIT_GOALS = ["forms", "books", "won"] as const;
+export type SplitGoal = (typeof SPLIT_GOALS)[number];
+
+/** A split's arms, in order: A is the page whose address is split. */
+export const ARM_LABELS = ["A", "B", "C", "D", "E"] as const;
+export type ArmLabel = (typeof ARM_LABELS)[number];
+
 /** A hosted form's address on its owner's host: `/o/f/<slug>`. */
 export const FORM_PREFIX = "/o/f/";
 export const formUrl = (host: string, slug: string) => `https://${host}${FORM_PREFIX}${slug}`;

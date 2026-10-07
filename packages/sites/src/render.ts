@@ -89,7 +89,7 @@ export function renderPage(t: Template, c: Content, ctx: RenderContext): string 
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <style>${CSS}</style>
-${ctx.track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-page="${esc(ctx.page)}" defer></script>` : ""}
+${ctx.track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-page="${esc(ctx.page)}"${ctx.split ? ` data-split="${esc(ctx.split)}"` : ""} defer></script>` : ""}
 </head>
 <body${ctx.track ? "" : ' class="preview"'}>
 ${ctx.banner ? `<div class="banner">${esc(ctx.banner)}</div>` : ""}

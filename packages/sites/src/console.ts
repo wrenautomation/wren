@@ -5,22 +5,42 @@
  * code pages registered by URL. Every page lives in Wren's database; the owner's access decides.
  * Hosted forms (designs/2026-10-07-forms-and-pay.md) are made, built and published here too:
  * publish is direct, a form only collects.
+ *
+ * Splits (A/B at the edge): start one across a page and its live versions, change the weights,
+ * stop it, or make a winner the page (its copy asked for in To approve). A client's own pages
+ * list on its host (`records*`), kept to that client; a yes on a client's page checks the
+ * client's approver, as every client publish does.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { WREN } from "@wren/core/access";
-import { clients } from "@wren/core/clients";
+import { mayApprove, WREN } from "@wren/core/access";
+import { type Client, clients, findClient } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
 import {
+  accessOf,
   answer,
   canAt,
   isDemo,
   PortalRefusal,
   type PortalRequest,
+  pickClient,
   portalService,
   type SignedViewer,
+  whoIs,
 } from "@wren/core/portal";
+import { metaOf } from "@wren/core/records";
+import {
+  type ExportAsk,
+  fenceFor,
+  type GetAsk,
+  type ListAsk,
+  meOf,
+  opens,
+  type RecordsApi,
+  type StatsAsk,
+  serveRecords,
+} from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import type { Db } from "@wren/db";
+import { type Db, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, offerFor } from "@wren/offers";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -36,8 +56,25 @@ import {
   saveForm,
   setFormStatus,
 } from "./form-store.js";
-import { PAGE_KINDS, PAGE_STAGES, type PageKind, type PageStage } from "./model.js";
-import { sitePages } from "./schema.js";
+import {
+  PAGE_KINDS,
+  PAGE_STAGES,
+  type PageKind,
+  type PageStage,
+  SPLIT_GOALS,
+  type SplitGoal,
+} from "./model.js";
+import { pageRecordFor } from "./records.js";
+import { type SitePage, sitePages } from "./schema.js";
+import {
+  liveSplitOf,
+  type SplitWithArms,
+  setSplitWeights,
+  shipSplit,
+  splitResult,
+  startSplit,
+  stopSplit,
+} from "./split.js";
 import {
   approvePage,
   askPublish,
@@ -106,6 +143,20 @@ export interface FormCreate {
   spec?: unknown;
   owner?: string | null;
 }
+export interface SplitStartRequest extends IdRequest {
+  /** The other live pages to split with; A is `id`. */
+  arms: string[];
+  /** One per arm, A first: whole numbers 1..100, as shares. Even when left out. */
+  weights?: number[] | null;
+  goal?: string | null;
+}
+export interface SplitWeightsRequest extends IdRequest {
+  weights: number[];
+}
+export interface SplitShipRequest extends IdRequest {
+  /** The arm to make the page: "B". */
+  label: string;
+}
 export interface AddRequest extends PortalRequest {
   url: string;
   repoPath?: string | null;
@@ -165,6 +216,48 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
     const done = await setFormStatus(db, ids, status, name);
     return { done, changed: done.length };
   };
+  /**
+   * May this viewer say yes to a page's ask: Wren's pages, anyone who may act there; a client's,
+   * as the client's approver setting says.
+   */
+  const approves = async (req: PortalRequest, page: SitePage) => {
+    if (page.client === null) return true;
+    const client: Client | null = await findClient(db, page.client);
+    if (!client) return false;
+    const v = req.viewer;
+    const who =
+      !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client.id) : accessOf(req);
+    return mayApprove(who, client.id, client.approver);
+  };
+  const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
+  const mustApprove = async (req: PortalRequest, page: SitePage) => {
+    if (await approves(req, page)) return;
+    const client = page.client ? await findClient(db, page.client) : null;
+    throw new PortalRefusal(NOT_YOURS[client?.approver === "client" ? "client" : "wren"], 403);
+  };
+  /** The split running on a page, refused when none. */
+  const splitOn = async (req: IdRequest, p: "read" | "act"): Promise<SplitWithArms> => {
+    const page = await pageFor(req, p);
+    const s = await liveSplitOf(db, page.id);
+    if (!s) throw new PortalRefusal("no split is running on this page", 404);
+    return s;
+  };
+  /** A client's pages as records, on the main database, kept to that client. */
+  const records = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
+    const client = await pickClient(db, req);
+    return snapshot(db, (tx) =>
+      use(
+        serveRecords(
+          [pageRecordFor(client.id)],
+          tx,
+          undefined,
+          fenceFor(req, client.id),
+          meOf(req),
+        ),
+      ),
+    );
+  };
+
   /** The name a form's text consent gives: the client's, or Wren's. */
   const businessOf = async (owner: string | null) => {
     if (owner === null) return "Wren Automation";
@@ -317,7 +410,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       if (!asks.length || asks.some((a) => !a)) throw new PortalRefusal("nothing picked", 404);
       const done: string[] = [];
       for (const a of asks as { id: string; number: number }[]) {
-        await pageFor({ ...req, id: a.id }, "act");
+        await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
         const p = await refused(approvePage(db, a.id, a.number, name));
         done.push(p.id);
       }
@@ -330,7 +423,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       if (!asks.length || asks.some((a) => !a)) throw new PortalRefusal("nothing picked", 404);
       let n = 0;
       for (const a of asks as { id: string; number: number }[]) {
-        await pageFor({ ...req, id: a.id }, "act");
+        await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
         if (await declinePage(db, a.id, a.number, name)) n++;
       }
       return { declined: n };
@@ -448,6 +541,67 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       return { forms: await formsOf(db, owner) };
     },
 
+    /** A client's own pages on its host: the list, one row, CSV, the counts. */
+    recordsTypes: async (req: PortalRequest) => {
+      const client = await pickClient(db, req);
+      const fence = fenceFor(req, client.id);
+      return [pageRecordFor(client.id)]
+        .filter((t) => !fence || opens(t, fence(t)))
+        .map((t) => metaOf(t, false));
+    },
+    recordsList: (req: PortalRequest & ListAsk) => records(req, (r) => r.list(req)),
+    recordsGet: (req: PortalRequest & GetAsk) => records(req, (r) => r.get(req)),
+    recordsExport: (req: PortalRequest & ExportAsk) => records(req, (r) => r.export(req)),
+    recordsStats: (req: PortalRequest & StatsAsk) => records(req, (r) => r.stats(req)),
+
+    /** Split this page's address across it and other live pages of its owner. */
+    async splitStart(req: SplitStartRequest) {
+      const name = who(req);
+      await pageFor(req, "act");
+      const arms = [...new Set((req.arms ?? []).map(String))];
+      for (const id of arms) await pageFor({ ...req, id }, "act");
+      const goal = req.goal ?? "forms";
+      if (!(SPLIT_GOALS as readonly string[]).includes(goal))
+        throw new PortalRefusal("no such goal", 400);
+      const s = await refused(
+        startSplit(db, {
+          page: String(req.id),
+          arms,
+          weights: req.weights ?? null,
+          goal: goal as SplitGoal,
+          by: name,
+        }),
+      );
+      return { split: s.id, arms: s.arms.map((a) => ({ label: a.label, weight: a.weight })) };
+    },
+
+    /** New shares on the running split, A first. */
+    async splitWeights(req: SplitWeightsRequest) {
+      who(req);
+      const s = await splitOn(req, "act");
+      const out = await refused(setSplitWeights(db, s.id, req.weights ?? []));
+      return { split: out.id, arms: out.arms.map((a) => ({ label: a.label, weight: a.weight })) };
+    },
+
+    /** Stop splitting: the address serves A again. */
+    async splitStop(req: IdRequest) {
+      const name = who(req);
+      const s = await splitOn(req, "act");
+      return { stopped: await stopSplit(db, s.id, name) };
+    },
+
+    /** "Make B the page": B's copy on A as a new version, waiting in To approve. */
+    async splitShip(req: SplitShipRequest) {
+      const name = who(req);
+      const s = await splitOn(req, "act");
+      const r = await splitResult(db, s);
+      const at = s.arms.findIndex((a) => a.label === req.label);
+      const out = await refused(
+        shipSplit(db, s.id, String(req.label ?? ""), name, r.call.sure[at]),
+      );
+      return { id: out.page.id, waiting: out.number };
+    },
+
     /** The page's notes, its stage and angle: what the team keeps about it. */
     async notes(
       req: IdRequest & { notes?: string | null; stage?: string | null; angle?: string | null },
@@ -478,6 +632,13 @@ const WHY = z.string().max(500).nullish().describe("One line: why");
 const IDS = z.array(z.string().max(80)).max(200);
 const FORM_ID = z.string().max(64).describe("The form's id");
 const OWNER = z.string().max(40).nullish().describe("The client it's for; Wren's when left out");
+const WEIGHTS = z
+  .array(z.number().int().min(1).max(100))
+  .min(2)
+  .max(5)
+  .describe("Shares per arm, A first: 1 and 1 is even, 3 and 1 is 75/25");
+/** The records calls: the list's own ask, passed through. */
+const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
 
 /** The Restate service. */
 export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
@@ -619,6 +780,41 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
         write("formRetire", api.formRetire),
       ),
       forms: serviceHandler({ input: z.looseObject({ ...P, owner: OWNER }) }, read(api.forms)),
+      recordsTypes: serviceHandler(RECORDS, read(api.recordsTypes)),
+      recordsList: serviceHandler(RECORDS, read(api.recordsList)),
+      recordsGet: serviceHandler(RECORDS, read(api.recordsGet)),
+      recordsExport: serviceHandler(RECORDS, read(api.recordsExport)),
+      recordsStats: serviceHandler(RECORDS, read(api.recordsStats)),
+      splitStart: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            id: ID,
+            arms: z.array(z.string().max(64)).min(1).max(4).describe("The other pages, B on"),
+            weights: WEIGHTS.nullish(),
+            goal: z.enum(SPLIT_GOALS).nullish().describe("What wins: forms, books or won"),
+          }),
+        },
+        write("splitStart", api.splitStart),
+      ),
+      splitWeights: serviceHandler(
+        { input: z.looseObject({ ...P, id: ID, weights: WEIGHTS }) },
+        write("splitWeights", api.splitWeights),
+      ),
+      splitStop: serviceHandler(
+        { input: z.looseObject({ ...P, id: ID }) },
+        write("splitStop", api.splitStop),
+      ),
+      splitShip: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            id: ID,
+            label: z.enum(["B", "C", "D", "E"]).describe("The arm to make the page"),
+          }),
+        },
+        write("splitShip", api.splitShip),
+      ),
       notes: serviceHandler(
         {
           input: z.looseObject({

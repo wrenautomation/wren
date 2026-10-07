@@ -12,12 +12,15 @@
     "./draft": "./src/draft.ts",
     "./form-store": "./src/form-store.ts",
     "./forms": "./src/forms.ts",
+    "./hops": "./src/hops.ts",
     "./kit": "./src/kit.ts",
     "./model": "./src/model.ts",
     "./records": "./src/records.ts",
     "./render": "./src/render.ts",
     "./schema": "./src/schema.ts",
     "./service": "./src/service.ts",
+    "./split": "./src/split.ts",
+    "./split-call": "./src/split-call.ts",
     "./store": "./src/store.ts",
     "./templates": "./src/templates/index.ts",
     "./views": "./src/views.ts"
@@ -31,6 +34,7 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/experiments": "workspace:*",
     "@wren/offers": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

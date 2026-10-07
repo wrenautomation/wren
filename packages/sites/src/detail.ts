@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { kitTag, PREVIEW_PATH } from "./kit.js";
 import { WREN_SITE } from "./model.js";
 import type { SitePage } from "./schema.js";
+import { type SplitResult, splitResult, splitsOf } from "./split.js";
 import {
   type DayNumbers,
   pageById,
@@ -19,17 +20,33 @@ import {
 import { templateOf } from "./templates/index.js";
 import type { Content, CopyField } from "./templates/types.js";
 
+/**
+ * One ad that links to the page, with Meta's numbers (`ad_days`, per its ad set) beside what the
+ * page saw from it (events whose utm_content is the ad's id). Costs are null without spend or
+ * without the count they divide by.
+ */
 export interface AdIn {
   id: string;
   name: string;
   status: string;
   adId: string;
   link: string;
+  currency: string | null;
   spend: number;
+  impressions: number;
+  /** Meta's link clicks. */
   clicks: number;
-  /** Views on this page whose utm_content is the ad's id. */
+  /** Meta's lead actions: instant forms and pixel leads. */
+  leads: number;
+  /** Unique views on this page from the ad. */
   views: number;
   forms: number;
+  books: number;
+  /** Clicks on a client's `/go/` link carrying the ad's id. */
+  hops: number;
+  costPerVisit: number | null;
+  costPerForm: number | null;
+  costPerBook: number | null;
 }
 
 export interface Variant {
@@ -65,6 +82,10 @@ export interface PageDetail {
   sources: SourceNumbers[];
   ads: AdIn[];
   variants: Variant[];
+  /** The split running on it (as A), with each arm's numbers and the call; else the last one. */
+  split: SplitResult | null;
+  /** Live pages of the same owner it could be split with: its variants first. */
+  splitWith: { id: string; title: string; slug: string; variant: boolean }[];
 }
 
 /** The ads whose link holds this page: a data page's `/o/<slug>`, a code page's URL. */
@@ -75,14 +96,36 @@ async function adsIn(db: Queryable, page: SitePage): Promise<AdIn[]> {
       : sql`(l.spec -> 'creative' ->> 'link') ~* ${`(/|%2f)o(/|%2f)${page.slug}([?#/&]|$)`}`;
   const rows = await db.execute(sql`
     select l.id::text id, l.name, l.status, l.ad_id "adId", l.spec -> 'creative' ->> 'link' link,
-      coalesce((select sum(d.spend) from ad_days d where d.adset_id = l.adset_id), 0)::float8 spend,
-      coalesce((select sum(d.clicks) from ad_days d where d.adset_id = l.adset_id), 0)::int clicks,
-      (select count(*) from site_events e where e.page = ${page.id} and e.name = 'view' and e.content = l.ad_id)::int views,
-      (select count(*) from site_events e where e.page = ${page.id} and e.name = 'form' and e.content = l.ad_id)::int forms
-    from ad_launches l where ${match}
-    order by l.created_at desc limit 50`);
-  return [...rows] as unknown as AdIn[];
+      m.currency, coalesce(m.spend, 0)::float8 spend, coalesce(m.impressions, 0)::int impressions,
+      coalesce(m.clicks, 0)::int clicks, coalesce(m.leads, 0)::int leads,
+      coalesce(e.views, 0)::int views, coalesce(e.forms, 0)::int forms,
+      coalesce(e.books, 0)::int books,
+      (select count(*) from site_hops h where h.page = ${page.id} and h.content = l.ad_id)::int hops
+    from ad_launches l
+    left join lateral (
+      select max(d.currency) currency, sum(d.spend) spend, sum(d.impressions) impressions,
+        sum(d.clicks) clicks, sum(d.leads) leads
+      from ad_days d where d.adset_id = l.adset_id) m on true
+    left join lateral (
+      select count(distinct x.view) filter (where x.name = 'view') views,
+        count(*) filter (where x.name = 'form') forms,
+        count(distinct x.view) filter (where x.name = 'book') books
+      from site_events x where x.page = ${page.id} and x.content = l.ad_id) e on true
+    where ${match}
+    order by spend desc, l.created_at desc limit 50`);
+  return ([...rows] as unknown as Omit<AdIn, "costPerVisit" | "costPerForm" | "costPerBook">[]).map(
+    (a) => ({
+      ...a,
+      costPerVisit: costPer(a.spend, a.views),
+      costPerForm: costPer(a.spend, a.forms),
+      costPerBook: costPer(a.spend, a.books),
+    }),
+  );
 }
+
+/** Spend over a count, to the cent; null with no spend or nothing to divide by. */
+export const costPer = (spend: number, n: number): number | null =>
+  spend > 0 && n > 0 ? Math.round((spend / n) * 100) / 100 : null;
 
 /** The page's family: the page it was copied from and every copy of it, this one included. */
 async function variantsOf(db: Queryable, page: SitePage): Promise<Variant[]> {
@@ -97,6 +140,25 @@ async function variantsOf(db: Queryable, page: SitePage): Promise<Variant[]> {
   return out.length > 1 ? out : [];
 }
 
+/** The page's live split, else its newest one, with numbers and the call. */
+async function splitOf(db: Queryable, page: SitePage): Promise<SplitResult | null> {
+  const [s] = await splitsOf(db, page.id);
+  return s ? splitResult(db, s) : null;
+}
+
+async function splitWithOf(db: Queryable, page: SitePage) {
+  if (page.source !== "data") return [];
+  const root = page.variantOf ?? page.id;
+  const rows = await db.execute(sql`
+    select p.id::text id, p.title, p.slug, (p.id = ${root} or p.variant_of = ${root}) variant
+    from site_pages p
+    where p.id <> ${page.id} and p.source = 'data' and p.status = 'live'
+      and p.live_version is not null
+      and ${page.client === null ? sql`p.client is null` : sql`p.client = ${page.client}`}
+    order by variant desc, p.updated_at desc limit 40`);
+  return [...rows] as unknown as PageDetail["splitWith"];
+}
+
 export async function pageDetail(db: Queryable, id: string): Promise<PageDetail | null> {
   const page = await pageById(db, id);
   if (!page) return null;
@@ -109,6 +171,8 @@ export async function pageDetail(db: Queryable, id: string): Promise<PageDetail 
     ...numbers,
     ads: await adsIn(db, page),
     variants: await variantsOf(db, page),
+    split: await splitOf(db, page),
+    splitWith: await splitWithOf(db, page),
   };
   if (page.source === "code")
     return {

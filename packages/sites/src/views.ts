@@ -57,6 +57,8 @@ export const sitePageRecords = pgView("site_page_records", {
   changed: timestamp("changed", { withTimezone: true }),
   changedBy: text("changed_by"),
   currency: text("currency"),
+  /** Its split, when one runs on it: running, or shipping (a winner waits in To approve). */
+  split: text("split"),
   /** The URL as people read it in a list: host and path, no scheme. */
   address: text("address"),
 }).as(sql`
@@ -77,26 +79,28 @@ export const sitePageRecords = pgView("site_page_records", {
     case when coalesce(ev.views, 0) > 0 then coalesce(ev.forms, 0)::float8 / ev.views end form_rate,
     coalesce(ads.ads, 0) ads, coalesce(ads.spend, 0)::float8 spend,
     case when coalesce(ev.forms, 0) > 0 and ads.spend > 0 then ads.spend / ev.forms end cost_per_form,
-    p.updated_at changed, p.updated_by changed_by, 'USD'::text currency
+    p.updated_at changed, p.updated_by changed_by, 'USD'::text currency,
+    (select s.state::text from site_splits s
+      where s.page = p.id and s.state in ('running', 'shipping')) split
   from site_pages p
   left join ev on ev.page = p.id
   left join ads on ads.page = p.id
   union all
   select 'video:' || (e.output ->> 'id'), coalesce(e.output ->> 'firm', 'Demo video'),
     e.output ->> 'url', 'demo', 'derived', 'wren', 'live', null, null, null, null, 'trust', null,
-    null, null, null, null, null, null, null, null, null, null, e.created_at, null, null
+    null, null, null, null, null, null, null, null, null, null, e.created_at, null, null, null
   from enrichments e where e.kind = 'video' and e.output ? 'url' and e.output ? 'id'
   union all
   select 'host:' || d.hostname, d.hostname, 'https://' || d.hostname, 'portal', 'derived',
     d.client_id, case when d.status = 'active' then 'live' else 'draft' end, null, null, null,
     null, null, null, null, null, null, null, null, null, null, null, null, null, d.checked_at,
-    d.added_by, null
+    d.added_by, null, null
   from client_domains d
   union all
   select 'book:' || d.hostname, 'Booking on ' || d.hostname, 'https://' || d.hostname || '/book',
     'booking', 'derived', d.client_id, case when d.status = 'active' then 'live' else 'draft' end,
     null, null, null, null, 'convert', null, null, null, null, null, null, null, null, null, null,
-    null, d.checked_at, d.added_by, null
+    null, d.checked_at, d.added_by, null, null
   from client_domains d) u`);
 
 export const siteFunnelRecords = pgView("site_funnel_records", {

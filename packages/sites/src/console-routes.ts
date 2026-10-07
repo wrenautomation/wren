@@ -26,6 +26,17 @@ export const SITES_CONSOLE_ROUTES = {
   formPublish: "act",
   formUnpublish: "act",
   formRetire: "act",
+  /** A client's own pages, on its host: kept to that client. */
+  recordsTypes: "read",
+  recordsList: "read",
+  recordsGet: "read",
+  recordsExport: "read",
+  recordsStats: "read",
+  /** A/B splits at the edge: start, weights, stop, and make a winner the page (To approve). */
+  splitStart: "act",
+  splitWeights: "act",
+  splitStop: "act",
+  splitShip: "act",
 } as const satisfies Record<string, Need>;
 
 export const SITES_CONSOLE_APPS = { "*": "sites" } as const satisfies RouteApps<
@@ -49,4 +60,8 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "formPublish",
   "formUnpublish",
   "formRetire",
+  "splitStart",
+  "splitWeights",
+  "splitStop",
+  "splitShip",
 ];

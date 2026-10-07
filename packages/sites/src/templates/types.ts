@@ -36,6 +36,8 @@ export interface RenderContext {
   banner?: string;
   /** The hosted form the page's `form` field names, when it's live: its fields replace the default. */
   form?: { id: string; spec: FormSpec } | null;
+  /** The split that served this arm: the kit sends it with every event and form. */
+  split?: string | null;
 }
 
 export interface Template {

@@ -16,9 +16,10 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
+import { sql } from "drizzle-orm";
 import { pageDetail } from "./detail.js";
 import { formDetail } from "./form-store.js";
-import { UUID } from "./store.js";
+import { pageById, UUID } from "./store.js";
 
 export const PAGE_RECORD = "sites.page";
 export const FUNNEL_RECORD = "sites.funnel";
@@ -56,6 +57,96 @@ async function loadPage(db: Queryable, id: string) {
   return pageDetail(db, id);
 }
 
+/** A page row's fields: Wren's list and a client's alike. */
+const PAGE_FIELDS = {
+  title: text("Page"),
+  address: text("Address"),
+  url: link("URL", { listed: false }),
+  kind: status(KINDS, "Kind"),
+  source: status(
+    {
+      data: { label: "Data", tone: "neutral" },
+      code: { label: "Code", tone: "neutral" },
+      derived: { label: "Found", tone: "neutral" },
+    },
+    "Built as",
+  ),
+  owner: text("Owner"),
+  status: status(STATUSES, "Status"),
+  waiting: number("Waiting version", { listed: false }),
+  offer: text("Offer"),
+  angle: text("Angle"),
+  audience: text("Audience", { listed: false }),
+  stage: status(
+    {
+      reach: { label: "Reach", tone: "neutral" },
+      trust: { label: "Trust", tone: "neutral" },
+      convert: { label: "Convert", tone: "neutral" },
+    },
+    "Funnel stage",
+  ),
+  views: number("Visits"),
+  ctas: number("Clicks", { listed: false }),
+  forms: number("Forms"),
+  books: number("Bookings"),
+  formRate: percent("Form rate"),
+  ads: number("Ads in"),
+  spend: money("Spend"),
+  costPerForm: money("Cost per form"),
+  template: text("Template", { listed: false, group: "Source" }),
+  repoPath: text("Repo path", { listed: false, group: "Source" }),
+  variantOf: text("Variant of", { listed: false, group: "Source" }),
+  changed: date("Last change"),
+  changedBy: actor("Changed by"),
+  split: status(
+    {
+      running: { label: "Running", tone: "neutral" },
+      shipping: { label: "Winner waiting", tone: "warn" },
+    },
+    "A/B split",
+  ),
+};
+
+const PAGE_VIEWS = [
+  {
+    id: "pages",
+    label: "Pages",
+    where: { source: ["data", "code"], status: ["draft", "live"] },
+    sort: "-changed",
+    at: "changed",
+  },
+  {
+    id: "live",
+    label: "Live",
+    where: { status: "live", source: ["data", "code"] },
+    sort: "-views",
+    at: "changed",
+  },
+  {
+    id: "waiting",
+    label: "Waiting",
+    where: { waiting: { empty: false } },
+    sort: "-changed",
+    at: "changed",
+  },
+  { id: "ads", label: "From ads", where: { ads: { gte: 1 } }, sort: "-spend", at: "changed" },
+  { id: "everything", label: "Everything", sort: "-changed", at: "changed" },
+  {
+    id: "retired",
+    label: "Retired",
+    where: { status: "retired" },
+    sort: "-changed",
+    at: "changed",
+  },
+  {
+    id: "splits",
+    label: "Splits",
+    where: { split: ["running", "shipping"] },
+    sort: "-views",
+    at: "changed",
+  },
+];
+
 export const pageRecord: RecordType = defineRecord({
   id: PAGE_RECORD,
   app: "sites",
@@ -65,79 +156,8 @@ export const pageRecord: RecordType = defineRecord({
   key: "id",
   title: "title",
   subtitle: "url",
-  fields: {
-    title: text("Page"),
-    address: text("Address"),
-    url: link("URL", { listed: false }),
-    kind: status(KINDS, "Kind"),
-    source: status(
-      {
-        data: { label: "Data", tone: "neutral" },
-        code: { label: "Code", tone: "neutral" },
-        derived: { label: "Found", tone: "neutral" },
-      },
-      "Built as",
-    ),
-    owner: text("Owner"),
-    status: status(STATUSES, "Status"),
-    waiting: number("Waiting version", { listed: false }),
-    offer: text("Offer"),
-    angle: text("Angle"),
-    audience: text("Audience", { listed: false }),
-    stage: status(
-      {
-        reach: { label: "Reach", tone: "neutral" },
-        trust: { label: "Trust", tone: "neutral" },
-        convert: { label: "Convert", tone: "neutral" },
-      },
-      "Funnel stage",
-    ),
-    views: number("Visits"),
-    ctas: number("Clicks", { listed: false }),
-    forms: number("Forms"),
-    books: number("Bookings"),
-    formRate: percent("Form rate"),
-    ads: number("Ads in"),
-    spend: money("Spend"),
-    costPerForm: money("Cost per form"),
-    template: text("Template", { listed: false, group: "Source" }),
-    repoPath: text("Repo path", { listed: false, group: "Source" }),
-    variantOf: text("Variant of", { listed: false, group: "Source" }),
-    changed: date("Last change"),
-    changedBy: actor("Changed by"),
-  },
-  views: [
-    {
-      id: "pages",
-      label: "Pages",
-      where: { source: ["data", "code"], status: ["draft", "live"] },
-      sort: "-changed",
-      at: "changed",
-    },
-    {
-      id: "live",
-      label: "Live",
-      where: { status: "live", source: ["data", "code"] },
-      sort: "-views",
-      at: "changed",
-    },
-    {
-      id: "waiting",
-      label: "Waiting",
-      where: { waiting: { empty: false } },
-      sort: "-changed",
-      at: "changed",
-    },
-    { id: "ads", label: "From ads", where: { ads: { gte: 1 } }, sort: "-spend", at: "changed" },
-    { id: "everything", label: "Everything", sort: "-changed", at: "changed" },
-    {
-      id: "retired",
-      label: "Retired",
-      where: { status: "retired" },
-      sort: "-changed",
-      at: "changed",
-    },
-  ],
+  fields: PAGE_FIELDS,
+  views: PAGE_VIEWS,
   actions: [
     "sites.create",
     "sites.add",
@@ -151,6 +171,39 @@ export const pageRecord: RecordType = defineRecord({
   ],
   load: loadPage,
 });
+
+/**
+ * A client's own pages, on its own host: the same list, its rows that client's only. Built per
+ * request, as Payments' links are. Its yes and no check the client's approver.
+ */
+export function pageRecordFor(client: string): RecordType {
+  return defineRecord({
+    id: PAGE_RECORD,
+    app: "sites",
+    channel: null,
+    name: { one: "page", many: "pages" },
+    rows: async (db) => [
+      ...(await db.execute(sql`select * from site_page_records where owner = ${client}`)),
+    ],
+    key: "id",
+    title: "title",
+    subtitle: "url",
+    fields: PAGE_FIELDS,
+    views: PAGE_VIEWS,
+    actions: [
+      "sites.approve",
+      "sites.decline",
+      "sites.splitStart",
+      "sites.splitWeights",
+      "sites.splitStop",
+      "sites.splitShip",
+    ],
+    load: async (db, id) => {
+      const p = UUID.test(id) ? await pageById(db, id) : null;
+      return p && p.client === client ? pageDetail(db, id) : null;
+    },
+  });
+}
 
 export const funnelRecord: RecordType = defineRecord({
   id: FUNNEL_RECORD,
