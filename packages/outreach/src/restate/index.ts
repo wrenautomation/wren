@@ -457,7 +457,8 @@ export function makeReachWatch(deps: ReachDeps) {
         notifier.notify(
           `reach: ${news.join(", ") || "no news"}${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
           [
-            news.length ? "Inbox → Waiting on you" : null,
+            replies.received || kept.kept ? "Inbox → Waiting on you" : null,
+            accepted ? "Marketing → To approve" : null,
             ...replies.errors,
             ...kept.errors,
             ...health.errors,

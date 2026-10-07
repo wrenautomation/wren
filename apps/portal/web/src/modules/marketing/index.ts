@@ -10,6 +10,7 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
+import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
@@ -350,27 +351,32 @@ const WAITS = { state: ["waiting"] };
 /** A page's own draft box and its Read now stay there; the Inbox has one box of each kind. */
 const own = (a: Action) => !a.form && !DRAFT_BOX.includes(a.id);
 const INBOX_ACTIONS: Action[] = [
-  // A post's words are the row's body here.
-  ...DRAFT_ACTIONS.filter(own).map((a) =>
-    only("draft", a.ask?.from ? { ...a, ask: { ...a.ask, from: "body" } } : a, WAITS),
-  ),
   ...COMMENT_ACTIONS.map((a) => only("comment", a)),
   ...DM_ACTIONS.filter(own).map((a) =>
     only("dm", a, a.id === "marketing.dmReply" ? a.when : WAITS),
-  ),
-  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
-  ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
-    only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
   // SMS copy is William's: Mark read only, no Ask Claude.
   ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
   // A reply's call invite, as its replies page answers it; a reply with none has no actions.
   ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  ...draftActions("inbox", { type: ["comment", "dm"], state: ["new", "waiting", "read"] }),
+];
+/** To approve: what we'd send, each with its own page's yes and edit. */
+const APPROVAL_ACTIONS: Action[] = [
+  // A post's words are the row's body here.
+  ...DRAFT_ACTIONS.filter(own).map((a) =>
+    only("draft", a.ask?.from ? { ...a, ask: { ...a.ask, from: "body" } } : a, WAITS),
+  ),
   // The long video's yes; Shorts and thumbnails are picked on its Videos page.
   only("video", VIDEO_APPROVE, WAITS),
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
+    only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
+  ),
+  // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
-    type: ["comment", "draft", "thread", "dm", "invite"],
+    type: ["draft", "thread", "invite"],
     state: ["new", "waiting", "read"],
   }),
 ];
@@ -404,18 +410,21 @@ const THREAD_DRAFT: DraftOf = {
   label: "Your comment, posted in the thread",
   send: "marketing.threadComment",
 };
-/** The Inbox row's type picks its box; a post's words are the row's body there. */
+/** The Inbox row's type picks its box. */
 const INBOX_DRAFT: Record<string, DraftOf> = {
-  draft: { ...POST_DRAFT, field: "body" },
   comment: COMMENT_DRAFT,
   dm: DM_DRAFT,
+};
+/** To approve's row type picks its box; a post's words are the row's body there. */
+const APPROVAL_DRAFT: Record<string, DraftOf> = {
+  draft: { ...POST_DRAFT, field: "body" },
   invite: INVITE_DRAFT,
   thread: THREAD_DRAFT,
 };
 
 /**
- * The one queue (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting on you" are
- * this page, each under its own id.
+ * What other people sent us (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting
+ * on you" are this page, each under its own id.
  */
 export const INBOX_PAGE: Omit<ListPage, "id"> = {
   label: "Inbox",
@@ -423,16 +432,12 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   record: "marketing.inbox",
   empty: {
     waiting: "Nothing waits on you.",
-    posts: "No post draft waits on you.",
     comments: "Comments on our posts show here.",
     dms: "Threads show here once reach messages someone.",
-    threads: "No thread to answer.",
-    invites: "No accepted invite waits on a first message.",
     email: "Email replies from leads show here.",
     texts: "Text threads show here once someone texts back.",
-    videos: "No rendered video waits on your Approve.",
     activity: "Follows, mentions and notices show here.",
-    all: "Drafts, comments, DMs, threads, invites, replies, texts and activity show here.",
+    all: "Comments, DMs, email replies, texts and activity show here.",
   },
   actions: INBOX_ACTIONS,
   extras: withDraft(
@@ -443,6 +448,29 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
         : (detail as { messages?: unknown } | null)?.messages
           ? dmExtras(detail, at)
           : { sections: [] },
+  ),
+  count: { state: ["new", "waiting"] },
+};
+
+/** What we'd send, waiting on William's yes (`marketing.approval`): Marketing → To approve. */
+const APPROVAL_PAGE: ListPage = {
+  id: "approve",
+  label: "To approve",
+  template: "list",
+  record: "marketing.approval",
+  empty: {
+    waiting: "Nothing waits on your yes.",
+    posts: "No post draft waits on you.",
+    videos: "No rendered video waits on your Approve.",
+    threads: "No thread comment waits on you.",
+    invites: "No accepted invite waits on a first message.",
+    all: "Post drafts, videos, thread comments and first messages show here.",
+  },
+  actions: APPROVAL_ACTIONS,
+  extras: withDraft(
+    (row) => APPROVAL_DRAFT[String(row.type)] ?? null,
+    (detail, at) =>
+      (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
   ),
   count: { state: ["new", "waiting"] },
 };
@@ -495,10 +523,11 @@ export const marketing: Module = {
   name: "Marketing",
   component: "marketing.stats",
   icon: "board",
-  blurb: "Every platform in one place: what waits on you, drafts, people and the numbers.",
+  blurb: "Every platform in one place: what came in, what to approve, people and the numbers.",
   requires: { audience: "team" },
   pages: [
     { id: "inbox", ...INBOX_PAGE },
+    APPROVAL_PAGE,
     {
       id: "drafts",
       label: "Drafts",
@@ -758,6 +787,12 @@ export const marketing: Module = {
           sum: "spend",
         },
         {
+          label: "To approve",
+          record: "marketing.approval",
+          href: "/marketing/approve?view=waiting",
+          needs: true,
+        },
+        {
           label: "Drafts waiting",
           record: "marketing.draft",
           href: "/marketing/drafts?view=waiting",
@@ -850,6 +885,15 @@ export const marketing: Module = {
         recent: "Replays show here once a visitor says yes to cookies.",
       },
       extras: sessionExtras,
+    },
+    {
+      id: "heatmaps",
+      label: "Heatmaps",
+      group: "Numbers",
+      template: "list",
+      record: "marketing.heat",
+      empty: "Heatmaps show here a day after visitors click on the site.",
+      extras: heatExtras,
     },
     {
       id: "search-days",

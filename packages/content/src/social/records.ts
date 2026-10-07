@@ -59,7 +59,7 @@ export const activityRecord = defineRecord({
   actions: ["marketing.activitySeen", "marketing.activityAllSeen"],
 });
 
-/** What waits on William in the Inbox: unread, unsorted or waiting. */
+/** What waits on William in the Inbox and To approve: unread, unsorted or waiting. */
 export const INBOX_WAITING = { state: ["new", "waiting"] } as const;
 
 /** An email reply's state, in the Inbox's words: its call invite's, when it has one. */
@@ -146,41 +146,38 @@ const acceptedRows = (db: Queryable) =>
       order by c.connected_at desc limit ${ACTIVITY_ROWS}`,
   );
 
+/** A row's state, as both lists say it. */
+const STATES = status({
+  new: { label: "New", tone: "warn" },
+  waiting: { label: "Waiting on you", tone: "warn" },
+  answered: { label: "Answered", tone: "good" },
+  dropped: neutral("Dropped"),
+  read: neutral("Read"),
+  seen: neutral("Seen"),
+  left: neutral("Left"),
+});
+
+/** Splits a typed id (`dm:5`) into its type and the row's own id. */
+const typed = (id: string) => {
+  const at = id.indexOf(":");
+  return [id.slice(0, at), id.slice(at + 1)] as const;
+};
+
 /**
- * Everything waiting on William as one list. Ids carry their type (`draft:3`, `comment:12`,
- * `dm:5`, `thread:abc`, `invite:7`, `email:4` (a call invite), `reply:6` (a reply with none),
- * `text:8`, `video:2` (rendered, waiting on Approve), `activity:9`); each action reads the id after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
+ * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
+ * (a call invite), `reply:6` (a reply with none), `text:8`, `activity:9`); each action reads the
+ * id after the colon. `due` orders "Waiting on you": when it came.
  */
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
   name: { one: "inbox item", many: "inbox items" },
   rows: async (db) => {
-    const ps = await draftRows(db);
     const cs = (await commentRecord.rows?.(db)) ?? [];
     const ds = (await dmRecord.rows?.(db)) ?? [];
-    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
-    const is = await acceptedRows(db);
     const es = await emailRows(db);
     const xs = await textRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
-    const vs = await videoRows(db);
     return [
-      ...ps.map((p) => ({
-        id: `draft:${p.id}`,
-        type: "draft",
-        who: p.title,
-        platform: p.platform,
-        kind: "post",
-        channel: "content",
-        state: "waiting",
-        body: p.text,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: p.created,
-        due: p.scheduled ?? p.created,
-        url: null,
-      })),
       ...cs.map((c) => ({
         id: `comment:${c.id}`,
         type: "comment",
@@ -212,38 +209,6 @@ export const inboxRecord = defineRecord({
         at: d.last_at,
         due: d.last_at,
         url: null,
-      })),
-      ...ts.map((t) => ({
-        id: `thread:${t.id}`,
-        type: "thread",
-        who: t.author,
-        platform: "reddit",
-        kind: "thread",
-        channel: "reach",
-        state: "waiting",
-        body: t.body || t.title,
-        post_title: t.title,
-        draft: t.draft,
-        account: t.account,
-        at: t.posted_at,
-        due: t.posted_at,
-        url: t.url,
-      })),
-      ...is.map((i) => ({
-        id: `invite:${i.id}`,
-        type: "invite",
-        who: i.who,
-        platform: "linkedin",
-        kind: "invite",
-        channel: "reach",
-        state: i.unread ? "waiting" : "read",
-        body: i.headline,
-        post_title: null,
-        draft: i.draft,
-        account: i.account,
-        at: i.at,
-        due: i.at,
-        url: i.url,
       })),
       // A reply with a call invite is answered here or on its replies page, by the invite's id;
       // one with no invite has nothing to answer with and shows unlinked.
@@ -284,22 +249,6 @@ export const inboxRecord = defineRecord({
         due: x.at,
         url: null,
       })),
-      ...vs.map((v) => ({
-        id: `video:${v.id}`,
-        type: "video",
-        who: v.title || `Video ${v.id}`,
-        platform: "youtube",
-        kind: "video",
-        channel: "content",
-        state: "waiting",
-        body: v.description,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: v.at,
-        due: v.at,
-        url: `/marketing/videos/${v.id}`,
-      })),
       ...as.map((a) => ({
         id: `activity:${a.id}`,
         type: "activity",
@@ -325,14 +274,10 @@ export const inboxRecord = defineRecord({
     who: name("Who"),
     type: status(
       {
-        draft: neutral("Post"),
         comment: neutral("Comment"),
         dm: neutral("DM"),
-        thread: neutral("Thread"),
-        invite: neutral("Invite"),
         email: neutral("Email"),
         text: neutral("Text"),
-        video: neutral("Video"),
         activity: neutral("Activity"),
       },
       "Type",
@@ -344,26 +289,14 @@ export const inboxRecord = defineRecord({
         comment_reply: neutral("Under our comment"),
         username_mention: neutral("Mention"),
         dm: neutral("DM"),
-        post: neutral("Post draft"),
-        thread: neutral("Thread to answer"),
-        invite: neutral("Accepted your invite"),
         email: neutral("Email reply"),
         text: neutral("Text"),
-        video: neutral("Video to approve"),
         ...KIND_LABELS,
       },
       "Kind",
     ),
     channel: status({ reach: neutral("Reach account"), content: neutral("Our post") }, "Where"),
-    state: status({
-      new: { label: "New", tone: "warn" },
-      waiting: { label: "Waiting on you", tone: "warn" },
-      answered: { label: "Answered", tone: "good" },
-      dropped: neutral("Dropped"),
-      read: neutral("Read"),
-      seen: neutral("Seen"),
-      left: neutral("Left"),
-    }),
+    state: STATES,
     company: text("Company"),
     answer: status(
       {
@@ -387,51 +320,175 @@ export const inboxRecord = defineRecord({
   },
   views: [
     { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
-    { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
     { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
     { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
-    { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
-    { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
     { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
     { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
-    { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: [
+    "marketing.commentAnswer",
+    "marketing.commentDm",
+    "marketing.commentDrop",
+    "marketing.dmReply",
+    "marketing.dmRead",
+    "marketing.markRead",
+    "email.approve",
+    "email.drop",
+    "marketing.activitySeen",
+    "marketing.activityAllSeen",
+    "marketing.draftSet",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  /** A DM thread's or a text thread's messages; a draft's Ask Claude thread. */
+  load: async (db, id) => {
+    const [type, rest] = typed(id);
+    if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
+    // An email's words and our drafted answer are the row's own.
+    if (["activity", "email", "reply"].includes(type)) return null;
+    const ask = { ask: await draftTurns(db, type, rest) };
+    return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
+  },
+});
+
+/**
+ * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
+ * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7`); each action reads the id
+ * after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
+ */
+export const approvalRecord = defineRecord({
+  id: "marketing.approval",
+  name: { one: "item to approve", many: "items to approve" },
+  rows: async (db) => {
+    const ps = await draftRows(db);
+    const vs = await videoRows(db);
+    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
+    const is = await acceptedRows(db);
+    return [
+      ...ps.map((p) => ({
+        id: `draft:${p.id}`,
+        type: "draft",
+        who: p.title,
+        platform: p.platform,
+        kind: "post",
+        state: "waiting",
+        body: p.text,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: p.created,
+        due: p.scheduled ?? p.created,
+        url: null,
+      })),
+      ...vs.map((v) => ({
+        id: `video:${v.id}`,
+        type: "video",
+        who: v.title || `Video ${v.id}`,
+        platform: "youtube",
+        kind: "video",
+        state: "waiting",
+        body: v.description,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: v.at,
+        due: v.at,
+        url: `/marketing/videos/${v.id}`,
+      })),
+      ...ts.map((t) => ({
+        id: `thread:${t.id}`,
+        type: "thread",
+        who: t.author,
+        platform: "reddit",
+        kind: "thread",
+        state: "waiting",
+        body: t.body || t.title,
+        post_title: t.title,
+        draft: t.draft,
+        account: t.account,
+        at: t.posted_at,
+        due: t.posted_at,
+        url: t.url,
+      })),
+      ...is.map((i) => ({
+        id: `invite:${i.id}`,
+        type: "invite",
+        who: i.who,
+        platform: "linkedin",
+        kind: "invite",
+        state: i.unread ? "waiting" : "read",
+        body: i.headline,
+        post_title: null,
+        draft: i.draft,
+        account: i.account,
+        at: i.at,
+        due: i.at,
+        url: i.url,
+      })),
+    ];
+  },
+  key: "id",
+  title: "who",
+  subtitle: "body",
+  fields: {
+    who: name("Who"),
+    type: status(
+      {
+        draft: neutral("Post"),
+        video: neutral("Video"),
+        thread: neutral("Thread"),
+        invite: neutral("Invite"),
+      },
+      "Type",
+    ),
+    platform: status(PLATFORM_LABELS, "Site"),
+    kind: status(
+      {
+        post: neutral("Post draft"),
+        video: neutral("Video to approve"),
+        thread: neutral("Thread to answer"),
+        invite: neutral("Accepted your invite"),
+      },
+      "Kind",
+    ),
+    state: STATES,
+    body: prose("Words"),
+    postTitle: text("Post"),
+    draft: prose("Our draft"),
+    account: text("On"),
+    at: date("When"),
+    due: date("Due"),
+    url: link("Open"),
+  },
+  views: [
+    { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+    { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
+    { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
+    { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
+    { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: [
     "marketing.approveDraft",
     "marketing.redraft",
     "marketing.rejectDraft",
-    "marketing.commentAnswer",
-    "marketing.commentDm",
-    "marketing.commentDrop",
-    "marketing.dmReply",
-    "marketing.dmRead",
+    "marketing.videoApprove",
     "marketing.threadComment",
     "marketing.threadSkip",
     "marketing.inviteMessage",
     "marketing.inviteRead",
-    "marketing.markRead",
-    "email.approve",
-    "email.drop",
-    "marketing.activitySeen",
-    "marketing.activityAllSeen",
-    "marketing.videoApprove",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
-  /** A DM thread's, an accepted invite's or a text thread's messages; a draft's Ask Claude thread. */
+  /** An accepted invite's messages; a draft's Ask Claude thread. */
   load: async (db, id) => {
-    const at = id.indexOf(":");
-    const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
-    if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
-    // An email's words and our drafted answer are the row's own.
-    if (["activity", "email", "reply", "video"].includes(type)) return null;
+    const [type, rest] = typed(id);
+    if (type === "video") return null;
     const ask = { ask: await draftTurns(db, type, rest) };
-    return type === "dm" || type === "invite"
-      ? { ...(await dmRecord.load?.(db, rest)), ...ask }
-      : ask;
+    return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },
 });
 
@@ -461,4 +518,4 @@ export const audienceRecord = defineRecord({
   actions: ["marketing.audienceRead"],
 });
 
-export const SOCIAL_RECORDS = [inboxRecord, activityRecord, audienceRecord];
+export const SOCIAL_RECORDS = [inboxRecord, approvalRecord, activityRecord, audienceRecord];

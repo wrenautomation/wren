@@ -1,7 +1,8 @@
 /**
  * `marketing.post` against Postgres: a published post with its newest numbers, never an older
  * count or an unpublished draft, and engagement pooled in the footer. `marketing.inbox`'s email
- * replies and text threads in their states. Synthetic rows only.
+ * replies and text threads in their states; `marketing.approval` holds what we'd send, the Inbox
+ * never does. Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -9,7 +10,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
-import { inboxRecord } from "../../src/social/records.js";
+import { approvalRecord, inboxRecord } from "../../src/social/records.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -189,6 +190,8 @@ describe("marketing.inbox: email replies and texts", () => {
       ]),
     );
     const ids = waiting.map((r) => r.id);
+    const inbound = ["comment", "dm", "email", "text", "activity"];
+    expect(waiting.every((r) => inbound.includes(String(r.type)))).toBe(true);
     expect(ids).not.toContain(`email:${invite}`);
     expect(ids).not.toContain(`text:${answered}`);
     const email = (await api.list({ record: inboxRecord.id, view: "email", limit: 50 })).rows;
@@ -203,5 +206,42 @@ describe("marketing.inbox: email replies and texts", () => {
     expect(await inboxRecord.load?.(pg.db, `text:${unread}`)).toMatchObject({
       messages: [expect.objectContaining({ direction: "in", body: "Is this still open?" })],
     });
+  });
+});
+
+describe("marketing.approval: what we'd send", () => {
+  it("holds a post draft waiting on a yes; the Inbox doesn't", async () => {
+    const [idea] = await pg.db
+      .insert(contentIdeas)
+      .values({ text: "synthetic approval idea", source: "cli" })
+      .returning();
+    const [d] = await pg.db
+      .insert(contentDrafts)
+      .values({
+        ideaId: idea!.id,
+        platform: "linkedin",
+        text: "a post to approve",
+        status: "draft",
+        promptVersion: "t",
+      })
+      .returning();
+    const api = serveRecords([approvalRecord, inboxRecord], pg.db);
+    for (const v of approvalRecord.views)
+      await api.list({ record: approvalRecord.id, view: v.id, limit: 50 });
+    const waiting = (await api.list({ record: approvalRecord.id, view: "waiting", limit: 50 }))
+      .rows;
+    expect(waiting).toContainEqual(
+      expect.objectContaining({
+        id: `draft:${d!.id}`,
+        type: "draft",
+        state: "waiting",
+        body: "a post to approve",
+      }),
+    );
+    const outbound = ["draft", "video", "thread", "invite"];
+    expect(waiting.every((r) => outbound.includes(String(r.type)))).toBe(true);
+    const inbox = (await api.list({ record: inboxRecord.id, view: "all", limit: 500 })).rows;
+    expect(inbox.some((r) => outbound.includes(String(r.type)))).toBe(false);
+    expect(await approvalRecord.load?.(pg.db, `draft:${d!.id}`)).toEqual({ ask: [] });
   });
 });

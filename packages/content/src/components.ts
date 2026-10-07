@@ -75,7 +75,12 @@ export const CONTENT_COMPONENTS = [
     provides: {
       services: ["SocialWatch", "SocialDesk"],
       loops: ["SocialWatch"],
-      records: ["marketing.inbox", "marketing.activity", "marketing.audience"],
+      records: [
+        "marketing.inbox",
+        "marketing.approval",
+        "marketing.activity",
+        "marketing.audience",
+      ],
     },
     out: [{ id: "comment", label: "new comments", kind: "comment" }],
     hypothesis: {

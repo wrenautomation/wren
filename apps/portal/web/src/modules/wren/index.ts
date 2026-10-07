@@ -417,6 +417,12 @@ export const inbox: Module = {
           href: "/inbox/waiting?view=waiting",
           needs: true,
         },
+        {
+          label: "To approve",
+          record: "marketing.approval",
+          href: "/marketing/approve?view=waiting",
+          needs: true,
+        },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
         { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
         {
@@ -449,7 +455,8 @@ export const inbox: Module = {
         },
       ],
     },
-    // The one queue, Marketing → Inbox's page; "waiting" keeps old links landing.
+    // What came in, Marketing → Inbox's page; "waiting" keeps old links landing. What we'd send
+    // waits in Marketing → To approve.
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     {
       id: "replies",

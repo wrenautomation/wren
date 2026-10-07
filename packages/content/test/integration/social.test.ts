@@ -34,7 +34,12 @@ import {
 } from "../../src/index.js";
 import type { SocialStats } from "../../src/restate/social.js";
 import { makeSocialDesk, makeSocialWatch, SOCIAL_KEY } from "../../src/restate/social.js";
-import { activityRecord, audienceRecord, inboxRecord } from "../../src/social/records.js";
+import {
+  activityRecord,
+  approvalRecord,
+  audienceRecord,
+  inboxRecord,
+} from "../../src/social/records.js";
 
 const DAY = 86_400_000;
 const ytReads: string[] = [];
@@ -248,8 +253,10 @@ describe("SocialWatch", () => {
         expect.stringMatching(/^activity:\d+$/),
       ]),
     );
-    // A post draft waits on a yes, its id the draft's own after the colon.
-    expect(inbox.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
+    // A post draft waits on a yes in To approve, its id the draft's own after the colon.
+    expect(inbox.find((r) => r.id === `draft:${d?.id}`)).toBeUndefined();
+    const approvals = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(approvals.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
       type: "draft",
       state: "waiting",
       body: "A draft",

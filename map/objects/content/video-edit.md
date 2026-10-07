@@ -25,7 +25,7 @@ The row is the edit; files are outputs beside the recording (`dir`). Every time 
 - Compositions `Long` (`packages/studio/remotion/index.tsx:107`), `Short` (`index.tsx:162`: face on top + screen, or face alone; one-file crops `camBox`), `Thumbnail` (`index.tsx:206`: 3 variants in `DEFAULT_LOOK`); props from `longProps` (`props.ts:24`), `shortProps` (`props.ts:101`), `thumbnailProps` (`props.ts:125`)
 - Render: `renderAll` (`remotion.ts:87`) bundles once with the edit folder linked as `public` (no copy), h264 on VideoToolbox; 540p previews by `preview` (`media.ts:254`), uploaded by `uploadMedia` from `@wren/content`
 - Approve (`approveVideo`, `packages/content/src/video.ts:82`): his yes writes one YouTube draft per video or Short (idea `ref` `video:<id>` / `video:<id>/short:<n>`, so a second Approve answers the same draft), `approved` with no slot, `privacyStatus: private`, media source = the rendered file on the Mac, `extra.thumbnail` = his pick (`pickThumbnail`, `:165`, stored as `files.thumbnailPick`) else the first still, and the long video's description gets its chapters on the cut timeline (`chapterLines`, `:51`; none when YouTube would ignore them). The desk reads the file from its own disk: `s3MediaHost` leaves a path it doesn't have as a path (`packages/content/src/media.ts:60`). After the upload `thumbnails/set` runs; a refusal never fails the post (`packages/channel-youtube/src/content.ts:116`)
-- Record `marketing.video` (`videoRecord`, `video.ts:225`): lengths, state (the long draft's published/failed shows as On YouTube/Upload failed), `render`, detail signs `keys` from the media bucket and carries the editable fields, the cuts with their words (`cutRows`, `video.ts:197`) and the page's turns (`videoTurns`, `video-ask.ts:111`); a `rendered` row is also `video:<id>` in `marketing.inbox` (`videoRows`, `packages/content/src/social/records.ts:129`)
+- Record `marketing.video` (`videoRecord`, `video.ts:225`): lengths, state (the long draft's published/failed shows as On YouTube/Upload failed), `render`, detail signs `keys` from the media bucket and carries the editable fields, the cuts with their words (`cutRows`, `video.ts:197`) and the page's turns (`videoTurns`, `video-ask.ts:111`); a `rendered` row is also `video:<id>` in `marketing.approval` (Marketing → To approve; `videoRows`, `packages/content/src/social/records.ts:129`)
 - Step 2 outputs by name (`numbered`, `longOf`, `video.ts:23`, `:35`): `long`, `short-<n>`, `thumb-<n>`, 1-based
 
 Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0122_video_edits.sql`, `packages/db/drizzle/0123_video_render.sql`
@@ -59,7 +59,7 @@ Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0122_video_e
 | `wren video look --with gemini\|twelvelabs`, `find` | write `looks` / read (TwelveLabs search) |
 | `wren video approve <id> [--short n]`, `ContentDesk.approveVideo` (Videos and Inbox Approve) | write a YouTube draft, state → approved |
 | `ContentDesk.pickThumbnail` (Videos → Pick thumbnail) | write `files.thumbnailPick` |
-| `marketing.video`, `marketing.inbox` (`video:<id>`) | read |
+| `marketing.video`, `marketing.approval` (`video:<id>`) | read |
 
 ## See
 

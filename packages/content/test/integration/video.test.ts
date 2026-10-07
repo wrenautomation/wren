@@ -1,5 +1,5 @@
 /**
- * Marketing → Videos against Postgres: a rendered video waits in the one queue, Approve writes
+ * Marketing → Videos against Postgres: a rendered video waits in To approve, Approve writes
  * one private YouTube draft of the file on the Mac (never two), a Short and a thumbnail pick.
  * Synthetic rows only.
  */
@@ -9,7 +9,7 @@ import { videoEdits } from "@wren/studio/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contentDrafts } from "../../src/schema.js";
-import { inboxRecord } from "../../src/social/records.js";
+import { approvalRecord } from "../../src/social/records.js";
 import { approveVideo, pickThumbnail, videoRecord } from "../../src/video.js";
 
 let pg: TestPostgres;
@@ -56,8 +56,8 @@ describe("marketing.video", () => {
       })
       .returning();
     const id = v!.id;
-    const inbox = serveRecords([inboxRecord], pg.db);
-    const waiting = await inbox.list({ record: inboxRecord.id, view: "waiting", limit: 50 });
+    const approvals = serveRecords([approvalRecord], pg.db);
+    const waiting = await approvals.list({ record: approvalRecord.id, view: "waiting", limit: 50 });
     expect(waiting.rows).toContainEqual(
       expect.objectContaining({ id: `video:${id}`, type: "video", state: "waiting" }),
     );
@@ -83,8 +83,8 @@ describe("marketing.video", () => {
     await expect(approveVideo(pg.db, id, { source: "cli", short: 2 })).rejects.toThrow(/Short 2/);
 
     // A fresh serve: the first one keeps its rows for a while.
-    const after = await serveRecords([inboxRecord], pg.db).list({
-      record: inboxRecord.id,
+    const after = await serveRecords([approvalRecord], pg.db).list({
+      record: approvalRecord.id,
       view: "waiting",
       limit: 50,
     });
