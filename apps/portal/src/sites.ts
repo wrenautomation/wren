@@ -148,9 +148,10 @@ export async function sitesRoute(
       else await sent;
       return new Response(null, { status: 204, headers: OPEN });
     }
-    const fields = (
-      body.fields && typeof body.fields === "object" ? body.fields : {}
-    ) as Record<string, unknown>;
+    const fields = (body.fields && typeof body.fields === "object" ? body.fields : {}) as Record<
+      string,
+      unknown
+    >;
     const { [TOKEN]: token, ...kept } = fields;
     if (!(await human(env, token, req.headers.get("cf-connecting-ip")))) {
       const error = "Confirm you're a person, then send again.";

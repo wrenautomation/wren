@@ -57,6 +57,11 @@ import {
   NOTES_CONSOLE_ROUTES,
   NOTES_CONSOLE_WRITES,
 } from "@wren/notes/console-routes";
+import {
+  PAYMENTS_CONSOLE_APPS,
+  PAYMENTS_CONSOLE_ROUTES,
+  PAYMENTS_CONSOLE_WRITES,
+} from "@wren/payments/console-routes";
 import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import {
   SITES_CONSOLE_APPS,
@@ -156,6 +161,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Sites: every page we run; new pages from an offer, copy, publish via To approve, retire.
   sites: service("SitesConsole", SITES_CONSOLE_ROUTES, SITES_CONSOLE_APPS, SITES_CONSOLE_WRITES),
+  // Text-to-pay: a client's Stripe pay links, made, approved, sent; Stripe connected here.
+  payments: service(
+    "PaymentsConsole",
+    PAYMENTS_CONSOLE_ROUTES,
+    PAYMENTS_CONSOLE_APPS,
+    PAYMENTS_CONSOLE_WRITES,
+  ),
   // A client's accounts with their setups, and its vendors: modes, room, the month's usage.
   accounts: service(
     "AccountsConsole",

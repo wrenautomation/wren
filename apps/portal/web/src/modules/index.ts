@@ -11,6 +11,7 @@ import { library } from "./library/index.js";
 import { clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
+import { payments } from "./payments/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { sites } from "./sites/index.js";
 import { texts } from "./texts/index.js";
@@ -24,6 +25,7 @@ export const MODULES: Module[] = [
   leads,
   texts,
   calls,
+  payments,
   marketplace,
   // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
   clientMarketing,

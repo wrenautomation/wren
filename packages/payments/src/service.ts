@@ -178,7 +178,7 @@ export function makePayments(deps: PaymentsDeps) {
         async (ctx: restate.Context, req: { id: string }) => {
           const got = await ctx.run("load", async () => {
             const l = await linkById(deps.main, req.id);
-            if (!l || l.status !== "sending") return null;
+            if (l?.status !== "sending") return null;
             const c = await findClient(deps.main, l.client);
             if (!c) return null;
             return { link: l, business: c.name, sends: sendsOn(c, PAY_LINKS) };

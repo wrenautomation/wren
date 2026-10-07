@@ -46,7 +46,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
 import { setOwnKey } from "@wren/core/vendors";
-import { type Db, snapshot } from "@wren/db";
+import { snapshot } from "@wren/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "./console-routes.js";
@@ -270,7 +270,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
     },
     decline: async (req: IdsRequest, now: Date) => {
       const ids = await decidable(req);
-      return { declined: await declineLinks(main, ids, by(req), now) };
+      return { done: await declineLinks(main, ids, by(req), now) };
     },
 
     /**
@@ -466,7 +466,7 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
             const at = await now(ctx);
             const { links } = await ctx.run("approve", () => answer(() => api.approve(req, at)));
             sendAll(ctx, links);
-            return { approved: links.map((l) => l.id) };
+            return { done: links.map((l) => l.id) };
           }),
       ),
       decline: serviceHandler(IDS, (ctx: restate.Context, req: IdsRequest) =>

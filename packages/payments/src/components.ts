@@ -37,7 +37,7 @@ export const PAYMENTS_COMPONENTS = [
         {
           is: "needs",
           says: "The client's own Stripe key and its webhook.",
-          built: "setup.stripe",
+          built: "the Stripe setup (setup.stripe)",
         },
         { is: "fixed", says: "Nothing charges anyone: the payer pays on Stripe's page." },
         { is: "fixed", says: "A pay text waits for 8:00 to 20:00 in the contact's zone." },

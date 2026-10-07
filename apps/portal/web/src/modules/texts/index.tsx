@@ -5,9 +5,10 @@
  * (designs/2026-10-07-missed-call-and-reviews.md) have their own pages once installed.
  */
 import { segments } from "@wren/channel-sms/templates";
-import type { Action, RecordExtras } from "@wren/ui";
+import { type Action, money, type RecordExtras } from "@wren/ui";
 import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";
+import { THREAD_PAY } from "../payments/index.js";
 import { AskReview, ReviewsGained } from "./ask.js";
 
 const THREAD = "sms.thread";
@@ -29,6 +30,7 @@ const THREAD_ACTIONS: Action[] = [
     key: "r",
     done: () => "Queued. It leaves on the next tick.",
   },
+  THREAD_PAY,
 ];
 
 /** Closes "Call now": the rep called. How it went is optional. */
@@ -123,7 +125,18 @@ export const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
 /** The thread's texts, oldest first: theirs plain, ours marked. */
 export const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const messages = (detail as { messages?: Message[] } | null)?.messages ?? [];
+  const paid = (detail as { paid?: { cents: number; at: string | null } | null } | null)?.paid;
   return {
+    ...(paid
+      ? {
+          facts: [
+            [
+              "Paid",
+              `${money(paid.cents / 100, "USD")}${paid.at ? ` · last ${paid.at.slice(0, 10)}` : ""}`,
+            ],
+          ],
+        }
+      : {}),
     sections: [
       [
         "Texts",

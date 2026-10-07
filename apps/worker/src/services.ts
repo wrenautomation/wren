@@ -264,6 +264,9 @@ import {
   makeRedditReads,
   wakeWatch,
 } from "@wren/outreach/restate";
+import { makePaymentsConsole } from "@wren/payments/console";
+import { makePayments } from "@wren/payments/service";
+import { stripeChecks } from "@wren/payments/setups";
 import { clientSendScope } from "@wren/reactivation";
 import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
@@ -669,6 +672,14 @@ export async function buildServices(
           signGet: s3Files({ bucket: settings.filesBucket }).getUrl,
         }
       : undefined;
+  const payDeps = {
+    main: db,
+    open: openClient,
+    keys: null,
+    env: "prod",
+    fetch: (url: string, init: RequestInit) => fetch(url, init),
+    portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
+  };
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -835,6 +846,10 @@ export async function buildServices(
       db,
       write: settings.llm === "fake" ? null : (p) => llm.complete(p).then((r) => r.text),
     }),
+    // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md). No key
+    // store yet, as for Accounts: connect says "in development" and nothing reaches Stripe.
+    makePayments({ ...payDeps, mailer: bookerMailer, fire: spineFire }),
+    makePaymentsConsole(payDeps),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1340,6 +1355,7 @@ export async function buildServices(
   const setupParts = COMPONENTS.filter((c) => c.requires.facts.length > 0);
   const setupChecks = {
     ...dnsChecks(dohResolve),
+    ...stripeChecks(db),
     ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
     ...calendarChecks(googleCalendar),
     ...metaChecks(

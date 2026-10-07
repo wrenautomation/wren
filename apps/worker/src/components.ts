@@ -15,6 +15,7 @@ import { FOLLOW_COMPONENTS } from "@wren/core/follow";
 import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
 import { LEARN_COMPONENTS } from "@wren/learn/components";
 import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
+import { PAYMENTS_COMPONENTS } from "@wren/payments/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
 import { SITES_COMPONENTS } from "@wren/sites/components";
@@ -40,6 +41,7 @@ export const COMPONENTS: readonly Component[] = [
   ...FOLLOW_COMPONENTS,
   ...FACTS_COMPONENTS,
   ...SITES_COMPONENTS,
+  ...PAYMENTS_COMPONENTS,
   ...PLANNED_COMPONENTS,
 ];
 

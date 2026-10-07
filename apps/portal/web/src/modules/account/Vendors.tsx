@@ -104,7 +104,11 @@ function SetMode({
           {v.own ? (
             <option value="own">{v.own === "login" ? "Their login" : "Their key"}</option>
           ) : null}
-          {managed || v.mode === "managed" ? (
+          {v.managedDev ? (
+            <option value="managed" disabled>
+              Managed by Wren (in development)
+            </option>
+          ) : managed || v.mode === "managed" ? (
             <option value="managed" disabled={!managed}>
               On Wren's key
             </option>

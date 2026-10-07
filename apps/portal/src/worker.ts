@@ -41,6 +41,7 @@ import {
   mediaProxy,
   urlGrantsFor,
 } from "./media.js";
+import { payRoute } from "./pay.js";
 import { SERVICES } from "./services.js";
 import { sitesRoute } from "./sites.js";
 
@@ -223,6 +224,11 @@ export default {
     if (pathname.startsWith("/o/")) {
       const page = await sitesRoute(req, env, site, ctx);
       if (page) return page;
+    }
+    // Stripe's webhook for a client's pay links, on the app host (./pay.ts).
+    if (pathname.startsWith("/__pay/")) {
+      const paid = await payRoute(req, env, site);
+      if (paid) return paid;
     }
     // Our other hosts on the zone (`*/*` routes every host here): straight to their origin.
     if (site.kind === "ours") return fetch(req);

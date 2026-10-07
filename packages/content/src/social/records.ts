@@ -26,6 +26,7 @@ import { approvalId, templateAt } from "@wren/core/templates/console";
 import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
+import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId } from "@wren/sites/console";
 import { waitingPages } from "@wren/sites/store";
 import { sql } from "drizzle-orm";
@@ -501,6 +502,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const ws = await waitingInstalls(db);
       const pgs = await waitingPages(db);
       const rs = await waitingReplies(db, ACTIVITY_ROWS);
+      const pays = await waitingPayLinks(db);
       return [
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
         ...rs.map((r) => ({
@@ -659,6 +661,22 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: p.at,
           url: `/sites/pages/${p.id}`,
         })),
+        // A pay link someone without the yes made (Payments): a yes makes it on Stripe and sends it.
+        ...pays.map((p) => ({
+          id: payApprovalId(p.id),
+          type: "pay",
+          who: `${p.name ?? p.email ?? "A text thread"}: ${money(p.cents * p.quantity, p.currency)}`,
+          platform: p.channel,
+          kind: "pay",
+          state: "waiting",
+          body: `${p.by} asked to send a pay link for ${p.quantity > 1 ? `${p.quantity} x ` : ""}${p.description}${p.clientName ? ` (${p.clientName})` : ""}.`,
+          post_title: p.description,
+          draft: null,
+          account: null,
+          at: p.at,
+          due: p.at,
+          url: `/payments/links/${p.id}?client=${encodeURIComponent(p.client)}`,
+        })),
       ];
     },
     key: "id",
@@ -678,6 +696,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           workflow: neutral("Workflow"),
           page: neutral("Page"),
           reply: neutral("Reply"),
+          pay: neutral("Payment"),
         }),
         "Type",
       ),
@@ -697,6 +716,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           workflow: neutral("Workflow to make live"),
           page: neutral("Page to make live"),
           reply: neutral("Reply to send"),
+          pay: neutral("Pay link to send"),
         }),
         "Kind",
       ),
@@ -728,6 +748,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
       { id: "pages", label: "Pages", where: { type: "page" }, sort: "-at", at: "at" },
       { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
+      { id: "payments", label: "Payments", where: { type: "pay" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
@@ -760,6 +781,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "sites.decline",
       "inbox.replyApprove",
       "inbox.replyDrop",
+      "payments.approve",
+      "payments.decline",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: {
@@ -771,7 +794,13 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
     /** An accepted invite's messages; a draft's Ask Claude thread. */
     load: async (db, id) => {
       const [type, rest] = typed(id);
-      if (type === "video" || type === "template" || type === "workflow" || type === "page")
+      if (
+        type === "video" ||
+        type === "template" ||
+        type === "workflow" ||
+        type === "page" ||
+        type === "pay"
+      )
         return null;
       // An asked reply: the conversation it answers.
       if (type === "reply") {

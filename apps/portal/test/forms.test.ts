@@ -52,7 +52,11 @@ beforeEach(() => {
       const f = body.fields as Record<string, string>;
       return f.email
         ? Response.json({ status: 202 })
-        : Response.json({ status: 400, error: "Check the marked fields.", errors: { email: "Fill this in." } });
+        : Response.json({
+            status: 400,
+            error: "Check the marked fields.",
+            errors: { email: "Fill this in." },
+          });
     }
     return Response.json({});
   });
