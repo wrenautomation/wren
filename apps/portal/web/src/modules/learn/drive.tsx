@@ -5,7 +5,7 @@
  * then move, tag, archive or add to an SOP; drag cards onto the rail. Keys: ? lists them.
  * /learn/items/<id> is one item, in place (./item.tsx).
  */
-import { Alert, Button, cx, Empty, Input, Loading, relative, usePref } from "@wren/ui";
+import { Alert, Button, cx, Empty, Input, Loading, PAGE_TITLE, relative, usePref } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   Archive,
@@ -335,9 +335,7 @@ function Browse({ params }: { params: URLSearchParams }) {
           ) : null}
           <div className="flex min-w-0 items-center gap-2.5">
             {src ? <Avatar url={src.avatar} name={src.name} size={32} /> : null}
-            <h1 className="truncate font-semibold text-[22px] leading-8 tracking-[-0.01em]">
-              {title}
-            </h1>
+            <h1 className={cx("truncate", PAGE_TITLE)}>{title}</h1>
             {data ? (
               <span className="shrink-0 text-[14px] text-(--ui-ink-2) tabular-nums">
                 {data.total.toLocaleString("en-US")}

@@ -76,6 +76,10 @@ export function Trend({ series, label, format = plain, height = 220 }: TrendProp
   // A day without a figure (a median's day with no rows) is a gap the line spans, not a zero.
   const data = series.map((p) => ({ at: p.at, value: p.value }));
   const config = { value: { label, color: "var(--chart-1)" } } satisfies ChartConfig;
+  const tick = (n: number) => (format === plain ? short(n) : format(n));
+  // The axis fits its widest label (a currency's prefix runs past a bare number's 44px).
+  const top = Math.max(0, ...data.map((p) => p.value ?? 0));
+  const axis = Math.max(44, tick(top).length * 7 + 10);
   return (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
       <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -91,9 +95,9 @@ export function Trend({ series, label, format = plain, height = 220 }: TrendProp
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={44}
+          width={axis}
           allowDecimals={false}
-          tickFormatter={(n: number) => (format === plain ? short(n) : format(n))}
+          tickFormatter={tick}
         />
         <ChartTooltip
           isAnimationActive={false}

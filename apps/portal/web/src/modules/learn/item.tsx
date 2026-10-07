@@ -4,7 +4,7 @@
  * an episode plays through `/media`; an Instagram, TikTok or X post shows its own embed; an
  * article reads clean. Where you stopped is kept, and the next visit starts there.
  */
-import { Alert, Button, cx, Loading, relative, StateMark } from "@wren/ui";
+import { Alert, Button, cx, GROUP_LABEL, Loading, PAGE_TITLE, relative, StateMark } from "@wren/ui";
 import {
   Archive,
   ArchiveRestore,
@@ -378,9 +378,7 @@ function Moments({
   const at = moments.reduce((i, m, j) => (m.t <= now ? j : i), -1);
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="m-0 font-semibold text-(--ui-ink-2) text-[11.5px] uppercase tracking-[0.06em]">
-        Key moments
-      </h2>
+      <h2 className={cx("m-0", GROUP_LABEL)}>Key moments</h2>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {moments.map((m, i) => (
           <button
@@ -592,25 +590,19 @@ function Side({ item }: { item: ItemPage }) {
     <div className="flex flex-col gap-6">
       {item.summary ? (
         <section>
-          <h2 className="m-0 mb-1.5 font-semibold text-(--ui-ink-2) text-[11.5px] uppercase tracking-[0.06em]">
-            Summary
-          </h2>
+          <h2 className={cx("m-0 mb-1.5", GROUP_LABEL)}>Summary</h2>
           <p className="m-0 text-[14.5px] text-(--ui-ink) leading-relaxed">{item.summary}</p>
         </section>
       ) : null}
       {item.why ? (
         <section>
-          <h2 className="m-0 mb-1.5 font-semibold text-(--ui-ink-2) text-[11.5px] uppercase tracking-[0.06em]">
-            Why it scored {item.score ?? ""}
-          </h2>
+          <h2 className={cx("m-0 mb-1.5", GROUP_LABEL)}>Why it scored {item.score ?? ""}</h2>
           <p className="m-0 text-[14px] text-(--ui-ink-2) leading-relaxed">{item.why}</p>
         </section>
       ) : null}
       {item.changes.length ? (
         <section>
-          <h2 className="m-0 mb-1.5 font-semibold text-(--ui-ink-2) text-[11.5px] uppercase tracking-[0.06em]">
-            What it would change
-          </h2>
+          <h2 className={cx("m-0 mb-1.5", GROUP_LABEL)}>What it would change</h2>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {item.changes.map((c) => (
               <li key={c} className="flex gap-2 text-[14px] text-(--ui-ink) leading-relaxed">
@@ -623,9 +615,7 @@ function Side({ item }: { item: ItemPage }) {
       ) : null}
       {item.sops.length ? (
         <section>
-          <h2 className="m-0 mb-1.5 font-semibold text-(--ui-ink-2) text-[11.5px] uppercase tracking-[0.06em]">
-            In SOPs
-          </h2>
+          <h2 className={cx("m-0 mb-1.5", GROUP_LABEL)}>In SOPs</h2>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {item.sops.map((a) => (
               <li key={a.sop} className="flex flex-col gap-0.5 text-[13.5px]">
@@ -793,9 +783,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
           ) : null}
         </div>
         <div className="flex items-start gap-3">
-          <h1 className="m-0 min-w-0 flex-1 text-balance font-semibold text-[24px] leading-tight tracking-[-0.015em]">
-            {item.title}
-          </h1>
+          <h1 className={cx("m-0 min-w-0 flex-1", PAGE_TITLE)}>{item.title}</h1>
           {item.score !== null ? (
             <div className="flex shrink-0 flex-col items-end gap-1 pt-1">
               <ScoreBadge score={item.score} className="h-7 min-w-7 text-[14px]" />

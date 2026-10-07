@@ -2,7 +2,18 @@
  * Learn's Save a link box, search across every transcript, and the phone's share target
  * (/learn/add?url=).
  */
-import { Alert, Button, Empty, Input, Loading, PageHeader, relative, Tag } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  Empty,
+  Fieldset,
+  FRAME,
+  Input,
+  Loading,
+  PageHeader,
+  relative,
+  Tag,
+} from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -100,13 +111,19 @@ export function AddPage({ params, client }: PageProps) {
     <>
       <PageHeader title="Save a link" />
       {!url ? (
-        <SaveBox />
+        <Fieldset
+          legend="Link"
+          note="An article, video, reel or episode. It's kept, then read."
+          className="max-w-2xl"
+        >
+          <SaveBox />
+        </Fieldset>
       ) : !state ? (
         <Loading lines={2} />
       ) : state.error ? (
         <Alert>{state.error}</Alert>
       ) : state.saved ? (
-        <div className="flex flex-col gap-3">
+        <div className={`flex max-w-2xl flex-col gap-3 p-4 ${FRAME}`}>
           <p className="text-[15px] text-(--ui-ink)">{savedLine(state.saved)}</p>
           <p className="break-all text-[13px] text-(--ui-ink-2)">{state.saved.url}</p>
           <div className="flex gap-3 text-[13px]">

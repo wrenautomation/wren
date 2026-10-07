@@ -7,7 +7,7 @@
 import type { Editor } from "@tiptap/core";
 import { readTitle, toMarkdown } from "@wren/notes/doc";
 import { type Role, Y_TITLE } from "@wren/notes/types";
-import { Alert, Button, Empty, Icon, Loading, relative, say, Tag } from "@wren/ui";
+import { Alert, Button, Empty, GROUP_LABEL, Icon, Loading, relative, say, Tag } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
 import { socketToken, viewingAs } from "../../api.js";
@@ -495,9 +495,7 @@ function Doc({
             aria-label="Outline"
             className="hidden w-56 flex-none overflow-y-auto border-r border-(--ui-hair) px-3 py-4 xl:block print:hidden"
           >
-            <h2 className="m-0 mb-2 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-              Outline
-            </h2>
+            <h2 className={`m-0 mb-2 ${GROUP_LABEL}`}>Outline</h2>
             <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
               {heads.map((h) => (
                 <li key={`${h.pos}`} style={{ paddingLeft: (h.level - 1) * 12 }}>

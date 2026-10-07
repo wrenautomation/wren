@@ -2,7 +2,19 @@
  * Learn's Sources, grouped by kind: follow a channel, podcast, newsletter or blog by its page or
  * feed, say how loud each is, stop one. Each opens to its items.
  */
-import { Alert, Button, cx, Input, Loading, relative, say } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  cx,
+  Empty,
+  InDevelopment,
+  Input,
+  Loading,
+  PAGE_TITLE,
+  relative,
+  SECTION_TITLE,
+  say,
+} from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +63,7 @@ function SourcesBody() {
     <div className="flex flex-col gap-8 pb-16">
       <header className="flex flex-col gap-4">
         <div className="flex items-baseline gap-2.5">
-          <h1 className="m-0 font-semibold text-[22px] leading-8 tracking-[-0.01em]">Sources</h1>
+          <h1 className={PAGE_TITLE}>Sources</h1>
           {load.data ? (
             <span className="text-[14px] text-(--ui-ink-2) tabular-nums">{total}</span>
           ) : null}
@@ -63,14 +75,14 @@ function SourcesBody() {
       ) : !load.data ? (
         <Loading lines={4} shape="cards" />
       ) : !kinds.length ? (
-        <p className="m-0 max-w-xl text-[14px] text-(--ui-ink-2) leading-relaxed">
+        <Empty>
           Paste a channel, podcast, newsletter or blog above. Its page works, and so does its feed.
           New posts are read, summed up and scored, then land in your Inbox.
-        </p>
+        </Empty>
       ) : (
         kinds.map((k) => (
           <section key={k.kind} className="flex flex-col gap-3">
-            <h2 className="m-0 flex items-center gap-2 font-semibold text-[16px]">
+            <h2 className={cx("m-0 flex items-center gap-2", SECTION_TITLE)}>
               <TypeMark type={KIND_TYPE[k.kind]} size={18} />
               {KIND_LABELS[k.kind]}
               <span className="font-normal text-[14px] text-(--ui-ink-2) tabular-nums">
@@ -85,20 +97,17 @@ function SourcesBody() {
           </section>
         ))
       )}
-      <section className="flex flex-col gap-2 border-(--ui-hair) border-t pt-6">
-        <h2 className="m-0 flex flex-wrap items-center gap-2 font-semibold text-[15px]">
+      <section className="flex flex-col gap-3 border-(--ui-hair) border-t pt-6">
+        <h2 className={cx("m-0 flex flex-wrap items-center gap-2", SECTION_TITLE)}>
           <TypeMark type="instagram" size={16} />
           <TypeMark type="tiktok" size={16} />
           <TypeMark type="x" size={16} />
           Instagram, TikTok and X creators
-          <span className="bg-(--ui-tile) px-1.5 py-0.5 font-medium text-(--ui-ink-2) text-[11.5px]">
-            In development
-          </span>
         </h2>
-        <p className="m-0 max-w-xl text-[13.5px] text-(--ui-ink-2) leading-relaxed">
+        <InDevelopment>
           Following them is in development. Save their posts from your phone meanwhile; each plays
           here in its own embed.
-        </p>
+        </InDevelopment>
       </section>
     </div>
   );

@@ -4,7 +4,7 @@
  * Wren's team installs, as on the component's own page.
  */
 import type { RecordAnswer } from "@wren/core/records/serve";
-import { Alert, Button } from "@wren/ui";
+import { Alert, Button, GROUP_LABEL } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -66,9 +66,7 @@ export function AddOn({
       aria-label="Recommended"
       className="mb-11 grid max-w-[640px] gap-4 rounded-(--ui-radius) bg-(--ui-paper) p-5 shadow-[inset_0_0_0_1px_var(--ui-hair)]"
     >
-      <h2 className="text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-        Recommended
-      </h2>
+      <h2 className={GROUP_LABEL}>Recommended</h2>
       <label className="flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"

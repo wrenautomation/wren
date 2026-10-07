@@ -81,7 +81,8 @@ const idsOf = (e: DragEvent): number[] => {
 const ROW =
   "group/row relative flex h-8 min-w-0 items-center gap-2 border-0 px-2 text-[13.5px] no-underline transition-colors duration-150";
 const ROW_IDLE = "bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
-const ROW_ON = "bg-(--ui-hover) font-medium text-(--ui-ink)";
+const ROW_ON =
+  "bg-(--ui-hover) font-medium text-(--ui-ink) shadow-[inset_3px_0_0_var(--ui-accent)]";
 
 function Count({ n, strong }: { n: number; strong?: boolean }) {
   if (!n) return null;
@@ -479,7 +480,7 @@ export function LearnFrame({ here, children }: { here: string; children: ReactNo
   return (
     <RailCtx.Provider value={{ rail, ready: !!load.data }}>
       <div className="flex min-w-0 gap-8">
-        <aside className="hidden w-60 shrink-0 min-[901px]:block">
+        <aside className="hidden w-60 shrink-0 border-(--ui-hair) border-r pr-4 min-[901px]:block">
           <div className="sticky top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain pr-1">
             <RailBody here={here} />
           </div>

@@ -1,7 +1,7 @@
 /** What a screen says while it waits, when it has nothing, and when something broke. */
 import type { ReactNode } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
-import { Button } from "./controls.js";
+import { Button, Tag } from "./controls.js";
 import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 
@@ -87,6 +87,27 @@ export function Empty({
     >
       <p className="max-w-[46ch] text-pretty">{children}</p>
       {action ?? null}
+    </div>
+  );
+}
+
+/** A part that isn't built yet: a dashed frame like Empty, its tag first, then what works meanwhile. */
+export function InDevelopment({
+  className,
+  children,
+}: {
+  className?: string | undefined;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cx(
+        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-(--ui-radius) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-3 text-[14px] text-pretty text-(--ui-ink-2)",
+        className,
+      )}
+    >
+      <Tag tone="accent">In development</Tag>
+      {children ? <span className="min-w-0 flex-1 basis-[40ch]">{children}</span> : null}
     </div>
   );
 }

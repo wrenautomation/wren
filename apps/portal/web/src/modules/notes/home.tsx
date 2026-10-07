@@ -196,7 +196,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
         ) : null}
       </div>
       <div className="flex flex-col gap-3 border border-(--ui-hair) bg-(--ui-paper)">
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-b border-(--ui-hair) px-2 pt-2">
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-b border-(--ui-hair) bg-(--ui-band) px-2 pt-2">
           <nav aria-label="Views" className="flex min-w-0 flex-wrap gap-0.5">
             {VIEWS.map(([v, label]) => (
               <a
@@ -225,7 +225,9 @@ export function NotesHome({ client, params, demo }: PageProps) {
         ) : !data ? (
           <Loading lines={6} />
         ) : !data.notes.length ? (
-          <Empty>{q ? `No note has “${q}”.` : EMPTY[view]}</Empty>
+          <Empty className="border-0 bg-transparent">
+            {q ? `No note has “${q}”.` : EMPTY[view]}
+          </Empty>
         ) : (
           <ul className="m-0 -mt-3 list-none p-0">
             {data.notes.map((n) => (

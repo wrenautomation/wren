@@ -2,7 +2,16 @@
  * Learn's home: what you were watching, this week's best, then new from your sources, one shelf
  * per type, and the SOPs items went into lately.
  */
-import { Alert, ButtonLink, cx, Loading, relative, StateMark } from "@wren/ui";
+import {
+  Alert,
+  ButtonLink,
+  cx,
+  Loading,
+  PAGE_TITLE,
+  relative,
+  SECTION_TITLE,
+  StateMark,
+} from "@wren/ui";
 import { ChevronLeft, ChevronRight, Link, Rss, Smartphone } from "@wren/ui/lib/lucide";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useCall } from "../../load.js";
@@ -41,9 +50,9 @@ function HomeBody() {
     .join(" · ");
   return (
     <div className="flex flex-col gap-10 pb-16">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-(--ui-hair) border-b pb-5">
         <div>
-          <h1 className="m-0 font-semibold text-[22px] leading-8 tracking-[-0.01em]">Learn</h1>
+          <h1 className={PAGE_TITLE}>Learn</h1>
           <p className="m-0 mt-0.5 text-[14px] text-(--ui-ink-2)">{lede}</p>
         </div>
         <div className="flex gap-2">
@@ -82,7 +91,7 @@ function Shelves({ home }: { home: Home }) {
       ) : null}
       {home.shelves.length ? (
         <div className="flex flex-col gap-8">
-          <h2 className="m-0 border-(--ui-hair) border-t pt-6 font-semibold text-[17px]">
+          <h2 className={cx("m-0 border-(--ui-hair) border-t pt-6", SECTION_TITLE)}>
             New from your sources
           </h2>
           {home.shelves.map((s) => (
@@ -109,7 +118,7 @@ function Shelves({ home }: { home: Home }) {
       )}
       {home.sops.length ? (
         <section className="flex flex-col gap-3">
-          <h2 className="m-0 font-semibold text-[17px]">SOP changes lately</h2>
+          <h2 className={cx("m-0", SECTION_TITLE)}>SOP changes lately</h2>
           <ul className="m-0 list-none border-(--ui-hair) border-t p-0">
             {home.sops.map((s) => (
               <li
@@ -165,8 +174,8 @@ function Shelf({
         <div className="min-w-0">
           <h2
             className={cx(
-              "m-0 flex items-center gap-2 font-semibold",
-              small ? "text-[15px]" : "text-[17px]",
+              "m-0 flex items-center gap-2",
+              small ? "font-semibold text-[15px]" : SECTION_TITLE,
             )}
           >
             {mark}

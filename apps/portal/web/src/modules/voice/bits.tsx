@@ -1,6 +1,6 @@
 /** What the Voice app's pages share: the "In development" note, tool chips and a turn's timing bar. */
 
-import { Tag } from "@wren/ui";
+import { InDevelopment as Kit } from "@wren/ui";
 import { type Line, STAGES, type Stage, type Turn } from "@wren/voice";
 import type { ReactNode } from "react";
 
@@ -9,12 +9,7 @@ export const SMALL = "text-[13px] text-(--ui-ink-2)";
 
 /** The scaffold's note: what's built, and what waits on setup. */
 export function InDevelopment({ children }: { children: ReactNode }) {
-  return (
-    <div className="mb-8 flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-(--ui-radius) bg-(--ui-tile) px-4 py-3 text-[14px] text-pretty text-(--ui-ink-2)">
-      <Tag tone="accent">In development</Tag>
-      <span className="min-w-0 flex-1 basis-[40ch]">{children}</span>
-    </div>
-  );
+  return <Kit className="mb-8">{children}</Kit>;
 }
 
 export const TOOL_LABEL: Record<string, string> = {
