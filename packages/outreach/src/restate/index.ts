@@ -22,9 +22,12 @@ import { linkedinOutreach } from "@wren/channel-linkedin";
 import { redditOutreach } from "@wren/channel-reddit";
 import { finishRun, openRun } from "@wren/core";
 import { byOf, keepSentEdit } from "@wren/core/ask";
+import { sendsOn } from "@wren/core/clients";
 import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
+import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
+import { gate } from "@wren/core/vendors";
 
 /** The `Content` service's reply handler as the worker serves it. */
 type ContentReply = {
@@ -35,6 +38,8 @@ type ContentReply = {
 };
 
 import {
+  clientKey,
+  clientOfKey,
   errorText,
   lastPass,
   makeLoopObject,
@@ -43,6 +48,7 @@ import {
   PORTAL_FIELDS,
   serviceHandler,
   setLastPass,
+  stoppedPass,
 } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
@@ -63,6 +69,13 @@ import {
   setAccountState,
   viewOf,
 } from "../accounts.js";
+import {
+  type ClientReach,
+  clientReach,
+  clientSends,
+  type ReachPart,
+  syncLogins,
+} from "../clients.js";
 import {
   COMMENTS_FLOW,
   COMMENTS_FROM,
@@ -98,6 +111,7 @@ import {
   INVITE_SEQUENCE,
   type InviteSettings,
   inviteSettings,
+  invitesSettingsSchema,
   type SweepStats,
   sweepInvites,
   type TopUpStats,
@@ -161,14 +175,60 @@ export interface ReachDeps {
   postedAt?: (platform: Platform) => Promise<string | null>;
   /** DM drafts: the model and the `outbound-copy` SOP. No model, no drafts. */
   drafts?: { llm: LlmClient | null; guide?: DmGuide };
+  /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
+  clients?: ReachClients;
+}
+
+export interface ReachClients {
+  /** A client's own database. */
+  clientDb: (id: string) => Db;
+  /** The model a client's drafts use, metered on its own `models` vendor. */
+  llm: LlmClient | null;
+  /** A client's DM guide, from the SOPs in its own database. */
+  dmGuide?: (db: Db, platform: Platform) => Promise<string>;
+  /** A client's facts for Reddit drafts: the SOPs in its own database. */
+  facts?: (db: Db) => Promise<{ label: string; text: string }[]>;
+}
+
+/**
+ * The deps for one client's pass: its own database, every read through its vendor gate (in
+ * journaled steps), its model metered, no Discord lane and no content posts of Wren's.
+ */
+export function clientDeps(
+  deps: ReachDeps,
+  plan: Extract<ClientReach, { kind: "work" }>,
+  part: ReachPart,
+  now: Date,
+  /** Its `models` gate said yes this pass (`gate` once: a model call costs no units). */
+  model = false,
+): ReachDeps {
+  const { notifier: _n, postedAt: _p, drafts: _d, clients, ...rest } = deps;
+  if (!clients) throw new Error("no client databases here");
+  const db = clients.clientDb(plan.client.id);
+  const scope = { main: deps.db, client: plan.client.id, part, now: () => now };
+  const dmGuide = clients.dmGuide;
+  return {
+    ...rest,
+    db,
+    sitesFor: (ctx) =>
+      meteredSites(deps.sitesFor(ctx), { ...scope, step: (name, fn) => ctx.run(name, fn) }),
+    ...(clients.llm && model
+      ? {
+          drafts: {
+            llm: meteredModel(clients.llm, scope),
+            ...(dmGuide ? { guide: (p: Platform) => dmGuide(db, p) } : {}),
+          },
+        }
+      : {}),
+  };
 }
 
 /** Wake the watch so a touch's first check comes now, not after a cold sleep. */
-export const wakeWatch = (ctx: restate.Context) =>
+export const wakeWatch = (ctx: restate.Context, client: string | null = null) =>
   ctx
     .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<unknown> }>(
       { name: "ReachWatch" },
-      WATCH_KEY,
+      client ? clientKey(client, WATCH_KEY) : WATCH_KEY,
     )
     .wake();
 
@@ -200,61 +260,86 @@ export function channelsFor(deps: ReachDeps, ctx: restate.Context) {
 export function makeReachSender(deps: ReachDeps) {
   return makeLoopObject<TickStats>("ReachSender", async (ctx) => {
     const now = await nowFor(ctx, deps.clock);
-    const channelFor = channelsFor(deps, ctx);
-    // The ledger row brackets the pass; the tick's own steps are journaled one by one.
-    const runId = await ctx.run("open run", async () => {
-      const run = await openRun(deps.db, { command: "reach tick", argv: { live: deps.live } });
-      return run.id;
+    const owner = clientOfKey(ctx.key);
+    if (!owner) return senderPass(deps, ctx, now, { client: null });
+    if (!deps.clients) return stoppedPass<TickStats>(ctx, now, "no client databases here");
+    const plan = await ctx.run("client", () =>
+      clientReach(deps.db, owner.client, ["reach.outreach", "linkedin.invites"]),
+    );
+    if (plan.kind === "gone") return stoppedPass<TickStats>(ctx, now, plan.why);
+    const d = clientDeps(deps, plan, "reach.outreach", now);
+    await ctx.run("logins", async () => {
+      await syncLogins(d.db, plan.logins, now);
     });
-    let stats: TickStats | null = null;
-    let error: string | null = null;
-    try {
-      stats = await tick(
-        deps.db,
-        {
-          channelFor,
-          policy: deps.policy,
-          sequences: deps.sequences,
-          sender: deps.senderName,
-          live: deps.live,
-          now,
-          runId,
-        },
-        (name, fn) => ctx.run(name, fn),
-      );
-    } catch (err) {
-      if (!(err instanceof restate.TerminalError)) throw err;
-      error = errorText(err);
-    }
-    await ctx.run("finish run", () => finishRun(deps.db, runId, stats ?? { error }));
-    // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
-    for (const s of stats?.stepped ?? [])
-      spineEmit(ctx, {
-        client: null,
-        workflow: cadenceId(s.sequence),
-        from: `s${s.step}.sent`,
-        events: [reachLead(s.contactId)],
-      });
-    if (stats && stats.sent > 0) wakeWatch(ctx);
-    const previous = await lastPass<PassOutcome<TickStats>>(ctx);
-    const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
-    const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
-    const outcome: PassOutcome<TickStats> = {
-      stats,
-      error,
-      failures,
-      delayMs,
-      now: now.toISOString(),
-    };
-    await setLastPass(ctx, outcome);
-    if (deps.notifier && error && previous?.error !== error) {
-      const notifier = deps.notifier;
-      await ctx.run("notify error", () =>
-        notifier.notify("reach tick failing", error as string, "warning"),
-      );
-    }
-    return outcome;
+    return senderPass(d, ctx, now, {
+      client: owner.client,
+      sends: clientSends(plan.client, deps.live),
+    });
   });
+}
+
+/** One tick: Wren's over its database, or a client's over its own with its live flags. */
+async function senderPass(
+  deps: ReachDeps,
+  ctx: restate.ObjectContext,
+  now: Date,
+  scope: { client: string | null; sends?: (kind: string) => boolean },
+): Promise<PassOutcome<TickStats>> {
+  const channelFor = channelsFor(deps, ctx);
+  // The ledger row brackets the pass; the tick's own steps are journaled one by one.
+  const runId = await ctx.run("open run", async () => {
+    const run = await openRun(deps.db, { command: "reach tick", argv: { live: deps.live } });
+    return run.id;
+  });
+  let stats: TickStats | null = null;
+  let error: string | null = null;
+  try {
+    stats = await tick(
+      deps.db,
+      {
+        channelFor,
+        policy: deps.policy,
+        sequences: deps.sequences,
+        sender: deps.senderName,
+        live: deps.live,
+        ...(scope.sends ? { sends: scope.sends } : {}),
+        now,
+        runId,
+      },
+      (name, fn) => ctx.run(name, fn),
+    );
+  } catch (err) {
+    if (!(err instanceof restate.TerminalError)) throw err;
+    error = errorText(err);
+  }
+  await ctx.run("finish run", () => finishRun(deps.db, runId, stats ?? { error }));
+  // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
+  for (const s of stats?.stepped ?? [])
+    spineEmit(ctx, {
+      client: scope.client,
+      workflow: cadenceId(s.sequence),
+      from: `s${s.step}.sent`,
+      events: [reachLead(s.contactId)],
+    });
+  if (stats && stats.sent > 0) wakeWatch(ctx, scope.client);
+  const previous = await lastPass<PassOutcome<TickStats>>(ctx);
+  const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
+  const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
+  const outcome: PassOutcome<TickStats> = {
+    stats,
+    error,
+    failures,
+    delayMs,
+    now: now.toISOString(),
+  };
+  await setLastPass(ctx, outcome);
+  if (deps.notifier && error && previous?.error !== error) {
+    const notifier = deps.notifier;
+    await ctx.run("notify error", () =>
+      notifier.notify("reach tick failing", error as string, "warning"),
+    );
+  }
+  return outcome;
 }
 
 export interface InvitesPass {
@@ -269,6 +354,8 @@ export interface WatchStats {
   health: HealthStats;
   invites: InvitesPass | null;
   drafts: { written: number; errors: string[] };
+  /** A client's vendor gate said no: why, and the pass read no more. */
+  stopped: string | null;
 }
 
 /** The invites account (settings) when it's an active LinkedIn row, else null. */
@@ -337,42 +424,117 @@ async function draftsPass(
   return out;
 }
 
+/** What one watch pass reads: Wren's everything, or a client's installed parts on its logins. */
+interface WatchScope {
+  client: string | null;
+  /** Its reach rows by id; null: every row in the database (Wren's). */
+  only: readonly string[] | null;
+  replies: boolean;
+  comments: boolean;
+  /** The invites block, or null: no invites this pass. */
+  invites: () => Promise<InviteSettings | null>;
+  drafts: boolean;
+}
+
 export function makeReachWatch(deps: ReachDeps) {
   return makeLoopObject<WatchStats>("ReachWatch", async (ctx) => {
     const now = await nowFor(ctx, deps.clock);
-    const channelFor = channelsFor(deps, ctx);
-    const accounts = await ctx.run("accounts", () => listAccounts(deps.db));
-    const live = accounts.filter((a) => a.state === "active" || a.state === "warming");
-    // Each account reads on its own warm cadence: often after a touch, easing off as it goes quiet.
-    const touches = await ctx.run("touches", async () => {
-      const t = await lastTouches(deps.db);
-      for (const p of new Set(live.map((a) => a.platform))) {
-        const posted = await deps.postedAt?.(p);
-        if (!posted) continue;
-        for (const a of live)
-          if (a.platform === p && (!t[a.id] || posted > (t[a.id] as string))) t[a.id] = posted;
-      }
-      return t;
-    });
-    const reads = (await ctx.get<Record<string, number>>(READS)) ?? {};
-    const checked = (await ctx.get<Record<string, number>>(HEALTH)) ?? {};
-    const everyOf = new Map(
-      live.map((a) => {
-        const t = touches[a.id];
-        return [a.id, warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random())];
-      }),
+    const owner = clientOfKey(ctx.key);
+    if (!owner)
+      return watchPass(deps, ctx, now, {
+        client: null,
+        only: null,
+        replies: true,
+        comments: true,
+        invites: () => inviteSettings(deps.db),
+        drafts: true,
+      });
+    if (!deps.clients) return stoppedPass<WatchStats>(ctx, now, "no client databases here");
+    const plan = await ctx.run("client", () =>
+      clientReach(deps.db, owner.client, ["reach.outreach", "comments.read", "linkedin.invites"]),
     );
-    const isDue = (a: ReachAccount) =>
-      now.getTime() - (reads[a.id] ?? 0) >= (everyOf.get(a.id) ?? 0);
-    // Platform reads happen inside these helpers; each account's result is applied in its own step.
-    const replies: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
-    const health: HealthStats = { checked: 0, frozen: [], errors: [] };
-    const kept: WatchStats["comments"] = { kept: 0, errors: [] };
-    const ours = accounts.flatMap((a) => (a.handle ? [a.handle] : []));
-    for (const a of live.filter(isDue)) {
-      const ch = channelFor(a);
-      if (!ch) continue;
-      reads[a.id] = now.getTime();
+    if (plan.kind === "gone") return stoppedPass<WatchStats>(ctx, now, plan.why);
+    const has = (p: ReachPart) => plan.parts.includes(p);
+    const part = has("comments.read")
+      ? "comments.read"
+      : has("reach.outreach")
+        ? "reach.outreach"
+        : "linkedin.invites";
+    const model = await ctx.run(
+      "gate models",
+      async () => (await gate(deps.db, owner.client, "models", 1, now)).ok,
+    );
+    const d = clientDeps(deps, plan, part, now, model);
+    const only = await ctx.run("logins", async () =>
+      (await syncLogins(d.db, plan.logins, now)).map((a) => a.id),
+    );
+    return watchPass(d, ctx, now, {
+      client: owner.client,
+      only,
+      replies: has("reach.outreach"),
+      comments: has("comments.read"),
+      // Invites read and queue only once an admin armed them: sweeping withdraws, a write.
+      invites: async () => {
+        if (!has("linkedin.invites") || !sendsOn(plan.client, "linkedin.invites")) return null;
+        const got = invitesSettingsSchema.safeParse(plan.client.products["linkedin.invites"] ?? {});
+        if (!got.success) return null;
+        const login = plan.logins.find((l) => l.platform === "linkedin")?.account ?? null;
+        return { ...got.data, account: got.data.account ?? login };
+      },
+      drafts: has("reach.outreach"),
+    });
+  });
+}
+
+async function watchPass(
+  deps: ReachDeps,
+  ctx: restate.ObjectContext,
+  now: Date,
+  scope: WatchScope,
+): Promise<PassOutcome<WatchStats>> {
+  const channelFor = channelsFor(deps, ctx);
+  const accounts = await ctx.run("accounts", () => listAccounts(deps.db));
+  const live = accounts.filter(
+    (a) =>
+      (a.state === "active" || a.state === "warming") &&
+      (scope.only === null || scope.only.includes(a.id)),
+  );
+  // Each account reads on its own warm cadence: often after a touch, easing off as it goes quiet.
+  const touches = await ctx.run("touches", async () => {
+    const t = await lastTouches(deps.db);
+    for (const p of new Set(live.map((a) => a.platform))) {
+      const posted = await deps.postedAt?.(p);
+      if (!posted) continue;
+      for (const a of live)
+        if (a.platform === p && (!t[a.id] || posted > (t[a.id] as string))) t[a.id] = posted;
+    }
+    return t;
+  });
+  const reads = (await ctx.get<Record<string, number>>(READS)) ?? {};
+  const checked = (await ctx.get<Record<string, number>>(HEALTH)) ?? {};
+  const everyOf = new Map(
+    live.map((a) => {
+      const t = touches[a.id];
+      return [a.id, warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random())];
+    }),
+  );
+  const isDue = (a: ReachAccount) => now.getTime() - (reads[a.id] ?? 0) >= (everyOf.get(a.id) ?? 0);
+  // Platform reads happen inside these helpers; each account's result is applied in its own step.
+  const replies: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
+  const health: HealthStats = { checked: 0, frozen: [], errors: [] };
+  const kept: WatchStats["comments"] = { kept: 0, errors: [] };
+  const ours = accounts.flatMap((a) => (a.handle ? [a.handle] : []));
+  // A client's vendor gate saying no ends the pass's reads; the next pass asks again.
+  let stopped: string | null = null;
+  const stop = (err: unknown) => {
+    if (isVendorStop(err)) stopped ??= err.why;
+  };
+  for (const a of live.filter(isDue)) {
+    if (stopped) break;
+    const ch = channelFor(a);
+    if (!ch) continue;
+    reads[a.id] = now.getTime();
+    if (scope.replies)
       try {
         const got = await ch.replies(null);
         const r = await ctx.run(`replies ${a.account}`, () =>
@@ -382,96 +544,99 @@ export function makeReachWatch(deps: ReachDeps) {
         replies.received += r.received;
         replies.optedOut += r.optedOut;
       } catch (err) {
+        stop(err);
         replies.errors.push(`${a.account}: ${errorText(err)}`);
       }
-      // The same inbox read: the adapter asks the platform once for both.
-      if (ch.comments)
-        try {
-          const got = await ch.comments();
-          const rows = await ctx.run(`comments ${a.account}`, () =>
-            keepComments(deps.db, a, got, ours),
-          );
-          kept.kept += rows.length;
-          if (rows.length)
-            spineEmit(ctx, {
-              client: null,
-              workflow: COMMENTS_FLOW,
-              from: COMMENTS_FROM,
-              events: rows.map(commentEvent),
-            });
-        } catch (err) {
-          kept.errors.push(`${a.account}: ${errorText(err)}`);
-        }
-      if (now.getTime() - (checked[a.id] ?? 0) < COLD_EVERY_MS) continue;
-      checked[a.id] = now.getTime();
+    // The same inbox read: the adapter asks the platform once for both.
+    if (scope.comments && ch.comments && !stopped)
       try {
-        const h = await ch.health();
-        const r = await ctx.run(`health ${a.account}`, () =>
-          refreshHealth(deps.db, [a], () => ({ ...ch, health: async () => h }), now),
+        const got = await ch.comments();
+        const rows = await ctx.run(`comments ${a.account}`, () =>
+          keepComments(deps.db, a, got, ours),
         );
-        health.checked += r.checked;
-        health.frozen.push(...r.frozen);
+        kept.kept += rows.length;
+        if (rows.length)
+          spineEmit(ctx, {
+            client: scope.client,
+            workflow: COMMENTS_FLOW,
+            from: COMMENTS_FROM,
+            events: rows.map(commentEvent),
+          });
       } catch (err) {
-        health.errors.push(`${a.account}: ${errorText(err)}`);
+        stop(err);
+        kept.errors.push(`${a.account}: ${errorText(err)}`);
       }
-    }
-    let invites: InvitesPass | null = null;
-    const swept = (await ctx.get<number>(INVITES)) ?? 0;
-    if (now.getTime() - swept >= INVITES_EVERY_MS) {
-      const settings = await ctx.run("invite settings", () => inviteSettings(deps.db));
-      const a = invitesAccount(live, settings);
-      if (a) {
-        ctx.set(INVITES, now.getTime());
-        try {
-          invites = await invitesPass(deps, ctx, a, settings, now);
-        } catch (err) {
-          health.errors.push(`invites ${a.account}: ${errorText(err)}`);
-        }
-      }
-    }
-    const drafts = await draftsPass(deps, ctx, now);
-    ctx.set(READS, reads);
-    ctx.set(HEALTH, checked);
-    const stats: WatchStats = { replies, comments: kept, health, invites, drafts };
-    const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
-    const outcome: PassOutcome<WatchStats> = {
-      stats,
-      error: null,
-      failures: 0,
-      delayMs: Math.max(WATCH_FLOOR_MS, next.length ? Math.min(...next) : COLD_EVERY_MS),
-      now: now.toISOString(),
-    };
-    await setLastPass(ctx, outcome);
-    const notifier = deps.notifier;
-    const accepted = invites?.sweep.accepted.length ?? 0;
-    if (
-      notifier &&
-      (replies.received > 0 || kept.kept > 0 || accepted > 0 || health.frozen.length > 0)
-    ) {
-      const news = [
-        replies.received ? `${replies.received} new DMs` : null,
-        kept.kept ? `${kept.kept} new comments` : null,
-        accepted ? `${accepted} accepted invites` : null,
-      ].filter(Boolean);
-      await ctx.run("notify", () =>
-        notifier.notify(
-          `reach: ${news.join(", ") || "no news"}${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
-          [
-            replies.received || kept.kept ? "Inbox → Waiting on you" : null,
-            accepted ? "Marketing → To approve" : null,
-            ...replies.errors,
-            ...kept.errors,
-            ...health.errors,
-            ...drafts.errors,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-          health.frozen.length ? "warning" : news.length ? "action" : "info",
-        ),
+    if (stopped || now.getTime() - (checked[a.id] ?? 0) < COLD_EVERY_MS) continue;
+    checked[a.id] = now.getTime();
+    try {
+      const h = await ch.health();
+      const r = await ctx.run(`health ${a.account}`, () =>
+        refreshHealth(deps.db, [a], () => ({ ...ch, health: async () => h }), now),
       );
+      health.checked += r.checked;
+      health.frozen.push(...r.frozen);
+    } catch (err) {
+      stop(err);
+      health.errors.push(`${a.account}: ${errorText(err)}`);
     }
-    return outcome;
-  });
+  }
+  let invites: InvitesPass | null = null;
+  const swept = (await ctx.get<number>(INVITES)) ?? 0;
+  if (!stopped && now.getTime() - swept >= INVITES_EVERY_MS) {
+    const settings = await ctx.run("invite settings", () => scope.invites());
+    const a = settings && invitesAccount(live, settings);
+    if (settings && a) {
+      ctx.set(INVITES, now.getTime());
+      try {
+        invites = await invitesPass(deps, ctx, a, settings, now);
+      } catch (err) {
+        stop(err);
+        health.errors.push(`invites ${a.account}: ${errorText(err)}`);
+      }
+    }
+  }
+  const drafts = scope.drafts ? await draftsPass(deps, ctx, now) : { written: 0, errors: [] };
+  ctx.set(READS, reads);
+  ctx.set(HEALTH, checked);
+  const stats: WatchStats = { replies, comments: kept, health, invites, drafts, stopped };
+  const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
+  const outcome: PassOutcome<WatchStats> = {
+    stats,
+    error: null,
+    failures: 0,
+    delayMs: Math.max(WATCH_FLOOR_MS, next.length ? Math.min(...next) : COLD_EVERY_MS),
+    now: now.toISOString(),
+  };
+  await setLastPass(ctx, outcome);
+  const notifier = deps.notifier;
+  const accepted = invites?.sweep.accepted.length ?? 0;
+  if (
+    notifier &&
+    (replies.received > 0 || kept.kept > 0 || accepted > 0 || health.frozen.length > 0)
+  ) {
+    const news = [
+      replies.received ? `${replies.received} new DMs` : null,
+      kept.kept ? `${kept.kept} new comments` : null,
+      accepted ? `${accepted} accepted invites` : null,
+    ].filter(Boolean);
+    await ctx.run("notify", () =>
+      notifier.notify(
+        `reach: ${news.join(", ") || "no news"}${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
+        [
+          replies.received || kept.kept ? "Inbox → Waiting on you" : null,
+          accepted ? "Marketing → To approve" : null,
+          ...replies.errors,
+          ...kept.errors,
+          ...health.errors,
+          ...drafts.errors,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        health.frozen.length ? "warning" : news.length ? "action" : "info",
+      ),
+    );
+  }
+  return outcome;
 }
 
 const PLATFORM = z.string().describe("reddit or linkedin");

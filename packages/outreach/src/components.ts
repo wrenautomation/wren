@@ -1,8 +1,14 @@
 /** Cold outreach on social sites: a person's warmed account, paced. Comments on our posts. */
 import { defineComponent } from "@wren/core/components";
+import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
 import { invitesSettingsSchema } from "./invites.js";
+
+/** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
+export const WATCH_UNIT = "daily";
+export const SENDER_UNIT = "fleet";
+export const READS_UNIT = "daily";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({
@@ -78,12 +84,12 @@ export const OUTREACH_COMPONENTS = [
       "Reads each account's inbox every 2 minutes after a touch, easing to 30: comments on our posts and under our comments.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: reads Wren's own Reddit logins only"],
+    ready: true,
     wrenSettings: true,
-    // ReachWatch is Social outreach's loop; this part is its inbox read.
-    requires: { components: ["reach.outreach"], accounts: ["reddit"] },
+    // ReachWatch is Social outreach's loop; this part is its inbox read, on the client's logins.
+    requires: { accounts: ["reddit"] },
     provides: { records: ["marketing.comment"] },
+    clientLoops: (client) => [{ service: "ReachWatch", key: clientKey(client, WATCH_UNIT) }],
     out: [{ id: "comment", label: "new comments", kind: "comment" }],
     hypothesis: {
       from: "Wren's Reddit posts, 2026-10",
@@ -115,8 +121,7 @@ export const OUTREACH_COMPONENTS = [
       "Reads each comment as asked, question, chat or hostile, and drafts an answer to the first two.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: sorts comments on Wren's own posts only"],
+    ready: true,
     wrenSettings: true,
     requires: { components: ["comments.read"] },
     effects: ["spends"],
@@ -150,8 +155,7 @@ export const OUTREACH_COMPONENTS = [
       "Finds subreddits where buyers ask questions, picks the day's best new threads, and drafts a comment in your voice for each.",
     icon: "search",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: comments from Wren's own Reddit logins only"],
+    ready: true,
     settings: discoverySettingsSchema,
     // Wren's own run reads its block from `wren_settings` until a client's runs.
     wrenSettings: true,
@@ -161,7 +165,9 @@ export const OUTREACH_COMPONENTS = [
       loops: ["RedditReads"],
       records: ["marketing.place", "marketing.thread"],
     },
+    clientLoops: (client) => [{ service: "RedditReads", key: clientKey(client, READS_UNIT) }],
     effects: ["sends", "spends"],
+    liveSwitch: true,
     out: [
       {
         id: "queued",

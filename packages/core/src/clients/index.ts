@@ -98,7 +98,22 @@ export interface ClientChange {
   products?: Record<string, unknown>;
   /** Who says yes to its To approve items (`mayApprove`). */
   approver?: Approver;
+  /** Parts whose sends are on, the whole list. An admin's (`sendsOn`). */
+  sends?: string[];
 }
+
+/**
+ * True when an admin turned this part's sends on for the client (`wren clients set --live`). The
+ * caller ANDs it with the global gate (`WREN_REACH_LIVE` and the like): both, or nothing leaves.
+ */
+export const sendsOn = (client: Pick<Client, "sends">, part: string): boolean =>
+  client.sends.includes(part);
+
+/** How a part page says the flag, read-only: no toggle anywhere but the CLI. */
+export const sendsWords = (client: Pick<Client, "sends">, part: string): string =>
+  sendsOn(client, part)
+    ? "Sends on. An admin turned them on."
+    : "Sends off. An admin turns them on.";
 
 export async function updateClient(
   main: Queryable,
@@ -120,6 +135,7 @@ export async function updateClient(
       accounts,
       products,
       approver: change.approver ?? current.approver,
+      sends: change.sends ? [...new Set(change.sends)].sort() : current.sends,
     })
     .where(eq(clients.id, id))
     .returning();
@@ -465,6 +481,7 @@ export const clientRecord = defineRecord({
       demo: { label: "Demo", tone: "neutral" },
     }),
     members: number(),
+    sends: text("Sends"),
     lastSeen: date("Last sign-in"),
     added: date(),
   },

@@ -147,7 +147,7 @@ import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
-import { CustomHostnames, clientRecord, settingsFor } from "@wren/core/clients";
+import { CustomHostnames, clientRecord, findClient, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -163,6 +163,7 @@ import {
 import { siteEdge } from "@wren/core/flag-store";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { meteredModel } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -170,6 +171,7 @@ import { makeSetupWatch } from "@wren/core/setup-watch";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
+import { gate } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
@@ -1041,6 +1043,13 @@ export async function buildServices(
     },
     // DM drafts in the watch's model, steered by the `outbound-copy` SOP and his DM edits.
     drafts: { llm: watchLlm, guide: (p: "reddit" | "linkedin") => dmGuide(db, p) },
+    // A client's runs: its database, the same model metered on its own gate, its own SOPs.
+    clients: {
+      clientDb,
+      llm: watchLlm,
+      dmGuide: (d: Db, p: "reddit" | "linkedin") => dmGuide(d, p),
+      facts: (d: Db) => playbooksOf(d),
+    },
     ...reachNotify,
   };
   services.push(
@@ -1241,7 +1250,32 @@ export async function buildServices(
             ),
         }),
         // The Watch's model: both read a few lines and answer in one.
-        "comments.sort": sortStep(db, watchLlm, (p) => commentGuide(db, p as Platform)),
+        "comments.sort": sortStep(
+          db,
+          watchLlm,
+          (p) => commentGuide(db, p as Platform),
+          // A client's comment sorts in its database; the model only with the part installed and
+          // its `models` gate open, metered. Else the words alone.
+          async (client) => {
+            const d = clientDb(client);
+            const c = await findClient(db, client);
+            const ok =
+              !!c && "comments.sort" in c.products && (await gate(db, client, "models", 1)).ok;
+            return {
+              db: d,
+              llm:
+                ok && watchLlm
+                  ? meteredModel(watchLlm, {
+                      main: db,
+                      client,
+                      part: "comments.sort",
+                      now: () => new Date(),
+                    })
+                  : null,
+              guide: (p) => commentGuide(d, p as Platform),
+            };
+          },
+        ),
       },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(

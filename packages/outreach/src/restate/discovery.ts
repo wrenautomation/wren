@@ -9,21 +9,27 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
 import { SiteCallError } from "@wren/core/content";
+import { isVendorStop } from "@wren/core/metered";
 import {
+  clientOfKey,
   errorText,
   lastPass,
   makeLoopObject,
   type PassOutcome,
   serviceHandler,
   setLastPass,
+  stoppedPass,
 } from "@wren/core/restate";
+import { gate } from "@wren/core/vendors";
 import type { LlmClient } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { clientReach, syncLogins } from "../clients.js";
 import { peopleToRead, readPerson } from "../discovery/people.js";
 import {
   type Audience,
   addPlaces,
+  discoverySettingsSchema,
   failPlace,
   judgePlace,
   keepPlace,
@@ -35,6 +41,7 @@ import {
   skipPlace,
   threadsRead,
   topicsOf,
+  WREN_ABOUT,
   watchPlace,
 } from "../discovery/places.js";
 import { reader } from "../discovery/reads.js";
@@ -53,7 +60,7 @@ import {
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
 import { reachAccounts } from "../schema.js";
-import { channelsFor, type ReachDeps, wakeWatch } from "./index.js";
+import { channelsFor, clientDeps, type ReachDeps, wakeWatch } from "./index.js";
 
 export const READS_KEY = "wren";
 const HOUR = 3_600_000;
@@ -88,187 +95,236 @@ export interface DiscoveryStats {
   people: number;
   scored: number;
   capped: boolean;
+  /** A client's vendor gate said no: why. Its reads end for the pass, as on a cap. */
+  stopped: string | null;
   errors: string[];
 }
 
 const capped = (err: unknown) => err instanceof SiteCallError && err.status === 429;
 
+/** A client's drafts until its own voice is a setting: plain, as the business's own account. */
+export const CLIENT_VOICE =
+  "Plain and helpful, as the business's own account: answer the question first, no pitch, no links unless asked.";
+
 export function makeRedditReads(deps: ReachDeps & { discovery: DiscoveryDeps }) {
-  const { db, discovery: d } = deps;
   return makeLoopObject<DiscoveryStats>("RedditReads", async (ctx) => {
     const now = deps.clock ? deps.clock() : new Date(await ctx.date.now());
-    const r = reader(deps.sitesFor(ctx));
-    const step = <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn);
-    const audience = await step("audience", () => d.audience());
-    const ours = await step("ours", async () =>
-      (
-        await db
-          .select({ handle: reachAccounts.handle })
-          .from(reachAccounts)
-          .where(eq(reachAccounts.platform, "reddit"))
-      ).flatMap((a) => (a.handle ? [a.handle] : [])),
+    const owner = clientOfKey(ctx.key);
+    if (!owner) return readsPass(deps, deps.discovery, ctx, now);
+    const clients = deps.clients;
+    if (!clients) return stoppedPass<DiscoveryStats>(ctx, now, "no client databases here");
+    const plan = await ctx.run("client", () =>
+      clientReach(deps.db, owner.client, ["reddit.discovery"]),
     );
-    const s: DiscoveryStats = {
-      found: 0,
-      judged: 0,
-      kept: 0,
-      ranked: 0,
-      queued: 0,
-      drafted: 0,
-      people: 0,
-      scored: 0,
-      capped: false,
-      errors: [],
-    };
-    /** One unit of reads; a cap stops the rest of the pass, anything else is noted and passed. */
-    const reading = async (what: string, fn: () => Promise<void>) => {
-      if (s.capped) return;
-      try {
-        await fn();
-      } catch (err) {
-        if (capped(err)) s.capped = true;
-        s.errors.push(`${what}: ${errorText(err)}`);
-      }
-    };
-
-    // Places: found once a month, each judged when unread or a month old.
-    const foundAt = (await ctx.get<number>(FOUND_AT)) ?? 0;
-    if (now.getTime() - foundAt >= PLACE_FRESH_MS) {
-      const topics = await step("topics", () => topicsOf(d.llm, audience));
-      const found: { name: string; foundBy: string; subscribers?: number }[] =
-        audience.subreddits.map((n) => ({ name: n, foundBy: "named" }));
-      for (const t of topics)
-        await reading(`search ${t}`, async () => {
-          for (const p of await r.searchPlaces(t))
-            found.push({ name: p.name, foundBy: `topic: ${t}`, subscribers: p.subscribers });
-        });
-      // Exa: a few searches a pass from the shared credit; a miss (spent, capped) ends them.
-      for (const t of topics.slice(0, audience.exaSearches))
-        try {
-          for (const n of await r.exaPlaces(t)) found.push({ name: n, foundBy: `exa: ${t}` });
-        } catch (err) {
-          s.errors.push(`exa ${t}: ${errorText(err)}`);
-          break;
-        }
-      for (const n of await step("people places", () => placesOfPeople(db)))
-        found.push({ name: n, foundBy: "people" });
-      s.found = await step("add places", () => addPlaces(db, found));
-      if (!s.capped) ctx.set(FOUND_AT, now.getTime());
-    }
-    const toRead = await step("places to read", () => placesToRead(db, now, PLACES_PER_PASS));
-    for (const p of toRead)
-      await reading(`r/${p.subreddit}`, async () => {
-        try {
-          const read = await r.place(p.subreddit);
-          await step(`judge r/${p.subreddit}`, async () =>
-            keepPlace(
-              db,
-              p.subreddit,
-              read,
-              d.llm ? await judgePlace(d.llm, p.subreddit, read, audience) : null,
-              now,
-            ),
-          );
-          s.judged++;
-        } catch (err) {
-          if (capped(err)) throw err;
-          await step(`fail r/${p.subreddit}`, () =>
-            failPlace(db, p.subreddit, errorText(err), now),
-          );
-          throw err;
-        }
-      });
-
-    // Threads: each watched place's new posts every 2 hours.
-    const due = await step("places due", () =>
-      placesDue(db, now, THREADS_EVERY_MS, PLACES_PER_PASS),
+    if (plan.kind === "gone") return stoppedPass<DiscoveryStats>(ctx, now, plan.why);
+    if (!plan.logins.some((l) => l.platform === "reddit"))
+      return stoppedPass<DiscoveryStats>(ctx, now, "no Reddit login connected");
+    // Wren's buyers are the default `about`: a client's pass never reads for them.
+    const block = (plan.client.products["reddit.discovery"] ?? {}) as Record<string, unknown>;
+    if (typeof block.about !== "string" || !block.about.trim() || block.about.trim() === WREN_ABOUT)
+      return stoppedPass<DiscoveryStats>(ctx, now, "say who its buyers are: set About");
+    const audience = discoverySettingsSchema.safeParse(block);
+    if (!audience.success)
+      return stoppedPass<DiscoveryStats>(ctx, now, "the Reddit discovery settings do not parse");
+    const model = await ctx.run(
+      "gate models",
+      async () => (await gate(deps.db, owner.client, "models", 1, now)).ok,
     );
-    for (const p of due)
-      await reading(`r/${p.subreddit} new`, async () => {
-        const posts = await r.latest(p.subreddit);
-        const fresh = await step(`keep r/${p.subreddit}`, async () => {
-          const ids = await keepThreads(db, p.subreddit, posts, { now, ours, judged: p.judged });
-          await threadsRead(db, p.subreddit, now);
-          return ids;
-        });
-        s.kept += fresh.length;
-        const llm = d.llm;
-        if (llm)
-          for (let i = 0; i < fresh.length; i += RANK_BATCH) {
-            const batch = fresh.slice(i, i + RANK_BATCH);
-            s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
-              rankThreads(db, llm, batch, audience),
-            );
-          }
-        s.queued += (
-          await step(`queue r/${p.subreddit}`, () => queueThreads(db, p.subreddit, now))
-        ).length;
-      });
-
-    // Drafts, with research: the whole thread, the OP, our facts.
-    const llm = d.llm;
-    if (llm) {
-      const facts = await step("facts", () => d.facts());
-      for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS)))
-        await reading(`draft ${t.id}`, async () => {
-          const read = await r.thread(t.id);
-          const op =
-            t.author === "[deleted]"
-              ? null
-              : await readPerson(r, db, llm, t.author, {
-                  audience: audience.about,
-                  now,
-                  step,
-                }).catch((err) => {
-                  if (capped(err)) throw err;
-                  return null;
-                });
-          const out = await step(`draft ${t.id}`, () =>
-            draftThread(db, llm, t.id, { read, op, facts, voice: d.voice, ours }),
-          );
-          if (out === "drafted") s.drafted++;
-        });
-    }
-
-    // People who talk to us: commenters on our posts, DM contacts.
-    for (const handle of await step("people", () => peopleToRead(db, ours, now, PEOPLE_PER_PASS)))
-      await reading(`u/${handle}`, async () => {
-        await readPerson(r, db, d.llm, handle, { audience: audience.about, now, step });
-        s.people++;
-      });
-
-    // Learn: our comments' scores two days on.
-    const toScore = await step("to score", () => threadsToScore(db, now));
-    if (toScore.length)
-      await reading("scores", async () => {
-        const got = await r.info(toScore.flatMap((t) => (t.ref ? [t.ref] : [])));
-        const scores = got.map((g) => ({ ref: g.name, score: g.score ?? 0 }));
-        await step("keep scores", () => keepScores(db, scores, now));
-        s.scored = scores.length;
-      });
-
-    const more =
-      !s.capped &&
-      (toRead.length === PLACES_PER_PASS ||
-        due.length === PLACES_PER_PASS ||
-        s.queued > 0 ||
-        s.drafted === DRAFTS_PER_PASS ||
-        s.people === PEOPLE_PER_PASS);
-    const previous = await lastPass<PassOutcome<DiscoveryStats>>(ctx);
-    const error =
-      s.errors.length && !s.judged && !s.kept && !s.drafted && !s.people
-        ? (s.errors[0] ?? null)
-        : null;
-    const outcome: PassOutcome<DiscoveryStats> = {
-      stats: s,
-      error,
-      failures: error ? (previous?.failures ?? 0) + 1 : 0,
-      delayMs: s.capped ? 6 * HOUR : more ? BUSY_MS : IDLE_MS,
-      now: now.toISOString(),
-    };
-    await setLastPass(ctx, outcome);
-    return outcome;
+    const d = clientDeps(deps, plan, "reddit.discovery", now, model);
+    await ctx.run("logins", async () => {
+      await syncLogins(d.db, plan.logins, now);
+    });
+    return readsPass(
+      d,
+      {
+        llm: d.drafts?.llm ?? null,
+        voice: CLIENT_VOICE,
+        facts: () => clients.facts?.(d.db) ?? Promise.resolve([]),
+        audience: async () => audience.data,
+      },
+      ctx,
+      now,
+    );
   });
+}
+
+/** One pass of reads: Wren's in main, or a client's in its own database on its own gate. */
+async function readsPass(
+  deps: ReachDeps,
+  d: DiscoveryDeps,
+  ctx: restate.ObjectContext,
+  now: Date,
+): Promise<PassOutcome<DiscoveryStats>> {
+  const db = deps.db;
+  const r = reader(deps.sitesFor(ctx));
+  const step = <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn);
+  const audience = await step("audience", () => d.audience());
+  const ours = await step("ours", async () =>
+    (
+      await db
+        .select({ handle: reachAccounts.handle })
+        .from(reachAccounts)
+        .where(eq(reachAccounts.platform, "reddit"))
+    ).flatMap((a) => (a.handle ? [a.handle] : [])),
+  );
+  const s: DiscoveryStats = {
+    found: 0,
+    judged: 0,
+    kept: 0,
+    ranked: 0,
+    queued: 0,
+    drafted: 0,
+    people: 0,
+    scored: 0,
+    capped: false,
+    stopped: null,
+    errors: [],
+  };
+  /** One unit of reads; a cap stops the rest of the pass, anything else is noted and passed. */
+  const reading = async (what: string, fn: () => Promise<void>) => {
+    if (s.capped) return;
+    try {
+      await fn();
+    } catch (err) {
+      if (capped(err)) s.capped = true;
+      if (isVendorStop(err)) s.stopped ??= err.why;
+      s.errors.push(`${what}: ${errorText(err)}`);
+    }
+  };
+
+  // Places: found once a month, each judged when unread or a month old.
+  const foundAt = (await ctx.get<number>(FOUND_AT)) ?? 0;
+  if (now.getTime() - foundAt >= PLACE_FRESH_MS) {
+    const topics = await step("topics", () => topicsOf(d.llm, audience));
+    const found: { name: string; foundBy: string; subscribers?: number }[] =
+      audience.subreddits.map((n) => ({ name: n, foundBy: "named" }));
+    for (const t of topics)
+      await reading(`search ${t}`, async () => {
+        for (const p of await r.searchPlaces(t))
+          found.push({ name: p.name, foundBy: `topic: ${t}`, subscribers: p.subscribers });
+      });
+    // Exa: a few searches a pass from the shared credit; a miss (spent, capped) ends them.
+    for (const t of topics.slice(0, audience.exaSearches))
+      try {
+        for (const n of await r.exaPlaces(t)) found.push({ name: n, foundBy: `exa: ${t}` });
+      } catch (err) {
+        s.errors.push(`exa ${t}: ${errorText(err)}`);
+        break;
+      }
+    for (const n of await step("people places", () => placesOfPeople(db)))
+      found.push({ name: n, foundBy: "people" });
+    s.found = await step("add places", () => addPlaces(db, found));
+    if (!s.capped) ctx.set(FOUND_AT, now.getTime());
+  }
+  const toRead = await step("places to read", () => placesToRead(db, now, PLACES_PER_PASS));
+  for (const p of toRead)
+    await reading(`r/${p.subreddit}`, async () => {
+      try {
+        const read = await r.place(p.subreddit);
+        await step(`judge r/${p.subreddit}`, async () =>
+          keepPlace(
+            db,
+            p.subreddit,
+            read,
+            d.llm ? await judgePlace(d.llm, p.subreddit, read, audience) : null,
+            now,
+          ),
+        );
+        s.judged++;
+      } catch (err) {
+        if (capped(err)) throw err;
+        await step(`fail r/${p.subreddit}`, () => failPlace(db, p.subreddit, errorText(err), now));
+        throw err;
+      }
+    });
+
+  // Threads: each watched place's new posts every 2 hours.
+  const due = await step("places due", () => placesDue(db, now, THREADS_EVERY_MS, PLACES_PER_PASS));
+  for (const p of due)
+    await reading(`r/${p.subreddit} new`, async () => {
+      const posts = await r.latest(p.subreddit);
+      const fresh = await step(`keep r/${p.subreddit}`, async () => {
+        const ids = await keepThreads(db, p.subreddit, posts, { now, ours, judged: p.judged });
+        await threadsRead(db, p.subreddit, now);
+        return ids;
+      });
+      s.kept += fresh.length;
+      const llm = d.llm;
+      if (llm)
+        for (let i = 0; i < fresh.length; i += RANK_BATCH) {
+          const batch = fresh.slice(i, i + RANK_BATCH);
+          s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
+            rankThreads(db, llm, batch, audience),
+          );
+        }
+      s.queued += (
+        await step(`queue r/${p.subreddit}`, () => queueThreads(db, p.subreddit, now))
+      ).length;
+    });
+
+  // Drafts, with research: the whole thread, the OP, our facts.
+  const llm = d.llm;
+  if (llm) {
+    const facts = await step("facts", () => d.facts());
+    for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS)))
+      await reading(`draft ${t.id}`, async () => {
+        const read = await r.thread(t.id);
+        const op =
+          t.author === "[deleted]"
+            ? null
+            : await readPerson(r, db, llm, t.author, {
+                audience: audience.about,
+                now,
+                step,
+              }).catch((err) => {
+                if (capped(err)) throw err;
+                return null;
+              });
+        const out = await step(`draft ${t.id}`, () =>
+          draftThread(db, llm, t.id, { read, op, facts, voice: d.voice, ours }),
+        );
+        if (out === "drafted") s.drafted++;
+      });
+  }
+
+  // People who talk to us: commenters on our posts, DM contacts.
+  for (const handle of await step("people", () => peopleToRead(db, ours, now, PEOPLE_PER_PASS)))
+    await reading(`u/${handle}`, async () => {
+      await readPerson(r, db, d.llm, handle, { audience: audience.about, now, step });
+      s.people++;
+    });
+
+  // Learn: our comments' scores two days on.
+  const toScore = await step("to score", () => threadsToScore(db, now));
+  if (toScore.length)
+    await reading("scores", async () => {
+      const got = await r.info(toScore.flatMap((t) => (t.ref ? [t.ref] : [])));
+      const scores = got.map((g) => ({ ref: g.name, score: g.score ?? 0 }));
+      await step("keep scores", () => keepScores(db, scores, now));
+      s.scored = scores.length;
+    });
+
+  const more =
+    !s.capped &&
+    (toRead.length === PLACES_PER_PASS ||
+      due.length === PLACES_PER_PASS ||
+      s.queued > 0 ||
+      s.drafted === DRAFTS_PER_PASS ||
+      s.people === PEOPLE_PER_PASS);
+  const previous = await lastPass<PassOutcome<DiscoveryStats>>(ctx);
+  const error =
+    s.errors.length && !s.judged && !s.kept && !s.drafted && !s.people
+      ? (s.errors[0] ?? null)
+      : null;
+  const outcome: PassOutcome<DiscoveryStats> = {
+    stats: s,
+    error,
+    failures: error ? (previous?.failures ?? 0) + 1 : 0,
+    delayMs: s.capped ? 6 * HOUR : more ? BUSY_MS : IDLE_MS,
+    now: now.toISOString(),
+  };
+  await setLastPass(ctx, outcome);
+  return outcome;
 }
 
 export type RedditReadsObject = ReturnType<typeof makeRedditReads>;

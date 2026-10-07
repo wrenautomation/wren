@@ -61,6 +61,11 @@ export const clients = pgTable(
       .$type<Approver>()
       .default("wren")
       .notNull(),
+    /**
+     * Parts whose sends are on for this client (`sendsOn`): posts, comments, DMs, invites. Empty:
+     * every draft waits and nothing leaves. Only an admin sets it (`wren clients set --live`).
+     */
+    sends: text("sends").array().default(sql`'{}'::text[]`).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -344,12 +349,15 @@ export const clientRecords = pgView("client_records", {
   kind: text("kind"),
   products: text("products"),
   members: bigint("members", { mode: "number" }),
+  sends: text("sends"),
   lastSeen: timestamp("last_seen", { withTimezone: true }),
   added: timestamp("added", { withTimezone: true }),
 }).as(sql`
   select c.id::text id, c.name, case when c.demo then 'demo' else 'client' end kind,
     (select string_agg(k, ', ' order by k) from jsonb_object_keys(c.products) k) products,
     (select count(*) from client_members m where m.client_id = c.id) members,
+    case when cardinality(c.sends) = 0 then 'Off. An admin turns them on.'
+      else array_to_string(c.sends, ', ') end sends,
     (select max(m.last_seen_at) from client_members m where m.client_id = c.id) last_seen,
     c.created_at added
   from clients c`);

@@ -21,7 +21,7 @@ import {
 } from "../schema.js";
 import type { PlaceRead, Post } from "./reads.js";
 
-const WREN_ABOUT =
+export const WREN_ABOUT =
   "Medium-sized businesses that charge a lot per client: agencies, consultancies, recruiters, B2B services, clinics and firms like them. Owners and operators who sell, deliver and hire.";
 
 /** Who we talk to: the `reddit.discovery` block, a setting per client. Defaults are Wren's. */

@@ -274,6 +274,11 @@ export interface Component {
     templates: string[];
   };
   effects: Effect[];
+  /**
+   * Its sends for a client (posts, comments, DMs, invites) wait on that client's live flag
+   * (`clients.sends`, `sendsOn`) as well as the global gate. Off by default; an admin turns it on.
+   */
+  liveSwitch: boolean;
   /** What it takes in and hands on; a workflow wires these. */
   in: Port[];
   out: Port[];
@@ -316,6 +321,7 @@ export const defineComponent = (c: Input): Component => ({
   requires: { components: [], accounts: [], anyAccount: [], facts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
+  liveSwitch: c.liveSwitch ?? false,
   in: c.in ?? [],
   out: c.out ?? [],
   inside: c.inside ?? null,

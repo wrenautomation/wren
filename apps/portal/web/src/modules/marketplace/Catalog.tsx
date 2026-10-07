@@ -52,6 +52,8 @@ interface Part {
   needs: { label: string; has: boolean | null }[];
   accounts?: Account[];
   effects: string[];
+  /** The client's live flag for it, read-only; null when it has none. */
+  sends?: string | null;
   installed: boolean;
   in: Port[];
   out: Port[];
@@ -362,6 +364,13 @@ export function catalogExtras(
     (row.ready === "account" || row.ready === "ready") &&
     (d.accounts?.some((a) => a.has === false) ?? false);
   if (accounts && !toConnect) sections.push(["Accounts", accounts]);
+  if (d.sends)
+    sections.push([
+      "Sends",
+      <p key="sends" className={QUIET}>
+        {d.sends}
+      </p>,
+    ]);
 
   const lead = !manages ? (
     d.installed ? (

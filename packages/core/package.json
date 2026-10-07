@@ -52,6 +52,7 @@
     "./setups": "./src/setups.ts",
     "./setup-watch": "./src/setup-watch.ts",
     "./vendors": "./src/vendors.ts",
+    "./metered": "./src/metered.ts",
     "./vendor-schema": "./src/vendor-schema.ts",
     "./records": "./src/records.ts",
     "./records/serve": "./src/records-serve.ts",

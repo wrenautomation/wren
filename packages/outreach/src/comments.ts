@@ -8,6 +8,7 @@
 
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
+import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
@@ -162,12 +163,19 @@ export async function sortComment(
       guide ? guide(c.platform) : "",
       editsFor(db, ["comment"]),
     ]);
+    // A client's model gate saying no leaves it to the words, as with no model.
     const out = await completeAndParse(llm, promptFor(c), ANSWER, {
       maxTokens: 300,
       system: systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n")),
       name: "comments.sort",
+    }).catch((err) => {
+      if (!isVendorStop(err)) throw err;
+      if (!sort) why = `${err.why}, so it waits unsorted.`;
+      return null;
     });
-    if (out.parsed) {
+    if (!out) {
+      // Kept as the words left it.
+    } else if (out.parsed) {
       if (!sort) {
         sort = out.parsed.sort;
         why = line(out.parsed.why);
@@ -184,11 +192,22 @@ export async function sortComment(
 
 /** `comments.sort` on the spine: the comment leaves by its sort's port; unsorted, by `chat`. */
 export const sortStep =
-  (db: Db, llm: LlmClient | null, guide?: CommentGuide): Step =>
-  async (_port, e) => {
+  (
+    db: Db,
+    llm: LlmClient | null,
+    guide?: CommentGuide,
+    /** A client's comment: its own database, model (metered) and guide. None: Wren's only. */
+    forClient?: (
+      client: string,
+    ) => Promise<{ db: Db; llm: LlmClient | null; guide?: CommentGuide }>,
+  ): Step =>
+  async (_port, e, at) => {
     const id = Number(e.data.commentId);
     if (!Number.isInteger(id)) throw new Error(`${e.subject} is no kept comment`);
-    const sort = await sortComment(db, llm, id, guide);
+    if (at.client && !forClient)
+      throw new Error(`comments.sort: no client databases for ${at.client}`);
+    const on = at.client && forClient ? await forClient(at.client) : { db, llm, guide };
+    const sort = await sortComment(on.db, on.llm, id, on.guide);
     return sort === "ours" ? [] : [{ port: sort ?? "chat", event: e }];
   };
 

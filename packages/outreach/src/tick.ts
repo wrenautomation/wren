@@ -53,6 +53,11 @@ export interface TickOptions {
   sequences: ReadonlyMap<string, ReachSequence>;
   sender: string;
   live: boolean;
+  /**
+   * A client's live flags by message kind (`connect` = invites): when given, a row of a kind it
+   * says no to holds as `gated`, a typed one too. Wren's own run has none.
+   */
+  sends?: (kind: ReachMessage["kind"]) => boolean;
   now: Date;
   runId?: string | null;
 }
@@ -200,6 +205,10 @@ export async function planTick(
     return { stats, candidates };
   }
   const due = scanned.filter((r) => {
+    if (o.sends && !o.sends(r.kind)) {
+      hold(stats, "gated");
+      return false;
+    }
     if (r.kind === "manual") return true;
     if (o.live && byAccount.get(r.accountId ?? "")?.state === "active") return true;
     hold(stats, o.live ? "warming" : "gated");

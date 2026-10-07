@@ -1065,6 +1065,13 @@
       "when": 1791353806524,
       "tag": "0151_campaign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1791355959908,
+      "tag": "0152_client_sends",
+      "breakpoints": true
     }
   ]
 }

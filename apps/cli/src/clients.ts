@@ -26,6 +26,7 @@ import {
   updateClient,
 } from "@wren/core/clients";
 import type { Db } from "@wren/db";
+import { COMPONENTS } from "@wren/worker/components";
 import type { Command } from "commander";
 import { changeProducts, parseAssignment, pathOf } from "./products.js";
 
@@ -69,6 +70,7 @@ function show(c: Client): string {
     `accounts: ${accounts}`,
     `products: ${Object.keys(c.products).join(",") || "-"}`,
     `approver: ${c.approver}`,
+    `sends: ${c.sends.join(",") || "off"}`,
     `(${c.name})`,
   ].join("  ");
 }
@@ -127,6 +129,8 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     .option("--account <site=account>", "merged in; site= turns it off", collect)
     .option("--set <product.path=value>", "a product setting (JSON or text), repeatable", collect)
     .option("--unset <product.path>", "back to the default, repeatable", collect)
+    .option("--live <part>", "turn a part's sends on for this client (admin), repeatable", collect)
+    .option("--live-off <part>", "turn a part's sends off for this client, repeatable", collect)
     .action(
       async (
         id: string,
@@ -136,8 +140,14 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
           account?: string[];
           set?: string[];
           unset?: string[];
+          live?: string[];
+          liveOff?: string[];
         },
       ) => {
+        const switches = COMPONENTS.filter((c) => c.liveSwitch).map((c) => c.id);
+        for (const part of [...(opts.live ?? []), ...(opts.liveOff ?? [])])
+          if (!switches.includes(part))
+            throw new Error(`--live takes a part with sends: ${switches.join(", ")}`);
         const approver = opts.approver;
         if (approver !== undefined && !(APPROVERS as readonly string[]).includes(approver))
           throw new Error(`--approver is one of ${APPROVERS.join(", ")}`);
@@ -150,6 +160,14 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
             ...(approver ? { approver: approver as Approver } : {}),
             ...(opts.account ? { accounts: accountPairs(opts.account) } : {}),
             ...(products ? { products } : {}),
+            ...(opts.live || opts.liveOff
+              ? {
+                  // The whole list: what was on, plus --live, minus --live-off. Audited by the row trigger.
+                  sends: [...current.sends, ...(opts.live ?? [])].filter(
+                    (p) => !opts.liveOff?.includes(p),
+                  ),
+                }
+              : {}),
           });
         });
         console.log(show(client));

@@ -55,6 +55,7 @@ import {
   LastAdmin,
   normalEmail,
   removeTeamSeat,
+  sendsWords,
   setTeamSeat,
   settingsFor,
   setWrenSettings,
@@ -1770,6 +1771,8 @@ export const componentRecord = (
           }))
           .concat(factAccounts(c)),
         effects: c.effects,
+        // Read-only: only an admin turns a client's sends on, from the CLI.
+        sends: client && c.liveSwitch ? sendsWords(client, c.id) : null,
         installed,
         in: c.in,
         out: c.out,
@@ -2184,7 +2187,16 @@ export function consoleApi({
     };
     const id = (l: LoopKey) => `${l.service} ${l.key}`;
     const start = loopsOf(block).filter((l) => bound(l.service));
-    const kept = new Set(start.map(id));
+    // A loop two parts share (ReachWatch for comments and invites) stops with the last of them.
+    const others = components
+      .filter((x) => x.id !== c.id && x.id in client.products)
+      .flatMap((x) => {
+        const parsed = x.settings.safeParse(client.products[x.id]);
+        return parsed.success
+          ? x.clientLoops(client.id, parsed.data as Record<string, unknown>)
+          : [];
+      });
+    const kept = new Set([...start, ...others].map(id));
     const stop = loopsOf(client.products[c.id]).filter((l) => bound(l.service) && !kept.has(id(l)));
     return { client: client.id, component: c.id, installed: block !== null, start, stop };
   };

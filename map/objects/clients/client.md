@@ -25,6 +25,7 @@ Fifty clients must not mean fifty code paths. A client is data: its database, it
 - A component's `clientLoops` (`packages/core/src/components.ts:46`) lists the loop keys its block runs; install and configure start them, configure and uninstall stop the dropped ones (`changeLoops`, `packages/core/src/console.ts:952`). Outbound per client: `PoolScheduler/<c>/all` (lead sheet), `ComposeScheduler/<c>/<niche>`, `SendScheduler|InboxScheduler/<c>/<addr>` (email.sequences, `packages/channel-email/src/sequences.ts:119`), `Disposition/<c>/replies` (email.replies), `SmsSender/<c>/fleet`, `SmsWatch/<c>/daily` (sms.texts, `packages/channel-sms/src/clients.ts:40`)
 - `accounts` sites are `ACCOUNT_SITES`; `ACCOUNTS` says how a client connects each and what still waits on Wren (`packages/core/src/components.ts:45`). A part needs each of `requires.accounts` and one of `requires.anyAccount`; `accountsLacking` (`packages/core/src/console.ts:1000`). `ConsolePortal.connect {client, site, account}` (`packages/core/src/console.ts:2279`, team, `manage`, a `runs` row, audited) sets one; empty removes it, refused while an installed part needs it. The Shop shows a ready part a client hasn't connected as "Needs your account", and an Accounts section per part
 - Per client beyond outbound (`designs/2026-10-07-per-client-runs.md`): `research.social` and `research.signals` ride `PoolScheduler/<c>/all` (no loops of their own; metered collectors and LinkedIn off), `research.dossier` is the firm page's Dossier (`EmailConsole.dossier`), `SearchWatch/<c>/daily` (search.watch, needs `search_console`, `packages/channel-search/src/restate/watch.ts:138`)
+- `sends` (migration 0152): the parts whose sends are on for this client; empty = nothing leaves. `wren clients set <id> --live <part>` (an admin's, audited); `sendsOn` (`packages/core/src/clients/index.ts`) ANDed with the global gate by each sender. Read-only on the client record and the part page. Group B reach runs: `ReachWatch/<c>/daily`, `RedditReads/<c>/daily` (`packages/outreach/src/clients.ts`)
 - Suppression stays global: a client's work reads and writes main's list too (`sharedFor`, `packages/channel-email/src/sequences.ts:60`)
 
 Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/index.ts:31`
@@ -50,6 +51,7 @@ Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/
 | `ConsolePortal.setLook` (admin, or the client's owner) | writes `look` |
 | `ConsolePortal.install\|configure\|uninstall` (admin), Marketplace | writes `products` |
 | `ConsolePortal.connect` (admin), the Shop's Accounts section | writes `accounts` |
+| `wren clients set --live` (admin) | writes `sends` |
 | `Reactivation/{client}`, portal | reads |
 
 ## See

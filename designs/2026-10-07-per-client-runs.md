@@ -60,14 +60,14 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 2. B plumbing: account sites and how-to text in core, `ConsolePortal.connect` (team, `manage`), the Shop's Accounts section and its states.
 3. B run: `SearchWatch/<c>/daily`, the one per-client loop that needs nothing new from anyone.
 4. `missing` on every part says the truth; C parts are `for: "wren"`.
+5. Live flag per client: `clients.sends` lists the parts whose sends are on. `wren clients set <id> --live <part>` (`--live-off`), an admin's, audited. ANDed with the global gate. Read-only on the client record and the part page ("Sends off. An admin turns them on.").
+6. Reads on the client's own gate: `meteredSites` and `meteredModel` (`@wren/core/metered`) gate and meter every read (Reddit, Exa, LinkedIn profile reads, models) on the client's vendor modes.
+7. B runs on the client's Reddit logins: `ReachWatch/<c>/daily` (comment reader), comment sort in the client's database, `RedditReads/<c>/daily` (discovery). Data in the client's database.
 
 ## Open (William's call)
 
 - Spend: Meta launches for a client, the X API tier, Exa and model calls a client's runs make.
 - App review: Google OAuth verification (YouTube, Calendar for non-Workspace), LinkedIn Community Management, TikTok audit, Meta app review.
-- Whether a client's runs share Wren's read budgets (YouTube, Google) or get their own caps.
-- Who approves a client's copy candidates and posts: Wren, the client's owner, or either.
-- Whether a client's runs may use metered signal collectors and LinkedIn reads (off for now).
 
 ## Decision log
 
@@ -79,3 +79,9 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 - 2026-10-07: `email.experiments` waits on templates live copy per client. `email.marketing` isn't built for Wren either. Both say "In development" to a client.
 - 2026-10-07: `requires.anyAccount` for parts that run on whichever channel a client brings (posting, outreach). One connected is enough.
 - 2026-10-07: Built: `ConsolePortal.connect` (the team's, `manage`, audited, refused while an installed part needs the account), the Shop's Accounts section with how-to and what waits, the "Needs your account" state, and `SearchWatch/<c>/daily` (Search Console into the client's database, at most 200 page inspections a pass). A client's "Coming" now reads "In development".
+- 2026-10-07 (William): just run it. Wren's team approves copy and posts by default (approver per client). Clients get their own read limits. LinkedIn reads and paid collectors may run for a client through the vendor gate. The texting cutoff is the legal limit.
+- 2026-10-07: One live flag per sending part per client (`clients.sends`), off by default, set only by an admin from the CLI, ANDed with the global env gate. No toggle in the UI.
+- 2026-10-07: A client's login is never one of Wren's: Wren's reach rows name them, and a client pass skips those. Logins sync into the client's own `reach_accounts`, starting `warming`.
+- 2026-10-07: A client's reads go one at a time through `meteredSites`: gate, call, meter, each journaled. A gate saying no ends the pass's reads (`stopped`); the next pass asks again. The model is gated once a pass: a call costs no units, so only a mode or a cap changes the answer.
+- 2026-10-07: `comments.read` no longer needs `reach.outreach`: reading comments sends nothing. A loop two parts share (`ReachWatch`) stops with the last of them.
+- 2026-10-07: Discovery for a client needs its own About. Wren's default never reads for a client. Drafts use a plain voice until a client's voice is a setting.
