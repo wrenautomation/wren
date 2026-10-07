@@ -11,6 +11,7 @@ import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
 import { refText, waitingAsks } from "@wren/core/templates";
 import { approvalId, templateAt } from "@wren/core/templates/console";
+import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
@@ -377,6 +378,7 @@ export const approvalRecord = defineRecord({
     const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
     const is = await acceptedRows(db);
     const asks = await waitingAsks(db);
+    const ws = await waitingInstalls(db);
     return [
       ...ps.map((p) => ({
         id: `draft:${p.id}`,
@@ -453,6 +455,22 @@ export const approvalRecord = defineRecord({
         due: a.at,
         url: null,
       })),
+      // A client's workflow from a template: a yes opens its door and starts its parts.
+      ...ws.map((w) => ({
+        id: installApprovalId(w.id),
+        type: "workflow",
+        who: `${w.applied.name ?? w.template} for ${w.clientName}`,
+        platform: null,
+        kind: "workflow",
+        state: "waiting",
+        body: `${w.askedBy ?? "Someone"} asked to make it live. A yes opens its door and starts its parts.`,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: w.askedAt,
+        due: w.askedAt,
+        url: `/marketplace/catalog/${encodeURIComponent(w.template)}?client=${encodeURIComponent(w.client)}`,
+      })),
     ];
   },
   key: "id",
@@ -467,6 +485,7 @@ export const approvalRecord = defineRecord({
         thread: neutral("Thread"),
         invite: neutral("Invite"),
         template: neutral("Template"),
+        workflow: neutral("Workflow"),
       },
       "Type",
     ),
@@ -481,6 +500,7 @@ export const approvalRecord = defineRecord({
         thread: neutral("Thread to answer"),
         invite: neutral("Accepted your invite"),
         template: neutral("Copy to make live"),
+        workflow: neutral("Workflow to make live"),
       },
       "Kind",
     ),
@@ -500,6 +520,7 @@ export const approvalRecord = defineRecord({
     { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
     { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
     { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
+    { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: [
@@ -516,13 +537,15 @@ export const approvalRecord = defineRecord({
     "marketing.draftUndo",
     "templates.approve",
     "templates.decline",
+    "workflows.approve",
+    "workflows.decline",
   ],
   // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
   calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
   /** An accepted invite's messages; a draft's Ask Claude thread. */
   load: async (db, id) => {
     const [type, rest] = typed(id);
-    if (type === "video" || type === "template") return null;
+    if (type === "video" || type === "template" || type === "workflow") return null;
     const ask = { ask: await draftTurns(db, type, rest) };
     return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },

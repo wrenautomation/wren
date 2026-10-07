@@ -48,6 +48,19 @@ export interface Wire {
   wait?: string;
 }
 
+/**
+ * A workflow sold as one install (designs/2026-10-07-template-install.md): the parts it puts on a
+ * client, each with its settings, the copy beyond what those parts read, and its door.
+ */
+export interface TemplateSpec {
+  /** Part id to its settings block, requirements first. Every part a listed one requires is listed. */
+  parts: Record<string, Record<string, unknown>>;
+  /** Copy refs or prefixes (`sms:texts/speed-to-lead#1`) beyond the parts' own `provides.templates`. */
+  copy?: string[];
+  /** Where leads come in from outside: a hook on this input, keyed by `subject` in the payload. */
+  door?: { input: string; subject: string };
+}
+
 export interface Workflow {
   id: string;
   /**
@@ -64,6 +77,8 @@ export interface Workflow {
   out: Port[];
   nodes: WorkflowNode[];
   wires: Wire[];
+  /** Set: the Shop sells it as a template a client installs in one go. */
+  template?: TemplateSpec;
 }
 
 type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">>;
@@ -219,7 +234,15 @@ export function checkWorkflows(
     for (const p of w.in) if (!used.has(`in.${p.id}`)) out.push(`${w.id}: in.${p.id} goes nowhere`);
     for (const p of w.out)
       if (!used.has(`out.${p.id}`)) out.push(`${w.id}: out.${p.id} gets nothing`);
+    if (w.template) out.push(...templateProblems(w, w.template, components));
   }
+
+  for (const c of components)
+    if (
+      c.comesWith &&
+      !workflows.some((w) => w.template && templateIdOf(w, components) === c.comesWith)
+    )
+      out.push(`${c.id}: comes with ${c.comesWith}, which is no template`);
 
   // A workflow may not hold itself, through a node or a part's inside.
   const holds = (id: string): string[] => {
@@ -324,6 +347,38 @@ export function flowsWith(
     else flows[i] = next;
   }
   return { flows, broken };
+}
+
+/** A template's Shop id: the part whose inside it is, else the workflow's own. */
+export const templateIdOf = (w: Pick<Workflow, "id">, components: readonly Component[]): string =>
+  components.find((c) => c.inside === w.id)?.id ?? w.id;
+
+/** What's wrong with a workflow's template: parts, their order and settings, its door. */
+function templateProblems(w: Workflow, t: TemplateSpec, components: readonly Component[]) {
+  const out: string[] = [];
+  const id = templateIdOf(w, components);
+  if (w.for !== "client") out.push(`${w.id}: a template is for clients`);
+  const listed = Object.keys(t.parts);
+  for (const [i, pid] of listed.entries()) {
+    const c = components.find((x) => x.id === pid);
+    if (!c) {
+      out.push(`${w.id}: template part ${pid} isn't one`);
+      continue;
+    }
+    if (c.for !== "client") out.push(`${w.id}: template part ${pid} runs Wren's own business`);
+    if (!c.settings.safeParse(t.parts[pid]).success)
+      out.push(`${w.id}: template settings for ${pid} don't parse`);
+    for (const r of c.requires.components)
+      if (!listed.slice(0, i).includes(r)) out.push(`${w.id}: ${pid} needs ${r} listed before it`);
+    if (c.comesWith && c.comesWith !== id)
+      out.push(`${w.id}: ${pid} comes with ${c.comesWith}, not this template`);
+  }
+  for (const c of components)
+    if (c.comesWith === id && !listed.includes(c.id))
+      out.push(`${w.id}: ${c.id} comes with it but isn't listed`);
+  if (t.door && !w.in.some((p) => p.id === t.door?.input))
+    out.push(`${w.id}: the door's input ${t.door.input} isn't one`);
+  return out;
 }
 
 /**

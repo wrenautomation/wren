@@ -27,6 +27,7 @@ import {
   loopRecord,
 } from "@wren/core/console";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
 import { deliveryRecords } from "@wren/delivery/records";
@@ -227,6 +228,23 @@ describe("workflows and hypotheses", () => {
         expect(found, `${c.id}: ${g.built}`).toBe(true);
       }
     }
+  });
+
+  it("speed to lead and win back install as templates", () => {
+    const sold = templatesOf(WORKFLOWS, COMPONENTS);
+    expect(sold.map((t) => t.id)).toEqual(expect.arrayContaining(["speed_to_lead", "win_back"]));
+    const speed = sold.find((t) => t.id === "speed_to_lead");
+    // Its four parts run per client now; each installs only with it.
+    for (const id of ["speed_to_lead", "sms.forms", "sms.follow_up", "voice.call_now"]) {
+      const c = COMPONENTS.find((x) => x.id === id);
+      expect(c?.ready, id).toBe(true);
+      expect(c?.comesWith, id).toBe("speed_to_lead");
+      expect(
+        speed?.parts.some((p) => p.part.id === id),
+        id,
+      ).toBe(true);
+    }
+    expect(speed?.spec.door).toEqual({ input: "forms", subject: "phone" });
   });
 
   it("a part in development is never ready and runs nothing yet", () => {

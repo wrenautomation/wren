@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     "./components": "./src/components.ts",
-    "./services": "./src/services.ts"
+    "./setups": "./src/setups.ts",
+    "./services": "./src/services.ts",
+    "./workflows": "./src/workflows.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -285,6 +285,11 @@ export interface Component {
    * configure start them; configure and uninstall stop the ones no longer listed.
    */
   clientLoops: (client: string, settings: Record<string, unknown>) => LoopKey[];
+  /**
+   * The template that installs it, or null: a part that only runs as a template's step
+   * installs with that template, never on its own (designs/2026-10-07-template-install.md).
+   */
+  comesWith: string | null;
 }
 
 type Input = Pick<
@@ -315,4 +320,5 @@ export const defineComponent = (c: Input): Component => ({
   out: c.out ?? [],
   inside: c.inside ?? null,
   clientLoops: c.clientLoops ?? (() => []),
+  comesWith: c.comesWith ?? null,
 });

@@ -10,6 +10,8 @@ export const TOUCH = "sms.touch";
 export const SPEED = "speed-to-lead";
 /** The text follow-up as a part: speed to lead's cadence, reusable by any template. */
 export const FOLLOW_UP = "sms.follow_up";
+/** The template that installs speed to lead's parts: the part whose inside it is. */
+export const SPEED_TEMPLATE = "speed_to_lead";
 
 export const SMS_COMPONENTS = [
   defineComponent({
@@ -98,11 +100,11 @@ export const SMS_COMPONENTS = [
     blurb: "Texts a new lead from the door within a minute, if they agreed to texts.",
     icon: "flag",
     for: "client",
-    // Its step runs inside speed to lead; an install only stores a block, so not on its own yet.
-    ready: false,
-    planned: true,
-    missing: ["Install doesn't set it up yet"],
+    // Its step runs per client inside speed to lead, which installs it.
+    ready: true,
+    comesWith: SPEED_TEMPLATE,
     requires: { components: [TEXTS] },
+    provides: { templates: [`sms:texts/${SPEED}#1`] },
     effects: ["sends"],
     in: [{ id: "forms", label: "forms", kind: "form" }],
     out: [
@@ -131,18 +133,16 @@ export const SMS_COMPONENTS = [
     },
   }),
   defineComponent({
-    id: "speed_to_lead",
+    id: SPEED_TEMPLATE,
     stage: "follow",
     channels: ["text", "voice"],
     name: "Speed to lead",
     blurb: "Texts a new lead within a minute, calls them, and follows up until they book.",
     icon: "clock",
     for: "client",
-    // Its steps run, but an install only stores a block: no door hook, nothing starts. Until
-    // template install, the team adds the hook (`wren hooks add`) and the Shop says so.
-    ready: false,
-    planned: true,
-    missing: ["Install doesn't add the door's hook yet"],
+    // Installed as a template (designs/2026-10-07-template-install.md): parts, door and draft.
+    ready: true,
+    comesWith: SPEED_TEMPLATE,
     inside: "speed_to_lead.steps",
     requires: { components: [TEXTS] },
     effects: ["sends", "spends"],
@@ -180,12 +180,12 @@ export const SMS_COMPONENTS = [
     blurb: "Texts a lead on day 1, 3 and 7 after the first, until they answer, book or say stop.",
     icon: "cycle",
     for: "client",
-    // Its step runs inside speed to lead; an install only stores a block, so not on its own yet.
-    ready: false,
-    planned: true,
-    missing: ["Install doesn't set it up yet"],
+    // Its steps run per client inside speed to lead, which installs it.
+    ready: true,
+    comesWith: SPEED_TEMPLATE,
     inside: cadenceId(SPEED),
     requires: { components: [TEXTS] },
+    provides: { templates: [2, 3, 4].map((n) => `sms:texts/${SPEED}#${n}`) },
     effects: ["sends"],
     in: [{ id: "leads", label: "leads", kind: "lead" }],
     out: [

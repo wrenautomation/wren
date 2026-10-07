@@ -345,6 +345,8 @@ export const hooks = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     lastAt: timestamp("last_at", { withTimezone: true }),
     calls: integer("calls").default(0).notNull(),
+    /** False: a post is refused (409) and counted. A template's door stays shut until approved. */
+    open: boolean("open").default(true).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_hooks" }),
@@ -388,6 +390,70 @@ export const workflowSaves = pgTable(
     }).onDelete("cascade"),
   ],
 );
+
+export const INSTALL_STATES = ["draft", "waiting", "live", "off"] as const;
+/** draft: installed, nothing runs. waiting: in To approve. live: approved. off: uninstalled. */
+export type InstallState = (typeof INSTALL_STATES)[number];
+
+/** What a template install wrote, so an update knows the template's from the client's. */
+export interface InstallApplied {
+  /** Parts this install added; the ones the client had already are never touched. */
+  added: string[];
+  /** Each part's block as the install last wrote it; kept after uninstall. */
+  blocks: Record<string, Record<string, unknown>>;
+  /** The copy refs it put in the client's database. */
+  copy: string[];
+  /** The template's name when installed: To approve says it without the code's list. */
+  name?: string;
+  /** Each part's block as it was when uninstall took it off: a reinstall puts it back. */
+  kept?: Record<string, Record<string, unknown>>;
+}
+
+/**
+ * A template on a client (designs/2026-10-07-template-install.md): one row per client and
+ * template, kept after uninstall. Main only.
+ */
+export const workflowInstalls = pgTable(
+  "workflow_installs",
+  {
+    id: serial("id").notNull(),
+    client: varchar("client", { length: 40 }).notNull(),
+    /** The Shop's id for it: the part it is the inside of, else the workflow's. */
+    template: varchar("template", { length: 64 }).notNull(),
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    /** The template's hash when last applied: a newer one is an update to read first. */
+    version: varchar("version", { length: 16 }).notNull(),
+    state: varchar("state", { length: 16, enum: INSTALL_STATES }).default("draft").notNull(),
+    applied: jsonb("applied").$type<InstallApplied>().notNull(),
+    /** Its door, when it has one. */
+    hook: uuid("hook"),
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    askedBy: text("asked_by"),
+    askedAt: timestamp("asked_at", { withTimezone: true }),
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    removedBy: text("removed_by"),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_workflow_installs" }),
+    unique("uq_workflow_installs_client_template").on(t.client, t.template),
+    index("ix_workflow_installs_hook").on(t.hook),
+    oneOf("ck_workflow_installs_state", t.state, INSTALL_STATES),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_workflow_installs_client_clients",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.hook],
+      foreignColumns: [hooks.id],
+      name: "fk_workflow_installs_hook_hooks",
+    }).onDelete("set null"),
+  ],
+);
+export type WorkflowInstall = typeof workflowInstalls.$inferSelect;
 
 /** Who made a change: a person, or Claude's patch a person accepted. */
 export const CHANGE_VIAS = ["person", "claude"] as const;

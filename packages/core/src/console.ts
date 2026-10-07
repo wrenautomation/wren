@@ -96,6 +96,7 @@ import {
 import { addFlag, type EdgePush, type FlagInput, flagRecord, removeFlags } from "./flag-store.js";
 import { roleFits, spendGrant } from "./grants.js";
 import { inHouseOfPart } from "./in-house.js";
+import { accountsLacking, blockOf, has, installCheck, lacking } from "./installs.js";
 import {
   addSnippet,
   removeSnippet,
@@ -153,7 +154,14 @@ import {
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
-import { runs, type SentEvent, workflowSaves } from "./schema.js";
+import {
+  runs,
+  type SentEvent,
+  type WorkflowInstall,
+  workflowInstalls,
+  workflowSaves,
+} from "./schema.js";
+import { factsHeld, type Setup, setupOf } from "./setup.js";
 import {
   editsOf,
   type SavedWorkflow,
@@ -174,6 +182,25 @@ import {
   surveysDue,
 } from "./survey-store.js";
 import { installDefaults } from "./template-defaults.js";
+import {
+  approveInstall,
+  askTemplate,
+  copyLabel,
+  copyRefs,
+  declineInstall,
+  defaultsOnce,
+  INSTALL_STATE_LABELS,
+  installsOf,
+  installTemplate,
+  type Plan,
+  parseInstallApprovalId,
+  readPlan,
+  type Template,
+  installOf as templateInstallOf,
+  templateNamed,
+  templatesOf,
+  uninstallTemplate,
+} from "./template-install.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import {
   flowsWith,
@@ -264,6 +291,19 @@ export interface InstallRequest extends ComponentRequest {
   /** The component's id, typed in when it has effects. */
   confirm?: string;
 }
+/** A template on a client (designs/2026-10-07-template-install.md). */
+export interface TemplateRequest extends PortalRequest {
+  template?: unknown;
+  /** The template's id, typed, when it has effects. */
+  confirm?: unknown;
+  /** True once the plan of an update was read. */
+  update?: unknown;
+}
+/** To approve items (`workflow:<id>`) a person approves or declines. */
+export interface IdsRequest extends PortalRequest {
+  ids?: unknown;
+}
+
 /** One of a client's accounts (`ACCOUNTS`), set by Wren's team; an empty `account` removes it. */
 export interface ConnectRequest extends PortalRequest {
   site: string;
@@ -994,24 +1034,7 @@ export const handlerRecord = (get: RestateAdminGet): RecordType =>
     },
   });
 
-const has = (client: Pick<Client, "products">, id: string) => Object.hasOwn(client.products, id);
-
-/** The accounts `client` hasn't connected for `c`: each one it needs, then one of its any. */
-export const accountsLacking = (c: Component, client: Pick<Client, "accounts">): string[] => {
-  const any = c.requires.anyAccount;
-  return [
-    ...c.requires.accounts.filter((site) => !client.accounts[site]),
-    ...(any.length && !any.some((site) => client.accounts[site])
-      ? [`one of ${any.join(", ")}`]
-      : []),
-  ];
-};
-
-/** What `client` still lacks for `c`: components not installed, then accounts not set. */
-export const lacking = (c: Component, client: Pick<Client, "products" | "accounts">): string[] => [
-  ...c.requires.components.filter((id) => !has(client, id)),
-  ...accountsLacking(c, client),
-];
+export { accountsLacking, lacking };
 
 /** A settings block as a page may show it: defaults filled, prices left out; null if it won't parse. */
 export function shownSettings(c: Component, block: unknown): Record<string, unknown> | null {
@@ -1277,8 +1300,25 @@ export const componentRecord = (
    * loop stopped reads "Off" to the team. Null or a failed read: no one is marked off.
    */
   running?: () => Promise<ReadonlySet<string>>,
+  /**
+   * The templates (`templatesOf` over the code's workflows), the client's installs of them, and
+   * the plan of one for the team, read on the load's own connection.
+   */
+  sold: {
+    list: readonly Template[];
+    installs: readonly WorkflowInstall[];
+    plan?: ((db: Queryable, t: Template) => Promise<Plan>) | undefined;
+    /** The facts the client's accounts hold: null with no client. */
+    facts?: ReadonlySet<string> | null;
+    setups?: readonly Setup[];
+  } = { list: [], installs: [] },
 ): RecordType => {
   const flows = workflows.filter((w) => team || w.for === "client");
+  /** A template stands in for the part or workflow it is: one card, never two. */
+  const soldAs = new Set(sold.list.flatMap((t) => [t.id, t.workflow.id]));
+  const installOf = (t: Template) => sold.installs.find((r) => r.template === t.id) ?? null;
+  // A client sees one "In development" for both: built only for Wren, or not built at all.
+  const shown = <R extends string>(r: R) => (!team && r === "coming" ? "planned" : r);
   /** A workflow that is a part's inside shows as that part, never twice. */
   const shownAs = (w: Workflow) => all.find((c) => c.inside === w.id) ?? w;
   const named = (id: string) =>
@@ -1439,8 +1479,6 @@ export const componentRecord = (
         readyOf(c) === "coming" &&
         c.provides.loops.length > 0 &&
         !c.provides.loops.some((l) => on.has(l));
-      // A client sees one "In development" for both: built only for Wren, or not built at all.
-      const shown = <R extends string>(r: R) => (!team && r === "coming" ? "planned" : r);
       // Built for clients, but this client hasn't connected an account it needs.
       const unconnected = (c: Component) =>
         !!client &&
@@ -1449,37 +1487,70 @@ export const componentRecord = (
         !has(client, c.id) &&
         accountsLacking(c, client).length > 0;
       return [
-        ...all.map((c) => ({
-          id: c.id,
-          type: "part",
-          name: c.name,
-          blurb: c.blurb,
-          icon: c.icon,
-          stage: c.stage,
-          channels: c.channels.join(",") || null,
-          for: c.for,
-          ready: off(c) ? "off" : unconnected(c) ? "account" : shown(readyOf(c)),
-          // Wren's own parts are never on a client: no "not installed" for them.
-          installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
-          effects: c.effects.join(",") || null,
-          // The SaaS it stands in for, quietly: its closest vendor's name only.
-          instead: inHouseOfPart(c.id)?.instead[0]?.vendor ?? null,
-          needs:
-            [...c.requires.components, ...c.requires.accounts, ...c.requires.anyAccount].join(
-              ", ",
-            ) || null,
-          missing:
-            [
-              ...(off(c)
-                ? [
-                    `Off: ${c.provides.loops.join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start it in Loops`,
-                  ]
-                : []),
-              ...c.missing,
-            ].join("; ") || null,
-        })),
+        ...sold.list.map((t) => {
+          const parts = t.parts.map((p) => p.part);
+          const row = installOf(t);
+          const on = !!row && row.state !== "off";
+          const behind = parts.filter((c) => !c.ready);
+          // Built, but this client hasn't connected an account a part needs: it installs and waits.
+          const waits =
+            !!client &&
+            flowReady(parts) === "ready" &&
+            parts.some((c) => accountsLacking(c, client).length > 0);
+          return {
+            id: t.id,
+            type: "template",
+            name: t.name,
+            blurb: t.blurb,
+            icon: t.icon,
+            stage: t.workflow.stage,
+            channels: union(parts.map((c) => c.channels)).join(",") || null,
+            for: "client",
+            ready: waits ? "account" : shown(flowReady(parts)),
+            installed: client ? (on ? "yes" : "no") : null,
+            state: client ? (row?.state ?? null) : null,
+            effects: t.effects.join(",") || null,
+            instead: null,
+            needs: null,
+            missing: behind.length
+              ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
+              : null,
+          };
+        }),
+        ...all
+          .filter((c) => !soldAs.has(c.id))
+          .map((c) => ({
+            id: c.id,
+            type: "part",
+            name: c.name,
+            blurb: c.blurb,
+            icon: c.icon,
+            stage: c.stage,
+            channels: c.channels.join(",") || null,
+            for: c.for,
+            ready: off(c) ? "off" : unconnected(c) ? "account" : shown(readyOf(c)),
+            // Wren's own parts are never on a client: no "not installed" for them.
+            installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
+            state: null,
+            effects: c.effects.join(",") || null,
+            // The SaaS it stands in for, quietly: its closest vendor's name only.
+            instead: inHouseOfPart(c.id)?.instead[0]?.vendor ?? null,
+            needs:
+              [...c.requires.components, ...c.requires.accounts, ...c.requires.anyAccount].join(
+                ", ",
+              ) || null,
+            missing:
+              [
+                ...(off(c)
+                  ? [
+                      `Off: ${c.provides.loops.join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start it in Loops`,
+                    ]
+                  : []),
+                ...c.missing,
+              ].join("; ") || null,
+          })),
         ...flows
-          .filter((w) => shownAs(w) === w)
+          .filter((w) => shownAs(w) === w && !soldAs.has(w.id))
           .map((w) => {
             const parts = partsIn(w.id, flows, all);
             const behind = parts.filter((c) => !c.ready);
@@ -1494,6 +1565,7 @@ export const componentRecord = (
               for: w.for,
               ready: shown(flowReady(parts)),
               installed: null,
+              state: null,
               effects: union(parts.map((c) => c.effects)).join(",") || null,
               instead: null,
               needs: null,
@@ -1511,7 +1583,7 @@ export const componentRecord = (
       name: text("Name"),
       blurb: text("What it does"),
       instead: text("In place of"),
-      type: status(neutral({ part: "Part", workflow: "Workflow" }), "Type"),
+      type: status(neutral({ template: "Template", part: "Part", workflow: "Workflow" }), "Type"),
       stage: status(neutral(STAGES), "Stage"),
       channels: tags(neutral(CHANNELS), "Channels"),
       ready: status(
@@ -1536,6 +1608,8 @@ export const componentRecord = (
         },
         "Installed",
       ),
+      // A template on this client: installed as a draft, asked, live, or taken off.
+      state: status(INSTALL_STATE_LABELS, "Template"),
       effects: tags(
         neutral({ sends: "Sends messages", spends: "Spends money", posts: "Posts publicly" }),
         "Effects",
@@ -1553,6 +1627,72 @@ export const componentRecord = (
         : []),
     ],
     load: async (db, id) => {
+      const t = sold.list.find((x) => x.id === id);
+      if (t) {
+        const row = installOf(t);
+        const w = flows.find((x) => x.id === t.workflow.id) ?? t.workflow;
+        return {
+          template: {
+            id: t.id,
+            effects: t.effects,
+            door: t.spec.door ?? null,
+            parts: t.parts.map(({ part: c, settings }) => ({
+              id: c.id,
+              name: c.name,
+              blurb: c.blurb,
+              effects: c.effects,
+              ready: shown(readyOf(c)),
+              settings: shownSettings(c, settings),
+              labels: Object.fromEntries((settingsForm(c) ?? []).map((f) => [f.field, f.label])),
+              accounts: [
+                ...c.requires.accounts.map((site) => ({ site, any: false })),
+                ...c.requires.anyAccount.map((site) => ({ site, any: true })),
+              ]
+                .map(({ site, any }) => ({
+                  site: site as string,
+                  ...ACCOUNTS[site],
+                  any,
+                  has: client ? !!client.accounts[site] : null,
+                }))
+                // Facts a setup leaves on an account, read as accounts: "Needs your account".
+                .concat(
+                  c.requires.facts.map((fact) => {
+                    const at = setupOf(fact, sold.setups ?? []);
+                    return {
+                      site: fact,
+                      label: at?.step.label ?? fact,
+                      holds: fact,
+                      how: at ? `${at.setup.name}: ${at.step.how}` : "Wren's team sets it up.",
+                      waits: at && at.step.who !== "client" ? at.step.forYou : null,
+                      any: false,
+                      has: sold.facts ? sold.facts.has(fact) : null,
+                    };
+                  }),
+                ),
+            })),
+            copy: copyRefs(t.copy, defaultsOnce()).map(({ ref, file }) => ({
+              ref,
+              label: copyLabel(ref),
+              file,
+            })),
+          },
+          workflow: drawn(w),
+          usedIn: usedIn(t.id),
+          install: row
+            ? {
+                id: row.id,
+                state: row.state,
+                current: row.version === t.version,
+                by: row.by,
+                at: row.at.toISOString(),
+                askedBy: row.askedBy,
+                approvedBy: row.approvedBy,
+                approvedAt: row.approvedAt?.toISOString() ?? null,
+              }
+            : null,
+          plan: team && client && sold.plan ? await sold.plan(db, t) : null,
+        };
+      }
       const w = flows.find((x) => x.id === id);
       if (w)
         return {
@@ -1637,6 +1777,7 @@ export function consoleApi({
   asked,
   bound = () => true,
   edge,
+  setups = [],
 }: {
   main: Db;
   /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
@@ -1660,9 +1801,26 @@ export function consoleApi({
   bound?: ((service: string) => boolean) | undefined;
   /** Sends the lander its flags on every change; absent, site flags wait for the next pass. */
   edge?: EdgePush | undefined;
+  /** Account setups (`SETUPS` in the worker): a template's plan says how to make a missing fact. */
+  setups?: readonly Setup[];
 }) {
   const allowed = new Set([...views, ...moneyViews]);
   const money = new Set(moneyViews);
+  /** The workflows sold as templates, from the code's wiring. */
+  const sold = templatesOf(workflows, components);
+  /** The client's own database for one call, or null when this worker can't reach it. */
+  const onClientDb = async <T>(
+    client: Pick<Client, "id" | "database">,
+    fn: (db: Queryable | null) => Promise<T>,
+  ): Promise<T> => {
+    if (!mainUrl) return fn(null);
+    const handle = createDb(clientUrl(mainUrl, client), { max: 1, app: "wren-console" });
+    try {
+      return await fn(handle.db);
+    } finally {
+      await handle.close();
+    }
+  };
   const types = [
     ...records,
     ...(admin ? [loopRecord(admin)] : []),
@@ -1796,6 +1954,17 @@ export function consoleApi({
           code: workflows,
         },
         internal && admin ? runningLoops(admin) : undefined,
+        {
+          list: sold,
+          installs: client ? await installsOf(main, client.id) : [],
+          plan:
+            internal && client
+              ? (db, t) =>
+                  onClientDb(client, (cdb) => readPlan(db, cdb, t, client.id, undefined, setups))
+              : undefined,
+          facts: client ? await factsHeld(main, client.id) : null,
+          setups,
+        },
       ),
     ];
   };
@@ -1921,19 +2090,6 @@ export function consoleApi({
     const c = components.find((x) => x.id === req.component);
     if (!c) throw new PortalRefusal("no such component", 404);
     return c;
-  };
-  /** A block that parses as `c`'s settings, or a 400 that says where it doesn't. */
-  const blockOf = (c: Component, block: unknown): Record<string, unknown> => {
-    if (block === undefined) return {};
-    if (!block || typeof block !== "object" || Array.isArray(block))
-      throw new PortalRefusal("settings are an object", 400);
-    const out = c.settings.safeParse(block);
-    if (!out.success)
-      throw new PortalRefusal(
-        `settings: ${out.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`,
-        400,
-      );
-    return block as Record<string, unknown>;
   };
   /**
    * One change to a client's components, by an operator, checked first and then a runs row:
@@ -2298,17 +2454,9 @@ export function consoleApi({
      * parse, and its id typed in when it has effects. The block is stored as given.
      */
     install: (req: InstallRequest) =>
-      change(req, "install", (c, client) => {
-        if (c.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
-        if (!c.ready)
-          throw new PortalRefusal(`not ready for a client: ${c.missing.join("; ")}`, 409);
-        if (has(client, c.id)) throw new PortalRefusal("already installed: configure it", 409);
-        const lacks = lacking(c, client);
-        if (lacks.length) throw new PortalRefusal(`needs first: ${lacks.join(", ")}`, 409);
-        if (c.effects.length && req.confirm !== c.id)
-          throw new PortalRefusal(`it ${c.effects.join(" and ")}: type ${c.id} to confirm`, 400);
-        return blockOf(c, req.settings);
-      }),
+      change(req, "install", (c, client) =>
+        installCheck(c, client, { settings: req.settings, confirm: req.confirm }),
+      ),
     /** New settings over the old: a field left out keeps its value (a price is never sent). */
     configure: (req: InstallRequest) =>
       // Wren's own run has no client: its block is `wren_settings`.
@@ -2332,6 +2480,122 @@ export function consoleApi({
           );
         return null;
       }),
+    /** What installing a template on the client would do, read before anything is written. */
+    async templatePlan(req: TemplateRequest): Promise<Plan> {
+      team(req);
+      const t = templateNamed(sold, req.template);
+      const client = await pickClient(main, req);
+      return onClientDb(client, (db) => readPlan(main, db, t, client.id, undefined, setups));
+    },
+    /**
+     * A template onto a client in one go: parts, copy, the draft and its shut door. Installing
+     * again changes nothing; after the template moved, `update` applies the plan's changes.
+     * Starts nothing: loops start once a person approves it.
+     */
+    async templateInstall(req: TemplateRequest) {
+      team(req);
+      const t = templateNamed(sold, req.template);
+      const client = await pickClient(main, req);
+      const by = (req.viewer as SignedViewer).email;
+      const run = await openRun(main, {
+        command: `console template ${t.id}`.slice(0, 64),
+        argv: { by, client: client.id, update: req.update === true },
+      });
+      try {
+        const out = await onClientDb(client, (db) =>
+          installTemplate(main, db, t, {
+            client: client.id,
+            by,
+            confirm: req.confirm,
+            update: req.update === true,
+            setups,
+          }),
+        );
+        await finishRun(main, run.id, { ok: true });
+        return out;
+      } catch (err) {
+        await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+        throw err;
+      }
+    },
+    /** Publish: the client's workflow goes to To approve; a person's yes makes it live. */
+    async templatePublish(req: TemplateRequest) {
+      team(req);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const t = templateNamed(sold, req.template);
+      const client = await pickClient(main, req);
+      return askTemplate(main, t, { client: client.id, by: (req.viewer as SignedViewer).email });
+    },
+    /** Off the client: its loops stop, the door shuts; data, copy and saves stay. */
+    async templateUninstall(req: TemplateRequest) {
+      team(req);
+      const t = templateNamed(sold, req.template);
+      const client = await pickClient(main, req);
+      const out = await uninstallTemplate(
+        main,
+        t,
+        { client: client.id, by: (req.viewer as SignedViewer).email },
+        { workflows, components },
+      );
+      return { ...out, start: [], stop: out.stop.filter((l) => bound(l.service)) };
+    },
+    /**
+     * A person's yes on To approve (`workflow:<id>`): the draft goes live, the door opens, the
+     * parts' loops start. Sending needs `effect`, spending `money`, at Wren.
+     */
+    async templateApprove(req: IdsRequest) {
+      team(req);
+      if (isDemo(req.viewer)) throw new PortalRefusal("only a person approves", 403);
+      const by = (req.viewer as SignedViewer).email;
+      const ids = Array.isArray(req.ids) ? req.ids : [];
+      if (!ids.length || ids.some((x) => parseInstallApprovalId(x) === null))
+        throw new PortalRefusal("nothing picked", 404);
+      const done: string[] = [];
+      const start: LoopKey[] = [];
+      for (const id of ids) {
+        const [row] = await main
+          .select()
+          .from(workflowInstalls)
+          .where(eq(workflowInstalls.id, parseInstallApprovalId(id) as number));
+        if (!row) throw new PortalRefusal("no such item", 404);
+        const t = templateNamed(sold, row.template);
+        if (t.effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+          throw new PortalRefusal("it sends: only an admin can make it live", 403);
+        if (t.effects.includes("spends") && !teamCan(req, "money", WREN))
+          throw new PortalRefusal("it spends: only an admin can make it live", 403);
+        const out = await approveInstall(main, id, { by, workflows, components });
+        done.push(out.id);
+        start.push(...out.start.filter((l) => bound(l.service)));
+      }
+      return { done, start, stop: [] as LoopKey[] };
+    },
+    /** A person's no: back to a draft, nothing ran. */
+    async templateDecline(req: IdsRequest) {
+      team(req);
+      if (isDemo(req.viewer)) throw new PortalRefusal("only a person declines", 403);
+      const ids = Array.isArray(req.ids) ? req.ids : [];
+      if (!ids.length) throw new PortalRefusal("nothing picked", 404);
+      const done: string[] = [];
+      for (const id of ids)
+        done.push((await declineInstall(main, id, (req.viewer as SignedViewer).email)).id);
+      return { done };
+    },
+    /** A client's templates and where each stands: the client's page reads it. */
+    async templateInstalls(req: PortalRequest) {
+      const client = await pickClient(main, req);
+      return (await installsOf(main, client.id)).map((r) => {
+        const t = sold.find((x) => x.id === r.template);
+        return {
+          template: r.template,
+          name: t?.name ?? r.template,
+          state: r.state,
+          current: t ? r.version === t.version : false,
+          parts: r.applied.added.length,
+          at: r.at.toISOString(),
+          by: r.by,
+        };
+      });
+    },
     /**
      * One account onto a client, from the Shop: the team's, with `manage` there, audited and a runs
      * row. Empty takes it off, refused while an installed part needs it. Nothing signs in.
@@ -2408,8 +2672,15 @@ export function consoleApi({
      * sends needs `effect`, one that spends `money`, and either needs its id typed back. Subjects
      * already in it keep the wiring they entered on.
      */
-    async workflowPublish(req: WorkflowSaveRequest): Promise<{ id: number }> {
+    async workflowPublish(req: WorkflowSaveRequest): Promise<{ id: number; asked?: string }> {
       const { w, client, by } = await workflowFor(req);
+      // A client's template: publishing asks in To approve; a person's yes makes it live.
+      const t = client ? sold.find((x) => x.workflow.id === w.id) : undefined;
+      const row = t && client ? await templateInstallOf(main, client, t.id) : null;
+      if (t && client && row && row.state !== "off") {
+        const asked = await askTemplate(main, t, { client, by });
+        return { id: 0, asked: asked.id };
+      }
       const { draft } = await workflowHistory(main, client, w.id);
       if (!draft) throw new PortalRefusal("there's no draft to publish", 409);
       const next = flowsWith(workflows, draft.edits ? { [w.id]: draft.edits } : {}, components);
@@ -2844,6 +3115,21 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       uninstall: (ctx: restate.Context, req: ComponentRequest) =>
         changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
+      templatePlan: (_: restate.Context, req: TemplateRequest) =>
+        answer(() => api.templatePlan(req)),
+      // Journaled once: a retry reads the same answer, and the door's token is never made twice.
+      templateInstall: (ctx: restate.Context, req: TemplateRequest) =>
+        answer(() => ctx.run("install template", () => answer(() => api.templateInstall(req)))),
+      templatePublish: (ctx: restate.Context, req: TemplateRequest) =>
+        answer(() => ctx.run("ask approval", () => answer(() => api.templatePublish(req)))),
+      templateUninstall: (ctx: restate.Context, req: TemplateRequest) =>
+        changeLoops(ctx, "uninstall template", () => api.templateUninstall(req)),
+      templateApprove: (ctx: restate.Context, req: IdsRequest) =>
+        changeLoops(ctx, "approve template", () => api.templateApprove(req)),
+      templateDecline: (ctx: restate.Context, req: IdsRequest) =>
+        answer(() => ctx.run("decline template", () => answer(() => api.templateDecline(req)))),
+      templateInstalls: (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.templateInstalls(req)),
       connect: (ctx: restate.Context, req: ConnectRequest) =>
         answer(() => ctx.run("connect", () => answer(() => api.connect(req)))),
       workflowSave: (ctx: restate.Context, req: WorkflowSaveRequest) =>

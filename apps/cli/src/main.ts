@@ -50,6 +50,7 @@ import { registerStudy } from "./study.js";
 import { registerTemplates } from "./templates.js";
 import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
+import { registerWorkflows } from "./workflows.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
@@ -107,6 +108,7 @@ const CLIENT_SCOPED = new Set([
   "sms",
   "hooks",
   "templates",
+  "workflows",
 ]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
 const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms", "templates sync"]);
@@ -232,6 +234,7 @@ registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerHooks(program, withMainDb);
+registerWorkflows(program, withMainDb, withClientDb, settings);
 registerEnrich(program, withMainDb, settings, rootDir);
 registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);

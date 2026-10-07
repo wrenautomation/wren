@@ -1255,6 +1255,7 @@ export async function buildServices(
     makeConsolePortal({
       main: db,
       mainUrl: databaseUrl,
+      setups: SETUPS,
       edge,
       views: EMAIL_CONSOLE_VIEWS,
       moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],

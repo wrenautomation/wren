@@ -28,8 +28,8 @@ GHL's snapshot, in our model. Builds on `2026-10-05-workflows.md` (Templates),
 | `Workflow.template`: `parts` (id to settings), `copy` (extra refs), `door` (input, subject) | `core/src/workflows.ts` |
 | Plan, install, publish, approve, decline, uninstall | `core/src/template-install.ts` |
 | The install check, shared by a lone part and a template | `core/src/installs.ts` (moved out of `console.ts`) |
-| `workflow_installs`: client, template, version, state, what it applied, the door, who and when | main, migration 0145 |
-| `hooks.open`: a closed door answers 409 and counts the call | main, migration 0145 |
+| `workflow_installs`: client, template, version, state, what it applied, the door, who and when | main, migration 0149 |
+| `hooks.open`: a closed door answers 409 and counts the call | main, migration 0149 |
 | `Component.comesWith`: a part only a template installs | `core/src/components.ts` |
 
 States: `draft` (installed, not live), `waiting` (asked), `live`, `off` (uninstalled).
@@ -77,3 +77,10 @@ template.
 - 2026-10-07: the four speed-to-lead parts run per client through the spine (the door's client,
   `textsOf(client)`, `SmsSender/<c>/fleet`, the client's Speed to lead page). They become ready and
   `comesWith: speed_to_lead`: their own Install points at the template. The dialer stays planned.
+- 2026-10-07: a fact a part needs (`requires.facts`, from account setups) and the client lacks
+  reads as "Needs your account" in the plan, with its setup step. Like an account, it never
+  blocks the install.
+- 2026-10-07: a live template's new draft asks again in To approve; the live wiring runs until
+  the yes, and a no keeps it live.
+- 2026-10-07: the Shop groups by type, Templates first. A part's header facts measure tags by
+  their labels, and tags wrap there instead of cutting off.

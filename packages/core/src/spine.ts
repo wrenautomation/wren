@@ -434,24 +434,36 @@ export function pgSpineStore(db: Db): SpineStore {
 
 const hashOf = (token: string) => createHash("sha256").update(token).digest("hex");
 
-/** A new hook; its token is returned once and kept only as a hash. */
-export async function addHook(
-  main: Db,
-  h: {
-    name: string;
-    client: string | null;
-    workflow: string;
-    input: string;
-    subject: string;
-    fields?: FieldMap;
-  },
-): Promise<string> {
+export interface HookAsk {
+  name: string;
+  client: string | null;
+  workflow: string;
+  input: string;
+  subject: string;
+  fields?: FieldMap;
+  /** False: made shut, as a template's door until its workflow is approved. */
+  open?: boolean;
+}
+
+/** A new hook, its id and its token: the token is returned once and kept only as a hash. */
+export async function makeHook(db: Queryable, h: HookAsk): Promise<{ id: string; token: string }> {
   const token = randomBytes(32).toString("base64url");
-  await main.insert(hooks).values({ ...h, tokenHash: hashOf(token) });
-  return token;
+  const [row] = await db
+    .insert(hooks)
+    .values({ ...h, tokenHash: hashOf(token) })
+    .returning({ id: hooks.id });
+  if (!row) throw new Error("the hook wasn't made");
+  return { id: row.id, token };
+}
+
+/** A new hook; its token is returned once and kept only as a hash. */
+export async function addHook(main: Db, h: HookAsk): Promise<string> {
+  return (await makeHook(main, h)).token;
 }
 
 const PAYLOAD_MAX = 64_000;
+/** What a post to a shut door hears. */
+export const SHUT = "this door opens once its workflow is approved";
 
 /**
  * A hook's payload as the event it enters with, and where it leaves from: the workflow's input
@@ -694,10 +706,13 @@ export function makeSpine(d: SpineDeps) {
               input: hooks.input,
               subject: hooks.subject,
               fields: hooks.fields,
+              open: hooks.open,
             });
           return row ?? null;
         });
         if (!h) return { status: 404, error: "no such hook" };
+        // A template's door before its workflow is approved: counted, nothing enters.
+        if (!h.open) return { status: 409, error: SHUT };
         const got = hookEvent(h, await flowsFor(ctx, h.client), req.payload);
         if ("error" in got) return got;
         // The lead's facts by this hook's field map, for every lead step after (./door.ts).

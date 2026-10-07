@@ -17,10 +17,11 @@ export const VOICE_COMPONENTS = [
     blurb: 'Puts "Call now" in front of the client\'s rep, or dials once voice is set up.',
     icon: "phone",
     for: "client",
-    // Its step runs inside speed to lead; an install only stores a block, so not on its own yet.
-    ready: false,
-    planned: true,
-    missing: ["Install doesn't set it up yet"],
+    // Its step runs per client inside speed to lead, which installs it: "Call now" for the rep.
+    // The dialer is the voice agent's, still in development.
+    ready: true,
+    comesWith: "speed_to_lead",
+    requires: { components: ["sms.texts"] },
     effects: ["sends"],
     in: [{ id: "leads", label: "leads to call", kind: "lead" }],
     out: [{ id: "booked", label: "booked already", kind: "call" }],

@@ -108,6 +108,19 @@ const FUNNELS = [
       { from: "text.texted", to: "follow.leads", via: "events" },
       { from: "call.booked", to: "out.booked", via: "events" },
     ],
+    // Every part with no settings of its own: the client's sender, campaign and booking link
+    // are theirs to set. Its texts have no default words: William writes them.
+    template: {
+      parts: {
+        "sms.texts": {},
+        "sms.touch": {},
+        "sms.forms": {},
+        "voice.call_now": {},
+        "sms.follow_up": {},
+        speed_to_lead: {},
+      },
+      door: { input: "forms", subject: "phone" },
+    },
   }),
   defineWorkflow({
     id: "outbound",
@@ -181,6 +194,8 @@ const FUNNELS = [
       { from: "reactivation.booked", to: "close.calls", via: "events" },
       { from: "close.won", to: "out.won", via: "events" },
     ],
+    // Reactivation alone: `{}` keeps it off and send off. The booked-call block is not in it.
+    template: { parts: { reactivation: {} } },
   }),
 ];
 
