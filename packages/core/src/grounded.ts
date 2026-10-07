@@ -6,6 +6,7 @@
  * dropped. Every hit is a `runs` row (`guard`), so what it caught can be read back.
  */
 import type { Queryable } from "@wren/db";
+import { FACTS_DROP } from "./facts-list.js";
 import { finishRun, openRun } from "./runs.js";
 
 export interface Grounding {
@@ -220,7 +221,7 @@ export async function guardDraft<T>(
 
 /** One sentence for a dropped draft's reason. */
 export const droppedWhy = (g: Pick<Guarded<unknown>, "still" | "flags">) =>
-  `made things up: ${(g.still.length ? g.still : g.flags)
+  `${FACTS_DROP}${(g.still.length ? g.still : g.flags)
     .map((f) => (f.kind === "claim" ? `"${f.text.slice(0, 80)}"` : f.text))
     .join("; ")}`.slice(0, 300);
 

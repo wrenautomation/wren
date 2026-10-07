@@ -11,6 +11,7 @@ import { inHouseOfPart } from "@wren/core/in-house";
 import {
   Alert,
   Button,
+  ButtonLink,
   Facts,
   FlowMap,
   type FormField,
@@ -66,6 +67,8 @@ interface Part {
   values?: Record<string, unknown> | null;
   /** Its settings are Wren's own run's: a save goes to Wren, not this client. */
   wrenSettings?: boolean;
+  /** Its own editor ("/marketing/facts"), where its settings save with their History. */
+  editor?: string | null;
 }
 
 type Detail = TemplateDetail | Part | { workflow: Drawn; usedIn: Used };
@@ -388,7 +391,17 @@ export function catalogExtras(
     ) : null
   ) : team ? (
     !installable ? (
-      d.wrenSettings && d.form?.length ? (
+      d.wrenSettings && d.editor ? (
+        // A part with its own editor saves there, with its own History and Undo.
+        <div className="grid gap-3">
+          <p className={QUIET}>Wren's own run uses these. They have their own page.</p>
+          <div>
+            <ButtonLink href={d.editor} size="sm" tone="quiet" arrow>
+              Edit them
+            </ButtonLink>
+          </div>
+        </div>
+      ) : d.wrenSettings && d.form?.length ? (
         // Wren's own run reads these from `wren_settings`: no client is sent, so it saves there.
         // Wren's own settings edit one at a time on Loops > Settings, with History and Undo.
         <div className="grid gap-2">

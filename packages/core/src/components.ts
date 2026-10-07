@@ -255,6 +255,11 @@ export interface Component {
    * Always true for a part for Wren; a client part sets it while it runs only for Wren.
    */
   wrenSettings: boolean;
+  /**
+   * Its own editor in the portal ("/marketing/facts"), or null: the Shop links there, and Loops →
+   * Settings leaves it out, so its changes keep one history.
+   */
+  editor: string | null;
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
   /** Top-level settings only Wren's own block reads: never on a client's form. */
@@ -330,6 +335,7 @@ export const defineComponent = (c: Input): Component => ({
   settings: c.settings ?? NONE,
   // A part for Wren has no client to save to, whatever a spread copied.
   wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
+  editor: c.editor ?? null,
   priced: c.priced ?? [],
   wrenOnly: c.wrenOnly ?? [],
   clientOnly: c.clientOnly ?? [],

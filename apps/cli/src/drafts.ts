@@ -16,10 +16,11 @@ import {
   writeDraft,
 } from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
-import { setWrenSettings } from "@wren/core/clients";
 import { REJECT_LABELS } from "@wren/core/draft-record";
-import { DEFAULT_FACTS, FACTS_COMPONENT, factsSettingsSchema, wrenFacts } from "@wren/core/facts";
-import { atomic, type Db, setAuditActor } from "@wren/db";
+import { editRecord } from "@wren/core/edits";
+import { DEFAULT_FACTS, FACTS_ID, factsRecord, wrenFacts } from "@wren/core/facts";
+import { factsOf, factsText } from "@wren/core/facts-list";
+import { type Db, serializable, setAuditActor } from "@wren/db";
 import { commentExamples, EXAMPLES_MAX } from "@wren/outreach";
 import type { Command } from "commander";
 import { readText } from "./content.js";
@@ -136,17 +137,20 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
   const facts = drafts
     .command("facts")
     .description(
-      "What is true about you: drafts may claim only these (Shop → Facts for drafts). Public repo: no amounts, no client names",
+      "What is true about you: drafts may claim only these (Marketing → Facts). Public repo: no amounts, no client names",
     );
+  // Through the edits path, as the portal saves: checked, and a History line with Undo there.
   const save = (next: string[]) =>
-    withDb(async (db) => {
-      const block = factsSettingsSchema.parse({ facts: next });
-      await atomic(db, async (tx) => {
+    withDb((db) =>
+      serializable(db, async (tx) => {
         await setAuditActor(tx, "cli");
-        await setWrenSettings(tx, FACTS_COMPONENT, block, "cli");
-      });
-      return block.facts;
-    });
+        const out = await editRecord(tx, factsRecord, FACTS_ID, {
+          patch: { facts: factsText(next) },
+          by: "cli",
+        });
+        return factsOf(String(out.values.facts ?? ""));
+      }),
+    );
   const print = (list: readonly string[]) =>
     list.forEach((f, i) => {
       console.log(`${i + 1}\t${f}`);

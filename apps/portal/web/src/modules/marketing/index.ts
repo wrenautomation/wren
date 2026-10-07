@@ -12,6 +12,7 @@ import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
+import { FactsPage, factsDropped } from "./facts.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
@@ -843,6 +844,8 @@ export const marketing: Module = {
       record: "marketing.topic",
       empty: "Email topics people can sign up for show here.",
     },
+    // What every draft may claim; the guard's drop reason on a draft links here.
+    { id: "facts", label: "Facts", group: "Content", Page: FactsPage },
     {
       id: "people",
       label: "People",
@@ -939,7 +942,7 @@ export const marketing: Module = {
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
-      extras: withDraft(THREAD_DRAFT),
+      extras: withDraft(THREAD_DRAFT, factsDropped("dropped", "Dropped because")),
     },
     {
       id: "places",

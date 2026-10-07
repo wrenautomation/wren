@@ -21,6 +21,13 @@ import {
   undoChange,
   versionOf,
 } from "../../src/edits.js";
+import {
+  DEFAULT_FACTS,
+  FACTS_COMPONENTS,
+  FACTS_ID,
+  factsRecord,
+  wrenFacts,
+} from "../../src/facts.js";
 import { PortalRefusal } from "../../src/portal.js";
 import { defineRecord, number, prose, text, withEdits } from "../../src/records.js";
 import { serveRecords } from "../../src/records-serve.js";
@@ -230,5 +237,51 @@ describe("edits", () => {
     const [last] = await historyOf(pg.db, t, "books:perDay");
     await undoChange(pg.db, t, "books:perDay", last?.id as number, by);
     expect((await settingsFor(pg.db, null)).books).toEqual({ perDay: 7, price: 2 });
+  });
+
+  it("the facts list saves as one record: checked, with who, and Undo", async () => {
+    // Its part has its own editor, so Settings leaves it out: one history, not two.
+    expect(settingRecord(FACTS_COMPONENTS).id).toBe("console.setting");
+    const rows = await serveRecords([settingRecord(FACTS_COMPONENTS)], pg.db).list({
+      record: "console.setting",
+      view: "all",
+    });
+    expect(rows.rows).toEqual([]);
+    const first = await editState(pg.db, factsRecord, FACTS_ID);
+    expect(first?.values).toEqual({ facts: DEFAULT_FACTS.join("\n") });
+    const mine = ["I build automations for small firms.", "Our code is public."];
+    const out = await editRecord(pg.db, factsRecord, FACTS_ID, {
+      patch: { facts: ` ${mine[0]}\n\n${mine[1]} ` },
+      expect: first?.version ?? null,
+      by,
+    });
+    expect(await wrenFacts(pg.db)).toEqual(mine);
+    const [row] = await pg.db.select().from(wrenSettings);
+    expect(row?.updatedBy).toBe(by);
+    // The version it opened is gone: a second editor's save is refused, not written over.
+    await refused(
+      editRecord(pg.db, factsRecord, FACTS_ID, {
+        patch: { facts: "Something else." },
+        expect: first?.version ?? null,
+        by,
+      }),
+      409,
+    );
+    await refused(
+      editRecord(pg.db, factsRecord, FACTS_ID, { patch: { facts: "x".repeat(301) }, by }),
+      400,
+    );
+    await refused(
+      editRecord(pg.db, factsRecord, FACTS_ID, { patch: { facts: "Same.\nsame." }, by }),
+      400,
+    );
+    const [last] = await historyOf(pg.db, factsRecord, FACTS_ID);
+    expect(last?.id).toBe(out.change);
+    expect(last?.by).toBe(by);
+    await undoChange(pg.db, factsRecord, FACTS_ID, last?.id as number, by);
+    expect(await wrenFacts(pg.db)).toEqual([...DEFAULT_FACTS]);
+    // Empty is allowed: drafts then claim nothing first-person.
+    await editRecord(pg.db, factsRecord, FACTS_ID, { patch: { facts: "" }, by });
+    expect(await wrenFacts(pg.db)).toEqual([]);
   });
 });

@@ -17,6 +17,7 @@
     "./door": "./src/door.ts",
     "./draft-record": "./src/draft-record.ts",
     "./facts": "./src/facts.ts",
+    "./facts-list": "./src/facts-list.ts",
     "./grounded": "./src/grounded.ts",
     "./train": "./src/train.ts",
     "./reject-reasons": "./src/reject-reasons.ts",

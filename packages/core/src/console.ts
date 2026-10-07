@@ -1269,13 +1269,14 @@ const settingValue = (f: HandlerField, typed: string): unknown => {
 };
 
 /**
- * Wren's own settings, one row per setting of each part that runs for Wren (`wren_settings`):
- * edited in place with History, Undo and Ask Claude (`./edits.ts`). Saving one keeps the rest of
- * its block, prices included, and needs `manage`, as the Shop's Save does.
+ * Wren's own settings, one row per setting of each part that runs for Wren (`wren_settings`), save
+ * a part with its own editor (`Component.editor`): edited in place with History, Undo and Ask
+ * Claude (`./edits.ts`). Saving one keeps the rest of its block, prices included, and needs
+ * `manage`, as the Shop's Save does.
  */
 export function settingRecord(all: readonly Component[]): RecordType {
   const settings = all
-    .filter((c) => c.wrenSettings)
+    .filter((c) => c.wrenSettings && !c.editor)
     .flatMap((c) => (settingsForm(c) ?? []).map((f) => ({ c, f, id: `${c.id}:${f.field}` })));
   const one = (id: string) => settings.find((s) => s.id === id);
   const blockFor = async (db: Queryable, c: Component) => {
@@ -1934,6 +1935,7 @@ export const componentRecord = (
           ? {
               // Saving goes to Wren's block (`configure` with no client): the part isn't the client's.
               wrenSettings: c.wrenSettings && !installed,
+              editor: c.editor,
               form: settingsForm(c, !!client && (installed || !c.wrenSettings)),
               // The block a save writes: the client's when installed, else Wren's (`wren_settings`).
               values: shownSettings(

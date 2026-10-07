@@ -24,7 +24,7 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 - Training record: kind `linkedin_comment`, items `lipost:<id>` (`PREFIX_KIND`, `packages/core/src/draft-record.ts`)
 - Console: `marketing.approval` items `lipost:<id>` "Comment to post" (`liPostRows`, `packages/content/src/social/records.ts:179`; tab Comments), draft box "Your comment, posted under their post", actions `marketing.lipostComment`, `marketing.lipostSkip`; Ask Claude kind `lipost` (`packages/content/src/draft-ask.ts:254`)
 - CLI `wren reach posts status|set [--min-fit n] [--audience …] [--about …] [--new-topics n]|run|list|comment <id>|skip <ids...> [--by --reason --note]|redraft <ids...>`; `status` shows each search word's yield; `run` and `redraft` send the call and poll its output (`apps/cli/src/poll.ts`), so no HTTP wait times out
-- Facts: `wren drafts facts [add|remove|reset]`, component `drafts.facts` in `wren_settings` (`packages/core/src/facts.ts`); the guard is `packages/core/src/grounded.ts`
+- Facts: Marketing → Facts (`/marketing/facts`, `apps/portal/web/src/modules/marketing/facts.tsx`) or `wren drafts facts [add|remove|reset]`, both saving record `marketing.facts` through the edits path (check, version, `changes` row with who, Undo) into component `drafts.facts` in `wren_settings` (`packages/core/src/facts.ts`; caps, default, checks and change counts in `facts-list.ts`). Loops → Settings leaves it out (`editor`), the Shop links there. The guard is `packages/core/src/grounded.ts`; its drop reason (`FACTS_DROP`) and a "Wrong facts" reject link to the page
 
 ## Connected to
 

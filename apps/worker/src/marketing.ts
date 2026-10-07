@@ -8,6 +8,7 @@ import {
 } from "@wren/channel-search/records";
 import { textContactRecord } from "@wren/channel-sms/records";
 import { contentRecords, socialRecords, type VideoSigner } from "@wren/content/records";
+import { factsRecord } from "@wren/core/facts";
 import {
   commentRecord,
   dmRecord,
@@ -30,6 +31,8 @@ export const marketingNumbers = (signer?: VideoSigner) => [
   inviteRecord,
   personRecord,
   ...socialRecords(signer),
+  // The facts every draft may claim, edited on Marketing → Facts.
+  factsRecord,
 ];
 export const MARKETING_NUMBERS = marketingNumbers();
 

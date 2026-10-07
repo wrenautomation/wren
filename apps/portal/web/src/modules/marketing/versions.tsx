@@ -8,6 +8,7 @@ import { REJECT_LABELS, type RejectReason } from "@wren/core/reject-reasons";
 import { Diff, exact } from "@wren/ui";
 import { useState } from "react";
 import { QUIET } from "../work/bits.js";
+import { FactsLink } from "./facts.js";
 
 const when = (at: string) => exact(new Date(at));
 
@@ -71,6 +72,12 @@ export function DraftVersions({ record }: { record: DraftRecordView }) {
         {record.decisions.map((d) => (
           <li key={`${d.event}-${d.at}`} className={QUIET}>
             {decisionLine(d)} · {when(d.at)}
+            {d.reason === "facts" ? (
+              <>
+                {" · "}
+                <FactsLink />
+              </>
+            ) : null}
           </li>
         ))}
       </ol>
