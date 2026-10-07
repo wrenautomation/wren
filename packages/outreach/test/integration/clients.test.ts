@@ -18,7 +18,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addAccount } from "../../src/accounts.js";
+import { addAccount, listAccounts } from "../../src/accounts.js";
 import { clientReach, clientSends, loginsOf } from "../../src/clients.js";
 import { sortStep } from "../../src/comments.js";
 import { touchStep } from "../../src/follow.js";
@@ -26,6 +26,7 @@ import { DEFAULT_POLICY } from "../../src/policy.js";
 import type { DiscoveryStats } from "../../src/restate/discovery.js";
 import { makeRedditReads } from "../../src/restate/discovery.js";
 import {
+  makeReachDesk,
   makeReachSender,
   makeReachWatch,
   type ReachDeps,
@@ -56,29 +57,31 @@ const sites: SiteClient = {
     calls.push({ site, path, account });
     const label = account?.split("@")[1] ?? "public";
     const out: unknown =
-      path === "/api/v1/me"
-        ? { name: `${label}_bot`, total_karma: 12, created_utc: NOW_S - 90 * 86_400 }
-        : path === "/message/inbox"
-          ? {
-              data: {
-                children: [
-                  {
-                    data: {
-                      name: `t1_${label}c1`,
-                      author: `${label}_reader`,
-                      body: "Interested, DM me the price",
-                      was_comment: true,
-                      context: `/r/smallbiz/comments/${label}p1/x/${label}c1/?context=3`,
-                      subreddit: "smallbiz",
-                      created_utc: NOW_S - 600,
+      path === "/connections"
+        ? { connections: [] }
+        : path === "/api/v1/me"
+          ? { name: `${label}_bot`, total_karma: 12, created_utc: NOW_S - 90 * 86_400 }
+          : path === "/message/inbox"
+            ? {
+                data: {
+                  children: [
+                    {
+                      data: {
+                        name: `t1_${label}c1`,
+                        author: `${label}_reader`,
+                        body: "Interested, DM me the price",
+                        was_comment: true,
+                        context: `/r/smallbiz/comments/${label}p1/x/${label}c1/?context=3`,
+                        subreddit: "smallbiz",
+                        created_utc: NOW_S - 600,
+                      },
                     },
-                  },
-                ],
-              },
-            }
-          : path.endsWith("/about")
-            ? { data: { display_name: "dentistry", subscribers: 5000, subreddit_type: "public" } }
-            : { data: { children: [] } };
+                  ],
+                },
+              }
+            : path.endsWith("/about")
+              ? { data: { display_name: "dentistry", subscribers: 5000, subreddit_type: "public" } }
+              : { data: { children: [] } };
     return out as T;
   },
   via: async () => "api",
@@ -118,6 +121,12 @@ beforeAll(async () => {
   });
   await addClient(pg.db, pg.url, { id: "mu", name: "Mu", products: { "comments.read": {} } });
   await addClient(pg.db, pg.url, {
+    id: "omicron",
+    name: "Omicron",
+    accounts: { linkedin: "linkedin@omicron" },
+    products: { "reach.outreach": {}, "linkedin.invites": { perDay: 5 } },
+  });
+  await addClient(pg.db, pg.url, {
     id: "nu",
     name: "Nu",
     accounts: { reddit: "reddit@wren" },
@@ -152,6 +161,7 @@ beforeAll(async () => {
     services: [
       spine.service,
       makeReachWatch(deps),
+      makeReachDesk(deps),
       // Live globally: only the client's own flag holds its DMs.
       makeReachSender({ ...deps, live: true, clock: () => new Date(NOW_S * 1000) }),
       makeRedditReads({
@@ -375,6 +385,38 @@ describe("the DM sender per client", () => {
     expect(out.stats).toMatchObject({ sent: 0, held: { gated: 1 } });
     expect(calls.filter((x) => x.path.includes("compose"))).toEqual([]);
     expect((await kappa.select().from(reachMessages)).map((m) => m.state)).toEqual(["queued"]);
+  });
+});
+
+describe("LinkedIn invites per client", () => {
+  const desk = () =>
+    ingress().serviceClient<ReturnType<typeof makeReachDesk>>({ name: "ReachDesk" });
+
+  it("stay off until an admin arms them and activates its login; then sweep its own login", async () => {
+    calls.length = 0;
+    const off = await watch("omicron/daily");
+    expect(off.stopped).toBeUndefined();
+    expect(off.stats?.invites).toBeNull();
+    expect(calls.filter((c) => c.path === "/connections")).toEqual([]);
+
+    // Armed, but its login still warming: nothing.
+    await updateClient(pg.db, "omicron", { sends: ["linkedin.invites"] });
+    expect((await watch("omicron/daily")).stats?.invites).toBeNull();
+
+    // An admin activates its login, in its own database.
+    const [row] = await desk().accounts({ client: "omicron" });
+    expect(row).toMatchObject({ account: "linkedin@omicron", state: "warming" });
+    await desk().setAccountState({ id: row?.id ?? "", state: "active", client: "omicron" });
+    expect(await listAccounts(pg.db)).toEqual([
+      expect.objectContaining({ account: "reddit@wren" }),
+    ]);
+    calls.length = 0;
+    const on = await watch("omicron/daily");
+    expect(on.stats?.invites).toMatchObject({ account: "linkedin@omicron" });
+    expect(calls.filter((c) => c.path === "/connections")).toEqual([
+      { site: "linkedin", path: "/connections", account: "linkedin@omicron" },
+    ]);
+    await updateClient(pg.db, "omicron", { sends: [] });
   });
 });
 

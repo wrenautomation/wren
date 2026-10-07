@@ -69,8 +69,14 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   acc
     .command("list", { isDefault: true })
     .description("Each account, its state, warmup stage and today's caps")
-    .action(async () => {
+    .option("--client <id>", "a client's own logins (rows in its database)")
+    .action(async (o: { client?: string }) => {
       const now = new Date();
+      if (o.client) {
+        for (const v of await desk().accounts({ client: o.client }))
+          console.log(`${v.id}\t${v.platform}\t${v.account}\t${v.state}\t${v.standing.stage}`);
+        return;
+      }
       const rows = await withDb((db) => listAccounts(db));
       if (rows.length === 0)
         console.log(
@@ -89,19 +95,34 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .action(async (platform: string, account: string) =>
       json(await desk().addAccount({ platform, account })),
     );
+  const forClient = "a client's login (an admin's: its sends still wait on `clients set --live`)";
   acc
     .command("activate <id>")
     .description("Let it reach out (its caps still follow the warmup ladder or ramp)")
-    .action(async (id: string) => json(await desk().setAccountState({ id, state: "active" })));
+    .option("--client <id>", forClient)
+    .action(async (id: string, o: { client?: string }) =>
+      json(await desk().setAccountState({ id, state: "active", client: o.client ?? null })),
+    );
   acc
     .command("pause <id>")
     .option("--reason <text>", "why", "paused by hand")
-    .action(async (id: string, o: { reason: string }) =>
-      json(await desk().setAccountState({ id, state: "paused", reason: o.reason })),
+    .option("--client <id>", forClient)
+    .action(async (id: string, o: { reason: string; client?: string }) =>
+      json(
+        await desk().setAccountState({
+          id,
+          state: "paused",
+          reason: o.reason,
+          client: o.client ?? null,
+        }),
+      ),
     );
   acc
     .command("retire <id>")
-    .action(async (id: string) => json(await desk().setAccountState({ id, state: "retired" })));
+    .option("--client <id>", forClient)
+    .action(async (id: string, o: { client?: string }) =>
+      json(await desk().setAccountState({ id, state: "retired", client: o.client ?? null })),
+    );
   acc
     .command("health <id>")
     .description("Read the account's standing on the platform now (age, karma, suspended)")

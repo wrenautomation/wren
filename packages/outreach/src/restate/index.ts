@@ -479,7 +479,7 @@ export function makeReachWatch(deps: ReachDeps) {
         const got = invitesSettingsSchema.safeParse(plan.client.products["linkedin.invites"] ?? {});
         if (!got.success) return null;
         const login = plan.logins.find((l) => l.platform === "linkedin")?.account ?? null;
-        return { ...got.data, account: got.data.account ?? login };
+        return { ...got.data, account: got.data.account || (login ?? "") };
       },
       drafts: has("reach.outreach"),
     });
@@ -646,10 +646,12 @@ const ADD_ACCOUNT = z.looseObject({
   platform: PLATFORM,
   account: z.string().describe("The autobrowse credential, e.g. reddit@alt"),
 });
+const CLIENT = z.string().nullish().describe("A client's id: its own logins; none: Wren's");
 const ACCOUNT_STATE = z.looseObject({
   id: z.string(),
   state: z.enum(ACCOUNT_STATES),
   reason: z.string().nullish(),
+  client: CLIENT,
 });
 const FIND = z.looseObject({
   accountId: z.string(),
@@ -723,6 +725,12 @@ export function makeReachDesk(deps: ReachDeps) {
     }
   };
   const nowOf = (ctx: restate.Context) => nowFor(ctx, deps.clock);
+  /** Wren's database, or a client's own (its logins' rows). */
+  const dbOf = (client: string | null | undefined): Db => {
+    if (!client) return deps.db;
+    if (!deps.clients) throw new restate.TerminalError("no client databases here");
+    return deps.clients.clientDb(client);
+  };
   const slots = slotsOf(deps.sequences.values());
   const nudge = (ctx: restate.Context) =>
     ctx
@@ -735,10 +743,14 @@ export function makeReachDesk(deps: ReachDeps) {
     name: "ReachDesk",
     handlers: {
       accounts: serviceHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.Context): Promise<AccountView[]> => {
+        { input: z.looseObject({ client: CLIENT }).nullish() },
+        async (
+          ctx: restate.Context,
+          req?: { client?: string | null } | null,
+        ): Promise<AccountView[]> => {
           const now = await nowOf(ctx);
-          const rows = await ctx.run("accounts", () => listAccounts(deps.db));
+          const db = dbOf(req?.client);
+          const rows = await ctx.run("accounts", () => listAccounts(db));
           return rows.map((a) => viewOf(a, deps.policy, now));
         },
       ),
@@ -765,12 +777,13 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: ACCOUNT_STATE },
         async (
           ctx: restate.Context,
-          req: { id: string; state: AccountState; reason?: string | null },
+          req: { id: string; state: AccountState; reason?: string | null; client?: string | null },
         ): Promise<AccountView> => {
           const now = await nowOf(ctx);
+          const db = dbOf(req.client);
           const row = await ctx.run("set state", () =>
             terminal(() =>
-              setAccountState(deps.db, req.id, req.state, { reason: req.reason ?? null, now }),
+              setAccountState(db, req.id, req.state, { reason: req.reason ?? null, now }),
             ),
           );
           return viewOf(row, deps.policy, now);

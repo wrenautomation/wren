@@ -211,12 +211,18 @@ export const OUTREACH_COMPONENTS = [
       "Invites people from your lists on LinkedIn, up to 20 a weekday. Accepts land in Replies; every message after is your click.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: invites from Wren's own LinkedIn login only"],
+    ready: true,
     requires: { components: ["reach.outreach"], accounts: ["linkedin"] },
     settings: invitesSettingsSchema,
-    // Wren's own run reads its block from `wren_settings` until a client's runs.
+    // Wren's own run reads its block from `wren_settings`; a client's from its install.
     wrenSettings: true,
+    // The watch sweeps and queues, the sender invites: both only once an admin armed it
+    // (`--live linkedin.invites`) and activated the client's login (`reach accounts activate`).
+    clientLoops: (client) => [
+      { service: "ReachWatch", key: clientKey(client, WATCH_UNIT) },
+      { service: "ReachSender", key: clientKey(client, SENDER_UNIT) },
+    ],
+    liveSwitch: true,
     provides: { records: ["marketing.invite"] },
     effects: ["sends"],
     in: [{ id: "people", label: "people", kind: "person" }],
