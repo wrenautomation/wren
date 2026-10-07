@@ -2,6 +2,7 @@ export * from "@wren/core/slots";
 export * from "./compose.js";
 export * from "./facts.js";
 export * from "./fills.js";
+export * from "./live.js";
 export * from "./plan.js";
 export * from "./provenance.js";
 export * from "./readable.js";

@@ -47,6 +47,7 @@ import {
 import { moveExperiment, startExperiment, switchSetting } from "../evolve/experiments.js";
 import { pause, resolveTarget, resume } from "../inbox/health.js";
 import { openInvites } from "../inbox/invite.js";
+import { liveEmails } from "../outreach/live.js";
 import { firmRecord, stallRecord } from "../records.js";
 import {
   type CampaignChange,
@@ -265,7 +266,10 @@ export function emailConsoleApi({
       team(req);
       const niche = textOf(req.niche);
       const name = textOf(req.template);
-      const file = niche && name ? files?.get(niche)?.templates.get(name) : undefined;
+      const file =
+        niche && name && files?.has(niche)
+          ? (await liveEmails(db, niche, [name])).get(name)
+          : undefined;
       if (!niche || !file) throw new PortalRefusal("that campaign has no such template", 404);
       const picked = Object.fromEntries(
         (["selection", "fitness", "seeding"] as const).flatMap((k) => {

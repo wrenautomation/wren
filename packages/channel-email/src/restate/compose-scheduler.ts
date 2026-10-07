@@ -23,6 +23,7 @@ import { experimentTemplates } from "../evolve/experiments.js";
 import type { SharedSuppressions } from "../guards.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import type { Filler } from "../outreach/fills.js";
+import { liveEmails } from "../outreach/live.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
@@ -47,7 +48,6 @@ export interface Campaign {
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
   /** The site's origin, for each draft's `link.*` facts. Left out: copy gets no links. */
   readonly site?: string | null;
-  readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   /** Active roster addresses this niche may send from, roster order. */
   readonly senders: readonly string[];
@@ -130,8 +130,8 @@ export function dailyOpenerCapacity(
 
 /** One top-up for `campaign`, as a plain function so an operator command and the loop agree. */
 /**
- * The campaign's queue re-rendered from the templates this deployment carries, each
- * experiment's live genome in place of its file.
+ * The campaign's queue re-rendered from the store's live templates, each experiment's
+ * live genome in place of its template.
  */
 export async function refreshCampaign(
   db: Db,
@@ -142,7 +142,7 @@ export async function refreshCampaign(
   const { templates, allocations } = await experimentTemplates(
     db,
     campaign.niche,
-    campaign.templates,
+    await liveEmails(db, campaign.niche),
   );
   return refreshQueue(db, {
     niche: campaign.niche,
@@ -208,7 +208,7 @@ export async function topUp(
   const { templates, allocations } = await experimentTemplates(
     db,
     campaign.niche,
-    campaign.templates,
+    await liveEmails(db, campaign.niche),
   );
   for (const { rule, audience } of sweeps) {
     if (remaining <= 0) break;

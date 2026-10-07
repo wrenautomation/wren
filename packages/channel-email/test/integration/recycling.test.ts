@@ -31,6 +31,7 @@ import { runVerification } from "../../src/verification/service.js";
 import { FakeVerifier } from "../../src/verification/verifier.js";
 import {
   allEnrollments,
+  liveCopy,
   makeCompany,
   makePerson,
   roleCompany,
@@ -665,7 +666,6 @@ describe("topUp with returning companies", () => {
       [AGAIN.name, "again-offer"],
     ]),
     offerFacts: new Map(),
-    templates: TEMPLATES,
     factsView: null,
     senders: [SENDER],
     signatures: {},
@@ -689,6 +689,7 @@ describe("topUp with returning companies", () => {
     roleInboxNeedsVerdict: false,
     runId: null,
   });
+  beforeEach(() => liveCopy(db(), "sec_ria"));
   const SPLIT = campaign([
     { sequence: FRESH.name, audience: "first_contact" },
     { sequence: AGAIN.name, audience: "returning" },

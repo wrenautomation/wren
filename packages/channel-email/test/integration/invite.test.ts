@@ -26,6 +26,7 @@ import {
 import { ConsoleTransport } from "../../src/send/transport.js";
 import { transitionMessage } from "../../src/state.js";
 import {
+  liveCopy,
   makeCompany,
   makePerson,
   messagesOf,
@@ -46,7 +47,10 @@ beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-beforeEach(() => truncate(pg.db, [...TABLES, "call_invites"]));
+beforeEach(async () => {
+  await truncate(pg.db, [...TABLES, "call_invites"]);
+  await liveCopy(pg.db, "sec_ria", REPLY);
+});
 const db = (): Db => pg.db;
 
 /** One firm whose opener went out offering Tuesday 10am and Wednesday 2pm. */
@@ -115,19 +119,21 @@ function pings() {
 
 const rows = () => db().select().from(callInvites);
 
+/** The arm's reply copy, live in the store. */
+const REPLY = new Map([
+  [
+    "arm/reply",
+    parseTemplate(
+      "arm/reply",
+      "Hi {first_name|there},\n\nSent you the invite(( for {call.booked})).\n",
+    ),
+  ],
+]);
+
 /** The test sequence as an arm ("arm/opener") whose reply copy names the booked time. */
 const COPY: ReplyCopy = {
   sequences: new Map([[SEQ.name, sequence(SEQ.name, [sequenceStep("arm/opener", 0)])]]),
   offerFacts: new Map(),
-  templates: new Map([
-    [
-      "arm/reply",
-      parseTemplate(
-        "arm/reply",
-        "Hi {first_name|there},\n\nSent you the invite(( for {call.booked})).\n",
-      ),
-    ],
-  ]),
   factsView: null,
   signatures: { [SENDER]: "William" },
 };

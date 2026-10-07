@@ -4,9 +4,11 @@
  * elsewhere (the `.email` files, `sms_templates`, `reach_templates`) in as versions, live
  * where nothing is; it never sends and never overrides a publish.
  */
+import { readFileSync } from "node:fs";
 import { importLegacyTexts } from "@wren/channel-sms";
 import { templates, templateVersions } from "@wren/core/schema";
 import { TEMPLATE_KINDS, type TemplateKind } from "@wren/core/slots";
+import { publish, saveDraft } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { importEmailFiles, NICHES } from "@wren/niches";
 import { importLegacyDms } from "@wren/outreach";
@@ -63,6 +65,35 @@ export function registerTemplates(program: Command, withDb: WithDb) {
             `${r.draft ? `, draft ${r.draft}` : ""}, ${r.versions} versions`,
         );
       if (!rows.length) console.log("no templates");
+    });
+
+  // Texts and DMs save through their desks, which hold each slot's rules (STOP, length).
+  const EDITABLE = ["email", "prompt"];
+  const refOf = (kind: string, system: string, name: string) => {
+    if (!EDITABLE.includes(kind))
+      throw new Error(
+        `templates save takes ${EDITABLE.join(" or ")}; texts and DMs: wren sms|reach`,
+      );
+    return { kind: kind as TemplateKind, system, name };
+  };
+
+  cmd
+    .command("save <kind> <system> <name> <file>")
+    .description("Keep a file's words as the draft (email or prompt); nothing sends until publish")
+    .action(async (kind: string, system: string, name: string, file: string) => {
+      const ref = refOf(kind, system, name);
+      const words = readFileSync(file === "-" ? 0 : file, "utf8");
+      const state = await withDb((db) => saveDraft(db, ref, words, { by: "cli" }));
+      console.log(JSON.stringify(state, null, 2));
+    });
+
+  cmd
+    .command("publish <kind> <system> <name>")
+    .description("Make the draft live; the next compose or ask reads it, publishing sends nothing")
+    .action(async (kind: string, system: string, name: string) => {
+      const ref = refOf(kind, system, name);
+      const state = await withDb((db) => publish(db, ref, { by: "cli" }));
+      console.log(JSON.stringify(state, null, 2));
     });
 
   cmd

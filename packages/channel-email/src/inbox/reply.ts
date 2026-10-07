@@ -17,6 +17,7 @@ import { and, asc, eq, max } from "drizzle-orm";
 import { linkFacts, mintLinkCode, signed } from "../outreach/compose.js";
 import { factsFor, factsForCompany } from "../outreach/facts.js";
 import type { Filler } from "../outreach/fills.js";
+import { liveEmails } from "../outreach/live.js";
 import type { Sequence } from "../outreach/sequences.js";
 import { type Enrollment, type Message, messages, type ThreadEvent } from "../schema.js";
 import type { Fleet } from "../send/tick.js";
@@ -35,7 +36,6 @@ export interface ReplyCopy {
   readonly sequences: ReadonlyMap<string, Sequence>;
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
   readonly site?: string | null;
-  readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   /** Plain sign-off per sender, page slot already filled. */
   readonly signatures: Readonly<Record<string, string>>;
@@ -43,11 +43,16 @@ export interface ReplyCopy {
   readonly fill?: Filler;
 }
 
-/** `<arm>/reply` for the enrollment's sequence, or null when the arm has none. */
-export function replyTemplate(copy: ReplyCopy, enrollment: Enrollment): Template | null {
+/** `<arm>/reply` for the enrollment's sequence, as the store has it live; null when the arm has none. */
+export async function replyTemplate(
+  db: Queryable,
+  copy: ReplyCopy,
+  enrollment: Enrollment,
+): Promise<Template | null> {
   const first = copy.sequences.get(enrollment.sequenceName)?.steps[0]?.template;
   if (!first?.includes("/")) return null;
-  return copy.templates.get(`${first.slice(0, first.lastIndexOf("/"))}/reply`) ?? null;
+  const name = `${first.slice(0, first.lastIndexOf("/"))}/reply`;
+  return (await liveEmails(db, enrollment.niche, [name])).get(name) ?? null;
 }
 
 /**
@@ -62,7 +67,7 @@ export async function draftReply(
   event: ThreadEvent,
   extra: Readonly<Record<string, string>> = {},
 ): Promise<Message | null> {
-  const tpl = replyTemplate(copy, enrollment);
+  const tpl = await replyTemplate(db, copy, enrollment);
   if (tpl === null) return null;
   const filed = enrollment.personId
     ? await factsFor(db, enrollment.personId, copy.factsView)

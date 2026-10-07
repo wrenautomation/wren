@@ -9,6 +9,7 @@ import {
   experimentStatus,
   type LlmFor,
   listCandidates,
+  liveEmails,
   moveExperiment,
   proposeCandidates,
   rejectCandidate,
@@ -125,7 +126,7 @@ export function registerEvolve(
         },
       ) =>
         withDb(async (db) => {
-          const file = nicheFor(niche).templates.get(template);
+          const file = (await liveEmails(db, nicheFor(niche).name, [template])).get(template);
           if (!file) throw new Error(`niche ${niche} has no template '${template}'`);
           const named = (["selection", "fitness", "seeding"] as const).flatMap((k) =>
             opts[k] ? [[k, opts[k]] as [string, unknown]] : [],
@@ -211,7 +212,8 @@ export function registerEvolve(
             if (which) console.log(`experiment ${e.id} is ${e.state}: not ticked`);
             continue;
           }
-          const r = await tickExperiment(db, e.id, nicheFor(e.niche).templates.get(e.template));
+          const file = (await liveEmails(db, e.niche, [e.template])).get(e.template);
+          const r = await tickExperiment(db, e.id, file);
           if (!r) continue;
           changed ||= r.genomeChanged;
           console.log(

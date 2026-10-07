@@ -3,13 +3,13 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-04 @ fc7250d
+verified: 2026-10-06 @ 6d30b4b
 entity: packages/channel-email/src/outreach/templates.ts:47
 ---
 
 # template
 
-An email as a file: `packages/niches/templates/<niche>/**/*.email`, parsed into a `Template` tree, versioned by content hash into `template_versions`.
+An email's words, live in the [[platform/template-store]] (kind email, system the niche), parsed into a `Template` tree. The `.email` files under `packages/niches/templates/` were imported once (`wren templates import`) and no longer feed a send; compose reads `liveEmails` (`packages/channel-email/src/outreach/live.ts:1`).
 
 ## Why this shape
 
@@ -34,7 +34,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 ## If you change this
 
-- **Hits:** editing a `.email` file changes its hash and every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused
+- **Hits:** publishing a version changes every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused. Editing a `.email` file changes nothing sent; only `review` and `deliverability` read the files
 - **Also hits:** queued, untouched, unstarted messages: deploy calls `QueueRefresh/all`, which re-renders them (`packages/channel-email/src/restate/queue-refresh.ts:1`)
 - **Also hits:** a template under a running [[email/experiment]]: the next tick imports the edit (new options live, dropped ones retired)
 - **Does not hit:** sent, hand-edited or person-approved messages; a sequence once a step went out
@@ -43,7 +43,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 | Surface | Role |
 |---|---|
-| William, in the `.email` files | writes |
+| `wren templates save\|publish` | writes |
 | `wren email preview` | renders one |
 | `ComposeScheduler` | renders all |
 

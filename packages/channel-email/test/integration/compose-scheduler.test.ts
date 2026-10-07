@@ -1,7 +1,7 @@
 /** The queue-keeper's top-up: capacity × days ahead, minus what is queued, through the plan. */
 import { loadSettings } from "@wren/config";
 import { companies } from "@wren/core";
-import { field, template, text } from "@wren/core/slots";
+import { field, type Template, template, text } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -18,6 +18,7 @@ import { SendPolicy } from "../../src/send/policy.js";
 import {
   allEnrollments,
   FOLLOWUP,
+  liveCopy,
   makeCompany,
   makePerson,
   makePick,
@@ -33,6 +34,11 @@ const MARKETING = template(
   [text("Hi "), field("first_name")],
 );
 const BUILD = template("build/opener", [text("invoices")], [text("Hi "), field("first_name")]);
+const COPY: ReadonlyMap<string, Template> = new Map([
+  ["marketing/opener", MARKETING],
+  ["build/opener", BUILD],
+  ["followup", FOLLOWUP],
+]);
 const CAMPAIGN: Campaign = {
   niche: "agencies",
   mailsRoleInboxes: true,
@@ -59,11 +65,6 @@ const CAMPAIGN: Campaign = {
     ["build-days-0-5", "build-offer"],
   ]),
   offerFacts: new Map(),
-  templates: new Map([
-    ["marketing/opener", MARKETING],
-    ["build/opener", BUILD],
-    ["followup", FOLLOWUP],
-  ]),
   factsView: "agency_facts",
   senders: [SENDER],
   signatures: { [SENDER]: "William" },
@@ -94,7 +95,10 @@ beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-beforeEach(() => truncate(pg.db, TABLES));
+beforeEach(async () => {
+  await truncate(pg.db, TABLES);
+  await liveCopy(pg.db, "agencies", COPY);
+});
 const db = () => pg.db;
 
 async function seedAgencies() {
@@ -167,12 +171,13 @@ describe("topUp", () => {
     await makePick(db(), desk, "info@desk.example");
     // An inbox has no first name: openers that greet nobody, so only the switch decides.
     const greetless = new Map(
-      [...CAMPAIGN.templates].map(([name, t]) => [
+      [...COPY].map(([name, t]) => [
         name,
         name.endsWith("/opener") ? template(name, [text("month end")], [text("Hi there")]) : t,
       ]),
     );
-    const campaign = { ...CAMPAIGN, templates: greetless };
+    await liveCopy(db(), "agencies", greetless);
+    const campaign = CAMPAIGN;
     const people = await topUp(db(), { ...campaign, mailsRoleInboxes: false }, opts(3));
     expect(people.enrolled).toBe(3);
     const all = await topUp(db(), campaign, opts(3));
@@ -205,11 +210,8 @@ describe("topUp", () => {
       [text("month end")],
       [text("Hello "), field("first_name")],
     );
-    const v2: Campaign = {
-      ...CAMPAIGN,
-      templates: new Map([...CAMPAIGN.templates, ["marketing/opener", MARKETING_V2]]),
-    };
-    const stats = await topUp(db(), v2, opts(1));
+    await liveCopy(db(), "agencies", new Map([["marketing/opener", MARKETING_V2]]));
+    const stats = await topUp(db(), CAMPAIGN, opts(1));
     expect(stats.refresh).toMatchObject({ tokens_changed: queued.length, raced: 0 });
     const after = await db().select().from(messages);
     expect(after.every((m) => m.openToken === null)).toBe(true);
@@ -225,20 +227,20 @@ describe("topUp", () => {
     await seedAgencies();
     await topUp(db(), CAMPAIGN, opts(1));
     const before = await db().select().from(messages);
-    const v2: Campaign = {
-      ...CAMPAIGN,
-      templates: new Map([
-        ...CAMPAIGN.templates,
+    const unchanged = await refreshCampaign(db(), CAMPAIGN, false, true);
+    expect(unchanged.rerendered).toBe(0);
+    expect(unchanged.kept_current).toBe(before.length);
+    await liveCopy(
+      db(),
+      "agencies",
+      new Map([
         [
           "marketing/opener",
           template("marketing/opener", [text("month end")], [text("Yo "), field("first_name")]),
         ],
       ]),
-    };
-    const unchanged = await refreshCampaign(db(), CAMPAIGN, false, true);
-    expect(unchanged.rerendered).toBe(0);
-    expect(unchanged.kept_current).toBe(before.length);
-    const stats = await refreshCampaign(db(), v2, false, true);
+    );
+    const stats = await refreshCampaign(db(), CAMPAIGN, false, true);
     expect(stats.rerendered).toBeGreaterThan(0);
     const after = await db().select().from(messages);
     expect(after.length).toBe(before.length);
@@ -265,16 +267,14 @@ describe("topUp", () => {
       .update(enrollments)
       .set({ sender: "gone@example.test" })
       .where(eq(enrollments.id, inactiveId));
-    const v2: Campaign = {
-      ...CAMPAIGN,
-      templates: new Map(
-        [...CAMPAIGN.templates].map(([k, t]) => [
-          k,
-          template(t.name, [text("new subject")], [text("new body")]),
-        ]),
+    await liveCopy(
+      db(),
+      "agencies",
+      new Map(
+        [...COPY].map(([k, t]) => [k, template(t.name, [text("new subject")], [text("new body")])]),
       ),
-    };
-    const stats = await topUp(db(), v2, opts(1));
+    );
+    const stats = await topUp(db(), CAMPAIGN, opts(1));
     expect(stats.refresh.kept_started_or_inactive).toBe(
       (byEnrollment.get(startedId)?.length ?? 0) - 1 + (byEnrollment.get(inactiveId)?.length ?? 0),
     );

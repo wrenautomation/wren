@@ -16,6 +16,7 @@ import {
   runningExperiments,
   tickExperiment,
 } from "../evolve/experiments.js";
+import { liveEmails } from "../outreach/live.js";
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
 import { type Campaign, refreshCampaign } from "./compose-scheduler.js";
@@ -68,7 +69,9 @@ export async function tickAll(
       stats.skipped++;
       continue;
     }
-    const file = campaigns.get(exp.niche)?.templates.get(exp.template);
+    const file = campaigns.has(exp.niche)
+      ? (await liveEmails(db, exp.niche, [exp.template])).get(exp.template)
+      : undefined;
     const result = await tickExperiment(db, exp.id, file);
     if (!result) continue;
     stats.ticked.push(result);
