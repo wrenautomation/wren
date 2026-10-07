@@ -17,6 +17,8 @@ we hold: 89 Gemini, 31 OpenRouter, 1 Cohere. Source in `apps/llm-gateway`.
   - `free`: Gemini flash 3.8 → 3.7 → 3.6 → 3.5, then flash-lite, then Gemma 4 31B, then
     OpenRouter free models.
   - `free-bulk`: Gemma first (14,400 a day per key), for volume.
+  - `cohere`: Command A, then Command R7B. Paid from Cohere credits (production key, 500 a
+    minute, no daily cap), for bulk tests that would drain the free keys.
 - One Durable Object (`KeyLedger`) counts each key's requests per model this minute and this
   provider-day. Gemini's day is Pacific; the others' is UTC. Limits are in `src/catalog.ts`.
 - A key comes round-robin from those with room. On failure:
@@ -57,4 +59,5 @@ already hold.
 ## Decisions
 
 - 2026-10-06: Worker + DO, not a container on the box or the Mac (memory). $0.
-- 2026-10-06: prod `WREN_LLM` unchanged. Flipping it is a separate call.
+- 2026-10-06: prod `WREN_LLM` flipped from `cohere:command-a-03-2025` to `gateway` (William).
+  `WREN_FILL_LLM` stays on Cohere direct.

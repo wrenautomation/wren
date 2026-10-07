@@ -90,6 +90,7 @@ describe("classify and resolve", () => {
     expect(resolve("openrouter/google/gemma-4-31b-it:free")).toEqual([
       { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
     ]);
+    expect(resolve("cohere")?.[0]).toEqual({ provider: "cohere", model: "command-a-03-2025" });
     expect(resolve("gpt-4o")).toBeNull();
     expect(resolve("acme/x")).toBeNull();
   });

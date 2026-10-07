@@ -56,8 +56,13 @@ export const PROVIDERS: Record<Provider, ProviderSpec> = {
     baseURL: "https://api.cohere.ai/compatibility/v1",
     secret: "COHERE_KEYS",
     timeZone: "UTC",
-    defaults: { rpm: 20, rpd: 1000 },
-    models: {},
+    // Our key is production tier (paid from credits): 500 a minute, no daily cap. A trial
+    // key would be 20 a minute and 1,000 a month.
+    defaults: { rpm: 500, rpd: 1_000_000 },
+    models: {
+      "command-a-03-2025": { rpm: 500, rpd: 1_000_000 },
+      "command-r7b-12-2024": { rpm: 500, rpd: 1_000_000 },
+    },
   },
 };
 
@@ -85,6 +90,11 @@ export const ALIASES: Record<string, Target[]> = {
     { provider: "gemini", model: "gemma-4-26b-a4b-it" },
     { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
     { provider: "openrouter", model: "google/gemma-4-26b-a4b-it:free" },
+  ],
+  // Paid from Cohere credits, no daily cap: bulk tests that would drain the free keys.
+  cohere: [
+    { provider: "cohere", model: "command-a-03-2025" },
+    { provider: "cohere", model: "command-r7b-12-2024" },
   ],
 };
 
