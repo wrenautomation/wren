@@ -114,6 +114,42 @@ export const PAGE_ACTIONS: Action[] = [
   { id: "sites.notes", label: "Save notes", handler: "sites/notes", inline: true },
 ];
 
+/**
+ * A page's A/B split, run from its detail: start one against live pages, change the weights,
+ * stop it, or ask to make the winner the page (a yes in To approve, or the client's).
+ */
+export const SPLIT_ACTIONS: Action[] = [
+  { id: "sites.splitStart", label: "Start split", handler: "sites/splitStart", inline: true },
+  { id: "sites.splitWeights", label: "Set weights", handler: "sites/splitWeights", inline: true },
+  { id: "sites.splitStop", label: "Stop split", handler: "sites/splitStop", inline: true },
+  { id: "sites.splitShip", label: "Make it the page", handler: "sites/splitShip", inline: true },
+];
+
+/**
+ * A client's own pages: a yes or no on the version waiting, by the client's approver setting.
+ * The row is the page; the yes is on the version waiting on it now.
+ */
+export const CLIENT_PAGE_ACTIONS: Action[] = [
+  {
+    id: "sites.approve",
+    label: "Approve",
+    handler: "sites/approve",
+    confirm: "Make the waiting version live? Its address shows it within a minute.",
+    key: "a",
+    bulk: true,
+    done: (out) => `Live: ${(out as { approved?: number }).approved ?? 0}.`,
+  },
+  {
+    id: "sites.decline",
+    label: "Decline",
+    handler: "sites/decline",
+    key: "x",
+    bulk: true,
+    done: () => "Declined. The version stays in its history.",
+  },
+  ...SPLIT_ACTIONS,
+];
+
 /** Hosted forms: made as a draft, built in their detail, published at once (a form only asks). */
 export const FORM_ACTIONS: Action[] = [
   {

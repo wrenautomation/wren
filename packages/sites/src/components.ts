@@ -11,9 +11,11 @@ export const SITES_COMPONENTS = [
     blurb:
       "Landers and listicles made from an offer, live at their own URL with a yes, each counting its visits, forms and bookings.",
     icon: "link",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: ["A client's pages are served on its host, but no client page has run yet"],
+    missing: [
+      "Built per client (pages, splits, /go/ links on its host); no client page has run yet",
+    ],
     effects: ["spends"],
     provides: {
       services: ["Sites", "SitesConsole"],

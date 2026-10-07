@@ -62,6 +62,8 @@ const PAGE_FIELDS = {
   title: text("Page"),
   address: text("Address"),
   url: link("URL", { listed: false }),
+  // Before Kind: a phone's list shows the first state that tells rows apart.
+  status: status(STATUSES, "Status"),
   kind: status(KINDS, "Kind"),
   source: status(
     {
@@ -72,7 +74,6 @@ const PAGE_FIELDS = {
     "Built as",
   ),
   owner: text("Owner"),
-  status: status(STATUSES, "Status"),
   waiting: number("Waiting version", { listed: false }),
   offer: text("Offer"),
   angle: text("Angle"),
@@ -168,6 +169,10 @@ export const pageRecord: RecordType = defineRecord({
     "sites.draft",
     "sites.ask",
     "sites.notes",
+    "sites.splitStart",
+    "sites.splitWeights",
+    "sites.splitStop",
+    "sites.splitShip",
   ],
   load: loadPage,
 });

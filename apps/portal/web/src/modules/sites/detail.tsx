@@ -4,6 +4,7 @@
  * from, the ads that link to it, its variants side by side and its versions. A code page shows
  * where its code lives and the tag that counts it; it's edited in the repo, never here.
  */
+import type { Row } from "@wren/core/records/serve";
 import type { AdIn, PageDetail, Variant } from "@wren/sites/detail";
 import type { Content, CopyField, ItemValue } from "@wren/sites/templates";
 import {
@@ -20,6 +21,7 @@ import {
 import { type ReactNode, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
+import { Split } from "./split.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
@@ -317,37 +319,73 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
   );
 }
 
-export function Table({ head, rows }: { head: (string | [string, "r"])[]; rows: ReactNode[][] }) {
+/**
+ * Numbers as a table. With `stack`, a phone gets each row as a card instead (its first cell on
+ * top, the rest as label and value), so the name column isn't crushed.
+ */
+export function Table({
+  head,
+  rows,
+  stack = false,
+}: {
+  head: (string | [string, "r"])[];
+  rows: ReactNode[][];
+  stack?: boolean;
+}) {
+  const labels = head.map((h) => (Array.isArray(h) ? h[0] : h));
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-[13.5px]">
-        <thead className={QUIET}>
-          <tr className="border-b border-(--ui-hair)">
-            {head.map((h) => {
-              const [label, right] = Array.isArray(h) ? h : [h, null];
-              return (
-                <th key={label} className={right ? `${TH} text-right` : TH}>
-                  {label}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
+    <>
+      <div className={stack ? "hidden overflow-x-auto sm:block" : "overflow-x-auto"}>
+        <table className="w-full text-left text-[13.5px]">
+          <thead className={QUIET}>
+            <tr className="border-b border-(--ui-hair)">
+              {head.map((h) => {
+                const [label, right] = Array.isArray(h) ? h : [h, null];
+                return (
+                  <th key={label} className={right ? `${TH} text-right` : TH}>
+                    {label}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: rows are drawn once, in order.
+              <tr key={i} className="border-b border-(--ui-hair) align-top">
+                {r.map((c, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional.
+                  <td key={j} className={j === 0 ? "py-1.5 pr-3" : `${TD} text-right`}>
+                    {c}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {stack ? (
+        <ul className="grid gap-3 sm:hidden">
           {rows.map((r, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: rows are drawn once, in order.
-            <tr key={i} className="border-b border-(--ui-hair) align-top">
-              {r.map((c, j) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional.
-                <td key={j} className={j === 0 ? "py-1.5 pr-3" : `${TD} text-right`}>
-                  {c}
-                </td>
-              ))}
-            </tr>
+            <li key={i} className="grid gap-2 border-b border-(--ui-hair) pb-3 text-[14px]">
+              <div>{r[0]}</div>
+              <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5">
+                {r.slice(1).map((c, j) =>
+                  c === "" || c === null ? null : (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional.
+                    <div key={j} className="grid gap-0.5">
+                      <dt className={HINT}>{labels[j + 1]}</dt>
+                      <dd className="tabular-nums">{c}</dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+            </li>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </ul>
+      ) : null}
+    </>
   );
 }
 
@@ -377,20 +415,67 @@ function Sources({ d }: { d: PageDetail }) {
   );
 }
 
+/**
+ * Each ad that links here: what it cost per form and per booking first, Meta's clicks and the
+ * page's visits under its name. Spend and clicks are Meta's; the rest is the page's own count.
+ */
 function Ads({ ads }: { ads: AdIn[] }) {
+  const currency = ads.find((a) => a.currency)?.currency ?? "USD";
+  const cash = (n: number | null) => (n === null ? "" : money(n, currency));
+  const per = (spend: number, n: number) =>
+    spend > 0 && n > 0 ? Math.round((spend / n) * 100) / 100 : null;
+  type Sums = Pick<AdIn, "spend" | "clicks" | "views" | "forms" | "books" | "hops">;
+  const total: Sums = { spend: 0, clicks: 0, views: 0, forms: 0, books: 0, hops: 0 };
+  for (const a of ads) for (const k of Object.keys(total) as (keyof Sums)[]) total[k] += a[k];
+  const under = (a: Sums) =>
+    [
+      `${num(a.clicks)} clicks`,
+      a.hops ? `${num(a.hops)} link clicks` : null,
+      `${num(a.views)} visits`,
+      per(a.spend, a.views) === null ? null : `${cash(per(a.spend, a.views))} a visit`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  const row = (name: ReactNode, a: Sums) => [
+    <span key="n" className="grid gap-0.5">
+      {name}
+      <span className={HINT}>{under(a)}</span>
+    </span>,
+    cash(a.spend || null),
+    num(a.forms),
+    num(a.books),
+    cash(per(a.spend, a.forms)),
+    cash(per(a.spend, a.books)),
+  ];
   return (
-    <Table
-      head={["Ad", ["Spend", "r"], ["Clicks", "r"], ["Visits", "r"], ["Forms", "r"]]}
-      rows={ads.map((a) => [
-        <span key="n">
-          {a.name} <Tag tone={a.status === "active" ? "green" : "neutral"}>{a.status}</Tag>
-        </span>,
-        usd(a.spend),
-        num(a.clicks),
-        num(a.views),
-        num(a.forms),
-      ])}
-    />
+    <div className="grid gap-2">
+      <Table
+        stack
+        head={[
+          "Ad",
+          ["Spend", "r"],
+          ["Forms", "r"],
+          ["Bookings", "r"],
+          ["Per form", "r"],
+          ["Per booking", "r"],
+        ]}
+        rows={[
+          ...ads.map((a) =>
+            row(
+              <span>
+                {a.name} <Tag tone={a.status === "active" ? "green" : "neutral"}>{a.status}</Tag>
+              </span>,
+              a,
+            ),
+          ),
+          ...(ads.length > 1 ? [row(<span className="font-medium">All ads</span>, total)] : []),
+        ]}
+      />
+      <span className={HINT}>
+        Spend and clicks are Meta's. Visits, forms and bookings are this page's, matched by the ad's
+        id in its link.
+      </span>
+    </div>
   );
 }
 
@@ -477,8 +562,15 @@ const EDITOR = (
   </p>
 );
 
-export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) => {
-  const d = detail as PageDetail | null;
+/** Wren's list: the copy form and preview for a data page, the repo for a code page. */
+export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
+  extrasOf(detail as PageDetail | null, row, act, false);
+
+/** A client's list: numbers, ads, the split and versions; the copy is edited by Wren. */
+export const clientPageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
+  extrasOf(detail as PageDetail | null, row, act, true);
+
+function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolean): RecordExtras {
   if (!d) return {};
   const id = String(row.id);
   const url = String(row.url ?? "");
@@ -487,10 +579,18 @@ export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
     ["Visits, last 30 days", <Numbers key="n" d={d} />],
     ["Where visits came from", <Sources key="s" d={d} />],
   ];
-  if (d.ads.length) sections.push(["Ads that link here", <Ads key="a" ads={d.ads} />]);
+  if (d.ads.length) sections.push(["Ads to this page", <Ads key="a" ads={d.ads} />]);
+  if (d.source === "data")
+    sections.push(["A/B split", <Split key="ab" id={id} d={d} row={row} act={act} />]);
   if (d.variants.length)
     sections.push(["Variants", <Variants key="v" vs={d.variants} here={id} />]);
   if (d.versions.length) sections.push(["Versions", <Versions key="h" d={d} />]);
+  if (client) {
+    return {
+      ...(d.preview ? { aside: <Preview key={d.preview} src={d.preview} slug={slug} /> } : {}),
+      sections,
+    };
+  }
   sections.push(["Notes", <Notes key={`notes-${d.notes ?? ""}`} id={id} d={d} act={act} />]);
   if (d.source === "code") return { top: <InCode d={d} url={url} />, sections };
   sections.push(["Visual editor", EDITOR]);
@@ -499,5 +599,5 @@ export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
     form: <CopyForm key={`${id}:${d.draft?.number ?? 0}`} id={id} d={d} act={act} />,
     ...(d.preview ? { aside: <Preview key={d.preview} src={d.preview} slug={slug} /> } : {}),
     sections,
-  } satisfies RecordExtras;
-};
+  };
+}

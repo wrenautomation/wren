@@ -279,6 +279,11 @@ describe("a client's pages", () => {
     await refused(api().approve({ viewer: ADA, ids: [id] }), 403);
     expect(await api().approve({ viewer: CAM, ids: [id] })).toEqual({ approved: 1 });
     expect((await pub().serve({ client: "acme", slug: made.slug })).status).toBe(200);
+    // From the client's list the row is the page: its yes is on the version waiting now.
+    const next = await api().create({ viewer: ADA, offer: offer.id, owner: "acme", angle: "two" });
+    await api().ask({ viewer: ADA, id: next.id });
+    expect(await api().approve({ viewer: CAM, ids: [next.id] })).toEqual({ approved: 1 });
+    await refused(api().approve({ viewer: CAM, ids: [next.id] }), 409);
     await pg.db.update(clients).set({ approver: "either" }).where(eq(clients.id, "acme"));
   });
 });

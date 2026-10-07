@@ -86,6 +86,7 @@ import {
   retirePages,
   SitesRefusal,
   saveVersion,
+  UUID,
   versionOf,
 } from "./store.js";
 import { TEMPLATE_IDS, templateOf } from "./templates/index.js";
@@ -220,6 +221,22 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
    * May this viewer say yes to a page's ask: Wren's pages, anyone who may act there; a client's,
    * as the client's approver setting says.
    */
+  /** The versions a yes or no is on: named in the id, or the one waiting on a bare page id. */
+  const asksOf = async (req: IdsRequest) => {
+    const out: { id: string; number: number }[] = [];
+    for (const raw of req.ids ?? []) {
+      const id = String(raw);
+      const named = parsePageApprovalId(id);
+      if (named) out.push(named);
+      else if (UUID.test(id)) {
+        const p = await pageById(db, id);
+        if (!p?.waitingVersion) throw new PortalRefusal("that page has nothing waiting", 409);
+        out.push({ id, number: p.waitingVersion });
+      } else throw new PortalRefusal("nothing picked", 404);
+    }
+    if (!out.length) throw new PortalRefusal("nothing picked", 404);
+    return out;
+  };
   const approves = async (req: PortalRequest, page: SitePage) => {
     if (page.client === null) return true;
     const client: Client | null = await findClient(db, page.client);
@@ -403,13 +420,15 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       return { id: page.id, waiting: page.waitingVersion };
     },
 
-    /** To approve's yes: `page:<id>:<n>` ids, each still the version asked for. */
+    /**
+     * To approve's yes: `page:<id>:<n>` ids, each still the version asked for. A bare page id (a
+     * client's Pages list, where the row is the page) is the version waiting on it now.
+     */
     async approve(req: IdsRequest) {
       const name = who(req);
-      const asks = (req.ids ?? []).map((id) => parsePageApprovalId(String(id)));
-      if (!asks.length || asks.some((a) => !a)) throw new PortalRefusal("nothing picked", 404);
+      const asks = await asksOf(req);
       const done: string[] = [];
-      for (const a of asks as { id: string; number: number }[]) {
+      for (const a of asks) {
         await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
         const p = await refused(approvePage(db, a.id, a.number, name));
         done.push(p.id);
@@ -419,10 +438,9 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
 
     async decline(req: IdsRequest) {
       const name = who(req);
-      const asks = (req.ids ?? []).map((id) => parsePageApprovalId(String(id)));
-      if (!asks.length || asks.some((a) => !a)) throw new PortalRefusal("nothing picked", 404);
+      const asks = await asksOf(req);
       let n = 0;
-      for (const a of asks as { id: string; number: number }[]) {
+      for (const a of asks) {
         await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
         if (await declinePage(db, a.id, a.number, name)) n++;
       }

@@ -8,8 +8,8 @@
  * for export.
  */
 import type { Module } from "../../module.js";
-import { FORM_ACTIONS, PAGE_ACTIONS } from "./actions.js";
-import { pageExtras } from "./detail.js";
+import { CLIENT_PAGE_ACTIONS, FORM_ACTIONS, PAGE_ACTIONS, SPLIT_ACTIONS } from "./actions.js";
+import { clientPageExtras, pageExtras } from "./detail.js";
 import { formExtras } from "./forms.js";
 
 export const sites: Module = {
@@ -32,8 +32,9 @@ export const sites: Module = {
         waiting: "Nothing to approve.",
         ads: "No ad links to a page yet.",
         retired: "No page is retired.",
+        splits: "No A/B split is running. Start one from a live page.",
       },
-      actions: PAGE_ACTIONS,
+      actions: [...PAGE_ACTIONS, ...SPLIT_ACTIONS],
       columns: [
         "title",
         "address",
@@ -47,6 +48,7 @@ export const sites: Module = {
         "forms",
         "books",
         "ads",
+        "split",
       ],
       extras: pageExtras,
     },
@@ -101,6 +103,52 @@ export const sites: Module = {
         "consented",
         "entered",
       ],
+    },
+  ],
+};
+
+/**
+ * A client's Sites, in its own workspace: its own pages on its own host, at /o/<slug>. Wren
+ * builds the copy; the client sees each page's numbers and ads, runs its splits, and gives the
+ * yes on a version when its approver setting says the client approves. Its logins see its pages
+ * only.
+ */
+export const clientSites: Module = {
+  id: "sites",
+  name: "Sites",
+  icon: "link",
+  blurb: "Your landing pages, with their visits, forms, bookings and ads.",
+  component: "sites.pages",
+  pages: [
+    {
+      id: "pages",
+      label: "Pages",
+      template: "list",
+      record: "sites.page",
+      empty: {
+        pages: "No pages yet. Wren builds them and they show here.",
+        live: "No page is live yet.",
+        waiting: "Nothing waits on a yes.",
+        ads: "No ad links to a page yet.",
+        splits: "No A/B split is running.",
+        retired: "No page is retired.",
+      },
+      actions: CLIENT_PAGE_ACTIONS,
+      // The phone shows the first two: the page and whether it's live.
+      columns: [
+        "title",
+        "status",
+        "views",
+        "forms",
+        "books",
+        "spend",
+        "costPerForm",
+        "split",
+        "address",
+        "kind",
+        "changed",
+      ],
+      extras: clientPageExtras,
     },
   ],
 };

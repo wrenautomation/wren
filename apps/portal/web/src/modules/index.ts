@@ -13,7 +13,7 @@ import { marketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
 import { payments } from "./payments/index.js";
 import { reactivation } from "./reactivation/index.js";
-import { sites } from "./sites/index.js";
+import { clientSites, sites } from "./sites/index.js";
 import { texts } from "./texts/index.js";
 import { voice } from "./voice/index.js";
 import { work } from "./work/index.js";
@@ -34,6 +34,8 @@ export const MODULES: Module[] = [
   // One address, two apps, as Marketing.
   clientLearn,
   learn,
+  // One address, two apps, as Marketing.
+  clientSites,
   sites,
   library,
   // One address, two apps, as Marketing.
