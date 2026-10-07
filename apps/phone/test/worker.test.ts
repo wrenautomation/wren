@@ -411,6 +411,58 @@ describe("the door", () => {
   });
 });
 
+describe("review links", () => {
+  const LINK = "/r/acme/abcdEFGH1234_-xyzABCDEF";
+  const reply = (body: unknown) =>
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
+      return Response.json(body);
+    });
+
+  it("a click is counted and goes on to the review form; an unknown link is 404", async () => {
+    reply({ to: "https://search.google.com/local/writereview?placeid=P1" });
+    const res = await call(LINK);
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      "https://search.google.com/local/writereview?placeid=P1",
+    );
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Reviews/click");
+    expect(JSON.parse(restateCalls[0]?.body ?? "")).toEqual({
+      client: "acme",
+      token: "abcdEFGH1234_-xyzABCDEF",
+    });
+    reply({ to: null });
+    expect((await call(LINK)).status).toBe(404);
+  });
+
+  it("a link preview counts nothing; a bad path never reaches Restate", async () => {
+    const res = await call(LINK, { headers: { "user-agent": "facebookexternalhit/1.1" } });
+    expect(res.status).toBe(200);
+    expect((await call("/r/acme/short")).status).toBe(200); // the static app
+    expect((await call(LINK, { method: "POST" })).status).toBe(405);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("the feedback form shows, and its words go to Reviews/feedback", async () => {
+    const form = await call(`${LINK}/feedback`);
+    expect(await form.text()).toContain('name="words"');
+    reply({ ok: true });
+    const res = await call(`${LINK}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "words=Parking+was+hard",
+    });
+    expect(await res.text()).toContain("Thanks");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Reviews/feedback");
+    expect(JSON.parse(restateCalls[0]?.body ?? "").words).toBe("Parking was hard");
+  });
+
+  it("answers 502 when Restate fails", async () => {
+    restateStatus = 500;
+    expect((await call(LINK)).status).toBe(502);
+  });
+});
+
 describe("credential links", () => {
   const sealed = { label: "example", iv: "AAAAAAAAAAAAAAAA", data: "c2VhbGVk" };
   async function mint(body: unknown, secret = "link-secret") {

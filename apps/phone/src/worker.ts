@@ -30,6 +30,11 @@
  * - `/calendar/<handler>`: our booking calendar (designs/2026-10-06-calendar.md), forwarded to
  *   the `Calendar` service. No sign-in: a booking carries the lander's signature, a move or a
  *   cancel its signed link, both checked by the service.
+ * - `/r/<client>/<token>`: a review ask's link (designs/2026-10-07-missed-call-and-reviews.md).
+ *   `Reviews/click` counts it and names the Google review form; a 302 there. A link preview
+ *   (a bot's user agent) gets a plain page and counts nothing. An unknown link is 404.
+ * - `/r/<client>/<token>/feedback`: the private feedback form. GET is the form, a POSTed
+ *   form goes to `Reviews/feedback`. Never a gate: the review link is in every ask.
  * - everything else: the static app in public/.
  *
  * The Worker holds no data but a credential link's ciphertext: the inbox is Postgres, read through Restate.
@@ -454,6 +459,71 @@ async function door(req: Request, env: Env, token: string): Promise<Response> {
   return json(rest, status ?? 200);
 }
 
+/** `/r/<client>/<token>[/feedback]`, parsed; null when the path is not one. */
+const REVIEW_PATH = /^\/r\/([a-z0-9][a-z0-9_-]{0,39})\/([A-Za-z0-9_-]{8,32})(\/feedback)?$/;
+
+/** Link unfurlers: they fetch a link to preview it, and a preview is not a click. */
+const PREVIEWER = /bot|crawler|spider|preview|facebookexternalhit|slurp|whatsapp/i;
+
+function page(title: string, body: string, status = 200): Response {
+  return new Response(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${title}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:32rem;margin:0 auto;padding:2rem 1rem;color:#1a1a1a;background:#fff}h1{font-size:1.4rem;margin:0 0 .5rem}textarea{width:100%;box-sizing:border-box;min-height:8rem;font:inherit;padding:.6rem;border:1px solid #bbb}button{margin-top:.75rem;font:inherit;padding:.6rem 1.2rem;border:0;background:#1a1a1a;color:#fff;cursor:pointer}p{color:#444}</style></head><body>${body}</body></html>`,
+    {
+      status,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    },
+  );
+}
+
+const feedbackForm = () =>
+  page(
+    "Your feedback",
+    `<h1>How did we do?</h1><p>Tell us what we could do better. Only the business reads this.</p><form method="post"><textarea name="words" maxlength="4000" required aria-label="Your feedback"></textarea><button type="submit">Send</button></form>`,
+  );
+const gone = () =>
+  page("Link not found", "<h1>This link doesn't work</h1><p>It may be mistyped.</p>", 404);
+
+async function review(req: Request, bindings: Env, path: RegExpExecArray): Promise<Response> {
+  const [, client, token, feedback] = path;
+  const service = (handler: string, body: object) =>
+    fetch(ingress(bindings, `Reviews/${handler}`), {
+      method: "POST",
+      headers: restateHeaders(bindings),
+      body: JSON.stringify({ client, token, ...body }),
+    });
+  if (!feedback) {
+    if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "GET only" }, 405);
+    if (PREVIEWER.test(req.headers.get("user-agent") ?? ""))
+      return page("Leave a review", "<h1>Leave a review</h1>");
+    let res: Response;
+    try {
+      res = await service("click", {});
+    } catch {
+      return json({ error: "restate unreachable" }, 502);
+    }
+    if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+    const { to } = (await res.json()) as { to: string | null };
+    return to
+      ? new Response(null, { status: 302, headers: { location: to, "cache-control": "no-store" } })
+      : gone();
+  }
+  if (req.method === "GET" || req.method === "HEAD") return feedbackForm();
+  if (req.method !== "POST") return json({ error: "GET or POST" }, 405);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  const words = (new URLSearchParams(raw).get("words") ?? "").trim().slice(0, 4000);
+  if (!words) return feedbackForm();
+  let res: Response;
+  try {
+    res = await service("feedback", { words });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  const { ok } = (await res.json()) as { ok: boolean };
+  return ok ? page("Thanks", "<h1>Thanks</h1><p>We read every note.</p>") : gone();
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -473,6 +543,8 @@ export default {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
       return door(req, env, pathname.slice("/hooks/".length));
     }
+    const reviewPath = REVIEW_PATH.exec(pathname);
+    if (reviewPath) return review(req, env, reviewPath);
     if (pathname === "/links") {
       return req.method === "POST" ? mintLink(req, env) : json({ error: "POST only" }, 405);
     }
