@@ -103,9 +103,10 @@ const PAD = 20;
 const NARROW = 640;
 /**
  * On a wide screen the whole drawing shows at rest, down to this zoom; past it, words get too
- * small and it pans instead. A phone keeps words readable and pans.
+ * small (12px type reads 9px at 0.75) and it pans instead, the minimap under it. A phone keeps
+ * words readable and pans.
  */
-const LEAST = { wide: 0.4, narrow: 0.8 };
+const LEAST = { wide: 0.75, narrow: 0.8 };
 /** Room under the drawing for the zoom buttons. */
 const TOOLS_ROOM = 40;
 /** Room under the drawing for the minimap, shown only when the drawing doesn't fit. */

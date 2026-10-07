@@ -1,110 +1,114 @@
 /**
  * Play on the canvas: a made-up lead (`LEAD`) walks the workflow, a dot along each wire, the
- * step lit, and under the graph what the lead got at each step in the copy that's live now.
- * Reads copy; writes nothing.
+ * step lit, and beside the graph what the lead got at each step: the step's own template, live
+ * now, rendered for the lead. A level with no copy of its own (the top) opens into the first
+ * workflow it walks through and plays there. Reads; writes nothing.
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import { Button, type GraphDot, Section } from "@wren/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { QUIET } from "../work/bits.js";
 import {
   BOOKING,
   beatOf,
-  type Channel,
-  channelOf,
   dayOf,
   fill,
   LEAD,
   type PlayStep,
   REPLY,
+  sideOf,
   walkOf,
 } from "./play.js";
 
-/** The copy live now, by channel, in send order. */
-interface Copy {
-  email: { subject: string; body: string }[];
-  text: string[];
-  dm: string[];
-}
-
 type Row = Record<string, unknown>;
-const list = (record: string, client: string | null) =>
-  call<RecordsPage>("console/recordsList", {
-    record,
-    view: "all",
-    limit: 100,
-    ...(client ? { client } : {}),
-  })
-    .then((p) => p.rows as Row[])
-    .catch(() => [] as Row[]);
+type Sample = { subject: string | null; body: string };
+const scope = (client: string | null) => (client ? { client } : {});
 
-const copies = new Map<string, Promise<Copy>>();
-/** Read once a session: the opener and follow-ups that sent most, and the written texts and DMs. */
-function copyOf(client: string | null): Promise<Copy> {
+const steps = new Map<string, Promise<Row[]>>();
+/** Every sequence step and its template (`templates.step`), read once a session. */
+function stepRows(client: string | null): Promise<Row[]> {
   const key = client ?? "";
-  let got = copies.get(key);
+  let got = steps.get(key);
   if (!got) {
-    got = (async () => {
-      const [variants, texts, dms] = await Promise.all([
-        list("email.variant", client),
-        list("marketing.text_copy", client),
-        list("marketing.dm_copy", client),
-      ]);
-      const steps = ["Opener", "Follow-up 1", "Follow-up 2", "Follow-up 3"];
-      const ids = steps.flatMap((s) => {
-        const r = variants.find((v) => v.step === s);
-        return r ? [String(r.id)] : [];
-      });
-      const email = (
-        await Promise.all(
-          ids.map((id) =>
-            call<RecordAnswer>("console/recordsGet", {
-              record: "email.variant",
-              id,
-              ...(client ? { client } : {}),
-            })
-              .then((a) => (a.detail as { email?: { subject: string; body: string } | null }).email)
-              .catch(() => null),
-          ),
-        )
-      ).flatMap((e) => (e ? [e] : []));
-      const bodies = (rows: Row[]) =>
-        rows
-          .filter((r) => typeof r.body === "string" && r.body && !String(r.id).endsWith(".subject"))
-          .map((r) => String(r.body));
-      return { email, text: bodies(texts), dm: bodies(dms) };
-    })();
-    copies.set(key, got);
+    got = call<RecordsPage>("console/recordsList", {
+      record: "templates.step",
+      view: "all",
+      limit: 500,
+      ...scope(client),
+    })
+      .then((p) => p.rows as Row[])
+      .catch(() => [] as Row[]);
+    steps.set(key, got);
   }
   return got;
 }
 
-/** What the lead got at each step: the k-th email step the k-th email, and so on. */
-function wordsOf(steps: readonly PlayStep[], copy: Copy | null): (string | null)[] {
-  const seen: Record<string, number> = {};
-  return steps.map((s) => {
-    const ch: Channel = channelOf(s.uses, s.label);
-    if (ch === "reply") return REPLY;
-    if (ch === "booking") return BOOKING;
-    if (!ch || !copy) return null;
-    const k = seen[ch] ?? 0;
-    seen[ch] = k + 1;
-    if (ch === "email") {
-      const e = copy.email[k] ?? copy.email.at(-1);
-      return e ? `Subject: ${fill(e.subject)}\n\n${fill(e.body)}` : null;
-    }
-    const t = copy[ch][k] ?? copy[ch].at(-1);
-    return t ? fill(t) : null;
-  });
+const samples = new Map<string, Promise<Sample | null>>();
+/** A template's live words rendered for the made-up lead (`templates.template` detail). */
+function sampleOf(id: string, client: string | null): Promise<Sample | null> {
+  const key = `${client ?? ""}:${id}`;
+  let got = samples.get(key);
+  if (!got) {
+    got = call<RecordAnswer>("console/recordsGet", {
+      record: "templates.template",
+      id,
+      ...scope(client),
+    })
+      .then((a) => (a.detail as { live?: { sample?: Sample | null } | null } | null)?.live?.sample)
+      .then((s) => s ?? null)
+      .catch(() => null);
+    samples.set(key, got);
+  }
+  return got;
 }
 
-export function usePlay(w: Drawn, client: string | null) {
+/**
+ * What the lead got at each step, from the step's own template: a cadence step's, or for a
+ * node that opens a sequence, its first step's. A reply or a booking is the lead's own line.
+ */
+async function wordsOf(
+  w: Drawn,
+  walk: readonly PlayStep[],
+  client: string | null,
+): Promise<(string | null)[]> {
+  const rows = await stepRows(client);
+  const first = (seq: string) =>
+    rows.filter((r) => r.sequence_id === seq).sort((a, b) => Number(a.step) - Number(b.step))[0];
+  const templateOf = (s: PlayStep) => {
+    const own = rows.find((r) => r.id === `${w.id}/${s.box}`);
+    const opens = w.nodes.find((n) => n.id === s.box)?.opens;
+    const r = own ?? (opens ? first(opens) : undefined);
+    return r?.template_id ? String(r.template_id) : null;
+  };
+  return Promise.all(
+    walk.map(async (s) => {
+      const id = templateOf(s);
+      if (id) {
+        const t = await sampleOf(id, client);
+        return t ? fill(t.subject ? `Subject: ${t.subject}\n\n${t.body}` : t.body) : null;
+      }
+      const ch = sideOf(s.uses, s.label);
+      return ch === "reply" ? REPLY : ch === "booking" ? BOOKING : null;
+    }),
+  );
+}
+
+/**
+ * `into` opens a card's inside on the canvas, playing there; `auto` starts it on arrival (the
+ * level above opened into this one).
+ */
+export function usePlay(
+  w: Drawn,
+  client: string | null,
+  { into, auto = false }: { into?: (opens: string) => void; auto?: boolean } = {},
+) {
   const steps = useMemo(() => walkOf(w), [w]);
   const [run, setRun] = useState(0);
   const [at, setAt] = useState(-1);
-  const [copy, setCopy] = useState<Copy | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [words, setWords] = useState<(string | null)[]>([]);
   const playing = at >= 0 && at < steps.length;
 
   useEffect(() => {
@@ -114,12 +118,26 @@ export function usePlay(w: Drawn, client: string | null) {
     return () => clearTimeout(t);
   }, [playing, at, steps]);
 
-  const start = () => {
+  const start = async () => {
+    setLoading(true);
+    const got = await wordsOf(w, steps, client);
+    setLoading(false);
+    // Nothing to read at this level: play inside a card it walks through, a sequence first.
+    const inside = steps
+      .map((s) => w.nodes.find((n) => n.id === s.box)?.opens)
+      .filter((o): o is string => !!o && o !== w.id);
+    const sequences = new Set((await stepRows(client)).map((r) => String(r.sequence_id)));
+    const opens = inside.find((o) => sequences.has(o)) ?? inside[0];
+    if (got.every((x) => !x) && opens && into) return into(opens);
+    setWords(got);
     setRun((r) => r + 1);
     setAt(0);
-    void copyOf(client).then(setCopy);
   };
   const stop = () => setAt(-1);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per arrival at this workflow.
+  useEffect(() => {
+    if (auto) void start();
+  }, [auto, w.id]);
 
   const step = playing ? steps[at] : undefined;
   const dots: GraphDot[] = step
@@ -130,13 +148,24 @@ export function usePlay(w: Drawn, client: string | null) {
         { id: `play:${run}:${at}:card`, node: step.box, tone: "accent" },
       ]
     : [];
-  const words = useMemo(() => wordsOf(steps, copy), [steps, copy]);
   const shown = at < 0 ? [] : steps.slice(0, Math.min(at + 1, steps.length));
+  // The newest step stays in view inside the panel; the page doesn't move.
+  const list = useRef<HTMLOListElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new step scrolls.
+  useEffect(() => {
+    const el = list.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [shown.length]);
 
   const button =
     steps.length > 1 ? (
-      <Button tone="secondary" size="dense" onClick={playing ? stop : start}>
-        {playing ? "Stop" : at >= 0 ? "Play again" : "Play"}
+      <Button
+        tone="secondary"
+        size="dense"
+        disabled={loading}
+        onClick={playing ? stop : () => void start()}
+      >
+        {playing ? "Stop" : loading ? "Reading copy" : at >= 0 ? "Play again" : "Play"}
       </Button>
     ) : null;
 
@@ -144,13 +173,18 @@ export function usePlay(w: Drawn, client: string | null) {
     at >= 0 ? (
       <Section
         title="Play"
-        className="mt-8"
+        className="min-[1100px]:sticky min-[1100px]:top-4"
         note={`${LEAD.name} of ${LEAD.company} is made up. Waits are cut to a second or two; nothing is sent.`}
       >
-        <ol className="grid gap-4">
+        <ol ref={list} className="grid max-h-[70vh] gap-4 overflow-y-auto pr-1">
           {/* A walk never visits a card twice, so its card names the step. */}
           {shown.map((s, i) => (
-            <li key={s.box} className="grid gap-1 border-l-2 border-(--ui-accent) pl-4 text-[14px]">
+            <li
+              key={s.box}
+              className={`grid gap-1 border-l-2 pl-4 text-[14px] ${
+                s.box === step?.box ? "border-(--ui-accent)" : "border-(--ui-hair)"
+              }`}
+            >
               <span className={`text-[12.5px] ${QUIET}`}>
                 {dayOf(steps.slice(0, i + 1).map((x) => x.wait))}
                 {s.wait ? ` · after ${s.wait}` : ""}

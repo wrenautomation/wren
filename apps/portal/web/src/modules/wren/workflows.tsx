@@ -78,6 +78,21 @@ const recordsAt = (c: CountRef) => {
   return undefined;
 };
 
+const SERVED = new Map<string, Promise<ReadonlySet<string> | null>>();
+/** The record types the console serves here, read once a session; null when unread. */
+function servedBy(client: string | null): Promise<ReadonlySet<string> | null> {
+  const key = client ?? "";
+  let got = SERVED.get(key);
+  if (!got) {
+    got = call<{ id: string }[]>("console/recordsTypes", client ? { client } : {}).then(
+      (ts) => new Set(ts.map((t) => t.id)),
+      () => null,
+    );
+    SERVED.set(key, got);
+  }
+  return got;
+}
+
 export function Workflows({ params, team }: PageProps) {
   const path = (params.get("path") ?? ROOT).split("/").filter(Boolean);
   const client = params.get("client") || null;
@@ -130,8 +145,13 @@ export function Workflows({ params, team }: PageProps) {
           ],
           () => null,
         );
+      // Only what the console serves: a client product's record (an invoice) counts in its own
+      // workspace, and asking the console for it is a 404.
+      const served = await servedBy(client);
       const got = await Promise.all([
-        ...refs.map((r) => stat(countKey(r), { ...r })),
+        ...refs
+          .filter((r) => !served || served.has(r.record))
+          .map((r) => stat(countKey(r), { ...r })),
         ...ports.map((p: PortRef) =>
           stat(portKey(p), { record: "console.event", view: "all", where: { ...p } }),
         ),
@@ -283,7 +303,15 @@ function Canvas({
   );
   const dots = useEvents(w, !client);
   const funnel = useMemo(() => funnelOf(w, counts ?? new Map()), [w, counts]);
-  const play = usePlay(w, client);
+  const play = usePlay(w, client, {
+    // Play opens into a card's inside and plays there, so the dot rides the wires with copy.
+    into: (opens) => {
+      const n = w.nodes.find((x) => x.opens === opens);
+      const to = n && where.canvas(n);
+      if (to) navigate(`${to}&play=1`);
+    },
+    auto: params.get("play") === "1",
+  });
   const open = params.get("component");
 
   const edit = useMemo((): GraphEdit | undefined => {
@@ -324,19 +352,27 @@ function Canvas({
 
   return (
     <>
-      <Graph
-        {...graph}
-        label={`What runs in ${w.name}`}
-        name={w.id}
-        edit={edit}
-        dots={draft ? [] : [...dots, ...play.dots]}
-        focus={draft ? undefined : play.focus}
-        onOpen={(id) => {
-          const uses = shown.nodes.find((n) => n.id === id)?.uses;
-          if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
-        }}
-      />
-      {draft ? null : play.panel}
+      <div
+        className={
+          play.panel && !draft
+            ? "grid items-start gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"
+            : undefined
+        }
+      >
+        <Graph
+          {...graph}
+          label={`What runs in ${w.name}`}
+          name={w.id}
+          edit={edit}
+          dots={draft ? [] : [...dots, ...play.dots]}
+          focus={draft ? undefined : play.focus}
+          onOpen={(id) => {
+            const uses = shown.nodes.find((n) => n.id === id)?.uses;
+            if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
+          }}
+        />
+        {draft ? null : play.panel}
+      </div>
       {funnel.length && !draft ? (
         <Section title="Funnel" className="mt-8">
           <BarsChart rows={funnel} label={`${w.name} stages`} />

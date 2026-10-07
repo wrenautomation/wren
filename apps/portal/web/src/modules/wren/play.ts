@@ -1,12 +1,15 @@
 /**
  * Play: a made-up lead walks a workflow on the canvas, a step at a time, each step showing the
- * copy it would get and each wait cut to a second or two. For demos and recordings. It reads
+ * copy it would get (its own template's) and each wait cut to a second or two. For demos and recordings. It reads
  * copy and writes nothing: the lead exists only in this file.
  */
 import type { Drawn } from "../marketplace/boxes.js";
 import { boxOf } from "./canvas.js";
 
-/** The lead who walks. Made up; example.com never receives mail. */
+/**
+ * The lead who walks. Made up; example.com never receives mail. The same as core's `SAMPLE_LEAD`,
+ * which the templates' samples are rendered with.
+ */
 export const LEAD: Readonly<Record<string, string>> = {
   first_name: "Sam",
   last_name: "Rivera",
@@ -123,16 +126,11 @@ export function fill(text: string, lead: Readonly<Record<string, string>> = LEAD
     .replace(/«([^»]+)»/g, (whole, k: string) => lead[k.trim().replace(/\s+/g, "_")] ?? whole);
 }
 
-export type Channel = "email" | "text" | "dm" | "reply" | "booking" | null;
-
-/** Which copy a step shows, read off what it uses. */
-export function channelOf(uses: string | null, label: string): Channel {
+/** The lead's own side of a step, read off what it uses: a reply, a booking, or neither. */
+export function sideOf(uses: string | null, label: string): "reply" | "booking" | null {
   const s = `${uses ?? ""} ${label}`.toLowerCase();
   if (/repl/.test(s)) return "reply";
   if (/book|call|meeting/.test(s)) return "booking";
-  if (/sms|text/.test(s)) return "text";
-  if (/\bdm|outreach|social|linkedin/.test(s)) return "dm";
-  if (/email|mail|sequence/.test(s)) return "email";
   return null;
 }
 

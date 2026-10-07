@@ -1,7 +1,7 @@
-// Play's walk, waits and filled copy (walkOf, beatOf, dayOf, fill, channelOf).
+// Play's walk, waits and filled copy (walkOf, beatOf, dayOf, fill, sideOf).
 import { describe, expect, it } from "vitest";
 import type { Drawn } from "../marketplace/boxes.js";
-import { beatOf, channelOf, dayOf, fill, waitOf, walkOf } from "./play.js";
+import { beatOf, dayOf, fill, sideOf, waitOf, walkOf } from "./play.js";
 
 const node = (id: string, uses = `x.${id}`) => ({
   id,
@@ -68,12 +68,10 @@ describe("fill", () => {
   });
 });
 
-describe("channelOf", () => {
-  it("reads the channel off what a step uses", () => {
-    expect(channelOf("email.sequence", "mail")).toBe("email");
-    expect(channelOf("sms.sequence", "text")).toBe("text");
-    expect(channelOf("outreach.dm", "Reach")).toBe("dm");
-    expect(channelOf(null, "Booked call")).toBe("booking");
-    expect(channelOf("x.find", "find")).toBeNull();
+describe("sideOf", () => {
+  it("reads the lead's own side off what a step uses", () => {
+    expect(sideOf("email.replies", "Replies")).toBe("reply");
+    expect(sideOf(null, "Booked call")).toBe("booking");
+    expect(sideOf("email.sequence", "mail")).toBeNull();
   });
 });
