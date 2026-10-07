@@ -4,7 +4,8 @@
  * for anyone who may open that client, once `marketing.stats` is installed. A draft's verdict
  * goes to `ContentDesk/<client>/desk`, only from whoever the client's approver is (Wren's team by
  * default). Nothing here posts: an approved draft waits for the client's scheduler and its live
- * flag. Wren's own Marketing is the console's.
+ * flag. Its Inbox: the client's own threads through InboxDesk, with the client set to the one
+ * the guard opened. Wren's own Marketing is the console's.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { mayApprove } from "@wren/core/access";
@@ -47,7 +48,9 @@ import {
   type PromoPlatform,
   promotable,
 } from "../promo.js";
+import { INBOX_CHANNELS, INBOX_STATUSES, type InboxChannel, type InboxStatus } from "../schema.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
+import type { InboxDesk } from "./inbox-desk.js";
 
 export const MARKETING_STATS = "marketing.stats";
 
@@ -129,6 +132,16 @@ export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps)
     recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
+    /**
+     * The client whose Inbox a change is on: never the demo, Marketing installed. InboxDesk
+     * then checks the viewer on the thread.
+     */
+    inboxing: async (req: PortalRequest): Promise<string> => {
+      const { client } = await pickForWrite(db, req);
+      if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+        throw new PortalRefusal("Marketing numbers is not installed", 404);
+      return client.id;
+    },
     /** The client's desk key, or the refusal: never the demo, installed, its approver only. */
     deciding: async (req: PortalRequest): Promise<string> => (await decide(req)).key,
     /**
@@ -192,6 +205,30 @@ const REJECT = {
   }),
 };
 
+const THREAD = z.string().min(3).max(80).describe("The Inbox thread's id: text:8, reply:6");
+const ON_THREAD = (more: z.ZodRawShape = {}) => ({
+  input: z.looseObject({ ...PORTAL_FIELDS, thread: THREAD, ...more }),
+});
+const WHERE = {
+  channel: z.enum(INBOX_CHANNELS).describe("email, text, dm or comment"),
+  target: z.string().min(1).max(80).describe("The channel's id from the thread's options"),
+};
+const ASKED = {
+  input: z.looseObject({ ...PORTAL_FIELDS, id: z.number().describe("The asked reply") }),
+};
+
+export interface ThreadRequest extends PortalRequest {
+  thread: string;
+}
+export interface InboxReplyRequest extends ThreadRequest {
+  channel: InboxChannel;
+  target: string;
+  body: string;
+}
+
+const inboxClient = (ctx: restate.Context) => ctx.serviceClient<InboxDesk>({ name: "InboxDesk" });
+type InboxClient = ReturnType<typeof inboxClient>;
+
 /** The desk's refusals (not waiting, no model, no About) are the viewer's answer. */
 async function desk<T>(go: () => Promise<T>): Promise<T> {
   try {
@@ -206,6 +243,19 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
   const api = marketingConsoleApi(deps);
   const deskOf = (ctx: restate.Context, key: string) =>
     ctx.objectClient<ContentDesk>({ name: "ContentDesk" }, key);
+  /**
+   * InboxDesk on the client's own database: the client is the one the guard let this viewer
+   * open, never one the request names past that, and never Wren's.
+   */
+  const inbox = <T>(
+    ctx: restate.Context,
+    req: PortalRequest,
+    go: (d: InboxClient, at: { client: string; viewer: PortalRequest["viewer"] }) => Promise<T>,
+  ) =>
+    answer(async () => {
+      const client = await ctx.run("check", () => answer(() => api.inboxing(req)));
+      return desk(() => go(inboxClient(ctx), { client, viewer: req.viewer }));
+    });
   return portalService({
     name: "MarketingConsole",
     main: deps.db,
@@ -287,6 +337,85 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
               }),
             );
           }),
+      ),
+      /** A reply on the client's thread: sent, or asked in its To approve (InboxDesk's gate). */
+      inboxReply: serviceHandler(
+        ON_THREAD({ ...WHERE, body: z.string().describe("The words") }),
+        (ctx: restate.Context, req: InboxReplyRequest) =>
+          inbox(ctx, req, (d, at) =>
+            d.reply({
+              ...at,
+              thread: req.thread,
+              channel: req.channel,
+              target: req.target,
+              body: req.body,
+            }),
+          ),
+      ),
+      /** Ask for a yes: the reply waits in the client's To approve. */
+      inboxAsk: serviceHandler(
+        ON_THREAD({ ...WHERE, body: z.string().describe("The words") }),
+        (ctx: restate.Context, req: InboxReplyRequest) =>
+          inbox(ctx, req, (d, at) =>
+            d.ask({
+              ...at,
+              thread: req.thread,
+              channel: req.channel,
+              target: req.target,
+              body: req.body,
+            }),
+          ),
+      ),
+      /** Words to start from, signed by the client, on its own models gate. */
+      inboxSuggest: serviceHandler(
+        ON_THREAD(WHERE),
+        (ctx: restate.Context, req: Omit<InboxReplyRequest, "body">) =>
+          inbox(ctx, req, (d, at) =>
+            d.suggest({ ...at, thread: req.thread, channel: req.channel, target: req.target }),
+          ),
+      ),
+      /** A note for the client's team; an `@` teammate gets a mention. */
+      inboxNote: serviceHandler(
+        ON_THREAD({ body: z.string().describe("The note") }),
+        (ctx: restate.Context, req: ThreadRequest & { body: string }) =>
+          inbox(ctx, req, (d, at) => d.note({ ...at, thread: req.thread, body: req.body })),
+      ),
+      inboxAssign: serviceHandler(
+        ON_THREAD({
+          assignee: z.string().nullish().describe("A teammate's email; empty is nobody"),
+        }),
+        (ctx: restate.Context, req: ThreadRequest & { assignee?: string | null }) =>
+          inbox(ctx, req, (d, at) =>
+            d.assign({ ...at, thread: req.thread, assignee: req.assignee ?? null }),
+          ),
+      ),
+      inboxTake: serviceHandler(ON_THREAD(), (ctx: restate.Context, req: ThreadRequest) =>
+        inbox(ctx, req, (d, at) => d.take({ ...at, thread: req.thread })),
+      ),
+      inboxStatus: serviceHandler(
+        ON_THREAD({ status: z.enum(INBOX_STATUSES) }),
+        (ctx: restate.Context, req: ThreadRequest & { status: InboxStatus }) =>
+          inbox(ctx, req, (d, at) => d.status({ ...at, thread: req.thread, status: req.status })),
+      ),
+      inboxSnooze: serviceHandler(
+        ON_THREAD({
+          until: z.string().nullish().describe("When it comes back, ISO; empty wakes it"),
+        }),
+        (ctx: restate.Context, req: ThreadRequest & { until?: string | null }) =>
+          inbox(ctx, req, (d, at) =>
+            d.snooze({ ...at, thread: req.thread, until: req.until ?? null }),
+          ),
+      ),
+      /** A yes on an asked reply: sent on its channel, by someone the approver setting allows. */
+      inboxApprove: serviceHandler(
+        ASKED,
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          inbox(ctx, req, (d, at) => d.approve({ ...at, id: req.id })),
+      ),
+      inboxDrop: serviceHandler(
+        ASKED,
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          inbox(ctx, req, (d, at) => d.drop({ ...at, id: req.id })),
       ),
       /** A client draft's stage and target. Its posts carry no Wren link. */
       draftFunnel: serviceHandler(

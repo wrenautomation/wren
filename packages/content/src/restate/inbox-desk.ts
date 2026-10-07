@@ -9,14 +9,18 @@ import type { Who } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { isDemo, type Viewer, whoIs } from "@wren/core/portal";
 import { clientKey, errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { partyOf } from "../inbox/conversation.js";
+import { partyOf, threadChannelOf } from "../inbox/conversation.js";
 import {
+  accessChannel,
   askReply,
   failReply,
+  mayWork,
   pickOption,
   type ReplySender,
   replyGate,
@@ -27,10 +31,25 @@ import {
 } from "../inbox/send.js";
 import { suggestReply } from "../inbox/suggest.js";
 import { setThread } from "../inbox/threads.js";
-import { INBOX_CHANNELS, INBOX_STATUSES, type InboxChannel, type InboxStatus } from "../schema.js";
+import {
+  INBOX_CHANNELS,
+  INBOX_STATUSES,
+  type InboxChannel,
+  type InboxStatus,
+  inboxReplies,
+} from "../schema.js";
 
 /** Where Disposition keeps Wren's replies (`DISPOSITION_KEY` in channel-email). */
 const FLEET = "fleet";
+
+/** The thread an asked reply answers, whatever its state; null when there is none. */
+async function askedThread(db: Db, id: number): Promise<string | null> {
+  const [r] = await db
+    .select({ thread: inboxReplies.thread })
+    .from(inboxReplies)
+    .where(eq(inboxReplies.id, id));
+  return r?.thread ?? null;
+}
 
 export interface InboxDeskDeps {
   /** Wren's database: the team, the clients, Wren's own threads. */
@@ -130,16 +149,40 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
     }
   };
   const nowOf = async (ctx: restate.Context) => new Date(await ctx.date.now());
+  /** The client's name, once its `models` gate lets one call through; else why not. */
+  const clientSigner = async (client: string, now: Date): Promise<string> => {
+    const row = await findClient(deps.db, client);
+    if (!row) throw new Error(`no client ${client}`);
+    const g = await gate(deps.db, client, "models", 1, now);
+    if (!g.ok) throw new Error(`models: ${g.why}`);
+    return row.name;
+  };
   const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
     (deps.channels ?? restateChannels)(ctx, client, viewer);
   /** Who they are, and the client's sends and approver: what the gate reads. */
-  const gateOf = (req: Req, channel: InboxChannel) =>
+  const gateOf = (req: Req, channel: InboxChannel, platform: string | null) =>
     terminal(async () => {
       const client = clientOf(req);
       const who: Who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
       const row: Client | null = client ? await findClient(deps.db, client) : null;
       if (client && !row) throw new Error(`no client ${client}`);
-      return replyGate({ channel, client: row, who });
+      return replyGate({ channel, platform, client: row, who });
+    });
+  /**
+   * May they work here? Wren's own threads are the team's: the console checked the row. A
+   * client's need `act` there, on the thread's channel (`channel`, or the thread's own), read
+   * fresh, so a login never reaches a client it isn't in.
+   */
+  const mayHere = (req: Req, db: Db, at: { thread: string } | { channel: string | null }) =>
+    terminal(async () => {
+      const client = clientOf(req);
+      const who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
+      if (!client) {
+        if (!who || !("team" in who)) throw new Error("Wren's Inbox is the team's");
+        return;
+      }
+      const channel = "thread" in at ? await threadChannelOf(db, at.thread) : at.channel;
+      if (!mayWork(who, client, channel)) throw new Error("your role can't do that here");
     });
 
   return restate.service({
@@ -162,7 +205,10 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           const option = await ctx.run("pick", () =>
             terminal(() => pickOption(db, req.thread, req.channel, req.target)),
           );
-          const gate = await ctx.run("gate", () => gateOf(req, req.channel));
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
           if (gate.mode === "ask") {
             const asked = await ctx.run("ask", async () => {
               const p = await partyOf(db, req.thread);
@@ -194,9 +240,14 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           const me = by(req);
           const db = dbOf(clientOf(req));
           const body = await terminal(async () => replyWords(req.body));
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, req.thread, req.channel, req.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
           const asked = await ctx.run("ask", () =>
             terminal(async () => {
-              const option = await pickOption(db, req.thread, req.channel, req.target);
               const p = await partyOf(db, req.thread);
               const row = await askReply(db, {
                 thread: req.thread,
@@ -220,11 +271,14 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           const client = clientOf(req);
           const db = dbOf(client);
           const row = await ctx.run("read", () => terminal(() => waitingReply(db, req.id)));
-          const gate = await ctx.run("gate", () => gateOf(req, row.channel));
-          if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
           const option = await ctx.run("pick", () =>
             terminal(() => pickOption(db, row.thread, row.channel, row.target)),
           );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
+          if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
           const claimed = await ctx.run("claim", () => settleReply(db, req.id, "sent", me));
           if (!claimed) throw new restate.TerminalError("that reply was settled already");
           try {
@@ -244,6 +298,10 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         async (ctx: restate.Context, req: Req & { id: number }): Promise<{ dropped: boolean }> => {
           const me = by(req);
           const db = dbOf(clientOf(req));
+          await ctx.run("may", async () => {
+            const thread = await askedThread(db, req.id);
+            if (thread) await mayHere(req, db, { thread });
+          });
           return { dropped: await ctx.run("drop", () => settleReply(db, req.id, "dropped", me)) };
         },
       ),
@@ -257,17 +315,26 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           by(req);
           const llm = deps.llm;
           if (!llm) throw new restate.TerminalError("no model is set for suggestions");
-          const db = dbOf(clientOf(req));
+          const client = clientOf(req);
+          const db = dbOf(client);
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, req.thread, req.channel, req.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
           const now = await nowOf(ctx);
           const text = await ctx.run("suggest", () =>
             terminal(async () => {
-              await pickOption(db, req.thread, req.channel, req.target);
+              // A client's words are signed by the client, claim nothing of Wren's, and run on
+              // its own models gate.
+              const sender = client ? await clientSigner(client, now) : deps.senderName;
               return suggestReply(
                 db,
                 {
                   llm,
-                  sender: deps.senderName,
-                  ...(deps.facts ? { facts: deps.facts } : {}),
+                  sender,
+                  ...(!client && deps.facts ? { facts: deps.facts } : {}),
                 },
                 { thread: req.thread, channel: req.channel, target: req.target, now },
               );
@@ -284,7 +351,9 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           req: Req & { thread: string; body: string },
         ): Promise<{ id: string; mentioned: string[] }> => {
           const me = by(req);
-          const db = dbOf(clientOf(req));
+          const client = clientOf(req);
+          const db = dbOf(client);
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
           return ctx.run("note", () =>
             terminal(async () => {
@@ -295,7 +364,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
                 personId: p.personId,
                 body: req.body,
                 by: me,
-                team: await teamEmails(deps.db),
+                team: await teamEmails(deps.db, client),
                 now,
               });
               return { id: note.id, mentioned };
@@ -315,12 +384,14 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           req: Req & { thread: string; assignee?: string | null },
         ): Promise<{ assignee: string | null }> => {
           const me = by(req);
-          const db = dbOf(clientOf(req));
+          const client = clientOf(req);
+          const db = dbOf(client);
           const who = req.assignee?.trim().toLowerCase() || null;
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
           await ctx.run("assign", () =>
             terminal(async () => {
-              if (who && !(await teamEmails(deps.db)).includes(who))
+              if (who && !(await teamEmails(deps.db, client)).includes(who))
                 throw new Error(`${who} is not on the team`);
               await setThread(db, req.thread, { assignee: who }, me, now);
             }),
@@ -337,6 +408,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         ): Promise<{ assignee: string }> => {
           const me = by(req);
           const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
           await ctx.run("take", () => setThread(db, req.thread, { assignee: me }, me, now));
           return { assignee: me };
@@ -351,6 +423,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         ): Promise<{ status: InboxStatus }> => {
           const me = by(req);
           const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
           // Open or closed by hand also ends a snooze.
           await ctx.run("status", () =>
@@ -372,6 +445,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         ): Promise<{ until: string | null }> => {
           const me = by(req);
           const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
           const until = req.until ? new Date(req.until) : null;
           if (until && (Number.isNaN(until.getTime()) || until <= now))

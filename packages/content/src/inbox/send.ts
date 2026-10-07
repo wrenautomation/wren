@@ -2,7 +2,15 @@
  * A reply from the Inbox (designs/2026-10-07-inbox-reply.md): Send or Ask to send, then the
  * channel's own path. Every check that path runs still runs; this only decides who says yes.
  */
-import { type Approver, can, mayApprove, type Who, WREN } from "@wren/core/access";
+import {
+  type Approver,
+  can,
+  isChannel,
+  mayApprove,
+  type Target,
+  type Who,
+  WREN,
+} from "@wren/core/access";
 import { type Client, sendsOn } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -26,28 +34,64 @@ export interface Gate {
   why: string | null;
 }
 
+/** The app a thread sits in, for access checks: the Inbox is Marketing's record. */
+export const INBOX_APP = "marketing";
+
 /**
- * Send now, or ask for a yes first. Wren's own threads send for anyone holding `effect`. A
- * client's ask while its sends for that part are off, while the client approves its own, or
- * when this viewer may not approve for it.
+ * The access channel (`ACCESS_CHANNELS`) a reply goes out on: texts are `sms`, email `email`, a
+ * DM or comment its platform. Null when the platform is none we name.
+ */
+export function accessChannel(channel: InboxChannel, platform: string | null): string | null {
+  if (channel === "text") return "sms";
+  if (channel === "email") return "email";
+  return isChannel(platform) ? platform : null;
+}
+
+/** Where this viewer's grants are checked for a reply: the client (or Wren), Marketing, the channel. */
+const targetOf = (client: string, channel: string | null): Target => ({
+  client,
+  app: INBOX_APP,
+  channel,
+});
+
+/**
+ * Send now, or ask for a yes first. The viewer needs `effect` on the reply's channel. Wren's own
+ * threads then send. A client's ask while its sends for that part are off, or when its approver
+ * setting says someone else says yes: `wren` is Wren's team, `client` its own people, `either`
+ * both.
  */
 export function replyGate(o: {
   channel: InboxChannel;
+  platform?: string | null;
   client: Pick<Client, "id" | "sends" | "approver"> | null;
   who: Who;
 }): Gate {
-  const at = o.client?.id ?? WREN;
+  const at = targetOf(o.client?.id ?? WREN, accessChannel(o.channel, o.platform ?? null));
   if (!can(o.who, "effect", at))
     return { mode: "ask", why: "You can't send. Someone who can says yes." };
   if (!o.client) return { mode: "send", why: null };
   if (!sendsOn(o.client, SENDS_PART[o.channel]))
     return { mode: "ask", why: "Sends are off for this client." };
   const approver = (o.client.approver ?? "wren") as Approver;
-  if (approver === "client") return { mode: "ask", why: "The client approves its own sends." };
   if (!mayApprove(o.who, o.client.id, approver))
-    return { mode: "ask", why: "You can't approve for this client." };
+    return {
+      mode: "ask",
+      why:
+        approver === "client"
+          ? "The client approves its own sends."
+          : approver === "wren"
+            ? "Wren approves these sends."
+            : "You can't approve for this client.",
+    };
   return { mode: "send", why: null };
 }
+
+/**
+ * May this viewer work a client's thread on this channel: assign, note, close, ask? `act` at the
+ * client, in Marketing, on the thread's channel.
+ */
+export const mayWork = (who: Who, client: string, channel: string | null): boolean =>
+  can(who, "act", targetOf(client, channel));
 
 /**
  * The option a reply names, checked against the thread's own list: a caller can't point a reply

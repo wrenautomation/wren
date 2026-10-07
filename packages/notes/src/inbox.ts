@@ -3,7 +3,7 @@
  * never sent. An `@someone@firm.com` naming a teammate lands in their Mentions, the same rows a
  * note's mention writes.
  */
-import { operators } from "@wren/core/clients";
+import { clientMembers, operators } from "@wren/core/clients";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { type InboxNote, inboxNotes, noteMentions } from "./schema.js";
@@ -18,13 +18,28 @@ export const atEmails = (body: string): string[] => [
   ...new Set([...body.matchAll(AT_EMAIL)].map((m) => (m[1] ?? "").toLowerCase()).filter(Boolean)),
 ];
 
-/** Wren's team, who an Inbox note may `@`: emails, lowercased. */
-export async function teamEmails(main: Queryable): Promise<string[]> {
-  const rows = await main
-    .select({ email: operators.email })
+/**
+ * Who an Inbox note may `@` and a thread may go to, as emails, lowercased: on Wren's own threads
+ * Wren's team; on a client's, the teammates who reach that client and its own people. Notes'
+ * `@` finds the same people.
+ */
+export async function teamEmails(main: Queryable, client: string | null = null): Promise<string[]> {
+  const team = await main
+    .select({ email: operators.email, clients: operators.clients })
     .from(operators)
     .orderBy(asc(operators.email));
-  return rows.map((r) => r.email.toLowerCase());
+  const out = team
+    .filter((t) => client === null || t.clients === null || t.clients.includes(client))
+    .map((t) => t.email.toLowerCase());
+  if (client !== null) {
+    const people = await main
+      .select({ email: clientMembers.email })
+      .from(clientMembers)
+      .where(eq(clientMembers.clientId, client))
+      .orderBy(asc(clientMembers.email));
+    out.push(...people.map((p) => p.email.toLowerCase()));
+  }
+  return [...new Set(out)];
 }
 
 /**

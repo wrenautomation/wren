@@ -819,6 +819,71 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
   });
 export const approvalRecord = approvalRecordOf();
 
+/** An asked reply's access channel: texts are `sms`, email `email`; a DM's or comment's, none here. */
+const askedVia = (channel: string) =>
+  channel === "text" ? "sms" : channel === "email" ? "email" : null;
+
+/**
+ * A client's To approve for its Inbox (designs/2026-10-07-inbox-reply.md): replies typed there
+ * that wait on a yes, `reply:<id>`. Approve sends it on its channel, from whoever the client's
+ * approver setting names. Wren's own wait in `marketing.approval`.
+ */
+export const askedReplyRecord = defineRecord({
+  id: "marketing.asked_reply",
+  app: "marketing",
+  channel: { field: "platform" },
+  name: { one: "reply to approve", many: "replies to approve" },
+  rows: async (db) =>
+    (await waitingReplies(db, ACTIVITY_ROWS)).map((r) => ({
+      id: `reply:${r.id}`,
+      who: r.who ?? r.thread,
+      platform: askedVia(r.channel),
+      kind: r.channel,
+      state: "waiting",
+      body: r.body,
+      why: r.why,
+      account: r.askedBy,
+      at: r.askedAt,
+      url: `/marketing/inbox/${encodeURIComponent(r.thread)}`,
+    })),
+  key: "id",
+  title: "who",
+  subtitle: "body",
+  fields: {
+    who: name("To"),
+    platform: status(cued({ email: neutral("Email"), sms: neutral("Texts") }), "Site"),
+    kind: status(
+      cued({
+        email: neutral("Email"),
+        text: neutral("Text"),
+        dm: neutral("DM"),
+        comment: neutral("Comment"),
+      }),
+      "Reply by",
+    ),
+    state: STATES,
+    body: prose("Words"),
+    why: text("Why it waits"),
+    account: text("Asked by"),
+    at: date("When"),
+    url: link("Open the thread"),
+  },
+  views: [
+    { id: "waiting", label: "Waiting on a yes", where: INBOX_WAITING, sort: "-at", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: ["inbox.replyApprove", "inbox.replyDrop"],
+  calls: { "InboxDesk/approve": "id", "InboxDesk/drop": "id" },
+  /** The conversation it answers. */
+  load: async (db, id) => {
+    const [, rest] = typed(id);
+    const [r] = (await db.execute(
+      sql`select thread from inbox_replies where id = ${Number(rest)}`,
+    )) as unknown as Array<{ thread: string }>;
+    return r ? { conversation: await conversationOf(db, r.thread) } : null;
+  },
+});
+
 /** Followers per platform: the newest day kept, and the change from a week before it. */
 export const audienceRecord = defineRecord({
   id: "marketing.audience",

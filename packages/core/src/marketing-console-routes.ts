@@ -20,6 +20,18 @@ export const MARKETING_CONSOLE_ROUTES = {
   draftFunnel: "act",
   draftSlides: "act",
   promote: "act",
+  // The Inbox on the client's own threads (designs/2026-10-07-inbox-reply.md): InboxDesk checks
+  // `act` on the thread's channel, and `effect` and the approver before a reply sends.
+  inboxReply: "act",
+  inboxAsk: "act",
+  inboxSuggest: "act",
+  inboxNote: "act",
+  inboxAssign: "act",
+  inboxTake: "act",
+  inboxStatus: "act",
+  inboxSnooze: "act",
+  inboxApprove: "act",
+  inboxDrop: "act",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; a verdict is Marketing's. */
 export const MARKETING_CONSOLE_APPS = {
@@ -32,6 +44,16 @@ export const MARKETING_CONSOLE_APPS = {
   draftFunnel: "marketing",
   draftSlides: "marketing",
   promote: "marketing",
+  inboxReply: "marketing",
+  inboxAsk: "marketing",
+  inboxSuggest: "marketing",
+  inboxNote: "marketing",
+  inboxAssign: "marketing",
+  inboxTake: "marketing",
+  inboxStatus: "marketing",
+  inboxSnooze: "marketing",
+  inboxApprove: "marketing",
+  inboxDrop: "marketing",
 } as const satisfies RouteApps<typeof MARKETING_CONSOLE_ROUTES>;
 export type MarketingConsoleRoute = keyof typeof MARKETING_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -44,4 +66,14 @@ export const MARKETING_CONSOLE_WRITES: readonly MarketingConsoleRoute[] = [
   "draftFunnel",
   "draftSlides",
   "promote",
+  "inboxReply",
+  "inboxAsk",
+  "inboxSuggest",
+  "inboxNote",
+  "inboxAssign",
+  "inboxTake",
+  "inboxStatus",
+  "inboxSnooze",
+  "inboxApprove",
+  "inboxDrop",
 ];

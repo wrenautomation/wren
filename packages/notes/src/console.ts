@@ -36,6 +36,7 @@ import {
   toB64,
 } from "./doc.js";
 import { DriveRefusal, driveIdOf, type NoteDrive } from "./drive.js";
+import { inboxMentionsOf, unseenInboxMentions } from "./inbox.js";
 import { type Note, type NoteComment, noteStars } from "./schema.js";
 import {
   addComment,
@@ -565,7 +566,7 @@ export function notesApi(deps: NotesDeps) {
       const out = (rows: Awaited<ReturnType<typeof mentionsOf>>, home: string) =>
         rows.map((m) => ({
           id: m.id,
-          noteId: m.noteId,
+          noteId: m.noteId as string | null,
           name: nameOf(m.title, m.text),
           commentId: m.commentId,
           comment: m.comment,
@@ -573,10 +574,32 @@ export function notesApi(deps: NotesDeps) {
           at: iso(m.at) as string,
           seen: m.seenAt !== null,
           home,
+          thread: null as string | null,
         }));
       const limit = Number(req.limit) || 50;
       const mentions = out(await mentionsOf(place.db, reader, limit), place.ws);
       let unseen = await unseenMentions(place.db, reader);
+      // A client's Inbox notes: its people and the team on it tag each other there. Wren's own
+      // land in Inbox -> Mentions.
+      if (place.ws !== WREN) {
+        const inbox = await inboxMentionsOf(place.db, reader.email, limit);
+        mentions.push(
+          ...inbox.map((m) => ({
+            id: m.id,
+            noteId: null,
+            name: "an Inbox thread",
+            commentId: null,
+            comment: m.text,
+            by: m.by,
+            at: iso(m.at) as string,
+            seen: m.seenAt !== null,
+            home: place.ws,
+            thread: m.thread,
+          })),
+        );
+        unseen += await unseenInboxMentions(place.db, reader.email);
+        mentions.sort((a, b) => b.at.localeCompare(a.at));
+      }
       // A client's people are also `@`ed in Wren's notes shared to their client.
       if (place.ws !== WREN && !reader.team) {
         const wr = { ...reader, team: false, inWorkspace: false };

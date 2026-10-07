@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { replyGate, sendOn } from "./send.js";
+import { mayWork, replyGate, sendOn } from "./send.js";
 import { statusOf } from "./threads.js";
 
 const now = new Date("2026-10-07T12:00:00Z");
@@ -58,6 +58,61 @@ describe("replyGate", () => {
     expect(
       replyGate({ channel: "email", client: { ...client, approver: "client" }, who: admin }).mode,
     ).toBe("ask");
+  });
+});
+
+describe("replyGate for a client's own login", () => {
+  const acme = { id: "acme", sends: ["follow_up", "dm"], approver: "client" as const };
+  const owner = { member: "owner", client: "acme" };
+  const effect = (channels?: string[]) => ({
+    verbs: ["effect" as const],
+    scope: { client: "acme", ...(channels ? { channels } : {}) },
+  });
+
+  it("asks for an owner without send rights", () => {
+    expect(replyGate({ channel: "text", client: acme, who: owner })).toEqual({
+      mode: "ask",
+      why: "You can't send. Someone who can says yes.",
+    });
+  });
+
+  it("sends for a member with an effect grant when the client approves its own", () => {
+    const who = { member: "member", client: "acme", grants: [effect()] };
+    expect(replyGate({ channel: "email", client: acme, who }).mode).toBe("send");
+    expect(replyGate({ channel: "email", client: { ...acme, approver: "wren" }, who })).toEqual({
+      mode: "ask",
+      why: "Wren approves these sends.",
+    });
+    expect(replyGate({ channel: "email", client: { ...acme, approver: "either" }, who }).mode).toBe(
+      "send",
+    );
+  });
+
+  it("holds a channel-scoped grant to its channel", () => {
+    const who = { member: "member", client: "acme", grants: [effect(["sms"])] };
+    expect(replyGate({ channel: "text", client: acme, who }).mode).toBe("send");
+    expect(replyGate({ channel: "email", client: acme, who }).mode).toBe("ask");
+    expect(replyGate({ channel: "dm", platform: "x", client: acme, who }).mode).toBe("ask");
+  });
+
+  it("never sends for another client's login", () => {
+    const who = { member: "owner", client: "other", grants: [effect()] };
+    expect(replyGate({ channel: "text", client: acme, who }).mode).toBe("ask");
+  });
+});
+
+describe("mayWork", () => {
+  it("needs act on the thread's channel at that client", () => {
+    expect(mayWork({ member: "member", client: "acme" }, "acme", "sms")).toBe(true);
+    expect(mayWork({ member: "viewer", client: "acme" }, "acme", "sms")).toBe(false);
+    expect(mayWork({ member: "member", client: "other" }, "acme", "sms")).toBe(false);
+    const texts = {
+      member: "texter",
+      client: "acme",
+      grants: [{ verbs: ["act" as const], scope: { client: "acme", channels: ["sms"] } }],
+    };
+    expect(mayWork(texts, "acme", "sms")).toBe(true);
+    expect(mayWork(texts, "acme", "email")).toBe(false);
   });
 });
 

@@ -55,6 +55,22 @@ async function handlePerson(db: Queryable, platform: unknown, handle: unknown) {
   };
 }
 
+/**
+ * The access channel a thread came in on (`ACCESS_CHANNELS`): `sms` for a text, `email` for an
+ * email, a DM's or comment's platform, null for none we name or a thread that is gone.
+ */
+export async function threadChannelOf(db: Queryable, thread: string): Promise<string | null> {
+  const [type, rest] = typed(thread);
+  if (type === "text") return "sms";
+  if (type === "email" || type === "reply") return "email";
+  const n = Number(rest);
+  if (!Number.isInteger(n)) return null;
+  const table = type === "dm" ? sql`reach_contacts` : type === "comment" ? sql`comments` : null;
+  if (!table) return null;
+  const [r] = await rowsOf(db, sql`select platform from ${table} where id = ${n}`);
+  return str(r?.platform);
+}
+
 /** The thread's own row and who it is with; null when the id names nothing. */
 export async function partyOf(db: Queryable, thread: string): Promise<Party | null> {
   const [type, rest] = typed(thread);
