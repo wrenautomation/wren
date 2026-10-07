@@ -135,6 +135,7 @@ On the demo, an action runs on a copy of the answer in the browser. A buyer appr
 The brand stays: General Sans, white paper on gray, rust for the one primary action, square corners.
 
 - Type: 13px tables, 14px body, 20px page titles, 28px stats. No ledes.
+- Size follows use. What waits on you reads first: a needs tile with a count gets an amber rule, an amber wash and a 36px figure; a nav count is an amber badge. The action pressed most on a record or queue item is the one 36px button (`size="next"`). A record's key fields read as 18px figures. Columns and Export CSV are quiet text buttons.
 - Buttons in sentence case at 13px. The lander keeps its uppercase.
 - Lists use the full window width. Overviews cap at 1200px.
 - Status colors: green done, amber waiting on you, red failed, gray not started.
@@ -341,3 +342,4 @@ One implementer per phase, from this doc. Commit and push each step.
 - 2026-10-04 (S4): A demo action the page doesn't know says "That action isn't on this page.", not that it works once the list is live.
 - 2026-10-04 (S4): Firm and reply rows show the campaign's name ("Recruiting"), made in SQL the way the Campaigns list makes it, so the three views share one rule. `niche` stays on each view for related lists. A key like `sec_ria` reads "Sec ria" everywhere until a niche carries its own label.
 - 2026-10-04 (audit): Two numbers from the direction plan's Now #1 had no page after S2 moved the apps onto records. Outbound gains Variants: each copy version that sent, with its reply rate and interval (`email.variant`, from `reply_by_arm_step`). Pipeline gains Stalls: per campaign, catch-all and risky leads, firms in the resolution queue, and crawled firms with no person (`email.stall`, from `pipeline_leaks`). Cost per stage stays as Model usage by kind, since `email_stage_costs` has tokens, not dollars.
+- 2026-10-06 (hierarchy pass): Tokens `--ui-warn`, `--ui-warn-ink` (amber text, 5.9:1) and `--ui-warn-tint`; `--warn` reads `--ui-warn`. Muted labels that used `--ui-ink-3` as text (record states and key fields, view counts, queue dates) move to `--ui-ink-2`. A list's create form is its primary button.

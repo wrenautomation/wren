@@ -11,8 +11,11 @@ export type ButtonTone = "primary" | "secondary" | "quiet";
 
 interface ButtonLook {
   tone?: ButtonTone | undefined;
-  /** `dense` is the console's: 32px, 13px, sentence case. */
-  size?: "md" | "sm" | "dense" | undefined;
+  /**
+   * `dense` is the console's: 32px, 13px, sentence case. `next` is the console's step up for the
+   * one action pressed most on a record or a queue item: 36px, 14px, semibold.
+   */
+  size?: "md" | "sm" | "dense" | "next" | undefined;
   icon?: IconName | undefined;
   /** The lander's trailing arrow: this goes somewhere or starts something. */
   arrow?: boolean | undefined;
@@ -23,8 +26,9 @@ interface ButtonLook {
 /** shadcn's button, in the kit's look: square, uppercase, accent; ink on hover. */
 const BUTTON =
   "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,scale,opacity] duration-200 ease-(--ui-ease) hover:bg-(--ui-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
-const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "" };
+const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "", next: "" };
 const DENSE = "h-8 px-3 py-0 text-[13px]/none font-medium tracking-normal [text-transform:none]";
+const NEXT = "h-9 px-4 text-[14px]/none font-semibold";
 const DENSE_TONE: Record<ButtonTone, string> = {
   primary: DENSE,
   secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) hover:text-(--ui-ink)`,
@@ -44,7 +48,8 @@ const look = ({ tone = "primary", size = "md", className }: ButtonLook) =>
     BUTTON,
     BUTTON_SIZE[size],
     BUTTON_TONE[tone],
-    size === "dense" && DENSE_TONE[tone],
+    (size === "dense" || size === "next") && DENSE_TONE[tone],
+    size === "next" && NEXT,
     className,
   );
 

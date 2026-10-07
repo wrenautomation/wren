@@ -251,7 +251,14 @@ function Tile({
   return (
     <a
       href={tileHref(tile, meta)}
-      className={cn(TILE, "text-(--ui-ink) no-underline hover:bg-(--ui-wash)")}
+      className={cn(
+        TILE,
+        "text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+        // Waiting on you: an amber rule and wash, so it reads before the outcome tiles.
+        tile.needs &&
+          (s?.value ?? 0) > 0 &&
+          "bg-(--ui-warn-tint) shadow-[inset_0_3px_0_var(--ui-warn)] hover:bg-(--ui-warn-tint)",
+      )}
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] text-(--ui-ink-2)">
         <span className="font-medium text-(--ui-ink)">{tile.label}</span>
@@ -262,7 +269,7 @@ function Tile({
           <span
             className={cn(
               "text-[28px] leading-9 font-semibold tracking-[-0.02em]",
-              tile.needs && (s.value ?? 0) > 0 && "text-(--warn)",
+              tile.needs && (s.value ?? 0) > 0 && "text-[36px] leading-10 text-(--ui-warn-ink)",
               s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
           >

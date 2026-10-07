@@ -229,9 +229,9 @@ function Queue({
                       className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5 text-[13px] text-(--ui-ink) no-underline"
                     >
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate font-medium">{titleOf(meta, r)}</span>
+                        <span className="truncate text-[14px] font-medium">{titleOf(meta, r)}</span>
                         {dated && r[dated.key] ? (
-                          <span className="shrink-0 text-[12px] text-(--ui-ink-3)">
+                          <span className="shrink-0 text-[12px] text-(--ui-ink-2)">
                             {relative(new Date(String(r[dated.key])))}
                           </span>
                         ) : null}
@@ -244,7 +244,7 @@ function Queue({
                 );
               })}
             </ul>
-            <p className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
+            <p className="text-[12px] text-(--ui-ink-2) max-sm:hidden">
               <Kbd>J</Kbd> <Kbd>K</Kbd> to move
               <KeyHints actions={actions} row={row} />
             </p>
@@ -279,12 +279,12 @@ function Queue({
               >
                 <ChevronRight className="size-4" />
               </button>
-              <span className="ml-auto flex flex-wrap gap-2">
+              <span className="ml-auto flex flex-wrap items-center gap-2">
                 {here.map((a, i) => (
                   <Button
                     key={a.id}
                     tone={i === 0 ? "primary" : "secondary"}
-                    size="dense"
+                    size={i === 0 ? "next" : "dense"}
                     busy={running?.action === a.id}
                     disabled={busy}
                     onClick={() => act(a)}

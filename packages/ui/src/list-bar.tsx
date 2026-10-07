@@ -218,7 +218,7 @@ export function ViewTabs({
             className={cn(TAB, tabTone(on))}
           >
             {v.label}
-            <span className="text-(--ui-ink-3)">{counts ? num(counts[v.id] ?? 0) : ""}</span>
+            <span className="text-(--ui-ink-2)">{counts ? num(counts[v.id] ?? 0) : ""}</span>
           </a>
         );
       })}

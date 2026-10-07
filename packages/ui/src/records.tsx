@@ -435,7 +435,7 @@ function ColumnPicker({
   };
   return (
     <Popover>
-      <PopoverTrigger className={CHIP}>
+      <PopoverTrigger className={cn(CHIP, "border-transparent bg-transparent")}>
         <Columns3 className="size-3.5" />
         Columns
       </PopoverTrigger>
@@ -793,14 +793,14 @@ function List({
           {head?.(meta, () => acted([]))}
           {actions.map((a) =>
             a.form && !a.each ? (
-              <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
+              <Button key={a.id} size="dense" onClick={() => run(a, [])}>
                 {a.label}
               </Button>
             ) : null,
           )}
           <ColumnPicker meta={meta} place={place} columns={columns} />
           <Button
-            tone="secondary"
+            tone="quiet"
             size="dense"
             icon="download"
             disabled={!page.data?.total}
@@ -1477,12 +1477,12 @@ export function RecordBody({
             ) : null}
           </div>
           {shown.length ? (
-            <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {shown.map((a, i) => (
                 <Button
                   key={a.id}
                   tone={i === 0 ? "primary" : "secondary"}
-                  size="dense"
+                  size={i === 0 ? "next" : "dense"}
                   busy={running?.action === a.id}
                   disabled={busy}
                   onClick={() => runHead(a)}
@@ -1506,7 +1506,7 @@ export function RecordBody({
           >
             {states.map((f) => (
               <span key={f.key} className="inline-flex items-center gap-1.5">
-                <span className="text-(--ui-ink-3)">{f.label}</span>
+                <span className="text-(--ui-ink-2)">{f.label}</span>
                 <FieldCell field={f} cell={row[f.key]} />
               </span>
             ))}
@@ -1516,8 +1516,8 @@ export function RecordBody({
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-y border-(--ui-hair) py-3 sm:grid-cols-4">
             {keys.map((f) => (
               <div key={f.key} className="min-w-0">
-                <dt className="text-[12px] text-(--ui-ink-3)">{f.label}</dt>
-                <dd className="mt-0.5 truncate text-[13px]">
+                <dt className="text-[12px] text-(--ui-ink-2)">{f.label}</dt>
+                <dd className="mt-0.5 truncate text-[18px] leading-6 font-semibold tracking-[-0.01em]">
                   <FieldCell field={f} cell={row[f.key]} />
                 </dd>
               </div>

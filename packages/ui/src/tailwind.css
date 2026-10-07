@@ -28,6 +28,8 @@
   --ui-good: #17803d;
   --ui-good-ink: #136b33;
   --ui-bad: #d2281e;
+  --ui-warn: #b7791f; /* waiting on you: needs counts, the amber status tone */
+  --ui-warn-ink: #8a5a12; /* amber small text, 5.9:1 on white */
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
   --ui-font: "General Sans", ui-sans-serif, system-ui, sans-serif;
   --ui-font-display: var(--ui-font); /* headings and big figures */
@@ -60,6 +62,7 @@
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
+  --ui-warn-tint: color-mix(in srgb, var(--ui-warn) 9%, transparent); /* under what waits on you */
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
   /* Under a graph's dot grid: paper with a little lavender, light or night alike. */
   --ui-graph: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-paper));
@@ -110,8 +113,8 @@
   --sidebar-accent-foreground: var(--ui-ink);
   --sidebar-border: var(--ui-hair);
   --sidebar-ring: var(--ui-accent);
-  /* The status tones' amber: the kit has green and red only. */
-  --warn: #b7791f;
+  /* The status tones' amber, by its older name. */
+  --warn: var(--ui-warn);
 }
 
 @theme inline {

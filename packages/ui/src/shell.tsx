@@ -191,8 +191,9 @@ const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
 const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)";
-/** The count after a tab's name. */
-const COUNT = "ml-auto text-[12.5px] text-(--ui-ink-2)";
+/** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
+const COUNT =
+  "ml-auto min-w-5 bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
 const GROUP =
   "px-2.5 pt-3 pb-1 text-[11.5px] font-medium tracking-[0.04em] text-(--ui-ink-3) uppercase";
 
