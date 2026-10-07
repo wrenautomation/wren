@@ -73,7 +73,8 @@ export function Spark({ series, slots, label, format = plain }: SparkProps) {
 
 /** A metric by day over the period: an area, the axis in its own units, hover for the day. */
 export function Trend({ series, label, format = plain, height = 220 }: TrendProps) {
-  const data = series.map((p) => ({ at: p.at, value: p.value ?? 0 }));
+  // A day without a figure (a median's day with no rows) is a gap the line spans, not a zero.
+  const data = series.map((p) => ({ at: p.at, value: p.value }));
   const config = { value: { label, color: "var(--chart-1)" } } satisfies ChartConfig;
   return (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
@@ -114,6 +115,7 @@ export function Trend({ series, label, format = plain, height = 220 }: TrendProp
           strokeWidth={1.5}
           fill="var(--color-value)"
           fillOpacity={0.12}
+          connectNulls
           isAnimationActive={false}
         />
       </AreaChart>

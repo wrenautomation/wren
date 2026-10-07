@@ -11,39 +11,6 @@ const planned = { ready: false, planned: true, missing: ["Not built"] };
 export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
-    id: "speed_to_lead",
-    stage: "follow",
-    channels: ["text", "voice"],
-    name: "Speed to lead",
-    blurb: "Texts a new lead within a minute, calls them, and follows up until they book.",
-    icon: "clock",
-    for: "client",
-    inside: "speed_to_lead.steps",
-    in: [{ id: "forms", label: "new leads", kind: "form" }],
-    out: [{ id: "booked", label: "calls booked", kind: "call" }],
-    effects: ["sends", "spends"],
-    hypothesis: {
-      from,
-      guesses: [
-        { is: "change", says: "The first text's copy.", built: null },
-        { is: "change", says: "How long after the text it calls.", built: null },
-        { is: "change", says: "The call plan: tries, gaps, hours, and who talks.", built: null },
-        {
-          is: "change",
-          says: "Where leads come in: Meta forms, the site, a CRM's webhook.",
-          built: null,
-        },
-        {
-          is: "needs",
-          says: "The follow-up sub-part for anyone who doesn't pick up.",
-          built: null,
-        },
-        { is: "fixed", says: "The first text goes within a minute of the form." },
-      ],
-    },
-  }),
-  defineComponent({
-    ...planned,
     id: "voice.dialer",
     stage: "reach",
     channels: ["voice"],

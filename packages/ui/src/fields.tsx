@@ -92,11 +92,7 @@ const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
 const linkLabel = (href: string) =>
-  href.startsWith("/")
-    ? "Open"
-    : href.startsWith("tel:")
-      ? `Call ${href.slice(4)}`
-      : (hostOf(href) ?? href);
+  href.startsWith("/") ? "Open" : href.startsWith("tel:") ? "Call" : (hostOf(href) ?? href);
 
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
@@ -342,7 +338,7 @@ export function FieldLine({
         {String(c).startsWith("/")
           ? "Open"
           : String(c).startsWith("tel:")
-            ? linkLabel(String(c))
+            ? `Call ${String(c).slice(4)}`
             : String(c)}
       </Out>
     );

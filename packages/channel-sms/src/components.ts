@@ -1,4 +1,4 @@
-/** The SMS channel's components: texts, booking reminders, site form follow-ups. */
+/** The SMS channel's components: texts, booking reminders, speed to lead and its parts. */
 import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
@@ -10,8 +10,6 @@ export const TOUCH = "sms.touch";
 export const SPEED = "speed-to-lead";
 /** The text follow-up as a part: speed to lead's cadence, reusable by any template. */
 export const FOLLOW_UP = "sms.follow_up";
-
-const FOR_WREN = "Texts from Wren's numbers and reads Wren's main database, not per client";
 
 export const SMS_COMPONENTS = [
   defineComponent({
@@ -96,13 +94,13 @@ export const SMS_COMPONENTS = [
     id: "sms.forms",
     stage: "follow",
     channels: ["text"],
-    name: "Form follow-up",
-    blurb: "Texts a site applicant who asked for texts.",
+    name: "First text",
+    blurb: "Texts a new lead from the door within a minute, if they agreed to texts.",
     icon: "flag",
     for: "client",
-    ready: false,
-    missing: [FOR_WREN, "Reads Wren's own site's form"],
-    requires: { components: ["sms.texts"] },
+    ready: true,
+    missing: [],
+    requires: { components: [TEXTS] },
     effects: ["sends"],
     in: [{ id: "forms", label: "forms", kind: "form" }],
     out: [
@@ -110,15 +108,62 @@ export const SMS_COMPONENTS = [
       { id: "untexted", label: "not texted", kind: "lead" },
     ],
     hypothesis: {
-      from: "Wren's site applicants, 2026-10",
+      from: "Speed to lead, 2026-10-07",
       guesses: [
         {
           is: "change",
-          says: "Which form: the client's site, Meta lead forms, a CRM. This becomes speed to lead's first text.",
+          says: "Which form: the client's site, Meta lead forms, a CRM.",
+          built: "the door's hook, with a field map per hook",
+        },
+        { is: "change", says: "The copy.", built: "the speed-to-lead#1 template" },
+        {
+          is: "change",
+          says: "The hours it may text a lead who asked.",
+          built: "WREN_SMS_FORM_WINDOW and WREN_SMS_FORM_DAYS",
+        },
+        {
+          is: "fixed",
+          says: "Only someone who agreed to texts gets one; the rest go to the call.",
+        },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "speed_to_lead",
+    stage: "follow",
+    channels: ["text", "voice"],
+    name: "Speed to lead",
+    blurb: "Texts a new lead within a minute, calls them, and follows up until they book.",
+    icon: "clock",
+    for: "client",
+    ready: true,
+    missing: [],
+    inside: "speed_to_lead.steps",
+    requires: { components: [TEXTS] },
+    effects: ["sends", "spends"],
+    in: [{ id: "forms", label: "new leads", kind: "form" }],
+    out: [{ id: "booked", label: "calls booked", kind: "call" }],
+    hypothesis: {
+      from: "Designed 2026-10-05, built 2026-10-07",
+      guesses: [
+        { is: "change", says: "The first text's copy.", built: "the speed-to-lead#1 template" },
+        { is: "change", says: "How long after the text it calls.", built: "the call wire's wait" },
+        {
+          is: "change",
+          says: "The call plan: tries, gaps, hours, and who talks.",
           built: null,
         },
-        { is: "change", says: "How fast the first text goes.", built: null },
-        { is: "fixed", says: "Only someone who asked for texts gets one." },
+        {
+          is: "change",
+          says: "Where leads come in: Meta forms, the site, a CRM's webhook.",
+          built: "the door's hook",
+        },
+        {
+          is: "needs",
+          says: "The follow-up sub-part for anyone who doesn't pick up.",
+          built: FOLLOW_UP,
+        },
+        { is: "fixed", says: "The first text goes within a minute of the form." },
       ],
     },
   }),

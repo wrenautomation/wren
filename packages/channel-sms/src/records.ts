@@ -133,12 +133,10 @@ export const speedRecord = defineRecord({
       source: r.source,
       lead_at: r.leadAt,
       first_touch: r.firstTouch,
-      first_touch_at: r.firstTouchAt,
       first_touch_in: r.firstTouchAt
         ? Math.max(0, Math.round((r.firstTouchAt.getTime() - r.leadAt.getTime()) / 1000))
         : null,
       call: r.call,
-      call_at: r.callAt,
       follow: r.bookedAt ? "booked" : (follow ?? null),
       booked_at: r.bookedAt,
     })),
@@ -147,11 +145,6 @@ export const speedRecord = defineRecord({
   subtitle: "phone",
   fields: {
     who: name("Lead"),
-    phone: text("Phone"),
-    tel: link("Call"),
-    email: text("Email"),
-    source: text("Source"),
-    leadAt: date("Came in"),
     firstTouch: status(
       {
         queued: { label: "Queued", tone: "neutral" },
@@ -164,7 +157,6 @@ export const speedRecord = defineRecord({
       "First text",
     ),
     firstTouchIn: duration("Took"),
-    firstTouchAt: date("Texted"),
     call: status(
       {
         alerted: { label: "Call now", tone: "warn" },
@@ -173,7 +165,7 @@ export const speedRecord = defineRecord({
       },
       "Call",
     ),
-    callAt: date("Call at"),
+    tel: link("Dial"),
     follow: status(
       {
         enrolled: { label: "Texting", tone: "neutral" },
@@ -187,7 +179,11 @@ export const speedRecord = defineRecord({
       },
       "Follow-up",
     ),
+    leadAt: date("Came in"),
     bookedAt: date("Booked"),
+    source: text("Source"),
+    phone: text("Phone"),
+    email: text("Email"),
   },
   views: [
     {

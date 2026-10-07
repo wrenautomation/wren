@@ -73,3 +73,28 @@ This makes them run.
   up, since voice setup is deferred to William's yes (`2026-10-06-voice-agent.md`). Form leads
   get an 8:00 to 21:00 daily window because they asked to be contacted; cold texts keep 10:00 to
   17:00 weekdays.
+- 2026-10-07: built, steps 1 to 4 (20bae86, 081bace, 7bed582, and the step 4 commit).
+  - Door: a hook has a field map (`hooks.fields`, `wren hooks add --field name=contact.full_name`).
+    `Spine/hook` puts the lead on the event as `data.lead` (`packages/core/src/door.ts`).
+  - First text (`sms.forms`, `speed.ts`): one `speed_runs` row per lead, the number enrolled under
+    source kind `hook`, the text queued, the client's sender nudged. No consent or no phone: no
+    text, straight to the call. Texts off or `WREN_SMS_LIVE` off: `would_send` with why, nothing
+    queued. The first text must name the sender and say STOP (`mustUse`).
+  - Window: form leads get 8:00 to 21:00 lead-local every day (`WREN_SMS_FORM_WINDOW`,
+    `WREN_SMS_FORM_DAYS`), but the existing legal clamp still ends it at 20:00. Lifting that is
+    William's call. The zone comes from the form, else both coasts.
+  - Call (`voice.call_now`, `packages/voice/src/call-now.ts`): the worker passes no dialer, so
+    every run shows "voice not set up" and Call now. A booking found first skips the call and ends
+    the run. "Call now" lives on Texts > Speed to lead with a tap-to-call link, not an Inbox: the
+    Inbox is inbound only. It has no Done action yet; the list grows.
+  - Follow-up (`sms.follow_up`, part over cadence `follow_up.speed-to-lead`, day 1, 3, 7): driven
+    by `SmsSender`'s sends like every text cadence. Stops on reply, STOP, a booking (by email
+    only), or an active email sequence. The booking link is the texts setting `bookingLink`.
+  - Metric: `lead_at`, `first_touch_at`; the `duration` record kind and a `median` stat make the
+    Time to first text tile. Screenshots of the page, tile and Shop entry at 1440 and 390 on a
+    throwaway database with synthetic leads.
+  - Shop: `speed_to_lead` moved out of `planned.ts` into `packages/channel-sms/src/components.ts`,
+    ready; `sms.forms` renamed First text and ready, so `speed_to_lead.steps` reads ready.
+    `voice.dialer` and `voice.voicemail` stay planned, used by no workflow now.
+  - Map: `sms/speed-run` (new), `sms/sms-contact`, `voice/call`, `platform/spine`,
+    `platform/records`.

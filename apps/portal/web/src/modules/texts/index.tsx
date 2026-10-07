@@ -25,6 +25,14 @@ const THREAD_ACTIONS: Action[] = [
 
 type Message = { id: number; at: string; direction: "in" | "out"; body: string; state: string };
 
+const when = (at: string) =>
+  new Date(at).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
 type Step = { step: string; at: string | null; said: string | null; why: string | null };
 
 const SAID: Record<string, string> = {
@@ -57,7 +65,7 @@ export const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
               </span>
               {s.at || s.why ? (
                 <span className="text-[13px] text-(--ui-ink-2)">
-                  {[s.at?.slice(0, 16).replace("T", " "), s.why].filter(Boolean).join(" · ")}
+                  {[s.at ? when(s.at) : null, s.why].filter(Boolean).join(" · ")}
                 </span>
               ) : null}
             </li>
