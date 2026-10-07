@@ -95,8 +95,8 @@ describe("modes", () => {
       ok: true,
       bucket: "linkedin:own:acme",
     });
-    // Ten reads a day on the client's own login, counted on its bucket alone.
-    for (let i = 0; i < 2; i++)
+    // Twenty reads a day (burst 4) on the client's own login, counted on its bucket alone.
+    for (let i = 0; i < 4; i++)
       await meter(pg.db, { client: "acme", vendor: "linkedin", units: 1, at: NOW });
     expect(await gate(pg.db, "acme", "linkedin", 1, NOW)).toMatchObject({
       ok: false,
