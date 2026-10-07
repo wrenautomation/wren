@@ -24,7 +24,7 @@ export function registerWatch(
     .command("monitor")
     .alias("watch")
     .description(
-      "Monitor (Watch/all) on the Postgres box: new mail every 15 minutes and feeds hourly, sorted on the spine",
+      "Monitor (Watch/all) on the Postgres box: new mail every 15 minutes, sorted on the spine; Learn's feeds hourly",
     );
   watch.command("status").action(async () => json(await loop().status()));
   watch
