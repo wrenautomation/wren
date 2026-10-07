@@ -23,7 +23,7 @@ A version is the hash of the words, kept once and never changed, so a send can n
 - prompts: `livePrompt` seeds the code's words as version 1 on first use, then the store wins; renders exactly, `""` a value (`templates.ts:337`, `slots/tree.ts`)
 - every cadence step names its template: `CadenceStep.template` (`packages/core/src/workflows.ts:72`). Named `CadenceStep`, not `Step`: the spine's `Step` is its handler type
 - `template_stats` view: sends, replies, booked (email only) per kind, system, template, version and picks (`packages/core/src/views.ts:123`, migration 0128)
-- records `templates.template|version|variant|sequence|step`, read only (`packages/core/src/template-records.ts:268`)
+- records `templates.template|version|variant|sequence|step`, read only except `templates.template`'s words: `TEMPLATE_EDITS` saves a draft, and Publish is the same edit setting `liveVersion`, so History and Undo cover it (email and prompts; `packages/core/src/template-edits.ts`). Its detail (`templateDetail`) renders each version for the made-up `SAMPLE_LEAD`; a sequence's detail lists its steps with numbers
 
 Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:754`
 
@@ -47,7 +47,8 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:754`
 |---|---|
 | `wren templates import\|list\|show` | moves old copy in, reads it |
 | marketing Texts and DMs pages | save and publish |
-| the Library (step 4) | reads the records |
+| the Library, Templates and Sequences (`apps/portal/web/src/modules/library/`) | edits, publishes, reads numbers; draws a sequence on the graph kit |
+| Workflows' Play | each step's live template, rendered for the made-up lead |
 
 ## See
 

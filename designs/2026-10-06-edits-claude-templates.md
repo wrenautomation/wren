@@ -129,3 +129,9 @@ parallel, then meet in 4.
   setting, on Loops > Settings; `needs: "manage"` on the declaration. The Shop shows the values
   and links there. Drafts (DraftAsk) and the video edit stay on their own path for now: the
   templates builder is changing those files.
+- 2026-10-06: Templates edit through the edits layer (9da9164). `TEMPLATE_EDITS` patches the
+  words (a draft) or `liveVersion` (Publish); the check refuses texts and DMs, empty words,
+  authoring errors and unknown versions. Publish is an inline action on `console/recordsEdit`,
+  so its undo is a rollback, and it never sends. `templateDetail` gives live and draft words
+  rendered for the made-up lead (`SAMPLE_LEAD`, the same as Play's), slots, variants, numbered
+  versions with their numbers, and the campaigns that use it.

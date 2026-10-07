@@ -62,3 +62,8 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
   every app and on the launcher, so a phone sees them too. Drag moves them, Alt with an arrow
   key does the same from the keyboard. App order on the launcher stays the code's. The tile
   menu keeps a hidden tile in its row so a tick never moves the list, and one tile always shows.
+- 2026-10-06: Library built (ec2a456): Templates and Sequences on the list template, not the
+  Shop grid, so filters, saved views and the side panel come free. A template's detail edits
+  and publishes email and prompts only. A sequence shows a row per step with its numbers and a
+  read-only drawing on the graph kit, a step toward the workflow editor. Workflows' Play reads
+  each step's own live template and opens into the steps when the top has none (279ad50).
