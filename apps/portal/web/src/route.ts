@@ -64,6 +64,8 @@ function inApp(e: MouseEvent): string | null {
   if (!(a instanceof HTMLAnchorElement) || a.target || a.hasAttribute("download")) return null;
   const to = new URL(a.href);
   if (to.origin !== location.origin) return null;
+  // The Worker's own routes, like sign-out on a client's host: a real page load.
+  if (/^\/(__auth|api)\//.test(to.pathname)) return null;
   // Same screen, new #fragment: the browser's own jump.
   if (to.hash && to.pathname === location.pathname && to.search === location.search) return null;
   return to.pathname + to.search + to.hash;
