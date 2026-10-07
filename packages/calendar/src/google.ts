@@ -1,9 +1,11 @@
 /**
  * The calendar a booking lands on: Google Calendar over its REST API, acting as the account by
  * domain-wide delegation (the service account Gmail sending already uses, on the `calendar`
- * scope). Busy times come from free/busy; a booking is an event with a Meet link, and Google
- * mails the invite (`sendUpdates=all`). The event id is ours, so a retried insert finds the
- * first one instead of making two. Tests use `FakeHost`, never Google.
+ * scope). Busy times come from free/busy; a booking is an event with a Meet link. With `notify`
+ * the booker is a guest and Google mails the invite (`sendUpdates=all`); without it the event
+ * holds the slot on the owner's calendar only and Google mails no one (`sendUpdates=none`), as a
+ * client's calendar does while its sends are off. The event id is ours, so a retried insert finds
+ * the first one instead of making two. Tests use `FakeHost`, never Google.
  */
 import type { TokenSupplier } from "@wren/channel-email/send";
 import type { Span } from "./slots.js";
@@ -21,6 +23,8 @@ export interface NewEvent {
   zone: string;
   attendee: { email: string; name: string };
   description: string;
+  /** Invite the attendee and let Google mail them. False: no guest, no mail. */
+  notify: boolean;
 }
 
 export interface Made {
@@ -33,9 +37,16 @@ export interface CalendarHost {
   readonly name: string;
   busy(account: string, from: Date, to: Date): Promise<Span[]>;
   create(account: string, event: NewEvent): Promise<Made>;
-  move(account: string, eventId: string, start: Date, end: Date, zone: string): Promise<Made>;
+  move(
+    account: string,
+    eventId: string,
+    start: Date,
+    end: Date,
+    zone: string,
+    notify: boolean,
+  ): Promise<Made>;
   /** Gone already is fine. */
-  remove(account: string, eventId: string): Promise<void>;
+  remove(account: string, eventId: string, notify: boolean): Promise<void>;
 }
 
 /** Our event id for a booking: only Google's base32hex letters. */
@@ -49,6 +60,8 @@ interface GoogleEvent {
   hangoutLink?: string;
   conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] };
 }
+
+const updates = (notify: boolean) => `sendUpdates=${notify ? "all" : "none"}`;
 
 const meetOf = (e: GoogleEvent): string | null =>
   e.hangoutLink ??
@@ -117,14 +130,14 @@ export class GoogleHost implements CalendarHost {
     const res = await this.call(
       account,
       "POST",
-      "/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all",
+      `/calendars/primary/events?conferenceDataVersion=1&${updates(e.notify)}`,
       {
         id: e.id,
         summary: e.title,
         description: e.description,
         start: { dateTime: e.start.toISOString(), timeZone: e.zone },
         end: { dateTime: e.end.toISOString(), timeZone: e.zone },
-        attendees: [{ email: e.attendee.email, displayName: e.attendee.name }],
+        attendees: e.notify ? [{ email: e.attendee.email, displayName: e.attendee.name }] : [],
         conferenceData: {
           createRequest: { requestId: e.id, conferenceSolutionKey: { type: "hangoutsMeet" } },
         },
@@ -147,11 +160,12 @@ export class GoogleHost implements CalendarHost {
     start: Date,
     end: Date,
     zone: string,
+    notify: boolean,
   ): Promise<Made> {
     const res = await this.call(
       account,
       "PATCH",
-      `/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+      `/calendars/primary/events/${encodeURIComponent(eventId)}?${updates(notify)}`,
       {
         start: { dateTime: start.toISOString(), timeZone: zone },
         end: { dateTime: end.toISOString(), timeZone: zone },
@@ -161,11 +175,11 @@ export class GoogleHost implements CalendarHost {
     return { eventId: moved.id, meetUrl: meetOf(moved) };
   }
 
-  async remove(account: string, eventId: string): Promise<void> {
+  async remove(account: string, eventId: string, notify: boolean): Promise<void> {
     const res = await this.call(
       account,
       "DELETE",
-      `/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+      `/calendars/primary/events/${encodeURIComponent(eventId)}?${updates(notify)}`,
     );
     if (res.ok || res.status === 404 || res.status === 410) return;
     throw new Error(`Google Calendar delete: ${res.status} ${(await res.text()).slice(0, 200)}`);
@@ -187,21 +201,28 @@ export class FakeHost implements CalendarHost {
   }
 
   async create(account: string, e: NewEvent): Promise<Made> {
-    this.log.push(`create ${e.id}`);
+    this.log.push(`create ${e.id}${e.notify ? " notify" : ""}`);
     if (!this.events.has(e.id)) this.events.set(e.id, { ...e, account });
     return { eventId: e.id, meetUrl: `https://meet.example.test/${e.id}` };
   }
 
-  async move(_account: string, eventId: string, start: Date, end: Date): Promise<Made> {
-    this.log.push(`move ${eventId}`);
+  async move(
+    _account: string,
+    eventId: string,
+    start: Date,
+    end: Date,
+    _zone: string,
+    notify: boolean,
+  ): Promise<Made> {
+    this.log.push(`move ${eventId}${notify ? " notify" : ""}`);
     const e = this.events.get(eventId);
     if (!e) throw new Error(`no event ${eventId}`);
     this.events.set(eventId, { ...e, start, end });
     return { eventId, meetUrl: `https://meet.example.test/${eventId}` };
   }
 
-  async remove(_account: string, eventId: string): Promise<void> {
-    this.log.push(`remove ${eventId}`);
+  async remove(_account: string, eventId: string, notify: boolean): Promise<void> {
+    this.log.push(`remove ${eventId}${notify ? " notify" : ""}`);
     this.events.delete(eventId);
   }
 }

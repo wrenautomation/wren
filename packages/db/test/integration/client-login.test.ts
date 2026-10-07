@@ -149,6 +149,30 @@ describe("inside its database", () => {
     }
   });
 
+  it("may read and write its calendar's tables, never Wren's own schemas", async () => {
+    const client = postgres(clientAdminUrl(pg.url, ACME), { max: 1 });
+    try {
+      const rows = await client<{ s: string; t: string; w: boolean }[]>`
+        select schemaname as s, tablename as t,
+          has_table_privilege(${ACME}, format('%I.%I', schemaname, tablename), 'SELECT, INSERT') as w
+        from pg_tables where schemaname in ('calendar', 'auth', 'books', 'watch')`;
+      expect(rows.some((r) => r.s === "calendar")).toBe(true);
+      for (const r of rows)
+        expect({ t: `${r.s}.${r.t}`, w: r.w }).toEqual({
+          t: `${r.s}.${r.t}`,
+          w: r.s === "calendar",
+        });
+    } finally {
+      await client.end();
+    }
+    await acme.db.execute(sql`insert into calendar.bookings (calendar, start, "end", name, email, zone)
+      values ('acme', now() + interval '1 day', now() + interval '1 day 30 minutes', 'Ann', 'a@x.test', 'UTC')`);
+    const [n] = await acme.db.execute<{ n: number }>(
+      sql`select count(*)::int n from calendar.booking_records`,
+    );
+    expect(n?.n).toBe(1);
+  });
+
   it("has no grant on main's tables", async () => {
     const rows = await pg.db.execute<{ t: string }>(sql`
       select tablename as t from pg_tables where schemaname = 'public'

@@ -13,4 +13,7 @@ export interface Env {
   /** The sign-in Lambda and the auth Worker's edge secret: a client's host redeems sign-ins there. */
   LAMBDA_URL?: string;
   EDGE_SECRET?: string;
+  /** Turnstile on a client's booking page: both set, a booking must pass it. Unset = honeypot only. */
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET?: string;
 }

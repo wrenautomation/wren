@@ -1,7 +1,8 @@
 /**
  * The booker's mail: booked, moved, cancelled, and the reminders a day and an hour before.
- * Plain text from Wren's portal address, every time on the booker's own clock, and every mail
- * but the cancel carries their signed links to reschedule and to cancel. Google sends its own invite besides.
+ * Plain text from Wren's portal address, signed by whoever owns the calendar (Wren, or a client
+ * by name), every time on the booker's own clock, and every mail but the cancel carries their
+ * signed links to reschedule and to cancel. Google sends its own invite besides.
  */
 import { canonicalZone } from "@wren/core/time";
 import type { CalendarBooking } from "./schema.js";
@@ -34,11 +35,14 @@ export function whenOn(zone: string, at: Date): string {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
 
-/** One mail about `b`. `manage` is its signed link; `rebook` is where to book again. */
+/**
+ * One mail about `b`. `manage` is its signed link; `rebook` is where to book again; `signer`
+ * closes it (Wren when unset).
+ */
 export function mailFor(
   kind: Kind,
   b: CalendarBooking,
-  o: { title: string; manage: string; rebook: string | null },
+  o: { title: string; manage: string; rebook: string | null; signer?: string },
 ): Mail {
   const title = titleFor(o.title, b.name);
   const when = whenOn(b.zone, b.start);
@@ -72,5 +76,5 @@ export function mailFor(
     },
   };
   const { subject, body } = lines[kind];
-  return { to: b.email, subject, text: [hi, "", ...body, "", "Wren"].join("\n") };
+  return { to: b.email, subject, text: [hi, "", ...body, "", o.signer ?? "Wren"].join("\n") };
 }

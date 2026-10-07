@@ -26,3 +26,16 @@ describe("links", () => {
     expect(bookSigned(SHARED, "nope", "intro", "2026-10-06T15:00:00.000Z", "a@b.test")).toBe(false);
   });
 });
+
+describe("client links", () => {
+  it("a client's manage token opens only on that client's page", () => {
+    const t = manageToken(SHARED, 7, "acme");
+    expect(readManage(SHARED, t, "acme")).toBe(7);
+    expect(readManage(SHARED, t, "other")).toBeNull();
+    expect(readManage(SHARED, t)).toBeNull();
+    expect(readManage(SHARED, manageToken(SHARED, 7), "acme")).toBeNull();
+    expect(manageUrl("https://book.acme.test", SHARED, 7, "acme")).toBe(
+      `https://book.acme.test/booking/${t}`,
+    );
+  });
+});

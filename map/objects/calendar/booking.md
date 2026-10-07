@@ -3,13 +3,13 @@ type: object
 cluster: calendar
 universe: live
 status: verified
-verified: 2026-10-07 @ 2cdad29
+verified: 2026-10-07 @ 29640d6
 entity: packages/calendar/src/schema.ts:46
 ---
 
 # booking (calendar)
 
-A call booked on our own calendar (designs/2026-10-06-calendar.md): table `calendar.bookings`, one row per call, booked on the lander's `/book/<offer>` page, moved or cancelled by its signed link. Product word: Calendar.
+A call booked on our own calendar (designs/2026-10-06-calendar.md): table `calendar.bookings`, one row per call, booked on the lander's `/book/<offer>` page (Wren) or a client's own booking page, moved or cancelled by its signed link. Product word: Calendar.
 
 ## Why this shape
 
@@ -22,6 +22,7 @@ Two people must never get one slot, so the slot is a partial unique index on `(c
 - how a call went lives on the mirror ([[email/call-booking]]), not here: `CalendarConsole.won|notYet|noShow|notFit|clear` map ids to `wren-<id>` and call `markOutcome` (`console.ts:50`); `book` and `reschedule` emit the mirror into `close` (`restate.ts:362`)
 - settings: Wren's `calendar.booking` block in `wren_settings` (`rules.ts`), set from the Shop part's Configure or `wren calendar settings`; owner account william@ by delegation on the full calendar scope (`google.ts:58`)
 - services: `Calendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:255`), `CalendarConsole{range,won,notYet,noShow,notFit,clear,cancel}` (`console.ts`; `range` feeds the portal Schedule); bound at `apps/worker/src/services.ts:503`
+- per client: `ClientCalendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:702`) runs the same flows on the client's database and its connected `accounts.google_calendar`; `calendarOwner` (`restate.ts:651`) refuses a client without the part; `ownerDeps` (`restate.ts:674`) gates the invite and mails on the client's `sends` flag (off: no guest, `sendUpdates=none`, no mail); manage tokens scoped `manage:<client>:<id>` (`links.ts`). The page is the portal Worker's `bookRoute` (`apps/portal/src/book.ts`), on the client's live domain or `/c/<client>/book` on the app host. `CalendarConsole` takes `client` (`console.ts:161`)
 - SMS: `CalendarBookings` (`sms.ts:11`) feeds SmsWatch's reminder pass beside cal.com's (`AllBookings`); the hour-before template is empty until written
 
 Citations: `packages/calendar/src/schema.ts:80`, `packages/calendar/src/book.ts:64`, `packages/calendar/src/restate.ts:255`
@@ -29,12 +30,12 @@ Citations: `packages/calendar/src/schema.ts:80`, `packages/calendar/src/book.ts:
 ## Connected to
 
 - **owns:** the Google event and Meet link on the owner's calendar
-- **joins:** [[email/call-booking]] (the mirror), [[platform/phone-worker]] (`/calendar/<handler>`), [[platform/records]]
+- **joins:** [[email/call-booking]] (the mirror), [[platform/phone-worker]] (`/calendar/<handler>`), [[platform/records]], the spine (Booking triggers)
 - **looks-like-but-is-not:** `call_bookings` (every source's bookings, cal.com's too); `call_invites` (a reply's proposed slot)
 
 ## If you change this
 
-- **Hits:** the lander (`../lander/functions/api/{slots,book,booking}.ts`, `functions/_shared/calendar.ts` signs `bookSig` the same way), the phone Worker's handler list, `call_bookings` via the mirror, SmsWatch reminders, `apps/portal/web/src/modules/calendar`
+- **Hits:** client booking pages (`apps/portal/src/book.ts`, `web/book.html`), the client login's grants (`CLIENT_SCHEMAS`), the lander (`../lander/functions/api/{slots,book,booking}.ts`, `functions/_shared/calendar.ts` signs `bookSig` the same way), the phone Worker's handler list, `call_bookings` via the mirror, SmsWatch reminders, `apps/portal/web/src/modules/calendar`
 - **Does not hit:** cal.com's webhook path (`CallBookings/ingest`); the lander's `/api/calcom` Discord ping
 
 ## Surfaces
@@ -42,7 +43,8 @@ Citations: `packages/calendar/src/schema.ts:80`, `packages/calendar/src/book.ts:
 | Surface | Role |
 |---|---|
 | lander `/book/<offer>`, `/booking/<token>` | books, moves, cancels |
-| Google Calendar (william@) | busy times in; events with Meet out |
+| client host `/book/<tag>`, `/booking/<token>` (or app host `/c/<client>/...`) | a client's bookers book, move, cancel |
+| Google Calendar (william@, or the client's connected account) | busy times in; events with Meet out |
 | booker's inbox | confirmation, moved, cancelled, day and hour reminders from portal@ |
 | portal Calendar app | Schedule (week/day/month/list over `range`), Calls list; Won, Not yet, No-show, Not a fit, cancel; the call's brief in the panel |
 

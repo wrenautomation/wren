@@ -27,7 +27,12 @@ import {
 } from "@wren/calendar";
 import { makeCalendarConsole } from "@wren/calendar/console";
 import { CALENDAR_RECORDS } from "@wren/calendar/records";
-import { type CalendarDeps, makeCalendar } from "@wren/calendar/restate";
+import {
+  type CalendarDeps,
+  type ClientCalendarDeps,
+  makeCalendar,
+  makeClientCalendar,
+} from "@wren/calendar/restate";
 import {
   activeSenders,
   Broadcast,
@@ -558,6 +563,16 @@ export async function buildServices(
   const googleCalendar = new GoogleHost((account) =>
     serviceAccountToken(calendarKey(), { scopes: [CALENDAR_SCOPE], subject: account }),
   );
+  // The booker's mail from portal@ under the calendar owner's name; unset, no booker mail at all.
+  const bookerMailer =
+    settings.portalFrom && settings.portalMailbox
+      ? (name: string) =>
+          plainMailer(gmail, {
+            mailbox: settings.portalMailbox as string,
+            from: settings.portalFrom as string,
+            name,
+          })
+      : null;
   const calendarDeps: CalendarDeps = {
     db,
     calendar: "wren",
@@ -565,14 +580,19 @@ export async function buildServices(
     host: googleCalendar,
     shared: settings.siteExportToken ?? null,
     site: settings.siteBaseUrl.replace(/\/+$/, ""),
-    send:
-      settings.portalFrom && settings.portalMailbox
-        ? plainMailer(gmail, {
-            mailbox: settings.portalMailbox,
-            from: settings.portalFrom,
-            name: "Wren",
-          })
-        : null,
+    send: bookerMailer?.("Wren") ?? null,
+    fire: spineFire,
+  };
+  // A client's booking calendar: its database, its connected Google account, its host. Its mail
+  // and Google's invite wait on its sends flag (`ownerDeps`).
+  const clientCalendarDeps: ClientCalendarDeps = {
+    main: db,
+    open: openClient,
+    host: googleCalendar,
+    shared: settings.siteExportToken ?? null,
+    portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
+    mailer: bookerMailer,
+    fire: spineFire,
   };
   // Site flags, pushed to the lander's edge on every change and each search pass.
   const edge = settings.siteEdgeToken
@@ -737,7 +757,8 @@ export async function buildServices(
     }),
     // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
     makeCalendar(calendarDeps),
-    makeCalendarConsole(calendarDeps),
+    makeClientCalendar(clientCalendarDeps),
+    makeCalendarConsole({ wren: calendarDeps, clients: clientCalendarDeps }),
     // The voice agent's portal writes: test calls saved (designs/2026-10-06-voice-agent.md).
     makeVoiceConsole({ db }),
     // The Library's templates: save, publish (copy that sends waits in To approve), approve.
@@ -1022,6 +1043,14 @@ export async function buildServices(
   };
   // A client's texts: its database and messaging profile in Wren's Telnyx account, its
   // cal.com login for reminders, Wren's rules. No site forms, no phone-app pushes.
+  /** A client's calls its reminders read: its own calendar's, its cal.com's; none = null. */
+  const bookingsOf = (plan: Extract<ClientSms, { kind: "work" }>) => {
+    const sources = [
+      ...(plan.calendar ? [new CalendarBookings(clientDb(plan.client.id), plan.client.id)] : []),
+      ...(plan.calcom ? [clientBookings(plan.calcom)] : []),
+    ];
+    return sources.length ? new AllBookings(sources) : null;
+  };
   const clientTexts = {
     ...sms,
     forClient: (plan: Extract<ClientSms, { kind: "work" }>) => ({
@@ -1035,7 +1064,7 @@ export async function buildServices(
       senderName: plan.senderName ?? sms.senderName,
       bookingLink: plan.bookingLink,
       site: null,
-      bookings: plan.calcom ? clientBookings(plan.calcom) : null,
+      bookings: bookingsOf(plan),
       pusher: null,
       ...(sms.notifier ? { notifier: namedFor(sms.notifier, plan.client.id) } : {}),
     }),

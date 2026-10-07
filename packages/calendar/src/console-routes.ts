@@ -1,17 +1,23 @@
 import type { Need, RouteApps } from "@wren/core/access";
 
 /**
- * CalendarConsole's handlers and what each needs (`range` reads the week; the rest write): the edge Worker opens only these. Wren's own
- * calendar, so Wren's team; a cancel mails the booker. Type imports only.
+ * CalendarConsole's handlers and what each needs (`range` and `records*` read; the rest write):
+ * the edge Worker opens only these. Wren's calendar with no client named (Wren's team), else the
+ * client's; a cancel mails the booker. Type imports only.
  */
 export const CALENDAR_CONSOLE_ROUTES = {
-  range: "wren:read",
-  won: "wren:act",
-  notYet: "wren:act",
-  noShow: "wren:act",
-  notFit: "wren:act",
-  clear: "wren:act",
-  cancel: "wren:effect",
+  range: "read",
+  recordsTypes: "read",
+  recordsList: "read",
+  recordsGet: "read",
+  recordsExport: "read",
+  recordsStats: "read",
+  won: "act",
+  notYet: "act",
+  noShow: "act",
+  notFit: "act",
+  clear: "act",
+  cancel: "effect",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): the Calendar. */
 export const CALENDAR_CONSOLE_APPS = { "*": "calendar" } as const satisfies RouteApps<

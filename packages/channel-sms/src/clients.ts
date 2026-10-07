@@ -1,15 +1,18 @@
 /**
  * Texts and call reminders for a client (designs/2026-10-04-outbound-per-client.md, O4): its
  * numbers (the Telnyx messaging profile in `clients.accounts.telnyx`, inside Wren's Telnyx
- * account), its database, and its cal.com (the autobrowse login in `clients.accounts.calcom`).
- * `{}` texts under Wren's sender name with no 10DLC campaign to watch.
+ * account), its database, its cal.com (the autobrowse login in `clients.accounts.calcom`) and its
+ * own booking calendar (`calendar.booking`). `{}` texts under Wren's sender name with no 10DLC
+ * campaign to watch.
  */
-import { type Client, findClient } from "@wren/core/clients";
+import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 
 export const TEXTS = "sms.texts";
 export const REMINDERS = "sms.reminders";
+/** The booking calendar part; its reminders text only with its sends flag on. */
+const BOOKING = "calendar.booking";
 
 export const textsSettingsSchema = z
   .object({
@@ -36,8 +39,10 @@ export type ClientSms =
       senderName: string | null;
       campaignId: string | null;
       bookingLink: string | null;
-      /** The autobrowse cal.com login reminders read; null = no reminders. */
+      /** The autobrowse cal.com login reminders read; null = none there. */
       calcom: string | null;
+      /** Reminders read the client's own booking calendar too: installed, its sends on. */
+      calendar: boolean;
     };
 
 export async function clientSms(main: Db, id: string): Promise<ClientSms> {
@@ -59,5 +64,9 @@ export async function clientSms(main: Db, id: string): Promise<ClientSms> {
     bookingLink: texts.data.bookingLink,
     calcom:
       products[REMINDERS] !== undefined && client.accounts.calcom ? client.accounts.calcom : null,
+    calendar:
+      products[REMINDERS] !== undefined &&
+      products[BOOKING] !== undefined &&
+      sendsOn(client, BOOKING),
   };
 }

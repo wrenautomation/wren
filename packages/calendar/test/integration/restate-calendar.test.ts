@@ -73,7 +73,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       makeCalendar(deps),
-      makeCalendarConsole(deps),
+      makeCalendarConsole({ wren: deps }),
       makeSpine({
         main: pg.db,
         clientDb: () => pg.db,

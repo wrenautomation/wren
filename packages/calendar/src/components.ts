@@ -1,4 +1,7 @@
-/** Our own booking calendar (designs/2026-10-06-calendar.md), replacing Cal.com. */
+/**
+ * Our own booking calendar (designs/2026-10-06-calendar.md), replacing Cal.com: Wren's, and each
+ * client's on its own host, its own Google Calendar and its own database.
+ */
 import { defineComponent } from "@wren/core/components";
 import { calendarSettingsSchema } from "./rules.js";
 
@@ -12,14 +15,15 @@ export const CALENDAR_COMPONENTS = [
       "A booking page on your site: open times from your calendar, a Meet link, reminders, and follow-ups stop when someone books.",
     icon: "clock",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: books on Wren's own calendar only"],
+    ready: true,
     wrenSettings: true,
-    requires: { accounts: ["google_calendar"] },
+    requires: { accounts: ["google_calendar"], facts: ["google_calendar.delegated"] },
+    // The booker's mail and Google's invite wait on the client's sends flag.
+    liveSwitch: true,
     settings: calendarSettingsSchema,
     effects: ["sends"],
     provides: {
-      services: ["Calendar", "CalendarConsole"],
+      services: ["Calendar", "ClientCalendar", "CalendarConsole"],
       records: ["calendar.booking"],
       apps: ["calendar"],
     },
@@ -35,9 +39,17 @@ export const CALENDAR_COMPONENTS = [
       from: "Wren's own intro calls, 2026-10",
       guesses: [
         { is: "change", says: "Open hours, zone, length and notice.", built: "settings.hours" },
-        { is: "change", says: "Whose Google calendar.", built: "settings.account" },
+        {
+          is: "change",
+          says: "Whose Google calendar.",
+          built: "the client's google_calendar account",
+        },
         { is: "change", says: "The call's name.", built: "settings.title" },
-        { is: "needs", says: "The page on the client's own site.", built: null },
+        {
+          is: "needs",
+          says: "The page on the client's own site.",
+          built: "its own host or the portal",
+        },
         {
           is: "fixed",
           says: "One call per slot, held by Postgres; a booking stops follow-ups like a reply.",

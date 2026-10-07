@@ -96,7 +96,7 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Watch: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
-  // Our booking calendar: how a call went, and cancel.
+  // Booking calendars, Wren's and each client's: the week, the calls, how one went, cancel.
   calendar: service(
     "CalendarConsole",
     CALENDAR_CONSOLE_ROUTES,

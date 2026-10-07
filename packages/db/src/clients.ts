@@ -106,9 +106,14 @@ export async function clientDatabases(main: Db): Promise<string[]> {
  *   setting it gave itself (`ALTER ROLE ... SET`) is cleared.
  * - PUBLIC may connect to no database; the role only to its own.
  * - Inside: read and write every table, draw from every sequence (never reset
- *   one); the audit tables are read-only and their sequences closed; the
- *   migrations table is readable (`wren db check`).
+ *   one), in `public` and in the schemas a client's parts keep (`CLIENT_SCHEMAS`);
+ *   the audit tables are read-only and their sequences closed; the migrations
+ *   table is readable (`wren db check`). Wren's own schemas (auth, books, watch)
+ *   stay closed.
  */
+/** Schemas past `public` a client's parts keep rows in: its booking calendar's. */
+export const CLIENT_SCHEMAS = ["calendar"] as const;
+
 export async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
   const role = checkedDatabase(database);
   const verifier = scramVerifier(clientLoginPassword(mainUrl, database));
@@ -138,6 +143,16 @@ export async function grantClientAccess(admin: Db, mainUrl: string, database: st
   // USAGE covers nextval; UPDATE would also allow setval, rewinding ids.
   await run(`REVOKE UPDATE ON ALL SEQUENCES IN SCHEMA public FROM "${role}"`);
   await run(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "${role}"`);
+  for (const schema of CLIENT_SCHEMAS) {
+    const there = await admin.execute(sql`select 1 from pg_namespace where nspname = ${schema}`);
+    if (there.length === 0) continue;
+    await run(`GRANT USAGE ON SCHEMA "${schema}" TO "${role}"`);
+    await run(
+      `GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA "${schema}" TO "${role}"`,
+    );
+    await run(`REVOKE UPDATE ON ALL SEQUENCES IN SCHEMA "${schema}" FROM "${role}"`);
+    await run(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA "${schema}" TO "${role}"`);
+  }
   const log = AUDIT_TABLES.join(", ");
   await run(`REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ${log} FROM "${role}"`);
   const sequences = await admin.execute<{ name: string }>(sql`

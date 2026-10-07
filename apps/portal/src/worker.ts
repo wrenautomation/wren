@@ -11,6 +11,8 @@
  *   demo. The service's guard decides who may call each route.
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
+ * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
+ *   host, public, with its own API at `__book/<handler>`.
  * - everything else: the built app in dist/.
  *
  * The Worker holds no data: each client's list is its own Postgres database,
@@ -19,6 +21,7 @@
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
+import { bookRoute } from "./book.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { SERVICES } from "./services.js";
@@ -182,6 +185,11 @@ export default {
     }
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
+    const booking = await bookRoute(req, env, site);
+    if (booking) return booking;
+    // The booking page's own file is only for a client's booking path above.
+    if (/^\/book(\.html)?\/?$/.test(pathname))
+      return env.ASSETS.fetch(new Request(new URL("/", req.url), req));
     if (pathname === "/replay") return replayPage(req, env);
     // A record page whose id holds a slash (/handlers/all/Ads%2Fstart): the asset server would
     // 307 it to the decoded path, a different page. The app reads the id from the address.

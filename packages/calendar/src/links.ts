@@ -5,7 +5,8 @@
  * - `bookSig`: the lander's proof that a booking passed its bot check. Only the lander holds the
  *   token, so the public door can't book without it.
  * - `manageToken`: a booking's own reschedule and cancel link, one per booking. It names the
- *   booking and nothing else, so it stays good across a reschedule.
+ *   booking and nothing else, so it stays good across a reschedule. A client's booking also
+ *   names its client (`scope`), so a token from one client's page opens nothing on another's.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -30,23 +31,26 @@ export function bookSigned(
 
 const manageKey = (shared: string) =>
   createHmac("sha256", shared).update("wren calendar v1").digest();
-const manageMac = (shared: string, id: number) =>
-  createHmac("sha256", manageKey(shared)).update(`manage:${id}`).digest().subarray(0, 18);
+const manageMac = (shared: string, id: number, scope?: string) =>
+  createHmac("sha256", manageKey(shared))
+    .update(scope ? `manage:${scope}:${id}` : `manage:${id}`)
+    .digest()
+    .subarray(0, 18);
 
-/** `<id>.<mac>`: the path segment of a booking's manage link. */
-export const manageToken = (shared: string, id: number) =>
-  `${id}.${manageMac(shared, id).toString("base64url")}`;
+/** `<id>.<mac>`: the path segment of a booking's manage link. `scope` is a client's id. */
+export const manageToken = (shared: string, id: number, scope?: string) =>
+  `${id}.${manageMac(shared, id, scope).toString("base64url")}`;
 
-/** The booking a manage token names, or null when it wasn't signed with `shared`. */
-export function readManage(shared: string, token: string): number | null {
+/** The booking a manage token names, or null when it wasn't signed with `shared` and `scope`. */
+export function readManage(shared: string, token: string, scope?: string): number | null {
   const m = /^(\d{1,9})\.([A-Za-z0-9_-]{24})$/.exec(token.trim());
   if (!m) return null;
   const id = Number(m[1]);
-  const want = manageMac(shared, id);
+  const want = manageMac(shared, id, scope);
   const got = Buffer.from(m[2] as string, "base64url");
   return got.length === want.length && timingSafeEqual(got, want) ? id : null;
 }
 
 /** The page a booker manages their call on. */
-export const manageUrl = (site: string, shared: string, id: number) =>
-  `${site.replace(/\/+$/, "")}/booking/${manageToken(shared, id)}`;
+export const manageUrl = (site: string, shared: string, id: number, scope?: string) =>
+  `${site.replace(/\/+$/, "")}/booking/${manageToken(shared, id, scope)}`;
