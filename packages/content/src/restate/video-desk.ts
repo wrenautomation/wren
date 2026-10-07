@@ -1,7 +1,7 @@
 /**
- * `VideoDesk`: a video edited from its page (designs/2026-10-06-video-editor.md, step 4). `set`
- * writes fields, `cut` cuts or keeps a span, `undo` puts back the newest change: each one
- * studio's `setEdit`, a `runs` row with what it replaced. `ask` hands his words and the edit to the
+ * `VideoDesk`: a video edited from its page (designs/2026-10-06-video-editor.md, steps 4-5). `set`
+ * writes fields, `cut` cuts or keeps a span, `words` fixes a misheard word, `undo` puts back the
+ * newest change: each one studio's `setEdit` (or `setWords`), a `runs` row with what it replaced. `ask` hands his words and the edit to the
  * desk's read-only `claude`; Wren checks the patch it answers and writes it. `render` queues the
  * Mac's `studio.render` (`wren video render <id> --cut` there); while the Mac is off it waits in
  * Restate. Nothing renders here and nothing uploads.
@@ -13,7 +13,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
-import { getEdit, setCut, setEdit, setRender } from "@wren/studio/edit";
+import { getEdit, setCut, setEdit, setRender, setWords } from "@wren/studio/edit";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -91,6 +91,43 @@ export function makeVideoDesk(db: Db) {
               setCut(db, req.id, { from: req.from, to: req.to }, req.state, byOf(req)).then(
                 ({ run }) => ({ run }),
               ),
+            ),
+          ),
+      ),
+
+      /** Fix a misheard word: every match of `wrong`, or the one word at `at` seconds. */
+      words: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            wrong: z.string().nullish().describe("Fix every match of this"),
+            right: z.string().nullish().describe("to this"),
+            at: z.number().nonnegative().nullish().describe("Or the one word said at this second"),
+            text: z.string().nullish().describe("its new text"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: One & {
+            wrong?: string | null;
+            right?: string | null;
+            at?: number | null;
+            text?: string | null;
+          },
+        ) =>
+          ctx.run("words", () =>
+            told(
+              (async () => {
+                const change =
+                  req.wrong && req.right
+                    ? { wrong: req.wrong, right: req.right }
+                    : req.at != null && req.text
+                      ? { at: req.at, text: req.text }
+                      : null;
+                if (!change) throw new Error("say the wrong word and the right one");
+                const { run, n } = await setWords(db, req.id, change, { by: byOf(req) });
+                return { run, n };
+              })(),
             ),
           ),
       ),

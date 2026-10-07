@@ -5,7 +5,7 @@
 import { basename } from "node:path";
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { keepSegments, onCut, toCutTime } from "./cuts.js";
-import { FPS } from "./media.js";
+import { cutSize, FPS, portrait } from "./media.js";
 import type { LayoutRange, Short, VideoEdit, Word } from "./schema.js";
 
 export type LongProps = {
@@ -73,28 +73,60 @@ export type ThumbnailProps = {
   look: Look;
 };
 
+export type VerticalProps = Omit<LongProps, "cam" | "layout"> & {
+  /** What fills the 9:16 frame: a file in the public dir, its size, the window shown of it. */
+  picture: { file: string; size: [number, number]; window: [number, number, number, number] };
+};
+
+/**
+ * The window of a `w` x `h` picture a 9:16 frame shows: all of a portrait one (cropped to 9:16 at
+ * its centre), else full height and 9:16 wide, centred on `cx` (his face) and kept inside.
+ */
+export function verticalWindow(w: number, h: number, cx = w / 2): [number, number, number, number] {
+  const r = 9 / 16;
+  if (w / h <= r) {
+    const wh = Math.round(w / r);
+    return [0, Math.round((h - wh) / 2), w, wh];
+  }
+  const ww = Math.round(h * r);
+  return [Math.round(Math.min(w - ww, Math.max(0, cx - ww / 2))), 0, ww, h];
+}
+
+/**
+ * The whole cut as 9:16 (step 5). A portrait recording fills it. A landscape one is cropped to a
+ * 9:16 window on his face: the camera file's centre when there is one, the cam box's centre in a
+ * one-file recording, else the frame's centre. The recording always carries the sound.
+ */
+export function verticalProps(edit: VideoEdit): VerticalProps {
+  const { cam: _c, layout: _l, ...long } = longProps(edit);
+  const face = faceOf(edit);
+  // A portrait recording is the picture; else the camera file, else the recording.
+  const own = portrait(edit.tracks.main) || !face.file || !!face.box;
+  const [w, h] = own ? cutSize(edit.tracks.main) : face.size;
+  const cx = own && face.box ? face.box[0] + face.box[2] / 2 : w / 2;
+  const file = own ? long.main : (face.file as string);
+  return { ...long, picture: { file, size: [w, h], window: verticalWindow(w, h, cx) } };
+}
+
 /** Shorts run 20 to 60 s on the cut timeline, 2 to 4 of them (or none). */
 export const SHORT_S = { min: 20, max: 60 } as const;
 export const SHORT_COUNT = { min: 2, max: 4 } as const;
 
 function faceOf(edit: VideoEdit): Face {
   const { main, cam, camBox } = edit.tracks;
-  // The cut pass scales every track to 1080 high.
-  const sized = (w: number, h: number): [number, number] => [
-    Math.round((w * 1080) / h / 2) * 2,
-    1080,
-  ];
+  // The cut pass writes each track at 1080 on its short side (`cutSize`).
   if (cam && edit.files.cutCam)
-    return { file: basename(edit.files.cutCam), box: null, size: sized(cam.width, cam.height) };
+    return { file: basename(edit.files.cutCam), box: null, size: cutSize(cam) };
+  const size = cutSize(main);
   if (camBox && edit.files.cutMain) {
-    const k = 1080 / main.height;
+    const k = size[0] / main.width;
     return {
       file: basename(edit.files.cutMain),
       box: camBox.map((n) => Math.round(n * k)) as Face["box"],
-      size: sized(main.width, main.height),
+      size,
     };
   }
-  return { file: null, box: null, size: sized(main.width, main.height) };
+  return { file: null, box: null, size };
 }
 
 /** Short `n` (1-based): the Long props cut down to its span, times from its start. */

@@ -1,13 +1,23 @@
 /**
- * `wren video add|list|show|set|approve|cuts|keep|knobs|cut|studio|render|look|find`: the video
+ * `wren video add|list|show|set|words|approve|cuts|keep|knobs|cut|studio|render|look|find`: the video
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
+import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { approveVideo, reelKey, uploadMedia, VIDEO_PRIVACY } from "@wren/content";
+import {
+  AWS_LOGIN_HINT,
+  approveVideo,
+  checkMediaStore,
+  reelKey,
+  setYoutubeFooter,
+  uploadMedia,
+  VIDEO_PRIVACY,
+  youtubeFooter,
+} from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
@@ -44,13 +54,17 @@ import {
   setLook,
   setRender,
   setRendered,
+  setStudioWords,
+  setWords,
   shortProps,
+  studioWords,
   thumbnailProps,
   toRaw,
   twelvelabsFind,
   twelvelabsLooker,
   twelvelabsMinutes,
   type VideoEdit,
+  verticalProps,
   videoEdits,
 } from "@wren/studio";
 import type { Command } from "commander";
@@ -67,6 +81,9 @@ OBS > Tools > Source Record on the camera source, same folder as the main record
 lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and camera files, lined
 up by Cap's start times. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
 
+/** What `render --only` takes: a format, or the Shorts or thumbnails alone. */
+const PARTS = ["long", "vertical", "shorts", "thumbs"] as const;
+
 const id = (v: string) => {
   const n = Number.parseInt(v, 10);
   if (!(n > 0)) throw new Error(`"${v}" is not a video id`);
@@ -79,6 +96,21 @@ function editJson(e: VideoEdit): string {
   const { words, ...rest } = e;
   const head = JSON.stringify(rest, null, 2).replace(/\n}$/, "");
   return `${head},\n  "words": [\n${words.map((w) => `    ${JSON.stringify(w)}`).join(",\n")}\n  ]\n}`;
+}
+
+type RenderOpts = { short?: number; only?: string; cut?: boolean; upload?: boolean };
+
+/** What the job would render that out/ already holds, by output name (`--upload`). */
+function rendered(out: string, job: RenderJob): Record<string, string> {
+  const videos = [
+    ...(job.long ? ["long"] : []),
+    ...(job.vertical ? ["vertical"] : []),
+    ...[...(job.shorts?.keys() ?? [])].map((n) => `short-${n}`),
+  ].map((n) => [n, join(out, `${n}.mp4`)] as const);
+  const thumbs = (job.thumbnails ?? []).map(
+    (p) => [`thumb-${p.variant}`, join(out, `thumb-${p.variant}.jpg`)] as const,
+  );
+  return Object.fromEntries([...videos, ...thumbs].filter(([, f]) => existsSync(f)));
 }
 
 export function registerStudio(
@@ -164,7 +196,7 @@ export function registerStudio(
   video
     .command("set <id>")
     .description(
-      "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, thumbnail",
+      "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, formats, thumbnail",
     )
     .option("--file <f>", "read the JSON from this file; else stdin")
     .action(async (v: string, o: { file?: string }) => {
@@ -175,20 +207,42 @@ export function registerStudio(
     });
 
   video
+    .command("words <id>")
+    .description("fix a misheard word in the transcript before render: its text, never its times")
+    .option("--fix <wrong=right>", 'every match, case kept: --fix "drug fooding=dogfooding"')
+    .option("--at <s>", "the one word said at this second of the recording (with <text>)", Number)
+    .argument("[text]", "the word's new text, with --at")
+    .action((v: string, text: string | undefined, o: { fix?: string; at?: number }) =>
+      withDb(async (db) => {
+        let change: { wrong: string; right: string } | { at: number; text: string };
+        if (o.fix) {
+          const [wrong = "", ...rest] = o.fix.split("=");
+          change = { wrong, right: rest.join("=") };
+        } else if (o.at !== undefined && text) change = { at: o.at, text };
+        else throw new Error('pass --fix "wrong=right", or --at <s> <text>');
+        const r = await setWords(db, id(v), change, { by: "cli" });
+        console.log(`video ${v}: ${r.n} ${r.n === 1 ? "word" : "places"} fixed (run ${r.run})`);
+      }),
+    );
+
+  video
     .command("approve <id>")
     .description(
       "his yes: a YouTube draft of the rendered file, uploaded by the desk on the next pass",
     )
     .option("--short <n>", "a Short instead of the long video, 1 for the first", (n) => id(n))
+    .option("--vertical", "the vertical cut (YouTube, plus an Instagram Reel draft)")
     .option("--privacy <p>", `who sees it: ${VIDEO_PRIVACY.join(", ")}`, "private")
-    .action((v: string, o: { short?: number; privacy: string }) =>
+    .action((v: string, o: { short?: number; vertical?: boolean; privacy: string }) =>
       withDb(async (db) => {
         const privacy = VIDEO_PRIVACY.find((p) => p === o.privacy);
         if (!privacy) throw new Error(`--privacy ${o.privacy}: one of ${VIDEO_PRIVACY.join(", ")}`);
+        if (o.short && o.vertical) throw new Error("--short or --vertical, not both");
         const d = await approveVideo(db, id(v), {
           source: "cli",
           privacy,
           ...(o.short ? { short: o.short } : {}),
+          ...(o.vertical ? { vertical: true } : {}),
         });
         console.log(
           d.again
@@ -200,6 +254,20 @@ export function registerStudio(
           console.log(
             `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
           );
+      }),
+    );
+
+  video
+    .command("footer")
+    .description(
+      "the text under every YouTube description (wren_settings youtube.footer); prints it",
+    )
+    .option("--set <file>", 'replace it with this file\'s text ("-" for stdin; empty turns it off)')
+    .action((o: { set?: string }) =>
+      withDb(async (db) => {
+        if (o.set !== undefined) await setYoutubeFooter(db, await readText(o.set), "cli");
+        const footer = await youtubeFooter(db);
+        console.log(footer || "(no footer)");
       }),
     );
 
@@ -241,19 +309,28 @@ export function registerStudio(
     .option("--air <s>", "kept on each side of a word", Number)
     .option("--noise-margin <db>", "silence threshold over the measured noise floor", Number)
     .option("--snap <s>", "how far inward an edge may move to the quietest 20 ms", Number)
-    .action((o: { minGap?: number; air?: number; noiseMargin?: number; snap?: number }) =>
-      withDb(async (db) => {
-        const patch = {
-          ...(o.minGap !== undefined ? { minGapS: o.minGap } : {}),
-          ...(o.air !== undefined ? { airS: o.air } : {}),
-          ...(o.noiseMargin !== undefined ? { noiseMarginDb: o.noiseMargin } : {}),
-          ...(o.snap !== undefined ? { snapS: o.snap } : {}),
-        };
-        const k = Object.keys(patch).length
-          ? await setCutKnobs(db, patch, "cli")
-          : await cutKnobs(db);
-        console.log(JSON.stringify(k));
-      }),
+    .option(
+      "--words <list>",
+      "names Whisper should spell right on ingest, comma between (studio.words)",
+    )
+    .action(
+      (o: { minGap?: number; air?: number; noiseMargin?: number; snap?: number; words?: string }) =>
+        withDb(async (db) => {
+          const patch = {
+            ...(o.minGap !== undefined ? { minGapS: o.minGap } : {}),
+            ...(o.air !== undefined ? { airS: o.air } : {}),
+            ...(o.noiseMargin !== undefined ? { noiseMarginDb: o.noiseMargin } : {}),
+            ...(o.snap !== undefined ? { snapS: o.snap } : {}),
+          };
+          const k = Object.keys(patch).length
+            ? await setCutKnobs(db, patch, "cli")
+            : await cutKnobs(db);
+          const words =
+            o.words !== undefined
+              ? await setStudioWords(db, o.words.split(","), "cli")
+              : await studioWords(db);
+          console.log(JSON.stringify({ cuts: k, words }));
+        }),
     );
 
   /** The cut pass: both tracks cut to the edit's cuts, the files on the row. */
@@ -297,12 +374,16 @@ export function registerStudio(
   video
     .command("render <id>")
     .description(
-      "Remotion render to <dir>/out: long 16:9, Shorts 9:16, 3 thumbnails; previews and stills to S3",
+      "Remotion render to <dir>/out: the edit's formats (long 16:9, vertical 9:16), Shorts 9:16, 3 thumbnails; previews and stills to S3",
     )
     .option("--short <n>", "only Short n", id)
-    .option("--only <part>", "long, shorts or thumbs")
+    .option(
+      "--only <part>",
+      `${PARTS.join(", ")} (a format renders even if the edit doesn't list it)`,
+    )
     .option("--cut", "run the cut pass first (the page's Render does)")
-    .action((v: string, o: { short?: number; only?: string; cut?: boolean }) =>
+    .option("--upload", "no render: upload what out/ already holds and mark it rendered")
+    .action((v: string, o: RenderOpts) =>
       withDb(async (db) => {
         // Its state on the row for the page: rendering, then done (setRendered) or failed and why.
         const at = () => new Date().toISOString();
@@ -317,19 +398,25 @@ export function registerStudio(
       }),
     );
 
-  async function renderOne(db: Db, v: string, o: { short?: number; only?: string; cut?: boolean }) {
+  async function renderOne(db: Db, v: string, o: RenderOpts) {
+    if (o.upload && o.cut) throw new Error("--upload uploads what is rendered; drop --cut");
+    // A long render that can't upload at its end is lost time: check the session first.
+    if (settings.mediaBucket) await checkMediaStore({ bucket: settings.mediaBucket });
     if (o.cut) await cutPass(db, await getEdit(db, id(v)));
     const e = await getEdit(db, id(v));
-    if (o.only && !["long", "shorts", "thumbs"].includes(o.only))
-      throw new Error("--only is long, shorts or thumbs");
+    if (o.only && !PARTS.includes(o.only as (typeof PARTS)[number]))
+      throw new Error(`--only is ${PARTS.join(", ")}`);
     const part = o.short ? "shorts" : o.only;
-    const want = (p: string) => !part || part === p;
+    // With no --only: the formats the edit lists, its Shorts and thumbnails.
+    const want = (p: string) =>
+      part ? part === p : p === "long" || p === "vertical" ? e.formats.includes(p) : true;
     const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
     const thumbs = want("thumbs") ? thumbnailProps(e) : null;
     if (want("thumbs") && !thumbs)
       console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
     const job: RenderJob = {
       ...(want("long") ? { long: longProps(e) } : {}),
+      ...(want("vertical") ? { vertical: verticalProps(e) } : {}),
       ...(want("shorts") ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n)])) } : {}),
       ...(thumbs ? { thumbnails: thumbs } : {}),
     };
@@ -338,24 +425,39 @@ export function registerStudio(
       db,
       {
         command: "video render",
-        argv: { id: e.id, short: o.short ?? null, only: part ?? null },
+        argv: { id: e.id, short: o.short ?? null, only: part ?? null, upload: !!o.upload },
       },
       async () => {
-        const { files, seconds } = await renderAll(studioDir, e.dir, job, (l) => console.log(l));
+        const { files, seconds } = o.upload
+          ? { files: await rendered(join(e.dir, "out"), job), seconds: {} }
+          : await renderAll(studioDir, e.dir, job, (l) => console.log(l), settings.ffmpeg);
+        if (o.upload && !Object.keys(files).length)
+          throw new Error(
+            `nothing rendered in ${join(e.dir, "out")}: run wren video render ${e.id}`,
+          );
         // Previews (540p) and stills to the private media bucket, keyed by content hash. Each
         // full Short goes up too, as its Instagram Reel: Graph fetches a URL, not a Mac path.
         const keys: Record<string, string> = {};
-        if (settings.mediaBucket)
-          for (const [name, file] of Object.entries(files)) {
-            const up = file.endsWith(".mp4")
-              ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
-              : file;
-            keys[name] = await uploadMedia(up, { bucket: settings.mediaBucket });
-            const short = /^short-(\d+)$/.exec(name);
-            if (short)
-              keys[reelKey(Number(short[1]))] = await uploadMedia(file, {
-                bucket: settings.mediaBucket,
-              });
+        const bucket = settings.mediaBucket;
+        if (bucket)
+          try {
+            for (const [name, file] of Object.entries(files)) {
+              const up = file.endsWith(".mp4")
+                ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
+                : file;
+              keys[name] = await uploadMedia(up, { bucket });
+              const short = /^short-(\d+)$/.exec(name);
+              if (short || name === "vertical")
+                keys[reelKey(short ? Number(short[1]) : "vertical")] = await uploadMedia(file, {
+                  bucket,
+                });
+            }
+          } catch (err) {
+            // The render is good and stays in out/: only the upload needs doing again.
+            const why = err instanceof Error ? err.message : String(err);
+            throw new Error(
+              `rendered, but the upload failed (${why}): ${AWS_LOGIN_HINT}, then wren video render ${e.id} --upload${part ? ` --only ${part}` : ""}`,
+            );
           }
         else console.log("WREN_MEDIA_BUCKET unset: previews and Reels not uploaded");
         await setRendered(db, e.id, files, keys);
@@ -369,7 +471,7 @@ export function registerStudio(
     );
     for (const f of Object.values(stats.files)) console.log(f);
     console.log(
-      `video ${e.id}: rendered in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
+      `video ${e.id}: ${o.upload ? "uploaded from out/" : "rendered"} in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
     );
   }
 

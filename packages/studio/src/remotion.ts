@@ -8,7 +8,8 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { LongProps, ShortProps, ThumbnailProps } from "./props.js";
+import { normalizeLoudness } from "./loudness.js";
+import type { LongProps, ShortProps, ThumbnailProps, VerticalProps } from "./props.js";
 
 const ENTRY = "remotion/index.tsx";
 
@@ -74,21 +75,25 @@ export async function renderStill(
 
 export interface RenderJob {
   long?: LongProps;
+  /** The whole cut, 9:16. */
+  vertical?: VerticalProps;
   /** By 1-based number. */
   shorts?: Map<number, ShortProps>;
   thumbnails?: ThumbnailProps[];
 }
 
 /**
- * Render what the job names to `<dir>/out/`: long.mp4, short-<n>.mp4, thumb-<n>.jpg. One bundle
- * for all of them; h264 on VideoToolbox (Remotion's `--hardware-acceleration`, which needs a
- * bitrate, not a CRF). Answers the files by name and the seconds each took.
+ * Render what the job names to `<dir>/out/`: long.mp4, vertical.mp4, short-<n>.mp4, thumb-<n>.jpg.
+ * One bundle for all of them; h264 on VideoToolbox (Remotion's `--hardware-acceleration`, which needs a
+ * bitrate, not a CRF). Each video's audio is then leveled to -14 LUFS (loudness.ts). Answers the
+ * files by name and the seconds each took.
  */
 export async function renderAll(
   pkgDir: string,
   dir: string,
   job: RenderJob,
   log: (line: string) => void = () => {},
+  ffmpeg = "ffmpeg",
 ): Promise<{ files: Record<string, string>; seconds: Record<string, number> }> {
   const out = join(dir, "out");
   await mkdir(out, { recursive: true });
@@ -103,15 +108,18 @@ export async function renderAll(
   await withBundle(pkgDir, dir, async (bundle) => {
     const video = async (name: string, comp: string, props: unknown, bitrate: string) => {
       const file = join(out, `${name}.mp4`);
-      await timed(name, async () =>
-        remotion(pkgDir, [
+      await timed(name, async () => {
+        await remotion(pkgDir, [
           ...["render", bundle, comp, file, "--props", await propsFile(dir, name, props)],
           ...["--codec=h264", "--hardware-acceleration=if-possible", `--video-bitrate=${bitrate}`],
-        ]),
-      );
+        ]);
+        const was = await normalizeLoudness(file, ffmpeg);
+        if (was) log(`${name}: audio ${was.i} LUFS to -14`);
+      });
       files[name] = file;
     };
     if (job.long) await video("long", "Long", job.long, "12M");
+    if (job.vertical) await video("vertical", "Vertical", job.vertical, "10M");
     for (const [n, p] of job.shorts ?? []) await video(`short-${n}`, "Short", p, "10M");
     for (const p of job.thumbnails ?? []) {
       const name = `thumb-${p.variant}`;

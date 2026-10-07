@@ -229,9 +229,22 @@ deleted.
    - **Approve a vertical.** `wren video approve <id> --vertical [--privacy]`: one YouTube draft
      (YouTube files a vertical ≤3 min as a Short itself) and an Instagram Reel draft waiting in
      To approve, as Shorts do now. The page gets "Approve vertical".
+   - **Loudness** (his first upload, 10-07: video 3 rendered at -27.5 LUFS; YouTube turns loud
+     audio down, never quiet audio up). Every rendered video is leveled to -14 LUFS integrated,
+     true peak -1.5 dB: two-pass ffmpeg `loudnorm` (measure, then apply with the measured I, TP,
+     LRA and threshold), audio only, the video stream copied. No `offset=`: this ffmpeg build
+     refuses it.
+   - **A standing YouTube footer.** `youtube.footer` in `wren_settings` goes under every YouTube
+     description (after the chapters, a blank line between), set with `wren video footer --set
+     <file>`. Until he sets one, a default in code: the site link and who he is.
+   - **Render survives an expired AWS session.** Render checks the AWS session before it starts
+     and fails fast with "run aws-login". `wren video render <id> --upload` uploads previews from
+     the files already in `out/` and marks it rendered, no re-render. A good render whose upload
+     fails is "failed" with that hint.
    - Checked: unit tests on the scale filter for both orientations, the caption line breaker
-     (pauses, punctuation, 2-4 words, timing), `formats` defaults and `words --fix`; a render of a
-     synthetic 10 s portrait clip and a 10 s landscape clip to `vertical`, stills looked at.
+     (pauses, punctuation, 2-4 words, timing), `formats` defaults and `words --fix`, and the
+     loudnorm filter strings; a render of a synthetic 10 s portrait clip and a 10 s landscape clip
+     to `vertical`, stills looked at; a synthetic clip measures -14 ±1 LUFS after leveling.
 
 ## For William
 
@@ -296,3 +309,27 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   private). First real takes: OBS's noise gate at open -20 / close -30 dB muted 78% of take one
   to digital zero (Whisper got 809 words in 18 min); RNNoise and a -45 / -55 gate fixed take two.
   He wants no inner cuts on these talking takes, only the dead start and end.
+- 2026-10-07: Step 5 built. Built: the cut pass keeps orientation (phone rotation read on probe);
+  `formats` on the edit (migration 0167 backfills portrait rows to `["vertical"]`); the `Vertical`
+  composition; Reels captions on Vertical and Shorts; `wren video words --fix/--at` and the page's
+  Fix word and Fix everywhere, undoable; `studio.words` as Whisper's prompt; `approve --vertical`
+  and "Approve vertical" (drafts written through `fieldsOf`; YouTube kind `short` at ≤180 s, else
+  `video` with the thumbnail; the Reel gets `shareToFeed`). From his first upload: every render
+  leveled to -14 LUFS, true peak -1.5; the `youtube.footer` under every description (`wren video
+  footer`, a default in code, "" turns it off); render checks the AWS session first, `--upload`
+  uploads what `out/` holds, a failed upload after a good render says how. Choices: a
+  vertical-only edit's plain Approve (the Inbox's too) approves the vertical; split-layout Shorts
+  keep their caption on the face/screen seam, full-frame ones sit at 66%; a fix with a different
+  word count merges into one word over the span. loudnorm's dynamic mode (forced by the
+  true-peak cap) lands about 1 dB short, so the apply runs once more from the original aimed past
+  -14 by the shortfall. Checked: unit tests (scale filter, line breaker, formats, word fixes,
+  loudnorm filters); the video integration file (vertical approve, word fix and undo, footer);
+  synthetic 10 s portrait and landscape renders to vertical, stills looked at (80 px captions,
+  2-4 words, 66% down, clear of the right 15%); three synthetic clips from -39, -30 and -27 LUFS
+  measured -14.4 to -14.2 after leveling; fake AWS keys fail the render before it starts.
+  Not handled: the line breaker has no grammar, so a noun phrase can still split ("record the
+  whole / take"); measured true peak after AAC is about -1.3, a hair over -1.5; the record's list
+  state doesn't show a vertical-only upload (it joins on `video:<id>`); the footer has no page
+  control; the expired-token path was checked with fake keys, not a real expired session. The
+  local Docker database's migrations are out of step from 0138 (not this branch), so the CLI
+  checks ran on a throwaway migrated Postgres.

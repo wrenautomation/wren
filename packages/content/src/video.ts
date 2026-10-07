@@ -4,6 +4,7 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
+import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { fieldsOf, YOUTUBE_PRIVACY } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
@@ -14,9 +15,48 @@ import { desc, eq, like, sql } from "drizzle-orm";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoTurns } from "./video-ask.js";
 
-/** The idea's ref: one draft per video and per Short, ever. */
-export const videoRef = (id: number, short?: number) =>
-  short ? `video:${id}/short:${short}` : `video:${id}`;
+/** The idea's ref: one draft per video, per Short and per vertical cut, ever. */
+export const videoRef = (id: number, short?: number | "vertical") =>
+  short === "vertical"
+    ? `video:${id}/vertical`
+    : short
+      ? `video:${id}/short:${short}`
+      : `video:${id}`;
+
+/** `wren_settings.youtube`: the footer under every video's description. */
+export const YOUTUBE_SETTINGS = "youtube";
+const YT_DESCRIPTION = 5000;
+/** Until he sets one: who he is and what the channel does. "" turns it off. */
+export const DEFAULT_YOUTUBE_FOOTER = [
+  "Wren Automation: https://wrenautomation.com",
+  "I'm Will, a software engineering student at Waterloo, and I'm building Wren in public. Each video takes one high-ROI business problem, like ads or cold outreach, and works out how I'd solve it with software and AI. Subscribe to follow along.",
+].join("\n\n");
+
+export async function youtubeFooter(db: Queryable): Promise<string> {
+  const block = (await settingsFor(db, null))[YOUTUBE_SETTINGS] as { footer?: unknown } | undefined;
+  return typeof block?.footer === "string" ? block.footer : DEFAULT_YOUTUBE_FOOTER;
+}
+
+export async function setYoutubeFooter(db: Queryable, footer: string, by: string): Promise<string> {
+  const text = footer.trim();
+  if (text.length > 2000) throw new Error(`footer is ${text.length} characters: 2000 at most`);
+  return atomic(db, async (tx) => {
+    const block = ((await settingsFor(tx, null))[YOUTUBE_SETTINGS] ?? {}) as Record<
+      string,
+      unknown
+    >;
+    await setWrenSettings(tx, YOUTUBE_SETTINGS, { ...block, footer: text }, by);
+    return text;
+  });
+}
+
+/** Description, chapters, then the footer, blank lines between; the footer is never cut off. */
+export function youtubeDescription(parts: string[], footer: string): string {
+  const tail = footer.trim();
+  const room = YT_DESCRIPTION - (tail ? tail.length + 2 : 0);
+  const head = parts.filter(Boolean).join("\n\n").slice(0, Math.max(0, room));
+  return [head, tail].filter(Boolean).join("\n\n");
+}
 
 /**
  * Outputs named `<prefix><n>` in order of their number, for lists. Studio's `renderAll` names them
@@ -77,6 +117,8 @@ export type VideoPrivacy = (typeof VIDEO_PRIVACY)[number];
 
 export interface ApproveVideo {
   short?: number;
+  /** The whole cut, 9:16 (`files.vertical`); a video whose formats lack `long` takes it anyway. */
+  vertical?: boolean;
   /** Private unless he says otherwise: then he publishes or schedules it on YouTube. */
   privacy?: VideoPrivacy;
   source: IdeaSource;
@@ -88,7 +130,7 @@ export interface ApprovedVideo {
   id: string;
   again: boolean;
   /**
-   * A Short only: its Instagram Reel draft, waiting in To approve (`id`), or why there is none
+   * A Short or the vertical only: its Instagram Reel draft, waiting in To approve (`id`), or why there is none
    * (`missing`: rendered before Reels were uploaded).
    */
   reel?: { id: string; again: boolean } | { missing: string };
@@ -96,10 +138,12 @@ export interface ApprovedVideo {
 
 /** IG captions stop at 2,200 characters. */
 const IG_CAPTION = 2200;
+/** YouTube files a vertical this long or shorter as a Short: no custom thumbnail. */
+const SHORT_MAX_S = 180;
 
 /**
- * His yes on the long video or Short `short` (1-based): a YouTube draft, approved to go on the
- * next pass, private. A Short also gets an Instagram Reel draft of the same render, from the
+ * His yes on the long video, Short `short` (1-based) or the vertical cut: a YouTube draft, approved
+ * to go on the next pass, private. A Short or the vertical also gets an Instagram Reel draft of the same render, from the
  * media bucket (Graph fetches a URL), waiting in To approve: it posts only on his Approve there.
  * Approving the same one again answers its drafts and adds only a missing Reel draft.
  */
@@ -111,7 +155,10 @@ export async function approveVideo(
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
     if (!e) throw new Error(`no video ${id}`);
-    const ref = videoRef(id, o.short);
+    // A vertical-only recording: his yes (the Inbox's too) is on the vertical cut.
+    const vertical = !o.short && (o.vertical || !e.formats.includes("long"));
+    const reels = vertical ? ("vertical" as const) : o.short;
+    const ref = videoRef(id, reels);
     const had = await tx
       .select({ id: contentDrafts.id, platform: contentDrafts.platform, ideaId: contentIdeas.id })
       .from(contentDrafts)
@@ -119,15 +166,20 @@ export async function approveVideo(
       .where(eq(contentIdeas.ref, ref));
     const yt = had.find((d) => d.platform === "youtube");
     const now = o.now ?? new Date();
-    if (yt && !o.short) return { id: yt.id, again: true };
+    if (yt && !reels) return { id: yt.id, again: true };
     if (!yt && !["rendered", "approved", "uploaded"].includes(e.state))
       throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
-    const { file, title, thumbnail } = target(e, o.short);
-    // The long video's chapters go under its description; a Short has none.
-    const body = [e.description, o.short ? "" : chapterLines(e)]
-      .filter(Boolean)
-      .join("\n\n")
-      .slice(0, 5000);
+    const { file, title, thumbnail } = target(e, reels);
+    // YouTube files a vertical of 3 min or less as a Short.
+    const kind =
+      o.short || (vertical && e.tracks.main.durationS - cutSeconds(e.cuts) <= SHORT_MAX_S)
+        ? "short"
+        : "video";
+    // Chapters go under the description (a Short has none), then the standing footer.
+    const body = youtubeDescription(
+      [e.description, kind === "short" ? "" : chapterLines(e)],
+      await youtubeFooter(tx),
+    );
     let ideaId = yt?.ideaId;
     let ytId = yt?.id;
     if (!ideaId || !ytId) {
@@ -152,11 +204,11 @@ export async function approveVideo(
           media: { kind: "video", source: file, title },
           // Its shape (designs/2026-10-07-post-shapes.md): YouTube can't take a Short's thumbnail.
           extra: fieldsOf("youtube", {
-            kind: o.short ? "short" : "video",
+            kind,
             privacyStatus: o.privacy ?? "private",
             madeForKids: false,
             ...(e.tags.length ? { tags: e.tags } : {}),
-            ...(thumbnail && !o.short ? { thumbnail } : {}),
+            ...(thumbnail && kind === "video" ? { thumbnail } : {}),
           }),
           status: "approved",
           approvedAt: now,
@@ -166,7 +218,7 @@ export async function approveVideo(
         })
         .returning({ id: contentDrafts.id });
       if (!d) throw new Error("insert returned no draft");
-      await keepUpload(tx, d.id, { video: id, short: o.short, text: body, title });
+      await keepUpload(tx, d.id, { video: id, short: reels, text: body, title });
       ideaId = idea.id;
       ytId = d.id;
     }
@@ -175,16 +227,18 @@ export async function approveVideo(
         .update(videoEdits)
         .set({ state: "approved", updatedAt: now })
         .where(eq(videoEdits.id, id));
-    if (!o.short) return { id: ytId, again: false };
+    if (!reels) return { id: ytId, again: false };
     const out = { id: ytId, again: Boolean(yt) };
     const reel = had.find((d) => d.platform === "instagram");
     if (reel) return { ...out, reel: { id: reel.id, again: true } };
-    const stored = e.keys[reelKey(o.short)];
+    const stored = e.keys[reelKey(reels)];
     if (!stored)
       return {
         ...out,
         reel: {
-          missing: `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
+          missing: vertical
+            ? `The vertical has no Reel upload: render it again (wren video render ${id} --only vertical)`
+            : `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
         },
       };
     const caption = [title, e.description].filter(Boolean).join("\n\n").slice(0, IG_CAPTION);
@@ -196,6 +250,7 @@ export async function approveVideo(
         text: caption,
         title,
         media: { kind: "video", source: stored, title },
+        extra: fieldsOf("instagram", { shareToFeed: true }),
         // Waits in To approve; his Approve gives it the next Instagram slot.
         status: "draft",
         promptVersion: "video",
@@ -204,7 +259,7 @@ export async function approveVideo(
     if (!r) throw new Error("insert returned no draft");
     await keepUpload(tx, r.id, {
       video: id,
-      short: o.short,
+      short: reels,
       text: caption,
       title,
       wait: true,
@@ -222,13 +277,16 @@ async function keepUpload(
   draftId: string,
   o: {
     video: number;
-    short?: number | undefined;
+    short?: number | "vertical" | undefined;
     text: string;
     title: string;
     wait?: boolean;
   },
 ) {
-  const meta = { video: o.video, ...(o.short ? { short: o.short } : {}) };
+  const meta = {
+    video: o.video,
+    ...(o.short === "vertical" ? { vertical: true } : o.short ? { short: o.short } : {}),
+  };
   const item = `draft:${draftId}`;
   await recordDraft(db, {
     item,
@@ -251,11 +309,20 @@ async function keepUpload(
     });
 }
 
-/** The full-size Short in the media bucket, for its Reel: `wren video render` uploads it. */
-export const reelKey = (short: number) => `reel-${short}`;
+/** The full-size Short (or vertical) in the media bucket, for its Reel: `wren video render` uploads it. */
+export const reelKey = (short: number | "vertical") => `reel-${short}`;
 
 /** What Approve uploads: the file, its title and (the long video only) its thumbnail. */
-function target(e: VideoEdit, short?: number) {
+function target(e: VideoEdit, short?: number | "vertical") {
+  if (short === "vertical") {
+    const file = e.files.vertical;
+    if (!file)
+      throw new Error(`video ${e.id} has no rendered vertical (wren video render ${e.id})`);
+    if (!e.title.trim()) throw new Error(`video ${e.id} has no title (wren video set)`);
+    // Dropped by approveVideo when YouTube files it as a Short.
+    const thumbnail = e.files.thumbnailPick ?? numbered(e.files, "thumb")[0] ?? null;
+    return { file, title: e.title.trim().slice(0, 100), thumbnail };
+  }
   if (!short) {
     const file = longOf(e.files);
     if (!file) throw new Error(`video ${e.id} has no rendered long file`);
@@ -350,6 +417,7 @@ export const videoRecord = (signer?: VideoSigner) => {
           tracks: videoEdits.tracks,
           cuts: videoEdits.cuts,
           shorts: videoEdits.shorts,
+          files: videoEdits.files,
           render: videoEdits.render,
           updated: videoEdits.updatedAt,
           upload: contentDrafts.status,
@@ -369,6 +437,8 @@ export const videoRecord = (signer?: VideoSigner) => {
           raw: clock(raw),
           cut: clock(raw - cutSeconds(r.cuts)),
           shorts: r.shorts.length,
+          // "yes" once rendered: what "Approve vertical" waits on.
+          vertical: r.files.vertical ? "yes" : "no",
           url: r.url,
           updated: r.updated,
         };
@@ -403,12 +473,14 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoRender",
       "marketing.videoApprove",
       "marketing.videoApproveShort",
+      "marketing.videoApproveVertical",
       "marketing.videoThumbnail",
       // The page's own editor: fields, cuts, Ask Claude, Undo.
       "marketing.videoSet",
       "marketing.videoCut",
       "marketing.videoAsk",
       "marketing.videoUndo",
+      "marketing.videoWords",
     ],
     calls: {
       "ContentDesk/approveVideo": "id",
@@ -417,6 +489,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/cut": "id",
       "VideoDesk/ask": "id",
       "VideoDesk/undo": "id",
+      "VideoDesk/words": "id",
       "VideoDesk/render": "id",
     },
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
@@ -448,8 +521,15 @@ export const videoRecord = (signer?: VideoSigner) => {
             tags: e.tags,
             chapters: e.chapters,
             shorts: e.shorts,
+            formats: e.formats,
             thumbnail: e.thumbnail,
           },
+          vertical: e.files.vertical
+            ? {
+                preview: await sign(e.keys.vertical),
+                upload: drafts.find((d) => d.ref === videoRef(e.id, "vertical")) ?? null,
+              }
+            : null,
           cuts: cutRows(e),
           render: e.render,
           state: e.state,

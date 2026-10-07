@@ -7,14 +7,21 @@ import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
 import type { Queryable } from "@wren/db";
-import { setEdit } from "@wren/studio/edit";
+import { setEdit, setWords } from "@wren/studio/edit";
 import type { Cut, VideoEdit } from "@wren/studio/schema";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const VIDEO_ASK = "video-ask";
 /** The page's changes, newest last: Undo puts back what the newest one replaced. */
-const CHANGES = ["video set", "video keep", "video cut-words", VIDEO_ASK, "video undo"];
+const CHANGES = [
+  "video set",
+  "video keep",
+  "video cut-words",
+  "video words",
+  VIDEO_ASK,
+  "video undo",
+];
 export const VIDEO_ASK_MAX = 2000;
 const QUESTION_MAX = 4000;
 const SYSTEM_MAX = 8000;
@@ -146,5 +153,8 @@ export async function undoVideo(db: Queryable, id: number, by: string) {
       AND finished_at IS NOT NULL AND stats ? 'before' AND NOT stats ? 'error'
     ORDER BY started_at DESC, id DESC LIMIT 1`)) as unknown as { id: string; before: object }[];
   if (!last || !Object.keys(last.before).length) throw new Error("nothing to undo");
+  // A transcript fix holds the words it replaced; the rest is the edit's fields.
+  if ("words" in last.before)
+    return setWords(db, id, { words: last.before.words }, { by, command: "video undo" });
   return setEdit(db, id, last.before, { by, command: "video undo" });
 }

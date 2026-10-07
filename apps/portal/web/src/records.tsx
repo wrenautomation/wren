@@ -236,6 +236,10 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     desk("approveVideo", { id: num(id), privacy: privacy || null }),
   "marketing/videoApproveShort": (id, { short, privacy }) =>
     desk("approveVideo", { id: num(id), short: Number(short), privacy: privacy || null }),
+  "marketing/videoApproveVertical": (id, { privacy }) =>
+    desk("approveVideo", { id: num(id), vertical: true, privacy: privacy || null }),
+  "marketing/videoWords": (id, { wrong, right, at, text }) =>
+    handlerCall("VideoDesk", "words", { id: num(id), wrong, right, at, text }),
   "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
   "marketing/videoSet": (id, { patch }) => handlerCall("VideoDesk", "set", { id: num(id), patch }),
   "marketing/videoCut": (id, { from, to, state }) =>

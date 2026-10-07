@@ -27,13 +27,18 @@ import {
   CUT_STATES,
   CUT_WHYS,
   type Cut,
+  FORMATS,
+  type Format,
   LAYOUTS,
   type RenderState,
+  type Track,
   type Tracks,
   type VideoEdit,
   videoEdits,
+  type Word,
 } from "./schema.js";
 import { transcribe } from "./whisper.js";
+import { fixWordAt, fixWords } from "./words.js";
 
 export const STUDIO_COMPONENT = "studio";
 
@@ -59,6 +64,35 @@ export async function setCutKnobs(
     return cuts;
   });
 }
+
+/** Names and jargon Whisper should spell right (`studio.words`): its prompt on ingest. */
+export async function studioWords(db: Queryable): Promise<string[]> {
+  const block = (await settingsFor(db, null))[STUDIO_COMPONENT] as { words?: unknown } | undefined;
+  const p = z
+    .array(z.string().min(1).max(60))
+    .max(200)
+    .safeParse(block?.words ?? []);
+  return p.success ? p.data : [];
+}
+
+export async function setStudioWords(db: Queryable, words: string[], by: string) {
+  return atomic(db, async (tx) => {
+    const block = ((await settingsFor(tx, null))[STUDIO_COMPONENT] ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const list = z
+      .array(z.string().trim().min(1).max(60))
+      .max(200)
+      .parse([...new Set(words.map((w) => w.trim()).filter(Boolean))]);
+    await setWrenSettings(tx, STUDIO_COMPONENT, { ...block, words: list }, by);
+    return list;
+  });
+}
+
+/** What a recording renders as by its shape: landscape the long video, portrait the vertical. */
+export const formatsFor = (main: Pick<Track, "width" | "height">): Format[] =>
+  main.height > main.width ? ["vertical"] : ["long"];
 
 export const VIDEO = /\.(mp4|mkv|mov|m4v|webm)$/i;
 export const CAM = /cam|camera|webcam|face/i;
@@ -128,6 +162,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
   if (o.camBox) tracks.camBox = o.camBox;
 
   const knobs = await cutKnobs(db);
+  const known = await studioWords(db);
   return (
     await recordedRun(
       db,
@@ -137,7 +172,10 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
         const wav = join(dir, "audio-16k.wav");
         await wav16k(main.path, wav, o.ffmpeg);
         const started = Date.now();
-        const heard = await transcribe(wav, o.model ? { model: o.model } : {});
+        const heard = await transcribe(wav, {
+          ...(o.model ? { model: o.model } : {}),
+          ...(known.length ? { prompt: known.join(", ") } : {}),
+        });
         log(`${heard.length} words in ${((Date.now() - started) / 1000).toFixed(1)}s`);
         const { words, cuts } = await silencePass(
           main.path,
@@ -155,6 +193,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
             script: o.script ?? null,
             words,
             cuts: withSilence(fillerProposals(words), cuts),
+            formats: formatsFor(main),
           })
           .returning();
         return row as VideoEdit;
@@ -183,6 +222,10 @@ export const editPatchSchema = z
     layout: z.array(z.object({ ...span, show: z.enum(LAYOUTS) }).strict()),
     captions: z.object({ on: z.boolean(), style: z.string().min(1).max(32) }).strict(),
     shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()),
+    formats: z
+      .array(z.enum(FORMATS))
+      .min(1)
+      .refine((f) => new Set(f).size === f.length, "each format once"),
     thumbnail: z
       .object({ at: sec, text: z.string().max(60) })
       .strict()
@@ -307,6 +350,45 @@ async function keepWords(
     title: after.title,
     meta: o.command === "video undo" ? { undo: true } : {},
     runId: o.run,
+  });
+}
+
+/** A transcript fix: every match of `wrong`, or the one word at `at` seconds. */
+export type WordsFix = { wrong: string; right: string } | { at: number; text: string };
+
+const wordSchema = z.object({ w: z.string().min(1), s: sec, e: sec }).strict();
+
+/**
+ * Rewrite the transcript's text, never its times (`wren video words`, the page's transcript): a
+ * fix, or (Undo) the words as they were. One `runs` row holding the words before.
+ */
+export async function setWords(
+  db: Queryable,
+  id: number,
+  change: WordsFix | { words: unknown },
+  o: { by: string; command?: string },
+): Promise<{ run: string; n: number; edit: VideoEdit }> {
+  return atomic(db, async (tx) => {
+    const now = await getEdit(tx, id);
+    const r =
+      "words" in change
+        ? { words: z.array(wordSchema).parse(change.words), n: 1 }
+        : "wrong" in change
+          ? fixWords(now.words, change.wrong, change.right)
+          : fixWordAt(now.words, change.at, change.text);
+    if (!r.n) throw new Error(`no "${"wrong" in change ? change.wrong : ""}" in the transcript`);
+    const [edit] = await tx
+      .update(videoEdits)
+      .set({ words: r.words as Word[], updatedAt: new Date() })
+      .where(eq(videoEdits.id, id))
+      .returning();
+    const fields = ["words"];
+    const { id: run } = await openRun(tx, {
+      command: o.command ?? "video words",
+      argv: { id, by: o.by, ...("words" in change ? {} : change) },
+    });
+    await finishRun(tx, run, { fields, n: r.n, before: { words: now.words } });
+    return { run, n: r.n, edit: edit as VideoEdit };
   });
 }
 

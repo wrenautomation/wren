@@ -32,16 +32,28 @@ export async function probe(path: string, ffmpeg: string): Promise<Track & { aud
   ]);
   const j = JSON.parse(stdout) as {
     format: { duration?: string };
-    streams: { codec_type: string; width?: number; height?: number; avg_frame_rate?: string }[];
+    streams: {
+      codec_type: string;
+      width?: number;
+      height?: number;
+      avg_frame_rate?: string;
+      tags?: { rotate?: string };
+      side_data_list?: { rotation?: number }[];
+    }[];
   };
   const v = j.streams.find((s) => s.codec_type === "video");
   if (!v) throw new Error(`${path}: no video stream`);
   const [num, den] = (v.avg_frame_rate ?? "30/1").split("/").map(Number) as [number, number];
+  // A phone stores portrait as landscape plus a quarter turn; ffmpeg turns it as it decodes.
+  const turn = Number(
+    v.side_data_list?.find((d) => d.rotation !== undefined)?.rotation ?? v.tags?.rotate ?? 0,
+  );
+  const sideways = Math.abs(turn) % 180 === 90;
   return {
     path,
     durationS: Number(j.format.duration ?? 0),
-    width: v.width ?? 0,
-    height: v.height ?? 0,
+    width: (sideways ? v.height : v.width) ?? 0,
+    height: (sideways ? v.width : v.height) ?? 0,
     fps: den ? Math.round((num / den) * 100) / 100 : FPS,
     audio: j.streams.some((s) => s.codec_type === "audio"),
   };
@@ -176,11 +188,30 @@ export function syncOffset(main: Pcm, cam: Pcm, maxS = 30): number {
 
 const f = (x: number) => x.toFixed(4);
 
+/** 1080p either way up: a landscape (or square) track 1080 high, a portrait one 1080 wide. */
+export const portrait = (s: { width: number; height: number }) => s.height > s.width;
+export const scaleFilter = (s: { width: number; height: number }) =>
+  portrait(s) ? "scale=1080:-2:flags=lanczos" : "scale=-2:1080:flags=lanczos";
+/** The size the cut pass writes a track at (ffmpeg's -2: the nearest even number). */
+export function cutSize(s: { width: number; height: number }): [number, number] {
+  const even = (n: number) => Math.round(n / 2) * 2;
+  return portrait(s)
+    ? [1080, even((s.height * 1080) / s.width)]
+    : [even((s.width * 1080) / s.height), 1080];
+}
+
 /**
- * The filter graph that keeps `keep` of one input, scaled to 1080p at 30 fps; audio (main only)
- * fades 10 ms in and out at every join. `shiftS` moves the input onto main's clock first.
+ * The filter graph that keeps `keep` of one input, scaled to 1080p at 30 fps (`scaleFilter`);
+ * audio (main only) fades 10 ms in and out at every join. `shiftS` moves the input onto main's
+ * clock first.
  */
-export function cutGraph(keep: readonly Span[], audio: boolean, shiftS = 0, padS = 0): string {
+export function cutGraph(
+  keep: readonly Span[],
+  audio: boolean,
+  size: { width: number; height: number },
+  shiftS = 0,
+  padS = 0,
+): string {
   const n = keep.length;
   const shift =
     shiftS > 0
@@ -190,7 +221,7 @@ export function cutGraph(keep: readonly Span[], audio: boolean, shiftS = 0, padS
         : "";
   const pad = padS > 0 ? `tpad=stop_duration=${f(padS)}:stop_mode=clone,` : "";
   const lines = [
-    `[0:v]${shift}${pad}fps=${FPS},scale=-2:1080:flags=lanczos,format=yuv420p,split=${n}${keep.map((_, i) => `[sv${i}]`).join("")}`,
+    `[0:v]${shift}${pad}fps=${FPS},${scaleFilter(size)},format=yuv420p,split=${n}${keep.map((_, i) => `[sv${i}]`).join("")}`,
   ];
   if (audio)
     lines.push(`[0:a]aresample=48000,asplit=${n}${keep.map((_, i) => `[sa${i}]`).join("")}`);
@@ -218,18 +249,18 @@ export async function cutTracks(
   ffmpeg: string,
 ): Promise<Record<string, string>> {
   const one = async (
-    input: string,
+    input: Track,
     out: string,
     audio: boolean,
     shiftS: number,
     padS: number,
   ): Promise<string> => {
     const script = `${out}.filter.txt`;
-    await writeFile(script, cutGraph(keep, audio, shiftS, padS));
+    await writeFile(script, cutGraph(keep, audio, input, shiftS, padS));
     await run(
       ffmpeg,
       [
-        ...["-v", "error", "-y", "-i", input, "-/filter_complex", script, "-map", "[v]"],
+        ...["-v", "error", "-y", "-i", input.path, "-/filter_complex", script, "-map", "[v]"],
         ...(audio ? ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"] : ["-an"]),
         ...ENCODE,
         out,
@@ -239,13 +270,13 @@ export async function cutTracks(
     return out;
   };
   const files: Record<string, string> = {
-    cutMain: await one(tracks.main.path, join(dir, "cut-main.mp4"), true, 0, 0),
+    cutMain: await one(tracks.main, join(dir, "cut-main.mp4"), true, 0, 0),
   };
   if (tracks.cam) {
     const { offsetS, durationS } = tracks.cam;
     // Main time t is camera time t + offset; clone the edge frame where the camera ran short.
     const padS = Math.max(0, tracks.main.durationS + offsetS - durationS) + 1;
-    files.cutCam = await one(tracks.cam.path, join(dir, "cut-cam.mp4"), false, offsetS, padS);
+    files.cutCam = await one(tracks.cam, join(dir, "cut-cam.mp4"), false, offsetS, padS);
   }
   return files;
 }

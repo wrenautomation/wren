@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkPatch, editPatchSchema } from "./edit.js";
-import { shortProps } from "./props.js";
+import { checkPatch, editPatchSchema, formatsFor } from "./edit.js";
+import { shortProps, verticalProps, verticalWindow } from "./props.js";
 import type { Cut, VideoEdit } from "./schema.js";
 
 const short = (from: number, to: number) => ({ from, to, title: "t" });
@@ -62,5 +62,79 @@ describe("shortProps", () => {
     expect(p.words).toEqual([{ w: "in", s: 1, e: 2 }]);
     expect(p.face.file).toBeNull();
     expect(() => shortProps(edit, 2)).toThrow(/no 2/);
+  });
+});
+
+describe("formats", () => {
+  it("defaults by the recording's shape", () => {
+    expect(formatsFor({ width: 1920, height: 1080 })).toEqual(["long"]);
+    expect(formatsFor({ width: 1080, height: 1920 })).toEqual(["vertical"]);
+    expect(formatsFor({ width: 1080, height: 1080 })).toEqual(["long"]);
+  });
+
+  it("set takes one or both, each once", () => {
+    expect(editPatchSchema.parse({ formats: ["long", "vertical"] }).formats).toEqual([
+      "long",
+      "vertical",
+    ]);
+    expect(editPatchSchema.safeParse({ formats: [] }).success).toBe(false);
+    expect(editPatchSchema.safeParse({ formats: ["long", "long"] }).success).toBe(false);
+    expect(editPatchSchema.safeParse({ formats: ["square"] }).success).toBe(false);
+  });
+});
+
+describe("verticalProps", () => {
+  const edit = (tracks: object, files: object) =>
+    ({
+      id: 1,
+      title: "v",
+      tracks,
+      cuts: [],
+      words: [],
+      layout: [],
+      captions: { on: true, style: "word" },
+      shorts: [],
+      files,
+    }) as unknown as VideoEdit;
+  const track = (width: number, height: number) => ({
+    path: "/m.mp4",
+    durationS: 10,
+    width,
+    height,
+    fps: 30,
+  });
+
+  it("fills the frame with a portrait recording", () => {
+    const p = verticalProps(edit({ main: track(720, 1280) }, { cutMain: "/d/cut-main.mp4" }));
+    expect(p.picture).toEqual({
+      file: "cut-main.mp4",
+      size: [1080, 1920],
+      window: [0, 0, 1080, 1920],
+    });
+  });
+
+  it("crops a landscape one 9:16 on the cam box, else the centre, inside the frame", () => {
+    expect(verticalWindow(1920, 1080)).toEqual([656, 0, 608, 1080]);
+    expect(verticalWindow(1920, 1080, 1800)).toEqual([1312, 0, 608, 1080]);
+    const boxed = verticalProps(
+      edit(
+        { main: track(3840, 2160), camBox: [3200, 1600, 480, 480] },
+        { cutMain: "/d/cut-main.mp4" },
+      ),
+    );
+    // The box (1600..1840 at 1080p) is near the right edge: the window stops at it.
+    expect(boxed.picture.window).toEqual([1312, 0, 608, 1080]);
+  });
+
+  it("takes the camera file when there is one, the recording still the sound", () => {
+    const p = verticalProps(
+      edit(
+        { main: track(1920, 1080), cam: { ...track(1280, 720), offsetS: 0 } },
+        { cutMain: "/d/cut-main.mp4", cutCam: "/d/cut-cam.mp4" },
+      ),
+    );
+    expect(p.main).toBe("cut-main.mp4");
+    expect(p.picture.file).toBe("cut-cam.mp4");
+    expect(p.picture.window).toEqual([656, 0, 608, 1080]);
   });
 });

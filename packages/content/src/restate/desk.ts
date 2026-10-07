@@ -104,6 +104,7 @@ const VIDEO = z.looseObject({
     .positive()
     .nullish()
     .describe("A Short, 1 for the first; none: the long video"),
+  vertical: z.boolean().nullish().describe("The whole cut, 9:16, instead of the long video"),
   privacy: z.enum(VIDEO_PRIVACY).nullish().describe("Who sees the upload; none: private"),
 });
 const THUMBNAIL = z.looseObject({
@@ -297,12 +298,17 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           );
         },
       ),
-      /** His yes on a rendered video or one Short: a YouTube draft (private unless asked), posted on the next pass. */
+      /** His yes on a rendered video, one Short or the vertical: a YouTube draft (private unless asked), posted on the next pass. */
       approveVideo: exclusiveHandler(
         { input: VIDEO },
         async (
           ctx: restate.ObjectContext,
-          req: { id: number; short?: number | null; privacy?: VideoPrivacy | null },
+          req: {
+            id: number;
+            short?: number | null;
+            vertical?: boolean | null;
+            privacy?: VideoPrivacy | null;
+          },
         ) => {
           const { db } = await scopeOf(ctx);
           return ctx.run("approve video", () =>
@@ -310,6 +316,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               await approveVideo(db, req.id, {
                 source: "api",
                 ...(req.short ? { short: req.short } : {}),
+                ...(req.vertical ? { vertical: true } : {}),
                 ...(req.privacy ? { privacy: req.privacy } : {}),
               }),
             ]),

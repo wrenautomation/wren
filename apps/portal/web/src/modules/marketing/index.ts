@@ -228,6 +228,15 @@ const VIDEO_ACTIONS: Action[] = [
     done: said("Approved. The Short uploads on the next pass."),
   },
   {
+    id: "marketing.videoApproveVertical",
+    label: "Approve vertical",
+    handler: "marketing/videoApproveVertical",
+    confirm: "Upload the vertical video to YouTube, and draft its Reel for To approve?",
+    form: [PRIVACY],
+    when: { state: ["rendered", "approved", "uploaded"], vertical: ["yes"] },
+    done: said("Approved. It uploads on the next pass; its Reel waits in To approve."),
+  },
+  {
     id: "marketing.videoThumbnail",
     label: "Pick thumbnail",
     handler: "marketing/videoThumbnail",
@@ -253,6 +262,7 @@ const VIDEO_ACTIONS: Action[] = [
       ["videoCut", "Cut"],
       ["videoAsk", "Ask Claude"],
       ["videoUndo", "Undo"],
+      ["videoWords", "Fix word"],
     ] as const
   ).map(([id, label]) => ({
     id: `marketing.${id}`,

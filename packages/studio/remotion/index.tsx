@@ -1,12 +1,14 @@
 /**
  * Remotion compositions (designs/2026-10-06-video-editor.md, Composition). One file: Remotion's
  * bundler resolves no `.js` specifiers, so the one value import (Wren's look, for Studio's
- * placeholder) names its `.ts` file; the rest is types. Props come from `longProps`, `shortProps`
- * and `thumbnailProps` through `--props`; the cut files are served from `<edit dir>/public`.
+ * placeholder, the Reels line breaker) names its `.ts` file; the rest is types. Props come from
+ * `longProps`, `shortProps`, `verticalProps` and `thumbnailProps` through `--props`; the cut files
+ * are served from `<edit dir>/public`.
  */
-import type { CSSProperties, FC } from "react";
+import { type CSSProperties, type FC, useMemo } from "react";
 import {
   AbsoluteFill,
+  Audio,
   Composition,
   OffthreadVideo,
   registerRoot,
@@ -15,7 +17,8 @@ import {
   useVideoConfig,
 } from "remotion";
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
-import type { Face, LongProps, ShortProps, ThumbnailProps } from "../src/props.js";
+import { lineAt, REEL, reelLines } from "../src/captions.ts";
+import type { Face, LongProps, ShortProps, ThumbnailProps, VerticalProps } from "../src/props.js";
 
 type Word = LongProps["words"][number];
 
@@ -39,15 +42,12 @@ export function pages(words: readonly Word[]): Word[][] {
   return out;
 }
 
-const Captions: FC<{
-  words: Word[];
-  look: LongProps["look"];
-  t: number;
-  /** Shorts: bigger type, narrower, placed by the layout. */
-  size?: number;
-  width?: number;
-  place?: CSSProperties;
-}> = ({ words, look, t, size = 54, width = 1180, place }) => {
+/** The long video's lower-third line. */
+const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
+  words,
+  look,
+  t,
+}) => {
   const all = pages(words);
   const page = all.find((p, i) => {
     const first = p[0] as Word;
@@ -58,14 +58,12 @@ const Captions: FC<{
   });
   if (!page) return null;
   return (
-    <AbsoluteFill
-      style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90, ...place }}
-    >
+    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }}>
       <div
         style={{
-          maxWidth: width,
+          maxWidth: 1180,
           textAlign: "center",
-          font: `700 ${size}px/1.25 ${look.font}`,
+          font: `700 54px/1.25 ${look.font}`,
           color: "#fff",
           textShadow: "0 2px 12px rgba(0,0,0,0.7)",
         }}
@@ -92,6 +90,65 @@ const Captions: FC<{
     </AbsoluteFill>
   );
 };
+
+/**
+ * Reels captions (vertical and Shorts): one line of 2-4 words, about 80 px bold, white with a dark
+ * outline, the said word on the accent. Kept clear of the Reels/Shorts UI: the bottom 20% and the
+ * right 15%; `y` is where the line's middle sits, from the top.
+ */
+const ReelCaptions: FC<{ words: Word[]; look: LongProps["look"]; t: number; y: number }> = ({
+  words,
+  look,
+  t,
+  y,
+}) => {
+  const lines = useMemo(() => reelLines(words), [words]);
+  const at = lineAt(lines, t);
+  if (!at) return null;
+  const len = at.line.words.reduce((n, w) => n + w.w.length, at.line.words.length - 1);
+  // A line past what fits shrinks rather than wrapping.
+  const size = Math.round(80 * Math.max(0.6, Math.min(1, REEL.maxChars / len)));
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 108,
+        right: 162,
+        top: y - 120,
+        height: 240,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        font: `800 ${size}px/1.15 ${look.font}`,
+        color: "#fff",
+        WebkitTextStroke: "10px rgba(0,0,0,0.85)",
+        paintOrder: "stroke fill",
+        textShadow: "0 4px 18px rgba(0,0,0,0.55)",
+      }}
+    >
+      <div>
+        {at.line.words.map((w, i) => (
+          <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
+            key={i}
+            style={{
+              display: "inline-block",
+              padding: "0 10px",
+              borderRadius: 14,
+              background: i === at.word ? look.accent : "transparent",
+            }}
+          >
+            {w.w}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** Where a full-frame caption line's middle sits: 66% down. */
+const REEL_Y = Math.round(1920 * 0.66);
 
 const CORNER: CSSProperties = {
   position: "absolute",
@@ -188,16 +245,42 @@ export const Short: FC<ShortProps> = ({
           <FaceBox face={face} main={main} w={1080} h={half ? 960 : 1920} from={startFrame} />
         </div>
       ) : null}
+      {/* Split: on the seam between face and screen; full frame: two thirds down. */}
       {captions.on ? (
-        <Captions
-          words={words}
-          look={look}
-          t={t}
-          size={76}
-          width={960}
-          place={half ? { justifyContent: "center", paddingBottom: 0 } : { paddingBottom: 380 }}
-        />
+        <ReelCaptions words={words} look={look} t={t} y={half ? 960 : REEL_Y} />
       ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * The whole cut, 9:16 (step 5): the picture's window fills the frame (a portrait recording all of
+ * it; a landscape one cropped on his face). The recording carries the sound, under the camera file
+ * when that is the picture.
+ */
+export const Vertical: FC<VerticalProps> = ({ main, picture, words, captions, look }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+  const [x, y, w, h] = picture.window;
+  const k = Math.max(1080 / w, 1920 / h);
+  const own = picture.file === main;
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <OffthreadVideo
+        src={staticFile(picture.file)}
+        muted={!own}
+        style={{
+          position: "absolute",
+          left: (1080 - w * k) / 2 - x * k,
+          top: (1920 - h * k) / 2 - y * k,
+          width: picture.size[0] * k,
+          height: picture.size[1] * k,
+          maxWidth: "none",
+        }}
+      />
+      {own ? null : <Audio src={staticFile(main)} />}
+      {captions.on ? <ReelCaptions words={words} look={look} t={t} y={REEL_Y} /> : null}
     </AbsoluteFill>
   );
 };
@@ -303,6 +386,22 @@ const Root: FC = () => (
       fps={30}
       durationInFrames={300}
       defaultProps={{ ...PLACEHOLDER, face: NO_FACE, startFrame: 0, title: "" }}
+      calculateMetadata={({ props }) => ({
+        durationInFrames: props.durationInFrames,
+        fps: props.fps,
+      })}
+    />
+    <Composition
+      id="Vertical"
+      component={Vertical}
+      width={1080}
+      height={1920}
+      fps={30}
+      durationInFrames={300}
+      defaultProps={{
+        ...PLACEHOLDER,
+        picture: { file: PLACEHOLDER.main, size: [1920, 1080], window: [656, 0, 608, 1080] },
+      }}
       calculateMetadata={({ props }) => ({
         durationInFrames: props.durationInFrames,
         fps: props.fps,

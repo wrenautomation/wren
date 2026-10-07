@@ -10,7 +10,12 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { isStoredMedia, type MediaHost } from "@wren/core/content";
 
@@ -36,6 +41,29 @@ export interface MediaStoreOptions {
 
 const clientOf = (o: MediaStoreOptions) =>
   o.client ?? new S3Client(o.region ? { region: o.region } : {});
+
+/** What to do when the laptop's AWS session is gone. */
+export const AWS_LOGIN_HINT =
+  "run aws-login (cd autobrowse && pnpm -s autobrowse aws-login --user william)";
+
+/**
+ * Before a long job that ends in an upload: the session signs and S3 takes it. A one-key list
+ * answers with an error code: AccessDenied is a good session without list rights (fine); an
+ * expired, bad or missing session is the hint to log in again.
+ */
+export async function checkMediaStore(o: MediaStoreOptions): Promise<void> {
+  try {
+    await clientOf(o).send(
+      new ListObjectsV2Command({ Bucket: o.bucket, Prefix: "media/", MaxKeys: 1 }),
+    );
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    if (name === "AccessDenied") return;
+    if (name === "NoSuchBucket") throw new Error(`media bucket ${o.bucket} not found`);
+    const why = err instanceof Error ? err.message || name : String(err);
+    throw new Error(`AWS session not usable (${why}): ${AWS_LOGIN_HINT}`);
+  }
+}
 
 /** `s3://bucket/key` → its parts, or null. */
 export function parseStored(source: string): { bucket: string; key: string } | null {

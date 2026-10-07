@@ -2,8 +2,10 @@
  * A video's detail (`marketing.video`), edited in place (designs/2026-10-06-video-editor.md, step
  * 4): the preview; the title, description, tags, chapters, Shorts titles and thumbnail text, each
  * saved on blur; the cuts with the words they strike, Keep or Cut; a span of transcript words
- * picked and cut; Ask Claude with Undo. Every change is `VideoDesk` on the record's inline actions.
- * Render is the head action; its state shows on the record.
+ * picked and cut; Ask Claude with Undo. Step 5: the formats it renders as, the vertical cut's
+ * preview, and a misheard word fixed in the transcript (one word, or every match). Every change is
+ * `VideoDesk` on the record's inline actions. Render is the head action; its state shows on the
+ * record.
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
 import { Button, DictateField, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
@@ -22,12 +24,14 @@ type CutRow = {
   after: string;
 };
 type Short = { from: number; to: number; title: string };
+type Format = "long" | "vertical";
 type Edit = {
   title: string;
   description: string;
   tags: string[];
   chapters: { at: number; title: string }[];
   shorts: Short[];
+  formats: Format[];
   thumbnail: { at: number; text: string } | null;
 };
 type Turn = Omit<DraftTurnLine, "draft"> & { fields: string[] | null };
@@ -39,6 +43,11 @@ type Video = {
     upload: { status: string; url: string | null } | null;
   })[];
   thumbnails: { url: string | null; picked: boolean }[];
+  /** The whole cut, 9:16, once rendered. */
+  vertical: {
+    preview: string | null;
+    upload: { status: string; url: string | null } | null;
+  } | null;
   edit: Edit;
   cuts: CutRow[];
   render: { state: string; why?: string } | null;
@@ -50,6 +59,7 @@ const SET = "marketing.videoSet";
 const CUT = "marketing.videoCut";
 const ASK = "marketing.videoAsk";
 const UNDO = "marketing.videoUndo";
+const WORDS = "marketing.videoWords";
 const POLL_MS = 4000;
 const RENDER_POLL_MS = 15_000;
 /** Before this it renders; after, the cut file and its upload are settled. */
@@ -178,10 +188,66 @@ function chaptersOf(text: string) {
     });
 }
 
+const FORMATS: [Format, string, string][] = [
+  ["long", "Long", "16:9, the screen with your face in the corner"],
+  ["vertical", "Vertical", "9:16, the whole video for Shorts and Reels"],
+];
+
+/** Which shapes Render makes; at least one. Saved on each tick. */
+function Formats({ formats, act }: { formats: Format[]; act: RecordAct }) {
+  const [said, setSaid] = useState<string | null>(null);
+  const [bad, setBad] = useState(false);
+  const flip = async (f: Format, on: boolean) => {
+    const next = FORMATS.map(([x]) => x).filter((x) => (x === f ? on : formats.includes(x)));
+    if (!next.length) {
+      setSaid("Keep at least one.");
+      setBad(true);
+      return;
+    }
+    setSaid("Saving…");
+    setBad(false);
+    try {
+      await act(SET, { patch: { formats: next } });
+      setSaid("Saved. Render again to make it.");
+    } catch (err) {
+      setSaid(errorOf(err));
+      setBad(true);
+    }
+  };
+  return (
+    <fieldset className="grid min-w-0 gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <legend className="text-[13px] font-medium text-(--ui-ink-2)">Formats</legend>
+        <span
+          aria-live="polite"
+          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
+        >
+          {said ?? ""}
+        </span>
+      </div>
+      {FORMATS.map(([f, label, hint]) => (
+        <label key={f} className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={formats.includes(f)}
+            onChange={(e) => void flip(f, e.target.checked)}
+            className="mt-1 size-4 accent-(--ui-accent)"
+          />
+          <span className="grid gap-0.5">
+            <span className="text-[14px]">{label}</span>
+            <span className="text-[13px] text-(--ui-ink-2)">{hint}</span>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
   const thumb = edit.thumbnail;
   return (
     <div className="grid gap-4">
+      <Formats formats={edit.formats} act={act} />
       <Field label="Title" value={edit.title} max={100} act={act} patch={(title) => ({ title })} />
       <Field
         label="Description"
@@ -372,9 +438,30 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
     }
   };
   const n = span ? span[1] - span[0] + 1 : 0;
+  // One word picked: fix it to what he said.
+  const [fix, setFix] = useState("");
+  const fixOne = async () => {
+    if (!first || !fix.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await act(WORDS, { at: (first.s + first.e) / 2, text: fix.trim() });
+      setFix("");
+      document.getSelection()?.removeAllRanges();
+      setSpan(null);
+    } catch (err) {
+      setError(errorOf(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="grid gap-2">
-      {edit ? <p className="text-[12px] text-(--ui-ink-3)">Select words to cut them.</p> : null}
+      {edit ? (
+        <p className="text-[12px] text-(--ui-ink-3)">
+          Select words to cut them, or one word to fix it.
+        </p>
+      ) : null}
       <p ref={box} className="text-[14px] leading-7 break-words">
         {words.map((w, i) => (
           <span
@@ -401,10 +488,96 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
           <Button size="dense" busy={busy} onClick={() => void cut()}>
             Cut {n === 1 ? "it" : "them"}
           </Button>
+          {n === 1 ? (
+            <span className="flex min-w-0 items-center gap-2">
+              <Input
+                value={fix}
+                onChange={(e) => setFix(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    void fixOne();
+                  }
+                }}
+                placeholder={`"${first.w}" should be`}
+                aria-label="The right word"
+                maxLength={60}
+                className="w-44 text-[14px]"
+              />
+              <Button size="dense" tone="quiet" busy={busy} onClick={() => void fixOne()}>
+                Fix
+              </Button>
+            </span>
+          ) : null}
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       ) : null}
+      {edit ? <FixEvery act={act} /> : null}
     </div>
+  );
+}
+
+/** Whisper's mishearing fixed everywhere it says it: "drug fooding" to "dogfooding". */
+function FixEvery({ act }: { act: RecordAct }) {
+  const [wrong, setWrong] = useState("");
+  const [right, setRight] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const [bad, setBad] = useState(false);
+  const run = async () => {
+    if (!wrong.trim() || !right.trim()) return;
+    setBusy(true);
+    setSaid(null);
+    setBad(false);
+    try {
+      const r = (await act(WORDS, { wrong: wrong.trim(), right: right.trim() })) as
+        | { n?: number }
+        | undefined;
+      setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
+      setWrong("");
+      setRight("");
+    } catch (err) {
+      setSaid(errorOf(err));
+      setBad(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <details>
+      <summary className="w-fit cursor-pointer text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
+        Fix a word everywhere
+      </summary>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Input
+          value={wrong}
+          onChange={(e) => setWrong(e.target.value)}
+          placeholder="What it wrote"
+          aria-label="What it wrote"
+          maxLength={60}
+          className="w-44 text-[14px]"
+        />
+        <Input
+          value={right}
+          onChange={(e) => setRight(e.target.value)}
+          placeholder="What you said"
+          aria-label="What you said"
+          maxLength={60}
+          className="w-44 text-[14px]"
+        />
+        <Button size="dense" busy={busy} onClick={() => void run()}>
+          Fix
+        </Button>
+        {said ? (
+          <span
+            aria-live="polite"
+            className={bad ? "text-[13px] text-(--ui-bad)" : "text-[13px] text-(--ui-ink-2)"}
+          >
+            {said}
+          </span>
+        ) : null}
+      </div>
+    </details>
   );
 }
 
@@ -514,6 +687,28 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
   const sections: [string, ReactNode][] = [["Preview", <Player key="p" src={v.preview} />]];
+  if (v.vertical)
+    sections.push([
+      "Vertical",
+      <div key="v" className="grid gap-2">
+        {v.vertical.upload ? (
+          <p className="text-[14px]">
+            <Tag tone="green">{v.vertical.upload.status}</Tag>
+          </p>
+        ) : null}
+        {v.vertical.preview ? (
+          // biome-ignore lint/a11y/useMediaCaption: captions are burned into the render.
+          <video
+            controls
+            preload="metadata"
+            src={v.vertical.preview}
+            className="h-96 max-w-full rounded bg-black"
+          />
+        ) : (
+          <Empty>Rendered; its preview shows once it is uploaded.</Empty>
+        )}
+      </div>,
+    ]);
   sections.push(
     edit
       ? ["Title, description and the rest", <Fields key="f" edit={v.edit} act={act} />]

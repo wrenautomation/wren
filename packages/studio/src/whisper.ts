@@ -32,7 +32,7 @@ export function wordsOf(json: WhisperJson): Word[] {
 
 export async function transcribe(
   wav: string,
-  opts: { model?: string; bin?: string; language?: string } = {},
+  opts: { model?: string; bin?: string; language?: string; prompt?: string } = {},
 ): Promise<Word[]> {
   const model = opts.model ?? WHISPER_MODEL;
   await access(model).catch(() => {
@@ -61,6 +61,8 @@ export async function transcribe(
       "-np",
       "-l",
       opts.language ?? "en",
+      // Names and jargon it would mishear (`studio.words`), as its starting context.
+      ...(opts.prompt ? ["--prompt", opts.prompt] : []),
     ],
     { maxBuffer: 256 * 1024 * 1024 },
   ).catch((e: Error & { code?: string }) => {

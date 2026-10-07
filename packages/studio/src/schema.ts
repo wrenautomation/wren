@@ -14,6 +14,9 @@ export const CUT_WHYS = ["silence", "filler", "retake", "manual"] as const;
 /** cut: applied. proposed: struck through, waits for a yes. kept: undone (`wren video keep`). */
 export const CUT_STATES = ["cut", "proposed", "kept"] as const;
 export const LAYOUTS = ["corner", "cam", "screen"] as const;
+/** What one recording renders as: the 16:9 long video, the whole cut 9:16, or both. */
+export const FORMATS = ["long", "vertical"] as const;
+export type Format = (typeof FORMATS)[number];
 
 export interface Word {
   w: string;
@@ -102,6 +105,8 @@ export const videoEdits = pgTable(
       .notNull()
       .default({ on: true, style: "word" }),
     shorts: jsonb("shorts").$type<Short[]>().notNull().default([]),
+    /** Set by ingest from the main track's shape (`formatsFor`); `wren video set` changes it. */
+    formats: jsonb("formats").$type<Format[]>().notNull().default(["long"]),
     description: text("description").notNull().default(""),
     chapters: jsonb("chapters").$type<Chapter[]>().notNull().default([]),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),

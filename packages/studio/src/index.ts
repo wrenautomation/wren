@@ -5,6 +5,7 @@
  */
 
 export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
+export { type Line, lineAt, REEL, reelLines } from "./captions.js";
 export {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -19,6 +20,7 @@ export {
   addVideo,
   cutKnobs,
   editPatchSchema,
+  formatsFor,
   getEdit,
   keepCut,
   redoSilence,
@@ -29,7 +31,11 @@ export {
   setLook,
   setRender,
   setRendered,
+  setStudioWords,
+  setWords,
+  studioWords,
   twelvelabsMinutes,
+  type WordsFix,
 } from "./edit.js";
 export {
   cutTranscript,
@@ -42,7 +48,16 @@ export {
   twelvelabsFind,
   twelvelabsLooker,
 } from "./look.js";
-export { cutTracks, FPS, preview, proxy360 } from "./media.js";
+export {
+  applyFilter,
+  LOUDNESS,
+  type Loudness,
+  measureFilter,
+  measureLoudness,
+  normalizeLoudness,
+  parseLoudnorm,
+} from "./loudness.js";
+export { cutSize, cutTracks, FPS, portrait, preview, proxy360, scaleFilter } from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
   type LongProps,
@@ -53,6 +68,10 @@ export {
   shortProps,
   type ThumbnailProps,
   thumbnailProps,
+  type VerticalProps,
+  verticalProps,
+  verticalWindow,
 } from "./props.js";
 export { openStudio, type RenderJob, renderAll, renderStill } from "./remotion.js";
 export * from "./schema.js";
+export { fixWordAt, fixWords } from "./words.js";

@@ -1,17 +1,27 @@
 /**
  * Marketing → Videos against Postgres: a rendered video waits in To approve, Approve writes
  * one private YouTube draft of the file on the Mac (never two), a Short (plus its Instagram Reel
- * draft, waiting in To approve) and a thumbnail pick.
+ * draft, waiting in To approve), the vertical cut (the same, a Short on YouTube when 3 min or
+ * less) and a thumbnail pick.
  * Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { setWords } from "@wren/studio/edit";
 import { videoEdits } from "@wren/studio/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contentDrafts } from "../../src/schema.js";
 import { approvalRecord } from "../../src/social/records.js";
-import { approveVideo, pickThumbnail, videoRecord } from "../../src/video.js";
+import {
+  approveVideo,
+  DEFAULT_YOUTUBE_FOOTER,
+  pickThumbnail,
+  setYoutubeFooter,
+  videoRecord,
+  youtubeDescription,
+} from "../../src/video.js";
+import { undoVideo, videoTurns } from "../../src/video-ask.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -74,7 +84,7 @@ describe("marketing.video", () => {
       status: "approved",
       scheduledFor: null,
       title: "Synthetic walkthrough",
-      text: "What it does.",
+      text: `What it does.\n\n${DEFAULT_YOUTUBE_FOOTER}`,
       media: { kind: "video", source: "/rec/out/long.mp4" },
       extra: { privacyStatus: "private", tags: ["demo"], thumbnail: "/rec/out/thumb-2.jpg" },
     });
@@ -165,6 +175,144 @@ describe("marketing.video", () => {
     expect(r.reel).toEqual({ missing: expect.stringMatching(/render it again/) });
     const rows = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, r.id));
     expect(rows.map((d) => d.platform)).toEqual(["youtube"]);
+  });
+
+  it("approves the vertical: a long one as a video with its thumbnail, a short one as a Short", async () => {
+    const [both] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Both shapes",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        formats: ["long", "vertical"],
+        files: {
+          long: "/rec/out/long.mp4",
+          vertical: "/rec/out/vertical.mp4",
+          "thumb-1": "/rec/out/thumb-1.jpg",
+        },
+        keys: { vertical: "s3://media/v-540.mp4", "reel-vertical": "s3://media/v.mp4" },
+      })
+      .returning();
+    if (!both) throw new Error("no video");
+    const v = await approveVideo(pg.db, both.id, { source: "cli", vertical: true });
+    const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, v.id));
+    expect(d).toMatchObject({
+      platform: "youtube",
+      media: { source: "/rec/out/vertical.mp4" },
+      extra: { kind: "video", privacyStatus: "private", thumbnail: "/rec/out/thumb-1.jpg" },
+    });
+    if (!v.reel || !("id" in v.reel)) throw new Error("no reel draft");
+    const [reel] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, v.reel.id));
+    expect(reel).toMatchObject({
+      platform: "instagram",
+      status: "draft",
+      media: { source: "s3://media/v.mp4" },
+      extra: { shareToFeed: true },
+    });
+    expect(await approveVideo(pg.db, both.id, { source: "api", vertical: true })).toEqual({
+      id: v.id,
+      again: true,
+      reel: { id: v.reel.id, again: true },
+    });
+    // The long video is its own draft.
+    expect((await approveVideo(pg.db, both.id, { source: "cli" })).id).not.toBe(v.id);
+
+    // A portrait take: its formats lack long, so a plain Approve (the Inbox's) is the vertical.
+    const [tall] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Phone take",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: { ...track, durationS: 60, width: 1080, height: 1920 } },
+        formats: ["vertical"],
+        files: { vertical: "/rec/out/vertical.mp4", "thumb-1": "/rec/out/thumb-1.jpg" },
+      })
+      .returning();
+    if (!tall) throw new Error("no video");
+    const s = await approveVideo(pg.db, tall.id, { source: "api" });
+    const [sd] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, s.id));
+    expect(sd?.extra).toMatchObject({ kind: "short" });
+    expect(sd?.extra).not.toHaveProperty("thumbnail");
+    expect(s.reel).toEqual({ missing: expect.stringMatching(/--only vertical/) });
+  });
+
+  it("fixes a misheard word, times kept, and Undo puts it back", async () => {
+    const words = [
+      { w: "we", s: 1, e: 1.2 },
+      { w: "drug", s: 1.3, e: 1.6 },
+      { w: "fooding.", s: 1.6, e: 2 },
+      { w: "Ren", s: 3, e: 3.3 },
+    ];
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({ title: "Words", dir: "/rec", tracks: { main: track }, words })
+      .returning();
+    if (!v) throw new Error("no video");
+    const a = await setWords(
+      pg.db,
+      v.id,
+      { wrong: "drug fooding", right: "dogfooding" },
+      { by: "t" },
+    );
+    expect(a.n).toBe(1);
+    const b = await setWords(pg.db, v.id, { at: 3.1, text: "Wren" }, { by: "t" });
+    expect(b.edit.words).toEqual([
+      { w: "we", s: 1, e: 1.2 },
+      { w: "dogfooding.", s: 1.3, e: 2 },
+      { w: "Wren", s: 3, e: 3.3 },
+    ]);
+    await expect(
+      setWords(pg.db, v.id, { wrong: "zebra", right: "x" }, { by: "t" }),
+    ).rejects.toThrow(/no "zebra"/);
+    expect((await videoTurns(pg.db, v.id)).map((t) => t.fields)).toEqual([["words"], ["words"]]);
+    const u = await undoVideo(pg.db, v.id, "t");
+    expect(u.edit.words.map((w) => w.w)).toEqual(["we", "dogfooding.", "Ren"]);
+  });
+
+  it("puts his footer under every description, after the chapters; empty turns it off", async () => {
+    await setYoutubeFooter(pg.db, "  Subscribe.\n", "t");
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Chaptered",
+        description: "About it.",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        chapters: [
+          { at: 0, title: "Start" },
+          { at: 60, title: "Middle" },
+          { at: 120, title: "End" },
+        ],
+        files: { long: "/rec/out/long.mp4" },
+      })
+      .returning();
+    if (!v) throw new Error("no video");
+    const a = await approveVideo(pg.db, v.id, { source: "cli" });
+    const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, a.id));
+    expect(d?.text).toBe("About it.\n\n0:00 Start\n1:00 Middle\n2:00 End\n\nSubscribe.");
+    await setYoutubeFooter(pg.db, "", "t");
+    const [w] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Plain",
+        description: "Just this.",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        files: { long: "/rec/out/long.mp4" },
+      })
+      .returning();
+    const b = await approveVideo(pg.db, w!.id, { source: "cli" });
+    const [e] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, b.id));
+    expect(e?.text).toBe("Just this.");
+    // A long description gives way; the footer is never cut.
+    const long = youtubeDescription(["x".repeat(6000)], "Footer.");
+    expect(long).toHaveLength(5000);
+    expect(long.endsWith("\n\nFooter.")).toBe(true);
+    await setYoutubeFooter(pg.db, DEFAULT_YOUTUBE_FOOTER, "t");
   });
 
   it("refuses a video not rendered yet", async () => {
