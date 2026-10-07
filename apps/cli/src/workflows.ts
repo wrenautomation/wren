@@ -2,7 +2,8 @@
  * `wren --client <id> workflows …`: templates onto a client (designs/2026-10-07-template-install.md).
  * Plan first, then install: parts, copy, a draft and a shut door, nothing started. Publish asks in
  * To approve; the CLI never approves. Uninstall stops the loops and keeps the data. `save-template`
- * keeps a published workflow's live wiring as a template (designs/2026-10-06-workflow-editor.md).
+ * keeps a published workflow's live wiring as a template (designs/2026-10-06-workflow-editor.md);
+ * `delete-template` takes one off, refused while a client runs it live.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
@@ -19,7 +20,7 @@ import {
   templatesNow,
   uninstallTemplate,
 } from "@wren/core/templates/install";
-import { saveWorkflowTemplate } from "@wren/core/templates/saved";
+import { deleteWorkflowTemplate, saveWorkflowTemplate } from "@wren/core/templates/saved";
 import type { Db } from "@wren/db";
 import { COMPONENTS } from "@wren/worker/components";
 import { SETUPS } from "@wren/worker/setups";
@@ -133,6 +134,14 @@ export function registerWorkflows(
       console.log(
         `${out.updated ? "Updated" : "Saved"} ${out.id}. Install it on a client: wren --client <id> workflows plan ${out.id}`,
       );
+    });
+
+  cmd
+    .command("delete-template <template>")
+    .description("Delete a saved template, by id or name; refused while a client runs it live")
+    .action(async (template: string) => {
+      const out = await withMainDb((db) => deleteWorkflowTemplate(db, { template, by: BY }));
+      console.log(`Deleted ${out.name} (${out.id}). Clients that have it keep their wiring.`);
     });
 
   cmd

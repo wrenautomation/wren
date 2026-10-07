@@ -211,7 +211,7 @@ import {
 } from "./template-install.js";
 import { codeLabel } from "./template-labels.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
-import { saveWorkflowTemplate } from "./workflow-templates.js";
+import { deleteWorkflowTemplate, saveWorkflowTemplate } from "./workflow-templates.js";
 import {
   flowsWith,
   partsIn,
@@ -2865,6 +2865,12 @@ export function consoleApi({
         { workflows, components },
       );
     },
+    /** A saved template deleted: refused while any client runs it live, by how many. */
+    async workflowTemplateDelete(
+      req: PortalRequest & { template?: unknown },
+    ): Promise<{ id: string; name: string }> {
+      return deleteWorkflowTemplate(main, { template: req.template, by: teamWriter(req) });
+    },
     /** The draft dropped: the live wiring stays as it is. */
     async workflowDiscard(req: WorkflowSaveRequest): Promise<{ done: number }> {
       const { w, client } = await workflowFor(req);
@@ -3325,6 +3331,10 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       ) =>
         answer(() =>
           ctx.run("save as template", () => answer(() => api.workflowTemplateSave(req))),
+        ),
+      workflowTemplateDelete: (ctx: restate.Context, req: PortalRequest & { template?: unknown }) =>
+        answer(() =>
+          ctx.run("delete template", () => answer(() => api.workflowTemplateDelete(req))),
         ),
       workflowAsk: (ctx: restate.Context, req: WorkflowSaveRequest & { message?: unknown }) =>
         answer(async () => {

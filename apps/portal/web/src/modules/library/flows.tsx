@@ -1,9 +1,10 @@
 /**
  * The Library's Workflows: each one's steps, and a link onto the Workflows canvas, or for one
- * saved as a template, to the Marketplace page that installs it.
+ * saved as a template, to the Marketplace page that installs it, and Delete for Wren's team.
  */
 import type { RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
+import { DeleteSaved } from "../marketplace/delete-saved.js";
 import { QUIET } from "../work/bits.js";
 
 interface Step {
@@ -12,15 +13,28 @@ interface Step {
   note: string | null;
 }
 
-export const workflowExtras: NonNullable<ListPage["extras"]> = (detail) => {
+export const workflowExtras: NonNullable<ListPage["extras"]> = (detail, { row, team, can }) => {
   const d = detail as { steps?: Step[]; open?: string; saved?: boolean } | null;
   const steps = d?.steps ?? [];
+  const link = (
+    <a className={`text-[13.5px] ${QUIET}`} href={d?.open ?? "/workflows/canvas"}>
+      {d?.saved ? "Install it from the Marketplace" : "Open it in Workflows"}
+    </a>
+  );
   return {
-    lead: (
-      <a className={`text-[13.5px] ${QUIET}`} href={d?.open ?? "/workflows/canvas"}>
-        {d?.saved ? "Install it from the Marketplace" : "Open it in Workflows"}
-      </a>
-    ),
+    lead:
+      d?.saved && team && (can?.includes("manage") ?? true) ? (
+        <div className="grid justify-items-start gap-3">
+          {link}
+          <DeleteSaved
+            id={String(row.id)}
+            name={String(row.name ?? row.id)}
+            after="/library/workflows"
+          />
+        </div>
+      ) : (
+        link
+      ),
     sections: steps.length
       ? [
           [

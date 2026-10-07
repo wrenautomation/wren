@@ -184,7 +184,7 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   effects are every effect its wiring has, so the sends and spends yes still holds at approve.
   Only a workflow that runs for clients saves. A client's workflow follows one template; a second
   on it is refused until the first is uninstalled. Saving the same name moves it, and a client
-  that has it reads an update. Not built: deleting a saved template.
+  that has it reads an update. Not built: deleting a saved template (built below).
 - 2026-10-07: Wait until an event, built. A Wait offers "A time" or "Until something happens":
   a reply, a booking or a cancelled call, at most a time ("Until a reply or 3 days" on the card).
   Two outputs: the event's ("replied") and "time ran out". Shape: the hold is the Wait's own
@@ -196,3 +196,8 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   awakeables or a virtual object per subject: the row is already the one place a subject sits,
   and Executions read it as is. A wire's own "until" wait stays refused; the node is the way.
   The test times out unless "When a Wait waits for a reply" is set to it comes.
+- 2026-10-07: Delete a saved template, built. Wren's team deletes one from Library > Workflows,
+  its Marketplace page or `wren workflows delete-template`. Refused while any client runs it
+  live, with the count ("1 client runs it live: uninstall it there first"), never the names.
+  The row trigger audits it under who deleted, as a save. An install not live keeps its draft
+  and words; it just can't be approved, since its template is gone.

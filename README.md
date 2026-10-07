@@ -97,7 +97,8 @@ goes (the lander's `WREN_DOOR_URL` Pages secret).
 workflow on a client: parts, copy, a draft and a shut door. Nothing starts until a person approves
 it in To approve; the CLI never approves. `wren [--client <id>] workflows save-template <workflow>
 --name "..."` keeps a published workflow's live wiring as a template (the editor's History menu
-does the same). Design: `designs/2026-10-07-template-install.md`.
+does the same); `wren workflows delete-template <id|name>` takes one off, refused while a client
+runs it live. Design: `designs/2026-10-07-template-install.md`.
 
 ## The Watch
 

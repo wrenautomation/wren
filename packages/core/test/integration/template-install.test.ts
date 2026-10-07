@@ -28,7 +28,7 @@ import {
   waitingInstalls,
 } from "../../src/template-install.js";
 import { parseRef } from "../../src/templates.js";
-import { saveWorkflowTemplate } from "../../src/workflow-templates.js";
+import { deleteWorkflowTemplate, saveWorkflowTemplate } from "../../src/workflow-templates.js";
 import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
 
 let pg: TestPostgres;
@@ -351,6 +351,32 @@ describe("saved templates", () => {
     const after = await saved();
     expect(after.version).not.toBe(before.version);
     expect((await readPlan(pg.db, pg.db, after, "demo", FILES)).kind).toBe("update");
+  });
+
+  it("deletes one no client runs live, by id or name, audited; refuses by count, not who", async () => {
+    await publish(slow);
+    await save("Flow, slow");
+    const t = await saved();
+    await installTemplate(pg.db, pg.db, t, { ...ask, confirm: "Flow, slow" });
+    const asked = await askTemplate(pg.db, t, { client: "demo", by: "test" });
+    const sold = await templatesNow(pg.db, WORKFLOWS, COMPONENTS);
+    await approveInstall(pg.db, asked.id, { ...deps, by: "boss", templates: sold });
+    const del = (template: string) =>
+      deleteWorkflowTemplate(pg.db, { template, by: "op@example.test" });
+    await expect(del("saved_flow_slow")).rejects.toThrow(
+      "1 client runs it live: uninstall it there first",
+    );
+    await expect(del("Nope")).rejects.toThrow("no saved template called Nope");
+
+    await uninstallTemplate(pg.db, t, { client: "demo", by: "test" }, { ...deps, templates: sold });
+    expect(await del("Flow, slow")).toEqual({ id: "saved_flow_slow", name: "Flow, slow" });
+    expect((await templatesNow(pg.db, WORKFLOWS, COMPONENTS)).some((x) => x.saved)).toBe(false);
+    const audit = (await pg.db.execute(sql`SELECT op, actor FROM audit_events
+      WHERE table_name = 'workflow_templates' ORDER BY id DESC LIMIT 1`)) as unknown as {
+      op: string;
+      actor: string;
+    }[];
+    expect(audit[0]).toMatchObject({ op: "delete", actor: "op@example.test" });
   });
 
   it("opens a template that is its own workflow on the canvas with History and Save", async () => {

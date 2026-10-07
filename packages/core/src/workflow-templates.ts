@@ -3,12 +3,13 @@
  * wiring kept under a name in `workflow_templates`, sold beside the code's templates and installed
  * on a client through the same path (`template-install.ts`). Saving the same name again moves it:
  * a client that has it reads the change as an update. Saving starts, sends and spends nothing.
+ * Deleting one takes it off the Marketplace, refused while any client runs it live.
  */
 import { type Queryable, serializable, setAuditActor } from "@wren/db";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 import type { Component } from "./components.js";
 import { PortalRefusal } from "./portal.js";
-import { workflowSaves, workflowTemplates } from "./schema.js";
+import { workflowInstalls, workflowSaves, workflowTemplates } from "./schema.js";
 import { type Template, templatesOf } from "./template-install.js";
 import { flowsWith, type Workflow } from "./workflows.js";
 
@@ -89,6 +90,41 @@ export async function saveWorkflowTemplate(
       .values({ id, workflow: w.id, ...row })
       .onConflictDoUpdate({ target: workflowTemplates.id, set: row });
     return { id, name, updated: !!had };
+  });
+}
+
+/**
+ * A saved template deleted, by its id or name: off the Marketplace and the Library. Refused while
+ * any client has it live, by how many, never who. An install not live keeps its draft and words;
+ * it just can't go live. Audited as the save is, under `by`.
+ */
+export async function deleteWorkflowTemplate(
+  db: Queryable,
+  ask: { template: unknown; by: string },
+): Promise<{ id: string; name: string }> {
+  const said = typeof ask.template === "string" ? ask.template.trim() : "";
+  if (!said) throw new PortalRefusal("which template?", 400);
+  const id = said.startsWith(SAVED_PREFIX) ? said : savedIdOf(said);
+  return serializable(db, async (tx) => {
+    await setAuditActor(tx, ask.by);
+    const [had] = await tx
+      .select({ name: workflowTemplates.name })
+      .from(workflowTemplates)
+      .where(eq(workflowTemplates.id, id))
+      .for("update");
+    if (!had) throw new PortalRefusal(`no saved template called ${said}`, 404);
+    const [live] = await tx
+      .select({ n: count() })
+      .from(workflowInstalls)
+      .where(and(eq(workflowInstalls.template, id), eq(workflowInstalls.state, "live")));
+    const n = live?.n ?? 0;
+    if (n > 0)
+      throw new PortalRefusal(
+        `${n === 1 ? "1 client runs" : `${n} clients run`} it live: uninstall it there first`,
+        409,
+      );
+    await tx.delete(workflowTemplates).where(eq(workflowTemplates.id, id));
+    return { id, name: had.name };
   });
 }
 

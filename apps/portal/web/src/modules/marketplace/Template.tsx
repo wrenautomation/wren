@@ -12,6 +12,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { FIELD, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
+import { DeleteSaved } from "./delete-saved.js";
 
 const DOOR = "https://phone.wrenautomation.com/hooks/";
 
@@ -465,10 +466,19 @@ export function templateExtras(
   if (saved)
     sections.unshift([
       "Saved",
-      <p key="saved" className="text-(--ui-ink-2)">
-        Saved from a live workflow by {saved.by} on {new Date(saved.at).toLocaleDateString()}.
-        Installing starts the client's draft from this wiring. A client's own wiring stays.
-      </p>,
+      <div key="saved" className="grid gap-3">
+        <p className="text-(--ui-ink-2)">
+          Saved from a live workflow by {saved.by} on {new Date(saved.at).toLocaleDateString()}.
+          Installing starts the client's draft from this wiring. A client's own wiring stays.
+        </p>
+        {team && manages ? (
+          <DeleteSaved
+            id={d.template.id}
+            name={name}
+            after={`/marketplace/catalog?client=${encodeURIComponent(client)}`}
+          />
+        ) : null}
+      </div>,
     ]);
   if (d.template.copy.length)
     sections.push([
