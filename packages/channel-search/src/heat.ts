@@ -5,7 +5,7 @@
  * read in full, so a re-read overwrites and never adds.
  */
 import type { SiteEvent } from "@wren/channel-email";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { HEAT_WIDTHS, type HeatWidth, heatDays, scrollDays } from "./schema.js";
 
@@ -100,7 +100,7 @@ export async function writeHeatDays(
     days.map((d) => sql`${d}::date`),
     sql`, `,
   );
-  await db.transaction(async (tx) => {
+  await atomic(db, async (tx) => {
     // A day re-read in full: a cell or band it no longer has goes too.
     await tx.execute(sql`DELETE FROM heat_days WHERE day IN (${list})`);
     await tx.execute(sql`DELETE FROM scroll_days WHERE day IN (${list})`);
