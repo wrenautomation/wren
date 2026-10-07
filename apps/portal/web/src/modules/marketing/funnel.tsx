@@ -151,7 +151,7 @@ function LinkLine({
             {shown.replace(/^https:\/\//, "")}
           </a>
         ) : (
-          <span className="text-[14px] text-(--ui-ink-3)">None yet</span>
+          <span className="text-[14px] text-(--ui-ink-3)">Fills in once the target has a link</span>
         )}
         {funnel.posts ? <Tag tone="green">In the post</Tag> : null}
       </div>
