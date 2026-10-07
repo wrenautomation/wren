@@ -9,7 +9,7 @@ entity: packages/core/src/vendors.ts:1
 
 # vendors (modes, buckets, metering, usage lines)
 
-Metered services (Exa, YouTube, X, LinkedIn reads, models, Reddit, Telnyx) with a public price and a quota per key. Per client: `own` (the client's key in SSM, their bill) or `managed` (Wren's key, a daily share, a monthly cap, billed through Books). No mode is "Needs setup". Wren is client zero: null client, always managed.
+Metered services (Exa, YouTube, X, LinkedIn account reads (20 a day, burst 4) and LinkedIn reads by search (`linkedin_search`, free, no quota, 2026-10-07), models, Reddit, Telnyx) with a public price and a quota per key. Per client: `own` (the client's key in SSM, their bill) or `managed` (Wren's key, a daily share, a monthly cap, billed through Books). No mode is "Needs setup". Wren is client zero: null client, always managed.
 
 ## Why this shape
 

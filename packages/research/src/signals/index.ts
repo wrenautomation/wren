@@ -64,6 +64,11 @@ export interface Collected {
   retryAt?: Date | null;
   /** Stop this collector for the rest of the pass (a failed metered read, a cap). */
   stop?: string;
+  /**
+   * The vendors this read spent, a unit each, when the read decides (search or the account, for
+   * LinkedIn). Left out: a metered collector's `spends` or `vendors` on an answer.
+   */
+  spent?: readonly string[];
 }
 
 /** What a collector may read with. `db` is for reads only: the runner writes. */
@@ -85,6 +90,11 @@ export interface SignalDeps {
    * Wren's on a managed share; null when it has neither. Left out on Wren's pass (`linkedin`).
    */
   linkedinReads?: string | null;
+  /**
+   * LinkedIn account reads still allowed now (the `linkedin` vendor's room, 20 a day across
+   * kinds). Left out: no limit here; autobrowse still holds the account to its own.
+   */
+  linkedinRoom?: (() => Promise<number>) | null;
   /** Main's database when `db` is a client's: its reads count against the same budgets. */
   also?: Queryable | null;
   /** Google searches this unit may still spend. */
@@ -438,7 +448,9 @@ export async function signalUnit(
   if (opts.dry) return { ...unit, state: got.state, kept: 0, refused: 0, drafts: got.signals };
   // A read that answered was spent: meter it after the write. A failed meter is logged, never
   // thrown, so the unit isn't retried and the read bought twice.
-  const spent = c.metered && opts.meter && (got.state === "found" || got.state === "none");
+  const answered = got.state === "found" || got.state === "none";
+  const spent =
+    got.spent ?? (c.metered && answered ? (c.spends?.(subject) ?? c.vendors ?? []) : []);
   const done = await atomic(base.db, async (tx) => {
     const tried = [...got.tried];
     let kept = 0;
@@ -463,8 +475,8 @@ export async function signalUnit(
       .onConflictDoUpdate({ target: [signalChecks.collector, signalChecks.subject], set: row });
     return { ...unit, state, kept, refused: got.signals.length - kept };
   });
-  if (spent)
-    await opts.meter?.(c.spends?.(subject) ?? c.vendors ?? []).catch((err: unknown) => {
+  if (spent.length)
+    await opts.meter?.(spent).catch((err: unknown) => {
       console.error(`meter ${c.name} ${subject}:`, err instanceof Error ? err.message : err);
     });
   return done;
@@ -542,6 +554,8 @@ export async function runSignals(
     only?: string | null;
     dry?: boolean;
     runId?: string | null;
+    /** Records a unit's spent vendors, by collector (`meter` in `@wren/core/vendors`). */
+    meter?: ((collector: string, vendors: readonly string[]) => Promise<void>) | null;
     onUnit?: (u: SignalUnit | { collector: string; subject: string; error: string }) => void;
   },
 ): Promise<SignalsStats> {
@@ -557,7 +571,11 @@ export async function runSignals(
     for (const subject of p.subjects) {
       let u: SignalUnit | { ok: false; reason: string };
       try {
-        u = await signalUnit(c, subject, p.settings, base, opts);
+        const meter = opts.meter;
+        u = await signalUnit(c, subject, p.settings, base, {
+          ...opts,
+          meter: meter ? (vendors) => meter(c.name, vendors) : null,
+        });
         opts.onUnit?.(u);
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);

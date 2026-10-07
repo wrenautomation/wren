@@ -1,7 +1,9 @@
 /**
  * Job postings (S1): the pool's adapter over the built `checkHiring`. The firm's careers page and
- * its board's public API first; LinkedIn jobs only as the pool account (`readAccount`), and only
- * when the board step found nothing. The key is the built one, so `crm run` and the pool write the
+ * its board's public API first; then LinkedIn's job posts on Google; LinkedIn jobs as the pool
+ * account (`readAccount`) only when both found nothing and the account has room (20 a day across
+ * kinds, designs/2026-10-07-linkedin-search-first.md). Each LinkedIn read is metered by its
+ * source. The key is the built one, so `crm run` and the pool write the
  * same finding.
  */
 import type { SiteClient } from "@wren/core/content";
@@ -9,6 +11,7 @@ import { z } from "zod";
 import { checkHiring } from "../companies/hiring.js";
 import { linkedinCompany } from "../companies/profile.js";
 import { signalDate } from "../findings.js";
+import { vendorOfSource } from "../linkedin-reads.js";
 import type { SignalCheckState } from "../schema.js";
 import { defineCollector, firmOf, readAccount, subjectOf } from "./index.js";
 
@@ -46,6 +49,7 @@ export const hiring = defineCollector({
         tried: [{ step: "firm", what: subject, outcome: "no such firm" }],
       };
     const account = s.linkedin && deps.sites ? readAccount(deps.linkedin) : null;
+    const room = account && deps.linkedinRoom ? await deps.linkedinRoom() : undefined;
     const r = await checkHiring(
       { fetcher: deps.fetcher, sites: deps.sites ?? NO_SITES },
       {
@@ -53,7 +57,12 @@ export const hiring = defineCollector({
         firm: { name: firm.name, domain: firm.domain },
         linkedinPage: linkedinCompany(firm.linkedinUrl),
       },
-      { linkedin: account, now: () => deps.now },
+      {
+        linkedin: account,
+        google: s.linkedin && !!deps.sites && deps.googleLeft > 0,
+        ...(room === undefined ? {} : { accountRoom: room }),
+        now: () => deps.now,
+      },
     );
     const tried = r.tried.map((t) => ({ ...t }));
     const f = r.finding;
@@ -76,6 +85,7 @@ export const hiring = defineCollector({
       tried,
       // A LinkedIn cap parks this firm only: the cap answers free, and later firms' boards still count.
       retryAt: r.retryAt,
+      spent: r.served ? [vendorOfSource(r.served)] : [],
     };
   },
 });

@@ -39,6 +39,7 @@ const looked = (o: Partial<LookupResult>): LookupResult => ({
   cappedBy: null,
   pages: [],
   googleStopped: null,
+  accountReads: 0,
   ...o,
 });
 const OCT_1 = new Date("2026-10-01T09:00:00Z");

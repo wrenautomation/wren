@@ -139,4 +139,87 @@ describe("hiring collector", () => {
     expect((await hiring.collect(deps({ row: null }), "c7", on)).state).toBe("unresolved");
     expect((await hiring.collect(deps(), "p7", on)).tried[0]?.outcome).toBe("no such firm");
   });
+
+  it("Google's LinkedIn job posts first: roles under the firm's name, no account read", async () => {
+    const s = sites((path) =>
+      path === "/google"
+        ? {
+            results: [
+              {
+                title: "Acme Staffing hiring Recruiter in Austin, TX | LinkedIn",
+                url: "https://www.linkedin.com/jobs/view/recruiter-at-acme-staffing-4100000001?trk=x",
+              },
+              {
+                title: "Other Firm hiring Sourcer in Austin, TX | LinkedIn",
+                url: "https://www.linkedin.com/jobs/view/sourcer-4100000002",
+              },
+              { title: "Acme Staffing | LinkedIn", url: "https://www.linkedin.com/company/acme" },
+            ],
+          }
+        : LINKEDIN_JOBS(path),
+    );
+    const row = firmRow({ linkedin_url: "https://www.linkedin.com/company/acme-staffing/" });
+    const r = await hiring.collect(
+      deps({ row, sites: s, linkedin: "linkedin", googleLeft: 3 }),
+      "c7",
+      on,
+    );
+    expect(s.calls).toEqual(["web /google as -"]);
+    expect(r).toMatchObject({ state: "found", spent: ["linkedin_search"] });
+    expect(r.signals[0]).toMatchObject({
+      via: "google",
+      confidence: 0.7,
+      value: {
+        count: 1,
+        roles: [
+          {
+            title: "Recruiter",
+            location: "Austin, TX",
+            url: "https://www.linkedin.com/jobs/view/recruiter-at-acme-staffing-4100000001",
+          },
+        ],
+      },
+    });
+    expect(r.tried).toContainEqual({
+      step: "google",
+      what: 'site:linkedin.com/jobs/view "Acme Staffing"',
+      outcome: "3 results, 1 roles at the firm",
+    });
+  });
+
+  it("Google empty: the account reads if it has room, metered as the account", async () => {
+    const answer = (path: string) => (path === "/google" ? { results: [] } : LINKEDIN_JOBS(path));
+    const row = firmRow({ linkedin_url: "https://www.linkedin.com/company/acme-staffing/" });
+    const s = sites(answer);
+    const r = await hiring.collect(
+      deps({ row, sites: s, linkedin: "linkedin", googleLeft: 3, linkedinRoom: async () => 5 }),
+      "c7",
+      on,
+    );
+    expect(s.calls).toEqual([
+      "web /google as -",
+      "linkedin /company/acme-staffing/jobs as linkedin",
+    ]);
+    expect(r).toMatchObject({ state: "found", spent: ["linkedin"] });
+    const full = sites(answer);
+    const none = await hiring.collect(
+      deps({ row, sites: full, linkedin: "linkedin", googleLeft: 3, linkedinRoom: async () => 0 }),
+      "c7",
+      on,
+    );
+    expect(full.calls).toEqual(["web /google as -"]);
+    expect(none).toMatchObject({ state: "unresolved", spent: ["linkedin_search"] });
+    expect(none.tried.at(-1)?.outcome).toBe("no account reads left today");
+  });
+
+  it("a board answers first: no LinkedIn read, nothing spent", async () => {
+    const s = sites(LINKEDIN_JOBS);
+    const r = await hiring.collect(
+      deps({ fetcher: fetcher(BOARD), sites: s, linkedin: "linkedin", googleLeft: 3 }),
+      "c7",
+      on,
+    );
+    expect(s.calls).toEqual([]);
+    expect(r.spent).toEqual([]);
+  });
 });

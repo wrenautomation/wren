@@ -9,6 +9,7 @@ import { recheckLeads, recheckNiche } from "@wren/channel-email";
 import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
+import { meter } from "@wren/core/vendors";
 import { atomic, type Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { crawlHintsFor, NICHE_NAMES, requireNiche } from "@wren/niches";
@@ -29,6 +30,7 @@ import {
   selectCrawlTargets,
 } from "@wren/research/enrichment";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
+import { accountRoom, readLedger } from "@wren/research/linkedin-reads";
 import {
   type BaseDeps,
   COLLECTORS,
@@ -212,6 +214,7 @@ export function registerEnrich(
             again: argv.again,
             timezone: settings.sendTimezone,
             linkedin: settings.poolLinkedin ?? null,
+            ledger: readLedger(db, { client: null, part: "profiles", runId: run.id }),
             runId: run.id,
             recheck: (companyIds) => recheckLeads(db, companyIds),
             onUnit: (u) =>
@@ -282,6 +285,7 @@ export function registerEnrich(
             youtube: null,
             llm,
             linkedin: readAccount(settings.poolLinkedin),
+            linkedinRoom: () => accountRoom(db, null),
           };
           const argv = { ...opts, niche };
           const signalsOn = await signalSettings(db);
@@ -293,6 +297,19 @@ export function registerEnrich(
               only: opts.collector ?? null,
               dry: opts.dry ?? false,
               runId,
+              // Each read by the source that served it, as the worker meters it.
+              meter: opts.dry
+                ? null
+                : async (collector, vendors) => {
+                    for (const vendor of vendors)
+                      await meter(db, {
+                        client: null,
+                        vendor,
+                        units: 1,
+                        part: `signals.${collector}`,
+                        runId,
+                      });
+                  },
               onUnit: (u) =>
                 console.log(
                   "error" in u

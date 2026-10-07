@@ -43,8 +43,8 @@ send as the outreach account. Neither reads as `linkedin`.
 4. **One cap of 20.** Two layers:
    - wren: vendor `linkedin` (account reads) gets a quota of 20 a day (burst 4), down from 10
      for activity alone. Every account read is gated on it and metered to it.
-   - autobrowse: the `linkedin` account gets a total bucket, `reads: 20`. Every read route on the
-     site spends one `reads` per call on top of its own kind. Per-kind caps stay as they are:
+   - autobrowse: the `linkedin` and `linkedin@alt` accounts get a `total: 20` bucket. Every route
+     on the site spends its size in `total` on top of its own kind (`withTotal`). Per-kind caps stay as they are:
      profile 20, search 5, company 10, activity 10. This is the hard stop for any caller.
 5. **Ledger.** One `vendor_usage` row per read. `linkedin` with units equal to the account calls
    when the account served it, else `linkedin_search` (new vendor, free, no quota) with 1. `part`
@@ -71,3 +71,9 @@ then, Exa answers 404 and the collector goes on to Google.
   are unchanged. Two vendors, so the Vendors page shows the source with no UI work. The posts
   collector's bucket goes from 10 to 20 a day (burst 4): search reads are cheap, and the account
   share stays bounded by the shared 20.
+- 2026-10-07, built: autobrowse names the bucket `total`, not `reads`. A refused account read
+  (4xx) still leaves the person unresolved, as before. The jobs Google step runs only when the
+  collector's `linkedin` setting is on. On a client's pass, search reads need its LinkedIn set up
+  (as before) and spend no quota. A profile lookup is metered once: `linkedin` with its account
+  calls, else `linkedin_search` only when a search step ran. Not unit-tested against a database:
+  `readLedger` and the handler wiring; the runner's `spent` path rides the existing meter.

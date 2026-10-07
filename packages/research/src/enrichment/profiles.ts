@@ -14,6 +14,7 @@
  * for the rest of the day once one was stopped (a CAPTCHA). An Exa cap parks
  * the stage until it lifts; a failed Exa read stops the run.
  */
+
 import { pausedSources } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
@@ -25,6 +26,7 @@ import {
   type ProfileSubject,
   recordCompanyLookup,
 } from "../companies/profile.js";
+import type { ReadLedger } from "../linkedin-reads.js";
 import { failedRead } from "../pacing.js";
 import { htmlOf, type PageStore } from "../pages.js";
 import { type LookupSubject, lookUpPerson } from "../people/lookup.js";
@@ -314,6 +316,10 @@ const googleSpent = (tried: { step: string }[]) => tried.filter((t) => t.step ==
  * One person, then their firm. Never throws: a site error is the unit's result,
  * so a durable runner never retries a metered read.
  */
+/** A lookup step that asked Exa's cache, Google or Exa's people search. */
+const searched = (t: { step: string; what: string }) =>
+  t.step === "cache" || t.step === "google" || (t.step === "search" && t.what !== "-");
+
 export async function profileUnit(
   db: Queryable,
   sites: SiteClient,
@@ -323,6 +329,11 @@ export async function profileUnit(
     /** The LinkedIn account for step 5; null or still capped = never log in. */
     linkedin?: string | null;
     linkedinCappedUntil?: Date | null;
+    /**
+     * Room for step 5's account reads, and where each lookup says who served it: the account
+     * (its calls) or search. Left out: no limit here, nothing metered.
+     */
+    ledger?: ReadLedger | null;
     runId?: string | null;
     now?: () => Date;
     sleep?: (ms: number) => Promise<void>;
@@ -347,12 +358,18 @@ export async function profileUnit(
   try {
     const now = opts.now?.() ?? new Date();
     const linkedinOpen = !opts.linkedinCappedUntil || opts.linkedinCappedUntil <= now;
+    const account = linkedinOpen ? (opts.linkedin ?? null) : null;
+    const room = account && opts.ledger ? await opts.ledger.room() : null;
     const person = await lookUpPerson(sites, work.person, {
-      linkedin: linkedinOpen ? (opts.linkedin ?? null) : null,
+      linkedin: account,
       google: opts.googleLeft > 0,
+      ...(room === null ? {} : { accountReads: room }),
       ...timing,
     });
     await recordLookup(db, work.person.personId, person, runId);
+    // Who served this LinkedIn read: the account when it was asked, else search when it ran.
+    if (person.accountReads > 0) await opts.ledger?.served("account", person.accountReads);
+    else if (person.tried.some(searched)) await opts.ledger?.served("search");
     unit.person = person.state;
     unit.google += googleSpent(person.tried);
     unit.googleStopped = person.googleStopped !== null;
@@ -426,6 +443,8 @@ export interface RunProfilesOptions {
   googlePerDay?: number;
   /** The LinkedIn account for step 5 (`WREN_POOL_LINKEDIN`); absent = never log in. */
   linkedin?: string | null;
+  /** Step 5's daily room and the read ledger (`readLedger`); absent = no limit, unmetered. */
+  ledger?: ReadLedger | null;
   again?: boolean;
   pages?: PageStore | null;
   runId?: string | null;
@@ -464,6 +483,7 @@ export async function runProfiles(
       googleLeft: left,
       linkedin: opts.linkedin ?? null,
       linkedinCappedUntil: linkedinUntil,
+      ledger: opts.ledger ?? null,
       runId: opts.runId ?? null,
       now: clock,
       ...(opts.sleep ? { sleep: opts.sleep } : {}),

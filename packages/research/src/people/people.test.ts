@@ -279,6 +279,39 @@ describe("lookUpPerson", () => {
     expect(calls.every((c) => c.startsWith("web"))).toBe(true);
   });
 
+  it("the account reads no more than its room today, and says how many it made", async () => {
+    const routes = {
+      "web GET /people": () =>
+        people(
+          { name: "Jane Doe", url: "https://www.linkedin.com/in/jd1/", roles: [] },
+          { name: "Jane Doe", url: "https://www.linkedin.com/in/jd2/", roles: [] },
+        ),
+      "linkedin GET /in/jd1": () => ({ name: "Jane Doe", roles: [role("Nurse", "Clinic")] }),
+      "linkedin GET /in/jd2": () => ({ name: "Jane Doe", roles: [role("Nurse", "Clinic")] }),
+      "linkedin GET /search/results/people": () => ({ people: [] }),
+    };
+    const one = fakeSites(routes);
+    const r = await lookUpPerson(one.sites, subject(), {
+      linkedin: "linkedin@research",
+      accountReads: 1,
+    });
+    expect(one.calls.filter((c) => c.startsWith("linkedin"))).toEqual([
+      "linkedin GET /in/jd1 @linkedin@research",
+    ]);
+    expect(r.accountReads).toBe(1);
+    const all = fakeSites(routes);
+    const free = await lookUpPerson(all.sites, subject(), { linkedin: "linkedin@research" });
+    expect(free.accountReads).toBe(3);
+    const none = fakeSites(routes);
+    const zero = await lookUpPerson(none.sites, subject(), {
+      linkedin: "linkedin@research",
+      accountReads: 0,
+    });
+    expect(none.calls.every((c) => c.startsWith("web"))).toBe(true);
+    expect(zero.accountReads).toBe(0);
+    expect(zero.tried.at(-1)?.outcome).toBe("no account reads left today");
+  });
+
   it("no first or last name: unresolved without a search", async () => {
     const { sites, calls } = fakeSites({});
     const r = await lookUpPerson(sites, subject({ lastName: null }), { linkedin: null });

@@ -77,14 +77,29 @@ export const VENDORS: readonly Vendor[] = [
     keyName: "X_BEARER_TOKEN",
   },
   {
+    // The account itself: the fallback when search came back thin, 20 a day across every kind
+    // (designs/2026-10-07-linkedin-search-first.md).
     id: "linkedin",
-    name: "LinkedIn reads",
-    unit: "profile read",
+    name: "LinkedIn account reads",
+    unit: "account read",
     micros: 0,
     url: null,
     asOf: AS_OF,
-    quota: { perDay: 10, burst: 2 },
+    quota: { perDay: 20, burst: 4 },
     own: "login",
+    keyName: null,
+  },
+  {
+    // A LinkedIn read that Exa or Google served: the account never saw it. Exa's credit is on
+    // autobrowse's key ring, capped there.
+    id: "linkedin_search",
+    name: "LinkedIn reads by search",
+    unit: "search read",
+    micros: 0,
+    url: null,
+    asOf: AS_OF,
+    quota: null,
+    own: null,
     keyName: null,
   },
   {

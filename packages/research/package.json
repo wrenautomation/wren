@@ -10,6 +10,7 @@
     "./discovery": "./src/discovery/index.ts",
     "./dossier": "./src/dossier.ts",
     "./fetch": "./src/fetch/index.ts",
+    "./linkedin-reads": "./src/linkedin-reads.ts",
     "./pacing": "./src/pacing.ts",
     "./pages": "./src/pages.ts",
     "./phones": "./src/phones.ts",

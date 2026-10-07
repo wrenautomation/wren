@@ -178,6 +178,7 @@ describe("signals", () => {
       tried: [],
       retryAt: new Date(Date.now() + 3_600_000),
       cappedBy: "linkedin",
+      served: "account",
     });
     const k = await one<{ state: string; finding_id: number }>(
       sql`select state, finding_id from company_checks where company_id = ${acme}`,

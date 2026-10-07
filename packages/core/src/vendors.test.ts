@@ -33,4 +33,10 @@ describe("vendors", () => {
     expect(s.managedForClients).not.toContain("linkedin");
     expect(s.managedForClients).toContain("exa");
   });
+
+  it("LinkedIn: the account's 20 reads a day across kinds; search reads free and uncapped", () => {
+    expect(vendorOf("linkedin")).toMatchObject({ quota: { perDay: 20, burst: 4 }, own: "login" });
+    expect(vendorOf("linkedin_search")).toMatchObject({ micros: 0, quota: null, own: null });
+    expect(priceText(vendorOf("linkedin_search"))).toBe("free");
+  });
 });

@@ -77,6 +77,8 @@ export interface LookupResult {
   pages: DocumentDraft[];
   /** Google stopped answering (a cap, a sorry page): until when, null = the rest of the day. */
   googleStopped: Stopped | null;
+  /** Calls made as the LinkedIn account (step 5), refused ones included. */
+  accountReads: number;
 }
 
 export interface LookupOptions {
@@ -86,6 +88,8 @@ export interface LookupOptions {
   google?: boolean;
   /** A cap an earlier person in this run hit: park at step 3 instead of asking again. */
   linkedinCappedUntil?: Date | null;
+  /** Account calls step 5 may make (the day's room, 20 across kinds); left out = no limit here. */
+  accountReads?: number;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -269,6 +273,8 @@ export async function lookUpPerson(
   const tried: Tried[] = [];
   const pages: DocumentDraft[] = [];
   let googleStopped: LookupResult["googleStopped"] = null;
+  let accountReads = 0;
+  const accountBudget = opts.accountReads ?? Number.POSITIVE_INFINITY;
   const findings = emailFindings(s);
   for (const f of findings)
     tried.push({
@@ -289,6 +295,7 @@ export async function lookUpPerson(
     cappedBy: capped?.site ?? null,
     pages,
     googleStopped,
+    accountReads,
   });
 
   const names = firmNames(s.firm);
@@ -457,8 +464,11 @@ export async function lookUpPerson(
       tried.push({ step: "search", what: q, outcome: outcome.join("; ") });
     }
 
-    // Step 5: LinkedIn logged in, only while where they are now is still open.
-    if (!status && opts.linkedin) {
+    // Step 5: LinkedIn logged in, only while where they are now is still open and the account
+    // has reads left today.
+    if (!status && opts.linkedin && accountBudget < 1)
+      tried.push({ step: "profile", what: "-", outcome: "no account reads left today" });
+    if (!status && opts.linkedin && accountBudget >= 1) {
       const account = opts.linkedin;
       const until = opts.linkedinCappedUntil;
       if (until && until > clock())
@@ -466,7 +476,9 @@ export async function lookUpPerson(
       const read = new Set<string>();
       const check = async (link: ProfileLink): Promise<boolean> => {
         if (read.has(link.vanity) || read.size >= MAX_PROFILE_READS) return false;
+        if (accountReads >= accountBudget) return false;
         read.add(link.vanity);
+        accountReads += 1;
         let p: Profile;
         try {
           p = await call<Profile>(
@@ -515,9 +527,10 @@ export async function lookUpPerson(
       const first: ProfileLink[] = profile ? [profile] : maybe;
       let found = false;
       for (const link of first) if (!found) found = await check(link);
-      if (!found && !profile && read.size < MAX_PROFILE_READS) {
+      if (!found && !profile && read.size < MAX_PROFILE_READS && accountReads < accountBudget) {
         const keywords = `${who} ${firm}`;
         let res: { people: PersonHit[] };
+        accountReads += 1;
         try {
           res = await call("linkedin", "GET", "/search/results/people", { keywords }, account);
         } catch (err) {

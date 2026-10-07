@@ -175,6 +175,7 @@ import {
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import { keepingAnswers } from "../findings.js";
+import { ACCOUNT_VENDOR, accountRoom, readLedger, SEARCH_VENDOR } from "../linkedin-reads.js";
 import type { PageStore } from "../pages.js";
 import {
   type BaseDeps,
@@ -204,6 +205,8 @@ import {
   unitBatches,
 } from "./units.js";
 
+/** The vendors a LinkedIn read spends: the account, or search. */
+const LINKEDIN_VENDORS: ReadonlySet<string> = new Set([ACCOUNT_VENDOR, SEARCH_VENDOR]);
 export interface EnrichmentDeps {
   db: Db;
   /** A client's database, for `<client>/...` keys; absent, those keys refuse. */
@@ -939,6 +942,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                   googleLeft: left,
                   linkedin: deps.linkedin ?? null,
                   linkedinCappedUntil: linkedinUntil ? new Date(linkedinUntil) : null,
+                  ledger: readLedger(deps.db, { client: null, part: "profiles", runId }),
                   runId,
                 }),
               { holds, id },
@@ -1052,10 +1056,14 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 limit: input.limit ?? undefined,
                 only: input.collector ?? null,
                 also,
+                // LinkedIn on a client's pass, search or account, needs its LinkedIn set up.
+                // Search reads cost nothing and have no quota: set up is enough.
                 gate: async (vendor, units): Promise<Gate> =>
-                  vendor === "linkedin" && own && !linkedinReads
+                  own && LINKEDIN_VENDORS.has(vendor) && !linkedinReads
                     ? { ok: false, why: "Needs setup", mode: null }
-                    : gate(deps.db, owner, vendor, units, now),
+                    : own && vendor === SEARCH_VENDOR
+                      ? { ok: true, mode: "managed", bucket: SEARCH_VENDOR, room: null }
+                      : gate(deps.db, owner, vendor, units, now),
               },
             ),
           );
@@ -1069,6 +1077,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             llm: deps.llm,
             linkedin: own ? null : readAccount(deps.linkedin),
             ...(linkedinReads === undefined ? {} : { linkedinReads }),
+            // The account's 20 a day across kinds, asked before each fallback read.
+            linkedinRoom: () => accountRoom(deps.db, owner),
             also,
           };
           const stats = emptySignalsStats();

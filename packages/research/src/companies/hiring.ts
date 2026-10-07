@@ -4,10 +4,14 @@
  * 1. The company's own site: its careers page (or the page its home page
  *    links as careers) names a job board. That board's public API lists the
  *    open roles. A board found on the firm's own site is the firm's.
- * 2. LinkedIn, only when the client allows it and step 1 found no board: the
- *    company's page (tied to the firm by a matched profile, or by a search
- *    hit whose cached page, read from Exa and not LinkedIn, names the firm's
- *    own website), then its jobs, logged in.
+ * 2. LinkedIn, only when step 1 found no board, search first
+ *    (designs/2026-10-07-linkedin-search-first.md): Google
+ *    `site:linkedin.com/jobs/view "<firm>"`, each title "<Firm> hiring <Role>
+ *    in <Place> | LinkedIn"; a role under the firm's name is a finding. None,
+ *    and the client allows it and the account has room: the company's page
+ *    (tied to the firm by a matched profile, or by a search hit whose cached
+ *    page, read from Exa and not LinkedIn, names the firm's own website), then
+ *    its jobs, logged in.
  *
  * No board and no LinkedIn = unresolved, never a guess. Pure over a Fetcher
  * and a SiteClient: it returns the finding and the trail, `store.ts` writes.
@@ -16,7 +20,8 @@ import type { SiteClient } from "@wren/core/content";
 import { FetchError, type Fetcher } from "../fetch/fetcher.js";
 import { readPage } from "../fetch/htmltext.js";
 import type { CompanyFindingDraft } from "../findings.js";
-import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
+import type { ReadSource } from "../linkedin-reads.js";
+import { Capped, paced, realSleep, refusedBy, searchStopped } from "../pacing.js";
 import { type Firm, isFirm, sameCompany } from "../people/names.js";
 import type { CompanyCheckState } from "../schema.js";
 import { type Board, findBoards, type Job, readBoard } from "./boards.js";
@@ -40,12 +45,16 @@ export interface HiringOptions {
   linkedin: string | null;
   /** A cap an earlier company in this run hit: park instead of asking again. */
   linkedinCappedUntil?: Date | null;
+  /** Search LinkedIn's job posts on Google before the account. The caller keeps its budget. */
+  google?: boolean;
+  /** Account reads left today (20 across kinds); left out = no limit here. */
+  accountRoom?: number;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 }
 
 export interface CheckTried {
-  step: "careers" | "board" | "linkedin page" | "linkedin jobs" | "capped";
+  step: "careers" | "board" | "google" | "linkedin page" | "linkedin jobs" | "capped";
   what: string;
   outcome: string;
 }
@@ -57,10 +66,16 @@ export interface HiringResult {
   retryAt: Date | null;
   /** The site whose cap parked this company; null unless capped. */
   cappedBy: string | null;
+  /** Who served the LinkedIn step: search, the account, or null when it didn't run. */
+  served: ReadSource | null;
 }
 
 /** How sure a reading is that the roles are open today. */
-const SURE = { board: 0.95, linkedin: 0.85 } as const;
+const SURE = { board: 0.95, linkedin: 0.85, google: 0.7 } as const;
+/** Results asked of Google for a firm's LinkedIn job posts. */
+const GOOGLE_JOBS = 20;
+/** "<Firm> hiring <Role> in <Place> | LinkedIn" */
+const JOB_TITLE = /^(.+?)\s+hiring\s+(.+?)(?:\s+in\s+(.+?))?(?:\s*[|–-]\s*LinkedIn.*)?$/i;
 /** Roles kept in the finding's value; the document keeps every one. */
 const ROLES_KEPT = 10;
 const LINKEDIN_JOBS_MAX = 50;
@@ -74,6 +89,9 @@ const CAREERS_LINK =
 
 interface LinkedinJobs {
   jobs: { title: string; url?: string; location?: string; postedAt?: string }[];
+}
+interface Serp {
+  results?: { title: string; url: string; snippet?: string | null }[];
 }
 interface Hits {
   hits: { title: string; url: string; snippet: string | null }[];
@@ -167,6 +185,7 @@ export async function checkHiring(
   const clock = opts.now ?? (() => new Date());
   const call = paced(deps.sites, clock, opts.sleep ?? realSleep);
   const tried: CheckTried[] = [];
+  let served: ReadSource | null = null;
   const done = (
     state: CompanyCheckState,
     finding: CompanyFindingDraft | null = null,
@@ -177,6 +196,7 @@ export async function checkHiring(
     tried,
     retryAt: capped?.retryAt ?? null,
     cappedBy: capped?.site ?? null,
+    served,
   });
 
   // Step 1: a board on the firm's own site.
@@ -197,7 +217,19 @@ export async function checkHiring(
         : done("no_openings");
   }
 
-  // Step 2: LinkedIn.
+  // Step 2: LinkedIn, search first.
+  if (opts.google && s.firm.name) {
+    const found = await jobsOnGoogle(call, s, tried);
+    if (found) served = "search";
+    if (found?.length) {
+      const q = jobsQuery(s.firm.name);
+      const page = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      return done(
+        "hiring",
+        hiringFinding(s, "google", "google", page, found, found.length, SURE.google),
+      );
+    }
+  }
   const account = opts.linkedin;
   if (!account) {
     tried.push({
@@ -207,6 +239,10 @@ export async function checkHiring(
     });
     return done("unresolved");
   }
+  if ((opts.accountRoom ?? Number.POSITIVE_INFINITY) < 1) {
+    tried.push({ step: "linkedin jobs", what: "-", outcome: "no account reads left today" });
+    return done("unresolved");
+  }
   try {
     const until = opts.linkedinCappedUntil;
     if (until && until > clock())
@@ -214,6 +250,7 @@ export async function checkHiring(
     const page = s.linkedinPage ?? (await findPage(call, s, tried));
     if (!page) return done("unresolved");
     let res: LinkedinJobs;
+    served = "account";
     try {
       res = await call<LinkedinJobs>(
         "linkedin",
@@ -244,6 +281,52 @@ export async function checkHiring(
     tried.push({ step: "capped", what: err.why, outcome: `retry at ${err.retryAt.toISOString()}` });
     return done("capped", null, err);
   }
+}
+
+const jobsQuery = (name: string) => `site:linkedin.com/jobs/view "${name}"`;
+
+/**
+ * The firm's LinkedIn job posts Google holds: titles read "<Firm> hiring <Role> in <Place> |
+ * LinkedIn"; only those under the firm's name count. Null when Google said no (a cap, a sorry
+ * page, a refusal), said in `tried`.
+ */
+async function jobsOnGoogle(
+  call: ReturnType<typeof paced>,
+  s: CompanySubject,
+  tried: CheckTried[],
+): Promise<Job[] | null> {
+  const q = jobsQuery(s.firm.name ?? "");
+  let res: Serp;
+  try {
+    res = await call<Serp>("web", "GET", "/google", { q, n: GOOGLE_JOBS });
+  } catch (err) {
+    const stopped = searchStopped(err, "web");
+    const refused = refusedBy(err);
+    if (!stopped && refused === null) throw err;
+    tried.push({
+      step: "google",
+      what: q,
+      outcome: stopped ? `stopped: ${stopped.why}` : `refused: ${refused}`,
+    });
+    return null;
+  }
+  const jobs: Job[] = [];
+  const seen = new Set<string>();
+  for (const r of res.results ?? []) {
+    if (!/linkedin\.com\/jobs\/view\//i.test(r.url)) continue;
+    const m = JOB_TITLE.exec(r.title.trim());
+    if (!m?.[1] || !m[2] || !isFirm(m[1], s.firm)) continue;
+    const url = r.url.split(/[?#]/)[0] ?? r.url;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    jobs.push({ title: m[2].trim(), location: m[3]?.trim() ?? null, url, postedAt: null });
+  }
+  tried.push({
+    step: "google",
+    what: q,
+    outcome: `${res.results?.length ?? 0} results, ${jobs.length} roles at the firm`,
+  });
+  return jobs;
 }
 
 /**
