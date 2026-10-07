@@ -158,11 +158,9 @@ Main database, `client` column, so To approve and the webhook read one place.
   it to Wren), step 2 the webhook (Wren registers it through the API with that key; if the key
   can't, the client adds the endpoint and pastes its signing secret). Checks `stripe.key` and
   `stripe.webhook` read our rows, no network.
-- The worker has no key store yet (its role can't write SSM, William's call): it binds
-  `keys: null`, so in prod Connect answers "in development", as Accounts' own-key save does.
-  Tests use the memory store; the preview has none.
-- The key arrives in `connect`'s input, which Restate journals. Same as `Accounts/setVendor`
-  today. When the worker gets a key store, the key should go straight from the Worker to it.
+- Keys live in the key store (`designs/2026-10-07-key-store.md`). The browser stages the key and its
+  signing secret outside Restate; `connect` takes `keyRef` and `secretRef`, and its schema
+  refuses a raw key. Status shows the key's last 4.
 
 ### Portal
 

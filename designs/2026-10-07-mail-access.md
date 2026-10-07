@@ -9,9 +9,9 @@ William: "reading client mail has gates. Gmail: restricted scopes need a yearly 
 - Personal Gmail, or a domain whose admin won't trust the app: the mailbox can send. Reading shows "Needs Workspace trust" with the reason. Sending needs no CASA review.
 - Microsoft 365: the admin opens one consent link for the organization, then each person signs in once as their mailbox. Personal Outlook isn't supported.
 - Reading: a 15-minute poll per client puts new mail in that client's Marketing → Inbox, sorted by the Monitor's rules and model. Polling costs $0 and needs no Pub/Sub or Graph subscriptions.
-- Refresh tokens go to SSM through the owner key path. They are never printed and never stored in Postgres.
+- Refresh tokens go to the key store (`designs/2026-10-07-key-store.md`), sealed in Postgres. They are never printed or journaled.
 - Done for you is marked "In development": there's no admin console to build and test against, and William's own Google is off limits.
-- Waiting on William: two app registrations (Google and Microsoft) and one IAM grant. Until then the page says "Needs setup: Wren's Google app" (or Microsoft). Everything else is built and tested on fakes.
+- Waiting on William: two app registrations (Google and Microsoft) and the key store's infra steps. Until then the page says "Needs setup: Wren's Google app" (or Microsoft). Everything else is built and tested on fakes.
 
 ## Trusted app, not domain-wide delegation
 
@@ -66,7 +66,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 - Scopes: send asks `gmail.send` or `Mail.Send`. Read adds `gmail.readonly` or `Mail.Read`. All requests include `openid email`; Microsoft also gets `offline_access`. Wren skips `gmail.modify` because Done is kept in Wren, not as a Gmail label.
 - Callback: `/oauth/mail/google` and `/oauth/mail/microsoft` on the portal Worker (`apps/portal/src/mail-oauth.ts`). It forwards the known query names to `MailCallback/land` and shows a plain Connected or Not connected page. It sends no-store, no-referrer and a strict CSP.
 - Tokens:
-  - `{refresh, address}` JSON at `/wren/<env>/owners/<client>/keys/MAIL_<PROVIDER>_<16 hex of sha256(address)>`.
+  - `{refresh, address}` JSON in the key store (`designs/2026-10-07-key-store.md`), under the mailbox's client as `MAIL_<PROVIDER>_<16 hex of sha256(address)>`. `mail_connections.token_name` holds its ref. Every read is an event with who and why.
   - Access tokens live only in memory. Microsoft's rotated refresh token is written back.
   - A revoked grant (`invalid_grant`) or a 401/403 marks the connection Broken with a reason.
 - Reader (`packages/watch/src/clients.ts`): `MailReader/all`, every 15 minutes. For each client with the `mail.triage` part, it reads each connected read mailbox through the Monitor's `readMail` into the client's own `watch.mail` with `reader = 'mail'`. Then it emits to the client's `mail` workflow, where `clientTriageStep` sorts with the Monitor's rules and model and names the client in the prompt. A dead mailbox doesn't stop the others.
@@ -87,11 +87,8 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
    - delegated Graph permissions `Mail.Read`, `Mail.Send`, `offline_access`, `openid`, `email`;
    - one client secret.
    - Publisher verification is worth doing, so admins see a verified name.
-3. Secrets: don't add the ids and secrets to the SSM env parameter; it's near its 8 KB cap. Put them in the key store at `/wren/prod/owners/wren/keys/MAIL_GOOGLE_CLIENT_ID`, `MAIL_GOOGLE_CLIENT_SECRET`, `MAIL_MICROSOFT_CLIENT_ID` and `MAIL_MICROSOFT_CLIENT_SECRET`. The env names `WREN_MAIL_*` also work for local runs.
-4. IAM and switch:
-   - give the worker Lambda `ssm:GetParameter` and `ssm:PutParameter` on `/wren/prod/owners/*/keys/*` (KMS decrypt and encrypt on the SSM key);
-   - set `WREN_KEY_STORE=ssm`.
-   - Without these, Connect says "In development: Wren's key store isn't set up yet."
+3. Secrets: don't add the ids and secrets to the SSM env parameter; it's near its 8 KB cap. Put them in the key store under the client `wren`: `wren keys put wren MAIL_GOOGLE_CLIENT_ID` (value on stdin), and the same for `MAIL_GOOGLE_CLIENT_SECRET`, `MAIL_MICROSOFT_CLIENT_ID` and `MAIL_MICROSOFT_CLIENT_SECRET`. The env names `WREN_MAIL_*` also work for local runs.
+4. The key store's infra steps (`designs/2026-10-07-key-store.md`) cover mail too. No `owners/*/keys/*` grant and no `WREN_KEY_STORE`: both are gone. Until the store is up, Connect says Wren's key store isn't set up yet.
 
 ## Left
 
@@ -104,3 +101,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 
 - Google CASA: worth it only if personal-Gmail clients need reading. Today they get send only.
 - Should a client's Microsoft consent cover only some mailboxes (application access policy)? Not needed for delegated scopes.
+
+## Decision log
+
+- 2026-10-07: tokens and Wren's mail apps moved from SSM owner paths to the one key store (`designs/2026-10-07-key-store.md`, "One store, not two"). No prod data existed to move.

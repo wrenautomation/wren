@@ -136,7 +136,7 @@ Prices live in `vendors.ts` with the URL and the day read, like `in-house.ts`. A
 
 | Mode | Key | Quota | Money | Who pays |
 |---|---|---|---|---|
-| `own` | the client's, in SSM at `/wren/<env>/owners/<client>/keys/<VENDOR>` (credvault's owner path layout), Postgres keeps only the parameter name | the key's own | the client's bill at the vendor | the client |
+| `own` | the client's, sealed in the key store (`designs/2026-10-07-key-store.md`); `vendor_modes.key_name` holds its ref | the key's own | the client's bill at the vendor | the client |
 | `managed` | Wren's | a share of Wren's, below a reserve Wren keeps | metered here, stops at the client's monthly cap | the client, through Books |
 
 - Wren is client zero: owner `wren`, managed on every vendor, no cap, no markup. Its usage is metered too.
@@ -195,7 +195,7 @@ Form leads' window defaults to 08:00 to 20:00 (`WREN_SMS_FORM_WINDOW`), so the s
 - **Shop and part pages**: "Needs your account" names the missing fact and links to the setup.
 - Anything not built says "In development".
 
-Built (step d): `AccountsConsole` (`@wren/core/accounts/console`) serves both pages: `accounts`, `vendors`, `start`, `mark`, `checkNow`, `addAccount`, `setVendor`, and `usage` for the Clients app. Account → Accounts shows each account with a rail of its setup's steps, the step it's on with how-to, why and next check, and Mark done, Check now, Start, Switch and Start over. A client starts self-serve and marks its own steps; done for you, restarts and adding accounts are the team's. A check the worker doesn't run says "Its check is in development" and waits on Mark done. Account → Vendors is a card per vendor: mode, price, today's room, the month's use and est. $, share and cap. A client reads it there, not under Billing (Billing needs money). The team sets the mode; managed needs money (an admin). The worker has no key store yet, so saving an own key says "Saving their key here is in development". The Shop drops `kind: "setup"` workflows. A part that requires a fact reads "Needs your account" (the team reads the step) until the fact holds, and its page links to the setup on Accounts. Connecting an account on a part also adds it to the registry. Clients → Vendor usage lists this month's metered use per client. A client's record has an Accounts section. A zero cap now says "No monthly cap set".
+Built (step d): `AccountsConsole` (`@wren/core/accounts/console`) serves both pages: `accounts`, `vendors`, `start`, `mark`, `checkNow`, `addAccount`, `setVendor`, and `usage` for the Clients app. Account → Accounts shows each account with a rail of its setup's steps, the step it's on with how-to, why and next check, and Mark done, Check now, Start, Switch and Start over. A client starts self-serve and marks its own steps; done for you, restarts and adding accounts are the team's. A check the worker doesn't run says "Its check is in development" and waits on Mark done. Account → Vendors is a card per vendor: mode, price, today's room, the month's use and est. $, share and cap. A client reads it there, not under Billing (Billing needs money). The team sets the mode; managed needs money (an admin). Saving an own key stages it through the key store and binds the ref (`designs/2026-10-07-key-store.md`). The Shop drops `kind: "setup"` workflows. A part that requires a fact reads "Needs your account" (the team reads the step) until the fact holds, and its page links to the setup on Accounts. Connecting an account on a part also adds it to the registry. Clients → Vendor usage lists this month's metered use per client. A client's record has an Accounts section. A zero cap now says "No monthly cap set".
 
 ## Setup alerts
 
@@ -244,8 +244,7 @@ Each step is committed with tests on synthetic data.
 
 - autobrowse `do` takes an `owner`, so a done-for-you step runs in the client's autobrowse owner (its accounts, its credvault path, its Keychain item), never Wren's. Built: `DoRequest.owner`; none runs as before, another owner than the process's is refused 409. A client's `do_<client>` worker isn't deployed yet, so its calls wait until the 2 hour timeout.
 - autobrowse lists an owner's accounts with role and site through `sites`, so the registry can show where each login lives without reading it.
-- credvault: wren writes own keys with credvault's owner path layout through the AWS SDK. Taking credvault as a dependency is a later swap; the path stays the same.
-- The worker's IAM role needs `ssm:PutParameter` on `/wren/<env>/owners/*/keys/*` to save own keys. Not in this build (`tofu` is William's).
+- Own keys live in the key store (`designs/2026-10-07-key-store.md`), not SSM owner paths or credvault. No `ssm:PutParameter` grant is needed.
 
 ## Open (William's call)
 

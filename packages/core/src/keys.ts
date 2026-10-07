@@ -369,7 +369,7 @@ export function pgKeyStore(
   clock: () => Date = () => new Date(),
 ): KeyStore {
   const opener = (): KeyRing => {
-    if (!("open" in ring)) throw new KeyRefusal("This copy of the key store only seals", 503);
+    if (!("open" in ring)) throw new KeyRefusal("Saved keys can't be read here", 503);
     return ring;
   };
   const read = async (tx: Tx, row: ClientSecretRow | null, by: string, why: string) => {

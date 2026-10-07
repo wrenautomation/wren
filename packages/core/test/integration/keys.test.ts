@@ -256,6 +256,6 @@ describe("key store", () => {
     expect(put.last4).toBe("p-id");
     await expect(
       sealOnly.named({ client: "wren", name: "MAIL_GOOGLE_CLIENT_ID", by: "t", why: "t" }),
-    ).rejects.toThrow("only seals");
+    ).rejects.toThrow("can't be read here");
   });
 });

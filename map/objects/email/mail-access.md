@@ -20,7 +20,7 @@ Per-mailbox 3-legged OAuth on a trusted app, never domain-wide delegation: Wren 
 - `mail_grants` (`schema.ts:37`): one-time OAuth `state` + PKCE verifier, kind connect (30 min) or consent (7 days); spent by `MailCallback/land`, swept by the reader's pass (`sweepGrants`, `access.ts:705`)
 - `mail_connections` (`schema.ts:71`): one per mailbox account; provider, address, org (hd or tenant id), scopes, access send/read, `token_name`, state connected/broken with `why`
 - `mail_consents` (`schema.ts:111`): one per `microsoft_365` account; the tenant id the admin consented in
-- Token key: `/wren/<env>/owners/<client>/keys/MAIL_<PROVIDER>_<16 hex>` (`tokenName`, `access.ts:86`), JSON `{refresh, address}`; Wren's app ids at `/wren/<env>/owners/wren/keys/MAIL_*` or `WREN_MAIL_*` (`mailAppsFrom`, `access.ts:718`)
+- Token: key store row `MAIL_<PROVIDER>_<16 hex>` under the mailbox's client (`tokenName`), JSON `{refresh, address}`; `token_name` holds the ref. Wren's app ids: key store client `wren`, names `MAIL_*`, or `WREN_MAIL_*` (`mailAppsFrom`). `packages/core/src/keys.ts`
 - OAuth (`oauth.ts`): `scopesFor` (`:29`), `connectUrl` (`:67`, PKCE, Google `hd`, Microsoft tenant in path), `consentUrl` (`:108`, v2 adminconsent), `exchange`/`refresh` (`:206`/`:224`), `appInTenant` (`:243`, AADSTS700016 = not consented)
 - Mailboxes (`mailbox.ts`): `gmailMailbox` (`:44`) and `graphMailbox` (`:116`) as core's `Mailbox`, so the Monitor's `readMail` reads them
 - States (`mailboxStates`, `access.ts:143`): not_set_up, waiting_admin, send_only, read_send, broken; personal Gmail sends only, personal Outlook refused
