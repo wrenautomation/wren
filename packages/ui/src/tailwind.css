@@ -56,7 +56,8 @@
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
   --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
   --ui-on-ink: var(--ui-paper);
-  --ui-hair: color-mix(in srgb, var(--ui-ink) 11%, transparent); /* every border and rule */
+  --ui-hair: color-mix(in srgb, var(--ui-ink) 22%, transparent); /* every border and rule */
+  --ui-edge: color-mix(in srgb, var(--ui-ink) 32%, transparent); /* around what takes input */
   --ui-fill: color-mix(in srgb, var(--ui-ink) 6%, transparent); /* counts, tracks, ghosts */
   --ui-hover: color-mix(in srgb, var(--ui-ink) 4.5%, transparent);
   --ui-glass: color-mix(in srgb, var(--ui-paper) 88%, transparent);
@@ -109,7 +110,7 @@
   --accent-foreground: var(--ui-ink);
   --destructive: var(--ui-bad);
   --border: var(--ui-hair);
-  --input: var(--ui-hair);
+  --input: var(--ui-edge);
   --ring: var(--ui-accent);
   --radius: var(--ui-radius);
   --chart-1: var(--ui-chart-1);

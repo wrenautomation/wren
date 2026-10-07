@@ -40,6 +40,7 @@ export const TOKENS = [
   "wash",
   "on-ink",
   "hair",
+  "edge",
   "fill",
   "hover",
   "glass",
