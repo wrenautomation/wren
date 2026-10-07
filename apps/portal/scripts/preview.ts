@@ -29,6 +29,15 @@ import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
 import { smsConsoleApi } from "@wren/channel-sms/restate";
 import { loadEnvFile, loadSettings } from "@wren/config";
+import {
+  liveFrom,
+  SOCIAL_ACCESS_APPS,
+  SOCIAL_ACCESS_ROUTES,
+  SOCIAL_APPS,
+  socialAccess,
+  socialAppsFrom,
+  socialConsoleApi,
+} from "@wren/content/connect";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
@@ -234,6 +243,29 @@ const SERVICES: Record<
       clientDb: (c) =>
         cachedDb(clientUrl(settings.databaseUrl, { database: clientDatabaseName(c) })),
       setups: SETUPS,
+    }),
+  },
+  // Account → Social. No network: Connect can't reach a platform here. Wren's apps from the key
+  // store, or stand-ins with WREN_PREVIEW_SOCIAL_APPS=true to see every state.
+  social: {
+    routes: Object.keys(SOCIAL_ACCESS_ROUTES),
+    guard: { needs: SOCIAL_ACCESS_ROUTES, apps: SOCIAL_ACCESS_APPS, unnamed: "first" },
+    api: socialConsoleApi({
+      main,
+      access: socialAccess({
+        main,
+        apps:
+          process.env.WREN_PREVIEW_SOCIAL_APPS === "true"
+            ? async () =>
+                Object.fromEntries(SOCIAL_APPS.map((a) => [a, { id: `${a}-app`, secret: "x" }]))
+            : socialAppsFrom(keys),
+        keys,
+        origin: `http://localhost:${port}`,
+        fetch: async () => {
+          throw new Error("no network in the preview");
+        },
+        live: liveFrom(settings.socialLive),
+      }),
     }),
   },
   // A client's Marketing, from its own database. A verdict goes to its desk on Restate: not here.

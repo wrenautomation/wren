@@ -88,6 +88,23 @@ export function mailTag(
   }
 }
 
+/** A social account's state on Account → Social, as a tag (designs/2026-10-07-client-social.md). */
+export function socialTag(state: "not_connected" | "waiting_review" | "connected" | "broken"): {
+  label: string;
+  tone: TagTone;
+} {
+  switch (state) {
+    case "not_connected":
+      return { label: "Not connected", tone: "neutral" };
+    case "waiting_review":
+      return { label: "Waiting on review", tone: "accent" };
+    case "connected":
+      return { label: "Connected", tone: "green" };
+    case "broken":
+      return { label: "Broken", tone: "warn" };
+  }
+}
+
 /** A vendor's mode, as a tag. */
 export function modeTag(
   v: Pick<VendorRow, "mode" | "own">,

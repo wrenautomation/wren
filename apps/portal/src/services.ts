@@ -29,6 +29,11 @@ import {
   SMS_CONSOLE_ROUTES,
   SMS_CONSOLE_WRITES,
 } from "@wren/channel-sms/console-routes";
+import {
+  SOCIAL_ACCESS_APPS,
+  SOCIAL_ACCESS_ROUTES,
+  SOCIAL_ACCESS_WRITES,
+} from "@wren/content/connect/routes";
 import { type Need, needOf, type Permission, type RouteApps } from "@wren/core/access";
 import {
   ACCOUNTS_CONSOLE_APPS,
@@ -182,6 +187,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in.
   mail: service("MailAccess", MAIL_ACCESS_ROUTES, MAIL_ACCESS_APPS, MAIL_ACCESS_WRITES),
+  // Account → Social: a client's own social accounts, each one sign-in.
+  social: service("SocialAccess", SOCIAL_ACCESS_ROUTES, SOCIAL_ACCESS_APPS, SOCIAL_ACCESS_WRITES),
 };
 
 /**

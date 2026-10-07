@@ -10,6 +10,7 @@ import { Mail } from "./Mail.js";
 import { nowCount } from "./Now.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
+import { Social } from "./Social.js";
 import { Vendors } from "./Vendors.js";
 import { Webhooks } from "./Webhooks.js";
 import { You } from "./You.js";
@@ -23,7 +24,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look, your mailboxes, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
+    "Your company's details, who can see your projects, your email settings, your look, your mailboxes, your social accounts, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -38,6 +39,7 @@ export const account: Module = {
     { id: "domain", label: "Domain", Page: Domain, group: "Setup" },
     { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup", badge: nowCount },
     { id: "mail", label: "Mail", Page: Mail, group: "Setup" },
+    { id: "social", label: "Social", Page: Social, group: "Setup" },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
     { id: "webhooks", label: "Webhooks", Page: Webhooks, group: "Setup" },
     {

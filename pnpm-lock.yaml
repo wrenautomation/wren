@@ -354,6 +354,9 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@wren/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core

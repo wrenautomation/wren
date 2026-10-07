@@ -55,6 +55,7 @@
     "@wren/channel-email": "workspace:*",
     "@wren/channel-sms": "workspace:*",
     "@wren/config": "workspace:*",
+    "@wren/content": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",

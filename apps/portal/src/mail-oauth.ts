@@ -18,14 +18,20 @@ const esc = (s: string) =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
   );
 
-function page(ok: boolean, said: string, status = 200): Response {
+/** The landing page: what happened, and a link back to the Account page it started on. */
+export function landingPage(
+  ok: boolean,
+  said: string,
+  back: { href: string; label: string },
+  status = 200,
+): Response {
   const title = ok ? "Connected" : "Not connected";
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
 <style>body{font:16px/1.5 system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 16px;
 color:#1c1b19;background:#fbfaf7}a{color:inherit}@media(prefers-color-scheme:dark){body{
 color:#ece9e2;background:#161513}}</style></head><body><h1>${title}</h1><p>${esc(said)}</p>
-<p><a href="/account/mail">Back to Account → Mail</a></p></body></html>`;
+<p><a href="${back.href}">Back to ${esc(back.label)}</a></p></body></html>`;
   return new Response(html, {
     status,
     headers: {
@@ -36,6 +42,9 @@ color:#ece9e2;background:#161513}}</style></head><body><h1>${title}</h1><p>${esc
     },
   });
 }
+
+const MAIL = { href: "/account/mail", label: "Account → Mail" };
+const page = (ok: boolean, said: string, status = 200) => landingPage(ok, said, MAIL, status);
 
 /** The callback's page, or null when the path isn't one. */
 export async function mailOAuthRoute(req: Request, env: Env): Promise<Response | null> {

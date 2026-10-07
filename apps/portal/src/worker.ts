@@ -16,6 +16,7 @@
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
  * - `/oauth/mail/<provider>`: a mailbox's sign-in or an admin's consent lands (./mail-oauth.ts).
+ * - `/oauth/social/<platform>`: a client's social account's sign-in lands (./social-oauth.ts).
  * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public; `/go/*` on a client's
  *   host, its tracked links.
  * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
@@ -49,6 +50,7 @@ import {
 import { payRoute } from "./pay.js";
 import { SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
+import { socialOAuthRoute } from "./social-oauth.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
 export { NoteRoom };
@@ -253,6 +255,11 @@ export default {
     // A mailbox's sign-in and an admin's consent come back here; never on the demo.
     if (pathname.startsWith("/oauth/mail/") && site.kind !== "demo") {
       const landed = await mailOAuthRoute(req, env);
+      if (landed) return landed;
+    }
+    // A client's social account's sign-in comes back here; never on the demo.
+    if (pathname.startsWith("/oauth/social/") && site.kind !== "demo") {
+      const landed = await socialOAuthRoute(req, env);
       if (landed) return landed;
     }
     if (pathname === "/api/dictate")

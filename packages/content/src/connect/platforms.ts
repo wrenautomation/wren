@@ -1,9 +1,9 @@
 /**
  * The social accounts a client connects (designs/2026-10-07-client-social.md): each platform's
  * app, its sign-in, the scopes it asks, what its review gates and what works before it. Pure: the
- * portal page, the worker and the tests read the same table.
+ * portal page, the worker and the tests read the same table. No imports: the portal's Worker
+ * reads it too.
  */
-import type { Platform } from "@wren/core/content";
 
 export const SOCIAL_PLATFORMS = [
   "facebook",
@@ -15,6 +15,9 @@ export const SOCIAL_PLATFORMS = [
   "google_business",
 ] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+/** The content channels a connected account posts as: a subset of `@wren/core/content`'s. */
+export type SocialChannel = "facebook" | "instagram" | "linkedin" | "youtube" | "x" | "tiktok";
 
 /** Wren's developer apps: one Meta app for a Page and its Instagram, one Google client for both. */
 export const SOCIAL_APPS = ["meta", "linkedin", "google", "x", "tiktok"] as const;
@@ -35,7 +38,7 @@ export interface SocialSpec {
   label: string;
   app: SocialApp;
   /** The content channel it posts as; null where Wren doesn't post yet (Business Profile). */
-  channel: Platform | null;
+  channel: SocialChannel | null;
   authorize: string;
   token: string;
   scopes: readonly string[];
@@ -197,7 +200,7 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
 };
 
 /** The platforms that post through a content channel, with that channel. */
-export const channelOf = (p: SocialPlatform): Platform | null => SOCIAL[p].channel;
+export const channelOf = (p: SocialPlatform): SocialChannel | null => SOCIAL[p].channel;
 
 /**
  * Platforms whose review passed, from `WREN_SOCIAL_LIVE` (`facebook,instagram`). X and a LinkedIn
