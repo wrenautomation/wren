@@ -42,7 +42,7 @@ Citations: `packages/channel-sms/src/schema.ts:149`
 | `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants |
 | `SmsEvents.ingest` | writes state on STOP/reply |
 | phone PWA, `wren [--client X] sms threads` | read, mark read |
-| portal app `texts`, `SmsConsole.records*` / `reply` (team only) | reads `sms.thread`, replies |
+| portal app `texts`, `SmsConsole.records*` / `reply` (team only) / `callDone` | reads `sms.thread`, replies, closes Call now |
 
 ## See
 

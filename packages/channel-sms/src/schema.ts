@@ -445,6 +445,10 @@ export type FirstTouch = (typeof FIRST_TOUCHES)[number];
 export const SPEED_CALLS = ["alerted", "dialed", "skipped"] as const;
 export type SpeedCall = (typeof SPEED_CALLS)[number];
 
+/** How the rep's "Call now" call went, when they mark it done. */
+export const CALL_OUTCOMES = ["reached", "voicemail", "no_answer", "wrong_number"] as const;
+export type CallOutcome = (typeof CALL_OUTCOMES)[number];
+
 /**
  * One lead through speed to lead (designs/2026-10-07-speed-to-lead.md): what the door said, its
  * first text and when it left, the call step, a booking. The follow-up's state is its text
@@ -475,6 +479,11 @@ export const speedRuns = pgTable(
     call: varchar("call", { length: 16, enum: SPEED_CALLS }),
     callAt: timestamp("call_at", { withTimezone: true }),
     callDetail: text("call_detail"),
+    /** The rep marked "Call now" done: it leaves the open list. */
+    callDoneAt: timestamp("call_done_at", { withTimezone: true }),
+    callOutcome: varchar("call_outcome", { length: 16, enum: CALL_OUTCOMES }),
+    /** Who marked it, by sign-in email. */
+    callDoneBy: text("call_done_by"),
     /** A booking under their email was seen: the run ends (the follow-up stops, no Call now). */
     bookedAt: timestamp("booked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -491,6 +500,7 @@ export const speedRuns = pgTable(
     }).onDelete("set null"),
     oneOf("ck_speed_runs_first_touch", t.firstTouch, FIRST_TOUCHES),
     oneOf("ck_speed_runs_call", t.call, SPEED_CALLS),
+    oneOf("ck_speed_runs_call_outcome", t.callOutcome, CALL_OUTCOMES),
   ],
 );
 export type SpeedRun = typeof speedRuns.$inferSelect;

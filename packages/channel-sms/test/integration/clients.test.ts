@@ -12,6 +12,7 @@ import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FakeBookings } from "../../src/bookings.js";
 import { clientSms } from "../../src/clients.js";
@@ -31,7 +32,7 @@ import {
   smsConsoleApi,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { smsContacts, smsEvents, smsMessages } from "../../src/schema.js";
+import { smsContacts, smsEvents, smsMessages, speedRuns } from "../../src/schema.js";
 import { DAY_BEFORE } from "../../src/templates.js";
 import { fillTemplates, liveKeys, numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
 
@@ -235,5 +236,76 @@ describe("the desk on a client's texts", () => {
     await svc.reply({ ...operator, client: "acme", id, body: "synthetic from the portal" });
     const sent = await acme.select().from(smsMessages);
     expect(sent.map((m) => m.body)).toContain("synthetic from the portal");
+  });
+
+  it("Call now closes on Done, with how it went, or on a booking", async () => {
+    const operator = { viewer: { email: "op@example.test", operator: true } };
+    const api = smsConsoleApi({ db: pg.db, open: (c) => open(c.id) });
+    const at = new Date("2026-03-10T15:00:00Z");
+    const run = (subject: string, more: Partial<typeof speedRuns.$inferInsert> = {}) => ({
+      workflow: "w",
+      subject,
+      leadAt: at,
+      name: subject,
+      consent: true,
+      firstTouch: "would_send" as const,
+      call: "alerted" as const,
+      callAt: at,
+      ...more,
+    });
+    const [a, b, c, d] = await acme
+      .insert(speedRuns)
+      .values([
+        run("Ann Test"),
+        run("Bo Test"),
+        run("Cy Test", { bookedAt: at }),
+        run("Di Test", { call: "skipped" }),
+      ])
+      .returning({ id: speedRuns.id });
+    const ids = [a, b, c, d].map((r) => String(r?.id));
+    const list = async (view: string) =>
+      (await api.recordsList({ ...operator, client: "acme", record: "sms.speed", view })).rows
+        .map((r) => [r.who, r.call, r.outcome])
+        .sort();
+    // A booking closes it: shown as Booked, not open.
+    expect(await list("call")).toEqual([
+      ["Ann Test", "alerted", null],
+      ["Bo Test", "alerted", null],
+    ]);
+    await expect(
+      api.callDone({ ...operator, client: "acme", ids: [ids[0] as string], outcome: "Maybe" }, at),
+    ).rejects.toMatchObject({ status: 400 });
+    const now = new Date("2026-03-10T15:05:00Z");
+    expect(
+      await api.callDone({ ...operator, client: "acme", ids, outcome: "No answer" }, now),
+    ).toEqual({ done: [ids[0], ids[1]], skipped: [ids[2], ids[3]] });
+    // Done once: a second press changes nothing.
+    expect(
+      await api.callDone({ ...operator, client: "acme", ids: [ids[0] as string] }, now),
+    ).toEqual({ done: [], skipped: [ids[0]] });
+    expect(await list("call")).toEqual([]);
+    expect(await list("done")).toEqual([
+      ["Ann Test", "done", "no_answer"],
+      ["Bo Test", "done", "no_answer"],
+    ]);
+    expect((await list("booked"))[0]).toEqual(["Cy Test", "booked", null]);
+    const [got] = await acme
+      .select()
+      .from(speedRuns)
+      .where(eq(speedRuns.id, Number(ids[0])));
+    expect(got).toMatchObject({ callDoneAt: now, callDoneBy: "op@example.test" });
+    const detail = await api.recordsGet({
+      ...operator,
+      client: "acme",
+      record: "sms.speed",
+      id: ids[0] as string,
+    });
+    expect((detail.detail as { steps: { step: string; said: string }[] }).steps).toContainEqual(
+      expect.objectContaining({ step: "Called", said: "no_answer", why: "op@example.test" }),
+    );
+    // Someone of another client may not close this one's.
+    await expect(
+      api.callDone({ viewer: { email: "amy@beta.test" }, client: "acme", ids }, now),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

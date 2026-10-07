@@ -13,6 +13,7 @@ import {
   type PortalRequest,
   pickClient,
   portalService,
+  type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
 import { metaOf } from "@wren/core/records";
@@ -27,11 +28,13 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { type Db, snapshot } from "@wren/db";
+import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { TEXTS } from "../clients.js";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "../console-routes.js";
 import { SMS_RECORDS } from "../records.js";
+import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
 import type { SmsDeskService } from "./index.js";
 
 export interface SmsConsoleDeps {
@@ -46,6 +49,29 @@ export interface ReplyRequest extends PortalRequest {
   id: number;
   body: string;
 }
+
+export interface CallDoneRequest extends PortalRequest {
+  /** Speed-to-lead runs, as the record shows their ids. */
+  ids: (string | number)[];
+  /** How it went: a code or its label ("No answer"); left out, just done. */
+  outcome?: string | null;
+}
+
+/** The outcome as the Done form's select says it. */
+export const OUTCOME_LABELS: Record<CallOutcome, string> = {
+  reached: "Reached",
+  voicemail: "Voicemail",
+  no_answer: "No answer",
+  wrong_number: "Wrong number",
+};
+
+const outcomeOf = (said: string | null | undefined): CallOutcome | null => {
+  const s = said?.trim();
+  if (!s) return null;
+  const code = CALL_OUTCOMES.find((o) => o === s || OUTCOME_LABELS[o] === s);
+  if (!code) throw new PortalRefusal(`no such outcome: ${s.slice(0, 40)}`, 400);
+  return code;
+};
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
@@ -81,6 +107,35 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
       if (!body) throw new PortalRefusal("type the text first", 400);
       return { client: client.id, contactId: req.id, body };
     },
+    /**
+     * Closes "Call now" on these runs: an open one (alerted, not done, not booked) takes the time,
+     * the outcome and who; the rest are skipped.
+     */
+    callDone: async (req: CallDoneRequest, now: Date) => {
+      const client = await texting(req);
+      const by = (req.viewer as SignedViewer).email;
+      const outcome = outcomeOf(req.outcome);
+      const asked = Array.isArray(req.ids) ? req.ids.map(String) : [];
+      const ids = asked.map(Number).filter((n) => Number.isSafeInteger(n) && n > 0);
+      if (!ids.length) throw new PortalRefusal("pick a lead", 400);
+      const done = await atomic(open(client), async (tx) => {
+        await setAuditActor(tx, by);
+        return tx
+          .update(speedRuns)
+          .set({ callDoneAt: now, callOutcome: outcome, callDoneBy: by })
+          .where(
+            and(
+              inArray(speedRuns.id, ids),
+              eq(speedRuns.call, "alerted"),
+              isNull(speedRuns.callDoneAt),
+              isNull(speedRuns.bookedAt),
+            ),
+          )
+          .returning({ id: speedRuns.id });
+      });
+      const closed = new Set(done.map((r) => String(r.id)));
+      return { done: [...closed], skipped: asked.filter((id) => !closed.has(id)) };
+    },
   };
 }
 
@@ -109,6 +164,23 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
       ),
       recordsStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsAsk) =>
         answer(() => api.recordsStats(req)),
+      ),
+      /** Close speed to lead's "Call now" on these leads, with how the call went. */
+      callDone: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            ids: z
+              .array(z.union([z.string(), z.number()]))
+              .describe("The leads' ids, as the record shows them"),
+            outcome: z
+              .string()
+              .nullish()
+              .describe("Reached, Voicemail, No answer or Wrong number; left out, just done"),
+          }),
+        },
+        (ctx: restate.Context, req: CallDoneRequest) =>
+          answer(async () => api.callDone(req, new Date(await ctx.date.now()))),
       ),
       /** Text a client's thread from its sticky number; it leaves on the client's next tick. */
       reply: serviceHandler(

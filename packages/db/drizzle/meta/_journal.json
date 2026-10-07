@@ -1002,6 +1002,13 @@
       "when": 1791343636067,
       "tag": "0142_templates_legacy_drop",
       "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1791344538330,
+      "tag": "0143_speed_call_done",
+      "breakpoints": true
     }
   ]
 }

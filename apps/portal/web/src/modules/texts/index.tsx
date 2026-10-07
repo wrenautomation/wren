@@ -1,6 +1,7 @@
 /**
  * Texts: a client's texting threads (O4), from its own database; Wren's team replies. Speed to
- * lead's runs sit beside them: each lead's first text, call and follow-up, and "Call now".
+ * lead's runs sit beside them: each lead's first text, call and follow-up, and "Call now" until
+ * the rep marks it done or the lead books.
  */
 import { segments } from "@wren/channel-sms/templates";
 import type { Action, RecordExtras } from "@wren/ui";
@@ -20,6 +21,33 @@ const THREAD_ACTIONS: Action[] = [
     ask: { field: "body", label: "Your text", preview: { kind: "sms", parts: segments } },
     key: "r",
     done: () => "Queued. It leaves on the next tick.",
+  },
+];
+
+/** Closes "Call now": the rep called. How it went is optional. */
+const SPEED_ACTIONS: Action[] = [
+  {
+    id: "sms.callDone",
+    label: "Done",
+    handler: "sms/callDone",
+    each: true,
+    bulk: true,
+    form: [
+      {
+        field: "outcome",
+        label: "How it went",
+        type: "select",
+        optional: true,
+        options: ["Reached", "Voicemail", "No answer", "Wrong number"],
+      },
+    ],
+    when: { call: ["alerted"] },
+    sets: { call: "done" },
+    key: "e",
+    done: (a) => {
+      const n = (a as { done?: unknown[] } | null)?.done?.length ?? 0;
+      return n ? "Marked done." : "Nothing to close: booked or done already.";
+    },
   },
 ];
 
@@ -43,6 +71,12 @@ const SAID: Record<string, string> = {
   no_phone: "not texted: no phone",
   refused: "not sent",
   alerted: "Call now",
+  done: "called",
+  booked: "booked first",
+  reached: "reached",
+  voicemail: "voicemail",
+  no_answer: "no answer",
+  wrong_number: "wrong number",
   dialed: "dialed",
   skipped: "skipped",
   enrolled: "texting",
@@ -156,11 +190,25 @@ export const texts: Module = {
       label: "Speed to lead",
       template: "list",
       record: SPEED,
+      // What fits at 1440; source, email and the booking time are in Columns.
+      columns: [
+        "who",
+        "firstTouch",
+        "firstTouchIn",
+        "call",
+        "outcome",
+        "tel",
+        "follow",
+        "leadAt",
+        "phone",
+      ],
       empty: {
         call: "Leads to call show here until voice is set up.",
+        done: "Calls you mark done show here.",
         all: "Leads from your forms show here.",
         booked: "Leads who book show here.",
       },
+      actions: SPEED_ACTIONS,
       extras: speedExtras,
     },
   ],

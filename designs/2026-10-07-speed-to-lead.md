@@ -86,7 +86,7 @@ This makes them run.
   - Call (`voice.call_now`, `packages/voice/src/call-now.ts`): the worker passes no dialer, so
     every run shows "voice not set up" and Call now. A booking found first skips the call and ends
     the run. "Call now" lives on Texts > Speed to lead with a tap-to-call link, not an Inbox: the
-    Inbox is inbound only. It has no Done action yet; the list grows.
+    Inbox is inbound only. Done closes it (see the follow-up below).
   - Follow-up (`sms.follow_up`, part over cadence `follow_up.speed-to-lead`, day 1, 3, 7): driven
     by `SmsSender`'s sends like every text cadence. Stops on reply, STOP, a booking (by email
     only), or an active email sequence. The booking link is the texts setting `bookingLink`.
@@ -98,3 +98,17 @@ This makes them run.
     `voice.dialer` and `voice.voicemail` stay planned, used by no workflow now.
   - Map: `sms/speed-run` (new), `sms/sms-contact`, `voice/call`, `platform/spine`,
     `platform/records`.
+- 2026-10-07: follow-ups.
+  - Done on Call now (row, bulk and detail, key E): `SmsConsole.callDone` sets `call_done_at`,
+    an optional outcome (reached, voicemail, no answer, wrong number) and who, on open runs only
+    (migration 0143). The Call column is derived: Called once done, Booked once booked, so a
+    booking closes the item too. Views Call now (open only), Done, All, Booked; the Overview tile
+    counts open only.
+  - Shop: Install on `speed_to_lead` only stored a product block. No door hook, no loop, and the
+    door doesn't read it. So the part is planned again ("In development", Install hidden, the
+    server still refuses it); its steps run as before. The hook stays `wren hooks add` until
+    template install. `sms.forms`, `sms.follow_up` and `voice.call_now` still show Install, which
+    also stores a block only.
+  - Table: default columns fit 1440 (Lead, First text, Took, Call, Outcome, Dial, Follow-up, Came
+    in, Phone); Source, Email and Booked are in Columns.
+  - Map: `sms/speed-run`, `sms/sms-contact`, `voice/call`.

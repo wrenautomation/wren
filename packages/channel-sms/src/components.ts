@@ -136,8 +136,11 @@ export const SMS_COMPONENTS = [
     blurb: "Texts a new lead within a minute, calls them, and follows up until they book.",
     icon: "clock",
     for: "client",
-    ready: true,
-    missing: [],
+    // Its steps run, but an install only stores a block: no door hook, nothing starts. Until
+    // template install, the team adds the hook (`wren hooks add`) and the Shop says so.
+    ready: false,
+    planned: true,
+    missing: ["Install doesn't add the door's hook yet"],
     inside: "speed_to_lead.steps",
     requires: { components: [TEXTS] },
     effects: ["sends", "spends"],

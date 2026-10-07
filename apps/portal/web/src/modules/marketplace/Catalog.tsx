@@ -262,7 +262,9 @@ export function catalogExtras(
         <p className={QUIET}>
           {row.for === "wren"
             ? "Runs Wren's own business: no client installs it."
-            : "Not ready for a client yet."}
+            : row.ready === "planned"
+              ? "In development."
+              : "Not ready for a client yet."}
         </p>
       )
     ) : (

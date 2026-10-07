@@ -17,7 +17,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
-import { smsContacts, speedRuns } from "./schema.js";
+import { type SpeedRun, smsContacts, speedRuns } from "./schema.js";
 import { listTemplates, slotsOf } from "./template-store.js";
 import { type SmsSequence, sampleFields } from "./templates.js";
 import { getThread, listThreads } from "./threads.js";
@@ -114,9 +114,16 @@ const runs = (db: Queryable, id?: number) =>
     .limit(SPEED_ROWS);
 
 /**
+ * The call column: an open "Call now" closes when the rep marks it done or the lead books; the
+ * stored `call` keeps what the step did.
+ */
+const callState = (r: Pick<SpeedRun, "call" | "callDoneAt" | "bookedAt">) =>
+  r.call !== "alerted" ? r.call : r.bookedAt ? "booked" : r.callDoneAt ? "done" : "alerted";
+
+/**
  * Speed to lead (designs/2026-10-07-speed-to-lead.md): each lead from the door, with each step's
- * state: the first text and how long it took, the call (or "Call now" for the rep), the
- * follow-up, a booking. "Call now" waits on someone until voice is set up.
+ * state: the first text and how long it took, the call (or "Call now" for the rep, open until
+ * they mark it done or the lead books), the follow-up, a booking.
  */
 export const speedRecord = defineRecord({
   id: "sms.speed",
@@ -136,7 +143,8 @@ export const speedRecord = defineRecord({
       first_touch_in: r.firstTouchAt
         ? Math.max(0, Math.round((r.firstTouchAt.getTime() - r.leadAt.getTime()) / 1000))
         : null,
-      call: r.call,
+      call: callState(r),
+      outcome: r.callOutcome,
       follow: r.bookedAt ? "booked" : (follow ?? null),
       booked_at: r.bookedAt,
     })),
@@ -160,10 +168,21 @@ export const speedRecord = defineRecord({
     call: status(
       {
         alerted: { label: "Call now", tone: "warn" },
+        done: { label: "Called", tone: "good" },
+        booked: { label: "Booked", tone: "good" },
         dialed: { label: "Dialed", tone: "good" },
         skipped: { label: "Skipped", tone: "neutral" },
       },
       "Call",
+    ),
+    outcome: status(
+      {
+        reached: { label: "Reached", tone: "good" },
+        voicemail: { label: "Voicemail", tone: "neutral" },
+        no_answer: { label: "No answer", tone: "neutral" },
+        wrong_number: { label: "Wrong number", tone: "bad" },
+      },
+      "Outcome",
     ),
     tel: link("Dial"),
     follow: status(
@@ -186,16 +205,12 @@ export const speedRecord = defineRecord({
     email: text("Email"),
   },
   views: [
-    {
-      id: "call",
-      label: "Call now",
-      where: { call: "alerted", bookedAt: { empty: true } },
-      sort: "-leadAt",
-      at: "leadAt",
-    },
+    { id: "call", label: "Call now", where: { call: "alerted" }, sort: "-leadAt", at: "leadAt" },
+    { id: "done", label: "Done", where: { call: "done" }, sort: "-leadAt", at: "leadAt" },
     { id: "all", label: "All", sort: "-leadAt", at: "leadAt" },
     { id: "booked", label: "Booked", where: { bookedAt: { empty: false } }, sort: "-bookedAt" },
   ],
+  actions: ["sms.callDone"],
   /** Each step's state and why, for the record's page. */
   load: async (db, id) => {
     const [got] = await runs(db, Number(id));
@@ -211,6 +226,16 @@ export const speedRecord = defineRecord({
         },
         { step: "First text", at: r.firstTouchAt, said: r.firstTouch, why: r.firstTouchDetail },
         { step: "Call", at: r.callAt, said: r.call, why: r.callDetail },
+        ...(r.callDoneAt
+          ? [
+              {
+                step: "Called",
+                at: r.callDoneAt,
+                said: r.callOutcome ?? "done",
+                why: r.callDoneBy,
+              },
+            ]
+          : []),
         { step: "Follow-up", at: null, said: follow, why: followWhy },
         { step: "Booked", at: r.bookedAt, said: r.bookedAt ? "booked" : null, why: null },
       ],
