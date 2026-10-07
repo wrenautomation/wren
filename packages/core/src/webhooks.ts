@@ -496,7 +496,12 @@ export interface Payload {
 /** One event in: a delivery per active subscription that hears it. Again does nothing. */
 export async function queueDeliveries(
   db: Queryable,
-  p: { client: string | null; event: WebhookEvent | typeof TEST_EVENT; id: string; payload: Payload },
+  p: {
+    client: string | null;
+    event: WebhookEvent | typeof TEST_EVENT;
+    id: string;
+    payload: Payload;
+  },
   only?: string,
 ): Promise<string[]> {
   const subs = await db
@@ -541,7 +546,7 @@ export async function attemptDelivery(
     .from(webhookDeliveries)
     .innerJoin(webhookSubscriptions, eq(webhookSubscriptions.id, webhookDeliveries.subscription))
     .where(eq(webhookDeliveries.id, id));
-  if (!row || row.d.state !== "pending") return { done: true, answer: null };
+  if (row?.d.state !== "pending") return { done: true, answer: null };
   const test = row.d.event === TEST_EVENT;
   if (!row.s.active && !test) {
     await db
@@ -639,8 +644,7 @@ export function makeWebhooks(d: { main: Db }) {
           const ids = await ctx.run("queue", () =>
             queueDeliveries(d.main, { client: p.client, event: p.event, id: p.id, payload }),
           );
-          for (const id of ids)
-            ctx.serviceSendClient<WebhooksService>(WEBHOOKS).deliver({ id });
+          for (const id of ids) ctx.serviceSendClient<WebhooksService>(WEBHOOKS).deliver({ id });
           return { queued: ids.length };
         },
       ),
@@ -735,10 +739,7 @@ export function webhookStep(o: PostOptions = {}): Step {
     );
     if (answer.status === null || retryable(answer))
       throw new Error(`Send webhook: ${answer.error ?? `answered ${answer.status}`}`);
-    const webhook = answerKept(
-      { status: answer.status, ms: answer.ms, body: answer.body },
-      keep,
-    );
+    const webhook = answerKept({ status: answer.status, ms: answer.ms, body: answer.body }, keep);
     return [
       {
         port: delivered(answer) ? "answered" : "refused",

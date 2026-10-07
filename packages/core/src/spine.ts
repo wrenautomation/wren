@@ -103,7 +103,7 @@ export interface SpineStore {
   /** Take a waiting arrival for `by`; null when another call took it. */
   release(id: string, by: string): Promise<Arrival | null>;
   /** Its step failed past its retries: the event stops here, with why. Its id, when kept. */
-  fail(a: Arrival, error: string): Promise<string | null | undefined | void>;
+  fail(a: Arrival, error: string): Promise<unknown>;
   /** Take a failed arrival for `by` to run again, its error cleared; null when it isn't failed. */
   retry(id: string, by: string): Promise<Arrival | null>;
   /** What the arrival's step sent on, kept for its execution's page. */
@@ -332,8 +332,12 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       );
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
-      const stopped = await w.run(`failed ${a.node}.${port} ${m.e.subject}`, async () =>
-        ((await w.store.fail(a, err.message.slice(0, 2000))) ?? null),
+      const stopped = await w.run(
+        `failed ${a.node}.${port} ${m.e.subject}`,
+        async () => {
+          const id = await w.store.fail(a, err.message.slice(0, 2000));
+          return typeof id === "string" ? id : null;
+        },
       );
       if (stopped) w.failed?.(stopped, workflow);
       tally.failed++;
@@ -476,7 +480,6 @@ export async function failedRuns(db: Queryable): Promise<FailedRuns[]> {
 
 /** The most a Replay takes at once. */
 export const REPLAY_MOST = 200;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * The failed steps behind what Replay was given: events by id, executions by `workflow/subject`
@@ -490,7 +493,14 @@ export async function failedOf(db: Queryable, refs: readonly string[]): Promise<
   });
   if (!ids.length && !runs.length) return [];
   const which = [
-    ...(ids.length ? [sql`id IN (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})`] : []),
+    ...(ids.length
+      ? [
+          sql`id IN (${sql.join(
+            ids.map((i) => sql`${i}::uuid`),
+            sql`, `,
+          )})`,
+        ]
+      : []),
     ...(runs.length
       ? [
           sql`(workflow, subject) IN (${sql.join(
@@ -782,7 +792,10 @@ export type SpineService = {
     ctx: restate.Context,
     req: Target & { id: string; happened?: SpineEvent },
   ) => Promise<Tally | null>;
-  retry: (ctx: restate.Context, req: Target & { id: string; auto?: number }) => Promise<Tally | null>;
+  retry: (
+    ctx: restate.Context,
+    req: Target & { id: string; auto?: number },
+  ) => Promise<Tally | null>;
   fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number; resolved: number }>;
   /** A payload through a hook's door by the hook's id: Sites' forms. */
   door: (
@@ -899,7 +912,12 @@ export interface SpineDeps {
   /** An event a client's webhooks may hear (`./webhooks.ts`): sent on, journaled. */
   publish?(
     ctx: restate.Context,
-    p: { client: string | null; event: WebhookEvent; subject: string; data: Record<string, unknown> },
+    p: {
+      client: string | null;
+      event: WebhookEvent;
+      subject: string;
+      data: Record<string, unknown>;
+    },
   ): void;
 }
 

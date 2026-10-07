@@ -4,7 +4,6 @@
  * with `manage`, changes them. A secret shows once, on add and on rotate.
  */
 import { isOwner } from "@wren/core/clients";
-import type { Db } from "@wren/db";
 import {
   isDemo,
   PortalRefusal,
@@ -27,6 +26,7 @@ import {
   subscriptionsOf,
   testSubscription,
 } from "@wren/core/webhooks";
+import type { Db } from "@wren/db";
 import { z } from "zod";
 
 const EVENTS = Object.entries(WEBHOOK_EVENTS).map(([id, says]) => ({ id, says }));
@@ -67,7 +67,8 @@ export function webhooksApi(deps: { main: Db }) {
     /** This client's URLs, the newest deliveries, and the events a URL may hear. */
     webhooks: async (req: PortalRequest) => {
       const client = await pickClient(main, req);
-      if (isDemo(req.viewer)) return { webhooks: [], deliveries: [], events: EVENTS, canManage: false };
+      if (isDemo(req.viewer))
+        return { webhooks: [], deliveries: [], events: EVENTS, canManage: false };
       const [webhooks, deliveries] = await Promise.all([
         subscriptionsOf(main, client.id),
         deliveriesOf(main, client.id, { limit: 50 }),
@@ -79,7 +80,9 @@ export function webhooksApi(deps: { main: Db }) {
       const client = await pickClient(main, req);
       return deliveryOf(main, client.id, idOf(req));
     },
-    webhookAdd: async (req: PortalRequest & { name?: unknown; url?: unknown; events?: unknown }) => {
+    webhookAdd: async (
+      req: PortalRequest & { name?: unknown; url?: unknown; events?: unknown },
+    ) => {
       const { client, by } = await manager(req);
       return addSubscription(main, client, read(SubscriptionInput, req), by);
     },

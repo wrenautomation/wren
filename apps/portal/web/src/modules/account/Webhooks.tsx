@@ -99,9 +99,7 @@ function Secret({ secret, onClose }: { secret: string; onClose: () => void }) {
       <div className={TOOLS}>
         <Button
           size="sm"
-          onClick={() =>
-            void navigator.clipboard.writeText(secret).then(() => setCopied(true))
-          }
+          onClick={() => void navigator.clipboard.writeText(secret).then(() => setCopied(true))}
         >
           {copied ? "Copied" : "Copy"}
         </Button>
@@ -289,7 +287,9 @@ export function Webhooks(props: PageProps) {
                       <span className="font-medium">{d.event}</span>
                       <Tag tone={STATE[d.state].tone}>{STATE[d.state].label}</Tag>
                     </span>
-                    <span className={cx("flex flex-wrap justify-between gap-2 text-[12.5px]", QUIET)}>
+                    <span
+                      className={cx("flex flex-wrap justify-between gap-2 text-[12.5px]", QUIET)}
+                    >
                       <span>
                         {nameOf(d.subscription)} · {answerOf(d)} · {d.attempts}{" "}
                         {d.attempts === 1 ? "try" : "tries"}

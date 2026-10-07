@@ -125,10 +125,7 @@ export function Executions({
           className="h-8 text-[13px]"
         />
         {view === "failed" && rows.length && mayRetry(can) ? (
-          <ReplayAll
-            ids={rows.map((r) => r.id)}
-            onDone={() => setNonce((n) => n + 1)}
-          />
+          <ReplayAll ids={rows.map((r) => r.id)} onDone={() => setNonce((n) => n + 1)} />
         ) : null}
         {list.error && !list.data ? (
           <Alert onRetry={list.retry}>{list.error.message}</Alert>
@@ -196,7 +193,9 @@ function ReplayAll({ ids, onDone }: { ids: readonly string[]; onDone: () => void
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const go = async () => {
-    if (!confirm(`Run ${ids.length} failed run${ids.length === 1 ? "" : "s"} again? They may send.`))
+    if (
+      !confirm(`Run ${ids.length} failed run${ids.length === 1 ? "" : "s"} again? They may send.`)
+    )
       return;
     setBusy(true);
     setSaid(null);

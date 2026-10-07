@@ -138,7 +138,10 @@ export function urlProblem(raw: unknown): string | null {
   }
   if (u.protocol !== "https:") return "the URL must start with https://";
   if (u.username || u.password) return "put a login in a header, not the URL";
-  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  const host = u.hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
   const literal = v4Of(host) !== null || host.includes(":");
   if (literal) return privateIp(host) ? "that address is private" : null;
   if (HOST_BLOCKED.test(host) || host === "instance-data") return "that host is local";

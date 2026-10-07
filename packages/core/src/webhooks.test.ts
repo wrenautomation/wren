@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { sealToken } from "./doors.js";
+import { logicOf, logicProblems } from "./logic.js";
+import type { WebhookSubscription } from "./schema.js";
 import {
   answerKept,
   bodyOf,
@@ -24,9 +27,6 @@ import {
   verifyWebhook,
   webhookStep,
 } from "./webhooks.js";
-import { sealToken } from "./doors.js";
-import { logicOf, logicProblems } from "./logic.js";
-import type { WebhookSubscription } from "./schema.js";
 
 describe("the URL guard", () => {
   it.each([
@@ -48,10 +48,11 @@ describe("the URL guard", () => {
     expect(urlProblem(url)).toContain(why);
   });
 
-  it.each(["https://hooks.example.com/in?x=1", "https://93.184.215.14/x", "https://[2606:4700::1]/"])(
-    "takes %s",
-    (url) => expect(urlProblem(url)).toBeNull(),
-  );
+  it.each([
+    "https://hooks.example.com/in?x=1",
+    "https://93.184.215.14/x",
+    "https://[2606:4700::1]/",
+  ])("takes %s", (url) => expect(urlProblem(url)).toBeNull());
 
   it("knows private addresses, v4 and v6", () => {
     for (const ip of [
@@ -88,12 +89,7 @@ describe("signing", () => {
   it("signs the Standard Webhooks way", () => {
     // Standard Webhooks' own test vector: id, timestamp, body and secret give this signature.
     expect(
-      signatureOf(
-        secret,
-        "msg_p5jXN8AQM9LWM0D4loKWxJek",
-        1614265330,
-        '{"test": 2432232314}',
-      ),
+      signatureOf(secret, "msg_p5jXN8AQM9LWM0D4loKWxJek", 1614265330, '{"test": 2432232314}'),
     ).toBe("v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=");
   });
 
@@ -175,7 +171,10 @@ describe("the Send webhook node's settings", () => {
 
   it("fills slots: whole ones keep their type, inside text they're text, in a URL encoded", () => {
     expect(
-      bodyOf('{"email": "{{data.lead.email}}", "score": "{{data.lead.score}}", "who": "id {{subject}}"}', e),
+      bodyOf(
+        '{"email": "{{data.lead.email}}", "score": "{{data.lead.score}}", "who": "id {{subject}}"}',
+        e,
+      ),
     ).toEqual({ email: "dana@example.com", score: 7, who: "id lead:sms:7" });
     expect(bodyOf('{"tags": "{{ data.lead.tags }}", "none": "{{data.nope}}"}', e)).toEqual({
       tags: ["a"],

@@ -17,6 +17,7 @@ import {
   clearOverride,
   combine,
   FlagRefusal,
+  failedLines,
   flagsToFire,
   healthDays,
   healthPass,
@@ -27,6 +28,7 @@ import {
   readHealth,
   syncFlags,
   tellFlags,
+  workflowFlags,
 } from "../../src/health/index.js";
 import { HEALTH_RECORDS } from "../../src/health/records.js";
 import { addInvoice, engagementOf, startEngagement } from "../../src/index.js";
@@ -301,6 +303,31 @@ describe("flags", () => {
     expect((await flagsToFire(pg.db, NOW)).map((f) => [f.event.subject, f.facts])).toEqual([
       [`flag:${person?.id}`, { trigger: "trigger.flag", change: "cleared", side: "opportunity" }],
     ]);
+  });
+  it("flags a client's failing workflow runs, and puts Wren's own in the digest", async () => {
+    const run = { workflow: "follow_up", runs: 3, top: "the model is down", last: NOW };
+    const finds = workflowFlags("acme", [run], () => "Follow-up");
+    expect(finds[0]).toMatchObject({ cause: "workflow:follow_up", side: "risk", remindDays: 1 });
+    expect(finds[0]?.what).toContain("Follow-up");
+    expect(await syncFlags(pg.db, "workflows", finds, NOW)).toMatchObject({ raised: 1 });
+    const at = new Date("2026-11-04T09:10:00Z");
+    await tellFlags(
+      pg.db,
+      notifier,
+      "2026-11-04",
+      9,
+      at,
+      failedLines([run], () => "Follow-up"),
+    );
+    const [msg] = told.splice(0);
+    expect(msg?.body).toContain("Follow-up");
+    expect(msg?.body).toContain("Top error: the model is down");
+    // A day with only Wren's own still sends.
+    await tellFlags(pg.db, notifier, "2026-11-05", 9, new Date("2026-11-05T09:10:00Z"), [
+      "Wren x: 1 failed run",
+    ]);
+    expect(told.splice(0).map((t) => t.body)).toEqual([expect.stringContaining("Wren x")]);
+    expect(await syncFlags(pg.db, "workflows", [], NOW)).toMatchObject({ cleared: 1 });
   });
 });
 

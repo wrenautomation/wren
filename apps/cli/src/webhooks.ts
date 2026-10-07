@@ -68,7 +68,10 @@ export function registerWebhooks(program: Command, withMainDb: WithDb, settings:
     )
     .option("--name <words>", "what it is")
     .action(async (url: string, o: { events: string; name?: string }) => {
-      const events = o.events.split(",").map((e) => e.trim()).filter(Boolean);
+      const events = o.events
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
       const name = o.name ?? new URL(url).host;
       const got = await onMain((db, id) => addSubscription(db, id, { name, url, events }, BY));
       console.log(`Added ${got.subscription.id}.`);
