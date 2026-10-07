@@ -8,6 +8,7 @@ import {
 } from "@wren/channel-search/records";
 import { textContactRecord } from "@wren/channel-sms/records";
 import {
+  ANALYTICS_RECORDS,
   askedReplyRecord,
   contentRecords,
   inboxRecord,
@@ -27,6 +28,7 @@ import {
 /** `signer` links a draft's stored files (thumbnail, cover) in its field editor. */
 export const marketingNumbers = (signer?: VideoSigner) => [
   ...contentRecords(signer),
+  ...ANALYTICS_RECORDS,
   adDayRecord,
   ...SEARCH_RECORDS,
   textContactRecord,

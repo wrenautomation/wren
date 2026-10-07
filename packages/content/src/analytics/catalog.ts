@@ -59,7 +59,7 @@ export const NEEDS = {
   },
   instagramMessages: {
     name: "Instagram messages",
-    step: "Meta app review for instagram_manage_messages on the Wren app.",
+    step: "Meta app review for instagram_manage_messages on the Wren app, then we send and read Instagram DMs.",
   },
 } as const satisfies Record<string, Need>;
 
@@ -401,16 +401,6 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       ["to_dm", "dms_answered", "dm_booked"],
       "conversation",
       "convert",
-      "live",
-      OURS,
-    ],
-    [
-      "instagram",
-      null,
-      "Reading the DM inbox",
-      ["dm_inbox"],
-      "conversation",
-      "convert",
       "needs_scope",
       "instagram_manage_messages",
       NEEDS.instagramMessages,
@@ -609,12 +599,22 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "x",
       null,
-      "Comment reply rate, comment to DM, DM to booking",
-      ["reply_rate", "to_dm", "dm_booked"],
+      "Comment reply rate and time to reply",
+      ["reply_rate", "reply_secs"],
       "conversation",
       "trust",
       "live",
       OURS,
+    ],
+    [
+      "x",
+      null,
+      "Comment to DM, DM to booking",
+      ["to_dm", "dm_booked"],
+      "conversation",
+      "convert",
+      "not_built",
+      "dm.read, dm.write",
     ],
     [
       "x",

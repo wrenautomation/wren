@@ -21,7 +21,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
-import { ANALYTICS_RECORDS, postAnalytics } from "./analytics/records.js";
+import { postAnalytics } from "./analytics/records.js";
 import { DRAFT_CALLS } from "./draft-calls.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
@@ -276,9 +276,10 @@ export const postRecord = postRecordOf();
 export const contentRecords = (signer?: VideoSigner) => [
   draftRecordOf(signer),
   postRecordOf(signer),
-  ...ANALYTICS_RECORDS,
 ];
 export const CONTENT_RECORDS = contentRecords();
+/** Wren's own analytics records: conversation, digest, cadence and every metric's state. */
+export { ANALYTICS_RECORDS } from "./analytics/records.js";
 export { mediaRecord, sopRecord } from "./library.js";
 export { type ShapeView, shapeView } from "./shape-view.js";
 export * from "./social/records.js";

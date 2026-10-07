@@ -115,7 +115,7 @@ the first post proves it.
 | Retention curve, rewatches | | | app only | No API | Trust |
 | Traffic sources (feed, Reels tab, explore) | | | app only | No API | Reach |
 | Comment reply rate, time to reply | | built here | none | Live | Trust |
-| Comment → DM, DMs answered, DM → booking | | built here from `comments.contact_id`, `reach_messages`, bookings | none for the counts; reading IG DMs needs `instagram_manage_messages` | Live (counts we hold); Needs scope (IG DM inbox) | Convert |
+| Comment → DM, DMs answered, DM → booking | | none: we send no Instagram DMs yet | `instagram_manage_messages`, after Meta app review | Needs scope | Convert |
 | Account: reach, profile visits, link-in-bio clicks, accounts engaged per day | | collector built | IG user insights `total_value`, instagram_manage_insights | Live | Reach |
 | Account: followers | | `social_days` | IG user `followers_count` | Live | Reach |
 
@@ -152,7 +152,8 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Bookmarks (saves) | | collector built | `public_metrics.bookmark_count` | Live | Trust |
 | Link clicks, profile clicks | | collector built | `non_public_metrics` on the API leg (the box's default asks for them) | Live on the API leg; the browser leg leaves them out | Convert, Reach |
 | Video views, watch | | | `organic_metrics` on video posts | Not built | Trust |
-| Comment reply rate, comment → DM, DM → booking | replies need search (a paid tier) | built here over what we hold | `tweets/search/recent` | Live over held rows | Trust, Convert |
+| Comment reply rate, time to reply | replies need search (a paid tier) | built here over what we hold | `tweets/search/recent` | Live over held rows | Trust |
+| Comment → DM, DM → booking | | none: we send no X DMs | `dm.read`, `dm.write` | Not built | Convert |
 | Account: followers | | none | `users/me` `public_metrics` | Not built (route exists) | Reach |
 
 ### Reddit
@@ -172,10 +173,10 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 |---|---|---|---|---|---|
 | YouTube long-form | 4 | 10 | 0 | 0 | 2 |
 | YouTube Shorts (past long-form) | 0 | 2 | 0 | 0 | 2 |
-| Instagram | 9 | 1 | 0 | 0 | 3 |
+| Instagram | 8 | 1 | 0 | 0 | 3 |
 | TikTok | 1 | 0 | 3 | 2 | 0 |
 | LinkedIn | 4 | 0 | 1 | 2 | 0 |
-| X | 4 | 0 | 0 | 2 | 0 |
+| X | 4 | 0 | 0 | 3 | 0 |
 | Reddit | 5 | 0 | 0 | 0 | 1 |
 
 The same counts live in code (`ANALYTICS_CATALOG`, `packages/content/src/analytics/catalog.ts`);
@@ -223,12 +224,12 @@ optional, both answering numbers plus gaps rather than throwing per metric. `Con
 and `Content.accountInsights` serve them; `ContentMetrics` calls them after `metrics` on the same
 daily look, and the account once a day per platform.
 
-Derived (`packages/content/src/analytics/rates.ts`):
+Derived (the `marketing_conversation` view and `postAnalytics` in `packages/content/src/analytics/records.ts`):
 
 - reply rate: their comments on our posts we answered, of all theirs;
 - time to reply: median of answered at minus their comment's at;
 - comment → DM: their comments whose author we then DMed (`comments.contact_id`);
-- DMs answered: reach contacts who wrote to us and got a message after;
+- DMs answered: DM threads where they wrote back after our first message (LinkedIn and Reddit, the only DMs we send);
 - DM → booking: contacts whose person's lead email booked a call after the first DM;
 - post → site: link clicks over the post's views.
 

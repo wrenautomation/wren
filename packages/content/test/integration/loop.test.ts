@@ -29,6 +29,7 @@ import {
   listDrafts,
   planFor,
   playbookFor,
+  postMetricDays,
   pushPlaybook,
   slotsOf,
   tomorrowOf,
@@ -77,6 +78,14 @@ const fakeContent = restate.service({
         fetchedWith: "api" as const,
       };
     },
+    // Deeper numbers: saves on every post, and no accounts to read.
+    insights: async (_ctx: restate.Context, req: { platform: Platform; id: string }) => ({
+      values: [{ metric: "saves", value: (views.get(req.id) ?? 0) / 50 }],
+      gaps: [{ metric: "retention", state: "needs_scope", why: "a synthetic refusal" }],
+      asOf: new Date().toISOString(),
+    }),
+    platforms: async () => [] as Platform[],
+    accountInsights: async () => null,
   },
 });
 
@@ -271,6 +280,13 @@ describe("content loop", () => {
     expect(second.stats?.looked.map((l) => l.platform)).toEqual(["x"]);
     expect((await look()).stats?.looked).toEqual([]);
     expect(await pg.db.select().from(contentMetrics)).toHaveLength(2);
+    // Each look keeps its day's insights with the counts beside them.
+    expect(first.stats?.looked[0]).toMatchObject({ insights: 5, gaps: 1 });
+    const saves = await pg.db
+      .select({ value: postMetricDays.value })
+      .from(postMetricDays)
+      .where(eq(postMetricDays.metric, "saves"));
+    expect(saves.map((r) => r.value).sort()).toEqual([1, 4]);
     const ranked = await whatWorked(pg.db, new Date(), { days: 7 });
     // x: 50 views, 5+1+0 → 12/100; linkedin: 200 views, 20+1 → 10.5.
     expect(ranked.map((r) => r.platform)).toEqual(["x", "linkedin"]);

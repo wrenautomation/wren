@@ -99,7 +99,7 @@ export const digestRecord = defineRecord({
         lines: { kind: string; text: string; post?: string }[];
       }>(
         db,
-        sql`select to_char(d.week, 'YYYY-MM-DD') week, d.platform, d.lines from content_digests d
+        sql`select to_char(d.week, 'YYYY-MM-DD') as week, d.platform, d.lines from content_digests d
           where d.week = (select max(week) from content_digests)`,
       )
     ).flatMap((d) =>
@@ -371,7 +371,7 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
   const surface = surfaceOf(d.platform, d.kind);
   const rows = await rowsOf<{ day: string; metric: string; key: string; value: number }>(
     db,
-    sql`select to_char(day, 'YYYY-MM-DD') day, metric, key, value from post_metric_days
+    sql`select to_char(day, 'YYYY-MM-DD') as day, metric, key, value from post_metric_days
       where draft_id = ${draftId}::uuid order by day, metric, key`,
   );
   const series: PostAnalytics["series"] = {};
@@ -391,7 +391,7 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
     shares: number;
   }>(
     db,
-    sql`select distinct on (as_of::date) to_char(as_of, 'YYYY-MM-DD') day, views, reactions, comments,
+    sql`select distinct on (as_of::date) to_char(as_of, 'YYYY-MM-DD') as day, views, reactions, comments,
       shares from content_metrics where draft_id = ${draftId}::uuid order by as_of::date, created_at desc`,
   );
   for (const [metric, col] of [

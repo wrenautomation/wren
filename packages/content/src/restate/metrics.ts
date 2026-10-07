@@ -38,6 +38,8 @@ export const METRICS_KEY = "default";
 const REPORTED = "reported";
 /** The UTC day accounts were last read. */
 const ACCOUNTS = "accounts";
+/** The week whose digest was last kept. */
+const DIGESTED = "digested";
 const DEFAULT_EVERY_MS = 6 * 60 * 60 * 1000;
 const REPORT_DAYS = 7;
 const MONDAY = 1;
@@ -139,7 +141,8 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
           i = await content.insights({
             platform: draft.platform,
             id,
-            published: draft.publishedAt?.toISOString() ?? null,
+            // Journaled rows come back as JSON: a date is a string.
+            published: draft.publishedAt ? new Date(draft.publishedAt).toISOString() : null,
             kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
             ...(client ? { client } : {}),
           });
@@ -183,8 +186,10 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const notifier = client ? undefined : deps.notifier;
     const week = weekOf(now);
     // The week's digest, kept for the drafts' prompts and the Overview, whether or not it's sent.
-    if (!client && now.getUTCDay() === MONDAY)
-      stats.digest = await ctx.run("digest", () => writeDigest(deps.db, now, weekOf(now)));
+    if (!client && now.getUTCDay() === MONDAY && (await ctx.get<string>(DIGESTED)) !== week) {
+      stats.digest = await ctx.run("digest", () => writeDigest(deps.db, now, week));
+      ctx.set(DIGESTED, week);
+    }
     if (notifier && now.getUTCDay() === MONDAY && (await ctx.get<string>(REPORTED)) !== week) {
       const lines = await ctx.run("what worked", async () =>
         formatWhatWorked(await whatWorked(deps.db, now, { days: REPORT_DAYS })),
