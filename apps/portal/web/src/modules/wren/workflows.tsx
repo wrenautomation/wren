@@ -22,6 +22,7 @@ import {
   RecordPanel,
   type RecordsApi,
   Section,
+  say,
   useTypes,
 } from "@wren/ui";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -538,11 +539,13 @@ function Canvas({
     setError(null);
     try {
       if (!d.draft || changesOf(stored, draft) > 0) await call("console/workflowSave", body(draft));
-      await call("console/workflowPublish", {
+      const out = await call<{ asked?: string }>("console/workflowPublish", {
         workflow: w.id,
         ...(client ? { client } : {}),
         ...(typed ? { confirm: typed } : {}),
       });
+      // A client's template: it waits in To approve, not live yet.
+      if (out.asked) say.done("Asked. It goes live once approved in To approve.");
       close();
       onSaved();
     } catch (err) {

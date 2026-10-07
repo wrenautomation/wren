@@ -56,4 +56,20 @@ describe("recordHead", () => {
     expect(h.sub?.key).toBe("blurb");
     expect(h.shown.has("blurb")).toBe(false);
   });
+  it("measures tags by their labels: two long ones wrap in the Details, not a key fact", () => {
+    const effects = f("effects", "tags", {
+      states: {
+        sends: { label: "Sends messages", tone: "neutral" },
+        spends: { label: "Spends money", tone: "neutral" },
+        posts: { label: "Posts publicly", tone: "neutral" },
+      },
+    } as Partial<FieldMeta>);
+    const m = { ...meta, fields: [...meta.fields, effects] };
+    expect(recordHead(m, { name: "A", effects: "sends" }, none).keys.map((x) => x.key)).toContain(
+      "effects",
+    );
+    expect(
+      recordHead(m, { name: "A", effects: "sends,spends,posts" }, none).keys.map((x) => x.key),
+    ).not.toContain("effects");
+  });
 });

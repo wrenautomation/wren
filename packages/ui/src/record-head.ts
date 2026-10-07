@@ -13,6 +13,14 @@ type Row = Record<string, Cell>;
 
 const filled = (row: Row, f: FieldMeta) => row[f.key] != null && row[f.key] !== "";
 const short = (cell: Cell | undefined, n: number) => typeof cell !== "string" || cell.length <= n;
+/** Tags read as their labels ("Sends messages, Spends money"), not their ids. */
+const shown = (f: FieldMeta, cell: Cell | undefined): Cell | undefined =>
+  f.kind === "tags" && typeof cell === "string"
+    ? cell
+        .split(",")
+        .map((v) => f.states?.[v]?.label ?? v)
+        .join(", ")
+    : cell;
 
 export interface RecordHead {
   /** The subtitle field, when the header shows it (clamped to two lines). */
@@ -44,10 +52,9 @@ export function recordHead(
         !long(f) &&
         f.group !== SYSTEM &&
         row[f.key] != null &&
-        short(row[f.key], KEY_CHARS),
+        short(shown(f, row[f.key]), KEY_CHARS),
     )
     .slice(0, 4);
   const whole = sub && short(row[sub.key], SUB_CHARS) ? [sub] : [];
-  const shown = new Set([...states, ...keys, ...whole].map((f) => f.key));
-  return { sub, states, keys, shown };
+  return { sub, states, keys, shown: new Set([...states, ...keys, ...whole].map((f) => f.key)) };
 }

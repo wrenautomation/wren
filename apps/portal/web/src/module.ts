@@ -11,6 +11,7 @@ import type {
   OverviewTop,
   RecordAct,
   RecordExtras,
+  ShopSections,
 } from "@wren/ui";
 import type { ComponentType, ReactNode } from "react";
 
@@ -69,6 +70,8 @@ export interface ListPage extends PageBase {
   actions?: Action[];
   /** The columns shown until the viewer picks others; every one when left out. A Shop's chips. */
   columns?: string[];
+  /** A Shop's groups, in order, each under its own heading (Templates, Parts, Workflows). */
+  sections?: ShopSections;
   /** Lines and sources a record's detail adds under its fields. */
   extras?: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => RecordExtras;
   /** Old params rewritten on arrival, so old links still land: the changes, or null. */

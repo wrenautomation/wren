@@ -119,6 +119,7 @@ export {
   type RecordSource,
   type RecordsApi,
   type RecordTemplateProps,
+  type ShopSections,
   useLoad,
   useTypes,
 } from "./records.js";

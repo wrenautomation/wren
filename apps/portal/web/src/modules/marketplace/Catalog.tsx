@@ -4,7 +4,7 @@
  * and what the viewer may do. Wren's team installs, configures and uninstalls; a client asks.
  * No prices of ours: the server leaves priced settings out of the form. A part we built in place
  * of a SaaS names it, with its public price and the day we read it. A workflow shows its drawing
- * and where it's used; it installs part by part until templates.
+ * and where it's used; it installs part by part. A template has its own page (./Template.tsx).
  */
 import type { Guess, Hypothesis, Port } from "@wren/core/components";
 import { inHouseOfPart } from "@wren/core/in-house";
@@ -23,6 +23,7 @@ import { call, ME_CHANGED } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
+import { type TemplateDetail, templateExtras } from "./Template.js";
 
 type Used = { id: string; name: string }[];
 
@@ -57,7 +58,7 @@ interface Part {
   wrenSettings?: boolean;
 }
 
-type Detail = Part | { workflow: Drawn; usedIn: Used };
+type Detail = TemplateDetail | Part | { workflow: Drawn; usedIn: Used };
 
 const portsLine = (ps: Port[]) => ps.map((p) => p.label).join(", ");
 
@@ -232,10 +233,12 @@ function AccountList({ list, client, edit }: { list: Account[]; client: string; 
 
 export function catalogExtras(
   detail: unknown,
-  { row, client, team, can }: PageProps & { row: Record<string, unknown> },
+  props: PageProps & { row: Record<string, unknown> },
 ): RecordExtras {
+  const { row, client, team, can } = props;
   const got = detail as Detail | undefined;
   if (!got) return {};
+  if ("template" in got) return templateExtras(got, props);
   const id = String(row.id);
   const name = String(row.name);
   const at = (to: string) =>

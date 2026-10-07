@@ -12,7 +12,7 @@ import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
 import { callsPage } from "../calls/index.js";
 import { INBOX_PAGE } from "../marketing/index.js";
-import { ClientComponents } from "../marketplace/Installed.js";
+import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
@@ -943,6 +943,7 @@ export const clients: Module = {
       // Its portal look: the demo's too, so the demo can show one.
       extras: (_, { row }) => ({
         sections: [
+          ["Templates", createElement(ClientTemplates, { client: String(row.id) })],
           ["Components", createElement(ClientComponents, { client: String(row.id) })],
           ["Look", createElement(ClientLook, { client: String(row.id) })],
         ],

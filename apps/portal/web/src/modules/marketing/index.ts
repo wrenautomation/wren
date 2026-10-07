@@ -382,6 +382,24 @@ const TEMPLATE_ACTIONS: Action[] = [
     done: said("Declined. The version stays in its history."),
   },
 ];
+/** A client's workflow from a template: a yes makes it live (designs/2026-10-07-template-install.md). */
+const WORKFLOW_ACTIONS: Action[] = [
+  {
+    id: "workflows.approve",
+    label: "Approve",
+    handler: "console/templateApprove",
+    confirm: "Make it live? Its door opens and its parts start.",
+    key: "a",
+    done: said("Live. Its door is open and its parts are on."),
+  },
+  {
+    id: "workflows.decline",
+    label: "Decline",
+    handler: "console/templateDecline",
+    key: "x",
+    done: said("Declined. It stays installed as a draft."),
+  },
+];
 /** To approve: what we'd send, each with its own page's yes and edit. */
 const APPROVAL_ACTIONS: Action[] = [
   // A post's words are the row's body here.
@@ -391,6 +409,7 @@ const APPROVAL_ACTIONS: Action[] = [
   // The long video's yes; Shorts and thumbnails are picked on its Videos page.
   only("video", VIDEO_APPROVE, WAITS),
   ...TEMPLATE_ACTIONS.map((a) => only("template", a, WAITS)),
+  ...WORKFLOW_ACTIONS.map((a) => only("workflow", a, WAITS)),
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
@@ -486,7 +505,8 @@ const APPROVAL_PAGE: ListPage = {
     threads: "No thread comment waits on you.",
     invites: "No accepted invite waits on a first message.",
     templates: "No template version waits on a yes.",
-    all: "Post drafts, videos, thread comments, first messages and template versions show here.",
+    workflows: "No client workflow waits on a yes.",
+    all: "Post drafts, videos, thread comments, first messages, copy and workflows show here.",
   },
   actions: APPROVAL_ACTIONS,
   extras: withDraft(

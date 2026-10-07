@@ -153,6 +153,14 @@ export interface RecordActs {
   call: Call;
 }
 
+/** A Shop's groups: `names` heads each, `blurbs` says what one is under its heading. */
+export interface ShopSections {
+  field: string;
+  order: readonly string[];
+  names: Readonly<Record<string, string>>;
+  blurbs?: Readonly<Record<string, string>>;
+}
+
 export interface RecordTemplateProps {
   record: string;
   /** The page's name in the nav; the type's plural when left out. */
@@ -165,6 +173,8 @@ export interface RecordTemplateProps {
   example?: ReactNode;
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[] | undefined;
+  /** A Shop's groups: its rows by one field's value, in this order, each under its own heading. */
+  sections?: ShopSections | undefined;
   extras?: ((detail: unknown, row: Row, act: RecordAct) => RecordExtras) | undefined;
   acts?: RecordActs | undefined;
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
@@ -1570,7 +1580,13 @@ export function RecordBody({
             {keys.map((f) => (
               <div key={f.key} className="min-w-0">
                 <dt className="text-[12px] text-(--ui-ink-2)">{f.label}</dt>
-                <dd className="mt-0.5 truncate text-[18px] leading-6 font-semibold tracking-[-0.01em]">
+                <dd
+                  className={cn(
+                    "mt-0.5 text-[18px] leading-6 font-semibold tracking-[-0.01em]",
+                    // Tags wrap: each label whole ("Sends messages, Spends money").
+                    f.kind === "tags" ? "text-pretty" : "truncate",
+                  )}
+                >
                   <FieldCell field={f} cell={row[f.key]} />
                 </dd>
               </div>

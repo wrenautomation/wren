@@ -22,6 +22,7 @@ import {
   type RecordTemplateProps,
   ROOT,
   SearchBox,
+  type ShopSections,
   textOf,
   titleOf,
   useLoad,
@@ -47,6 +48,7 @@ function Shop({
   extras,
   acts,
   title,
+  sections,
 }: RecordTemplateProps & { meta: RecordMeta; types: RecordMeta[] }) {
   const { params } = place;
   // ponytail: one page of 200; a cursor when a catalog outgrows it.
@@ -123,18 +125,37 @@ function Shop({
             ))}
           </ul>
         ) : rows.length ? (
-          <ul className={cn(GRID, "transition-opacity", page.loading && "opacity-60")}>
-            {rows.map((r) => (
-              <Card
-                key={String(r.id)}
-                meta={meta}
-                row={r}
-                chips={chips}
-                open={String(r.id) === openId}
-                href={place.link({ [one]: String(r.id), tab: null })}
-              />
+          <div className={cn("grid gap-8 transition-opacity", page.loading && "opacity-60")}>
+            {groupsOf(rows, sections).map((g) => (
+              <section key={g.id} aria-label={g.name ?? undefined} className="grid gap-3">
+                {g.name ? (
+                  <header className="grid gap-0.5">
+                    <h2 className="flex items-baseline gap-2 text-[15px] leading-6 font-semibold">
+                      {g.name}
+                      <span className="text-[13px] font-normal text-(--ui-ink-3) tabular-nums">
+                        {num(g.rows.length)}
+                      </span>
+                    </h2>
+                    {g.blurb ? (
+                      <p className="text-[13px] text-pretty text-(--ui-ink-2)">{g.blurb}</p>
+                    ) : null}
+                  </header>
+                ) : null}
+                <ul className={GRID}>
+                  {g.rows.map((r) => (
+                    <Card
+                      key={String(r.id)}
+                      meta={meta}
+                      row={r}
+                      chips={chips.filter((f) => f.key !== sections?.field)}
+                      open={String(r.id) === openId}
+                      href={place.link({ [one]: String(r.id), tab: null })}
+                    />
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         ) : (
           <div className="grid justify-items-start gap-2 py-10 text-[14px] text-(--ui-ink-2)">
             {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
@@ -175,6 +196,29 @@ function Shop({
       ) : null}
     </div>
   );
+}
+
+/**
+ * The rows in their groups: each value of the field in order, then any other value after, each
+ * with rows. No groups asked: one group with no heading.
+ */
+function groupsOf(rows: Row[], sections: ShopSections | undefined) {
+  if (!sections) return [{ id: "all", name: null, blurb: null, rows }];
+  const keyOf = (r: Row) => textOf(r[sections.field]);
+  const ids = [...new Set([...sections.order, ...rows.map(keyOf)])];
+  return ids.flatMap((id) => {
+    const these = rows.filter((r) => keyOf(r) === id);
+    return these.length
+      ? [
+          {
+            id,
+            name: sections.names[id] ?? cap(id),
+            blurb: sections.blurbs?.[id] ?? null,
+            rows: these,
+          },
+        ]
+      : [];
+  });
 }
 
 const GRID = "grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-3";

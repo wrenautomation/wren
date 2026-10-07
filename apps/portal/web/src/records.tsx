@@ -452,6 +452,7 @@ export function TemplatePage({
     empty: page.empty,
     example: props.demo ? page.example : undefined,
     columns: page.columns,
+    sections: page.sections,
     extras:
       extras &&
       ((detail: unknown, row: Row, act: RecordAct) => extras(detail, { ...props, row, act })),
