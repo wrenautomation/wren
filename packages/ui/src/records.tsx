@@ -1091,7 +1091,8 @@ function List({
                                 className={cn(
                                   "font-medium text-(--ui-ink) no-underline",
                                   // Cut inside the link, so focusing it never scrolls the cell sideways.
-                                  narrow ? "line-clamp-2" : "block truncate",
+                                  // A phone breaks a long word (an address) rather than clip it.
+                                  narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
                                 )}
                               >
                                 {titleOf(meta, r)}
