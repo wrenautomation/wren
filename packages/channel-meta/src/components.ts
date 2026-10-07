@@ -12,7 +12,7 @@ export const META_COMPONENTS = [
     icon: "money",
     for: "client",
     ready: false,
-    missing: ["Runs on Wren's ad account, not per client"],
+    missing: ["Not built per client yet: launches on Wren's own ad account only"],
     settings: auditSettingsSchema,
     // The audit reads Wren's block: saved in Wren's workspace.
     wrenSettings: true,

@@ -3,7 +3,7 @@ type: object
 cluster: research
 universe: live
 status: verified
-verified: 2026-10-06 @ a2ec8a1
+verified: 2026-10-07 @ 5f8d570
 entity: packages/research/src/schema.ts:228
 ---
 
@@ -24,7 +24,7 @@ Findings already dedupe on `fact_key`, keep the raw in `documents`, and feed bri
 
 ## Collectors
 
-A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads as the client's `WREN_POOL_LINKEDIN`, by name: `linkedin` (William's main, since 2026-10-06; the alt is restricted) reads as itself, any other set value as `linkedin@alt`, `linkedin@wren` never (`readAccount`, `index.ts`). Free collectors batch 20 units a step; metered ones run one a step.
+A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads as the client's `WREN_POOL_LINKEDIN`, by name: `linkedin` (William's main, since 2026-10-06; the alt is restricted) reads as itself, any other set value as `linkedin@alt`, `linkedin@wren` never (`readAccount`, `index.ts`). Free collectors batch 20 units a step; metered ones run one a step. A client's pass (`PoolScheduler/<c>/all` with `research.signals` installed) runs on `queuedFirms` (`index.ts:209`) from its own database, with `free` (metered collectors planned empty) and no LinkedIn; its buckets also count main's reads (`also`).
 
 | Collector | Kind | Subject | Source, in order | Every | Bucket a day (burst) | Cost | Settings |
 |---|---|---|---|---|---|---|---|

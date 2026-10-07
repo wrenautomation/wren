@@ -1,4 +1,8 @@
 /**
+ * `SearchWatch/<client>/daily`: the same daily read for a client with Search watch installed and
+ * its `search_console` account set, into its own database. Search Console only: no site days,
+ * heatmaps, experiments or week. Gone, the demo, uninstalled or unconnected stops the loop.
+ *
  * `SearchWatch/default`: once a day, Search Console into `search_days` and
  * each sitemap page's index state into `search_pages`; a page that leaves or
  * enters the index is one notice. One more step rolls the lander's export
@@ -16,16 +20,25 @@
 import * as restate from "@restatedev/restate-sdk";
 import { type FetchLike, siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
+import { findClient } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { writeFlagDays } from "@wren/core/experiment-store";
 import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, makeLoopObject, runPass, serviceHandler } from "@wren/core/restate";
+import {
+  clientOfKey,
+  errorText,
+  makeLoopObject,
+  runPass,
+  serviceHandler,
+  stoppedPass,
+} from "@wren/core/restate";
 import { surveyKinds, writeSurveyDays } from "@wren/core/survey-store";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
+import { SEARCH_COMPONENT, searchSettingsSchema } from "../components.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { decideExperiments } from "../experiments.js";
 import { rollupFlags } from "../flag-days.js";
@@ -49,6 +62,10 @@ const DAY_MS = 86_400_000;
 const ASKS_PER_ENGINE = 20;
 /** An engine that fails this many in a row is off for the week (the Mac asleep, a sign-in gone). */
 const ENGINE_MISSES = 3;
+/** A client's key is `<client>/daily`. */
+export const CLIENT_SEARCH_UNIT = "daily";
+/** Sitemap pages inspected per client pass: under Search Console's per-property daily quota. */
+const CLIENT_INSPECTS = 200;
 
 export interface SearchDeps {
   db: Db;
@@ -63,6 +80,8 @@ export interface SearchDeps {
   siteExport?: { baseUrl: string; exportToken: string };
   /** The lander's edge: site flags resent each pass, the net under the push on every change. */
   edge?: EdgePush;
+  /** A client's database; absent, a client's key stops. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface SearchWeekDeps extends SearchDeps {
@@ -85,9 +104,69 @@ type WatchStats = SyncStats & {
   experiments?: Step<{ moved: number; settled: number }>;
 };
 
+/** The site a property names: `sc-domain:example.com` is https://example.com; a URL is its own. */
+export function originOf(property: string): string | null {
+  const domain = /^sc-domain:([a-z0-9.-]+)$/i.exec(property.trim())?.[1];
+  if (domain) return `https://${domain.toLowerCase()}`;
+  try {
+    const u = new URL(property.trim());
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+type ClientSearch = { kind: "gone"; why: string } | { kind: "work"; site: string; origin: string };
+
+/** What a client's pass reads, or why it stops. */
+export async function clientSearch(main: Queryable, id: string): Promise<ClientSearch> {
+  const client = await findClient(main, id);
+  if (!client) return { kind: "gone", why: "no such client" };
+  if (client.demo) return { kind: "gone", why: "the demo is never worked" };
+  const products = client.products as Record<string, unknown>;
+  if (!(SEARCH_COMPONENT in products))
+    return { kind: "gone", why: "search watch is not installed" };
+  const settings = searchSettingsSchema.safeParse(products[SEARCH_COMPONENT]);
+  if (!settings.success) return { kind: "gone", why: "the search watch settings do not parse" };
+  const site = client.accounts.search_console;
+  if (!site) return { kind: "gone", why: "no Search Console property connected" };
+  const origin = settings.data.origin ?? originOf(site);
+  if (!origin) return { kind: "gone", why: "the property names no site: set its address" };
+  return { kind: "work", site, origin };
+}
+
 export function makeSearchWatch(deps: SearchDeps) {
+  /** A client's pass: Search Console and its sitemap's pages into its database, nothing else. */
+  const clientPass = async (ctx: restate.ObjectContext, client: string, now: Date) => {
+    if (!deps.clientDb) return stoppedPass<WatchStats>(ctx, now, "no client databases here");
+    const plan = await ctx.run("client", () => clientSearch(deps.db, client));
+    if (plan.kind === "gone") return stoppedPass<WatchStats>(ctx, now, plan.why);
+    const db = deps.clientDb(client);
+    return runPass<WatchStats>(ctx, db, now, {
+      name: SEARCH_SYNC_COMMAND,
+      ledger: { command: SEARCH_SYNC_COMMAND, argv: { daemon: true, site: plan.site } },
+      body: async (runId) => {
+        // A site with no sitemap still gets its search numbers.
+        const urls = await sitemapUrls(deps.fetch, new URL("/sitemap.xml", plan.origin).href).catch(
+          () => [],
+        );
+        const stats = await syncSearch(db, {
+          console: deps.console,
+          site: plan.site,
+          urls: urls.slice(0, CLIENT_INSPECTS),
+          today: dayOf(now),
+          runId,
+        });
+        return { ...stats, week: null };
+      },
+      delayAfter: () => DAY_MS,
+      retryMs: DAY_MS / 4,
+    });
+  };
   return makeLoopObject<WatchStats>("SearchWatch", async (ctx) => {
     const now = new Date(await ctx.date.now());
+    const owner = clientOfKey(ctx.key);
+    if (owner) return clientPass(ctx, owner.client, now);
     const today = dayOf(now);
     const outcome = await runPass(ctx, deps.db, now, {
       name: SEARCH_SYNC_COMMAND,

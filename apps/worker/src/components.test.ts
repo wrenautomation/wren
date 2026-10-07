@@ -173,7 +173,8 @@ describe("the component inventory", () => {
     const ids = new Set(COMPONENTS.map((c) => c.id));
     for (const c of COMPONENTS) {
       for (const r of c.requires.components) expect(ids.has(r), `${c.id} needs ${r}`).toBe(true);
-      for (const a of c.requires.accounts) expect(ACCOUNT_SITES, c.id).toContain(a);
+      for (const a of [...c.requires.accounts, ...c.requires.anyAccount])
+        expect(ACCOUNT_SITES, c.id).toContain(a);
     }
   });
 

@@ -26,8 +26,23 @@ import { type Drawn, flowBoxes } from "./boxes.js";
 
 type Used = { id: string; name: string }[];
 
+/** One account a part needs (`ACCOUNTS` in @wren/core/components), and whether it's set. */
+interface Account {
+  site: string;
+  label: string;
+  holds: string;
+  how: string;
+  waits: string | null;
+  /** One of the part's any: a channel it can run on, not one it needs. */
+  any: boolean;
+  has: boolean | null;
+  /** Its value: the team's, in a client's workspace. */
+  account?: string | null;
+}
+
 interface Part {
   needs: { label: string; has: boolean | null }[];
+  accounts?: Account[];
   effects: string[];
   installed: boolean;
   in: Port[];
@@ -128,6 +143,82 @@ function Press({ label, run, ask }: { label: string; run: () => Promise<string>;
 
 const changed = () => dispatchEvent(new Event(ME_CHANGED));
 
+/**
+ * The accounts a part needs, each with how the client connects it and what still waits on Wren.
+ * In a client's workspace the team saves each one here; a client reads the steps.
+ */
+function Accounts({
+  list,
+  client,
+  edit,
+}: {
+  list: Account[];
+  client: string;
+  /** The team, with `manage`, in a client's workspace. */
+  edit: boolean;
+}) {
+  const each = list.filter((a) => !a.any);
+  const any = list.filter((a) => a.any);
+  return (
+    <div className="grid gap-4">
+      {each.length ? <AccountList list={each} client={client} edit={edit} /> : null}
+      {any.length ? (
+        <div className="grid gap-2">
+          <p className={QUIET}>Any one of these is enough.</p>
+          <AccountList list={any} client={client} edit={edit} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AccountList({ list, client, edit }: { list: Account[]; client: string; edit: boolean }) {
+  return (
+    <ul className={LIST}>
+      {list.map((a) => (
+        <li key={a.site} className="grid gap-2">
+          <span className={SPLIT}>
+            <span className="font-medium">{a.label}</span>
+            {a.has === null ? null : (
+              <Tag tone={a.has ? "green" : "neutral"}>{a.has ? "Connected" : "Not yet"}</Tag>
+            )}
+          </span>
+          <span className={QUIET}>{a.how}</span>
+          {a.waits ? <span className={QUIET}>Waits on Wren: {a.waits}.</span> : null}
+          {edit ? (
+            <HandlerForm
+              key={`${client}/${a.site}/${a.account ?? ""}`}
+              id={`connect:${client}/${a.site}`}
+              name={a.site}
+              verb={a.has ? "Save" : "Connect"}
+              keyed={false}
+              effect={null}
+              fields={[
+                {
+                  field: "account",
+                  label: a.holds[0]?.toUpperCase() + a.holds.slice(1),
+                  optional: true,
+                  ...(a.has ? { hint: "Clear it to disconnect." } : {}),
+                  ...(a.account ? { from: () => a.account ?? "" } : {}),
+                },
+              ]}
+              run={async (c) => {
+                const out = await call("console/connect", {
+                  client,
+                  site: a.site,
+                  account: String((c.input as { account?: unknown }).account ?? ""),
+                });
+                changed();
+                return out;
+              }}
+            />
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function catalogExtras(
   detail: unknown,
   { row, client, team, can }: PageProps & { row: Record<string, unknown> },
@@ -222,6 +313,19 @@ export function catalogExtras(
         ))}
       </ul>,
     ]);
+  // Installs and asks both need `manage`: an admin on the team, an owner on the client.
+  const manages = can?.includes("manage") ?? true;
+  const atClient = d.accounts?.some((a) => a.has !== null) ?? false;
+  if (d.accounts?.length)
+    sections.push([
+      "Accounts",
+      <Accounts
+        key="accounts"
+        list={d.accounts}
+        client={client}
+        edit={team && manages && atClient}
+      />,
+    ]);
   if (d.provides)
     sections.push([
       "Provides",
@@ -233,8 +337,6 @@ export function catalogExtras(
       />,
     ]);
 
-  // Installs and asks both need `manage`: an admin on the team, an owner on the client.
-  const manages = can?.includes("manage") ?? true;
   const lead = !manages ? (
     d.installed ? (
       <p className={QUIET}>Installed.</p>
@@ -262,9 +364,11 @@ export function catalogExtras(
         <p className={QUIET}>
           {row.for === "wren"
             ? "Runs Wren's own business: no client installs it."
-            : row.ready === "planned"
-              ? "In development."
-              : "Not ready for a client yet."}
+            : row.ready === "account"
+              ? "Connect its accounts below, then install."
+              : row.ready === "planned"
+                ? "In development."
+                : "Not ready for a client yet."}
         </p>
       )
     ) : (

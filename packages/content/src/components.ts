@@ -4,7 +4,15 @@ import { defineWorkflow } from "@wren/core/workflows";
 import { cutKnobsSchema } from "@wren/studio/cuts";
 import { z } from "zod";
 
-const FOR_WREN = "Posts to Wren's own channels, not per client";
+/** Each per-client account posting can use: one is enough (designs/2026-10-07-per-client-runs.md). */
+const CHANNEL_ACCOUNTS = [
+  "youtube",
+  "linkedin_page",
+  "x",
+  "tiktok",
+  "instagram",
+  "reddit",
+] as const;
 
 export const CONTENT_COMPONENTS = [
   defineComponent({
@@ -17,7 +25,8 @@ export const CONTENT_COMPONENTS = [
     icon: "play",
     for: "client",
     ready: false,
-    missing: [FOR_WREN],
+    missing: ["Not built per client yet: posts to Wren's own channels only"],
+    requires: { anyAccount: [...CHANNEL_ACCOUNTS] },
     provides: {
       services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
       loops: ["ContentScheduler", "ContentMetrics"],
@@ -47,7 +56,7 @@ export const CONTENT_COMPONENTS = [
     icon: "board",
     for: "client",
     ready: false,
-    missing: [FOR_WREN],
+    missing: ["Not built per client yet: plans Wren's own posts only"],
     requires: { components: ["content.posting"] },
     provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"] },
     effects: ["spends"],
@@ -69,9 +78,11 @@ export const CONTENT_COMPONENTS = [
     blurb:
       "Reads comments on our posts, follows, mentions and follower counts every 30 minutes into Marketing → Inbox.",
     icon: "people",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: [FOR_WREN],
+    missing: ["Not built per client yet: reads Wren's own channels only"],
+    // Wren's own run reads its block from `wren_settings` until a client's runs.
+    wrenSettings: true,
     requires: { components: ["content.posting"] },
     provides: {
       services: ["SocialWatch", "SocialDesk"],
@@ -106,7 +117,7 @@ export const CONTENT_COMPONENTS = [
     icon: "chart",
     for: "client",
     ready: false,
-    missing: ["Not ready until a client runs content"],
+    missing: ["Not built per client yet: sums Wren's own posts, ads and search only"],
     provides: {
       records: [
         "marketing.draft",

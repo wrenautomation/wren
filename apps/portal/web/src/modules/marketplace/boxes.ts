@@ -4,12 +4,22 @@ import type { Row } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import type { MapBox } from "@wren/ui";
 
+/** `ACCOUNTS`' labels in @wren/core/components, kept here so the page doesn't load zod. */
 const ACCOUNTS: Record<string, string> = {
-  gmail: "Gmail",
-  linkedin: "LinkedIn",
-  calcom: "cal.com",
-  telnyx: "Telnyx",
-  meta: "Meta",
+  gmail: "Sending mailbox",
+  linkedin: "LinkedIn login",
+  calcom: "Cal.com",
+  telnyx: "Phone number",
+  meta: "Meta ad account",
+  search_console: "Search Console",
+  google_calendar: "Google Calendar",
+  youtube: "YouTube channel",
+  linkedin_page: "LinkedIn company page",
+  x: "X account",
+  tiktok: "TikTok account",
+  instagram: "Instagram account",
+  reddit: "Reddit logins",
+  postmaster: "Google Postmaster",
 };
 
 /**
@@ -33,7 +43,7 @@ export function mapOf(rows: readonly Row[], at: (id: string) => string, team = f
     .filter((n) => n.startsWith("@"))
     .map((n): MapBox => {
       const site = n.slice(1);
-      return { id: n, label: `${ACCOUNTS[site] ?? site} account`, after: [], input: true };
+      return { id: n, label: ACCOUNTS[site] ?? `${site} account`, after: [], input: true };
     });
   const parts = rows.map((r): MapBox => {
     const id = String(r.id);
@@ -46,14 +56,18 @@ export function mapOf(rows: readonly Row[], at: (id: string) => string, team = f
           : r.ready === "coming"
             ? team
               ? "Runs for Wren"
-              : "Coming"
-            : r.ready === "planned"
-              ? "In development"
-              : r.ready === "off"
-                ? "Off"
-                : r.for === "wren"
-                  ? "Wren's own"
-                  : undefined,
+              : "In development"
+            : r.ready === "account"
+              ? team
+                ? "Needs an account"
+                : "Needs your account"
+              : r.ready === "planned"
+                ? "In development"
+                : r.ready === "off"
+                  ? "Off"
+                  : r.for === "wren"
+                    ? "Wren's own"
+                    : undefined,
       after: after.get(id) ?? [],
       href: at(id),
       dim: r.installed === "no",

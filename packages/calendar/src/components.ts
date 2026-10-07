@@ -13,8 +13,9 @@ export const CALENDAR_COMPONENTS = [
     icon: "clock",
     for: "client",
     ready: false,
-    missing: ["Runs on Wren's calendar only: a client's Google calendar and page come next"],
+    missing: ["Not built per client yet: books on Wren's own calendar only"],
     wrenSettings: true,
+    requires: { accounts: ["google_calendar"] },
     settings: calendarSettingsSchema,
     effects: ["sends"],
     provides: {

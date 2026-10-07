@@ -24,7 +24,7 @@ describe("mapOf", () => {
 
   it("needs that name a part are edges; the rest are account inputs, drawn last", () => {
     expect(boxes.map((b) => b.id)).toEqual(["a.base", "a.top", "@gmail"]);
-    expect(boxes[2]).toMatchObject({ label: "Gmail account", input: true, after: [] });
+    expect(boxes[2]).toMatchObject({ label: "Sending mailbox", input: true, after: [] });
     expect(boxes.find((b) => b.id === "a.top")?.after).toEqual(["a.base", "@gmail"]);
   });
 
@@ -35,11 +35,11 @@ describe("mapOf", () => {
     ]);
   });
 
-  it("a part that runs for Wren says so to the team, and 'Coming' to a client", () => {
+  it("a part that runs for Wren says so to the team, and 'In development' to a client", () => {
     const one = [row("w.part", "a.base", { ready: "coming" }), row("a.base", null)];
     const note = (team: boolean) =>
       mapOf(one, (id) => id, team).groups[0]?.find((b) => b.id === "w.part")?.note;
-    expect([note(true), note(false)]).toEqual(["Runs for Wren", "Coming"]);
+    expect([note(true), note(false)]).toEqual(["Runs for Wren", "In development"]);
   });
 
   it("not installed is dim; parts with no edges stand alone", () => {

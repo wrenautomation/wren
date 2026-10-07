@@ -1062,6 +1062,8 @@ export async function buildServices(
       site: settings.searchSite,
       origin: settings.searchOrigin,
       fetch: (url: string, init?: RequestInit) => fetch(url, init),
+      // A client's `SearchWatch/<client>/daily` reads into its own database.
+      clientDb,
       ...searchNotify,
       ...(settings.siteExportToken
         ? { siteExport: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken } }

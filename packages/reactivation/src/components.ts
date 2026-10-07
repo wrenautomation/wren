@@ -61,9 +61,9 @@ export const REACTIVATION_COMPONENTS = [
     name: "Demo videos",
     blurb: "Records a short demo video for one lead's firm, with a page to watch it.",
     icon: "play",
-    for: "client",
+    for: "wren",
     ready: false,
-    missing: ["A command for Wren's team; records Wren's own demo only"],
+    missing: ["Wren's own demos: each is a walk written in code for one product"],
     in: [{ id: "firms", label: "firms", kind: "firm" }],
     out: [{ id: "videos", label: "demo videos", kind: "video" }],
     hypothesis: {

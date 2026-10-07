@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-30 @ 99fd3f6
+verified: 2026-10-07 @ 5f8d570
 consumes: ["[[search/keyword]]"]
 produces: ["[[search/keyword]]", "[[search/proposal]]", "[[ledger/run]]"]
 ---
@@ -13,6 +13,8 @@ Search Console and the answer engines become keyword numbers; a person's `/searc
 ## Input → Movement → Output
 
 The Search Console property and the site's origin (`WREN_SEARCH_SITE`, `WREN_SEARCH_ORIGIN`). Daily, `SearchWatch/default` reads the last 7 days of queries and inspects each sitemap page; on Monday it sends `SearchWeek.run` once, which grows keywords, asks Google and Perplexity on the Mac's desk, and notifies "brief ready, run `/search-week`". The skill (`.claude/skills/search-week`) reads the brief and the lander source, drafts word swaps, gates them with `wren search propose`, shows William each, and ships with `wren search pr`.
+
+Per client: `SearchWatch/<client>/daily` reads the client's property (`accounts.search_console`) into its own database, Search Console only: no site days, heatmaps, experiments or week. It stops when the client is gone, the demo, uninstalled or unconnected (`clientSearch`, `restate/watch.ts:122`).
 
 ## Why this shape
 

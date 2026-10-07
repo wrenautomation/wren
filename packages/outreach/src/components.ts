@@ -14,7 +14,8 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["Sends from Wren's own accounts; a client's would need theirs"],
+    missing: ["Not built per client yet: sends from Wren's own logins only"],
+    requires: { anyAccount: ["linkedin", "x", "reddit"] },
     provides: {
       services: ["ReachSender", "ReachWatch", "ReachDesk"],
       loops: ["ReachSender", "ReachWatch"],
@@ -43,7 +44,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["DMs from Wren's own accounts, as Social outreach"],
+    missing: ["Not built per client yet: DMs from Wren's own logins only"],
     requires: { components: ["reach.outreach"] },
     effects: ["sends"],
     in: [{ id: "lead", label: "lead", kind: "lead" }],
@@ -76,11 +77,12 @@ export const OUTREACH_COMPONENTS = [
     blurb:
       "Reads each account's inbox every 2 minutes after a touch, easing to 30: comments on our posts and under our comments.",
     icon: "people",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: ["Reads Wren's own Reddit accounts; never a client's"],
+    missing: ["Not built per client yet: reads Wren's own Reddit logins only"],
+    wrenSettings: true,
     // ReachWatch is Social outreach's loop; this part is its inbox read.
-    requires: { components: ["reach.outreach"] },
+    requires: { components: ["reach.outreach"], accounts: ["reddit"] },
     provides: { records: ["marketing.comment"] },
     out: [{ id: "comment", label: "new comments", kind: "comment" }],
     hypothesis: {
@@ -112,9 +114,10 @@ export const OUTREACH_COMPONENTS = [
     blurb:
       "Reads each comment as asked, question, chat or hostile, and drafts an answer to the first two.",
     icon: "people",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: ["Reads Wren's own Reddit accounts; never a client's"],
+    missing: ["Not built per client yet: sorts comments on Wren's own posts only"],
+    wrenSettings: true,
     requires: { components: ["comments.read"] },
     effects: ["spends"],
     in: [{ id: "comment", label: "comment", kind: "comment" }],
@@ -146,10 +149,13 @@ export const OUTREACH_COMPONENTS = [
     blurb:
       "Finds subreddits where buyers ask questions, picks the day's best new threads, and drafts a comment in your voice for each.",
     icon: "search",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: ["Comments from Wren's own Reddit accounts; a client's would need theirs"],
+    missing: ["Not built per client yet: comments from Wren's own Reddit logins only"],
     settings: discoverySettingsSchema,
+    // Wren's own run reads its block from `wren_settings` until a client's runs.
+    wrenSettings: true,
+    requires: { accounts: ["reddit"] },
     provides: {
       services: ["RedditReads"],
       loops: ["RedditReads"],
@@ -192,11 +198,13 @@ export const OUTREACH_COMPONENTS = [
     blurb:
       "Invites people from your lists on LinkedIn, up to 20 a weekday. Accepts land in Replies; every message after is your click.",
     icon: "people",
-    for: "wren",
+    for: "client",
     ready: false,
-    missing: ["Sends from Wren's own LinkedIn account; a client's would need theirs"],
-    requires: { components: ["reach.outreach"] },
+    missing: ["Not built per client yet: invites from Wren's own LinkedIn login only"],
+    requires: { components: ["reach.outreach"], accounts: ["linkedin"] },
     settings: invitesSettingsSchema,
+    // Wren's own run reads its block from `wren_settings` until a client's runs.
+    wrenSettings: true,
     provides: { records: ["marketing.invite"] },
     effects: ["sends"],
     in: [{ id: "people", label: "people", kind: "person" }],

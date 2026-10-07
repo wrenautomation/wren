@@ -12,8 +12,6 @@ import {
 /** One email step of a follow-up cadence on the spine (follow.ts). */
 export const EMAIL_TOUCH = "email.touch";
 
-const FOR_WREN = "Runs on Wren's niches and inboxes in the main database, not per client";
-
 /**
  * A client's sequences run as: one queue-keeper for its niche, and per active mailbox a send
  * loop and an inbox read (bounces and opt-outs stop threads, so a mailbox that sends is read).
@@ -188,8 +186,8 @@ export const EMAIL_COMPONENTS = [
     icon: "pulse",
     for: "client",
     ready: false,
-    missing: [FOR_WREN],
-    requires: { components: ["email.sequences"] },
+    missing: ["Not built per client yet: reads Wren's own sending domains only"],
+    requires: { components: ["email.sequences"], accounts: ["postmaster"] },
     provides: {
       services: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
       loops: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
@@ -218,7 +216,7 @@ export const EMAIL_COMPONENTS = [
     icon: "cycle",
     for: "client",
     ready: false,
-    missing: [FOR_WREN],
+    missing: ["Not built per client yet: waits on each client's own copy templates"],
     requires: { components: ["email.sequences"] },
     provides: {
       services: ["Evolution"],
@@ -252,7 +250,7 @@ export const EMAIL_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["Wren's own lists only; no marketing sender yet"],
+    missing: ["Not built per client yet: Wren's own lists only, and no marketing sender"],
     requires: { components: [] },
     provides: {
       services: ["Marketing"],

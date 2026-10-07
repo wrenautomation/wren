@@ -291,6 +291,14 @@ describe("install, configure, uninstall", () => {
       missing: ["per client db"],
     }),
     defineComponent({ ...base, id: "books", name: "Books", for: "wren" }),
+    // Posts on whichever channel the client connects: one account is enough.
+    defineComponent({
+      ...base,
+      id: "posts",
+      name: "Posts",
+      effects: [],
+      requires: { anyAccount: ["youtube", "x"] },
+    }),
     // A client part that runs only for Wren so far: its loop reads Wren's block.
     defineComponent({
       ...base,
@@ -508,6 +516,48 @@ describe("install, configure, uninstall", () => {
         throw new Error("down");
       }),
     ).toMatchObject({ ready: "coming" });
+  });
+
+  it("connect: the team sets a client's account; the Shop says what it still needs", async () => {
+    const row = async (viewer: Viewer, id: string) =>
+      (await api().recordsList({ viewer, client: "acme", record: "console.component" })).rows.find(
+        (r) => r.id === id,
+      );
+    await addMember(pg.db, "acme", "owner@acme.example", { role: "owner" });
+    const owner = { email: "owner@acme.example" };
+    expect(await row(ops, "dms")).toMatchObject({ ready: "account" });
+    expect(await row(owner, "posts")).toMatchObject({ ready: "account" });
+    const got = await api().recordsGet({
+      viewer: owner,
+      client: "acme",
+      record: "console.component",
+      id: "posts",
+    });
+    const accounts = (got.detail as { accounts: Record<string, unknown>[] }).accounts;
+    expect(accounts).toEqual([
+      expect.objectContaining({ site: "youtube", any: true, has: false }),
+      expect.objectContaining({ site: "x", any: true, has: false }),
+    ]);
+    // The value is the team's to see.
+    expect(accounts[0]).not.toHaveProperty("account");
+    await expect(
+      api().connect({ viewer: owner, client: "acme", site: "x", account: "@acme" }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      api().connect({ viewer: ops, client: "acme", site: "nope", account: "x" }),
+    ).rejects.toMatchObject({ status: 404 });
+    await api().connect({ viewer: ops, client: "acme", site: "x", account: " @acme " });
+    expect((await findClient(pg.db, "acme"))?.accounts).toMatchObject({ x: "@acme" });
+    expect(await row(ops, "posts")).toMatchObject({ ready: "ready" });
+    await go("posts");
+    // An installed part still needs it.
+    await expect(
+      api().connect({ viewer: ops, client: "acme", site: "x", account: "" }),
+    ).rejects.toMatchObject({ status: 409 });
+    await api().uninstall({ viewer: ops, client: "acme", component: "posts" });
+    await api().connect({ viewer: ops, client: "acme", site: "x", account: "" });
+    expect((await findClient(pg.db, "acme"))?.accounts).not.toHaveProperty("x");
+    expect((await pg.db.select().from(runs)).map((r) => r.command)).toContain("console connect x");
   });
 
   it("settingsFor reads a client's products or Wren's blocks, and no one's for an unknown client", async () => {

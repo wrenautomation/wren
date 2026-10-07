@@ -63,6 +63,9 @@ import {
 } from "./clients/index.js";
 import { wrenSettings } from "./clients/schema.js";
 import {
+  ACCOUNT_SITES,
+  ACCOUNTS,
+  type AccountSite,
   CHANNELS,
   type Component,
   EVENT_KINDS,
@@ -260,6 +263,11 @@ export interface InstallRequest extends ComponentRequest {
   settings?: unknown;
   /** The component's id, typed in when it has effects. */
   confirm?: string;
+}
+/** One of a client's accounts (`ACCOUNTS`), set by Wren's team; an empty `account` removes it. */
+export interface ConnectRequest extends PortalRequest {
+  site: string;
+  account: string;
 }
 
 /** A workflow's routed wires and custom steps from the canvas; `reset` goes back to the code's. */
@@ -988,10 +996,21 @@ export const handlerRecord = (get: RestateAdminGet): RecordType =>
 
 const has = (client: Pick<Client, "products">, id: string) => Object.hasOwn(client.products, id);
 
+/** The accounts `client` hasn't connected for `c`: each one it needs, then one of its any. */
+export const accountsLacking = (c: Component, client: Pick<Client, "accounts">): string[] => {
+  const any = c.requires.anyAccount;
+  return [
+    ...c.requires.accounts.filter((site) => !client.accounts[site]),
+    ...(any.length && !any.some((site) => client.accounts[site])
+      ? [`one of ${any.join(", ")}`]
+      : []),
+  ];
+};
+
 /** What `client` still lacks for `c`: components not installed, then accounts not set. */
 export const lacking = (c: Component, client: Pick<Client, "products" | "accounts">): string[] => [
   ...c.requires.components.filter((id) => !has(client, id)),
-  ...c.requires.accounts.filter((site) => !client.accounts[site]),
+  ...accountsLacking(c, client),
 ];
 
 /** A settings block as a page may show it: defaults filled, prices left out; null if it won't parse. */
@@ -1373,6 +1392,13 @@ export const componentRecord = (
         readyOf(c) === "coming" &&
         c.provides.loops.length > 0 &&
         !c.provides.loops.some((l) => on.has(l));
+      // Built for clients, but this client hasn't connected an account it needs.
+      const unconnected = (c: Component) =>
+        !!client &&
+        c.for === "client" &&
+        readyOf(c) === "ready" &&
+        !has(client, c.id) &&
+        accountsLacking(c, client).length > 0;
       return [
         ...all.map((c) => ({
           id: c.id,
@@ -1383,13 +1409,16 @@ export const componentRecord = (
           stage: c.stage,
           channels: c.channels.join(",") || null,
           for: c.for,
-          ready: off(c) ? "off" : readyOf(c),
+          ready: off(c) ? "off" : unconnected(c) ? "account" : readyOf(c),
           // Wren's own parts are never on a client: no "not installed" for them.
           installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
           effects: c.effects.join(",") || null,
           // The SaaS it stands in for, quietly: its closest vendor's name only.
           instead: inHouseOfPart(c.id)?.instead[0]?.vendor ?? null,
-          needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
+          needs:
+            [...c.requires.components, ...c.requires.accounts, ...c.requires.anyAccount].join(
+              ", ",
+            ) || null,
           missing:
             [
               ...(off(c)
@@ -1442,8 +1471,10 @@ export const componentRecord = (
           // Built and running for Wren, not yet per client: the team sees it run, a client waits.
           coming: team
             ? { label: "Runs for Wren", tone: "good" }
-            : { label: "Coming", tone: "neutral" },
+            : { label: "In development", tone: "neutral" },
           planned: { label: "In development", tone: "neutral" },
+          // Built per client; waits on an account this client hasn't connected.
+          account: { label: team ? "Needs an account" : "Needs your account", tone: "warn" },
           // Built, but its loop is stopped: nothing runs until the team starts it.
           ...(team ? { off: { label: "Off", tone: "neutral" as const } } : {}),
         },
@@ -1489,11 +1520,19 @@ export const componentRecord = (
             label: named(id),
             has: client ? has(client, id) : null,
           })),
-          ...c.requires.accounts.map((site) => ({
-            label: `A ${site} account`,
-            has: client ? !!client.accounts[site] : null,
-          })),
         ],
+        // Each account: how the client connects it, what waits on Wren, and its value for the team.
+        accounts: [
+          ...c.requires.accounts.map((site) => ({ site, any: false })),
+          ...c.requires.anyAccount.map((site) => ({ site, any: true })),
+        ].map(({ site, any }) => ({
+          site,
+          ...ACCOUNTS[site],
+          // One of the any is enough: the part needs a channel, not every one.
+          any,
+          has: client ? !!client.accounts[site] : null,
+          ...(team && client ? { account: client.accounts[site] ?? null } : {}),
+        })),
         effects: c.effects,
         installed,
         in: c.in,
@@ -2234,6 +2273,46 @@ export function consoleApi({
         return null;
       }),
     /**
+     * One account onto a client, from the Shop: the team's, with `manage` there, audited and a runs
+     * row. Empty takes it off, refused while an installed part needs it. Nothing signs in.
+     */
+    async connect(req: ConnectRequest): Promise<{ client: string; site: string; set: boolean }> {
+      team(req);
+      const site = ACCOUNT_SITES.find((s) => s === req.site) as AccountSite | undefined;
+      if (!site) throw new PortalRefusal("no such account", 404);
+      if (typeof req.account !== "string") throw new PortalRefusal("account: text", 400);
+      const account = req.account.trim();
+      if (account.length > 200) throw new PortalRefusal("account: 200 characters at most", 400);
+      const client = await pickClient(main, req);
+      if (!account) {
+        const rest = { ...client.accounts, [site]: "" };
+        const users = components.filter(
+          (c) => has(client, c.id) && accountsLacking(c, { accounts: rest }).length > 0,
+        );
+        if (users.length)
+          throw new PortalRefusal(
+            `${users.map((c) => c.name).join(", ")} need${users.length === 1 ? "s" : ""} it: uninstall that first`,
+            409,
+          );
+      }
+      const by = (req.viewer as SignedViewer).email;
+      const run = await openRun(main, {
+        command: `console connect ${site}`.slice(0, 64),
+        argv: { by, client: client.id, set: !!account },
+      });
+      try {
+        await serializable(main, async (tx) => {
+          await setAuditActor(tx, by);
+          await updateClient(tx, client.id, { accounts: { [site]: account } });
+        });
+      } catch (err) {
+        await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+        throw err;
+      }
+      await finishRun(main, run.id, { ok: true });
+      return { client: client.id, site, set: !!account };
+    },
+    /**
      * A workflow's draft from the canvas, for Wren or a client: kept as it reads, whether or not
      * it would run, with what won't. It runs nowhere until Publish. A client gets only workflows
      * for clients.
@@ -2705,6 +2784,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       uninstall: (ctx: restate.Context, req: ComponentRequest) =>
         changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
+      connect: (ctx: restate.Context, req: ConnectRequest) =>
+        answer(() => ctx.run("connect", () => answer(() => api.connect(req)))),
       workflowSave: (ctx: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => ctx.run("save draft", () => answer(() => api.workflowSave(req)))),
       workflowPublish: (ctx: restate.Context, req: WorkflowSaveRequest) =>

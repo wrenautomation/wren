@@ -10,8 +10,124 @@ import { z } from "zod";
 export type Effect = "spends" | "sends" | "posts";
 
 /** Sites a component can need an account on: the keys of `clients.accounts`. */
-export const ACCOUNT_SITES = ["gmail", "linkedin", "calcom", "telnyx", "meta"] as const;
+export const ACCOUNT_SITES = [
+  "gmail",
+  "linkedin",
+  "calcom",
+  "telnyx",
+  "meta",
+  "search_console",
+  "google_calendar",
+  "youtube",
+  "linkedin_page",
+  "x",
+  "tiktok",
+  "instagram",
+  "reddit",
+  "postmaster",
+] as const;
 export type AccountSite = (typeof ACCOUNT_SITES)[number];
+
+/**
+ * How a client connects one account, as the Shop says it (designs/2026-10-07-per-client-runs.md).
+ * Wren's team saves what `holds` names into `clients.accounts`; nothing here signs in anywhere.
+ */
+export interface AccountHow {
+  label: string;
+  /** What `clients.accounts[site]` holds. */
+  holds: string;
+  /** What the client does, said to the client. */
+  how: string;
+  /** What still waits on Wren before any client can connect it; null when nothing does. */
+  waits: string | null;
+}
+
+export const ACCOUNTS: Record<AccountSite, AccountHow> = {
+  gmail: {
+    label: "Sending mailbox",
+    holds: "the mailbox's sign-in",
+    how: "Wren sets up the mailbox your email goes out from.",
+    waits: null,
+  },
+  linkedin: {
+    label: "LinkedIn login",
+    holds: "the login's name in Wren's browser",
+    how: "Give Wren a LinkedIn login. Wren's team adds it to its browser.",
+    waits: null,
+  },
+  calcom: {
+    label: "Cal.com",
+    holds: "the booking page",
+    how: "Share your Cal.com booking page with Wren.",
+    waits: null,
+  },
+  telnyx: {
+    label: "Phone number",
+    holds: "the number",
+    how: "Wren registers a texting number for you.",
+    waits: "Registering the number, which costs money",
+  },
+  meta: {
+    label: "Meta ad account",
+    holds: "the ad account id, like act_123",
+    how: "In Meta Business Settings, add Wren's business as a partner on your ad account.",
+    waits: "Ad spend, and the ads access of Wren's Meta app",
+  },
+  search_console: {
+    label: "Search Console",
+    holds: "the property, like sc-domain:example.com",
+    how: "In Search Console, add Wren's service account as a user on your property.",
+    waits: null,
+  },
+  google_calendar: {
+    label: "Google Calendar",
+    holds: "the calendar's address",
+    how: "Your Google Workspace admin lets Wren's service account use your calendar.",
+    waits: "Google's review of Wren's app, only for a calendar outside Workspace",
+  },
+  youtube: {
+    label: "YouTube channel",
+    holds: "the channel id",
+    how: "Sign in with Google and let Wren post to your channel.",
+    waits: "Google's review of Wren's app",
+  },
+  linkedin_page: {
+    label: "LinkedIn company page",
+    holds: "the page id",
+    how: "Sign in with LinkedIn and let Wren post to your company page.",
+    waits: "LinkedIn's review of Wren's app",
+  },
+  x: {
+    label: "X account",
+    holds: "the handle",
+    how: "Sign in with X and let Wren post. For DMs, give Wren a login.",
+    waits: "X's paid API plan, for posts",
+  },
+  tiktok: {
+    label: "TikTok account",
+    holds: "the handle",
+    how: "Sign in with TikTok and let Wren post.",
+    waits: "TikTok's review of Wren's app",
+  },
+  instagram: {
+    label: "Instagram account",
+    holds: "the account id",
+    how: "Add Wren's business as a partner on your Instagram account.",
+    waits: "Meta's review of Wren's app",
+  },
+  reddit: {
+    label: "Reddit logins",
+    holds: "the logins' names in Wren's browser, comma separated",
+    how: "Give Wren a Reddit login. Wren's team adds it to its browser.",
+    waits: null,
+  },
+  postmaster: {
+    label: "Google Postmaster",
+    holds: "the sending domains, comma separated",
+    how: "Add the TXT record Postmaster gives you to each sending domain.",
+    waits: null,
+  },
+};
 
 /**
  * What moves on a wire: the thing an event is about. An output feeds only an input of its kind
@@ -135,7 +251,8 @@ export interface Component {
   wrenSettings: boolean;
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
-  requires: { components: string[]; accounts: AccountSite[] };
+  /** Components and accounts it needs, each; and accounts it needs one of (a channel to post on). */
+  requires: { components: string[]; accounts: AccountSite[]; anyAccount: AccountSite[] };
   provides: {
     services: string[];
     loops: string[];
@@ -182,7 +299,7 @@ export const defineComponent = (c: Input): Component => ({
   // A part for Wren has no client to save to, whatever a spread copied.
   wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
   priced: c.priced ?? [],
-  requires: { components: [], accounts: [], ...c.requires },
+  requires: { components: [], accounts: [], anyAccount: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
   in: c.in ?? [],

@@ -69,6 +69,8 @@ export const CONSOLE_ROUTES = {
   configure: "manage",
   uninstall: "manage",
   ask: "manage",
+  // A client's account from the Shop: the team's (the handler checks), audited.
+  connect: "manage",
   // A workflow's wiring, saved for Wren or a client from the canvas: the team's. A draft runs
   // nowhere; Publish of one that sends or spends also checks `effect` and `money` inside.
   workflowSave: "wren:manage",
@@ -114,6 +116,7 @@ export const CONSOLE_APPS = {
   configure: "marketplace",
   uninstall: "marketplace",
   ask: "marketplace",
+  connect: "marketplace",
   workflowSave: "workflows",
   workflowPublish: "workflows",
   workflowDiscard: "workflows",
@@ -168,6 +171,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "configure",
   "uninstall",
   "ask",
+  "connect",
   "workflowSave",
   "workflowPublish",
   "workflowDiscard",
