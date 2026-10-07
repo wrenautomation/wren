@@ -237,10 +237,19 @@ describe("the comment reader per client", () => {
 describe("the comment sort per client", () => {
   it("sorts in the client's database; no model reads the words", async () => {
     const [c] = await kappa.select({ id: comments.id }).from(comments);
-    const step = sortStep(pg.db, new FakeLlm(() => "{}"), undefined, async () => ({
-      db: kappa,
-      llm: null,
-    }));
+    const step = sortStep(
+      pg.db,
+      new FakeLlm({
+        respond: () => {
+          throw new Error("Wren's model never reads a client's comment");
+        },
+      }),
+      undefined,
+      async () => ({
+        db: kappa,
+        llm: null,
+      }),
+    );
     const out = await step(
       "comment",
       { kind: "comment", subject: `comment:${c?.id}`, data: { commentId: c?.id }, at: "" } as never,
