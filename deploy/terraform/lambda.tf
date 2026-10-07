@@ -13,6 +13,32 @@ resource "aws_ssm_parameter" "env" {
   }
 }
 
+# The second half of the env once the first nears 8 KB (designs/2026-10-07-key-store.md, "Env
+# cap"). push-secrets.sh with WREN_SSM_ENV_PARTS=2 fills it; the loader skips it while it's "{}".
+resource "aws_ssm_parameter" "env_2" {
+  name        = "${local.ssm_root}/env-2"
+  description = "JSON object of env names to values, after env; written by deploy/scripts/push-secrets.sh"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value, tier]
+  }
+}
+
+# The key store's private keys (designs/2026-10-07-key-store.md): {"WREN_KEYSTORE_KEY": "kid:…"},
+# written once by scripts/keystore-key.mjs. The worker reads it; the sign-in Lambda never does.
+resource "aws_ssm_parameter" "keystore" {
+  name        = "${local.ssm_root}/keystore"
+  description = "The key store's private keys; written by scripts/keystore-key.mjs"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_ssm_parameter" "roster" {
   name        = "${local.ssm_root}/senders_config"
   description = "senders_config.toml: the sender roster; written by deploy/scripts/push-secrets.sh"
@@ -65,9 +91,15 @@ data "aws_iam_policy_document" "worker" {
     resources = ["${aws_cloudwatch_log_group.worker.arn}:*"]
   }
   statement {
-    sid       = "ReadEnv"
-    actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn]
+    sid     = "ReadEnv"
+    actions = ["ssm:GetParameter"]
+    resources = [
+      aws_ssm_parameter.env.arn,
+      aws_ssm_parameter.env_2.arn,
+      aws_ssm_parameter.keystore.arn,
+      aws_ssm_parameter.roster.arn,
+      aws_ssm_parameter.mailboxes.arn,
+    ]
   }
   statement {
     sid       = "DecryptSsm"
@@ -136,7 +168,12 @@ resource "aws_lambda_function" "worker" {
   environment {
     variables = merge(
       {
-        WREN_SSM_ENV_PARAM       = aws_ssm_parameter.env.name
+        # In order, the first that has a name wins; the key store's private keys last.
+        WREN_SSM_ENV_PARAM = join(",", [
+          aws_ssm_parameter.env.name,
+          aws_ssm_parameter.env_2.name,
+          aws_ssm_parameter.keystore.name,
+        ])
         WREN_SSM_ROSTER_PARAM    = aws_ssm_parameter.roster.name
         WREN_SSM_MAILBOXES_PARAM = aws_ssm_parameter.mailboxes.name
         WREN_RENDERER            = var.browser_token == "" ? "browserbase" : "cdp"

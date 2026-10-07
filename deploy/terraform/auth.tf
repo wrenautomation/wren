@@ -32,9 +32,10 @@ data "aws_iam_policy_document" "auth" {
     resources = ["${aws_cloudwatch_log_group.auth.arn}:*"]
   }
   statement {
-    sid       = "ReadEnv"
-    actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.env.arn]
+    sid     = "ReadEnv"
+    actions = ["ssm:GetParameter"]
+    # Not the key store's parameter: this Lambda only seals, with the public key below.
+    resources = [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn]
   }
   statement {
     sid       = "DecryptSsm"
@@ -62,13 +63,17 @@ resource "aws_lambda_function" "auth" {
   publish          = true
 
   environment {
-    variables = {
-      WREN_SSM_ENV_PARAM = aws_ssm_parameter.env.name
-      WREN_AUTH_ORIGIN   = "https://auth.${var.auth_domain}"
-      WREN_AUTH_APPS     = "https://app.${var.auth_domain}"
-      WREN_AUTH_MAILBOX  = "william@${var.auth_domain}"
-      WREN_AUTH_FROM     = "portal@${var.auth_domain}"
-    }
+    variables = merge(
+      {
+        WREN_SSM_ENV_PARAM = join(",", [aws_ssm_parameter.env.name, aws_ssm_parameter.env_2.name])
+        WREN_AUTH_ORIGIN   = "https://auth.${var.auth_domain}"
+        WREN_AUTH_APPS     = "https://app.${var.auth_domain}"
+        WREN_AUTH_MAILBOX  = "william@${var.auth_domain}"
+        WREN_AUTH_FROM     = "portal@${var.auth_domain}"
+      },
+      # Seals a pasted key (/api/keys/stage). Unset: saving a key answers 503.
+      var.keystore_public_key == "" ? {} : { WREN_KEYSTORE_PUBLIC = var.keystore_public_key },
+    )
   }
 
   logging_config {

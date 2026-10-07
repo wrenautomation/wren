@@ -111,3 +111,9 @@ variable "autobrowse_instance_id" {
   type        = string
   default     = ""
 }
+
+variable "keystore_public_key" {
+  description = "The key store's public key, kid:base64url, as scripts/keystore-key.mjs prints it. Not a secret. Empty: the sign-in Lambda can't save keys."
+  type        = string
+  default     = ""
+}

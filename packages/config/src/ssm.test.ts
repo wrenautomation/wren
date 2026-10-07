@@ -61,9 +61,32 @@ describe("loadSsmEnv", () => {
     const env: NodeJS.ProcessEnv = {};
     await loadSsmEnv("/wren/test/env,/wren/test/env-2", { ssm, env, log: (l) => logged.push(l) });
     expect(env).toEqual({ A: "1" });
-    expect(logged).toEqual(["ssm env: /wren/test/env-2 not found, skipped"]);
+    expect(logged).toEqual(["ssm env: /wren/test/env-2 ParameterNotFound, skipped"]);
     await expect(loadSsmEnv("/wren/test/nope,/wren/test/env", { ssm, env: {} })).rejects.toThrow(
       "not found",
+    );
+  });
+
+  it("skips a later parameter the role can't read yet; any other error stops", async () => {
+    const ssm: SsmReader = {
+      async send(cmd: GetParameterCommand) {
+        if (cmd.input.Name === "/wren/test/env") return { Parameter: { Value: '{"A":"1"}' } };
+        if (cmd.input.Name === "/wren/test/keystore")
+          throw Object.assign(new Error("denied"), { name: "AccessDeniedException" });
+        throw Object.assign(new Error("throttled"), { name: "ThrottlingException" });
+      },
+    };
+    const logged: string[] = [];
+    const into: NodeJS.ProcessEnv = {};
+    await loadSsmEnv("/wren/test/env,/wren/test/keystore", {
+      ssm,
+      env: into,
+      log: (l) => logged.push(l),
+    });
+    expect(into).toEqual({ A: "1" });
+    expect(logged).toEqual(["ssm env: /wren/test/keystore AccessDeniedException, skipped"]);
+    await expect(loadSsmEnv("/wren/test/env,/wren/test/other", { ssm, env: {} })).rejects.toThrow(
+      "throttled",
     );
   });
 

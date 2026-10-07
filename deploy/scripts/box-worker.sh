@@ -42,7 +42,7 @@ docker run -d --name wren-worker --restart unless-stopped --init \
   -v "$dir":/app:ro -w /app \
   -e AWS_REGION=us-east-1 \
   -e WREN_BUNDLE_ROOT=/app \
-  -e WREN_SSM_ENV_PARAM=/wren/prod/env \
+  -e WREN_SSM_ENV_PARAM=/wren/prod/env,/wren/prod/env-2,/wren/prod/keystore \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
   -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \

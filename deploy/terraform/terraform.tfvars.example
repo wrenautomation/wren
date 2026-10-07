@@ -8,3 +8,5 @@ restate_identity_key = "publickeyv1_..."
 browser_token = "<openssl rand -base64 32 | tr -d '/+='>"
 # autobrowse box to wake for Content calls: `tofu output -raw instance_id` in autobrowse/deploy/terraform. Empty = never.
 autobrowse_instance_id = ""
+# The key store's public key, as `node scripts/keystore-key.mjs` prints it. Not a secret. Empty = keys can't be saved.
+keystore_public_key = ""

@@ -43,12 +43,16 @@ export const paramNames = (list: string | undefined): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-const notFound = (err: unknown) => (err as { name?: string } | null)?.name === "ParameterNotFound";
+/** Why a later parameter may be skipped: not made yet, or the role can't read it yet. */
+const skippable = (err: unknown) => {
+  const name = (err as { name?: string } | null)?.name ?? "";
+  return name === "ParameterNotFound" || name.startsWith("AccessDenied") ? name : null;
+};
 
 /**
  * Load each named parameter in order. No name = nothing to load (local runs, tests). The first
- * must exist; a later one may not yet (it's skipped and named in the log), so a list can ship
- * before its parameter does. Logs names only, never values.
+ * must load; a later one may not exist or be readable yet (it's skipped and named in the log), so
+ * a list can ship before its parameter and grant do. Logs names only, never values.
  */
 export async function loadSsmEnv(
   list: string | undefined,
@@ -63,8 +67,9 @@ export async function loadSsmEnv(
     try {
       json = await readParameter(name, ssm);
     } catch (err) {
-      if (i === 0 || !notFound(err)) throw err;
-      (o.log ?? console.warn)(`ssm env: ${name} not found, skipped`);
+      const why = skippable(err);
+      if (i === 0 || !why) throw err;
+      (o.log ?? console.warn)(`ssm env: ${name} ${why}, skipped`);
       continue;
     }
     applied.push(...applyEnv(json, o.env));
