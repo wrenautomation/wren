@@ -13,6 +13,7 @@ import { Alert } from "./feedback.js";
 import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
 import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { PAGE_TITLE } from "./layout.js";
 import {
   askOf,
   cap,
@@ -69,9 +70,7 @@ function Shop({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-          {title ?? cap(many)}
-        </h1>
+        <h1 className={PAGE_TITLE}>{title ?? cap(many)}</h1>
         <span className="text-[13px] text-(--ui-ink-2)">
           {page.data ? `${num(page.data.total)} ${page.data.total === 1 ? one : many}` : ""}
         </span>

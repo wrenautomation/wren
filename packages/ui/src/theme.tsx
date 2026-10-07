@@ -38,6 +38,7 @@ export const TOKENS = [
   // Made from the ones above by default.
   "tile",
   "wash",
+  "band",
   "on-ink",
   "hair",
   "edge",

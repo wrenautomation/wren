@@ -104,7 +104,17 @@ export {
 export { type HandlerCall, HandlerForm } from "./handler.js";
 export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
-export { PageHeader, Section } from "./layout.js";
+export {
+  Fieldset,
+  FRAME,
+  FRAME_BODY,
+  FRAME_HEAD,
+  GROUP_LABEL,
+  PAGE_TITLE,
+  PageHeader,
+  SECTION_TITLE,
+  Section,
+} from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";
 export { type Look, LookEditor, lookOf } from "./look.js";

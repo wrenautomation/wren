@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 ease-(--ui-ease) outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-(--ui-hair) shadow-(--ui-shadow) duration-150 ease-(--ui-ease) outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -84,7 +84,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      // A head strip: banded, ruled off from the body.
+      className={cn("-mx-4 -mt-4 flex flex-col gap-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-3.5", className)}
       {...props}
     />
   )
@@ -102,7 +103,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t border-(--ui-hair) bg-(--ui-band) p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -123,7 +124,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
       data-slot="dialog-title"
       className={cn(
         // Clears the close X in the top right corner.
-        "pr-7 text-base leading-none font-medium",
+        "pr-7 text-[16px] leading-[22px] font-semibold",
         className
       )}
       {...props}

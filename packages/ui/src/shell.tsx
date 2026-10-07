@@ -198,8 +198,12 @@ const APPMARK =
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
   "ml-auto min-w-5 bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+/** A group's heading, ruled off from the pages above it. */
 const GROUP =
-  "px-2.5 pt-3 pb-1 text-[11.5px] font-medium tracking-[0.04em] text-(--ui-ink-3) uppercase";
+  "mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+/** The page on screen: paper with a hair frame, bolder, and an accent bar on its left edge. */
+const TAB_ON =
+  "aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]";
 
 /** Tabs in runs of one group; a tab with none is a run of its own. */
 function runs(tabs: NavItem[]): { group: string | undefined; tabs: NavItem[] }[] {
@@ -268,12 +272,17 @@ function AppSide({
               // A page after a group stands apart, so it doesn't read as that group's last.
               <li
                 key={t.id}
-                className={j === 0 && !headed(r) && headed(all[i - 1]) ? "pt-3" : undefined}
+                className={
+                  j === 0 && !headed(r) && headed(all[i - 1])
+                    ? "mt-2.5 border-t border-(--ui-hair) pt-2.5"
+                    : undefined
+                }
               >
                 <a
                   className={cx(
                     HOVER,
-                    "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+                    "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+                    TAB_ON,
                   )}
                   href={t.href}
                   aria-current={t.id === app.current ? "page" : undefined}

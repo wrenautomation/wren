@@ -17,6 +17,7 @@ import { Input } from "./components/ui/input.js";
 import { Button } from "./controls.js";
 import { Facts } from "./data.js";
 import { Alert } from "./feedback.js";
+import { GROUP_LABEL } from "./layout.js";
 
 /** What a press does outside Wren, said before it runs. */
 const EFFECTS: Record<string, string> = {
@@ -142,7 +143,7 @@ export function HandlerForm({
 
       {last ? (
         <section className="grid min-w-0 gap-2">
-          <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Last answer</h3>
+          <h3 className={GROUP_LABEL}>Last answer</h3>
           {last.ok ? <AnswerView value={last.value} /> : <Alert>{last.error}</Alert>}
         </section>
       ) : null}

@@ -16,6 +16,7 @@ import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
 import { DictateField } from "./dictate.js";
+import { GROUP_LABEL } from "./layout.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
@@ -254,7 +255,7 @@ export function EditFields({
         .filter((f) => f.kind === "prose")
         .map((f) => (
           <section key={f.key} className="grid gap-1.5">
-            <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
+            <h3 className={GROUP_LABEL}>{f.label}</h3>
             <EditField field={f} value={state.values[f.key]} save={saveOf(f)} />
           </section>
         ))}
@@ -509,7 +510,7 @@ export function AskClaude({
   }, []);
   return (
     <section className="grid min-w-0 gap-3" aria-label="Ask Claude">
-      <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Ask Claude</h3>
+      <h3 className={GROUP_LABEL}>Ask Claude</h3>
       {shown.length ? (
         <ol className="grid list-none gap-4 p-0 text-[14px]">
           {shown.map((t) => (

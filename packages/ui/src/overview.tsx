@@ -14,6 +14,7 @@ import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
+import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
 import {
   askOf,
   cap,
@@ -141,7 +142,7 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
+        <h1 className={PAGE_TITLE}>{title}</h1>
         {keep && all.length > 1 ? (
           <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />
         ) : null}
@@ -351,9 +352,9 @@ function Trends({
   const got = on ? stats[on.label] : undefined;
   if (!on || !got) return null;
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)] gap-3" aria-label="By day">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-        <h2 className="text-[14px] font-semibold">By day</h2>
+    <section className={cn("grid grid-cols-[minmax(0,1fr)]", FRAME)} aria-label="By day">
+      <div className={FRAME_HEAD}>
+        <h2 className={SECTION_TITLE}>By day</h2>
         <div role="tablist" aria-label="Which number" className="flex flex-wrap gap-1">
           {shown.map((t) => (
             <button
@@ -374,7 +375,9 @@ function Trends({
           ))}
         </div>
       </div>
-      <TrendChart series={got.stat.series} label={on.label} format={got.format} />
+      <div className="p-4">
+        <TrendChart series={got.stat.series} label={on.label} format={got.format} />
+      </div>
     </section>
   );
 }
@@ -428,31 +431,31 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     return `${path}?${params}`;
   };
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)] content-start gap-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[14px] font-semibold">{top.label}</h2>
+    <section className={cn("grid grid-cols-[minmax(0,1fr)] content-start", FRAME)}>
+      <div className={FRAME_HEAD}>
+        <h2 className={SECTION_TITLE}>{top.label}</h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
           All {meta.name.many}
           {page.data ? ` (${num(page.data.total)})` : ""}
         </a>
       </div>
       {page.error && !page.data ? (
-        <Alert onRetry={page.retry}>{page.error.message}</Alert>
+        <Alert className="m-4" onRetry={page.retry}>
+          {page.error.message}
+        </Alert>
       ) : !page.data ? (
-        <div className="h-40 animate-pulse bg-(--ui-fill)" aria-busy="true" />
+        <div className="m-4 h-32 animate-pulse bg-(--ui-fill)" aria-busy="true" />
       ) : !rows.length ? (
-        <p className="border-t border-(--ui-hair) py-3 text-[13px] text-(--ui-ink-2)">
-          {top.empty}
-        </p>
+        <p className="px-4 py-3.5 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
       ) : (
         <ul className="m-0 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
-            <li key={String(r.id)} className="border-t border-(--ui-hair)">
+            <li key={String(r.id)} className="border-t border-(--ui-hair) first:border-t-0">
               <a
                 href={open(r)}
                 // Counts that don't fit beside the title go under it, as on a phone.
                 className={cn(
-                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-1 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-4 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
                   line ? "py-2.5" : "min-h-10 py-1.5",
                 )}
               >

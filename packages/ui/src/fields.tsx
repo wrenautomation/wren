@@ -610,7 +610,7 @@ export const inSight = (on: boolean) =>
   on ? (el: HTMLElement | null) => el?.scrollIntoView({ block: "nearest" }) : undefined;
 
 const INPUT =
-  "h-8 w-full min-w-0 border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)";
+  "h-8 w-full min-w-0 border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]";
 const ROW =
   "flex h-8 w-full cursor-pointer items-center gap-2.5 px-2 text-left text-[13px] text-(--ui-ink) select-none";
 const SEGMENT =

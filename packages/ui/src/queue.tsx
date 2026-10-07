@@ -13,6 +13,7 @@ import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, relative } from "./fields.js";
 import { num } from "./format.js";
+import { PAGE_TITLE } from "./layout.js";
 import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
 import {
   actsOf,
@@ -138,9 +139,7 @@ function Queue({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-          {title ?? cap(meta.name.many)}
-        </h1>
+        <h1 className={PAGE_TITLE}>{title ?? cap(meta.name.many)}</h1>
         {actions.map((a) =>
           a.form && !a.each ? (
             <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>

@@ -237,7 +237,7 @@ export function InsertSnippet({
           }}
           placeholder="Search snippets"
           aria-label="Search snippets"
-          className="mb-1 h-8 w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
+          className="mb-1 h-8 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]"
         />
         {failed ? (
           <p className="px-1.5 py-2 text-[12.5px] text-(--ui-bad)">{failed}</p>

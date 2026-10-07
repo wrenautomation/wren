@@ -55,6 +55,8 @@
 [data-ui-theme] {
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
   --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
+  /* The strip a part is headed by: a table's column heads, a section's title, a dialog's head. */
+  --ui-band: color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper));
   --ui-on-ink: var(--ui-paper);
   --ui-hair: color-mix(in srgb, var(--ui-ink) 22%, transparent); /* every border and rule */
   --ui-edge: color-mix(in srgb, var(--ui-ink) 32%, transparent); /* around what takes input */
@@ -294,6 +296,10 @@
   [data-slot]::after {
     border: 0 solid var(--border);
     outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+  /* A focused part shows the full accent, never the half-strength ring above. */
+  [data-slot]:focus-visible {
+    outline-color: var(--ui-accent);
   }
   button[data-slot] {
     background: none;

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { canAt, type Viewer } from "./access.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
+import { GROUP_LABEL } from "./layout.js";
 
 export interface IssueLine {
   id: number;
@@ -264,7 +265,7 @@ export function AskAccess({
       className="grid gap-3 rounded-(--ui-radius) border border-(--ui-hair) p-3"
       aria-label="Ask for access"
     >
-      <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Ask for access</h3>
+      <h3 className={GROUP_LABEL}>Ask for access</h3>
       <div className={cn("grid gap-3", "sm:grid-cols-3")}>
         <label className="grid gap-1 text-[13px] text-(--ui-ink-2)">
           To

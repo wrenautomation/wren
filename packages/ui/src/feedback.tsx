@@ -80,7 +80,8 @@ export function Empty({
   return (
     <div
       className={cx(
-        "flex flex-col items-center gap-4 rounded-(--ui-radius) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
+        // A dashed frame: a place that fills, apart from the solid frames of parts that have.
+        "flex flex-col items-center gap-4 rounded-(--ui-radius) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
         className,
       )}
     >
@@ -104,10 +105,10 @@ export function Callout({
   return (
     <p
       className={cx(
-        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) px-4 py-[11px] text-[14px] text-pretty",
+        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) border border-l-[3px] px-4 py-[11px] text-[14px] text-pretty",
         tone === "warn"
-          ? "bg-(--ui-warn-tint) text-(--ui-ink)"
-          : "bg-(--ui-tile) text-(--ui-ink-2)",
+          ? "border-(--ui-hair) border-l-(--ui-warn) bg-(--ui-warn-tint) text-(--ui-ink)"
+          : "border-(--ui-hair) border-l-(--ui-ink-3) bg-(--ui-band) text-(--ui-ink-2)",
         className,
       )}
     >
@@ -129,7 +130,7 @@ export function Alert({
   return (
     <div
       className={cx(
-        "mb-4 flex items-start gap-2.5 rounded-(--ui-radius) bg-(--ui-bad-tint) px-3.5 py-3 text-[14px]",
+        "mb-4 flex items-start gap-2.5 rounded-(--ui-radius) border border-l-[3px] border-(--ui-hair) border-l-(--ui-bad) bg-(--ui-bad-tint) px-3.5 py-3 text-[14px]",
         className,
       )}
       role="alert"

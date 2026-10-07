@@ -13,6 +13,7 @@ import { Button, ButtonLink } from "./controls.js";
 import { Alert, Empty } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
+import { GROUP_LABEL, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
   ListSkeleton,
@@ -213,7 +214,7 @@ function Day({
   return (
     <div className={cn(ROOT, "grid min-w-0 grid-cols-1 gap-5")}>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{named}</h1>
+        <h1 className={PAGE_TITLE}>{named}</h1>
         <div className="flex items-center gap-1">
           <ButtonLink
             href={link(dayKey(plus(day, -1)))}
@@ -307,10 +308,15 @@ function Day({
                 aria-label={s.label}
                 className="min-w-0 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper)"
               >
-                <h2 className="flex items-center gap-2 border-b border-(--ui-hair) px-4 py-3 text-[15px] font-semibold">
+                <h2
+                  className={cn(
+                    "flex items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-3",
+                    SECTION_TITLE,
+                  )}
+                >
                   <Cue state={s} size={18} />
                   {s.label}
-                  <span className="ml-auto text-[12px] font-normal text-(--ui-ink-3) tabular-nums">
+                  <span className="ml-auto text-[12px] font-medium text-(--ui-ink-2) tabular-nums">
                     {num(its.length)}
                   </span>
                 </h2>
@@ -324,9 +330,7 @@ function Day({
                       key={src.record + src.label}
                       className="px-4 py-3 [&+&]:border-t [&+&]:border-(--ui-hair)"
                     >
-                      <h3 className="mb-1 text-[12px] font-semibold text-(--ui-ink-3)">
-                        {src.label}
-                      </h3>
+                      <h3 className={cn("mb-1.5", GROUP_LABEL)}>{src.label}</h3>
                       <ul className="grid grid-cols-1">
                         {mine.map((it) => {
                           const href = `${src.open}/${encodeURIComponent(String(it.row.id))}`;

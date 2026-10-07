@@ -64,6 +64,7 @@ import {
   widthOf,
 } from "./fields.js";
 import { linkLabel, num } from "./format.js";
+import { GROUP_LABEL, PAGE_TITLE } from "./layout.js";
 import {
   CHIP,
   filtersOf,
@@ -1049,9 +1050,7 @@ function List({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-          {title ?? cap(many)}
-        </h1>
+        <h1 className={PAGE_TITLE}>{title ?? cap(many)}</h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {head?.(meta, () => acted([]))}
           {actions.map((a) =>
@@ -1130,7 +1129,8 @@ function List({
         <div
           ref={scroller}
           className={cn(
-            "max-h-[calc(100dvh-280px)] overflow-auto border-t border-(--ui-hair) transition-opacity",
+            // Framed; its last row drops its rule, which the frame draws.
+            "max-h-[calc(100dvh-280px)] overflow-auto border border-(--ui-hair) transition-opacity [&_tbody>tr:last-child]:border-b-0",
             page.loading && page.data && "opacity-60",
           )}
         >
@@ -1159,8 +1159,8 @@ function List({
               <col style={{ width: 36 }} />
             </colgroup>
             <thead>
-              <tr className="text-[12px] text-(--ui-ink-2)">
-                <th className="sticky top-0 z-10 h-9 border-b border-(--ui-hair) bg-(--ui-paper) pl-2.5 text-left">
+              <tr className="text-[12px] text-(--ui-ink-2) [&>th]:font-semibold">
+                <th className="sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) pl-2.5 text-left">
                   <input
                     type="checkbox"
                     aria-label={`Select every ${meta.name.one} shown`}
@@ -1178,14 +1178,14 @@ function List({
                     title={f.label}
                     className={cn(
                       // A long head takes two lines, so its column fits its numbers.
-                      "sticky top-0 z-10 h-9 border-b border-(--ui-hair) bg-(--ui-paper) px-3 py-1 font-medium leading-tight",
+                      "sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) px-3 py-1 leading-tight",
                       f.column?.align === "end" ? "text-right" : "text-left",
                     )}
                   >
                     <SortHead field={f} place={place} sort={sort} />
                   </th>
                 ))}
-                <th className="sticky top-0 z-10 border-b border-(--ui-hair) bg-(--ui-paper)" />
+                <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)" />
               </tr>
             </thead>
             <tbody ref={body}>
@@ -1278,19 +1278,19 @@ function List({
             {footed ? (
               <tfoot>
                 <tr className="text-[12px] text-(--ui-ink-2)">
-                  <td className="sticky bottom-0 h-9 border-t border-(--ui-hair) bg-(--ui-paper)" />
+                  <td className="sticky bottom-0 h-9 border-t border-(--ui-edge) bg-(--ui-paper)" />
                   {cols.map((f) => (
                     <td
                       key={f.key}
                       className={cn(
-                        "sticky bottom-0 truncate border-t border-(--ui-hair) bg-(--ui-paper) px-3",
+                        "sticky bottom-0 truncate border-t border-(--ui-edge) bg-(--ui-paper) px-3",
                         f.column?.align === "end" ? "text-right" : "text-left",
                       )}
                     >
                       <FieldTotal field={f} total={totals?.[f.key]} to={place.link} />
                     </td>
                   ))}
-                  <td className="sticky bottom-0 border-t border-(--ui-hair) bg-(--ui-paper)" />
+                  <td className="sticky bottom-0 border-t border-(--ui-edge) bg-(--ui-paper)" />
                 </tr>
               </tfoot>
             ) : null}
@@ -1445,7 +1445,7 @@ export function Panel({
         "fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-shadow) sm:w-[560px]",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) px-3">
+      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3">
         <button
           type="button"
           className={ICON}
@@ -1762,9 +1762,7 @@ export function RecordBody({
       <header className="grid gap-3">
         <div className="flex items-start justify-between gap-3 max-sm:flex-col">
           <div className="min-w-0">
-            <h2 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-              {titleOf(meta, row)}
-            </h2>
+            <h2 className={PAGE_TITLE}>{titleOf(meta, row)}</h2>
             {sub ? (
               <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)">
                 {subCue ? (
@@ -1942,7 +1940,7 @@ export function RecordBody({
           ) : null}
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">
-              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
+              <h3 className={GROUP_LABEL}>{f.label}</h3>
               <p className="text-[14px] leading-[1.65] text-pretty whitespace-pre-line">
                 <FieldLine field={f} cell={row[f.key]} cite={cite} />
               </p>
@@ -1975,7 +1973,7 @@ export function RecordBody({
           ) : null}
           {named.map((g) => (
             <section key={g} className="grid gap-1.5">
-              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{g}</h3>
+              <h3 className={GROUP_LABEL}>{g}</h3>
               <dl className={DL}>{lines(rest.filter((f) => f.group === g))}</dl>
             </section>
           ))}
@@ -1989,7 +1987,7 @@ export function RecordBody({
           ) : null}
           {(more.sections ?? []).map(([title, body]) => (
             <section key={title} className="grid gap-2">
-              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{title}</h3>
+              <h3 className={GROUP_LABEL}>{title}</h3>
               {body}
             </section>
           ))}
@@ -2045,19 +2043,28 @@ function Beside({
   );
 }
 
-const DL = "grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-4 text-[14px]";
+/** A record's facts as a framed two-column table: labels on the band, values on paper. */
+const DL =
+  "grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] border border-b-0 border-(--ui-hair) text-[14px]";
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (
     <>
-      <dt className="border-b border-(--ui-hair) py-2.5 text-[13px] text-(--ui-ink-2)">{label}</dt>
-      <dd className="min-w-0 border-b border-(--ui-hair) py-2.5 break-words">{children}</dd>
+      <dt className="border-r border-b border-(--ui-hair) bg-(--ui-band) px-3 py-2.5 text-[13px] text-(--ui-ink-2)">
+        {label}
+      </dt>
+      <dd className="min-w-0 border-b border-(--ui-hair) px-3 py-2.5 break-words">{children}</dd>
     </>
   );
 }
 
+/** Nothing here yet: a dashed box, so it reads as a place that fills, not as stray text. */
 export function Quiet({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-[14px] text-(--ui-ink-2)">{children}</p>;
+  return (
+    <p className="border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-6 text-[14px] text-(--ui-ink-2)">
+      {children}
+    </p>
+  );
 }
 
 /** What happened to a record, newest first. */
@@ -2130,14 +2137,14 @@ function Related({
     );
   const cols = meta.fields.filter((f) => f.column).slice(0, 4);
   return (
-    <table className="w-full table-fixed border-collapse text-[13px]">
+    <table className="w-full table-fixed border-collapse border border-(--ui-hair) text-[13px] [&_tbody>tr:last-child]:border-b-0">
       <thead>
-        <tr className="text-[12px] text-(--ui-ink-2)">
+        <tr className="bg-(--ui-band) text-[12px] text-(--ui-ink-2)">
           {cols.map((f) => (
             <th
               key={f.key}
               className={cn(
-                "h-8 truncate border-b border-(--ui-hair) px-2 font-medium first:w-1/2 first:pl-0",
+                "h-8 truncate border-b border-(--ui-edge) px-2 font-semibold first:w-1/2 first:pl-3",
                 f.column?.align === "end" ? "text-right" : "text-left",
               )}
             >
@@ -2153,7 +2160,7 @@ function Related({
               <td
                 key={f.key}
                 className={cn(
-                  "px-2 first:pl-0",
+                  "px-2 first:pl-3 last:pr-3",
                   f.column?.align === "end" ? "text-right" : "text-left",
                   // The title wraps: a cut-off name or copy line says nothing.
                   i > 0 ? "truncate text-(--ui-ink-2)" : "py-2 break-words",
