@@ -837,13 +837,152 @@ export interface Version {
   at: string;
 }
 
+/** A template saved from this workflow's live wiring. */
+export interface SavedTemplate {
+  id: string;
+  name: string;
+  at: string | null;
+}
+
+/** Where a saved template installs: the Marketplace, on this client when there is one. */
+const shopHref = (id: string, client: string | null) =>
+  `/marketplace/catalog/${encodeURIComponent(id)}${client ? `?client=${encodeURIComponent(client)}` : ""}`;
+
+/**
+ * Save as template: what's live, under a name, sold in the Marketplace and listed in the Library.
+ * It starts nothing; installing it on a client is the Marketplace's path, approved in To approve.
+ */
+function SaveTemplate({
+  workflow,
+  client,
+  name,
+  forClients,
+  published,
+  templates,
+  mayManage,
+  onSaved,
+}: {
+  workflow: string;
+  client: string | null;
+  name: string;
+  forClients: boolean;
+  published: boolean;
+  templates: readonly SavedTemplate[];
+  mayManage: boolean;
+  onSaved: () => void;
+}) {
+  const base = useId();
+  const [title, setTitle] = useState("");
+  const [blurb, setBlurb] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ id: string; name: string; updated: boolean } | null>(null);
+  const why = !forClients
+    ? "It runs Wren's own business, so no client can install it."
+    : !published
+      ? "Publish it first. A template is the live wiring."
+      : !mayManage
+        ? "Saving a template takes manage on Workflows."
+        : null;
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const got = await call<{ id: string; name: string; updated: boolean }>(
+        "console/workflowTemplateSave",
+        { workflow, name: title, blurb, ...(client ? { client } : {}) },
+      );
+      setDone(got);
+      setTitle("");
+      setBlurb("");
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+    setBusy(false);
+  };
+  return (
+    <section
+      aria-label="Save as template"
+      className="grid gap-2 border-t border-(--ui-hair) px-1 pt-2"
+    >
+      <span className="font-medium">Save as template</span>
+      {why ? (
+        <p className={`m-0 text-[12.5px] ${QUIET}`}>{why}</p>
+      ) : (
+        <>
+          <p className={`m-0 text-[12.5px] ${QUIET}`}>
+            Saves the live version, not this draft. Clients install it from the Marketplace, and it
+            goes live only after To approve.
+          </p>
+          <label htmlFor={`${base}-name`} className="grid gap-1">
+            <span className="text-[12.5px] text-(--ui-ink-2)">Name</span>
+            <Input
+              id={`${base}-name`}
+              value={title}
+              maxLength={80}
+              placeholder={name}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-8"
+            />
+          </label>
+          <label htmlFor={`${base}-blurb`} className="grid gap-1">
+            <span className="text-[12.5px] text-(--ui-ink-2)">What it does (optional)</span>
+            <Input
+              id={`${base}-blurb`}
+              value={blurb}
+              maxLength={300}
+              onChange={(e) => setBlurb(e.target.value)}
+              className="h-8"
+            />
+          </label>
+          <span>
+            <Button size="dense" busy={busy} disabled={title.trim().length < 2} onClick={save}>
+              Save as template
+            </Button>
+          </span>
+          {error ? <p className="m-0 text-[12.5px] text-(--ui-bad)">{error}</p> : null}
+          {done ? (
+            <p className="m-0 text-[12.5px]">
+              {done.updated ? "Updated" : "Saved"}.{" "}
+              <a className="underline" href={shopHref(done.id, client)}>
+                Install {done.name} on a client
+              </a>
+            </p>
+          ) : null}
+        </>
+      )}
+      {templates.length ? (
+        <div className="grid gap-1 text-[12.5px]">
+          <span className={QUIET}>Saved from this workflow</span>
+          {templates.map((t) => (
+            <a key={t.id} className="underline" href={shopHref(t.id, client)}>
+              {t.name}
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /** History: each live version, newest first; one opens as the draft to publish again. */
 export function HistoryMenu({
   versions,
   onOpen,
+  save,
 }: {
   versions: readonly Version[];
   onOpen: (v: Version) => void;
+  save: {
+    workflow: string;
+    client: string | null;
+    name: string;
+    forClients: boolean;
+    templates: readonly SavedTemplate[];
+    mayManage: boolean;
+    onSaved: () => void;
+  };
 }) {
   return (
     <details className="relative">
@@ -872,9 +1011,7 @@ export function HistoryMenu({
         ) : (
           <p className={`px-1 ${QUIET}`}>Never published: the built-in wiring runs.</p>
         )}
-        <p className={`border-t border-(--ui-hair) px-1 pt-2 text-[12.5px] ${QUIET}`}>
-          Save as template: In development.
-        </p>
+        <SaveTemplate {...save} published={versions.length > 0} />
       </div>
     </details>
   );

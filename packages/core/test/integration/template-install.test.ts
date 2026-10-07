@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { clients } from "../../src/clients/schema.js";
 import { defineComponent } from "../../src/components.js";
+import { workflowRecord } from "../../src/library.js";
 import { hooks, workflowInstalls, workflowSaves } from "../../src/schema.js";
 import {
   approveInstall,
@@ -19,12 +20,14 @@ import {
   installTemplate,
   readPlan,
   type Template,
+  templatesNow,
   templatesOf,
   uninstallTemplate,
   waitingInstalls,
 } from "../../src/template-install.js";
 import { parseRef } from "../../src/templates.js";
-import { defineWorkflow } from "../../src/workflows.js";
+import { saveWorkflowTemplate } from "../../src/workflow-templates.js";
+import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -39,6 +42,7 @@ beforeEach(async () => {
     "hooks",
     "templates",
     "template_versions",
+    "workflow_templates",
   ]);
   await pg.db.insert(clients).values({
     id: "demo",
@@ -269,5 +273,81 @@ describe("uninstallTemplate", () => {
     expect(out.removed).toEqual(["door"]);
     expect(out.kept).toEqual(["texts"]);
     expect(await products()).toEqual({ texts: {} });
+  });
+});
+
+describe("saved templates", () => {
+  const slow: WorkflowEdits = {
+    wires: [{ from: "in.forms", to: "t.forms", via: "events", wait: "1 day" }],
+    steps: [],
+  };
+  const save = (name: string) =>
+    saveWorkflowTemplate(pg.db, { client: null, workflow: "flow", name, by: "test" }, deps);
+  const saved = async () => {
+    const t = (await templatesNow(pg.db, WORKFLOWS, COMPONENTS)).find((x) => x.saved);
+    if (!t) throw new Error("no saved template");
+    return t;
+  };
+  const publish = (edits: WorkflowEdits) =>
+    pg.db
+      .insert(workflowSaves)
+      .values({ client: null, workflow: "flow", edits, live: true, by: "test" });
+
+  it("keeps the live wiring under a name, and installs it on a client as a draft", async () => {
+    await expect(save("Flow, slow")).rejects.toThrow("publish it first");
+    await publish(slow);
+    await expect(save("Door")).rejects.toThrow("built-in template");
+    expect(await save("Flow, slow")).toEqual({
+      id: "saved_flow_slow",
+      name: "Flow, slow",
+      updated: false,
+    });
+    const t = await saved();
+    expect(t.edits).toEqual(slow);
+    expect(t.parts.map((p) => p.part.id)).toEqual(["texts", "door"]);
+    // The sends and spends gate holds: its wiring sends.
+    expect(t.effects).toContain("sends");
+
+    await expect(installTemplate(pg.db, pg.db, t, ask)).rejects.toThrow("type Flow, slow");
+    await installTemplate(pg.db, pg.db, t, { ...ask, confirm: "Flow, slow" });
+    const [draft] = (await saves()).filter((x) => x.client === "demo");
+    expect(draft).toMatchObject({ live: false, edits: slow });
+    // One template per workflow on a client.
+    await expect(installTemplate(pg.db, pg.db, T, ask)).rejects.toThrow("uninstall it first");
+
+    // A yes makes its wiring live, as a code template's.
+    const asked = await askTemplate(pg.db, t, { client: "demo", by: "test" });
+    const sold = await templatesNow(pg.db, WORKFLOWS, COMPONENTS);
+    const out = await approveInstall(pg.db, asked.id, { ...deps, by: "boss", templates: sold });
+    expect(out.start).toEqual([{ service: "DoorLoop", key: "demo" }]);
+    const live = (await saves()).filter((x) => x.client === "demo");
+    expect(live).toMatchObject([{ live: true, edits: slow }]);
+
+    // The Library lists it beside the code's workflows, its link the Marketplace page.
+    const rec = workflowRecord(WORKFLOWS, COMPONENTS);
+    const rows = (await rec.rows?.(pg.db)) ?? [];
+    expect(rows.map((r) => [r.id, r.from])).toEqual([
+      ["flow", "code"],
+      ["saved_flow_slow", "saved"],
+    ]);
+    expect(await rec.load?.(pg.db, "saved_flow_slow")).toMatchObject({
+      open: "/marketplace/catalog/saved_flow_slow",
+      saved: true,
+    });
+  });
+
+  it("saved again under its name, moves: the client reads an update", async () => {
+    await publish(slow);
+    await save("Flow, slow");
+    const before = await saved();
+    await installTemplate(pg.db, pg.db, before, { ...ask, confirm: "Flow, slow" });
+    await publish({
+      steps: [],
+      wires: [{ from: "in.forms", to: "t.forms", via: "events", wait: "2 days" }],
+    });
+    expect((await save("Flow, slow")).updated).toBe(true);
+    const after = await saved();
+    expect(after.version).not.toBe(before.version);
+    expect((await readPlan(pg.db, pg.db, after, "demo", FILES)).kind).toBe("update");
   });
 });

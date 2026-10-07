@@ -22,8 +22,8 @@ import {
   text,
   type Values,
 } from "./records.js";
-import { snippets } from "./schema.js";
-import type { Workflow } from "./workflows.js";
+import { snippets, workflowTemplates } from "./schema.js";
+import { flowsWith, type Workflow } from "./workflows.js";
 
 export const SNIPPET = "library.snippet";
 export const CHANNELS = ["any", "email", "sms", "dm", "comment"] as const;
@@ -228,30 +228,55 @@ const FOR: Record<Workflow["for"], State> = {
   client: { label: "Clients", tone: "neutral" },
 };
 
+const FROM: Record<"code" | "saved", State> = {
+  code: { label: "Built in", tone: "neutral" },
+  saved: { label: "Saved template", tone: "good" },
+};
+
 /**
  * Every workflow, read only: what it does, its steps, and a link to it on the Workflows canvas
- * (a workflow that is a part's inside opens as that part, as the canvas names it).
+ * (a workflow that is a part's inside opens as that part, as the canvas names it). Then each one
+ * saved as a template from the canvas, its link the Marketplace page that installs it.
  */
 export function workflowRecord(
   workflows: readonly Workflow[],
   parts: readonly Component[],
 ): RecordType {
+  /** Each saved template with its workflow as it wires it; one whose wiring broke isn't listed. */
+  const savedRows = async (db: Queryable) =>
+    (await db.select().from(workflowTemplates).orderBy(asc(workflowTemplates.name))).flatMap(
+      (row) => {
+        const next = flowsWith(workflows, row.edits ? { [row.workflow]: row.edits } : {}, parts);
+        const flow = next.flows.find((f) => f.id === row.workflow);
+        return flow && !next.broken[row.workflow] ? [{ row, flow }] : [];
+      },
+    );
   return defineRecord({
     id: "library.workflow",
     app: "library",
     channel: null,
     name: { one: "workflow", many: "workflows" },
     // A setup runs from a client's Accounts page, not the Library.
-    rows: async () =>
-      workflows
+    rows: async (db) => [
+      ...workflows
         .filter((w) => w.kind !== "setup")
         .map((w) => ({
           id: w.id,
           name: w.name,
           blurb: w.blurb,
           for: w.for,
+          from: "code",
           steps: w.nodes.length,
         })),
+      ...(await savedRows(db)).map(({ row, flow }) => ({
+        id: row.id,
+        name: row.name,
+        blurb: row.blurb || flow.blurb,
+        for: flow.for,
+        from: "saved",
+        steps: flow.nodes.length,
+      })),
+    ],
     key: "id",
     title: "name",
     subtitle: "blurb",
@@ -259,18 +284,23 @@ export function workflowRecord(
       name: text("Name"),
       blurb: text("What it does"),
       for: status(FOR, "Runs for"),
+      from: status(FROM, "From"),
       steps: number("Steps"),
     },
     views: [{ id: "all", label: "All", sort: "name" }],
     /** Its steps in order, and its address on the canvas. */
-    load: async (_db, id) => {
-      const w = workflows.find((x) => x.id === id);
+    load: async (db, id) => {
+      const saved = (await savedRows(db)).find((x) => x.row.id === id);
+      const w = saved?.flow ?? workflows.find((x) => x.id === id);
       if (!w) return null;
       const named = (uses: string | undefined) =>
         parts.find((c) => c.id === uses)?.name ?? workflows.find((x) => x.id === uses)?.name;
       const as = parts.find((c) => c.inside === w.id)?.id ?? w.id;
       return {
-        open: `/workflows/canvas?path=${encodeURIComponent(as)}`,
+        open: saved
+          ? `/marketplace/catalog/${encodeURIComponent(saved.row.id)}`
+          : `/workflows/canvas?path=${encodeURIComponent(as)}`,
+        saved: !!saved,
         steps: w.nodes.map((n) => ({
           id: n.id,
           name: named(n.uses) ?? n.own?.name ?? n.id,

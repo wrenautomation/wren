@@ -1,4 +1,7 @@
-/** The Library's Workflows: each one's steps, and a link onto the Workflows canvas. */
+/**
+ * The Library's Workflows: each one's steps, and a link onto the Workflows canvas, or for one
+ * saved as a template, to the Marketplace page that installs it.
+ */
 import type { RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
@@ -10,12 +13,12 @@ interface Step {
 }
 
 export const workflowExtras: NonNullable<ListPage["extras"]> = (detail) => {
-  const d = detail as { steps?: Step[]; open?: string } | null;
+  const d = detail as { steps?: Step[]; open?: string; saved?: boolean } | null;
   const steps = d?.steps ?? [];
   return {
     lead: (
       <a className={`text-[13.5px] ${QUIET}`} href={d?.open ?? "/workflows/canvas"}>
-        Open it in Workflows
+        {d?.saved ? "Install it from the Marketplace" : "Open it in Workflows"}
       </a>
     ),
     sections: steps.length

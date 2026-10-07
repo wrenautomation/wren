@@ -28,8 +28,10 @@ import {
   type InstallApplied,
   type InstallState,
   type WorkflowInstall,
+  type WorkflowTemplateRow,
   workflowInstalls,
   workflowSaves,
+  workflowTemplates,
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import { clocksOf, makeHook } from "./spine.js";
@@ -38,6 +40,7 @@ import { nameLabel } from "./template-labels.js";
 import { refText } from "./templates.js";
 import {
   flowsWith,
+  partsIn,
   type TemplateSpec,
   templateIdOf,
   type Workflow,
@@ -60,6 +63,12 @@ export interface Template {
   effects: Effect[];
   /** A hash of what it installs and its wiring: a newer one is an update. */
   version: string;
+  /** A saved template's wiring: the client's draft starts from it. Unset: the code's. */
+  edits?: WorkflowEdits | null;
+  /** Who saved it, when, and from whose workflow (null: Wren's): a code template has none. */
+  saved?: { by: string; at: string; from: string | null };
+  /** The code template a saved one rewires: its parts come with that one. */
+  of?: string;
 }
 
 const hash = (v: unknown) =>
@@ -97,6 +106,72 @@ export function templatesOf(
       },
     ];
   });
+}
+
+/**
+ * Published workflows saved as templates (`workflow_templates`), as the Shop sells them: the
+ * code's workflow rewired by the saved edits, its template's parts and copy when it is one, and
+ * every effect its wiring has, so approving it keeps the sends and spends gate. One whose
+ * workflow left the code, or whose wiring no longer runs, isn't sold.
+ */
+export function savedTemplatesOf(
+  rows: readonly WorkflowTemplateRow[],
+  workflows: readonly Workflow[],
+  components: readonly Component[],
+): Template[] {
+  return rows.flatMap((r) => {
+    const base = workflows.find((w) => w.id === r.workflow);
+    if (!base) return [];
+    const next = flowsWith(workflows, r.edits ? { [base.id]: r.edits } : {}, components);
+    const flow = next.flows.find((f) => f.id === base.id);
+    if (!flow || next.broken[base.id]) return [];
+    const spec: TemplateSpec = base.template ?? { parts: {} };
+    const parts = Object.entries(spec.parts).flatMap(([pid, settings]) => {
+      const part = components.find((c) => c.id === pid);
+      return part ? [{ part, settings }] : [];
+    });
+    const copy = [
+      ...new Set([...parts.flatMap((p) => p.part.provides.templates), ...(spec.copy ?? [])]),
+    ];
+    const effects = [
+      ...new Set([
+        ...parts.flatMap((p) => p.part.effects),
+        ...partsIn(base.id, next.flows, components).flatMap((c) => c.effects),
+      ]),
+    ];
+    return [
+      {
+        id: r.id,
+        name: r.name,
+        blurb: r.blurb || base.blurb,
+        icon: base.icon,
+        workflow: flow,
+        spec,
+        parts,
+        copy,
+        effects,
+        version: hash({
+          parts: spec.parts,
+          copy,
+          door: spec.door ?? null,
+          w: [flow.nodes, flow.wires],
+        }),
+        edits: r.edits ?? null,
+        saved: { by: r.by, at: r.at.toISOString(), from: r.fromClient },
+        ...(base.template ? { of: templateIdOf(base, components) } : {}),
+      },
+    ];
+  });
+}
+
+/** Every template on sale now: the code's, then the saved ones by name. */
+export async function templatesNow(
+  db: Queryable,
+  workflows: readonly Workflow[],
+  components: readonly Component[],
+): Promise<Template[]> {
+  const rows = await db.select().from(workflowTemplates).orderBy(workflowTemplates.name);
+  return [...templatesOf(workflows, components), ...savedTemplatesOf(rows, workflows, components)];
 }
 
 /** One template by its id or its workflow's, or a 404. */
@@ -352,6 +427,27 @@ export async function installOf(
   return row ?? null;
 }
 
+/** The install a client's workflow follows now, if any: one not uninstalled. */
+export async function installOnWorkflow(
+  db: Queryable,
+  client: string,
+  workflow: string,
+): Promise<WorkflowInstall | null> {
+  const [row] = await db
+    .select()
+    .from(workflowInstalls)
+    .where(
+      and(
+        eq(workflowInstalls.client, client),
+        eq(workflowInstalls.workflow, workflow),
+        sql`${workflowInstalls.state} <> 'off'`,
+      ),
+    )
+    .orderBy(desc(workflowInstalls.at))
+    .limit(1);
+  return row ?? null;
+}
+
 /** The template rows in a client's database. */
 export async function copyRows(db: Queryable): Promise<CopyRow[]> {
   const rows = (await db.execute(sql`SELECT kind, system, name, follows_default,
@@ -453,6 +549,13 @@ export async function installTemplate(
       .for("update");
     if (!client) throw new PortalRefusal("no such client", 404);
     const row = await installOf(tx, client.id, t.id);
+    // A client's workflow follows one template: a saved one shares its code's workflow.
+    const holder = await installOnWorkflow(tx, client.id, t.workflow.id);
+    if (holder && holder.template !== t.id)
+      throw new PortalRefusal(
+        `${holder.applied.name ?? holder.template} is on this workflow: uninstall it first`,
+        409,
+      );
     const plan = planOf(t, {
       client,
       row,
@@ -474,11 +577,12 @@ export async function installTemplate(
       const c = t.parts.find((x) => x.part.id === p.id)?.part as Component;
       const at = { products, accounts: client.accounts };
       if (p.status === "add" || p.status === "back") {
-        // Confirmed above, by name: the part's check takes the template's id.
+        // Confirmed above, by name: the part's check takes the template's id. A saved one's
+        // parts come with the code template it rewires.
         const block = installCheck(c, at, {
           settings: p.settings,
-          confirm: t.id,
-          template: t.id,
+          confirm: t.of ?? t.id,
+          template: t.of ?? t.id,
         });
         writes[c.id] = block;
         products[c.id] = block;
@@ -498,7 +602,7 @@ export async function installTemplate(
       await tx.insert(workflowSaves).values({
         client: client.id,
         workflow: t.workflow.id,
-        edits: null,
+        edits: t.edits ?? null,
         live: false,
         by: ask.by,
       });
@@ -617,7 +721,13 @@ export function loopsOf(
 export async function approveInstall(
   main: Queryable,
   id: unknown,
-  deps: { by: string; workflows: readonly Workflow[]; components: readonly Component[] },
+  deps: {
+    by: string;
+    workflows: readonly Workflow[];
+    components: readonly Component[];
+    /** The templates on sale (`templatesNow`); unset, the code's. */
+    templates?: readonly Template[];
+  },
 ): Promise<{ id: string; client: string; template: string; start: LoopKey[] }> {
   return serializable(main, async (tx) => {
     const row = await waitingRow(tx, id);
@@ -658,7 +768,8 @@ export async function approveInstall(
       .where(eq(workflowInstalls.id, row.id));
     const client = await getClient(tx, row.client);
     const ids = Object.keys(
-      templateNamed(templatesOf(deps.workflows, deps.components), row.template).spec.parts,
+      templateNamed(deps.templates ?? templatesOf(deps.workflows, deps.components), row.template)
+        .spec.parts,
     ).filter((p) => has(client, p));
     return {
       id: installApprovalId(row.id),
@@ -720,7 +831,11 @@ export async function uninstallTemplate(
   main: Queryable,
   t: Template,
   ask: { client: string; by: string },
-  deps: { workflows: readonly Workflow[]; components: readonly Component[] },
+  deps: {
+    workflows: readonly Workflow[];
+    components: readonly Component[];
+    templates?: readonly Template[];
+  },
 ): Promise<{ removed: string[]; kept: string[]; stop: LoopKey[] }> {
   return serializable(main, async (tx) => {
     const row = await installOf(tx, ask.client, t.id);
@@ -739,7 +854,9 @@ export async function uninstallTemplate(
           ),
         )
     ).flatMap((r) => {
-      const o = templatesOf(deps.workflows, deps.components).find((x) => x.id === r.template);
+      const o = (deps.templates ?? templatesOf(deps.workflows, deps.components)).find(
+        (x) => x.id === r.template,
+      );
       return o ? Object.keys(o.spec.parts) : [];
     });
     const mine = row.applied.added.filter((id) => has(client, id));

@@ -89,3 +89,6 @@ template.
   which ("Needs a phone number"). The part a template is named after reads as its loop. Settings
   render through the shared `Settings` (labels from the form, On/Off, "Not set", lists as items,
   never JSON). The template's canvas fits on load. The client row drops its part ids.
+- 2026-10-07: a template can also be saved from a published workflow on the canvas
+  (`workflow_templates`, `designs/2026-10-06-workflow-editor.md` step 5). It installs the same way;
+  its effects count its whole wiring, not only its parts.

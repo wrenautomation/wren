@@ -52,6 +52,8 @@ export interface TemplateDetail {
     id: string;
     effects: string[];
     door: { input: string; subject: string } | null;
+    /** Saved from a live workflow on the canvas; null for one the code declares. */
+    saved?: { by: string; at: string; from: string | null } | null;
     parts: TemplatePart[];
     copy: { ref: string; label: string; file: boolean }[];
   };
@@ -443,16 +445,31 @@ export function templateExtras(
   const at = (to: string) =>
     `/marketplace/catalog/${encodeURIComponent(to)}?client=${encodeURIComponent(client)}`;
   const manages = can?.includes("manage") ?? true;
+  const saved = d.template.saved;
   const sections: [string, ReactNode][] = [
     [
       "Parts",
-      <ul key="parts" className={LIST}>
-        {d.template.parts.map((p) => (
-          <PartRow key={p.id} p={p} at={at} team={!!team} template={d.template.id} />
-        ))}
-      </ul>,
+      d.template.parts.length ? (
+        <ul key="parts" className={LIST}>
+          {d.template.parts.map((p) => (
+            <PartRow key={p.id} p={p} at={at} team={!!team} template={d.template.id} />
+          ))}
+        </ul>
+      ) : (
+        <p key="parts" className="text-(--ui-ink-2)">
+          None to install. It runs on the parts the client has.
+        </p>
+      ),
     ],
   ];
+  if (saved)
+    sections.unshift([
+      "Saved",
+      <p key="saved" className="text-(--ui-ink-2)">
+        Saved from a live workflow by {saved.by} on {new Date(saved.at).toLocaleDateString()}.
+        Installing starts the client's draft from this wiring. A client's own wiring stays.
+      </p>,
+    ]);
   if (d.template.copy.length)
     sections.push([
       "Copy",

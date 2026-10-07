@@ -85,6 +85,8 @@ export const CONSOLE_ROUTES = {
   workflowSave: "wren:manage",
   workflowPublish: "wren:manage",
   workflowDiscard: "wren:manage",
+  // A live workflow kept as a template: it starts nothing; installing it is the Shop's path.
+  workflowTemplateSave: "wren:manage",
   workflowAsk: "wren:manage",
   workflowAnswer: "wren:manage",
   // A dry test of a draft: nothing is claimed or sent, so running things is enough.
@@ -140,6 +142,7 @@ export const CONSOLE_APPS = {
   workflowSave: "workflows",
   workflowPublish: "workflows",
   workflowDiscard: "workflows",
+  workflowTemplateSave: "workflows",
   workflowAsk: "workflows",
   workflowAnswer: "workflows",
   workflowTest: "workflows",
@@ -203,6 +206,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "workflowSave",
   "workflowPublish",
   "workflowDiscard",
+  "workflowTemplateSave",
   "workflowAsk",
   "doorReveal",
   "doorRotate",

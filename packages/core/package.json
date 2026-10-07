@@ -71,6 +71,7 @@
     "./templates/labels": "./src/template-labels.ts",
     "./models/labels": "./src/model-labels.ts",
     "./templates/install": "./src/template-install.ts",
+    "./templates/saved": "./src/workflow-templates.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",

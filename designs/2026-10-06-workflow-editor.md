@@ -103,6 +103,7 @@ Read, executions and Retry. Editing is desktop only.
 2. Palette, logic nodes, ports by kind, the node panel.
 3. Draft, publish, Ask Claude on the graph.
 4. Test step and test workflow.
+5. Webhook door, the four triggers, Save as template.
 
 Library > Sequences opens a sequence in this editor: a sequence is a cadence on the spine.
 
@@ -174,3 +175,13 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   (America/New_York to start). Publish and a template approve start the clocks; uninstall stops
   them. Firing is a dep each channel gets from the worker, so a test without a Spine fires
   nothing.
+- 2026-10-07: Step 5, Save as template, built. The History menu saves what's live (not the
+  draft) under a name, into `workflow_templates` (migration 0157): the code's workflow, the
+  live save's edits, who and when. It isn't a copy row in `templates`: a workflow is wiring, not
+  words, and the template store's kinds all render. A saved template is sold beside the code's
+  (`templatesNow`), listed in Library > Workflows, and installs through the same path: the
+  client's draft starts from its edits, its parts are its workflow's template parts, and its
+  effects are every effect its wiring has, so the sends and spends yes still holds at approve.
+  Only a workflow that runs for clients saves. A client's workflow follows one template; a second
+  on it is refused until the first is uninstalled. Saving the same name moves it, and a client
+  that has it reads an update. Not built: deleting a saved template.

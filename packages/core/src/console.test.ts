@@ -30,11 +30,14 @@ const rows = Object.assign([{ niche: "widgets", in_play: "12", note: 'a "b", c' 
   ],
 });
 const asked: string[] = [];
+/** No saved workflow templates. */
+const noSaved = { select: () => ({ from: () => ({ orderBy: async () => [] }) }) };
 const main = {
   execute: async (q: SQL) => {
     asked.push(new PgDialect().sqlToQuery(q).sql);
     return rows;
   },
+  ...noSaved,
 } as unknown as Db;
 const api = consoleApi({ main, views: ["pipeline_funnel", "books.spend"] });
 const operator = { email: "op@example.test", operator: true };
@@ -270,6 +273,7 @@ describe("ConsolePortal handlers", () => {
         };
   const ran: Record<string, unknown>[] = [];
   const db = {
+    ...noSaved,
     transaction: (fn: (tx: unknown) => unknown) => fn(db),
     insert: () => ({
       values: (v: Record<string, unknown>) => {

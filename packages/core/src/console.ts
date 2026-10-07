@@ -197,19 +197,20 @@ import {
   declineInstall,
   defaultsOnce,
   INSTALL_STATE_LABELS,
+  installOnWorkflow,
   installsOf,
   installTemplate,
   type Plan,
   parseInstallApprovalId,
   readPlan,
   type Template,
-  installOf as templateInstallOf,
   templateNamed,
-  templatesOf,
+  templatesNow,
   uninstallTemplate,
 } from "./template-install.js";
 import { codeLabel } from "./template-labels.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
+import { saveWorkflowTemplate } from "./workflow-templates.js";
 import {
   flowsWith,
   partsIn,
@@ -1360,7 +1361,7 @@ export const componentRecord = (
    */
   running?: () => Promise<ReadonlySet<string>>,
   /**
-   * The templates (`templatesOf` over the code's workflows), the client's installs of them, and
+   * The templates (`templatesNow`: the code's, then the saved ones), the client's installs of them, and
    * the plan of one for the team, read on the load's own connection.
    */
   sold: {
@@ -1396,8 +1397,11 @@ export const componentRecord = (
         of: at?.setup.site ?? null,
       };
     });
-  /** A template stands in for the part or workflow it is: one card, never two. */
-  const soldAs = new Set(sold.list.flatMap((t) => [t.id, t.workflow.id]));
+  /**
+   * A template stands in for the part or workflow it is: one card, never two. A saved one is a
+   * card of its own beside its workflow's.
+   */
+  const soldAs = new Set(sold.list.flatMap((t) => (t.saved ? [] : [t.id, t.workflow.id])));
   const installOf = (t: Template) => sold.installs.find((r) => r.template === t.id) ?? null;
   // A client sees one "In development" for both: built only for Wren, or not built at all.
   const shown = <R extends string>(r: R) => (!team && r === "coming" ? "planned" : r);
@@ -1491,6 +1495,11 @@ export const componentRecord = (
       draft,
       versions: h.versions,
       palette: paletteFor(w),
+      // Save as template: only a workflow that runs for clients; the ones saved from it so far.
+      forClients: w.for === "client",
+      templates: sold.list
+        .filter((t) => t.saved && t.workflow.id === w.id)
+        .map((t) => ({ id: t.id, name: t.name, at: t.saved?.at ?? null })),
     };
   };
   /**
@@ -1717,11 +1726,14 @@ export const componentRecord = (
       const t = sold.list.find((x) => x.id === id);
       if (t) {
         const row = installOf(t);
-        const w = flows.find((x) => x.id === t.workflow.id) ?? t.workflow;
+        // A saved one draws its own wiring until it's on the client; then the client's.
+        const mine = flows.find((x) => x.id === t.workflow.id);
+        const w = (t.saved && !row ? t.workflow : mine) ?? t.workflow;
         return {
           template: {
             id: t.id,
             effects: t.effects,
+            saved: t.saved ?? null,
             door: t.spec.door ?? null,
             parts: t.parts.map(({ part: c, settings }) => ({
               id: c.id,
@@ -1889,8 +1901,8 @@ export function consoleApi({
 }) {
   const allowed = new Set([...views, ...moneyViews]);
   const money = new Set(moneyViews);
-  /** The workflows sold as templates, from the code's wiring. */
-  const sold = templatesOf(workflows, components);
+  /** The workflows sold as templates: the code's, then the ones saved from a live workflow. */
+  const soldNow = () => templatesNow(main, workflows, components);
   /** The client's own database for one call, or null when this worker can't reach it. */
   const onClientDb = async <T>(
     client: Pick<Client, "id" | "database">,
@@ -2038,7 +2050,7 @@ export function consoleApi({
         },
         internal && admin ? runningLoops(admin) : undefined,
         {
-          list: sold,
+          list: await soldNow(),
           installs: client ? await installsOf(main, client.id) : [],
           plan:
             internal && client
@@ -2575,7 +2587,7 @@ export function consoleApi({
     /** What installing a template on the client would do, read before anything is written. */
     async templatePlan(req: TemplateRequest): Promise<Plan> {
       team(req);
-      const t = templateNamed(sold, req.template);
+      const t = templateNamed(await soldNow(), req.template);
       const client = await pickClient(main, req);
       return onClientDb(client, (db) => readPlan(main, db, t, client.id, undefined, setups));
     },
@@ -2586,7 +2598,7 @@ export function consoleApi({
      */
     async templateInstall(req: TemplateRequest) {
       team(req);
-      const t = templateNamed(sold, req.template);
+      const t = templateNamed(await soldNow(), req.template);
       const client = await pickClient(main, req);
       const by = (req.viewer as SignedViewer).email;
       const run = await openRun(main, {
@@ -2614,20 +2626,21 @@ export function consoleApi({
     async templatePublish(req: TemplateRequest) {
       team(req);
       if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
-      const t = templateNamed(sold, req.template);
+      const t = templateNamed(await soldNow(), req.template);
       const client = await pickClient(main, req);
       return askTemplate(main, t, { client: client.id, by: (req.viewer as SignedViewer).email });
     },
     /** Off the client: its loops stop, the door shuts; data, copy and saves stay. */
     async templateUninstall(req: TemplateRequest) {
       team(req);
+      const sold = await soldNow();
       const t = templateNamed(sold, req.template);
       const client = await pickClient(main, req);
       const out = await uninstallTemplate(
         main,
         t,
         { client: client.id, by: (req.viewer as SignedViewer).email },
-        { workflows, components },
+        { workflows, components, templates: sold },
       );
       return { ...out, start: [], stop: out.stop.filter((l) => bound(l.service)) };
     },
@@ -2644,6 +2657,7 @@ export function consoleApi({
         throw new PortalRefusal("nothing picked", 404);
       const done: string[] = [];
       const start: LoopKey[] = [];
+      const sold = await soldNow();
       for (const id of ids) {
         const [row] = await main
           .select()
@@ -2655,7 +2669,12 @@ export function consoleApi({
           throw new PortalRefusal("it sends: only an admin can make it live", 403);
         if (t.effects.includes("spends") && !teamCan(req, "money", WREN))
           throw new PortalRefusal("it spends: only an admin can make it live", 403);
-        const out = await approveInstall(main, id, { by, workflows, components });
+        const out = await approveInstall(main, id, {
+          by,
+          workflows,
+          components,
+          templates: sold,
+        });
         done.push(out.id);
         start.push(...out.start.filter((l) => bound(l.service)));
       }
@@ -2675,6 +2694,7 @@ export function consoleApi({
     /** A client's templates and where each stands: the client's page reads it. */
     async templateInstalls(req: PortalRequest) {
       const client = await pickClient(main, req);
+      const sold = await soldNow();
       return (await installsOf(main, client.id)).map((r) => {
         const t = sold.find((x) => x.id === r.template);
         return {
@@ -2773,9 +2793,9 @@ export function consoleApi({
     }> {
       const { w, client, by } = await workflowFor(req);
       // A client's template: publishing asks in To approve; a person's yes makes it live.
-      const t = client ? sold.find((x) => x.workflow.id === w.id) : undefined;
-      const row = t && client ? await templateInstallOf(main, client, t.id) : null;
-      if (t && client && row && row.state !== "off") {
+      const row = client ? await installOnWorkflow(main, client, w.id) : null;
+      const t = row ? (await soldNow()).find((x) => x.id === row.template) : undefined;
+      if (t && client && row) {
         const asked = await askTemplate(main, t, { client, by });
         return { id: 0, asked: asked.id };
       }
@@ -2821,6 +2841,20 @@ export function consoleApi({
     async doorRotate(req: DoorRequest): Promise<{ token: string }> {
       const { client } = await workflowFor({ ...req, workflow: String(req.workflow ?? "") });
       return rotateDoor(main, req.id, client);
+    },
+    /**
+     * The live workflow kept as a template under a name: sold in the Shop and listed in the
+     * Library, installed on a client the Shop's way. Saving the name again moves it.
+     */
+    async workflowTemplateSave(
+      req: WorkflowSaveRequest & { name?: unknown; blurb?: unknown },
+    ): Promise<{ id: string; name: string; updated: boolean }> {
+      const { w, client, by } = await workflowFor(req);
+      return saveWorkflowTemplate(
+        main,
+        { client, workflow: w.id, name: req.name, blurb: req.blurb, by },
+        { workflows, components },
+      );
     },
     /** The draft dropped: the live wiring stays as it is. */
     async workflowDiscard(req: WorkflowSaveRequest): Promise<{ done: number }> {
@@ -3273,6 +3307,13 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         }),
       workflowDiscard: (ctx: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => ctx.run("discard draft", () => answer(() => api.workflowDiscard(req)))),
+      workflowTemplateSave: (
+        ctx: restate.Context,
+        req: WorkflowSaveRequest & { name?: unknown; blurb?: unknown },
+      ) =>
+        answer(() =>
+          ctx.run("save as template", () => answer(() => api.workflowTemplateSave(req))),
+        ),
       workflowAsk: (ctx: restate.Context, req: WorkflowSaveRequest & { message?: unknown }) =>
         answer(async () => {
           const id = await ctx.run("open run", () => answer(() => api.workflowAskOpen(req)));

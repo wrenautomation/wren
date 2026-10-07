@@ -91,6 +91,14 @@ hook's calls. Design: `designs/2026-10-05-workflows.md` (The spine).
 `wren hooks preset site` makes the lander's hook into Wren's speed to lead and says where the URL
 goes (the lander's `WREN_DOOR_URL` Pages secret).
 
+## Workflow templates
+
+`wren --client <id> workflows templates|plan|install|publish|uninstall <template>` puts a whole
+workflow on a client: parts, copy, a draft and a shut door. Nothing starts until a person approves
+it in To approve; the CLI never approves. `wren [--client <id>] workflows save-template <workflow>
+--name "..."` keeps a published workflow's live wiring as a template (the editor's History menu
+does the same). Design: `designs/2026-10-07-template-install.md`.
+
 ## The Watch
 
 `wren watch start|stop|status|sync`: `Watch/all` on the box reads new mail in William's inboxes

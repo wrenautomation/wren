@@ -443,6 +443,39 @@ export const workflowSaves = pgTable(
   ],
 );
 
+/**
+ * A published workflow saved as a template (designs/2026-10-06-workflow-editor.md, step 5): its
+ * live wiring under a name, sold beside the code's templates and installed the same way. Saving
+ * the same name again moves it, so an install reads it as an update. Main only.
+ */
+export const workflowTemplates = pgTable(
+  "workflow_templates",
+  {
+    /** The template's id, `saved_<name>`: what installs and To approve name it by. */
+    id: varchar("id", { length: 64 }).notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    blurb: text("blurb").default("").notNull(),
+    /** The code's workflow it rewires. */
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    /** The live save's `WorkflowEdits` when saved; null: the code's wiring. */
+    edits: jsonb("edits").$type<WorkflowEdits | null>(),
+    /** Whose live workflow it was saved from; null is Wren's. */
+    fromClient: varchar("from_client", { length: 40 }),
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_workflow_templates" }),
+    index("ix_workflow_templates_from_client").on(t.fromClient),
+    foreignKey({
+      columns: [t.fromClient],
+      foreignColumns: [clients.id],
+      name: "fk_workflow_templates_from_client_clients",
+    }).onDelete("set null"),
+  ],
+);
+export type WorkflowTemplateRow = typeof workflowTemplates.$inferSelect;
+
 export const INSTALL_STATES = ["draft", "waiting", "live", "off"] as const;
 /** draft: installed, nothing runs. waiting: in To approve. live: approved. off: uninstalled. */
 export type InstallState = (typeof INSTALL_STATES)[number];

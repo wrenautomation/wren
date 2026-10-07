@@ -62,7 +62,7 @@ export const library: Module = {
       template: "list",
       record: "library.workflow",
       empty: "No workflow is declared.",
-      columns: ["name", "blurb", "for", "steps"],
+      columns: ["name", "blurb", "for", "from", "steps"],
       extras: workflowExtras,
     },
   ],

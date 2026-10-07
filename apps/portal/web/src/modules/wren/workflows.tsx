@@ -55,6 +55,7 @@ import {
   NodePanel,
   PaletteDrawer,
   Proposal,
+  type SavedTemplate,
   type Version,
   WirePanel,
 } from "./editor.js";
@@ -98,6 +99,8 @@ type Detail = {
   draft?: (Version & { problems: string[] }) | null;
   versions?: Version[];
   code?: Draft;
+  forClients?: boolean;
+  templates?: SavedTemplate[];
 };
 const EMPTY: Draft = { wires: [], steps: [] };
 /** How far Undo goes back. */
@@ -688,6 +691,15 @@ function Canvas({
             onOpen={(v) => {
               setProposal(null);
               setDraft(v.edits ?? code);
+            }}
+            save={{
+              workflow: w.id,
+              client,
+              name: w.name,
+              forClients: d.forClients ?? false,
+              templates: d.templates ?? [],
+              mayManage,
+              onSaved,
             }}
           />
           {d.saved?.edits ? (

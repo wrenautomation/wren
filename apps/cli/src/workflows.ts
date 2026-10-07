@@ -1,7 +1,8 @@
 /**
  * `wren --client <id> workflows …`: templates onto a client (designs/2026-10-07-template-install.md).
  * Plan first, then install: parts, copy, a draft and a shut door, nothing started. Publish asks in
- * To approve; the CLI never approves. Uninstall stops the loops and keeps the data.
+ * To approve; the CLI never approves. Uninstall stops the loops and keeps the data. `save-template`
+ * keeps a published workflow's live wiring as a template (designs/2026-10-06-workflow-editor.md).
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
@@ -15,9 +16,10 @@ import {
   type Plan,
   readPlan,
   templateNamed,
-  templatesOf,
+  templatesNow,
   uninstallTemplate,
 } from "@wren/core/templates/install";
+import { saveWorkflowTemplate } from "@wren/core/templates/saved";
 import type { Db } from "@wren/db";
 import { COMPONENTS } from "@wren/worker/components";
 import { SETUPS } from "@wren/worker/setups";
@@ -89,7 +91,8 @@ export function registerWorkflows(
   withClientDb: WithClientDb,
   settings: Settings,
 ) {
-  const sold = templatesOf(WORKFLOWS, COMPONENTS);
+  /** The code's templates, then the ones saved from a live workflow. */
+  const soldNow = () => withMainDb((db) => templatesNow(db, WORKFLOWS, COMPONENTS));
   const clientId = () => {
     const id = program.opts<{ client?: string }>().client;
     if (!id) throw new Error("this command needs --client <id> (see `wren clients list`)");
@@ -103,13 +106,33 @@ export function registerWorkflows(
     .action(async () => {
       const id = program.opts<{ client?: string }>().client;
       const rows = id ? await withMainDb((db) => installsOf(db, id)) : [];
-      for (const t of sold) {
+      for (const t of await soldNow()) {
         const r = rows.find((x) => x.template === t.id);
+        const parts = t.parts.map((p) => p.part.name).join(", ") || "No parts";
         console.log(
-          `${t.id}: ${t.name}. ${t.parts.map((p) => p.part.name).join(", ")}` +
+          `${t.id}: ${t.name}${t.saved ? " (saved)" : ""}. ${parts}` +
             (r ? `. ${INSTALL_STATE_LABELS[r.state].label}` : id ? ". Not installed" : ""),
         );
       }
+    });
+
+  cmd
+    .command("save-template <workflow>")
+    .description("Keep the workflow's live wiring (--client's, else Wren's) as a template")
+    .requiredOption("--name <name>", "what the Marketplace calls it")
+    .option("--blurb <text>", "what it does, in one line")
+    .action(async (workflow: string, o: { name: string; blurb?: string }) => {
+      const client = program.opts<{ client?: string }>().client ?? null;
+      const out = await withMainDb((db) =>
+        saveWorkflowTemplate(
+          db,
+          { client, workflow, name: o.name, blurb: o.blurb, by: BY },
+          { workflows: WORKFLOWS, components: COMPONENTS },
+        ),
+      );
+      console.log(
+        `${out.updated ? "Updated" : "Saved"} ${out.id}. Install it on a client: wren --client <id> workflows plan ${out.id}`,
+      );
     });
 
   cmd
@@ -117,7 +140,7 @@ export function registerWorkflows(
     .description("What installing it on --client would do; writes nothing")
     .option("--json", "as JSON")
     .action(async (template: string, o: { json?: boolean }) => {
-      const t = templateNamed(sold, template);
+      const t = templateNamed(await soldNow(), template);
       const id = clientId();
       const plan = await withClientDb((cdb) =>
         withMainDb((db) => readPlan(db, cdb, t, id, undefined, SETUPS)),
@@ -131,7 +154,7 @@ export function registerWorkflows(
     .option("--confirm <id>", "the template's id or name, when it sends or spends")
     .option("--update", "apply the plan's changes after the template moved")
     .action(async (template: string, o: { confirm?: string; update?: boolean }) => {
-      const t = templateNamed(sold, template);
+      const t = templateNamed(await soldNow(), template);
       const id = clientId();
       const out = await withClientDb((cdb) =>
         withMainDb((db) =>
@@ -156,7 +179,7 @@ export function registerWorkflows(
     .command("publish <template>")
     .description("Ask to make --client's workflow live: it waits in To approve")
     .action(async (template: string) => {
-      const t = templateNamed(sold, template);
+      const t = templateNamed(await soldNow(), template);
       const out = await withMainDb((db) => askTemplate(db, t, { client: clientId(), by: BY }));
       console.log(`Waiting in To approve as ${out.id}. A person approves it there.`);
     });
@@ -165,6 +188,7 @@ export function registerWorkflows(
     .command("uninstall <template>")
     .description("Take it off --client: loops stop, the door shuts, data and copy stay")
     .action(async (template: string) => {
+      const sold = await soldNow();
       const t = templateNamed(sold, template);
       const id = clientId();
       await withMainDb((db) => getClient(db, id));
@@ -173,7 +197,7 @@ export function registerWorkflows(
           db,
           t,
           { client: id, by: BY },
-          { workflows: WORKFLOWS, components: COMPONENTS },
+          { workflows: WORKFLOWS, components: COMPONENTS, templates: sold },
         ),
       );
       const ingress = clients.connect(ingressOf(settings));

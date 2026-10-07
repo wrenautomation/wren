@@ -20,7 +20,7 @@ Each tab is a record type on the list template, so filters, saved views, the sid
 - `snippets` (`packages/core/src/schema.ts:420`, migration 0130): workspace, title, body, tags (text[]), channel (null = anywhere), created_by, updated_at
 - `snippetRecord(seen)` `library.snippet`: edits title, words, tags and fits in place; tags in use are facets (`snippetTags`, read on each types call, plain text when none or the read fails)
 - `ConsolePortal{snippets,snippetAdd,snippetRemove}`: list is team `read`, add and remove need `wren:run`, never the demo (`teamWriter`, `packages/core/src/console.ts`)
-- `workflowRecord(workflows, parts)` `library.workflow`: read only; its load gives the steps and `/workflows/canvas?path=<id>` (a part's inside opens as the part)
+- `workflowRecord(workflows, parts)` `library.workflow`: read only; its load gives the steps and `/workflows/canvas?path=<id>` (a part's inside opens as the part). Saved templates (`workflow_templates`, [[platform/spine]]) list after the code's, `from` saved, their link `/marketplace/catalog/<id>`
 - `mediaRecord(signer)` `library.media` and `sopRecord` `library.sop` (`packages/content/src/library.ts`), registered in `apps/worker/src/services.ts` and the local preview; media's load signs the file
 - Insert: `InsertSnippet` (`packages/ui/src/snippets.tsx`) in an edited prose field, the action ask box and the DraftBox; favorites first, filtered to the box's channel; goes at the cursor once he has placed it, else at the end as a new paragraph. The portal's `SnippetsProvider` source is team only, favorites at pref `favorites:library.snippet` at Wren (`snippetsFor`, `apps/portal/web/src/App.tsx`)
 
