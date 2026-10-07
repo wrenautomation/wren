@@ -1,5 +1,6 @@
-// A credential link (designs/2026-10-06-credential-links.md). Wren's sign-in fetches the
-// ciphertext once; the key is the link's fragment and never leaves this page. Text only
+// A credential link (designs/2026-10-06-credential-links.md). The ciphertext is fetched once
+// (an open link without sign-in, any other through Wren's sign-in); the key is the link's
+// fragment and never leaves this page. It holds `{label, fields: [{name, value}]}`. Text only
 // through textContent.
 
 const view = document.getElementById("view");
@@ -8,7 +9,7 @@ const AUTH = location.hostname.startsWith("phone.")
   ? `https://auth.${location.hostname.slice("phone.".length)}`
   : null;
 const KEPT = `cred-link:${id}`;
-const CLEAR_MS = 120_000;
+const CLEAR_MS = 300_000;
 
 // The key moves to this tab's storage and off the address bar: the sign-in round trip returns
 // to the bare path, and neither the history nor the sign-in server ever sees it.
@@ -30,8 +31,15 @@ function h(tag, attrs = {}, ...kids) {
 const show = (...kids) => view.replaceChildren(...kids);
 const say = (text) => show(h("p", {}, text));
 
-/** A POST with a fresh token from Wren's sign-in; null when signed out. */
+/** A POST: bare first (an open link), then with a token from Wren's sign-in; null when signed out. */
 async function call(path) {
+  const bare = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  if (bare.status !== 401) return answer(bare);
+  if (!AUTH) return null;
   const t = await fetch(`${AUTH}/api/auth/token`, { credentials: "include" });
   if (t.status === 401) return null;
   if (!t.ok) throw new Error(`sign-in ${t.status}`);
@@ -42,6 +50,10 @@ async function call(path) {
     body: "{}",
   });
   if (res.status === 401) return null;
+  return answer(res);
+}
+
+async function answer(res) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
@@ -72,41 +84,56 @@ async function reveal() {
     k,
     bytes(sealed.data),
   );
-  let cred = JSON.parse(new TextDecoder().decode(plain));
+  let held = JSON.parse(new TextDecoder().decode(plain));
   sessionStorage.removeItem(KEPT);
-  const copy = (field, label) =>
-    h(
+  const field = (i) => {
+    const { name } = held.fields[i];
+    const value = h("code", { hidden: "" });
+    const copy = h(
       "button",
       {
         class: "primary",
-        onclick: async (e) => {
-          if (!cred) return;
-          await navigator.clipboard.writeText(cred[field]);
-          e.target.textContent = "Copied";
-          setTimeout(() => (e.target.textContent = label), 1500);
+        onclick: async () => {
+          if (!held) return;
+          await navigator.clipboard.writeText(held.fields[i].value);
+          copy.textContent = "Copied";
+          setTimeout(() => (copy.textContent = `Copy ${name}`), 1500);
         },
       },
-      label,
+      `Copy ${name}`,
     );
+    const peek = h(
+      "button",
+      {
+        class: "peek",
+        onclick: () => {
+          if (!held) return;
+          value.textContent = held.fields[i].value;
+          value.hidden = !value.hidden;
+          peek.textContent = value.hidden ? "Show" : "Hide";
+        },
+      },
+      "Show",
+    );
+    return h("div", { class: "item" }, copy, peek, value);
+  };
   show(
-    h("p", {}, cred.site),
-    copy("username", "Copy username"),
-    copy("password", "Copy password"),
-    h("p", {}, "Cleared from this page in 2 minutes."),
+    h("p", {}, held.label),
+    ...held.fields.map((_, i) => field(i)),
+    h("p", {}, "Cleared from this page in 5 minutes. The link no longer works."),
   );
   setTimeout(() => {
-    cred = null;
-    say("Cleared. Mint a new link if you need it again.");
+    held = null;
+    say("Cleared. Ask for a new link if you need it again.");
   }, CLEAR_MS);
 }
 
 async function main() {
-  if (!AUTH) return say("Open this on phone.wrenautomation.com.");
-  if (!key) return say("This link has no key. Mint a new one.");
+  if (!key) return say("This link has no key. Ask for a new one.");
   const peek = await call(`/api/links/${id}`);
-  if (!peek) return signIn();
+  if (!peek) return AUTH ? signIn() : say("Open this on phone.wrenautomation.com.");
   show(
-    h("p", {}, `A login for ${peek.site}. It opens once.`),
+    h("p", {}, `${peek.label}. It opens once.`),
     h("button", { class: "primary", onclick: () => reveal().catch(fail) }, "Reveal"),
   );
 }

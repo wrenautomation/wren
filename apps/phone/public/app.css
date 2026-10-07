@@ -379,6 +379,25 @@ textarea.tpl {
   display: block;
   margin: 12px auto 0;
 }
+.stack .item + .item {
+  margin-top: 16px;
+}
+.stack .peek {
+  display: block;
+  margin: 6px auto 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.stack .item code {
+  display: block;
+  max-width: 320px;
+  margin: 6px auto 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
 .field {
   display: block;
   width: 100%;

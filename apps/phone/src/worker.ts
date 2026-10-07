@@ -21,7 +21,8 @@
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
  * - `/links`, `/api/links/<id>[/take]`, `/c/<id>`: credential links
  *   (designs/2026-10-06-credential-links.md). The Mac posts AES-GCM ciphertext, HMAC signed
- *   with `CRED_LINK_SECRET`; it lives 10 minutes in KV. The key is only in the link's fragment.
+ *   with `CRED_LINK_SECRET`; it lives in KV until its TTL. The key is only in the link's
+ *   fragment. An open link needs no sign-in, for someone outside Wren.
  *   `/c/<id>` is the reveal page and consumes nothing; an operator's `take` returns it once.
  * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
  *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
@@ -333,14 +334,16 @@ async function lander(
 
 /** A credential link's id: 128 random bits, base64url. */
 const LINK_ID = /^[A-Za-z0-9_-]{22}$/;
+/** A link's life: 10 minutes unless the mint asks, at most 7 days. */
 const LINK_TTL_S = 600;
+const LINK_TTL_MAX_S = 7 * 24 * 3600;
 /** Standard base64, as Node's `toString("base64")` writes it. */
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
 export const LINK_SIGNATURE = "x-wren-signature-256";
 
 /**
- * A credential link from the Mac (`autobrowse creds link`): `{site, iv, data, at}`, hex
- * HMAC-SHA256 of the body in `x-wren-signature-256`, as cal.com signs. Only ciphertext
+ * A credential link from the Mac (`autobrowse creds link`): `{label, iv, data, at, open?, ttl?}`,
+ * hex HMAC-SHA256 of the body in `x-wren-signature-256`, as cal.com signs. Only ciphertext
  * arrives; a body older than 5 minutes is refused, so a captured one can't be replayed.
  */
 async function mintLink(req: Request, env: Env): Promise<Response> {
@@ -350,52 +353,70 @@ async function mintLink(req: Request, env: Env): Promise<Response> {
   if (!(await hmacSigned(env.CRED_LINK_SECRET, raw, req.headers.get(LINK_SIGNATURE)))) {
     return json({ error: "bad signature" }, 401);
   }
-  let body: { site?: unknown; iv?: unknown; data?: unknown; at?: unknown };
+  let body: {
+    label?: unknown;
+    iv?: unknown;
+    data?: unknown;
+    at?: unknown;
+    open?: unknown;
+    ttl?: unknown;
+  };
   try {
     body = JSON.parse(raw) as typeof body;
   } catch {
     return json({ error: "not json" }, 400);
   }
-  const { site, iv, data, at } = body;
+  const { label, iv, data, at, open = false, ttl = LINK_TTL_S } = body;
   if (typeof at !== "number" || Math.abs(Date.now() - at) > 5 * 60_000) {
     return json({ error: "stale" }, 401);
   }
   if (
-    typeof site !== "string" ||
-    !/^[\w.@+-]{1,100}$/.test(site) ||
+    typeof label !== "string" ||
+    !/^[\w .,@+:-]{1,100}$/.test(label) ||
     typeof iv !== "string" ||
     !B64.test(iv) ||
     typeof data !== "string" ||
-    !B64.test(data)
+    !B64.test(data) ||
+    typeof open !== "boolean" ||
+    !Number.isInteger(ttl) ||
+    (ttl as number) < 60 ||
+    (ttl as number) > LINK_TTL_MAX_S
   ) {
-    return json({ error: "want {site, iv, data, at}" }, 400);
+    return json({ error: "want {label, iv, data, at, open?, ttl? (60s to 7d)}" }, 400);
   }
   const id = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
-  await env.CRED_LINKS.put(id, JSON.stringify({ site, iv, data }), { expirationTtl: LINK_TTL_S });
+  await env.CRED_LINKS.put(id, JSON.stringify({ label, iv, data, open }), {
+    expirationTtl: ttl as number,
+  });
   return json({ id });
 }
 
 /**
- * An operator's look at a link: `/api/links/<id>` names its site, `/api/links/<id>/take`
- * returns `{site, iv, data}` and deletes it. The sign-in is checked before KV is read, so
- * nobody else learns whether an id exists.
+ * A look at a link: `/api/links/<id>` names it, `/api/links/<id>/take` returns
+ * `{label, iv, data}` and deletes it. An open link answers anyone holding its 128-bit id; any
+ * other needs an operator, and a caller without one gets 401 whether or not the id exists.
  */
 async function link(req: Request, env: Env, rest: string): Promise<Response> {
   const [id, take, ...more] = rest.split("/");
   if (!id || !LINK_ID.test(id) || more.length || (take !== undefined && take !== "take")) {
     return json({ error: "not found" }, 404);
   }
-  const who = await operator(req, env);
-  if (who instanceof Response) return who;
-  const held = await env.CRED_LINKS.get(id);
+  const raw = await env.CRED_LINKS.get(id);
+  const held = raw
+    ? (JSON.parse(raw) as { label: string; iv: string; data: string; open: boolean })
+    : null;
+  if (!held?.open) {
+    const who = await operator(req, env);
+    if (who instanceof Response) return who;
+  }
   if (!held) return json({ error: "This link is used or expired." }, 404);
-  if (!take) return json({ site: (JSON.parse(held) as { site: string }).site });
-  // ponytail: get-then-delete is not atomic; two operators racing one link could both read it. A Durable Object if that matters.
+  if (!take) return json({ label: held.label, open: held.open });
+  // ponytail: get-then-delete is not atomic; two callers racing one link could both read it. A Durable Object if that matters.
   await env.CRED_LINKS.delete(id);
-  return new Response(held, {
+  return new Response(JSON.stringify({ label: held.label, iv: held.iv, data: held.data }), {
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 }

@@ -1,4 +1,4 @@
-# Credential links: a stored login on the phone, once
+# Credential links: stored secrets behind a one-time link
 
 2026-10-06. William: "a secure single use link for credentials (username as one clipboard copy,
 password as the other) is a good feature for mobile". He can't run `autobrowse creds copy` on the
@@ -55,3 +55,12 @@ second could both read it. Move to a Durable Object if that ever matters.
   a captured mint can't be replayed. Signature header `x-wren-signature-256`. Before the sign-in
   round trip the page moves the key from the fragment to the tab's sessionStorage, so the sign-in
   server's `next` never carries it.
+- 2026-10-07: William: a link "can't be customized to have multiple user pw credentials and / or
+  api keys", and a contractor (registrar API key + secret) couldn't open one. He chose a 1ty.me
+  style link for outsiders. Built: a link holds `{label, fields: [{name, value}]}`, any number of
+  stored logins (`site` or `site:account`) and env keys (`--keys A,B`), one Copy and one Show per
+  field. `--open` drops the sign-in: anyone holding the link opens it once, so the link alone is
+  the key (fragment key, POST to consume, 128-bit id unchanged). `--ttl` 1 minute to 7 days;
+  default 10 minutes, open 24 hours. The page clears after 5 minutes (was 2). The agent mints an
+  open link only when William asks for one to send out, and prints it for him to send. Wire field
+  `site` renamed `label`.

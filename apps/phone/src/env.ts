@@ -1,7 +1,7 @@
 /** The Worker's bindings. Secrets are set with `wrangler secret put`; see deploy/phone.md. */
 export interface Env {
   ASSETS: Fetcher;
-  /** Credential links: ciphertext only, each key lives 10 minutes (designs/2026-10-06-credential-links.md). */
+  /** Credential links: ciphertext only, each key lives until its TTL (designs/2026-10-06-credential-links.md). */
   CRED_LINKS: KVNamespace;
   /** The secret autobrowse signs a new credential link with. Unset = minting refused. */
   CRED_LINK_SECRET?: string;

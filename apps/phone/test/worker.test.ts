@@ -412,7 +412,7 @@ describe("the door", () => {
 });
 
 describe("credential links", () => {
-  const sealed = { site: "example", iv: "AAAAAAAAAAAAAAAA", data: "c2VhbGVk" };
+  const sealed = { label: "example", iv: "AAAAAAAAAAAAAAAA", data: "c2VhbGVk" };
   async function mint(body: unknown, secret = "link-secret") {
     const raw = JSON.stringify(body);
     const key = await crypto.subtle.importKey(
@@ -434,14 +434,17 @@ describe("credential links", () => {
     expect(res.status).toBe(200);
     const { id } = (await res.json()) as { id: string };
     expect(id).toMatch(/^[A-Za-z0-9_-]{22}$/);
-    expect(kv.get(id)).toEqual({ value: JSON.stringify(sealed), ttl: 600 });
+    expect(kv.get(id)).toEqual({ value: JSON.stringify({ ...sealed, open: false }), ttl: 600 });
   });
 
   it("refuses a bad signature, a stale body, a bad shape, and minting with no secret", async () => {
     expect((await mint({ ...sealed, at: Date.now() }, "wrong")).status).toBe(401);
     expect((await mint({ ...sealed, at: Date.now() - 10 * 60_000 })).status).toBe(401);
     expect((await mint({ ...sealed, data: "<html>", at: Date.now() })).status).toBe(400);
-    expect((await mint({ ...sealed, site: "a/b", at: Date.now() })).status).toBe(400);
+    expect((await mint({ ...sealed, label: "a/b", at: Date.now() })).status).toBe(400);
+    expect((await mint({ ...sealed, ttl: 30, at: Date.now() })).status).toBe(400);
+    expect((await mint({ ...sealed, ttl: 8 * 24 * 3600, at: Date.now() })).status).toBe(400);
+    expect((await mint({ ...sealed, open: "yes", at: Date.now() })).status).toBe(400);
     expect((await call("/links")).status).toBe(405);
     delete env.CRED_LINK_SECRET;
     expect((await mint({ ...sealed, at: Date.now() })).status).toBe(503);
@@ -470,7 +473,7 @@ describe("credential links", () => {
     );
     expect(kv.has(id)).toBe(true);
     const peek = await post(`/api/links/${id}`, {}, await as());
-    expect(await peek.json()).toEqual({ site: "example" });
+    expect(await peek.json()).toEqual({ label: "example", open: false });
     const take = await post(`/api/links/${id}/take`, {}, await as());
     expect(take.status).toBe(200);
     expect(await take.json()).toEqual(sealed);
@@ -479,6 +482,21 @@ describe("credential links", () => {
     expect((await post("/api/links/nope/take", {}, await as())).status).toBe(404);
     expect((await post(`/api/links/${id}/drop`, {}, await as())).status).toBe(404);
     expect(restateCalls).toHaveLength(0);
+  });
+
+  it("an open link opens once for anyone with it, for its own TTL", async () => {
+    const res = await mint({ ...sealed, open: true, ttl: 86_400, at: Date.now() });
+    const { id } = (await res.json()) as { id: string };
+    expect(kv.get(id)?.ttl).toBe(86_400);
+    expect(await (await post(`/api/links/${id}`, {})).json()).toEqual({
+      label: "example",
+      open: true,
+    });
+    const take = await post(`/api/links/${id}/take`, {});
+    expect(await take.json()).toEqual(sealed);
+    expect(kv.has(id)).toBe(false);
+    // Gone, it looks like any id: no sign-in, no answer.
+    expect((await post(`/api/links/${id}/take`, {})).status).toBe(401);
   });
 });
 
