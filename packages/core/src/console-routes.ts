@@ -15,6 +15,10 @@ export const CONSOLE_ROUTES = {
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",
+  // A record's edits (`edits.ts`): the handler checks `run` at Wren too.
+  recordsEdit: "wren:run",
+  recordsUndo: "wren:run",
+  recordsAsk: "wren:run",
   addClient: "wren:manage",
   // A handler with an effect needs `effect` too, checked once the handler is known.
   call: "wren:run",
@@ -39,6 +43,9 @@ export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "setLoop",
+  "recordsEdit",
+  "recordsUndo",
+  "recordsAsk",
   "addClient",
   "call",
   "setLook",

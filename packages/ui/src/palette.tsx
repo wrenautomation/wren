@@ -4,6 +4,7 @@
  * the dialog stay out of the first load.
  */
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Command,
   CommandDialog,
@@ -15,7 +16,7 @@ import {
   CommandShortcut,
 } from "./components/ui/command.js";
 import { Icon, type IconName } from "./icons.js";
-import { type ScopeItem, useScoped } from "./palette-scope.js";
+import { type ScopeItem, useOpened, useScoped } from "./palette-scope.js";
 
 export interface PaletteItem {
   label: string;
@@ -42,6 +43,7 @@ export function CommandPalette({
   ask?: ((question: string) => void) | undefined;
 }) {
   const scope = useScoped();
+  const record = useOpened();
   const [q, setQ] = useState("");
   const groups = [...new Set(items.map((i) => i.group))];
   const here = [...new Set(scope.items.map((i) => i.group))];
@@ -76,10 +78,36 @@ export function CommandPalette({
           ) : null}
           {ask && q.trim() ? (
             <CommandGroup heading="Ask">
+              {record?.ask ? (
+                <CommandItem
+                  value={`ask record ${q}`}
+                  forceMount
+                  onSelect={run({
+                    run: () =>
+                      void record
+                        .ask?.(q.trim())
+                        .catch((err: unknown) =>
+                          toast.error(err instanceof Error ? err.message : String(err)),
+                        ),
+                  })}
+                >
+                  <Icon name="reply" />
+                  <span>
+                    Ask Claude to change this {record.one}: “{q.trim()}”
+                  </span>
+                </CommandItem>
+              ) : null}
               <CommandItem
                 value={`ask ${q}`}
                 forceMount
-                onSelect={run({ run: () => ask(q.trim()) })}
+                onSelect={run({
+                  run: () =>
+                    ask(
+                      record
+                        ? `${q.trim()}\n\n(Asked with the ${record.one} "${record.title}" open: ${record.type} ${record.id}.)`
+                        : q.trim(),
+                    ),
+                })}
               >
                 <Icon name="reply" />
                 <span>Ask Claude Code “{q.trim()}”</span>

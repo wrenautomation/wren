@@ -13,6 +13,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { ASK_COMMAND, askAnswerOf } from "./edits.js";
 import { PortalRefusal, type PortalRequest, type SignedViewer } from "./portal.js";
 import { actor, date, defineRecord, number, status, text } from "./records.js";
 import { finishRun, openRun } from "./runs.js";
@@ -42,7 +43,10 @@ export type ClaudeService = {
     },
   ) => Promise<{ answer: string; ms: number; turns: number; model: string; denied: number }>;
 };
-type AskService = { answer: (ctx: restate.Context, req: { id: string }) => Promise<void> };
+export type AskService = {
+  answer: (ctx: restate.Context, req: { id: string }) => Promise<void>;
+  edit: (ctx: restate.Context, req: { id: string }) => Promise<void>;
+};
 
 export interface QuestionRequest extends PortalRequest {
   question?: unknown;
@@ -95,6 +99,43 @@ export function makeAsk(main: Db) {
               commands: ["Bash(node scripts/prod-sql.mjs *)"],
             });
             await ctx.run("save", () => finishRun(main, req.id, out));
+          } catch (err) {
+            if (!(err instanceof restate.TerminalError)) throw err;
+            await ctx.run("save", () =>
+              finishRun(main, req.id, { error: err.message.slice(0, 500) }),
+            );
+          }
+        },
+      ),
+      /**
+       * Ask Claude on a record (`./edits.ts`): the row holds the prompt `ConsolePortal/recordsAsk`
+       * built; the answer keeps Claude's reply and patch. Nothing is written until Accept.
+       */
+      edit: restate.handlers.handler(
+        { ingressPrivate: true },
+        async (ctx: restate.Context, req: { id: string }) => {
+          const q = await ctx.run("read", async () => {
+            const [row] = await main
+              .select({ argv: runs.argv, finishedAt: runs.finishedAt })
+              .from(runs)
+              .where(and(eq(runs.id, req.id), eq(runs.command, ASK_COMMAND)));
+            return row && !row.finishedAt
+              ? (row.argv as { question: string; system: string })
+              : null;
+          });
+          if (!q) return;
+          try {
+            const out = await ctx.serviceClient<ClaudeService>(CLAUDE).ask({
+              question: q.question,
+              system: q.system,
+              dir: "wren",
+              also: [],
+              commands: [],
+            });
+            const { reply, patch } = askAnswerOf(out.answer);
+            await ctx.run("save", () =>
+              finishRun(main, req.id, { reply, patch, ms: out.ms, model: out.model }),
+            );
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;
             await ctx.run("save", () =>

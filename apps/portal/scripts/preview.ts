@@ -21,6 +21,7 @@ import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { COMPONENTS } from "../../worker/src/components.js";
+import { copyRecords } from "../../worker/src/record-edits.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 
 const demo = process.argv.includes("--demo");
@@ -52,10 +53,17 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
       views: EMAIL_CONSOLE_VIEWS,
       components: COMPONENTS,
       workflows: WORKFLOWS,
-      records: [askRecord],
+      records: [
+        askRecord,
+        // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
+        ...copyRecords(settings.smsSenderName),
+      ],
     }),
   },
 };
+/** Ask Claude's handler is Restate's (it opens a run, then the desk answers): here, only the run. */
+const local = SERVICES.console?.api as Record<string, (i: unknown) => Promise<unknown>>;
+local.recordsAsk = async (i) => ({ id: await local.recordsAskOpen?.(i) });
 const as = process.argv[process.argv.indexOf("--as") + 1];
 const viewer: Viewer = demo
   ? { demo: true }

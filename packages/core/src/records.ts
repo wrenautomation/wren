@@ -7,6 +7,7 @@
  * and a page cursor compare the same values.
  */
 import type { Queryable } from "@wren/db";
+import type { ZodType } from "zod";
 import type { Permission } from "./access.js";
 
 /** good green, warn amber, bad red, neutral gray. */
@@ -291,6 +292,48 @@ export interface SavedView {
   at?: string;
 }
 
+/** A patch or a record's editable values, by field key. */
+export type Values = Record<string, unknown>;
+
+/**
+ * What may change on a record, and how (`./edits.ts`, designs/2026-10-06-edits-claude-templates.md).
+ * The records layer serves edit, history, undo and Ask Claude from it; the store only reads and
+ * writes. Every edit is checked against `patch` then `check`, compare-and-swaps on the values'
+ * version, and leaves a `changes` row.
+ */
+export interface RecordEdits {
+  /** The fields a person changes in place, each a field of the record, in the form's order. */
+  fields: readonly string[];
+  /** Every key a patch may set (Claude's may set more than the form shows): partial and strict. */
+  patch: ZodType<Values>;
+  /** What the schema can't say (a slot's rules, a range past the end): what's wrong, or null. */
+  check?: (
+    patch: Values,
+    now: Values,
+    db: Queryable,
+    id: string,
+  ) => Promise<string | null> | string | null;
+  /** The values a patch may set, as they are now; null when there's no such record. */
+  read: (db: Queryable, id: string) => Promise<Values | null>;
+  /** Write a checked patch, inside the edit's transaction; `by` is who pressed Save or Accept. */
+  write: (db: Queryable, id: string, patch: Values, by: string) => Promise<void>;
+  /** What Ask Claude reads past the record: the lead, the playbook or SOP, the numbers. */
+  context?: (db: Queryable, id: string) => Promise<string | null>;
+  /** What Claude is told the record is for, one line: "A cold text's words; it must say STOP." */
+  about?: string;
+}
+
+/** The kinds a person edits in place: one input each. */
+export const EDITABLE: ReadonlySet<Kind> = new Set<Kind>([
+  "text",
+  "prose",
+  "number",
+  "status",
+  "tags",
+  "link",
+  "date",
+]);
+
 export interface RecordDecl<F extends Record<string, Draft>> {
   /** "<product>.<thing>": "reactivation.person". */
   id: string;
@@ -320,6 +363,8 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   needs?: Permission;
   /** What the detail adds past the row (a brief's sources); null when there's none. */
   load?: (db: Queryable, id: string) => Promise<object | null>;
+  /** What a person or Claude may change on it; absent, it's read only. */
+  edits?: RecordEdits;
 }
 export type RecordType = Omit<RecordDecl<Record<string, Draft>>, "fields"> & {
   fields: Readonly<Record<string, Field>>;
@@ -457,7 +502,28 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     if (v.at !== undefined && fields[v.at]?.kind !== "date")
       throw new Error(`${decl.id}: ${v.id} counts by ${v.at}, not a date field`);
   }
+  if (decl.edits) checkEdits(type, decl.edits);
   return type;
+}
+
+function checkEdits(type: RecordType, edits: RecordEdits) {
+  if (!edits.fields.length) throw new Error(`${type.id}: edits name no field`);
+  if (!edits.patch.safeParse({}).success) throw new Error(`${type.id}: its patch must be partial`);
+  for (const k of edits.fields) {
+    const f = Object.hasOwn(type.fields, k) ? type.fields[k] : undefined;
+    if (!f) throw new Error(`${type.id}: edits a field it doesn't have: ${k}`);
+    if (!EDITABLE.has(f.kind)) throw new Error(`${type.id}: ${f.label} can't be edited in place`);
+  }
+}
+
+/**
+ * A record type someone else declared, made editable where its store is wired (the worker):
+ * the declaring package keeps reading, the wiring adds the write.
+ */
+export function withEdits(type: RecordType, edits: RecordEdits): RecordType {
+  const out = { ...type, edits };
+  checkEdits(out, edits);
+  return out;
 }
 
 /** What the web gets for a field: its kind's facts as this viewer may use them. */
@@ -484,6 +550,8 @@ export interface RecordMeta {
   actions: readonly string[];
   activity: boolean;
   detail: boolean;
+  /** The fields a person edits in place; absent or null when it's read only. Ask Claude comes with it. */
+  edits?: readonly string[] | null;
 }
 
 /**
@@ -527,6 +595,8 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     actions: type.actions ?? [],
     activity: !!type.activity,
     detail: !!type.load,
+    // The demo reads only: its edits would land nowhere.
+    edits: type.edits && !demo ? type.edits.fields : null,
   };
 }
 

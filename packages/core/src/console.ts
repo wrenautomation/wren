@@ -27,10 +27,10 @@ import {
   setAuditActor,
   snapshot,
 } from "@wren/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
-import { ask, type QuestionRequest } from "./ask.js";
+import { ASK, type AskService, ask, type QuestionRequest } from "./ask.js";
 import { release } from "./checks.js";
 import {
   addClient,
@@ -56,6 +56,14 @@ import {
   STAGES,
 } from "./components.js";
 import { CONSOLE_ROUTES } from "./console-routes.js";
+import {
+  ASK_COMMAND,
+  ASK_MESSAGE_MAX,
+  askPrompt,
+  type Edited,
+  editRecord,
+  undoChange,
+} from "./edits.js";
 import {
   answer,
   isDemo,
@@ -95,7 +103,7 @@ import {
 } from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
-import { workflowSaves } from "./schema.js";
+import { runs, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
@@ -227,6 +235,25 @@ const EDITS = z.object({
 
 /** A stored look stays small: inputs, not tokens. */
 const LOOK_MAX = 4000;
+
+/** One record of Wren's that declares edits. */
+interface RecordRequest extends PortalRequest {
+  record?: unknown;
+  id?: unknown;
+}
+export interface EditRequest extends RecordRequest {
+  patch?: unknown;
+  /** The version the editor started from (`edit.version` on the record). */
+  expect?: unknown;
+  /** Claude's ask whose patch this is: Accept. */
+  run?: unknown;
+}
+export interface UndoRequest extends RecordRequest {
+  change?: unknown;
+}
+export interface AskRequest extends RecordRequest {
+  message?: unknown;
+}
 
 export interface CallRequest extends PortalRequest {
   service: string;
@@ -1084,6 +1111,39 @@ export function consoleApi({
     const all = await typesFor(req);
     return snapshot(main, (tx) => use(serveRecords(all, tx)));
   };
+  /** One of Wren's records that declares edits, for a teammate who may run things at Wren. */
+  const editable = async (req: PortalRequest & { record?: unknown; id?: unknown }) => {
+    team(req);
+    if (!teamCan(req, "run", WREN)) throw new PortalRefusal("changing records needs run", 403);
+    const t = (await typesFor(req)).find((x) => x.id === req.record);
+    if (!t) throw new PortalRefusal("no such record", 404);
+    if (!t.edits) throw new PortalRefusal(`${t.name.many} can't be edited`, 400);
+    const id = typeof req.id === "string" || typeof req.id === "number" ? String(req.id) : "";
+    if (!id || id.length > 200) throw new PortalRefusal("say which one", 400);
+    return { t, id, by: (req.viewer as SignedViewer).email };
+  };
+  /** An edit or undo in one transaction, audited as the teammate's. */
+  const write = async <T>(
+    req: PortalRequest & { record?: unknown; id?: unknown },
+    change: (tx: Queryable, t: RecordType, id: string, by: string) => Promise<T>,
+  ): Promise<T> => {
+    const { t, id, by } = await editable(req);
+    return serializable(main, async (tx) => {
+      await setAuditActor(tx, by);
+      return change(tx, t, id, by);
+    });
+  };
+  /** Accept names the ask its patch came from: it must be this record's, and answered. */
+  const askOn = async (db: Queryable, run: string, record: string, id: string) => {
+    const [r] = await db
+      .select({ argv: runs.argv, done: runs.finishedAt })
+      .from(runs)
+      .where(and(eq(runs.id, run), eq(runs.command, ASK_COMMAND)));
+    const a = r?.argv as { record?: string; id?: string } | undefined;
+    if (!r?.done || a?.record !== record || a?.id !== id)
+      throw new PortalRefusal("that answer isn't this record's", 400);
+  };
+
   /** A team change in one transaction, logged as the admin's. */
   const teamWrite = async <T>(
     req: TeamSeatRequest,
@@ -1255,6 +1315,47 @@ export function consoleApi({
       read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
       read(req, (r) => r.stats(req)),
+
+    /** A patch to one of Wren's records, compare-and-swapped on `expect` (`./edits.ts`). */
+    recordsEdit: (req: EditRequest): Promise<Edited> =>
+      write(req, async (tx, t, id, by) => {
+        const run = typeof req.run === "string" ? req.run : null;
+        if (run) await askOn(tx, run, t.id, id);
+        return editRecord(tx, t, id, {
+          patch: req.patch,
+          expect: typeof req.expect === "string" ? req.expect : null,
+          by,
+          via: run ? "claude" : "person",
+          run,
+        });
+      }),
+    /** Put one change's before back. */
+    recordsUndo: (req: UndoRequest): Promise<Edited> =>
+      write(req, (tx, t, id, by) => {
+        if (!Number.isSafeInteger(req.change)) throw new PortalRefusal("say which change", 400);
+        return undoChange(tx, t, id, req.change as number, by);
+      }),
+    /** Ask Claude on a record: the run row holding the prompt, for `Ask/edit` to answer. */
+    recordsAskOpen: async (req: AskRequest): Promise<string> => {
+      const { t, id, by } = await editable(req);
+      const message = typeof req.message === "string" ? req.message.trim() : "";
+      if (!message) throw new PortalRefusal("say what to change, or ask", 400);
+      if (message.length > ASK_MESSAGE_MAX)
+        throw new PortalRefusal(`keep it under ${ASK_MESSAGE_MAX} characters`, 400);
+      const { row } = await read(req as PortalRequest & { record: string }, (r) =>
+        r.get({ record: t.id, id }),
+      );
+      const prompt = await askPrompt(main, t, id, row, message, by);
+      const argv = {
+        record: t.id,
+        id,
+        by,
+        message,
+        question: prompt.question,
+        system: prompt.system,
+      };
+      return (await openRun(main, { command: ASK_COMMAND, argv, model: "claude-code:sonnet" })).id;
+    },
 
     /** A new client from `req`, checked before any step runs: team only, a plain id, a name. */
     newClient(req: AddClientRequest): { id: string; name: string; by: string } {
@@ -1523,6 +1624,17 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => api.recordsExport(req)),
       recordsStats: (_: restate.Context, req: PortalRequest & StatsAsk) =>
         answer(() => api.recordsStats(req)),
+      // One write each, journaled: a retry returns the same answer, never a second change.
+      recordsEdit: (ctx: restate.Context, req: EditRequest) =>
+        answer(() => ctx.run("edit", () => answer(() => api.recordsEdit(req)))),
+      recordsUndo: (ctx: restate.Context, req: UndoRequest) =>
+        answer(() => ctx.run("undo", () => answer(() => api.recordsUndo(req)))),
+      recordsAsk: (ctx: restate.Context, req: AskRequest) =>
+        answer(async () => {
+          const id = await ctx.run("open run", () => answer(() => api.recordsAskOpen(req)));
+          ctx.serviceSendClient<AskService>(ASK).edit({ id });
+          return { id };
+        }),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>
         answer(async () => {
           api.adminFor(req);

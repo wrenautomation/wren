@@ -112,7 +112,6 @@ import {
   touchStep,
 } from "@wren/channel-sms";
 import { TOUCH } from "@wren/channel-sms/components";
-import { textCopyRecord } from "@wren/channel-sms/records";
 import {
   makeSmsConsole,
   makeSmsDesk,
@@ -182,7 +181,6 @@ import {
   sortStep,
   WREN_AUDIENCE,
 } from "@wren/outreach";
-import { dmCopyRecord } from "@wren/outreach/records";
 import {
   makeReachDesk,
   makeReachSender,
@@ -211,6 +209,7 @@ import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
+import { copyRecords } from "./record-edits.js";
 import { reviewRecord } from "./review.js";
 import { WORKFLOWS } from "./workflows.js";
 
@@ -1147,8 +1146,7 @@ export async function buildServices(
             ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
             : undefined,
         ),
-        dmCopyRecord(settings.smsSenderName),
-        textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),
+        ...copyRecords(settings.smsSenderName),
         ...MARKETING_RECORDS,
         clientRecord,
         reviewRecord(),

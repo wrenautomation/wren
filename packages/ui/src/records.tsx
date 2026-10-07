@@ -3,6 +3,8 @@
  * from what the server's `recordsTypes` says, never per page. The address is the state: the
  * view, filters, search, sort, columns, page and open record each ride in it.
  */
+
+import type { EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
@@ -34,6 +36,15 @@ import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, type DraftHandle, type RecordDraft } from "./draft.js";
+import {
+  ASK_FOCUS,
+  ASK_POLL_MS,
+  AskClaude,
+  EditFields,
+  type Editing,
+  History,
+  thinking,
+} from "./edits.js";
 import { Alert } from "./feedback.js";
 import {
   type CiteTo,
@@ -51,7 +62,7 @@ import {
   widthOf,
 } from "./fields.js";
 import { num } from "./format.js";
-import { useScope } from "./palette-scope.js";
+import { useOpenRecord, useScope } from "./palette-scope.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
 /** The four record calls, bound to a workspace. */
@@ -62,6 +73,10 @@ export interface RecordsApi {
   export(ask: ExportAsk): Promise<RecordsCsv>;
   /** A number over a period against the one before, by day: the Overview's tiles. */
   stats?(ask: StatsAsk): Promise<RecordsStat>;
+  /** A record's edits (`@wren/core/edits`), where the workspace serves them. */
+  edit?(ask: EditAsk): Promise<Edited>;
+  undo?(ask: UndoAsk): Promise<Edited>;
+  ask?(ask: RecordAskAsk): Promise<{ id: string }>;
 }
 
 /** Where a template sits. */
@@ -1534,12 +1549,59 @@ export function RecordBody({
   };
   // A type with no `load` still gets its extras, with no detail.
   const more = got.data && extras ? extras(got.data.detail, got.data.row, act) : {};
+  const state = got.data?.edit ?? null;
+  // Changing it needs `run` here; the server checks it again.
+  const mayEdit =
+    !!state && !!api.edit && (!acts || can(acts.viewer, { audience: "team", needs: "run" }));
+  const editing: Editing | null =
+    mayEdit && state
+      ? {
+          save: async (patch, run) => {
+            const out = await (api.edit as NonNullable<RecordsApi["edit"]>)({
+              record: meta.id,
+              id,
+              patch,
+              expect: state.version,
+              ...(run ? { run } : {}),
+            });
+            acted(out.change === null ? [] : [id]);
+            return out.change;
+          },
+          undo: async (change) => {
+            await api.undo?.({ record: meta.id, id, change });
+            acted([id]);
+          },
+          ask: async (message) => {
+            await api.ask?.({ record: meta.id, id, message });
+            got.retry();
+          },
+        }
+      : null;
+  const poll = more.poll ?? (thinking(state) ? ASK_POLL_MS : 0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new read sets the next one.
   useEffect(() => {
-    if (!more.poll) return;
-    const t = setTimeout(got.retry, more.poll);
+    if (!poll) return;
+    const t = setTimeout(got.retry, poll);
     return () => clearTimeout(t);
   }, [got.data]);
+  // ⌘K asks about this record; with edits, its answer lands in the Ask box here.
+  useOpenRecord(`${meta.id}:${id}:${tab}:${got.data ? 1 : 0}:${editing ? 1 : 0}`, () =>
+    got.data
+      ? {
+          type: meta.id,
+          id,
+          title: titleOf(meta, got.data.row),
+          one: meta.name.one,
+          ask: editing
+            ? async (q: string) => {
+                if (tab !== "details") place.go(place.link({ tab: null }), true);
+                await editing.ask(q);
+                dispatchEvent(new Event(ASK_FOCUS));
+              }
+            : undefined,
+        }
+      : null,
+  );
   // A chip on another tab opens the sources, then lights its card once it's drawn.
   useEffect(() => {
     if (want && tab === "sources") {
@@ -1571,6 +1633,8 @@ export function RecordBody({
   const states = meta.fields.filter((f) => f.kind === "status" && row[f.key] != null);
   // A draft the record holds is its box, not a field.
   const box = more.draft;
+  // Fields he edits in place draw once, as their inputs.
+  const own = new Set(editing ? (meta.edits ?? []) : []);
   // Long text and states have their own places below; the key facts are the short rest.
   const long = (f: FieldMeta | undefined) =>
     !!f &&
@@ -1589,7 +1653,11 @@ export function RecordBody({
   const sub = meta.fields.find((f) => f.key === meta.subtitle);
   // Long text reads as its own section, above the facts.
   const cited = meta.fields.filter(
-    (f) => (f.kind === "cited" || f.kind === "prose") && row[f.key] && f.key !== box?.field,
+    (f) =>
+      (f.kind === "cited" || f.kind === "prose") &&
+      row[f.key] &&
+      f.key !== box?.field &&
+      !own.has(f.key),
   );
   /**
    * An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. A fact named
@@ -1602,6 +1670,7 @@ export function RecordBody({
       f.kind !== "prose" &&
       f.key !== meta.title &&
       f.key !== box?.field &&
+      !own.has(f.key) &&
       row[f.key] != null &&
       row[f.key] !== "" &&
       !told.has(f.label),
@@ -1632,6 +1701,7 @@ export function RecordBody({
       return t ? [{ id: t.name.many, label: cap(t.name.many), count: r.count }] : [];
     }),
     ...(activity ? [{ id: "activity", label: "Activity", count: activity.length }] : []),
+    ...(state ? [{ id: "history", label: "History", count: state.history.length }] : []),
     ...(more.sources ? [{ id: "sources", label: "Sources", count: sources.length }] : []),
   ];
   const relatedType = types.find(
@@ -1728,6 +1798,8 @@ export function RecordBody({
 
       {tab === "activity" && activity ? (
         <Activity lines={activity} one={meta.name.one} />
+      ) : tab === "history" && state ? (
+        <History meta={meta} lines={state.history} values={state.values} editing={editing} />
       ) : tab === "sources" ? (
         sources.length ? (
           <SourceList>
@@ -1757,6 +1829,21 @@ export function RecordBody({
         <div className="grid gap-6">
           {/* What a draft answers (their words, the thread so far) reads before it. */}
           {more.lead}
+          {editing && state ? (
+            <>
+              <EditFields
+                meta={meta}
+                state={state}
+                editing={editing}
+                read={(f) =>
+                  row[f.key] != null && row[f.key] !== "" ? (
+                    <FieldLine field={f} cell={row[f.key]} cite={cite} />
+                  ) : null
+                }
+              />
+              <AskClaude meta={meta} turns={state.asks} editing={editing} />
+            </>
+          ) : null}
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">
               <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>

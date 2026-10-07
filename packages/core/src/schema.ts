@@ -324,6 +324,54 @@ export const workflowSaves = pgTable(
   ],
 );
 
+/** Who made a change: a person, or Claude's patch a person accepted. */
+export const CHANGE_VIAS = ["person", "claude"] as const;
+export type ChangeVia = (typeof CHANGE_VIAS)[number];
+
+/**
+ * Every edit to a record that declares `edits` (`./edits.ts`): the fields it set, before and
+ * after, who, and the run (Claude's ask) it came from. History reads it; Undo writes the before
+ * back as a new row that `undoes` this one, once. Main only.
+ */
+export const changes = pgTable(
+  "changes",
+  {
+    id: serial("id").notNull(),
+    /** The record type: "marketing.text_copy". */
+    record: varchar("record", { length: 64 }).notNull(),
+    recordId: varchar("record_id", { length: 200 }).notNull(),
+    /** Only the fields it set, as they were and as they became. */
+    before: jsonb("before").$type<Record<string, unknown>>().notNull(),
+    after: jsonb("after").$type<Record<string, unknown>>().notNull(),
+    /** The values' version once it landed: the next edit's `expect`. */
+    version: varchar("version", { length: 16 }).notNull(),
+    by: varchar("by", { length: 200 }).notNull(),
+    via: varchar("via", { length: 16, enum: CHANGE_VIAS }).notNull(),
+    runId: uuid("run_id"),
+    undoes: integer("undoes"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_changes" }),
+    oneOf("ck_changes_via", t.via, CHANGE_VIAS),
+    index("ix_changes_record_record_id").on(t.record, t.recordId, t.id),
+    index("ix_changes_run_id").on(t.runId),
+    // An undo lands once; a second Undo of the same change is refused.
+    unique("uq_changes_undoes").on(t.undoes),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_changes_run_id_runs",
+    }),
+    foreignKey({
+      columns: [t.undoes],
+      foreignColumns: [t.id],
+      name: "fk_changes_undoes_changes",
+    }),
+  ],
+);
+export type Change = typeof changes.$inferSelect;
+
 export const imports = pgTable(
   "imports",
   {

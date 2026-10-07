@@ -2,13 +2,14 @@
  * Marketing (designs/2026-10-05-marketing-app.md): content, ads, search, texts and site visits
  * as one funnel, in Wren's workspace. Records and templates only; the console serves them.
  */
+import { KEYWORDS } from "@wren/channel-sms/templates";
 import type { Action } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
 import { threadExtras } from "../texts/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
-import { copyExtras, copyPreview, dmExtras, dmLooks } from "./dms.js";
+import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
@@ -475,23 +476,15 @@ const PERSON_ACTIONS: Action[] = [
   },
 ];
 
+// Texts and DM slots edit in place (the record's `edits`): History, Undo, Ask Claude. A keyword
+// reply keeps Edit, since saving it sets the provider's answer too.
 const TEXT_COPY_ACTIONS: Action[] = [
   {
     id: "marketing.textCopy",
     label: "Edit",
+    when: { id: KEYWORDS.map((k) => `keyword.${k}`) },
     handler: "marketing/textCopy",
     ask: { field: "body", label: "Your words", from: "body", preview: textCopyPreview },
-    key: "e",
-    done: said("Saved"),
-  },
-];
-
-const DM_COPY_ACTIONS: Action[] = [
-  {
-    id: "marketing.dmCopy",
-    label: "Edit",
-    handler: "marketing/dmCopy",
-    ask: { field: "body", label: "Your words", from: "body", preview: copyPreview },
     key: "e",
     done: said("Saved"),
   },
@@ -642,7 +635,6 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.dm_copy",
       empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
-      actions: DM_COPY_ACTIONS,
       extras: copyExtras,
     },
     {

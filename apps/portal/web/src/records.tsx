@@ -43,6 +43,14 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
       get: (a) => ask("recordsGet", { ...a }),
       export: (a) => ask("recordsExport", { ...a }),
       stats: (a) => ask("recordsStats", { ...a }),
+      // Edits are Wren's records' for now (`@wren/core/edits`): the console serves them.
+      ...(product === "console"
+        ? {
+            edit: (a) => ask("recordsEdit", { ...a }),
+            undo: (a) => ask("recordsUndo", { ...a }),
+            ask: (a) => ask("recordsAsk", { ...a }),
+          }
+        : {}),
     };
     APIS.set(key, api);
   }

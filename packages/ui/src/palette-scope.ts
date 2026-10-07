@@ -48,3 +48,46 @@ export const useScoped = (): Scope =>
     },
     () => current,
   );
+
+/**
+ * The record open on this page, for ⌘K's Ask (designs/2026-10-06-edits-claude-templates.md, 2):
+ * Claude gets the record, not just the address. `ask` is set when the record has edits, so the
+ * answer comes back as a patch in its panel.
+ */
+export interface OpenRecord {
+  /** Its type's id and its own: "marketing.text_copy", "recruiting-sms#1". */
+  type: string;
+  id: string;
+  title: string;
+  /** Its type's singular: "text template". */
+  one: string;
+  ask?: ((question: string) => Promise<void>) | undefined;
+}
+
+let open: OpenRecord | null = null;
+const openSubs = new Set<() => void>();
+const setOpen = (r: OpenRecord | null) => {
+  open = r;
+  for (const f of openSubs) f();
+};
+
+/** This record while its body is mounted; `key` names everything `record` holds. */
+export function useOpenRecord(key: string, record: () => OpenRecord | null) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names what `record` reads.
+  useEffect(() => {
+    const mine = record();
+    setOpen(mine);
+    return () => {
+      if (open === mine) setOpen(null);
+    };
+  }, [key]);
+}
+
+export const useOpened = (): OpenRecord | null =>
+  useSyncExternalStore(
+    (f) => {
+      openSubs.add(f);
+      return () => openSubs.delete(f);
+    },
+    () => open,
+  );

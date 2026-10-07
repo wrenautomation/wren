@@ -13,6 +13,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
+import { type EditState, editState } from "./edits.js";
 import { PortalRefusal } from "./portal.js";
 import {
   allowed,
@@ -91,6 +92,8 @@ export interface RecordAnswer {
   activity: ActivityLine[] | null;
   /** What the type's `load` adds; null without one. */
   detail: object | null;
+  /** Its values, version, history and asks, when it declares edits; never on the demo. */
+  edit?: EditState | null;
 }
 export type ExportAsk = Omit<ListAsk, "cursor" | "limit">;
 export interface RecordsCsv {
@@ -636,6 +639,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           related,
           activity: masked(activity),
           detail: masked(detail),
+          ...(t.edits && !demo ? { edit: await editState(db, t, id) } : {}),
         };
       }),
 

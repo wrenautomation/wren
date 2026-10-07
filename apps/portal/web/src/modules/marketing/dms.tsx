@@ -1,7 +1,6 @@
 /** DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy. */
 import { preview, type RenderFields } from "@wren/outreach/sequences";
 import { exact, type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
-import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
 
 /** `@wren/outreach`'s preview data: the app, who it comes from, its cap. */
@@ -60,9 +59,6 @@ function copyKind(d: CopyDetail): MessageKind | null {
   };
   return { ...kindOf(d.dm), fill };
 }
-
-const get = <T,>(record: string, id: string | number) =>
-  call<{ detail?: T }>("console/recordsGet", { record, id: String(id) }).then((r) => r.detail);
 
 /** The thread oldest first, above the reply box; then our last message as they saw it. */
 export const dmExtras: NonNullable<ListPage["extras"]> = (detail) => {
@@ -134,7 +130,3 @@ export const copyExtras: NonNullable<ListPage["extras"]> = (detail, { row }) => 
     ],
   } satisfies RecordExtras;
 };
-
-/** The edit box's preview, filled as you type. */
-export const copyPreview = (id: string | number) =>
-  get<CopyDetail>("marketing.dm_copy", id).then((d) => copyKind(d ?? null));
