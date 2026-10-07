@@ -28,7 +28,13 @@ for line in open(sys.argv[1]):
 sa = env.get("WREN_GOOGLE_SERVICE_ACCOUNT")
 if sa and not sa.lstrip().startswith("{"):
     env["WREN_GOOGLE_SERVICE_ACCOUNT"] = open(os.path.expanduser(sa)).read()
-print(json.dumps(env))
+# Compact: the parameter caps at 8192 characters (Advanced tier).
+if env.get("WREN_GOOGLE_SERVICE_ACCOUNT", "").lstrip().startswith("{"):
+    env["WREN_GOOGLE_SERVICE_ACCOUNT"] = json.dumps(json.loads(env["WREN_GOOGLE_SERVICE_ACCOUNT"]), separators=(",", ":"))
+out = json.dumps(env, separators=(",", ":"))
+if len(out) > 8192:
+    sys.exit(f"{len(out)} characters, over SSM's 8192: nothing written")
+print(out)
 PY
 )"
 aws ssm put-parameter --name "$PARAM" --type SecureString --tier Advanced --overwrite \
