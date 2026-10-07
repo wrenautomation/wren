@@ -157,6 +157,7 @@ import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
+import { templateRecords } from "@wren/core/templates/records";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
@@ -1148,6 +1149,7 @@ export async function buildServices(
         ),
         ...copyRecords(settings.smsSenderName),
         ...MARKETING_RECORDS,
+        ...templateRecords(WORKFLOWS),
         clientRecord,
         reviewRecord(),
         askRecord,

@@ -39,6 +39,7 @@
     "./schema": "./src/schema.ts",
     "./slots": "./src/slots/index.ts",
     "./templates": "./src/templates.ts",
+    "./templates/records": "./src/template-records.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",
