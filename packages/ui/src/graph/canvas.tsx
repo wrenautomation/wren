@@ -16,6 +16,7 @@ import {
 } from "@xyflow/react";
 import { cn } from "cn";
 import {
+  ArrowUpRight,
   Boxes,
   CircleDot,
   Download,
@@ -41,6 +42,17 @@ import { GraphFrame } from "./frame.js";
 import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
 import {
+  arrowAt,
+  hueOf,
+  LOOK,
+  pillText,
+  pillWidth,
+  portRows,
+  portY,
+  ROLE_HUE,
+  wireCurve,
+} from "./look.js";
+import {
   edgeId,
   facetsOf,
   type GraphEdge,
@@ -49,11 +61,13 @@ import {
   type GraphTone,
   type Ink,
   type Laid,
-  labelSize,
   litOf,
   nodeSize,
-  roundedPath,
+  pillSize,
+  roleOf,
   svgOf,
+  wireEnds,
+  wireHue,
   wireLines,
 } from "./model.js";
 
@@ -141,8 +155,7 @@ const FLASH: Record<GraphTone, string> = {
   warn: "shadow-[inset_0_0_0_2px_var(--warn)]",
   bad: "shadow-[inset_0_0_0_2px_var(--ui-bad)]",
 };
-const HANDLE =
-  "size-3! rounded-full! border! border-(--ui-ink-3)! bg-(--ui-paper)! hover:bg-(--ui-accent)!";
+const HANDLE = "size-[9px]! rounded-full! border-[1.5px]! bg-(--ui-paper)!";
 const num = (n: number) => n.toLocaleString("en-US");
 
 interface Shared {
@@ -155,6 +168,8 @@ interface Shared {
   dots: readonly GraphDot[];
   done: (id: string) => void;
   byId: ReadonlyMap<string, GraphNode>;
+  /** The node last clicked: its ring. */
+  selected: string | null;
 }
 const Ctx = createContext<Shared | null>(null);
 const useShared = () => {
@@ -174,14 +189,20 @@ function KitNode({ id }: NodeProps) {
   const Tag = n.href ? "a" : "div";
   const opens = !n.href && !!g.open;
   const flash = g.dots.find((d) => d.node === id);
+  const hue = ROLE_HUE[roleOf(n)];
+  const end = n.kind === "account" || n.dashed;
+  const tone = n.state?.tone;
+  const rows = portRows(n);
   return (
     <>
-      <Handle
-        type="target"
-        position={across ? Position.Left : Position.Top}
-        className={ends?.to ? HANDLE : "invisible"}
-        isConnectable={!!ends?.to}
-      />
+      <Handles n={n} side="in" across={across} live={!!ends?.to} />
+      {n.stacked ? (
+        // A workflow inside: one card stacked behind, as a deck.
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 translate-x-1 -translate-y-1 rounded-[8px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair)]"
+        />
+      ) : null}
       <Tag
         key={flash?.id}
         {...(n.href ? { href: n.href } : {})}
@@ -196,48 +217,71 @@ function KitNode({ id }: NodeProps) {
             }
           : {})}
         data-kind={n.kind}
+        data-role={roleOf(n)}
         className={cn(
-          "grid h-full content-start gap-0.5 rounded-(--ui-radius) px-3 py-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
-          (n.href || opens) && "cursor-pointer",
-          n.kind === "account" || n.dashed
+          "relative flex h-full flex-col rounded-[8px] px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+          (n.href || opens) && "cursor-pointer hover:-translate-y-0.5",
+          end
             ? "border border-dashed border-(--ui-ink-3) bg-(--ui-tile)"
-            : n.stacked
-              ? "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),4px_4px_0_-1px_var(--ui-paper),4px_4px_0_0_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),4px_4px_0_-1px_var(--ui-paper),4px_4px_0_0_var(--ui-ink-3)]"
-              : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
+            : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+          tone === "bad" && "shadow-[inset_0_0_0_1.5px_var(--ui-bad)]",
+          tone === "warn" && "shadow-[inset_0_0_0_1.5px_var(--warn)]",
           g.hover === id && "shadow-[inset_0_0_0_1.5px_var(--ui-ink)]",
           n.dim && "opacity-55",
           faded && "opacity-20",
           g.lit?.has(id) && "shadow-[inset_0_0_0_2px_var(--ui-accent)]",
+          g.selected === id && "outline-2 outline-offset-2 outline-(--ui-accent)",
           flash && "animate-ui-changed",
           flash && FLASH[flash.tone],
         )}
       >
-        <span className="flex min-w-0 items-start gap-1.5">
-          <Mark className="mt-px size-3.5 shrink-0 text-(--ui-ink-3)" aria-hidden="true" />
-          <span className="line-clamp-2 min-w-0 flex-1 text-[13px] leading-[1.3] font-semibold">
-            {n.label}
+        <span className="flex min-w-0 items-center gap-2.5" style={{ height: LOOK.head }}>
+          <span
+            className="grid shrink-0 place-items-center rounded-[7px]"
+            style={{
+              width: LOOK.tile,
+              height: LOOK.tile,
+              color: hue,
+              background: `color-mix(in oklch, ${hue} 16%, var(--ui-paper))`,
+            }}
+          >
+            <Mark className="size-4" aria-hidden="true" />
           </span>
+          <span className="grid min-w-0 flex-1">
+            <span className="truncate text-[13px] leading-4 font-semibold" title={n.label}>
+              {n.label}
+            </span>
+            {n.note ? (
+              <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" title={n.note}>
+                {n.note}
+              </span>
+            ) : null}
+          </span>
+          {n.stacked ? (
+            <ArrowUpRight className="size-3.5 shrink-0 text-(--ui-ink-3)" aria-label="Opens" />
+          ) : null}
           {n.state ? (
             <span
               className={cn(
-                "mt-px inline-flex shrink-0 items-center gap-1 text-[11px] leading-4 font-medium whitespace-nowrap before:size-1.5 before:rounded-full before:content-['']",
+                "inline-flex shrink-0 items-center gap-1 self-start pt-0.5 text-[11px] leading-4 font-medium whitespace-nowrap before:size-2 before:rounded-full before:content-['']",
                 TONE[n.state.tone],
               )}
+              title={n.state.label}
             >
-              {n.state.label}
+              {/* The dot says it; words only when it needs someone. */}
+              {n.state.tone === "bad" || n.state.tone === "warn" ? (
+                n.state.label
+              ) : (
+                <span className="sr-only">{n.state.label}</span>
+              )}
             </span>
           ) : null}
         </span>
-        {n.note ? (
-          <span className="line-clamp-2 pl-5 text-[12px] leading-[1.33] text-(--ui-ink-2)">
-            {n.note}
-          </span>
-        ) : null}
         {n.number ? <Num n={n.number} big inLink={!!n.href} /> : null}
         {n.more ? <Num n={n.more} inLink={!!n.href} /> : null}
         {n.lines?.length ? (
-          <ul className="m-0 grid min-w-0 list-none p-0 pl-5 text-[12px] leading-[19px]">
-            {n.lines.slice(0, 7).map((l) => (
+          <ul className="m-0 grid min-w-0 list-none p-0 text-[11.5px] leading-[18px]">
+            {n.lines.slice(0, LOOK.lines).map((l) => (
               <li key={`${l.sign}${l.text}`} className="truncate" title={l.text}>
                 {l.sign ? (
                   <span className={l.sign === "+" ? "text-(--ui-good)" : "text-(--ui-ink-3)"}>
@@ -249,13 +293,69 @@ function KitNode({ id }: NodeProps) {
             ))}
           </ul>
         ) : null}
+        {rows ? (
+          // A row per port when a side has several: inputs named left, outputs right.
+          <span
+            className="mt-auto grid text-[11px] leading-[18px] text-(--ui-ink-2)"
+            style={{ gridTemplateRows: `repeat(${rows}, ${LOOK.port}px)` }}
+          >
+            {Array.from({ length: rows }, (_, i) => {
+              const a = (n.ins?.length ?? 0) > 1 ? n.ins?.[i] : undefined;
+              const b = (n.outs?.length ?? 0) > 1 ? n.outs?.[i] : undefined;
+              return (
+                <span key={`${a?.id ?? ""}:${b?.id ?? ""}`} className="flex justify-between gap-2">
+                  <span className="truncate">{a?.label ?? ""}</span>
+                  <span className="truncate text-right">{b?.label ?? ""}</span>
+                </span>
+              );
+            })}
+          </span>
+        ) : null}
       </Tag>
-      <Handle
-        type="source"
-        position={across ? Position.Right : Position.Bottom}
-        className={ends?.from ? HANDLE : "invisible"}
-        isConnectable={!!ends?.from}
-      />
+      <Handles n={n} side="out" across={across} live={!!ends?.from} />
+    </>
+  );
+}
+
+/** A node's handles on one side: one per port, colored by its kind, at its row. */
+function Handles({
+  n,
+  side,
+  across,
+  live,
+}: {
+  n: GraphNode;
+  side: "in" | "out";
+  across: boolean;
+  live: boolean;
+}) {
+  const list = (side === "in" ? n.ins : n.outs) ?? [];
+  const type = side === "in" ? "target" : "source";
+  const position = across
+    ? side === "in"
+      ? Position.Left
+      : Position.Right
+    : side === "in"
+      ? Position.Top
+      : Position.Bottom;
+  const ports = across && list.length ? list : [undefined];
+  return (
+    <>
+      {ports.map((p) => (
+        <Handle
+          key={p?.id ?? side}
+          {...(p ? { id: `${side}:${p.id}` } : {})}
+          type={type}
+          position={position}
+          isConnectable={live}
+          title={p ? p.label : undefined}
+          className={cn(HANDLE, live && "hover:bg-(--ui-accent)!")}
+          style={{
+            ...(across ? { top: portY(n, side, p?.id) } : {}),
+            borderColor: hueOf(p?.kind ?? (across ? undefined : list[0]?.kind)),
+          }}
+        />
+      ))}
     </>
   );
 }
@@ -275,7 +375,7 @@ function Num({
       <span
         className={cn(
           "font-semibold text-(--ui-ink) tabular-nums",
-          big ? "text-[20px] leading-[26px] tracking-[-0.02em]" : "text-[12px]",
+          big ? "text-[17px] leading-[22px] tracking-[-0.02em]" : "text-[11.5px]",
         )}
       >
         {num(n.value)}
@@ -284,11 +384,14 @@ function Num({
       {n.today ? <span className="text-(--ui-ink-3)"> · {num(n.today)} today</span> : null}
     </>
   );
-  const cls = cn("pl-5 text-[12px] leading-[1.33] text-(--ui-ink-2)", big && "mt-1");
+  const cls = cn(
+    "truncate text-[11.5px] text-(--ui-ink-2)",
+    big ? "mt-1 leading-[22px]" : "leading-4",
+  );
   return n.href && !inLink ? (
     <a
       href={n.href}
-      className={cn(cls, "w-fit no-underline hover:text-(--ui-ink) hover:underline")}
+      className={cn(cls, "w-fit max-w-full no-underline hover:text-(--ui-ink) hover:underline")}
       onClick={(e) => e.stopPropagation()}
     >
       {body}
@@ -298,50 +401,65 @@ function Num({
   );
 }
 
-type WireData = { lines: string[]; d: string; label?: { x: number; y: number; w: number } };
+type WireData = {
+  lines: string[];
+  d: string;
+  arrow: string;
+  hue: string;
+  pill: string;
+  mid: { x: number; y: number };
+};
 
 function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
   const g = useShared();
   if (!data) return null;
-  const faded = g.lit && !(g.lit.has(source) && g.lit.has(target));
-  const on = g.hover === id || g.hover === source || g.hover === target;
   const dots = g.dots.filter((d) => d.edge === id);
+  // A wire with a dot riding it stays lit: Play's step arriving.
+  const faded = g.lit && !dots.length && !(g.lit.has(source) && g.lit.has(target));
+  const on = g.hover === id || g.hover === source || g.hover === target || dots.length > 0;
+  const w = pillWidth(data.pill);
   return (
     <>
-      <path
-        d={data.d}
+      <g
         className={cn(
-          "fill-none [stroke-linecap:round] transition-[stroke,opacity] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
-          on ? "stroke-(--ui-ink) stroke-[2]" : "stroke-(--ui-ink-3) stroke-[1.5]",
+          "transition-opacity duration-200 ease-(--ui-ease) motion-reduce:transition-none",
           faded && "opacity-20",
         )}
-      />
+        style={{ color: dots.length ? "var(--ui-accent)" : on ? "var(--ui-ink)" : data.hue }}
+      >
+        <path
+          d={data.d}
+          className={cn(
+            "fill-none stroke-current [stroke-linecap:round]",
+            on ? "stroke-[2]" : "stroke-[1.5]",
+          )}
+        />
+        <path d={data.arrow} className="fill-current" />
+      </g>
       {/* A wide clear stroke, so the line is easy to hover and click. */}
       <path d={data.d} className="cursor-pointer fill-none stroke-transparent stroke-[14]" />
       <EdgeLabelRenderer>
-        {data.label && data.lines.length ? (
-          <div
+        {data.pill ? (
+          <span
             className={cn(
-              "pointer-events-none absolute top-0 left-0 grid bg-(--ui-tile)/90 px-1 text-[11px] leading-[15px] text-(--ui-ink-2) tabular-nums",
+              "pointer-events-none absolute top-0 left-0 h-5 truncate rounded-full bg-(--ui-paper) px-2 text-center text-[11px] leading-5 text-(--ui-ink-2) tabular-nums shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+              on && "text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
               faded && "opacity-20",
             )}
             style={{
-              width: data.label.w,
-              transform: `translate(${data.label.x}px, ${data.label.y}px)`,
+              maxWidth: w,
+              transform: `translate(-50%, -50%) translate(${data.mid.x}px, ${data.mid.y}px)`,
             }}
+            title={data.lines.join(", ")}
           >
-            {data.lines.map((l, i) => (
-              <span key={l} className={cn("truncate", i === 0 && "text-(--ui-ink)")} title={l}>
-                {l}
-              </span>
-            ))}
-          </div>
+            {data.pill}
+          </span>
         ) : null}
         {dots.map((d) => (
           <span
             key={d.id}
             className={cn(
-              "pointer-events-none absolute top-0 left-0 size-[9px] animate-ui-run-spark rounded-full shadow-[0_0_0_3px_var(--ui-tile)] [animation-duration:1.4s] [offset-rotate:0deg] motion-reduce:hidden",
+              "pointer-events-none absolute top-0 left-0 z-10 size-3 animate-ui-run-spark rounded-full shadow-[0_0_0_3px_var(--ui-paper),0_0_10px_2px_var(--ui-accent)] [animation-duration:1.4s] [offset-rotate:0deg] motion-reduce:hidden",
               DOT[d.tone],
             )}
             data-tone={d.tone}
@@ -358,6 +476,16 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
 const NODE_TYPES = { kit: KitNode };
 const EDGE_TYPES = { kit: KitEdge };
 
+/** The graph's lavender ground as a plain color, read off a probe. */
+function groundOf(el: HTMLElement): string | undefined {
+  const probe = document.createElement("span");
+  probe.style.background = "var(--ui-graph)";
+  el.append(probe);
+  const c = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return /^(#|rgb|color\()/.test(c) && c !== "rgba(0, 0, 0, 0)" ? c : undefined;
+}
+
 /** The page's colors, for an exported file. */
 function inkOf(el: HTMLElement): Ink {
   const s = getComputedStyle(el);
@@ -371,6 +499,7 @@ function inkOf(el: HTMLElement): Ink {
     ink3: plain(v("--ui-ink-3", "#9a9a9a"), "#9a9a9a"),
     hair: plain(v("--ui-hair", "#e4e4e4"), "#e4e4e4"),
     tile: plain(v("--ui-canvas", "#f4f4f2"), "#f4f4f2"),
+    ground: groundOf(el),
     font: s.fontFamily || "sans-serif",
   };
 }
@@ -444,7 +573,7 @@ export default function GraphCanvas({
     () =>
       edges.map((e) => {
         const lines = wireLines(e);
-        return { e, id: edgeId(e), lines, size: labelSize(lines) };
+        return { e, id: edgeId(e), lines, size: pillSize(e) };
       }),
     [edges],
   );
@@ -458,7 +587,7 @@ export default function GraphCanvas({
     const lines = wires.map((w) => ({ id: w.id, from: w.e.from, to: w.e.to, label: w.size }));
     (arrange === "lanes"
       ? Promise.resolve(lanes(sized, lines, dir))
-      : layout(sized, lines, dir, labeled ? 40 : 64)
+      : layout(sized, lines, dir, labeled ? 48 : 64)
     ).then((l) => live && setLaid({ shape, laid: l }));
     return () => {
       live = false;
@@ -476,6 +605,7 @@ export default function GraphCanvas({
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const live = useMemo(() => dots.filter((d) => !gone.has(d.id)), [dots, gone]);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const l = laid?.laid ?? null;
   const rfNodes = useMemo(
@@ -504,26 +634,38 @@ export default function GraphCanvas({
   const rfEdges = useMemo(
     (): Edge<WireData>[] =>
       l
-        ? wires.flatMap(({ e, id, lines, size }) => {
-            const at = l.edges[id];
-            return at
-              ? [
-                  {
-                    id,
-                    source: e.from,
-                    target: e.to,
-                    type: "kit",
-                    data: {
-                      lines,
-                      d: roundedPath(at.points),
-                      ...(at.label ? { label: { ...at.label, w: size.width } } : {}),
-                    },
-                  },
-                ]
-              : [];
+        ? wires.flatMap(({ e, id, lines }) => {
+            const a = l.nodes[e.from];
+            const b = l.nodes[e.to];
+            if (!l.edges[id] || !a || !b) return [];
+            const across = dir === "RIGHT";
+            const from = byId.get(e.from);
+            const to = byId.get(e.to);
+            const ends = wireEnds(e, a, b, from, to, across);
+            const c = wireCurve(ends.from, ends.to, across);
+            const out = across && from?.outs?.some((p) => p.id === e.fromPort);
+            const into = across && to?.ins?.some((p) => p.id === e.toPort);
+            return [
+              {
+                id,
+                source: e.from,
+                target: e.to,
+                ...(out ? { sourceHandle: `out:${e.fromPort}` } : {}),
+                ...(into ? { targetHandle: `in:${e.toPort}` } : {}),
+                type: "kit",
+                data: {
+                  lines,
+                  d: c.d,
+                  arrow: arrowAt(c.end, across),
+                  hue: wireHue(e, from),
+                  pill: pillText(e),
+                  mid: c.mid,
+                },
+              },
+            ];
           })
         : [],
-    [l, wires],
+    [l, wires, byId, dir],
   );
 
   const most = maxHeight ?? Math.max(360, Math.round((globalThis.innerHeight || 900) * 0.72));
@@ -556,7 +698,7 @@ export default function GraphCanvas({
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;
-    const svg = svgOf(l, nodes, edges, inkOf(box.current));
+    const svg = svgOf(l, nodes, edges, inkOf(box.current), 24, dir === "RIGHT");
     const file = `${name ?? label}.${kind}`.replace(/[^\w.-]+/g, "-").toLowerCase();
     if (kind === "svg") return save(new Blob([svg], { type: "image/svg+xml" }), file);
     save(await pngOf(svg, Math.ceil(l.width + 48), Math.ceil(l.height + 48)), file);
@@ -577,6 +719,7 @@ export default function GraphCanvas({
         dots: live,
         done: (id) => setGone((s) => new Set(s).add(id)),
         byId,
+        selected,
       }
     : null;
 
@@ -644,6 +787,7 @@ export default function GraphCanvas({
                 isValidConnection: (c) => !!edit?.fits(c.source, c.target),
                 connectionLineStyle: { stroke: "var(--ui-ink-3)", strokeWidth: 1.5 },
                 onNodeClick: (_, n) => {
+                  setSelected(n.id);
                   if (!byId.get(n.id)?.href) onOpen?.(n.id);
                 },
                 onEdgeClick: (_, e) => edit?.pick(e.source, e.target),

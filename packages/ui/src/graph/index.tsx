@@ -14,6 +14,8 @@ export {
   type GraphKind,
   type GraphNode,
   type GraphNumber,
+  type GraphPort,
+  type GraphRole,
   type GraphTone,
   percent,
   wireLines,

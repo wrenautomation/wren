@@ -61,6 +61,8 @@
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
+  /* Under a graph's dot grid: paper with a little lavender, light or night alike. */
+  --ui-graph: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-paper));
   --ui-chart-1: var(--ui-accent); /* the five chart series */
   --ui-chart-2: var(--ui-ink-2);
   --ui-chart-3: var(--ui-good);

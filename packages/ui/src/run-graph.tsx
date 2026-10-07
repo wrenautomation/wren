@@ -93,8 +93,9 @@ const DIM = "opacity-35";
 /** A step's shadow: working beats picked, picked beats hover. */
 const LIFT = {
   active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-accent)]",
-  picked: "shadow-[inset_0_0_0_2px_var(--ui-ink)]",
-  rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
+  picked:
+    "shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-2 outline-offset-2 outline-(--ui-accent)",
+  rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
 };
 const INDEX: Record<RunStepState, string> = {
   idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-hair)]",
@@ -120,20 +121,21 @@ const SPARK: Partial<Record<RunLineKind, string>> = {
   waiting: "bg-(--ui-tile) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
 };
 
-/** React Flow draws a line between handles; ours are hidden, the path is our own. */
+/** A step's ports, as the kit draws them: a ring each side; the path between is our own. */
+const PORT = "size-[9px]! rounded-full! border-[1.5px]! border-(--ui-ink-3)! bg-(--ui-paper)!";
 function Handles({ axis }: { axis: FlowAxis }) {
   const across = axis === "across";
   return (
     <>
       <Handle
         type="target"
-        className="invisible"
+        className={PORT}
         position={across ? Position.Left : Position.Top}
         isConnectable={false}
       />
       <Handle
         type="source"
-        className="invisible"
+        className={PORT}
         position={across ? Position.Right : Position.Bottom}
         isConnectable={false}
       />

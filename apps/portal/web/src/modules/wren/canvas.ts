@@ -10,6 +10,7 @@ import {
   type GraphDot,
   type GraphEdge,
   type GraphNode,
+  type GraphRole,
   type GraphTone,
   percent,
 } from "@wren/ui";
@@ -81,6 +82,28 @@ export interface Where {
   rows: (c: CountRef) => string | undefined;
 }
 
+/** What a part does, by its id's area: its tile's color on the canvas. */
+export function roleOfPart(uses: string | null | undefined): GraphRole {
+  const [area = "", what = ""] = (uses ?? "").split(".");
+  if (!uses || uses === "planned") return "logic";
+  if (
+    /score|triage|draft|planner|sort|answer|study/.test(what) ||
+    ["watch", "comments"].includes(area)
+  )
+    return "ai";
+  if (["research", "records", "leads", "signals"].includes(area)) return "data";
+  if (["delivery", "books", "billing", "reactivation"].includes(area)) return "deliver";
+  return "channel";
+}
+
+const portsOf = (ps: readonly { id: string; label: string; kind?: string }[] | undefined) =>
+  ps?.length ? ps.map((p) => ({ id: p.id, label: p.label, kind: p.kind })) : undefined;
+/** A wire end's port: "node.port" names one; the workflow's own ends have just the one. */
+const portAt = (end: string) => {
+  const [head = "", port] = end.split(".");
+  return head === "in" || head === "out" ? undefined : port;
+};
+
 const stateOf = (n: DrawnNode, team: boolean): GraphNode["state"] => {
   const flow = !!n.uses && n.opens === n.uses;
   if (!n.uses) return { label: "Custom step", tone: "neutral" };
@@ -135,9 +158,14 @@ export function graphOf(
     const id = `${from}>${to}`;
     const had = edges.get(id);
     if (!had && x.count) refs.set(id, countKey(x.count));
+    const fromPort = portAt(x.from);
+    const source = w.nodes.find((n) => n.id === from)?.out?.find((p) => p.id === fromPort);
     const e: GraphEdge = {
       from,
       to,
+      fromPort,
+      toPort: portAt(x.to),
+      kind: source?.kind ?? w.in.find((p) => `in.${p.id}` === from)?.kind,
       label: x.label,
       count: c,
       when: x.when,
@@ -174,11 +202,15 @@ export function graphOf(
     if (from && e.count && e.count.value <= from) e.rate = { from, to: e.count.value };
   }
 
-  const end = (id: string, label: string): GraphNode => ({
+  const end = (id: string, p: { label: string; kind?: string }, side: "in" | "out"): GraphNode => ({
     id,
     kind: "record",
-    label,
+    label: p.label,
+    role: side === "in" ? "trigger" : "deliver",
     dashed: true,
+    ...(side === "in"
+      ? { outs: [{ id: "out", label: p.label, kind: p.kind }] }
+      : { ins: [{ id: "in", label: p.label, kind: p.kind }] }),
     facets: { Kind: "End" },
   });
   const nodes = w.nodes.map((n): GraphNode => {
@@ -194,6 +226,9 @@ export function graphOf(
     return {
       id: n.id,
       kind: n.opens ? "workflow" : n.uses ? "part" : "step",
+      role: n.opens && n.opens !== n.uses ? "logic" : roleOfPart(n.uses),
+      ins: portsOf(n.in),
+      outs: portsOf(n.out),
       label: n.name,
       note: n.note ?? undefined,
       state,
@@ -229,11 +264,11 @@ export function graphOf(
   const used = new Set([...edges.values()].flatMap((e) => [e.from, e.to]));
   return {
     nodes: [
-      ...w.in.map((p) => end(`in.${p.id}`, p.label)),
+      ...w.in.map((p) => end(`in.${p.id}`, p, "in")),
       ...nodes,
       ...w.out
         .filter((p) => allOut || used.has(`out.${p.id}`))
-        .map((p) => end(`out.${p.id}`, p.label)),
+        .map((p) => end(`out.${p.id}`, p, "out")),
     ],
     edges: [...edges.values()],
   };

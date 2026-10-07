@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { layout } from "./layout.js";
+import { arrowAt, LOOK, lookHeight, pillText, portRows, portY, wireCurve } from "./look.js";
 import {
   facetsOf,
   type GraphEdge,
@@ -53,7 +54,7 @@ describe("graph model", () => {
     const small = nodeSize(nodes[2] as GraphNode);
     const big = nodeSize(nodes[1] as GraphNode);
     expect(big.height).toBeGreaterThan(small.height);
-    expect(small.width).toBe(232);
+    expect(small.width).toBe(216);
   });
 
   it("keeps what search and filters match, null when nothing narrows", () => {
@@ -110,6 +111,45 @@ describe("graph model", () => {
     });
     expect(svg).toContain("<svg");
     expect(svg).toContain("Sequences");
-    expect(svg).toContain("412 → 31, 7.5%");
+    // Curved wires with an arrow, the count in a pill at the middle.
+    expect(svg).toContain(" C");
+    expect(svg).toContain(">31<");
+  });
+});
+
+describe("node look", () => {
+  const branch: GraphNode = {
+    id: "w",
+    kind: "part",
+    label: "Wait for a reply",
+    ins: [{ id: "in", label: "leads", kind: "lead" }],
+    outs: [
+      { id: "replied", label: "replied", kind: "reply" },
+      { id: "quiet", label: "no reply", kind: "lead" },
+    ],
+  };
+
+  it("gives a side with several ports a row each, one port sits by the header", () => {
+    expect(portRows(branch)).toBe(2);
+    expect(lookHeight(branch)).toBeGreaterThan(lookHeight({}));
+    const head = LOOK.pad + LOOK.head / 2;
+    expect(portY(branch, "in", "in")).toBe(head);
+    expect(portY(branch, "out", "quiet") - portY(branch, "out", "replied")).toBe(LOOK.port);
+    expect(portY(branch, "out", "nope")).toBe(head);
+  });
+
+  it("curves a wire, its pill at the middle, an arrow at its end", () => {
+    const c = wireCurve({ x: 0, y: 0 }, { x: 100, y: 40 }, true);
+    expect(c.d).toBe("M0,0 C50,0 50,40 100,40");
+    expect(c.mid).toEqual({ x: 50, y: 20 });
+    expect(arrowAt(c.end, true)).toBe("M94,37 L100,40 L94,43 Z");
+  });
+
+  it("puts the count and the rule in the pill", () => {
+    expect(pillText({ count: { value: 1200 }, when: "they replied" })).toBe(
+      "1,200 · if they replied",
+    );
+    expect(pillText({ wait: "2 days" })).toBe("after 2 days");
+    expect(pillText({ label: "leads" })).toBe("leads");
   });
 });

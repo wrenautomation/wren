@@ -4,6 +4,22 @@
  * without a browser; `canvas.tsx` draws it on React Flow.
  */
 
+import {
+  arrowAt,
+  type GraphPort,
+  type GraphRole,
+  hueOf,
+  LOOK,
+  lookHeight,
+  pillText,
+  pillWidth,
+  portY,
+  ROLE_HUE,
+  wireCurve,
+} from "./look.js";
+
+export type { GraphPort, GraphRole } from "./look.js";
+
 export type GraphKind = "part" | "workflow" | "account" | "step" | "record" | "host";
 export type GraphTone = "good" | "warn" | "bad" | "accent" | "neutral";
 
@@ -38,6 +54,11 @@ export interface GraphNode {
   dashed?: boolean | undefined;
   /** Opens into more nodes: drawn as a stack. */
   stacked?: boolean | undefined;
+  /** What it does, its tile's color; by kind when left out (`roleOf`). */
+  role?: GraphRole | undefined;
+  /** Its inputs and outputs, each a handle; a side with two or more labels each one. */
+  ins?: readonly GraphPort[] | undefined;
+  outs?: readonly GraphPort[] | undefined;
   /** Its row in a `lanes` layout: "Email", "Texts". */
   lane?: string | undefined;
   /** What the filters read: { State: "Built", Channel: "Email" }. */
@@ -47,6 +68,11 @@ export interface GraphNode {
 export interface GraphEdge {
   from: string;
   to: string;
+  /** The output it leaves from and the input it lands on, when the nodes name their ports. */
+  fromPort?: string | undefined;
+  toPort?: string | undefined;
+  /** The event kind on it, its color; the output's kind when left out. */
+  kind?: string | undefined;
   /** What moves on it: "warm replies". */
   label?: string | undefined;
   /** Its number over the period, and today's. */
@@ -89,44 +115,65 @@ export function wireLines(e: GraphEdge): string[] {
   ].filter(Boolean);
 }
 
-/** A node's width by kind, and the type it draws at. */
+/** A node's width by kind: compact, as a node is. */
 export const NODE_WIDTH: Record<GraphKind, number> = {
-  part: 232,
-  workflow: 232,
-  step: 232,
-  host: 232,
-  record: 300,
-  account: 196,
+  part: 216,
+  workflow: 216,
+  step: 216,
+  host: 216,
+  record: 232,
+  account: 184,
 };
-const PAD_Y = 22;
-const ROW = { label: 17, small: 16, number: 26, line: 19 };
-const CHAR = { label: 7.3, small: 6.5 };
-const INSET = 26;
 
-const rows = (s: string | undefined, char: number, w: number, most: number) =>
-  s ? Math.min(most, Math.max(1, Math.ceil((s.length * char) / (w - INSET)))) : 0;
-
-/** About how tall a node draws: its label (two rows), note (two), numbers and lines. */
-export function nodeSize(n: GraphNode): { width: number; height: number } {
-  const width = NODE_WIDTH[n.kind];
-  // The state sits beside the label, taking part of its row.
-  const label = rows(n.label + (n.state ? `  ${n.state.label}` : ""), CHAR.label, width - 22, 2);
-  const lines = Math.min(n.lines?.length ?? 0, 7);
-  const height =
-    PAD_Y +
-    ROW.label * label +
-    ROW.small * rows(n.note, CHAR.small, width, 2) +
-    (n.number
-      ? ROW.number + 4 + ROW.small * (rows(numberText(n.number), CHAR.small, width - 20, 3) - 1)
-      : 0) +
-    (n.more ? ROW.small : 0) +
-    ROW.line * lines;
-  return { width, height: Math.max(52, Math.ceil(height)) };
+/** A node's role by its kind, when it names none. */
+export function roleOf(n: Pick<GraphNode, "role" | "kind">): GraphRole {
+  if (n.role) return n.role;
+  return n.kind === "account"
+    ? "trigger"
+    : n.kind === "record" || n.kind === "host"
+      ? "data"
+      : n.kind === "workflow"
+        ? "logic"
+        : "channel";
 }
 
-/** A number's line as it reads: its digits count wider than small text, so a few more. */
-const numberText = (n: GraphNumber) =>
-  `${n.value.toLocaleString("en-US")}xxxx ${n.label}${n.today ? ` · ${n.today} today` : ""}`;
+/** How big a node draws: its header, number, lines and a row per port (`look.ts`). */
+export function nodeSize(n: GraphNode): { width: number; height: number } {
+  return { width: NODE_WIDTH[n.kind], height: lookHeight(n) };
+}
+
+/** Where a wire leaves and lands on two laid boxes: at its ports, or the sides' middles. */
+export function wireEnds(
+  e: Pick<GraphEdge, "fromPort" | "toPort">,
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+  an: GraphNode | undefined,
+  bn: GraphNode | undefined,
+  across: boolean,
+) {
+  return across
+    ? {
+        from: { x: a.x + a.width, y: a.y + (an ? portY(an, "out", e.fromPort) : a.height / 2) },
+        to: { x: b.x, y: b.y + (bn ? portY(bn, "in", e.toPort) : b.height / 2) },
+      }
+    : {
+        from: { x: a.x + a.width / 2, y: a.y + a.height },
+        to: { x: b.x + b.width / 2, y: b.y },
+      };
+}
+
+/** A wire's color: its kind's, else its output's. */
+export function wireHue(e: GraphEdge, from: GraphNode | undefined): string {
+  return hueOf(
+    e.kind ?? from?.outs?.find((p) => p.id === e.fromPort)?.kind ?? from?.outs?.[0]?.kind,
+  );
+}
+
+/** Room a wire's pill takes, for the layout to keep clear. */
+export function pillSize(e: GraphEdge): { width: number; height: number } {
+  const w = pillWidth(pillText(e));
+  return w ? { width: w, height: 20 } : { width: 0, height: 0 };
+}
 
 /** Room a wire's lines take: elk keeps it clear between the columns. */
 export function labelSize(lines: readonly string[]): { width: number; height: number } {
@@ -227,6 +274,8 @@ export interface Ink {
   ink3: string;
   hair: string;
   tile: string;
+  /** Under the drawing; the tile when left out. */
+  ground?: string | undefined;
   font: string;
 }
 
@@ -239,70 +288,105 @@ const clip = (s: string, w: number, char: number) => {
   return s.length > most ? `${s.slice(0, Math.max(1, most - 1))}…` : s;
 };
 
-/** The drawing as a standalone SVG file: boxes, labels, numbers, lines and their words. */
+/** The drawing as a standalone SVG file: nodes with their tiles and ports, curved wires and pills. */
 export function svgOf(
   laid: Laid,
   nodes: readonly GraphNode[],
   edges: readonly GraphEdge[],
   ink: Ink,
   pad = 24,
+  across = true,
 ): string {
   const w = Math.ceil(laid.width + 2 * pad);
   const h = Math.ceil(laid.height + 2 * pad);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
   const out: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${esc(ink.font)}">`,
-    `<rect width="${w}" height="${h}" fill="${ink.tile}"/>`,
+    `<rect width="${w}" height="${h}" fill="${ink.ground ?? ink.tile}"/>`,
     `<g transform="translate(${pad} ${pad})">`,
   ];
+  const pills: string[] = [];
   for (const e of edges) {
-    const at = laid.edges[edgeId(e)];
-    if (!at) continue;
+    const a = laid.nodes[e.from];
+    const b = laid.nodes[e.to];
+    if (!a || !b || !laid.edges[edgeId(e)]) continue;
+    const ends = wireEnds(e, a, b, byId.get(e.from), byId.get(e.to), across);
+    const c = wireCurve(ends.from, ends.to, across);
+    const hue = wireHue(e, byId.get(e.from));
     out.push(
-      `<path d="${roundedPath(at.points)}" fill="none" stroke="${ink.ink3}" stroke-width="1.5"/>`,
+      `<path d="${c.d}" fill="none" stroke="${hue}" stroke-width="1.5"/>`,
+      `<path d="${arrowAt(c.end, across)}" fill="${hue}"/>`,
     );
-    const lines = wireLines(e);
-    if (at.label)
-      for (const [i, l] of lines.entries())
-        out.push(
-          `<text x="${at.label.x}" y="${at.label.y + 12 + i * 15}" font-size="11" fill="${ink.ink2}">${esc(clip(l, 190, 6.1))}</text>`,
-        );
+    const text = pillText(e);
+    if (text) {
+      const pw = pillWidth(text);
+      pills.push(
+        `<rect x="${c.mid.x - pw / 2}" y="${c.mid.y - 10}" width="${pw}" height="20" rx="10" fill="${ink.paper}" stroke="${ink.hair}"/>`,
+        `<text x="${c.mid.x}" y="${c.mid.y + 4}" font-size="11" text-anchor="middle" fill="${ink.ink2}">${esc(clip(text, pw - 12, 6.2))}</text>`,
+      );
+    }
   }
   for (const n of nodes) {
     const b = laid.nodes[n.id];
     if (!b) continue;
     const dash = n.kind === "account" || n.dashed ? ` stroke-dasharray="4 3"` : "";
     const fade = n.dim ? ` opacity="0.5"` : "";
+    const hue = ROLE_HUE[roleOf(n)];
     out.push(`<g transform="translate(${b.x} ${b.y})"${fade}>`);
     if (n.stacked)
       out.push(
-        `<rect x="4" y="4" width="${b.width}" height="${b.height}" fill="${ink.paper}" stroke="${ink.hair}"/>`,
+        `<rect x="4" y="-4" width="${b.width}" height="${b.height}" rx="8" fill="${ink.paper}" stroke="${ink.hair}"/>`,
       );
     out.push(
-      `<rect width="${b.width}" height="${b.height}" fill="${n.kind === "account" || n.dashed ? ink.tile : ink.paper}" stroke="${ink.ink3}"${dash}/>`,
-      `<text x="12" y="20" font-size="13" font-weight="600" fill="${ink.ink}">${esc(clip(n.label, b.width - 24, 7.3))}</text>`,
+      `<rect width="${b.width}" height="${b.height}" rx="8" fill="${n.kind === "account" || n.dashed ? ink.tile : ink.paper}" stroke="${ink.ink3}"${dash}/>`,
+      `<rect x="${LOOK.pad}" y="${LOOK.pad + 1}" width="${LOOK.tile}" height="${LOOK.tile}" rx="7" fill="${hue}" fill-opacity="0.16"/>`,
+      `<circle cx="${LOOK.pad + LOOK.tile / 2}" cy="${LOOK.pad + 1 + LOOK.tile / 2}" r="5" fill="${hue}"/>`,
     );
-    let y = 20;
-    if (n.note) {
-      y += 16;
+    const x = LOOK.pad + LOOK.tile + 10;
+    const text = (y: number, size: number, fill: string, t: string, weight = "") =>
       out.push(
-        `<text x="12" y="${y}" font-size="12" fill="${ink.ink2}">${esc(clip(n.note, b.width - 24, 6.5))}</text>`,
+        `<text x="${x}" y="${y}" font-size="${size}"${weight} fill="${fill}">${esc(clip(t, b.width - x - 18, size * 0.55))}</text>`,
       );
-    }
+    text(n.note ? LOOK.pad + 13 : LOOK.pad + 20, 13, ink.ink, n.label, ` font-weight="600"`);
+    if (n.note) text(LOOK.pad + 29, 11.5, ink.ink2, n.note);
+    let y = LOOK.pad + LOOK.head;
     if (n.number) {
-      y += 24;
+      y += LOOK.number;
       out.push(
-        `<text x="12" y="${y}" font-size="12" fill="${ink.ink2}"><tspan font-size="18" font-weight="600" fill="${ink.ink}">${num(n.number.value)}</tspan> ${esc(clip(n.number.label, b.width - 90, 6.5))}</text>`,
+        `<text x="${LOOK.pad}" y="${y - 6}" font-size="11.5" fill="${ink.ink2}"><tspan font-size="17" font-weight="600" fill="${ink.ink}">${num(n.number.value)}</tspan> ${esc(clip(n.number.label, b.width - 90, 6.2))}</text>`,
       );
     }
-    for (const l of n.lines ?? []) {
-      y += 18;
-      if (y > b.height - 6) break;
+    if (n.more) {
+      y += LOOK.more;
       out.push(
-        `<text x="12" y="${y}" font-size="12" fill="${ink.ink2}">${esc(clip(`${l.sign ? `${l.sign} ` : ""}${l.text}`, b.width - 24, 6.5))}</text>`,
+        `<text x="${LOOK.pad}" y="${y - 4}" font-size="11.5" fill="${ink.ink2}">${num(n.more.value)} ${esc(clip(n.more.label, b.width - 70, 6.2))}</text>`,
       );
+    }
+    for (const l of (n.lines ?? []).slice(0, LOOK.lines)) {
+      y += LOOK.line;
+      out.push(
+        `<text x="${LOOK.pad}" y="${y - 5}" font-size="11.5" fill="${ink.ink2}">${esc(clip(`${l.sign ? `${l.sign} ` : ""}${l.text}`, b.width - 2 * LOOK.pad, 6.2))}</text>`,
+      );
+    }
+    if (across) {
+      for (const [side, list] of [
+        ["in", n.ins ?? []],
+        ["out", n.outs ?? []],
+      ] as const)
+        for (const p of list.length ? list : [undefined]) {
+          const py = portY(n, side, p?.id);
+          const px = side === "in" ? 0 : b.width;
+          out.push(
+            `<circle cx="${px}" cy="${py}" r="4" fill="${ink.paper}" stroke="${hueOf(p?.kind, ink.ink3)}" stroke-width="1.5"/>`,
+          );
+          if (p && list.length > 1)
+            out.push(
+              `<text x="${side === "in" ? px + 9 : px - 9}" y="${py + 4}" font-size="11" text-anchor="${side === "in" ? "start" : "end"}" fill="${ink.ink2}">${esc(clip(p.label, b.width / 2 - 14, 6))}</text>`,
+            );
+        }
     }
     out.push("</g>");
   }
-  out.push("</g></svg>");
+  out.push(...pills, "</g></svg>");
   return out.join("\n");
 }

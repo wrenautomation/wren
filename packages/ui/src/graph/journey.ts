@@ -70,6 +70,12 @@ export function journeyOf(
     return {
       id: `t${i}`,
       kind: "step",
+      // What came back from the lead starts something; a booking is the delivery.
+      role: /book/.test(t.kind)
+        ? "deliver"
+        : /repl|answer|click/.test(t.kind)
+          ? "trigger"
+          : "channel",
       label: t.label || kind.label,
       note,
       state: kind,

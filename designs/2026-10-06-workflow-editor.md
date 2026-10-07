@@ -110,3 +110,9 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
 
 - 2026-10-06: William left it to my call. Built on our spine, n8n-style, with ComfyUI's
   colored ports and output previews. Building.
+- 2026-10-06: Section 0 built on the kit, so every graph changes (canvas, infra, Map, lineage,
+  journey; the run graph gets port rings, lift and a selection ring). Geometry is pure in
+  `packages/ui/src/graph/look.ts`: port rows, curves, arrows, pills, shared by the canvas and
+  the SVG export. Roles come from the part id's area (`roleOfPart`). The ground is
+  `--ui-graph`, paper with 11% of the accent, so it follows the night theme. Fit zoom floors
+  at 0.75 and pans past it. Play's wire turns accent and stays lit while its dot rides.

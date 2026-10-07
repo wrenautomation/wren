@@ -182,7 +182,7 @@ export function GraphFrame({
       aria-label={`${label}. Arrows pan, plus and minus zoom, F fits.`}
       className={cn(
         "group/frame relative w-full max-w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)",
-        !bare && "border border-(--ui-hair) bg-(--ui-tile)",
+        !bare && "border border-(--ui-hair) bg-(--ui-graph)",
         className,
       )}
       style={{ height }}
@@ -225,7 +225,12 @@ export function GraphFrame({
         {...flow}
       >
         {bare ? null : (
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--ui-hair)" />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={18}
+            size={1.6}
+            color="color-mix(in oklch, var(--ui-ink-3) 45%, transparent)"
+          />
         )}
         <Controls rest={rest} moved={touched} quiet={!!bare} />
         {minimap ? (
