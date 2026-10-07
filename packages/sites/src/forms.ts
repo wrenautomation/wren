@@ -322,7 +322,9 @@ const AUTOCOMPLETE: Partial<Record<string, string>> = {
 function fieldHtml(f: FormField, id: string): string {
   const req = f.required ? " required" : "";
   const hint = f.hint ? `<small>${esc(f.hint)}</small>` : "";
-  const label = `${esc(f.label)}${f.required ? "" : ' <span class="opt">(optional)</span>'}`;
+  const words = `${esc(f.label)}${f.required ? "" : ' <span class="opt">(optional)</span>'}`;
+  // One grid row: the label's words and "(optional)" stay on a line together.
+  const label = `<span>${words}</span>`;
   const auto = AUTOCOMPLETE[f.key] ? ` autocomplete="${AUTOCOMPLETE[f.key]}"` : "";
   const len = `${f.min ? ` minlength="${f.min}"` : ""} maxlength="${f.max ?? (f.kind === "long" ? 2000 : 200)}"`;
   switch (f.kind) {
@@ -335,7 +337,7 @@ function fieldHtml(f: FormField, id: string): string {
     case "select":
       return `<label for="${id}">${label}${hint}<select id="${id}" name="${esc(f.key)}"${req}><option value="">Pick one</option>${(f.options ?? []).map((o) => `<option>${esc(o)}</option>`).join("")}</select></label>`;
     case "multi":
-      return `<fieldset class="multi"${f.required ? " data-required" : ""}><legend>${label}</legend>${hint}${(f.options ?? []).map((o) => `<label class="check"><input type="checkbox" name="${esc(f.key)}" value="${esc(o)}"> <span>${esc(o)}</span></label>`).join("")}</fieldset>`;
+      return `<fieldset class="multi"${f.required ? " data-required" : ""}><legend>${words}</legend>${hint}${(f.options ?? []).map((o) => `<label class="check"><input type="checkbox" name="${esc(f.key)}" value="${esc(o)}"> <span>${esc(o)}</span></label>`).join("")}</fieldset>`;
     case "date":
       return `<label for="${id}">${label}${hint}<input id="${id}" type="date" name="${esc(f.key)}"${req}></label>`;
     case "email":
@@ -343,7 +345,12 @@ function fieldHtml(f: FormField, id: string): string {
     case "phone":
       return `<label for="${id}">${label}${hint}<input id="${id}" type="tel" name="${esc(f.key)}" autocomplete="tel" maxlength="40"${req}></label>`;
     default: {
-      const pattern = f.rule === "digits" ? ' inputmode="numeric"' : f.rule === "zip" ? ' inputmode="numeric"' : "";
+      const pattern =
+        f.rule === "digits"
+          ? ' inputmode="numeric"'
+          : f.rule === "zip"
+            ? ' inputmode="numeric"'
+            : "";
       return `<label for="${id}">${label}${hint}<input id="${id}" name="${esc(f.key)}"${auto}${pattern}${len}${req}></label>`;
     }
   }

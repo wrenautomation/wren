@@ -59,6 +59,8 @@ import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-ro
 import { googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
+import { paymentsConsoleApi } from "@wren/payments/console";
+import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { sitesApi } from "@wren/sites/console";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
@@ -258,6 +260,31 @@ const SERVICES: Record<
     routes: Object.keys(SMS_CONSOLE_ROUTES),
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
     api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
+  },
+  // Payments: links and Stripe's status. No key store and no Stripe here: a link stays where it
+  // is, and connecting says "in development".
+  payments: {
+    routes: Object.keys(PAYMENTS_CONSOLE_ROUTES),
+    guard: { needs: PAYMENTS_CONSOLE_ROUTES, apps: PAYMENTS_CONSOLE_APPS, unnamed: "first" },
+    api: (() => {
+      const api = paymentsConsoleApi({
+        main,
+        open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+        keys: null,
+        env: "dev",
+        fetch: async () => new Response("{}", { status: 503 }),
+        portal: `http://localhost:${port}`,
+      });
+      const now = () => new Date();
+      return {
+        ...api,
+        create: (r: never) => api.create(r, now()),
+        fromThread: (r: never) => api.fromThread(r, now()),
+        approve: (r: never) => api.approve(r, now()),
+        decline: (r: never) => api.decline(r, now()),
+        connect: (r: never) => api.connect(r, now()),
+      };
+    })(),
   },
   // Dictation's timings only; a test call's save is Restate's.
   voice: {

@@ -224,7 +224,13 @@ export const formRecord: RecordType = defineRecord({
       at: "changed",
     },
     { id: "live", label: "Live", where: { status: "live" }, sort: "-submits", at: "last" },
-    { id: "retired", label: "Retired", where: { status: "retired" }, sort: "-changed", at: "changed" },
+    {
+      id: "retired",
+      label: "Retired",
+      where: { status: "retired" },
+      sort: "-changed",
+      at: "changed",
+    },
   ],
   actions: [
     "sites.formCreate",
@@ -255,8 +261,8 @@ export const entryRecord: RecordType = defineRecord({
     owner: text("Owner"),
     at: date("Sent"),
     channel: status(CHANNELS, "Source"),
-    source: text("utm_source"),
-    campaign: text("utm_campaign", { listed: false }),
+    source: text("UTM source"),
+    campaign: text("UTM campaign", { listed: false }),
     consented: status(
       {
         yes: { label: "Opted in", tone: "good" },
@@ -282,7 +288,13 @@ export const entryRecord: RecordType = defineRecord({
   },
   views: [
     { id: "all", label: "All", sort: "-at", at: "at" },
-    { id: "forms", label: "Hosted forms", where: { form: { empty: false } }, sort: "-at", at: "at" },
+    {
+      id: "forms",
+      label: "Hosted forms",
+      where: { form: { empty: false } },
+      sort: "-at",
+      at: "at",
+    },
     { id: "consent", label: "Opted in", where: { consented: "yes" }, sort: "-at", at: "at" },
     { id: "out", label: "Not in the door", where: { entered: "out" }, sort: "-at", at: "at" },
   ],
