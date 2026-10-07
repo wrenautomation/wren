@@ -7,7 +7,6 @@
  *   and is kept nowhere.
  */
 import { openAiTranscriber, samplesOfWav, type Transcriber } from "@wren/voice/dictation";
-import type { Env } from "./env.js";
 
 /** About 60 s of 16 kHz 16-bit audio: past the 20 s a segment is cut at. */
 export const MAX_WAV = 2 * 1024 * 1024;
@@ -43,7 +42,10 @@ async function readBytes(req: Request, max: number): Promise<Uint8Array | null> 
   return all;
 }
 
-export function serverTranscriber(env: Env, f?: typeof fetch): Transcriber | null {
+/** The settings this reads: a slice of the Worker's `Env`, so the Node preview can use it too. */
+export type DictateEnv = { DICTATE_URL?: string; DICTATE_MODEL?: string; DICTATE_KEY?: string };
+
+export function serverTranscriber(env: DictateEnv, f?: typeof fetch): Transcriber | null {
   if (!env.DICTATE_URL) return null;
   return openAiTranscriber({
     url: env.DICTATE_URL,
@@ -55,7 +57,7 @@ export function serverTranscriber(env: Env, f?: typeof fetch): Transcriber | nul
 
 export async function dictate(
   req: Request,
-  env: Env,
+  env: DictateEnv,
   o: { demo: boolean; signedIn: () => Promise<Response | null> },
 ): Promise<Response> {
   const model = o.demo ? null : serverTranscriber(env);

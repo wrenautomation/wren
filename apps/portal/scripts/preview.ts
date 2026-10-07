@@ -58,8 +58,7 @@ import { CLIENT_MARKETING, MARKETING_NUMBERS } from "../../worker/src/marketing.
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
-import { dictate } from "../src/dictate.js";
-import type { Env } from "../src/env.js";
+import { type DictateEnv, dictate } from "../src/dictate.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -300,7 +299,7 @@ createServer(async (req, res) => {
       headers: { "content-type": req.headers["content-type"] ?? "" },
       ...(req.method === "POST" ? { body: Buffer.concat(chunks) } : {}),
     });
-    const out = await dictate(r, process.env as unknown as Env, {
+    const out = await dictate(r, process.env as DictateEnv, {
       demo,
       signedIn: async () => null,
     });
