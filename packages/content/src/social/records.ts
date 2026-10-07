@@ -27,6 +27,8 @@ import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
 import { DRAFT_CALLS } from "../draft-calls.js";
+import { shapeView } from "../shape-view.js";
+import type { VideoSigner } from "../video.js";
 import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
@@ -409,244 +411,250 @@ export const inboxRecord = defineRecord({
  * `template:4:3` (version 3 asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
  * draft's slot, else when it came.
  */
-export const approvalRecord = defineRecord({
-  id: "marketing.approval",
-  app: "marketing",
-  channel: { field: "platform" },
-  name: { one: "item to approve", many: "items to approve" },
-  rows: async (db) => {
-    const ps = await draftRows(db);
-    const vs = await videoRows(db);
-    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
-    const is = await acceptedRows(db);
-    const cs = await connectRows(db);
-    const ls = await liPostRows(db);
-    const asks = await waitingAsks(db);
-    const ws = await waitingInstalls(db);
-    return [
-      ...ps.map((p) => ({
-        id: `draft:${p.id}`,
-        type: "draft",
-        who: p.title,
-        platform: p.platform,
-        kind: "post",
-        state: "waiting",
-        body: p.text,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: p.created,
-        due: p.scheduled ?? p.created,
-        url: null,
-      })),
-      ...vs.map((v) => ({
-        id: `video:${v.id}`,
-        type: "video",
-        who: v.title || `Video ${v.id}`,
-        platform: "youtube",
-        kind: "video",
-        state: "waiting",
-        body: v.description,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: v.at,
-        due: v.at,
-        url: `/marketing/videos/${v.id}`,
-      })),
-      ...ts.map((t) => ({
-        id: `thread:${t.id}`,
-        type: "thread",
-        who: t.author,
-        platform: "reddit",
-        kind: "thread",
-        state: "waiting",
-        body: t.body || t.title,
-        post_title: t.title,
-        draft: t.draft,
-        account: t.account,
-        at: t.posted_at,
-        due: t.posted_at,
-        url: t.url,
-      })),
-      ...is.map((i) => ({
-        id: `invite:${i.id}`,
-        type: "invite",
-        who: i.who,
-        platform: "linkedin",
-        kind: "invite",
-        state: i.unread ? "waiting" : "read",
-        body: i.headline,
-        post_title: null,
-        draft: i.draft,
-        account: i.account,
-        at: i.at,
-        due: i.at,
-        url: i.url,
-      })),
-      ...ls.map((l) => ({
-        id: `lipost:${l.id}`,
-        type: "lipost",
-        who: l.author,
-        platform: "linkedin",
-        kind: "lipost",
-        state: "waiting",
-        body: l.text,
-        post_title: null,
-        why: l.why,
-        draft: l.draft,
-        account: l.account,
-        at: l.at,
-        due: l.queued_at ?? l.at,
-        url: l.url,
-      })),
-      ...cs.map((c) => ({
-        id: `connect:${c.id}`,
-        type: "connect",
-        who: c.who,
-        platform: "linkedin",
-        kind: "connect",
-        state: "waiting",
-        body: c.why ?? c.headline,
-        post_title: c.company,
-        why: c.why,
-        draft: null,
-        account: c.account,
-        at: c.at,
-        due: c.at,
-        url: c.url,
-      })),
-      ...asks.map((a) => ({
-        id: approvalId(a.id, a.number),
-        type: "template",
-        who: refText(a),
-        platform: templateAt(a).channel ?? null,
-        kind: "template",
-        state: "waiting",
-        body: a.source,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: a.at,
-        due: a.at,
-        url: null,
-      })),
-      // A client's workflow from a template: a yes opens its door and starts its parts.
-      ...ws.map((w) => ({
-        id: installApprovalId(w.id),
-        type: "workflow",
-        who: `${w.applied.name ?? w.template} for ${w.clientName}`,
-        platform: null,
-        kind: "workflow",
-        state: "waiting",
-        body: `${w.askedBy ?? "Someone"} asked to make it live. A yes opens its door and starts its parts.`,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: w.askedAt,
-        due: w.askedAt,
-        url: `/marketplace/catalog/${encodeURIComponent(w.template)}?client=${encodeURIComponent(w.client)}`,
-      })),
-    ];
-  },
-  key: "id",
-  title: "who",
-  subtitle: "body",
-  fields: {
-    who: name("Item"),
-    type: status(
-      cued({
-        draft: neutral("Post"),
-        video: neutral("Video"),
-        thread: neutral("Thread"),
-        invite: neutral("Invite"),
-        connect: neutral("Invite"),
-        lipost: neutral("Comment"),
-        template: neutral("Template"),
-        workflow: neutral("Workflow"),
-      }),
-      "Type",
-    ),
-    platform: status(
-      cued({ ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") }),
-      "Site",
-    ),
-    kind: status(
-      cued({
-        post: neutral("Post draft"),
-        video: neutral("Video to approve"),
-        thread: neutral("Thread to answer"),
-        invite: neutral("Accepted your invite"),
-        connect: neutral("Invite to send"),
-        lipost: neutral("Comment to post"),
-        template: neutral("Copy to make live"),
-        workflow: neutral("Workflow to make live"),
-      }),
-      "Kind",
-    ),
-    state: STATES,
-    body: prose("Words"),
-    postTitle: text("Post"),
-    why: text("Picked for"),
-    draft: prose("Our draft"),
-    account: text("On"),
-    at: date("When"),
-    due: date("Due"),
-    url: link("Open"),
-  },
-  views: [
-    { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
-    { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
-    { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
-    { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
-    { id: "comments", label: "Comments", where: { type: "lipost" }, sort: "due", at: "due" },
-    {
-      id: "invites",
-      label: "Invites",
-      where: { type: ["invite", "connect"] },
-      sort: "-at",
-      at: "at",
+/** To approve; a post draft's fields come with it, its stored files signed by `signer`. */
+export const approvalRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.approval",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "item to approve", many: "items to approve" },
+    rows: async (db) => {
+      const ps = await draftRows(db);
+      const vs = await videoRows(db);
+      const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
+      const is = await acceptedRows(db);
+      const cs = await connectRows(db);
+      const ls = await liPostRows(db);
+      const asks = await waitingAsks(db);
+      const ws = await waitingInstalls(db);
+      return [
+        ...ps.map((p) => ({
+          id: `draft:${p.id}`,
+          type: "draft",
+          who: p.title,
+          platform: p.platform,
+          kind: "post",
+          state: "waiting",
+          body: p.text,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: p.created,
+          due: p.scheduled ?? p.created,
+          url: null,
+        })),
+        ...vs.map((v) => ({
+          id: `video:${v.id}`,
+          type: "video",
+          who: v.title || `Video ${v.id}`,
+          platform: "youtube",
+          kind: "video",
+          state: "waiting",
+          body: v.description,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: v.at,
+          due: v.at,
+          url: `/marketing/videos/${v.id}`,
+        })),
+        ...ts.map((t) => ({
+          id: `thread:${t.id}`,
+          type: "thread",
+          who: t.author,
+          platform: "reddit",
+          kind: "thread",
+          state: "waiting",
+          body: t.body || t.title,
+          post_title: t.title,
+          draft: t.draft,
+          account: t.account,
+          at: t.posted_at,
+          due: t.posted_at,
+          url: t.url,
+        })),
+        ...is.map((i) => ({
+          id: `invite:${i.id}`,
+          type: "invite",
+          who: i.who,
+          platform: "linkedin",
+          kind: "invite",
+          state: i.unread ? "waiting" : "read",
+          body: i.headline,
+          post_title: null,
+          draft: i.draft,
+          account: i.account,
+          at: i.at,
+          due: i.at,
+          url: i.url,
+        })),
+        ...ls.map((l) => ({
+          id: `lipost:${l.id}`,
+          type: "lipost",
+          who: l.author,
+          platform: "linkedin",
+          kind: "lipost",
+          state: "waiting",
+          body: l.text,
+          post_title: null,
+          why: l.why,
+          draft: l.draft,
+          account: l.account,
+          at: l.at,
+          due: l.queued_at ?? l.at,
+          url: l.url,
+        })),
+        ...cs.map((c) => ({
+          id: `connect:${c.id}`,
+          type: "connect",
+          who: c.who,
+          platform: "linkedin",
+          kind: "connect",
+          state: "waiting",
+          body: c.why ?? c.headline,
+          post_title: c.company,
+          why: c.why,
+          draft: null,
+          account: c.account,
+          at: c.at,
+          due: c.at,
+          url: c.url,
+        })),
+        ...asks.map((a) => ({
+          id: approvalId(a.id, a.number),
+          type: "template",
+          who: refText(a),
+          platform: templateAt(a).channel ?? null,
+          kind: "template",
+          state: "waiting",
+          body: a.source,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: a.at,
+          due: a.at,
+          url: null,
+        })),
+        // A client's workflow from a template: a yes opens its door and starts its parts.
+        ...ws.map((w) => ({
+          id: installApprovalId(w.id),
+          type: "workflow",
+          who: `${w.applied.name ?? w.template} for ${w.clientName}`,
+          platform: null,
+          kind: "workflow",
+          state: "waiting",
+          body: `${w.askedBy ?? "Someone"} asked to make it live. A yes opens its door and starts its parts.`,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: w.askedAt,
+          due: w.askedAt,
+          url: `/marketplace/catalog/${encodeURIComponent(w.template)}?client=${encodeURIComponent(w.client)}`,
+        })),
+      ];
     },
-    { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
-    { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
-    { id: "all", label: "All", sort: "-at", at: "at" },
-  ],
-  activity: { view: "draft_activity", by: "item", seq: "seq" },
-  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
-  actions: [
-    "marketing.approveDraft",
-    "marketing.redraft",
-    "marketing.rejectDraft",
-    "marketing.videoApprove",
-    "marketing.threadComment",
-    "marketing.threadSkip",
-    "marketing.inviteMessage",
-    "marketing.inviteRead",
-    "marketing.connectApprove",
-    "marketing.connectSkip",
-    "marketing.lipostComment",
-    "marketing.lipostSkip",
-    "marketing.draftSet",
-    "marketing.draftAsk",
-    "marketing.draftUndo",
-    "templates.approve",
-    "templates.decline",
-    "workflows.approve",
-    "workflows.decline",
-  ],
-  // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
-  calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
-  /** An accepted invite's messages; a draft's Ask Claude thread. */
-  load: async (db, id) => {
-    const [type, rest] = typed(id);
-    if (type === "video" || type === "template" || type === "workflow") return null;
-    const ask = {
-      ask: await draftTurns(db, type, rest),
-      record: await recordOfPage(db, type, rest),
-    };
-    return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
-  },
-});
+    key: "id",
+    title: "who",
+    subtitle: "body",
+    fields: {
+      who: name("Item"),
+      type: status(
+        cued({
+          draft: neutral("Post"),
+          video: neutral("Video"),
+          thread: neutral("Thread"),
+          invite: neutral("Invite"),
+          connect: neutral("Invite"),
+          lipost: neutral("Comment"),
+          template: neutral("Template"),
+          workflow: neutral("Workflow"),
+        }),
+        "Type",
+      ),
+      platform: status(
+        cued({ ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") }),
+        "Site",
+      ),
+      kind: status(
+        cued({
+          post: neutral("Post draft"),
+          video: neutral("Video to approve"),
+          thread: neutral("Thread to answer"),
+          invite: neutral("Accepted your invite"),
+          connect: neutral("Invite to send"),
+          lipost: neutral("Comment to post"),
+          template: neutral("Copy to make live"),
+          workflow: neutral("Workflow to make live"),
+        }),
+        "Kind",
+      ),
+      state: STATES,
+      body: prose("Words"),
+      postTitle: text("Post"),
+      why: text("Picked for"),
+      draft: prose("Our draft"),
+      account: text("On"),
+      at: date("When"),
+      due: date("Due"),
+      url: link("Open"),
+    },
+    views: [
+      { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+      { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
+      { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
+      { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
+      { id: "comments", label: "Comments", where: { type: "lipost" }, sort: "due", at: "due" },
+      {
+        id: "invites",
+        label: "Invites",
+        where: { type: ["invite", "connect"] },
+        sort: "-at",
+        at: "at",
+      },
+      { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
+      { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
+      { id: "all", label: "All", sort: "-at", at: "at" },
+    ],
+    activity: { view: "draft_activity", by: "item", seq: "seq" },
+    drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
+    actions: [
+      "marketing.approveDraft",
+      "marketing.redraft",
+      "marketing.rejectDraft",
+      "marketing.videoApprove",
+      "marketing.threadComment",
+      "marketing.threadSkip",
+      "marketing.inviteMessage",
+      "marketing.inviteRead",
+      "marketing.connectApprove",
+      "marketing.connectSkip",
+      "marketing.lipostComment",
+      "marketing.lipostSkip",
+      "marketing.draftSet",
+      "marketing.draftAsk",
+      "marketing.draftUndo",
+      "marketing.draftFields",
+      "marketing.draftAttach",
+      "templates.approve",
+      "templates.decline",
+      "workflows.approve",
+      "workflows.decline",
+    ],
+    // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
+    calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
+    /** An accepted invite's messages; a draft's Ask Claude thread. */
+    load: async (db, id) => {
+      const [type, rest] = typed(id);
+      if (type === "video" || type === "template" || type === "workflow") return null;
+      const ask = {
+        ask: await draftTurns(db, type, rest),
+        record: await recordOfPage(db, type, rest),
+      };
+      if (type === "draft") return { shape: await shapeView(db, rest, signer), ...ask };
+      return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
+    },
+  });
+export const approvalRecord = approvalRecordOf();
 
 /** Followers per platform: the newest day kept, and the change from a week before it. */
 export const audienceRecord = defineRecord({
@@ -676,4 +684,11 @@ export const audienceRecord = defineRecord({
   actions: ["marketing.audienceRead"],
 });
 
-export const SOCIAL_RECORDS = [inboxRecord, approvalRecord, activityRecord, audienceRecord];
+/** The social records; the worker's sign a draft's stored files. */
+export const socialRecords = (signer?: VideoSigner) => [
+  inboxRecord,
+  approvalRecordOf(signer),
+  activityRecord,
+  audienceRecord,
+];
+export const SOCIAL_RECORDS = socialRecords();

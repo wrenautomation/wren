@@ -17,6 +17,7 @@ import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
+import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { videoExtras } from "./videos.js";
 
 const said = (line: string) => () => line;
@@ -33,6 +34,11 @@ const POST_ACTIONS: Action[] = [
 
 const WAITING = { state: ["draft", "failed"] };
 const OPEN = { state: ["draft", "failed", "approved"] };
+/** A post's fields and files, saved from inside the detail (fields.tsx), never from the head. */
+const fieldActions = (when: NonNullable<Action["when"]>): Action[] => [
+  { id: FIELDS, label: "Save", handler: "marketing/draftFields", inline: true, when },
+  { id: ATTACH, label: "Upload", handler: "marketing/draftAttach", inline: true, when },
+];
 /** A reject's why, both optional: a quick pick and a few words. */
 const REJECT_FORM: readonly FormField[] = [
   {
@@ -79,6 +85,7 @@ const DRAFT_ACTIONS: Action[] = [
     done: said("Rejected"),
   },
   ...draftActions("post", OPEN),
+  ...fieldActions(OPEN),
 ];
 
 const AD_ACTIONS: Action[] = [
@@ -492,6 +499,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ),
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
   ...LIPOST_ACTIONS.map((a) => only("lipost", a, WAITS)),
+  ...fieldActions({ type: ["draft"], state: ["new", "waiting", "read"] }),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
     type: ["draft", "thread", "invite", "lipost"],
@@ -599,8 +607,9 @@ const APPROVAL_PAGE: ListPage = {
   actions: APPROVAL_ACTIONS,
   extras: withDraft(
     (row) => APPROVAL_DRAFT[String(row.type)] ?? null,
-    (detail, at) =>
+    withShape((detail, at) =>
       (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+    ),
   ),
   count: { state: ["new", "waiting"] },
 };
@@ -751,7 +760,7 @@ export const marketing: Module = {
         rejected: "Nothing was turned down.",
       },
       actions: DRAFT_ACTIONS,
-      extras: withDraft(POST_DRAFT),
+      extras: withDraft(POST_DRAFT, withShape()),
     },
     {
       id: "content",
@@ -762,7 +771,7 @@ export const marketing: Module = {
       record: "marketing.post",
       empty: "Posts show here once one is published.",
       actions: POST_ACTIONS,
-      extras: postExtras,
+      extras: withShape(postExtras),
     },
     {
       id: "comments",

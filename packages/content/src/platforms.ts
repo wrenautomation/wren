@@ -4,6 +4,7 @@
  * into the channel port's `Post`.
  */
 import type { Media, Platform, Post } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 import type { ContentDraft } from "./schema.js";
 
 export interface PlatformSpec {
@@ -16,8 +17,6 @@ export interface PlatformSpec {
   readonly title?: { readonly maxChars: number };
   /** The platform cannot post text alone. */
   readonly needsMedia?: "video" | "image-or-video";
-  /** `extra` keys a person must set before approving (Reddit's subreddit). */
-  readonly needsExtra?: readonly string[];
   /** What the model is told to write, one line. */
   readonly shape: string;
   /** The lander's `/go/<channel>` code, so a visit names the platform (lander src/data/links.json). */
@@ -49,7 +48,6 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     platform: "reddit",
     maxChars: 40000,
     title: { maxChars: 300 },
-    needsExtra: ["subreddit"],
     shape:
       "a Reddit text post: a plain title that states the point or the question (under 120 characters), then a body written like a practitioner sharing what they did and learned, specifics and numbers, no pitch, no links, no emoji, no hashtags, under 2000 characters",
     name: "Reddit",
@@ -116,17 +114,6 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
   return null;
 }
 
-/** The `extra` keys this draft still lacks before it may be approved. */
-export function missingExtra(
-  spec: PlatformSpec,
-  extra: Readonly<Record<string, unknown>>,
-): string[] {
-  return (spec.needsExtra ?? []).filter((k) => {
-    const v = extra[k];
-    return v === undefined || v === null || v === "";
-  });
-}
-
 /**
  * This draft's tracked link, `<site>/go/<code>/<first 8 of the draft id>`, or
  * null when links are off (no site) or the platform takes none in its text.
@@ -142,16 +129,18 @@ export function postLink(
 }
 
 /**
- * The channel port's post for a draft: text, the file, the title where the
- * platform has one. `link` goes on its own line at the end, dropped if the
- * text would pass the platform's cap.
+ * The channel port's post for a draft: text, the file, its fields (the title where the platform
+ * has one), parsed against its shape: a bad field throws `ShapeError` before anything sends.
+ * `link` goes on its own line at the end, dropped if the text would pass the platform's cap.
  */
 export function postOf(
   draft: Pick<ContentDraft, "text" | "title" | "media" | "extra" | "platform">,
   link?: string | null,
 ): Post {
-  const extra: Record<string, unknown> = { ...draft.extra };
-  if (draft.title) extra.title = draft.title;
+  const extra: Record<string, unknown> = fieldsOf(draft.platform, {
+    ...draft.extra,
+    ...(draft.title ? { title: draft.title } : {}),
+  });
   const linked = link ? `${draft.text.trimEnd()}\n\n${link}` : draft.text;
   return {
     text: linked.length <= PLATFORM_SPECS[draft.platform].maxChars ? linked : draft.text,

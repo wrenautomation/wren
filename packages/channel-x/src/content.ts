@@ -21,6 +21,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 
 export interface XContentOptions {
   now?: () => Date;
@@ -69,8 +70,10 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         if (!up.data?.id) throw new Error("x: the media upload answered no id");
         body.media = { media_ids: [up.data.id] };
       }
-      if (post.extra?.replyTo) body.reply = { in_reply_to_tweet_id: post.extra.replyTo };
-      if (post.extra?.quote) body.quote_tweet_id = post.extra.quote;
+      const f = fieldsOf("x", post.extra);
+      if (f.replyTo) body.reply = { in_reply_to_tweet_id: f.replyTo };
+      if (f.quote) body.quote_tweet_id = f.quote;
+      if (f.replySettings) body.reply_settings = f.replySettings;
       const r = await sites.call<{ data?: { id?: string } }>("x", "POST", "/2/tweets", body);
       if (!r.data?.id) throw new Error("x: the post answered no id");
       const { username } = await whoami();

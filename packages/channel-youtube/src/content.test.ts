@@ -25,7 +25,11 @@ describe("youtube content channel", () => {
       "POST /upload/youtube/v3/videos": (i) => {
         expect(i).toEqual({
           snippet: { title: "My video", description: "desc", tags: ["a"] },
-          status: { privacyStatus: "unlisted", publishAt: "2026-10-01T12:00:00.000Z" },
+          status: {
+            privacyStatus: "unlisted",
+            publishAt: "2026-10-01T12:00:00.000Z",
+            selfDeclaredMadeForKids: false,
+          },
           file: "/data/out.mp4",
         });
         return { id: "v1", snippet: { publishedAt: "2026-09-21T00:00:00Z" } };
@@ -120,6 +124,9 @@ describe("youtube content channel", () => {
         extra: { thumbnail: "/mac/thumb1.png" },
       });
       expect(p.id).toBe("v2");
+      expect(p.notes).toEqual(
+        refuse ? ["Thumbnail not set: 403 custom thumbnails need a verified channel"] : undefined,
+      );
       expect(calls[0]?.[2]).not.toHaveProperty("thumbnail");
       expect(calls[1]).toEqual([
         "POST",
@@ -127,6 +134,64 @@ describe("youtube content channel", () => {
         { videoId: "v2", file: "/mac/thumb1.png", contentType: "image/png" },
       ]);
     }
+  });
+
+  it("sends every field of its shape: kids, AI label, languages, notify, subtitles, playlist", async () => {
+    const { sites, calls } = fakeSites({
+      "POST /upload/youtube/v3/videos": () => ({ id: "v3" }),
+      "POST /upload/youtube/v3/captions": () => {
+        throw new Error("400 bad caption file");
+      },
+      "POST /youtube/v3/playlistItems": () => ({ id: "pi1" }),
+    });
+    const p = await youtubeContent(sites).publish({
+      text: "d",
+      media: { kind: "video", source: "/v.mp4" },
+      extra: {
+        title: "T",
+        kind: "short",
+        thumbnail: "s3://b/media/t.jpg",
+        madeForKids: true,
+        syntheticMedia: true,
+        notifySubscribers: false,
+        defaultLanguage: "en",
+        defaultAudioLanguage: "es",
+        categoryId: "27",
+        captions: "https://example.com/c.vtt",
+        captionsLanguage: "es",
+        playlistId: "PLabcdefghij",
+      },
+    });
+    expect(calls.map(([, path]) => path)).toEqual([
+      "/upload/youtube/v3/videos",
+      // A Short takes no thumbnail; the subtitles failing is a note, the playlist still goes.
+      "/upload/youtube/v3/captions",
+      "/youtube/v3/playlistItems",
+    ]);
+    expect(calls[0]?.[2]).toMatchObject({
+      snippet: { title: "T", categoryId: "27", defaultLanguage: "en", defaultAudioLanguage: "es" },
+      status: { privacyStatus: "private", selfDeclaredMadeForKids: true, containsSyntheticMedia: true },
+      notifySubscribers: false,
+    });
+    expect(calls[1]?.[2]).toEqual({
+      videoId: "v3",
+      language: "es",
+      file: "https://example.com/c.vtt",
+    });
+    expect(calls[2]?.[2]).toEqual({ playlistId: "PLabcdefghij", videoId: "v3" });
+    expect(p.notes).toEqual(["Subtitles not set: 400 bad caption file"]);
+  });
+
+  it("refuses a field its shape won't take before any call", async () => {
+    const { sites, calls } = fakeSites({});
+    await expect(
+      youtubeContent(sites).publish({
+        text: "d",
+        media: { kind: "video", source: "/v.mp4", title: "T" },
+        extra: { privacyStatus: "friends" },
+      }),
+    ).rejects.toThrow("Visibility");
+    expect(calls).toEqual([]);
   });
 
   it("a post without a video or a title is refused before any call", async () => {

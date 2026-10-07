@@ -4,10 +4,11 @@
  * what goes out is always something a person approved as written.
  */
 import type { Platform } from "@wren/core/content";
+import { fieldsOf, missingFields, patchFields } from "@wren/core/content/shapes";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
-import { missingExtra, PLATFORM_SPECS } from "./platforms.js";
+import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 
@@ -93,7 +94,7 @@ async function approveAll(
   o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots },
 ): Promise<ContentDraft[]> {
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
-  await refuseMissingExtra(db, ids);
+  await refuseIncomplete(db, ids);
   if (o.at || o.asap || !o.zone)
     return moveAll(db, ids, APPROVABLE, { ...base, scheduledFor: o.at ?? null }, "approve");
   const zone = o.zone;
@@ -145,45 +146,78 @@ async function heldSlots(db: Queryable, platform: Platform, now: Date): Promise<
   return rows.flatMap((r) => (r.at ? [r.at] : []));
 }
 
-/** A draft whose platform needs an `extra` key (Reddit's subreddit) is not approvable without it. */
-async function refuseMissingExtra(db: Queryable, ids: readonly string[]): Promise<void> {
+/**
+ * A draft is approvable only with its shape whole: every required field set (Reddit's subreddit
+ * and title) and every value one its platform takes (designs/2026-10-07-post-shapes.md).
+ */
+async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
   const rows = await db
-    .select({ id: contentDrafts.id, platform: contentDrafts.platform, extra: contentDrafts.extra })
+    .select({
+      id: contentDrafts.id,
+      platform: contentDrafts.platform,
+      extra: contentDrafts.extra,
+      title: contentDrafts.title,
+    })
     .from(contentDrafts)
     .where(inArray(contentDrafts.id, [...ids]));
-  const lacking = rows
-    .map((r) => ({ id: r.id, missing: missingExtra(PLATFORM_SPECS[r.platform], r.extra) }))
-    .filter((r) => r.missing.length > 0);
-  if (lacking.length > 0)
-    throw new Error(
-      `cannot approve: ${lacking.map((r) => `${r.id} needs ${r.missing.join(", ")}`).join("; ")} (wren content extra <id> key=value)`,
-    );
+  const lacking = rows.flatMap((r) => {
+    try {
+      fieldsOf(r.platform, r.extra);
+    } catch (err) {
+      return [`${r.id}: ${(err as Error).message}`];
+    }
+    const missing = missingFields(r.platform, r.extra, r.title);
+    return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
+  });
+  if (lacking.length > 0) throw new Error(`cannot approve: ${lacking.join("; ")}`);
 }
 
 /**
- * Merge keys into a draft's `extra` (a `null` value removes one). The text is
- * untouched, so an approved draft stays approved: where it goes is not what it says.
+ * Set a draft's fields (its platform's shape; `null` or "" unsets one), checked whole before it
+ * is written. A field leaves an approved draft approved: where and how it goes is not what it
+ * says. The title is words: changing it puts the draft back to `draft`, like `editDraft`. Each
+ * change is an `edited` step in the draft record, `meta.fields` holding before and after.
  */
-export async function setExtra(
+export async function setFields(
   db: Queryable,
   id: string,
   patch: Readonly<Record<string, unknown>>,
+  who?: { by: string; via?: DraftVia },
 ): Promise<ContentDraft> {
   const current = await getDraft(db, id);
   if (!EDITABLE.includes(current.status))
     throw new Error(`cannot change ${id}: it is ${current.status}`);
-  const extra: Record<string, unknown> = { ...current.extra };
-  for (const [k, v] of Object.entries(patch)) {
-    if (v === null) delete extra[k];
-    else extra[k] = v;
-  }
+  const next = patchFields(current.platform, current.extra, patch);
+  const retitled = next.title !== undefined && next.title !== current.title;
+  if (retitled && !next.title && PLATFORM_SPECS[current.platform].title)
+    throw new Error(`${current.platform} needs a title`);
+  if (!retitled && Object.keys(next.changed).length === 0) return current;
   const [row] = await db
     .update(contentDrafts)
-    .set({ extra })
+    .set({
+      extra: next.extra,
+      ...(retitled ? { title: next.title ?? null, edited: true, status: "draft", error: null } : {}),
+    })
     .where(eq(contentDrafts.id, id))
     .returning();
   if (!row) throw new Error(`no draft ${id}`);
+  if (who)
+    await recordDraft(db, {
+      item: `draft:${id}`,
+      platform: row.platform,
+      event: "edited",
+      via: who.via ?? "person",
+      by: who.by,
+      text: row.text,
+      title: row.title,
+      meta: {
+        fields: {
+          ...next.changed,
+          ...(retitled ? { title: [current.title, row.title] } : {}),
+        },
+      },
+    });
   return row;
 }
 

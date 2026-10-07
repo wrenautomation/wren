@@ -54,7 +54,7 @@ import { marketingConsoleApi } from "../../../packages/content/src/restate/marke
 import { videoRecord } from "../../../packages/content/src/video.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
-import { CLIENT_MARKETING, MARKETING_NUMBERS } from "../../worker/src/marketing.js";
+import { clientMarketing, marketingNumbers } from "../../worker/src/marketing.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
@@ -71,6 +71,14 @@ const files: FileStore = {
   putUrl: async (key) => `http://localhost:${port}/files/${key}`,
   getUrl: async (key) => `http://localhost:${port}/files/${key}`,
   put: async (key, bytes, type) => void stored.set(key, { type, bytes: Buffer.from(bytes) }),
+};
+/** A draft's stored files (thumbnail, cover) from the same store: `s3://<any bucket>/<key>`. */
+const media = {
+  bucket: "preview",
+  host: {
+    host: async (source: string) =>
+      `http://localhost:${port}/files/${source.replace(/^s3:\/\/[^/]+\//, "")}`,
+  },
 };
 /** The checks the Worker runs (services.ts `setupChecks`): the rest say "in development". */
 const LIVE_CHECKS = new Set([
@@ -129,7 +137,7 @@ const SERVICES: Record<
         clientRecord,
         // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
         // companies. Videos have no media host here: no playback.
-        ...MARKETING_NUMBERS,
+        ...marketingNumbers(media),
         videoRecord(),
         firmRecord,
         // Voice's calls and Latency, as the worker registers them.
@@ -159,7 +167,7 @@ const SERVICES: Record<
     api: marketingConsoleApi({
       db: main,
       open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
-      records: CLIENT_MARKETING,
+      records: clientMarketing(media),
     }),
   },
   // A client's Calendar app (its week and its calls), from its own database. Outcomes and cancel

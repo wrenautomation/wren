@@ -19,6 +19,8 @@ import {
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { DRAFT_CALLS } from "./draft-calls.js";
+import { shapeView } from "./shape-view.js";
+import type { VideoSigner } from "./video.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 
@@ -68,124 +70,142 @@ const DRAFT_STATES: Record<DraftStatus, State> = {
 
 export { DRAFT_CALLS };
 
-export const draftRecord = defineRecord({
-  id: "marketing.draft",
-  app: "marketing",
-  channel: { field: "platform" },
-  name: { one: "draft", many: "drafts" },
-  view: "marketing_draft_records",
-  key: "id",
-  title: "title",
-  subtitle: "platform",
-  fields: {
-    title: text("Post"),
-    platform: status(PLATFORM_STATES),
-    state: status(DRAFT_STATES),
-    text: text("Text"),
-    chars: number("Characters"),
-    written: status(
+/** Drafts; `signer` links the stored files (thumbnail, cover) the field editor shows. */
+export const draftRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.draft",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "draft", many: "drafts" },
+    view: "marketing_draft_records",
+    key: "id",
+    title: "title",
+    subtitle: "platform",
+    fields: {
+      title: text("Post"),
+      platform: status(PLATFORM_STATES),
+      state: status(DRAFT_STATES),
+      text: text("Text"),
+      chars: number("Characters"),
+      written: status(
+        {
+          model: { label: "Wren", tone: "neutral" },
+          edited: { label: "You edited it", tone: "neutral" },
+        },
+        "Written by",
+      ),
+      note: text("Your redraft note"),
+      error: text("Last error"),
+      scheduled: date("Posts at"),
+      created: date("Drafted"),
+    },
+    views: [
       {
-        model: { label: "Wren", tone: "neutral" },
-        edited: { label: "You edited it", tone: "neutral" },
+        id: "waiting",
+        label: "Waiting on you",
+        where: { state: ["draft", "failed"] },
+        sort: "-created",
+        at: "created",
       },
-      "Written by",
-    ),
-    note: text("Your redraft note"),
-    error: text("Last error"),
-    scheduled: date("Posts at"),
-    created: date("Drafted"),
-  },
-  views: [
-    {
-      id: "waiting",
-      label: "Waiting on you",
-      where: { state: ["draft", "failed"] },
-      sort: "-created",
-      at: "created",
-    },
-    {
-      id: "scheduled",
-      label: "Scheduled",
-      where: { state: ["approved", "publishing"] },
-      sort: "scheduled",
-      at: "scheduled",
-    },
-    {
-      id: "rejected",
-      label: "Rejected",
-      where: { state: "rejected" },
-      sort: "-created",
-      at: "created",
-    },
-  ],
-  activity: { view: "draft_activity", by: "draft", seq: "seq" },
-  drafts: (id) => [`draft:${id}`],
-  actions: [
-    "marketing.approveDraft",
-    "marketing.redraft",
-    "marketing.rejectDraft",
-    "marketing.draftSet",
-    "marketing.draftAsk",
-    "marketing.draftUndo",
-  ],
-  calls: DRAFT_CALLS,
-  /** The preview, and Ask Claude's thread on it. */
-  load: async (db, id) => ({
-    post: await postOf(db, id),
-    ask: await draftTurns(db, "draft", id),
-    record: await recordOfPage(db, "draft", id),
-  }),
-});
-
-export const postRecord = defineRecord({
-  id: "marketing.post",
-  app: "marketing",
-  channel: { field: "platform" },
-  name: { one: "post", many: "posts" },
-  view: "marketing_post_records",
-  key: "id",
-  title: "title",
-  subtitle: "platform",
-  fields: {
-    title: text("Post"),
-    platform: status(PLATFORM_STATES),
-    published: date(),
-    views: number(),
-    reactions: number(),
-    comments: number(),
-    shares: number(),
-    engagement: rate("views", "Engagement", { from: "engaged" }),
-    // When the numbers were counted, and the week filter's key: in the detail, not the list.
-    measured: date("Counted", { listed: false }),
-    url: link("Link"),
-    recent: status(
       {
-        recent: { label: "Last 7 days", tone: "good" },
-        earlier: { label: "Earlier", tone: "neutral" },
+        id: "scheduled",
+        label: "Scheduled",
+        where: { state: ["approved", "publishing"] },
+        sort: "scheduled",
+        at: "scheduled",
       },
-      "When",
-      { listed: false },
-    ),
-  },
-  views: [
-    { id: "all", label: "All", sort: "-published", at: "published" },
-    {
-      id: "week",
-      label: "This week",
-      where: { recent: "recent" },
-      sort: "-published",
-      at: "published",
-    },
-    { id: "top", label: "Top", sort: "-views", at: "published" },
-    { id: "platform", label: "By platform", sort: "platform", at: "published" },
-  ],
-  activity: { view: "draft_activity", by: "post", seq: "seq" },
-  drafts: (id) => [`draft:${id.split("/").at(-1)}`],
-  actions: ["marketing.draftAgain"],
-  load: async (db, id) => ({ post: await postOf(db, id.split("/")[2] ?? "") }),
-});
+      {
+        id: "rejected",
+        label: "Rejected",
+        where: { state: "rejected" },
+        sort: "-created",
+        at: "created",
+      },
+    ],
+    activity: { view: "draft_activity", by: "draft", seq: "seq" },
+    drafts: (id) => [`draft:${id}`],
+    actions: [
+      "marketing.approveDraft",
+      "marketing.redraft",
+      "marketing.rejectDraft",
+      "marketing.draftSet",
+      "marketing.draftAsk",
+      "marketing.draftUndo",
+      "marketing.draftFields",
+      "marketing.draftAttach",
+    ],
+    calls: DRAFT_CALLS,
+    /** The preview, its fields, and Ask Claude's thread on it. */
+    load: async (db, id) => ({
+      post: await postOf(db, id),
+      shape: await shapeView(db, id, signer),
+      ask: await draftTurns(db, "draft", id),
+      record: await recordOfPage(db, "draft", id),
+    }),
+  });
 
-export const CONTENT_RECORDS = [draftRecord, postRecord];
+/** Published posts; the fields show what went out. */
+export const postRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.post",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "post", many: "posts" },
+    view: "marketing_post_records",
+    key: "id",
+    title: "title",
+    subtitle: "platform",
+    fields: {
+      title: text("Post"),
+      platform: status(PLATFORM_STATES),
+      published: date(),
+      views: number(),
+      reactions: number(),
+      comments: number(),
+      shares: number(),
+      engagement: rate("views", "Engagement", { from: "engaged" }),
+      // When the numbers were counted, and the week filter's key: in the detail, not the list.
+      measured: date("Counted", { listed: false }),
+      url: link("Link"),
+      recent: status(
+        {
+          recent: { label: "Last 7 days", tone: "good" },
+          earlier: { label: "Earlier", tone: "neutral" },
+        },
+        "When",
+        { listed: false },
+      ),
+    },
+    views: [
+      { id: "all", label: "All", sort: "-published", at: "published" },
+      {
+        id: "week",
+        label: "This week",
+        where: { recent: "recent" },
+        sort: "-published",
+        at: "published",
+      },
+      { id: "top", label: "Top", sort: "-views", at: "published" },
+      { id: "platform", label: "By platform", sort: "platform", at: "published" },
+    ],
+    activity: { view: "draft_activity", by: "post", seq: "seq" },
+    drafts: (id) => [`draft:${id.split("/").at(-1)}`],
+    actions: ["marketing.draftAgain"],
+    load: async (db, id) => ({
+      post: await postOf(db, id.split("/")[2] ?? ""),
+      shape: await shapeView(db, id.split("/")[2] ?? "", signer),
+    }),
+  });
+
+export const draftRecord = draftRecordOf();
+export const postRecord = postRecordOf();
+/** The posts' records; the worker's sign the stored files. */
+export const contentRecords = (signer?: VideoSigner) => [
+  draftRecordOf(signer),
+  postRecordOf(signer),
+];
+export const CONTENT_RECORDS = contentRecords();
 export { mediaRecord, sopRecord } from "./library.js";
 export * from "./social/records.js";
+export { type ShapeView, shapeView } from "./shape-view.js";
 export { type VideoSigner, videoRecord } from "./video.js";

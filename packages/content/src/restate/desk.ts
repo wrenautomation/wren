@@ -13,6 +13,7 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
 import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
+import { SHAPES } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
@@ -23,7 +24,9 @@ import { z } from "zod";
 import { clientContent, clientPlan } from "../clients.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
-import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
+import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
+import type { MediaStoreOptions } from "../media.js";
+import { approveDrafts, editDraft, getDraft, rejectDrafts, setFields } from "../review.js";
 import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
 import { slotsOf } from "../slots.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
@@ -44,6 +47,8 @@ export interface ContentDeskDeps {
   voice?: string;
   brand?: Brand;
   tracer?: Tracer | null;
+  /** The media store a field's file goes to (thumbnail, cover); none: `attach` refuses. */
+  media?: MediaStoreOptions;
   /** A client's desk: its database and the model its drafts run on. None: a client's key fails. */
   clients?: { clientDb: (client: string) => Db; llm: LlmClient | null };
 }
@@ -115,6 +120,23 @@ const REJECT = z.looseObject({
   reason: z.enum(REJECT_REASONS).nullish().describe("Why, as a quick pick"),
   note: z.string().nullish().describe("Why, in a few words"),
   viewer: PORTAL_FIELDS.viewer,
+});
+const FIELDS = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
+  draftId: z.string(),
+  patch: z
+    .record(z.string(), z.unknown())
+    .describe("Fields of the draft's platform shape; null unsets one"),
+});
+const ATTACH = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
+  draftId: z.string(),
+  field: z.string().describe("The file's field: thumbnail, captions, cover"),
+  name: z.string().describe("The file's name; its extension names the type"),
+  data: z
+    .string()
+    .max(Math.ceil((ATTACH_MAX_BYTES * 4) / 3) + 4)
+    .describe("The bytes, base64"),
 });
 const EDIT = z.looseObject({
   viewer: PORTAL_FIELDS.viewer,
@@ -316,6 +338,45 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           const { db } = await scopeOf(ctx);
           return ctx.run("reject", () =>
             verdict(() => rejectDrafts(db, req.ids, { by: byOf(req), ...rejectWhy(req) })),
+          );
+        },
+      ),
+      /**
+       * The draft's fields, checked against its platform's shape; the draft record keeps each
+       * change. A file field only unsets here: `attach` sets it.
+       */
+      fields: exclusiveHandler(
+        { input: FIELDS },
+        async (
+          ctx: restate.ObjectContext,
+          req: { draftId: string; patch: Record<string, unknown>; viewer?: unknown },
+        ) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("fields", () =>
+            verdict(async () => {
+              const d = await getDraft(db, req.draftId);
+              for (const [k, v] of Object.entries(req.patch)) {
+                const f = SHAPES[d.platform].fields.find((x) => x.key === k);
+                if ((f?.input === "image" || f?.input === "captions") && v !== null && v !== "")
+                  throw new Error(`${f.label}: upload a file`);
+              }
+              return [await setFields(db, req.draftId, req.patch, { by: byOf(req) })];
+            }),
+          );
+        },
+      ),
+      /** A file on a field (thumbnail, subtitles, cover): to the media store, then the field. */
+      attach: exclusiveHandler(
+        { input: ATTACH },
+        async (
+          ctx: restate.ObjectContext,
+          req: { draftId: string; field: string; name: string; data: string; viewer?: unknown },
+        ) => {
+          const media = deps.media;
+          if (!media) throw new restate.TerminalError("no media store here", { errorCode: 503 });
+          const { db } = await scopeOf(ctx);
+          return ctx.run("attach", () =>
+            verdict(async () => [await attachFile(db, media, req, { by: byOf(req) })]),
           );
         },
       ),

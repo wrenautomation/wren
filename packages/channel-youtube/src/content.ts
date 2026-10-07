@@ -23,6 +23,7 @@ import {
   previewOf,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 
 export interface YouTubeContentOptions {
   now?: () => Date;
@@ -92,40 +93,62 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         throw new Error(
           "youtube: a post is a video (media.kind = video, media.source = path or URL)",
         );
-      const title = (post.extra?.title as string | undefined) ?? post.media.title;
+      const f = fieldsOf("youtube", post.extra);
+      const title = f.title ?? post.media.title;
       if (!title) throw new Error("youtube: a title is needed (media.title or extra.title)");
       const v = await sites.call<Video>("youtube", "POST", "/upload/youtube/v3/videos", {
         snippet: {
           title,
           description: post.text,
-          ...(Array.isArray(post.extra?.tags) ? { tags: post.extra.tags } : {}),
-          ...(post.extra?.categoryId ? { categoryId: post.extra.categoryId } : {}),
+          ...(f.tags?.length ? { tags: f.tags } : {}),
+          ...(f.categoryId ? { categoryId: f.categoryId } : {}),
+          ...(f.defaultLanguage ? { defaultLanguage: f.defaultLanguage } : {}),
+          ...(f.defaultAudioLanguage ? { defaultAudioLanguage: f.defaultAudioLanguage } : {}),
         },
         status: {
-          privacyStatus:
-            (post.extra?.privacyStatus as string | undefined) ?? o.privacy ?? "private",
+          privacyStatus: f.privacyStatus ?? o.privacy ?? "private",
           ...(post.scheduledFor ? { publishAt: post.scheduledFor } : {}),
+          selfDeclaredMadeForKids: f.madeForKids ?? false,
+          ...(f.syntheticMedia !== undefined ? { containsSyntheticMedia: f.syntheticMedia } : {}),
         },
+        ...(f.notifySubscribers !== undefined ? { notifySubscribers: f.notifySubscribers } : {}),
         file: await mediaFileOf(post.media.source, o.host, "youtube"),
       });
-      // The video is up: a thumbnail that fails (an unverified channel refuses custom ones) must
-      // not fail the post, or a retry would upload the video twice.
-      const thumb = post.extra?.thumbnail;
-      if (typeof thumb === "string" && thumb)
-        await sites
-          .call("youtube", "POST", "/upload/youtube/v3/thumbnails/set", {
+      // The video is up: what follows must not fail the post, or a retry would upload it twice.
+      // A step that fails is a note on the draft (an unverified channel refuses custom thumbnails).
+      const notes: string[] = [];
+      const after = (what: string, step: () => Promise<unknown>) =>
+        step().catch((err: Error) => void notes.push(`${what} not set: ${err.message}`));
+      const thumb = f.kind === "short" ? undefined : f.thumbnail;
+      if (thumb)
+        await after("Thumbnail", async () =>
+          sites.call("youtube", "POST", "/upload/youtube/v3/thumbnails/set", {
             videoId: v.id,
             file: await mediaFileOf(thumb, o.host, "youtube"),
             ...(/\.png$/i.test(thumb) ? { contentType: "image/png" } : {}),
-          })
-          .catch((err: Error) =>
-            console.warn(`youtube ${v.id}: thumbnail not set: ${err.message}`),
-          );
+          }),
+        );
+      const captions = f.captions;
+      if (captions)
+        await after("Subtitles", async () =>
+          sites.call("youtube", "POST", "/upload/youtube/v3/captions", {
+            videoId: v.id,
+            language: f.captionsLanguage ?? "en",
+            file: await mediaFileOf(captions, o.host, "youtube"),
+          }),
+        );
+      if (f.playlistId) {
+        const playlistId = f.playlistId;
+        await after("Playlist", () =>
+          sites.call("youtube", "POST", "/youtube/v3/playlistItems", { playlistId, videoId: v.id }),
+        );
+      }
       return {
         id: v.id,
         url: videoUrl(v.id),
         publishedAt: post.scheduledFor ?? v.snippet?.publishedAt ?? now().toISOString(),
         fetchedWith: await via("POST", "/upload/youtube/v3/videos"),
+        ...(notes.length ? { notes } : {}),
       };
     },
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {

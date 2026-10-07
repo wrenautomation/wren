@@ -134,7 +134,7 @@ describe("reddit content channel", () => {
       ch.publish({
         text: "x",
         media: { kind: "image", source: "a.png" },
-        extra: { subreddit: "s", title: "t" },
+        extra: { subreddit: "sales", title: "t" },
       }),
     ).rejects.toThrow(/media/);
     await expect(

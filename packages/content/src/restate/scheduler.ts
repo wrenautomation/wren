@@ -16,6 +16,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
 import type { Platform, Post, Published } from "@wren/core/content";
+import { ShapeError } from "@wren/core/content/shapes";
 import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -124,7 +125,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       } catch (err) {
         // A terminal refusal (no channel, the platform said no) is this draft's
         // problem: recorded on the row, the pass moves on. Anything else retries.
-        if (!(err instanceof restate.TerminalError)) throw err;
+        if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
         const error = errorText(err);
         await ctx.run(`failed ${draft.id}`, () => markFailed(o.db, draft.id, error));
         stats.failed.push({ id: draft.id, platform: draft.platform, error });

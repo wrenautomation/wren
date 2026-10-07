@@ -227,6 +227,10 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/rejectDraft": (id, { reason, note }) =>
     desk("reject", { ids: [bare(id)], reason, note }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
+  // A post's fields (designs/2026-10-07-post-shapes.md): a change, or a file's bytes on one.
+  "marketing/draftFields": (id, { patch }) => desk("fields", { draftId: draftOf(id), patch }),
+  "marketing/draftAttach": (id, { field, name, data }) =>
+    desk("attach", { draftId: draftOf(id), field, name, data }),
   // A video's yes, from its page or the Inbox (`video:3`).
   "marketing/videoApprove": (id, { privacy }) =>
     desk("approveVideo", { id: num(id), privacy: privacy || null }),
@@ -343,6 +347,8 @@ const desk = (handler: string, input: Input) =>
 /** An Inbox id carries its type ("comment:12", "draft:3"); after the colon is the row's own id. */
 const bare = (id: string) => id.slice(id.indexOf(":") + 1);
 const num = (id: string) => Number(bare(id));
+/** A post draft's id from any page's: "draft:<id>" (To approve), "idea/platform/<id>" (Posts). */
+const draftOf = (id: string) => bare(id.slice(id.lastIndexOf("/") + 1));
 /** The words when typed; an untouched draft is left out and the desk sends the one it holds. */
 const words = (body: unknown) => (typeof body === "string" ? { body } : {});
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
@@ -355,6 +361,14 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
     { ids: [bare(id)], reason, note },
   ],
   "marketing/redraft": (id, { note }) => ["marketing/redraft", { draftId: bare(id), note }],
+  "marketing/draftFields": (id, { patch }) => [
+    "marketing/draftFields",
+    { draftId: draftOf(id), patch },
+  ],
+  "marketing/draftAttach": (id, { field, name, data }) => [
+    "marketing/draftAttach",
+    { draftId: draftOf(id), field, name, data },
+  ],
 };
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {

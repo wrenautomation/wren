@@ -248,7 +248,7 @@ import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
-import { CLIENT_MARKETING, MARKETING_NUMBERS } from "./marketing.js";
+import { clientMarketing, marketingNumbers } from "./marketing.js";
 import { copyRecords } from "./record-edits.js";
 import { reviewRecord } from "./review.js";
 import { SETUPS } from "./setups.js";
@@ -902,6 +902,10 @@ export async function buildServices(
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
+  // A draft's stored files (thumbnail, cover, the video) signed for its field editor.
+  const mediaSigner = settings.mediaBucket
+    ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
+    : undefined;
   // The Monitor's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   services.push(
@@ -914,9 +918,11 @@ export async function buildServices(
       // A client's drafts: its database, the watch's model metered on its own gate.
       clients: { clientDb, llm: watchLlm },
       ...(voice !== null ? { voice } : {}),
+      // A post field's file (thumbnail, subtitles, cover) goes up to the media bucket.
+      ...(settings.mediaBucket ? { media: { bucket: settings.mediaBucket } } : {}),
     }),
     // A client's Marketing in the portal: its drafts, posts, ads and search; verdicts to its desk.
-    makeMarketingConsole({ db, open: openClient, records: CLIENT_MARKETING }),
+    makeMarketingConsole({ db, open: openClient, records: clientMarketing(mediaSigner) }),
     makeContentScheduler({
       db,
       linkSite: settings.contentLinkSite ?? null,
@@ -1452,7 +1458,7 @@ export async function buildServices(
         ...CALENDAR_RECORDS,
         ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
-        ...MARKETING_NUMBERS,
+        ...marketingNumbers(mediaSigner),
         // Replays: read live from the lander, chunks signed from the files bucket. Heatmaps draw
         // on the newest one; without them, their counts still show.
         ...(sessions ? [sessionRecord(sessions), surveyAnswerRecord(sessions.site)] : []),

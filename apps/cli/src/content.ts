@@ -26,7 +26,7 @@ import {
   planFor,
   rejectDrafts,
   type Slot,
-  setExtra,
+  setFields,
   slotsOf,
   tomorrowOf,
   uploadMedia,
@@ -48,6 +48,7 @@ import {
   SCHEDULER_KEY,
 } from "@wren/content/restate";
 import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
+import { coerceField, fieldViews } from "@wren/core/content/shapes";
 import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -302,19 +303,27 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     });
 
   content
-    .command("extra <draftId> <pairs...>")
+    .command("fields <draftId> [pairs...]")
     .description(
-      "Set platform extras on a draft (subreddit=startups, url=https://…); key= removes one",
+      "A draft's fields, its platform's shape (subreddit=startups tags=a,b madeForKids=off); key= unsets one. No pairs: list them",
     )
     .action(async (id: string, pairs: string[]) => {
-      const patch: Record<string, string | null> = {};
+      const draft = await withDb((db) => getDraft(db, id));
+      if (pairs.length === 0) {
+        for (const f of fieldViews(draft.platform, draft.extra, draft.title))
+          console.log(
+            `${f.key.padEnd(22)} ${JSON.stringify(f.value ?? f.default ?? null).padEnd(24)} ${f.label}${f.required ? " *" : ""}${f.status === "sent" ? "" : f.status === "dev" ? " (in development)" : " (not in the API)"}`,
+          );
+        return;
+      }
+      const patch: Record<string, unknown> = {};
       for (const pair of pairs) {
         const eq = pair.indexOf("=");
         if (eq <= 0) throw new Error(`expected key=value, got ${pair}`);
-        const value = pair.slice(eq + 1).trim();
-        patch[pair.slice(0, eq).trim()] = value === "" ? null : value;
+        const key = pair.slice(0, eq).trim();
+        patch[key] = coerceField(draft.platform, key, pair.slice(eq + 1));
       }
-      printDraftRow(await withDb((db) => setExtra(db, id, patch)));
+      printDraftRow(await withDb((db) => setFields(db, id, patch, { by: "cli" })));
     });
 
   const q = content.command("queue").description("the publish loop (ContentScheduler)");

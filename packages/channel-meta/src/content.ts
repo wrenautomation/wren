@@ -26,6 +26,7 @@ import {
   publicUrlOf,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 
 export interface MetaContentOptions {
   now?: () => Date;
@@ -98,13 +99,23 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
       if (!post.media) throw new Error("instagram: a post is an image or a video");
+      const f = fieldsOf("instagram", post.extra);
       const ig = await igUser();
       const url = await publicUrlOf(post.media.source, o.host, "instagram");
       const video = post.media.kind === "video";
+      const reel = video
+        ? {
+            ...(f.cover ? { cover_url: await publicUrlOf(f.cover, o.host, "instagram") } : {}),
+            ...(f.thumbOffset !== undefined ? { thumb_offset: f.thumbOffset } : {}),
+            ...(f.audioName ? { audio_name: f.audioName } : {}),
+          }
+        : {};
       const container = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
         ...(video ? { video_url: url, media_type: "REELS" } : { image_url: url }),
         caption: post.text,
-        ...(post.extra?.shareToFeed === false ? { share_to_feed: false } : {}),
+        ...(f.shareToFeed === false ? { share_to_feed: false } : {}),
+        ...(f.collaborators?.length ? { collaborators: f.collaborators } : {}),
+        ...reel,
       });
       if (!container.id) throw new Error("instagram: the container answered no id");
       // A video container is ready once Graph has fetched and processed it.
@@ -221,6 +232,7 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
   return {
     platform: "facebook",
     async publish(post: Post): Promise<Published> {
+      const { link } = fieldsOf("facebook", post.extra);
       const p = await page();
       let r: { id?: string; post_id?: string };
       let path: string;
@@ -228,7 +240,7 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         path = "/{pageId}/feed";
         r = await sites.call("meta", "POST", `/${p.id}/feed`, {
           message: post.text,
-          ...(post.extra?.link ? { link: post.extra.link } : {}),
+          ...(link ? { link } : {}),
           ...(post.scheduledFor
             ? {
                 published: false,

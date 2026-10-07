@@ -24,6 +24,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
 
 export const REDDIT_SITE = "reddit";
 
@@ -98,14 +99,14 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
   return {
     platform: "reddit",
     async publish(post: Post): Promise<Published> {
-      const sr = post.extra?.subreddit;
-      const title = post.extra?.title;
-      if (typeof sr !== "string" || sr === "")
-        throw new Error("reddit: extra.subreddit is required");
-      if (typeof title !== "string" || title === "") throw new Error("reddit: a title is required");
+      const f = fieldsOf("reddit", post.extra);
+      const sr = f.subreddit;
+      const title = f.title;
+      if (!sr) throw new ShapeError("reddit: a subreddit is required");
+      if (!title) throw new ShapeError("reddit: a title is required");
       if (post.media)
         throw new Error("reddit: media posts are not wired; put the link in extra.url");
-      const link = typeof post.extra?.url === "string" ? post.extra.url : null;
+      const link = f.url ?? null;
       const data = answerOf<{ id?: string; name?: string; url?: string }>(
         "/api/submit",
         await call("POST", "/api/submit", {
@@ -113,9 +114,8 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
           sr: sr.replace(/^r\//, ""),
           title,
           ...(link ? { kind: "link", url: link } : { kind: "self", text: post.text }),
-          ...(post.extra?.flairId ? { flair_id: post.extra.flairId } : {}),
           resubmit: true,
-          sendreplies: true,
+          sendreplies: f.sendReplies ?? true,
         }),
       );
       const id = data.id ?? (data.name ? bareId(data.name) : null);

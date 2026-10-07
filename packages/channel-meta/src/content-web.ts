@@ -24,6 +24,7 @@ import {
   type PublishedRow,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
 
 const NO_READ =
   "instagram: reading posts back needs the API (INSTAGRAM_CLIENT_ID/SECRET, then a consent); the browser leg only publishes";
@@ -37,6 +38,17 @@ export function instagramWebContent(
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
       if (!post.media) throw new Error("instagram: a post is an image or a video");
+      // The composer takes a file and a caption: a field it can't set fails, never drops.
+      const f = fieldsOf("instagram", post.extra);
+      const unsent = [
+        f.cover && "Cover",
+        f.thumbOffset !== undefined && "Cover frame",
+        f.collaborators?.length && "Collaborators",
+        f.audioName && "Audio name",
+        f.shareToFeed === false && "Also in Feed (off)",
+      ].filter(Boolean);
+      if (unsent.length)
+        throw new ShapeError(`instagram: posting through the web can't set ${unsent.join(", ")}`);
       const r = await sites.call<{ url?: string | null }>("instagram", "POST", "/web/posts", {
         file: await mediaFileOf(post.media.source, o.host, "instagram"),
         caption: post.text,

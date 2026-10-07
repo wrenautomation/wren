@@ -23,6 +23,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 
 /** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
 export const AUDIENCE_ACCOUNT = "linkedin@wren";
@@ -87,11 +88,13 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
   return {
     platform: "linkedin",
     async publish(post: Post): Promise<Published> {
+      const f = fieldsOf("linkedin", post.extra);
       const body: Record<string, unknown> = {
         author: await me(),
         commentary: post.text,
-        visibility: (post.extra?.visibility as string | undefined) ?? "PUBLIC",
+        visibility: f.visibility ?? "PUBLIC",
         lifecycleState: "PUBLISHED",
+        ...(f.noReshare ? { isReshareDisabledByAuthor: true } : {}),
       };
       if (post.media) {
         // The image/video URN comes from the worker's upload routes; a source path is not a URN.

@@ -4,6 +4,7 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
+import { fieldsOf, YOUTUBE_PRIVACY } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
 import { atomic, type Queryable } from "@wren/db";
@@ -71,7 +72,7 @@ export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
 }
 
 /** Who sees the upload on YouTube. */
-export const VIDEO_PRIVACY = ["private", "unlisted", "public"] as const;
+export const VIDEO_PRIVACY = YOUTUBE_PRIVACY;
 export type VideoPrivacy = (typeof VIDEO_PRIVACY)[number];
 
 export interface ApproveVideo {
@@ -149,11 +150,14 @@ export async function approveVideo(
           text: body,
           title,
           media: { kind: "video", source: file, title },
-          extra: {
+          // Its shape (designs/2026-10-07-post-shapes.md): YouTube can't take a Short's thumbnail.
+          extra: fieldsOf("youtube", {
+            kind: o.short ? "short" : "video",
             privacyStatus: o.privacy ?? "private",
+            madeForKids: false,
             ...(e.tags.length ? { tags: e.tags } : {}),
-            ...(thumbnail ? { thumbnail } : {}),
-          },
+            ...(thumbnail && !o.short ? { thumbnail } : {}),
+          }),
           status: "approved",
           approvedAt: now,
           // Null: the next publish pass.

@@ -22,13 +22,23 @@ and see everything."
 - **Previews per platform**: YouTube watch card (thumbnail, title), Reddit card (subreddit,
   flair), LinkedIn feed card, IG Reel card (cover), TikTok, X and Facebook keep the feed preview.
 - **Files**: thumbnail, Reel cover and caption files go to the media bucket through a ContentDesk
-  `upload` handler (bytes in the call, 3 MB cap). No new bucket CORS, so it works on today's
+  `attach` handler (bytes in the call, 2 MB cap). No new bucket CORS, so it works on today's
   infra. The draft keeps `s3://bucket/media/<hash>.<ext>`; previews sign a GET.
 - **Training record**: a field save is an `edited` row in `draft_events` with
   `meta.fields: {key: [before, after]}`; a title change also sets `title`. `wren train export`
   carries `fields` on each version.
 - **Migration**: none. Prod drafts carry no `extra` keys today (checked 2026-10-07), and every key
   keeps its current name, so old rows parse.
+
+## Overlap with the video editor (2026-10-07)
+
+- **Who sees it.** The video's Approve picks it (`VIDEO_PRIVACY`, cc6f8cd6). It is the same list
+  as the shape's `privacyStatus` (`YOUTUBE_PRIVACY` in core; `VIDEO_PRIVACY` re-exports it), so
+  the draft's field and the Approve select agree. On the draft it can still change before posting.
+- **Captions.** Video editor step 5 burns captions into the render. It uploads no caption file.
+  The YouTube captions track (`captions.insert`, the `captions` field) is this build's.
+- **approveVideo** writes `kind`, `privacyStatus`, `madeForKids: false`, `tags` and `thumbnail`
+  (video only) through `fieldsOf`, so its drafts are always the shape.
 
 ## Fields
 
@@ -42,7 +52,7 @@ Status: **sent** before this build, **build** added now, **dev** shown as "In de
 | `kind` | Video or Short | | build (approve sets it) |
 | title column | Title, required | 100 chars | sent |
 | text | Description | 5000 bytes | sent |
-| `privacyStatus` | Visibility: private, unlisted, public | required | sent |
+| `privacyStatus` | Who sees it: private, unlisted, public (`YOUTUBE_PRIVACY`) | required | sent |
 | scheduledFor | Publish at (`status.publishAt`, private only) | | sent |
 | `madeForKids` | Made for kids (`selfDeclaredMadeForKids`), required by YouTube | | build |
 | `thumbnail` | Thumbnail, video only | JPG/PNG, 2 MB, 1280x720 | sent (now fails loud) |
@@ -89,7 +99,7 @@ Unverified API projects post private only until Google's audit.
 | text | Caption | 2200 chars, 30 hashtags, 20 @ | sent |
 | media | Video, required | 3 s to 15 min, 300 MB | sent |
 | `shareToFeed` | Also in Feed (default on) | | sent |
-| `cover` | Cover image (`cover_url`) | JPEG, 8 MB (3 MB here) | build |
+| `cover` | Cover image (`cover_url`) | JPEG, 8 MB (2 MB here) | build |
 | `thumbOffset` | Cover frame in ms (ignored with a cover) | | build |
 | `collaborators` | Collaborators | 3 usernames | build |
 | `audioName` | Audio name | | build |
@@ -137,7 +147,7 @@ An unaudited TikTok app posts SELF_ONLY whatever is picked.
    records `edited` with `meta.fields`. `setExtra` and the CLI go through it. Approve refuses a
    missing required field (replaces `needsExtra`). `postOf` parses. Video approve sets `kind`,
    `madeForKids: false`.
-3. ContentDesk `fields` and `upload`; `DRAFT_CALLS` takes both.
+3. ContentDesk `fields` and `attach`; `DRAFT_CALLS` takes both.
 4. Records: draft, approval and post loads return `shape: {platform, kind, fields, preview}` with
    signed image URLs (`contentRecords(signer)`).
 5. Portal: `PostFields` editor (required mark, counter, picks, switches, tags, file pickers, "In

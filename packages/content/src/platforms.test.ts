@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { missingExtra, PLATFORM_SPECS, postLink, postOf } from "./platforms.js";
+import { PLATFORM_SPECS, postLink, postOf } from "./platforms.js";
 
 describe("platform specs", () => {
-  it("reddit needs a subreddit before approval; others need nothing", () => {
-    expect(missingExtra(PLATFORM_SPECS.reddit, {})).toEqual(["subreddit"]);
-    expect(missingExtra(PLATFORM_SPECS.reddit, { subreddit: "" })).toEqual(["subreddit"]);
-    expect(missingExtra(PLATFORM_SPECS.reddit, { subreddit: "startups" })).toEqual([]);
-    expect(missingExtra(PLATFORM_SPECS.linkedin, {})).toEqual([]);
-  });
-
   it("a reddit draft's title rides in extra beside the subreddit", () => {
     expect(
       postOf({
@@ -19,6 +12,15 @@ describe("platform specs", () => {
         extra: { subreddit: "startups" },
       }),
     ).toEqual({ text: "b", extra: { subreddit: "startups", title: "t" } });
+  });
+
+  it("parses the draft's fields: a stray key drops, a bad one throws", () => {
+    const draft = { platform: "reddit" as const, text: "b", title: "t", media: null };
+    expect(postOf({ ...draft, extra: { subreddit: "startups", flairId: "x" } }).extra).toEqual({
+      subreddit: "startups",
+      title: "t",
+    });
+    expect(() => postOf({ ...draft, extra: { subreddit: "two words" } })).toThrow("Subreddit");
   });
 });
 

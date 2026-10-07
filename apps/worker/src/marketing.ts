@@ -7,7 +7,7 @@ import {
   searchPageRecord,
 } from "@wren/channel-search/records";
 import { textContactRecord } from "@wren/channel-sms/records";
-import { CONTENT_RECORDS, SOCIAL_RECORDS } from "@wren/content/records";
+import { contentRecords, socialRecords, type VideoSigner } from "@wren/content/records";
 import {
   commentRecord,
   dmRecord,
@@ -17,8 +17,9 @@ import {
   threadRecord,
 } from "@wren/outreach/records";
 
-export const MARKETING_NUMBERS = [
-  ...CONTENT_RECORDS,
+/** `signer` links a draft's stored files (thumbnail, cover) in its field editor. */
+export const marketingNumbers = (signer?: VideoSigner) => [
+  ...contentRecords(signer),
   adDayRecord,
   ...SEARCH_RECORDS,
   textContactRecord,
@@ -28,17 +29,19 @@ export const MARKETING_NUMBERS = [
   threadRecord,
   inviteRecord,
   personRecord,
-  ...SOCIAL_RECORDS,
+  ...socialRecords(signer),
 ];
+export const MARKETING_NUMBERS = marketingNumbers();
 
 /**
  * A client's Marketing (`MarketingConsole`): what its posting, ads and search loops write into
  * its own database. Its ad days stay empty until its Meta ads are built.
  */
-export const CLIENT_MARKETING = [
-  ...CONTENT_RECORDS,
+export const clientMarketing = (signer?: VideoSigner) => [
+  ...contentRecords(signer),
   adDayRecord,
   searchPageRecord,
   keywordRecord,
   searchDayRecord,
 ];
+export const CLIENT_MARKETING = clientMarketing();

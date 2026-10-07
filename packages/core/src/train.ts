@@ -34,6 +34,8 @@ export interface TrainVersion {
   at: string;
   /** For a model's draft or Claude's rewrite: what it was given. */
   llm: Record<string, unknown> | null;
+  /** The post fields this step changed (title, thumbnail, tags): `{key: [before, after]}`. */
+  fields: Record<string, [unknown, unknown]> | null;
 }
 export interface TrainDecision {
   event: DraftEvent;
@@ -78,6 +80,8 @@ export interface TrainRecord {
     at: string;
     external_id: string | null;
     url: string | null;
+    /** The post's fields as they went out (YouTube's tags, thumbnail, visibility). */
+    fields: Record<string, unknown> | null;
   } | null;
   outcome: TrainOutcome | null;
 }
@@ -191,6 +195,7 @@ function recordOf(g: DraftEventRow[], outcomes: Map<string, TrainOutcome>): Trai
         text: s.text,
         at: s.at.toISOString(),
         llm: s.llm,
+        fields: (s.meta.fields as Record<string, [unknown, unknown]> | undefined) ?? null,
       });
     if (s.event !== "generated" && s.event !== "edited")
       decisions.push({
@@ -209,6 +214,7 @@ function recordOf(g: DraftEventRow[], outcomes: Map<string, TrainOutcome>): Trai
         at: s.at.toISOString(),
         external_id: s.externalId,
         url: s.url,
+        fields: (s.meta.fields as Record<string, unknown> | undefined) ?? null,
       };
   }
   const made = g.find((s) => s.event === "generated");

@@ -19,6 +19,7 @@ import {
   publicUrlOf,
   type SiteClient,
 } from "@wren/core/content";
+import { fieldsOf } from "@wren/core/content/shapes";
 
 export interface TikTokContentOptions {
   now?: () => Date;
@@ -47,6 +48,7 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
     platform: "tiktok",
     async publish(post: Post): Promise<Published> {
       if (post.media?.kind !== "video") throw new Error("tiktok: a post is a video");
+      const f = fieldsOf("tiktok", post.extra);
       const url = await publicUrlOf(post.media.source, o.host, "tiktok");
       const r = await sites.call<{ data?: { publish_id?: string } }>(
         "tiktok",
@@ -55,7 +57,14 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
         {
           post_info: {
             title: post.text.slice(0, 2200),
-            privacy_level: (post.extra?.privacy as string | undefined) ?? o.privacy ?? "SELF_ONLY",
+            privacy_level: f.privacy ?? o.privacy ?? "SELF_ONLY",
+            ...(f.noComment !== undefined ? { disable_comment: f.noComment } : {}),
+            ...(f.noDuet !== undefined ? { disable_duet: f.noDuet } : {}),
+            ...(f.noStitch !== undefined ? { disable_stitch: f.noStitch } : {}),
+            ...(f.coverMs !== undefined ? { video_cover_timestamp_ms: f.coverMs } : {}),
+            ...(f.aiGenerated !== undefined ? { is_aigc: f.aiGenerated } : {}),
+            ...(f.brandContent !== undefined ? { brand_content_toggle: f.brandContent } : {}),
+            ...(f.brandOrganic !== undefined ? { brand_organic_toggle: f.brandOrganic } : {}),
           },
           source_info: { source: "PULL_FROM_URL", video_url: url },
         },

@@ -23,6 +23,8 @@ const TYPES: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".gif": "image/gif",
+  ".srt": "application/x-subrip",
+  ".vtt": "text/vtt",
 };
 
 export interface MediaStoreOptions {
@@ -43,8 +45,11 @@ export function parseStored(source: string): { bucket: string; key: string } | n
 
 /** Put a local file in the store under its content hash; answers `s3://bucket/key`. Same bytes, same key. */
 export async function uploadMedia(path: string, o: MediaStoreOptions): Promise<string> {
-  const bytes = await readFile(path);
-  const ext = extname(path).toLowerCase();
+  return putMedia(await readFile(path), extname(path).toLowerCase(), o);
+}
+
+/** Put bytes in the store under their content hash, `ext` naming the type (".jpg"). */
+export async function putMedia(bytes: Uint8Array, ext: string, o: MediaStoreOptions): Promise<string> {
   const key = `media/${createHash("sha256").update(bytes).digest("hex").slice(0, 32)}${ext}`;
   await clientOf(o).send(
     new PutObjectCommand({

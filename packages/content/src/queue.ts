@@ -56,7 +56,8 @@ export async function markPublished(
       publishedAt: new Date(published.publishedAt),
       publishedId: published.id,
       url: published.url,
-      error: null,
+      // What the platform refused after the post went up, where he sees it.
+      error: published.notes?.length ? published.notes.join("; ").slice(0, 1000) : null,
     })
     .where(eq(contentDrafts.id, id))
     .returning();
@@ -72,6 +73,8 @@ export async function markPublished(
       title: d.title,
       externalId: published.id,
       url: published.url,
+      // The fields as they went out, and any the platform refused after.
+      meta: { fields: d.extra, ...(published.notes?.length ? { notes: published.notes } : {}) },
       // A journaled step that runs again keeps one.
       ref: `sent:draft:${id}`,
     });

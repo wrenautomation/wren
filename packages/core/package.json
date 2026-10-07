@@ -23,6 +23,7 @@
     "./content/ingress": "./src/content/ingress.ts",
     "./testing": "./src/testing.ts",
     "./content/restate": "./src/content/restate.ts",
+    "./content/shapes": "./src/content/shapes.ts",
     "./content/renewal": "./src/content/renewal.ts",
     "./edits": "./src/edits.ts",
     "./emails": "./src/emails.ts",

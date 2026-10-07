@@ -73,7 +73,7 @@ export interface Post {
   media?: Media;
   /** ISO time to publish at; absent = now. */
   scheduledFor?: string;
-  /** Platform extras: YouTube title/tags/visibility, LinkedIn visibility, Reddit subreddit. Validated by the adapter. */
+  /** The platform's fields: its shape in `./shapes.ts`, read typed with `fieldsOf`. */
   extra?: Record<string, unknown>;
 }
 
@@ -82,6 +82,11 @@ export interface Published {
   url: string;
   publishedAt: string;
   fetchedWith: FetchedWith;
+  /**
+   * Fields the platform refused after the post went up (a thumbnail on an unverified channel).
+   * Never a failure: a retry would post twice. Kept on the draft where he sees it.
+   */
+  notes?: string[];
 }
 
 /** A list row: no bodies; the detail lives on the platform (`url`) or in `metrics`. */

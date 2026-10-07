@@ -31,6 +31,7 @@ import type {
   Post,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
+import { fieldsOf, ShapeError } from "./shapes.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
 
@@ -178,6 +179,8 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
   } catch (err) {
     if (isRefusal(err) || isVendorStop(err))
       throw new restate.TerminalError(err.message, { errorCode: err.status });
+    // A field its platform won't take: the draft's to fix, never a retry.
+    if (err instanceof ShapeError) throw new restate.TerminalError(err.message, { errorCode: 400 });
     throw err;
   }
 }
@@ -219,7 +222,7 @@ const PUBLISH = z.looseObject({
     extra: z
       .record(z.string(), z.unknown())
       .nullish()
-      .describe("Platform extras: YouTube title and tags, LinkedIn visibility, subreddit"),
+      .describe("The platform's fields (its shape in content/shapes.ts): title, tags, subreddit"),
   }),
 });
 const ACTIVITY_QUERY = z
@@ -283,7 +286,11 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         async (ctx: restate.Context, req: { platform: Platform; post: Post } & ForClient) => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client);
-          return refusalsFinal(ch.publish(req.post));
+          return refusalsFinal(
+            Promise.resolve()
+              .then(() => fieldsOf(req.platform, req.post.extra))
+              .then(() => ch.publish(req.post)),
+          );
         },
       ),
       list: serviceHandler(

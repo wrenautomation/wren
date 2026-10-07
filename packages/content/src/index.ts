@@ -1,3 +1,4 @@
+export * from "./attach.js";
 export * from "./clients.js";
 export * from "./costs.js";
 export * from "./draft.js";

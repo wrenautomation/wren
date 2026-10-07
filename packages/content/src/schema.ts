@@ -102,7 +102,7 @@ export const contentDrafts = pgTable(
     /** YouTube's title, TikTok's; null where the platform has none. */
     title: varchar("title", { length: 200 }),
     media: jsonb("media").$type<Media>(),
-    /** Platform extras handed to the adapter as-is (visibility, privacy, tags). */
+    /** The platform's post shape past text and file (`@wren/core/content/shapes`): checked on save and publish. */
     extra: jsonb("extra").$type<Record<string, unknown>>().notNull().default({}),
     status: varchar("status", { length: 16, enum: DRAFT_STATUSES }).notNull().default("draft"),
     /** A person changed the text after the model wrote it. */

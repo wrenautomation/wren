@@ -65,6 +65,17 @@ export interface RedraftRequest extends PortalRequest {
   note: string;
 }
 
+export interface FieldsRequest extends PortalRequest {
+  draftId: string;
+  patch: Record<string, unknown>;
+}
+export interface AttachRequest extends PortalRequest {
+  draftId: string;
+  field: string;
+  name: string;
+  data: string;
+}
+
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
@@ -205,6 +216,52 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
             if (!note) throw new PortalRefusal("say what to change", 400);
             const key = await ctx.run("check", () => answer(() => api.deciding(req)));
             return desk(() => deskOf(ctx, key).redraft({ draftId: String(req.draftId), note }));
+          }),
+      ),
+      /** A client draft's fields (its platform's shape), from its approver. */
+      draftFields: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            patch: z.record(z.string(), z.unknown()).describe("Fields; null unsets one"),
+          }),
+        },
+        (ctx: restate.Context, req: FieldsRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).fields({
+                draftId: String(req.draftId),
+                patch: req.patch,
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+      /** A file on a client draft's field (thumbnail, subtitles, cover). */
+      draftAttach: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            field: z.string(),
+            name: z.string(),
+            data: z.string().describe("The bytes, base64"),
+          }),
+        },
+        (ctx: restate.Context, req: AttachRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).attach({
+                draftId: String(req.draftId),
+                field: req.field,
+                name: req.name,
+                data: req.data,
+                viewer: req.viewer,
+              }),
+            );
           }),
       ),
     },
