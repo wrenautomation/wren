@@ -5,6 +5,7 @@
 import type { Module } from "../module.js";
 import { account } from "./account/index.js";
 import { calendar } from "./calendar/index.js";
+import { library } from "./library/index.js";
 import { marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { reactivation } from "./reactivation/index.js";
@@ -20,6 +21,7 @@ export const MODULES: Module[] = [
   marketplace,
   marketing,
   ...WREN_APPS,
+  library,
   calendar,
   account,
 ];

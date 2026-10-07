@@ -52,6 +52,7 @@ export const PLATFORM = {
     workflows: "every workflow, drawn with live numbers",
     ask: "questions to Claude Code about the system, read only",
     review: "the Friday review of parked ideas",
+    library: "every template, prompt and sequence, with their numbers",
   },
   records: {
     "console.ask": "every question asked of Claude Code",
