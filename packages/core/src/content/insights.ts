@@ -6,8 +6,18 @@
  */
 import { SiteCallError } from "./autobrowse.js";
 
-/** Why a number is missing: a consent away, an application only William can make, not built, or app-only. */
-export const GAP_STATES = ["needs_scope", "needs_william", "not_built", "no_api", "error"] as const;
+/**
+ * Why a number is missing: a consent away, an application only William can make, not built,
+ * app-only, refused, or asked for and on its way (a report job's first report).
+ */
+export const GAP_STATES = [
+  "needs_scope",
+  "needs_william",
+  "not_built",
+  "no_api",
+  "error",
+  "waiting",
+] as const;
 export type GapState = (typeof GAP_STATES)[number];
 
 /**
@@ -48,12 +58,27 @@ export interface AccountInsights {
   asOf: string;
 }
 
+/**
+ * A platform's bulk report per post per day (YouTube's reach report): each row is one post's
+ * numbers for its own `day`, not a look's. `cursor` is where the next read starts (the newest
+ * report's create time); a later report for the same day replaces it (a backfill).
+ */
+export interface ReportDays {
+  rows: Array<{ id: string; day: string; values: InsightValue[] }>;
+  gaps: InsightGap[];
+  cursor: string | null;
+  asOf: string;
+}
+
 /** The metric names every adapter answers in, so one page reads them all. */
 export const METRICS = {
   views: "views",
   reach: "reach",
   impressions: "impressions",
   ctr: "ctr",
+  /** One day's own impressions and CTR (percent) from a report; `impressions`/`ctr` are the totals to that day. */
+  impressionsDay: "impressions_day",
+  ctrDay: "ctr_day",
   likes: "likes",
   comments: "comments",
   shares: "shares",

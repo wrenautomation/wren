@@ -31,6 +31,7 @@ import type {
   ListQuery,
   Platform,
   Post,
+  ReportDays,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
 import { fieldsOf, ShapeError } from "./shapes.js";
@@ -396,6 +397,23 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         ): Promise<AccountInsights | null> => {
           const ch = await pick(ctx, req.platform, req.client, "content.social");
           return ch.accountInsights ? refusalsFinal(ch.accountInsights()) : null;
+        },
+      ),
+      /** Every post's numbers per day from the platform's bulk reports. Null when it has none. */
+      reportDays: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            after: z.string().nullish().describe("Only reports made after this ISO time"),
+            client: CLIENT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; after?: string | null } & ForClient,
+        ): Promise<ReportDays | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          return ch.reportDays ? refusalsFinal(ch.reportDays({ after: req.after ?? null })) : null;
         },
       ),
     },

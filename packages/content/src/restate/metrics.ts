@@ -9,7 +9,9 @@
  *
  * Each look also reads the post's insights (designs/2026-10-07-content-analytics.md) into
  * `post_metric_days`, and once a day each account's into `account_metric_days`. A refused
- * insight is a gap row, never a failed look. Monday's pass keeps the week's digest.
+ * insight is a gap row, never a failed look. Each pass also reads the platforms' new report days
+ * (YouTube's reach report: impressions and CTR per video per day) from where the last left off.
+ * Monday's pass keeps the week's digest.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type {
@@ -18,6 +20,7 @@ import type {
   InsightValue,
   Metrics,
   Platform,
+  ReportDays,
 } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -30,7 +33,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { writeDigest } from "../analytics/digest.js";
-import { writeAccountInsights, writeInsights } from "../analytics/store.js";
+import { writeAccountInsights, writeInsights, writeReportDays } from "../analytics/store.js";
 import { clientContent } from "../clients.js";
 import { formatWhatWorked, metricsDue, recordMetrics, whatWorked } from "../metrics.js";
 
@@ -38,6 +41,8 @@ export const METRICS_KEY = "default";
 const REPORTED = "reported";
 /** The UTC day accounts were last read. */
 const ACCOUNTS = "accounts";
+/** Per platform, the create time of the newest report read: `reports.<platform>`. */
+const REPORTS = "reports.";
 /** The week whose digest was last kept. */
 const DIGESTED = "digested";
 const DEFAULT_EVERY_MS = 6 * 60 * 60 * 1000;
@@ -65,6 +70,10 @@ type ContentService = {
     ctx: restate.Context,
     req: { platform: Platform; client?: string | null },
   ) => Promise<AccountInsights | null>;
+  reportDays: (
+    ctx: restate.Context,
+    req: { platform: Platform; after?: string | null; client?: string | null },
+  ) => Promise<ReportDays | null>;
 };
 
 /** The counts every look reads, under the names insights use; insights' own win a tie. */
@@ -97,6 +106,8 @@ export interface MetricsStats {
   looked: { id: string; platform: Platform; views: number; insights?: number; gaps?: number }[];
   failed: { id: string; platform: Platform; error: string }[];
   reported: boolean;
+  /** Report day rows written per platform; an error's text where a read failed. */
+  reports?: Partial<Record<Platform, number | string>>;
   /** Account rows written per platform, once a day; an error's text where a read failed. */
   accounts?: Partial<Record<Platform, number | string>>;
   digest?: boolean;
@@ -165,11 +176,28 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
         stats.failed.push({ id: draft.id, platform: draft.platform, error: errorText(err) });
       }
     }
-    // The accounts' days, once a UTC day: Wren's own only.
+    // Reports' new days and the accounts' (once a UTC day): Wren's own only.
+    const platforms = client ? [] : await content.platforms();
+    for (const platform of platforms) {
+      try {
+        const after = await ctx.get<string>(`${REPORTS}${platform}`);
+        const r = await content.reportDays({ platform, after: after ?? null });
+        if (!r) continue;
+        stats.reports ??= {};
+        stats.reports[platform] = await ctx.run(`reports ${platform}`, () =>
+          writeReportDays(db, platform, r, now),
+        );
+        if (r.cursor) ctx.set(`${REPORTS}${platform}`, r.cursor);
+      } catch (err) {
+        if (!(err instanceof restate.TerminalError)) throw err;
+        stats.reports ??= {};
+        stats.reports[platform] = errorText(err);
+      }
+    }
     const today = now.toISOString().slice(0, 10);
     if (!client && (await ctx.get<string>(ACCOUNTS)) !== today) {
       stats.accounts = {};
-      for (const platform of await content.platforms()) {
+      for (const platform of platforms) {
         try {
           const a = await content.accountInsights({ platform });
           if (!a) continue;

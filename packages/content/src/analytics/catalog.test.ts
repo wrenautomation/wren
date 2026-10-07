@@ -6,8 +6,10 @@ import {
   catalogCounts,
   entriesFor,
   formatOf,
+  NEEDS,
   stateLine,
 } from "./catalog.js";
+import { stateOf } from "./records.js";
 
 const DOC = new URL("../../../../designs/2026-10-07-content-analytics.md", import.meta.url);
 
@@ -65,5 +67,34 @@ describe("analytics catalog", () => {
       "Needs scope: YouTube Analytics",
     );
     expect(stateLine("not_built")).toBe("In development");
+    expect(stateLine("waiting", NEEDS.youtubeReach, "first report in 2 days")).toBe(
+      "Waiting: first report in 2 days",
+    );
+  });
+
+  it("a row's state: live when any number came back, waiting over its catalog word", () => {
+    const at = "2026-10-07T00:00:00Z";
+    const entry = (label: string) => {
+      const e = ANALYTICS_CATALOG.find((x) => x.platform === "youtube" && x.label === label);
+      if (!e) throw new Error(label);
+      return e;
+    };
+    const src = (metric: string, state: string, why: string | null = null) =>
+      [`youtube|${metric}`, { platform: "youtube", metric, state, why, checked_at: at }] as const;
+    const reach = entry("Impressions and CTR");
+    expect(stateOf(reach, new Map()).state).toBe("needs_scope");
+    expect(stateOf(reach, new Map([src("impressions", "waiting", "soon")]))).toMatchObject({
+      state: "waiting",
+      why: "soon",
+    });
+    // A refusal of a row that was never live keeps its step.
+    expect(stateOf(reach, new Map([src("impressions", "not_built", "404")])).state).toBe(
+      "needs_scope",
+    );
+    expect(stateOf(reach, new Map([src("ctr", "live")])).state).toBe("live");
+    // The channel's days read the account's sources, not a post's.
+    const days = entry("Channel views and subscribers per day");
+    expect(stateOf(days, new Map([src("views", "live")])).state).toBe("needs_scope");
+    expect(stateOf(days, new Map([src("account.views", "live")])).state).toBe("live");
   });
 });

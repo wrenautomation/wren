@@ -6,6 +6,8 @@
  * activity = recent public subscribers; audience = the subscriber count.
  * insights = YouTube Analytics (`yt-analytics.readonly`) reports: totals, the retention curve,
  * traffic sources and search terms per video; per day for the channel.
+ * reportDays = the Reporting API's reach report (same scope): thumbnail impressions and CTR per
+ * video per day, the only place YouTube gives them. The first read starts the job.
  */
 import {
   type AccountInsights,
@@ -31,6 +33,7 @@ import {
   type PublishedRow,
   pageOf,
   previewOf,
+  type ReportDays,
   readGroup,
   type SiteClient,
 } from "@wren/core/content";
@@ -117,9 +120,64 @@ const DAYS: Record<string, string> = {
   subscribersGained: M.follows,
   subscribersLost: M.unfollows,
 };
-export const ANALYTICS_PATH = "/youtubeAnalytics/v2/reports";
-const NOT_IN_REPORTS =
-  "YouTube gives thumbnail impressions and CTR in the Reporting API's reach report, not in Analytics queries";
+export const ANALYTICS_PATH = "/v2/reports";
+/** The Reporting API's reach report: thumbnail impressions and their CTR per video per day. */
+export const REACH_REPORT = "channel_reach_basic_a1";
+export const REACH_JOB = "wren reach";
+/** Reports one read downloads at most; the rest wait for the next pass (the cursor says where). */
+const REPORTS_PER_READ = 40;
+const WAITING =
+  "YouTube is making the first reach report: it lands within 2 days of the job starting, with the 30 days before";
+const REACH_METRICS = [M.impressions, M.ctr, M.impressionsDay, M.ctrDay] as const;
+interface ReportingJob {
+  id?: string;
+  reportTypeId?: string;
+}
+interface ReportingReport {
+  id?: string;
+  startTime?: string;
+  createTime?: string;
+}
+/** `20261005` → `2026-10-05`. */
+const dayOfReport = (d: string | undefined): string | null => {
+  const m = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(d ?? "");
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+};
+
+/** A CSV cell as a number; empty is unknown, not zero. */
+const cell = (v: string | undefined): number => (v ? Number(v) : Number.NaN);
+
+/**
+ * A reach report's CSV rows as one row per video and day: impressions summed; `clicks` and
+ * `rated` give the day's CTR. Google documents `video_thumbnail_impressions_ctr` as a percentage;
+ * the first real report confirms it (a ratio would read 100 times low).
+ *
+ * `rated` is the impressions that came with a CTR. Rows without a video, a day or impressions
+ * are dropped.
+ */
+export function reachRows(
+  csv: ReadonlyArray<Record<string, string>>,
+): Array<{ id: string; day: string; impressions: number; clicks: number; rated: number }> {
+  const by = new Map<
+    string,
+    { id: string; day: string; impressions: number; clicks: number; rated: number }
+  >();
+  for (const r of csv) {
+    const id = r.video_id;
+    const day = dayOfReport(r.date);
+    const n = cell(r.video_thumbnail_impressions);
+    const ctr = cell(r.video_thumbnail_impressions_ctr);
+    if (!id || !day || !Number.isFinite(n)) continue;
+    const at = by.get(`${id}|${day}`) ?? { id, day, impressions: 0, clicks: 0, rated: 0 };
+    at.impressions += n;
+    if (Number.isFinite(ctr)) {
+      at.clicks += (n * ctr) / 100;
+      at.rated += n;
+    }
+    by.set(`${id}|${day}`, at);
+  }
+  return [...by.values()];
+}
 const STUDIO_ONLY = "YouTube shows viewed vs swiped away in Studio only";
 const day = (iso: string) => iso.slice(0, 10);
 
@@ -431,9 +489,74 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
             out,
           );
       }
-      out.gaps.push(...knownGaps("not_built", NOT_IN_REPORTS, [M.impressions, M.ctr]));
       if (q.kind === "short") out.gaps.push(...knownGaps("no_api", STUDIO_ONLY, [M.skipRate]));
       return { ...out, asOf: now().toISOString() };
+    },
+    async reportDays(q: { after?: string | null }): Promise<ReportDays> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      const rows: ReportDays["rows"] = [];
+      let cursor = q.after ?? null;
+      await readGroup(
+        REACH_METRICS,
+        async () => {
+          const { jobs } = await sites.call<{ jobs?: ReportingJob[] }>(
+            "youtube",
+            "GET",
+            "/v1/jobs",
+            {},
+          );
+          const job =
+            jobs?.find((j) => j.reportTypeId === REACH_REPORT) ??
+            (await sites.call<ReportingJob>("youtube", "POST", "/v1/jobs", {
+              reportTypeId: REACH_REPORT,
+              name: REACH_JOB,
+            }));
+          if (!job.id) throw new Error("youtube: the reach report job came back without an id");
+          const found: ReportingReport[] = [];
+          let pageToken: string | undefined;
+          do {
+            const page = await sites.call<{
+              reports?: ReportingReport[];
+              nextPageToken?: string;
+            }>("youtube", "GET", `/v1/jobs/${job.id}/reports`, {
+              ...(cursor ? { createdAfter: cursor } : {}),
+              ...(pageToken ? { pageToken } : {}),
+            });
+            found.push(...(page.reports ?? []));
+            pageToken = page.nextPageToken;
+          } while (pageToken);
+          if (!found.length && !cursor)
+            out.gaps.push(...knownGaps("waiting", WAITING, REACH_METRICS));
+          // Oldest made first; a later report for the same day replaces it (a backfill).
+          const take = found
+            .filter((r) => r.id && r.createTime)
+            .sort((a, b) => (a.createTime as string).localeCompare(b.createTime as string))
+            .slice(0, REPORTS_PER_READ);
+          const byDay = new Map<string, ReportingReport>();
+          for (const r of take) byDay.set(r.startTime ?? (r.id as string), r);
+          for (const r of byDay.values()) {
+            const got = await sites.call<{ rows?: Array<Record<string, string>> }>(
+              "youtube",
+              "GET",
+              `/v1/jobs/${job.id}/reports/${r.id}/rows`,
+              {},
+            );
+            for (const v of reachRows(got.rows ?? []))
+              rows.push({
+                id: v.id,
+                day: v.day,
+                values: [
+                  { metric: M.impressionsDay, value: v.impressions },
+                  ...numberOf(M.ctrDay, v.rated > 0 ? (v.clicks / v.rated) * 100 : null),
+                ],
+              });
+          }
+          cursor = take.at(-1)?.createTime ?? cursor;
+          return [];
+        },
+        out,
+      );
+      return { rows, gaps: out.gaps, cursor, asOf: now().toISOString() };
     },
     async accountInsights(): Promise<AccountInsights> {
       const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };

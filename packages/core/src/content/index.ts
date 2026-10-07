@@ -6,7 +6,7 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
-import type { AccountInsights, Insights, InsightsQuery } from "./insights.js";
+import type { AccountInsights, Insights, InsightsQuery, ReportDays } from "./insights.js";
 
 export * from "./autobrowse.js";
 export * from "./do.js";
@@ -192,6 +192,11 @@ export interface ContentChannel {
   insights?(q: InsightsQuery): Promise<Insights>;
   /** The account's numbers per day. Absent = followers (`audience`) are all. */
   accountInsights?(): Promise<AccountInsights>;
+  /**
+   * Every post's numbers per day from the platform's bulk reports made after `after` (YouTube's
+   * reach report: impressions and CTR). Absent = the platform has none.
+   */
+  reportDays?(q: { after?: string | null }): Promise<ReportDays>;
 }
 
 /** One page of rows newest first, from a full newest-first array: the paging rule every adapter follows. */
@@ -222,6 +227,8 @@ export function fakeContentChannel(
   /** Set a post's deeper numbers (`insights`) and the account's days (`accountInsights`). */
   measure(id: string, i: Omit<Insights, "asOf">): void;
   measureAccount(a: Omit<AccountInsights, "asOf">): void;
+  /** Set what `reportDays` answers. */
+  report(r: Omit<ReportDays, "asOf">): void;
 } {
   const now = o.now ?? (() => new Date());
   const urlOf = o.urlOf ?? ((id: string) => `https://${platform}.test/p/${id}`);
@@ -233,6 +240,7 @@ export function fakeContentChannel(
   let n = 0;
   const insights = new Map<string, Omit<Insights, "asOf">>();
   let account: Omit<AccountInsights, "asOf"> = { days: [], gaps: [] };
+  let reported: Omit<ReportDays, "asOf"> = { rows: [], gaps: [], cursor: null };
   return {
     platform,
     posts,
@@ -241,6 +249,12 @@ export function fakeContentChannel(
     },
     measureAccount(a) {
       account = a;
+    },
+    report(r) {
+      reported = r;
+    },
+    async reportDays() {
+      return { ...reported, asOf: now().toISOString() };
     },
     async insights(q) {
       return { values: [], gaps: [], ...insights.get(q.id), asOf: now().toISOString() };

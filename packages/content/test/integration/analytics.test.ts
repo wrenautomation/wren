@@ -17,7 +17,7 @@ import {
   metricRecord,
   postAnalytics,
 } from "../../src/analytics/records.js";
-import { writeAccountInsights, writeInsights } from "../../src/analytics/store.js";
+import { writeAccountInsights, writeInsights, writeReportDays } from "../../src/analytics/store.js";
 import { postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics, postMetricDays } from "../../src/schema.js";
 
@@ -277,5 +277,97 @@ describe("digest, cadence and metric records", () => {
     expect(all.rows.find((r) => r.label === "Average view duration and % viewed")).toMatchObject({
       state: "live",
     });
+  });
+});
+
+describe("report days", () => {
+  it("land on their own day, keep totals per day, take a backfill, and flip the row live", async () => {
+    const { draft } = await publishedVideo("short", 777);
+    const dayAgo = (n: number) => iso(daysAgo(n)).slice(0, 10);
+    const [d3, d2, d1] = [dayAgo(3), dayAgo(2), dayAgo(1)];
+    // A served set reads a record's rows once: a fresh one per look.
+    const reachRow = async () =>
+      (
+        await serveRecords([metricRecord], pg.db).list({
+          record: metricRecord.id,
+          view: "all",
+          limit: 200,
+        })
+      ).rows.find((r) => r.platform === "youtube" && r.label === "Impressions and CTR");
+    const at = (metric: string) =>
+      pg.db
+        .select({ day: postMetricDays.day, value: postMetricDays.value })
+        .from(postMetricDays)
+        .where(sql`${postMetricDays.draftId} = ${draft} and ${postMetricDays.metric} = ${metric}`)
+        .orderBy(postMetricDays.day);
+
+    // The job just started: the row says it's on its way.
+    await writeReportDays(
+      pg.db,
+      "youtube",
+      {
+        rows: [],
+        gaps: ["impressions", "ctr"].map((metric) => ({ metric, state: "waiting", why: "soon" })),
+        cursor: null,
+        asOf: iso(now),
+      },
+      now,
+    );
+    expect(await reachRow()).toMatchObject({ state: "waiting", says: "Waiting: soon" });
+
+    // A look the day before keeps its own numbers.
+    await writeInsights(
+      pg.db,
+      draft,
+      "youtube",
+      { values: [{ metric: "watch_minutes", value: 12 }], gaps: [], asOf: iso(daysAgo(1)) },
+      daysAgo(1),
+    );
+    const day = (d: string, impressions: number, ctr: number) => ({
+      id: "yt-short-777",
+      day: d,
+      values: [
+        { metric: "impressions_day", value: impressions },
+        { metric: "ctr_day", value: ctr },
+      ],
+    });
+    const n = await writeReportDays(
+      pg.db,
+      "youtube",
+      {
+        rows: [day(d3, 100, 5), day(d2, 300, 2), { ...day(d2, 9, 9), id: "not-ours" }],
+        gaps: [],
+        cursor: "c1",
+        asOf: iso(now),
+      },
+      now,
+    );
+    expect(n).toBe(4);
+    expect(await at("impressions")).toEqual([
+      { day: d3, value: 100 },
+      { day: d2, value: 400 },
+    ]);
+    // (5 + 6) clicks of 400.
+    expect((await at("ctr")).map((r) => r.value)).toEqual([5, 2.75]);
+
+    // YouTube's backfill for the first day: that day and the totals after it move, nothing else.
+    await writeReportDays(
+      pg.db,
+      "youtube",
+      { rows: [day(d3, 200, 5)], gaps: [], cursor: "c2", asOf: iso(now) },
+      now,
+    );
+    expect((await at("impressions_day")).map((r) => r.value)).toEqual([200, 300]);
+    expect((await at("impressions")).map((r) => r.value)).toEqual([200, 500]);
+    expect((await at("ctr")).map((r) => r.value)).toEqual([5, 3.2]);
+    expect(await at("watch_minutes")).toEqual([{ day: d1, value: 12 }]);
+
+    expect(await reachRow()).toMatchObject({ state: "live", says: "Live" });
+    const a = await postAnalytics(pg.db, draft);
+    expect(a?.cells.find((c) => c.label === "Impressions and CTR")).toMatchObject({
+      state: "live",
+      latest: { impressions: 500, ctr: 3.2 },
+    });
+    expect(a?.series.impressions?.map((p) => p.value)).toEqual([200, 500]);
   });
 });

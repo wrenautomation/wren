@@ -13,16 +13,16 @@ A post's platform insights for one day, one row per metric and key. Table `post_
 
 ## Why this shape
 
-Every number a platform answers is kept per day and never overwritten across days (a second look the same day replaces that day only: `store.ts:51`). A metric the token can't read is not a missing row but a `metric_sources` state with the platform's words (`store.ts:22`); the step that fixes it comes from the catalog (`analytics/catalog.ts`), which is the truth the doc's Counts table is tested against.
+Every number a platform answers is kept per day and never overwritten across days (a second look the same day replaces that day only: `store.ts:59`). A platform's report rows (YouTube's reach report) land on the report's own day: `impressions_day`/`ctr_day` per day, `impressions`/`ctr` rebuilt to date from them; a later report for a day replaces it (`store.ts:142`). A metric the token can't read is not a missing row but a `metric_sources` state with the platform's words (`store.ts:22`); the step that fixes it comes from the catalog (`analytics/catalog.ts`), which is the truth the doc's Counts table is tested against.
 
 ## Shape
 
 - `post_metric_days`: `draft_id`, `day`, `metric`, `key` ("" for a plain number; the fraction of the video for `retention`, the source for `traffic_source`, the words for `search_term`), `value`, `fetched_at` (`schema.ts:276`)
 - `account_metric_days`: the same per `platform` and day (`schema.ts:297`)
-- `metric_sources`: per platform and metric, `state` (live, needs_scope, needs_william, not_built, no_api, error), `why`, `checked_at`, `live_at`; an account's metrics are prefixed `account.` (`schema.ts:324`)
+- `metric_sources`: per platform and metric, `state` (live, needs_scope, needs_william, not_built, no_api, error, waiting), `why`, `checked_at`, `live_at`; an account's metrics are prefixed `account.` (`schema.ts:324`)
 - `content_digests`: Monday's "what worked" lines per platform, first kept (`schema.ts:346`)
 
-Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics/store.ts:51`, `packages/content/src/analytics/digest.ts:262`
+Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics/store.ts:59`, `packages/content/src/analytics/digest.ts:262`
 
 ## Connected to
 
@@ -32,14 +32,14 @@ Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics
 
 ## If you change this
 
-- **Hits:** `restate/metrics.ts:141` (the look writes insights after counts); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0188_content_analytics`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
+- **Hits:** `restate/metrics.ts:152` (the look writes insights after counts), `restate/metrics.ts:184` (report days every pass, cursor per platform); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0188_content_analytics`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
 - **Does not hit:** `content_metrics` or `wren content results`
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `ContentMetrics/default` | writes, through `Content.insights` and `Content.accountInsights` |
+| `ContentMetrics/default` | writes, through `Content.insights`, `Content.accountInsights` and `Content.reportDays` |
 | Marketing → Posts and a post's page, Overview tops, Inbox overview | read |
 | drafting prompt | reads the latest digest |
 

@@ -1,6 +1,14 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
-import { ANALYTICS_PATH, holdAt, isoSeconds, reportRows, youtubeContent } from "./content.js";
+import {
+  ANALYTICS_PATH,
+  holdAt,
+  isoSeconds,
+  REACH_REPORT,
+  reachRows,
+  reportRows,
+  youtubeContent,
+} from "./content.js";
 
 const NOW = new Date("2026-10-07T12:00:00Z");
 
@@ -30,6 +38,15 @@ function sitesWith(o: {
     },
   };
 }
+
+/** One reach report CSV row, as autobrowse answers it: every value a string. */
+const row = (date: string, video_id: string, impressions: string, ctr: string) => ({
+  date,
+  channel_id: "UCsynthetic",
+  video_id,
+  video_thumbnail_impressions: impressions,
+  video_thumbnail_impressions_ctr: ctr,
+});
 
 const table = (names: string[], rows: unknown[][]) => ({
   columnHeaders: names.map((name) => ({ name })),
@@ -84,10 +101,8 @@ describe("youtube insights", () => {
     expect(of("traffic_source", "YT_SEARCH")).toBe(40);
     expect(of("search_term", "crm automation")).toBe(12);
     expect(asked.at(-1)?.filters).toBe("video==v1;insightTrafficSourceType==YT_SEARCH");
-    expect(got?.gaps.map((g) => [g.metric, g.state])).toEqual([
-      ["impressions", "not_built"],
-      ["ctr", "not_built"],
-    ]);
+    // Impressions and CTR come from the reach report, not here.
+    expect(got?.gaps).toEqual([]);
   });
 
   it("no scope: every analytics number is a gap with YouTube's words, asked once", async () => {
@@ -157,7 +172,136 @@ describe("youtube insights", () => {
     ]);
   });
 
+  it("the reach report: starts the job once, reads new reports oldest first, one row per video and day", async () => {
+    const calls: string[] = [];
+    let jobs: Array<{ id: string; reportTypeId: string }> = [];
+    const csv: Record<string, Array<Record<string, string>>> = {
+      r1: [
+        row("20261004", "v1", "100", "5"),
+        row("20261004", "v1", "300", "1"),
+        row("20261004", "v2", "0", "0"),
+      ],
+      // A later report for the same day: YouTube's backfill, read instead of r1.
+      r2: [row("20261004", "v1", "500", "2")],
+      r3: [row("20261005", "v1", "50", "")],
+    };
+    const sites: SiteClient = {
+      async call(_site, method, path, input = {}) {
+        calls.push(`${method} ${path}`);
+        if (path === "/v1/jobs" && method === "GET") return { jobs } as never;
+        if (path === "/v1/jobs" && method === "POST") {
+          expect(input).toEqual({ reportTypeId: REACH_REPORT, name: "wren reach" });
+          jobs = [{ id: "j1", reportTypeId: REACH_REPORT }];
+          return jobs[0] as never;
+        }
+        if (path === "/v1/jobs/j1/reports")
+          return {
+            reports: input.createdAfter
+              ? []
+              : [
+                  {
+                    id: "r3",
+                    startTime: "2026-10-05T07:00:00Z",
+                    createTime: "2026-10-07T02:00:00Z",
+                  },
+                  {
+                    id: "r1",
+                    startTime: "2026-10-04T07:00:00Z",
+                    createTime: "2026-10-05T02:00:00Z",
+                  },
+                  {
+                    id: "r2",
+                    startTime: "2026-10-04T07:00:00Z",
+                    createTime: "2026-10-06T02:00:00Z",
+                  },
+                ],
+          } as never;
+        const id = /reports\/(\w+)\/rows$/.exec(path)?.[1];
+        if (id) return { rows: csv[id] } as never;
+        throw new Error(`no fake for ${method} ${path}`);
+      },
+      async via() {
+        return "api";
+      },
+    };
+    const ch = youtubeContent(sites, { now: () => NOW });
+    const got = await ch.reportDays?.({});
+    expect(calls.filter((c) => c.startsWith("POST"))).toHaveLength(1);
+    expect(calls.filter((c) => c.endsWith("/rows"))).toEqual([
+      "GET /v1/jobs/j1/reports/r2/rows",
+      "GET /v1/jobs/j1/reports/r3/rows",
+    ]);
+    expect(got?.rows).toEqual([
+      {
+        id: "v1",
+        day: "2026-10-04",
+        values: [
+          { metric: "impressions_day", value: 500 },
+          { metric: "ctr_day", value: 2 },
+        ],
+      },
+      // No CTR in the cell: unknown, not zero.
+      { id: "v1", day: "2026-10-05", values: [{ metric: "impressions_day", value: 50 }] },
+    ]);
+    expect(got?.gaps).toEqual([]);
+    expect(got?.cursor).toBe("2026-10-07T02:00:00Z");
+    // Next pass: nothing new, the job is not started again, the cursor stays.
+    const next = await ch.reportDays?.({ after: got?.cursor ?? null });
+    expect(next?.rows).toEqual([]);
+    expect(next?.cursor).toBe("2026-10-07T02:00:00Z");
+    expect(calls.filter((c) => c.startsWith("POST"))).toHaveLength(1);
+  });
+
+  it("the reach report: a new job says waiting, no consent says needs scope", async () => {
+    const waiting: SiteClient = {
+      async call(_s, method, path) {
+        if (path === "/v1/jobs") return (method === "GET" ? { jobs: [] } : { id: "j1" }) as never;
+        return {} as never;
+      },
+      async via() {
+        return "api";
+      },
+    };
+    const got = await youtubeContent(waiting, { now: () => NOW }).reportDays?.({});
+    expect(new Set(got?.gaps.map((g) => g.state))).toEqual(new Set(["waiting"]));
+    expect(got?.gaps.map((g) => g.metric)).toEqual([
+      "impressions",
+      "ctr",
+      "impressions_day",
+      "ctr_day",
+    ]);
+    expect(got?.cursor).toBeNull();
+
+    const refused: SiteClient = {
+      async call(_s, method, path) {
+        throw new SiteCallError(
+          "youtube",
+          method,
+          path,
+          403,
+          "YouTube Reporting API has not been used",
+        );
+      },
+      async via() {
+        return "api";
+      },
+    };
+    const no = await youtubeContent(refused, { now: () => NOW }).reportDays?.({ after: "x" });
+    expect(no?.gaps.find((g) => g.metric === "impressions")).toMatchObject({
+      state: "needs_scope",
+      why: expect.stringContaining("has not been used"),
+    });
+    expect(no?.cursor).toBe("x");
+  });
+
   it("helpers", () => {
+    expect(
+      reachRows([
+        row("2026-10-04", "v1", "10", "10"),
+        row("20261004", "v1", "30", ""),
+        row("bogus", "v1", "1", "1"),
+      ]),
+    ).toEqual([{ id: "v1", day: "2026-10-04", impressions: 40, clicks: 1, rated: 10 }]);
     expect(isoSeconds("PT1M5S")).toBe(65);
     expect(isoSeconds("PT45S")).toBe(45);
     expect(isoSeconds("P1DT1H")).toBe(90000);

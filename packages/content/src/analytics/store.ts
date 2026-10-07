@@ -1,12 +1,20 @@
 /**
  * Where insights land: a post's numbers per day (`post_metric_days`), an account's
  * (`account_metric_days`), and each metric's last state (`metric_sources`). The day is UTC; a
- * second look the same day replaces that day's value, never an earlier day's.
+ * second look the same day replaces that day's value, never an earlier day's. A platform's
+ * report rows (YouTube's reach report) land on the report's own day instead.
  */
-import type { AccountInsights, InsightGap, Insights, Platform } from "@wren/core/content";
+import {
+  type AccountInsights,
+  type InsightGap,
+  type Insights,
+  METRICS as M,
+  type Platform,
+  type ReportDays,
+} from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
-import { accountMetricDays, metricSources, postMetricDays } from "../schema.js";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import { accountMetricDays, contentDrafts, metricSources, postMetricDays } from "../schema.js";
 
 const dayOf = (iso: string) => iso.slice(0, 10);
 const x = (c: string) => sql.raw(`excluded.${c}`);
@@ -121,5 +129,88 @@ export async function writeAccountInsights(
     a.gaps.map((g) => ({ ...g, metric: `account.${g.metric}` })),
     now,
   );
+  return rows.length;
+}
+
+/**
+ * A platform's report days (YouTube's reach report), matched to our posts by published id: each
+ * post's day rows (`impressions_day`, `ctr_day`) on the report's day, then its totals to each
+ * held day (`impressions`, and `ctr` weighted by impressions). A later report for a day replaces
+ * that day (YouTube's backfill); no look writes these names, and other days stay. Returns the
+ * day rows written.
+ */
+export async function writeReportDays(
+  db: Queryable,
+  platform: Platform,
+  r: ReportDays,
+  now: Date,
+): Promise<number> {
+  const ids = [...new Set(r.rows.map((x) => x.id))];
+  const drafts = ids.length
+    ? await db
+        .select({ id: contentDrafts.id, publishedId: contentDrafts.publishedId })
+        .from(contentDrafts)
+        .where(and(eq(contentDrafts.platform, platform), inArray(contentDrafts.publishedId, ids)))
+    : [];
+  const draftsOf = new Map<string, string[]>();
+  for (const d of drafts)
+    if (d.publishedId) draftsOf.set(d.publishedId, [...(draftsOf.get(d.publishedId) ?? []), d.id]);
+  const byKey = new Map<string, typeof postMetricDays.$inferInsert>();
+  for (const row of r.rows)
+    for (const draftId of draftsOf.get(row.id) ?? [])
+      for (const v of row.values) {
+        const key = (v.key ?? "").slice(0, 200);
+        byKey.set(`${draftId}|${row.day}|${v.metric}|${key}`, {
+          draftId,
+          day: row.day,
+          metric: v.metric,
+          key,
+          value: v.value,
+          fetchedAt: now,
+        });
+      }
+  const rows = [...byKey.values()];
+  if (rows.length) {
+    await db
+      .insert(postMetricDays)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: [
+          postMetricDays.draftId,
+          postMetricDays.day,
+          postMetricDays.metric,
+          postMetricDays.key,
+        ],
+        set: { value: x("value"), fetchedAt: x("fetched_at") },
+      });
+    const touched = [...new Set(rows.map((x) => x.draftId))];
+    await db.execute(sql`
+      insert into post_metric_days (draft_id, day, metric, key, value, fetched_at)
+      select t.draft_id, t.day, m.metric, '', m.value, ${now.toISOString()}::timestamptz
+      from (
+        select i.draft_id, i.day,
+          sum(i.value) over w impressions,
+          sum(i.value * coalesce(c.value, 0) / 100) over w clicks
+        from post_metric_days i
+        left join post_metric_days c on c.draft_id = i.draft_id and c.day = i.day
+          and c.metric = ${M.ctrDay} and c.key = ''
+        where i.metric = ${M.impressionsDay} and i.key = ''
+          and i.draft_id in (${sql.join(
+            touched.map((id) => sql`${id}::uuid`),
+            sql`, `,
+          )})
+        window w as (partition by i.draft_id order by i.day)
+      ) t
+      cross join lateral (values (${M.impressions}::varchar, t.impressions),
+        (${M.ctr}::varchar, case when t.impressions > 0 then t.clicks * 100 / t.impressions end)
+      ) m(metric, value)
+      where m.value is not null
+      on conflict (draft_id, day, metric, key)
+        do update set value = excluded.value, fetched_at = excluded.fetched_at`);
+  }
+  const live = rows.length
+    ? [...new Set([...rows.map((x) => x.metric), M.impressions, M.ctr])]
+    : [];
+  await writeSources(db, platform, live, r.gaps, now);
   return rows.length;
 }

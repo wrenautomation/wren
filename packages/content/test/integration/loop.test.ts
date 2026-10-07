@@ -86,6 +86,7 @@ const fakeContent = restate.service({
     }),
     platforms: async () => [] as Platform[],
     accountInsights: async () => null,
+    reportDays: async () => null,
   },
 });
 

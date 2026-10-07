@@ -343,7 +343,15 @@ describe("Content service", () => {
     expect(await h.accountInsights?.(ctx, { platform: "linkedin" })).toMatchObject({
       days: [{ day: "2026-10-06" }],
     });
-    const { insights: _i, accountInsights: _a, ...bare } = fakeContentChannel("x");
+    linkedin.report({
+      rows: [{ id: "p1", day: "2026-10-05", values: [{ metric: "impressions_day", value: 9 }] }],
+      gaps: [],
+      cursor: "2026-10-06T00:00:00Z",
+    });
+    expect(
+      await h.reportDays?.(ctx, { platform: "linkedin", after: "2026-10-01T00:00:00Z" }),
+    ).toMatchObject({ rows: [{ id: "p1", day: "2026-10-05" }], cursor: "2026-10-06T00:00:00Z" });
+    const { insights: _i, accountInsights: _a, reportDays: _r, ...bare } = fakeContentChannel("x");
     const hx = (
       makeContent(() => ({ x: bare })) as unknown as {
         service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
@@ -351,6 +359,7 @@ describe("Content service", () => {
     ).service;
     expect(await hx.insights?.(ctx, { platform: "x", id: "t" })).toBeNull();
     expect(await hx.accountInsights?.(ctx, { platform: "x" })).toBeNull();
+    expect(await hx.reportDays?.(ctx, { platform: "x" })).toBeNull();
   });
 
   it("an unconfigured platform is a terminal 404, not a retry", async () => {

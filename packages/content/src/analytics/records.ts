@@ -211,20 +211,22 @@ export interface SourceRow {
 
 /**
  * An entry's state now: a number that came back makes it live; a refusal of one we thought
- * live says what it is; otherwise the catalog's word stands, its step with it.
+ * live says what it is, and so does a report on its way; otherwise the catalog's word stands,
+ * its step with it. An account row reads the account's sources (`account.<metric>`).
  */
 export function stateOf(
   e: CatalogEntry,
   sources: ReadonlyMap<string, SourceRow>,
-): { state: CatalogState | "error"; why: string | null; checked: string | null } {
+): { state: CatalogState | "error" | "waiting"; why: string | null; checked: string | null } {
+  const prefix = e.group === "account" ? "account." : "";
   const mine = e.metrics
-    .map((m) => sources.get(`${e.platform}|${m}`))
+    .map((m) => sources.get(`${e.platform}|${prefix}${m}`))
     .filter((s): s is SourceRow => !!s);
   const at = (s: SourceRow | undefined) => (s ? new Date(s.checked_at).toISOString() : null);
   const live = mine.find((s) => s.state === "live");
   if (live) return { state: "live", why: null, checked: at(live) };
-  const gap = mine[0];
-  if (gap && e.state === "live")
+  const gap = mine.find((s) => s.state === "waiting") ?? mine[0];
+  if (gap && (e.state === "live" || gap.state === "waiting"))
     return { state: gap.state as CatalogState | "error", why: gap.why, checked: at(gap) };
   return { state: e.state, why: gap?.why ?? null, checked: at(gap) };
 }
@@ -245,6 +247,7 @@ const STATE_LABELS: Record<string, State> = {
   needs_william: { label: "Needs William", tone: "warn" },
   not_built: neutral("In development"),
   no_api: neutral("Not in the API"),
+  waiting: neutral("Waiting"),
   error: { label: "Refused", tone: "bad" },
 };
 const SURFACES = { long: neutral("Long-form"), short: neutral("Shorts"), post: neutral("Posts") };

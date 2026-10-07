@@ -13,9 +13,10 @@ dashboards". No new Analytics page: each number sits where he already looks.
   `account_metric_days`. Every metric the token can't read is kept as a gap in
   `metric_sources` with its reason and the one step that fixes it.
 - **Behind a scope:** YouTube Analytics (retention, average view, traffic sources, search terms,
-  subscribers per video) is written and tested against a fake. It runs the day the box serves
-  the route and the token holds `yt-analytics.readonly`. Until then each of those numbers says
-  "Needs scope: YouTube Analytics" where it would sit.
+  subscribers per video) and the reach report (impressions and CTR per video per day) are built
+  on both sides and tested against fakes. They run once the token holds
+  `yt-analytics.readonly`. Until then each of those numbers says "Needs scope" where it would
+  sit; after it, the reach rows say "Waiting" until YouTube's first report lands (within 2 days).
 - **Derived in code:** comment reply rate, time to reply, comment to DM, DMs answered, DM to
   booking, post to site, and site to form, booking and won per post with revenue by first and
   last touch (`link_days`, rolled up from the lander's export by the pass that already reads it).
@@ -72,7 +73,7 @@ digest. Each platform table names only what differs.
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
 | Views | plays | `content_metrics.views` | Data API `videos.statistics`, youtube.readonly | Live | Reach |
-| Impressions, CTR | thumbnail shown, then clicked | none | Reporting API reach report (`video_thumbnail_impressions`, `_ctr`), yt-analytics.readonly, a report job | Needs scope, then Not built (job) | Reach |
+| Impressions, CTR | thumbnail shown, then clicked; per day and to date | collector built | Reporting API reach report `channel_reach_basic_a1` (`video_thumbnail_impressions`, `_ctr`), yt-analytics.readonly, a report job | Needs scope | Reach |
 | Traffic sources | views by source (search, suggested, browse, external) | collector built | Analytics `insightTrafficSourceType`, yt-analytics.readonly | Needs scope | Reach |
 | Search terms | the YouTube searches that found it | collector built | Analytics `insightTrafficSourceDetail` on YT_SEARCH | Needs scope | Reach |
 | Subscribers gained, lost | per video | collector built | Analytics `subscribersGained`, `subscribersLost` | Needs scope | Reach |
@@ -84,7 +85,7 @@ digest. Each platform table names only what differs.
 | Shares, saves | saves = added to playlists | collector built | Analytics `shares`, `videosAddedToPlaylists` | Needs scope | Trust |
 | Comment reply rate, time to reply | our answers on its comments | built here (`comments`) | none | Live | Trust |
 | Comment → DM, DM → booking | | | YouTube has no DMs | No API | Convert |
-| Title or thumbnail variants and CTR | Studio's Test and compare | none | not in any API | No API | Reach |
+| Title or thumbnail variants and CTR | Studio's Test and compare | none | not in any API: the reach report has no variant column, and Test and compare shows the variants at once | No API | Reach |
 | Account: subscribers per day | | `social_days` | Data API `channels.statistics` | Live | Reach |
 | Account: subscribers gained, lost per day, views per day | | collector built | Analytics channel report by day | Needs scope | Reach |
 
@@ -208,10 +209,13 @@ its Activity tab, its link rows and its comments. Conversation and link rows are
 - `post_metric_days`: `draft_id`, `day`, `metric`, `key` ("" for a plain number; the tenth of
   the video for `retention`, the source for `traffic_source`, the words for `search_term`),
   `value`, `source` (data, analytics, insights, public), `fetched_at`. A day's row is updated by
-  a later look that day; past days are never touched.
+  a later look that day; past days are never touched. Report rows (YouTube's reach report) land
+  on their own day instead: `impressions_day` and `ctr_day` for that day, `impressions` and
+  `ctr` to date. A later report for a day replaces it (YouTube's backfill) and redoes the totals
+  after it; no look writes those names.
 - `account_metric_days`: the same per `platform` and day.
 - `metric_sources`: one row per platform and metric: `state` (live, needs_scope,
-  needs_william, not_built, no_api, error), `why` (the platform's own words), `checked_at`,
+  needs_william, not_built, no_api, error, waiting), `why` (the platform's own words), `checked_at`,
   `live_at`. The step to fix it comes from the catalog.
 - `link_days` (channel-search): the lander's export per day, `source`, `campaign`, `content`:
   `clicks` (visitors arriving on that link), `hops` (counted video hops), `forms_first`,
@@ -224,7 +228,11 @@ its Activity tab, its link rows and its comments. Conversation and link rows are
 Collectors: `ContentChannel.insights(id, { published, kind })` and `accountInsights(day)`, both
 optional, both answering numbers plus gaps rather than throwing per metric. `Content.insights`
 and `Content.accountInsights` serve them; `ContentMetrics` calls them after `metrics` on the same
-daily look, and the account once a day per platform.
+daily look, and the account once a day per platform. `reportDays({ after })` (optional too,
+served as `Content.reportDays`) reads a platform's bulk reports made after a cursor;
+`ContentMetrics` calls it every pass and keeps the cursor per platform. On YouTube the first
+call starts the reach report job (`wren reach`); YouTube makes one report a day and backfills
+the 30 days before the job.
 
 Derived (the `marketing_conversation` view and `postAnalytics` in `packages/content/src/analytics/records.ts`):
 
@@ -247,13 +255,14 @@ setting when he asks to change them.
 
 ## William's steps
 
-1. **YouTube Analytics.** Needs an autobrowse change first: a `GET /youtubeAnalytics/v2/reports`
-   route on the `youtube` site (origin `https://youtubeanalytics.googleapis.com`) and
-   `https://www.googleapis.com/auth/yt-analytics.readonly` in `youtubeOAuth.scopes`. Then his one
-   step: `pnpm -s autobrowse site setup youtube consent --account <the channel's Google login>`
-   and click Allow. The next daily look fills every YouTube row above.
-2. **Impressions and CTR on YouTube.** After step 1: a Reporting API job for
-   `channel_reach_basic_a1` (Not built; one handler and a daily CSV read).
+1. **YouTube Analytics and the reach report.** autobrowse serves both (`GET /v2/reports`, the
+   Reporting API `/v1/jobs` routes) and asks for `yt-analytics.readonly`. Two steps, once:
+   turn the APIs on in the Cloud project
+   (`gcloud services enable youtubeanalytics.googleapis.com youtubereporting.googleapis.com --project wrenautomation`),
+   then `pnpm -s autobrowse site setup youtube consent --account <the channel's Google login>`
+   and click Allow. The next daily look fills every YouTube row above; impressions and CTR follow
+   within 2 days.
+2. (Folded into step 1.)
 3. **LinkedIn post analytics.** Apply for the Community Management API on the Wren LinkedIn app
    (developer portal → Products → Community Management API → Request access). On approval add
    `r_member_postAnalytics` and consent again.
@@ -264,18 +273,18 @@ setting when he asks to change them.
 
 ## Not built (next)
 
-1. The autobrowse route and scope for YouTube Analytics (step 1).
-2. YouTube reach report job (impressions, CTR).
-3. LinkedIn post analytics through the browser while the API waits.
-4. TikTok and X follower counts (routes exist; `audience` on both adapters).
-5. Hook, title and thumbnail variants: we keep his three thumbnails and every title edit, but
-   YouTube's own test runs in Studio. A variant column waits on the reach report.
-6. X video watch (`organic_metrics`).
+1. LinkedIn post analytics through the browser while the API waits.
+2. TikTok and X follower counts (routes exist; `audience` on both adapters).
+3. Hook, title and thumbnail variants: we keep his three thumbnails and every title edit, but
+   YouTube's own test runs in Studio and no API names a variant. If we ever swap a title or
+   thumbnail ourselves, the daily CTR rows give before and after; nothing swaps today.
+4. X video watch (`organic_metrics`).
 
 ## Cost
 
 $0. One more read per post per day on each platform's own API (YouTube Analytics is 1 quota unit
-a report; a post is 4 reports). No model calls: the digest's "next post" line is code.
+a report; a post is 4 reports). The reach report is 2 Reporting calls a pass plus 2 per new
+report (autobrowse caps it at 300 a day). No model calls: the digest's "next post" line is code.
 
 ## Decision log
 
@@ -295,3 +304,13 @@ a report; a post is 4 reports). No model calls: the digest's "next post" line is
 - 2026-10-07: the autobrowse route is not added here: autobrowse deploys on commit to the desk,
   and its change is its own repo's. The wren collector is ready and answers "Not built on the
   box" until it lands.
+- 2026-10-07: the YouTube routes landed in autobrowse (`GET /v2/reports`, Reporting `/v1/jobs`
+  and a CSV-as-rows read). The reach report writes per day, not per look: a report is a day's
+  numbers, so `impressions_day`/`ctr_day` keep each day and `impressions`/`ctr` are rebuilt to
+  date from them, CTR weighted by impressions.
+- 2026-10-07: a new gap state, `waiting`, for a report asked for and not yet made. It shows over
+  the catalog's word, so the reach row says "Waiting" instead of "Needs scope" after consent.
+- 2026-10-07: title and thumbnail variants stay No API. The reach report has no variant column,
+  and Test and compare runs its variants at once, so no day maps to one variant.
+- 2026-10-07: a channel's day rows read their `account.` sources (they read a post's before and
+  could show Live wrongly).

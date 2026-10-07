@@ -7,7 +7,8 @@
 import { type GapState, METRICS as M, type Platform } from "@wren/core/content";
 import type { FunnelStage } from "../schema.js";
 
-export type CatalogState = "live" | Exclude<GapState, "error">;
+/** A catalog row's word; `error` and `waiting` only ever come from a platform's answer. */
+export type CatalogState = "live" | Exclude<GapState, "error" | "waiting">;
 /** Where on a platform: YouTube's long videos and Shorts read differently; the rest are posts. */
 export type Surface = "long" | "short" | "post";
 /** What the number is about, as the doc groups them. */
@@ -43,11 +44,11 @@ export interface Need {
 export const NEEDS = {
   youtubeAnalytics: {
     name: "YouTube Analytics",
-    step: "Once autobrowse serves the YouTube Analytics route, run `pnpm -s autobrowse site setup youtube consent --account <the channel's Google login>` and click Allow.",
+    step: "Turn on the YouTube Analytics and YouTube Reporting APIs in the wrenautomation Cloud project, then run `pnpm -s autobrowse site setup youtube consent --account <the channel's Google login>` and click Allow.",
   },
   youtubeReach: {
     name: "YouTube reach report",
-    step: "After YouTube Analytics: a daily Reporting API job for impressions and CTR (in development).",
+    step: "The YouTube Analytics step (same APIs, same consent). The next metrics pass starts the daily job; its first report lands within 2 days.",
   },
   linkedinAnalytics: {
     name: "LinkedIn Community Management API",
@@ -271,7 +272,7 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "iteration",
       "reach",
       "no_api",
-      "Studio's Test and compare only",
+      "Studio's Test and compare only: the reach report has no variant, and both run at once",
     ],
     ["youtube", null, "Subscribers", [M.followers], "account", "reach", "live", DATA],
     [
@@ -729,6 +730,8 @@ export function stateLine(state: string, needs?: Need, why?: string | null): str
       return "In development";
     case "no_api":
       return "Not in the API";
+    case "waiting":
+      return `Waiting${why ? `: ${why}` : ` on ${needs?.name ?? "the platform"}`}`;
     default:
       return `Refused${why ? `: ${why}` : ""}`;
   }
