@@ -3,7 +3,7 @@ type: object
 cluster: voice
 universe: live
 status: verified
-verified: 2026-10-07 @ 88bbe3e2
+verified: 2026-10-07 @ 5ebedcfb
 entity: packages/voice/src/dictation/index.ts
 ---
 
