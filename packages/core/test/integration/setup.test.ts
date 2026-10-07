@@ -258,14 +258,15 @@ describe("a setup run, self-serve", () => {
     for (const e of r.emits) await go(e);
     expect(await runOf(acct.id)).toMatchObject({ gen: 2, state: "checking", step: "approve" });
     const [view] = await accountsOf(pg.db, "acme");
-    expect(view?.facts.find((f) => f.fact === "t.approved")).toMatchObject({ state: "waiting" });
+    // Lost stays lost until a check passes again: what needs it stays paused meanwhile.
+    expect(view?.facts.find((f) => f.fact === "t.approved")).toMatchObject({ state: "lost" });
 
     // A round left over from generation 1 moves nothing.
     const gen2 = await runOf(acct.id);
     await resume(w, later[1]?.id as string);
     expect(await runOf(acct.id)).toEqual(gen2);
 
-    // Past `within`: stuck, no more rounds, and Wren's team is told once.
+    // Past `within`: stuck, and Wren's team is told once. A vendor's review keeps checking.
     const before = later.length;
     told.length = 0;
     now = new Date(T0.getTime() + 14 * DAY);
@@ -274,13 +275,13 @@ describe("a setup run, self-serve", () => {
       state: "stuck",
       why: expect.stringMatching(/^Stuck past 3 days/),
     });
-    expect(later.length).toBe(before);
+    expect(later.length).toBe(before + 1);
     expect(told).toEqual([
       {
         client: "acme",
-        title: "Test setup is stuck",
-        body: expect.stringContaining('"Approved" isn\'t done after 3 days. Still in review'),
-        level: "action",
+        title: 'Sending domain: "Approved" stuck past 3 days',
+        body: expect.stringContaining("Still in review"),
+        level: "warning",
       },
     ]);
     // A check now on the stuck run checks, but tells nobody again.

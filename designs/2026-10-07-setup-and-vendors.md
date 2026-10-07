@@ -197,6 +197,35 @@ Form leads' window defaults to 08:00 to 20:00 (`WREN_SMS_FORM_WINDOW`), so the s
 
 Built (step d): `AccountsConsole` (`@wren/core/accounts/console`) serves both pages: `accounts`, `vendors`, `start`, `mark`, `checkNow`, `addAccount`, `setVendor`, and `usage` for the Clients app. Account → Accounts shows each account with a rail of its setup's steps, the step it's on with how-to, why and next check, and Mark done, Check now, Start, Switch and Start over. A client starts self-serve and marks its own steps; done for you, restarts and adding accounts are the team's. A check the worker doesn't run says "Its check is in development" and waits on Mark done. Account → Vendors is a card per vendor: mode, price, today's room, the month's use and est. $, share and cap. A client reads it there, not under Billing (Billing needs money). The team sets the mode; managed needs money (an admin). The worker has no key store yet, so saving an own key says "Saving their key here is in development". The Shop drops `kind: "setup"` workflows. A part that requires a fact reads "Needs your account" (the team reads the step) until the fact holds, and its page links to the setup on Accounts. Connecting an account on a part also adds it to the registry. Clients → Vendor usage lists this month's metered use per client. A client's record has an Accounts section. A zero cap now says "No monthly cap set".
 
+## Setup alerts
+
+William, 2026-10-07: setups "should alert the appropriate things / dashboards / people".
+
+Every change that matters writes one row to `setup_alerts` (`@wren/core/setup-alerts`). The row's key names the change, so a later round of the same change writes nothing.
+
+| Kind | When | Who acts | Team ping |
+|---|---|---|---|
+| lost | a fact that held fails its check or a part's call | the step's owner | warning |
+| stuck | a step past its `within` | the step's owner | warning |
+| waiting | a step waits on a person | the client on a self-serve client step, else Wren | action, Wren's only |
+| done | the last step passes | the client, or Wren when done for you | info |
+| paused | a fact an installed part needs is lost | the client | info |
+| resumed | that fact holds again | the client | info |
+
+The client's people see their items on Now, at the top of their Apps page, and as a count on Account → Accounts. Each account on that page has a timeline of its alerts. DeliveryWatch mails new items once, to people at mail level "all" whose role or grants reach the Account app. Only clients with the portal installed get mail; the rest see Now alone.
+
+Wren's team sees Now on Wren's home: every item the team acts on, plus every lost or stuck one, named by client. Each alert pings the clients lane once (`tellAlerts`) with the client id, account id, setup and step. No ref, no secret. A client's own waiting step never pings the team. Inbox stays inbound and To approve stays outbound approvals, so neither gets setup alerts.
+
+A part paused on a lost fact reads "Paused: needs <step>" on its canvas node, the part and template pages, the Shop row (status Paused), the install plan and Accounts. SearchWatch and Postmaster hold their pass and look again later, so they resume once the fact holds. Calendar booking isn't held yet.
+
+Only a fact that held and was lost pauses anything. A fact never set still reads "Needs your account", so nothing running today stops. A lost fact stays lost through failed rounds until a check passes.
+
+The round that runs past `within` turns the run stuck and alerts once. A vendor review (an `auto` step with a live check) keeps checking while stuck, so it moves on the day the vendor answers. Steps without `every` have no rounds; SetupWatch sweeps those hourly. Carrier review turns stuck after 10 days.
+
+Once a day per owner, SetupWatch sends one info ping listing lost and stuck alerts open over a day. An item waits a day before the next digest names it again.
+
+SetupWatch writes only setup runs, facts and alerts. A check gets the account and the time and nothing to write with, and SetupWatch never queues the agent. A test puts a write trigger on every other table and runs a pass.
+
 ## Build
 
 Each step is committed with tests on synthetic data.
@@ -231,7 +260,7 @@ Each step is committed with tests on synthetic data.
 - The IAM grant for writing client keys to SSM.
 - Each client's approver. Clients that existed before step e are `either`, so nothing changes for them; new clients start `wren`.
 - Whether `client` means any of the client's people who can act (built) or only its owner role.
-- Starting `SetupWatch` (rechecks done setups). Off until started by hand.
+- Starting `SetupWatch` (rechecks, stuck sweep, team pings, daily digest). Off until started by hand: `node scripts/ingress.mjs SetupWatch/all/start` after the deploy.
 - Search Console clients already reading: Wren's team starts the setup on each; its check passes on the first round. Until then Search watch reads "Needs your account" for them in the Shop.
 
 ## Decision log
@@ -247,7 +276,7 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step a): Wren's rows have no client (null), as `hooks` does it, not an owner named `wren`. The registry's unique key treats nulls as equal.
 - 2026-10-07 (step a): A setup's steps are `own` custom steps running `setup.step`, so they stay out of the Shop's catalog. One step reads its setup and step from the node's `with`.
 - 2026-10-07 (step a): The agent tries a step once (its first round), never on later rounds, so a buy is never repeated by a check. Wren's own buys wait on the team too: spend is William's call.
-- 2026-10-07 (step a): ~~Telling the team when a run goes stuck is In development; the Accounts page shows it.~~ Built: the round that turns a step stuck pings Wren's team once on the clients lane (`action`, named for the client), never the client. A check now on a stuck run tells nobody again; Start over and a later stuck tell again. None with `WREN_NOTIFY=none`.
+- 2026-10-07 (step a): ~~Telling the team when a run goes stuck is In development; the Accounts page shows it.~~ Built, then folded into setup alerts: the round that turns a step stuck pings Wren's team once on the clients lane (`action`, named for the client), never the client. A check now on a stuck run tells nobody again; Start over and a later stuck tell again. None with `WREN_NOTIFY=none`.
 - 2026-10-07 (step b): `vendor_usage` has no foreign key to clients: it's a ledger, and a client's usage outlives the client. The GCRA moved to `@wren/core/buckets`; research re-exports it.
 - 2026-10-07 (step b): A managed share above the clients' pool is held to the pool. ~~A free vendor still needs a cap above $0 to run managed.~~ Reversed in review: a $ cap on a free vendor means nothing, so the gate skips it there; its daily share (default 0) still bounds it.
 - 2026-10-07 (step e): "The client's owner" reads as the client's side: any of its people the guard lets act (owner and member roles). A login that may only read never approves. Existing clients were set to `either` by the migration, so their approve keeps working; the default for new ones is `wren`.
@@ -255,6 +284,11 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step d): An own key reaches the worker in the Restate call's input on its way to SSM. Restate keeps invocation inputs for its retention window. Accepted for now; a direct write from the portal edge is the swap if that matters.
 - 2026-10-07 (step d): A client reads Vendors on its Account app, not under Billing: Billing is money only, and the page is a read.
 - 2026-10-07 (review): Vendors' "Today" is the room alone (`roomToday`); the cap is said on its own line, and hides for a free vendor. Vendor usage totals count Wren's key only: what Wren pays and may bill. Own-key use is its own line, billed to the client by the vendor.
-- 2026-10-07 (checks): Search Console, Calendar and Meta checks are live. Search Console matches the property exactly, else by bare domain (`sc-domain:` or URL), and an unverified user is not access. A refusal reads "not yet", any other error "Couldn't read", so a vendor outage never reads as the client's fault. A stuck run hides "Checks again": it has stopped.
+- 2026-10-07 (checks): Search Console, Calendar and Meta checks are live. Search Console matches the property exactly, else by bare domain (`sc-domain:` or URL), and an unverified user is not access. A refusal reads "not yet", any other error "Couldn't read", so a vendor outage never reads as the client's fault. A stuck run hides "Checks again" unless it's a vendor review, which keeps checking.
 - 2026-10-07 (agent): The agent runs in its own Restate service, not inside `setup.step`: a step runs in a journaled `ctx.run` on Lambda, and a `do` call can outlast it. The step queues by ingress with an idempotency key, so a retried step queues once. A late answer for a run started over or past the step moves nothing. Off by default behind `WREN_SETUP_AGENT`. `buys_ok` is set from the admin CLI only.
 - 2026-10-07 (review): On a part page, an account whose setup isn't done reads "Saved", not "Connected". The team reads "Needs your account" too, the Shop's wording. What a part provides (code names) moved under System.
+- 2026-10-07 (alerts): William: setups "should alert the appropriate things / dashboards / people". Built as one outbox, `setup_alerts`, keyed per change. The stuck ping of step a is one of its kinds now, at warning, titled by the step.
+- 2026-10-07 (alerts): A pause is a cue and a held pass, never a stopped loop. Only a lost fact pauses; a fact never set doesn't, so live loops keep running.
+- 2026-10-07 (alerts): A stuck vendor review keeps checking. Carrier review is stuck after 10 days, not 30, and still moves on its own when carriers answer.
+- 2026-10-07 (alerts): An alert is marked told before the ping, so a lane that's down never replays a backlog. The daily digest repeats what's still lost or stuck.
+- 2026-10-07 (alerts): Client mail rides DeliveryWatch's `toldThrough` at level "all" and checks Account access per person. A client without the portal gets Now only.

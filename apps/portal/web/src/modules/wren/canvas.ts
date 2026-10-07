@@ -138,7 +138,8 @@ const portAt = (end: string) => {
 const stateOf = (n: DrawnNode, team: boolean): GraphNode["state"] => {
   const flow = !!n.uses && n.opens === n.uses;
   if (!n.uses) return { label: "Custom step", tone: "neutral" };
-  if (n.paused) return { label: n.paused, tone: "warn" };
+  // One word on the card; the note under the name says what it needs.
+  if (n.paused) return { label: "Paused", tone: "warn" };
   if (n.ready === "planned")
     return { label: flow ? "Parts in development" : "In development", tone: "neutral" };
   if (n.ready === "coming")
@@ -266,7 +267,7 @@ export function graphOf(
       ins: portsOf(n.in),
       outs: portsOf(n.out),
       label: n.name,
-      note: n.note ?? undefined,
+      note: n.paused ?? n.note ?? undefined,
       state,
       number:
         n.count && own

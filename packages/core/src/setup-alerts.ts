@@ -10,7 +10,7 @@
  * (`tellAlerts`). Lost and stuck reach the team whoever acts. Never an Inbox: Inbox is inbound.
  */
 import type { Queryable } from "@wren/db";
-import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { clients, type SetupMode } from "./clients/schema.js";
 import type { Component } from "./components.js";
 import type { Notifier, NotifyLevel } from "./notify.js";
@@ -577,7 +577,7 @@ export async function clientMailAlerts(
         eq(setupAlerts.for, "client"),
         inArray(setupAlerts.kind, ["waiting", "lost", "paused"]),
         isNull(setupAlerts.clearedAt),
-        sql`${setupAlerts.at} > ${since}`,
+        gt(setupAlerts.at, since),
         lte(setupAlerts.at, now),
       ),
     )

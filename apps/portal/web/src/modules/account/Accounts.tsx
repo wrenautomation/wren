@@ -96,7 +96,7 @@ function Run({
           {now.why && now.why !== now.how && now.why !== now.forYou ? (
             <p className={QUIET}>{now.why}</p>
           ) : null}
-          {now.check === "live" && now.every && run.state !== "stuck" ? (
+          {now.check === "live" && now.every && (run.state !== "stuck" || now.who === "auto") ? (
             <p className={QUIET}>Checks again every {now.every.replace(/^1 /, "")}.</p>
           ) : now.check === "development" ? (
             <p className={QUIET}>

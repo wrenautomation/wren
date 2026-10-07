@@ -62,6 +62,13 @@ const where = {
 describe("graphOf", () => {
   const { nodes, edges } = graphOf(inner, { counts, where, team: true });
 
+  it("marks a paused part with one word and says what it needs under its name", () => {
+    const w = { ...inner, nodes: [node("book", { paused: "Paused: needs Calendar access" })] };
+    const [card] = graphOf(w, { counts, where, team: true }).nodes;
+    expect(card?.state).toEqual({ label: "Paused", tone: "warn" });
+    expect(card?.note).toBe("Paused: needs Calendar access");
+  });
+
   it("numbers each card for 30 days and today, linked to its rows", () => {
     expect(nodes.find((n) => n.id === "find")?.number).toEqual({
       value: 412,

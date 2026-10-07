@@ -4,12 +4,15 @@
  * a key is saved by name and never read back. Synthetic clients only.
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { WREN } from "../../src/access.js";
 import { accountsApi } from "../../src/accounts-console.js";
 import { clientMembers, clients } from "../../src/clients/schema.js";
 import { PortalRefusal, type Viewer } from "../../src/portal.js";
 import { defineSetup } from "../../src/setup.js";
+import { setupAlert } from "../../src/setup-alerts.js";
+import { clientAccounts } from "../../src/setup-schema.js";
 import { memoryKeyStore, meter } from "../../src/vendors.js";
 
 let pg: TestPostgres;
@@ -356,5 +359,48 @@ describe("vendors", () => {
       managed: { units: 0, micros: 0 },
       own: { units: 100, micros: 500_000 },
     });
+  });
+});
+
+describe("now", () => {
+  it("the team sees what it acts on across clients; a client's people see theirs", async () => {
+    const [acct] = await pg.db
+      .select()
+      .from(clientAccounts)
+      .where(eq(clientAccounts.client, "acme"));
+    if (!acct) throw new Error("no account");
+    const base = { account: acct, siteLabel: "Sending domain", now: T };
+    const step = { id: "dns", label: "Mail records", fact: "t.dns", who: "client" as const };
+    await setupAlert(pg.db, {
+      ...base,
+      kind: "waiting",
+      step,
+      mode: "self",
+      why: null,
+      change: "a",
+    });
+    await setupAlert(pg.db, {
+      ...base,
+      kind: "stuck",
+      step: { ...step, who: "wren", within: "2 days" },
+      mode: "self",
+      why: "Past its time",
+      change: "b",
+    });
+
+    // At Wren: every client's items the team acts on (the stuck one), named by client.
+    const team = await api().now({ viewer: ADMIN, client: WREN });
+    expect(team.items.map((x) => [x.kind, x.clientName])).toEqual([["stuck", "Acme Dental"]]);
+    expect(team.items[0]).not.toHaveProperty("key");
+    // Amy's Now: her own step; the badge counts it.
+    const amy = await api().now({ viewer: AMY, client: "acme" });
+    expect(amy.items.map((x) => x.kind)).toEqual(["waiting"]);
+    expect(amy.count).toBe(1);
+    // Another client's person can't read it; nor can a client at Wren.
+    await refused(api().now({ viewer: { email: "bo@beta.example" }, client: "acme" }), 403);
+    await refused(api().now({ viewer: AMY, client: WREN }), 403);
+    // The account's timeline carries both.
+    const view = await api().accounts({ viewer: AMY, client: "acme" });
+    expect(view.accounts[0]?.timeline.map((x) => x.kind)).toEqual(["stuck", "waiting"]);
   });
 });

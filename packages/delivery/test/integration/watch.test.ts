@@ -4,9 +4,11 @@
  * operator pings that fire once and clear, and the ops board. The demo is
  * never mailed and never on the board.
  */
-import { addMember, clients, updateClient } from "@wren/core/clients";
+import { addMember, clients, roleGrants, roles, updateClient } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
+import { addAccount } from "@wren/core/setup";
+import { setupAlert } from "@wren/core/setup-alerts";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -152,6 +154,44 @@ describe("client mail", () => {
     const [welcome] = take(mail);
     expect(welcome?.to).toBe("cal@acme.example");
     expect(welcome?.text).toContain("amy@acme.example added you");
+  });
+
+  it("mails a setup step theirs to do once, only to people whose access reaches Accounts", async () => {
+    // A role that reaches Marketing only: never mailed about accounts.
+    await pg.db.insert(roles).values({ id: "acme.posts", client: "acme", name: "Posts" });
+    await pg.db
+      .insert(roleGrants)
+      .values({ role: "acme.posts", verbs: ["read"], apps: ["marketing"] });
+    await addMember(pg.db, "acme", "pat@acme.example", { role: "acme.posts" });
+    await pass("2026-10-06T09:30:00Z");
+    take(mail);
+    const acct = await addAccount(pg.db, {
+      client: "acme",
+      site: "domain",
+      ref: "send.acme.example",
+      by: "op",
+    });
+    await setupAlert(pg.db, {
+      kind: "waiting",
+      account: acct,
+      siteLabel: "Sending domain",
+      step: { id: "dns", label: "Mail records", fact: "t.dns", who: "client" },
+      mode: "self",
+      why: "Add the records.",
+      change: "t",
+      now: new Date("2026-10-06T09:45:00Z"),
+    });
+    await pass("2026-10-06T10:00:00Z");
+    const sent = take(mail);
+    // Amy is on the digest; Cal is on all and a member; Pat's role stops at Marketing.
+    expect(sent.map((m) => m.to)).toEqual(["cal@acme.example"]);
+    expect(sent[0]?.subject).toBe("Acme Staffing: an account needs you");
+    expect(sent[0]?.text).toContain('- Sending domain: "Mail records" needs you: Add the records.');
+    expect(sent[0]?.text).toContain("https://app.example/account/accounts?client=acme");
+    await pass("2026-10-06T11:00:00Z");
+    expect(take(mail)).toEqual([]);
+    // Pat was here for this alone: the mail counts below are Amy's and Cal's.
+    await pg.db.execute(sql`delete from client_members where email = 'pat@acme.example'`);
   });
 });
 
