@@ -24,6 +24,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/outreach": "workspace:*",
+    "@wren/sites": "workspace:*",
     "@wren/studio": "workspace:*",
     "drizzle-orm": "0.45.2",
     "playwright-core": "1.63.0",

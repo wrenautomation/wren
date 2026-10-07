@@ -57,6 +57,8 @@ export interface PageDetail {
   /** The draft at our host, by its token: the preview frame. */
   preview: string | null;
   repoPath: string | null;
+  /** What the team keeps about it. */
+  notes: string | null;
   /** The tag a code page carries. */
   kit: string | null;
   days: DayNumbers[];
@@ -103,6 +105,7 @@ export async function pageDetail(db: Queryable, id: string): Promise<PageDetail 
     live: page.liveVersion,
     waiting: page.waitingVersion,
     repoPath: page.repoPath,
+    notes: page.notes,
     ...numbers,
     ads: await adsIn(db, page),
     variants: await variantsOf(db, page),

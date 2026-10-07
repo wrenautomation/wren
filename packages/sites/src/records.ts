@@ -133,7 +133,17 @@ export const pageRecord: RecordType = defineRecord({
       at: "changed",
     },
   ],
-  actions: ["sites.ask", "sites.duplicate", "sites.retire"],
+  actions: [
+    "sites.create",
+    "sites.add",
+    "sites.duplicate",
+    "sites.retire",
+    // From the page's own detail: its copy form, Claude's draft, the ask, its notes.
+    "sites.save",
+    "sites.draft",
+    "sites.ask",
+    "sites.notes",
+  ],
   load: loadPage,
 });
 

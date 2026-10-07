@@ -25,6 +25,8 @@ import { approvalId, templateAt } from "@wren/core/templates/console";
 import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
+import { pageApprovalId } from "@wren/sites/console";
+import { waitingPages } from "@wren/sites/store";
 import { sql } from "drizzle-orm";
 import { DRAFT_CALLS } from "../draft-calls.js";
 import { shapeView } from "../shape-view.js";
@@ -427,6 +429,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const ls = await liPostRows(db);
       const asks = await waitingAsks(db);
       const ws = await waitingInstalls(db);
+      const pgs = await waitingPages(db);
       return [
         ...ps.map((p) => ({
           id: `draft:${p.id}`,
@@ -551,6 +554,22 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: w.askedAt,
           url: `/marketplace/catalog/${encodeURIComponent(w.template)}?client=${encodeURIComponent(w.client)}`,
         })),
+        // A page's copy asked to go live (Sites): a yes puts that version at its URL.
+        ...pgs.map((p) => ({
+          id: pageApprovalId(p.id, p.number ?? 0),
+          type: "page",
+          who: p.title,
+          platform: null,
+          kind: "page",
+          state: "waiting",
+          body: `${p.by ?? "Someone"} asked to make version ${p.number} live at /o/${p.slug}${p.client ? ` for ${p.client}` : ""}.`,
+          post_title: p.offer,
+          draft: null,
+          account: null,
+          at: p.at,
+          due: p.at,
+          url: `/sites/pages/${p.id}`,
+        })),
       ];
     },
     key: "id",
@@ -568,6 +587,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           lipost: neutral("Comment"),
           template: neutral("Template"),
           workflow: neutral("Workflow"),
+          page: neutral("Page"),
         }),
         "Type",
       ),
@@ -585,6 +605,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           lipost: neutral("Comment to post"),
           template: neutral("Copy to make live"),
           workflow: neutral("Workflow to make live"),
+          page: neutral("Page to make live"),
         }),
         "Kind",
       ),
@@ -613,6 +634,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       },
       { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
       { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
+      { id: "pages", label: "Pages", where: { type: "page" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
@@ -641,13 +663,16 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "templates.decline",
       "workflows.approve",
       "workflows.decline",
+      "sites.approve",
+      "sites.decline",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
     /** An accepted invite's messages; a draft's Ask Claude thread. */
     load: async (db, id) => {
       const [type, rest] = typed(id);
-      if (type === "video" || type === "template" || type === "workflow") return null;
+      if (type === "video" || type === "template" || type === "workflow" || type === "page")
+        return null;
       const ask = {
         ask: await draftTurns(db, type, rest),
         record: await recordOfPage(db, type, rest),

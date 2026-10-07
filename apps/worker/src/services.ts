@@ -255,6 +255,9 @@ import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
+import { makeSitesConsole } from "@wren/sites/console";
+import { SITES_RECORDS } from "@wren/sites/records";
+import { makeSites } from "@wren/sites/service";
 import { makeVoiceConsole } from "@wren/voice/console";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -802,6 +805,13 @@ export async function buildServices(
     makeTemplatesConsole({ db }),
     // Notes: docs in every workspace, Yjs in each one's own database (designs/2026-10-07-notes.md).
     makeNotesConsole(notesDeps),
+    // Sites: offer landers as data at /o/<slug>, code pages by URL, one tracker and form into the
+    // door (designs/2026-10-07-sites.md). Claude drafts copy only where a real model runs.
+    makeSites({ main: db }),
+    makeSitesConsole({
+      db,
+      write: settings.llm === "fake" ? null : (p) => llm.complete(p).then((r) => r.text),
+    }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1543,6 +1553,8 @@ export async function buildServices(
         ...HEALTH_RECORDS,
         // Where you were @ed in Wren's notes: yours only (the Inbox's Mentions).
         ...NOTES_RECORDS,
+        // Every page we run and its numbers by source (Sites).
+        ...SITES_RECORDS,
         reviewRecord(),
         askRecord,
       ],

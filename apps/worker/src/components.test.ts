@@ -38,6 +38,7 @@ import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
+import { SITES_RECORDS } from "@wren/sites/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import type { Logger } from "pino";
@@ -100,6 +101,7 @@ const RECORD_TYPES = [
   ...WATCH_RECORDS,
   ...LEARN_RECORDS,
   sopRecordFor(null),
+  ...SITES_RECORDS,
   ...CALENDAR_RECORDS,
   ...VOICE_RECORDS,
   ...MARKETING_NUMBERS,

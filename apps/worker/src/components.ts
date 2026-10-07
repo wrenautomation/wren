@@ -17,6 +17,7 @@ import { LEARN_COMPONENTS } from "@wren/learn/components";
 import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
+import { SITES_COMPONENTS } from "@wren/sites/components";
 import { VOICE_COMPONENTS } from "@wren/voice/components";
 import { WATCH_COMPONENTS } from "@wren/watch/components";
 import { PLANNED_COMPONENTS } from "./planned.js";
@@ -38,6 +39,7 @@ export const COMPONENTS: readonly Component[] = [
   ...VOICE_COMPONENTS,
   ...FOLLOW_COMPONENTS,
   ...FACTS_COMPONENTS,
+  ...SITES_COMPONENTS,
   ...PLANNED_COMPONENTS,
 ];
 

@@ -150,6 +150,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../packages/sites
       '@wren/studio':
         specifier: workspace:*
         version: link:../../packages/studio
@@ -287,6 +290,9 @@ importers:
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../packages/sites
       '@wren/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -462,6 +468,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../packages/sites
       '@wren/voice':
         specifier: workspace:*
         version: link:../../packages/voice
@@ -902,6 +911,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../outreach
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../sites
       '@wren/studio':
         specifier: workspace:*
         version: link:../studio
