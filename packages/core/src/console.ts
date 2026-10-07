@@ -1268,11 +1268,18 @@ const flowReady = (parts: readonly Component[]) =>
   (["planned", "coming"] as const).find((s) => parts.some((c) => readyOf(c) === s)) ?? "ready";
 const union = <T>(lists: readonly (readonly T[])[]) => [...new Set(lists.flat())];
 
+/** What a part provides, by kind, in its code names: "Services SearchWatch; Loops SearchWatch". */
+const providesText = (p: Component["provides"]) =>
+  (["services", "loops", "records", "apps"] as const)
+    .filter((k) => p[k].length)
+    .map((k) => `${k[0]?.toUpperCase()}${k.slice(1)} ${p[k].join(", ")}`)
+    .join("; ") || null;
+
 /**
  * The shop: every part in `all` and every workflow over them, each marked installed or not for
  * `client` when there is one (a workflow installs part by part until templates). The detail
- * carries ports, the hypothesis, what's inside and where it's used; the team's adds what a part
- * provides and its settings form, filled from the client's block.
+ * carries ports, the hypothesis, what's inside and where it's used; the team's adds its settings
+ * form, filled from the client's block. What a part provides is a System field, the team's.
  */
 export const componentRecord = (
   all: readonly Component[],
@@ -1333,11 +1340,13 @@ export const componentRecord = (
         site: fact,
         label: at?.step.label ?? fact,
         holds: fact,
-        how: at ? `${at.setup.name}: ${at.step.how}` : "Wren's team sets it up.",
+        how: at ? at.step.how : "Wren's team sets it up.",
         waits: at && at.step.who !== "client" ? at.step.forYou : null,
         any: false,
         has: sold.facts ? sold.facts.has(fact) : null,
         setup: at ? { id: at.setup.id, name: at.setup.name } : null,
+        // The account it's on: that account's row reads "Saved", not "Connected", until it holds.
+        of: at?.setup.site ?? null,
       };
     });
   /** A template stands in for the part or workflow it is: one card, never two. */
@@ -1537,6 +1546,7 @@ export const componentRecord = (
             state: client ? (row?.state ?? null) : null,
             effects: t.effects.join(",") || null,
             instead: null,
+            provides: null,
             needs: null,
             missing: behind.length
               ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
@@ -1561,6 +1571,7 @@ export const componentRecord = (
             effects: c.effects.join(",") || null,
             // The SaaS it stands in for, quietly: its closest vendor's name only.
             instead: inHouseOfPart(c.id)?.instead[0]?.vendor ?? null,
+            provides: team ? providesText(c.provides) : null,
             needs:
               [...c.requires.components, ...c.requires.accounts, ...c.requires.anyAccount].join(
                 ", ",
@@ -1594,6 +1605,7 @@ export const componentRecord = (
               state: null,
               effects: union(parts.map((c) => c.effects)).join(",") || null,
               instead: null,
+              provides: null,
               needs: null,
               missing: behind.length
                 ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
@@ -1621,7 +1633,7 @@ export const componentRecord = (
             : { label: "In development", tone: "neutral" },
           planned: { label: "In development", tone: "neutral" },
           // Built per client; waits on an account this client hasn't connected.
-          account: { label: team ? "Needs an account" : "Needs your account", tone: "warn" },
+          account: { label: "Needs your account", tone: "warn" },
           // Built, but its loop is stopped: nothing runs until the team starts it.
           ...(team ? { off: { label: "Off", tone: "neutral" as const } } : {}),
         },
@@ -1640,7 +1652,9 @@ export const componentRecord = (
         neutral({ sends: "Sends messages", spends: "Spends money", posts: "Posts publicly" }),
         "Effects",
       ),
-      for: status(neutral({ client: "For clients", wren: "Wren's own" }), "For"),
+      for: status(neutral({ client: "Clients", wren: "Wren's own" }), "For"),
+      // Its code names, the team's: services and loops it runs. Folded under System.
+      provides: text("Provides", { group: "System" }),
       icon: text("Icon", { group: "System" }),
       // Ids, for the Map's lines; the page says them in words under Needs and Accounts.
       needs: text("Needs", { group: "System" }),
@@ -1757,7 +1771,6 @@ export const componentRecord = (
         usedIn: usedIn(id),
         ...(team
           ? {
-              provides: c.provides,
               // Saving goes to Wren's block (`configure` with no client): the part isn't the client's.
               wrenSettings: c.wrenSettings && !installed,
               form: settingsForm(c),

@@ -375,14 +375,42 @@ function roomOf(spent: number[], now: Date, b: Bucket | null) {
 
 /**
  * May `client` (null: Wren) spend `units` of `vendor` now? Yes with its mode and bucket, or why
- * not: "Needs setup", a cap, a share of 0, or no reads left with when the next one comes.
+ * not: "Needs setup", a cap, a share of 0, or no reads left with when the next one comes. A free
+ * vendor has no money to cap: its daily share and the quota bound it.
  */
-export async function gate(
+export function gate(
   main: Queryable,
   client: string | null,
   vendor: string,
   units: number,
   now: Date = new Date(),
+): Promise<Gate> {
+  return admit(main, client, vendor, units, now, true);
+}
+
+/**
+ * Today's room alone: the gate for one unit without the monthly cap, as the Vendors page says
+ * "Today". The cap is money, said on its own line.
+ */
+export function roomToday(
+  main: Queryable,
+  client: string | null,
+  vendor: string,
+  now: Date = new Date(),
+): Promise<Gate> {
+  return admit(main, client, vendor, 1, now, false);
+}
+
+/** A vendor that costs nothing: a $ cap means nothing on it. No public price isn't free. */
+export const isFree = (v: Vendor) => v.micros === 0;
+
+async function admit(
+  main: Queryable,
+  client: string | null,
+  vendor: string,
+  units: number,
+  now: Date,
+  cap: boolean,
 ): Promise<Gate> {
   const v = vendorOf(vendor);
   const managed = managedBucket(v.id);
@@ -405,11 +433,13 @@ export async function gate(
   const s = await vendorSettings(main);
   if (!s.managedForClients.includes(v.id))
     return { ok: false, why: `${v.name} isn't offered managed`, mode: "managed" };
-  const cost = units * (v.micros ?? 0);
-  const spent = await monthSpend(main, client, v.id, now);
-  if (m.capCents === 0) return { ok: false, why: "No monthly cap set", mode: "managed" };
-  if (spent + cost > m.capCents * 10_000)
-    return { ok: false, why: `Monthly cap of ${dollars(m.capCents)} reached`, mode: "managed" };
+  if (cap && !isFree(v)) {
+    const cost = units * (v.micros ?? 0);
+    const spent = await monthSpend(main, client, v.id, now);
+    if (m.capCents === 0) return { ok: false, why: "No monthly cap set", mode: "managed" };
+    if (spent + cost > m.capCents * 10_000)
+      return { ok: false, why: `Monthly cap of ${dollars(m.capCents)} reached`, mode: "managed" };
+  }
   if (!v.quota) return { ok: true, mode: "managed", bucket: managed, room: null };
   if (m.perDay === 0) return { ok: false, why: "No daily share set", mode: "managed" };
 

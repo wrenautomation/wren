@@ -1,7 +1,7 @@
 /**
  * A component's record, below its fields (what's missing is one): what it takes and gives, what
  * runs inside it, how we expect it to generalize, where it's used, what it needs and provides,
- * and what the viewer may do. Wren's team installs, configures and uninstalls; a client asks.
+ * and what the viewer may do. What it provides (code names) is a System field. Wren's team installs, configures and uninstalls; a client asks.
  * No prices of ours: the server leaves priced settings out of the form. A part we built in place
  * of a SaaS names it, with its public price and the day we read it. A workflow shows its drawing
  * and where it's used; it installs part by part. A template has its own page (./Template.tsx).
@@ -41,6 +41,8 @@ interface Account {
   account?: string | null;
   /** A fact a setup makes ("search_console.service_account_added"): set up on Accounts. */
   setup?: { id: string; name: string } | null;
+  /** A fact's account site ("search_console"): that account reads "Saved" until the fact holds. */
+  of?: string | null;
 }
 
 /** A fact, not an account: its site names it ("number.10dlc_registered"). */
@@ -56,7 +58,6 @@ interface Part {
   hypothesis?: Hypothesis;
   inside: Drawn | null;
   usedIn: Used;
-  provides?: Record<"services" | "loops" | "records" | "apps", string[]>;
   form?: FormField[] | null;
   values?: Record<string, unknown> | null;
   /** Its settings are Wren's own run's: a save goes to Wren, not this client. */
@@ -176,73 +177,98 @@ function Accounts({
 }) {
   const each = list.filter((a) => !a.any);
   const any = list.filter((a) => a.any);
+  // An account whose setup isn't done yet is saved, not connected: its step below says what's left.
+  const pending = new Set(list.filter((a) => isFact(a) && a.has === false).map((a) => a.of));
   return (
     <div className="grid gap-4">
-      {each.length ? <AccountList list={each} client={client} edit={edit} /> : null}
+      {each.length ? (
+        <AccountList list={each} client={client} edit={edit} pending={pending} />
+      ) : null}
       {any.length ? (
         <div className="grid gap-2">
           <p className={QUIET}>Any one of these is enough.</p>
-          <AccountList list={any} client={client} edit={edit} />
+          <AccountList list={any} client={client} edit={edit} pending={pending} />
         </div>
       ) : null}
     </div>
   );
 }
 
-function AccountList({ list, client, edit }: { list: Account[]; client: string; edit: boolean }) {
+/** One account's tag: set up, connected, saved while its setup runs, or not yet. */
+function tagOf(a: Account, pending: ReadonlySet<string | null | undefined>) {
+  if (!a.has) return { label: "Not yet", tone: "neutral" as const };
+  if (isFact(a)) return { label: "Set up", tone: "green" as const };
+  return pending.has(a.site)
+    ? { label: "Saved", tone: "neutral" as const }
+    : { label: "Connected", tone: "green" as const };
+}
+
+function AccountList({
+  list,
+  client,
+  edit,
+  pending,
+}: {
+  list: Account[];
+  client: string;
+  edit: boolean;
+  pending: ReadonlySet<string | null | undefined>;
+}) {
   return (
     <ul className={LIST}>
-      {list.map((a) => (
-        <li key={a.site} className="grid gap-2">
-          <span className={SPLIT}>
-            <span className="font-medium">{a.label}</span>
-            {a.has === null ? null : (
-              <Tag tone={a.has ? "green" : "neutral"}>
-                {a.has ? (isFact(a) ? "Set up" : "Connected") : "Not yet"}
-              </Tag>
-            )}
-          </span>
-          <span className={QUIET}>{a.how}</span>
-          {a.waits ? <span className={QUIET}>Waits on Wren: {a.waits}.</span> : null}
-          {isFact(a) ? (
-            a.has === false ? (
-              <a
-                className="text-[14px] underline underline-offset-2"
-                href={`/account/accounts?client=${encodeURIComponent(client)}`}
-              >
-                {a.setup ? `${a.setup.name} on Accounts` : "Set it up on Accounts"}
-              </a>
-            ) : null
-          ) : edit ? (
-            <HandlerForm
-              key={`${client}/${a.site}/${a.account ?? ""}`}
-              id={`connect:${client}/${a.site}`}
-              name={a.site}
-              verb={a.has ? "Save" : "Connect"}
-              keyed={false}
-              effect={null}
-              fields={[
-                {
-                  field: "account",
-                  label: a.holds[0]?.toUpperCase() + a.holds.slice(1),
-                  optional: true,
-                  ...(a.has ? { hint: "Clear it to disconnect." } : {}),
-                  ...(a.account ? { from: () => a.account ?? "" } : {}),
-                },
-              ]}
-              run={async (c) => {
-                const out = await call("console/connect", {
-                  client,
-                  site: a.site,
-                  account: String((c.input as { account?: unknown }).account ?? ""),
-                });
-                changed();
-                return out;
-              }}
-            />
-          ) : null}
-        </li>
-      ))}
+      {list.map((a) => {
+        const tag = tagOf(a, pending);
+        return (
+          <li key={a.site} className="grid gap-2">
+            <span className={SPLIT}>
+              <span className="font-medium">{a.label}</span>
+              {a.has === null ? null : <Tag tone={tag.tone}>{tag.label}</Tag>}
+            </span>
+            {a.has && a.account && !edit && !isFact(a) ? (
+              <span className="break-all text-[14px]">{a.account}</span>
+            ) : null}
+            <span className={QUIET}>{a.how}</span>
+            {a.waits ? <span className={QUIET}>Waits on Wren: {a.waits}.</span> : null}
+            {isFact(a) ? (
+              a.has === false ? (
+                <a
+                  className="text-[14px] underline underline-offset-2"
+                  href={`/account/accounts?client=${encodeURIComponent(client)}`}
+                >
+                  {a.setup ? `${a.setup.name} on Accounts` : "Set it up on Accounts"}
+                </a>
+              ) : null
+            ) : edit ? (
+              <HandlerForm
+                key={`${client}/${a.site}/${a.account ?? ""}`}
+                id={`connect:${client}/${a.site}`}
+                name={a.site}
+                verb={a.has ? "Save" : "Connect"}
+                keyed={false}
+                effect={null}
+                fields={[
+                  {
+                    field: "account",
+                    label: a.holds[0]?.toUpperCase() + a.holds.slice(1),
+                    optional: true,
+                    ...(a.has ? { hint: "Clear it to disconnect." } : {}),
+                    ...(a.account ? { from: () => a.account ?? "" } : {}),
+                  },
+                ]}
+                run={async (c) => {
+                  const out = await call("console/connect", {
+                    client,
+                    site: a.site,
+                    account: String((c.input as { account?: unknown }).account ?? ""),
+                  });
+                  changed();
+                  return out;
+                }}
+              />
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -336,16 +362,6 @@ export function catalogExtras(
     (row.ready === "account" || row.ready === "ready") &&
     (d.accounts?.some((a) => a.has === false) ?? false);
   if (accounts && !toConnect) sections.push(["Accounts", accounts]);
-  if (d.provides)
-    sections.push([
-      "Provides",
-      <Facts
-        key="provides"
-        items={Object.entries(d.provides)
-          .filter(([, v]) => v.length)
-          .map(([k, v]) => [k[0]?.toUpperCase() + k.slice(1), v.join(", ")])}
-      />,
-    ]);
 
   const lead = !manages ? (
     d.installed ? (

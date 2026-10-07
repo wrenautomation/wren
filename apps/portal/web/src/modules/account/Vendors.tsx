@@ -19,20 +19,33 @@ type Mode = "managed" | "own" | "none";
 
 const DL = "grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[14px]";
 
+/** A month's use: "1,233 searches, about $8.63". */
+const used = (m: { units: number; micros: number }, units: string) =>
+  `${unitsText(m.units, units)}${m.micros ? `, about ${dollars(m.micros)}` : ""}`;
+
 function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
+  const { managed, own } = v.month;
   const rows: [string, string][] = [
     ["Price", `${v.price.charAt(0).toUpperCase()}${v.price.slice(1)}, as of ${dayLabel(v.asOf)}`],
     ["Today", roomText(v)],
-    [
-      "This month",
-      `${unitsText(v.month.units, v.units)}${v.month.micros ? `, about ${dollars(v.month.micros)}` : ""}`,
-    ],
   ];
+  // Wren's key is what Wren pays; their own key's use is billed to them by the vendor.
+  if (managed.units || !own.units) rows.push(["This month", used(managed, v.units)]);
+  if (own.units)
+    rows.push([
+      managed.units ? "On their key" : "This month",
+      `${used(own, v.units)}${own.micros ? `, billed to them by ${v.name}` : ""}`,
+    ]);
   if (v.mode === "managed" && !wren) {
     // A vendor with no read limit stops on money alone: no share to set.
     if (v.quota !== null)
       rows.push(["Daily share", v.perDay ? unitsText(v.perDay, v.units) : UNSET]);
-    rows.push(["Monthly cap", v.capCents ? dollars(v.capCents * 10_000) : UNSET]);
+    // A free vendor costs nothing: its share bounds it, no cap.
+    if (!v.free)
+      rows.push([
+        "Monthly cap",
+        v.capped && v.capCents ? v.capped : v.capCents ? dollars(v.capCents * 10_000) : UNSET,
+      ]);
   }
   if (v.mode === "own" && v.own === "key") rows.push(["Key", v.keySet ? "Saved" : "Not saved"]);
   return (
@@ -65,7 +78,8 @@ function SetMode({
     if (mode === "own" && v.own === "key") body.key = field(f, "key") ?? "";
     if (mode === "managed") {
       body.perDay = Number(field(f, "perDay") ?? 0);
-      body.capCents = Math.round(Number(field(f, "cap") ?? 0) * 100);
+      // A free vendor has no cap: keep what's stored.
+      body.capCents = v.free ? v.capCents : Math.round(Number(field(f, "cap") ?? 0) * 100);
     }
     return act.run("setVendor", body);
   };
@@ -115,16 +129,18 @@ function SetMode({
               <Input name="perDay" type="number" min={0} step={1} defaultValue={v.perDay || ""} />
             </label>
           ) : null}
-          <label className={`${FIELD} basis-[140px]`}>
-            <span>Monthly cap ($)</span>
-            <Input
-              name="cap"
-              type="number"
-              min={0}
-              step={1}
-              defaultValue={v.capCents ? v.capCents / 100 : ""}
-            />
-          </label>
+          {v.free ? null : (
+            <label className={`${FIELD} basis-[140px]`}>
+              <span>Monthly cap ($)</span>
+              <Input
+                name="cap"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={v.capCents ? v.capCents / 100 : ""}
+              />
+            </label>
+          )}
         </>
       ) : null}
       <Button

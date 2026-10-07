@@ -100,7 +100,7 @@ function Run({
             </p>
           ) : null}
           {team && now.buys && run.state === "waiting_wren" ? (
-            <p className={QUIET}>It spends money, so it waits on William's yes for this client.</p>
+            <p className={QUIET}>It spends money, so it waits on an admin's yes for this client.</p>
           ) : null}
           {team && run.mode === "for_you" && now.who !== "auto" ? (
             <p className={QUIET}>
@@ -123,7 +123,7 @@ function Run({
         <div className={TOOLS}>
           {now?.mayMark ? (
             <Button
-              size="sm"
+              size="dense"
               disabled={act.busy}
               onClick={() => void act.run("mark", { ...on, step: now.id })}
             >
@@ -132,8 +132,8 @@ function Run({
           ) : null}
           {now?.check === "live" ? (
             <Button
-              size="sm"
-              tone="quiet"
+              size="dense"
+              tone="secondary"
               disabled={act.busy}
               onClick={() => void act.run("checkNow", on)}
             >
@@ -142,7 +142,7 @@ function Run({
           ) : null}
           {team && run.state !== "done" ? (
             <Button
-              size="sm"
+              size="dense"
               tone="quiet"
               disabled={act.busy}
               onClick={() => {
@@ -155,7 +155,7 @@ function Run({
           ) : null}
           {team && (run.state === "lost" || run.state === "stuck") ? (
             <Button
-              size="sm"
+              size="dense"
               tone="quiet"
               disabled={act.busy}
               onClick={() => void act.run("start", { ...on, mode: run.mode })}
@@ -206,7 +206,7 @@ function Account({
             {mayAct ? (
               <div className={TOOLS}>
                 <Button
-                  size="sm"
+                  size="dense"
                   disabled={act.busy}
                   onClick={() => void act.run("start", { account: a.id, setup: s.id })}
                 >
@@ -214,8 +214,8 @@ function Account({
                 </Button>
                 {team ? (
                   <Button
-                    size="sm"
-                    tone="quiet"
+                    size="dense"
+                    tone="secondary"
                     disabled={act.busy}
                     onClick={() =>
                       void act.run("start", { account: a.id, setup: s.id, mode: "for_you" })

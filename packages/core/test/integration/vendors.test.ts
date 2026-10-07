@@ -13,6 +13,7 @@ import {
   meter,
   modesOf,
   monthSpend,
+  roomToday,
   setManaged,
   setOwnKey,
   setOwnLogin,
@@ -127,6 +128,41 @@ describe("managed", () => {
     // Next month starts over.
     expect(await gate(pg.db, "beta", "exa", 1, new Date("2026-04-01T00:00:00Z"))).toMatchObject({
       ok: true,
+    });
+  });
+
+  it("a free vendor needs no $ cap: its daily share bounds it", async () => {
+    await setManaged(pg.db, {
+      client: "acme",
+      vendor: "youtube",
+      perDay: 0,
+      capCents: 0,
+      by: "op",
+    });
+    expect(await gate(pg.db, "acme", "youtube", 1, NOW)).toMatchObject({
+      ok: false,
+      why: "No daily share set",
+    });
+    await setManaged(pg.db, {
+      client: "acme",
+      vendor: "youtube",
+      perDay: 50,
+      capCents: 0,
+      by: "op",
+    });
+    // YouTube: 10,000 a day, burst 2,000; a 50 share scales the burst to 10.
+    expect(await gate(pg.db, "acme", "youtube", 10, NOW)).toMatchObject({ ok: true, room: 10 });
+    await meter(pg.db, { client: "acme", vendor: "youtube", units: 10, at: NOW });
+    expect((await gate(pg.db, "acme", "youtube", 1, NOW)).ok).toBe(false);
+    expect(await roomToday(pg.db, "acme", "youtube", NOW)).toMatchObject({ ok: false });
+  });
+
+  it("today's room leaves the cap out; the gate keeps it for a paid vendor", async () => {
+    await setManaged(pg.db, { client: "gamma", vendor: "exa", perDay: 0, capCents: 0, by: "op" });
+    expect(await roomToday(pg.db, "gamma", "exa", NOW)).toMatchObject({ ok: true, room: null });
+    expect(await gate(pg.db, "gamma", "exa", 1, NOW)).toMatchObject({
+      ok: false,
+      why: "No monthly cap set",
     });
   });
 

@@ -45,10 +45,10 @@ export function ClientAccounts({ client }: { client: string }) {
         <Empty>No accounts yet.</Empty>
       )}
       <div className={TOOLS}>
-        <ButtonLink href={`/account/accounts${q}`} size="sm" tone="quiet" arrow>
+        <ButtonLink href={`/account/accounts${q}`} size="dense" tone="secondary" arrow>
           Accounts
         </ButtonLink>
-        <ButtonLink href={`/account/vendors${q}`} size="sm" tone="quiet" arrow>
+        <ButtonLink href={`/account/vendors${q}`} size="dense" tone="secondary" arrow>
           Vendors
         </ButtonLink>
       </div>
@@ -56,25 +56,25 @@ export function ClientAccounts({ client }: { client: string }) {
   );
 }
 
-const MODE: Record<string, string> = { managed: "on Wren's key", own: "on their own key" };
-
-/** This month's metered usage, per client and vendor, most spent first. */
+/**
+ * This month's metered use, per owner and vendor. Totals count Wren's key only: what Wren pays
+ * and may bill. A client's own-key use is its own line, priced, billed to it by the vendor.
+ */
 export function VendorUsage() {
   const got = useCall("vendor-usage", () => call<UsageView>("accounts/usage", {}));
   const d = got.data;
-  const byClient = new Map<string, UsageView["rows"]>();
+  const byOwner = new Map<string, UsageView["rows"]>();
   for (const r of d?.rows ?? []) {
     const k = r.client ?? "wren";
-    byClient.set(k, [...(byClient.get(k) ?? []), r]);
+    byOwner.set(k, [...(byOwner.get(k) ?? []), r]);
   }
-  const total = (d?.rows ?? []).reduce((n, r) => n + r.micros, 0);
   return (
     <>
       <PageHeader
         title="Vendor usage"
         lede={
           d
-            ? `Since ${dayLabel(d.from)}: about ${dollars(total)} at public prices. Billing drafts it monthly.`
+            ? `Since ${dayLabel(d.from)}: about ${dollars(d.total)} on Wren's key at public prices. Billing drafts it monthly.`
             : undefined
         }
       />
@@ -82,41 +82,61 @@ export function VendorUsage() {
         <Alert onRetry={got.retry}>{got.error.message}</Alert>
       ) : !d ? (
         <Loading lines={4} />
-      ) : byClient.size === 0 ? (
+      ) : byOwner.size === 0 ? (
         <Empty>Nothing metered this month yet.</Empty>
       ) : (
-        [...byClient].map(([id, rows]) => (
-          <Section
-            key={id}
-            title={rows[0]?.clientName ?? id}
-            note={`About ${dollars(rows.reduce((n, r) => n + r.micros, 0))} this month.`}
-            actions={
-              id === "wren" ? null : (
-                <a
-                  className="text-[14px] underline underline-offset-2"
-                  href={`/account/vendors?client=${encodeURIComponent(id)}`}
-                >
-                  Vendors
-                </a>
-              )
-            }
-          >
-            <ul className={LIST}>
-              {rows.map((r) => (
-                <li key={`${r.vendor}:${r.mode}`} className="grid gap-1">
-                  <span className={SPLIT}>
-                    <b className="font-medium">{r.vendorName}</b>
-                    <span>{dollars(r.micros)}</span>
-                  </span>
-                  <span className={QUIET}>
-                    {unitsText(r.units, r.unit)}
-                    {id !== "wren" && MODE[r.mode] ? `, ${MODE[r.mode]}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ))
+        d.owners.map((o) => {
+          const id = o.client ?? "wren";
+          const rows = byOwner.get(id) ?? [];
+          // Wren's key first: what Wren pays. Their own key after it.
+          const ordered = [
+            ...rows.filter((r) => r.mode === "managed"),
+            ...rows.filter((r) => r.mode !== "managed"),
+          ];
+          return (
+            <Section
+              key={id}
+              title={o.name}
+              note={
+                o.micros || o.client === null
+                  ? `About ${dollars(o.micros)} on Wren's key this month.`
+                  : "Nothing on Wren's key this month."
+              }
+              actions={
+                o.client === null ? null : (
+                  <a
+                    className="text-[14px] underline underline-offset-2"
+                    href={`/account/vendors?client=${encodeURIComponent(o.client)}`}
+                  >
+                    Vendors
+                  </a>
+                )
+              }
+            >
+              <ul className={LIST}>
+                {ordered.map((r) => {
+                  const own = r.mode === "own";
+                  return (
+                    <li key={`${r.vendor}:${r.mode}`} className="grid gap-1">
+                      <span className={SPLIT}>
+                        <b className="font-medium">{r.vendorName}</b>
+                        <span className={own ? QUIET : undefined}>{dollars(r.micros)}</span>
+                      </span>
+                      <span className={QUIET}>
+                        {unitsText(r.units, r.unit)}
+                        {own
+                          ? `, on their own key. ${r.vendorName} bills them.`
+                          : o.client === null
+                            ? ""
+                            : ", on Wren's key"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Section>
+          );
+        })
       )}
     </>
   );

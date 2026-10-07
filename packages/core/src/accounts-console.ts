@@ -44,10 +44,12 @@ import { vendorUsage } from "./vendor-schema.js";
 import {
   clearMode,
   gate,
+  isFree,
   type KeyStore,
   modesOf,
   monthStart,
   priceText,
+  roomToday,
   setManaged,
   setOwnKey,
   setOwnLogin,
@@ -253,8 +255,16 @@ export function accountsApi(deps: AccountsDeps) {
       const rows = [];
       for (const v of VENDORS) {
         const m = modes.find((x) => x.vendor === v.id);
-        const g = await gate(db, owner.id, v.id, 1, at);
-        const mine = used.filter((u) => u.vendor === v.id);
+        // Today is the room alone; the cap is money, said on its own line.
+        const today = await roomToday(db, owner.id, v.id, at);
+        const g = today.ok ? await gate(db, owner.id, v.id, 1, at) : today;
+        const sum = (mode: "managed" | "own") => {
+          const mine = used.filter((u) => u.vendor === v.id && u.mode === mode);
+          return {
+            units: mine.reduce((n, u) => n + u.units, 0),
+            micros: mine.reduce((n, u) => n + u.micros, 0),
+          };
+        };
         rows.push({
           id: v.id,
           name: v.name,
@@ -263,18 +273,19 @@ export function accountsApi(deps: AccountsDeps) {
           url: v.url,
           asOf: v.asOf,
           own: v.own,
+          free: isFree(v),
           offered: owner.id === null || settings.managedForClients.includes(v.id),
           mode: owner.id === null ? ("managed" as const) : (m?.mode ?? null),
           keySet: !!m?.keyName,
           perDay: m?.perDay ?? 0,
           capCents: m?.capCents ?? 0,
           quota: v.quota?.perDay ?? null,
-          room: g.ok ? g.room : null,
-          why: g.ok ? null : g.why,
-          month: {
-            units: mine.reduce((n, u) => n + u.units, 0),
-            micros: mine.reduce((n, u) => n + u.micros, 0),
-          },
+          room: today.ok ? today.room : null,
+          why: today.ok ? null : today.why,
+          /** Why the cap stops it ("No monthly cap set", "... reached"); null when it doesn't. */
+          capped: today.ok && !g.ok ? g.why : null,
+          /** This month on Wren's key (what Wren pays and bills), and on their own key. */
+          month: { managed: sum("managed"), own: sum("own") },
         });
       }
       return {
@@ -396,7 +407,10 @@ export function accountsApi(deps: AccountsDeps) {
       return { ok: true };
     },
 
-    /** This month's managed usage across clients, per client and vendor: Wren's team. */
+    /**
+     * This month's metered use across owners, per vendor and mode: Wren's team. Totals count
+     * Wren's key only (what Wren pays and may bill); own-key use is the client's vendor bill.
+     */
     async usage(req: PortalRequest) {
       if (!teamCan(req, "read", WREN)) throw new PortalRefusal("no access", 403);
       const from = monthStart(now());
@@ -415,8 +429,23 @@ export function accountsApi(deps: AccountsDeps) {
         .groupBy(vendorUsage.client, clients.name, vendorUsage.vendor, vendorUsage.mode)
         .orderBy(sql`sum(${vendorUsage.micros}) desc`);
       const of = (id: string) => VENDORS.find((v) => v.id === id);
+      const owners = new Map<string, { client: string | null; name: string; micros: number }>();
+      for (const r of rows) {
+        const k = r.client ?? WREN;
+        const o = owners.get(k) ?? {
+          client: r.client,
+          name: r.client === null ? "Wren" : (r.name ?? r.client),
+          micros: 0,
+        };
+        if (r.mode === "managed") o.micros += Number(r.micros);
+        owners.set(k, o);
+      }
       return {
         from: from.toISOString(),
+        /** Est. micro-dollars on Wren's key this month, every owner. */
+        total: [...owners.values()].reduce((n, o) => n + o.micros, 0),
+        /** Each owner's month on Wren's key, in the order its rows come. */
+        owners: [...owners.values()],
         rows: rows.map((r) => ({
           client: r.client,
           clientName: r.client === null ? "Wren" : (r.name ?? r.client),

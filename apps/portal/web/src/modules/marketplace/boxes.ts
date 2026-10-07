@@ -58,9 +58,7 @@ export function mapOf(rows: readonly Row[], at: (id: string) => string, team = f
               ? "Runs for Wren"
               : "In development"
             : r.ready === "account"
-              ? team
-                ? "Needs an account"
-                : "Needs your account"
+              ? "Needs your account"
               : r.ready === "planned"
                 ? "In development"
                 : r.ready === "off"

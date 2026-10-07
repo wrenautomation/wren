@@ -245,8 +245,11 @@ describe("vendors", () => {
     const exa = (await api().vendors({ viewer: AMY, client: "acme" })).vendors.find(
       (x) => x.id === "exa",
     );
-    expect(exa).toMatchObject({ mode: "managed", capCents: 500, why: null });
-    expect(exa?.month).toEqual({ units: 3, micros: 21_000 });
+    expect(exa).toMatchObject({ mode: "managed", capCents: 500, why: null, capped: null });
+    expect(exa?.month).toEqual({
+      managed: { units: 3, micros: 21_000 },
+      own: { units: 0, micros: 0 },
+    });
   });
 
   it("an own key saves by name and never comes back; no store refuses", async () => {
@@ -283,10 +286,56 @@ describe("vendors", () => {
     expect(x?.mode).toBe(null);
   });
 
-  it("usage across clients is the team's", async () => {
+  it("a free vendor on Wren's key: today's room, no cap", async () => {
+    await api().setVendor({
+      viewer: ADMIN,
+      client: "acme",
+      vendor: "youtube",
+      mode: "managed",
+      perDay: 50,
+      capCents: 0,
+    });
+    const yt = (await api().vendors({ viewer: ADMIN, client: "acme" })).vendors.find(
+      (x) => x.id === "youtube",
+    );
+    expect(yt).toMatchObject({ free: true, why: null, capped: null, room: 10 });
+    // A paid vendor with no cap: today still says its room; the cap says why nothing runs.
+    await api().setVendor({
+      viewer: ADMIN,
+      client: "acme",
+      vendor: "telnyx",
+      mode: "managed",
+      perDay: 0,
+      capCents: 0,
+    });
+    const tx = (await api().vendors({ viewer: ADMIN, client: "acme" })).vendors.find(
+      (x) => x.id === "telnyx",
+    );
+    expect(tx).toMatchObject({ free: false, why: null, room: null, capped: "No monthly cap set" });
+  });
+
+  it("usage across clients is the team's; totals count Wren's key only", async () => {
     await refused(api().usage({ viewer: AMY }), 403);
+    await api().setVendor({
+      viewer: OP,
+      client: "acme",
+      vendor: "x",
+      mode: "own",
+      key: "synthetic-key-1234",
+    });
+    await meter(pg.db, { client: "acme", vendor: "x", units: 100, at: T });
     const u = await api().usage({ viewer: ADMIN });
     expect(u.rows).toEqual([
+      {
+        client: "acme",
+        clientName: "Acme Dental",
+        vendor: "x",
+        vendorName: "X API",
+        mode: "own",
+        units: 100,
+        unit: "post reads",
+        micros: 500_000,
+      },
       {
         client: "acme",
         clientName: "Acme Dental",
@@ -298,5 +347,14 @@ describe("vendors", () => {
         micros: 21_000,
       },
     ]);
+    expect(u.total).toBe(21_000);
+    expect(u.owners).toEqual([{ client: "acme", name: "Acme Dental", micros: 21_000 }]);
+    const x = (await api().vendors({ viewer: ADMIN, client: "acme" })).vendors.find(
+      (r) => r.id === "x",
+    );
+    expect(x?.month).toEqual({
+      managed: { units: 0, micros: 0 },
+      own: { units: 100, micros: 500_000 },
+    });
   });
 });

@@ -22,7 +22,7 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 - Code (`setup.ts`): `defineSetup` (`:71`), `setupWorkflow` (`:78`), `startSetup` (`:345`), `markStep` (`:398`), `factLost` (`:425`), `recheck` (`:461`), `setupStep` (`:533`, registered as `setup.step`), `dnsChecks` (`:160`), `factsHeld`/`factsLacking` (`:261`)
 - Setups: `packages/core/src/setups.ts` (Search Console, Calendar, Meta), `packages/channel-sms/src/setups.ts` (texting 10DLC, number; `smsChecks`), `packages/channel-email/src/setups.ts` (domain, inbox; `emailChecks`). The worker lists them in `apps/worker/src/setups.ts`
 - `SetupWatch/all` (`packages/core/src/setup-watch.ts`): hourly `recheck`, emits restarts; off until started
-- A part's `requires.facts` names the facts it needs; the Shop reads "Needs your account" until each holds (`console.ts` `lacksFacts`, `factAccounts`), and `kind: "setup"` workflows stay out of the Shop
+- A part's `requires.facts` names the facts it needs; the Shop reads "Needs your account" (team and client) until each holds (`console.ts` `lacksFacts`, `factAccounts`); on the part page the account the fact sits on reads "Saved", not "Connected", until then (`Catalog.tsx` `tagOf`), and `kind: "setup"` workflows stay out of the Shop
 - `AccountsConsole` (`packages/core/src/accounts-console.ts`, routes in `accounts-console-routes.ts`): `accounts`, `start`, `mark`, `checkNow` (`setup.ts` `checkNow`, round subject `#c<ms>`), `addAccount`; a client's people start self-serve and mark `who: client` steps, the rest is the team's. Web: `apps/portal/web/src/modules/account/Accounts.tsx`
 
 ## Connected to
