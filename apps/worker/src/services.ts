@@ -124,6 +124,7 @@ import {
   clientSms,
   firstTextStep,
   healthFrom,
+  keyedProvider,
   LINK_ORIGIN,
   NoProvider,
   placeIdOf,
@@ -209,7 +210,7 @@ import {
 } from "@wren/core/content/restate";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
-import { keyStoreFromEnv } from "@wren/core/keys";
+import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { meteredModel, meteredSites } from "@wren/core/metered";
@@ -227,6 +228,7 @@ import {
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
+import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
@@ -245,7 +247,7 @@ import {
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
-import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
+import { llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   adLibraryFor,
   crawlHintsFor,
@@ -716,6 +718,7 @@ export async function buildServices(
       linkedin: settings.poolLinkedin ?? null,
       recheck: recheckLeads,
       youtube,
+      keys,
       // autobrowse's `meta` site (Graph business_discovery); inside a unit's ctx.run, so the ingress.
       instagram: ingressSites(ingressOf(settings), {
         caller: "wren:instagram",
@@ -797,6 +800,17 @@ export async function buildServices(
         return owner ? clientDb(owner.client) : db;
       },
       llm,
+      // A client's replies on its own model key or Wren's, metered on its share.
+      clientLlm: (client, part) =>
+        meteredModel(llm, {
+          main: db,
+          client,
+          part,
+          now: () => new Date(),
+          store: keys,
+          own: llmForKey,
+          unset: "managed",
+        }),
       tracer,
       tracing: settings.tracing,
       // Code proposes each warm reply's answer; only William's approve books or sends.
@@ -992,7 +1006,7 @@ export async function buildServices(
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   const content = contentFor(settings, log);
-  if (content) services.push(makeContent(content, contentClientsFor(settings, db)));
+  if (content) services.push(makeContent(content, contentClientsFor(settings, db, keys)));
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
@@ -1015,8 +1029,9 @@ export async function buildServices(
       platforms: settings.contentChannels,
       zone: settings.sendTimezone,
       tracer,
-      // A client's drafts: its database, the watch's model metered on its own gate.
-      clients: { clientDb, llm: watchLlm },
+      // A client's drafts: its database, the watch's model metered on its own gate, or its own
+      // model key from the store.
+      clients: { clientDb, llm: watchLlm, keys },
       ...(voice !== null ? { voice } : {}),
       // A post field's file (thumbnail, subtitles, cover) goes up to the media bucket.
       ...(settings.mediaBucket ? { media: { bucket: settings.mediaBucket } } : {}),
@@ -1060,6 +1075,7 @@ export async function buildServices(
       db,
       clientDb,
       llm: watchLlm,
+      keys,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
     }),
@@ -1170,8 +1186,10 @@ export async function buildServices(
     ...smsNotify,
     clientDb,
   };
-  // A client's texts: its database and messaging profile in Wren's Telnyx account, its
-  // cal.com login for reminders, Wren's rules. No site forms, no phone-app pushes.
+  // A client's texts: its database and messaging profile, on its own Telnyx key or Wren's
+  // (gated and metered on its share; a client with no mode stays on Wren's, metered), its
+  // cal.com login for reminders, Wren's rules. Its reply labels run on its own model key or
+  // Wren's, metered. No site forms, no phone-app pushes. Built per pass: keys cached for one.
   /** A client's calls its reminders read: its own calendar's, its cal.com's; none = null. */
   const bookingsOf = (plan: Extract<ClientSms, { kind: "work" }>) => {
     const sources = [
@@ -1187,8 +1205,32 @@ export async function buildServices(
       db: clientDb(plan.client.id),
       provider:
         smsProvider.name === "telnyx" && settings.telnyxApiKey
-          ? new TelnyxProvider({ apiKey: settings.telnyxApiKey, messagingProfileId: plan.profile })
+          ? keyedProvider({
+              client: plan.client.id,
+              keys: vendorKeys({
+                main: db,
+                keys,
+                env: { WREN_TELNYX_API_KEY: settings.telnyxApiKey },
+                unset: "managed",
+              }),
+              managed: new TelnyxProvider({
+                apiKey: settings.telnyxApiKey,
+                messagingProfileId: plan.profile,
+              }),
+              own: (apiKey) => new TelnyxProvider({ apiKey, messagingProfileId: plan.profile }),
+            })
           : smsProvider,
+      llm: sms.llm
+        ? meteredModel(sms.llm, {
+            main: db,
+            client: plan.client.id,
+            part: "sms.classify",
+            now: () => new Date(),
+            store: keys,
+            own: llmForKey,
+            unset: "managed",
+          })
+        : null,
       campaignId: plan.campaignId,
       senderName: plan.senderName ?? sms.senderName,
       bookingLink: plan.bookingLink,
@@ -1269,6 +1311,7 @@ export async function buildServices(
     clients: {
       clientDb,
       llm: watchLlm,
+      keys,
       dmGuide: (d: Db, p: "reddit" | "linkedin") => dmGuide(d, p),
       facts: (d: Db) => playbooksOf(d),
     },
@@ -1583,6 +1626,8 @@ export async function buildServices(
                     client,
                     part: "mail.triage",
                     now: () => new Date(),
+                    store: keys,
+                    own: llmForKey,
                   })
                 : null,
           };
@@ -1633,6 +1678,8 @@ export async function buildServices(
                       client,
                       part: "comments.sort",
                       now: () => new Date(),
+                      store: keys,
+                      own: llmForKey,
                     })
                   : null,
               guide: (p) => commentGuide(d, p as Platform),
@@ -1775,6 +1822,17 @@ export async function buildServices(
       main: db,
       open: openClient,
       crm: { verifier, checker: defaultLocalChecker(), llm: classify ? llm : null },
+      // A client's pass on its own model key or Wren's, metered on its share.
+      clientLlm: (client, base) =>
+        meteredModel(base, {
+          main: db,
+          client,
+          part: "reactivation.pass",
+          now: () => new Date(),
+          store: keys,
+          own: llmForKey,
+          unset: "managed",
+        }),
       freeVerify: freeVerdicts,
       transport,
       ...clientsNotify,
@@ -1905,7 +1963,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
  * A client's content channels: its own LinkedIn and Reddit logins, only where Wren's are on
  * (WREN_CONTENT_CHANNELS), every read through its vendor gate. Posts wait on its live flag.
  */
-function contentClientsFor(settings: Settings, db: Db): ContentClients {
+function contentClientsFor(settings: Settings, db: Db, keys: KeyStore | null): ContentClients {
   const on = settings.contentChannels;
   const sitesAt = sitesHost(settings.autobrowseInstanceId);
   return {
@@ -1920,6 +1978,7 @@ function contentClientsFor(settings: Settings, db: Db): ContentClients {
         part,
         now: () => new Date(),
         step: <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn),
+        store: keys,
       };
       const metered = (sites: SiteClient, account: string) =>
         asAccount(meteredSites(sites, scope), account);

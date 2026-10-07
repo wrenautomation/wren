@@ -53,6 +53,11 @@ export interface DispositionDeps {
    * Read inside the step; absent, a client's replies are labelled and nothing more.
    */
   clientInvites?: ((client: string) => Promise<Invites | null>) | null;
+  /**
+   * A client's model for one invocation: its own key or Wren's, metered on its share
+   * (designs/2026-10-07-vendor-keys.md). Absent, a client's replies run on `llm`.
+   */
+  clientLlm?: ((client: string, part: string) => LlmClient) | null;
 }
 
 export interface Invites {
@@ -97,6 +102,9 @@ export function makeDisposition(deps: DispositionDeps) {
         async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {
           const now = new Date(await ctx.date.now());
           const db = deps.dbOf(ctx.key);
+          const owner = clientOfKey(ctx.key)?.client ?? null;
+          const llmFor = (part: string) =>
+            owner && deps.clientLlm ? deps.clientLlm(owner, part) : deps.llm;
           const result = await ctx.run("reply disposition", async () => {
             try {
               const { stats } = await recordedRun(
@@ -107,7 +115,7 @@ export function makeDisposition(deps: DispositionDeps) {
                   model: deps.llm.name,
                 },
                 (run) =>
-                  runDisposition(db, deps.llm, {
+                  runDisposition(db, llmFor("email.disposition"), {
                     runId: run.id,
                     tracer: deps.tracer ?? null,
                     now,
@@ -131,7 +139,7 @@ export function makeDisposition(deps: DispositionDeps) {
                       model: deps.llm.name,
                     },
                     (run) =>
-                      runInvites(db, deps.llm, {
+                      runInvites(db, llmFor("email.invites"), {
                         calendar: invites.calendar,
                         notifier: invites.notifier ?? null,
                         copies: invites.copies ?? null,

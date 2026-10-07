@@ -203,6 +203,7 @@ export const COMPATIBLE_PROVIDERS = {
   cohere: { baseURL: "https://api.cohere.ai/compatibility/v1", defaultModel: "command-a-03-2025" },
   mistral: { baseURL: "https://api.mistral.ai/v1", defaultModel: "mistral-small-latest" },
   cerebras: { baseURL: "https://api.cerebras.ai/v1", defaultModel: "gpt-oss-120b" },
+  openai: { baseURL: "https://api.openai.com/v1", defaultModel: "gpt-5-mini" },
 } as const;
 export type CompatibleProvider = keyof typeof COMPATIBLE_PROVIDERS;
 
@@ -301,4 +302,63 @@ export function makeLlm(
       ),
   );
   return clients.length === 1 ? (clients[0] as LlmClient) : new RotatingLlm(clients);
+}
+
+/** Providers a client's own model key may be for: the store keeps one key, `MODEL_API_KEY`. */
+export type KeyProvider = CompatibleProvider | "anthropic";
+const KEY_PROVIDERS: readonly KeyProvider[] = [
+  "anthropic",
+  ...(Object.keys(COMPATIBLE_PROVIDERS) as CompatibleProvider[]),
+];
+
+/** Each provider's key prefix, most specific first. Cohere and Mistral keys have none. */
+const KEY_PREFIXES: readonly (readonly [string, KeyProvider])[] = [
+  ["sk-ant-", "anthropic"],
+  ["sk-or-", "openrouter"],
+  ["gsk_", "groq"],
+  ["csk-", "cerebras"],
+  ["AIza", "gemini"],
+  ["sk-", "openai"],
+];
+
+/**
+ * Which provider a client's model key is for, and the key alone: `<provider>:<key>` names it
+ * (Cohere, Mistral, or any), else the key's prefix tells. Null: it can't be told. Never says
+ * the key.
+ */
+export function keyProvider(raw: string): { provider: KeyProvider; key: string } | null {
+  const v = raw.trim();
+  const i = v.indexOf(":");
+  if (i > 0) {
+    const named = v.slice(0, i).toLowerCase() as KeyProvider;
+    if (KEY_PROVIDERS.includes(named)) return { provider: named, key: v.slice(i + 1).trim() };
+  }
+  const hit = KEY_PREFIXES.find(([p]) => v.startsWith(p));
+  return hit ? { provider: hit[1], key: v } : null;
+}
+
+/**
+ * A client's own model key as a client, straight to its provider (no gateway), on that
+ * provider's default model. Refuses a key it can't place, without saying the key.
+ */
+export function llmForKey(raw: string): LlmClient {
+  const p = keyProvider(raw);
+  if (!p?.key)
+    throw new LlmError(
+      "Can't tell which provider this model key is for. Save it as provider:key (cohere:..., mistral:...).",
+    );
+  if (p.provider === "anthropic")
+    return new AiSdkLlm(
+      "anthropic",
+      DEFAULT_ANTHROPIC_MODEL,
+      createAnthropic({ apiKey: p.key })(DEFAULT_ANTHROPIC_MODEL),
+    );
+  const spec = COMPATIBLE_PROVIDERS[p.provider];
+  return new AiSdkLlm(
+    p.provider,
+    spec.defaultModel,
+    createOpenAICompatible({ name: p.provider, baseURL: spec.baseURL, apiKey: p.key })(
+      spec.defaultModel,
+    ),
+  );
 }

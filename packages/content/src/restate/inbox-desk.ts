@@ -7,11 +7,13 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Who } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
+import type { KeyStore } from "@wren/core/keys";
+import { meteredModel } from "@wren/core/metered";
 import { isDemo, type Viewer, whoIs } from "@wren/core/portal";
 import { clientKey, errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
-import type { LlmClient } from "@wren/llm";
+import { type LlmClient, llmForKey } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -58,6 +60,8 @@ export interface InboxDeskDeps {
   clientDb?: (client: string) => Db;
   /** The model Suggest drafts with; absent, Suggest refuses. */
   llm?: LlmClient | null;
+  /** Clients' own keys: a client on its own model key drafts on it. */
+  keys?: KeyStore | null;
   /** Who signs a suggestion: his name. */
   senderName: string;
   /** What is true about him, for a suggestion's claims (`wrenFacts`). */
@@ -332,7 +336,17 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
               return suggestReply(
                 db,
                 {
-                  llm,
+                  // A client's call runs on its own key or Wren's share, metered either way.
+                  llm: client
+                    ? meteredModel(llm, {
+                        main: deps.db,
+                        client,
+                        part: "inbox.suggest",
+                        now: () => now,
+                        store: deps.keys ?? null,
+                        own: llmForKey,
+                      })
+                    : llm,
                   sender,
                   ...(!client && deps.facts ? { facts: deps.facts } : {}),
                 },

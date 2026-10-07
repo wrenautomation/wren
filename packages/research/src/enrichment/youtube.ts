@@ -7,8 +7,13 @@
  * part asked for, text uncut: what to use is decided when it is read.
  *
  * Calls go straight to the Data API as Wren's service account (`youtube.readonly`): no `sites`
- * hop, and the `wrenautomation` project's own daily units, apart from the uploads'.
+ * hop, and the `wrenautomation` project's own daily units, apart from the uploads'. A client's
+ * reads run on its own API key when it brings one (`clientYouTube`,
+ * designs/2026-10-07-vendor-keys.md), else on Wren's, gated and metered on its share.
  */
+
+import type { VendorKeys } from "@wren/core/vendor-keys";
+import { isVendorStop } from "@wren/core/vendor-stop";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type CompanyFindingDraft, keepFinding } from "../findings.js";
@@ -59,9 +64,24 @@ export function youtubeApi(
   token: () => Promise<string>,
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ): YouTubeGet {
+  return dataApi(async () => ({ authorization: `Bearer ${await token()}` }), fetch);
+}
+
+/** The Data API on an API key (a client's own): public reads only, its project's units. */
+export function youtubeKeyApi(
+  key: string,
+  fetch: typeof globalThis.fetch = globalThis.fetch,
+): YouTubeGet {
+  return dataApi(async () => ({ "x-goog-api-key": key }), fetch);
+}
+
+function dataApi(
+  headers: () => Promise<Record<string, string>>,
+  fetch: typeof globalThis.fetch,
+): YouTubeGet {
   return async (resource, query) => {
     const r = await fetch(`${API}/${resource}?${new URLSearchParams(query)}`, {
-      headers: { authorization: `Bearer ${await token()}` },
+      headers: await headers(),
     });
     const body = (await r.json().catch(() => null)) as {
       error?: { message?: string; errors?: { reason?: string }[] };
@@ -451,12 +471,58 @@ export const emptyYouTubeStats = (): YouTubeStats => ({
 });
 
 /** Adds one unit; returns why the run must stop, or null. */
+/** A client's reads stopped by its vendor gate or its key: the pass ends on why. */
+const STOPPED = "YouTube stopped: ";
+
+/** Data API units a read spends: a search is 100, every other list 1. */
+export const youtubeUnits = (resource: string) => (resource === "search" ? 100 : 1);
+
+/**
+ * A client's YouTube reads: on its own API key (`own`), or Wren's (`wren`), each gated and
+ * metered in Data API units on its share. A stop (no key, no mode, a cap) reads as spent units,
+ * so the pass ends on it. The key never leaves in an error.
+ */
+export function clientYouTube(o: {
+  client: string;
+  keys: VendorKeys;
+  wren: YouTubeGet;
+  own: (key: string) => YouTubeGet;
+  part: string;
+  runId?: string | null;
+}): YouTubeGet {
+  let mine: { key: string; get: YouTubeGet } | null = null;
+  return async (resource, query) => {
+    try {
+      return await o.keys.use(
+        {
+          client: o.client,
+          vendor: "youtube",
+          why: `youtube ${resource} for ${o.part}`,
+          units: youtubeUnits(resource),
+          part: o.part,
+          runId: o.runId ?? null,
+        },
+        (k) => {
+          if (k.mode !== "own") return o.wren(resource, query);
+          if (mine?.key !== k.key) mine = { key: k.key, get: o.own(k.key) };
+          return mine.get(resource, query);
+        },
+      );
+    } catch (err) {
+      if (isVendorStop(err))
+        throw new YouTubeError(403, "rateLimitExceeded", `${STOPPED}${err.why}`);
+      throw err;
+    }
+  };
+}
+
 export function countYouTubeUnit(
   stats: YouTubeStats,
   u: YouTubeUnit,
   streak: { errors: number },
 ): string | null {
-  if (u.outcome === "quota") return "YouTube's daily units are spent";
+  if (u.outcome === "quota")
+    return u.error?.startsWith(STOPPED) ? u.error : "YouTube's daily units are spent";
   if (u.outcome === "error") {
     stats.errors++;
     streak.errors++;

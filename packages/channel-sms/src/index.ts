@@ -8,6 +8,7 @@ export * from "./events.js";
 export * from "./follow.js";
 export * from "./form.js";
 export * from "./health.js";
+export * from "./keyed.js";
 export * from "./lift.js";
 export * from "./missed.js";
 export * from "./operator.js";

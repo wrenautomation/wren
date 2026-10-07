@@ -42,6 +42,7 @@ type ContentReply = {
   ) => Promise<void>;
 };
 
+import type { KeyStore } from "@wren/core/keys";
 import {
   clientKey,
   clientOfKey,
@@ -59,7 +60,7 @@ import { type FireTriggers, replyFired, spineEmit } from "@wren/core/spine";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
-import type { LlmClient } from "@wren/llm";
+import { type LlmClient, llmForKey } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -218,8 +219,10 @@ export interface ReachDeps {
 export interface ReachClients {
   /** A client's own database. */
   clientDb: (id: string) => Db;
-  /** The model a client's drafts use, metered on its own `models` vendor. */
+  /** The model a client's drafts use on Wren's key, metered on its own `models` vendor. */
   llm: LlmClient | null;
+  /** Clients' own keys: a client on its own Exa or model key runs on it. */
+  keys?: KeyStore | null;
   /** A client's DM guide, from the SOPs in its own database. */
   dmGuide?: (db: Db, platform: Platform) => Promise<string>;
   /** A client's facts for Reddit drafts: the SOPs in its own database. */
@@ -241,7 +244,13 @@ export function clientDeps(
   const { notifier: _n, postedAt: _p, drafts: _d, clients, ...rest } = deps;
   if (!clients) throw new Error("no client databases here");
   const db = clients.clientDb(plan.client.id);
-  const scope = { main: deps.db, client: plan.client.id, part, now: () => now };
+  const scope = {
+    main: deps.db,
+    client: plan.client.id,
+    part,
+    now: () => now,
+    store: clients.keys ?? null,
+  };
   const dmGuide = clients.dmGuide;
   return {
     ...rest,
@@ -251,7 +260,7 @@ export function clientDeps(
     ...(clients.llm && model
       ? {
           drafts: {
-            llm: meteredModel(clients.llm, scope),
+            llm: meteredModel(clients.llm, { ...scope, own: llmForKey }),
             ...(dmGuide ? { guide: (p: Platform) => dmGuide(db, p) } : {}),
           },
         }

@@ -21,7 +21,10 @@ import {
 } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
+import type { KeyStore } from "@wren/core/keys";
+import { keyedSites } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
+import { vendorKeys } from "@wren/core/vendor-keys";
 import { type Gate, gate, meter, modesOf } from "@wren/core/vendors";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
@@ -153,12 +156,14 @@ import {
 } from "../enrichment/team.js";
 import { tagTestimonials } from "../enrichment/testimonials.js";
 import {
+  clientYouTube,
   countYouTubeUnit,
   emptyYouTubeStats,
   YOUTUBE_COMMAND,
   YOUTUBE_MIN_BATCH,
   type YouTubeGet,
   type YouTubeStats,
+  youtubeKeyApi,
   youtubeRoom,
   youtubeUnit,
   youtubeWork,
@@ -243,6 +248,8 @@ export interface EnrichmentDeps {
   recheck?: (db: Queryable, companyIds: number[]) => Promise<unknown>;
   /** The YouTube Data API as Wren's service account; null = `youtube` refuses. */
   youtube?: YouTubeGet | null;
+  /** Clients' own keys: a client's YouTube reads run on its own key when it saved one. */
+  keys?: KeyStore | null;
   /** autobrowse's `meta` site, for the `instagram` reads; null = `instagram` refuses. */
   instagram?: SiteClient | null;
   /** autobrowse on the Mac (`desk`), for the signed-out `fb-public` reads; null = `adLibrary` refuses. */
@@ -493,6 +500,19 @@ const HELD = {
 } as const;
 
 export function makeEnrichment(deps: EnrichmentDeps) {
+  /**
+   * A client's YouTube for one invocation: its own key or Wren's service account, gated and
+   * metered on its share (designs/2026-10-07-vendor-keys.md). No mode: Wren's, metered.
+   */
+  const youtubeFor = (client: string, wren: YouTubeGet, part: string, runId: string | null) =>
+    clientYouTube({
+      client,
+      keys: vendorKeys({ main: deps.db, keys: deps.keys ?? null, unset: "managed" }),
+      wren,
+      own: (key) => youtubeKeyApi(key),
+      part,
+      runId,
+    });
   const tracer = deps.tracer ?? NULL_TRACER;
   const robotsMode = deps.robotsMode ?? "warn";
   const spec = deps.extractionSpec ?? DEFAULT_EXTRACTION_SPEC;
@@ -1069,11 +1089,30 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           );
           const base: BaseDeps = {
             db,
-            sites: deps.sites ? keepingAnswers(deps.sites, db) : null,
+            // A client's Exa reads (news) on its own key when it saved one, else Wren's ring.
+            sites: deps.sites
+              ? keepingAnswers(
+                  owner
+                    ? keyedSites(deps.sites, {
+                        main: deps.db,
+                        client: owner,
+                        part: "signals",
+                        now: () => now,
+                        store: deps.keys ?? null,
+                        runId,
+                      })
+                    : deps.sites,
+                  db,
+                )
+              : null,
             desk: deps.desk ? keepingAnswers(deps.desk, db) : null,
             fetcher: deps.fetcher,
             pages: deps.pages ?? null,
-            youtube: deps.youtube ?? null,
+            // A client's YouTube reads (talks) on its own key or Wren's, metered on its share.
+            youtube:
+              deps.youtube && owner
+                ? youtubeFor(owner, deps.youtube, "signals.talks", runId)
+                : (deps.youtube ?? null),
             llm: deps.llm,
             linkedin: own ? null : readAccount(deps.linkedin),
             ...(linkedinReads === undefined ? {} : { linkedinReads }),
@@ -1135,6 +1174,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             throw new restate.TerminalError("YouTube reads need a niche key");
           const limit = input?.limit ?? 20;
           const runId = await open(ctx, YOUTUBE_COMMAND, { limit, niche });
+          const yt = client === null ? get : youtubeFor(client, get, "research.youtube", runId);
           const plan = await ctx.run("select", async () => {
             const { room, nextInMs } = await youtubeRoom(
               db,
@@ -1164,7 +1204,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             ctx,
             "youtube",
             notHeld(holds, [...byId.keys()]),
-            (id) => youtubeUnit(db, get, byId.get(id) as (typeof plan.work)[number]),
+            (id) => youtubeUnit(db, yt, byId.get(id) as (typeof plan.work)[number]),
             { retry: UNIT_RETRY, holds },
           )) {
             const u = r.ok

@@ -34,6 +34,7 @@ import {
   setLastPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { LlmClient } from "@wren/llm";
 import { type FeedStats, feedDelivery } from "./delivery.js";
 import { type ForwardStats, forwardHandoffs } from "./forward.js";
 import { readClientProfile } from "./profile.js";
@@ -50,6 +51,11 @@ export interface ReactivationLoopDeps {
   open(client: Pick<Client, "database">): Db;
   /** What `crm run` uses, minus the personal-account stages. */
   crm: Omit<CrmRunDeps, "sites" | "fetcher">;
+  /**
+   * The client's model for one pass: its own key or Wren's, metered on its share
+   * (designs/2026-10-07-vendor-keys.md). Absent, `crm.llm` as is.
+   */
+  clientLlm?: ((client: string, llm: LlmClient) => LlmClient) | null;
   /** Verify only when the verifier spends no credits. */
   freeVerify: boolean;
   /** Forwards replies from the client's mailboxes: they are in Wren's Workspace. */
@@ -194,9 +200,11 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
         ledger: { command: REACTIVATION_COMMAND, argv: { client: ctx.key, limit } },
         body: async (runId) => {
           const profile = await readClientProfile(db);
+          const llm =
+            deps.crm.llm && deps.clientLlm ? deps.clientLlm(ctx.key, deps.crm.llm) : deps.crm.llm;
           const stages = await runCrm(
             db,
-            { ...deps.crm, sites: null, fetcher: null },
+            { ...deps.crm, llm, sites: null, fetcher: null },
             {
               linkedin: null,
               limit,

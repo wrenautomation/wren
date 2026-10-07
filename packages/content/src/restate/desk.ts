@@ -15,11 +15,12 @@ import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
 import { SHAPES } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
+import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
-import type { LlmClient, Tracer } from "@wren/llm";
+import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
 import { z } from "zod";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
 import {
@@ -93,8 +94,11 @@ export interface ContentDeskDeps {
   media?: MediaStoreOptions;
   /** Draws a carousel's slides (a chromium); none: slides save but don't draw here. */
   slides?: SlidePainter;
-  /** A client's desk: its database and the model its drafts run on. None: a client's key fails. */
-  clients?: { clientDb: (client: string) => Db; llm: LlmClient | null };
+  /**
+   * A client's desk: its database, the model its drafts run on (Wren's) and the store its own
+   * model key is in. None: a client's key fails.
+   */
+  clients?: { clientDb: (client: string) => Db; llm: LlmClient | null; keys?: KeyStore | null };
 }
 
 /** One desk call's database, model and words: Wren's, or a client's. */
@@ -316,6 +320,8 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         client: id,
         part: "content.planner",
         now: () => new Date(),
+        store: clients.keys ?? null,
+        own: llmForKey,
       }),
       voice: plan.voice,
       brand: plan.brand,

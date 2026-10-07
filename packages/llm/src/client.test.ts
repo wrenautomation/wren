@@ -9,10 +9,12 @@ import {
   AiSdkLlm,
   FakeLlm,
   fleetKeys,
+  keyProvider,
   type LlmClient,
   LlmError,
   LlmInputRejected,
   type LlmResponse,
+  llmForKey,
   makeLlm,
   RotatingLlm,
 } from "./client.js";
@@ -183,5 +185,35 @@ describe("loadLlmEnv", () => {
     expect(process.env.ZZTEST_API_KEY_1).toBe("already-exported");
     expect(process.env.NUM_ZZTEST).toBe("5");
     expect(loadLlmEnv("missing.env", dir)).toBe(false);
+  });
+});
+
+describe("llmForKey: a client's own model key", () => {
+  it("places a key by its prefix or a provider: prefix, straight to the provider", () => {
+    expect(keyProvider("sk-ant-api03-synthetic0000")?.provider).toBe("anthropic");
+    expect(keyProvider("sk-or-v1-synthetic0000")?.provider).toBe("openrouter");
+    expect(keyProvider("gsk_synthetic0000")?.provider).toBe("groq");
+    expect(keyProvider("AIzaSynthetic0000")?.provider).toBe("gemini");
+    expect(keyProvider("sk-proj-synthetic0000")?.provider).toBe("openai");
+    expect(keyProvider("cohere:synthetic0000")).toEqual({
+      provider: "cohere",
+      key: "synthetic0000",
+    });
+    expect(keyProvider("synthetic0000nopfx")).toBeNull();
+    expect(llmForKey("gsk_synthetic0000").name).toBe("groq:openai/gpt-oss-120b");
+    expect(llmForKey("sk-ant-api03-synthetic0000").provider).toBe("anthropic");
+    expect(llmForKey("mistral:synthetic0000").provider).toBe("mistral");
+  });
+
+  it("refuses a key it can't place, without saying it", () => {
+    const key = "synthetic0000nopfx9999";
+    let msg = "";
+    try {
+      llmForKey(key);
+    } catch (e) {
+      msg = String((e as Error).message) + String((e as Error).stack);
+    }
+    expect(msg).toContain("Can't tell which provider");
+    expect(msg).not.toContain(key);
   });
 });
