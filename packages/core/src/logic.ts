@@ -24,6 +24,7 @@ export const KINDS = [
   "mail",
   "comment",
   "item",
+  "account",
 ] as const satisfies readonly EventKind[];
 
 /** One setting on a logic node: a line he types, a number, or one of a few. */

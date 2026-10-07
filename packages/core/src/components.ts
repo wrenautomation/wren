@@ -147,6 +147,7 @@ export const EVENT_KINDS = {
   mail: "an email in an inbox Wren reads",
   comment: "a comment on our post, or under our comment",
   item: "a new item in a feed Wren follows",
+  account: "an account an owner has: a number, a domain, an inbox, a login",
 } as const;
 export type EventKind = keyof typeof EVENT_KINDS;
 
@@ -251,8 +252,16 @@ export interface Component {
   wrenSettings: boolean;
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
-  /** Components and accounts it needs, each; and accounts it needs one of (a channel to post on). */
-  requires: { components: string[]; accounts: AccountSite[]; anyAccount: AccountSite[] };
+  /**
+   * Components and accounts it needs, each; accounts it needs one of (a channel to post on); and
+   * facts a setup leaves on an account (`search_console.service_account_added`).
+   */
+  requires: {
+    components: string[];
+    accounts: AccountSite[];
+    anyAccount: AccountSite[];
+    facts: string[];
+  };
   provides: {
     services: string[];
     loops: string[];
@@ -299,7 +308,7 @@ export const defineComponent = (c: Input): Component => ({
   // A part for Wren has no client to save to, whatever a spread copied.
   wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
   priced: c.priced ?? [],
-  requires: { components: [], accounts: [], anyAccount: [], ...c.requires },
+  requires: { components: [], accounts: [], anyAccount: [], facts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
   in: c.in ?? [],

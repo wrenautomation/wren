@@ -50,6 +50,11 @@ export interface Wire {
 
 export interface Workflow {
   id: string;
+  /**
+   * `setup`: runs once per account and leaves facts on it (`./setup.ts`); kept out of the Shop's
+   * workflows, opened from the account. Absent: an ordinary workflow.
+   */
+  kind?: "setup";
   name: string;
   blurb: string;
   icon: string;

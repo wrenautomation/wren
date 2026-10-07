@@ -15,6 +15,7 @@ export * from "./schema.js";
 export * from "./send/index.js";
 export * from "./sequences.js";
 export * from "./sequences-settings.js";
+export * from "./setups.js";
 export * from "./state.js";
 export * from "./verification/index.js";
 export * from "./views.js";

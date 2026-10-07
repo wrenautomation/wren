@@ -34,6 +34,7 @@ import {
   campaignPolicy,
   clientReplies,
   defaultLocalChecker,
+  emailChecks,
   emailTouchStep,
   expandHome,
   GmailClient,
@@ -111,6 +112,7 @@ import {
   providerFrom,
   pusherFrom,
   SmsNotifier,
+  smsChecks,
   TelnyxProvider,
   touchStep,
 } from "@wren/channel-sms";
@@ -140,6 +142,7 @@ import {
   makeVideoDesk,
 } from "@wren/content/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
+import { resolve as dohResolve } from "@wren/core";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
@@ -161,6 +164,8 @@ import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox"
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
+import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
+import { makeSetupWatch } from "@wren/core/setup-watch";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
@@ -221,6 +226,7 @@ import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
 import { copyRecords } from "./record-edits.js";
 import { reviewRecord } from "./review.js";
+import { SETUPS } from "./setups.js";
 import { WORKFLOWS } from "./workflows.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
@@ -1112,6 +1118,27 @@ export async function buildServices(
       }),
     );
   else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
+  // What account setups check: DNS over HTTPS, Telnyx's 10DLC status, the roster's warmup and
+  // the placement tests. Free reads, all of them.
+  const setupChecks = {
+    ...dnsChecks(dohResolve),
+    ...(smsProvider.registration
+      ? smsChecks(db, smsProvider.registration, settings.telnyxCampaignId ?? null)
+      : {}),
+    ...emailChecks({
+      dbOf: async (client) => (client === null ? db : clientDb(client)),
+      warmupOf: async (address) => {
+        const w = roster.find((x) => x.address === address)?.ramp?.warmupStart;
+        return w
+          ? {
+              start: new Date(Date.UTC(w.year, w.month - 1, w.day)),
+              step: policy.warmupStep,
+              limit: policy.warmupLimit,
+            }
+          : null;
+      },
+    }),
+  };
   services.push(
     makeDeliveryPortal({
       main: db,
@@ -1142,6 +1169,8 @@ export async function buildServices(
       components: COMPONENTS,
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
+        // Account setups: no agent yet, so done-for-you steps wait on Wren's team.
+        [SETUP_STEP]: setupStep({ main: db, setups: SETUPS, checks: setupChecks, do: null }),
         [TOUCH]: touchStep(async (client) => (await textsOf(client)).deps),
         // Speed to lead's first text: live only with WREN_SMS_LIVE and the client's texts on.
         "sms.forms": firstTextStep(async (client) => {
@@ -1221,6 +1250,8 @@ export async function buildServices(
         return /^\s*yes/i.test(r.text);
       },
     }),
+    // Rechecks done setups on their repeat; off until started by hand.
+    makeSetupWatch({ main: db, setups: SETUPS, checks: setupChecks, ...notify }),
     makeConsolePortal({
       main: db,
       mainUrl: databaseUrl,

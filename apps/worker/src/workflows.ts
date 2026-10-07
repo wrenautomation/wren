@@ -6,6 +6,7 @@
 import { emailCadence } from "@wren/channel-email";
 import { textCadence } from "@wren/channel-sms";
 import { CONTENT_WORKFLOWS } from "@wren/content/components";
+import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
 import { NICHES, SMS_SEQUENCES } from "@wren/niches";
@@ -13,6 +14,7 @@ import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { OUTREACH_WORKFLOWS } from "@wren/outreach/components";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
+import { SETUPS } from "./setups.js";
 
 /** Shared blocks: what every funnel needs. */
 const BLOCKS = [
@@ -217,4 +219,6 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...BLOCKS,
   ...FUNNELS,
   WREN,
+  // Account setups: not sold, each one runs per account.
+  ...SETUPS.map(setupWorkflow),
 ];

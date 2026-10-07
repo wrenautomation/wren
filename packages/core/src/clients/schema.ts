@@ -1,3 +1,4 @@
+import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -20,6 +21,10 @@ import type { Permission, RoleId } from "../access.js";
 /** The channels a client can come in through: an engagement's source, a spend account's. */
 export const CHANNELS = ["email", "sms", "ads", "content", "search", "reach"] as const;
 export type Channel = (typeof CHANNELS)[number];
+
+/** Who does an account's setup: the client itself, or Wren for it. */
+export const SETUP_MODES = ["self", "for_you"] as const;
+export type SetupMode = (typeof SETUP_MODES)[number];
 
 /**
  * The client registry. Read only in the main database; client databases carry
@@ -44,11 +49,19 @@ export const clients = pgTable(
     look: jsonb("look"),
     /** The demo: people masked on the way out, no login, no writes, no sends. */
     demo: boolean("demo").default(false).notNull(),
+    /**
+     * Who does a setup's steps by default (designs/2026-10-07-setup-and-vendors.md): `self`, the
+     * client with how-to; `for_you`, Wren's team or an agent through autobrowse.
+     */
+    setupMode: varchar("setup_mode", { length: 8, enum: SETUP_MODES }).default("self").notNull(),
+    /** William's yes to create accounts or buy numbers and domains for this client. */
+    buysOk: boolean("buys_ok").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_clients" }),
     unique("uq_clients_database").on(t.database),
+    oneOf("ck_clients_setup_mode", t.setupMode, SETUP_MODES),
   ],
 );
 

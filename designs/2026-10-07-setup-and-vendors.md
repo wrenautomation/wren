@@ -233,3 +233,7 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07: Keys never sit in Postgres. Own keys are SSM SecureStrings at credvault's owner path; rows keep the name.
 - 2026-10-07: Money is micro-dollars in usage and cents on lines, never floats.
 - 2026-10-07: Texting window: form leads default to 08:00 to 20:00, matching the legal clamp.
+- 2026-10-07 (step a): Wren's rows have no client (null), as `hooks` does it, not an owner named `wren`. The registry's unique key treats nulls as equal.
+- 2026-10-07 (step a): A setup's steps are `own` custom steps running `setup.step`, so they stay out of the Shop's catalog. One step reads its setup and step from the node's `with`.
+- 2026-10-07 (step a): The agent tries a step once (its first round), never on later rounds, so a buy is never repeated by a check. Wren's own buys wait on the team too: spend is William's call.
+- 2026-10-07 (step a): Telling the team when a run goes stuck is In development; the Accounts page shows it.

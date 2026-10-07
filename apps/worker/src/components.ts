@@ -44,6 +44,7 @@ export const PLATFORM = {
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
+    SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
   },
   apps: {
     account: "every client's account: people, look, billing",

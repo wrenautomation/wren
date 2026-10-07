@@ -1023,6 +1023,13 @@
       "when": 1791348714588,
       "tag": "0145_close_brief_outcome",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1791350565353,
+      "tag": "0146_setup_accounts",
+      "breakpoints": true
     }
   ]
 }
