@@ -51,10 +51,25 @@ describe("apps and components", () => {
       "calendar",
       "account",
     ]);
-    expect(ids(false, ["calendar.booking"])).toEqual(["marketplace", "notes", "calendar", "account"]);
-    expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "notes", "account"]);
+    expect(ids(false, ["calendar.booking"])).toEqual([
+      "marketplace",
+      "notes",
+      "calendar",
+      "account",
+    ]);
+    expect(ids(false, ["research.lead_sheet"])).toEqual([
+      "leads",
+      "marketplace",
+      "notes",
+      "account",
+    ]);
     expect(ids(false, ["calls.outcome"])).toEqual(["calls", "marketplace", "notes", "account"]);
-    expect(ids(false, ["marketing.stats"])).toEqual(["marketplace", "marketing", "notes", "account"]);
+    expect(ids(false, ["marketing.stats"])).toEqual([
+      "marketplace",
+      "marketing",
+      "notes",
+      "account",
+    ]);
     // Wren's own Marketing in Wren's workspace, never the client's pages.
     const wrens = appsIn(MODULES, { wren: true, team: true, installed: new Set() });
     expect(wrens.filter((m) => m.id === "marketing").map((m) => m.pages.length > 5)).toEqual([
