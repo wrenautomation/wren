@@ -20,7 +20,7 @@ export const spendRecord = defineRecord({
     vendor: text(),
     account: text(),
     amount: money("Amount (CAD)"),
-    month: date(),
+    month: date("Month", { grain: "month" }),
     t2125Line: text("T2125 line"),
     age: status(
       {
@@ -102,10 +102,9 @@ export const monthRecord = defineRecord({
   name: { one: "month", many: "months" },
   view: "books.econ_months",
   key: "id",
-  title: "period",
+  title: "month",
   fields: {
-    period: text("Month", { from: "id" }),
-    month: date("Starts"),
+    month: date("Month", { grain: "month" }),
     mrr: cad("MRR"),
     revenue: cad("Revenue"),
     spend: cad("Spend"),

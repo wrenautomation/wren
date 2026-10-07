@@ -498,6 +498,8 @@ const APPROVAL_PAGE: ListPage = {
   label: "To approve",
   template: "list",
   record: "marketing.approval",
+  // Kind says what Type does, in more words.
+  columns: ["who", "platform", "kind", "state", "at", "due"],
   empty: {
     waiting: "Nothing waits on your yes.",
     posts: "No post draft waits on you.",

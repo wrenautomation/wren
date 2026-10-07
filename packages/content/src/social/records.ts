@@ -477,7 +477,7 @@ export const approvalRecord = defineRecord({
   title: "who",
   subtitle: "body",
   fields: {
-    who: name("Who"),
+    who: name("Item"),
     type: status(
       {
         draft: neutral("Post"),
