@@ -135,6 +135,7 @@ describe("logic parts", () => {
     expect(untilOfFacts({ trigger: "trigger.reply", channel: "dm" })).toBe("reply");
     expect(untilOfFacts({ trigger: "trigger.booking", change: "booked" })).toBe("booking");
     expect(untilOfFacts({ trigger: "trigger.booking", change: "cancelled" })).toBe("cancelled");
+    expect(untilOfFacts({ trigger: "trigger.flag", change: "raised", side: "risk" })).toBeNull();
   });
 });
 
@@ -217,6 +218,16 @@ describe("triggers", () => {
     expect(triggerHears(booking("cancelled"), cancelled)).toBe(true);
     expect(triggerHears(booking("any"), cancelled)).toBe(true);
     expect(triggerHears(reply(), cancelled)).toBe(false);
+    const flag = (w: Record<string, string> = {}) => ({ id: "f", uses: "trigger.flag", with: w });
+    const raised = { trigger: "trigger.flag", change: "raised", side: "risk" } as const;
+    const cleared = { ...raised, change: "cleared" } as const;
+    expect(triggerHears(flag(), raised)).toBe(true);
+    expect(triggerHears(flag(), cleared)).toBe(false);
+    expect(triggerHears(flag({ on: "any", side: "opportunity" }), cleared)).toBe(false);
+    expect(triggerHears(flag({ on: "cleared", side: "risk" }), cleared)).toBe(true);
+    expect(logicOf("trigger.flag")?.says({ on: "any", side: "risk" })).toBe(
+      "A risk raised or cleared",
+    );
   });
 
   it("give a Form its door: a known form's shape, else by email and its map", () => {

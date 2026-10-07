@@ -1,8 +1,8 @@
 /**
  * DeliveryWatch on a fixed clock: a welcome once per person, new asks and
  * deliverables in one message, the Friday digest by level, the weekly pulse,
- * operator pings that fire once and clear, and the ops board. The demo is
- * never mailed and never on the board.
+ * flags that raise once and clear themselves, told urgently or in the morning
+ * digest, and the ops board. The demo is never mailed and never on the board.
  */
 import { addMember, clients, roleGrants, roles, updateClient } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -41,6 +41,21 @@ const notifier: Notifier = {
   },
 };
 const take = <T>(xs: T[]): T[] => xs.splice(0);
+/** Each flag the alerts named, "client: what", with its how on the same line. */
+const named = (ps: { body: string }[]) =>
+  ps.flatMap((p) =>
+    p.body
+      .replace(/\n {4}/g, " ")
+      .split("\n")
+      .filter((l) => /^[a-z]+: /.test(l)),
+  );
+/** The open flags' causes, oldest first. */
+const open = async () =>
+  (
+    await pg.db.execute<{ cause: string }>(
+      sql`select cause from delivery.flags where cleared_at is null order by id`,
+    )
+  ).map((r) => r.cause);
 
 async function refused(p: Promise<unknown>): Promise<number> {
   try {
@@ -201,7 +216,7 @@ describe("the pulse", () => {
     expect(await refused(api.pulse({ viewer: AMY, score: 6 }))).toBe(400);
     await api.pulse({ viewer: AMY, score: 4 });
     await api.pulse({ viewer: AMY, score: 2 });
-    // Off the real clock, or a low score lands in the week the pings below look at.
+    // Off the real clock, or a low score lands in the week the flags below look at.
     await dated("pulses", "at", "2026-09-28T09:00:00Z");
     const [mine] = (await api.home({ viewer: AMY })).engagements;
     expect(mine?.pulse).toMatchObject({ mine: 2, scores: [] });
@@ -235,37 +250,39 @@ describe("the Friday digest", () => {
   });
 });
 
-describe("operator pings", () => {
-  it("pings once per problem, again only when a new one shows, and clears when fixed", async () => {
-    // Friday morning's pass already saw the quiet week (last client-visible change Monday).
-    const [quiet, ...more] = take(pinged);
-    expect(more).toEqual([]);
-    expect(quiet?.title).toBe("Delivery: 1 to look at");
-    expect(quiet?.body).toBe("acme: nothing new for the client in 3+ business days");
+describe("flags", () => {
+  it("raises each problem once, tells it in the morning digest, and clears it when fixed", async () => {
+    // Friday morning's digest named the quiet week (last client-visible change Monday).
+    expect(take(pinged).at(-1)).toEqual({
+      title: "Clients: 1 to look at",
+      body: "Team:\nacme: Nothing new for the client in 3+ business days",
+    });
 
     await dated("pulses", "at", "2026-10-09T09:00:00Z");
     await pass("2026-10-09T18:00:00Z");
-    const [low, ...rest] = take(pinged);
-    expect(rest).toEqual([]);
-    expect(low?.body).toBe("acme: pulse 2/5 this week");
+    // A rating of 2 is urgent: told on the next pass, not the morning's.
+    expect(take(pinged)).toEqual([{ title: "Clients: 1 urgent", body: "acme: Weekly rating 2/5" }]);
     await pass("2026-10-09T19:00:00Z");
     expect(take(pinged)).toEqual([]);
 
     await api.post({ viewer: OPS, ...acme, body: "List is clean." });
     await dated("updates", "created_at", "2026-10-09T19:30:00Z");
     await pass("2026-10-09T20:00:00Z");
-    const rows = await pg.db.execute<{ about: string }>(
-      sql`select about from delivery.pings order by about`,
+    expect((await open()).filter((c) => !c.startsWith("health:"))).toEqual([
+      expect.stringMatching(/^pulse:\d+$/),
+    ]);
+    const [quiet] = await pg.db.execute<{ cleared_by: string }>(
+      sql`select cleared_by from delivery.flags where cause = 'quiet'`,
     );
-    expect(rows.map((r) => r.about)).toEqual([expect.stringMatching(/^pulse:\d+$/)]);
+    expect(quiet?.cleared_by).toBe("pipeline:delivery-watch");
   });
 
-  it("a client's comment pings until Wren replies; the reply is mailed at level all", async () => {
+  it("a client's comment is urgent until Wren replies; the reply is mailed at level all", async () => {
     const [u] = (await api.updates({ viewer: AMY })).updates;
     await api.comment({ viewer: AMY, updateId: u?.id ?? 0, body: "How many were dead?" });
     await api.comment({ viewer: AMY, updateId: u?.id ?? 0, body: "Roughly is fine." });
     await pass("2026-10-09T20:10:00Z");
-    expect(take(pinged).map((p) => p.body)).toEqual([
+    expect(named(take(pinged))).toEqual([
       `acme: amy@acme.example wrote on update #${u?.id}, no reply yet: "How many were dead?"`,
     ]);
     take(mail);
@@ -274,8 +291,7 @@ describe("operator pings", () => {
     await dated("comments", "created_at", "2026-10-09T20:15:00Z");
     await pass("2026-10-09T20:20:00Z");
     expect(take(pinged)).toEqual([]);
-    const rows = await pg.db.execute<{ about: string }>(sql`select about from delivery.pings`);
-    expect(rows.map((r) => r.about)).not.toContain(`reply:u${u?.id}`);
+    expect(await open()).not.toContain(`reply:u${u?.id}`);
     // Amy gets the digest only; Cal gets everything.
     const [told, ...rest] = take(mail);
     expect(rest).toEqual([]);
@@ -285,7 +301,7 @@ describe("operator pings", () => {
     expect(told?.text).toContain("https://app.example/reactivation/updates?client=acme");
   });
 
-  it("an invoice past its due day pings once, and clears when paid", async () => {
+  it("an invoice past its due day waits for the next digest, and clears when paid", async () => {
     await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
       number: "WREN-7",
       description: "Setup",
@@ -295,15 +311,12 @@ describe("operator pings", () => {
       by: "ops@wren.example",
     });
     await pass("2026-10-09T20:30:00Z");
-    expect(take(pinged).map((p) => p.body)).toEqual([
-      "acme: invoice WREN-7 (USD 1000.00) unpaid, due 2026-10-08",
-    ]);
-    await pass("2026-10-09T20:40:00Z");
+    // Today's digest went this morning.
     expect(take(pinged)).toEqual([]);
+    expect(await open()).toContainEqual(expect.stringMatching(/^invoice:\d+$/));
     await markInvoice(pg.db, "acme", "WREN-7", "paid", "2026-10-09");
     await pass("2026-10-09T20:50:00Z");
-    const rows = await pg.db.execute<{ about: string }>(sql`select about from delivery.pings`);
-    expect(rows.map((r) => r.about).filter((a) => a.startsWith("invoice:"))).toEqual([]);
+    expect((await open()).filter((c) => c.startsWith("invoice:"))).toEqual([]);
   });
 });
 
@@ -350,7 +363,7 @@ describe("moments, reviews and reminders (D13)", () => {
     expect(mine?.next).toEqual([]);
   });
 
-  it("a review is the client's people's, at a moment they reached; a good one pings Wren", async () => {
+  it("a review is the client's people's, at a moment they reached; a good one is a flag", async () => {
     const at = { moment: "first:meetings" };
     expect(await refused(api.review({ viewer: OPS, ...acme, ...at, score: 5 }))).toBe(403);
     expect(await refused(api.review({ viewer: AMY, moment: "halfway", score: 5 }))).toBe(404);
@@ -367,11 +380,20 @@ describe("moments, reviews and reminders (D13)", () => {
     });
     await api.review({ viewer: { email: "cal@acme.example" }, ...at, score: null });
     await pass("2026-10-14T12:00:00Z");
-    expect(take(pinged).map((p) => p.body)).toEqual([
-      'acme: amy@acme.example rated 5/5 at "Your first meeting is booked" "Booked in week 2." (quote: named)',
-    ]);
-    await pass("2026-10-14T13:00:00Z");
+    // A quotable 5 is an opportunity, for tomorrow's digest; the 4 it replaced is gone.
     expect(take(pinged)).toEqual([]);
+    const flags = await pg.db.execute<{ side: string; what: string; once: boolean }>(
+      sql`select side, what, once from delivery.flags where cause like 'review:%'`,
+    );
+    expect(flags).toEqual([
+      {
+        side: "opportunity",
+        once: true,
+        what: 'amy@acme.example rated 5/5 at "Your first meeting is booked" and may be quoted (named): "Booked in week 2."',
+      },
+    ]);
+    await pass("2026-10-15T10:00:00Z");
+    expect(named(take(pinged))).toContain(`acme: opportunity, ${flags[0]?.what}`);
     const [ours] = (await api.home({ viewer: OPS, ...acme })).engagements;
     expect(ours?.moments[0]?.reviews).toHaveLength(2);
     const [mine] = (await api.home({ viewer: AMY })).engagements;
@@ -410,7 +432,7 @@ describe("the ops board", () => {
       lastUpdateAt: "2026-10-09T19:30:00.000Z",
       openAsks: 7,
       pulse: 2,
-      risks: ["pulse 2/5 this week"],
+      risks: ["weekly rating 2/5"],
     });
     expect(rows[1]).toMatchObject({ engagementId: null, phase: null, risks: [] });
   });
@@ -418,11 +440,9 @@ describe("the ops board", () => {
 
 describe("the 1st's bills (D15)", () => {
   const bills = () =>
-    take(pinged)
-      .flatMap((p) => p.body.split("\n"))
-      .filter((l) => /^bolt: bill(s on the 1st for)? 2026-12/.test(l));
+    named(take(pinged)).filter((l) => /^bolt: (Bill|Bills on the 1st for) 2026-12/.test(l));
 
-  it("previews, then pings daily until the month's invoice is on record", async () => {
+  it("previews, then comes back daily until the month's invoice is on record", async () => {
     await pg.db.insert(clients).values({ id: "bolt", name: "Bolt", database: "wren_client_bolt" });
     const { engagement, agreement } = await onboard(pg.db, {
       clientId: "bolt",
@@ -447,12 +467,12 @@ describe("the 1st's bills (D15)", () => {
     await pass("2026-11-28T10:00:00Z");
     expect(bills()).toEqual([]);
     await pass("2026-11-29T10:00:00Z");
-    expect(bills()).toEqual([expect.stringContaining("bolt: bills on the 1st for 2026-12")]);
+    expect(bills()).toEqual([expect.stringContaining("bolt: Bills on the 1st for 2026-12")]);
 
     await pass("2026-12-01T10:00:00Z");
     const [bill, ...rest] = bills();
     expect(rest).toEqual([]);
-    expect(bill).toContain("bill 2026-12:");
+    expect(bill).toContain("Bill 2026-12:");
     expect(bill).toContain("delivery invoice <number> 1800 ");
     expect(bill).toContain("--period 2026-12 --units 3");
     await pass("2026-12-01T12:00:00Z");

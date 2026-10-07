@@ -300,29 +300,6 @@ export const pulses = delivery.table(
 export type Pulse = typeof pulses.$inferSelect;
 
 /**
- * What DeliveryWatch told the operator (D8), so a standing problem pings once a
- * week, not every hour. A row goes when its problem clears; a new one pings again.
- */
-export const pings = delivery.table(
-  "pings",
-  {
-    engagementId: integer("engagement_id").notNull(),
-    /** "quiet", "away", "step:<key>", "ask:<id>", "pulse:<id>", "reply:<u|d><id>" or "invoice:<id>". */
-    about: varchar("about", { length: 80 }).notNull(),
-    pingedAt: timestamp("pinged_at", { withTimezone: true }).notNull(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.engagementId, t.about], name: "pk_pings" }),
-    foreignKey({
-      columns: [t.engagementId],
-      foreignColumns: [engagements.id],
-      name: "fk_pings_engagement",
-    }).onDelete("cascade"),
-  ],
-);
-export type Ping = typeof pings.$inferSelect;
-
-/**
  * A thread under an update or a deliverable: the client asks, Wren answers.
  * Exactly one of the two. `fromWren` says which side wrote it, for who gets told.
  */

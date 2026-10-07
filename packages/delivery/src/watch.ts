@@ -1,8 +1,9 @@
 /**
  * DeliveryWatch/fleet (D8–D10): one pass an hour over every client's work. It
  * mails each client person (D9): a welcome when they're invited, new asks and
- * deliverables, and the Friday digest with the weekly pulse (D10). And it pings
- * the operator when a client could feel forgotten (D8). The demo is never
+ * deliverables, and the Friday digest with the weekly pulse (D10). What could
+ * leave a client feeling forgotten (D8) goes on the flags list, beside each
+ * client's health for the day (designs/2026-10-07-health.md). The demo is never
  * watched; only its sample project is kept fresh. Mail is per person and
  * marks itself done, so a failed send is tried again next hour and a sent one
  * never repeats.
@@ -14,6 +15,7 @@ import { grantsFor } from "@wren/core/grants";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
 import { clientMailAlerts } from "@wren/core/setup-alerts";
+import type { Fired, FireTriggers } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
@@ -34,6 +36,8 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { amount, WREN_PARTY } from "./contract.js";
+import { type FlagFind, flagsToFire, syncFlags, tellFlags } from "./health/flags.js";
+import { healthPass } from "./health/pass.js";
 import {
   addDays,
   type Bill,
@@ -63,7 +67,6 @@ import {
   memberMail,
   milestones,
   moments,
-  pings,
   pulses,
   results,
   reviews,
@@ -80,12 +83,10 @@ const DAY = 24 * HOUR;
 const QUIET_WORKDAYS = 3;
 const AWAY_DAYS = 14;
 const LOW_PULSE = 3;
-/** Paperwork left this long pings: an unsigned contract, unanswered access. */
+/** Paperwork left this long is flagged: an unsigned contract, unanswered access. */
 const PAPERWORK_DAYS = 3;
-/** A problem still standing pings again after this long. */
+/** A problem still standing comes back in the digest after this long. */
 const REPING_DAYS = 7;
-/** A day's re-ping lands on the hourly pass a little before the clock comes round. */
-const HOUR_SLACK = 5 * 60 * 1000;
 /** Days before the 1st that its bills are previewed. */
 const BILL_HEADS_UP_DAYS = 2;
 /** The digest goes Friday from this hour, fleet clock. */
@@ -105,13 +106,15 @@ export interface PortalMail {
 
 export interface WatchDeps {
   main: Db;
-  /** Mails one client person; null = no client mail here (pings still go). */
+  /** Mails one client person; null = no client mail here (flags still go). */
   send: ((m: PortalMail) => Promise<void>) | null;
   /** The portal, for links: `https://app.<domain>`. */
   app: string;
   /** The fleet's clock: business days and Friday afternoon. */
   zone: string;
   notifier?: Notifier;
+  /** Tells the spine of each flag raised or cleared; unset where no Spine runs. */
+  fire?: FireTriggers;
 }
 
 export interface WatchStats {
@@ -120,7 +123,14 @@ export interface WatchStats {
   contracts: number;
   told: number;
   digests: number;
-  pinged: number;
+  /** Flags raised and cleared by themselves this pass, and how many alerts named. */
+  raised: number;
+  cleared: number;
+  alerted: number;
+  /** Clients whose health was written for the day. */
+  scored: number;
+  /** Flag changes for the spine, sent once the pass is journaled. */
+  fired: Fired[];
   /** Moments mailed with a review ask (D13). */
   moments: number;
   /** Invoices reminded before they're due (D13). */
@@ -198,7 +208,7 @@ async function watched(main: Db): Promise<{ live: Live[]; people: Person[] }> {
   return { live, people };
 }
 
-/** One pass: mail, then pings. */
+/** One pass: mail, then health and flags. */
 export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats> {
   const { main } = deps;
   const today = dayIn(deps.zone, now);
@@ -207,7 +217,11 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
     contracts: 0,
     told: 0,
     digests: 0,
-    pinged: 0,
+    raised: 0,
+    cleared: 0,
+    alerted: 0,
+    scored: 0,
+    fired: [],
     moments: 0,
     reminded: 0,
     heard: 0,
@@ -223,8 +237,7 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
   }
   await markMoments(deps, today, live, people, stats);
   if (deps.send) await remindInvoices(deps, deps.send, now, today, stats);
-  await pingOperator(deps, now, today, live, people, stats);
-  await tellOperator(deps, now, stats);
+  await flagClients(deps, now, today, live, people, stats);
   return stats;
 }
 
@@ -385,10 +398,16 @@ async function remindInvoices(
   }
 }
 
-/** New reviews and interests, one ping; a low review is a warning. "Not now" is never pinged. */
-async function tellOperator(deps: WatchDeps, now: Date, stats: WatchStats): Promise<void> {
-  const { main, notifier } = deps;
-  if (!notifier) return;
+/** Reviews in the quotable range: a happy client may be quoted. */
+const QUOTE_FROM = 4;
+/** A review this low is urgent. */
+const LOW_REVIEW = 2;
+
+/**
+ * New reviews and interests as one-time flags: an interest and a quotable 4 or 5 are
+ * opportunities, a review of 2 or lower is an urgent risk. Each is heard once (`toldAt`).
+ */
+async function heardFlags(main: Db): Promise<{ found: FlagFind[]; mark: () => Promise<void> }> {
   const [rv, it] = await Promise.all([
     main
       .select({ r: reviews, e: engagements })
@@ -403,49 +422,60 @@ async function tellOperator(deps: WatchDeps, now: Date, stats: WatchStats): Prom
       .innerJoin(clients, eq(clients.id, engagements.clientId))
       .where(and(isNull(interests.toldAt), eq(clients.demo, false))),
   ]);
-  const scored = rv.filter(({ r }) => r.score !== null);
-  const lines = [
-    ...scored.map(({ r, e }) => {
-      const at = momentLabel(offerFor(e.offerId), r.moment) ?? r.moment;
-      const words = r.words ? ` "${clip(r.words, 200)}"` : "";
-      return `${e.clientId}: ${r.email} rated ${r.score}/5 at "${at}"${words} (quote: ${r.mayQuote})`;
-    }),
-    ...it.map(
-      ({ i, e }) => `${e.clientId}: ${i.email} wants to hear about ${offerFor(i.offerId).name}`,
-    ),
-  ];
-  if (lines.length > 0) {
-    const low = scored.some(({ r }) => (r.score ?? 5) <= 2);
-    if (
-      !(await notifier.notify(
-        `Delivery: ${lines.length} new from clients`,
-        lines.join("\n"),
-        low ? "warning" : "action",
-      ))
-    )
-      return;
-    stats.heard = lines.length;
+  const found: FlagFind[] = [];
+  for (const { r, e } of rv) {
+    if (r.score === null) continue;
+    const at = momentLabel(offerFor(e.offerId), r.moment) ?? r.moment;
+    const words = r.words ? `: "${clip(r.words, 200)}"` : "";
+    const base = { clientId: e.clientId, engagementId: e.id, cause: `review:${r.id}`, once: true };
+    if (r.score <= LOW_REVIEW)
+      found.push({
+        ...base,
+        side: "risk",
+        urgent: true,
+        what: `${r.email} rated ${r.score}/5 at "${at}"${words}`,
+      });
+    else if (r.score >= QUOTE_FROM && r.mayQuote !== "private")
+      found.push({
+        ...base,
+        side: "opportunity",
+        what: `${r.email} rated ${r.score}/5 at "${at}" and may be quoted (${r.mayQuote})${words}`,
+      });
   }
-  if (rv.length > 0)
-    await main
-      .update(reviews)
-      .set({ toldAt: now })
-      .where(
-        inArray(
-          reviews.id,
-          rv.map(({ r }) => r.id),
-        ),
-      );
-  if (it.length > 0)
-    await main
-      .update(interests)
-      .set({ toldAt: now })
-      .where(
-        inArray(
-          interests.id,
-          it.map(({ i }) => i.id),
-        ),
-      );
+  for (const { i, e } of it)
+    found.push({
+      clientId: e.clientId,
+      engagementId: e.id,
+      cause: `interest:${i.id}`,
+      once: true,
+      urgent: true,
+      side: "opportunity",
+      what: `${i.email} wants to hear about ${offerFor(i.offerId).name}`,
+    });
+  const mark = async () => {
+    const now = new Date();
+    if (rv.length)
+      await main
+        .update(reviews)
+        .set({ toldAt: now })
+        .where(
+          inArray(
+            reviews.id,
+            rv.map(({ r }) => r.id),
+          ),
+        );
+    if (it.length)
+      await main
+        .update(interests)
+        .set({ toldAt: now })
+        .where(
+          inArray(
+            interests.id,
+            it.map(({ i }) => i.id),
+          ),
+        );
+  };
+  return { found, mark };
 }
 
 // --- client mail (D9, D10) -----------------------------------------------------
@@ -823,18 +853,22 @@ async function digestOf(
   return out.join("\n");
 }
 
-// --- operator pings (D8) ---------------------------------------------------------
+// --- what needs a look (D8) ---------------------------------------------------------
 
 type Found = {
   engagementId: number;
   clientId: string;
   about: string;
   what: string;
-  /** Pings again after this many days while it stands; a week by default. */
+  /** Comes back in the digest after this many days while it stands; a week by default. */
   everyDays?: number;
+  /** What to do, for the alert only: it may name a command. */
+  how?: string;
+  /** Told on the next pass, not in the morning digest. */
+  urgent?: boolean;
 };
 
-/** What could leave a client feeling forgotten (D8): the pings, and the ops board's risks. */
+/** What could leave a client feeling forgotten (D8): flags, and the ops board's risks. */
 async function problems(
   main: Db,
   zone: string,
@@ -948,7 +982,8 @@ async function problems(
           engagementId: e.id,
           about: `pulse:${p.id}`,
           clientId: c,
-          what: `pulse ${p.score}/5 this week`,
+          what: `weekly rating ${p.score}/5`,
+          urgent: p.score <= LOW_REVIEW,
         });
       // One ping per thread, from its first unanswered line.
       const threads = new Set<string>();
@@ -1033,7 +1068,8 @@ async function problems(
       found.push({
         ...base,
         about: "setup",
-        what: `no setup invoice on record (${amount(a.terms.setupCents, a.terms.currency)}): send it through Wise, then \`wren delivery invoice --setup\``,
+        what: `no setup invoice on record (${amount(a.terms.setupCents, a.terms.currency)})`,
+        how: "Send it through Wise, then `wren delivery invoice --setup`",
       });
   }
   for (const { r, clientId } of access)
@@ -1086,7 +1122,8 @@ async function billing(main: Db, today: string): Promise<Found[]> {
       clientId: b.clientId,
       about: `bill:${period}`,
       everyDays: day <= 7 ? 1 : REPING_DAYS,
-      what: `bill ${period}: ${said(b)} = ${amount(billCents(b), b.currency)}. Send it through Wise, then \`wren --client ${b.clientId} delivery invoice <number> ${billCents(b) / 100} --for "${monthName(period)}" --due ${addDays(today, b.payDays)} --period ${period}${b.units ? ` --units ${b.units}` : ""}\``,
+      what: `bill ${period}: ${said(b)} = ${amount(billCents(b), b.currency)}`,
+      how: `Send it through Wise, then \`wren --client ${b.clientId} delivery invoice <number> ${billCents(b) / 100} --for "${monthName(period)}" --due ${addDays(today, b.payDays)} --period ${period}${b.units ? ` --units ${b.units}` : ""}\``,
     }),
   );
   const ahead = soon
@@ -1122,7 +1159,14 @@ const dayWords = (day: string) =>
 const monthName = (period: string) =>
   `${MONTH_NAMES[Number(period.slice(5)) - 1]} ${period.slice(0, 4)}`;
 
-async function pingOperator(
+/** Causes told on the next pass, not in the morning digest: a client waiting on us. */
+const URGENT = /^reply:/;
+
+/**
+ * DeliveryWatch's problems and the new reviews and interests onto the flags list, health's
+ * day and its flags, then the alerts and the spine's outbox (designs/2026-10-07-health.md).
+ */
+async function flagClients(
   deps: WatchDeps,
   now: Date,
   today: string,
@@ -1132,35 +1176,39 @@ async function pingOperator(
 ): Promise<void> {
   const { main } = deps;
   const found = await problems(main, deps.zone, now, today, live, people);
-  // Dedupe: a problem pings once, again after a week if it stands, and its row goes when it clears.
-  const key = (r: { engagementId: number; about: string }) => `${r.engagementId} ${r.about}`;
-  const known = await main.select().from(pings);
-  const standing = new Set(found.map(key));
-  for (const k of known.filter((k) => !standing.has(key(k))))
-    await main
-      .delete(pings)
-      .where(and(eq(pings.engagementId, k.engagementId), eq(pings.about, k.about)));
-  const pingedAt = new Map(known.map((k) => [key(k), k.pingedAt.getTime()]));
-  const fresh = found.filter(
-    (f) =>
-      (pingedAt.get(key(f)) ?? 0) <=
-      now.getTime() - (f.everyDays ?? REPING_DAYS) * DAY + HOUR_SLACK,
+  const heard = await heardFlags(main);
+  const delivery = await syncFlags(
+    main,
+    "delivery",
+    [
+      ...found.map(
+        (f): FlagFind => ({
+          clientId: f.clientId,
+          engagementId: f.engagementId,
+          side: "risk",
+          cause: f.about,
+          what: f.what,
+          how: f.how ?? null,
+          urgent: f.urgent ?? URGENT.test(f.about),
+          remindDays: f.everyDays ?? REPING_DAYS,
+        }),
+      ),
+      ...heard.found,
+    ],
+    now,
   );
-  if (fresh.length === 0 || !deps.notifier) return;
-  const told = await deps.notifier.notify(
-    `Delivery: ${fresh.length} to look at`,
-    fresh.map((f) => `${f.clientId}: ${f.what}`).join("\n"),
-    "action",
-  );
-  if (!told) return;
-  await main
-    .insert(pings)
-    .values(fresh.map((f) => ({ engagementId: f.engagementId, about: f.about, pingedAt: now })))
-    .onConflictDoUpdate({
-      target: [pings.engagementId, pings.about],
-      set: { pingedAt: sql`excluded.pinged_at` },
-    });
-  stats.pinged = fresh.length;
+  await heard.mark();
+  stats.heard = heard.found.length;
+  const health = await healthPass(main, deps.zone, now);
+  const fromHealth = await syncFlags(main, "health", health.flags, now);
+  stats.scored = health.scored;
+  stats.raised = delivery.raised + fromHealth.raised;
+  stats.cleared = delivery.cleared + fromHealth.cleared;
+  if (deps.notifier) {
+    const told = await tellFlags(main, deps.notifier, today, wallClock(deps.zone, now).hour, now);
+    stats.alerted = told.urgent + told.digest;
+  }
+  if (deps.fire) stats.fired = await flagsToFire(main, now);
 }
 
 // --- the ops board --------------------------------------------------------------
@@ -1305,6 +1353,10 @@ export function makeDeliveryWatch(deps: WatchDeps) {
       delayAfter: () => HOUR,
       retryMs: HOUR,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
+    }).then((outcome) => {
+      // Journaled with the pass: each flag change reaches the spine once.
+      for (const f of outcome.stats?.fired ?? []) deps.fire?.(ctx, f);
+      return outcome;
     });
   });
 }

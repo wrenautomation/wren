@@ -134,6 +134,8 @@ export const recruitingReactivation = defineOffer({
     { key: "fees_usd", label: "Placement fees", unit: "usd" },
   ],
   perUnitMeasure: "meetings",
+  // Client health's results: the promise, with setup's first two weeks left out.
+  target: { measure: "meetings", count: 20, fromDay: 14 },
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
   // William, 10-01: ask for a review at the first meeting and the first client won back.
   reviewAfterFirst: [

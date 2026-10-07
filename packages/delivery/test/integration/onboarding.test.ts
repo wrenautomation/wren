@@ -1,8 +1,8 @@
 /**
  * Onboarding: the contract is issued with the terms, an owner signs the text
  * they read, access is asked for and answered, and the plan starts once it's
- * signed and the setup fee is paid. The watch mails the signed copy and pings
- * us about paperwork left waiting.
+ * signed and the setup fee is paid. The watch mails the signed copy and flags
+ * paperwork left waiting.
  */
 import { addMember, clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -35,14 +35,7 @@ const BO: Viewer = { email: "bo@beta.example" };
 const acme = { client: "acme" };
 const ORIGIN = { ip: "203.0.113.7", agent: "Test browser" };
 const mail: PortalMail[] = [];
-const pinged: string[] = [];
-const notifier: Notifier = {
-  name: "test",
-  notify: async (_title, body = "") => {
-    pinged.push(body);
-    return true;
-  },
-};
+const notifier: Notifier = { name: "test", notify: async () => true };
 const pass = () =>
   watchPass(
     {
@@ -258,9 +251,16 @@ describe("the watch", () => {
     expect(mail.filter((m) => m.subject.includes("signed contract"))).toEqual([]);
   });
 
-  it("pings about declined access, and a contract left unsigned", async () => {
-    expect(pinged.join("\n")).toContain("declined access to Your ATS");
-    pinged.splice(0);
+  it("flags declined access, and a contract left unsigned", async () => {
+    const flagged = async () =>
+      (
+        await pg.db.execute<{ line: string }>(
+          sql`select client_id || ': ' || what line from delivery.flags where cleared_at is null`,
+        )
+      ).map((r) => r.line);
+    expect(await flagged()).toContainEqual(
+      expect.stringMatching(/^acme: Declined access to Your ATS/),
+    );
     await onboard(pg.db, {
       clientId: "beta",
       offerId: "reactivation",
@@ -271,7 +271,7 @@ describe("the watch", () => {
     await pg.db.execute(sql`update delivery.agreements set issued_at = now() - interval '4 days'
       where signed_at is null`);
     await pass();
-    expect(pinged.join("\n")).toMatch(/beta: contract unsigned since/);
+    expect(await flagged()).toContainEqual(expect.stringMatching(/^beta: Contract unsigned since/));
   });
 
   it("no setup fee: signing alone starts it", async () => {

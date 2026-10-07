@@ -26,6 +26,7 @@ export default defineConfig({
     "../channel-search/src/schema.ts",
     "../auth/src/schema.ts",
     "../delivery/src/schema.ts",
+    "../delivery/src/health/schema.ts",
     "../outreach/src/schema.ts",
     "../watch/src/schema.ts",
     "../studio/src/schema.ts",

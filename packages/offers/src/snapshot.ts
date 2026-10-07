@@ -18,7 +18,7 @@ export function snapshot(offers: readonly Offer[]): Snapshot {
   return {
     version: SNAPSHOT_VERSION,
     note: "Generated from wren packages/offers by `pnpm offers:export`. Edit the offer there, not here.",
-    // The plan, access, review moments, upsell and add-on are the portal's, not the site's.
+    // The plan, access, review moments, upsell, add-on and target are the portal's, not the site's.
     offers: offers.map(
       ({
         plan: _,
@@ -28,6 +28,7 @@ export function snapshot(offers: readonly Offer[]): Snapshot {
         app: _____,
         perUnitMeasure: ______,
         addOn: _______,
+        target: ________,
         ...o
       }) => o,
     ),

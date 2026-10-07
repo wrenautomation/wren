@@ -914,10 +914,12 @@ export function makeSpine(d: SpineDeps) {
               .emit({ client: req.client, ...h, events: [req.event] });
           const db = client ? d.clientDb(client) : d.main;
           // About the same lead on any channel: a reply by email frees a wait held on its texts.
+          const until = untilOfFacts(req.facts);
           const held = await ctx.run("held", async () => {
+            if (until === null) return [];
             const about = aboutsOf(req);
             const all = [...new Set([...about, ...(await leadThreads(db, about))])];
-            return waitingFor(db, untilOfFacts(req.facts), all);
+            return waitingFor(db, until, all);
           });
           for (const id of held)
             ctx

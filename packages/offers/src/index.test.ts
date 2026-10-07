@@ -119,6 +119,21 @@ describe("defineOffer", () => {
       /not one of its measures/,
     ],
     ["an app that is not an id", offer({ app: "Reactivation" }), /app/],
+    [
+      "a target on a measure it lacks",
+      offer({ days: 30, target: { measure: "hires", count: 5, fromDay: 0 } }),
+      /target names 'hires'/,
+    ],
+    [
+      "a target with no days",
+      offer({ target: { measure: "things", count: 5, fromDay: 0 } }),
+      /target needs days/,
+    ],
+    [
+      "a target starting after its end",
+      offer({ days: 30, target: { measure: "things", count: 5, fromDay: 30 } }),
+      /fromDay/,
+    ],
     ["a performance price in cents", offer({ price: { ...PERF, upfront: 999.5 } }), /whole/],
     ["a performance price counting nothing", offer({ price: { ...PERF, unit: " " } }), /unit/],
     ["a cap under one unit", offer({ price: { ...PERF, cap: 100 } }), /cap/],
@@ -253,11 +268,20 @@ describe("snapshot", () => {
           app: _____,
           perUnitMeasure: ______,
           addOn: _______,
+          target: ________,
           ...o
         }) => o,
       ),
     );
-    const portalOnly = ["plan", "access", "reviewAfterFirst", "upsell", "app", "perUnitMeasure"];
+    const portalOnly = [
+      "plan",
+      "access",
+      "reviewAfterFirst",
+      "upsell",
+      "app",
+      "perUnitMeasure",
+      "target",
+    ];
     expect(parsed.offers.some((o) => portalOnly.some((k) => k in o))).toBe(false);
   });
 });

@@ -11,9 +11,11 @@
     "./restate": "./src/service.ts",
     "./routes": "./src/routes.ts",
     "./files": "./src/files.ts",
-    "./sample": "./src/sample.ts"
+    "./sample": "./src/sample.ts",
+    "./health": "./src/health/index.ts"
   },
   "scripts": {
+    "test:unit": "vitest run src",
     "test:integration": "vitest run test/integration",
     "typecheck": "tsc --noEmit"
   },

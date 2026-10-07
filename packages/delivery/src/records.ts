@@ -30,7 +30,13 @@ import {
 } from "./index.js";
 
 /** Wren's own notes on a project: a client's people never see a change to them. */
-const TEAM_TABLES = ["delivery.pings", "delivery.pulses", "delivery.moments"];
+const TEAM_TABLES = [
+  "delivery.flags",
+  "delivery.health_ratings",
+  "delivery.health_overrides",
+  "delivery.pulses",
+  "delivery.moments",
+];
 type Event = {
   id: string;
   table_name: string;

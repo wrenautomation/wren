@@ -391,6 +391,8 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires when a lead replies to an email, a text or a DM. A lead enters once. A STOP never fires it.",
   "trigger.booking":
     "Fires on each cal.com booking, move or cancel, by the booking webhook. Who booked rides along.",
+  "trigger.flag":
+    "Fires within the hour a client flag is raised or clears. Only in Wren's own workflows.",
 };
 
 /** What a Wait until an event does with a late one, said once in its panel. */

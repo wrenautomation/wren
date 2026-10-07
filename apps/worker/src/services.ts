@@ -1224,6 +1224,7 @@ export async function buildServices(
             : null,
         app: portal,
         zone: settings.sendTimezone,
+        fire: spineFire,
         ...clientsNotify,
       }),
     );

@@ -162,7 +162,8 @@ export function nextSlot(w: Readonly<Record<string, string | number>>, after: Da
 /** What each fired trigger's event is about, and which nodes hear it (`triggerHears`). */
 export type TriggerFacts =
   | { trigger: "trigger.reply"; channel: "email" | "sms" | "dm" }
-  | { trigger: "trigger.booking"; change: "booked" | "cancelled" };
+  | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
+  | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" };
 
 /** A Reply or Booking node hears this event by its settings. */
 export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
@@ -171,6 +172,11 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
   if (f.trigger === "trigger.reply") {
     const on = text(w.channel) || "any";
     return on === "any" || on === f.channel;
+  }
+  if (f.trigger === "trigger.flag") {
+    const on = text(w.on) || "raised";
+    const side = text(w.side) || "any";
+    return (on === "any" || on === f.change) && (side === "any" || side === f.side);
   }
   const on = text(w.on) || "booked";
   return on === "any" || on === f.change;
@@ -208,9 +214,15 @@ export const isUntil = (v: unknown): v is Until =>
 const untilSet = (w: Readonly<Record<string, string | number>>): Until | null =>
   text(w.mode) === "until" ? (isUntil(w.until) ? w.until : "reply") : null;
 
-/** What a fired event is, as a Wait waits until it. */
-export const untilOfFacts = (f: TriggerFacts): Until =>
-  f.trigger === "trigger.reply" ? "reply" : f.change === "booked" ? "booking" : "cancelled";
+/** What a fired event is, as a Wait waits until it; null when no Wait waits for it (a flag). */
+export const untilOfFacts = (f: TriggerFacts): Until | null =>
+  f.trigger === "trigger.reply"
+    ? "reply"
+    : f.trigger === "trigger.flag"
+      ? null
+      : f.change === "booked"
+        ? "booking"
+        : "cancelled";
 
 /**
  * What a subject is about, so an event about the same thing finds it: the subject past its kind,
@@ -459,6 +471,38 @@ export const LOGIC: readonly LogicPart[] = [
         : text(w.on) === "any"
           ? "A call booked or cancelled"
           : "A call booked",
+  ),
+  trigger(
+    "flag",
+    "Client flag",
+    "Starts when a client's risk or opportunity is raised or clears.",
+    "flag",
+    "client",
+    [
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["raised", "cleared", "any"],
+        labels: { raised: "Raised", cleared: "Cleared", any: "Either" },
+        start: "raised",
+      },
+      {
+        field: "side",
+        label: "Which",
+        type: "choice",
+        options: ["any", "risk", "opportunity"],
+        labels: { any: "Either", risk: "Risks", opportunity: "Opportunities" },
+        start: "any",
+      },
+    ],
+    (w) => {
+      const side = text(w.side) || "any";
+      const what =
+        side === "risk" ? "A risk" : side === "opportunity" ? "An opportunity" : "A flag";
+      const on = text(w.on) || "raised";
+      return `${what} ${on === "cleared" ? "cleared" : on === "any" ? "raised or cleared" : "raised"}`;
+    },
   ),
 ];
 

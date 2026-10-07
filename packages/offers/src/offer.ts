@@ -191,6 +191,11 @@ export interface Offer {
   readonly addOn?: string;
   /** A performance price's measure: the count its per-unit fee bills ("meetings"). */
   readonly perUnitMeasure?: string;
+  /**
+   * What the plan promises, for client health (designs/2026-10-07-health.md): `count` of
+   * `measure` by `days`, on a straight line from `fromDay`. Left out: results aren't scored.
+   */
+  readonly target?: { readonly measure: string; readonly count: number; readonly fromDay: number };
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -369,6 +374,16 @@ export function defineOffer(offer: Offer): Offer {
     throw new Error(
       `${where}: perUnitMeasure '${offer.perUnitMeasure}' is not one of its measures`,
     );
+  if (offer.target) {
+    const { measure, count, fromDay } = offer.target;
+    if (!offer.measures.some((m) => m.key === measure))
+      throw new Error(`${where}: target names '${measure}', not one of its measures`);
+    if (!Number.isInteger(count) || count <= 0)
+      throw new Error(`${where}: a target's count is a whole number above 0`);
+    if (offer.days === null) throw new Error(`${where}: a target needs days`);
+    if (!Number.isInteger(fromDay) || fromDay < 0 || fromDay >= offer.days)
+      throw new Error(`${where}: a target's fromDay is a whole number from 0, before days`);
+  }
   for (const a of offer.access ?? [])
     if (![a.system, a.scope, a.why, a.revoke].every((t) => t.trim()))
       throw new Error(`${where}: access to '${a.system}' needs a system, scope, why and revoke`);
