@@ -7,6 +7,7 @@
  * - `note_updates`: every Yjs update as it arrived, who sent it. Append only.
  * - `note_versions`: the timeline. An `auto` version is one person's editing session.
  * - `note_shares`, `note_stars`, `note_seen`, `note_links`, `notes_settings`.
+ * - `note_comments` (threads anchored to a range) and `note_mentions` (who was `@`ed, and seen).
  */
 import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
@@ -26,7 +27,15 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { GENERAL, KINDS, type NoteJson, ROLES, VERSION_KINDS, VIA } from "./types.js";
+import {
+  type CommentAnchor,
+  GENERAL,
+  KINDS,
+  type NoteJson,
+  ROLES,
+  VERSION_KINDS,
+  VIA,
+} from "./types.js";
 
 const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
   dataType: () => "bytea",
@@ -226,3 +235,75 @@ export const notesSettings = pgTable(
   },
   (t) => [primaryKey({ columns: [t.id], name: "pk_notes_settings" })],
 );
+
+/**
+ * A comment: a thread's first (anchored to a range, `parent_id` null) or a reply in it. The
+ * anchor is two Yjs relative positions (JSON), so it moves with the text and a commenter never
+ * writes to the doc.
+ */
+export const noteComments = pgTable(
+  "note_comments",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    noteId: uuid("note_id").notNull(),
+    /** The thread's first comment; null on that one. */
+    parentId: uuid("parent_id"),
+    anchor: jsonb("anchor").$type<CommentAnchor>(),
+    /** The words it was left on, as they were. */
+    quote: varchar("quote", { length: 500 }).notNull().default(""),
+    body: text("body").notNull(),
+    /** Emails it `@`s. */
+    mentions: text("mentions").array().notNull().default(sql`'{}'::text[]`),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: varchar("resolved_by", { length: 200 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_note_comments" }),
+    foreignKey({
+      columns: [t.noteId],
+      foreignColumns: [notes.id],
+      name: "fk_note_comments_note",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.parentId],
+      foreignColumns: [t.id],
+      name: "fk_note_comments_parent",
+    }).onDelete("cascade"),
+    index("ix_note_comments_note").on(t.noteId, t.at),
+  ],
+);
+export type NoteComment = typeof noteComments.$inferSelect;
+
+/** Someone `@`ed in a note's body or a comment: their Mentions, until they open it. */
+export const noteMentions = pgTable(
+  "note_mentions",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    noteId: uuid("note_id").notNull(),
+    /** The comment it's in; null for the body. */
+    commentId: uuid("comment_id"),
+    who: varchar("who", { length: 200 }).notNull(),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_note_mentions" }),
+    foreignKey({
+      columns: [t.noteId],
+      foreignColumns: [notes.id],
+      name: "fk_note_mentions_note",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.commentId],
+      foreignColumns: [noteComments.id],
+      name: "fk_note_mentions_comment",
+    }).onDelete("cascade"),
+    index("ix_note_mentions_who").on(t.who, t.at),
+    index("ix_note_mentions_note").on(t.noteId),
+  ],
+);
+export type NoteMention = typeof noteMentions.$inferSelect;

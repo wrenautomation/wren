@@ -5,6 +5,7 @@
  */
 import { type AnyExtension, type Editor, Extension, type Range } from "@tiptap/core";
 import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Mention from "@tiptap/extension-mention";
@@ -16,7 +17,11 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
 import { Y_BODY } from "@wren/notes/types";
+import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import { hueClass } from "./api.js";
+import { CommentMarks } from "./comments.js";
+import { SuggestAdd, SuggestDel, Suggesting } from "./suggesting.js";
 
 export const FILE_SRC = "wren-file:";
 
@@ -210,6 +215,12 @@ export function extensionsOf(o: {
   image?: (() => void) | undefined;
   mention?: { items: (q: string) => Promise<MenuItem[]>; render: Render } | undefined;
   placeholder?: string | undefined;
+  /** Others' cursors, from the live room; `me` is this person's email. */
+  live?: { awareness: Awareness; me: string } | undefined;
+  /** Suggest mode: on when this says so. */
+  suggest?: { by: string; on: () => boolean; onBlocked: () => void } | undefined;
+  /** Comments' highlights; a click picks the thread. */
+  comments?: { onPick: (id: string) => void } | undefined;
 }): AnyExtension[] {
   return [
     StarterKit.configure({
@@ -254,6 +265,39 @@ export function extensionsOf(o: {
     ...(o.slash || o.image
       ? [Slash.configure({ render: o.slash ?? null, image: o.image ?? null })]
       : []),
+    SuggestAdd,
+    SuggestDel,
+    ...(o.suggest ? [Suggesting.configure(o.suggest)] : []),
+    ...(o.comments ? [CommentMarks.configure(o.comments)] : []),
     ...(o.doc ? [Collaboration.configure({ document: o.doc, field: Y_BODY })] : []),
+    ...(o.doc && o.live
+      ? [
+          CollaborationCaret.configure({
+            provider: { awareness: o.live.awareness },
+            user: { email: o.live.me, name: o.live.me },
+            render: caret,
+            selectionRender: (user: Record<string, unknown>) => ({
+              nodeName: "span",
+              class: `collaboration-carets__selection ${hueClass(String(user.email ?? ""))}`,
+            }),
+          }),
+        ]
+      : []),
   ];
+}
+
+/**
+ * Someone else's cursor: a bar in their hue with their email, as the room signed them in. A class
+ * per hue, since the portal's CSP takes no inline style here.
+ */
+function caret(user: Record<string, unknown>): HTMLElement {
+  const email = String(user.email ?? "");
+  const bar = document.createElement("span");
+  bar.className = `collaboration-carets__caret ${hueClass(email)}`;
+  const label = document.createElement("span");
+  label.className = "collaboration-carets__label";
+  label.textContent = email.split("@")[0] ?? email;
+  label.title = email;
+  bar.append(label);
+  return bar;
 }

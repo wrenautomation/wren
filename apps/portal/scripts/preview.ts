@@ -47,10 +47,12 @@ import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
+import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { VOICE_RECORDS } from "@wren/voice/records";
+import { WebSocketServer } from "ws";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { videoRecord } from "../../../packages/content/src/video.js";
@@ -264,6 +266,40 @@ async function book(client: string, handler: string, req: Record<string, unknown
     reason: typeof req.reason === "string" ? req.reason : null,
   });
 }
+/** One API call, in-process, guarded as the edge's services are with `--as`. */
+async function callApi(
+  name: string,
+  call: string,
+  input: Record<string, unknown>,
+): Promise<{ status: number; body: unknown }> {
+  const svc = SERVICES[name];
+  const handler = (svc?.api as Record<string, (i: unknown) => Promise<unknown>> | undefined)?.[
+    call
+  ];
+  if (!svc?.routes.includes(call) || !handler) return { status: 404, body: { error: "not found" } };
+  try {
+    if (!guarded) return { status: 200, body: await handler(input) };
+    const g = svc.guard;
+    const need = (g.needs as Record<string, Need>)[call] as Need;
+    return {
+      status: 200,
+      body: await handler(
+        await guard(
+          main,
+          need,
+          input as unknown as Parameters<typeof guard>[2],
+          g.unnamed,
+          routeAt(g.apps, call),
+        ),
+      ),
+    };
+  } catch (err) {
+    if (err instanceof PortalRefusal) return { status: err.status, body: { message: err.message } };
+    console.error(err);
+    return { status: 500, body: { message: err instanceof Error ? err.message : String(err) } };
+  }
+}
+
 const TYPES: Record<string, string> = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -272,7 +308,7 @@ const TYPES: Record<string, string> = {
   ".png": "image/png",
 };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   const path = new URL(req.url ?? "/", "http://x").pathname;
   if (path.startsWith("/files/")) {
     const key = path.slice(7);
@@ -338,28 +374,62 @@ createServer(async (req, res) => {
     if (!svc?.routes.includes(call)) return send(404, { error: "not found" });
     let raw = "";
     for await (const chunk of req) raw += chunk;
-    try {
-      const input = { ...(raw ? JSON.parse(raw) : {}), viewer };
-      const handler = (svc.api as Record<string, (i: unknown) => Promise<unknown>>)[call];
-      if (!handler) return send(404, { error: "not found" });
-      if (!guarded) return send(200, await handler(input));
-      const g = svc.guard;
-      const need = (g.needs as Record<string, Need>)[call] as Need;
-      return send(
-        200,
-        await handler(await guard(main, need, input, g.unnamed, routeAt(g.apps, call))),
-      );
-    } catch (err) {
-      if (err instanceof PortalRefusal) return send(err.status, { message: err.message });
-      console.error(err);
-      return send(500, { message: err instanceof Error ? err.message : String(err) });
-    }
+    const out = await callApi(name, call, { ...(raw ? JSON.parse(raw) : {}), viewer });
+    return send(out.status, out.body);
   }
   const file = normalize(join(dist, path === "/" ? "index.html" : path));
   const found =
     file.startsWith(dist) && existsSync(file) && extname(file) ? file : join(dist, "index.html");
   res.writeHead(200, { "content-type": TYPES[extname(found)] ?? "application/octet-stream" });
   createReadStream(found).pipe(res);
-}).listen(port, () =>
+});
+
+/**
+ * Live notes: the same room as the Worker's Durable Object (src/live.ts), here in-process, one per
+ * note. `?as=<email>` joins as someone else, for a second cursor in a script; preview only.
+ */
+const rooms = new Map<string, Room>();
+const sockets = new WebSocketServer({ noServer: true });
+server.on("upgrade", (req, socket, head) => {
+  const url = new URL(req.url ?? "/", "http://x");
+  const id = url.pathname.startsWith(LIVE_PREFIX) ? url.pathname.slice(LIVE_PREFIX.length) : "";
+  if (!id || demo) return socket.destroy();
+  const client = url.searchParams.get("client");
+  const who = url.searchParams.get("as");
+  const me: Viewer = who ? { email: who } : viewer;
+  const email = "email" in me ? me.email : "";
+  sockets.handleUpgrade(req, socket, head, async (ws) => {
+    let room = rooms.get(id);
+    if (!room || room.closed) {
+      const fresh: Room = new Room(id, {
+        sync: async (as, body) => {
+          const out = await callApi("notes", "sync", { ...body, ...as });
+          const b = out.body as Record<string, unknown>;
+          return out.status === 200
+            ? ({ ok: true, ...b } as SyncAnswer)
+            : { ok: false, status: out.status, message: String(b.message ?? b.error) };
+        },
+        onEmpty: () => {
+          if (rooms.get(id) === fresh) rooms.delete(id);
+        },
+      });
+      room = fresh;
+      rooms.set(id, room);
+    }
+    const r = room;
+    const s = {
+      send: (f: string) => ws.send(f),
+      close: (code: number, reason: string) => ws.close(code, reason),
+    };
+    try {
+      const peer = await r.join(s, { email, as: { ...(client ? { client } : {}), viewer: me } });
+      ws.on("message", (data: unknown) => r.message(peer, String(data)));
+      ws.on("close", () => r.leave(peer));
+    } catch (err) {
+      ws.close(4000 + (err instanceof RoomRefusal ? err.status : 503), "refused");
+    }
+  });
+});
+server.listen(port, () =>
   console.log(`portal preview${demo ? " (demo)" : ""}: http://localhost:${port}`),
 );

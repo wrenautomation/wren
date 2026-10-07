@@ -41,3 +41,17 @@ export const Y_TITLE = "title";
 
 /** Largest Yjs update one call takes (a pasted chapter, base64 included). */
 export const UPDATE_MAX = 4 * 1024 * 1024;
+
+/** A comment's range: Yjs relative positions (`Y.relativePositionToJSON`) of its two ends. */
+export interface CommentAnchor {
+  from: unknown;
+  to: unknown;
+}
+
+/** Suggest mode's marks: added and removed text, each with who and when (to the minute). */
+export const SUGGEST_ADD = "suggestAdd";
+export const SUGGEST_DEL = "suggestDel";
+
+/** A comment's longest body, and the quote it keeps. */
+export const COMMENT_MAX = 10_000;
+export const QUOTE_MAX = 500;

@@ -8,7 +8,8 @@ import type { Need, RouteApps } from "@wren/core/access";
 export const NOTES_CONSOLE_ROUTES = {
   home: "read",
   open: "read",
-  // A browser's sync: reads with "read"; an edit in it needs the note's edit role and `act`.
+  // A browser's sync: reads with "read"; an edit in it needs the note's edit role and `act`, a
+  // suggestion its comment role and `comment`.
   sync: "read",
   versions: "read",
   version: "read",
@@ -17,7 +18,13 @@ export const NOTES_CONSOLE_ROUTES = {
   people: "read",
   file: "read",
   settings: "read",
+  comments: "read",
+  mentions: "read",
   star: "read",
+  comment: "comment",
+  commentEdit: "comment",
+  commentDelete: "comment",
+  resolve: "comment",
   create: "act",
   capture: "act",
   rename: "act",
@@ -40,6 +47,10 @@ export const NOTES_CONSOLE_APPS = { "*": "notes" } as const satisfies RouteApps<
 /** Refused on the demo and under View as. */
 export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[] = [
   "star",
+  "comment",
+  "commentEdit",
+  "commentDelete",
+  "resolve",
   "create",
   "capture",
   "rename",

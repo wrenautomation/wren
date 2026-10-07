@@ -1,19 +1,30 @@
 /**
  * One note at /notes/doc/<id>: its title, the editor, the outline, version history and sharing.
- * It saves as you type (`sync.ts`); a version is one person's sitting. Comments, suggestions and
- * live cursors come in batch 2, Word files in batch 3: the menu says so.
+ * It saves as you type, live with everyone else who has it open (`sync.ts`); a version is one
+ * person's sitting. Comments and suggestions sit in the side panel (`comments.tsx`). Word files
+ * come in batch 3: the menu says so.
  */
 import type { Editor } from "@tiptap/core";
 import { readTitle, toMarkdown } from "@wren/notes/doc";
-import { Y_TITLE } from "@wren/notes/types";
+import { type Role, Y_TITLE } from "@wren/notes/types";
 import { Alert, Button, Empty, Icon, Loading, relative, say, Tag } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
+import { socketToken, viewingAs } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { navigate } from "../../route.js";
-import { docPath, type NoteOpen, type NotePeople, type NoteVersions, notes } from "./api.js";
-import { type Heading, NoteEditor, outlineOf, wordsIn } from "./editor.js";
+import {
+  docPath,
+  hueOf,
+  type NoteComments,
+  type NoteOpen,
+  type NotePeople,
+  type NoteVersions,
+  notes,
+} from "./api.js";
+import { type Anchor, anchorOf, CommentsPanel, goTo, showThreads } from "./comments.js";
+import { type Heading, type Mode, NoteEditor, outlineOf, wordsIn } from "./editor.js";
 import { ShareDialog } from "./share.js";
 import { NoteSync, type SyncState } from "./sync.js";
 import { VersionOpen, VersionsPanel } from "./versions.js";
@@ -126,7 +137,7 @@ function MoreMenu({
   );
 }
 
-export function NoteDoc({ client, demo }: PageProps) {
+export function NoteDoc({ client, demo, params }: PageProps) {
   const id = location.pathname.split("/")[3] ?? "";
   const got = useCall(`notes:open:${client}:${id}`, () => notes(client, "open", { id }));
   if (got.error && !got.data)
@@ -145,7 +156,14 @@ export function NoteDoc({ client, demo }: PageProps) {
     );
   if (!got.data) return <Loading lines={10} heading />;
   return (
-    <Doc key={`${client}:${id}`} client={client} note={got.data} reload={got.retry} demo={demo} />
+    <Doc
+      key={`${client}:${id}`}
+      client={client}
+      note={got.data}
+      reload={got.retry}
+      demo={demo}
+      focus={params.get("comment")}
+    />
   );
 }
 
@@ -154,16 +172,29 @@ function Doc({
   note: first,
   reload,
   demo,
+  focus,
 }: {
   client: string;
   note: NoteOpen;
   reload: () => void;
   demo: boolean;
+  /** A comment to open on: from Mentions. */
+  focus: string | null;
 }) {
   const [note, setNote] = useState(first);
   useEffect(() => setNote(first), [first]);
-  const canEdit = (note.role === "edit" || note.role === "owner") && !demo;
-  const owner = note.role === "owner" && !demo;
+  const [role, setRole] = useState<Role>(first.role);
+  useEffect(() => setRole(note.role), [note.role]);
+  const canEdit = (role === "edit" || role === "owner") && !demo;
+  // A commenter suggests: their changes go in as suggestions, never as edits.
+  const canSuggest = role === "comment" && !demo;
+  const owner = role === "owner" && !demo;
+  const [suggesting, setSuggesting] = useState(false);
+  const mode: Mode | null = canEdit
+    ? { suggesting, locked: false, set: setSuggesting }
+    : canSuggest
+      ? { suggesting: true, locked: true, set: () => {} }
+      : null;
   const [state, setState] = useState<SyncState>("saved");
   const [refused, setRefused] = useState<string | null>(null);
   const [title, setTitleText] = useState(note.title);
@@ -172,36 +203,98 @@ function Doc({
   const [editor, setEditor] = useState<Editor | null>(null);
   const [heads, setHeads] = useState<Heading[]>([]);
   const [words, setWords] = useState(0);
-  const [panel, setPanel] = useState<"history" | null>(null);
+  const [panel, setPanel] = useState<"history" | "comments" | null>(focus ? "comments" : null);
   const [outline, setOutline] = useState(true);
   const [shown, setShown] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
   const [list, setList] = useState<NoteVersions | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [people, setPeople] = useState<NotePeople | null>(null);
+  const [live, setLive] = useState(false);
+  const [comments, setComments] = useState<NoteComments | null>(null);
+  const [draft, setDraft] = useState<{ anchor: Anchor; quote: string } | null>(null);
+  const [active, setActive] = useState<string | null>(focus);
+
+  const readComments = useCallback(
+    () =>
+      notes(client, "comments", { id: note.id })
+        .then(setComments)
+        .catch(() => {}),
+    [client, note.id],
+  );
+  useEffect(() => void readComments(), [readComments]);
 
   // The doc and its sync live as long as the page; a key change makes a new page.
   // biome-ignore lint/correctness/useExhaustiveDependencies: made once per note.
   const sync = useMemo(
     () =>
-      new NoteSync(
+      new NoteSync({
         client,
-        note.id,
-        note.state,
-        canEdit,
-        {
+        id: note.id,
+        state: note.state,
+        role: demo ? "view" : note.role,
+        hooks: {
           onState: setState,
-          onSynced: (out) => {
+          onSaved: (out) => {
             setEdited({ at: out.updatedAt ?? "", by: out.editedBy });
             setVersion(out.version);
           },
           onRefused: setRefused,
+          onRole: (r) => {
+            setRole(r);
+            void readComments();
+          },
+          onComments: () => void readComments(),
+          onLive: setLive,
         },
-        !demo,
-      ),
+        // A commenter's copy isn't kept: a change the server refused would come back on reload.
+        keepLocal: !demo && note.role !== "comment",
+        live: demo || viewingAs ? null : socketToken,
+      }),
     [],
   );
   useEffect(() => () => void sync.stop(), [sync]);
+
+  // The highlights follow the threads and the one picked.
+  useEffect(() => {
+    if (editor && comments) showThreads(editor, comments.threads, active);
+  }, [editor, comments, active]);
+
+  // From Mentions: to the comment's words once they're drawn.
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focused.current || !focus || !editor || !comments) return;
+    focused.current = true;
+    // A reply's mention opens its thread.
+    const t = comments.threads.find((x) => x.id === focus || x.replies.some((r) => r.id === focus));
+    if (!t) return;
+    setActive(t.id);
+    goTo(editor, t);
+  }, [focus, editor, comments]);
+
+  const commentChanged = useCallback(() => {
+    void readComments();
+    sync.commented();
+  }, [readComments, sync]);
+
+  const startComment = useCallback(() => {
+    if (!editor) return;
+    const a = anchorOf(editor);
+    if (!a) return say.failed(new Error("Select the words to comment on."));
+    setDraft(a);
+    setShown(null);
+    setPanel("comments");
+  }, [editor]);
+
+  const pick = useCallback(
+    (id: string) => {
+      setActive(id);
+      setPanel("comments");
+      const t = comments?.threads.find((x) => x.id === id);
+      if (editor && t) goTo(editor, t);
+    },
+    [comments, editor],
+  );
 
   // The title follows the doc, so a rename elsewhere shows here.
   useEffect(() => {
@@ -222,11 +315,12 @@ function Doc({
     return () => void editor.off("update", read);
   }, [editor]);
 
+  // With the note: whether each person could open it, for `@`.
   const peopleOnce = useRef<Promise<NotePeople | null> | null>(null);
   const loadPeople = useCallback(() => {
-    peopleOnce.current ??= notes(client, "people").catch(() => null);
+    peopleOnce.current ??= notes(client, "people", { id: note.id }).catch(() => null);
     return peopleOnce.current;
-  }, [client]);
+  }, [client, note.id]);
   useEffect(() => {
     if (sharing) void loadPeople().then(setPeople);
   }, [sharing, loadPeople]);
@@ -263,6 +357,7 @@ function Doc({
     download(`${fileName(note.name)}.md`, "text/markdown", title ? `# ${title}\n\n${md}` : md);
   };
 
+  const open = comments?.threads.filter((t) => !t.resolvedAt).length ?? 0;
   const status =
     refused ??
     (state === "saved" && edited.at
@@ -281,7 +376,7 @@ function Doc({
         </a>
         <input
           value={title}
-          readOnly={!canEdit}
+          readOnly={!canEdit || suggesting}
           maxLength={300}
           aria-label="Title"
           placeholder="Untitled"
@@ -300,7 +395,8 @@ function Doc({
         <div className="flex flex-wrap items-center gap-2">
           {note.kind === "dump" ? <Tag>Dump</Tag> : null}
           {note.archived ? <Tag tone="warn">Archived</Tag> : null}
-          {!canEdit ? <Tag>{note.role === "comment" ? "Can comment" : "View only"}</Tag> : null}
+          {!canEdit ? <Tag>{canSuggest ? "Can comment" : "View only"}</Tag> : null}
+          {live ? <Here sync={sync} /> : null}
           {!demo ? (
             <button
               type="button"
@@ -324,6 +420,18 @@ function Doc({
           <Button
             tone="secondary"
             size="dense"
+            aria-pressed={panel === "comments"}
+            onClick={() => {
+              setPanel(panel === "comments" ? null : "comments");
+              setShown(null);
+            }}
+          >
+            Comments
+            {open ? ` (${open})` : ""}
+          </Button>
+          <Button
+            tone="secondary"
+            size="dense"
             icon="clock"
             aria-pressed={panel === "history"}
             onClick={() => {
@@ -343,7 +451,6 @@ function Doc({
               { label: "Download Markdown", run: markdown },
               { label: "Download Word (.docx)", soon: true },
               null,
-              { label: "Comments and suggestions", soon: true },
               { label: "Turn into a task, draft or SOP", soon: true },
               null,
               ...(owner
@@ -445,9 +552,13 @@ function Doc({
                 client={client}
                 id={note.id}
                 doc={sync.doc}
-                editable={canEdit}
+                editable={canEdit || canSuggest}
                 people={loadPeople}
                 onEditor={setEditor}
+                live={demo ? null : { awareness: sync.awareness, me: note.me }}
+                mode={mode}
+                onComment={comments?.canComment ? startComment : null}
+                onPickComment={pick}
               />
             </div>
           )}
@@ -468,6 +579,27 @@ function Doc({
             ) : null}
           </p>
         </main>
+        {panel === "comments" ? (
+          <CommentsPanel
+            client={client}
+            noteId={note.id}
+            editor={editor}
+            data={comments}
+            draft={draft}
+            active={active}
+            canAccept={canEdit}
+            me={note.me}
+            people={loadPeople}
+            onDraftDone={() => setDraft(null)}
+            onPick={pick}
+            onChanged={commentChanged}
+            onClose={() => {
+              setPanel(null);
+              setDraft(null);
+              setActive(null);
+            }}
+          />
+        ) : null}
         {panel === "history" ? (
           <VersionsPanel
             list={list}
@@ -491,7 +623,46 @@ function Doc({
           onChanged={reopen}
         />
       ) : null}
-      {refused && !canEdit ? <Alert onRetry={reload}>{refused}</Alert> : null}
+      {refused && !canEdit ? (
+        <Alert onRetry={canSuggest ? () => location.reload() : reload}>{refused}</Alert>
+      ) : null}
     </div>
+  );
+}
+
+/** Who else has the note open now: a dot in their hue each, their email on hover. */
+function Here({ sync }: { sync: NoteSync }) {
+  const [who, setWho] = useState<string[]>([]);
+  useEffect(() => {
+    const read = () => {
+      const seen = new Set<string>();
+      for (const [id, st] of sync.awareness.getStates()) {
+        const email = (st as { user?: { email?: string } }).user?.email;
+        if (id !== sync.doc.clientID && email) seen.add(email);
+      }
+      setWho([...seen].sort());
+    };
+    read();
+    sync.awareness.on("change", read);
+    return () => sync.awareness.off("change", read);
+  }, [sync]);
+  if (!who.length) return null;
+  return (
+    <span className="flex items-center gap-1" title={`Here now: ${who.join(", ")}`}>
+      {who.slice(0, 4).map((e) => (
+        <span
+          key={e}
+          aria-hidden="true"
+          className="inline-flex size-6 items-center justify-center rounded-full text-[11px] font-semibold text-(--ui-paper) uppercase"
+          style={{ background: hueOf(e) }}
+        >
+          {e[0]}
+        </span>
+      ))}
+      {who.length > 4 ? (
+        <span className="text-[12px] text-(--ui-ink-2)">+{who.length - 4}</span>
+      ) : null}
+      <span className="sr-only">Here now: {who.join(", ")}</span>
+    </span>
   );
 }

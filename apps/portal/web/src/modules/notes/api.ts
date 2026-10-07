@@ -17,6 +17,8 @@ export type NoteCompare = Out<"compare">;
 export type NotePeople = Out<"people">;
 export type NoteShare = NoteOpen["shares"][number];
 export type NoteBacklink = Out<"backlinks">["notes"][number];
+export type NoteComments = Out<"comments">;
+export type NoteMention = Out<"mentions">["mentions"][number];
 
 /** A call in `client`'s workspace. */
 export const notes = <K extends keyof NotesApi>(
@@ -47,12 +49,18 @@ export function mentionHref(id: string): string | null {
   return null;
 }
 
-/** A person's mark: one of the eight kind hues, the same for them everywhere. */
-export function hueOf(email: string): string {
+/** Which of the eight kind hues is a person's, 1 to 8, the same for them everywhere. */
+export function hueIndex(email: string): number {
   let h = 0;
-  for (const c of email) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return `var(--ui-cue-${(h % 8) + 1})`;
+  for (const c of email.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return (h % 8) + 1;
 }
+
+/** A person's mark: their hue as a color. */
+export const hueOf = (email: string): string => `var(--ui-cue-${hueIndex(email)})`;
+
+/** Their hue as a class (`note-who-N`), where an inline style can't go (the editor's DOM). */
+export const hueClass = (email: string): string => `note-who-${hueIndex(email)}`;
 
 export const ROLE_LABEL = { view: "Can view", comment: "Can comment", edit: "Can edit" } as const;
 export type ShareRole = keyof typeof ROLE_LABEL;

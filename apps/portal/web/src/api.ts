@@ -130,6 +130,9 @@ function token(): Promise<string | null> {
   return asking;
 }
 
+/** The sign-in token for a socket, which can't carry the header (live notes). Null = none here. */
+export const socketToken = (): Promise<string | null> => token();
+
 /** The sign-in header for a call made outside `call` (dictation's audio). */
 export async function authHeaders(): Promise<Record<string, string>> {
   const t = await token();

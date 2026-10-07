@@ -27,21 +27,29 @@ import { atLeast, clientWho, effectiveRole, isShareRole, type Reader, TEAM } fro
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "./console-routes.js";
 import { blame, counts } from "./diff.js";
 import { captureBlock, fromB64, fromMarkdown, nameOf, toB64 } from "./doc.js";
-import { type Note, noteStars } from "./schema.js";
+import { type Note, type NoteComment, noteStars } from "./schema.js";
 import {
+  addComment,
   appendNote,
   backlinks,
   childrenOf,
+  commentById,
+  commentsOf,
   createNote,
+  deleteComment,
   dumpOf,
+  editComment,
   isNoteId,
   type ListView,
   listNotes,
+  mentionsOf,
   move,
+  NotASuggestion,
   type NoteRow,
   nameVersion,
   noteById,
   renameNote,
+  resolveComment,
   restoreVersion,
   roleOn,
   seen,
@@ -55,10 +63,20 @@ import {
   star,
   syncNote,
   transfer,
+  unseenMentions,
   versionRange,
   versionsOf,
 } from "./store.js";
-import { type General, isAgent, type Role, type ShareRole, UPDATE_MAX } from "./types.js";
+import {
+  COMMENT_MAX,
+  type CommentAnchor,
+  type General,
+  isAgent,
+  QUOTE_MAX,
+  type Role,
+  type ShareRole,
+  UPDATE_MAX,
+} from "./types.js";
 
 /** Where note images go: a signed PUT up, a signed GET down. `@wren/delivery`'s store fits. */
 export interface NoteFiles {
@@ -112,6 +130,29 @@ const numOf = (v: unknown, what: string): number => {
   return n;
 };
 const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
+/** `@someone@firm.com` in a comment's words. */
+const AT_EMAIL = /(?:^|[^\w.@])@([^\s@]+@[^\s@]+\.[\w-]+)/g;
+const anchorOf = (v: unknown): CommentAnchor | null => {
+  if (!v || typeof v !== "object") return null;
+  const a = v as { from?: unknown; to?: unknown };
+  if (!a.from || !a.to || typeof a.from !== "object" || typeof a.to !== "object") return null;
+  if (JSON.stringify(a).length > 2000) throw new PortalRefusal("that range is too long", 400);
+  return { from: a.from, to: a.to };
+};
+const commentOut = (c: NoteComment, me: string) => ({
+  id: c.id,
+  parentId: c.parentId,
+  anchor: c.anchor,
+  quote: c.quote,
+  body: c.body,
+  mentions: c.mentions,
+  by: c.by,
+  mine: c.by === me,
+  at: iso(c.at) as string,
+  editedAt: iso(c.editedAt),
+  resolvedAt: iso(c.resolvedAt),
+  resolvedBy: c.resolvedBy,
+});
 
 export function notesApi(deps: NotesDeps) {
   const { main } = deps;
@@ -281,6 +322,8 @@ export function notesApi(deps: NotesDeps) {
         ...noteOut(note),
         role,
         home,
+        /** Who's reading: their cursor and suggestions carry it. */
+        me: reader.email,
         starred,
         state: toB64(note.yState ?? new Uint8Array([0, 0])),
         version: versions[0]?.number ?? 0,
@@ -303,16 +346,23 @@ export function notesApi(deps: NotesDeps) {
       const editing = !!update && update.length > 2;
       if (editing) {
         byOf(req);
-        if (!atLeast(role, "edit")) throw new PortalRefusal("you can't edit this note", 403);
+        if (!atLeast(role, "comment")) throw new PortalRefusal("you can't edit this note", 403);
       }
       const sv = typeof req.sv === "string" && req.sv ? fromB64(req.sv) : null;
+      // A commenter's change is taken when it only suggests (`suggest.ts`).
       const out = await syncNote(
         db,
         note.id,
         editing ? byOf(req) : "",
         editing ? update : null,
         sv,
-      );
+        {
+          suggestOnly: !atLeast(role, "edit"),
+        },
+      ).catch((err: unknown) => {
+        if (err instanceof NotASuggestion) throw new PortalRefusal(err.message, 403);
+        throw err;
+      });
       return {
         update: toB64(out.missing),
         sv: toB64(out.sv),
@@ -322,6 +372,8 @@ export function notesApi(deps: NotesDeps) {
         name: nameOf(out.note.title, out.note.text),
         updatedAt: iso(out.note.updatedAt),
         editedBy: out.note.editedBy,
+        /** Theirs now: the live room checks it on every poll. */
+        role,
       };
     },
 
@@ -413,9 +465,13 @@ export function notesApi(deps: NotesDeps) {
       };
     },
 
-    /** Who's in this workspace: for sharing and `@`. */
-    async people(req: PortalRequest) {
-      const place = await placeOf(req);
+    /**
+     * Who's in this workspace: for sharing and `@`. With a note, whether each can open it: a
+     * mention never shares, so the menu says when they can't.
+     */
+    async people(req: Req<{ id?: unknown }>) {
+      const at = req.id ? await locate(req, req.id, "view") : null;
+      const place = at?.place ?? (await placeOf(req));
       // At Wren, the team can share a note with a client's people: which clients there are.
       const toClients =
         place.ws === WREN && isOperator(req.viewer)
@@ -424,8 +480,20 @@ export function notesApi(deps: NotesDeps) {
               .from(clients)
               .orderBy(asc(clients.name))
           : [];
+      const people = await peopleOf(place);
+      const opens = async (p: { email: string; team: boolean }) => {
+        if (!at) return true;
+        const inWs = at.home === WREN ? p.team : at.home === place.ws;
+        const own = await roleOn(at.db, at.note, {
+          email: p.email,
+          team: p.team,
+          inWorkspace: inWs,
+          client: place.client?.id ?? null,
+        });
+        return own !== null;
+      };
       return {
-        people: await peopleOf(place),
+        people: await Promise.all(people.map(async (p) => ({ ...p, opens: await opens(p) }))),
         workspace: place.ws,
         client: place.client?.name ?? null,
         clients: toClients,
@@ -445,6 +513,122 @@ export function notesApi(deps: NotesDeps) {
     async settings(req: PortalRequest) {
       const place = await placeOf(req);
       return settingsOf(place.db);
+    },
+
+    /** The note's comment threads, each with its replies, oldest first. */
+    async comments(req: Req<{ id?: unknown }>) {
+      const { db, note, reader, role } = await locate(req, req.id, "view");
+      const rows = await commentsOf(db, note.id);
+      const me = reader.email;
+      const threads = rows
+        .filter((c) => !c.parentId)
+        .map((c) => ({
+          ...commentOut(c, me),
+          replies: rows.filter((r) => r.parentId === c.id).map((r) => commentOut(r, me)),
+        }));
+      return { threads, canComment: atLeast(role, "comment") && !!me, owner: role === "owner" };
+    },
+
+    /** Where this person was `@`ed, and how many they haven't opened: the Notes tab's number. */
+    async mentions(req: Req<{ limit?: unknown }>) {
+      const place = await placeOf(req);
+      const reader = await readerOf(req, place);
+      if (!reader.email) return { mentions: [], unseen: 0 };
+      const out = (rows: Awaited<ReturnType<typeof mentionsOf>>, home: string) =>
+        rows.map((m) => ({
+          id: m.id,
+          noteId: m.noteId,
+          name: nameOf(m.title, m.text),
+          commentId: m.commentId,
+          comment: m.comment,
+          by: m.by,
+          at: iso(m.at) as string,
+          seen: m.seenAt !== null,
+          home,
+        }));
+      const limit = Number(req.limit) || 50;
+      const mentions = out(await mentionsOf(place.db, reader, limit), place.ws);
+      let unseen = await unseenMentions(place.db, reader);
+      // A client's people are also `@`ed in Wren's notes shared to their client.
+      if (place.ws !== WREN && !reader.team) {
+        const wr = { ...reader, team: false, inWorkspace: false };
+        mentions.push(...out(await mentionsOf(main, wr, limit), WREN));
+        unseen += await unseenMentions(main, wr);
+        mentions.sort((a, b) => b.at.localeCompare(a.at));
+      }
+      return { mentions: mentions.slice(0, limit), unseen };
+    },
+
+    /**
+     * A new thread on a range, or a reply in one. `@email` in the words tells that person, if
+     * they're in this workspace; it never shares the note.
+     */
+    async comment(
+      req: Req<{
+        id?: unknown;
+        body?: unknown;
+        parentId?: unknown;
+        anchor?: unknown;
+        quote?: unknown;
+      }>,
+    ) {
+      const { db, note, place, reader } = await locate(req, req.id, "comment");
+      const by = byOf(req);
+      const body = str(req.body, COMMENT_MAX, "the comment").trim();
+      if (!body) throw new PortalRefusal("write something", 400);
+      let parentId: string | null = null;
+      if (req.parentId !== undefined && req.parentId !== null) {
+        const parent = await commentById(db, note.id, String(req.parentId));
+        if (!parent || parent.parentId) throw new PortalRefusal("no such comment", 404);
+        parentId = parent.id;
+      }
+      const anchor = parentId ? null : anchorOf(req.anchor);
+      if (!parentId && !anchor) throw new PortalRefusal("select the words to comment on", 400);
+      const c = await addComment(db, {
+        noteId: note.id,
+        by,
+        body,
+        parentId,
+        anchor,
+        quote: typeof req.quote === "string" ? req.quote.slice(0, QUOTE_MAX) : "",
+        mentions: await mentioned(place, body),
+      });
+      return commentOut(c, reader.email);
+    },
+
+    /** Its author's new words. */
+    async commentEdit(req: Req<{ id?: unknown; commentId?: unknown; body?: unknown }>) {
+      const { db, note, place, reader } = await locate(req, req.id, "comment");
+      const by = byOf(req);
+      const c = await commentById(db, note.id, String(req.commentId ?? ""));
+      if (!c) throw new PortalRefusal("no such comment", 404);
+      if (c.by !== by) throw new PortalRefusal("only its author can change it", 403);
+      const body = str(req.body, COMMENT_MAX, "the comment").trim();
+      if (!body) throw new PortalRefusal("write something", 400);
+      return commentOut(await editComment(db, c, body, await mentioned(place, body)), reader.email);
+    },
+
+    /** Gone, with its replies when it starts a thread: its author's, or the note owner's call. */
+    async commentDelete(req: Req<{ id?: unknown; commentId?: unknown }>) {
+      const { db, note, role } = await locate(req, req.id, "comment");
+      const by = byOf(req);
+      const c = await commentById(db, note.id, String(req.commentId ?? ""));
+      if (!c) throw new PortalRefusal("no such comment", 404);
+      if (c.by !== by && role !== "owner")
+        throw new PortalRefusal("only its author or the note's owner can delete it", 403);
+      await deleteComment(db, c.id);
+      return { deleted: c.id };
+    },
+
+    /** Resolve a thread, or open it again. */
+    async resolve(req: Req<{ id?: unknown; commentId?: unknown; on?: unknown }>) {
+      const { db, note } = await locate(req, req.id, "comment");
+      const by = byOf(req);
+      const c = await commentById(db, note.id, String(req.commentId ?? ""));
+      if (!c || c.parentId) throw new PortalRefusal("no such thread", 404);
+      const on = req.on !== false;
+      await resolveComment(db, c.id, on ? by : null);
+      return { resolved: on };
     },
 
     /** Star or unstar, for this person only. */
@@ -618,6 +802,13 @@ export function notesApi(deps: NotesDeps) {
     },
   };
 
+  /** The workspace's people a comment `@`s. */
+  async function mentioned(place: Place, body: string): Promise<string[]> {
+    const named = new Set([...body.matchAll(AT_EMAIL)].map((m) => (m[1] ?? "").toLowerCase()));
+    if (!named.size) return [];
+    return (await peopleOf(place)).filter((p) => named.has(p.email)).map((p) => p.email);
+  }
+
   async function whoAt(req: PortalRequest, place: Place) {
     const v = req.viewer;
     if (!isDemo(v) && !v.access && !v.operator)
@@ -704,10 +895,26 @@ const INPUTS = {
   version: { id: ID, number: NUM },
   compare: { id: ID, from: NUM, to: NUM },
   backlinks: { target: z.string().max(300).describe("A record, `<type>:<id>`") },
-  people: {},
+  people: { id: ID.optional().describe("A note: whether each person can open it") },
   file: { id: ID, key: z.string().max(400) },
   settings: {},
+  comments: { id: ID },
+  mentions: { limit: z.number().int().optional() },
   star: { id: ID, on: ON },
+  comment: {
+    id: ID,
+    body: z.string().max(10_000).describe("The words; `@email` tells that person"),
+    parentId: z.string().max(64).nullable().optional().describe("A reply: the thread's id"),
+    anchor: z
+      .object({ from: z.unknown(), to: z.unknown() })
+      .nullable()
+      .optional()
+      .describe("A new thread's range: Yjs relative positions"),
+    quote: z.string().max(2000).optional().describe("The words it's on"),
+  },
+  commentEdit: { id: ID, commentId: z.string().max(64), body: z.string().max(10_000) },
+  commentDelete: { id: ID, commentId: z.string().max(64) },
+  resolve: { id: ID, commentId: z.string().max(64), on: ON },
   create: {
     title: z.string().max(300).optional(),
     markdown: z.string().optional().describe("The body, as Markdown"),
@@ -764,7 +971,13 @@ export function makeNotesConsole(deps: NotesDeps) {
       people: read("people"),
       file: read("file"),
       settings: read("settings"),
+      comments: read("comments"),
+      mentions: read("mentions"),
       star: write("star", "star"),
+      comment: write("comment", "comment"),
+      commentEdit: write("commentEdit", "edit comment"),
+      commentDelete: write("commentDelete", "delete comment"),
+      resolve: write("resolve", "resolve"),
       create: write("create", "create"),
       capture: write("capture", "capture"),
       rename: write("rename", "rename"),

@@ -242,3 +242,88 @@
     padding: 0;
   }
 }
+
+/* People: each one's hue (`hueClass`), for cursors and suggestions in the editor's DOM. */
+.note-who-1 {
+  --who: var(--ui-cue-1);
+}
+.note-who-2 {
+  --who: var(--ui-cue-2);
+}
+.note-who-3 {
+  --who: var(--ui-cue-3);
+}
+.note-who-4 {
+  --who: var(--ui-cue-4);
+}
+.note-who-5 {
+  --who: var(--ui-cue-5);
+}
+.note-who-6 {
+  --who: var(--ui-cue-6);
+}
+.note-who-7 {
+  --who: var(--ui-cue-7);
+}
+.note-who-8 {
+  --who: var(--ui-cue-8);
+}
+
+/* Others' cursors and selections, live. */
+.collaboration-carets__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid var(--who, var(--ui-accent));
+  border-right: 1px solid var(--who, var(--ui-accent));
+  word-break: normal;
+  pointer-events: none;
+}
+.collaboration-carets__label {
+  position: absolute;
+  top: -1.45em;
+  left: -1px;
+  padding: 1px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-style: normal;
+  line-height: normal;
+  white-space: nowrap;
+  user-select: none;
+  color: var(--ui-paper);
+  background: var(--who, var(--ui-accent));
+}
+.collaboration-carets__selection {
+  background: color-mix(in srgb, var(--who, var(--ui-accent)) 22%, transparent);
+}
+
+/* Comments: the words a thread is on; the open one stronger. */
+.note-body .note-comment {
+  background: var(--ui-accent-wash);
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-accent) 45%, transparent);
+  cursor: pointer;
+}
+.note-body .note-comment-on {
+  background: var(--ui-accent-tint);
+  border-bottom-color: var(--ui-accent);
+}
+
+/* Suggestions: added underlined, removed struck, in the suggester's hue. */
+.note-sugg-add {
+  color: var(--who, var(--ui-accent));
+  text-decoration: underline;
+  text-decoration-color: var(--who, var(--ui-accent));
+  text-underline-offset: 0.18em;
+  background: color-mix(in srgb, var(--who, var(--ui-accent)) 9%, transparent);
+}
+.note-sugg-del {
+  color: var(--who, var(--ui-accent));
+  text-decoration: line-through;
+  text-decoration-color: var(--who, var(--ui-accent));
+}
+@media print {
+  .collaboration-carets__caret,
+  .collaboration-carets__label {
+    display: none;
+  }
+}

@@ -7,6 +7,7 @@
  *   sends its short-lived token as a bearer, the Worker checks it and passes
  *   the email. The token marks Wren's operators: they see every client.
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
+ * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -22,28 +23,24 @@
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
+import { LIVE_PREFIX } from "@wren/notes/room";
 import { bookRoute } from "./book.js";
 import { dictate } from "./dictate.js";
+import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
+import { liveRoute, NoteRoom } from "./live.js";
 import { SERVICES } from "./services.js";
+
+/** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
+export { NoteRoom };
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
 /** The run feed changes by the second: a few seconds of cache, or a live run looks stuck. */
 const RUN_CACHE_SECONDS = 2;
 
-type Viewer = { email: string; operator?: boolean } | { demo: true };
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
-}
-
-const ingress = (env: Env, path: string) =>
-  `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
+export type Viewer = { email: string; operator?: boolean } | { demo: true };
 
 /** The viewer, or the response that refuses one. */
 async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
@@ -63,30 +60,6 @@ async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
 async function sha256(s: string): Promise<string> {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function forward(env: Env, path: string, body: string): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(ingress(env, path), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
-      },
-      body,
-    });
-  } catch {
-    return json({ error: "The portal's server is unreachable." }, 502);
-  }
-  // Restate's status and body: a refusal (no client for this login) reads as its message.
-  return new Response(res.body, {
-    status: res.status,
-    headers: {
-      "content-type": res.headers.get("content-type") ?? "application/json",
-      "cache-control": "no-store",
-    },
-  });
 }
 
 async function api(req: Request, env: Env, path: string, site: Site, ctx?: ExecutionContext) {
@@ -193,6 +166,7 @@ export default {
           return v instanceof Response ? v : "demo" in v ? json({ error: "Sign in." }, 401) : null;
         },
       });
+    if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);

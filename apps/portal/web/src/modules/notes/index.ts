@@ -6,12 +6,14 @@
 import { lazy } from "react";
 import type { Module } from "../../module.js";
 import { NotesHome } from "./home.js";
+import { NoteMentions, unseenMentions } from "./mentions.js";
 
 // The editor (Tiptap, Yjs) loads with the first note opened, not with the portal.
 const NoteDoc = lazy(() => import("./doc.js").then((m) => ({ default: m.NoteDoc })));
 
 const pages: Module["pages"] = [
   { id: "home", label: "Notes", Page: NotesHome, wide: true },
+  { id: "mentions", label: "Mentions", Page: NoteMentions, badge: unseenMentions },
   { id: "doc", label: "Note", Page: NoteDoc, wide: true, hidden: true },
 ];
 

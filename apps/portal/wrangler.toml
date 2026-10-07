@@ -27,3 +27,13 @@ directory = "./dist"
 binding = "ASSETS"
 run_worker_first = true
 not_found_handling = "single-page-application"
+
+# Live notes: one room per open note (src/live.ts). SQLite-backed class, though the room keeps
+# nothing on disk: the doc lives in Postgres.
+[[durable_objects.bindings]]
+name = "NOTE_ROOM"
+class_name = "NoteRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NoteRoom"]

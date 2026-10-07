@@ -372,6 +372,9 @@ importers:
       wrangler:
         specifier: 4.142.0
         version: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@22.20.3)
+      ws:
+        specifier: 8.21.0
+        version: 8.21.0
 
   apps/worker:
     dependencies:
@@ -1116,6 +1119,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      y-protocols:
+        specifier: 1.0.7
+        version: 1.0.7(yjs@13.6.33)
       yjs:
         specifier: 13.6.33
         version: 13.6.33
@@ -1138,9 +1144,6 @@ importers:
       vitest:
         specifier: 5.0.1
         version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-      y-protocols:
-        specifier: 1.0.7
-        version: 1.0.7(yjs@13.6.33)
 
   packages/offers:
     devDependencies:

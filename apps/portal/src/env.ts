@@ -25,4 +25,6 @@ export interface Env {
   DICTATE_MODEL?: string;
   /** Its key, a secret, when it takes one. */
   DICTATE_KEY?: string;
+  /** Live notes' rooms, one Durable Object per note (./live.ts). Unset = notes sync over HTTP. */
+  NOTE_ROOM?: DurableObjectNamespace;
 }

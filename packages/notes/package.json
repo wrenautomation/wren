@@ -9,7 +9,9 @@
     "./console-routes": "./src/console-routes.ts",
     "./diff": "./src/diff.ts",
     "./doc": "./src/doc.ts",
+    "./room": "./src/room.ts",
     "./schema": "./src/schema.ts",
+    "./suggest": "./src/suggest.ts",
     "./types": "./src/types.ts",
     "./train": "./src/train.ts"
   },
@@ -23,6 +25,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "drizzle-orm": "0.45.2",
+    "y-protocols": "1.0.7",
     "yjs": "13.6.33",
     "zod": "4.6.5"
   },
@@ -31,7 +34,6 @@
     "@tiptap/pm": "3.31.4",
     "@tiptap/y-tiptap": "3.0.9",
     "typescript": "5.9.3",
-    "vitest": "5.0.1",
-    "y-protocols": "1.0.7"
+    "vitest": "5.0.1"
   }
 }

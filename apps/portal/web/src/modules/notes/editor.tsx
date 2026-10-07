@@ -7,6 +7,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import type { NoteJson } from "@wren/notes/types";
 import { cx, Icon, Input, say } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { ApiError } from "../../api.js";
 import { navigate } from "../../route.js";
@@ -145,6 +146,16 @@ function MenuList({ menu, label }: { menu: Menu | null; label: string }) {
   );
 }
 
+/** A change suggest mode can't take: said once a few seconds, not on every key. */
+let blockedAt = 0;
+function blockedOnce() {
+  if (Date.now() - blockedAt < 4000) return;
+  blockedAt = Date.now();
+  say.failed(
+    new Error("Suggestions change words. Switch to Editing for new lines and formatting."),
+  );
+}
+
 /** What `@` finds: people here, notes, and (at Wren) clients. */
 function mentionSource(client: string, people: () => Promise<NotePeople | null>) {
   const put = (id: string, label: string) => (editor: Editor, range: Range) =>
@@ -168,7 +179,8 @@ function mentionSource(client: string, people: () => Promise<NotePeople | null>)
         out.push({
           id: `person:${x.email}`,
           label: x.email,
-          hint: "Person",
+          // Tagging doesn't share: someone who can't open it isn't told.
+          hint: x.opens === false ? "Can't open it" : "Person",
           run: put(`person:${x.email}`, x.email),
         });
     for (const c of p?.clients ?? [])
@@ -233,44 +245,40 @@ const STYLES = [
   ["3", "Heading 3"],
 ] as const;
 
+/** Editing or suggesting: a menu for an editor, a fixed tag for a commenter. */
+export interface Mode {
+  suggesting: boolean;
+  /** A commenter: suggesting only. */
+  locked: boolean;
+  set: (suggesting: boolean) => void;
+}
+
 function Toolbar({
   editor,
   onFind,
   onLink,
   onImage,
+  onComment,
+  mode,
 }: {
   editor: Editor;
   onFind: () => void;
   onLink: () => void;
   onImage: (() => void) | null;
+  onComment: (() => void) | null;
+  mode: Mode | null;
 }) {
   const s = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
-      style: e.isActive("heading", { level: 1 })
-        ? "1"
-        : e.isActive("heading", { level: 2 })
-          ? "2"
-          : e.isActive("heading", { level: 3 })
-            ? "3"
-            : "p",
-      bold: e.isActive("bold"),
-      italic: e.isActive("italic"),
-      underline: e.isActive("underline"),
-      strike: e.isActive("strike"),
-      code: e.isActive("code"),
-      link: e.isActive("link"),
-      bullet: e.isActive("bulletList"),
-      ordered: e.isActive("orderedList"),
-      task: e.isActive("taskList"),
-      quote: e.isActive("blockquote"),
-      codeBlock: e.isActive("codeBlock"),
-      table: e.isActive("table"),
+      ...toolState(e),
       undo: e.can().undo(),
       redo: e.can().redo(),
+      selected: !e.state.selection.empty,
     }),
   });
   const c = () => editor.chain().focus();
+  const suggesting = !!mode?.suggesting;
   return (
     <div
       role="toolbar"
@@ -284,6 +292,94 @@ function Toolbar({
         ↷
       </Tool>
       <Sep />
+      {suggesting ? (
+        <span className="px-1.5 text-[12px] whitespace-nowrap text-(--ui-ink-2)">
+          What you type and delete shows as a suggestion.
+        </span>
+      ) : (
+        <Formats editor={editor} s={s} onLink={onLink} onImage={onImage} />
+      )}
+      <Sep />
+      {onComment ? (
+        <Tool label="Comment (⌘⌥M)" run={onComment} disabled={!s.selected}>
+          <svg
+            viewBox="0 0 16 16"
+            width={16}
+            height={16}
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.4}
+            strokeLinejoin="round"
+          >
+            <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" />
+          </svg>
+        </Tool>
+      ) : null}
+      <Tool label="Find and replace (⌘F in a note)" run={onFind}>
+        <Icon name="search" />
+      </Tool>
+      {mode ? (
+        <span className="ml-auto flex-none pl-2">
+          {mode.locked ? (
+            <span className="text-[12px] text-(--ui-ink-2)">Suggesting</span>
+          ) : (
+            <select
+              aria-label="Mode"
+              value={mode.suggesting ? "suggest" : "edit"}
+              onChange={(e) => mode.set(e.target.value === "suggest")}
+              className="h-8 border-0 bg-transparent px-1 text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)"
+            >
+              <option value="edit">Editing</option>
+              <option value="suggest">Suggesting</option>
+            </select>
+          )}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+type ToolState = ReturnType<typeof toolState>;
+function toolState(e: Editor) {
+  return {
+    style: e.isActive("heading", { level: 1 })
+      ? "1"
+      : e.isActive("heading", { level: 2 })
+        ? "2"
+        : e.isActive("heading", { level: 3 })
+          ? "3"
+          : "p",
+    bold: e.isActive("bold"),
+    italic: e.isActive("italic"),
+    underline: e.isActive("underline"),
+    strike: e.isActive("strike"),
+    code: e.isActive("code"),
+    link: e.isActive("link"),
+    bullet: e.isActive("bulletList"),
+    ordered: e.isActive("orderedList"),
+    task: e.isActive("taskList"),
+    quote: e.isActive("blockquote"),
+    codeBlock: e.isActive("codeBlock"),
+    table: e.isActive("table"),
+  };
+}
+
+/** Styles, marks, blocks, tables and images: editing only (a suggestion is words). */
+function Formats({
+  editor,
+  s,
+  onLink,
+  onImage,
+}: {
+  editor: Editor;
+  s: ToolState;
+  onLink: () => void;
+  onImage: (() => void) | null;
+}) {
+  const c = () => editor.chain().focus();
+  return (
+    <>
       <select
         aria-label="Text style"
         value={s.style}
@@ -393,11 +489,7 @@ function Toolbar({
           </svg>
         </Tool>
       ) : null}
-      <Sep />
-      <Tool label="Find and replace (⌘F in a note)" run={onFind}>
-        <Icon name="search" />
-      </Tool>
-    </div>
+    </>
   );
 }
 
@@ -583,6 +675,10 @@ export function NoteEditor({
   editable,
   people,
   onEditor,
+  live,
+  mode,
+  onComment,
+  onPickComment,
 }: {
   client: string;
   id: string;
@@ -590,7 +686,20 @@ export function NoteEditor({
   editable: boolean;
   people: () => Promise<NotePeople | null>;
   onEditor: (e: Editor | null) => void;
+  /** Others' cursors, and who this is. */
+  live: { awareness: Awareness; me: string } | null;
+  /** Editing or suggesting; null when this person can't suggest. */
+  mode: Mode | null;
+  onComment: (() => void) | null;
+  onPickComment: (id: string) => void;
 }) {
+  // The editor is made once per doc: what it asks later reads these.
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const pickRef = useRef(onPickComment);
+  pickRef.current = onPickComment;
+  const commentRef = useRef(onComment);
+  commentRef.current = onComment;
   const [menu, setMenu] = useState<Menu | null>(null);
   const [mention, setMention] = useState<Menu | null>(null);
   const [bar, setBar] = useState<"find" | "link" | null>(null);
@@ -629,6 +738,15 @@ export function NoteEditor({
           render: menuRender(setMention, heldMention),
         },
         placeholder: "Write here. Type / for blocks, @ to link a person, note or client.",
+        live: live ?? undefined,
+        suggest: live
+          ? {
+              by: live.me,
+              on: () => !!modeRef.current?.suggesting,
+              onBlocked: blockedOnce,
+            }
+          : undefined,
+        comments: { onPick: (c) => pickRef.current(c) },
       }),
       editable,
       injectCSS: false,
@@ -652,6 +770,11 @@ export function NoteEditor({
           return true;
         },
         handleKeyDown: (_v, event) => {
+          if ((event.metaKey || event.ctrlKey) && event.altKey && event.code === "KeyM") {
+            event.preventDefault();
+            commentRef.current?.();
+            return true;
+          }
           if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
             event.preventDefault();
             setBar("find");
@@ -693,6 +816,8 @@ export function NoteEditor({
             onFind={() => setBar(bar === "find" ? null : "find")}
             onLink={() => setBar(bar === "link" ? null : "link")}
             onImage={() => picker.current?.click()}
+            onComment={onComment}
+            mode={mode}
           />
           {bar === "find" ? <FindBar editor={editor} onClose={() => setBar(null)} /> : null}
           {bar === "link" ? <LinkBar editor={editor} onClose={() => setBar(null)} /> : null}

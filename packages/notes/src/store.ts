@@ -11,6 +11,7 @@ import {
   appendBody,
   docOf,
   linksOf,
+  peopleIn,
   readBody,
   readTitle,
   textOf,
@@ -19,8 +20,11 @@ import {
 } from "./doc.js";
 import {
   type Note,
+  type NoteComment,
   type NoteVersion,
+  noteComments,
   noteLinks,
+  noteMentions,
   noteSeen,
   noteShares,
   noteStars,
@@ -29,7 +33,17 @@ import {
   noteUpdates,
   noteVersions,
 } from "./schema.js";
-import type { General, NoteJson, NoteKind, Role, ShareRole, VersionKind, Via } from "./types.js";
+import { onlySuggests } from "./suggest.js";
+import type {
+  CommentAnchor,
+  General,
+  NoteJson,
+  NoteKind,
+  Role,
+  ShareRole,
+  VersionKind,
+  Via,
+} from "./types.js";
 
 /** An auto version stays open this long after its last edit. */
 export const SESSION_MS = 10 * 60 * 1000;
@@ -37,6 +51,13 @@ export const SESSION_MS = 10 * 60 * 1000;
 export class NoteMissing extends Error {
   constructor(id: string) {
     super(`no such note: ${id}`);
+  }
+}
+
+/** A commenter's change that did more than suggest. */
+export class NotASuggestion extends Error {
+  constructor() {
+    super("you can only suggest changes to this note");
   }
 }
 
@@ -185,8 +206,10 @@ export async function changeNote(
       })
       .where(eq(notes.id, id))
       .returning();
-    if (JSON.stringify(linksOf(body)) !== JSON.stringify(linksOf(row.body)))
+    if (JSON.stringify(linksOf(body)) !== JSON.stringify(linksOf(row.body))) {
       await relink(tx, id, body);
+      await mentionNew(tx, id, by, peopleIn(row.body), peopleIn(body));
+    }
     const version = await keepVersion(tx, id, latest, by, now, { title, body, text }, opts);
     return { note: note as Note, update, version };
   });
@@ -255,9 +278,26 @@ async function relink(db: Queryable, id: string, body: NoteJson) {
       .onConflictDoNothing();
 }
 
+/** Whoever a change newly `@`s in the body hears of it once; never the one who wrote it. */
+async function mentionNew(
+  db: Queryable,
+  id: string,
+  by: string,
+  before: readonly string[],
+  after: readonly string[],
+) {
+  const had = new Set(before.map((e) => e.toLowerCase()));
+  const me = by.toLowerCase();
+  const fresh = [...new Set(after.map((e) => e.toLowerCase()))].filter(
+    (e) => !had.has(e) && e !== me,
+  );
+  if (fresh.length)
+    await db.insert(noteMentions).values(fresh.map((who) => ({ noteId: id, who, by })));
+}
+
 /**
  * A browser's sync: take its update (when it may edit and sent one), then answer what it lacks
- * against its state vector.
+ * against its state vector. `suggestOnly`: a commenter's, taken only when it just suggests.
  */
 export async function syncNote(
   db: Db,
@@ -265,6 +305,7 @@ export async function syncNote(
   by: string,
   update: Uint8Array | null,
   sv: Uint8Array | null,
+  o: { suggestOnly?: boolean } = {},
 ): Promise<{
   note: Note;
   missing: Uint8Array;
@@ -277,7 +318,15 @@ export async function syncNote(
   let version = 0;
   let changed = false;
   if (update && update.length > 2) {
-    const c = await changeNote(db, id, by, (doc) => Y.applyUpdate(doc, update));
+    const c = await changeNote(db, id, by, (doc) => {
+      const before = o.suggestOnly ? { body: readBody(doc), title: readTitle(doc) } : null;
+      Y.applyUpdate(doc, update);
+      if (
+        before &&
+        (readTitle(doc) !== before.title || !onlySuggests(before.body, readBody(doc), by))
+      )
+        throw new NotASuggestion();
+    });
     note = c.note;
     version = c.version;
     changed = c.update !== null;
@@ -567,12 +616,20 @@ export async function star(db: Queryable, id: string, email: string, on: boolean
       .where(and(eq(noteStars.noteId, id), eq(noteStars.email, email.toLowerCase())));
 }
 
+/** Opened: Recent's time, and their mentions there read. */
 export async function seen(db: Queryable, id: string, email: string) {
   if (!email) return;
+  const who = email.toLowerCase();
   await db
     .insert(noteSeen)
-    .values({ noteId: id, email: email.toLowerCase() })
+    .values({ noteId: id, email: who })
     .onConflictDoUpdate({ target: [noteSeen.noteId, noteSeen.email], set: { at: new Date() } });
+  await db
+    .update(noteMentions)
+    .set({ seenAt: new Date() })
+    .where(
+      and(eq(noteMentions.noteId, id), eq(noteMentions.who, who), isNull(noteMentions.seenAt)),
+    );
 }
 
 /** This person's Dump note here, made on first use. */
@@ -707,4 +764,151 @@ export async function trainingNotes(db: Queryable) {
     )
     .orderBy(asc(noteVersions.number));
   return rows.map((n) => ({ note: n, versions: versions.filter((v) => v.noteId === n.id) }));
+}
+
+// ---- Comments ----
+
+/** A note's comments, threads in the order they were left, each reply after its thread. */
+export const commentsOf = (db: Queryable, id: string) =>
+  db
+    .select()
+    .from(noteComments)
+    .where(eq(noteComments.noteId, id))
+    .orderBy(asc(noteComments.at), asc(noteComments.id));
+
+export async function commentById(
+  db: Queryable,
+  noteId: string,
+  id: string,
+): Promise<NoteComment | null> {
+  if (!isNoteId(id)) return null;
+  const [row] = await db
+    .select()
+    .from(noteComments)
+    .where(and(eq(noteComments.id, id), eq(noteComments.noteId, noteId)));
+  return row ?? null;
+}
+
+export interface NewComment {
+  noteId: string;
+  by: string;
+  body: string;
+  /** A reply: the thread's first comment. */
+  parentId?: string | null;
+  anchor?: CommentAnchor | null;
+  quote?: string;
+  /** Emails it `@`s; each hears of it once (never its author). */
+  mentions?: readonly string[];
+}
+
+export async function addComment(db: Db, c: NewComment): Promise<NoteComment> {
+  const by = c.by.toLowerCase();
+  const mentions = [...new Set((c.mentions ?? []).map((m) => m.toLowerCase()))];
+  return atomic(db, async (tx) => {
+    const [row] = await tx
+      .insert(noteComments)
+      .values(
+        pgSafe({
+          noteId: c.noteId,
+          parentId: c.parentId ?? null,
+          anchor: c.parentId ? null : (c.anchor ?? null),
+          quote: (c.quote ?? "").slice(0, 500),
+          body: c.body,
+          mentions,
+          by,
+        }),
+      )
+      .returning();
+    if (!row) throw new Error("comment not made");
+    const told = mentions.filter((m) => m !== by);
+    if (told.length)
+      await tx
+        .insert(noteMentions)
+        .values(told.map((who) => ({ noteId: c.noteId, commentId: row.id, who, by })));
+    // A reply to a resolved thread opens it again, as in Docs.
+    if (c.parentId)
+      await tx
+        .update(noteComments)
+        .set({ resolvedAt: null, resolvedBy: null })
+        .where(eq(noteComments.id, c.parentId));
+    return row;
+  });
+}
+
+/** Its author's new words; who's newly `@`ed hears of it. */
+export async function editComment(
+  db: Db,
+  c: NoteComment,
+  body: string,
+  mentions: readonly string[],
+): Promise<NoteComment> {
+  const next = [...new Set(mentions.map((m) => m.toLowerCase()))];
+  return atomic(db, async (tx) => {
+    const [row] = await tx
+      .update(noteComments)
+      .set(pgSafe({ body, mentions: next, editedAt: new Date() }))
+      .where(eq(noteComments.id, c.id))
+      .returning();
+    const had = new Set(c.mentions);
+    const told = next.filter((m) => !had.has(m) && m !== c.by);
+    if (told.length)
+      await tx
+        .insert(noteMentions)
+        .values(told.map((who) => ({ noteId: c.noteId, commentId: c.id, who, by: c.by })));
+    return row as NoteComment;
+  });
+}
+
+/** Gone, with its replies when it starts a thread. */
+export const deleteComment = (db: Queryable, id: string) =>
+  db.delete(noteComments).where(eq(noteComments.id, id));
+
+export const resolveComment = (db: Queryable, id: string, by: string | null) =>
+  db
+    .update(noteComments)
+    .set(by ? { resolvedAt: new Date(), resolvedBy: by } : { resolvedAt: null, resolvedBy: null })
+    .where(eq(noteComments.id, id));
+
+// ---- Mentions ----
+
+/**
+ * Where this person was `@`ed in notes they may open, newest first, with the note's name and the
+ * comment's words. A mention never shares: one in a note they can't open waits until it's shared.
+ */
+export function mentionsOf(db: Queryable, r: Omit<Reader, "cap">, limit = 50) {
+  return db
+    .select({
+      id: noteMentions.id,
+      noteId: noteMentions.noteId,
+      commentId: noteMentions.commentId,
+      by: noteMentions.by,
+      at: noteMentions.at,
+      seenAt: noteMentions.seenAt,
+      title: notes.title,
+      text: sql<string>`left(${notes.text}, 120)`,
+      comment: sql<string | null>`left(${noteComments.body}, 240)`,
+    })
+    .from(noteMentions)
+    .innerJoin(notes, eq(notes.id, noteMentions.noteId))
+    .leftJoin(noteComments, eq(noteComments.id, noteMentions.commentId))
+    .where(and(eq(noteMentions.who, r.email.toLowerCase()), isNull(notes.archivedAt), visible(r)))
+    .orderBy(desc(noteMentions.at))
+    .limit(Math.min(Math.max(limit, 1), 200));
+}
+
+/** How many of this person's mentions they haven't opened. */
+export async function unseenMentions(db: Queryable, r: Omit<Reader, "cap">): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(noteMentions)
+    .innerJoin(notes, eq(notes.id, noteMentions.noteId))
+    .where(
+      and(
+        eq(noteMentions.who, r.email.toLowerCase()),
+        isNull(noteMentions.seenAt),
+        isNull(notes.archivedAt),
+        visible(r),
+      ),
+    );
+  return Number(row?.n ?? 0);
 }
