@@ -1,4 +1,5 @@
 /** The spine's store on Postgres: an arrival is kept once, owned by its call; waits release once. */
+import { env } from "node:process";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -212,6 +213,60 @@ describe("workflow saves", () => {
     await expect(
       api.workflowPublish({ ...operator, workflow: "loud", confirm: "loud" }),
     ).resolves.toMatchObject({ id: expect.any(Number) });
+  });
+
+  it("makes a Webhook node's door on publish, once, and keeps its URL", async () => {
+    env.WREN_HOOK_KEY = "test-key-not-a-secret";
+    const api = consoleApi({ main: pg.db, views: [], components: [part], workflows: [flow] });
+    const door = {
+      id: "door",
+      uses: "trigger.hook",
+      with: { subject: "email", kind: "lead", "map.phone": "contact.tel" },
+    };
+    const draft = {
+      ...operator,
+      workflow: "f",
+      wires: [flow.wires[1], { from: "door.out", to: "n.leads", via: "events" }],
+      steps: [door],
+    };
+    // The test reads a post the way the door would, by its field map; nothing is made.
+    const tried = await api.workflowTest({
+      ...draft,
+      from: "door.out",
+      data: { email: "sam@example.com", contact: { tel: "+15555550100" } },
+    });
+    expect(tried.entered?.data.lead).toMatchObject({
+      email: "sam@example.com",
+      phone: "+15555550100",
+    });
+    expect(await api.workflowDoors({ ...operator, workflow: "f" })).toEqual([]);
+
+    await api.workflowSave(draft);
+    const first = await api.workflowPublish({ ...operator, workflow: "f" });
+    expect(first.doors).toEqual([
+      { node: "door", id: expect.any(String), token: expect.stringMatching(/^[\w-]{43}$/) },
+    ]);
+    const made = first.doors?.[0] as { id: string; token: string };
+    await api.workflowSave({
+      ...draft,
+      steps: [{ ...door, with: { ...door.with, subject: "phone" } }],
+    });
+    expect((await api.workflowPublish({ ...operator, workflow: "f" })).doors).toEqual([]);
+    const [listed] = await api.workflowDoors({ ...operator, workflow: "f" });
+    expect(listed).toMatchObject({ id: made.id, node: "door", subject: "phone", open: true });
+    expect(listed?.masked).toBe(`${made.token.slice(0, 4)}${"•".repeat(10)}`);
+    const [row] = await pg.db.select().from(hooks).where(eq(hooks.id, made.id));
+    expect(row?.fields).toEqual({ phone: "contact.tel" });
+    expect(JSON.stringify(row)).not.toContain(made.token);
+
+    const ask = { ...operator, workflow: "f", id: made.id };
+    expect(await api.doorReveal(ask)).toEqual({ token: made.token });
+    const rotated = await api.doorRotate(ask);
+    expect(rotated.token).not.toBe(made.token);
+    expect(await api.doorReveal(ask)).toEqual(rotated);
+    // Without the key a token is shown once: Show says to rotate.
+    delete env.WREN_HOOK_KEY;
+    await expect(api.doorReveal(ask)).rejects.toThrow("rotate it for a new one");
   });
 
   it("keeps the wiring each subject entered on", async () => {

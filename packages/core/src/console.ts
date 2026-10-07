@@ -75,6 +75,8 @@ import {
   STAGES,
 } from "./components.js";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
+import { leadOf } from "./door.js";
+import { type Door, doorsFor, ensureDoors, revealDoor, rotateDoor } from "./doors.js";
 import { type DryResult, dryStep, dryWalk, sampleEvent } from "./dry.js";
 import {
   ASK_COMMAND,
@@ -108,7 +110,7 @@ import {
   snippetTags,
   workflowRecord,
 } from "./library.js";
-import { LOGIC, logicOf, startWith } from "./logic.js";
+import { doorOf, LOGIC, logicOf, startWith } from "./logic.js";
 import {
   accessOf,
   answer,
@@ -166,8 +168,10 @@ import {
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import {
   editsOf,
+  hookEvent,
   type SavedWorkflow,
   SPINE,
+  type SpineEvent,
   type SpineService,
   savedWorkflows,
   type WorkflowVersion,
@@ -321,6 +325,12 @@ export interface WorkflowSaveRequest extends PortalRequest {
   reset?: boolean;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
+}
+
+/** A door of a workflow's node: its id, for Reveal and Rotate. */
+export interface DoorRequest extends PortalRequest {
+  workflow?: string;
+  id?: unknown;
 }
 
 /** A dry test of a draft: from its first input, or one `node` at `port`; a sample or a real event. */
@@ -2753,7 +2763,11 @@ export function consoleApi({
      * sends needs `effect`, one that spends `money`, and either needs its id typed back. Subjects
      * already in it keep the wiring they entered on.
      */
-    async workflowPublish(req: WorkflowSaveRequest): Promise<{ id: number; asked?: string }> {
+    async workflowPublish(req: WorkflowSaveRequest): Promise<{
+      id: number;
+      asked?: string;
+      doors?: Array<{ node: string; id: string; token: string }>;
+    }> {
       const { w, client, by } = await workflowFor(req);
       // A client's template: publishing asks in To approve; a person's yes makes it live.
       const t = client ? sold.find((x) => x.workflow.id === w.id) : undefined;
@@ -2781,8 +2795,29 @@ export function consoleApi({
           .returning({ id: workflowSaves.id });
         await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
           AND client IS NOT DISTINCT FROM ${client}`);
-        return { id: row?.id ?? 0 };
+        // Each Webhook or Form node's door, made once and kept across publishes.
+        const flow = next.flows.find((f) => f.id === w.id) as Workflow;
+        const made = await ensureDoors(tx, { client, flow, open: true });
+        return { id: row?.id ?? 0, doors: made };
       });
+    },
+    /** The doors into a workflow, for its node panel: masked, with their calls. */
+    async workflowDoors(req: DoorRequest): Promise<Door[]> {
+      team(req);
+      const w = workflows.find((x) => x.id === req.workflow);
+      if (!w) throw new PortalRefusal("no such workflow", 404);
+      const client = req.client ? (await pickClient(main, req)).id : null;
+      return doorsFor(main, client, w.id);
+    },
+    /** A door's whole token: a teammate with `manage`, never the demo. */
+    async doorReveal(req: DoorRequest): Promise<{ token: string }> {
+      const { client } = await workflowFor({ ...req, workflow: String(req.workflow ?? "") });
+      return revealDoor(main, req.id, client);
+    },
+    /** A new token for a door: the old one stops at once. */
+    async doorRotate(req: DoorRequest): Promise<{ token: string }> {
+      const { client } = await workflowFor({ ...req, workflow: String(req.workflow ?? "") });
+      return rotateDoor(main, req.id, client);
     },
     /** The draft dropped: the live wiring stays as it is. */
     async workflowDiscard(req: WorkflowSaveRequest): Promise<{ done: number }> {
@@ -2847,7 +2882,7 @@ export function consoleApi({
      * Test the draft, dry (`./dry.ts`): the whole workflow from an input, or one node. On a
      * sample event, or a real arrival's data read from `events`. Nothing is claimed or sent.
      */
-    async workflowTest(req: WorkflowTestRequest): Promise<DryResult> {
+    async workflowTest(req: WorkflowTestRequest): Promise<DryResult & { entered?: SpineEvent }> {
       team(req);
       const w = workflows.find((x) => x.id === req.workflow);
       if (!w) throw new PortalRefusal("no such workflow", 404);
@@ -2893,6 +2928,17 @@ export function consoleApi({
           ? (req.data as Record<string, unknown>)
           : {};
       let event = sampleEvent(kindIn, data);
+      // A door node: the payload enters as the door would take it, its lead read by its map.
+      const door = source && !node ? doorOf(source) : null;
+      if (door && source) {
+        const at = hookEvent(
+          { workflow: w.id, input: source.id, subject: door.subject },
+          map,
+          data,
+        );
+        if ("error" in at) throw new PortalRefusal(at.error, 400);
+        event = { ...at.event, data: { ...at.event.data, lead: leadOf(data, door.fields) } };
+      }
       // A real arrival's data, pinned: read only, on the team's main database.
       if (typeof req.event === "string") {
         if (!/^[0-9a-f-]{36}$/.test(req.event)) throw new PortalRefusal("no such event", 404);
@@ -2908,9 +2954,10 @@ export function consoleApi({
         client: null,
         rules: req.rules !== false,
       };
-      return node
-        ? dryStep({ ...base, node, port, event })
-        : dryWalk({ ...base, from: from as string, events: [event] });
+      if (node) return dryStep({ ...base, node, port, event });
+      const walked = await dryWalk({ ...base, from: from as string, events: [event] });
+      // A door's test says what it read, wired on or not.
+      return door ? { ...walked, entered: event } : walked;
     },
 
     eventToRetry(req: PortalRequest & { id?: unknown }): string {
@@ -3229,6 +3276,11 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => api.workflowAnswer(req)),
       workflowTest: (_: restate.Context, req: WorkflowTestRequest) =>
         answer(() => api.workflowTest(req)),
+      workflowDoors: (_: restate.Context, req: DoorRequest) => answer(() => api.workflowDoors(req)),
+      doorReveal: (_: restate.Context, req: DoorRequest) => answer(() => api.doorReveal(req)),
+      // Journaled once: a retry reads the same token, and never makes a second one.
+      doorRotate: (ctx: restate.Context, req: DoorRequest) =>
+        answer(() => ctx.run("rotate door", () => answer(() => api.doorRotate(req)))),
       /** A failed spine step, again, waited on so the button says how it went. */
       retryEvent: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(async () => {

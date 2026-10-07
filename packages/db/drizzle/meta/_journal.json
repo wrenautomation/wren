@@ -1086,6 +1086,13 @@
       "when": 1791362878815,
       "tag": "0154_accounts_registry_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1791364378655,
+      "tag": "0155_hook_seal",
+      "breakpoints": true
     }
   ]
 }

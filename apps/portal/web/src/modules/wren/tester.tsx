@@ -4,6 +4,7 @@
  * step that sends, spends or posts says what it would do and does nothing. Nothing is claimed.
  */
 import type { Port } from "@wren/core/components";
+import { DOOR_TRIGGERS } from "@wren/core/logic";
 import { Button, cx, Tag, Textarea } from "@wren/ui";
 import { useId, useMemo, useState } from "react";
 import { call } from "../../api.js";
@@ -19,10 +20,21 @@ import type { Draft } from "./wiring.js";
 export const SAMPLE: Record<string, Record<string, unknown>> = {
   lead: { name: "Sam Test", email: "sam@example.com", phone: "+15555550100" },
 };
+/** A made-up form post for a door: a lead who ticked the text box. */
+export const SAMPLE_POST = {
+  name: "Sam Test",
+  email: "sam@example.com",
+  phone: "+15555550100",
+  sms_consent: "yes",
+  source: "test",
+};
 const sampleText = (kind: string | undefined) => JSON.stringify(SAMPLE[kind ?? ""] ?? {}, null, 2);
 
 type Run = { state: "idle" } | { state: "busy" } | { state: "failed"; error: string } | DryDone;
-type DryDone = { state: "done" } & DryResult;
+type DryDone = {
+  state: "done";
+  entered?: { subject: string; data: Record<string, unknown> };
+} & DryResult;
 
 /** What he tests with: an input, its data as JSON, and what every rule answers. */
 function useTestForm(ports: readonly Port[]) {
@@ -212,9 +224,23 @@ export function TestStep({
   draft: Draft;
   node: string;
 }) {
-  const ports = w.nodes.find((n) => n.id === node)?.in ?? [];
+  const n = w.nodes.find((x) => x.id === node);
+  const ports = n?.in ?? [];
   const f = useTestForm(ports);
   const [run, setRun] = useState<Run>({ state: "idle" });
+  // A trigger takes nothing in: its test is the workflow from its output, as if it fired.
+  if (!ports.length && n?.out?.[0])
+    return (
+      <TestTrigger
+        w={w}
+        workflow={workflow}
+        client={client}
+        draft={draft}
+        node={node}
+        out={n.out[0]}
+        door={DOOR_TRIGGERS.has(n.uses ?? "")}
+      />
+    );
   if (!ports.length)
     return <p className={QUIET}>It takes nothing in, so there's nothing to test.</p>;
   const go = async () => {
@@ -243,6 +269,114 @@ export function TestStep({
         </Button>
         {client ? null : <LastInput workflow={workflow} node={node} use={(t) => f.setText(t)} />}
       </span>
+      <DryOut w={w} run={run} />
+    </div>
+  );
+}
+
+type Lead = Partial<
+  Record<"name" | "phone" | "email" | "source" | "zone" | "niche", string | null>
+> & {
+  consent?: boolean;
+};
+
+/** What the door read from the post, by the node's field map. */
+function ReadAs({ lead }: { lead: Lead | undefined }) {
+  if (!lead) return null;
+  const rows: [string, string][] = [
+    ["Name", lead.name ?? ""],
+    ["Phone", lead.phone ?? ""],
+    ["Email", lead.email ?? ""],
+    ["Text consent", lead.consent ? "Yes" : "No"],
+    ["Source", lead.source ?? ""],
+    ["Time zone", lead.zone ?? ""],
+    ["Market", lead.niche ?? ""],
+  ];
+  return (
+    <dl className="m-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13px]">
+      {rows.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="text-(--ui-ink-2)">{k}</dt>
+          <dd className={cx("m-0 min-w-0 break-words", v ? "" : QUIET)}>{v || "Not found"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/**
+ * A trigger's test, in its panel: the workflow from its output, dry. A door's is "Send a test
+ * lead": a made-up post read by its field map, then walked; nothing is sent.
+ */
+function TestTrigger({
+  w,
+  workflow,
+  client,
+  draft,
+  node,
+  out,
+  door,
+}: {
+  w: Drawn;
+  workflow: string;
+  client: string | null;
+  draft: Draft;
+  node: string;
+  out: Port;
+  door: boolean;
+}) {
+  const base = useId();
+  const [text, setText] = useState(
+    JSON.stringify(door ? SAMPLE_POST : (SAMPLE[out.kind] ?? {}), null, 2),
+  );
+  const [run, setRun] = useState<Run>({ state: "idle" });
+  const parsed = (() => {
+    try {
+      const v = JSON.parse(text) as unknown;
+      return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    } catch {
+      return null;
+    }
+  })();
+  const go = async () => {
+    if (!parsed) return;
+    setRun({ state: "busy" });
+    try {
+      const got = await call<Omit<DryDone, "state">>("console/workflowTest", {
+        ...body(workflow, client, draft),
+        from: `${node}.${out.id}`,
+        data: parsed,
+      });
+      setRun({ state: "done", ...got });
+    } catch (err) {
+      setRun(failedOf(err));
+    }
+  };
+  const lead = run.state === "done" ? (run.entered?.data.lead as Lead | undefined) : undefined;
+  return (
+    <div className="grid gap-3">
+      <label htmlFor={`${base}-post`} className={cx(FIELD, "min-w-0")}>
+        <span>{door ? "What the form posts" : "Its data"}</span>
+        <Textarea
+          id={`${base}-post`}
+          className="min-h-[120px] w-full min-w-0 font-mono text-[12px]"
+          value={text}
+          spellCheck={false}
+          onChange={(e) => setText(e.target.value)}
+        />
+        {parsed ? null : <span className="text-(--ui-bad)">That isn't a JSON object.</span>}
+      </label>
+      <span>
+        <Button size="dense" onClick={go} disabled={!parsed} busy={run.state === "busy"}>
+          {door ? "Send a test lead" : "Test from here"}
+        </Button>
+      </span>
+      {door && lead ? (
+        <div className="grid gap-1.5">
+          <span className={cx("text-[12px]", QUIET)}>Read as</span>
+          <ReadAs lead={lead} />
+        </div>
+      ) : null}
       <DryOut w={w} run={run} />
     </div>
   );

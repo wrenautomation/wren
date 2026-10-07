@@ -5,6 +5,7 @@
  * onto an input, set a wire's condition or wait, add a custom step, save it for Wren or for the
  * client in `?client=`.
  */
+import { DOOR_TRIGGERS } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage, RecordsStat } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import {
@@ -45,6 +46,7 @@ import {
   trailIsFor,
   type Where,
 } from "./canvas.js";
+import { DoorStrip, type Fresh } from "./doors.js";
 import { type DryStep, dryNodes } from "./dry.js";
 import {
   AskGraph,
@@ -234,6 +236,7 @@ export function Workflows({ params, team, can }: PageProps) {
           params={params}
           client={client}
           team={team}
+          mayManage={!can || can.includes("manage")}
           onSaved={() => setNonce((n) => n + 1)}
         />
       )}
@@ -338,6 +341,7 @@ function Canvas({
   params,
   client,
   team,
+  mayManage,
   onSaved,
 }: {
   w: Drawn;
@@ -348,9 +352,13 @@ function Canvas({
   params: URLSearchParams;
   client: string | null;
   team: boolean;
+  /** May see a door's whole token and rotate it. */
+  mayManage: boolean;
   onSaved: () => void;
 }) {
   const broken = d.broken ?? [];
+  // Doors the last publish made, by node: their tokens, shown once.
+  const [fresh, setFresh] = useState<Fresh>({});
   const palette = d.palette ?? NO_PALETTE;
   // What's live, as a draft: every diff and change count is against it.
   const first = useMemo(() => draftOf(w, d.saved ?? null, broken.length > 0), [w, d, broken]);
@@ -539,13 +547,20 @@ function Canvas({
     setError(null);
     try {
       if (!d.draft || changesOf(stored, draft) > 0) await call("console/workflowSave", body(draft));
-      const out = await call<{ asked?: string }>("console/workflowPublish", {
+      const out = await call<{
+        asked?: string;
+        doors?: { node: string; token: string }[];
+      }>("console/workflowPublish", {
         workflow: w.id,
         ...(client ? { client } : {}),
         ...(typed ? { confirm: typed } : {}),
       });
       // A client's template: it waits in To approve, not live yet.
       if (out.asked) say.done("Asked. It goes live once approved in To approve.");
+      if (out.doors?.length) {
+        setFresh(Object.fromEntries(out.doors.map((x) => [x.node, x.token])));
+        say.done("Published. Its door URL is over the canvas.");
+      }
       close();
       onSaved();
     } catch (err) {
@@ -627,6 +642,8 @@ function Canvas({
         onOpenPart={(uses) => navigate(href(PAGE, { component: uses, tab: null }, params))}
         onClose={() => setSel(null)}
         test={<TestStep w={shown} workflow={w.id} client={client} draft={draft} node={sel} />}
+        mayManage={mayManage}
+        fresh={fresh}
       />
     ) : picked ? (
       <WirePanel
@@ -785,8 +802,18 @@ function Canvas({
     );
   }
 
+  const doorNodes = team ? w.nodes.filter((n) => DOOR_TRIGGERS.has(n.uses ?? "")) : [];
   return (
     <>
+      {doorNodes.length ? (
+        <DoorStrip
+          workflow={w.id}
+          client={client}
+          nodes={doorNodes}
+          mayManage={mayManage}
+          fresh={fresh}
+        />
+      ) : null}
       <div
         className={
           play.panel

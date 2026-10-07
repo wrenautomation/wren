@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldMapOf, HOOK_PRESETS, leadOf } from "./door.js";
+import { fieldMapOf, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS, leadOf } from "./door.js";
 
 describe("leadOf", () => {
   it("reads the common names when the map is empty", () => {
@@ -88,5 +88,24 @@ describe("fieldMapOf", () => {
     });
     expect(() => fieldMapOf(["fax=x"])).toThrow("phone=contact.phone");
     expect(() => fieldMapOf(["phone="])).toThrow();
+  });
+});
+
+describe("a door node's field map", () => {
+  it("reads map.<fact> settings and leaves blanks out", () => {
+    expect(
+      fieldMapOfWith({
+        subject: "email",
+        "map.phone": "contact.tel",
+        "map.email": " ",
+        kind: "lead",
+      }),
+    ).toEqual({ phone: "contact.tel" });
+  });
+
+  it("says which paths won't read", () => {
+    expect(fieldMapProblems({ phone: "contact.tel", email: "a b" })).toEqual([
+      "email reads like contact.email",
+    ]);
   });
 });

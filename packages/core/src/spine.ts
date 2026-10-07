@@ -6,14 +6,14 @@
  * (planned, or moved by its own code) keeps the arrival and stops there. One walk is one Restate
  * call; every arrival is a row in `events`, so nothing enters a node twice.
  */
-import { createHash, randomBytes } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
-import { dig, holdOf, logicOf, logicSteps } from "./logic.js";
+import { hashToken, newToken } from "./doors.js";
+import { dig, doorOf, holdOf, logicOf, logicSteps } from "./logic.js";
 import { hooks, type SentEvent, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
@@ -432,8 +432,6 @@ export function pgSpineStore(db: Db): SpineStore {
 
 // ---- The door: webhooks into a workflow's input ----
 
-const hashOf = (token: string) => createHash("sha256").update(token).digest("hex");
-
 export interface HookAsk {
   name: string;
   client: string | null;
@@ -445,12 +443,15 @@ export interface HookAsk {
   open?: boolean;
 }
 
-/** A new hook, its id and its token: the token is returned once and kept only as a hash. */
+/**
+ * A new hook, its id and its token: kept as a hash for the door, and sealed when there's a key
+ * (`./doors.ts`), else returned once.
+ */
 export async function makeHook(db: Queryable, h: HookAsk): Promise<{ id: string; token: string }> {
-  const token = randomBytes(32).toString("base64url");
+  const { token, tokenHash, sealed } = newToken();
   const [row] = await db
     .insert(hooks)
-    .values({ ...h, tokenHash: hashOf(token) })
+    .values({ ...h, tokenHash, sealed })
     .returning({ id: hooks.id });
   if (!row) throw new Error("the hook wasn't made");
   return { id: row.id, token };
@@ -467,7 +468,7 @@ export const SHUT = "this door opens once its workflow is approved";
 
 /**
  * A hook's payload as the event it enters with, and where it leaves from: the workflow's input
- * `input`, or the Webhook trigger node of that id (`trigger.hook`, out by `out`). Else the status
+ * `input`, or the door trigger node of that id (Webhook or Form, out by `out`). Else the status
  * the sender gets.
  */
 export function hookEvent(
@@ -476,7 +477,7 @@ export function hookEvent(
   payload: unknown,
 ): { from: string; event: SpineEvent } | { status: number; error: string } {
   const f = flows.get(h.workflow);
-  const node = f?.nodes.find((n) => n.id === h.input && n.uses === "trigger.hook");
+  const node = f?.nodes.find((n) => n.id === h.input && doorOf(n) !== null);
   const port = node
     ? logicOf(node.uses)?.ports(node.with ?? {}).out[0]
     : f?.in.find((p) => p.id === h.input);
@@ -694,7 +695,7 @@ export function makeSpine(d: SpineDeps) {
       hook: async (ctx: restate.Context, req: { token: string; payload: unknown }) => {
         if (typeof req.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(req.token))
           return { status: 404, error: "no such hook" };
-        const tokenHash = hashOf(req.token);
+        const tokenHash = hashToken(req.token);
         const h = await ctx.run("hook", async () => {
           const [row] = await d.main
             .update(hooks)

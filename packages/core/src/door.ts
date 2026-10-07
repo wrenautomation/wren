@@ -34,8 +34,11 @@ export interface DoorLead {
   niche: string | null;
 }
 
+/** Where every hook is posted: the phone Worker's door, then the token. */
+export const DOOR_URL = "https://phone.wrenautomation.com/hooks/";
+
 /** The names each fact goes by when the map doesn't say, most specific first. */
-const COMMON: Record<Exclude<LeadField, "name">, readonly string[]> = {
+export const COMMON: Record<Exclude<LeadField, "name">, readonly string[]> = {
   phone: ["phone", "phone_number", "phoneNumber", "mobile", "cell", "tel"],
   email: ["email", "email_address", "emailAddress"],
   consent: ["sms_consent", "smsConsent", "text_consent", "consent", "opt_in", "optIn"],
@@ -43,7 +46,7 @@ const COMMON: Record<Exclude<LeadField, "name">, readonly string[]> = {
   zone: ["zone", "timezone", "time_zone", "tz"],
   niche: ["niche", "industry", "vertical"],
 };
-const NAMES = ["name", "full_name", "fullName"] as const;
+export const NAMES = ["name", "full_name", "fullName"] as const;
 
 const YES = new Set(["1", "true", "yes", "y", "on", "checked", "agree", "agreed"]);
 
@@ -111,6 +114,26 @@ export function fieldMapOf(pairs: readonly string[]): FieldMap {
     map[k?.trim() as LeadField] = path;
   }
   return map;
+}
+
+/** A door node's setting that holds where `fact` sits: `map.phone`. */
+export const mapKey = (fact: LeadField) => `map.${fact}`;
+
+/** A door node's field map, read from its settings (`map.<fact>`); blanks are left out. */
+export function fieldMapOfWith(w: Readonly<Record<string, string | number>>): FieldMap {
+  const map: FieldMap = {};
+  for (const f of LEAD_FIELDS) {
+    const path = String(w[mapKey(f)] ?? "").trim();
+    if (path) map[f] = path;
+  }
+  return map;
+}
+
+/** Why a field map won't read, as lines: each path dotted letters, digits and _. */
+export function fieldMapProblems(map: FieldMap): string[] {
+  return Object.entries(map).flatMap(([f, path]) =>
+    /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(path ?? "") ? [] : [`${f} reads like contact.${f}`],
+  );
 }
 
 /**

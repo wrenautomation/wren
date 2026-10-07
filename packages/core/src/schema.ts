@@ -392,6 +392,8 @@ export const hooks = pgTable(
     calls: integer("calls").default(0).notNull(),
     /** False: a post is refused (409) and counted. A template's door stays shut until approved. */
     open: boolean("open").default(true).notNull(),
+    /** The token sealed with `WREN_HOOK_KEY` (./doors.ts), so the team can see it again; null without one. */
+    sealed: text("sealed"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_hooks" }),

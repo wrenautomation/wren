@@ -20,6 +20,7 @@ import {
   type Effect,
   type LoopKey,
 } from "./components.js";
+import { ensureDoors } from "./doors.js";
 import { accountsLacking, blockOf, has, installCheck } from "./installs.js";
 import { PortalRefusal } from "./portal.js";
 import {
@@ -646,6 +647,26 @@ export async function approveInstall(
         AND workflow = ${row.workflow}`);
     }
     if (row.hook) await tx.update(hooks).set({ open: true }).where(eq(hooks.id, row.hook));
+    // Its Webhook and Form nodes' doors, made or opened, as a publish makes them.
+    const live = await tx
+      .select({ edits: workflowSaves.edits })
+      .from(workflowSaves)
+      .where(
+        and(
+          eq(workflowSaves.client, row.client),
+          eq(workflowSaves.workflow, row.workflow),
+          eq(workflowSaves.live, true),
+        ),
+      )
+      .orderBy(desc(workflowSaves.id))
+      .limit(1);
+    const edits = live[0]?.edits;
+    const flow = flowsWith(
+      deps.workflows,
+      edits ? { [row.workflow]: edits } : {},
+      deps.components,
+    ).flows.find((f) => f.id === row.workflow);
+    if (flow) await ensureDoors(tx, { client: row.client, flow, open: true });
     await tx
       .update(workflowInstalls)
       .set({ state: "live", approvedBy: deps.by, approvedAt: new Date() })
@@ -732,6 +753,11 @@ export async function uninstallTemplate(
       await updateClient(tx, client.id, {
         products: Object.fromEntries(removed.map((id) => [id, null])),
       });
+    // Every door into it shuts: the template's and its nodes'.
+    await tx
+      .update(hooks)
+      .set({ open: false })
+      .where(and(eq(hooks.client, ask.client), eq(hooks.workflow, row.workflow)));
     if (row.hook) await tx.update(hooks).set({ open: false }).where(eq(hooks.id, row.hook));
     await tx
       .update(workflowInstalls)

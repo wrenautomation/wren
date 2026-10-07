@@ -152,3 +152,13 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   enters at an input or a trigger's output and lights the path on the draft; Test step runs one
   node, or walks the workflow it opens. "Use its last real input" pins a real arrival's data.
   `console/workflowTest` needs `wren:run` only: it writes nothing.
+- 2026-10-07: Step 5, the Webhook door, built. Publish makes one hook per client, workflow and
+  Webhook node (input = node id), in the publish transaction, under an advisory lock, so it
+  happens once and the URL never moves; later publishes only sync its subject and field map. A
+  template install's approve does the same. The field map lives in the node's settings
+  (`map.<fact>`), so the draft carries it. Tokens were hash-only, so none could be shown again:
+  `hooks.sealed` keeps it AES-256-GCM sealed with `WREN_HOOK_KEY`. With the key, `manage` can
+  Show and Copy; without it, Publish and Rotate show it once and the panel says to rotate.
+  Rotate is a new hash and seal; the old URL stops at once. "Send a test lead" posts made-up
+  data through the door's own reading (`hookEvent`, `leadOf`), shows what it read, and walks
+  dry.

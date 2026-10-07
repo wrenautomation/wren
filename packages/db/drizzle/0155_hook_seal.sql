@@ -1,0 +1,1 @@
+ALTER TABLE "hooks" ADD COLUMN "sealed" text;

@@ -6,6 +6,7 @@
  * wires. A hook trigger is the door into a node. Pure, so the web reads it too.
  */
 import type { EventKind, Port } from "./components.js";
+import { type FieldMap, fieldMapOfWith, fieldMapProblems } from "./door.js";
 import type { SpineEvent, Step } from "./spine.js";
 import type { WorkflowNode } from "./workflows.js";
 
@@ -266,7 +267,19 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     out.push(`${at}: Split's share is 1 to 99`);
   if (l.id === "trigger.hook" && !/^[A-Za-z0-9_.]+$/.test(text(w.subject)))
     out.push(`${at}: a webhook names the payload field it's about`);
+  if (l.id === "trigger.hook")
+    out.push(...fieldMapProblems(fieldMapOfWith(w)).map((p) => `${at}: ${p}`));
   return out;
+}
+
+/** Triggers that enter by a door URL: Publish makes each one's hook. */
+export const DOOR_TRIGGERS: ReadonlySet<string> = new Set(["trigger.hook"]);
+
+/** A node's door: the payload field it's about and its field map; null when it has none. */
+export function doorOf(n: WorkflowNode): { subject: string; fields: FieldMap } | null {
+  const w = n.with ?? {};
+  if (n.uses === "trigger.hook") return { subject: text(w.subject), fields: fieldMapOfWith(w) };
+  return null;
 }
 
 /** A Wait node's hold on what leaves it; undefined for any other node. */

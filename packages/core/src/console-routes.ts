@@ -89,6 +89,10 @@ export const CONSOLE_ROUTES = {
   workflowAnswer: "wren:manage",
   // A dry test of a draft: nothing is claimed or sent, so running things is enough.
   workflowTest: "wren:run",
+  // A workflow's doors: the team reads them masked; seeing a whole token or a new one is `manage`.
+  workflowDoors: "wren:read",
+  doorReveal: "wren:manage",
+  doorRotate: "wren:manage",
   // A failed spine step, run again: it may send, so it needs what an effect does.
   retryEvent: "wren:effect",
   // A held unit runs again, a paused source resumes.
@@ -139,6 +143,9 @@ export const CONSOLE_APPS = {
   workflowAsk: "workflows",
   workflowAnswer: "workflows",
   workflowTest: "workflows",
+  workflowDoors: "workflows",
+  doorReveal: "workflows",
+  doorRotate: "workflows",
   retryEvent: "workflows",
   releaseHold: "workflows",
   question: "ask",
@@ -197,6 +204,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "workflowPublish",
   "workflowDiscard",
   "workflowAsk",
+  "doorReveal",
+  "doorRotate",
   "retryEvent",
   "releaseHold",
   "question",

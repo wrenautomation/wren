@@ -4,6 +4,7 @@
  * with its settings, test, copy, last output, numbers and wires; a wire panel with its rule and
  * wait; and the bar that counts the draft's changes and what won't run. Desktop only.
  */
+import { DOOR_TRIGGERS } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import { Button, cx, GRAPH_DROP, type GraphNode, Icon, Input, StateMark, Tag } from "@wren/ui";
@@ -13,6 +14,7 @@ import { useCall } from "../../load.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
 import { boxOf, roleOfPart } from "./canvas.js";
+import { DoorBlock, FieldMapForm, type Fresh } from "./doors.js";
 import { copyOf } from "./playback.js";
 import { dataText } from "./trace.js";
 import {
@@ -532,6 +534,8 @@ export function NodePanel({
   onOpenPart,
   onClose,
   test,
+  mayManage = false,
+  fresh,
 }: {
   w: Drawn;
   id: string;
@@ -545,6 +549,10 @@ export function NodePanel({
   onClose: () => void;
   /** Test step, while editing: this node on one event, dry. */
   test?: ReactNode;
+  /** May see a door's whole token and rotate it: `manage` on Workflows. */
+  mayManage?: boolean;
+  /** Tokens the last publish made, shown once. */
+  fresh?: Fresh;
 }) {
   const n = w.nodes.find((x) => x.id === id);
   if (!n) return null;
@@ -587,10 +595,27 @@ export function NodePanel({
         ) : (
           <p className={QUIET}>A custom step posts each event to its URL.</p>
         )}
-        {n.uses === "trigger.hook" ? (
-          <p className={QUIET}>Its door URL and token: In development.</p>
-        ) : null}
       </Block>
+
+      {DOOR_TRIGGERS.has(n.uses ?? "") ? (
+        <>
+          <Block title="Field map">
+            <FieldMapForm
+              values={n.with ?? {}}
+              set={added && draft ? (f, v) => setDraft(withSet(draft, id, f, v)) : null}
+            />
+          </Block>
+          <Block title="Door">
+            <DoorBlock
+              workflow={workflow}
+              client={client}
+              node={id}
+              mayManage={mayManage}
+              {...(fresh ? { fresh } : {})}
+            />
+          </Block>
+        </>
+      ) : null}
 
       {test ? <Block title="Test step">{test}</Block> : null}
 
