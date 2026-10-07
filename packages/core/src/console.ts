@@ -943,7 +943,11 @@ export function formOf(input: unknown): HandlerField[] | null {
       const day = DAYS[name];
       const own = s.title ?? day ?? words(name);
       // A nested box reads "Stages: research", never "Stages.Research"; a day keeps its capital.
-      const at = !label ? own : day ? `${label}: ${day}` : `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}`;
+      const at = !label
+        ? own
+        : day
+          ? `${label}: ${day}`
+          : `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}`;
       const optional = parentOptional || !obj.required?.includes(name) || s !== raw;
       if (s.type === "object" && s.properties && Object.keys(s.properties).length) {
         walk(s, field, at, optional);

@@ -320,9 +320,7 @@ function Next({
  */
 function Thanks({ score, words }: { score: number; words: string }) {
   if (!GOOGLE_REVIEW_URL || score < 4)
-    return (
-      <Callout>Thanks. We read every review{score < 4 ? " and will follow up" : ""}.</Callout>
-    );
+    return <Callout>Thanks. We read every review{score < 4 ? " and will follow up" : ""}.</Callout>;
   const url = GOOGLE_REVIEW_URL;
   return (
     <Section title="Thank you. Would you post it on Google?">

@@ -75,7 +75,10 @@ export function codeLabel(name: string): string {
 
 /** A sequence's name as words: "build-days-0-3-7" to "Build, days 0, 3, 7". */
 export const sequenceLabel = (name: string): string =>
-  labelOf(name).replace(/ days ((?:\d+ )*\d+)$/, (_, d: string) => `, days ${d.split(" ").join(", ")}`);
+  labelOf(name).replace(
+    / days ((?:\d+ )*\d+)$/,
+    (_, d: string) => `, days ${d.split(" ").join(", ")}`,
+  );
 
 /** A template's own label: the last part of its name ("book-first/opener" to "Opener"). */
 export const nameLabel = (name: string): string => labelOf(name.slice(name.lastIndexOf("/") + 1));

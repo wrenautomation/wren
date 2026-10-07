@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { promptLabel } from "./slots/preview.js";
-import { codeLabel, folderLabel, sequenceLabel, labelOf, namedParts, nameLabel, nameParts } from "./template-labels.js";
+import {
+  codeLabel,
+  folderLabel,
+  labelOf,
+  namedParts,
+  nameLabel,
+  nameParts,
+  sequenceLabel,
+} from "./template-labels.js";
 
 describe("template labels", () => {
   it("reads path parts as names, a part with its own label as that label", () => {
