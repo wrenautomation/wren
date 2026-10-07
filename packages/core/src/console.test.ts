@@ -3,8 +3,11 @@ import type { Db } from "@wren/db";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { operators } from "./clients/index.js";
+import { defineComponent } from "./components.js";
 import {
+  builtWords,
   consoleApi,
   formOf,
   handlerRecord,
@@ -506,5 +509,38 @@ describe("formOf: a schema as form boxes", () => {
 
   it("never asks for the viewer: call fills it", () => {
     expect(formOf(ASKS)?.map((f) => f.field)).toEqual(["id"]);
+  });
+});
+
+describe("builtWords", () => {
+  const part = defineComponent({
+    id: "x.watch",
+    name: "Watch",
+    blurb: "b",
+    icon: "flag",
+    for: "client",
+    stage: "content",
+    ready: true,
+    settings: z.object({
+      origin: z.string().optional().meta({ title: "Site address" }),
+      perDay: z.number().optional(),
+    }),
+    in: [{ id: "drafts", label: "drafts", kind: "post" }],
+    hypothesis: { from: "f", guesses: [] },
+  });
+  const name = (id: string) => (id === "x.other" ? "Other part" : null);
+  it("says a pointer in plain words, and nothing for one only code reads", () => {
+    expect(builtWords(part, "settings.origin", name)).toBe("Setting: Site address");
+    expect(builtWords(part, "settings.origin, perDay", name)).toBe(
+      "Settings: Site address, Per day",
+    );
+    expect(builtWords(part, "niche.crawlHints", name)).toBe("The niche's crawl hints");
+    expect(builtWords(part, "in.drafts", name)).toBe("Takes drafts");
+    expect(builtWords(part, "x.other", name)).toBe("Other part");
+    expect(builtWords(part, "the search_console account", name)).toBe("The Search Console account");
+    expect(builtWords(part, "the door's hook", name)).toBe("The door's hook");
+    expect(builtWords(part, "SOCIAL_EVERY_MS, SLOW_EVERY_MS", name)).toBeNull();
+    expect(builtWords(part, "warmupOf in @wren/channel-reddit", name)).toBeNull();
+    expect(builtWords(part, "PoolScheduler limits.youtube", name)).toBeNull();
   });
 });

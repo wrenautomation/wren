@@ -1030,6 +1030,53 @@ export function settingsForm(c: Component): HandlerField[] | null {
   return formOf({ ...schema, properties });
 }
 
+/** camelCase or snake_case as words: "minAdsPerAdset" is "min ads per adset". */
+const wordsOf = (key: string) =>
+  key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .toLowerCase();
+
+/** A code name a reader can't use: an env var, a module, a dotted key, a template ref. */
+const CODE = /[A-Z]{2,}_|@wren\/|\b[a-z]\w*\.[a-z]\w*\b|#\d/;
+
+/**
+ * Where a guess is built, said in plain words for the page (`Guess.built` points at the code):
+ * a setting by its form label, a niche field, a port, a part or an account by name. A pointer
+ * only code reads gives null: the page says "Built" and no more.
+ */
+export function builtWords(
+  c: Component,
+  built: string,
+  name: (id: string) => string | null,
+): string | null {
+  const settings = /^settings\.(.+)$/.exec(built);
+  if (settings) {
+    const labels = new Map((settingsForm(c) ?? []).map((f) => [f.field, f.label]));
+    const keys = (settings[1] ?? "")
+      .split(/,\s*/)
+      .map((k) => k.replace(/^settings\./, ""))
+      .filter((k) => /^\w+$/.test(k));
+    const words = keys.map((k) => labels.get(k) ?? wordsOf(k));
+    return words.length
+      ? `${words.length > 1 ? "Settings" : "Setting"}: ${words.join(", ")}`
+      : null;
+  }
+  const niche = /^niche\.(\w+)$/.exec(built);
+  if (niche) return `The niche's ${wordsOf(niche[1] ?? "")}`;
+  const port = /^(in|out)\.(\w+)$/.exec(built);
+  if (port) {
+    const p = (port[1] === "in" ? c.in : c.out).find((x) => x.id === port[2]);
+    return p ? `${port[1] === "in" ? "Takes" : "Gives"} ${p.label}` : null;
+  }
+  const part = name(built);
+  if (part) return part;
+  if (CODE.test(built)) return null;
+  const account = ACCOUNT_SITES.find((a) => new RegExp(`\\b${a}\\b`).test(built));
+  const said = account ? built.replace(account, ACCOUNTS[account].label) : built;
+  return said[0]?.toUpperCase() + said.slice(1);
+}
+
 /** A form field's value in a settings block: `a.b` reads nested. */
 const at = (block: Record<string, unknown>, path: string): unknown =>
   path
@@ -1540,7 +1587,17 @@ export const componentRecord = (
         installed,
         in: c.in,
         out: c.out,
-        hypothesis: c.hypothesis,
+        hypothesis: {
+          ...c.hypothesis,
+          guesses: c.hypothesis.guesses.map((g) =>
+            g.is !== "fixed" && g.built
+              ? {
+                  ...g,
+                  where: builtWords(c, g.built, (to) => all.find((x) => x.id === to)?.name ?? null),
+                }
+              : g,
+          ),
+        },
         inside: inside ? drawn(inside) : null,
         usedIn: usedIn(id),
         ...(team

@@ -59,7 +59,15 @@ interface Part {
 
 type Detail = Part | { workflow: Drawn; usedIn: Used };
 
-const portsLine = (ps: Port[]) => ps.map((p) => p.label).join(", ") || "Nothing";
+const portsLine = (ps: Port[]) => ps.map((p) => p.label).join(", ");
+
+/** What it takes and gives, a line each that has any; null when it has neither. */
+const ports = (takes: Port[], gives: Port[]): [string, ReactNode] | null => {
+  const items: [string, string][] = [];
+  if (takes.length) items.push(["Takes", portsLine(takes)]);
+  if (gives.length) items.push(["Gives", portsLine(gives)]);
+  return items.length ? ["Takes and gives", <Facts key="ports" items={items} />] : null;
+};
 
 const GUESS: Record<Guess["is"], string> = {
   change: "Expect to change",
@@ -67,13 +75,16 @@ const GUESS: Record<Guess["is"], string> = {
   fixed: "Stays fixed",
 };
 
+/** A guess as the server sends it: `where` says `built` in plain words, or null for code only. */
+type Said = Guess & { where?: string | null };
+
 /** The hypothesis, a line per guess: what it says, whether the code has it, and its checks. */
 function Guesses({ h }: { h: Hypothesis }) {
   return (
     <div className="grid gap-3">
       <p className={QUIET}>Written after: {h.from}.</p>
       <ul className={LIST}>
-        {h.guesses.map((g) => {
+        {(h.guesses as readonly Said[]).map((g) => {
           const held = g.checked?.filter((c) => c.held).length ?? 0;
           const failed = (g.checked?.length ?? 0) - held;
           return (
@@ -86,7 +97,7 @@ function Guesses({ h }: { h: Hypothesis }) {
               </span>
               <span className={QUIET}>
                 {GUESS[g.is]}
-                {g.is !== "fixed" && g.built ? ` · ${g.built}` : ""}
+                {g.is !== "fixed" && g.built && g.where ? ` · ${g.where}` : ""}
                 {held ? ` · held ${held}` : ""}
                 {failed ? ` · broke ${failed}` : ""}
               </span>
@@ -248,36 +259,17 @@ export function catalogExtras(
     />
   );
   if ("workflow" in got) {
-    const sections: [string, ReactNode][] = [
-      ["Inside", drawing(got.workflow)],
-      [
-        "Takes and gives",
-        <Facts
-          key="ports"
-          items={[
-            ["Takes", portsLine(got.workflow.in)],
-            ["Gives", portsLine(got.workflow.out)],
-          ]}
-        />,
-      ],
-    ];
+    const sections: [string, ReactNode][] = [["Inside", drawing(got.workflow)]];
+    const io = ports(got.workflow.in, got.workflow.out);
+    if (io) sections.push(io);
     if (got.usedIn.length) sections.push(usedIn(got.usedIn));
     return { sections };
   }
   const d = got;
   const installable = row.for === "client" && row.ready === "ready";
-  const sections: [string, ReactNode][] = [
-    [
-      "Takes and gives",
-      <Facts
-        key="ports"
-        items={[
-          ["Takes", portsLine(d.in)],
-          ["Gives", portsLine(d.out)],
-        ]}
-      />,
-    ],
-  ];
+  const sections: [string, ReactNode][] = [];
+  const io = ports(d.in, d.out);
+  if (io) sections.push(io);
   const tool = inHouseOfPart(id);
   if (tool)
     sections.push([
@@ -316,16 +308,15 @@ export function catalogExtras(
   // Installs and asks both need `manage`: an admin on the team, an owner on the client.
   const manages = can?.includes("manage") ?? true;
   const atClient = d.accounts?.some((a) => a.has !== null) ?? false;
-  if (d.accounts?.length)
-    sections.push([
-      "Accounts",
-      <Accounts
-        key="accounts"
-        list={d.accounts}
-        client={client}
-        edit={team && manages && atClient}
-      />,
-    ]);
+  const accounts = d.accounts?.length ? (
+    <Accounts key="accounts" list={d.accounts} client={client} edit={team && manages && atClient} />
+  ) : null;
+  // A ready part with one not connected yet: connecting is the next step, so it leads the page.
+  // A part in development keeps them below: nothing to connect them to yet.
+  const toConnect =
+    (row.ready === "account" || row.ready === "ready") &&
+    (d.accounts?.some((a) => a.has === false) ?? false);
+  if (accounts && !toConnect) sections.push(["Accounts", accounts]);
   if (d.provides)
     sections.push([
       "Provides",
@@ -360,15 +351,14 @@ export function catalogExtras(
             <a href={`/loops/settings?q=${encodeURIComponent(name)}`}>Change them in Settings</a>
           </p>
         </div>
-      ) : (
+      ) : row.ready === "account" ? null : (
+        // Needing an account says itself: the Accounts block leads the page.
         <p className={QUIET}>
           {row.for === "wren"
             ? "Runs Wren's own business: no client installs it."
-            : row.ready === "account"
-              ? "Connect its accounts below, then install."
-              : row.ready === "planned"
-                ? "In development."
-                : "Not ready for a client yet."}
+            : row.ready === "planned"
+              ? "In development."
+              : "Not ready for a client yet."}
         </p>
       )
     ) : (
@@ -421,5 +411,12 @@ export function catalogExtras(
     />
   ) : null;
 
-  return { lead, sections };
+  const top =
+    accounts && toConnect ? (
+      <section className="grid gap-2" aria-label="Accounts">
+        <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Accounts</h3>
+        {accounts}
+      </section>
+    ) : null;
+  return { lead, sections, top };
 }

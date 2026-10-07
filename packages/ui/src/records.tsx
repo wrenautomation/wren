@@ -77,6 +77,7 @@ import {
   RecordIssues,
   rowTarget,
 } from "./record-access.js";
+import { recordHead } from "./record-head.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
 /** The four record calls, bound to a workspace. */
@@ -126,6 +127,8 @@ export interface RecordSource {
 export interface RecordExtras {
   /** What leads the details, before the fields: an email's draft. */
   lead?: ReactNode;
+  /** What the page asks for first, under the header and above the tabs: accounts to connect. */
+  top?: ReactNode;
   /** Lines after the fields; one named like a field replaces it. */
   facts?: [string, ReactNode][];
   /** Titled blocks after the fields, such as how the research went. */
@@ -1418,7 +1421,6 @@ export function RecordBody({
       place.go(place.link({ tab: "sources" }), true);
     },
   };
-  const states = meta.fields.filter((f) => f.kind === "status" && row[f.key] != null);
   // A draft the record holds is its box, not a field.
   const box = more.draft;
   // Fields he edits in place draw once, as their inputs.
@@ -1427,18 +1429,8 @@ export function RecordBody({
   const long = (f: FieldMeta | undefined) =>
     !!f &&
     (f.kind === "status" || f.kind === "prose" || f.kind === "cited" || f.key === box?.field);
-  const keys = meta.fields
-    .filter(
-      (f) =>
-        f.column &&
-        f.key !== meta.title &&
-        f.key !== meta.subtitle &&
-        !long(f) &&
-        f.group !== SYSTEM &&
-        row[f.key] != null,
-    )
-    .slice(0, 4);
-  const sub = meta.fields.find((f) => f.key === meta.subtitle);
+  // The header says each field once; the Details below leave out what it shows.
+  const { sub, states, keys, shown: inHead } = recordHead(meta, row, long);
   // Long text reads as its own section, above the facts.
   const cited = meta.fields.filter(
     (f) =>
@@ -1461,6 +1453,7 @@ export function RecordBody({
       !own.has(f.key) &&
       row[f.key] != null &&
       row[f.key] !== "" &&
+      !inHead.has(f.key) &&
       !told.has(f.label),
   );
   // Grouped fields after the loose ones, in the order declared; "System" (who, when) folded last.
@@ -1513,7 +1506,7 @@ export function RecordBody({
             <h2 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
               {titleOf(meta, row)}
             </h2>
-            {sub && !long(sub) && row[sub.key] ? (
+            {sub ? (
               <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)">
                 {subtitleOf(meta, row)}
               </p>
@@ -1585,6 +1578,7 @@ export function RecordBody({
           </dl>
         ) : null}
       </header>
+      {more.top}
 
       <nav
         className="flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
@@ -1688,14 +1682,16 @@ export function RecordBody({
               handle={draftBox}
             />
           ) : null}
-          <dl className={DL}>
-            {lines(rest.filter((f) => !f.group))}
-            {(more.facts ?? []).map(([label, value]) => (
-              <Line key={label} label={label}>
-                {value}
-              </Line>
-            ))}
-          </dl>
+          {rest.some((f) => !f.group) || more.facts?.length ? (
+            <dl className={DL}>
+              {lines(rest.filter((f) => !f.group))}
+              {(more.facts ?? []).map(([label, value]) => (
+                <Line key={label} label={label}>
+                  {value}
+                </Line>
+              ))}
+            </dl>
+          ) : null}
           {named.map((g) => (
             <section key={g} className="grid gap-1.5">
               <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{g}</h3>
