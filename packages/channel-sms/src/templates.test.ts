@@ -1,3 +1,4 @@
+import { parseBody } from "@wren/core/slots";
 import { describe, expect, it } from "vitest";
 import {
   checkBody,
@@ -5,22 +6,37 @@ import {
   firstName,
   KEYWORD_SLOTS,
   keywordOf,
+  type RenderFields,
   render,
   segments,
   sequenceSlots,
 } from "./templates.js";
 
-const fields = { first_name: "Dana", company: "Acme Studio", sender: "William", time: null };
+const fields: RenderFields = {
+  first_name: "Dana",
+  company: "Acme Studio",
+  sender: "William",
+  time: null,
+};
+
+const text = (body: string, f = fields) => render(parseBody("t", body), f, "sms:1").body;
 
 describe("render", () => {
   it("fills fields and falls back when empty", () => {
-    expect(render("hi {first_name|there}, {sender} here re {company}", fields)).toBe(
+    expect(text("hi {first_name|there}, {sender} here re {company}")).toBe(
       "hi Dana, William here re Acme Studio",
     );
-    expect(render("hi {first_name|there}", { ...fields, first_name: null })).toBe("hi there");
+    expect(text("hi {first_name|there}", { ...fields, first_name: null })).toBe("hi there");
   });
   it("throws on an empty field with no fallback", () => {
-    expect(() => render("{company}", { ...fields, company: " " })).toThrow(/no value/);
+    expect(() => text("{company}", { ...fields, company: " " })).toThrow(/no value/);
+  });
+  it("keeps the version and picks it rendered", () => {
+    const tpl = parseBody("t", "[[Hi | Hey]] {first_name}. STOP to opt out");
+    const out = render(tpl, fields, "sms:7");
+    expect(out.provenance.version).toBe(tpl.version);
+    expect(out).toEqual(render(tpl, fields, "sms:7"));
+    expect(Object.keys(out.provenance.picks)).toEqual(["v1"]);
   });
 });
 

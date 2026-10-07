@@ -33,6 +33,8 @@ const TABLES = [
   "reach_contacts",
   "reach_accounts",
   "reach_templates",
+  "templates",
+  "template_versions",
   "people",
   "companies",
   "wren_settings",
@@ -193,7 +195,7 @@ describe("linkedin invites", () => {
   it("an invite goes bare once the month's notes are spent", async () => {
     await setTemplate(
       db(),
-      { slots: slotsOf(REACH_SEQUENCES.values()), sender: "William", now: OPEN },
+      { slots: slotsOf(REACH_SEQUENCES.values()), sender: "William" },
       { key: CONNECT_NOTE, body: "Hi {first_name|there}.", by: "test" },
     );
     await person("alice-a");

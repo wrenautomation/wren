@@ -31,9 +31,9 @@ import {
   smsConsoleApi,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { smsContacts, smsEvents, smsMessages, smsTemplates } from "../../src/schema.js";
+import { smsContacts, smsEvents, smsMessages } from "../../src/schema.js";
 import { DAY_BEFORE } from "../../src/templates.js";
-import { fillTemplates, numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
+import { fillTemplates, liveKeys, numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -130,8 +130,8 @@ describe("texts per client", () => {
       body: "hi {first_name|there}, see you tomorrow at {time}. {sender}",
       by: "w",
     });
-    expect(await pg.db.select().from(smsTemplates)).toEqual([]);
-    expect((await acme.select().from(smsTemplates)).map((t) => t.key)).toEqual([DAY_BEFORE]);
+    expect(await liveKeys(pg.db)).toEqual([]);
+    expect(await liveKeys(acme)).toEqual([DAY_BEFORE]);
 
     await numbers(acme, theirs, ["+13125550001"]);
     await acme.insert(smsContacts).values({

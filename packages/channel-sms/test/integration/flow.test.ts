@@ -25,19 +25,15 @@ import { poolToday, syncNumbers } from "../../src/pool.js";
 import { FakeProvider, NoProvider, type SmsEvent } from "../../src/provider.js";
 import { FakePusher, pushOne, subscribe } from "../../src/push.js";
 import { watchRegistration } from "../../src/registration.js";
-import {
-  smsContacts,
-  smsMessages,
-  smsNumbers,
-  smsPushSubscriptions,
-  smsTemplates,
-} from "../../src/schema.js";
+import { smsContacts, smsMessages, smsNumbers, smsPushSubscriptions } from "../../src/schema.js";
 import { smsStats } from "../../src/stats.js";
 import { getThread, listThreads } from "../../src/threads.js";
 import {
   company,
+  emptyTemplates,
   fillTemplates,
   lift,
+  liveTexts,
   notes,
   numbers,
   OPEN,
@@ -358,7 +354,7 @@ describe("templates", () => {
   });
 
   it("enroll refuses until every step is filled, and spends nothing", async () => {
-    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
+    await emptyTemplates(db(), ["recruiting-sms#2"]);
     await expect(enrollAt(OPEN)).rejects.toThrow(/fill recruiting-sms#2 first/);
     expect(await contact("+12125550187")).toMatchObject({ state: "new", lookedUpAt: null });
     expect(await messages()).toHaveLength(0);
@@ -372,7 +368,13 @@ describe("templates", () => {
     await tickAt(OPEN);
     expect(provider.sent[0]?.text).toBe("hey, William again. STOP ends these");
     expect((await messages())[0]?.body).toBe("hey, William again. STOP ends these");
-    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
+    // The send records the version it went out in, not the one it was queued with.
+    const now = (await liveTexts(db(), ["recruiting-sms#1"])).get("recruiting-sms#1");
+    expect((await messages())[0]).toMatchObject({
+      templateVersion: now?.version,
+      provenance: { version: now?.version, seed: expect.stringMatching(/^sms:\d+$/) },
+    });
+    await emptyTemplates(db(), ["recruiting-sms#2"]);
     expect(await tickAt(new Date(OPEN.getTime() + 3 * 86_400_000))).toMatchObject({
       sent: 0,
       skipped: 1,
@@ -412,6 +414,7 @@ describe("enroll → send → receipts → reply", () => {
     const [m] = await messages();
     expect(m).toMatchObject({ step: 1, state: "queued" });
     expect(m?.body).toBe("hi there, William here. saw Acme Studio. reply STOP to opt out");
+    expect(m?.templateVersion).toMatch(/^[0-9a-f]{12}$/);
   });
 
   it("sends inside the window only, queues step 2, applies receipts, stops on reply", async () => {
@@ -527,7 +530,7 @@ describe("enroll → send → receipts → reply", () => {
     ]);
     await db().update(smsContacts).set({ state: "replied" }).where(eq(smsContacts.id, b));
     expect(await touch(db(), b, 2, opts)).toBe("replied");
-    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
+    await emptyTemplates(db(), ["recruiting-sms#2"]);
     expect(await touch(db(), a, 2, opts)).toBe("ended");
     expect((await db().select().from(smsContacts).where(eq(smsContacts.id, a)))[0]).toMatchObject({
       state: "finished",

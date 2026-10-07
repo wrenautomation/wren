@@ -32,6 +32,9 @@ export interface LiveTemplate {
   version: string;
   source: string;
   template: Template;
+  /** When this version went live, and who did it. */
+  publishedAt: Date | null;
+  publishedBy: string | null;
 }
 
 /** Where a template stands: its live and draft versions. */
@@ -281,6 +284,8 @@ export async function liveTemplates(
       versionId: templateVersions.id,
       version: templateVersions.version,
       source: templateVersions.source,
+      publishedAt: templateVersions.publishedAt,
+      publishedBy: templateVersions.publishedBy,
     })
     .from(templates)
     .innerJoin(templateVersions, eq(templateVersions.id, templates.liveVersionId))
@@ -300,6 +305,8 @@ export async function liveTemplates(
         version: r.version,
         source: r.source,
         template: parseKind(kind, r.name, r.source),
+        publishedAt: r.publishedAt,
+        publishedBy: r.publishedBy,
       },
     ]),
   );

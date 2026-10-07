@@ -11,8 +11,8 @@ import { eq } from "drizzle-orm";
 import { TOUCH } from "./components.js";
 import { endContact } from "./deliver.js";
 import { smsContacts, smsMessages } from "./schema.js";
-import { fieldsFor, templateBodies } from "./template-store.js";
-import { render, type SmsSequence, stepKey } from "./templates.js";
+import { fieldsFor, liveTexts } from "./template-store.js";
+import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
 
 /** One text contact as a lead on the spine. */
 export const textLead = (contactId: number): SpineEvent => ({
@@ -57,12 +57,13 @@ export async function touch(
   if (c?.state !== "enrolled") return "ended";
   const seq = c.sequence ? opts.sequences.get(c.sequence) : undefined;
   const key = seq?.steps.some((s) => s.step === step) ? stepKey(seq.name, step) : null;
-  const words = key ? (await templateBodies(db, [key])).get(key) : undefined;
+  const words = key ? (await liveTexts(db, [key])).get(key) : undefined;
   if (!key || words === undefined) {
     const why = key ? `template ${key} is empty` : `${c.sequence} has no step ${step}`;
     await endContact(db, c.id, "finished", why, opts.now);
     return "ended";
   }
+  const text = render(words, await fieldsFor(db, c, opts.senderName), textSeed(c.id));
   await db
     .insert(smsMessages)
     .values({
@@ -71,9 +72,11 @@ export async function touch(
       kind: "sequence",
       step,
       template: key,
+      templateVersion: text.provenance.version,
+      provenance: text.provenance,
       numberId: c.numberId,
       toE164: c.e164,
-      body: render(words, await fieldsFor(db, c, opts.senderName)),
+      body: text.body,
       state: "queued",
       dueAt: opts.now,
     })

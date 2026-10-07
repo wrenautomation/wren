@@ -34,8 +34,8 @@ import {
   smsMessages,
   smsNumbers,
 } from "./schema.js";
-import { fieldsFor, templateBodies } from "./template-store.js";
-import { render, type SmsSequence, segments } from "./templates.js";
+import { fieldsFor, liveTexts } from "./template-store.js";
+import { render, type SmsSequence, segments, textSeed } from "./templates.js";
 
 /** A `sending` row older than this lost its provider call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
@@ -270,7 +270,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     if (msg.kind === "reminder") {
       const late = now.getTime() - (msg.dueAt ?? msg.createdAt).getTime() > REMINDER_FRESH_MS;
       const words = msg.template
-        ? (await templateBodies(db, [msg.template])).get(msg.template)
+        ? (await liveTexts(db, [msg.template])).get(msg.template)
         : undefined;
       const drop = late
         ? "too late: not sent within an hour of queuing"
@@ -327,14 +327,21 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     // A step goes out in the template's words as they are now: an edit reaches
     // texts already queued, and an emptied template sends nothing.
     let body = msg.body;
+    let rendered: Partial<Pick<SmsMessage, "templateVersion" | "provenance">> = {};
     if (msg.kind === "sequence" && msg.template) {
-      const words = (await templateBodies(db, [msg.template])).get(msg.template);
+      const words = (await liveTexts(db, [msg.template])).get(msg.template);
       if (words === undefined) {
         await endContact(db, contact.id, "finished", `template ${msg.template} is empty`, now);
         stats.skipped += 1;
         continue;
       }
-      body = render(words, await fieldsFor(db, contact, opts.senderName));
+      const text = render(
+        words,
+        await fieldsFor(db, contact, opts.senderName),
+        textSeed(contact.id),
+      );
+      body = text.body;
+      rendered = { templateVersion: text.provenance.version, provenance: text.provenance };
     }
     if (!live) {
       stats.gated += 1;
@@ -342,7 +349,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     }
     const claimed = await db
       .update(smsMessages)
-      .set({ state: "sending", attemptedAt: now, fromE164: from, body })
+      .set({ state: "sending", attemptedAt: now, fromE164: from, body, ...rendered })
       .where(and(eq(smsMessages.id, msg.id), eq(smsMessages.state, "queued")))
       .returning({ id: smsMessages.id });
     if (claimed.length === 0) continue;

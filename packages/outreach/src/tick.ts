@@ -38,8 +38,8 @@ import {
   reachContacts,
   reachMessages,
 } from "./schema.js";
-import { type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
-import { templateBodies } from "./store.js";
+import { dmSeed, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
+import { liveDms } from "./store.js";
 
 /** A `sending` row older than this lost its platform call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
@@ -331,7 +331,7 @@ async function queueStep(
 ): Promise<boolean> {
   const next = seq.steps.find((s) => s.step === step);
   const keys = next ? [stepKey(seq, step), ...(next.subject ? [subjectKey(seq, step)] : [])] : [];
-  const bodies = await templateBodies(db, keys);
+  const bodies = await liveDms(db, keys);
   const body = bodies.get(stepKey(seq, step));
   if (!next || !body) {
     // Emptied since enroll: the contact ends here rather than waiting on a blank.
@@ -342,6 +342,9 @@ async function queueStep(
     return false;
   }
   const fields = fieldsFor(contact, o.sender);
+  const seed = dmSeed(contact.id);
+  const subject = bodies.get(subjectKey(seq, step));
+  const text = render(body, fields, seed);
   await db.insert(reachMessages).values({
     contactId: contact.id,
     accountId: contact.accountId,
@@ -349,8 +352,10 @@ async function queueStep(
     kind: "sequence",
     step,
     template: stepKey(seq, step),
-    subject: next.subject ? render(bodies.get(subjectKey(seq, step)) ?? "", fields) : null,
-    body: render(body, fields),
+    templateVersion: text.provenance.version,
+    provenance: text.provenance,
+    subject: next.subject ? (subject ? render(subject, fields, seed).body : "") : null,
+    body: text.body,
     state: "queued",
     dueAt,
     runId: o.runId ?? null,

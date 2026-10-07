@@ -26,8 +26,8 @@ import { countryOf } from "./phone.js";
 import { daysBetween, FLEET_ZONE, inWindow, LATEST_MINUTE, type SmsPolicy } from "./policy.js";
 import { cannotReach, pickNumber } from "./pool.js";
 import { type SmsContact, type SmsNumber, smsContacts, smsMessages, smsNumbers } from "./schema.js";
-import { fieldsFor, templateBodies } from "./template-store.js";
-import { DAY_BEFORE, firstName, HOUR_BEFORE, render } from "./templates.js";
+import { fieldsFor, liveTexts } from "./template-store.js";
+import { DAY_BEFORE, firstName, HOUR_BEFORE, render, textSeed } from "./templates.js";
 
 /** Past tomorrow on any clock. */
 const LOOK_AHEAD_MS = 48 * 3_600_000;
@@ -137,7 +137,7 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
     days: EVERY_DAY,
     windowEndMinute: Math.min(policy.windowEndMinute, LATEST_MINUTE) - REMINDER_FRESH_MS / 60_000,
   };
-  const bodies = await templateBodies(db, [DAY_BEFORE, HOUR_BEFORE]);
+  const bodies = await liveTexts(db, [DAY_BEFORE, HOUR_BEFORE]);
   const calls = await opts.bookings.upcoming(now, new Date(now.getTime() + LOOK_AHEAD_MS));
   stats.calls = calls.length;
   for (const call of calls) {
@@ -225,6 +225,15 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
         .set({ numberId: number.id })
         .where(eq(smsContacts.id, contact.id));
     const fields = await fieldsFor(db, contact, opts.senderName);
+    const text = render(
+      words,
+      {
+        ...fields,
+        first_name: fields.first_name ?? firstName(call.name),
+        time: clockTime(zone, call.start),
+      },
+      textSeed(contact.id),
+    );
     const [queued] = await db
       .insert(smsMessages)
       .values({
@@ -232,14 +241,12 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
         direction: "out",
         kind: "reminder",
         template,
+        templateVersion: text.provenance.version,
+        provenance: text.provenance,
         ref: call.uid,
         numberId: number.id,
         toE164: contact.e164,
-        body: render(words, {
-          ...fields,
-          first_name: fields.first_name ?? firstName(call.name),
-          time: clockTime(zone, call.start),
-        }),
+        body: text.body,
         state: "queued",
         dueAt: now,
         runId: opts.runId ?? null,

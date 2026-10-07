@@ -1,5 +1,5 @@
 /** DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy. */
-import { type RenderFields, render } from "@wren/outreach/sequences";
+import { preview, type RenderFields } from "@wren/outreach/sequences";
 import { exact, type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -49,7 +49,7 @@ function copyKind(d: CopyDetail): MessageKind | null {
   const fill = (text: string) => {
     let words = text.trim();
     try {
-      words = render(words, sample);
+      words = preview(words, sample);
     } catch {
       // Saving says why.
     }

@@ -12,6 +12,7 @@
  */
 import { activeSuppressionsOf } from "@wren/core";
 import { leadRefusal } from "@wren/core/leads";
+import type { Template } from "@wren/core/slots";
 import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
@@ -20,8 +21,8 @@ import { pickNumber } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import { type LineType, type SmsContact, smsContacts, smsMessages } from "./schema.js";
-import { fieldsFor, templateBodies } from "./template-store.js";
-import { render, type SmsSequence, stepKey } from "./templates.js";
+import { fieldsFor, liveTexts } from "./template-store.js";
+import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
 
 /** Line types that take a text. VoIP business lines usually do; landlines and switchboards never. */
 export const TEXTABLE: ReadonlySet<LineType> = new Set(["mobile", "voip"]);
@@ -90,13 +91,13 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     lookupErrors: [],
   };
   const keys = opts.sequence.steps.map((s) => stepKey(opts.sequence.name, s.step));
-  const bodies = await templateBodies(db, keys);
+  const bodies = await liveTexts(db, keys);
   const empty = keys.filter((k) => !bodies.has(k));
   if (empty.length > 0)
     throw new SmsRefusal(
       `fill ${empty.join(", ")} first (phone app → Templates, or wren sms templates set)`,
     );
-  const opener = bodies.get(keys[0] as string) as string;
+  const opener = bodies.get(keys[0] as string) as Template;
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));
   if (opts.contactIds) where.push(inArray(smsContacts.id, [...opts.contactIds]));
@@ -172,7 +173,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       stats.notTextable += 1;
       continue;
     }
-    const body = render(opener, await fieldsFor(db, c, opts.senderName));
+    const text = render(opener, await fieldsFor(db, c, opts.senderName), textSeed(c.id));
     try {
       await atomic(db, async (tx) => {
         await tx
@@ -191,9 +192,11 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
           kind: "sequence",
           step: 1,
           template: keys[0] as string,
+          templateVersion: text.provenance.version,
+          provenance: text.provenance,
           numberId: number.id,
           toE164: c.e164,
-          body,
+          body: text.body,
           state: "queued",
           dueAt: opts.now,
           runId: opts.runId ?? null,

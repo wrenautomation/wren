@@ -11,9 +11,17 @@ import { type Booking, FakeBookings } from "../../src/bookings.js";
 import { tick } from "../../src/deliver.js";
 import { FakeProvider } from "../../src/provider.js";
 import { remindBookings } from "../../src/reminders.js";
-import { smsContacts, smsMessages, smsTemplates } from "../../src/schema.js";
+import { smsContacts, smsMessages } from "../../src/schema.js";
 import { DAY_BEFORE, HOUR_BEFORE } from "../../src/templates.js";
-import { fillTemplates, numbers, OPEN, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
+import {
+  emptyTemplates,
+  fillTemplates,
+  numbers,
+  OPEN,
+  POLICY,
+  SEQUENCES,
+  TABLES,
+} from "./fixtures.js";
 
 let pg: TestPostgres;
 let provider: FakeProvider;
@@ -146,7 +154,7 @@ describe("day-before reminders", () => {
 
   it("sends nothing with an empty template or to an opted-out phone", async () => {
     await applicant();
-    await db().delete(smsTemplates);
+    await emptyTemplates(db());
     expect(await remind([call()])).toMatchObject({ due: 1, empty: 1, queued: 0 });
     await fillTemplates(db(), { [DAY_BEFORE]: WORDS });
     await addSuppression(db(), { kind: "phone", value: PHONE, reason: "manual" });
@@ -184,7 +192,7 @@ describe("day-before reminders", () => {
       detail: expect.stringMatching(/too late/),
     });
     await remind([call({ uid: "b2" })]);
-    await db().delete(smsTemplates);
+    await emptyTemplates(db());
     expect(await send(new Date(OPEN.getTime() + 60_000))).toMatchObject({ sent: 0, skipped: 1 });
     expect(provider.sent).toEqual([]);
   });

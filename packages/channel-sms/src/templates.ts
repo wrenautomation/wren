@@ -9,7 +9,16 @@
  * `{first_name|there}` = the field, or the fallback after the bar when it is
  * empty. A field the slot does not offer is refused at save, never a blank at
  * send. A cold opener must say how to stop, so a step 1 without "STOP" does not save.
+ * The syntax, its check and its render are every channel's (`@wren/core/slots`),
+ * so a text can carry `[[variants]]` and `((groups))` as an email does.
  */
+import {
+  checkSource,
+  parseKind,
+  type RenderProvenance,
+  renderKind,
+  type Template,
+} from "@wren/core/slots";
 
 export interface SmsStep {
   /** 1-based. Step 1 is the opener. */
@@ -58,7 +67,6 @@ export interface TemplateSlot {
   minLength: number;
 }
 
-const FIELD = /\{([a-z_]+)(?:\|([^}]*))?\}/g;
 const SEQUENCE_FIELDS: readonly RenderField[] = ["first_name", "company", "sender"];
 
 export const KEYWORDS = ["help", "start", "stop"] as const;
@@ -143,35 +151,27 @@ export function checkSequence(seq: SmsSequence): SmsSequence {
 
 /** The body as it will be stored ("" clears the slot), or throws saying what is wrong. */
 export function checkBody(slot: TemplateSlot, body: string): string {
-  const text = body.trim();
-  if (text === "") return "";
-  for (const m of text.matchAll(FIELD)) {
-    if (!(slot.fields as readonly string[]).includes(m[1] as string)) {
-      throw new Error(
-        slot.fields.length === 0
-          ? `${slot.key} takes no fields: {${m[1]}} is not filled in`
-          : `${slot.key}: unknown field {${m[1]}} (have: ${slot.fields.map((f) => `{${f}}`).join(", ")})`,
-      );
-    }
-  }
-  if (slot.mustSayStop && !/\bstop\b/i.test(text))
-    throw new Error(`${slot.key} is a first text: it must say how to stop (the word STOP)`);
-  if (text.length < slot.minLength)
-    throw new Error(`${slot.key} needs at least ${slot.minLength} characters`);
-  return text;
+  return checkSource("sms", slot.key, body, slot)?.source ?? "";
 }
 
-export function render(body: string, fields: RenderFields): string {
-  return body
-    .replace(FIELD, (_all, name: string, fallback: string | undefined) => {
-      const value = (fields as unknown as Record<string, string | null>)[name]?.trim();
-      if (value) return value;
-      if (fallback !== undefined) return fallback;
-      throw new Error(`no value for {${name}} and no fallback`);
-    })
-    .replace(/[ \t]+/g, " ")
-    .trim();
+export interface RenderedText {
+  body: string;
+  /** What `sms_messages.provenance` keeps: the version, the seed and each variant's pick. */
+  provenance: RenderProvenance;
 }
+
+/** One person's text. The seed is who it's for, so their variant picks never move. */
+export function render(tpl: Template, fields: RenderFields, seed: string): RenderedText {
+  const out = renderKind("sms", tpl, { ...fields }, seed);
+  return { body: out.body, provenance: out.provenance };
+}
+
+/** Unsaved words as a text reads, for an editor's preview; throws as a save would. */
+export const preview = (source: string, fields: RenderFields): string =>
+  render(parseKind("sms", "preview", source), fields, "sample").body;
+
+/** The seed a contact's texts pick their variants by. */
+export const textSeed = (contactId: number) => `sms:${contactId}`;
 
 /** A first name from a person's full name: the first word, only when it reads as a name. */
 export function firstName(full: string | null | undefined): string | null {

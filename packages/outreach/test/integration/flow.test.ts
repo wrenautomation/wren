@@ -27,11 +27,18 @@ import {
   stepKey,
   subjectKey,
 } from "../../src/sequences.js";
-import { setTemplate } from "../../src/store.js";
+import { liveDms, setTemplate } from "../../src/store.js";
 import { getThread, listThreads, reachStats } from "../../src/threads.js";
 import { queueManual, reconcile, STALE_SENDING_MS, tick, touch } from "../../src/tick.js";
 
-const TABLES = ["reach_messages", "reach_contacts", "reach_accounts", "reach_templates"];
+const TABLES = [
+  "reach_messages",
+  "reach_contacts",
+  "reach_accounts",
+  "reach_templates",
+  "templates",
+  "template_versions",
+];
 const POLICY: ReachPolicy = { ...DEFAULT_POLICY, gapSeconds: 0 };
 // Thursday 14:00 New York.
 const OPEN = new Date("2026-10-01T18:00:00Z");
@@ -61,7 +68,7 @@ beforeEach(async () => {
   await truncate(pg.db, TABLES);
   fakes = new Map();
   const set = (key: string, body: string) =>
-    setTemplate(db(), { slots: SLOTS, sender: "William", now: OPEN }, { key, body, by: "test" });
+    setTemplate(db(), { slots: SLOTS, sender: "William" }, { key, body, by: "test" });
   await set(subjectKey(REDDIT, 1), "quick one from {found_in|reddit}");
   await set(
     stepKey(REDDIT, 1),
@@ -166,6 +173,12 @@ describe("reddit sequence", () => {
     const [first] = await messagesOf(c.id);
     expect(first?.body).toBe("Hi Dana, saw you in the thread. William");
     expect(first?.subject).toBe("quick one from reddit");
+    // The message keeps the version it was rendered from and who its picks were for.
+    const live = (await liveDms(db(), [stepKey(REDDIT, 1)])).get(stepKey(REDDIT, 1));
+    expect(first).toMatchObject({
+      templateVersion: live?.version,
+      provenance: { version: live?.version, seed: `dm:${c.id}` },
+    });
 
     const gated = await tickAt(OPEN, false);
     expect(gated.held).toEqual({ gated: 1 });
@@ -386,7 +399,7 @@ describe("failures", () => {
     await account("reddit", "reddit@alt");
     await setTemplate(
       db(),
-      { slots: SLOTS, sender: "W", now: OPEN },
+      { slots: SLOTS, sender: "W" },
       { key: stepKey(REDDIT, 2), body: "", by: "t" },
     );
     await addContact(db(), { platform: "reddit", handle: "xray1" });

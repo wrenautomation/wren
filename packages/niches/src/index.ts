@@ -17,6 +17,7 @@ import type { Niche } from "./niche.js";
 import { recruiting } from "./recruiting.js";
 import { secRia } from "./sec-ria.js";
 
+export { type ImportStats, importEmailFiles } from "./import.js";
 export type { Niche, NicheSpec } from "./niche.js";
 export { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
 export { agencies, recruiting, secRia };

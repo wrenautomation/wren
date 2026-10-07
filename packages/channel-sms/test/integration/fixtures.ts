@@ -1,13 +1,17 @@
 import { companies } from "@wren/core";
 import type { NotifyLevel } from "@wren/core/notify";
+import { templates } from "@wren/core/schema";
+import { saveLive } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { runContacts } from "@wren/research/enrichment";
 import { documents } from "@wren/research/schema";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { type LiftOptions, type LiftStats, liftPhones } from "../../src/lift.js";
 import { countryOf } from "../../src/phone.js";
 import { DEFAULT_POLICY, type SmsPolicy } from "../../src/policy.js";
 import type { FakeProvider } from "../../src/provider.js";
-import { smsNumbers, smsTemplates } from "../../src/schema.js";
+import { smsNumbers } from "../../src/schema.js";
+import { liveTexts, TEXTS_SYSTEM, textRef } from "../../src/template-store.js";
 import { checkSequence, type SmsSequence } from "../../src/templates.js";
 
 export const TABLES = [
@@ -17,6 +21,8 @@ export const TABLES = [
   "sms_push_subscriptions",
   "operators",
   "sms_templates",
+  "templates",
+  "template_versions",
   "sms_events",
   "sms_messages",
   "sms_contacts",
@@ -40,7 +46,7 @@ export const SEQ: SmsSequence = checkSequence({
 });
 export const SEQUENCES = new Map([[SEQ.name, SEQ]]);
 
-/** Test words for SEQ's two steps (the real ones are William's, in prod's sms_templates). */
+/** Test words for SEQ's two steps (the real ones are William's, in prod's template store). */
 export const BODIES: Record<string, string> = {
   "recruiting-sms#1":
     "hi {first_name|there}, {sender} here. saw {company|your site}. reply STOP to opt out",
@@ -52,11 +58,33 @@ export async function fillTemplates(
   bodies: Record<string, string> = BODIES,
 ): Promise<void> {
   for (const [key, body] of Object.entries(bodies))
-    await db
-      .insert(smsTemplates)
-      .values({ key, body, updatedBy: "test" })
-      .onConflictDoUpdate({ target: smsTemplates.key, set: { body } });
+    await saveLive(db, textRef(key), body, { by: "test" });
 }
+
+/** Empty the given text slots (all of them by default): nothing live, so nothing sends. */
+export async function emptyTemplates(db: Db, keys?: readonly string[]): Promise<void> {
+  await db
+    .update(templates)
+    .set({ liveVersionId: null, draftVersionId: null })
+    .where(
+      and(
+        eq(templates.kind, "sms"),
+        eq(templates.system, TEXTS_SYSTEM),
+        keys ? inArray(templates.name, [...keys]) : undefined,
+      ),
+    );
+}
+
+/** The slots with live words. */
+export async function liveKeys(db: Db): Promise<string[]> {
+  const rows = await db
+    .select({ name: templates.name })
+    .from(templates)
+    .where(and(eq(templates.kind, "sms"), isNotNull(templates.liveVersionId)));
+  return rows.map((r) => r.name).sort();
+}
+
+export { liveTexts };
 
 /** Every basis on, tiny ramp, no gap: tests pick what they need. */
 export const POLICY: SmsPolicy = {

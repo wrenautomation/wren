@@ -1,33 +1,49 @@
 /**
- * William's words for the slots sequences.ts declares. Saving checks the body
- * against its slot; an empty body deletes the row, so "empty" has one meaning.
+ * William's words for the slots sequences.ts declares, kept in the template store
+ * (`@wren/core/templates`, kind dm, system `reach`): every save a version, the live one
+ * what goes out. Saving here checks the body against its slot and publishes it, so the
+ * copy page's Save means what it always did; an empty body clears the slot, so "empty"
+ * has one meaning.
  */
+import { AuthoringError, type Template } from "@wren/core/slots";
+import {
+  clearTemplate,
+  importVersion,
+  liveTemplates,
+  saveLive,
+  type TemplateRef,
+} from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
-import { eq, inArray } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
 import { reachTemplates } from "./schema.js";
 import { checkBody, render, sampleFields, type TemplateSlot } from "./sequences.js";
 
+/** Whose messages these are in the template store. */
+export const REACH_SYSTEM = "reach";
+export const dmRef = (key: string): TemplateRef => ({
+  kind: "dm",
+  system: REACH_SYSTEM,
+  name: key,
+});
+
 export interface SlotView extends TemplateSlot {
   /** "" when empty. */
   body: string;
+  /** The live version's hash; null when empty. */
+  version: string | null;
   updatedAt: string | null;
   updatedBy: string | null;
   /** The body with sample fields filled in; "" when empty. */
   preview: string;
 }
 
-/** The filled bodies among `keys`; an empty slot is absent. */
-export async function templateBodies(
+/** The live messages among `keys`; an empty slot is absent. */
+export async function liveDms(
   db: Queryable,
   keys: readonly string[],
-): Promise<Map<string, string>> {
-  if (keys.length === 0) return new Map();
-  const rows = await db
-    .select({ key: reachTemplates.key, body: reachTemplates.body })
-    .from(reachTemplates)
-    .where(inArray(reachTemplates.key, [...keys]));
-  return new Map(rows.map((r) => [r.key, r.body]));
+): Promise<Map<string, Template>> {
+  const live = await liveTemplates(db, "dm", REACH_SYSTEM, keys);
+  return new Map([...live].map(([key, t]) => [key, t.template]));
 }
 
 export async function listTemplates(
@@ -35,27 +51,21 @@ export async function listTemplates(
   slots: readonly TemplateSlot[],
   sender: string,
 ): Promise<SlotView[]> {
-  const rows =
-    slots.length === 0
-      ? []
-      : await db
-          .select()
-          .from(reachTemplates)
-          .where(
-            inArray(
-              reachTemplates.key,
-              slots.map((s) => s.key),
-            ),
-          );
-  const byKey = new Map(rows.map((r) => [r.key, r]));
+  const live = await liveTemplates(
+    db,
+    "dm",
+    REACH_SYSTEM,
+    slots.map((s) => s.key),
+  );
   return slots.map((slot) => {
-    const row = byKey.get(slot.key);
+    const row = live.get(slot.key);
     return {
       ...slot,
-      body: row?.body ?? "",
-      updatedAt: row?.updatedAt.toISOString() ?? null,
-      updatedBy: row?.updatedBy ?? null,
-      preview: row ? render(row.body, sampleFields(sender)) : "",
+      body: row?.source ?? "",
+      version: row?.version ?? null,
+      updatedAt: row?.publishedAt?.toISOString() ?? null,
+      updatedBy: row?.publishedBy ?? null,
+      preview: row ? render(row.template, sampleFields(sender), "sample").body : "",
     };
   });
 }
@@ -67,9 +77,10 @@ export interface SetTemplate {
   by: string;
 }
 
+/** Save and publish (or clear) one slot; returns it as stored. */
 export async function setTemplate(
   db: Queryable,
-  opts: { slots: readonly TemplateSlot[]; sender: string; now: Date },
+  opts: { slots: readonly TemplateSlot[]; sender: string },
   req: SetTemplate,
 ): Promise<SlotView> {
   const slot = opts.slots.find((s) => s.key === req.key);
@@ -80,17 +91,29 @@ export async function setTemplate(
   } catch (err) {
     throw new ReachRefusal(err instanceof Error ? err.message : String(err));
   }
-  if (!text) {
-    await db.delete(reachTemplates).where(eq(reachTemplates.key, slot.key));
-  } else {
-    await db
-      .insert(reachTemplates)
-      .values({ key: slot.key, body: text, updatedAt: opts.now, updatedBy: req.by })
-      .onConflictDoUpdate({
-        target: reachTemplates.key,
-        set: { body: text, updatedAt: opts.now, updatedBy: req.by },
-      });
+  if (!text) await clearTemplate(db, dmRef(slot.key));
+  else {
+    try {
+      await saveLive(db, dmRef(slot.key), text, { by: req.by, rules: slot });
+    } catch (err) {
+      if (err instanceof AuthoringError) throw new ReachRefusal(err.message);
+      throw err;
+    }
   }
   const [view] = await listTemplates(db, [slot], opts.sender);
   return view as SlotView;
+}
+
+/**
+ * The words `reach_templates` held before the template store, each kept as a version with
+ * who saved it and when, and live where nothing is. Runs once per database; again is a no-op.
+ */
+export async function importLegacyDms(db: Queryable): Promise<{ rows: number; live: number }> {
+  const rows = await db.select().from(reachTemplates);
+  let live = 0;
+  for (const r of rows) {
+    const out = await importVersion(db, dmRef(r.key), r.body, { by: r.updatedBy, at: r.updatedAt });
+    if (out.live) live++;
+  }
+  return { rows: rows.length, live };
 }

@@ -8,14 +8,22 @@
  * reason (`@wren/core/leads`).
  */
 import { leadRefusal } from "@wren/core/leads";
+import type { Template } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { activeAccounts } from "./accounts.js";
 import { fieldsFor, loadByAccount } from "./contacts.js";
 import { ReachRefusal } from "./refusal.js";
 import { type ReachContact, reachContacts, reachMessages } from "./schema.js";
-import { CONNECT_NOTE, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
-import { templateBodies } from "./store.js";
+import {
+  CONNECT_NOTE,
+  dmSeed,
+  type ReachSequence,
+  render,
+  stepKey,
+  subjectKey,
+} from "./sequences.js";
+import { liveDms } from "./store.js";
 
 export interface EnrollOptions {
   sequence: ReachSequence;
@@ -46,13 +54,13 @@ export interface EnrollStats {
 export async function sequenceBodies(
   db: Queryable,
   seq: ReachSequence,
-): Promise<Map<string, string>> {
+): Promise<Map<string, Template>> {
   const keys = seq.steps.flatMap((s) => [
     stepKey(seq, s.step),
     ...(s.subject ? [subjectKey(seq, s.step)] : []),
   ]);
   if (seq.connectFirst) keys.push(CONNECT_NOTE);
-  const bodies = await templateBodies(db, keys);
+  const bodies = await liveDms(db, keys);
   const missing = keys.filter((k) => k !== CONNECT_NOTE && !bodies.has(k));
   if (missing.length)
     throw new ReachRefusal(`sequence ${seq.name} has empty steps: ${missing.join(", ")}`);
@@ -99,8 +107,14 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
     const account = lightest();
     const fields = fieldsFor(c, o.sender);
     const first = seq.steps[0];
+    const seed = dmSeed(c.id);
     let queued: typeof reachMessages.$inferInsert;
     try {
+      const note = bodies.get(CONNECT_NOTE);
+      const opener = first && bodies.get(stepKey(seq, first.step));
+      const text = seq.connectFirst
+        ? note && render(note, fields, seed)
+        : opener && render(opener, fields, seed);
       if (seq.connectFirst)
         queued = {
           contactId: c.id,
@@ -108,7 +122,9 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
           direction: "out",
           kind: "connect",
           template: CONNECT_NOTE,
-          body: bodies.has(CONNECT_NOTE) ? render(bodies.get(CONNECT_NOTE) as string, fields) : "",
+          templateVersion: text ? text.provenance.version : null,
+          provenance: text ? text.provenance : null,
+          body: text ? text.body : "",
           state: "queued",
           dueAt: o.now,
           runId: o.runId ?? null,
@@ -121,10 +137,12 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
           kind: "sequence",
           step: first.step,
           template: stepKey(seq, first.step),
+          templateVersion: text ? text.provenance.version : null,
+          provenance: text ? text.provenance : null,
           subject: first.subject
-            ? render(bodies.get(subjectKey(seq, first.step)) as string, fields)
+            ? render(bodies.get(subjectKey(seq, first.step)) as Template, fields, seed).body
             : null,
-          body: render(bodies.get(stepKey(seq, first.step)) as string, fields),
+          body: text ? text.body : "",
           state: "queued",
           dueAt: o.now,
           runId: o.runId ?? null,

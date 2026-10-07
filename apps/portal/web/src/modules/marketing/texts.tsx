@@ -1,5 +1,5 @@
 /** William's texts as the person gets them on a phone and a laptop, filled with sample facts. */
-import { type RenderFields, render, segments } from "@wren/channel-sms/templates";
+import { preview, type RenderFields, segments } from "@wren/channel-sms/templates";
 import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -8,7 +8,7 @@ function kindOf(sample: RenderFields | undefined): MessageKind {
   const fill = (text: string) => {
     let body = text.trim();
     try {
-      if (sample) body = render(body, sample);
+      if (sample) body = preview(body, sample);
     } catch {
       // Saving says why.
     }

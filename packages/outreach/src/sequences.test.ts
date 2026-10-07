@@ -1,10 +1,13 @@
+import { parseBody } from "@wren/core/slots";
 import { describe, expect, it } from "vitest";
 import { isOptOut } from "./replies.js";
 import {
   CONNECT_NOTE,
   checkBody,
+  dmSeed,
   firstName,
   REACH_SEQUENCES,
+  type RenderFields,
   render,
   sampleFields,
   slotsOf,
@@ -40,7 +43,7 @@ describe("checkBody", () => {
     expect(checkBody(note, "  hi {first_name|there}  ")).toBe("hi {first_name|there}");
   });
   it("refuses unknown fields and long notes", () => {
-    expect(() => checkBody(note, "hi {email}")).toThrow(/cannot use/);
+    expect(() => checkBody(note, "hi {email}")).toThrow(/unknown field \{email\}/);
     expect(() => checkBody(note, "x".repeat(note.maxLength + 1))).toThrow(/at most/);
   });
   it("empty means empty", () => {
@@ -48,15 +51,18 @@ describe("checkBody", () => {
   });
 });
 
+const dm = (body: string, fields: RenderFields) =>
+  render(parseBody("t", body), fields, dmSeed(1)).body;
+
 describe("render", () => {
   it("fills fields and fallbacks, squeezes spaces", () => {
     const fields = { ...sampleFields("William"), first_name: null, company: "Acme" };
-    expect(render("Hi {first_name|there},  saw {company} in {found_in}", fields)).toMatch(
+    expect(dm("Hi {first_name|there},  saw {company} in {found_in}", fields)).toMatch(
       /^Hi there, saw Acme in /,
     );
   });
   it("throws on a missing field with no fallback", () => {
-    expect(() => render("Hi {first_name}", { ...sampleFields("W"), first_name: null })).toThrow(
+    expect(() => dm("Hi {first_name}", { ...sampleFields("W"), first_name: null })).toThrow(
       /no value/,
     );
   });

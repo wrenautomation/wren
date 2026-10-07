@@ -754,11 +754,10 @@ export function makeReachDesk(deps: ReachDeps) {
           ctx: restate.Context,
           req: Omit<SetTemplate, "by"> & { by?: string | null; viewer?: { email?: string } },
         ): Promise<SlotView> => {
-          const now = await nowOf(ctx);
           const by = req.by ?? req.viewer?.email ?? "console";
           return ctx.run("set template", () =>
             terminal(() =>
-              setTemplate(deps.db, { slots, sender: deps.senderName, now }, { ...req, by }),
+              setTemplate(deps.db, { slots, sender: deps.senderName }, { ...req, by }),
             ),
           );
         },

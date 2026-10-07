@@ -31,11 +31,13 @@ import {
   WATCH_KEY,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { smsContacts, smsEvents, smsMessages, smsTemplates } from "../../src/schema.js";
+import { smsContacts, smsEvents, smsMessages } from "../../src/schema.js";
 import {
   company,
+  emptyTemplates,
   fillTemplates,
   lift,
+  liveKeys,
   notes,
   numbers,
   POLICY,
@@ -175,12 +177,13 @@ describe("sms on restate", () => {
 
   it("the desk lists every template, saves, clears, and refuses bad words", async () => {
     const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
-    await pg.db.delete(smsTemplates);
+    await emptyTemplates(pg.db);
     const empty = await desk.templates();
     expect(empty.map((t) => t.key)).toEqual([
       "recruiting-sms#1",
       "recruiting-sms#2",
       "reminder.day-before",
+      "reminder.hour-before",
       "keyword.help",
       "keyword.start",
       "keyword.stop",
@@ -208,7 +211,7 @@ describe("sms on restate", () => {
     );
     expect((await desk.templates())[0]?.body).toContain("STOP to opt out"); // refusals kept the old words
     expect((await desk.setTemplate({ key: "recruiting-sms#1", body: " ", by: "w" })).body).toBe("");
-    expect(await pg.db.select().from(smsTemplates)).toHaveLength(0);
+    expect(await liveKeys(pg.db)).toEqual([]);
   });
 
   it("a keyword reply goes to the provider first; if it refuses, nothing saves", async () => {

@@ -594,14 +594,13 @@ export function makeSmsDesk(deps: SmsDeps) {
             client?: string | null;
           },
         ): Promise<SlotView> => {
-          const now = await nowOf(ctx);
           const d = await deskDeps(ctx, deps, req.client);
           const by = req.by ?? req.viewer?.email ?? "console";
           return ctx.run("set template", () =>
             terminal(() =>
               setTemplate(
                 d.db,
-                { provider: d.provider, slots, sender: d.senderName, now },
+                { provider: d.provider, slots, sender: d.senderName },
                 { ...req, by },
               ),
             ),

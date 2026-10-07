@@ -25,7 +25,7 @@ import { countryOf, toPhoneE164 } from "./phone.js";
 import { inWindow, type SmsPolicy } from "./policy.js";
 import type { SmsProvider } from "./provider.js";
 import { type SmsContact, smsContacts } from "./schema.js";
-import { templateBodies } from "./template-store.js";
+import { liveTexts } from "./template-store.js";
 import { type SmsSequence, stepKey } from "./templates.js";
 
 export const FIRST_TEXT_AFTER_MS = 20 * 60 * 1000;
@@ -258,7 +258,7 @@ export async function followUpForms(db: Db, opts: FormOptions): Promise<FormStat
     const sequence = opts.sequences.get(name);
     if (!sequence) throw new Error(`sms sequence ${name} is not registered`);
     const key = stepKey(name, 1);
-    if (!(await templateBodies(db, [key])).has(key)) {
+    if (!(await liveTexts(db, [key])).has(key)) {
       await finish(db, contact.id, `template ${key} was empty: nothing sent`, opts.now);
       stats.empty += 1;
       continue;

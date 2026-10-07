@@ -1,13 +1,22 @@
 /**
  * Outreach copy: William writes every word. Code declares the slots (which
- * messages exist, the fields each may use); the words live in
- * `reach_templates`. An empty slot sends nothing: enroll refuses a sequence
- * with an empty step, and a LinkedIn invite with no note goes without one.
+ * messages exist, the fields each may use); the words live in the template
+ * store (kind dm, system `reach`). An empty slot sends nothing: enroll refuses
+ * a sequence with an empty step, and a LinkedIn invite with no note goes
+ * without one.
  *
  * `{first_name|there}` = the field, or the fallback after the bar when it is
  * empty. A field the slot does not offer is refused at save, never a blank
- * at send.
+ * at send. The syntax, its check and its render are every channel's
+ * (`@wren/core/slots`), so a DM can carry `[[variants]]` and `((groups))`.
  */
+import {
+  checkSource,
+  parseKind,
+  type RenderProvenance,
+  renderKind,
+  type Template,
+} from "@wren/core/slots";
 import type { Platform } from "./schema.js";
 
 export interface ReachStep {
@@ -60,7 +69,6 @@ export interface TemplateSlot {
   maxLength: number;
 }
 
-const FIELD = /\{([a-z_]+)(?:\|([^}]*))?\}/g;
 const ALL_FIELDS: readonly RenderField[] = [
   "first_name",
   "company",
@@ -164,29 +172,27 @@ export function slotsOf(sequences: Iterable<ReachSequence>): TemplateSlot[] {
 
 /** The body as saved: trimmed, within length, every field one the slot offers. "" = empty. */
 export function checkBody(slot: TemplateSlot, body: string): string {
-  const text = body.trim();
-  if (!text) return "";
-  for (const m of text.matchAll(FIELD)) {
-    const name = m[1] as string;
-    if (!(slot.fields as readonly string[]).includes(name))
-      throw new Error(`${slot.key} cannot use {${name}}; it has ${slot.fields.join(", ")}`);
-  }
-  if (text.length > slot.maxLength)
-    throw new Error(`${slot.key} is ${text.length} characters; at most ${slot.maxLength}`);
-  return text;
+  return checkSource("dm", slot.key, body, slot)?.source ?? "";
 }
 
-export function render(body: string, fields: RenderFields): string {
-  return body
-    .replace(FIELD, (_all, name: string, fallback: string | undefined) => {
-      const value = (fields as unknown as Record<string, string | null>)[name]?.trim();
-      if (value) return value;
-      if (fallback !== undefined) return fallback;
-      throw new Error(`no value for {${name}} and no fallback`);
-    })
-    .replace(/[ \t]+/g, " ")
-    .trim();
+export interface RenderedDm {
+  body: string;
+  /** What `reach_messages.provenance` keeps: the version, the seed and each variant's pick. */
+  provenance: RenderProvenance;
 }
+
+/** One person's message. The seed is who it's for, so their variant picks never move. */
+export function render(tpl: Template, fields: RenderFields, seed: string): RenderedDm {
+  const out = renderKind("dm", tpl, { ...fields }, seed);
+  return { body: out.body, provenance: out.provenance };
+}
+
+/** The seed a contact's messages pick their variants by. */
+export const dmSeed = (contactId: number) => `dm:${contactId}`;
+
+/** Unsaved words as a DM reads, for an editor's preview; throws as a save would. */
+export const preview = (source: string, fields: RenderFields): string =>
+  render(parseKind("dm", "preview", source), fields, "sample").body;
 
 /** A first name from a full name: the first word, only when it reads as a name. */
 export function firstName(full: string | null | undefined): string | null {

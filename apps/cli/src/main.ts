@@ -47,6 +47,7 @@ import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
 import { registerSop } from "./sop.js";
 import { registerStudy } from "./study.js";
+import { registerTemplates } from "./templates.js";
 import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
 
@@ -97,7 +98,16 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery", "sms", "hooks"]);
+const CLIENT_SCOPED = new Set([
+  "db",
+  "email",
+  "crm",
+  "audit",
+  "delivery",
+  "sms",
+  "hooks",
+  "templates",
+]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
 const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms"]);
 
@@ -239,6 +249,7 @@ registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
+registerTemplates(program, withDb);
 
 const renewal = () =>
   clients
