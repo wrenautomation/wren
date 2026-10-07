@@ -36,7 +36,7 @@ const AUTHOR_GAP_MS = 7 * 86_400_000;
 const HOUR = 3_600_000;
 /** The rank a post needs for a draft, unless the settings say otherwise. */
 export const MIN_FIT = 70;
-/** Wren's buyers: recruiting and staffing firms. */
+/** Wren's buyers: recruiting and staffing firms, and agency owners. */
 export const DEFAULT_AUDIENCE = [
   "recruit",
   "staffing",
@@ -47,7 +47,13 @@ export const DEFAULT_AUDIENCE = [
   "search firm",
   "candidate",
   "rpo",
+  "agency owner",
 ] as const;
+/** Who Wren's buyers are, in plain words: the model writes search words from it. */
+export const DEFAULT_ABOUT =
+  "Owners and founders of recruiting, staffing and executive search firms, and of agencies that sell services to other businesses. In their own posts they talk about winning clients, business development, pipeline, fees, and running the firm.";
+/** Search words the model adds a pass, unless the settings say otherwise. */
+export const NEW_TOPICS = 3;
 /** Logins that never read or comment here: his own profile and the research alt. */
 const NEVER = ["linkedin", "linkedin@alt"];
 
@@ -77,6 +83,10 @@ export const commentsSettingsSchema = z
      * "recruiters"). A post with none is dropped as off target.
      */
     audience: z.array(z.string().trim().min(2)).default([...DEFAULT_AUDIENCE]),
+    /** Who the buyers are, in plain words; the model writes new search words from it. */
+    about: z.string().trim().min(1).default(DEFAULT_ABOUT),
+    /** Search words the model adds each pass from `about` and past yields; 0 = only `topics`. */
+    newTopics: z.number().int().min(0).max(6).default(NEW_TOPICS),
   })
   .strict();
 export type CommentsSettings = z.infer<typeof commentsSettingsSchema>;
@@ -135,9 +145,13 @@ export function postReader(sites: SiteClient, account: string): PostReader {
   };
 }
 
+/** Owns or runs the firm (tier 1), or runs a part of it (tier 2). */
 const TIER1 =
-  /\b(founder|co-founder|owner|ceo|cfo|coo|cto|cmo|cro|chief|(?<!vice )president|partner|principal|managing director)\b/i;
+  /\b(founder|co-founder|owner|co-owner|ceo|cfo|coo|cto|cmo|cro|chief|(?<!vice )president|partner|principal|managing director|managing member)\b/i;
 const TIER2 = /\b(vp|vice president|head of|director|general manager)\b/i;
+/** A headline that sells to businesses: the audience's vendors, not the audience. */
+const SELLER =
+  /\b(?:i|we) help\b|\bhelping\b|\b(?:expert|consultant|coach|strategist|architect|advisor|adviser|fractional|freelancer?)\b/i;
 
 const vanityOf = (url: string | null | undefined) =>
   url ? (/linkedin\.com\/(?:in|company)\/([^/?#]+)/i.exec(url)?.[1]?.toLowerCase() ?? null) : null;
@@ -155,36 +169,93 @@ const occurrences = (text: string, term: string) => {
   return text.split(` ${ws.join(" ")}`).length - 1;
 };
 
+const distinct = (text: string, re: RegExp) =>
+  new Set([...text.matchAll(re)].map((m) => m[0].toLowerCase().replace(/\s+/g, " "))).size;
+
 /**
  * Running and growing a firm: clients, sales, money in. Counted once each. "Marketing" is left
  * out: in recruiting posts it is mostly a job field.
  */
 const GROWTH =
   /\b(?:clients?|business development|new business|sales|revenue|pipeline|leads|outreach|prospect\w*|referrals?|retainers?|fees|margins?|billings?|invoices?|vendors?|pricing|cash|grow\w*|scal(?:e|es|ed|ing)|book of business|repeat business|reactivat\w*|follow[- ]?ups?|cold (?:email|call)\w*|crm|automat\w*|msps?|vms|profit\w*|agency owners?)\b/gi;
+/** The author speaks as the one who runs the firm. Counted once each. */
+const OWNER =
+  /\b(?:my|our) (?:own )?(?:\w+ )?(?:agency|firm|business|company|desk)\b|\b(?:my|our) (?:clients?|candidates|recruiters|consultants|billings?|pipeline|team)\b|\bwe placed\b|\bi (?:started|founded|built|run|own) (?:my|our|a|the)\b|\b(?:my|our) (?:first|biggest|best|last) (?:client|placement|hire|deal)\b/gi;
+/** A call to buy or sign up: a vendor's post, not a buyer's. */
+const PITCH =
+  /\bbook (?:a|your) (?:free )?(?:call|demo|audit)\b|\bdm me\b|\blink in (?:the )?comments\b|\bjoin (?:the|our) (?:waitlist|webinar|workshop|bootcamp|community)\b|\bregister (?:here|now|today)\b|\bsign up\b|\bfree (?:audit|trial|guide|template|consultation)\b|\blimited (?:spots|seats)\b/i;
 
-/** Points for how deep in the audience's world (0 to 3), and for growth words (0 to 3). */
+/** Points for how deep in the audience's world (0 to 3), growth words (0 to 3), owner voice (0 to 2). */
 const AUDIENCE_POINTS = [0, 16, 28, 36];
 const GROWTH_POINTS = [0, 8, 16, 24];
+const OWNER_POINTS = [0, 6, 10];
 
-/** Says it is a job ad, or someone looking for one. */
+/** Says it is a job ad. */
 const HIRING =
-  /#hiring\b|\b(?:we'?re|we are|now|is|are) hiring\b|\b(?:we'?re|we are|i'?m|i am|is|are) recruiting (?:an?|for)\b|\bjob (?:title|description|type)\b|\bapply (?:here|now|today|via|at|by|online)\b|\bemployment type\b|\bopen to work\b|\blooking for (?:a|an|my) [^.\n]{0,40}\b(?:role|position|job|opportunit)/i;
+  /#hiring\b|\b(?:we'?re|we are|now|is|are) hiring\b|\b(?:we'?re|we are|i'?m|i am|is|are) (?:actively |currently |now )?recruiting (?:an?|for|experienced|talented|reliable|qualified|new|\d+)\b|\bjob (?:title|description|type|summary)\b|\bapply (?:here|now|today|via|at|by|online)\b|\bemployment type\b|\binterested candidates\b|\bcandidates (?:must|should) (?:have|be)\b|\bsend (?:your|their|us your|me your) (?:cv|resume)s?\b/i;
 /** What job ads are made of; three of them make one. */
 const JOB =
-  /\b(?:salary|requirements|responsibilities|qualifications|years of experience|years' experience|location:|full[- ]time|part[- ]time|remote|w2|c2c|1099|per hour|hourly|day shift|night shift|benefits include|what you'll do|what you bring|send (?:your|us your) (?:cv|resume)|(?:is|are) (?:actively )?looking for)/gi;
+  /\b(?:salary|requirements|responsibilities|qualifications|\d+\+? years?'? (?:of )?experience|at least \d+ years?|full[- ]time|part[- ]time|remote|w2|c2c|1099|per hour|hourly|per annum|day shift|night shift|\d+(?:\.\d+)?-hour shifts?|\d+ days (?:per|a) week|start date|benefits include|what you'll do|what you bring|(?:is|are) (?:actively )?looking for)\b/gi;
+/** A job ad's field labels ("Location:", "Rate:"); three make one. */
+const FIELD =
+  /\b(?:location|salary|rate|pay|bonus|benefits|client|interviews?|contract|start date|duration|experience|employment type|industry|job type|schedule|hours|compensation|position|shift)\s*:/gi;
+/** The author wants a job. */
+const SEEKER =
+  /\bopen to (?:work|new (?:roles|opportunities))\b|#opentowork\b|\b(?:i'?m|i am) (?:currently |now |actively )?(?:looking|searching) for (?:a|an|my next|new)\b[^.\n]{0,60}\b(?:role|position|job|opportunit\w*|work)\b|\blooking for (?:a|an|my) [^.\n]{0,40}\b(?:role|position|job|opportunit)|\b(?:you'?re|you are) (?:recruiting|hiring) for\b|\bhappy to (?:\w+ ){0,4}interview\b/i;
+const SEEKER_HEAD =
+  /\bopen to (?:work|new (?:roles|opportunities))\b|#?opentowork\b|\bavailable for\b|\b(?:seeking|looking for) (?:new |my next |a new )?(?:opportunit\w*|roles?|positions?|work)\b/i;
+/** Speaks to people who want a job; two of these, or one promise to place them, make one. */
+const CAREER =
+  /\b(?:get|land|find|landing|getting|finding) (?:a|your|the|that) (?:\w+ )?(?:job|role)\b|\bjob ?seekers?\b|\bjob (?:search|hunt)\w*|\b(?:your|my) (?:cv|resume)\b|\binterview (?:tips|prep\w*)\b|\bstudents?\b|\bgraduat(?:e|es|ing)\b|\bcareer (?:advice|tips|change)\b/gi;
+const PLACE_YOU =
+  /\b(?:get|place) you (?:a job|hired|placed|in a (?:new )?(?:job|role))\b|\bcan place you\b/i;
 
-/** A job ad (or a job seeker's post): no buyer reads it. */
-export function isJobAd(text: string): boolean {
-  const t = text.replace(/[\u2018\u2019]/g, "'");
-  if (HIRING.test(t)) return true;
-  return new Set([...t.matchAll(JOB)].map((m) => m[0].toLowerCase())).size >= 3;
-}
+export type JobPost = "a job ad" | "a job seeker" | "for job seekers";
 
 /**
- * Code's rank, 0 to 100, the line To approve shows, and why it is off target (a job ad, or none
- * of the audience's words), else null. Most of it is what the post is about: the audience's
- * world (its words, the author's headline) and growing a firm (growth words). Then the author's
- * title tier, people we know, topic hits, engagement, freshness.
+ * A job ad, a job seeker's post, or a post for job seekers: no buyer reads it. The headline
+ * counts too ("Open to work").
+ */
+export function jobPost(text: string, headline = ""): JobPost | null {
+  const t = text.replace(/[‘’]/g, "'");
+  if (HIRING.test(t) || distinct(t, JOB) >= 3 || distinct(t, FIELD) >= 3) return "a job ad";
+  if (SEEKER.test(t) || SEEKER_HEAD.test(headline)) return "a job seeker";
+  if (PLACE_YOU.test(t) || distinct(t, CAREER) >= 2) return "for job seekers";
+  return null;
+}
+
+/** Any of `jobPost`'s three. */
+export const isJobAd = (text: string, headline = ""): boolean => jobPost(text, headline) !== null;
+
+/** Who wrote it: an owner in the audience's world, a vendor to it, or neither. */
+export function authorFit(
+  headline: string,
+  audience: readonly string[],
+): { points: number; kind: "buyer" | "seller" | "owner" | "manager" | null } {
+  if (!headline.trim()) return { points: 0, kind: null };
+  const head = ` ${words(headline).join(" ")} `;
+  const theirs = audience.some((a) => occurrences(head, a) > 0);
+  if (SELLER.test(headline)) return { points: -15, kind: "seller" };
+  if (TIER1.test(headline))
+    return theirs ? { points: 18, kind: "buyer" } : { points: 10, kind: "owner" };
+  if (TIER2.test(headline)) return { points: theirs ? 10 : 5, kind: "manager" };
+  return { points: 0, kind: null };
+}
+
+const AUTHOR_WHY = {
+  buyer: "Runs a firm in their world.",
+  seller: "Sells to them.",
+  owner: null,
+  manager: null,
+} as const;
+
+/**
+ * Code's rank, 0 to 100, the line To approve shows, and why it is off target (a job ad, a job
+ * seeker, a post for job seekers, or none of the audience's words, unless an owner in that world
+ * wrote it), else null. Most of it is what the post is about: the audience's world (its words,
+ * the author's headline) and growing a firm (growth words, said as the owner). Then who wrote it
+ * (an owner in that world over a vendor to it), people we know, topic hits, engagement,
+ * freshness; a pitch costs points.
  */
 export function rankPost(
   p: FeedPost,
@@ -212,31 +283,41 @@ export function rankPost(
   const growth = new Set(
     [...p.text.matchAll(GROWTH)].map((m) => m[0].toLowerCase().replace(/s$/, "")),
   );
-  const tier = TIER1.test(head) ? 14 : TIER2.test(head) ? 8 : 0;
+  const owner = Math.min(2, distinct(p.text, OWNER));
+  const author = authorFit(head, audience);
+  const pitch = PITCH.test(p.text);
   const at = p.at ? Date.parse(p.at) : Number.NaN;
   const ageH = Number.isNaN(at) ? null : Math.max(0, (o.now.getTime() - at) / HOUR);
   const fresh = ageH === null ? 3 : Math.round(6 * Math.max(0, 1 - ageH / o.maxAgeHours));
   const buzz = Math.min(8, Math.round(3 * Math.log10(1 + p.reactions + 3 * p.comments)));
-  const fit = Math.min(
-    100,
-    (AUDIENCE_POINTS[aud] ?? 0) +
-      (GROWTH_POINTS[Math.min(3, growth.size)] ?? 0) +
-      tier +
-      Math.min(2, hits.length) * 4 +
-      (o.key ? 20 : 0) +
-      buzz +
-      fresh,
+  const fit = Math.max(
+    0,
+    Math.min(
+      100,
+      (AUDIENCE_POINTS[aud] ?? 0) +
+        (GROWTH_POINTS[Math.min(3, growth.size)] ?? 0) +
+        (OWNER_POINTS[owner] ?? 0) +
+        author.points +
+        Math.min(2, hits.length) * 4 +
+        (o.key ? 20 : 0) +
+        buzz +
+        fresh -
+        (pitch ? 8 : 0),
+    ),
   );
-  const off = isJobAd(p.text)
-    ? "a job ad"
-    : audience.length && !said
+  const off =
+    jobPost(p.text, head) ??
+    // An owner in the audience's world may not name it in the post; anyone else must.
+    (audience.length && !said && author.kind !== "buyer"
       ? `not about ${audience.slice(0, 3).join(", ")}`
-      : null;
+      : null);
   const why = [
     head ? head.slice(0, 80) : null,
+    author.kind ? AUTHOR_WHY[author.kind] : null,
     o.key ? "Someone we know." : null,
     hits.length ? `On ${hits.map((h) => `"${h}"`).join(", ")}.` : `Found by ${o.foundBy}.`,
     growth.size ? `Talks ${[...growth].slice(0, 3).join(", ")}.` : null,
+    pitch ? "Pitches." : null,
     `${p.reactions} reactions, ${p.comments} comments${p.age ? `, ${p.age} old` : ""}.`,
   ]
     .filter(Boolean)
@@ -575,6 +656,123 @@ async function leave(
     });
 }
 
+/** A search word's yield is counted over this many days; older reads age out and it is tried again. */
+export const TOPIC_DAYS = 14;
+/** A search word that read this many posts lately with none on target rests. */
+export const REST_AFTER = 15;
+/** Off-target reasons: rows that never reached the rank. */
+const OFF_REASON = "^(a job|for job|not about|older than|ours$|too short)";
+
+export interface TopicYield {
+  topic: string;
+  /** Posts it found lately. */
+  read: number;
+  /** Of those, at or above the minimum fit and not off target. */
+  onTarget: number;
+}
+
+/** Each search word's posts in the last `TOPIC_DAYS`, and how many were on target. */
+export async function topicYields(
+  db: Queryable,
+  o: { minFit: number; now: Date },
+): Promise<TopicYield[]> {
+  const since = new Date(o.now.getTime() - TOPIC_DAYS * 86_400_000).toISOString();
+  const rows = (await db.execute(sql`
+    SELECT substring(found_by from 8) topic, count(*)::int read,
+      (count(*) FILTER (WHERE fit >= ${o.minFit}
+        AND coalesce(state_reason, '') !~ ${OFF_REASON}))::int on_target
+    FROM linkedin_posts
+    WHERE found_by LIKE 'topic: %' AND created_at >= ${since}
+    GROUP BY 1`)) as unknown as Array<{ topic: string; read: number; on_target: number }>;
+  return rows.map((r) => ({ topic: r.topic, read: r.read, onTarget: r.on_target }));
+}
+
+const rateOf = (y: TopicYield | undefined) => (y?.read ? y.onTarget / y.read : 1);
+const keyOf = (t: string) => t.trim().toLowerCase();
+
+/**
+ * The pass's search words. His own (`topics`) first, best yield first, untried ones as best;
+ * one that read `REST_AFTER` posts lately with none on target rests. Then up to `extra` more:
+ * past model words that found the audience (at most `extra - 1`, so one slot always explores),
+ * then the model's new ones.
+ */
+export function planTopics(
+  own: readonly string[],
+  yields: readonly TopicYield[],
+  fresh: readonly string[],
+  extra: number,
+): { topics: string[]; rested: string[] } {
+  const by = new Map(yields.map((y) => [keyOf(y.topic), y]));
+  const rests = (t: string) => {
+    const y = by.get(keyOf(t));
+    return !!y && y.read >= REST_AFTER && y.onTarget === 0;
+  };
+  const rested = own.filter(rests);
+  const topics = own
+    .filter((t) => !rests(t))
+    .map((t, i) => ({ t, i, r: rateOf(by.get(keyOf(t))) }))
+    .sort((a, b) => b.r - a.r || a.i - b.i)
+    .map((x) => x.t);
+  const seen = new Set(own.map(keyOf));
+  const proven = yields
+    .filter((y) => !seen.has(keyOf(y.topic)) && y.onTarget >= 2)
+    .sort((a, b) => rateOf(b) - rateOf(a) || b.onTarget - a.onTarget)
+    .slice(0, Math.max(0, extra - 1))
+    .map((y) => y.topic);
+  const more: string[] = [];
+  for (const t of [...proven, ...fresh]) {
+    if (more.length >= extra) break;
+    if (seen.has(keyOf(t)) || rests(t)) continue;
+    seen.add(keyOf(t));
+    more.push(t);
+  }
+  return { topics: [...topics, ...more], rested };
+}
+
+const TOPICS = z.object({ topics: z.array(z.string()).max(12) });
+/** Words that bring job ads, job seekers and career advice, not the buyers' own posts. */
+const NOT_A_TOPIC =
+  /\b(?:hiring|hire|jobs?|roles?|vacanc\w*|apply|careers?|open to work|salary|resumes?|cv)\b/i;
+
+/**
+ * New search words for the buyers' own posts: the model reads `about` and what past searches
+ * found (good ones with their yield, rested ones), and code keeps 1 to 5 words that bring no job
+ * ads and are not known yet.
+ */
+export async function proposeTopics(
+  llm: LlmClient,
+  o: { about: string; n: number; yields: readonly TopicYield[]; known: readonly string[] },
+): Promise<string[]> {
+  if (o.n <= 0) return [];
+  const good = o.yields
+    .filter((y) => y.onTarget > 0)
+    .sort((a, b) => rateOf(b) - rateOf(a))
+    .slice(0, 8);
+  const bad = o.yields.filter((y) => y.read >= REST_AFTER && y.onTarget === 0).slice(0, 8);
+  const out = await completeAndParse(
+    llm,
+    `Who we want to find on LinkedIn: ${o.about}
+We search LinkedIn posts by keywords to find posts these people wrote themselves about running their business. Give ${o.n + 3} new search phrases, 2 to 4 words each, worded the way they write in their own posts: first person, about their clients, sales, pipeline and the firm.
+Leave out words that bring job ads, job seekers or career advice (hiring, job, role, apply, career), and phrases that vendors who sell to them put in their ads.
+${good.length ? `Found their posts before (on target of read): ${good.map((y) => `"${y.topic}" ${y.onTarget}/${y.read}`).join(", ")}.\n` : ""}${bad.length ? `Found none of their posts: ${bad.map((y) => `"${y.topic}"`).join(", ")}.\n` : ""}Answer JSON only: {"topics": ["..."]}`,
+    TOPICS,
+    { maxTokens: 300, name: "linkedin.post_topics" },
+  );
+  const known = new Set([...o.known, ...o.yields.map((y) => y.topic)].map(keyOf));
+  const kept: string[] = [];
+  for (const raw of out.parsed?.topics ?? []) {
+    const t = raw
+      .replace(/["\u201c\u201d]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const n = t.split(" ").length;
+    if (!t || n > 5 || t.length > 60 || NOT_A_TOPIC.test(t) || known.has(keyOf(t))) continue;
+    known.add(keyOf(t));
+    kept.push(t);
+  }
+  return kept.slice(0, o.n);
+}
+
 /** People we know on LinkedIn, a few a day in turn: accepted invites, then engagers. */
 export async function keyPeople(
   db: Queryable,
@@ -608,6 +806,9 @@ export interface PostsStats {
   queued: number;
   /** autobrowse's day's cap answered 429: reads end for the pass. */
   capped: boolean;
+  /** The search words this pass planned, and his own that rest for finding nothing on target. */
+  topics: string[];
+  rested: string[];
   errors: string[];
 }
 
@@ -638,6 +839,8 @@ export async function postsPass(
     dropped: 0,
     queued: 0,
     capped: false,
+    topics: [],
+    rested: [],
     errors: [],
   };
   if (!s.account) return out;
@@ -651,25 +854,51 @@ export async function postsPass(
     ).flatMap((a) => (a.handle ? [a.handle.toLowerCase()] : [])),
   );
   const since = s.maxAgeHours <= 24 ? "past-24h" : "past-week";
-  const reads: {
-    foundBy: string;
-    key?: boolean;
-    vanity?: string;
-    run: () => Promise<FeedPost[]>;
-  }[] = [
-    ...s.topics.map((t) => ({ foundBy: `topic: ${t}`, run: () => o.read.search(t, since) })),
-    ...s.companies.map((c) => ({ foundBy: `company: ${c}`, run: () => o.read.company(c) })),
-  ];
+  // Search words: his own by yield, less the rested; then the model's, from `about` and yields.
+  const yields = await o.step("topic yields", () =>
+    topicYields(db, { minFit: s.minFit, now: o.now }),
+  );
+  const llm = o.llm;
+  const fresh =
+    need > 0 && llm && s.newTopics > 0
+      ? await o.step("new topics", async () => {
+          try {
+            const topics = await proposeTopics(llm, {
+              about: s.about,
+              n: s.newTopics,
+              yields,
+              known: s.topics,
+            });
+            return { topics, error: null };
+          } catch (err) {
+            return { topics: [], error: err instanceof Error ? err.message : String(err) };
+          }
+        })
+      : { topics: [], error: null };
+  if (fresh.error) out.errors.push(`new topics: ${fresh.error}`);
+  const plan = planTopics(s.topics, yields, fresh.topics, need > 0 && llm ? s.newTopics : 0);
+  out.topics = plan.topics;
+  out.rested = plan.rested;
+  type Read = { foundBy: string; key?: boolean; vanity?: string; run: () => Promise<FeedPost[]> };
+  const people: Read[] = [];
   if (s.people)
     for (const k of await o.step("key people", () => keyPeople(db, o.now)))
-      reads.push({
+      people.push({
         foundBy: `person: ${k.vanity}`,
         key: true,
         vanity: k.vanity,
         run: () => o.read.search(k.name, since),
       });
+  // Key people always get their reads; searches and companies share the rest.
+  const reads: Read[] = [
+    ...[
+      ...plan.topics.map((t) => ({ foundBy: `topic: ${t}`, run: () => o.read.search(t, since) })),
+      ...s.companies.map((c) => ({ foundBy: `company: ${c}`, run: () => o.read.company(c) })),
+    ].slice(0, Math.max(0, READS_PER_PASS - people.length)),
+    ...people,
+  ];
   // With today's comments already waiting, nothing is read.
-  for (const r of need > 0 ? reads.slice(0, READS_PER_PASS) : []) {
+  for (const r of need > 0 ? reads : []) {
     if (out.capped) break;
     try {
       const got = await r.run();
@@ -680,7 +909,7 @@ export async function postsPass(
         keepPosts(db, posts, {
           foundBy: r.foundBy,
           account: s.account,
-          topics: s.topics,
+          topics: plan.topics,
           audience: s.audience,
           key: r.key ?? false,
           ours,
@@ -695,7 +924,6 @@ export async function postsPass(
       out.errors.push(`${r.foundBy}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-  const llm = o.llm;
   if (!llm || need <= 0) return out;
   const guide = o.guide ? await o.step("guide", () => o.guide?.() ?? Promise.resolve("")) : "";
   const facts = o.facts ? await o.step("facts", async () => [...((await o.facts?.()) ?? [])]) : [];

@@ -32,6 +32,7 @@ import {
   REACH_SEQUENCES,
   reachStats,
   slotsOf,
+  topicYields,
   viewOf,
   warmupOf,
 } from "@wren/outreach";
@@ -430,15 +431,19 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     );
   posts
     .command("status", { isDefault: true })
-    .description("The settings, and posts by state")
+    .description("The settings, posts by state, and each search word's yield lately")
     .action(async () =>
       json(
-        await withDb(async (db) => ({
-          settings: await commentsSettings(db),
-          posts: await db.execute(
-            sql`select state, count(*)::int n from linkedin_posts group by 1 order by 2 desc`,
-          ),
-        })),
+        await withDb(async (db) => {
+          const settings = await commentsSettings(db);
+          return {
+            settings,
+            posts: await db.execute(
+              sql`select state, count(*)::int n from linkedin_posts group by 1 order by 2 desc`,
+            ),
+            topics: await topicYields(db, { minFit: settings.minFit, now: new Date() }),
+          };
+        }),
       ),
     );
   posts
@@ -452,6 +457,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--max-age-hours <n>", "posts older than this are left")
     .option("--min-fit <n>", "the rank (0 to 100) a post needs for a draft")
     .option("--audience <list>", "comma separated word starts a post must have (recruit,staffing)")
+    .option("--about <text>", "who the buyers are; the model writes new search words from it")
+    .option("--new-topics <n>", "search words the model adds a pass (0 = only --topics)")
     .action(
       async (o: {
         account?: string;
@@ -462,6 +469,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         maxAgeHours?: string;
         minFit?: string;
         audience?: string;
+        about?: string;
+        newTopics?: string;
       }) => {
         const list = (v: string) =>
           v
@@ -479,6 +488,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.maxAgeHours !== undefined && { maxAgeHours: Number(o.maxAgeHours) }),
           ...(o.minFit !== undefined && { minFit: Number(o.minFit) }),
           ...(o.audience !== undefined && { audience: list(o.audience) }),
+          ...(o.about !== undefined && { about: o.about }),
+          ...(o.newTopics !== undefined && { newTopics: Number(o.newTopics) }),
         };
         json(
           await withDb(async (db) => {

@@ -92,8 +92,15 @@ const fakeContent = restate.service({
 const GOOD = "Which slot do candidates drop most: the first call or the reschedule?";
 let invent = 0;
 const asked: string[] = [];
+/** The search words the fake model proposes next, and the prompts that asked for them. */
+let proposed: string[] = [];
+const topicAsks: string[] = [];
 const llm = new FakeLlm({
   respond: (prompt, system) => {
+    if (prompt.startsWith("Who we want to find on LinkedIn")) {
+      topicAsks.push(prompt);
+      return JSON.stringify({ topics: proposed });
+    }
     asked.push(`${system ?? ""}\n${prompt}`);
     if (invent > 0) {
       invent--;
@@ -168,6 +175,8 @@ beforeEach(async () => {
   calls.length = 0;
   invent = 0;
   asked.length = 0;
+  proposed = [];
+  topicAsks.length = 0;
   now = new Date(now.getTime() + 25 * HOUR);
   replies.length = 0;
   // Our own page, paused: its posts are never ours to answer; the watch doesn't read it.
@@ -246,7 +255,7 @@ describe("settings", () => {
     expect(founder.why).toContain('On "recruiting agency".');
   });
 
-  it("off target: job ads, and posts outside the audience's world", () => {
+  it("off target: job posts, and posts outside the audience's world", () => {
     const o = { topics: ["client reactivation"], foundBy: "x", key: false, maxAgeHours: 72, now };
     const ads = [
       "#hiring Office Coordinator. Apply here: https://example.com/job. Job Title: Office Coordinator.",
@@ -256,7 +265,7 @@ describe("settings", () => {
     ];
     for (const text of ads) {
       expect(isJobAd(text), text).toBe(true);
-      expect(rankPost(post(1, { text }), o).off).toBe("a job ad");
+      expect(rankPost(post(1, { text }), o).off).toMatch(/^a job (ad|seeker)$/);
     }
     const elsewhere = rankPost(
       post(2, {
@@ -313,7 +322,7 @@ describe("the daily pass", () => {
       dropped: 0,
     });
     routes["/company/acme-staffing/posts"] = () => ({
-      posts: [post(6, { headline: "VP Talent" }), post(7)],
+      posts: [post(6, { headline: "VP, Acme Staffing" }), post(7)],
       dropped: 0,
     });
 
@@ -366,6 +375,62 @@ describe("the daily pass", () => {
     const out = statsOf(await sync())?.posts;
     expect(out).toMatchObject({ reads: 0, capped: true, queued: 0 });
     expect(calls.filter((c) => c.path === "/search/results/content")).toHaveLength(1);
+  });
+});
+
+describe("search words", () => {
+  it("rests his word that found nothing on target; adds the model's from about and yields", async () => {
+    await settings({
+      account: "linkedin@wren",
+      topics: ["recruiting agency", "client reactivation"],
+      people: false,
+      about: "Owners of recruiting firms.",
+      newTopics: 2,
+    });
+    // Last week's reads: "client reactivation" found only off-target posts.
+    for (let i = 0; i < 15; i++)
+      await db()
+        .insert(linkedinPosts)
+        .values({
+          urn: `urn:li:activity:${9_000 + i}`,
+          author: `Seller ${i}`,
+          text: "Off target.",
+          url: `https://www.linkedin.com/feed/update/urn:li:activity:${9_000 + i}/`,
+          foundBy: "topic: client reactivation",
+          account: "linkedin@wren",
+          fit: 40,
+          state: "dropped",
+          stateReason: "not about recruit, staffing, headhunt",
+          raw: {},
+          createdAt: new Date(now.getTime() - 48 * HOUR),
+        });
+    proposed = ["our recruiting clients", "we're hiring", "recruiting agency"];
+    const searched: string[] = [];
+    routes["/search/results/content"] = (input) => {
+      searched.push(String(input.keywords));
+      return { posts: [], dropped: 0 };
+    };
+    const out = statsOf(await sync())?.posts;
+    expect(out).toMatchObject({
+      topics: ["recruiting agency", "our recruiting clients"],
+      rested: ["client reactivation"],
+      reads: 2,
+    });
+    expect(searched).toEqual(["recruiting agency", "our recruiting clients"]);
+    expect(topicAsks[0]).toContain("Owners of recruiting firms.");
+    expect(topicAsks[0]).toContain('Found none of their posts: "client reactivation"');
+  });
+
+  it("newTopics 0: only his words, no model call", async () => {
+    await settings({
+      account: "linkedin@wren",
+      topics: ["recruiting agency"],
+      people: false,
+      newTopics: 0,
+    });
+    routes["/search/results/content"] = () => ({ posts: [], dropped: 0 });
+    expect(statsOf(await sync())?.posts).toMatchObject({ topics: ["recruiting agency"] });
+    expect(topicAsks).toEqual([]);
   });
 });
 

@@ -293,6 +293,11 @@ export const OUTREACH_COMPONENTS = [
         },
         {
           is: "change",
+          says: "Who the buyers are; the model adds search words from it and what past searches found.",
+          built: "settings.about, newTopics",
+        },
+        {
+          is: "change",
           says: "How many a day, and how fresh.",
           built: "settings.perDay, maxAgeHours",
         },
