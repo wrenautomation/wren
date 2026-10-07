@@ -12,7 +12,9 @@ import {
   portalService,
   type SignedViewer,
 } from "@wren/core/portal";
+import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
+import { z } from "zod";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "./console-routes.js";
 import { addressFlag, clearFlag, FlagRefusal, ownFlag, raiseFlag } from "./flags.js";
 import { clearOverride, overrideHealth, rateClient } from "./hand.js";
@@ -154,7 +156,19 @@ export type HealthConsoleApi = ReturnType<typeof healthConsoleApi>;
 
 export function makeHealthConsole(db: Db) {
   const api = healthConsoleApi(db);
-  type Req<K extends keyof HealthConsoleApi> = Parameters<HealthConsoleApi[K]>[0];
+  /** A write: journaled once, so a retry returns the same answer and never writes twice. */
+  const write =
+    <R extends PortalRequest, T>(name: string, fn: (req: R) => Promise<T>) =>
+    (ctx: restate.Context, req: R) =>
+      answer(() => ctx.run(name, () => answer(() => fn(req))));
+  const text = z.string().max(2000).nullish();
+  const score = z.union([z.number(), z.string().max(8)]).describe("A whole number");
+  const form = (more: z.ZodRawShape = {}) =>
+    z.looseObject({
+      ...PORTAL_FIELDS,
+      ids: z.array(z.union([z.string(), z.number()])).optional(),
+      ...more,
+    });
   return portalService({
     name: "HealthConsole",
     main: db,
@@ -162,16 +176,33 @@ export function makeHealthConsole(db: Db) {
     apps: HEALTH_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
-      rate: (_: restate.Context, req: Req<"rate">) => answer(() => api.rate(req)),
-      override: (_: restate.Context, req: Req<"override">) => answer(() => api.override(req)),
-      clearOverride: (_: restate.Context, req: Req<"clearOverride">) =>
-        answer(() => api.clearOverride(req)),
-      flagRaise: (_: restate.Context, req: Req<"flagRaise">) => answer(() => api.flagRaise(req)),
-      flagTake: (_: restate.Context, req: Req<"flagTake">) => answer(() => api.flagTake(req)),
-      flagOwn: (_: restate.Context, req: Req<"flagOwn">) => answer(() => api.flagOwn(req)),
-      flagAddress: (_: restate.Context, req: Req<"flagAddress">) =>
-        answer(() => api.flagAddress(req)),
-      flagClear: (_: restate.Context, req: Req<"flagClear">) => answer(() => api.flagClear(req)),
+      rate: serviceHandler({ input: form({ score, note: text }) }, write("rate", api.rate)),
+      override: serviceHandler(
+        { input: form({ score, reason: text }) },
+        write("override", api.override),
+      ),
+      clearOverride: serviceHandler({ input: form() }, write("clearOverride", api.clearOverride)),
+      flagRaise: serviceHandler(
+        {
+          input: form({
+            clientId: z.string().max(64).nullish(),
+            side: z.string().max(16).nullish(),
+            what: text,
+            owner: z.string().max(320).nullish(),
+          }),
+        },
+        write("flagRaise", api.flagRaise),
+      ),
+      flagTake: serviceHandler({ input: form() }, write("flagTake", api.flagTake)),
+      flagOwn: serviceHandler(
+        { input: form({ owner: z.string().max(320).nullish() }) },
+        write("flagOwn", api.flagOwn),
+      ),
+      flagAddress: serviceHandler(
+        { input: form({ note: text }) },
+        write("flagAddress", api.flagAddress),
+      ),
+      flagClear: serviceHandler({ input: form() }, write("flagClear", api.flagClear)),
     },
   });
 }
