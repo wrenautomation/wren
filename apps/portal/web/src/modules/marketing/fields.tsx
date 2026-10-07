@@ -1,14 +1,17 @@
 /**
  * A post's fields past its words (designs/2026-10-07-post-shapes.md): the form drawn from the
- * platform's shape, each field saved on its own, and the post as its platform shows it. On a
- * draft and in To approve it edits; on a posted one it shows what went out.
+ * platform's shape in three groups (Basics, Media, Details), each field saved on its own, and the
+ * post as its platform shows it beside them, live as he types. On a draft and in To approve it
+ * edits; on a posted one it shows what went out. Drafts, To approve and Posts all draw it here.
  */
 import type { FieldView } from "@wren/core/content/shapes";
 import type { RecordAct, RecordExtras } from "@wren/ui";
 import { Button, Input, Tag, Textarea } from "@wren/ui";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { SELECT } from "../work/bits.js";
+import { postLooks } from "./posts.js";
+import { PlatformPreview, type Typed } from "./shape-preview.js";
 
 /** `@wren/content`'s `shapeView`: a draft's fields, words and file links. */
 export type Shape = {
@@ -24,6 +27,8 @@ export type Shape = {
   fields: FieldView[];
   links: Record<string, string>;
   media: { kind: "image" | "video"; name: string } | null;
+  /** When it posts, once approved with a time. */
+  scheduled: string | null;
   published: { url: string | null; at: string | null; notes: string | null } | null;
 };
 
@@ -34,6 +39,32 @@ const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(e
 const nameOf = (s: string) => s.slice(s.lastIndexOf("/") + 1);
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
+
+/**
+ * Each field as typed, saved or not, by draft and key: the preview beside the form reads it, so a
+ * change shows as it's made.
+ */
+const typedNow = new Map<string, unknown>();
+let typedRev = 0;
+const typedSubs = new Set<() => void>();
+function typeIn(draftId: string, key: string, value: unknown) {
+  const k = `${draftId}:${key}`;
+  if (typedNow.has(k) && Object.is(typedNow.get(k), value)) return;
+  typedNow.set(k, value);
+  typedRev++;
+  for (const f of typedSubs) f();
+}
+const subscribe = (f: () => void) => {
+  typedSubs.add(f);
+  return () => typedSubs.delete(f);
+};
+function useTyped(draftId: string): Typed {
+  useSyncExternalStore(subscribe, () => typedRev);
+  return (key) => {
+    const k = `${draftId}:${key}`;
+    return { has: typedNow.has(k), value: typedNow.get(k) };
+  };
+}
 
 /** A list as one line: "ops, growth". */
 const listText = (v: unknown) => (Array.isArray(v) ? v.join(", ") : "");
@@ -121,8 +152,19 @@ function Head({
   );
 }
 
+/** What a line, list or number reads as once typed. */
+const typedValue = (f: FieldView, t: string) => {
+  const v = t.trim();
+  if (v === "") return undefined;
+  if (f.input === "list") return listOf(v);
+  if (f.input === "number") return Number.isNaN(Number(v)) ? undefined : Number(v);
+  return v;
+};
+
+type FieldProps = { f: FieldView; act: RecordAct; draftId: string };
+
 /** A line, a long text, a number or a list: saved on blur and Enter. */
-function TextField({ f, act }: { f: FieldView; act: RecordAct }) {
+function TextField({ f, act, draftId }: FieldProps) {
   const value = textOf(f);
   const [text, setText] = useState(value);
   const { said, bad, run, clear } = useSave(act);
@@ -132,6 +174,7 @@ function TextField({ f, act }: { f: FieldView; act: RecordAct }) {
   useEffect(() => {
     if (!live.current) setText(value);
   }, [value]);
+  useEffect(() => typeIn(draftId, f.key, typedValue(f, text)), [draftId, f, text]);
   const save = async () => {
     if (text.trim() === value.trim()) return;
     const t = text.trim();
@@ -191,9 +234,20 @@ function TextField({ f, act }: { f: FieldView; act: RecordAct }) {
   );
 }
 
+/** A pick or a switch shows in the preview at once; a refused one goes back to what's saved. */
+function useChoice(f: FieldView, act: RecordAct, draftId: string) {
+  const save = useSave(act);
+  useEffect(() => typeIn(draftId, f.key, f.value), [draftId, f.key, f.value]);
+  const choose = async (v: unknown) => {
+    typeIn(draftId, f.key, v ?? undefined);
+    if (!(await save.run(FIELDS, { patch: { [f.key]: v } }))) typeIn(draftId, f.key, f.value);
+  };
+  return { ...save, choose };
+}
+
 /** One of a list: saved when picked. */
-function PickField({ f, act }: { f: FieldView; act: RecordAct }) {
-  const { said, bad, run } = useSave(act);
+function PickField({ f, act, draftId }: FieldProps) {
+  const { said, bad, choose } = useChoice(f, act, draftId);
   const id = `field-${f.key}`;
   const value = typeof f.value === "string" ? f.value : "";
   return (
@@ -203,7 +257,7 @@ function PickField({ f, act }: { f: FieldView; act: RecordAct }) {
         id={id}
         className={SELECT}
         value={value}
-        onChange={(e) => void run(FIELDS, { patch: { [f.key]: e.target.value || null } })}
+        onChange={(e) => void choose(e.target.value || null)}
       >
         <option value="">
           {f.default !== undefined
@@ -222,8 +276,8 @@ function PickField({ f, act }: { f: FieldView; act: RecordAct }) {
 }
 
 /** On or off: saved when clicked. */
-function SwitchField({ f, act }: { f: FieldView; act: RecordAct }) {
-  const { said, bad, run } = useSave(act);
+function SwitchField({ f, act, draftId }: FieldProps) {
+  const { said, bad, choose } = useChoice(f, act, draftId);
   const id = `field-${f.key}`;
   const on = typeof f.value === "boolean" ? f.value : f.default === true;
   return (
@@ -234,7 +288,7 @@ function SwitchField({ f, act }: { f: FieldView; act: RecordAct }) {
             id={id}
             type="checkbox"
             checked={on}
-            onChange={(e) => void run(FIELDS, { patch: { [f.key]: e.target.checked } })}
+            onChange={(e) => void choose(e.target.checked)}
             className="size-4 accent-(--ui-accent)"
           />
           <span className="text-[14px]">
@@ -264,7 +318,7 @@ const base64Of = (file: File) =>
   });
 
 /** A thumbnail, cover or subtitles file: picked and uploaded, or removed. */
-function FileField({ f, act, link }: { f: FieldView; act: RecordAct; link: string | null }) {
+function FileField({ f, act, link }: FieldProps & { link: string | null }) {
   const { said, bad, run, fail } = useSave(act);
   const [busy, setBusy] = useState(false);
   const pickRef = useRef<HTMLInputElement>(null);
@@ -358,151 +412,145 @@ function Fixed({ f, link }: { f: FieldView; link?: string | null }) {
   );
 }
 
-/** Every field of the post: editable while it waits, as it went out once posted. */
+/** Who sees it, where it goes and what it's called: Basics; files and frames: Media. */
+const BASICS = new Set([
+  "kind",
+  "title",
+  "subreddit",
+  "url",
+  "link",
+  "privacyStatus",
+  "visibility",
+  "privacy",
+  "madeForKids",
+  "shareToFeed",
+]);
+const MEDIA = new Set(["thumbOffset", "coverMs", "captionsLanguage"]);
+type Group = "basics" | "media" | "details";
+const groupOf = (f: FieldView): Group =>
+  f.input === "image" || f.input === "captions" || MEDIA.has(f.key)
+    ? "media"
+    : BASICS.has(f.key) || f.required
+      ? "basics"
+      : "details";
+const isSet = (f: FieldView) =>
+  f.value !== undefined &&
+  f.value !== null &&
+  f.value !== "" &&
+  !(Array.isArray(f.value) && !f.value.length);
+
+const GROUP_HEAD =
+  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+const GRID = "grid gap-5 @min-[440px]/fields:grid-cols-2";
+const when = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+/** When it posts: a line in Basics, set by Approve. */
+function Schedule({ shape }: { shape: Shape }) {
+  const at = shape.published?.at ?? shape.scheduled ?? null;
+  return (
+    <div className="grid min-w-0 gap-1">
+      <span className={LABEL}>{shape.published ? "Posted" : "Posts at"}</span>
+      <span className="text-[14px]">
+        {at ? when(at) : shape.editable ? "Its next slot, once approved" : "Not scheduled"}
+      </span>
+    </div>
+  );
+}
+
+/** Every field of the post, grouped: editable while it waits, as it went out once posted. */
 export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
-  return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      {shape.fields.map((f) => {
-        const link = shape.links[f.key] ?? null;
-        const wide =
-          f.input === "long" || f.input === "image" || f.input === "captions" || f.key === "title";
-        const cell = (node: ReactNode) => (
-          <div key={f.key} className={wide ? "sm:col-span-2" : ""}>
-            {node}
-          </div>
+  const cells = (fields: FieldView[]) =>
+    fields.map((f) => {
+      const link = shape.links[f.key] ?? null;
+      const wide =
+        f.input === "long" || f.input === "image" || f.input === "captions" || f.key === "title";
+      const props = { f, act, draftId: shape.draftId };
+      const node =
+        !shape.editable || f.status !== "sent" || f.readOnly ? (
+          <Fixed f={f} link={link} />
+        ) : f.input === "pick" ? (
+          <PickField {...props} />
+        ) : f.input === "switch" ? (
+          <SwitchField {...props} />
+        ) : f.input === "image" || f.input === "captions" ? (
+          <FileField {...props} link={link} />
+        ) : (
+          <TextField {...props} />
         );
-        if (!shape.editable || f.status !== "sent" || f.readOnly)
-          return cell(<Fixed f={f} link={link} />);
-        if (f.input === "pick") return cell(<PickField f={f} act={act} />);
-        if (f.input === "switch") return cell(<SwitchField f={f} act={act} />);
-        if (f.input === "image" || f.input === "captions")
-          return cell(<FileField f={f} act={act} link={link} />);
-        return cell(<TextField f={f} act={act} />);
-      })}
-    </div>
-  );
-}
-
-const val = (s: Shape, key: string) => s.fields.find((f) => f.key === key)?.value;
-const str = (v: unknown) => (typeof v === "string" && v ? v : null);
-const FRAME =
-  "overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)]";
-const EMPTY_ART =
-  "grid place-items-center bg-(--ui-hair) text-center text-[13px] text-(--ui-ink-2)";
-const pickLabel = (s: Shape, key: string) => {
-  const f = s.fields.find((x) => x.key === key);
-  const v = (f?.value ?? f?.default) as string | undefined;
-  return f?.options?.find((o) => o.value === v)?.label ?? v ?? null;
-};
-
-/** YouTube's watch card: the thumbnail, the title, the channel; a Short stands tall. */
-function YouTubeCard({ s }: { s: Shape }) {
-  const short = s.kind === "short";
-  const thumb = s.links.thumbnail ?? null;
-  return (
-    <div className={`${FRAME} ${short ? "w-56" : "w-full max-w-[420px]"}`}>
-      {thumb && !short ? (
-        <img src={thumb} alt="Thumbnail" className="aspect-video w-full object-cover" />
-      ) : (
-        <div className={`${EMPTY_ART} ${short ? "aspect-[9/16]" : "aspect-video"}`}>
-          {short ? "A frame YouTube picks" : "No thumbnail: YouTube picks a frame"}
+      return (
+        <div key={f.key} className={wide ? "@min-[440px]/fields:col-span-2" : ""}>
+          {node}
         </div>
-      )}
-      <div className="grid gap-1 p-3">
-        <p className="line-clamp-2 text-[15px] font-semibold leading-snug">
-          {s.title || "No title"}
-        </p>
-        <p className="text-[13px] text-(--ui-ink-2)">
-          Wren Automation · {pickLabel(s, "privacyStatus") ?? "Private"}
-          {short ? " · Short" : ""}
-        </p>
-        {s.text ? <p className="line-clamp-2 text-[13px] text-(--ui-ink-2)">{s.text}</p> : null}
-      </div>
-    </div>
-  );
-}
-
-/** Reddit's card: the subreddit, the title, the body or the link. */
-function RedditCard({ s }: { s: Shape }) {
-  const sub = str(val(s, "subreddit"));
-  const link = str(val(s, "url"));
+      );
+    });
+  const of = (g: Group) => shape.fields.filter((f) => groupOf(f) === g);
+  const media = of("media");
+  const details = of("details");
   return (
-    <div className={`${FRAME} grid w-full max-w-[560px] gap-1.5 p-3`}>
-      <p className="text-[12px] text-(--ui-ink-2)">
-        <span className="font-semibold text-(--ui-ink)">{sub ? `r/${sub}` : "No subreddit"}</span> ·
-        Posted by you
-      </p>
-      <p className="text-[16px] font-semibold leading-snug">{s.title || "No title"}</p>
-      {link ? (
-        <p className="truncate text-[13px] text-(--ui-accent)">{link}</p>
-      ) : (
-        <p className="line-clamp-4 whitespace-pre-wrap text-[14px]">{s.text}</p>
-      )}
-    </div>
-  );
-}
-
-/** LinkedIn's feed card: who, who sees it, the text cut where the feed cuts it. */
-function LinkedInCard({ s }: { s: Shape }) {
-  const who = pickLabel(s, "visibility") ?? "Anyone";
-  return (
-    <div className={`${FRAME} grid w-full max-w-[555px] gap-2 p-3`}>
-      <div className="flex items-center gap-2.5">
-        <span className="grid size-10 place-items-center rounded-full bg-(--ui-hair) text-[14px] font-semibold">
-          W
-        </span>
-        <span className="grid">
-          <span className="text-[14px] font-semibold">Wren Automation</span>
-          <span className="text-[12px] text-(--ui-ink-2)">Now · {who}</span>
-        </span>
-      </div>
-      <p className="line-clamp-3 whitespace-pre-wrap text-[14px]">{s.text}</p>
-      {val(s, "noReshare") === true ? (
-        <p className="text-[12px] text-(--ui-ink-2)">Reshares off</p>
+    <div className="@container/fields mt-2 mb-3 grid gap-6 border-t border-(--ui-hair) pt-5">
+      <section aria-label="Basics" className="grid gap-4">
+        <h3 className={GROUP_HEAD}>Basics</h3>
+        <div className={GRID}>
+          {cells(of("basics"))}
+          <Schedule shape={shape} />
+        </div>
+      </section>
+      {media.length || shape.media ? (
+        <section aria-label="Media" className="grid gap-4 border-t border-(--ui-hair) pt-5">
+          <h3 className={GROUP_HEAD}>Media</h3>
+          <div className={GRID}>
+            {shape.media ? (
+              <div className="grid min-w-0 gap-1 @min-[440px]/fields:col-span-2">
+                <span className={LABEL}>{shape.media.kind === "video" ? "Video" : "Image"}</span>
+                <span className="truncate text-[14px]">{shape.media.name}</span>
+              </div>
+            ) : null}
+            {cells(media)}
+          </div>
+        </section>
       ) : null}
+      {details.length ? <Details fields={details} cells={cells} /> : null}
     </div>
   );
 }
 
-/** An Instagram Reel: the cover, the caption over it, the audio and who's on it. */
-function ReelCard({ s }: { s: Shape }) {
-  const cover = s.links.cover ?? null;
-  const at = val(s, "thumbOffset");
-  const collab = Array.isArray(val(s, "collaborators"))
-    ? (val(s, "collaborators") as string[])
-    : [];
-  const audio = str(val(s, "audioName"));
+/** Tags, category, languages and toggles: folded while none is set. */
+function Details({
+  fields,
+  cells,
+}: {
+  fields: FieldView[];
+  cells: (fields: FieldView[]) => ReactNode;
+}) {
+  const set = fields.filter(isSet).length;
+  const [open, setOpen] = useState(set > 0);
   return (
-    <div className={`${FRAME} relative w-56`}>
-      {cover ? (
-        <img src={cover} alt="Cover" className="aspect-[9/16] w-full object-cover" />
-      ) : (
-        <div className={`${EMPTY_ART} aspect-[9/16] px-4`}>
-          {typeof at === "number" ? `The frame at ${at} ms` : "The first frame"}
-        </div>
-      )}
-      <div className="absolute inset-x-0 bottom-0 grid gap-1 bg-black/55 p-3 text-white">
-        <p className="text-[13px] font-semibold">
-          wrenautomation{collab.length ? ` and ${collab.join(", ")}` : ""}
-        </p>
-        <p className="line-clamp-2 text-[12px]">{s.text}</p>
-        <p className="truncate text-[12px] opacity-80">Audio: {audio ?? "original"}</p>
-      </div>
-    </div>
+    <details
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      className="group/details border-t border-(--ui-hair) pt-5"
+    >
+      <summary className="flex w-fit cursor-pointer items-baseline gap-2 marker:text-(--ui-ink-3)">
+        <span className={GROUP_HEAD}>Details</span>
+        <span className="text-[12px] text-(--ui-ink-3)">
+          {set ? `${set} of ${fields.length} set` : `${fields.length} not set`}
+        </span>
+      </summary>
+      <div className={`${GRID} mt-4`}>{cells(fields)}</div>
+    </details>
   );
 }
 
-const CARDS: Record<string, (p: { s: Shape }) => ReactNode> = {
-  youtube: YouTubeCard,
-  reddit: RedditCard,
-  linkedin: LinkedInCard,
-  instagram: ReelCard,
-};
-
-/** The post as its platform shows it; null where the feed preview is all there is. */
-export function ShapePreview({ shape }: { shape: Shape }) {
-  const Card = CARDS[shape.platform];
-  return Card ? <Card s={shape} /> : null;
+/** The post on its platform, reading the fields as typed. */
+function Preview({ shape, detail }: { shape: Shape; detail: unknown }) {
+  return <PlatformPreview shape={shape} typed={useTyped(shape.draftId)} look={postLooks(detail)} />;
 }
 
 /** What the platform refused after the post went up: the post stays, these didn't take. */
@@ -517,23 +565,21 @@ function Notes({ notes }: { notes: string }) {
 }
 
 /**
- * A page's extras with the post's fields and its platform's card, from the detail's `shape`.
- * The card leads; the fields follow, editable while the draft waits.
+ * A page's extras for a post: its fields as the record's form (under the words, above Ask Claude)
+ * and its platform's preview beside them. `extras` draws a row with no shape (a DM in To approve,
+ * a post with no draft behind it).
  */
 export const withShape =
   (extras?: ListPage["extras"]): NonNullable<ListPage["extras"]> =>
   (detail, at) => {
-    const base: RecordExtras = extras ? extras(detail, at) : {};
     const shape = (detail as { shape?: Shape | null } | null)?.shape;
-    if (!shape) return base;
-    const sections: [string, ReactNode][] = [];
-    if (CARDS[shape.platform])
-      sections.push([`On ${shape.site}`, <ShapePreview key="card" shape={shape} />]);
-    sections.push([
-      shape.published ? "What went out" : `${shape.site} fields`,
-      <PostFields key={shape.draftId} shape={shape} act={at.act} />,
-    ]);
-    if (shape.published?.notes)
-      sections.push(["Not set after posting", <Notes key="notes" notes={shape.published.notes} />]);
-    return { ...base, sections: [...sections, ...(base.sections ?? [])] };
+    if (!shape) return extras ? extras(detail, at) : {};
+    const notes = shape.published?.notes;
+    return {
+      form: <PostFields key={shape.draftId} shape={shape} act={at.act} />,
+      aside: <Preview shape={shape} detail={detail} />,
+      ...(notes
+        ? { sections: [["Not set after posting", <Notes key="notes" notes={notes} />]] }
+        : {}),
+    } satisfies RecordExtras;
   };

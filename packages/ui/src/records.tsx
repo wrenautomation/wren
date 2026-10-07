@@ -35,7 +35,7 @@ import { can, canAt, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
-import { DraftBox, type DraftHandle, type RecordDraft } from "./draft.js";
+import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
 import {
   ASK_FOCUS,
   ASK_POLL_MS,
@@ -143,6 +143,17 @@ export interface RecordExtras {
   poll?: number;
   /** The draft it holds, edited in place first in the details (`DraftBox`). */
   draft?: RecordDraft;
+  /**
+   * Its own form (a post's platform fields): under the draft's words and above Ask Claude, or
+   * first in the details when there is no draft.
+   */
+  form?: ReactNode;
+  /**
+   * How it looks where it goes, drawn live (`useDraftText`): beside the details and sticky on a
+   * wide page, above them behind a Preview button on a narrow one. The draft box then keeps only
+   * its counts.
+   */
+  aside?: ReactNode;
 }
 
 /**
@@ -1552,6 +1563,8 @@ export function RecordBody({
   );
   /** The draft box, when the record holds one: what's typed is saved before any head action. */
   const draftBox = useRef<DraftHandle | null>(null);
+  /** What's typed in that box now, for a live preview beside it; this record's only. */
+  const [typed, setTyped] = useState<{ id: string; text: string } | null>(null);
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
@@ -1884,9 +1897,10 @@ export function RecordBody({
       ) : relatedType ? (
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
       ) : (
-        <div className="grid gap-6">
+        <Beside aside={more.aside} text={typed?.id === id ? typed.text : null}>
           {/* What a draft answers (their words, the thread so far) reads before it. */}
           {more.lead}
+          {box ? null : more.form}
           {editing && state ? (
             <>
               <EditFields
@@ -1920,6 +1934,9 @@ export function RecordBody({
               changed={acted}
               send={sendAction ? () => runHead(sendAction) : undefined}
               handle={draftBox}
+              between={more.form}
+              framed={!more.aside}
+              onText={more.aside ? (text) => setTyped({ id, text }) : undefined}
             />
           ) : null}
           {rest.some((f) => !f.group) || more.facts?.length ? (
@@ -1952,9 +1969,55 @@ export function RecordBody({
               {body}
             </section>
           ))}
-        </div>
+        </Beside>
       )}
     </article>
+  );
+}
+
+/**
+ * The details, with the record's live preview beside them when it has one: on a wide page the
+ * preview is the right column and stays in view while the fields scroll; on a narrow one it sits
+ * above them, folded behind a Preview button so the fields stay near the top.
+ */
+function Beside({
+  aside,
+  text,
+  children,
+}: {
+  aside: ReactNode;
+  text: string | null;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!aside) return <div className="grid gap-6">{children}</div>;
+  return (
+    <DraftText.Provider value={text}>
+      <div className="@container/record">
+        <div
+          // Two columns once the record has room for both: about a 1100 px window beside the nav.
+          className="grid gap-4 @min-[760px]/record:grid-cols-[minmax(0,1fr)_minmax(0,360px)] @min-[760px]/record:gap-x-10"
+        >
+          <div className="grid min-w-0 content-start gap-3 @min-[760px]/record:sticky @min-[760px]/record:top-4 @min-[760px]/record:col-start-2 @min-[760px]/record:row-start-1 @min-[760px]/record:max-h-[calc(100dvh-2rem)] @min-[760px]/record:self-start @min-[760px]/record:overflow-y-auto">
+            <Button
+              tone="secondary"
+              size="dense"
+              className="w-fit @min-[760px]/record:hidden"
+              aria-expanded={open}
+              onClick={() => setOpen((o) => !o)}
+            >
+              {open ? "Hide preview" : "Preview"}
+            </Button>
+            <div className={open ? "min-w-0" : "hidden min-w-0 @min-[760px]/record:block"}>
+              {aside}
+            </div>
+          </div>
+          <div className="grid min-w-0 content-start gap-6 @min-[760px]/record:col-start-1 @min-[760px]/record:row-start-1">
+            {children}
+          </div>
+        </div>
+      </div>
+    </DraftText.Provider>
   );
 }
 

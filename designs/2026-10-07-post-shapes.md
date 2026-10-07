@@ -19,8 +19,9 @@ and see everything."
   development"). Never a field that saves and then goes nowhere.
 - **Same editor in three places**: the draft page, To approve, and the published post (read only:
   what went out).
-- **Previews per platform**: YouTube watch card (thumbnail, title), Reddit card (subreddit,
-  flair), LinkedIn feed card, IG Reel card (cover), TikTok, X and Facebook keep the feed preview.
+- **Previews per platform**: YouTube home, search and watch page (a Short: shelf and player),
+  Reddit post, LinkedIn feed, IG Reel and grid tile, TikTok, X. Facebook keeps the generic feed
+  preview.
 - **Files**: thumbnail, Reel cover and caption files go to the media bucket through a ContentDesk
   `attach` handler (bytes in the call, 2 MB cap). No new bucket CORS, so it works on today's
   infra. The draft keeps `s3://bucket/media/<hash>.<ext>`; previews sign a GET.
@@ -29,6 +30,20 @@ and see everything."
   carries `fields` on each version.
 - **Migration**: none. Prod drafts carry no `extra` keys today (checked 2026-10-07), and every key
   keeps its current name, so old rows parse.
+
+## Layout (2026-10-07, after review)
+
+William: one narrow column, generic feed cards above the real one, fields far from the preview.
+
+- One layout for Drafts, To approve and Posts: the record detail's `form` and `aside`
+  (`RecordExtras`). Left: the words, the fields, Ask Claude. Right: the platform preview, sticky,
+  live as he types (`useDraftText`, fields as typed).
+- Two columns when the record is 760 px or wider (about a 1100 px window). Below that one column,
+  the preview folded behind a Preview button above the fields.
+- Width stays the record pages' 880 px.
+- Fields in three groups: Basics (title, who sees it, when it posts), Media (files, frames,
+  subtitles), Details (the rest; folded while none is set).
+- Phone and laptop toggle only on YouTube videos, Reddit and LinkedIn.
 
 ## Overlap with the video editor (2026-10-07)
 

@@ -26,6 +26,8 @@ export interface ShapeView {
   /** A link to see each stored file by its field's key; "media" is the post's own file. */
   links: Record<string, string>;
   media: { kind: "image" | "video"; name: string } | null;
+  /** When it posts, once approved with a time. */
+  scheduled: string | null;
   /** Posted: where, when, and what the platform refused after it went up. */
   published: { url: string | null; at: string | null; notes: string | null } | null;
 }
@@ -73,6 +75,7 @@ export async function shapeView(
     fields,
     links,
     media: d.media ? { kind: d.media.kind, name: d.media.title || nameOf(d.media.source) } : null,
+    scheduled: d.scheduledFor?.toISOString() ?? null,
     published: posted
       ? { url: d.url, at: d.publishedAt?.toISOString() ?? null, notes: d.error }
       : null,

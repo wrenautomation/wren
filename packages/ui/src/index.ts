@@ -40,7 +40,13 @@ export {
 } from "./dictate.js";
 export { joinDictated } from "./dictate-text.js";
 export { Diff, pairsOf } from "./diff.js";
-export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
+export {
+  DraftText,
+  type DraftTurnLine,
+  DraftTurns,
+  type RecordDraft,
+  useDraftText,
+} from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {
   type CiteTo,
@@ -121,7 +127,7 @@ export {
   type Variant,
 } from "./palette-brand.js";
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
-export { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
+export { DeviceFrame, type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";

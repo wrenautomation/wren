@@ -139,7 +139,7 @@ export function MessagePreview({
       <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
       {message.kind === "dm" ? (
         <>
-          <Frame label={`Messages, laptop (${message.site})`} width={DM_LIST}>
+          <DeviceFrame label={`Messages, laptop (${message.site})`} width={DM_LIST}>
             <div className="flex items-center gap-3 px-3 py-2.5 text-[14px] leading-[1.3]">
               <span className="size-10 shrink-0 rounded-full bg-[#d9d9de]" />
               <span className="grid min-w-0 flex-1">
@@ -153,23 +153,23 @@ export function MessagePreview({
                 </span>
               </span>
             </div>
-          </Frame>
-          <Frame label={`Lock screen (${message.site})`} width={PHONE}>
+          </DeviceFrame>
+          <DeviceFrame label={`Lock screen (${message.site})`} width={PHONE}>
             <LockScreen
               from={from}
               body={`${message.subject ? `${message.subject}\n` : ""}${body}`}
             />
-          </Frame>
+          </DeviceFrame>
           {openedOn}
-          <Frame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
+          <DeviceFrame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
             {message.subject ? <p className="px-3 pt-3 font-semibold">{message.subject}</p> : null}
             <Bubble body={body} size={opened === "phone" ? 17 : 14} />
-          </Frame>
+          </DeviceFrame>
         </>
       ) : message.kind === "post" ? (
         <>
           {(["laptop", "phone"] as const).map((d) => (
-            <Frame
+            <DeviceFrame
               key={d}
               label={`Feed, ${d} (${message.site}${cutOf(message.feed[d])})`}
               width={d === "phone" ? PHONE : FEED}
@@ -181,10 +181,10 @@ export function MessagePreview({
                 lines={message.feed[d]}
                 size={d === "phone" ? 15 : 14}
               />
-            </Frame>
+            </DeviceFrame>
           ))}
           {openedOn}
-          <Frame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
+          <DeviceFrame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
             <FeedPost
               from={from}
               title={message.title}
@@ -192,35 +192,35 @@ export function MessagePreview({
               lines={null}
               size={opened === "phone" ? 15 : 14}
             />
-          </Frame>
+          </DeviceFrame>
         </>
       ) : message.kind === "email" ? (
         <>
-          <Frame label="Inbox, laptop (Gmail)" width={LAPTOP} zoom={LAPTOP_ZOOM}>
+          <DeviceFrame label="Inbox, laptop (Gmail)" width={LAPTOP} zoom={LAPTOP_ZOOM}>
             <GmailRow from={from} subject={message.subject} body={body} />
-          </Frame>
-          <Frame label="Inbox, phone (iPhone Mail)" width={PHONE}>
+          </DeviceFrame>
+          <DeviceFrame label="Inbox, phone (iPhone Mail)" width={PHONE}>
             <IosMailRow from={from} subject={message.subject} body={body} />
-          </Frame>
+          </DeviceFrame>
           {openedOn}
           {opened === "phone" ? (
-            <Frame label="Opened, phone" width={PHONE}>
+            <DeviceFrame label="Opened, phone" width={PHONE}>
               <Opened from={from} subject={message.subject} body={body} size={17} pad={16} />
-            </Frame>
+            </DeviceFrame>
           ) : (
-            <Frame label="Opened, laptop" width={LAPTOP} zoom={LAPTOP_ZOOM}>
+            <DeviceFrame label="Opened, laptop" width={LAPTOP} zoom={LAPTOP_ZOOM}>
               <Opened from={from} subject={message.subject} body={body} size={14} pad={24} />
-            </Frame>
+            </DeviceFrame>
           )}
         </>
       ) : (
         <>
-          <Frame label="Lock screen" width={PHONE}>
+          <DeviceFrame label="Lock screen" width={PHONE}>
             <LockScreen from={from} body={body} />
-          </Frame>
-          <Frame label="Opened, phone (Messages)" width={PHONE}>
+          </DeviceFrame>
+          <DeviceFrame label="Opened, phone (Messages)" width={PHONE}>
             <Bubble body={body} size={17} />
-          </Frame>
+          </DeviceFrame>
         </>
       )}
     </section>
@@ -250,14 +250,17 @@ const Bubble = ({ body, size }: { body: string; size: number }) => (
   </div>
 );
 
-/** A device's width, in white like the apps; scaled when it is a laptop's. */
-function Frame({
+/**
+ * A device's width, in white like the apps; scaled when it is a laptop's. The platform previews
+ * (a YouTube watch page, a Reel) draw in it too.
+ */
+export function DeviceFrame({
   label,
   width,
   zoom = 1,
   children,
 }: {
-  label: string;
+  label?: string | undefined;
   width: number;
   zoom?: number;
   children: ReactNode;
@@ -277,7 +280,7 @@ function Frame({
   }, [width, zoom]);
   return (
     <figure className="m-0 grid min-w-0 gap-1">
-      <figcaption className="text-[12px] text-(--ui-ink-3)">{label}</figcaption>
+      {label ? <figcaption className="text-[12px] text-(--ui-ink-3)">{label}</figcaption> : null}
       <div ref={room} className="max-w-full min-w-0 overflow-hidden">
         <div
           style={{ width, zoom: fit }}

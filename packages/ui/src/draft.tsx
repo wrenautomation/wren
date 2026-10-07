@@ -4,14 +4,23 @@
  * ⌘Enter saves and runs the record's send action (its confirm still asks). A line under it asks
  * Claude; the turns show above that line, with Undo beside the newest change.
  */
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  createContext,
+  type KeyboardEvent,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import type { Action, Call } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
-import { type MessageKind, MessagePreview } from "./preview.js";
+import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** One turn on a draft, oldest first (`@wren/core/ask` DraftTurn). */
@@ -101,6 +110,11 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
   );
 }
 
+/** What's typed in the record's draft box now, unsaved too: a preview beside it reads it live. */
+export const DraftText = createContext<string | null>(null);
+/** The draft box's words as typed, or null where the record holds no box. */
+export const useDraftText = () => useContext(DraftText);
+
 type Saved = "idle" | "saving" | "saved" | "failed";
 
 /**
@@ -116,6 +130,9 @@ export function DraftBox({
   changed,
   send,
   handle,
+  between,
+  framed = true,
+  onText,
 }: {
   draft: RecordDraft;
   id: string | number;
@@ -124,6 +141,12 @@ export function DraftBox({
   changed: (ids: (string | number)[]) => void;
   send?: (() => void) | undefined;
   handle?: { current: DraftHandle | null } | undefined;
+  /** The record's own fields, drawn under the words and above Ask Claude. */
+  between?: ReactNode;
+  /** False when the preview sits beside the box: the box keeps only the counts. */
+  framed?: boolean | undefined;
+  /** Told each change to the words, saved or not. */
+  onText?: ((text: string) => void) | undefined;
 }) {
   const save = actions.find((a) => a.id === draft.save);
   const ask = actions.find((a) => a.id === draft.ask);
@@ -141,6 +164,9 @@ export function DraftBox({
   const box = useRef<HTMLTextAreaElement>(null);
   const askBox = useRef<HTMLInputElement>(null);
   const dirty = text.trim() !== base.trim();
+  const told = useRef(onText);
+  told.current = onText;
+  useEffect(() => told.current?.(text), [text]);
 
   // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
   const live = useRef({ dirty, server });
@@ -299,7 +325,16 @@ export function DraftBox({
           />
         </div>
       ) : null}
-      {draft.preview && text.trim() ? <MessagePreview message={draft.preview} body={text} /> : null}
+      {draft.preview && text.trim() ? (
+        framed ? (
+          <MessagePreview message={draft.preview} body={text} />
+        ) : (
+          <p className="text-[13px] text-(--ui-ink-2)">
+            {shapeOf(draft.preview, text).join(" · ")}
+          </p>
+        )
+      ) : null}
+      {between}
       {turns.length ? <DraftTurns turns={turns} /> : null}
       {ask || (undo && (last || dirty)) ? (
         <div className="flex min-w-0 items-center gap-2">
