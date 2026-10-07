@@ -25,6 +25,10 @@ export const LEARN_CONSOLE_ROUTES = {
   toSop: "wren:team",
   search: "wren:team",
   item: "wren:team",
+  unseen: "wren:team",
+  seen: "wren:team",
+  // A client's login loads its own items' pictures and audio: the handler checks the item's client.
+  media: "read",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): the Learn app. */
 export const LEARN_CONSOLE_APPS = { "*": "learn" } as const satisfies RouteApps<
@@ -45,4 +49,5 @@ export const LEARN_CONSOLE_WRITES: readonly (keyof typeof LEARN_CONSOLE_ROUTES)[
   "collectionDrop",
   "readAgain",
   "toSop",
+  "seen",
 ];

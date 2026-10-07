@@ -43,11 +43,34 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await pg.db.execute(
-    sql`TRUNCATE learn.item_tags, learn.collections, learn.sop_sources, learn.items, learn.sources, learn.digests, events RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE learn.item_tags, learn.collections, learn.sop_sources, learn.items, learn.sources, learn.digests, learn.seen, events RESTART IDENTITY CASCADE`,
   );
 });
 
 const viewer = { viewer: { email: "me@wren.example" } } as unknown as PortalRequest;
+/** A source with a picture, and items from it: synthetic addresses only. */
+async function fromSource(n: number, o: { client?: string; at?: Date } = {}) {
+  const [src] = await pg.db
+    .insert(sources)
+    .values({
+      url: `https://feeds.example/${n}.xml`,
+      name: `Synthetic ${n}`,
+      avatarUrl: `https://img.example/s${n}.png`,
+    })
+    .returning();
+  const [item] = await pg.db
+    .insert(items)
+    .values({
+      url: `https://news.example/${n}`,
+      title: `Item ${n}`,
+      sourceId: src?.id,
+      thumbnailUrl: `https://img.example/t${n}.jpg`,
+      client: o.client ?? null,
+      ...(o.at ? { createdAt: o.at } : {}),
+    })
+    .returning();
+  return item?.id as number;
+}
 const LONG = "A long synthetic paragraph about warmup schedules. ".repeat(40);
 
 const rss = (entries: string[]) =>
@@ -544,5 +567,41 @@ describe("Learn", () => {
       duration: 640,
       moments: [{ t: 125, label: "The warmup rule" }],
     });
+  });
+  it("counts what sources brought since this viewer last looked", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    await fromSource(1, { at: new Date(Date.now() - 60_000) });
+    await api.save({ ...viewer, url: "https://news.example/saved-by-hand" });
+    // Never looked: everything new from a source; a save by hand isn't news.
+    expect(await api.unseen(viewer)).toEqual({ n: 1 });
+    await api.seen(viewer);
+    expect(await api.unseen(viewer)).toEqual({ n: 0 });
+    const later = await fromSource(2, { at: new Date(Date.now() + 60_000) });
+    expect(await api.unseen(viewer)).toEqual({ n: 1 });
+    // Opened is read, not new.
+    await api.open({ ...viewer, id: String(later) });
+    expect(await api.unseen(viewer)).toEqual({ n: 0 });
+    // Each person's own.
+    const other = { viewer: { email: "you@wren.example" } } as unknown as PortalRequest;
+    expect(await api.unseen(other)).toEqual({ n: 1 });
+  });
+
+  it("gives a workspace the media of its own items only", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const wren = await fromSource(1);
+    const acme = await fromSource(2, { client: "acme" });
+    const ask = (client: string | undefined, ids: number[]) =>
+      api.media({ ...viewer, ...(client ? { client } : {}), ids: ids.map(String) });
+    expect((await ask("acme", [wren, acme])).urls.sort()).toEqual([
+      "https://img.example/s2.png",
+      "https://img.example/t2.jpg",
+    ]);
+    expect((await ask("other", [acme])).urls).toEqual([]);
+    // Wren's own: no client named, or Wren's.
+    expect((await ask(undefined, [wren, acme])).urls.sort()).toEqual([
+      "https://img.example/s1.png",
+      "https://img.example/t1.jpg",
+    ]);
+    expect((await ask("wren", [acme])).urls).toEqual([]);
   });
 });

@@ -176,6 +176,20 @@ const write = async <T>(route: string, body: Record<string, unknown>): Promise<T
   return out;
 };
 
+/** The last "I looked" sent: the badge's count waits for it, so it never counts what was just seen. */
+let seeing: Promise<unknown> = Promise.resolve();
+
+/** He looked at Items: the badge counts from now. */
+export function markSeen() {
+  seeing = call("learn/seen", {}).catch(() => undefined);
+}
+
+/** Learn's badge: new from sources since he last looked at Items. */
+export async function unseenCount(): Promise<number> {
+  await seeing;
+  return (await call<{ n: number }>("learn/unseen", {})).n;
+}
+
 export const learn = {
   browse: (a: BrowseAsk) =>
     call<Browsed>("learn/browse", {

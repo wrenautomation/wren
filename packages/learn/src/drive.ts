@@ -14,6 +14,7 @@ import {
   type Moment,
   SOURCE_KINDS,
   type SourceKind,
+  seen,
   sopSources,
   sources,
   TYPES,
@@ -269,6 +270,58 @@ export async function browse(db: Queryable, b: Browse) {
     >,
     sources: bySource.map((r) => ({ ...r, n: Number(r.n) })),
   };
+}
+
+/**
+ * Learn's badge: what this person's sources brought since they last looked, still new (not
+ * opened, archived or dropped). Never looked: everything new from a source.
+ */
+export async function unseen(db: Queryable, email: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(items)
+    .leftJoin(seen, eq(seen.email, email.toLowerCase()))
+    .where(
+      and(
+        isNotNull(items.sourceId),
+        fresh,
+        sql`(${seen.at} is null or ${items.createdAt} > ${seen.at})`,
+      ),
+    );
+  return row?.n ?? 0;
+}
+
+/** They looked: the badge counts from now. */
+export async function markSeen(db: Queryable, email: string, at = new Date()): Promise<void> {
+  await db
+    .insert(seen)
+    .values({ email: email.toLowerCase(), at })
+    .onConflictDoUpdate({ target: seen.email, set: { at } });
+}
+
+/**
+ * The pictures and audio of these items that a viewer of `client` may load: the item's own
+ * client must be that one (none is Wren's own). Thumbnails, episode audio, source avatars.
+ */
+export async function mediaOf(
+  db: Queryable,
+  ids: readonly number[],
+  client: string | null,
+): Promise<string[]> {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ thumb: items.thumbnailUrl, media: items.mediaUrl, avatar: sources.avatarUrl })
+    .from(items)
+    .leftJoin(sources, eq(sources.id, items.sourceId))
+    .where(
+      and(
+        inArray(items.id, [...ids]),
+        client === null ? isNull(items.client) : eq(items.client, client),
+      ),
+    );
+  return [
+    ...new Set(rows.flatMap((r) => [r.thumb, r.media, r.avatar]).filter((u): u is string => !!u)),
+  ];
 }
 
 /** The rail: counts per place, the collections tree, sources by kind, tags. */

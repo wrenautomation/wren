@@ -5,6 +5,7 @@
  * and search every transcript. A save that still has to be read goes onto the spine.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { WREN } from "@wren/core/access";
 import {
   answer,
   PortalRefusal,
@@ -28,6 +29,8 @@ import {
   MARKS,
   type Mark,
   mark,
+  markSeen,
+  mediaOf,
   moveItems,
   opened,
   PLACES,
@@ -36,6 +39,7 @@ import {
   SORTS,
   sourcesByKind,
   tagItems,
+  unseen,
 } from "./drive.js";
 import { type FetchFn, follow, itemEvent } from "./feeds.js";
 import { saveLink, searchItems } from "./items.js";
@@ -213,6 +217,18 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
         }),
       ),
     rail: () => rail(db),
+    /** Learn's badge: new from sources since this viewer last looked. */
+    unseen: async (req: PortalRequest) => ({ n: await unseen(db, by(req)) }),
+    seen: (req: PortalRequest) =>
+      write(req, async (tx) => {
+        await markSeen(tx, by(req));
+        return { ok: true };
+      }),
+    /** The media these items may load for the workspace asked: Wren's own, or a client's. */
+    media: async (req: IdsRequest) => {
+      const named = typeof req.client === "string" && req.client !== WREN ? req.client : null;
+      return { urls: await mediaOf(db, idsOf(req), named) };
+    },
     home: () => home(db),
     sources: async () => ({ kinds: await sourcesByKind(db) }),
     mark: async (req: MarkRequest) => {
@@ -495,6 +511,18 @@ export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch) {
       item: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, id: z.string() }) },
         (_: restate.Context, req: ItemRequest) => answer(() => api.item(req)),
+      ),
+      unseen: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.unseen(req)),
+      ),
+      seen: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.seen(req)),
+      ),
+      media: serviceHandler(
+        { input: z.looseObject({ ...IDS, ids: z.array(z.string()).max(200) }) },
+        (_: restate.Context, req: IdsRequest) => answer(() => api.media(req)),
       ),
     },
   });

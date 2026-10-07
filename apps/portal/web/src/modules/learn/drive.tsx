@@ -42,7 +42,15 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { keepOf } from "../../records.js";
 import { href, navigate, useRoute } from "../../route.js";
-import { type Browsed, type Card, type ItemType, learn, type Mark, onChanged } from "./api.js";
+import {
+  type Browsed,
+  type Card,
+  type ItemType,
+  learn,
+  type Mark,
+  markSeen,
+  onChanged,
+} from "./api.js";
 import { DRAG_ITEMS, LearnFrame, PLACE_LABELS, useRail } from "./frame.js";
 import { ItemView } from "./item.js";
 import {
@@ -100,6 +108,8 @@ export function ItemsPage(_: PageProps) {
   const place = p.get("in") || "inbox";
   const tag = p.get("tag");
   const here = tag && place === "all" ? `tag:${tag}` : place;
+  // Items on screen: what the sources brought is seen, and the tab's badge clears.
+  useEffect(() => markSeen(), []);
   return (
     <LearnFrame here={here}>
       {id ? <ItemView id={id} back={href("/learn/items", {}, p)} /> : <Browse params={p} />}

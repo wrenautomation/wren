@@ -8,6 +8,7 @@
 import { createElement, useEffect } from "react";
 import type { Module, PageProps } from "../../module.js";
 import { navigate, useRoute } from "../../route.js";
+import { unseenCount } from "./api.js";
 import { ItemsPage } from "./drive.js";
 import { HomePage } from "./home.js";
 import { AddPage, SearchPage } from "./learn.js";
@@ -36,9 +37,10 @@ export const learn: Module = {
   action: { page: "add", label: "Save a link", icon: "pin" },
   pages: [
     { id: "overview", label: "Home", Page: HomePage, wide: true },
-    { id: "items", label: "Items", Page: ItemsPage, wide: true },
+    // What his sources brought since he last looked at Items.
+    { id: "items", label: "Items", Page: ItemsPage, wide: true, badge: unseenCount },
     { id: "sources", label: "Sources", Page: SourcesPage, wide: true },
-    { id: "search", label: "Search", Page: SearchPage },
+    { id: "search", label: "Search", Page: SearchPage, wide: true },
     {
       id: "sops",
       label: "SOPs",

@@ -7,6 +7,7 @@ import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "rea
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { LearnFrame } from "./frame.js";
 
 interface Saved {
   id: string;
@@ -142,8 +143,16 @@ function Snippet({ text }: { text: string }): ReactNode {
   );
 }
 
-/** Search across every transcript, summary and title. */
+/** Search across every transcript, summary and title, beside the rail like every Learn page. */
 export function SearchPage({ params }: PageProps) {
+  return (
+    <LearnFrame here="search">
+      <SearchBody params={params} />
+    </LearnFrame>
+  );
+}
+
+function SearchBody({ params }: { params: URLSearchParams }) {
   const [q, setQ] = useState(params.get("q") ?? "");
   const [asked, setAsked] = useState(params.get("q") ?? "");
   const hits = useCall(`learn.search:${asked}`, () =>
