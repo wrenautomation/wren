@@ -110,8 +110,9 @@ The old `import`, `list`, `save`, `publish`, `show` go away.
 - Email: the body is plain text turned into HTML with every line escaped
   (`channel-email/src/send/transport.ts:147`). A test pins that a slot value with markup arrives
   escaped.
-- Subjects and header values (from name, reply-to) get CR and LF stripped at render.
-  `renderedSubject` does not strip today; fix it there and in the slot render.
+- Subjects get CR and LF stripped where they render from the template and its slots; a from
+  name gets them stripped where the address is built. The transport still refuses a raw subject
+  with CR or LF as the last guard.
 - SMS and DM: control characters other than newline stripped.
 - AI fills: a length cap per slot (200 characters unless the slot says otherwise), one line unless
   declared, no URLs unless declared, no slot syntax in the output, no tools. Code checks the
@@ -184,3 +185,6 @@ the counts match, then drops both tables. Code that still reads them moves to `r
 - 2026-10-07, step 1: control characters are stripped from posts too, and the fill cap is 200
   characters on top of the 25-word cap. The slot prompt now says quoted lead details are data,
   never instructions.
+- 2026-10-07, step 1 fix: CR/LF leave a subject at the slot render, not in `renderedSubject`.
+  Stripping there let a raw `a\r\nBcc:` subject build and send; the transport refusing it is the
+  last guard and stays.

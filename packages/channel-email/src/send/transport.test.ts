@@ -75,8 +75,6 @@ describe("ConsoleTransport", () => {
     ["Quick question, Jane", null, "Quick question, Jane"],
     [null, "Quick question, Jane", "Re: Quick question, Jane"],
     [null, null, "Re:"],
-    ["Hi Dana\r\nBcc: x@example.com", null, "Hi Dana Bcc: x@example.com"],
-    [null, "Old\nthread", "Re: Old thread"],
   ])(
     "subject rendering is one rule for every transport (%s, %s)",
     (subject, replySubject, expected) => {
