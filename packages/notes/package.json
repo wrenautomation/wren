@@ -11,6 +11,7 @@
     "./doc": "./src/doc.ts",
     "./docx": "./src/docx.ts",
     "./drive": "./src/drive.ts",
+    "./inbox": "./src/inbox.ts",
     "./records": "./src/records.ts",
     "./room": "./src/room.ts",
     "./schema": "./src/schema.ts",

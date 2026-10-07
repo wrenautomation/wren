@@ -459,16 +459,16 @@ export const INBOX_STATUSES = ["open", "waiting", "closed"] as const;
 export type InboxStatus = (typeof INBOX_STATUSES)[number];
 
 /**
- * One Inbox thread's team state, by its typed id (`dm:5`, `text:8`). No row: its status follows
- * the channel's own state. A message in after `status_at` opens it again.
+ * One Inbox thread's team state, by its typed id (`dm:5`, `text:8`). No row or no `status`: its
+ * status follows the channel's own state. A message in after `status_at` opens it again.
  */
 export const inboxThreads = pgTable(
   "inbox_threads",
   {
     thread: varchar("thread", { length: 80 }).notNull(),
     assignee: varchar("assignee", { length: 200 }),
-    status: varchar("status", { length: 8, enum: INBOX_STATUSES }).notNull(),
-    statusAt: timestamp("status_at", { withTimezone: true }).notNull().defaultNow(),
+    status: varchar("status", { length: 8, enum: INBOX_STATUSES }),
+    statusAt: timestamp("status_at", { withTimezone: true }),
     snoozeUntil: timestamp("snooze_until", { withTimezone: true }),
     updatedBy: varchar("updated_by", { length: 200 }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -908,9 +908,15 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/notes':
+        specifier: workspace:*
+        version: link:../notes
       '@wren/outreach':
         specifier: workspace:*
         version: link:../outreach
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
       '@wren/sites':
         specifier: workspace:*
         version: link:../sites

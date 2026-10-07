@@ -30,6 +30,7 @@ import { type Db, serializable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { activeSuppression, type SharedSuppressions } from "../guards.js";
 import {
   type CallInviteState,
   callInvites,
@@ -574,6 +575,38 @@ export async function approveInvite(
       return { ok: false, state: "needs_you", reason: `reply not sent: ${reply.reason}` };
   }
   return { ok: true, state, said, reply };
+}
+
+/**
+ * A reply typed in the Inbox to an email with no call invite: his words as the thread's next step,
+ * sent in that thread. Refused for a suppressed address, a thread with no enrollment, or words
+ * that are empty. Books nothing.
+ */
+export async function replyByHand(
+  db: Db,
+  threadEventId: number,
+  opts: SendReplyOptions & { body: string; shared?: SharedSuppressions | null },
+): Promise<{ ok: true; reply: ReplyOutcome } | { ok: false; reason: string }> {
+  const body = opts.body.trim();
+  if (!body) return { ok: false, reason: "the reply is empty" };
+  const [event] = await db.select().from(threadEvents).where(eq(threadEvents.id, threadEventId));
+  if (event?.kind !== "reply") return { ok: false, reason: "no email reply to answer" };
+  if (event.enrollmentId === null) return { ok: false, reason: "that email has no thread of ours" };
+  const [enrollment] = await db
+    .select()
+    .from(enrollments)
+    .where(eq(enrollments.id, event.enrollmentId));
+  if (!enrollment) return { ok: false, reason: "that email lost its thread" };
+  const to = event.fromAddress ?? enrollment.toEmail;
+  if (to && (await activeSuppression(db, to, opts.shared ?? null)))
+    return { ok: false, reason: "they opted out of email" };
+  const draft = await draftByHand(db, enrollment, event, body);
+  const reply = await sendReply(db, draft.id, event, enrollment, {
+    transport: opts.transport,
+    fleet: opts.fleet,
+    now: opts.now ?? new Date(),
+  });
+  return reply.sent ? { ok: true, reply } : { ok: false, reason: `not sent: ${reply.reason}` };
 }
 
 /** William passes: nothing books, nothing sends, the draft is rejected. */

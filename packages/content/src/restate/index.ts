@@ -1,5 +1,6 @@
 export * from "./desk.js";
 export * from "./draft-ask.js";
+export * from "./inbox-desk.js";
 export * from "./marketing-console.js";
 export * from "./metrics.js";
 export * from "./planner.js";

@@ -30,6 +30,7 @@ import {
   approveInvite,
   dropInvite,
   type InviteStats,
+  replyByHand,
   runInvites,
 } from "../inbox/invite.js";
 import type { ReplyCopy, SendReplyOptions } from "../inbox/reply.js";
@@ -178,6 +179,47 @@ export function makeDisposition(deps: DispositionDeps) {
                 body: req.body ?? null,
                 now,
               });
+            } catch (err) {
+              throw new restate.TerminalError(errorText(err));
+            }
+          });
+        },
+      ),
+
+      /**
+       * The Inbox's reply to an email with no call invite: his words, sent in that thread. A
+       * suppressed address is refused (designs/2026-10-07-inbox-reply.md).
+       */
+      reply: exclusiveHandler(
+        {
+          input: z.looseObject({
+            threadEventId: z.number().describe("The email reply's id"),
+            body: z.string().describe("The words to send"),
+          }),
+          effect: "sends",
+        },
+        async (
+          ctx: restate.ObjectContext,
+          req: { threadEventId: number; body: string },
+        ): Promise<{ ok: boolean; reason: string | null }> => {
+          if (!wired(ctx.key)) {
+            throw new restate.TerminalError("replies are not wired on this worker");
+          }
+          const now = new Date(await ctx.date.now());
+          return ctx.run("reply by hand", async () => {
+            const invites = await invitesFor(ctx.key);
+            const send = invites?.send;
+            if (!send) throw new restate.TerminalError("replies are not on for this key");
+            const owner = ctx.key === DISPOSITION_KEY ? null : clientOfKey(ctx.key);
+            try {
+              const out = await replyByHand(deps.dbOf(ctx.key), req.threadEventId, {
+                transport: send.transport,
+                fleet: send.fleet,
+                body: req.body,
+                now,
+                shared: owner ? { main: deps.dbOf(DISPOSITION_KEY), client: owner.client } : null,
+              });
+              return out.ok ? { ok: true, reason: null } : { ok: false, reason: out.reason };
             } catch (err) {
               throw new restate.TerminalError(errorText(err));
             }

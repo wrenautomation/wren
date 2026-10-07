@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./inbox": "./src/inbox/index.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts"
@@ -23,7 +24,9 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/notes": "workspace:*",
     "@wren/outreach": "workspace:*",
+    "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/studio": "workspace:*",
     "drizzle-orm": "0.45.2",

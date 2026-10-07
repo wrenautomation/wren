@@ -172,6 +172,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
   makeDraftAsk,
+  makeInboxDesk,
   makeMarketingConsole,
   makeSocialDesk,
   makeSocialWatch,
@@ -1023,6 +1024,15 @@ export async function buildServices(
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
     makeDraftAsk(db),
     makeVideoDesk(db),
+    // Reply from the Inbox on the thread's own channel, notes, assignees
+    // (designs/2026-10-07-inbox-reply.md). Each send goes through that channel's desk.
+    makeInboxDesk({
+      db,
+      clientDb,
+      llm: watchLlm,
+      senderName: settings.smsSenderName,
+      facts: () => wrenFacts(db),
+    }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(

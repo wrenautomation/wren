@@ -10,6 +10,7 @@ import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
+  actor,
   cued,
   date,
   defineRecord,
@@ -29,6 +30,9 @@ import { pageApprovalId } from "@wren/sites/console";
 import { waitingPages } from "@wren/sites/store";
 import { sql } from "drizzle-orm";
 import { DRAFT_CALLS } from "../draft-calls.js";
+import { conversationOf } from "../inbox/conversation.js";
+import { waitingReplies } from "../inbox/send.js";
+import { statusOf, threadStates, typed } from "../inbox/threads.js";
 import { shapeView } from "../shape-view.js";
 import type { VideoSigner } from "../video.js";
 import { PLATFORM_NAMES } from "./store.js";
@@ -80,8 +84,10 @@ export const activityRecord = defineRecord({
   actions: ["marketing.activitySeen", "marketing.activityAllSeen"],
 });
 
-/** What waits on William in the Inbox and To approve: unread, unsorted or waiting. */
+/** What waits on William in To approve: unread, unsorted or waiting. */
 export const INBOX_WAITING = { state: ["new", "waiting"] } as const;
+/** What waits on the team in the Inbox: open threads (designs/2026-10-07-inbox-reply.md). */
+export const INBOX_OPEN = { status: ["open"] } as const;
 
 /** An email reply's state, in the Inbox's words: its call invite's, when it has one. */
 const INVITE: Record<string, string> = {
@@ -200,12 +206,6 @@ const STATES = status({
   left: neutral("Left"),
 });
 
-/** Splits a typed id (`dm:5`) into its type and the row's own id. */
-const typed = (id: string) => {
-  const at = id.indexOf(":");
-  return [id.slice(0, at), id.slice(at + 1)] as const;
-};
-
 /**
  * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
  * (a call invite), `reply:6` (a reply with none), `text:8`, `activity:9`); each action reads the
@@ -222,7 +222,19 @@ export const inboxRecord = defineRecord({
     const es = await emailRows(db);
     const xs = await textRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
-    return [
+    const kept = await threadStates(db);
+    const now = new Date();
+    // The team's state on each: who has it, open, waiting, closed or snoozed.
+    const team = (r: Record<string, unknown>) => {
+      const k = kept.get(String(r.id));
+      return {
+        ...r,
+        status: statusOf({ state: r.state, at: r.at }, k, now),
+        assignee: k?.assignee ?? null,
+        snooze: k?.snoozeUntil && k.snoozeUntil > now ? k.snoozeUntil : null,
+      };
+    };
+    const all: Record<string, unknown>[] = [
       ...cs.map((c) => ({
         id: `comment:${c.id}`,
         type: "comment",
@@ -311,12 +323,24 @@ export const inboxRecord = defineRecord({
         url: a.url,
       })),
     ];
+    return all.map(team);
   },
   key: "id",
   title: "who",
   subtitle: "body",
   fields: {
     who: name("Who"),
+    status: status(
+      {
+        open: { label: "Open", tone: "warn" },
+        waiting: neutral("Waiting on them"),
+        snoozed: neutral("Snoozed"),
+        closed: neutral("Closed"),
+      },
+      "Status",
+    ),
+    assignee: actor("Assignee"),
+    snooze: date("Snoozed until"),
     type: status(
       cued({
         comment: neutral("Comment"),
@@ -367,7 +391,23 @@ export const inboxRecord = defineRecord({
     url: link("Open"),
   },
   views: [
-    { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+    { id: "waiting", label: "Waiting on you", where: INBOX_OPEN, sort: "due", at: "due" },
+    {
+      id: "mine",
+      label: "Mine",
+      where: { status: ["open", "waiting", "snoozed"] },
+      mine: "assignee",
+      sort: "due",
+      at: "due",
+    },
+    {
+      id: "unassigned",
+      label: "Unassigned",
+      where: { ...INBOX_OPEN, assignee: { empty: true } },
+      sort: "due",
+      at: "due",
+    },
+    { id: "snoozed", label: "Snoozed", where: { status: "snoozed" }, sort: "snooze", at: "due" },
     { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
     { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
     { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
@@ -391,16 +431,32 @@ export const inboxRecord = defineRecord({
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
+    "inbox.reply",
+    "inbox.ask",
+    "inbox.suggest",
+    "inbox.note",
+    "inbox.assign",
+    "inbox.take",
+    "inbox.open",
+    "inbox.close",
+    "inbox.snooze",
+    "inbox.wake",
   ],
-  /** A DM thread's or a text thread's messages; a draft's Ask Claude thread. */
+  /**
+   * The whole conversation with the person (every channel, touches, notes) and where a reply can
+   * go; a DM thread's or a text thread's own messages; a draft's Ask Claude thread.
+   */
   load: async (db, id) => {
     const [type, rest] = typed(id);
-    if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
+    const conversation = await conversationOf(db, id);
+    if (type === "text")
+      return { ...((await textThreadRecord.load?.(db, rest)) ?? {}), conversation };
     // An email's words and our drafted answer are the row's own.
-    if (["activity", "email", "reply"].includes(type)) return null;
+    if (["activity", "email", "reply"].includes(type)) return { conversation };
     const ask = {
       ask: await draftTurns(db, type, rest),
       record: await recordOfPage(db, type, rest),
+      conversation,
     };
     return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },
@@ -430,7 +486,25 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const asks = await waitingAsks(db);
       const ws = await waitingInstalls(db);
       const pgs = await waitingPages(db);
+      const rs = await waitingReplies(db, ACTIVITY_ROWS);
       return [
+        // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
+        ...rs.map((r) => ({
+          id: `reply:${r.id}`,
+          type: "reply",
+          who: r.who ?? r.thread,
+          platform: r.channel === "text" ? "sms" : r.channel === "email" ? "email" : null,
+          kind: "reply",
+          state: "waiting",
+          body: r.body,
+          post_title: null,
+          why: r.why,
+          draft: null,
+          account: r.askedBy,
+          at: r.askedAt,
+          due: r.askedAt,
+          url: `/inbox/waiting/${encodeURIComponent(r.thread)}`,
+        })),
         ...ps.map((p) => ({
           id: `draft:${p.id}`,
           type: "draft",
@@ -588,6 +662,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           template: neutral("Template"),
           workflow: neutral("Workflow"),
           page: neutral("Page"),
+          reply: neutral("Reply"),
         }),
         "Type",
       ),
@@ -606,6 +681,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           template: neutral("Copy to make live"),
           workflow: neutral("Workflow to make live"),
           page: neutral("Page to make live"),
+          reply: neutral("Reply to send"),
         }),
         "Kind",
       ),
@@ -635,6 +711,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
       { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
       { id: "pages", label: "Pages", where: { type: "page" }, sort: "-at", at: "at" },
+      { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
@@ -665,6 +742,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "workflows.decline",
       "sites.approve",
       "sites.decline",
+      "inbox.replyApprove",
+      "inbox.replyDrop",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
@@ -673,6 +752,13 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const [type, rest] = typed(id);
       if (type === "video" || type === "template" || type === "workflow" || type === "page")
         return null;
+      // An asked reply: the conversation it answers.
+      if (type === "reply") {
+        const [r] = (await db.execute(
+          sql`select thread from inbox_replies where id = ${Number(rest)}`,
+        )) as unknown as Array<{ thread: string }>;
+        return r ? { conversation: await conversationOf(db, r.thread) } : null;
+      }
       const ask = {
         ask: await draftTurns(db, type, rest),
         record: await recordOfPage(db, type, rest),
