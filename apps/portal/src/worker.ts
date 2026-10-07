@@ -9,7 +9,7 @@
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
- *   for an operator.
+ *   for an operator, or for a client's login on its own items.
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -33,7 +33,14 @@ import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { liveRoute, NoteRoom } from "./live.js";
-import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "./media.js";
+import {
+  grantFor,
+  MEDIA_GRANT_PATH,
+  MEDIA_PATH,
+  mediaKey,
+  mediaProxy,
+  urlGrantsFor,
+} from "./media.js";
 import { SERVICES } from "./services.js";
 import { sitesRoute } from "./sites.js";
 
@@ -155,16 +162,55 @@ async function replayPage(req: Request, env: Env): Promise<Response> {
 /** The media key, from the Restate token the Worker already holds; null when it holds none. */
 const keyOf = (env: Env) => (env.RESTATE_AUTH_TOKEN ? mediaKey(env.RESTATE_AUTH_TOKEN) : null);
 
-/** `POST /api/media/grant`: an operator's grant to load Learn's pictures and audio. */
+/** Items one grant ask may name. */
+const MEDIA_ITEMS = 200;
+
+/**
+ * `POST /api/media/grant`: a grant to load Learn's pictures and audio. An operator asking for no
+ * items gets the day's grant. Anyone else names the workspace and its items: Learn's service,
+ * asked as them, answers with the media of the items that workspace owns, each granted alone.
+ */
 async function mediaGrant(req: Request, env: Env, site: Site): Promise<Response> {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   if (site.kind === "demo") return json({ error: "Sign in." }, 401);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  let input: { client?: unknown; items?: unknown } | null;
+  try {
+    input = raw ? JSON.parse(raw) : {};
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
-  if ("demo" in viewer || !viewer.operator) return json({ error: "Wren's team only." }, 403);
+  if ("demo" in viewer) return json({ error: "Sign in." }, 401);
+  const items = Array.isArray(input?.items) ? input.items.map(String) : null;
+  if (!items && !viewer.operator) return json({ error: "Name the items." }, 403);
+  if (items && (!items.length || items.length > MEDIA_ITEMS))
+    return json({ error: `1 to ${MEDIA_ITEMS} items` }, 400);
   const key = await keyOf(env);
   if (!key) return json({ error: "Media isn't set up yet." }, 503);
-  const out = json(await grantFor(key));
+  let out: Response;
+  if (!items) out = json(await grantFor(key));
+  else {
+    // A client's host is that client; elsewhere the workspace asked for. The service checks both.
+    const named = input?.client;
+    const client =
+      site.kind === "client"
+        ? site.client
+        : typeof named === "string" && named.length <= 200
+          ? named
+          : undefined;
+    const asked = await forward(
+      env,
+      "LearnConsole/media",
+      JSON.stringify({ ...(client ? { client } : {}), ids: items, viewer }),
+    );
+    if (asked.status !== 200) return asked;
+    const { urls } = (await asked.json()) as { urls?: unknown };
+    const list = Array.isArray(urls) ? urls.filter((u): u is string => typeof u === "string") : [];
+    out = json(await urlGrantsFor(key, list));
+  }
   out.headers.set("cache-control", "no-store");
   return out;
 }

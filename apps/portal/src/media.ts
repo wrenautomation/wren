@@ -4,6 +4,9 @@
  *
  * - `POST /api/media/grant`: a signed-in operator gets a grant, good to the end of tomorrow
  *   (UTC). It is the same all day, so the browser caches each picture under one address.
+ *   Anyone else names a workspace and its items (`{ client, items }`): Learn's service, asked as
+ *   them, gives the pictures and audio of the items that workspace owns, and each gets a grant
+ *   good for that address alone.
  * - `GET /media?u=<https address>&g=<grant>`: that picture or audio file. Range passes through,
  *   so a long episode seeks. Only images and audio pass; every answer is sandboxed, so an SVG
  *   can't run as the app.
@@ -44,26 +47,48 @@ export async function mediaKey(secret: string): Promise<MediaKey> {
   ]);
 }
 
-const sign = async (key: MediaKey, exp: number) =>
-  hex(await crypto.subtle.sign("HMAC", key, enc.encode(`media|${exp}`)));
+/** Signed over the expiry, and the one address it's good for when it names one. */
+const message = (exp: number, url?: string) =>
+  enc.encode(url ? `media|${exp}|${url}` : `media|${exp}`);
+const sign = async (key: MediaKey, exp: number, url?: string) =>
+  hex(await crypto.subtle.sign("HMAC", key, message(exp, url)));
+const expiry = (now: number) => (Math.floor(now / 1000 / DAY_S) + 2) * DAY_S;
 
 /** A grant good to the end of tomorrow, UTC. */
 export async function grantFor(
   key: MediaKey,
   now = Date.now(),
 ): Promise<{ grant: string; expires: string }> {
-  const exp = (Math.floor(now / 1000 / DAY_S) + 2) * DAY_S;
+  const exp = expiry(now);
   return { grant: `${exp}.${await sign(key, exp)}`, expires: new Date(exp * 1000).toISOString() };
 }
 
-/** The grant is ours and not past its end. */
-export async function grantOk(key: MediaKey, grant: string, now = Date.now()): Promise<boolean> {
+/** A grant for each address, good for it alone, to the end of tomorrow: a client's items. */
+export async function urlGrantsFor(
+  key: MediaKey,
+  urls: readonly string[],
+  now = Date.now(),
+): Promise<{ grants: Record<string, string>; expires: string }> {
+  const exp = expiry(now);
+  const grants: Record<string, string> = {};
+  for (const u of urls) grants[u] = `${exp}.${await sign(key, exp, u)}`;
+  return { grants, expires: new Date(exp * 1000).toISOString() };
+}
+
+/** The grant is ours, not past its end, and good for every address or for `url`. */
+export async function grantOk(
+  key: MediaKey,
+  grant: string,
+  url: string | null = null,
+  now = Date.now(),
+): Promise<boolean> {
   const m = /^(\d{9,11})\.([0-9a-f]{64})$/.exec(grant);
   if (!m) return false;
   const exp = Number(m[1]);
   if (exp * 1000 < now) return false;
   const sig = new Uint8Array((m[2] ?? "").match(/../g)?.map((h) => Number.parseInt(h, 16)) ?? []);
-  return crypto.subtle.verify("HMAC", key, sig, enc.encode(`media|${exp}`));
+  if (await crypto.subtle.verify("HMAC", key, sig, message(exp))) return true;
+  return !!url && crypto.subtle.verify("HMAC", key, sig, message(exp, url));
 }
 
 /** The address a page may load, or null: https, a public host. */
@@ -91,7 +116,8 @@ export async function mediaProxy(
   if (req.method !== "GET" && req.method !== "HEAD")
     return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
   const q = new URL(req.url).searchParams;
-  if (!(await grantOk(key, q.get("g") ?? ""))) return new Response(null, { status: 403 });
+  if (!(await grantOk(key, q.get("g") ?? "", q.get("u"))))
+    return new Response(null, { status: 403 });
   const target = mediaTarget(q.get("u"));
   if (!target) return new Response(null, { status: 400 });
   const range = req.headers.get("range");

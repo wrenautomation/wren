@@ -337,13 +337,24 @@ describe("the demo cache", () => {
 
 describe("Learn's media", () => {
   let upstream: { url: string; range: string | null }[];
+  let asked: Record<string, unknown>[];
   beforeEach(() => {
     upstream = [];
+    asked = [];
     vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === `${AUTH}/api/auth/jwks`) {
         const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
         return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
+      }
+      // Learn's service: item 7 is the client's, with one picture; anything else is no one's.
+      if (url.endsWith("/LearnConsole/media")) {
+        const body = JSON.parse(String(init?.body)) as { ids: string[]; client?: string };
+        asked.push(body);
+        if (body.client !== "acme") return Response.json({ error: "no access" }, { status: 403 });
+        return Response.json({
+          urls: body.ids.includes("7") ? ["https://img.example/a.jpg"] : [],
+        });
       }
       const range = new Headers(init?.headers).get("range");
       upstream.push({ url, range });
@@ -361,10 +372,10 @@ describe("Learn's media", () => {
     });
   });
 
-  const grant = async (claims: Record<string, unknown>) => {
+  const grant = async (claims: Record<string, unknown>, body: unknown = {}) => {
     const t = await token(claims);
     return worker.fetch(
-      post("app.test", "media/grant", {}, { authorization: `Bearer ${t}` }),
+      post("app.test", "media/grant", body, { authorization: `Bearer ${t}` }),
       env(),
     );
   };
@@ -379,6 +390,37 @@ describe("Learn's media", () => {
     expect((await grant({})).status).toBe(403);
     expect((await worker.fetch(post("demo.test", "media/grant"), env())).status).toBe(401);
     expect((await worker.fetch(post("app.test", "media/grant"), env())).status).toBe(401);
+  });
+
+  it("grants a client's login its own items' media, each address alone", async () => {
+    const res = await grant({}, { client: "acme", items: ["7", "8"] });
+    expect(res.status).toBe(200);
+    // The service is asked as them, for that workspace and those items.
+    expect(asked.at(-1)).toMatchObject({
+      client: "acme",
+      ids: ["7", "8"],
+      viewer: { email: "owner@client.example" },
+    });
+    expect(asked.at(-1)?.viewer).not.toHaveProperty("operator");
+    const { grants } = (await res.json()) as { grants: Record<string, string> };
+    expect(Object.keys(grants)).toEqual(["https://img.example/a.jpg"]);
+    const g = grants["https://img.example/a.jpg"] as string;
+    expect((await media("https://img.example/a.jpg", g)).status).toBe(200);
+    // Good for that address alone.
+    expect((await media("https://cdn.example/1.mp3", g)).status).toBe(403);
+
+    // Another workspace's items: the service refuses, and so does the grant.
+    expect((await grant({}, { client: "other", items: ["7"] })).status).toBe(403);
+    // Not its item: nothing granted.
+    const none = (await (await grant({}, { client: "acme", items: ["8"] })).json()) as {
+      grants: Record<string, string>;
+    };
+    expect(none.grants).toEqual({});
+    // No items named, or too many: refused before the service.
+    const before = asked.length;
+    expect((await grant({}, { client: "acme" })).status).toBe(403);
+    expect((await grant({}, { client: "acme", items: [] })).status).toBe(400);
+    expect(asked.length).toBe(before);
   });
 
   it("passes pictures and audio with a grant, ranges through, sandboxed; nothing else", async () => {
