@@ -112,3 +112,19 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
 ## Decision log
 
 - 2026-10-06: William approved all four. Written and building.
+- 2026-10-06, heatmaps built:
+  - `heat_days` also keys a `cell` (a 10 by 10 grid inside the element, `row*10+col`), so the
+    map shows where in a big element clicks land. `rage` carries the same position.
+  - `scroll` reports reach (bottom of the screen over page height), not `hits.depth`, which
+    can't be turned into bands.
+  - A click a label passes on to its input counts once; a click with no pointer (a key press)
+    is skipped.
+  - SearchWatch reads events after a cursor (`heat from`), recomputes every day it read in full
+    and replaces those days. The cursor stops before the newest day, which may still be
+    arriving.
+  - The page is a list over `marketing.heat` (window, width, page). Opening a row returns the
+    counts plus the signed first chunk of the newest replay at that width. No hand-built page.
+  - The frame plays that chunk to its end, shows reveal sections at rest, and draws the overlay
+    in its own document over the scaled page: nothing appended inside the rebuilt page paints.
+    Shrunk to fit, never enlarged. Clicks on paths the page no longer has are counted and
+    named under the map.

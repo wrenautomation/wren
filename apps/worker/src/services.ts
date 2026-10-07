@@ -97,7 +97,7 @@ import { facebookContent, instagramContent, instagramWebContent } from "@wren/ch
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
 import { searchConsoleClient } from "@wren/channel-search";
-import { sessionRecord } from "@wren/channel-search/records";
+import { heatRecord, sessionRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   CalcomBookings,
@@ -540,6 +540,14 @@ export async function buildServices(
           })
         : null,
   };
+  // The lander's recorded views: the export lists them, the files bucket signs their chunks.
+  const sessions =
+    settings.siteExportToken && settings.filesBucket
+      ? {
+          site: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken },
+          signGet: s3Files({ bucket: settings.filesBucket }).getUrl,
+        }
+      : undefined;
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -1136,15 +1144,10 @@ export async function buildServices(
         ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
         ...MARKETING_NUMBERS,
-        // Replays: read live from the lander, chunks signed from the files bucket.
-        ...(settings.siteExportToken && settings.filesBucket
-          ? [
-              sessionRecord({
-                site: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken },
-                signGet: s3Files({ bucket: settings.filesBucket }).getUrl,
-              }),
-            ]
-          : []),
+        // Replays: read live from the lander, chunks signed from the files bucket. Heatmaps draw
+        // on the newest one; without them, their counts still show.
+        ...(sessions ? [sessionRecord(sessions)] : []),
+        heatRecord(sessions),
         // Videos: previews and stills signed from the media bucket (step 2 puts them there).
         videoRecord(
           settings.mediaBucket

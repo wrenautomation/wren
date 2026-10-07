@@ -262,6 +262,55 @@ export const siteDays = pgTable(
 );
 export type SiteDay = typeof siteDays.$inferSelect;
 
+/** The lander's width buckets (its `src/scripts/hit.ts`): under 768, 1024, 1440, and wider. */
+export const HEAT_WIDTHS = ["phone", "tablet", "laptop", "wide"] as const;
+export type HeatWidth = (typeof HEAT_WIDTHS)[number];
+
+/**
+ * Clicks on the lander per day, page, width bucket, element path and where in the element (a
+ * 10 by 10 grid, `cell` = row * 10 + column), from its `click` and `rage` events. Counts only,
+ * no visitor ids. Heatmaps rebuild the page from a replay and find each path in it.
+ */
+export const heatDays = pgTable(
+  "heat_days",
+  {
+    day: date("day").notNull(),
+    page: varchar("page", { length: 200 }).notNull(),
+    width: varchar("width", { length: 8, enum: HEAT_WIDTHS }).notNull(),
+    /** A CSS path from an id, a `[data-signal]` or body, 8 steps at most. */
+    path: varchar("path", { length: 300 }).notNull(),
+    cell: integer("cell").notNull(),
+    clicks: integer("clicks").notNull(),
+    /** Clicks that were the third on one element inside a second. */
+    rage: integer("rage").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.page, t.width, t.path, t.cell], name: "pk_heat_days" }),
+    oneOf("ck_heat_days_width", t.width, HEAT_WIDTHS),
+  ],
+);
+
+/**
+ * How far down the lander's pages views got, per day, page and width bucket: `views` reached
+ * `band` (0 is the top tenth, so every view; 9 the last tenth).
+ */
+export const scrollDays = pgTable(
+  "scroll_days",
+  {
+    day: date("day").notNull(),
+    page: varchar("page", { length: 200 }).notNull(),
+    width: varchar("width", { length: 8, enum: HEAT_WIDTHS }).notNull(),
+    band: integer("band").notNull(),
+    views: integer("views").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.page, t.width, t.band], name: "pk_scroll_days" }),
+    oneOf("ck_scroll_days_width", t.width, HEAT_WIDTHS),
+  ],
+);
+
 /**
  * A week of Search Console: the 7 days up to its newest day (Google is 2 or 3 days behind, so
  * today would undercount), against the 7 before, grouped `by` page or query.
@@ -393,3 +442,28 @@ export const marketingFunnelRecords = pgView("marketing_funnel_records", {
   join (values ('30d', 30), ('90d', 90), ('all', 100000)) w(name, days)
     on d.day > current_date - w.days
   group by w.name, d.channel`);
+
+/**
+ * Each page's heatmap (`marketing.heat`) per width bucket, over the last 7 and 30 days: views
+ * (everyone reaches the top band), clicks and rage clicks.
+ */
+export const marketingHeatRecords = pgView("marketing_heat_records", {
+  id: text("id"),
+  window: text("window"),
+  page: text("page"),
+  width: text("width"),
+  views: integer("views"),
+  clicks: integer("clicks"),
+  rage: integer("rage"),
+}).as(sql`
+  select w.name || ':' || x.width || ':' || x.page id, w.name "window", x.page::text page,
+    x.width::text width, sum(x.views)::int views, sum(x.clicks)::int clicks, sum(x.rage)::int rage
+  from (
+    select day, page, width, coalesce(s.views, 0) views, coalesce(h.clicks, 0) clicks,
+      coalesce(h.rage, 0) rage
+    from (select day, page, width, views from scroll_days where band = 0) s
+    full join (select day, page, width, sum(clicks) clicks, sum(rage) rage from heat_days
+      group by day, page, width) h using (day, page, width)
+  ) x
+  join (values ('7d', 7), ('30d', 30)) w(name, days) on x.day > current_date - w.days
+  group by w.name, x.page, x.width`);

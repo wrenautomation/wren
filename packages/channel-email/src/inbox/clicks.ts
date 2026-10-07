@@ -72,20 +72,33 @@ export interface SiteReplay {
   first_touch?: string | null;
 }
 
+/** One thing a visitor did on a page (`events`): `cta`, `form.submit`, `click`, `scroll` and the rest. */
+export interface SiteEvent {
+  id: number;
+  ts: string;
+  view: string;
+  visitor: string | null;
+  page: string;
+  name: string;
+  /** JSON, 1 KB at most. */
+  props: string;
+}
+
 export interface SiteTables {
   hits: SiteHit;
   applications: SiteApplication;
   replays: SiteReplay;
+  events: SiteEvent;
 }
 
-/** Every row of one lander table, paged forward by id. */
+/** Every row of one lander table after id `since` (all of them by default), paged forward by id. */
 export async function siteExport<T extends keyof SiteTables>(
   table: T,
-  opts: { baseUrl: string; exportToken: string; fetch?: FetchLike },
+  opts: { baseUrl: string; exportToken: string; fetch?: FetchLike; since?: number },
 ): Promise<SiteTables[T][]> {
   const fetchImpl = opts.fetch ?? globalThis.fetch;
   const out: SiteTables[T][] = [];
-  let since = 0;
+  let since = opts.since ?? 0;
   for (let page = 0; page < SITE_MAX_PAGES; page++) {
     const url = new URL(`${opts.baseUrl.replace(/\/+$/, "")}/api/export`);
     url.searchParams.set("table", table);

@@ -3,12 +3,13 @@
  * upserted. A second read of the same export changes nothing; a later read with more rows
  * overwrites the day, never adds to it. Synthetic rows only.
  */
-import type { SiteApplication, SiteHit } from "@wren/channel-email";
+import type { SiteApplication, SiteEvent, SiteHit } from "@wren/channel-email";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { SEARCH_RECORDS, sessionRecord } from "../../src/records.js";
+import { rollupHeat, writeHeatDays } from "../../src/heat.js";
+import { heatRecord, SEARCH_RECORDS, sessionRecord } from "../../src/records.js";
 import { siteDays } from "../../src/schema.js";
 import { callsAndPaid, rollupSite, upsertSiteDays } from "../../src/site-days.js";
 
@@ -20,7 +21,14 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["site_days", "search_days", "search_answers", "search_keywords"]);
+  await truncate(pg.db, [
+    "site_days",
+    "search_days",
+    "search_answers",
+    "search_keywords",
+    "heat_days",
+    "scroll_days",
+  ]);
 });
 
 let id = 0;
@@ -228,5 +236,64 @@ describe("site days", () => {
         ],
       },
     });
+  });
+
+  it("heatmaps: a day re-read replaces its rows; opening a page signs its newest replay", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    let n = 0;
+    const ev = (view: string, name: string, props: object): SiteEvent => ({
+      id: ++n,
+      ts: `${today}T12:00:00.000Z`,
+      view,
+      visitor: null,
+      page: "/agencies",
+      name,
+      props: JSON.stringify(props),
+    });
+    const first = [
+      ev("a", "click", { path: "#cta", fx: 0.5, fy: 0.5, b: "phone" }),
+      ev("a", "scroll", { pct: 50, b: "phone" }),
+    ];
+    await writeHeatDays(pg.db, rollupHeat(first));
+    const more = [...first, ev("b", "click", { path: "#cta", fx: 0.5, fy: 0.5, b: "phone" })];
+    await writeHeatDays(pg.db, rollupHeat(more));
+
+    const replays = [
+      { view: "old", page: "/agencies", started: `${today}T01:00:00Z`, chunks: 3, w: 390 },
+      { view: "new", page: "/agencies", started: `${today}T02:00:00Z`, chunks: 3, w: 400 },
+      { view: "big", page: "/agencies", started: `${today}T03:00:00Z`, chunks: 3, w: 1500 },
+    ].map((r, i) => ({
+      id: i + 1,
+      visitor: null,
+      last: r.started,
+      bytes: 1,
+      country: "",
+      capped: 0,
+      ...r,
+    }));
+    const fetch = async (url: string) =>
+      new Response(
+        JSON.stringify({ replays: new URL(url).searchParams.get("since") === "0" ? replays : [] }),
+      );
+    const record = heatRecord({
+      site: { baseUrl: "https://site.example", exportToken: "t", fetch },
+      signGet: async (key) => `https://signed.example/${key}`,
+    });
+    const api = serveRecords([record], pg.db);
+    const { rows } = await api.list({ record: "marketing.heat", view: "7d", limit: 5 });
+    expect(rows).toMatchObject([
+      { id: "7d:phone:/agencies", page: "/agencies", width: "phone", views: 1, clicks: 2, rage: 0 },
+    ]);
+    expect(await record.load?.(pg.db, "30d:phone:/agencies")).toEqual({
+      heat: {
+        cells: [{ path: "#cta", cell: 55, clicks: 2, rage: 0 }],
+        bands: [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        snapshot: { url: "https://signed.example/site/replays/new/0000.json", w: 400 },
+      },
+    });
+    // Without the export, the counts alone.
+    const bare = await heatRecord().load?.(pg.db, "7d:phone:/agencies");
+    expect(bare).toMatchObject({ heat: { snapshot: null } });
+    expect(await record.load?.(pg.db, "1y:phone:/agencies")).toBeNull();
   });
 });

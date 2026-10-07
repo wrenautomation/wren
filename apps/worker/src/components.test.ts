@@ -12,7 +12,7 @@ import { BOOKS_RECORDS } from "@wren/books/records";
 import { CALENDAR_RECORDS } from "@wren/calendar/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
-import { sessionRecord } from "@wren/channel-search/records";
+import { heatRecord, sessionRecord } from "@wren/channel-search/records";
 import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
 import { videoRecord } from "@wren/content/records";
@@ -91,6 +91,7 @@ const RECORD_TYPES = [
   ...VOICE_RECORDS,
   ...MARKETING_NUMBERS,
   sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
+  heatRecord(),
   videoRecord(),
   dmCopyRecord("x"),
   textCopyRecord([], "x"),

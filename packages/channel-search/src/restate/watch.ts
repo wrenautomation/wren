@@ -23,6 +23,7 @@ import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
+import { rollupHeat, writeHeatDays } from "../heat.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
@@ -33,6 +34,8 @@ export const SEARCH_KEY = "default";
 export const SEARCH_SYNC_COMMAND = "search sync";
 export const SEARCH_WEEK_COMMAND = "search week";
 const WEEK = "week";
+/** The lander event id heatmaps read after (`../heat.ts`). */
+const HEAT_FROM = "heat from";
 const MONDAY = 1;
 const DAY_MS = 86_400_000;
 /** Keywords asked per engine per week: far under Google's pace and the free Perplexity plan. */
@@ -65,7 +68,12 @@ export const weekOf = (d: Date) =>
 
 type SearchWeekApi = { run: (ctx: restate.Context, req: { today: string }) => Promise<unknown> };
 
-type WatchStats = SyncStats & { week: string | null; site?: { days: number } | { error: string } };
+type Step<T> = T | { error: string };
+type WatchStats = SyncStats & {
+  week: string | null;
+  site?: Step<{ days: number }>;
+  heat?: Step<{ rows: number }>;
+};
 
 export function makeSearchWatch(deps: SearchDeps) {
   return makeLoopObject<WatchStats>("SearchWatch", async (ctx) => {
@@ -108,6 +116,20 @@ export function makeSearchWatch(deps: SearchDeps) {
         }
       });
       if (outcome.stats) outcome.stats.site = got;
+      // Heatmaps: the events after the cursor, so a pass reads a day or two, not all time.
+      const since = (await ctx.get<number>(HEAT_FROM)) ?? 0;
+      const heat = await ctx.run("heat days", async () => {
+        try {
+          const events = await siteExport("events", { ...site, fetch: deps.fetch, since });
+          const rolled = rollupHeat(events);
+          return { rows: await writeHeatDays(deps.db, rolled), from: rolled.from };
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : String(err), from: null };
+        }
+      });
+      if (heat.from !== null) ctx.set(HEAT_FROM, heat.from);
+      if (outcome.stats)
+        outcome.stats.heat = "error" in heat ? { error: heat.error } : { rows: heat.rows };
     }
     const changes = outcome.stats?.changes ?? [];
     if (deps.notifier && changes.length) {

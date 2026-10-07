@@ -3,6 +3,7 @@ export * from "./apply.js";
 export * from "./brief.js";
 export * from "./citability.js";
 export * from "./console.js";
+export * from "./heat.js";
 export * from "./keywords.js";
 export * from "./propose.js";
 export * from "./schema.js";
