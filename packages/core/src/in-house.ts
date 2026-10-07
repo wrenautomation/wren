@@ -527,8 +527,8 @@ export const IN_HOUSE: readonly InHouse[] = [
       },
     ],
     costsUs: 0,
-    why: "A Cloudflare Worker over our own keys. Prod isn't on it yet.",
-    state: "building",
+    why: "A Cloudflare Worker over our own keys.",
+    state: "live",
   },
   {
     id: "credvault",

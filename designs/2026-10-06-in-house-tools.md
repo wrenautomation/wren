@@ -87,7 +87,7 @@ revenue, and it never enters the ledger.
   links to its installed Catalog. Prices read 2026-10-06 from each vendor's own page. Checked
   against the code: "Signals" renamed "Site analytics" (the `research.signals` part is buying
   signals, not site events); Books says spend, subscriptions and unit economics, not a ledger;
-  the LLM gateway is building, not live, since prod isn't on it; the template library row is
+  the template library row is
   dropped, as it replaces a feature bundled in Instantly and lemlist, not a tool bought. Dropped
   vendors with no readable price: NeverBounce (page blocked) and Apollo (price loads by script).
   Usage-priced or custom-priced vendors (PostHog, FullStory, LaunchDarkly, Optimizely, VWO,
@@ -95,3 +95,4 @@ revenue, and it never enters the ledger.
   page ties white-label to no plan, so the portal row is Starter plus the Branded Client Portal
   app ($97 plus $49 a sub-account). "Costs us" is null where it isn't split out (model calls,
   the prober VPS, SSM and KMS), never a guess.
+- 2026-10-06: LLM gateway marked live. Prod WREN_LLM is "gateway" since a279ebb.
