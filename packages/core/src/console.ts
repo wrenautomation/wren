@@ -218,6 +218,7 @@ import {
   portsOf,
   type Workflow,
   type WorkflowEdits,
+  type WorkflowNode,
   withEdits,
 } from "./workflows.js";
 
@@ -724,46 +725,84 @@ export async function executionSteps(db: Queryable, id: string): Promise<Executi
 }
 
 /**
+ * "Now at" in words for a node inside a part ("follow.wait2"): the part's name, then the touch
+ * ("Follow-up: Text 1") or the touch its Wait is after ("Follow-up: after DM 1"). Any other node
+ * reads as its id in words.
+ */
+export function nowAtLabels(
+  workflows: readonly Workflow[],
+  components: readonly Component[],
+): Record<string, string> {
+  const parts = new Map(components.map((c) => [c.id, c]));
+  const flows = new Map(workflows.map((w) => [w.id, w]));
+  const out: Record<string, string> = {};
+  for (const w of workflows)
+    for (const n of w.nodes) {
+      const c = n.uses ? parts.get(n.uses) : undefined;
+      const inside = c?.inside ? flows.get(c.inside) : undefined;
+      if (!c || !inside) continue;
+      const said = (i: WorkflowNode) => (i.note ?? i.id).split(".")[0] as string;
+      for (const i of inside.nodes) {
+        let words = said(i);
+        if (i.uses === "logic.wait") {
+          const after = inside.wires
+            .filter((x) => x.to === `${i.id}.in`)
+            .map((x) => inside.nodes.find((y) => `${y.id}.sent` === x.from))
+            .find(Boolean);
+          // A Wait before any touch: the part has just started on them.
+          words = after ? `after ${said(after)}` : "starting";
+        }
+        out[`${n.id}.${i.id}`] = `${c.name}: ${words}`;
+      }
+    }
+  return out;
+}
+
+/**
  * Wren's executions (`spine_executions`): each subject's walk through a workflow, where it is now
  * and how long since it entered. Its page lights the path and shows each step's data. ponytail:
- * main only, as `console.event`.
+ * main only, as `console.event`. `labels` says a node inside a part in words.
  */
-export const executionRecord = defineRecord({
-  id: "console.execution",
-  app: "workflows",
-  channel: null,
-  name: { one: "execution", many: "executions" },
-  view: "spine_executions",
-  key: "id",
-  title: "title",
-  subtitle: "workflow",
-  fields: {
-    title: text("About"),
-    subject: text("Key", { listed: false }),
-    workflow: named("Workflow"),
-    kind: named("Kind"),
-    state: status({
-      failed: { label: "Failed", tone: "bad" },
-      waiting: { label: "Waiting", tone: "neutral" },
-      done: { label: "Done", tone: "good" },
-    }),
-    node: named("Now at"),
-    entered: date("Entered"),
-    lastAt: date("Last step"),
-    until: choice(() => UNTIL_LABELS, "Waiting for"),
-    due: date("Waiting until"),
-    error: text("Why it failed", { words: "reason" }),
-    steps: number("Steps"),
-  },
-  views: [
-    { id: "all", label: "All", sort: "-lastAt", at: "entered" },
-    { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "entered" },
-    { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-lastAt", at: "entered" },
-    { id: "done", label: "Done", where: { state: "done" }, sort: "-lastAt", at: "entered" },
-  ],
-  // Retry is on its failed step, by that event's id.
-  load: async (db, id) => ({ steps: await executionSteps(db, id) }),
-});
+export const executionRecordOf = (labels: Readonly<Record<string, string>> = {}) =>
+  defineRecord({
+    id: "console.execution",
+    app: "workflows",
+    channel: null,
+    name: { one: "execution", many: "executions" },
+    view: "spine_executions",
+    key: "id",
+    title: "title",
+    subtitle: "workflow",
+    fields: {
+      title: text("About"),
+      subject: text("Key", { listed: false }),
+      workflow: named("Workflow"),
+      // The title says the kind ("Dana Lee: Text lead"), and its page when it entered: the list
+      // gives "Now at" the room.
+      kind: named("Kind", { listed: false }),
+      state: status({
+        failed: { label: "Failed", tone: "bad" },
+        waiting: { label: "Waiting", tone: "neutral" },
+        done: { label: "Done", tone: "good" },
+      }),
+      node: choice(() => labels, "Now at"),
+      entered: date("Entered", { listed: false }),
+      lastAt: date("Last step"),
+      until: choice(() => UNTIL_LABELS, "Waiting for"),
+      due: date("Waiting until"),
+      error: text("Why it failed", { words: "reason" }),
+      steps: number("Steps"),
+    },
+    views: [
+      { id: "all", label: "All", sort: "-lastAt", at: "entered" },
+      { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "entered" },
+      { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-lastAt", at: "entered" },
+      { id: "done", label: "Done", where: { state: "done" }, sort: "-lastAt", at: "entered" },
+    ],
+    // Retry is on its failed step, by that event's id.
+    load: async (db, id) => ({ steps: await executionSteps(db, id) }),
+  });
+export const executionRecord = executionRecordOf();
 
 /**
  * Units held out of a stage and sources paused on one (`./checks.ts`): why, and until when.
@@ -1860,6 +1899,8 @@ export const componentRecord = (
         },
         inside: inside ? drawn(inside) : null,
         usedIn: usedIn(id),
+        // The canvas opens a part's inside through the part, and edits it as a workflow.
+        ...(team && inside ? await editing(db, inside) : {}),
         ...(team
           ? {
               // Saving goes to Wren's block (`configure` with no client): the part isn't the client's.
@@ -1953,7 +1994,7 @@ export function consoleApi({
     surveyRecord(edge),
     workflowRecord(workflows, components),
     eventRecord,
-    executionRecord,
+    executionRecordOf(nowAtLabels(workflows, components)),
     holdRecord,
     checkRecord,
   ];

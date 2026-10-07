@@ -40,6 +40,7 @@ import {
   type EventRow,
   funnelOf,
   graphOf,
+  openedBy,
   type PortRef,
   portKey,
   portsIn,
@@ -92,6 +93,8 @@ const MOST_DOTS = 24;
 
 type Detail = {
   workflow?: Drawn;
+  /** A part's: the workflow of steps it runs inside, drawn and edited like a workflow. */
+  inside?: Drawn | null;
   saved?: Saved | null;
   broken?: string[];
   palette?: Palette;
@@ -143,16 +146,17 @@ export function Workflows({ params, team, can }: PageProps) {
           record: "console.component",
           id,
           ...(client ? { client } : {}),
-        }).then((a) => (a.detail as Detail | null) ?? null),
+        }).then((a) => (a.detail ? { ...(a.detail as Detail), asked: id } : null)),
       ),
     ),
   );
   // The loader keeps the last path's answer while this one loads: never draw it as this path's.
   const current = trailIsFor(path, trail.data);
   const d = current ? (trail.data?.at(-1) ?? null) : null;
-  const w = d?.workflow ?? null;
-  // A workflow card with no number of its own shows its inside's: read those drawings too.
-  const opens = w?.nodes.filter((n) => n.opens && !n.count).map((n) => n.opens as string) ?? [];
+  const w = d?.workflow ?? d?.inside ?? null;
+  // A workflow card with no number of its own shows its inside's: read those drawings too. A
+  // part's inside isn't a record of its own: it is read through its part.
+  const opens = w?.nodes.filter((n) => n.opens && !n.count).map(openedBy) ?? [];
   const inner = useCall(`workflow-inner:${client ?? ""}:${opens.join(",")}`, async () => {
     const got = await Promise.all(
       opens.map((id) =>
@@ -161,7 +165,10 @@ export function Workflows({ params, team, can }: PageProps) {
           id,
           ...(client ? { client } : {}),
         }).then(
-          (a) => (a.detail as Detail | null)?.workflow ?? null,
+          (a) => {
+            const got = a.detail as Detail | null;
+            return got?.workflow ?? got?.inside ?? null;
+          },
           () => null,
         ),
       ),
@@ -208,7 +215,7 @@ export function Workflows({ params, team, can }: PageProps) {
           {trail.data.slice(0, -1).map((t, i) => (
             <span key={path[i]}>
               <a href={canvasAt(path.slice(0, i + 1))} className="hover:text-(--ui-ink)">
-                {t?.workflow?.name ?? path[i]}
+                {(t?.workflow ?? t?.inside)?.name ?? path[i]}
               </a>
               {" / "}
             </span>
@@ -231,7 +238,7 @@ export function Workflows({ params, team, can }: PageProps) {
           inner={inner.data ?? undefined}
           where={{
             canvas: (n) => {
-              const to = n.opens ? deeper(path, n.opens) : null;
+              const to = n.opens ? deeper(path, openedBy(n)) : null;
               return to ? canvasAt(to) : undefined;
             },
             rows: recordsAt,
@@ -512,6 +519,7 @@ function Canvas({
     ...(client ? { client } : {}),
     wires: x.wires,
     steps: x.steps,
+    ...(x.settings ? { settings: x.settings } : {}),
   });
   const failed = (err: unknown) => {
     const m = err instanceof Error ? err.message : String(err);

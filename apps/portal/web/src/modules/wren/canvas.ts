@@ -80,6 +80,13 @@ export function insideOf(
 export const DEPTH_MAX = 8;
 
 /**
+ * The id a card's canvas reads its inside by: a workflow's own id, or, for a part that runs a
+ * workflow of steps, the part's (its inside is no record of its own).
+ */
+export const openedBy = (n: { uses?: string | null; opens?: string | null }): string =>
+  (n.uses ?? n.opens) as string;
+
+/**
  * The canvas path one level into `opens`, or null when that would loop: `opens` is already on
  * the path (a workflow inside itself), or the path is `DEPTH_MAX` deep. Play follows it on its
  * own, so a loop here would open forever.
@@ -95,8 +102,8 @@ export function deeper(path: readonly string[], opens: string): string[] | null 
  */
 export const trailIsFor = (
   path: readonly string[],
-  trail: readonly ({ workflow?: { id: string } | null } | null)[] | null,
-) => !!trail && trail.length === path.length && trail.at(-1)?.workflow?.id === path.at(-1);
+  trail: readonly ({ asked: string } | null)[] | null,
+) => !!trail && trail.length === path.length && trail.at(-1)?.asked === path.at(-1);
 
 export interface Where {
   /** The canvas a card opens into. */
@@ -341,6 +348,10 @@ export function dotsOf(events: readonly EventRow[], w: Drawn): GraphDot[] {
   return events.flatMap((ev): GraphDot[] => {
     const tone = TONE[ev.state] ?? TONE[ev.port] ?? "accent";
     if (ev.workflow === w.id) {
+      // A step inside a part ("follow.text1") lights its part's card.
+      const [head = ""] = ev.node.split(".");
+      if (head !== ev.node && w.nodes.some((n) => n.id === head))
+        return [{ id: ev.id, node: head, tone }];
       const to = `${ev.node}.${ev.port}`;
       const wire = w.wires.find((x) => x.to === to && boxOf(x.from) !== boxOf(x.to));
       return wire ? [{ id: ev.id, edge: `${boxOf(wire.from)}>${boxOf(wire.to)}`, tone }] : [];

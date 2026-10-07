@@ -14,6 +14,7 @@ import {
   type Palette,
   pairsOf,
   problemsOf,
+  settingSet,
   stepOf,
   wired,
   withoutStep,
@@ -128,6 +129,26 @@ describe("editor", () => {
     expect(addNode(w, d, "logic.if", palette)?.id).toBe("if_2");
     expect(addNode(w, d, "nothing", palette)).toBeNull();
     expect(withSet(d, "if", "kind", "").steps[0]?.with).toEqual({});
+  });
+
+  it("changes a built-in Wait's settings in place, and counts it as one change", () => {
+    const wait = {
+      ...node("wait1", [lead("in")], [lead("out")]),
+      uses: "logic.wait",
+      with: { mode: "until", until: "answer", most: "2 days" },
+    };
+    const ww: Drawn = { ...w, nodes: [...w.nodes, wait] };
+    const first = draftOf(ww, null, false);
+    const d = settingSet(first, "wait1", wait.with, "most", "5 days");
+    expect(d.settings).toEqual({ wait1: { mode: "until", until: "answer", most: "5 days" } });
+    expect(d.steps).toEqual([]);
+    const shown = drawnWith(ww, first, d).nodes.find((x) => x.id === "wait1");
+    expect(shown?.with?.most).toBe("5 days");
+    expect(shown?.note).toBe("Until an answer or 5 days");
+    expect(changesOf(first, d)).toBe(1);
+    const saved = draftOf(ww, { edits: d, by: "t", at: "now" }, false);
+    expect(saved.settings).toEqual(d.settings);
+    expect(draftOf(ww, { edits: d, by: "t", at: "now" }, true).settings).toBeUndefined();
   });
 
   it("adds a part from the palette with its ports", () => {

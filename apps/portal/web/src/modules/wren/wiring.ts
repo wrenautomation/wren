@@ -46,6 +46,8 @@ export const NO_PALETTE: Palette = { logic: [], parts: [], workflows: [] };
 export interface Draft {
   wires: Wire[];
   steps: Step[];
+  /** A built-in logic node's settings, changed (a Wait's "at most"), by node id. */
+  settings?: Record<string, With>;
 }
 /** A workflow's newest save, as the catalog's detail carries it. */
 export interface Saved {
@@ -120,6 +122,7 @@ export function draftOf(w: Drawn, saved: Saved | null, broken: boolean): Draft {
         ...(wait ? { wait } : {}),
       })),
     steps: broken ? [] : (saved?.edits?.steps ?? []),
+    ...(!broken && saved?.edits?.settings ? { settings: saved.edits.settings } : {}),
   };
 }
 
@@ -168,7 +171,13 @@ export function drawnStep(s: Step, palette: Palette): Drawn["nodes"][number] {
 export function drawnWith(w: Drawn, first: Draft, d: Draft, palette = NO_PALETTE): Drawn {
   const added = new Set(first.steps.map((s) => s.id));
   const nodes: Drawn["nodes"] = [
-    ...w.nodes.filter((n) => !added.has(n.id)),
+    ...w.nodes
+      .filter((n) => !added.has(n.id))
+      .map((n) => {
+        const set = d.settings?.[n.id];
+        const l = set ? logicOf(n.uses) : null;
+        return set && l ? { ...n, with: set, note: l.says(set) } : n;
+      }),
     ...d.steps.map((s) => drawnStep(s, palette)),
   ];
   const next = { ...w, nodes };
@@ -237,6 +246,21 @@ export function withSet(d: Draft, id: string, field: string, v: string | number)
   };
 }
 
+/**
+ * The draft with one setting of a built-in logic node set: the code's node keeps its place and
+ * wires, its settings go in the save. `base` is what it has now.
+ */
+export function settingSet(
+  d: Draft,
+  id: string,
+  base: With,
+  field: string,
+  v: string | number,
+): Draft {
+  const { [field]: _, ...rest } = d.settings?.[id] ?? base;
+  return { ...d, settings: { ...d.settings, [id]: v === "" ? rest : { ...rest, [field]: v } } };
+}
+
 const wireKey = (x: Pick<Wire, "from" | "to">) => `${x.from}>${x.to}`;
 /** Its keys in order, all the way down: a save read back from jsonb comes in another order. */
 const sorted = (v: unknown): unknown =>
@@ -263,10 +287,14 @@ export function diffOf(base: Draft, next: Draft) {
     for (const k of was.keys()) if (!now.has(k)) out.set(k, "removed");
     return out;
   };
-  return {
-    nodes: marks(base.steps, next.steps, (s) => s.id),
-    wires: marks(base.wires, next.wires, wireKey),
-  };
+  const nodes = marks(base.steps, next.steps, (s) => s.id);
+  for (const id of new Set([
+    ...Object.keys(base.settings ?? {}),
+    ...Object.keys(next.settings ?? {}),
+  ]))
+    if (!nodes.has(id) && !same(base.settings?.[id] ?? null, next.settings?.[id] ?? null))
+      nodes.set(id, "changed");
+  return { nodes, wires: marks(base.wires, next.wires, wireKey) };
 }
 
 /** "Draft: 3 changes": how many nodes and wires differ from what's live. */

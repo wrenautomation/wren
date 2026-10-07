@@ -219,7 +219,7 @@ function touches(id: string, name: string, blurb: string, beats: Beat[], first?:
   });
 }
 
-const EMAIL_NOTE = "In development: checks for an answer, then passes the lead on.";
+const EMAIL_NOTE = "Email. In development: checks for an answer, then passes the lead on.";
 
 export const FOLLOW_UP_INSIDE = touches(
   `${FOLLOW_UP}.touches`,

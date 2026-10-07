@@ -16,11 +16,14 @@ import {
   type LoopRow,
   loopsOf,
   makeConsolePortal,
+  nowAtLabels,
   restateAdminGet,
   settingShown,
   toCsv,
 } from "./console.js";
+import { FOLLOW_COMPONENTS, FOLLOW_WORKFLOWS } from "./follow.js";
 import { PortalRefusal } from "./portal.js";
+import { defineWorkflow } from "./workflows.js";
 
 const rows = Object.assign([{ niche: "widgets", in_play: "12", note: 'a "b", c' }], {
   columns: [
@@ -572,5 +575,31 @@ describe("settingShown", () => {
     );
     expect(settingShown({ field: "on", label: "On", type: "switch" }, true)).toBe("on");
     expect(settingShown({ field: "n", label: "N", type: "number" }, 20)).toBe("20");
+  });
+});
+
+describe("nowAtLabels", () => {
+  it("says where a lead is inside a part: the part, then its touch, or the touch its Wait is after", () => {
+    const top = defineWorkflow({
+      id: "warm_test",
+      name: "Warm",
+      blurb: "x",
+      icon: "cycle",
+      for: "client",
+      stage: "follow",
+      in: [{ id: "leads", label: "leads", kind: "lead" }],
+      out: [],
+      nodes: [
+        { id: "follow", uses: "follow_up" },
+        { id: "nurture", uses: "nurture" },
+      ],
+      wires: [],
+    });
+    const got = nowAtLabels([top, ...FOLLOW_WORKFLOWS], FOLLOW_COMPONENTS);
+    expect(got["follow.text1"]).toBe("Follow-up: Text 1");
+    expect(got["follow.wait2"]).toBe("Follow-up: after DM 1");
+    expect(got["follow.email4"]).toBe("Follow-up: Email");
+    expect(got["nurture.wait0"]).toBe("Nurture: starting");
+    expect(got.follow).toBeUndefined();
   });
 });

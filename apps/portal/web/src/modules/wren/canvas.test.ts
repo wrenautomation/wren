@@ -128,12 +128,14 @@ describe("dotsOf", () => {
           { id: "1", workflow: "sales", node: "close", port: "replies", state: "failed", at },
           { id: "2", workflow: "sales", node: "out", port: "won", state: "passed", at },
           { id: "3", workflow: "other", node: "a", port: "b", state: "passed", at },
+          { id: "5", workflow: "sales", node: "close.wait1", port: "in", state: "waiting", at },
         ],
         inner,
       ),
     ).toEqual([
       { id: "1", edge: "mail>close", tone: "bad" },
       { id: "2", edge: "close>out.won", tone: "accent" },
+      { id: "5", node: "close", tone: "warn" },
     ]);
     expect(
       dotsOf(
@@ -154,8 +156,8 @@ describe("deeper", () => {
   });
 
   it("draws a trail only under its own path", () => {
-    const wren = { workflow: { id: "wren" } };
-    const outbound = { workflow: { id: "outbound" } };
+    const wren = { asked: "wren" };
+    const outbound = { asked: "outbound" };
     // The old answer, still shown while the next path loads: Play must not start on it.
     expect(trailIsFor(["wren", "outbound"], [wren])).toBe(false);
     expect(trailIsFor(["wren", "outbound"], [wren, wren])).toBe(false);

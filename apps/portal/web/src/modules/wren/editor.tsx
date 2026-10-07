@@ -23,6 +23,7 @@ import {
   type Palette,
   type PaletteItem,
   type PaletteLogic,
+  settingSet,
   type With,
   withoutStep,
   withSet,
@@ -389,7 +390,10 @@ function untilNote(n: { uses?: string | null; with?: With | undefined }): string
   return `Each event leaves once: when ${UNTIL_WORDS[u.until]} about it comes, or after ${u.most}. Anything later does nothing.`;
 }
 
-/** A logic node's settings as a form, only those its mode uses; read only when it's the code's. */
+/**
+ * A logic node's settings as a form, only those its mode uses. A built-in logic node's change
+ * goes in the save; a trigger's is read only when it's the code's.
+ */
 function LogicForm({
   logic,
   values,
@@ -604,7 +608,15 @@ export function NodePanel({
           <LogicForm
             logic={logic}
             values={n.with ?? {}}
-            set={added && draft ? (f, v) => setDraft(withSet(draft, id, f, v)) : null}
+            set={
+              !draft
+                ? null
+                : added
+                  ? (f, v) => setDraft(withSet(draft, id, f, v))
+                  : n.uses?.startsWith("logic.")
+                    ? (f, v) => setDraft(settingSet(draft, id, n.with ?? {}, f, v))
+                    : null
+            }
           />
         ) : n.uses ? (
           <p className={QUIET}>
