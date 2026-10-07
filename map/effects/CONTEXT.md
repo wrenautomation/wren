@@ -39,6 +39,8 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a firm's public team (one people search per firm) | [[research/team-search]] | [[leads/person]], [[processes/pool-feed]] |
 | a signal collector, a signal kind, or how signals are dated | [[research/signal]] | `packages/research/src/signals/`, [[processes/pool-feed]], [[processes/migrate]] (`research_signals`), [[platform/records]] |
 | SMS numbers, contacts, texts | the `sms/` cards | [[processes/sms-tick]], [[platform/phone-worker]] |
+| missed-call text back (call events, the text back, replies) | [[sms/missed-call]] | [[sms/sms-event]], [[sms/speed-run]], [[platform/spine]] (`onlyLive`), `designs/2026-10-07-missed-call-and-reviews.md` |
+| review requests (asks, the reminder, `/r/` links, feedback) | [[sms/review-ask]] | [[platform/phone-worker]], [[email/call-booking]] (outcomes enter it), [[platform/spine]] |
 | the carrier | [[sms/sms-provider]] | [[sms/sms-event]], [[platform/phone-worker]], [[platform/settings]] (`WREN_SMS_*`) |
 | a `WREN_*` key | [[platform/settings]] | [[platform/worker]] (SSM), [[processes/deploy]] |
 | a niche or a new one | [[platform/niche]] | [[email/template]], [[email/sequence]], [[platform/offer]], [[processes/migrate]] (facts view), [[email/roster]] |
@@ -79,7 +81,8 @@ Nothing in this repo references these; they break silently.
 | Restate registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |
-| Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key | [[platform/phone-worker]] |
+| Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key; a client number's voice connection must post call events to `/webhooks/telnyx/<client>` for missed-call text back (setup `setup.call_routing`) | [[platform/phone-worker]], [[sms/missed-call]] |
+| texts sent to a client's customers | `phone.wrenautomation.com/r/<client>/<token>` (the host is `LINK_ORIGIN`, `packages/channel-sms/src/reviews.ts:40`); old texts keep working only while that path does | [[sms/review-ask]], [[platform/phone-worker]] |
 | `../lander/functions/{book,booking,api/slots,api/book,api/booking}` (`WREN_CALENDAR_URL`, `BOOKING` in `wrangler.toml`, `EXPORT_TOKEN`) | `phone.wrenautomation.com/calendar/<handler>` → `Calendar`; `bookSig` and the manage token both derive from `WREN_SITE_EXPORT_TOKEN` | [[calendar/booking]], [[platform/phone-worker]] |
 | cal.com webhook (Wren's account, beside the lander's) | `phone.wrenautomation.com/webhooks/calcom`, `CALCOM_WEBHOOK_SECRET` | [[email/call-booking]], [[platform/phone-worker]] |
 | GCP project of the service account: Pub/Sub topic `gmail-push` (Gmail's push account may publish), push subscription `gmail-push-phone` | `GmailClient.watch` (`send/gmail.ts`) names the topic from the key's project; the subscription posts to `phone.wrenautomation.com/webhooks/gmail?token=` | [[processes/inbox-sync]], [[platform/phone-worker]] |
