@@ -25,7 +25,7 @@ This makes them run.
 | Step | Does | Settings (defaults) |
 |---|---|---|
 | door | `lead` event from the hook; maps fields to name, phone, email, consent, source | field map per hook |
-| first text | enrolls the number if new, queues one text, nudges the sender | copy, booking link, window 8:00 to 21:00 lead-local |
+| first text | enrolls the number if new, queues one text, nudges the sender | copy, booking link, window 8:00 to 20:00 lead-local |
 | wait | a wire's wait | 2 minutes |
 | call | "Call now" Inbox item for the client's rep, or a dial once voice is live | who gets it |
 | follow-up | a sub-part other templates reuse: texts on a cadence, stops on reply, booking or STOP | cadence (day 1, 3, 7), copy |
@@ -36,7 +36,7 @@ This makes them run.
 - Consent: a text goes only to a lead whose form carried consent (a checked box, recorded
   with the source). No consent: the run skips the texts and still alerts the rep.
 - Window: a lead who just asked to hear from us gets a wider window than cold texts: 8:00
-  to 21:00 in the lead's time zone, every day. Outside it, the first text waits for 8:00. Both times
+  to 20:00 in the lead's time zone, every day. Outside it, the first text waits for 8:00. Both times
   are settings.
 - STOP and suppressions apply as for every text. The first text names the client and says
   how to stop.
@@ -112,3 +112,6 @@ This makes them run.
   - Table: default columns fit 1440 (Lead, First text, Took, Call, Outcome, Dial, Follow-up, Came
     in, Phone); Source, Email and Booked are in Columns.
   - Map: `sms/speed-run`, `sms/sms-contact`, `voice/call`.
+- 2026-10-07: William: the form window ends at 20:00 by default (`WREN_SMS_FORM_WINDOW` default
+  `08:00-20:00`, `ASKED_WINDOW`), so the setting and the legal clamp agree. Recorded from
+  `2026-10-07-setup-and-vendors.md`.

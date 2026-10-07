@@ -49,10 +49,10 @@ export interface AskedWindow {
   days: readonly number[];
 }
 
-/** 8:00 to 21:00 every day (designs/2026-10-07-speed-to-lead.md); the clamp still ends it at 20:00. */
+/** 8:00 to 20:00 every day (designs/2026-10-07-speed-to-lead.md), where the legal clamp ends too. */
 export const ASKED_WINDOW: AskedWindow = {
   windowStartMinute: 8 * 60,
-  windowEndMinute: 21 * 60,
+  windowEndMinute: 20 * 60,
   days: [1, 2, 3, 4, 5, 6, 7],
 };
 
