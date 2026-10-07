@@ -20,6 +20,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import {
+  atomic,
   CLIENT_ID,
   type Db,
   type Queryable,
@@ -2239,7 +2240,7 @@ export function consoleApi({
       const problems = edits
         ? (flowsWith(workflows, { [w.id]: edits }, components).broken[w.id] ?? [])
         : [];
-      const id = await main.transaction(async (tx) => {
+      const id = await atomic(main, async (tx) => {
         // One draft at a time: the newer one replaces it.
         await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
           AND client IS NOT DISTINCT FROM ${client}`);
@@ -2270,7 +2271,7 @@ export function consoleApi({
         throw new PortalRefusal("it spends: only an admin can make it live", 403);
       if (effects.length && req.confirm !== w.id)
         throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
-      return main.transaction(async (tx) => {
+      return atomic(main, async (tx) => {
         const [row] = await tx
           .insert(workflowSaves)
           .values({ client, workflow: w.id, edits: draft.edits, live: true, by })
