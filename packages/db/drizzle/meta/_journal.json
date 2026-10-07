@@ -1093,6 +1093,13 @@
       "when": 1791364378655,
       "tag": "0155_hook_seal",
       "breakpoints": true
+    },
+    {
+      "idx": 156,
+      "version": "7",
+      "when": 1791365246785,
+      "tag": "0156_signal_hold_names",
+      "breakpoints": true
     }
   ]
 }

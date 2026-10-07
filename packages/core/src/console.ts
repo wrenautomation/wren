@@ -638,7 +638,7 @@ export const eventRecord = defineRecord({
     }),
     at: date("Arrived"),
     due: date("Due"),
-    error: text("Why it failed"),
+    error: text("Why it failed", { words: "reason" }),
   },
   views: [
     { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-at", at: "at" },
@@ -731,7 +731,7 @@ export const executionRecord = defineRecord({
     entered: date("Entered"),
     lastAt: date("Last step"),
     due: date("Waiting until"),
-    error: text("Why it failed"),
+    error: text("Why it failed", { words: "reason" }),
     steps: number("Steps"),
   },
   views: [
@@ -768,7 +768,7 @@ export const holdRecord = defineRecord({
       paused: { label: "Source paused", tone: "bad" },
       released: { label: "Released", tone: "good" },
     }),
-    reason: text("Why"),
+    reason: text("Why", { words: "reason" }),
     tries: number("Tries"),
     heldAt: date("Held"),
     until: date("Until"),

@@ -3,6 +3,7 @@
  * "claude-haiku-4-5:agent") becomes a label ("Command A", "Free models", "Claude Haiku 4.5").
  * Every list or picker of models labels through here; the id stays in a tooltip or the detail.
  */
+import { reasonLabel } from "./reason-labels.js";
 import { codeLabel } from "./template-labels.js";
 
 /** Whole ids and aliases with a label of their own. */
@@ -88,9 +89,12 @@ export function modelVia(id: string): string | null {
   return id.includes(":") ? (VIA[head] ?? null) : null;
 }
 
-/** How a field names something from code: `true` as words ("AdsWatch" to "Ads watch"), or a model. */
-export type Words = true | "model";
+/**
+ * How a field names something from code: `true` as words ("AdsWatch" to "Ads watch"), a model,
+ * or a failure's reason ("web GET /exa/companies: 502" to "Exa search failed (502)").
+ */
+export type Words = true | "model" | "reason";
 
 /** A name from code as its field reads it. */
 export const wordsOf = (words: Words, s: string): string =>
-  words === "model" ? modelLabel(s) : codeLabel(s);
+  words === "model" ? modelLabel(s) : words === "reason" ? reasonLabel(s) : codeLabel(s);

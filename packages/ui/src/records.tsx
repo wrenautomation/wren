@@ -46,6 +46,7 @@ import {
 } from "./edits.js";
 import { Alert } from "./feedback.js";
 import {
+  actorParts,
   type CiteTo,
   dateOf,
   exact,
@@ -619,6 +620,7 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
     return lenOf(f.states?.[String(c)]?.label ?? String(c)) + 4;
   if (f.kind === "choice" || f.words) return lenOf(shownOf(f, String(c)));
   if (f.kind === "link") return lenOf(linkLabel(String(c), f.label));
+  if (f.kind === "actor") return lenOf(actorParts(String(c))?.join(" · ") ?? String(c));
   // A score's bar and its gap take about seven characters.
   if (f.kind === "score") return String(c).length + (f.max ? 7 : 0);
   if (Array.isArray(c)) return lenOf(c.join(", "));
@@ -645,7 +647,7 @@ export function fitOf(f: FieldMeta, rows: Row[]): number {
   if (!rows.length) return widthOf(f);
   // The head may take two lines: its longest word, or half of it, and room for the sort arrow.
   const words = f.label.split(/\s+/);
-  const head = Math.max(...words.map((w) => w.length), Math.ceil(f.label.length / 2)) + 3;
+  const head = Math.max(...words.map(lenOf), Math.ceil(lenOf(f.label) / 2)) + 3;
   const chars = Math.max(head, ...rows.map((r) => charsOf(f, r[f.key])));
   return Math.min(maxOf(f), Math.max(64, pxOf(chars)));
 }
@@ -800,13 +802,16 @@ export function shownColumns(
   { byHand, narrow }: { byHand: boolean; narrow: boolean },
 ): FieldMeta[] {
   const title = (r: Row) => r[meta.title];
-  // A column that only says the title again ("Text" whose first line is the "Post") is left out.
+  // A column that mostly says the title again ("Text" whose first line is the "Post", on at least
+  // half the rows) is left out: the rest read it on the record's page.
   const repeats = (f: FieldMeta) =>
     f.kind === "text" &&
-    rows.every((r) => {
+    rows.filter((r) => {
       const [t, c] = [title(r), r[f.key]];
       return typeof t === "string" && t !== "" && typeof c === "string" && c.startsWith(t);
-    });
+    }).length *
+      2 >=
+      rows.length;
   const filled =
     byHand || !rows.length
       ? cols

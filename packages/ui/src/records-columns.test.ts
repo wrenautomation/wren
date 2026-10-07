@@ -47,7 +47,7 @@ describe("shownColumns", () => {
       city,
     ]);
   });
-  it("drops a column that only repeats the title", () => {
+  it("drops a column that mostly repeats the title", () => {
     const text = field("text");
     const drafts = [
       { id: 1, name: "Before a candidate", text: "Before a candidate takes a counter" },
@@ -56,11 +56,15 @@ describe("shownColumns", () => {
     expect(shownColumns(meta, [name, text], drafts, { byHand: false, narrow: false })).toEqual([
       name,
     ]);
+    // A Reddit post's own title on one row of three still leaves the column out.
     const titled = [...drafts, { id: 3, name: "How we vet", text: "A video on vetting" }];
     expect(shownColumns(meta, [name, text], titled, { byHand: false, narrow: false })).toEqual([
       name,
-      text,
     ]);
+    const own = [...titled, { id: 4, name: "Reactivation", text: "Old clients know you" }];
+    expect(
+      shownColumns(meta, [name, text], own.slice(1), { byHand: false, narrow: false }),
+    ).toEqual([name, text]);
   });
   it("keeps every column picked by hand, and every column with no rows", () => {
     expect(shownColumns(meta, cols, rows, { byHand: true, narrow: false })).toEqual(cols);

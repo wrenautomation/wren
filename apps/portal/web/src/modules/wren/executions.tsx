@@ -4,6 +4,7 @@
  * data that came in and what its step sent on. A failed step says why, with Retry for the team.
  * Read and Retry work on a phone.
  */
+import { wordsOf } from "@wren/core/models/labels";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import { Alert, Button, cx, Empty, Graph, Input, Loading, StateMark } from "@wren/ui";
 import { useMemo, useState } from "react";
@@ -342,7 +343,9 @@ function StepData({
         <div className="grid min-w-0 content-start gap-1">
           <span className={cx("text-[12px] font-medium", QUIET)}>Out</span>
           {s.error ? (
-            <p className="m-0 text-[13px] text-(--ui-bad)">It failed here: {s.error}</p>
+            <p className="m-0 text-[13px] text-(--ui-bad)" title={s.error}>
+              It failed here: {wordsOf("reason", s.error)}
+            </p>
           ) : s.due ? (
             <p className="m-0 text-[13px]">Waits here until {when(s.due)}.</p>
           ) : s.sent === null ? (

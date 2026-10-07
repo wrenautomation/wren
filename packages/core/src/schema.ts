@@ -221,7 +221,12 @@ export const unitHoldsNow = pgView("unit_holds_now", {
       else initcap(replace(coalesce(nullif(split_part(stage, '.', 2), ''), stage), '-', ' ')) end end what) w,
   lateral (select case
       when subject like 'source:%' then initcap(substr(subject, 8)) || ' source'
-      when stage = 'research.signals' then substr(subject, strpos(subject, ':') + 1)
+      when stage = 'research.signals' then (select coalesce(case
+          when k ~ '^c[0-9]{1,9}$' then (select name from companies where id = substr(k, 2)::int)
+          when k ~ '^p[0-9]{1,9}$' then (select full_name from people where id = substr(k, 2)::int)
+          when k ~ '^(reddit:)?t3_' then (select '"' || t.title || '"' from reddit_threads t
+            where t.id = regexp_replace(k, '^reddit:', '') limit 1) end, k)
+        from (select substr(subject, strpos(subject, ':') + 1) k) s)
       when subject like 'post %' then (select coalesce(g.name, 'Group') || ', post by '
         || coalesce(nullif(p.author, ''), 'someone') from social_posts p
         left join social_groups g on g.id = p.group_id where p.ref = substr(subject, 6) limit 1)

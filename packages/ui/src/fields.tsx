@@ -182,9 +182,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       return <Actor value={String(c)} />;
     default:
       return f.words ? (
-        <span title={f.words === "model" ? String(c) : undefined}>
-          {wordsOf(f.words, String(c))}
-        </span>
+        <span title={f.words === true ? undefined : String(c)}>{wordsOf(f.words, String(c))}</span>
       ) : f.slots ? (
         <Slotted text={String(c)} slots={f.slots} />
       ) : (
@@ -227,13 +225,24 @@ export function Slotted({
  * Who or what made a row: a person's address as it is; a machine's "pipeline:compose" as its
  * kind, faint, then its name.
  */
-function Actor({ value }: { value: string }) {
+/** Who did it, as it reads: "pipeline:wren-worker" is "Pipeline", then "Wren worker". */
+export function actorParts(value: string): [kind: string, who: string] | null {
   const at = value.indexOf(":");
-  if (at < 1 || value.includes("@")) return <span>{value}</span>;
+  if (at < 1 || value.includes("@")) return null;
+  const who = value.slice(at + 1);
+  return [
+    `${value.charAt(0).toUpperCase()}${value.slice(1, at)}`,
+    /^[\w-]+$/.test(who) ? codeLabel(who) : who,
+  ];
+}
+
+function Actor({ value }: { value: string }) {
+  const parts = actorParts(value);
+  if (!parts) return <span>{value}</span>;
   return (
     <span>
-      {quiet(`${value.charAt(0).toUpperCase()}${value.slice(1, at)} · `)}
-      {/^[\w-]+$/.test(value.slice(at + 1)) ? codeLabel(value.slice(at + 1)) : value.slice(at + 1)}
+      {quiet(`${parts[0]} · `)}
+      {parts[1]}
     </span>
   );
 }
