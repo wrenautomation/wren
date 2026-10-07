@@ -27,8 +27,10 @@ import {
   editDraft,
   getDraft,
   listDrafts,
+  planFor,
   playbookFor,
   pushPlaybook,
+  slotsOf,
   tomorrowOf,
   whatWorked,
 } from "../../src/index.js";
@@ -485,5 +487,35 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     ]);
     expect(prompts.at(-1)).toContain('"how do you pick leads?"');
     expect(prompts.at(-1)).not.toContain("quiet_fox");
+  });
+
+  it("old drafts wait in To approve without filling tomorrow; approve uses the planner's slots", async () => {
+    // Two unapproved drafts from earlier days: one never slotted, one on a past slot.
+    const out = await desk().add({ text: "an older idea", platforms: ["linkedin"] });
+    const old = out.drafts?.results[0];
+    if (!old?.ok) throw new Error("no draft");
+    const second = await desk().add({ text: "another older idea", platforms: ["linkedin"] });
+    const past = second.drafts?.results[0];
+    if (!past?.ok) throw new Error("no draft");
+    await pg.db
+      .update(contentDrafts)
+      .set({ scheduledFor: new Date(Date.now() - 3 * 86_400_000) })
+      .where(eq(contentDrafts.id, past.draft.id));
+    const day = tomorrowOf(new Date(), "UTC");
+    const plan = await planFor(pg.db, ["linkedin"], day, "UTC", slotsOf(settings.slots));
+    expect(plan.platforms).toEqual([{ platform: "linkedin", slots: 1, filled: 0, waiting: 0 }]);
+    expect(await listDrafts(pg.db, { status: "draft" })).toHaveLength(2);
+
+    // His slots: LinkedIn once a day at 06:15. Approve lands there, not on a default.
+    await planner().start({
+      platforms: ["linkedin"],
+      slots: { linkedin: [{ hour: 6, minute: 15 }] },
+    });
+    await planner().stop();
+    expect(await desk().approve({ ids: [old.draft.id] })).toEqual({ done: [old.draft.id] });
+    const row = await getDraft(pg.db, old.draft.id);
+    expect(row?.status).toBe("approved");
+    const when = row?.scheduledFor;
+    expect([when?.getUTCHours(), when?.getUTCMinutes()]).toEqual([6, 15]);
   });
 });

@@ -1,6 +1,7 @@
 /**
  * Marketing → Videos against Postgres: a rendered video waits in To approve, Approve writes
- * one private YouTube draft of the file on the Mac (never two), a Short and a thumbnail pick.
+ * one private YouTube draft of the file on the Mac (never two), a Short (plus its Instagram Reel
+ * draft, waiting in To approve) and a thumbnail pick.
  * Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
@@ -50,6 +51,7 @@ describe("marketing.video", () => {
         },
         keys: {
           long: "studio/1/long.mp4",
+          "reel-1": "s3://media/studio/1/reel-1.mp4",
           "thumb-1": "studio/1/thumb-1.jpg",
           "thumb-2": "studio/1/thumb-2.jpg",
         },
@@ -80,6 +82,29 @@ describe("marketing.video", () => {
     const [s] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, short.id));
     expect(s).toMatchObject({ title: "The one trick", media: { source: "/rec/out/short-1.mp4" } });
     expect(s?.extra).not.toHaveProperty("thumbnail");
+
+    // The Short's Reel: an Instagram draft of the uploaded full render, waiting for his yes.
+    if (!short.reel || !("id" in short.reel)) throw new Error("no reel draft");
+    const reelId = short.reel.id;
+    const [reel] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, reelId));
+    expect(reel).toMatchObject({
+      platform: "instagram",
+      status: "draft",
+      scheduledFor: null,
+      text: "The one trick\n\nWhat it does.",
+      media: { kind: "video", source: "s3://media/studio/1/reel-1.mp4" },
+    });
+    expect(await approveVideo(pg.db, id, { source: "api", short: 1 })).toEqual({
+      id: short.id,
+      again: true,
+      reel: { id: reelId, again: true },
+    });
+    const reels = await serveRecords([approvalRecord], pg.db).list({
+      record: approvalRecord.id,
+      view: "waiting",
+      limit: 50,
+    });
+    expect(reels.rows.map((r) => r.id)).toContain(`draft:${reelId}`);
     await expect(approveVideo(pg.db, id, { source: "cli", short: 2 })).rejects.toThrow(/Short 2/);
 
     // A fresh serve: the first one keeps its rows for a while.
@@ -116,6 +141,26 @@ describe("marketing.video", () => {
     expect(detail.video.preview).toBe("https://signed/s3://media/studio/1/long.mp4");
     expect(detail.video.words.map((w) => w.cut)).toEqual([null, "cut"]);
     expect(detail.video.thumbnails.map((t) => t.picked)).toEqual([false, true]);
+  });
+
+  it("a Short rendered before Reels uploaded says to render again, and still goes to YouTube", async () => {
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Older render",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        shorts: [{ from: 0, to: 30, title: "Short one" }],
+        files: { "short-1": "/rec/out/short-1.mp4" },
+        keys: { "short-1": "s3://media/studio/2/short-1-540.mp4" },
+      })
+      .returning();
+    if (!v) throw new Error("no video");
+    const r = await approveVideo(pg.db, v.id, { source: "cli", short: 1 });
+    expect(r.reel).toEqual({ missing: expect.stringMatching(/render it again/) });
+    const rows = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, r.id));
+    expect(rows.map((d) => d.platform)).toEqual(["youtube"]);
   });
 
   it("refuses a video not rendered yet", async () => {

@@ -8,7 +8,7 @@
  * over the days instead of piling onto one hour. `--at` still wins, and
  * `--now` posts on the next pass.
  */
-import type { Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/content";
 import { wallClock, zonedInstant } from "@wren/core/time";
 
 export interface Slot {
@@ -37,6 +37,31 @@ export const DEFAULT_SLOTS: Slots = {
   tiktok: [{ hour: 19, minute: 0 }],
   youtube: [{ hour: 15, minute: 0 }],
 };
+
+/**
+ * The defaults with some platforms' slots replaced (ContentPlanner's `slots` setting); a slot with
+ * a bad hour, minute or weekday is dropped.
+ */
+export function slotsOf(
+  custom: Partial<Record<Platform, readonly Slot[]>> | null | undefined,
+): Slots {
+  const out: Record<Platform, readonly Slot[]> = { ...DEFAULT_SLOTS };
+  const int = (n: unknown, lo: number, hi: number) =>
+    Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
+  for (const [p, list] of Object.entries(custom ?? {})) {
+    if (!PLATFORMS.includes(p as Platform) || !Array.isArray(list)) continue;
+    out[p as Platform] = list.filter(
+      (s) =>
+        int(s?.hour, 0, 23) &&
+        int(s.minute ?? 0, 0, 59) &&
+        (s.days === undefined ||
+          (Array.isArray(s.days) &&
+            s.days.length > 0 &&
+            s.days.every((d: unknown) => int(d, 1, 7)))),
+    );
+  }
+  return out;
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How far ahead a free slot is looked for; past it the queue is a month deep and the caller hears so. */

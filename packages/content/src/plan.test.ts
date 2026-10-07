@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatPlan, freeSlots, shortfallOf, tomorrowOf } from "./plan.js";
-import { nextRunAt, plannerTitle, slotsOf } from "./restate/planner.js";
-import { DEFAULT_SLOTS } from "./slots.js";
+import { nextRunAt, plannerTitle } from "./restate/planner.js";
+import { DEFAULT_SLOTS, slotsOf } from "./slots.js";
 
 const ET = "America/New_York";
 
@@ -43,6 +43,14 @@ describe("daily plan", () => {
     });
     expect(s.linkedin).toEqual([{ hour: 8, minute: 30 }]);
     expect(s.reddit).toEqual(DEFAULT_SLOTS.reddit);
+    // One a week on Tuesdays; a weekday out of 1..7 drops the slot.
+    const weekly = slotsOf({
+      reddit: [
+        { hour: 9, minute: 30, days: [2] },
+        { hour: 10, minute: 0, days: [8] },
+      ],
+    });
+    expect(weekly.reddit).toEqual([{ hour: 9, minute: 30, days: [2] }]);
   });
 
   it("the ping says what it drafted, else the shortfall", () => {

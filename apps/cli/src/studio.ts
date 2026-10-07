@@ -7,7 +7,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { approveVideo, uploadMedia } from "@wren/content";
+import { approveVideo, reelKey, uploadMedia } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
@@ -191,6 +191,11 @@ export function registerStudio(
             ? `video ${v}: already approved as draft ${d.id}`
             : `video ${v}: draft ${d.id} approved; it uploads, private, on the next pass`,
         );
+        if (d.reel && "missing" in d.reel) console.log(d.reel.missing);
+        else if (d.reel && !d.reel.again)
+          console.log(
+            `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
+          );
       }),
     );
 
@@ -333,7 +338,8 @@ export function registerStudio(
       },
       async () => {
         const { files, seconds } = await renderAll(studioDir, e.dir, job, (l) => console.log(l));
-        // Previews (540p) and stills to the private media bucket, keyed by content hash.
+        // Previews (540p) and stills to the private media bucket, keyed by content hash. Each
+        // full Short goes up too, as its Instagram Reel: Graph fetches a URL, not a Mac path.
         const keys: Record<string, string> = {};
         if (settings.mediaBucket)
           for (const [name, file] of Object.entries(files)) {
@@ -341,8 +347,13 @@ export function registerStudio(
               ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
               : file;
             keys[name] = await uploadMedia(up, { bucket: settings.mediaBucket });
+            const short = /^short-(\d+)$/.exec(name);
+            if (short)
+              keys[reelKey(Number(short[1]))] = await uploadMedia(file, {
+                bucket: settings.mediaBucket,
+              });
           }
-        else console.log("WREN_MEDIA_BUCKET unset: previews not uploaded");
+        else console.log("WREN_MEDIA_BUCKET unset: previews and Reels not uploaded");
         await setRendered(db, e.id, files, keys);
         return {
           files,

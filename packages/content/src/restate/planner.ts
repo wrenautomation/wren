@@ -42,7 +42,7 @@ import {
 } from "../plan.js";
 import { PLATFORM_SPECS } from "../platforms.js";
 import { contentDrafts } from "../schema.js";
-import { DEFAULT_SLOTS, type Slot, type Slots } from "../slots.js";
+import { type Slot, slotsOf } from "../slots.js";
 import { type ContentDesk, DESK_KEY, DESK_UNIT } from "./desk.js";
 
 export const PLANNER_KEY = "default";
@@ -90,24 +90,6 @@ export function nextRunAt(now: Date, zone: string, hour: number): Date {
   if (today.getTime() > now.getTime()) return today;
   const t = new Date(Date.UTC(w.year, w.month - 1, w.day + 1));
   return zonedInstant(zone, t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), hour);
-}
-
-/** The defaults with the settings' platforms replaced; a malformed slot is dropped. */
-export function slotsOf(custom: PlannerSettings["slots"]): Slots {
-  const out: Record<Platform, readonly Slot[]> = { ...DEFAULT_SLOTS };
-  for (const [p, list] of Object.entries(custom ?? {})) {
-    if (!PLATFORMS.includes(p as Platform) || !Array.isArray(list)) continue;
-    out[p as Platform] = list.filter(
-      (s) =>
-        Number.isInteger(s?.hour) &&
-        s.hour >= 0 &&
-        s.hour < 24 &&
-        Number.isInteger(s.minute ?? 0) &&
-        (s.minute ?? 0) >= 0 &&
-        (s.minute ?? 0) < 60,
-    );
-  }
-  return out;
 }
 
 /** "drafted 2 for tomorrow: LinkedIn, Reddit" or the shortfall when nothing was drafted. */

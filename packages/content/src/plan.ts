@@ -18,7 +18,7 @@ export interface PlatformPlan {
   slots: number;
   /** Approved or publishing drafts scheduled inside the day. */
   filled: number;
-  /** Drafts written and waiting for review. */
+  /** Drafts waiting for review that hold a slot inside the day; older ones wait in To approve and don't count. */
   waiting: number;
 }
 
@@ -63,7 +63,14 @@ export async function planFor(
     const [waiting] = await db
       .select({ n: count() })
       .from(contentDrafts)
-      .where(and(eq(contentDrafts.platform, platform), eq(contentDrafts.status, "draft")));
+      .where(
+        and(
+          eq(contentDrafts.platform, platform),
+          eq(contentDrafts.status, "draft"),
+          gte(contentDrafts.scheduledFor, day.from),
+          lt(contentDrafts.scheduledFor, day.to),
+        ),
+      );
     out.push({ platform, slots: inDay, filled: filled?.n ?? 0, waiting: waiting?.n ?? 0 });
   }
   const [ideas] = await db

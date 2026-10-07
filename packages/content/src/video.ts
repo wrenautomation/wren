@@ -75,27 +75,44 @@ export interface ApproveVideo {
   now?: Date;
 }
 
+export interface ApprovedVideo {
+  /** The YouTube draft. */
+  id: string;
+  again: boolean;
+  /**
+   * A Short only: its Instagram Reel draft, waiting in To approve (`id`), or why there is none
+   * (`missing`: rendered before Reels were uploaded).
+   */
+  reel?: { id: string; again: boolean } | { missing: string };
+}
+
+/** IG captions stop at 2,200 characters. */
+const IG_CAPTION = 2200;
+
 /**
  * His yes on the long video or Short `short` (1-based): a YouTube draft, approved to go on the
- * next pass, private. Approving the same one again answers its draft, never a second upload.
+ * next pass, private. A Short also gets an Instagram Reel draft of the same render, from the
+ * media bucket (Graph fetches a URL), waiting in To approve: it posts only on his Approve there.
+ * Approving the same one again answers its drafts and adds only a missing Reel draft.
  */
 export async function approveVideo(
   db: Queryable,
   id: number,
   o: ApproveVideo,
-): Promise<{ id: string; again: boolean }> {
+): Promise<ApprovedVideo> {
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
     if (!e) throw new Error(`no video ${id}`);
     const ref = videoRef(id, o.short);
-    const [had] = await tx
-      .select({ id: contentDrafts.id })
+    const had = await tx
+      .select({ id: contentDrafts.id, platform: contentDrafts.platform, ideaId: contentIdeas.id })
       .from(contentDrafts)
       .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
-      .where(eq(contentIdeas.ref, ref))
-      .limit(1);
-    if (had) return { id: had.id, again: true };
-    if (!["rendered", "approved", "uploaded"].includes(e.state))
+      .where(eq(contentIdeas.ref, ref));
+    const yt = had.find((d) => d.platform === "youtube");
+    const now = o.now ?? new Date();
+    if (yt && !o.short) return { id: yt.id, again: true };
+    if (!yt && !["rendered", "approved", "uploaded"].includes(e.state))
       throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
     const { file, title, thumbnail } = target(e, o.short);
     // The long video's chapters go under its description; a Short has none.
@@ -103,47 +120,82 @@ export async function approveVideo(
       .filter(Boolean)
       .join("\n\n")
       .slice(0, 5000);
-    const now = o.now ?? new Date();
-    const [idea] = await tx
-      .insert(contentIdeas)
-      .values({
-        text: `${title}\n\n${body}`,
-        source: o.source,
-        ref,
-        status: "drafted",
-        media: { kind: "video", source: file, title },
-      })
-      .returning();
-    if (!idea) throw new Error("insert returned no idea");
-    const [d] = await tx
-      .insert(contentDrafts)
-      .values({
-        ideaId: idea.id,
-        platform: "youtube",
-        text: body,
-        title,
-        media: { kind: "video", source: file, title },
-        extra: {
-          privacyStatus: "private",
-          ...(e.tags.length ? { tags: e.tags } : {}),
-          ...(thumbnail ? { thumbnail } : {}),
-        },
-        status: "approved",
-        approvedAt: now,
-        // Null: the next publish pass. Private, so he publishes or schedules it on YouTube.
-        scheduledFor: null,
-        promptVersion: "video",
-      })
-      .returning({ id: contentDrafts.id });
-    if (!d) throw new Error("insert returned no draft");
+    let ideaId = yt?.ideaId;
+    let ytId = yt?.id;
+    if (!ideaId || !ytId) {
+      const [idea] = await tx
+        .insert(contentIdeas)
+        .values({
+          text: `${title}\n\n${body}`,
+          source: o.source,
+          ref,
+          status: "drafted",
+          media: { kind: "video", source: file, title },
+        })
+        .returning();
+      if (!idea) throw new Error("insert returned no idea");
+      const [d] = await tx
+        .insert(contentDrafts)
+        .values({
+          ideaId: idea.id,
+          platform: "youtube",
+          text: body,
+          title,
+          media: { kind: "video", source: file, title },
+          extra: {
+            privacyStatus: "private",
+            ...(e.tags.length ? { tags: e.tags } : {}),
+            ...(thumbnail ? { thumbnail } : {}),
+          },
+          status: "approved",
+          approvedAt: now,
+          // Null: the next publish pass. Private, so he publishes or schedules it on YouTube.
+          scheduledFor: null,
+          promptVersion: "video",
+        })
+        .returning({ id: contentDrafts.id });
+      if (!d) throw new Error("insert returned no draft");
+      ideaId = idea.id;
+      ytId = d.id;
+    }
     if (e.state === "rendered")
       await tx
         .update(videoEdits)
         .set({ state: "approved", updatedAt: now })
         .where(eq(videoEdits.id, id));
-    return { id: d.id, again: false };
+    if (!o.short) return { id: ytId, again: false };
+    const out = { id: ytId, again: Boolean(yt) };
+    const reel = had.find((d) => d.platform === "instagram");
+    if (reel) return { ...out, reel: { id: reel.id, again: true } };
+    const stored = e.keys[reelKey(o.short)];
+    if (!stored)
+      return {
+        ...out,
+        reel: {
+          missing: `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
+        },
+      };
+    const caption = [title, e.description].filter(Boolean).join("\n\n").slice(0, IG_CAPTION);
+    const [r] = await tx
+      .insert(contentDrafts)
+      .values({
+        ideaId,
+        platform: "instagram",
+        text: caption,
+        title,
+        media: { kind: "video", source: stored, title },
+        // Waits in To approve; his Approve gives it the next Instagram slot.
+        status: "draft",
+        promptVersion: "video",
+      })
+      .returning({ id: contentDrafts.id });
+    if (!r) throw new Error("insert returned no draft");
+    return { ...out, reel: { id: r.id, again: false } };
   });
 }
+
+/** The full-size Short in the media bucket, for its Reel: `wren video render` uploads it. */
+export const reelKey = (short: number) => `reel-${short}`;
 
 /** What Approve uploads: the file, its title and (the long video only) its thumbnail. */
 function target(e: VideoEdit, short?: number) {

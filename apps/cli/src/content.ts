@@ -25,7 +25,9 @@ import {
   listIdeas,
   planFor,
   rejectDrafts,
+  type Slot,
   setExtra,
+  slotsOf,
   tomorrowOf,
   uploadMedia,
   whatWorked,
@@ -36,6 +38,7 @@ import type {
   ContentPlanner,
   ContentScheduler,
   DraftReport,
+  PlannerSettings,
 } from "@wren/content/restate";
 import {
   DEFAULT_PLAN_PLATFORMS,
@@ -129,6 +132,14 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     ingress().objectClient<ContentScheduler>({ name: "ContentScheduler" }, SCHEDULER_KEY);
   const planner = () =>
     ingress().objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY);
+  /** The planner's stored settings; none (or Restate down) = the defaults. */
+  const plannerSettings = async (): Promise<PlannerSettings> => {
+    try {
+      return ((await planner().status()).settings as PlannerSettings | null) ?? {};
+    } catch {
+      return {};
+    }
+  };
   const metrics = () =>
     ingress().objectClient<ContentMetrics>({ name: "ContentMetrics" }, METRICS_KEY);
 
@@ -247,10 +258,12 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .action(async (ids: string[], o: { at?: string; now?: boolean }) => {
       const at = o.at ? new Date(o.at) : null;
       if (at && Number.isNaN(at.getTime())) throw new Error(`not a time: ${o.at}`);
+      const slots = slotsOf((await plannerSettings()).slots);
       const rows = await withDb((db) =>
         approveDrafts(db, ids, {
           now: new Date(),
           at,
+          slots,
           zone: settings.sendTimezone,
           ...(o.now ? { asap: true } : {}),
         }),
@@ -310,7 +323,10 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .action(async (o: { platforms?: string }) => {
       const platforms = platformsOf(o.platforms) ?? DEFAULT_PLAN_PLATFORMS;
       const zone = settings.sendTimezone;
-      const plan = await withDb((db) => planFor(db, platforms, tomorrowOf(new Date(), zone), zone));
+      const slots = slotsOf((await plannerSettings()).slots);
+      const plan = await withDb((db) =>
+        planFor(db, platforms, tomorrowOf(new Date(), zone), zone, slots),
+      );
       console.log(plan.day);
       for (const l of formatPlan(plan)) console.log(`  ${l}`);
     });
@@ -342,6 +358,35 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
           2,
         ),
       );
+    });
+  pl.command("slots <platform> [times...]")
+    .description(
+      "Set one platform's post times (HH:MM, the fleet's clock), keeping the other settings; starts the planner",
+    )
+    .option("--days <spec>", "ISO weekdays, 1 = Monday: 1-5, 2, 1,3,5 (default every day)")
+    .option("--clear", "back to the platform's default slots")
+    .addHelpText(
+      "after",
+      "\nOne LinkedIn post each weekday: wren content planner slots linkedin 08:30 --days 1-5\nOne Reddit post a week, Tuesday: wren content planner slots reddit 09:30 --days 2",
+    )
+    .action(async (platform: string, times: string[], o: { days?: string; clear?: boolean }) => {
+      if (!PLATFORMS.includes(platform as Platform)) throw new Error(`not a platform: ${platform}`);
+      if (!o.clear && times.length === 0) throw new Error("give at least one HH:MM, or --clear");
+      const days = o.days ? daysOf(o.days) : undefined;
+      const list: Slot[] = times.map((t) => {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+        const hour = Number(m?.[1]);
+        const minute = Number(m?.[2]);
+        if (!m || hour > 23 || minute > 59) throw new Error(`not a time: ${t} (HH:MM)`);
+        return { hour, minute, ...(days ? { days } : {}) };
+      });
+      const current = await planner().status();
+      const stored = (current.settings as PlannerSettings | null) ?? {};
+      const slots = { ...stored.slots };
+      if (o.clear) delete slots[platform as Platform];
+      else slots[platform as Platform] = list;
+      const out = await planner().start({ ...stored, slots });
+      console.log(JSON.stringify(out.settings ?? out, null, 2));
     });
   pl.command("stop").action(async () =>
     console.log(JSON.stringify(await planner().stop(), null, 2)),
@@ -393,4 +438,18 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .action(async () => console.log(JSON.stringify(await metrics().sync(), null, 2)));
 
   return content;
+}
+
+/** "1-5", "2", "1,3,5" → ISO weekdays (1 = Monday). */
+export function daysOf(spec: string): number[] {
+  const out = new Set<number>();
+  for (const part of spec.split(",")) {
+    const m = /^\s*(\d)\s*(?:-\s*(\d)\s*)?$/.exec(part);
+    const a = Number(m?.[1]);
+    const b = Number(m?.[2] ?? m?.[1]);
+    if (!m || a < 1 || b > 7 || a > b)
+      throw new Error(`not weekdays: ${spec} (1 = Monday, 1-5, 2, 1,3)`);
+    for (let d = a; d <= b; d++) out.add(d);
+  }
+  return [...out].sort((x, y) => x - y);
 }

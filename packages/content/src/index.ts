@@ -15,5 +15,5 @@ export * from "./schema.js";
 export * from "./slots.js";
 export * from "./social/store.js";
 export * from "./status.js";
-export { approveVideo, pickThumbnail, videoRef } from "./video.js";
+export { type ApprovedVideo, approveVideo, pickThumbnail, reelKey, videoRef } from "./video.js";
 export * from "./voice.js";

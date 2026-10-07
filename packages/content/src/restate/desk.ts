@@ -23,8 +23,10 @@ import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } 
 import { addIdea, getIdea } from "../ideas.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
 import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
+import { slotsOf } from "../slots.js";
 import { approveVideo, pickThumbnail } from "../video.js";
 import type { Brand } from "../voice.js";
+import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
 export const DESK_KEY = "default";
 /** A client's desk is `ContentDesk/<client>/desk`. */
@@ -239,8 +241,17 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         { input: IDS },
         async (ctx: restate.ObjectContext, req: { ids: string[] }) => {
           const { db } = await scopeOf(ctx);
+          // Wren's posts land on the planner's slots; a client's on the defaults.
+          const planned = clientOfKey(ctx.key)
+            ? null
+            : (
+                await ctx
+                  .objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY)
+                  .status()
+              ).settings;
+          const slots = slotsOf((planned as PlannerSettings | null)?.slots);
           return ctx.run("approve", () =>
-            verdict(() => approveDrafts(db, req.ids, { now: new Date(), zone: deps.zone })),
+            verdict(() => approveDrafts(db, req.ids, { now: new Date(), zone: deps.zone, slots })),
           );
         },
       ),

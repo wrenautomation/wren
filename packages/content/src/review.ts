@@ -8,7 +8,7 @@ import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { missingExtra, PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
-import { nextSlot } from "./slots.js";
+import { nextSlot, type Slots } from "./slots.js";
 
 export interface DraftFilter {
   status?: DraftStatus;
@@ -65,12 +65,13 @@ async function moveAll(
 
 /**
  * Approve. `at` schedules; `now: true` posts on the next pass; otherwise each
- * draft takes its platform's next free default slot on `zone`'s clock.
+ * draft takes its platform's next free slot on `zone`'s clock: the planner's
+ * (`slots`), else the defaults.
  */
 export async function approveDrafts(
   db: Queryable,
   ids: readonly string[],
-  o: { now: Date; at?: Date | null; zone?: string; asap?: boolean },
+  o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots },
 ): Promise<ContentDraft[]> {
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
   await refuseMissingExtra(db, ids);
@@ -102,7 +103,7 @@ export async function approveDrafts(
     const at =
       own && own > o.now && !slots.some((t) => t.getTime() === own.getTime())
         ? own
-        : nextSlot(draft.platform, o.now, zone, undefined, slots);
+        : nextSlot(draft.platform, o.now, zone, o.slots, slots);
     const moved = await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve");
     for (const m of moved) if (m.scheduledFor) slots.push(m.scheduledFor);
     rows.push(...moved);
