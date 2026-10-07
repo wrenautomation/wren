@@ -5,7 +5,8 @@
 
 import { loadSettings } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
-import { alleleKey, parseTemplate } from "@wren/core/slots";
+import { alleleKey, parseTemplate, toSource } from "@wren/core/slots";
+import { emailRef, saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -30,6 +31,8 @@ let expId = 0;
 const candidates: number[] = [];
 beforeAll(async () => {
   pg = await startTestPostgres();
+  // The console reads the live copy from the template store.
+  await saveLive(pg.db, emailRef(NICHE, "opener"), toSource(GROWTH), { by: "test" });
   const exp = await startExperiment(pg.db, { niche: NICHE, file: GROWTH });
   await tickExperiment(pg.db, exp.id, GROWTH);
   expId = exp.id;
@@ -72,7 +75,7 @@ const api = () =>
     db: pg.db,
     senders: [],
     policy,
-    campaigns: new Map([[NICHE, { templates: new Map([["opener", GROWTH]]) }]]) as never,
+    campaigns: new Map([[NICHE, {}]]) as never,
   });
 
 describe("experiment records", () => {
