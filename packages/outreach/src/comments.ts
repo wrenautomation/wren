@@ -20,6 +20,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
+import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   COMMENT_KINDS,
@@ -167,13 +168,19 @@ export async function sortComment(
   let draft: string | null = null;
   let out: Outcome<z.infer<typeof ANSWER>> | null = null;
   if (llm) {
-    // The SOPs, then his last 5 edits of comment answers (content desk, 6).
-    const [sops, edits] = await Promise.all([
+    // The SOPs, his last 5 edits of comment answers (content desk, 6), then his yeses and nos
+    // closest to this comment.
+    const [sops, edits, examples] = await Promise.all([
       guide ? guide(c.platform) : "",
       editsFor(db, ["comment"]),
+      examplesFor(db, COMMENT_KINDS_LEARNED, `${c.postTitle ?? ""} ${c.body}`),
     ]);
     const prompt = promptFor(c);
-    const system = systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n"), facts);
+    const system = systemFor(
+      c.platform,
+      [sops.trim(), edits, examples].filter(Boolean).join("\n\n"),
+      facts,
+    );
     const asked = sort;
     // A client's model gate saying no leaves it to the words, as with no model.
     const g = await guardDraft(

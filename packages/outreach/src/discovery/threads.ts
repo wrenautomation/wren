@@ -15,6 +15,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
+import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { ReachRefusal } from "../refusal.js";
 import {
   comments,
@@ -317,8 +318,13 @@ export async function draftThread(
     .join("\n");
   const ours = factsFor(`${t.title} ${t.body} ${said}`, o.facts);
   const opLine = o.op ? personLine(o.op) : null;
-  // His last 5 edits of thread comments (content desk, 6).
-  const edits = await editsFor(db, ["thread"]);
+  // His last 5 edits of thread comments (content desk, 6), then his yeses and nos closest to it.
+  const edits = [
+    await editsFor(db, ["thread"]),
+    await examplesFor(db, COMMENT_KINDS_LEARNED, `${t.title} ${t.body}`),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const truths = o.truths ?? [];
   const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}`;
   const system = edits

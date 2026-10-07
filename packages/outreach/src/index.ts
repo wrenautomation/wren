@@ -9,6 +9,7 @@ export * from "./discovery/reads.js";
 export * from "./discovery/threads.js";
 export * from "./drafts.js";
 export * from "./enroll.js";
+export * from "./examples.js";
 export * from "./follow.js";
 export * from "./invites.js";
 export * from "./linkedin-posts.js";

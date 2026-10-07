@@ -20,6 +20,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
+import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { ReachRefusal } from "./refusal.js";
 import { type LinkedinPost, linkedinPosts, reachAccounts } from "./schema.js";
 
@@ -373,7 +374,13 @@ async function guardedComment(
   o: CommentDraftOptions,
 ): Promise<Guarded<DraftOut>> {
   const facts = o.facts ?? [];
-  const edits = await editsFor(db, ["lipost"]);
+  // His last 5 edits, then his yeses and nos closest to this post.
+  const edits = [
+    await editsFor(db, ["lipost"]),
+    await examplesFor(db, COMMENT_KINDS_LEARNED, p.text),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const prompt = `Post by ${p.author}${p.headline ? ` (${p.headline})` : ""}, ${p.reactions} reactions, ${p.comments} comments:\n${p.text.slice(0, 3000)}`;
   const system = systemFor(o.guide ?? "", o.voice ?? "", edits, facts);
   const g = await guardDraft(

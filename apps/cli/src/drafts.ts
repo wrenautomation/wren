@@ -3,7 +3,8 @@
  * 4), so a Claude Code session reads and rewrites the drafts the console shows. Ids are the
  * Inbox's: draft:<id>, comment:3, thread:t3_x. `set` writes the field the console edits and
  * leaves a runs row, so the item's Ask Claude thread shows it. `edits` prints how William changed
- * drafts (before and after), the same examples every drafting call reads. `facts` lists and edits
+ * drafts (before and after), the same examples every drafting call reads; `examples` his comment
+ * yeses and nos the comment prompts read. `facts` lists and edits
  * what is true about him: the only first-person claims a draft may make. Nothing sends.
  */
 import {
@@ -16,8 +17,10 @@ import {
 } from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
 import { setWrenSettings } from "@wren/core/clients";
+import { REJECT_LABELS } from "@wren/core/draft-record";
 import { DEFAULT_FACTS, FACTS_COMPONENT, factsSettingsSchema, wrenFacts } from "@wren/core/facts";
 import { atomic, type Db, setAuditActor } from "@wren/db";
+import { commentExamples, EXAMPLES_MAX } from "@wren/outreach";
 import type { Command } from "commander";
 import { readText } from "./content.js";
 
@@ -92,6 +95,28 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
       for (const e of rows) {
         console.log(`\n${e.record}:${e.id}  ${new Date(e.at).toISOString()}  ${e.by ?? ""}`);
         console.log(`Before:\n${e.before}\nAfter:\n${e.after}`);
+      }
+    });
+
+  drafts
+    .command("examples")
+    .description(
+      "Your comment decisions the drafting prompts read: sent and turned down, closest to --about first",
+    )
+    .option("--about <text>", "the post or comment a draft would answer", "")
+    .option("--limit <n>", "how many", String(EXAMPLES_MAX))
+    .action(async (o: { about: string; limit: string }) => {
+      const rows = await withDb((db) =>
+        commentExamples(db, { about: o.about, limit: Number(o.limit) }),
+      );
+      if (!rows.length) console.log("No comment decisions in the last 90 days.");
+      for (const e of rows) {
+        const why = e.yes
+          ? "sent"
+          : `turned down${e.reason ? ` (${REJECT_LABELS[e.reason]})` : ""}${e.note ? `: ${e.note}` : ""}`;
+        console.log(`\n${e.item}  ${e.at.toISOString()}  ${why}`);
+        console.log(`  answering: ${line(e.about)}`);
+        console.log(`  draft: ${line(e.text, 300)}`);
       }
     });
 
