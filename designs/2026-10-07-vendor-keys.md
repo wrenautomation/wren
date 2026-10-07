@@ -31,14 +31,21 @@ Wren's keys for Exa, X and YouTube live in autobrowse. A client's key can't go t
 | Vendor | Route | Direct call |
 |---|---|---|
 | Exa | `web GET /search` with `via: "exa"` | `POST api.exa.ai/search`, `x-api-key` |
+| Exa | `web GET /people`, `/companies`, `/exa/companies`, `/linkedin/profile`, `/linkedin/company`, `/linkedin/posts` | `POST api.exa.ai/search` or `/contents` (`livecrawl: never`), `x-api-key`; parsed as autobrowse does (`vendor-direct-exa.ts`), 404 when Exa holds no copy |
 | X | `x GET /2/*` | `api.x.com/2/*`, Bearer |
 | YouTube | `youtube GET /youtube/v3/*` | `googleapis.com/youtube/v3/*`, `x-goog-api-key` |
 
 Any other route on an own key is refused with a reason and is never sent on Wren's key.
 
+The Exa-backed people and LinkedIn routes only pick the key. Their callers gate and meter them as LinkedIn search already, so `meteredSites` and `keyedSites` add no Exa gate or meter there, and a client with no Exa mode stays on Wren's ring. LinkedIn browser legs (`linkedin GET /in|search|company`) are untouched.
+
 Models: an own key goes straight to its provider through `llmForKey` (`packages/llm/src/client.ts`), with no gateway. The provider comes from a `provider:` prefix or the key's shape (`sk-ant-`, `sk-or-`, `gsk_`, `csk-`, `AIza`, `sk-`). Managed keeps the gateway.
 
 Telnyx: `keyedProvider` (`packages/channel-sms/src/keyed.ts`) runs a client's texts on its own Telnyx account or Wren's. If the key or a cap refuses, `send` answers "try later" and nothing leaves. It never throws, because a throw means "maybe sent". Accepted texts are metered in parts and dollars. The messaging profile is the client's `accounts.telnyx`, so a client on its own account sets its own profile there.
+
+Telnyx webhooks: a client on its own account saves its public key (Account → Public Key) with its API key, as `TELNYX_PUBLIC_KEY` in the key store. The phone Worker checks headers and freshness first, then asks `SmsEvents/signer` (`packages/channel-sms/src/signer.ts`) whose key signs the event. The event's number picks the owner: Wren's numbers sit in main, a client's in its database. Own mode: the client's public key, and the event lands only in its database. Wren's numbers and clients on Wren's account: `TELNYX_PUBLIC_KEY` on the Worker. A path naming someone other than the number's owner is 401. Answers are cached 5 minutes per number; a public key is not a secret.
+
+YouTube buckets: a client on its own key reads on its key's daily quota (`ownRoom` on the vendor's own bucket, 3 units a read). Wren and clients on Wren's key share Wren's bucket (`youtubeReadRoom` in `research/src/enrichment/youtube.ts`).
 
 ## Call sites changed
 
@@ -60,6 +67,12 @@ Client in context, routed through the resolver:
 | Models | `channel-email/src/restate/disposition.ts` reply labels and invites | `clientLlm`, `unset: "managed"` |
 | Models | `reactivation/src/loop.ts` pass | `clientLlm`, `unset: "managed"` |
 | Telnyx | worker `forClient` texts (send, lookup, balance, numbers, registration, keyword replies) | `keyedProvider`, `unset: "managed"` |
+| Telnyx | `apps/phone` `/webhooks/telnyx[/<client>]` | `SmsEvents/signer`: the client's public key in own mode |
+| Exa | people and LinkedIn routes on a client's `meteredSites`/`keyedSites` (outreach client pass, signals LinkedIn posts, `contentClientsFor`) | own: direct; else Wren's ring; routes only |
+| YouTube | `youtube` handler and pool scheduler room for a client key | `youtubeReadRoom`: own key's bucket, else Wren's |
+| Models | `research/src/restate/enrichment.ts` extract, pick, opener, signals on a client key | `clientLlm` → `meteredModel`, `unset: "managed"`; a stop ends the pass, no unit held |
+| Models | spine rule step (wire `when`, `logic.if`) for a client | `meteredModel`, part `spine.rule`, `unset: "managed"`; a stop answers no |
+| Models | `channel-email/src/calls/restate.ts` brief questions for a client | `llmFor` → `meteredModel`, part `calls.brief`, `unset: "managed"` |
 
 Wren's own work (no client in context), staying managed:
 
@@ -82,11 +95,14 @@ Prices: Telnyx gives dollars per text. Models and Exa use the `VENDORS` micros w
 - `channel-sms/src/keyed.test.ts`: own vs managed account, no key = try later, a cap isn't metered, a carrier error carries no key.
 - `research/src/enrichment/youtube-keyed.test.ts`: own vs service account, units, a stop ends the pass.
 - `llm/src/client.test.ts`: provider from a key.
+- `core/src/vendor-direct-exa.test.ts`: people, LinkedIn profile, company and posts on an own key, 404 with no copy, no key in an error.
+- `channel-sms/test/integration/signer.test.ts`: Wren's number, own account's public key, managed client on Wren's key, a wrong path refused.
+- `apps/phone/test/worker.test.ts`: a client's signature passes, another client's or Wren's fails on its number, Wren's still passes.
+- `channel-email/test/integration/per-client-reads.test.ts`: an own YouTube key reads on its own bucket while Wren's is spent.
+- `research/src/restate/units.test.ts`: a vendor stop ends at once, nothing held.
 
 ## Left
 
-- LinkedIn and people routes backed by Exa in autobrowse (`/linkedin/posts`, `/people`, `/linkedin/profile`) are classed `linkedin`. They run on Wren's ring for every client.
-- Model call sites still on Wren's key with no client meter: enrichment's client-niche model stages, the spine rule step, the calls brief, CLI `crm`. The CLI holds only the store's public key, so it can't read a client's key.
-- A client's own Telnyx account: its webhooks are signed with its own public key, and `apps/phone` checks only Wren's. Status and inbound for that client fail verification until the phone worker reads the client's public key.
-- Own-key YouTube reads still wait on Wren's YouTube bucket (`youtubeRoom`).
+- CLI `crm` model calls: the CLI holds only the store's public key, so it can't read a client's key. They stay on Wren's.
+- Reactivation's sites legs run only in CLI `crm run` (the loop passes `sites: null`): same reason.
 - `research/src/companies/events.ts` reads `results` from `web /search`, which answers `hits`. Exa news hits come back empty on both keys. Found here, not fixed.
