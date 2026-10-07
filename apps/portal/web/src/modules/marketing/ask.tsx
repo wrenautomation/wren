@@ -7,7 +7,7 @@
 import type { DraftTurn } from "@wren/core/ask";
 import type { DraftRecordView } from "@wren/core/draft-record";
 import type { Row } from "@wren/core/records/serve";
-import type { Action, MessageKind, RecordExtras } from "@wren/ui";
+import type { Action, DraftEditor, MessageKind, RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 import { DraftVersions } from "./versions.js";
 
@@ -36,6 +36,8 @@ export interface DraftOf {
   send?: string;
   /** How it looks where it goes, from the record's detail. */
   preview?: (detail: unknown) => MessageKind | null;
+  /** Its own editor in place of the textarea (an X thread's posts), from the record's detail. */
+  editor?: (detail: unknown) => DraftEditor | null;
 }
 
 /**
@@ -74,6 +76,7 @@ export const withDraft =
         ask: DRAFT_ASK,
         undo: DRAFT_UNDO,
         send: d.send,
+        editor: d.editor?.(detail) ?? undefined,
       },
       ...(turns.some((t) => t.state === "thinking") ? { poll: POLL_MS } : {}),
     };

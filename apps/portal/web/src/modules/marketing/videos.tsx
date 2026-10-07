@@ -74,7 +74,14 @@ type Video = {
   state: string;
   turns: Turn[];
 };
-type Promo = { id: string; platform: string; status: string; text: string };
+type Promo = {
+  id: string;
+  platform: string;
+  /** A platform's post, the X thread, or one of the carousel's two drafts. */
+  kind?: "post" | "thread" | "carousel";
+  status: string;
+  text: string;
+};
 
 const SET = "marketing.videoSet";
 const CUT = "marketing.videoCut";
@@ -831,11 +838,19 @@ const Thumbnails = ({ thumbnails }: { thumbnails: Video["thumbnails"] }) => (
   </div>
 );
 
-const PROMO_PLATFORMS = [
-  ["linkedin", "LinkedIn"],
-  ["x", "X"],
-  ["reddit", "Reddit"],
-  ["instagram", "Instagram"],
+/** Each row: its name, the drafts it reads, and what Promote's pick drafts it. */
+const PROMO_ROWS = [
+  { name: "LinkedIn", kind: "post", platforms: ["linkedin"], pick: "A post on each channel" },
+  { name: "X", kind: "post", platforms: ["x"], pick: "A post on each channel" },
+  { name: "Reddit", kind: "post", platforms: ["reddit"], pick: "A post on each channel" },
+  { name: "Instagram", kind: "post", platforms: ["instagram"], pick: "A post on each channel" },
+  { name: "X thread", kind: "thread", platforms: ["x"], pick: "An X thread" },
+  {
+    name: "Carousel",
+    kind: "carousel",
+    platforms: ["linkedin", "instagram"],
+    pick: "A carousel",
+  },
 ] as const;
 const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "warn" | "green" }> = {
   draft: { label: "Waiting on you", tone: "warn" },
@@ -847,39 +862,57 @@ const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "warn" | "g
 };
 /** Wider pieces of one recording, not built yet (designs/2026-10-07-content-funnel.md). */
 const PROMO_LATER = [
-  ["X thread", "The video as 3 to 7 posts in a chain."],
-  ["Carousel", "One slide set as an Instagram carousel and a LinkedIn PDF."],
   ["TikTok", "The vertical cut, posted as is."],
   ["Follows", "Follow the people who engage, on X and Instagram."],
 ] as const;
+const SITE: Record<string, string> = { linkedin: "LinkedIn", instagram: "Instagram" };
+const firstLine = (t: string) => t.split("\n").find((l) => l.trim()) ?? "";
 
-/** Each platform's promo: its state and first line, or not drafted yet; then what's coming. */
+/**
+ * Each platform's post, the X thread and the carousel: its state and first line, or what Promote
+ * picks to draft it; then what's coming.
+ */
 function Promos({ promos }: { promos: Promo[] }) {
   return (
     <div className="grid gap-4">
       <ul className="m-0 grid list-none gap-0 p-0">
-        {PROMO_PLATFORMS.map(([p, name]) => {
-          const d = promos.find((x) => x.platform === p);
-          const state = d ? (PROMO_STATE[d.status] ?? { label: d.status, tone: "neutral" }) : null;
+        {PROMO_ROWS.map((row) => {
+          const ds = row.platforms.flatMap((p) => {
+            const d = promos.find((x) => x.platform === p && (x.kind ?? "post") === row.kind);
+            return d ? [d] : [];
+          });
           return (
             <li
-              key={p}
+              key={row.name}
               className="grid gap-1 border-b border-(--ui-hair) py-3 first:pt-0 last:border-b-0"
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[14px] font-medium">{name}</span>
-                {state ? <Tag tone={state.tone}>{state.label}</Tag> : null}
-                {d ? (
-                  <a
-                    href={`/marketing/drafts/${encodeURIComponent(d.id)}`}
-                    className="ml-auto text-[13px] text-(--ui-ink-2) underline underline-offset-2"
-                  >
-                    Open
-                  </a>
-                ) : null}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-[14px] font-medium">{row.name}</span>
+                {ds.map((d) => {
+                  const state = PROMO_STATE[d.status] ?? { label: d.status, tone: "neutral" };
+                  return (
+                    <span key={d.id} className="flex items-center gap-1.5">
+                      {ds.length > 1 ? (
+                        <span className="text-[12px] text-(--ui-ink-3)">{SITE[d.platform]}</span>
+                      ) : null}
+                      <Tag tone={state.tone}>{state.label}</Tag>
+                    </span>
+                  );
+                })}
+                <span className="ml-auto flex gap-3">
+                  {ds.map((d) => (
+                    <a
+                      key={d.id}
+                      href={`/marketing/drafts/${encodeURIComponent(d.id)}`}
+                      className="text-[13px] text-(--ui-ink-2) underline underline-offset-2"
+                    >
+                      {ds.length > 1 ? `Open ${SITE[d.platform]}` : "Open"}
+                    </a>
+                  ))}
+                </span>
               </div>
               <p className="m-0 line-clamp-2 text-[13px] text-(--ui-ink-2)">
-                {d ? d.text : "Not drafted. Promote drafts it."}
+                {ds[0] ? firstLine(ds[0].text) : `Not drafted. Promote, then pick "${row.pick}".`}
               </p>
             </li>
           );

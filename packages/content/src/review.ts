@@ -5,11 +5,13 @@
  */
 import type { Platform } from "@wren/core/content";
 import { fieldsOf, missingFields, patchFields } from "@wren/core/content/shapes";
+import { isCarousel } from "@wren/core/content/slides";
+import { isThread, threadPosts, threadUnfit } from "@wren/core/content/thread";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
-import { refuseUnlinked } from "./funnel.js";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { postedLink, refuseUnlinked } from "./funnel.js";
+import { CAROUSEL_UPLOAD_DEV, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 
@@ -164,9 +166,15 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     } catch (err) {
       return [`${r.id}: ${(err as Error).message}`];
     }
+    if (isCarousel(r)) return [`${r.id}: ${CAROUSEL_UPLOAD_DEV}`];
     const missing = missingFields(r.platform, r.extra, r.title);
     return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
   });
+  // A thread is checked as it goes out: each post inside 280, the last one with its link.
+  for (const r of rows.filter(isThread)) {
+    const unfit = threadUnfit(threadPosts(r.text), await postedLink(db, r));
+    if (unfit) lacking.push(`${r.id}: ${unfit}`);
+  }
   if (lacking.length > 0) throw new Error(`cannot approve: ${lacking.join("; ")}`);
   await refuseUnlinked(db, rows);
 }
@@ -265,8 +273,8 @@ export async function editDraft(
   const spec = PLATFORM_SPECS[current.platform];
   const text = change.text.trim();
   if (text.length === 0) throw new Error("text is empty");
-  if (text.length > spec.maxChars)
-    throw new Error(`text is ${text.length} chars, over ${spec.maxChars} for ${current.platform}`);
+  const unfit = wordsUnfit(current, text);
+  if (unfit) throw new Error(unfit);
   const title = change.title === undefined ? current.title : (change.title?.trim() ?? null);
   if (spec.title) {
     if (!title) throw new Error(`${current.platform} needs a title`);

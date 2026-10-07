@@ -1,4 +1,5 @@
 export * from "./attach.js";
+export * from "./carousel.js";
 export * from "./clients.js";
 export * from "./costs.js";
 export * from "./draft.js";
@@ -15,6 +16,7 @@ export * from "./promo.js";
 export * from "./queue.js";
 export * from "./review.js";
 export * from "./schema.js";
+export { PaintUnavailable, slidePainter } from "./slide-paint.js";
 export * from "./slots.js";
 export * from "./social/store.js";
 export * from "./status.js";

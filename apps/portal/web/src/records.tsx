@@ -235,11 +235,24 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   // Its stage, target, video and link switch (designs/2026-10-07-content-funnel.md).
   "marketing/draftFunnel": (id, { stage, to, video, linked }) =>
     desk("funnel", { draftId: draftOf(id), stage, to, video, linked }),
-  // A video's promo: four model calls, so started, not awaited (designs/2026-10-07-content-funnel.md).
-  "marketing/videoPromote": (id) =>
-    handlerCall("ContentDesk", "promote", { video: num(id) }, { key: "default", send: true }),
-  "marketing/postPromote": (id) =>
-    handlerCall("ContentDesk", "promote", { draftId: draftOf(id) }, { key: "default", send: true }),
+  // A carousel's slides: saved on both its drafts, then drawn (designs/2026-10-07-content-funnel.md).
+  "marketing/draftSlides": (id, { slides, draw }) =>
+    desk("slides", { draftId: draftOf(id), slides, draw }),
+  // A video's promo: a model call a piece, so started, not awaited (designs/2026-10-07-content-funnel.md).
+  "marketing/videoPromote": (id, { pieces }) =>
+    handlerCall(
+      "ContentDesk",
+      "promote",
+      { video: num(id), pieces: piecesOf(pieces) },
+      { key: "default", send: true },
+    ),
+  "marketing/postPromote": (id, { pieces }) =>
+    handlerCall(
+      "ContentDesk",
+      "promote",
+      { draftId: draftOf(id), pieces: piecesOf(pieces) },
+      { key: "default", send: true },
+    ),
   // A video's yes, from its page or the Inbox (`video:3`).
   "marketing/videoApprove": (id, { privacy }) =>
     desk("approveVideo", { id: num(id), privacy: privacy || null }),
@@ -364,6 +377,11 @@ const num = (id: string) => Number(bare(id));
 const draftOf = (id: string) => bare(id.slice(id.lastIndexOf("/") + 1));
 /** The words when typed; an untouched draft is left out and the desk sends the one it holds. */
 const words = (body: unknown) => (typeof body === "string" ? { body } : {});
+/** The Promote form's pick: one piece, or all three. Nothing picked: the posts. */
+const piecesOf = (what: unknown) =>
+  what === "all"
+    ? ["posts", "thread", "carousel"]
+    : [typeof what === "string" && what ? what : "posts"];
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** A client's draft verdicts: its own Marketing service, which checks its approver. */
@@ -386,8 +404,15 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
     "marketing/draftFunnel",
     { draftId: draftOf(id), stage, to, video, linked },
   ],
+  "marketing/draftSlides": (id, { slides, draw }) => [
+    "marketing/draftSlides",
+    { draftId: draftOf(id), slides, draw },
+  ],
   // A promo of its YouTube post, on its own logins: checked, then started.
-  "marketing/postPromote": (id) => ["marketing/promote", { draftId: draftOf(id) }],
+  "marketing/postPromote": (id, { pieces }) => [
+    "marketing/promote",
+    { draftId: draftOf(id), pieces: piecesOf(pieces) },
+  ],
 };
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {

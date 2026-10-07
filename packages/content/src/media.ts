@@ -30,6 +30,7 @@ const TYPES: Record<string, string> = {
   ".gif": "image/gif",
   ".srt": "application/x-subrip",
   ".vtt": "text/vtt",
+  ".pdf": "application/pdf",
 };
 
 export interface MediaStoreOptions {

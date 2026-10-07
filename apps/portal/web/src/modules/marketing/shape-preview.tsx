@@ -6,8 +6,10 @@
  */
 import type { FieldView } from "@wren/core/content/shapes";
 import { DeviceFrame, type MessageKind, MessagePreview, useDraftText } from "@wren/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Shape } from "./fields.js";
+import { CarouselPreview, onSlidesTyped, slidesTyped } from "./slides.js";
+import { XThread } from "./thread.js";
 
 const PHONE = 393;
 const GRAY = "text-[#6b6b70]";
@@ -518,6 +520,7 @@ export function PlatformPreview({
 }) {
   const live = useDraftText();
   const [device, setDevice] = useState<Device>("phone");
+  const typedSlides = useSyncExternalStore(onSlidesTyped, () => slidesTyped(shape.draftId));
   const words = live ?? shape.text;
   const text = link && words.trim() ? `${words.trimEnd()}\n\n${link}` : words;
   const fields = shape.fields.map((f) => {
@@ -536,17 +539,34 @@ export function PlatformPreview({
         ? pickLabel(fields, "privacy")
         : null;
   const feed = look?.kind === "post" ? look.feed[device] : 3;
+  const thread = Boolean(shape.thread);
+  const carousel = shape.carousel;
   return (
     <section aria-label={`On ${shape.site}`} className="grid min-w-0 gap-3">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-[13px] font-medium text-(--ui-ink-2)">
           On {shape.site}
           {short ? " Shorts" : ""}
+          {thread
+            ? ", as a thread"
+            : carousel
+              ? shape.platform === "linkedin"
+                ? ", as a PDF"
+                : ", as a carousel"
+              : ""}
           {who ? <span className="font-normal text-(--ui-ink-3)"> · {who}</span> : null}
         </h3>
-        {own?.devices && !short ? <Devices value={device} set={setDevice} /> : null}
+        {own?.devices && !short && !carousel ? <Devices value={device} set={setDevice} /> : null}
       </div>
-      {!own ? (
+      {thread ? (
+        <XThread text={words} link={link} />
+      ) : carousel ? (
+        <CarouselPreview
+          platform={shape.platform}
+          slides={typedSlides ?? carousel.slides}
+          text={words}
+        />
+      ) : !own ? (
         look && text.trim() ? (
           <MessagePreview message={look} body={text} />
         ) : (

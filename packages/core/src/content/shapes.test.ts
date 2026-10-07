@@ -89,4 +89,21 @@ describe("post shapes", () => {
     expect(short.map((f) => f.status)).toEqual(["none"]);
     expect(fieldViews("youtube", {}, "T").find((f) => f.key === "title")?.value).toBe("T");
   });
+
+  it("keeps a thread's kind and a carousel's slides, read-only, on their kind", () => {
+    expect(fieldsOf("x", { kind: "thread" })).toEqual({ kind: "thread" });
+    expect(() => patchFields("x", {}, { kind: "thread" })).toThrow(/set when the post is made/);
+    const slides = Array.from({ length: 5 }, (_, i) => ({ title: `Slide ${i + 1}`, lines: ["a"] }));
+    expect(fieldsOf("instagram", { kind: "carousel", slides }).slides).toHaveLength(5);
+    expect(() => fieldsOf("linkedin", { kind: "document", slides: slides.slice(0, 2) })).toThrow(
+      /Slides: 5 to 10/,
+    );
+    expect(() => patchFields("linkedin", { kind: "document" }, { slides })).toThrow(ShapeError);
+    const reel = fieldViews("instagram", {}, null).map((f) => f.key);
+    const carousel = fieldViews("instagram", { kind: "carousel" }, null).map((f) => f.key);
+    expect(reel).toContain("cover");
+    expect(reel).not.toContain("slides");
+    expect(carousel).toContain("slides");
+    expect(carousel).not.toContain("cover");
+  });
 });

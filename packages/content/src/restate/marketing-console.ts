@@ -40,7 +40,13 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
-import { PROMO_PLATFORMS, type PromoPlatform, promotable } from "../promo.js";
+import {
+  PROMO_PIECES,
+  PROMO_PLATFORMS,
+  type PromoPiece,
+  type PromoPlatform,
+  promotable,
+} from "../promo.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 
 export const MARKETING_STATS = "marketing.stats";
@@ -81,6 +87,13 @@ export interface FunnelConsoleRequest extends PortalRequest {
 export interface PromoteRequest extends PortalRequest {
   /** The client's YouTube post. */
   draftId: string;
+  /** Posts, an X thread, a carousel; none: posts. */
+  pieces?: PromoPiece[] | null;
+}
+export interface SlidesRequest extends PortalRequest {
+  draftId: string;
+  slides?: { title: string; lines: string[] }[] | null;
+  draw?: boolean | null;
 }
 export interface AttachRequest extends PortalRequest {
   draftId: string;
@@ -310,15 +323,47 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             draftId: z.union([z.string(), z.number()]).describe("The YouTube post's draft id"),
+            pieces: z
+              .array(z.enum(PROMO_PIECES))
+              .nullish()
+              .describe("posts, thread, carousel; empty = posts"),
           }),
         },
         (ctx: restate.Context, req: PromoteRequest) =>
           answer(async () => {
             const go = await ctx.run("check", () => answer(() => api.promoting(req)));
-            ctx
-              .objectSendClient<ContentDesk>({ name: "ContentDesk" }, go.key)
-              .promote({ draftId: go.draftId, platforms: go.platforms, viewer: req.viewer });
+            ctx.objectSendClient<ContentDesk>({ name: "ContentDesk" }, go.key).promote({
+              draftId: go.draftId,
+              platforms: go.platforms,
+              ...(req.pieces?.length ? { pieces: req.pieces } : {}),
+              viewer: req.viewer,
+            });
             return { started: true, platforms: go.platforms };
+          }),
+      ),
+      /** A client carousel's slides, saved on both its drafts, and drawn on `draw`. */
+      draftSlides: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            slides: z
+              .array(z.looseObject({ title: z.string(), lines: z.array(z.string()) }))
+              .nullish(),
+            draw: z.boolean().nullish(),
+          }),
+        },
+        (ctx: restate.Context, req: SlidesRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).slides({
+                draftId: String(req.draftId),
+                ...(req.slides ? { slides: req.slides } : {}),
+                ...(req.draw ? { draw: true } : {}),
+                viewer: req.viewer,
+              }),
+            );
           }),
       ),
       /** A file on a client draft's field (thumbnail, subtitles, cover). */

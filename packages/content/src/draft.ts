@@ -8,6 +8,7 @@
  * claim or number is asked for once more, then the platform's row says why.
  */
 import type { Platform } from "@wren/core/content";
+import { isThread } from "@wren/core/content/thread";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
@@ -159,7 +160,7 @@ export async function keepGenerated(
   db: Queryable,
   llm: LlmClient,
   d: ContentDraft,
-  outcome: Outcome<Proposal>,
+  outcome: Outcome<unknown>,
   o: { ask?: string; by: string | null | undefined },
 ) {
   await recordDraft(db, {
@@ -248,6 +249,9 @@ export async function redraft(
   const platform = previous.platform;
   const spec = PLATFORM_SPECS[platform];
   if (note.trim() === "") return { platform, ok: false, reason: "empty note" };
+  // A thread is posts in one text: Ask Claude rewrites it with the split rule; this prompt can't.
+  if (isThread(previous))
+    return { platform, ok: false, reason: "rewrite a thread with Ask Claude, or promote again" };
   if (!["draft", "approved", "failed"].includes(previous.status))
     return { platform, ok: false, reason: `cannot redraft a ${previous.status} draft` };
   // A row read through a journaled step arrives with its dates as strings.

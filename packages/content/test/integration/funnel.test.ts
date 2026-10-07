@@ -3,13 +3,17 @@
  * derived link on a draft; approve's refusal while the video isn't up; the Short's Reel pointing
  * at its long video; a promo drafting one post per platform. Synthetic rows only; nothing posts.
  */
+
+import type { S3Client } from "@aws-sdk/client-s3";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { videoEdits } from "@wren/studio/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { renderSlides, saveSlides } from "../../src/carousel.js";
 import { redraft } from "../../src/draft.js";
 import { readFunnel, setFunnel } from "../../src/funnel.js";
+import { postOf } from "../../src/platforms.js";
 import { promosOf, promoteVideo, videoDraftOf } from "../../src/promo.js";
 import { approveDrafts } from "../../src/review.js";
 import { contentDrafts, contentIdeas } from "../../src/schema.js";
@@ -28,6 +32,31 @@ const prompts: string[] = [];
 const llm = new FakeLlm({
   respond: async (prompt) => {
     prompts.push(prompt);
+    if (prompt.includes("a thread on X of"))
+      return JSON.stringify({
+        posts: [
+          "Most demos bury the point under setup and tours.",
+          "---",
+          "Cut the demo to the part that matters: the one step a buyer came to see.",
+          "Everything before it is a reason to leave the tab.",
+          "The full walkthrough is in the video.",
+        ],
+      });
+    if (prompt.includes("a carousel of"))
+      return JSON.stringify({
+        slides: [
+          { title: "Your demo buries the point", lines: [] },
+          { title: "Setup is not the demo", lines: ["Nobody came to watch you log in."] },
+          { title: "Find the one step", lines: ["The step a buyer came to see."] },
+          { title: "Cut to it", lines: ["Start there.", "Explain after."] },
+          { title: "Then stop", lines: ["Stop once it lands."] },
+          { title: "The full walkthrough is on YouTube", lines: [] },
+        ],
+        linkedin:
+          "Most demos bury the point.\n\nThe slides show the cut.\n\nThe full walkthrough is in the video.",
+        instagram:
+          "Cut the demo to the part that matters.\n\nThe full video is on YouTube, link in bio.\n#demos",
+      });
     if (prompt.includes("a Reddit text post"))
       return '{"title": "How I cut a demo to the part that matters", "text": "I cut a demo to the part that matters.\\n\\nI recorded a walkthrough of it."}';
     if (prompt.includes("one post on X"))
@@ -200,6 +229,82 @@ describe("funnel", () => {
         posts: null,
         note: "r/Editing doesn't allow links",
       });
+  });
+
+  it("drafts an X thread and a carousel that share one slide set", async () => {
+    const id = await video("promo-c");
+    const long = await approveVideo(pg.db, id, { source: "cli" });
+    const r = await promoteVideo(pg.db, llm, long.id, undefined, {
+      pieces: ["thread", "carousel"],
+    });
+    expect(r.results.map((x) => [x.platform, x.ok])).toEqual([
+      ["x", true],
+      ["linkedin", true],
+      ["instagram", true],
+    ]);
+    const [thread, li, ig] = r.results.map((x) => (x.ok ? x.draft : null));
+    if (!thread || !li || !ig) throw new Error("no promo");
+
+    // The thread: one draft, the model's stray "---" dropped, four posts, no link on the first.
+    expect(thread).toMatchObject({ extra: { kind: "thread" }, pointsTo: "video" });
+    expect(thread.text.split("\n\n---\n\n")).toHaveLength(4);
+    const tv = await shapeView(pg.db, thread.id);
+    expect(tv?.thread?.posts.map((p) => p.flags)).toEqual([[], [], [], []]);
+    expect(tv?.carousel).toBeNull();
+    // Once the video is up, the link rides on the last post only.
+    await pg.db
+      .update(contentDrafts)
+      .set({ status: "published", url: "https://www.youtube.com/watch?v=synthetic02" })
+      .where(eq(contentDrafts.id, long.id));
+    const link = (await readFunnel(pg.db, thread)).posts;
+    expect(link).toBe(
+      `https://wrenautomation.com/go/x/reach/${thread.id.slice(0, 8)}?v=synthetic02`,
+    );
+    const out = postOf(thread, link);
+    expect(out.text.startsWith("Most demos")).toBe(true);
+    expect(out.text.endsWith(`video.\n\n${link}`)).toBe(true);
+    await approveDrafts(pg.db, [thread.id], { now: new Date() });
+
+    // The carousel: two drafts on one set; a save writes both; upload is in development.
+    expect(li.extra).toMatchObject({ kind: "document" });
+    expect(ig.extra).toMatchObject({ kind: "carousel", deck: li.extra?.deck });
+    const cv = await shapeView(pg.db, ig.id);
+    expect(cv?.carousel?.slides).toHaveLength(6);
+    expect(cv?.carousel?.shares.map((x) => x.id)).toEqual([ig.id, li.id]);
+    const next = cv?.carousel?.slides.slice(0, 5) ?? [];
+    await saveSlides(pg.db, ig.id, next, { by: "t@x" });
+    const [li2] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, li.id));
+    expect(li2?.extra?.slides).toEqual(next);
+    await expect(saveSlides(pg.db, li.id, next.slice(0, 3))).rejects.toThrow(/5 to 10 slides/);
+    await expect(approveDrafts(pg.db, [li.id], { now: new Date() })).rejects.toThrow(
+      /in development/,
+    );
+
+    // Drawn with a fake painter into a fake store: both drafts keep the files, fresh.
+    const puts: string[] = [];
+    const client = {
+      send: async (cmd: { input: { Key: string } }) => {
+        puts.push(cmd.input.Key);
+        return {};
+      },
+    } as unknown as S3Client;
+    const png = (n: number) => new Uint8Array([137, 80, 78, 71, n]);
+    const files = await renderSlides(
+      pg.db,
+      li.id,
+      async (html, count) => {
+        expect(html).toContain("Find the one step");
+        return { images: Array.from({ length: count }, (_, i) => png(i)), pdf: png(99) };
+      },
+      { bucket: "media", client },
+    );
+    expect(files.images).toHaveLength(5);
+    expect(puts.some((k) => k.endsWith(".pdf"))).toBe(true);
+    const drawn = await shapeView(pg.db, ig.id);
+    expect(drawn?.carousel).toMatchObject({ fresh: true });
+
+    const kinds = (await promosOf(pg.db, long.id)).map((p) => `${p.platform}/${p.kind}`).sort();
+    expect(kinds).toEqual(["instagram/carousel", "linkedin/carousel", "x/thread"]);
   });
 
   it("refuses a Short or a video not approved", async () => {

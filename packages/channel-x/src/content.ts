@@ -4,6 +4,8 @@
  * `POST /2/tweets`; list = the account's own posts; metrics = the post's
  * `public_metrics`; comments = replies found by search (a paid tier on X's
  * side; an empty page when the tier refuses); reply = a post in reply.
+ * A thread (kind `thread`) posts its first post with the fields, then each next one in reply to
+ * the last; a break partway stays posted and says so in `notes`, since a retry would post twice.
  */
 import {
   type CommentRow,
@@ -21,7 +23,8 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
-import { fieldsOf } from "@wren/core/content/shapes";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { threadPosts, threadUnfit } from "@wren/core/content/thread";
 
 export interface XContentOptions {
   now?: () => Date;
@@ -71,17 +74,41 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         body.media = { media_ids: [up.data.id] };
       }
       const f = fieldsOf("x", post.extra);
+      const posts = f.kind === "thread" ? threadPosts(post.text) : [post.text];
+      if (f.kind === "thread") {
+        // The link is in the text by now: check the count as it goes out.
+        const unfit = threadUnfit(posts);
+        if (unfit) throw new ShapeError(`x: ${unfit}`);
+        body.text = posts[0];
+      }
       if (f.replyTo) body.reply = { in_reply_to_tweet_id: f.replyTo };
       if (f.quote) body.quote_tweet_id = f.quote;
       if (f.replySettings) body.reply_settings = f.replySettings;
-      const r = await sites.call<{ data?: { id?: string } }>("x", "POST", "/2/tweets", body);
-      if (!r.data?.id) throw new Error("x: the post answered no id");
+      const tweet = async (b: Record<string, unknown>) => {
+        const r = await sites.call<{ data?: { id?: string } }>("x", "POST", "/2/tweets", b);
+        if (!r.data?.id) throw new Error("x: the post answered no id");
+        return r.data.id;
+      };
+      const first = await tweet(body);
+      const notes: string[] = [];
+      let last = first;
+      for (const [i, text] of posts.slice(1).entries()) {
+        try {
+          last = await tweet({ text, reply: { in_reply_to_tweet_id: last } });
+        } catch (err) {
+          notes.push(
+            `Posted ${i + 1} of ${posts.length}: post ${i + 2} failed (${err instanceof Error ? err.message : String(err)}). Reply the rest by hand.`,
+          );
+          break;
+        }
+      }
       const { username } = await whoami();
       return {
-        id: r.data.id,
-        url: urlOf(username, r.data.id),
+        id: first,
+        url: urlOf(username, first),
         publishedAt: now().toISOString(),
         fetchedWith: await via("POST", "/2/tweets"),
+        ...(notes.length ? { notes } : {}),
       };
     },
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {

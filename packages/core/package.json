@@ -27,6 +27,8 @@
     "./testing": "./src/testing.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/shapes": "./src/content/shapes.ts",
+    "./content/slides": "./src/content/slides.ts",
+    "./content/thread": "./src/content/thread.ts",
     "./content/renewal": "./src/content/renewal.ts",
     "./edits": "./src/edits.ts",
     "./emails": "./src/emails.ts",

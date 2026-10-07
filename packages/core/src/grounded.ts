@@ -219,6 +219,54 @@ export async function guardDraft<T>(
   };
 }
 
+/** A draft in parts: a thread's posts, a carousel's slides and captions. */
+export interface DraftPart {
+  /** How the flag names it: "post 2", "slide 4", "LinkedIn post". */
+  label: string;
+  text: string;
+}
+
+/** Each part's flags, named by the part: "post 2: ..." on a claim, "post 2: 40" on a number. */
+export function partFlags(parts: readonly DraftPart[], g: Grounding): GroundingFlag[] {
+  return parts.flatMap((p) =>
+    p.text.trim()
+      ? groundingFlags(p.text, g).map((f) => ({ ...f, text: `${p.label}: ${f.text}` }))
+      : [],
+  );
+}
+
+/**
+ * `guardDraft` over a draft in parts: every part checked on its own, so a flag says which post or
+ * slide; one more try with all of them, then dropped. `text` is the parts joined.
+ */
+export async function guardParts<T>(
+  attempt: (fix: string | null) => Promise<{ parts: readonly DraftPart[]; result: T }>,
+  g: Grounding,
+): Promise<Guarded<T>> {
+  const joined = (parts: readonly DraftPart[]) => parts.map((p) => p.text).join("\n\n");
+  const a = await attempt(null);
+  const flags = partFlags(a.parts, g);
+  if (!flags.length)
+    return {
+      outcome: "clean",
+      text: joined(a.parts),
+      result: a.result,
+      flags,
+      first: null,
+      still: [],
+    };
+  const b = await attempt(fixNote(flags));
+  const still = partFlags(b.parts, g);
+  return {
+    outcome: still.length ? "dropped" : "redrafted",
+    text: still.length ? null : joined(b.parts),
+    result: b.result,
+    flags,
+    first: joined(a.parts),
+    still,
+  };
+}
+
 /** One sentence for a dropped draft's reason. */
 export const droppedWhy = (g: Pick<Guarded<unknown>, "still" | "flags">) =>
   `${FACTS_DROP}${(g.still.length ? g.still : g.flags)

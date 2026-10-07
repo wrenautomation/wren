@@ -10,6 +10,7 @@ import {
   type Grounding,
   groundingFlags,
   guardDraft,
+  guardParts,
   numbersIn,
 } from "./grounded.js";
 
@@ -185,5 +186,31 @@ describe("guardDraft", () => {
     expect(out.outcome).toBe("dropped");
     expect(out.text).toBeNull();
     expect(droppedWhy(out)).toMatch(/^made things up: "We booked 9 meetings\."; 9$/);
+  });
+});
+
+describe("guardParts", () => {
+  it("names the part a flag is in, and asks once more", async () => {
+    const asked: (string | null)[] = [];
+    const g = await guardParts(
+      async (fix) => {
+        asked.push(fix);
+        return {
+          parts: fix
+            ? [{ label: "post 1", text: "Cut the demo." }]
+            : [
+                { label: "post 1", text: "Cut the demo." },
+                { label: "post 2", text: "It saved 40% of the time." },
+              ],
+          result: fix ? "second" : "first",
+        };
+      },
+      { facts: [], sources: [], own: ["Cut the demo to the part that matters."] },
+    );
+    expect(g.flags).toEqual([{ kind: "number", text: "post 2: 40" }]);
+    expect(asked[1]).toContain("post 2: 40");
+    expect(g.outcome).toBe("redrafted");
+    expect(g.text).toBe("Cut the demo.");
+    expect(g.result).toBe("second");
   });
 });

@@ -167,13 +167,62 @@ lander's `/go/<channel>/<campaign>/<content>`.
 - The prompt (`draft-ask.prompt`) puts them after his edits and before the SOP. Posts, DMs and
   invites get none.
 
+## Built, third pass (2026-10-07): X thread and carousel
+
+Both are drafts only. Nothing posts without his Approve, and the carousel upload is not built.
+
+### X thread
+
+- One draft holds the thread: X, `kind` thread, the posts in its text with a `---` line between
+  them (`packages/core/src/content/thread.ts`). The draft box, Ask Claude, history and undo work
+  on it as on any post.
+- `draftThread` (`packages/content/src/promo.ts`): one model call writes 3 to 7 posts, dense and
+  expert. The facts guard checks each post (`guardParts` in `packages/core/src/grounded.ts`) and
+  names the post it flags. The first post carries no link. The funnel link rides on the last.
+- Checked at save, approve and post (`threadUnfit`): 3 to 7 posts, each 280 or under as X counts
+  (a link is 23), the last with its link.
+- Editor: a box per post with its count out of 280 (the last counts its link), Split here, Merge
+  with next, Up, Down, and the guard's flags under a post. Beside it, the chain as X shows it.
+- Posting (`packages/channel-x/src/content.ts`): post 1 with its media and settings, then each
+  next post as a reply to the last. If a later post fails, the thread stays posted and the draft's
+  notes say which posts to reply by hand. Same approval path as any X post.
+
+### Carousel
+
+- One slide set, 5 to 10 slides, a title and up to 4 short lines each
+  (`packages/core/src/content/slides.ts`). Two drafts share it through `deck`: a LinkedIn
+  document post and an Instagram carousel. A save writes both (`saveSlides` in
+  `packages/content/src/carousel.ts`).
+- `draftCarousel`: one model call for the slides, the LinkedIn post and the Instagram caption,
+  each slide guarded.
+- Rendering: `slidesHtml` draws the slides in the title cards' look. Playwright HTML to image
+  (`packages/content/src/slide-paint.ts`) shoots a 1080 square PNG per slide and prints the same
+  page as a PDF. Local chromium, or the box's over CDP (`WREN_CDP_URL`). Files go to the media
+  bucket. A changed set reads as not drawn (`slidesKey`).
+- Editor: Slides above Basics, with a strip of each slide as it renders, title and lines per
+  slide, Up, Down, Add after, Remove, Save slides and Draw, and download links. Beside it,
+  Instagram's swipe or LinkedIn's document post.
+- Upload is "In development" in the editor. Approve refuses a carousel and says so. Download the
+  files and post by hand.
+
+### Promote picks the piece
+
+- Promote asks what to draft: a post on each channel, an X thread, a carousel, or all three
+  (`pieces` on ContentDesk `promote`, `MarketingConsole.promote`, and
+  `wren content promote --pieces`). Default: the posts, as before.
+- Videos → Promos lists X thread and Carousel with their state and Open links. TikTok and Follows
+  stay "In development".
+- `ContentDesk.slides` and `MarketingConsole.draftSlides` save a set and draw it. CLI:
+  `wren content slides <draft> [file] [--draw]`.
+
 ## Build order (after this)
 
 1. Written-post adapters: Reddit (the sub's rules read into the prompt and checked before
    approve), LinkedIn (hook plus short lines), X (dense). One idea, three drafts. Today's
    `shape` lines become per-platform briefs with examples.
-2. X thread: a long recording or idea as 3-7 posts, posted as replies in a chain.
-3. Carousel: one slide set from an idea, rendered as an IG carousel and a LinkedIn PDF post.
+2. Built (third pass): X thread, 3 to 7 posts in one draft, posted as replies in a chain.
+3. Built (third pass): carousel, one slide set as an IG carousel and a LinkedIn PDF. Next: the
+   upload (LinkedIn document, Instagram carousel container).
 4. Follows: X and IG, within limits, gated like LinkedIn invites.
 5. Comments on others' posts for X and IG, through the same examples.
 6. Joining watched subreddits from the place's account.
@@ -209,3 +258,13 @@ add a few hundred tokens per comment draft.
   count, and a client's site link needs its own lander first.
 - 2026-10-07: a client's Promote is checked in MarketingConsole before it starts, then runs on
   the desk unawaited. The portal says what's wrong at once; the drafts take a minute.
+- 2026-10-07: a thread is one draft, its posts split by a `---` line in the text. The draft box,
+  Ask Claude, undo and history keep working, and approve stays one decision.
+- 2026-10-07: a thread that fails partway stays up. The notes say what to reply by hand; a retry
+  would post post 1 twice.
+- 2026-10-07: a carousel is two drafts sharing one slide set (`deck`). Each platform keeps its
+  own words and verdict; the slides stay one.
+- 2026-10-07: slides render with Playwright from one HTML page, the same page the editor's strip
+  draws. The video title cards' renderer is ffmpeg drawtext, wrong for multi-line slides.
+- 2026-10-07: the carousel upload stays in development. Approve refuses it so nothing reaches the
+  scheduler that can't post.

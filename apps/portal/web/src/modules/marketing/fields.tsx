@@ -14,6 +14,8 @@ import { SELECT } from "../work/bits.js";
 import { type Funnel, FunnelFields } from "./funnel.js";
 import { postLooks } from "./posts.js";
 import { PlatformPreview, type Typed } from "./shape-preview.js";
+import { type CarouselShape, SlidesEditor } from "./slides.js";
+import type { ThreadShape } from "./thread.js";
 
 /** `@wren/content`'s `shapeView`: a draft's fields, words and file links. */
 export type Shape = {
@@ -34,6 +36,10 @@ export type Shape = {
   published: { url: string | null; at: string | null; notes: string | null } | null;
   /** Its stage, target and link; absent on a row read before the funnel. */
   funnel?: Funnel;
+  /** An X thread's posts as saved; null on any other post. */
+  thread?: ThreadShape | null;
+  /** A carousel's slides and drawn files; null on any other post. */
+  carousel?: CarouselShape | null;
 };
 
 export const FIELDS = "marketing.draftFields";
@@ -494,7 +500,8 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
         </div>
       );
     });
-  const of = (g: Group) => shape.fields.filter((f) => groupOf(f) === g);
+  // A carousel's slides have their own editor above.
+  const of = (g: Group) => shape.fields.filter((f) => f.input !== "slides" && groupOf(f) === g);
   const media = of("media");
   const details = of("details");
   return (
@@ -507,9 +514,19 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
           editable={shape.editable}
         />
       ) : null}
+      {shape.carousel ? (
+        <div className={shape.funnel ? "border-t border-(--ui-hair) pt-5" : ""}>
+          <SlidesEditor
+            draftId={shape.draftId}
+            carousel={shape.carousel}
+            editable={shape.editable}
+            act={act}
+          />
+        </div>
+      ) : null}
       <section
         aria-label="Basics"
-        className={`grid gap-4 ${shape.funnel ? "border-t border-(--ui-hair) pt-5" : ""}`}
+        className={`grid gap-4 ${shape.funnel || shape.carousel ? "border-t border-(--ui-hair) pt-5" : ""}`}
       >
         <h3 className={GROUP_HEAD}>Basics</h3>
         <div className={GRID}>

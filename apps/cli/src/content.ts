@@ -26,6 +26,7 @@ import {
   type IdeaStatus,
   listDrafts,
   listIdeas,
+  PROMO_PIECES,
   PROMO_PLATFORMS,
   planFor,
   readFunnel,
@@ -343,20 +344,44 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   content
     .command("promote <video>")
     .description(
-      "Draft one post per platform pointing at a YouTube video (a video number from `wren video list`, or its YouTube draft id); each waits in To approve",
+      "Draft promos pointing at a YouTube video (a video number from `wren video list`, or its YouTube draft id): a post per platform, an X thread, a carousel; each waits in To approve",
     )
     .option("--platforms <list>", `comma-separated subset of ${PROMO_PLATFORMS.join(",")}`)
+    .option("--pieces <list>", `comma-separated: ${PROMO_PIECES.join(",")} (default posts)`)
     .option("--again", "draft again where a promo draft exists")
-    .action(async (video: string, o: { platforms?: string; again?: boolean }) => {
+    .action(async (video: string, o: { platforms?: string; pieces?: string; again?: boolean }) => {
       const platforms = o.platforms
         ?.split(",")
         .map((p) => oneOf("platform", p.trim(), PROMO_PLATFORMS));
+      const pieces = o.pieces?.split(",").map((p) => oneOf("piece", p.trim(), PROMO_PIECES));
       const report = await desk().promote({
         ...(/^\d+$/.test(video) ? { video: Number(video) } : { draftId: video }),
         ...(platforms?.length ? { platforms } : {}),
+        ...(pieces?.length ? { pieces } : {}),
         ...(o.again ? { again: true } : {}),
       });
       printReport(report);
+    });
+
+  content
+    .command("slides <draftId> [file]")
+    .description(
+      "A carousel's slides (LinkedIn PDF, Instagram images): print them, set them from a JSON file or stdin ([{title, lines}]), or --draw them",
+    )
+    .option("--draw", "draw the set to square images and a PDF")
+    .action(async (id: string, file: string | undefined, o: { draw?: boolean }) => {
+      if (!file && !o.draw) {
+        const d = await withDb((db) => getDraft(db, id));
+        console.log(JSON.stringify(d.extra?.slides ?? [], null, 2));
+        return;
+      }
+      const slides = file ? JSON.parse(await readText(file)) : undefined;
+      const out = await desk().slides({
+        draftId: id,
+        ...(slides ? { slides } : {}),
+        ...(o.draw ? { draw: true } : {}),
+      });
+      console.log(JSON.stringify(out, null, 2));
     });
 
   content

@@ -8,6 +8,13 @@
  */
 import { z } from "zod";
 import type { Platform } from "./index.js";
+import {
+  SLIDE_LINE_MAX,
+  SLIDE_LINES_MAX,
+  SLIDE_TITLE_MAX,
+  SLIDES_MAX,
+  SLIDES_MIN,
+} from "./slides.js";
 
 export type FieldInput =
   | "line"
@@ -17,7 +24,8 @@ export type FieldInput =
   | "list"
   | "image"
   | "captions"
-  | "number";
+  | "number"
+  | "slides";
 export type FieldStatus = "sent" | "dev" | "none";
 
 export interface FieldUi {
@@ -127,6 +135,72 @@ const file = (
 const dev = (label: string, input: FieldInput, hint: string, ui: Partial<FieldUi> = {}) => ({
   zod: z.never().optional(),
   ui: { label, input, status: "dev" as const, hint, ...ui },
+});
+
+/**
+ * A carousel's slides (`@wren/core/content/slides`): set when the post is drafted and in its slide
+ * editor, which writes the LinkedIn and Instagram drafts of one set together; never a form field.
+ */
+const slideSet = (kinds: readonly string[]) => ({
+  zod: z
+    .array(
+      z.object({
+        title: z
+          .string()
+          .trim()
+          .min(1, "Slides: each needs a title")
+          .max(SLIDE_TITLE_MAX, `Slides: a title is up to ${SLIDE_TITLE_MAX} characters`),
+        lines: z
+          .array(
+            z
+              .string()
+              .trim()
+              .min(1)
+              .max(SLIDE_LINE_MAX, `Slides: a line is up to ${SLIDE_LINE_MAX} characters`),
+          )
+          .max(SLIDE_LINES_MAX, `Slides: up to ${SLIDE_LINES_MAX} lines each`),
+      }),
+    )
+    .min(SLIDES_MIN, `Slides: ${SLIDES_MIN} to ${SLIDES_MAX}`)
+    .max(SLIDES_MAX, `Slides: ${SLIDES_MIN} to ${SLIDES_MAX}`)
+    .optional(),
+  ui: {
+    label: "Slides",
+    input: "slides" as const,
+    status: "sent" as const,
+    readOnly: true,
+    kinds,
+  },
+});
+/** The slides as drawn: a square image each and one PDF, with the set they were drawn from. */
+const slideFiles = (kinds: readonly string[]) => ({
+  zod: z
+    .object({
+      images: z.array(z.string().regex(FILE)).max(SLIDES_MAX),
+      pdf: z.string().regex(FILE).nullable(),
+      of: z.string(),
+      at: z.string(),
+    })
+    .optional(),
+  ui: {
+    label: "Slide images",
+    input: "slides" as const,
+    status: "sent" as const,
+    readOnly: true,
+    kinds,
+  },
+});
+
+/** One slide set's id: the LinkedIn and Instagram drafts drawn from it share it. */
+const deckId = (kinds: readonly string[]) => ({
+  zod: z.string().uuid().optional(),
+  ui: {
+    label: "Slide set",
+    input: "slides" as const,
+    status: "sent" as const,
+    readOnly: true,
+    kinds,
+  },
 });
 
 type Fields = Record<string, Field>;
@@ -291,6 +365,12 @@ const reddit = shape({
 });
 
 const linkedin = shape({
+  kind: pick(
+    "Kind",
+    ["post", "document"],
+    { post: "Post", document: "Document (PDF)" },
+    { default: "post", readOnly: true },
+  ),
   visibility: pick(
     "Who sees it",
     ["PUBLIC", "CONNECTIONS"],
@@ -299,13 +379,29 @@ const linkedin = shape({
   ),
   noReshare: flag("Turn off reshares", { default: false }),
   attachment: dev("Images, video or PDF", "image", "LinkedIn's upload flow isn't wired yet."),
+  deck: deckId(["document"]),
+  slides: slideSet(["document"]),
+  rendered: slideFiles(["document"]),
 });
 
 const USERNAME = /^[A-Za-z0-9._]{1,30}$/;
 const instagram = shape({
-  shareToFeed: flag("Also in Feed", { default: true }),
-  cover: file("Cover", ["image/jpeg"], 2 * MB, { hint: "JPEG, 9:16, up to 2 MB" }),
-  thumbOffset: ms("Cover frame", { hint: "Milliseconds in; a cover image wins" }),
+  // A draft with no kind is a Reel: `kindOf` reads it as "video".
+  kind: pick(
+    "Kind",
+    ["video", "carousel"],
+    { video: "Reel", carousel: "Carousel" },
+    { default: "video", readOnly: true },
+  ),
+  shareToFeed: flag("Also in Feed", { default: true, kinds: ["video"] }),
+  cover: file("Cover", ["image/jpeg"], 2 * MB, {
+    hint: "JPEG, 9:16, up to 2 MB",
+    kinds: ["video"],
+  }),
+  thumbOffset: ms("Cover frame", {
+    hint: "Milliseconds in; a cover image wins",
+    kinds: ["video"],
+  }),
   collaborators: {
     zod: z
       .array(z.string().trim().regex(USERNAME, "Collaborators: Instagram usernames"))
@@ -319,7 +415,10 @@ const instagram = shape({
       hint: "Usernames, up to 3",
     },
   },
-  audioName: line("Audio name", 100),
+  audioName: line("Audio name", 100, { kinds: ["video"] }),
+  deck: deckId(["carousel"]),
+  slides: slideSet(["carousel"]),
+  rendered: slideFiles(["carousel"]),
 });
 
 const tiktok = shape({
@@ -349,6 +448,12 @@ const tiktok = shape({
 
 const POST_ID = /^\d{1,19}$/;
 const x = shape({
+  kind: pick(
+    "Kind",
+    ["post", "thread"],
+    { post: "Post", thread: "Thread" },
+    { default: "post", readOnly: true, hint: "A thread's posts are split by a line of ---" },
+  ),
   replySettings: pick(
     "Who can reply",
     ["following", "mentionedUsers", "subscribers", "verified"],
@@ -362,7 +467,7 @@ const x = shape({
   ),
   replyTo: line("Reply to", 19, { hint: "A post id" }, POST_ID),
   quote: line("Quote", 19, { hint: "A post id" }, POST_ID),
-  more: dev("More media, threads, polls", "list", "One file per post for now."),
+  more: dev("More media, polls", "list", "One file per post for now."),
 });
 
 const facebook = shape({

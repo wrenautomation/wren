@@ -7,9 +7,17 @@
  * Every write is a `runs` row (`draft-ask`, `draft-set`, `draft-undo`) keeping the text it
  * replaced, so the item's thread shows it and Undo puts it back.
  */
+
 import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
+import {
+  isThread,
+  THREAD_BREAK,
+  THREAD_MAX,
+  THREAD_MIN,
+  X_POST_MAX,
+} from "@wren/core/content/thread";
 import { recordDraft } from "@wren/core/draft-record";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
@@ -111,6 +119,7 @@ const post: DraftKind = {
         text: contentDrafts.text,
         title: contentDrafts.title,
         status: contentDrafts.status,
+        extra: contentDrafts.extra,
         idea: contentIdeas.text,
       })
       .from(contentDrafts)
@@ -118,12 +127,16 @@ const post: DraftKind = {
       .where(eq(contentDrafts.id, id));
     if (!d) return null;
     const spec = PLATFORM_SPECS[d.platform];
+    // A thread is one text: its posts split by a line of ---, each checked by `editDraft`.
+    const thread = isThread(d);
     return {
-      what: `${siteOf(d.platform)} post`,
+      what: thread
+        ? `thread on X of ${THREAD_MIN} to ${THREAD_MAX} posts. Put a line holding only --- between posts. Each post is at most ${X_POST_MAX} characters, the last one with room for a link added after it. No link in the first post. The whole thread`
+        : `${siteOf(d.platform)} post`,
       platform: d.platform,
       title: d.title ?? d.idea.slice(0, 80),
       draft: d.text,
-      max: spec.maxChars,
+      max: thread ? THREAD_MAX * (X_POST_MAX + THREAD_BREAK.length) : spec.maxChars,
       open: POST_OPEN.includes(d.status),
       context: facts([
         ["The idea it was drafted from", d.idea],

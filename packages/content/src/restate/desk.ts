@@ -22,14 +22,25 @@ import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
 import { z } from "zod";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
+import {
+  keepSlideFiles,
+  paintSlides,
+  type SlidePainter,
+  saveSlides,
+  slidesToDraw,
+} from "../carousel.js";
 import { clientContent, clientPlan } from "../clients.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
 import {
+  draftCarousel,
   draftPromo,
+  draftThread,
+  PROMO_PIECES,
   PROMO_PLATFORMS,
+  type PromoPiece,
   type PromoPlatform,
   promoBase,
   videoDraftOf,
@@ -46,7 +57,7 @@ import {
 } from "../schema.js";
 import { slotsOf } from "../slots.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
-import type { Brand } from "../voice.js";
+import { type Brand, DEFAULT_BRAND } from "../voice.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
 /**
@@ -80,6 +91,8 @@ export interface ContentDeskDeps {
   tracer?: Tracer | null;
   /** The media store a field's file goes to (thumbnail, cover); none: `attach` refuses. */
   media?: MediaStoreOptions;
+  /** Draws a carousel's slides (a chromium); none: slides save but don't draw here. */
+  slides?: SlidePainter;
   /** A client's desk: its database and the model its drafts run on. None: a client's key fails. */
   clients?: { clientDb: (client: string) => Db; llm: LlmClient | null };
 }
@@ -193,6 +206,21 @@ const PROMOTE = z.looseObject({
     .nullish()
     .describe(`Of ${PROMO_PLATFORMS.join(", ")}; empty = all`),
   again: z.boolean().nullish().describe("Draft again where a promo draft exists"),
+  pieces: z
+    .array(z.enum(PROMO_PIECES))
+    .nullish()
+    .describe(
+      "posts (one per platform), thread (X), carousel (LinkedIn PDF and Instagram); empty = posts",
+    ),
+});
+const SLIDES = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
+  draftId: z.string(),
+  slides: z
+    .array(z.looseObject({ title: z.string(), lines: z.array(z.string()) }))
+    .nullish()
+    .describe("The whole set, 5 to 10; saved on every draft that shares it"),
+  draw: z.boolean().nullish().describe("Draw the images and the PDF after"),
 });
 const EDIT = z.looseObject({
   viewer: PORTAL_FIELDS.viewer,
@@ -470,6 +498,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             draftId?: string | null;
             platforms?: PromoPlatform[] | null;
             again?: boolean | null;
+            pieces?: PromoPiece[] | null;
             viewer?: unknown;
           },
         ): Promise<DraftReport> => {
@@ -484,19 +513,21 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               promoBase(s.db, req.draftId || (await videoDraftOf(s.db, video as number))),
             ),
           );
+          const pieces: PromoPiece[] = req.pieces?.length ? req.pieces : ["posts"];
           const asked = req.platforms?.length ? req.platforms : [...PROMO_PLATFORMS];
           // A client's promos only where its own logins post; the rest say why.
           const own = s.platforms;
-          const platforms = own ? asked.filter((p) => own.includes(p)) : asked;
+          const posts = pieces.includes("posts") ? asked : [];
+          const platforms = own ? posts.filter((p) => own.includes(p)) : posts;
           const runId = await ctx.run("open run", async () => {
             const run = await openRun(s.db, {
               command: "content promote",
-              argv: { video: base.video.id, platforms },
+              argv: { video: base.video.id, platforms, pieces },
             });
             return run.id;
           });
           const o = { ...options(s, runId, req.again ?? false), by: byOf(req) };
-          const results: DraftResult[] = asked
+          const results: DraftResult[] = posts
             .filter((p) => !platforms.includes(p))
             .map((platform) => ({ platform, ok: false, reason: NOT_CONNECTED }));
           for (const p of platforms) {
@@ -504,6 +535,44 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               stopped([p], () => draftPromo(s.db, s.llm, base, p, o).then((x) => [x])),
             );
             if (r) results.push(r);
+          }
+          if (pieces.includes("thread")) {
+            if (own && !own.includes("x"))
+              results.push({ platform: "x", ok: false, reason: NOT_CONNECTED });
+            else
+              results.push(
+                ...(await ctx.run(`${DRAFT_STAGE} x thread`, () =>
+                  stopped(["x"], () => draftThread(s.db, s.llm, base, o).then((x) => [x])),
+                )),
+              );
+          }
+          if (pieces.includes("carousel")) {
+            if (own && !own.includes("linkedin") && !own.includes("instagram"))
+              results.push({ platform: "linkedin", ok: false, reason: NOT_CONNECTED });
+            else {
+              const made = await ctx.run(`${DRAFT_STAGE} carousel`, () =>
+                stopped(["linkedin", "instagram"], () => draftCarousel(s.db, s.llm, base, o)),
+              );
+              results.push(...made);
+              // Draw it now where a browser is wired; a miss leaves Draw in the slide editor.
+              const first = made.find((r) => r.ok);
+              const paint = deps.slides;
+              const media = deps.media;
+              if (first?.ok && paint && media)
+                await ctx.run("draw slides", async () => {
+                  try {
+                    const { slides, html } = await slidesToDraw(s.db, first.draft.id, byLine(s));
+                    await keepSlideFiles(
+                      s.db,
+                      first.draft.id,
+                      await paintSlides(slides, html, paint, media),
+                    );
+                    return true;
+                  } catch {
+                    return false;
+                  }
+                });
+            }
           }
           await ctx.run("finish run", () =>
             finishRun(s.db, runId, {
@@ -523,6 +592,46 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             verdict(async () => [
               await setFunnel(db, req.draftId, funnelPatch(req), { by: byOf(req) }),
             ]),
+          );
+        },
+      ),
+      /**
+       * A carousel's slides: the set saved on every draft that shares it, then (`draw`) drawn to a
+       * square PNG each and a PDF in the media store. Nothing uploads to a platform.
+       */
+      slides: exclusiveHandler(
+        { input: SLIDES },
+        async (
+          ctx: restate.ObjectContext,
+          req: {
+            draftId: string;
+            slides?: { title: string; lines: string[] }[] | null;
+            draw?: boolean | null;
+            viewer?: unknown;
+          },
+        ): Promise<{ done: string[] }> => {
+          const s = await scopeOf(ctx);
+          const set = req.slides;
+          const saved = set
+            ? await ctx.run("slides", () =>
+                verdict(() => saveSlides(s.db, req.draftId, set, { by: byOf(req) })),
+              )
+            : { done: [] };
+          if (!req.draw) return saved;
+          const paint = deps.slides;
+          const media = deps.media;
+          if (!paint || !media)
+            throw new restate.TerminalError("Drawing slides isn't set up here", {
+              errorCode: 503,
+            });
+          const toDraw = await ctx.run("read slides", () =>
+            verdictOf(() => slidesToDraw(s.db, req.draftId, byLine(s))),
+          );
+          const files = await ctx.run("draw", () =>
+            verdictOf(() => paintSlides(toDraw.slides, toDraw.html, paint, media)),
+          );
+          return ctx.run("keep drawn", () =>
+            verdict(() => keepSlideFiles(s.db, req.draftId, files)),
           );
         },
       ),
@@ -601,6 +710,9 @@ export function makeContentDesk(deps: ContentDeskDeps) {
 }
 
 /** A client's vendor gate said no mid-call: those platforms weren't drafted, and say why. */
+/** The line over each slide: the brand that speaks. */
+const byLine = (s: Pick<Scope, "brand">) => (s.brand ?? DEFAULT_BRAND).name;
+
 async function stopped(
   platforms: readonly Platform[],
   work: () => Promise<DraftResult[]>,

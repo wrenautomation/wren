@@ -636,6 +636,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "marketing.draftFields",
       "marketing.draftFunnel",
       "marketing.draftAttach",
+      "marketing.draftSlides",
       "templates.approve",
       "templates.decline",
       "workflows.approve",

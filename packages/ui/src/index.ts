@@ -41,6 +41,8 @@ export {
 export { joinDictated } from "./dictate-text.js";
 export { Diff, pairsOf } from "./diff.js";
 export {
+  type DraftEditor,
+  type DraftEditorProps,
   DraftText,
   type DraftTurnLine,
   DraftTurns,

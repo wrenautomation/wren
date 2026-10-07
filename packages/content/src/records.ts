@@ -150,6 +150,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       "marketing.draftFields",
       "marketing.draftFunnel",
       "marketing.draftAttach",
+      "marketing.draftSlides",
     ],
     calls: DRAFT_CALLS,
     /** The preview, its fields, and Ask Claude's thread on it. */

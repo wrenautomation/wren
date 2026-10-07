@@ -5,11 +5,23 @@
  */
 import type { Platform } from "@wren/core/content";
 import { type FieldView, fieldViews, kindOf } from "@wren/core/content/shapes";
+import { cleanSlides, isCarousel, type Slide, slidesKey } from "@wren/core/content/slides";
+import {
+  isThread,
+  THREAD_MAX,
+  THREAD_MIN,
+  threadPosts,
+  withLink,
+  X_POST_MAX,
+  xLength,
+} from "@wren/core/content/thread";
+import { partFlags } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import { type FunnelVideo, type FunnelView, readFunnel } from "./funnel.js";
-import { PLATFORM_SPECS } from "./platforms.js";
-import { contentDrafts, type DraftStatus } from "./schema.js";
+import { CAROUSEL_UPLOAD_DEV, PLATFORM_SPECS } from "./platforms.js";
+import { RECORDED } from "./promo.js";
+import { contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
 import type { VideoSigner } from "./video.js";
 
 export interface ShapeView {
@@ -33,6 +45,33 @@ export interface ShapeView {
   published: { url: string | null; at: string | null; notes: string | null } | null;
   /** Its stage, target and link (designs/2026-10-07-content-funnel.md), and the videos it may point at. */
   funnel: FunnelView & { videos: FunnelVideo[] };
+  /** An X thread: its limits, and each saved post's count and facts-guard flags. */
+  thread: ThreadView | null;
+  /** A carousel: its slides, the drawn files, and the drafts that share the set. */
+  carousel: CarouselView | null;
+}
+
+export interface ThreadView {
+  min: number;
+  max: number;
+  /** X's cap on each post. */
+  each: number;
+  /** As saved: the link on the last; the flags name what the guard would ask about. */
+  posts: { text: string; count: number; flags: string[] }[];
+}
+
+export interface CarouselView {
+  slides: Slide[];
+  /** Signed links to each square image and the PDF, once drawn. */
+  images: string[];
+  pdf: string | null;
+  /** The drawn files show the slides as saved now. */
+  fresh: boolean;
+  drawn: string | null;
+  /** The drafts drawn from the same set, this one first. */
+  shares: { id: string; platform: Platform; kind: string; status: DraftStatus }[];
+  /** What can't happen yet: the upload. */
+  upload: string;
 }
 
 /** YouTube videos a post may point at: the newest not turned down, Shorts left out. */
@@ -92,6 +131,8 @@ export async function shapeView(
   // The one it points at stays pickable even past the newest 30.
   if (funnel.video && !videos.some((v) => v.id === funnel.video?.id)) videos.push(funnel.video);
   return {
+    thread: isThread(d) ? await threadView(db, d, funnel.posts) : null,
+    carousel: isCarousel(d) ? await carouselView(db, d, signer) : null,
     draftId: d.id,
     platform: d.platform,
     site: spec.name,
@@ -109,5 +150,79 @@ export async function shapeView(
       ? { url: d.url, at: d.publishedAt?.toISOString() ?? null, notes: d.error }
       : null,
     funnel: { ...funnel, videos },
+  };
+}
+
+/** A thread's posts as saved, each counted as X counts it and checked like the drafts are. */
+async function threadView(
+  db: Queryable,
+  d: typeof contentDrafts.$inferSelect,
+  link: string | null,
+): Promise<ThreadView> {
+  const [idea] = await db
+    .select({ text: contentIdeas.text })
+    .from(contentIdeas)
+    .where(eq(contentIdeas.id, d.ideaId))
+    .limit(1);
+  const posts = threadPosts(d.text);
+  const out = withLink(posts, link);
+  const g = { facts: [], sources: [], own: [idea?.text ?? "", RECORDED] };
+  return {
+    min: THREAD_MIN,
+    max: THREAD_MAX,
+    each: X_POST_MAX,
+    posts: posts.map((text, i) => ({
+      text,
+      count: xLength(out[i] ?? text),
+      flags: partFlags([{ label: `post ${i + 1}`, text }], g).map((f) =>
+        f.text.replace(/^post \d+: /, ""),
+      ),
+    })),
+  };
+}
+
+/** A carousel's set, its drawn files signed, and the drafts that share it. */
+async function carouselView(
+  db: Queryable,
+  d: typeof contentDrafts.$inferSelect,
+  signer: VideoSigner | undefined,
+): Promise<CarouselView> {
+  const slides = cleanSlides(d.extra?.slides);
+  const drawn = d.extra?.rendered as
+    | { images?: string[]; pdf?: string | null; of?: string; at?: string }
+    | undefined;
+  const images: string[] = [];
+  for (const k of drawn?.images ?? []) {
+    const url = await linkOf(k, signer);
+    if (url) images.push(url);
+  }
+  const deck = typeof d.extra?.deck === "string" ? d.extra.deck : null;
+  const shares = deck
+    ? await db
+        .select({
+          id: contentDrafts.id,
+          platform: contentDrafts.platform,
+          extra: contentDrafts.extra,
+          status: contentDrafts.status,
+        })
+        .from(contentDrafts)
+        .where(sql`${contentDrafts.extra}->>'deck' = ${deck}`)
+        .orderBy(contentDrafts.createdAt)
+    : [];
+  return {
+    slides,
+    images,
+    pdf: await linkOf(drawn?.pdf, signer),
+    fresh: Boolean(
+      drawn?.of && drawn.of === slidesKey(slides) && drawn.images?.length === slides.length,
+    ),
+    drawn: drawn?.at ?? null,
+    shares: [
+      { id: d.id, platform: d.platform, kind: kindOf(d.extra), status: d.status },
+      ...shares
+        .filter((r) => r.id !== d.id)
+        .map((r) => ({ id: r.id, platform: r.platform, kind: kindOf(r.extra), status: r.status })),
+    ],
+    upload: CAROUSEL_UPLOAD_DEV,
   };
 }

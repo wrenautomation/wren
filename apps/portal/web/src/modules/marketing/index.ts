@@ -18,16 +18,35 @@ import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
+import { SLIDES } from "./slides.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
+import { threadEditorOf } from "./thread.js";
 import { videoExtras } from "./videos.js";
 
 const said = (line: string) => () => line;
 
-/** A video's promo (designs/2026-10-07-content-funnel.md): one draft per platform, none posted. */
-const PROMOTE_CONFIRM =
-  "Draft a post on each channel that points to this video? Each waits in To approve. Nothing posts.";
+/**
+ * A video's promo (designs/2026-10-07-content-funnel.md): a post per channel, an X thread or a
+ * carousel, each pointing at the video. None posts.
+ */
+const PROMOTE_CONFIRM = "Draft promos for this video? Each waits in To approve. Nothing posts.";
 const PROMOTE_DONE = said("Drafting. The promos show in To approve in a minute.");
+const PROMOTE_FORM: readonly FormField[] = [
+  {
+    field: "pieces",
+    label: "What to draft",
+    type: "select",
+    options: ["posts", "thread", "carousel", "all"],
+    from: () => "posts",
+    labels: {
+      posts: "A post on each channel",
+      thread: "An X thread",
+      carousel: "A carousel for LinkedIn and Instagram",
+      all: "All three",
+    },
+  },
+];
 
 const POST_ACTIONS: Action[] = [
   {
@@ -42,6 +61,8 @@ const POST_ACTIONS: Action[] = [
     label: "Promote",
     handler: "marketing/postPromote",
     confirm: PROMOTE_CONFIRM,
+    each: true,
+    form: PROMOTE_FORM,
     when: { platform: ["youtube"] },
     done: PROMOTE_DONE,
   },
@@ -54,6 +75,7 @@ const fieldActions = (when: NonNullable<Action["when"]>): Action[] => [
   { id: FIELDS, label: "Save", handler: "marketing/draftFields", inline: true, when },
   { id: ATTACH, label: "Upload", handler: "marketing/draftAttach", inline: true, when },
   { id: FUNNEL, label: "Save", handler: "marketing/draftFunnel", inline: true, when },
+  { id: SLIDES, label: "Save", handler: "marketing/draftSlides", inline: true, when },
 ];
 /** A reject's why, both optional: a quick pick and a few words. */
 const REJECT_FORM: readonly FormField[] = [
@@ -266,6 +288,8 @@ const VIDEO_ACTIONS: Action[] = [
     label: "Promote",
     handler: "marketing/videoPromote",
     confirm: PROMOTE_CONFIRM,
+    each: true,
+    form: PROMOTE_FORM,
     when: { state: ["approved", "uploaded"] },
     done: PROMOTE_DONE,
   },
@@ -547,6 +571,7 @@ const POST_DRAFT: DraftOf = {
   label: "The post",
   send: "marketing.approveDraft",
   preview: postLooks,
+  editor: threadEditorOf,
 };
 const COMMENT_DRAFT: DraftOf = {
   field: "draft",

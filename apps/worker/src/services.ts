@@ -142,7 +142,14 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { clientContent, commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
+import {
+  clientContent,
+  commentGuide,
+  DEFAULT_VOICE,
+  dmGuide,
+  s3MediaHost,
+  slidePainter,
+} from "@wren/content";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   makeContentDesk,
@@ -947,6 +954,12 @@ export async function buildServices(
       ...(voice !== null ? { voice } : {}),
       // A post field's file (thumbnail, subtitles, cover) goes up to the media bucket.
       ...(settings.mediaBucket ? { media: { bucket: settings.mediaBucket } } : {}),
+      // A carousel's slides draw on the render tier's chromium: here, or over CDP on the box.
+      ...(settings.renderer === "local"
+        ? { slides: slidePainter() }
+        : settings.renderer === "cdp" && settings.cdpUrl
+          ? { slides: slidePainter({ connectUrl: settings.cdpUrl }) }
+          : {}),
     }),
     // A client's Marketing in the portal: its drafts, posts, ads and search; verdicts to its desk.
     makeMarketingConsole({ db, open: openClient, records: clientMarketing(mediaSigner) }),

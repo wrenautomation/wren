@@ -7,15 +7,39 @@
  * Reddit stays organic: the lesson as its own post, first person, no pitch, in the best-fit
  * watched subreddit that takes posts; it mentions the video only where that sub allows links.
  * Instagram can't post words alone, so its promo rides on the video's vertical cut or first Short.
+ *
+ * Past the one post per platform, a promo takes two more pieces: an X thread (3 to 7 posts in one
+ * draft, `@wren/core/content/thread`) and a carousel (one slide set as a LinkedIn PDF and an
+ * Instagram carousel, `./carousel.ts`).
  */
+import { randomUUID } from "node:crypto";
 import type { Platform } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
+import {
+  cleanSlides,
+  isCarousel,
+  SLIDE_LINE_MAX,
+  SLIDE_TITLE_MAX,
+  SLIDES_MAX,
+  SLIDES_MIN,
+  slidesUnfit,
+} from "@wren/core/content/slides";
+import {
+  isThread,
+  THREAD_MAX,
+  THREAD_MIN,
+  threadText,
+  threadUnfit,
+} from "@wren/core/content/thread";
+import { droppedWhy, guardParts, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
-import type { LlmClient } from "@wren/llm";
+import { completeAndParse, type LlmClient } from "@wren/llm";
 import { videoEdits } from "@wren/studio/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   askGuarded,
+  DRAFT_STAGE,
   type DraftOptions,
   type DraftResult,
   draftPrompt,
@@ -38,12 +62,21 @@ export const PROMO_PLATFORMS = [
   "instagram",
 ] as const satisfies readonly Platform[];
 export type PromoPlatform = (typeof PROMO_PLATFORMS)[number];
+/** What a promo can draft: one post per platform, an X thread, a carousel. */
+export const PROMO_PIECES = ["posts", "thread", "carousel"] as const;
+export type PromoPiece = (typeof PROMO_PIECES)[number];
+/** A promo draft's piece: a single post, a thread or a carousel. */
+export type PromoKind = "post" | "thread" | "carousel";
+export const promoKindOf = (d: {
+  platform: string;
+  extra?: Readonly<Record<string, unknown>> | null;
+}): PromoKind => (isThread(d) ? "thread" : isCarousel(d) ? "carousel" : "post");
 
 /** A video that can be promoted: approved to upload, uploading or up. */
 const PROMOTABLE = ["approved", "publishing", "published"] as const;
 
 /** True of every promo, and the Reddit brief may say it: backs "I recorded a walkthrough". */
-const RECORDED = "I recorded a walkthrough video of this.";
+export const RECORDED = "I recorded a walkthrough video of this.";
 
 /** The idea's ref: one promo idea per video. */
 export const promoRef = (videoDraft: string) => `promo:${videoDraft}`;
@@ -211,10 +244,10 @@ export async function promoBase(db: Queryable, videoDraft: string): Promise<Prom
   };
 }
 
-/** Drafts already made for this promo, by platform, not turned down. */
-async function liveOf(db: Queryable, ideaId: string): Promise<Map<Platform, string>> {
+/** Drafts already made for this promo, by platform and piece ("x/thread"), not turned down. */
+export async function liveOf(db: Queryable, ideaId: string): Promise<Map<string, string>> {
   const rows = await db
-    .select({ id: contentDrafts.id, platform: contentDrafts.platform })
+    .select({ id: contentDrafts.id, platform: contentDrafts.platform, extra: contentDrafts.extra })
     .from(contentDrafts)
     .where(
       and(
@@ -222,7 +255,7 @@ async function liveOf(db: Queryable, ideaId: string): Promise<Map<Platform, stri
         inArray(contentDrafts.status, ["draft", "approved", "publishing", "published"]),
       ),
     );
-  return new Map(rows.map((r) => [r.platform, r.id]));
+  return new Map(rows.map((r) => [`${r.platform}/${promoKindOf(r)}`, r.id]));
 }
 
 /** Why the platform's promo can't be drafted, or null. */
@@ -232,7 +265,7 @@ export async function promoSkip(
   platform: PromoPlatform,
   again = false,
 ): Promise<string | null> {
-  if (!again && (await liveOf(db, base.idea.id)).has(platform)) return "already drafted";
+  if (!again && (await liveOf(db, base.idea.id)).has(`${platform}/post`)) return "already drafted";
   if (platform === "reddit" && !base.place)
     return "no watched subreddit takes posts: watch one in Marketing → Places";
   if (platform === "instagram") {
@@ -329,36 +362,308 @@ export async function draftPromo(
   return { platform, ok: true, draft };
 }
 
-/** Every platform's promo for one video, in order. The CLI's path; the desk journals each one. */
+/**
+ * A video's promo, in order: each platform's post (`posts`), the X thread, the carousel. The CLI's
+ * path; the desk journals each one.
+ */
 export async function promoteVideo(
   db: Queryable,
   llm: LlmClient,
   videoDraft: string,
   platforms: readonly PromoPlatform[] = PROMO_PLATFORMS,
-  o: DraftOptions = {},
+  o: DraftOptions & { pieces?: readonly PromoPiece[] } = {},
 ): Promise<{ ideaId: string; results: DraftResult[] }> {
   const base = await promoBase(db, videoDraft);
+  const pieces = o.pieces ?? ["posts"];
   const results: DraftResult[] = [];
-  for (const p of platforms) results.push(await draftPromo(db, llm, base, p, o));
+  if (pieces.includes("posts"))
+    for (const p of platforms) results.push(await draftPromo(db, llm, base, p, o));
+  if (pieces.includes("thread")) results.push(await draftThread(db, llm, base, o));
+  if (pieces.includes("carousel")) results.push(...(await draftCarousel(db, llm, base, o)));
   return { ideaId: base.idea.id, results };
 }
 
-/** A promo's drafts, for the video's page: each platform's latest, with its state. */
-export async function promosOf(
-  db: Queryable,
-  videoDraft: string,
-): Promise<{ id: string; platform: Platform; status: string; text: string }[]> {
+/** One row of a video's promos: a platform's post, the thread, or a carousel's draft. */
+export interface PromoRow {
+  id: string;
+  platform: Platform;
+  kind: PromoKind;
+  status: string;
+  text: string;
+}
+
+/** A promo's drafts, for the video's page: each platform's and piece's latest, with its state. */
+export async function promosOf(db: Queryable, videoDraft: string): Promise<PromoRow[]> {
   const rows = await db
     .select({
       id: contentDrafts.id,
       platform: contentDrafts.platform,
       status: contentDrafts.status,
       text: contentDrafts.text,
+      extra: contentDrafts.extra,
     })
     .from(contentDrafts)
     .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
     .where(eq(contentIdeas.ref, promoRef(videoDraft)))
     .orderBy(sql`${contentDrafts.createdAt} desc`);
-  const seen = new Set<Platform>();
-  return rows.filter((r) => !seen.has(r.platform) && seen.add(r.platform));
+  const seen = new Set<string>();
+  return rows.flatMap(({ extra, ...r }) => {
+    const kind = promoKindOf({ platform: r.platform, extra });
+    const key = `${r.platform}/${kind}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [{ ...r, kind }];
+  });
+}
+
+/**
+ * A promo prompt in the drafts' frame (voice, playbook, facts rule, lessons, the idea) with its
+ * own brief and answer: `draftPrompt` with the answer line swapped.
+ */
+export async function piecePrompt(
+  db: Queryable,
+  base: PromoBase,
+  platform: Platform,
+  brief: { shape: string; maxChars: number; answer: string },
+  o: DraftOptions,
+): Promise<{ prompt: string; playbookId: string | null }> {
+  const playbook = await playbookFor(db, platform);
+  const full = draftPrompt(
+    { text: base.idea.text, media: null },
+    { ...PLATFORM_SPECS[platform], shape: brief.shape, maxChars: brief.maxChars },
+    {
+      voice: o.voice ?? DEFAULT_VOICE,
+      brand: o.brand ?? DEFAULT_BRAND,
+      lessons: await lessonsFor(db, platform),
+      playbook,
+      ...(o.facts ? { facts: o.facts } : {}),
+    },
+  );
+  const cut = full.lastIndexOf("\nAnswer with JSON only");
+  return {
+    prompt: `${cut >= 0 ? full.slice(0, cut) : full}\nAnswer with JSON only, nothing before or after: ${brief.answer}`,
+    playbookId: playbook?.id ?? null,
+  };
+}
+
+const LINK_LINE =
+  "The link to the video is added on its own line after the last post; never write a link or a URL.";
+
+/** The thread's brief. */
+export const THREAD_SHAPE = `a thread on X of ${THREAD_MIN} to ${THREAD_MAX} posts that sends people to a new YouTube video: dense and expert, written for people who already know the field. Post 1 is the sharpest claim from the video and stands alone: no link, no "thread", no "1/". Each next post adds one concrete point from the idea. The last post says the full walkthrough is in the video. Each post under 260 characters, the last under 220. No hashtags, no emoji, no numbering. ${LINK_LINE}`;
+
+const threadAnswer = z.object({ posts: z.array(z.string()).min(1).max(12) });
+
+/**
+ * The promo's X thread: 3 to 7 posts in one draft, guarded post by post, pointing at the video.
+ * The link rides on the last post once the video is up; the first carries none.
+ */
+export async function draftThread(
+  db: Queryable,
+  llm: LlmClient,
+  base: PromoBase,
+  o: DraftOptions = {},
+): Promise<DraftResult> {
+  const platform = "x" as const;
+  if (!o.again && (await liveOf(db, base.idea.id)).has("x/thread"))
+    return { platform, ok: false, reason: "thread already drafted" };
+  const { prompt, playbookId } = await piecePrompt(
+    db,
+    base,
+    platform,
+    {
+      shape: THREAD_SHAPE,
+      maxChars: 260,
+      answer: '{"posts": ["<post 1>", "<post 2>", "..."]}',
+    },
+    o,
+  );
+  const item = `idea:${base.idea.id}/x-thread`;
+  const g = await guardParts(
+    async (fix) => {
+      const outcome = await completeAndParse(
+        llm,
+        fix ? `${prompt}\n\n${fix}` : prompt,
+        threadAnswer,
+        {
+          maxTokens: 4000,
+          runId: o.runId ?? null,
+          tracer: o.tracer ?? null,
+          name: DRAFT_STAGE,
+          metadata: {
+            platform,
+            piece: "thread",
+            ideaId: base.idea.id,
+            video: base.video.id,
+            version: PROMO_PROMPT_VERSION,
+          },
+        },
+      );
+      const posts = outcome.parsed?.posts.map((p) => p.trim()).filter(Boolean) ?? [];
+      return {
+        parts: posts.map((text, i) => ({ label: `post ${i + 1}`, text })),
+        result: { outcome, posts },
+      };
+    },
+    { facts: o.facts ?? [], sources: [], own: [base.idea.text, RECORDED] },
+  );
+  await recordGuard(db, DRAFT_STAGE, item, g);
+  if (g.text === null) return { platform, ok: false, reason: droppedWhy(g) };
+  const { outcome, posts } = g.result;
+  if (!outcome.parsed)
+    return {
+      platform,
+      ok: false,
+      reason: outcome.providerRejected ?? outcome.parseError ?? "no answer",
+    };
+  // A post with a line of dashes would split in two: keep the model's posts as it meant them.
+  const clean = posts.map((p) => p.replace(/^[ \t]*-{3,}[ \t]*$/gm, "").trim()).filter(Boolean);
+  const bad = threadUnfit(clean);
+  if (bad) return { platform, ok: false, reason: bad };
+  const text = threadText(clean);
+  const [draft] = await db
+    .insert(contentDrafts)
+    .values({
+      ideaId: base.idea.id,
+      platform,
+      text,
+      extra: fieldsOf("x", { kind: "thread" }),
+      promptVersion: PROMO_PROMPT_VERSION,
+      playbookId,
+      llm: outcome.envelope(),
+      stage: "reach",
+      pointsTo: "video",
+      videoDraft: base.video.id,
+    })
+    .returning();
+  if (!draft) throw new Error("insert returned no row");
+  await keepGenerated(db, llm, draft, outcome, { by: o.by });
+  return { platform, ok: true, draft };
+}
+
+/** The carousel's brief: the slides and both posts in one answer. */
+export const CAROUSEL_SHAPE = `a carousel of ${SLIDES_MIN} to ${SLIDES_MAX} slides that teaches the lesson of a new YouTube video, plus the two posts that carry it. Slide 1 is the hook: a title that states the problem or the result, and no lines. Each next slide makes one point from the idea: a title under ${SLIDE_TITLE_MAX - 15} characters and one to three short lines under ${SLIDE_LINE_MAX - 20} characters each. The last slide says the full walkthrough is on YouTube. "linkedin" is a LinkedIn post under 900 characters that goes with the slides as a PDF: a one-line hook, two or three short lines on what the slides show, a last line saying the full walkthrough is in the video. "instagram" is the Instagram caption: a first line that stands alone, two short lines, a line saying the full video is on YouTube, link in bio, then up to five hashtags on the last line. No emoji. Never write a link or a URL.`;
+
+const carouselAnswer = z.object({
+  slides: z
+    .array(z.object({ title: z.string(), lines: z.array(z.string()).default([]) }))
+    .min(1)
+    .max(14),
+  linkedin: z.string().min(1),
+  instagram: z.string().min(1),
+});
+
+/**
+ * The promo's carousel: one slide set, guarded slide by slide with both posts, drafted as a
+ * LinkedIn document and an Instagram carousel that share it. Both point at the video.
+ */
+export async function draftCarousel(
+  db: Queryable,
+  llm: LlmClient,
+  base: PromoBase,
+  o: DraftOptions = {},
+): Promise<DraftResult[]> {
+  const fail = (reason: string): DraftResult[] => [
+    { platform: "linkedin", ok: false, reason },
+    { platform: "instagram", ok: false, reason },
+  ];
+  const live = await liveOf(db, base.idea.id);
+  if (!o.again && (live.has("linkedin/carousel") || live.has("instagram/carousel")))
+    return fail("carousel already drafted");
+  const { prompt, playbookId } = await piecePrompt(
+    db,
+    base,
+    "linkedin",
+    {
+      shape: CAROUSEL_SHAPE,
+      maxChars: 900,
+      answer:
+        '{"slides": [{"title": "<title>", "lines": ["<line>", "..."]}, "..."], "linkedin": "<the LinkedIn post>", "instagram": "<the Instagram caption>"}',
+    },
+    o,
+  );
+  const g = await guardParts(
+    async (fix) => {
+      const outcome = await completeAndParse(
+        llm,
+        fix ? `${prompt}\n\n${fix}` : prompt,
+        carouselAnswer,
+        {
+          maxTokens: 6000,
+          runId: o.runId ?? null,
+          tracer: o.tracer ?? null,
+          name: DRAFT_STAGE,
+          metadata: {
+            platform: "linkedin",
+            piece: "carousel",
+            ideaId: base.idea.id,
+            video: base.video.id,
+            version: PROMO_PROMPT_VERSION,
+          },
+        },
+      );
+      const p = outcome.parsed;
+      const slides = cleanSlides(p?.slides ?? []);
+      return {
+        parts: p
+          ? [
+              ...slides.map((s, i) => ({
+                label: `slide ${i + 1}`,
+                text: [s.title, ...s.lines].join("\n"),
+              })),
+              { label: "LinkedIn post", text: p.linkedin },
+              { label: "Instagram caption", text: p.instagram },
+            ]
+          : [],
+        result: { outcome, slides },
+      };
+    },
+    { facts: o.facts ?? [], sources: [], own: [base.idea.text, RECORDED] },
+  );
+  await recordGuard(db, DRAFT_STAGE, `idea:${base.idea.id}/carousel`, g);
+  if (g.text === null) return fail(droppedWhy(g));
+  const { outcome, slides } = g.result;
+  const p = outcome.parsed;
+  if (!p) return fail(outcome.providerRejected ?? outcome.parseError ?? "no answer");
+  const bad =
+    slidesUnfit(slides) ??
+    (p.linkedin.trim().length > PLATFORM_SPECS.linkedin.maxChars
+      ? `the LinkedIn post is over ${PLATFORM_SPECS.linkedin.maxChars} characters`
+      : p.instagram.trim().length > PLATFORM_SPECS.instagram.maxChars
+        ? `the caption is over ${PLATFORM_SPECS.instagram.maxChars} characters`
+        : null);
+  if (bad) return fail(bad);
+  const deck = randomUUID();
+  const common = {
+    ideaId: base.idea.id,
+    promptVersion: PROMO_PROMPT_VERSION,
+    playbookId,
+    llm: outcome.envelope(),
+    stage: "reach" as const,
+    pointsTo: "video" as const,
+    videoDraft: base.video.id,
+  };
+  const rows = await db
+    .insert(contentDrafts)
+    .values([
+      {
+        ...common,
+        platform: "linkedin",
+        text: p.linkedin.trim(),
+        extra: fieldsOf("linkedin", { kind: "document", deck, slides }),
+      },
+      {
+        ...common,
+        platform: "instagram",
+        text: p.instagram.trim(),
+        extra: fieldsOf("instagram", { kind: "carousel", deck, slides }),
+      },
+    ])
+    .returning();
+  const out: DraftResult[] = [];
+  for (const d of rows) {
+    await keepGenerated(db, llm, d, outcome, { by: o.by });
+    out.push({ platform: d.platform, ok: true, draft: d });
+  }
+  return out;
 }

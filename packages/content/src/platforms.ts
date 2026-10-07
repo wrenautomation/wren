@@ -4,7 +4,15 @@
  * into the channel port's `Post`.
  */
 import type { Media, Platform, Post } from "@wren/core/content";
-import { fieldsOf } from "@wren/core/content/shapes";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { isCarousel } from "@wren/core/content/slides";
+import {
+  isThread,
+  threadPosts,
+  threadText,
+  threadUnfit,
+  withLink,
+} from "@wren/core/content/thread";
 import type { ContentDraft } from "./schema.js";
 
 export interface PlatformSpec {
@@ -109,6 +117,23 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
   return null;
 }
 
+/** Said wherever a carousel would go out: drafts and renders work, the upload doesn't yet. */
+export const CAROUSEL_UPLOAD_DEV =
+  "Uploading carousels to LinkedIn and Instagram is in development. Download the images or PDF and post by hand.";
+
+/**
+ * Why these words can't be the draft's text, or null: the platform's cap, or for an X thread
+ * 3 to 7 posts of 280 each (`@wren/core/content/thread`).
+ */
+export function wordsUnfit(
+  d: { platform: Platform; extra?: Readonly<Record<string, unknown>> | null },
+  text: string,
+): string | null {
+  if (isThread(d)) return threadUnfit(threadPosts(text));
+  const max = PLATFORM_SPECS[d.platform].maxChars;
+  return text.length > max ? `text is ${text.length} chars, over ${max} for ${d.platform}` : null;
+}
+
 /**
  * The channel port's post for a draft: text, the file, its fields (the title where the platform
  * has one), parsed against its shape: a bad field throws `ShapeError` before anything sends.
@@ -122,6 +147,17 @@ export function postOf(
     ...draft.extra,
     ...(draft.title ? { title: draft.title } : {}),
   });
+  if (isCarousel(draft)) throw new ShapeError(CAROUSEL_UPLOAD_DEV);
+  if (isThread(draft)) {
+    // The link rides on the last post; dropped, like a single post's, if it would pass 280.
+    const posts = threadPosts(draft.text);
+    const out = link && !threadUnfit(posts, link) ? withLink(posts, link) : posts;
+    return {
+      text: threadText(out),
+      ...(draft.media ? { media: draft.media } : {}),
+      extra,
+    };
+  }
   const linked = link ? `${draft.text.trimEnd()}\n\n${link}` : draft.text;
   return {
     text: linked.length <= PLATFORM_SPECS[draft.platform].maxChars ? linked : draft.text,

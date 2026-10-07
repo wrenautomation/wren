@@ -36,6 +36,19 @@ export interface DraftTurnLine {
   error: string | null;
 }
 
+/** What a custom editor gets: the words as typed, a setter, and the box's save. */
+export interface DraftEditorProps {
+  text: string;
+  /** Change the words (unsaved, like typing). */
+  setText: (text: string) => void;
+  /** Save what's typed, or `next` (a split or a move, set and saved at once). */
+  flush: (next?: string) => Promise<boolean>;
+  /** False when the box only reads. */
+  editable: boolean;
+}
+/** Draws the words in place of the textarea (an X thread's posts); save, Ask Claude, Undo stay. */
+export type DraftEditor = (p: DraftEditorProps) => ReactNode;
+
 /** What a record says about the draft it holds. The actions are ids among the record's own. */
 export interface RecordDraft {
   /** The row's field it stands in for: the details leave that field out. */
@@ -54,6 +67,8 @@ export interface RecordDraft {
   undo?: string | undefined;
   /** What ⌘Enter runs: one of the record's head actions. */
   send?: string | undefined;
+  /** Draws the words its own way; the box keeps saving, asking and undoing. */
+  editor?: DraftEditor | undefined;
 }
 
 /** What the box's owner holds: save what's typed first, then send. */
@@ -178,10 +193,11 @@ export function DraftBox({
     setText(server);
   }, [server]);
 
-  const flush = async (): Promise<boolean> => {
+  const flush = async (next?: string): Promise<boolean> => {
     if (pending.current) await pending.current;
-    if (!save || text.trim() === base.trim()) return true;
-    const words = text.trim();
+    const now = next ?? text;
+    if (!save || now.trim() === base.trim()) return true;
+    const words = now.trim();
     const job = (async () => {
       setSaved("saving");
       try {
@@ -209,7 +225,7 @@ export function DraftBox({
       pending.current = null;
     }
   };
-  if (handle) handle.current = { flush };
+  if (handle) handle.current = { flush: () => flush() };
 
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!(e.metaKey || e.ctrlKey)) return;
@@ -290,7 +306,20 @@ export function DraftBox({
           </span>
         ) : null}
       </div>
-      {save ? (
+      {draft.editor ? (
+        draft.editor({
+          text,
+          setText: (next) => {
+            setText(next);
+            if (saved !== "saving") setSaved("idle");
+          },
+          flush: (next) => {
+            if (next !== undefined) setText(next);
+            return flush(next);
+          },
+          editable: Boolean(save),
+        })
+      ) : save ? (
         <DictateField target={box}>
           <Textarea
             ref={box}
@@ -312,7 +341,7 @@ export function DraftBox({
           {server || "No draft."}
         </p>
       )}
-      {save ? (
+      {save && !draft.editor ? (
         <div className="-mt-1.5 flex">
           <InsertSnippet
             box={box}
@@ -325,7 +354,7 @@ export function DraftBox({
           />
         </div>
       ) : null}
-      {draft.preview && text.trim() ? (
+      {draft.preview && text.trim() && !draft.editor ? (
         framed ? (
           <MessagePreview message={draft.preview} body={text} />
         ) : (
