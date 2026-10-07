@@ -200,6 +200,7 @@ describe("ConsolePortal records", () => {
     expect(bare.map((t) => t.id)).toEqual([
       "console.team",
       "console.change",
+      "console.setting",
       "console.event",
       "console.hold",
       "console.check",
