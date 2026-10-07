@@ -46,6 +46,7 @@ export const TOKENS = [
   "good-tint",
   "bad-tint",
   "scrim",
+  "graph",
   "shadow",
   "chart-1",
   "chart-2",
