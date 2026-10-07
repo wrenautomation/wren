@@ -86,7 +86,7 @@ function MailboxRow({ m, mayAct, act }: { m: Mailbox; mayAct: boolean; act: Act 
         <div className={TOOLS}>
           {m.may.connectRead && m.state !== "read_send" ? (
             <Button size="sm" disabled={act.busy} onClick={() => void connect(act, m.id, "read")}>
-              {connected ? "Connect again to read" : "Connect to read and send"}
+              {connected ? "Connect to read" : "Connect to read and send"}
             </Button>
           ) : null}
           {m.may.connectSend && !connected ? (
@@ -183,7 +183,7 @@ function MicrosoftSteps({ o, mayAct, act }: { o: Org; mayAct: boolean; act: Act 
               Open it
             </a>
           </span>
-        ) : mayAct ? (
+        ) : mayAct && !o.ready ? (
           <span>
             <Button
               size="sm"
@@ -221,7 +221,7 @@ function OrgCard({ o, view, act }: { o: Org; view: View; act: Act }) {
       note={
         google
           ? "Once per Google Workspace domain. Your admin trusts Wren's app, so mailboxes can be read. Sending works without it."
-          : "Once per Microsoft 365 organization. Your admin consents for everyone, so mailboxes can be read and send."
+          : "Once per Microsoft 365 organization. Your admin consents once for everyone, so Wren can read and send from your mailboxes."
       }
     >
       <p className="flex flex-wrap items-center gap-2">
