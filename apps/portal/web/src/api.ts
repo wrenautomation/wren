@@ -130,6 +130,12 @@ function token(): Promise<string | null> {
   return asking;
 }
 
+/** The sign-in header for a call made outside `call` (dictation's audio). */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const t = await token();
+  return t ? { authorization: `Bearer ${t}` } : {};
+}
+
 async function fresh(url: string): Promise<string | null> {
   const ask = async () => {
     try {

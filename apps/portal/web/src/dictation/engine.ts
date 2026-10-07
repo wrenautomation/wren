@@ -4,6 +4,7 @@
  * hands the kit's `Dictate` its words. One per page.
  */
 import type { DictateEvents, DictateHandle, DictateStatus, DictationEngine } from "@wren/ui";
+import type { Ears } from "@wren/voice";
 import {
   type Adapter,
   type Can,
@@ -15,8 +16,11 @@ import {
   startDictation,
   TranscriberEars,
 } from "@wren/voice/dictation";
+import { recognitionClass } from "../modules/voice/speech.js";
 import { micError, openMic } from "./mic.js";
 import { BrowserModel } from "./model.js";
+import { ServerModel, serverDictation } from "./server.js";
+import { SpeechEars } from "./speech.js";
 
 export interface DictateSettings {
   choice: Choice;
@@ -38,6 +42,9 @@ export function readSettings(): DictateSettings {
     return DEFAULTS;
   }
 }
+
+/** A server run needs this much new audio for a partial: each one is a request. */
+const SERVER_PARTIAL_MS = 1500;
 
 /** One finished dictation, for the latency panel: timings only, never the words. */
 export interface DictationReport extends DictationRun {
@@ -64,14 +71,18 @@ export class PortalDictation implements DictationEngine {
   #status: DictateStatus = { state: "off" };
   #subs = new Set<() => void>();
   #browser = new BrowserModel();
+  #server: ServerModel | null = null;
+  /** Where finished dictations' timings go; the app sets it for Wren's team. */
+  report: ((r: DictationReport) => void) | null = null;
 
-  constructor(private o: { report?: (r: DictationReport) => void } = {}) {
+  constructor() {
     void this.#probe();
   }
 
   async #probe() {
-    const webgpu = await hasWebGpu();
-    this.#can = { webgpu, server: false, speech: false, fallback: false };
+    const [webgpu, server] = await Promise.all([hasWebGpu(), serverDictation()]);
+    this.#server = server.on ? new ServerModel(server.model ?? "server") : null;
+    this.#can = { webgpu, server: server.on, speech: !!recognitionClass(), fallback: false };
     this.#route();
   }
 
@@ -127,20 +138,36 @@ export class PortalDictation implements DictationEngine {
     const go = async () => {
       if (status.state !== "ready") throw new Error("Dictation isn't available here.");
       const adapter = status.adapter as Adapter;
-      if (adapter !== "browser") throw new Error("That way of dictating isn't ready yet.");
-      const t0 = performance.now();
-      const cold = !this.#browser.loaded;
-      on.phase({ kind: "loading", progress: cold ? 0 : null });
-      try {
-        await this.#browser.load(
-          (n) => state === "starting" && on.phase({ kind: "loading", progress: n }),
-        );
-      } catch {
-        this.#failed.add("browser");
-        this.#route();
-        throw new Error("The speech model didn't load. Reload to try again.");
-      }
-      const loadMs = cold ? Math.round(performance.now() - t0) : null;
+      let failure: unknown = null;
+      const onError = (e: unknown) => {
+        failure = e;
+      };
+      let loadMs: number | null = null;
+      let ears: Ears;
+      let model: string;
+      if (adapter === "browser") {
+        const t0 = performance.now();
+        const cold = !this.#browser.loaded;
+        on.phase({ kind: "loading", progress: cold ? 0 : null });
+        try {
+          await this.#browser.load(
+            (n) => state === "starting" && on.phase({ kind: "loading", progress: n }),
+          );
+        } catch {
+          this.#failed.add("browser");
+          this.#route();
+          throw new Error("The speech model didn't load. Reload to try again.");
+        }
+        loadMs = cold ? Math.round(performance.now() - t0) : null;
+        ears = new TranscriberEars(this.#browser, { onError });
+        model = this.#browser.model;
+      } else if (adapter === "server" && this.#server) {
+        ears = new TranscriberEars(this.#server, { onError, partialEveryMs: SERVER_PARTIAL_MS });
+        model = this.#server.model;
+      } else if (adapter === "speech") {
+        ears = new SpeechEars({ onError });
+        model = "web-speech";
+      } else throw new Error("Dictation isn't available here.");
       if (over()) return;
       if (stopAsked) {
         // Let go while it loaded: nothing to hear, the model is ready for next time.
@@ -148,11 +175,7 @@ export class PortalDictation implements DictationEngine {
         on.done();
         return;
       }
-      let failure: unknown = null;
-      const session = startDictation({
-        ears: new TranscriberEars(this.#browser, { onError: (e) => (failure = e) }),
-        on: { partial: on.partial, final: on.final },
-      });
+      const session = startDictation({ ears, on: { partial: on.partial, final: on.final } });
       let mic: Awaited<ReturnType<typeof openMic>>;
       try {
         mic = await openMic((s, level) => {
@@ -184,7 +207,7 @@ export class PortalDictation implements DictationEngine {
           return;
         }
         on.done();
-        this.o.report?.({ ...run, adapter, model: this.#browser.model, loadMs });
+        this.report?.({ ...run, adapter, model, loadMs });
       };
       if (stopAsked) await finish();
     };

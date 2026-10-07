@@ -46,6 +46,8 @@ import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
+import { dictationApi } from "@wren/voice/console";
+import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { videoRecord } from "../../../packages/content/src/video.js";
@@ -55,6 +57,8 @@ import { CLIENT_MARKETING, MARKETING_NUMBERS } from "../../worker/src/marketing.
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
+import { dictate } from "../src/dictate.js";
+import type { Env } from "../src/env.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -173,6 +177,12 @@ const SERVICES: Record<
     guard: { needs: TEMPLATES_CONSOLE_ROUTES, apps: TEMPLATES_CONSOLE_APPS, unnamed: "wren" },
     api: templatesApi({ db: main }),
   },
+  // Dictation's timings only; a test call's save is Restate's.
+  voice: {
+    routes: ["dictated", "dictation"],
+    guard: { needs: VOICE_CONSOLE_ROUTES, apps: VOICE_CONSOLE_APPS, unnamed: "wren" },
+    api: dictationApi({ db: main }),
+  },
 };
 /** Ask Claude's handler is Restate's (it opens a run, then the desk answers): here, only the run. */
 const local = SERVICES.console?.api as Record<string, (i: unknown) => Promise<unknown>>;
@@ -277,6 +287,22 @@ createServer(async (req, res) => {
   if (BOOK_PAGE.test(path)) {
     res.writeHead(200, { "content-type": "text/html" });
     return createReadStream(join(dist, "book.html")).pipe(res);
+  }
+  // Dictation's speech server (src/dictate.ts), the same code: DICTATE_URL in the shell turns it on.
+  if (path === "/api/dictate") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const r = new Request(`http://localhost${path}`, {
+      method: req.method ?? "GET",
+      headers: { "content-type": req.headers["content-type"] ?? "" },
+      ...(req.method === "POST" ? { body: Buffer.concat(chunks) } : {}),
+    });
+    const out = await dictate(r, process.env as unknown as Env, {
+      demo,
+      signedIn: async () => null,
+    });
+    res.writeHead(out.status, { "content-type": "application/json" });
+    return res.end(await out.text());
   }
   const route = path.startsWith("/api/") ? path.slice(5) : null;
   if (route !== null) {

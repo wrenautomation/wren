@@ -1,6 +1,6 @@
 /**
  * Latency: per pipeline, how long after the caller stops each stage comes, p50 and p95 over the
- * last 30 days (`voice_latency`). "Heard" is the number a caller feels.
+ * last 30 days (`voice_latency`). "Heard" is the number a caller feels. Under it, dictation's.
  */
 import type { RecordsPage } from "@wren/core/records/serve";
 import { Alert, ButtonLink, Empty, Loading, PageHeader, Section } from "@wren/ui";
@@ -9,6 +9,7 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { InDevelopment, SMALL } from "./bits.js";
+import { DictationLatency } from "./dictation.js";
 
 interface StageRow {
   pipeline: string;
@@ -66,6 +67,7 @@ export function Latency(_: PageProps) {
           <Key />
         </div>
       )}
+      <DictationLatency />
     </>
   );
 }

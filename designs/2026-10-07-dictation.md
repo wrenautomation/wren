@@ -32,9 +32,9 @@ Adapters (`packages/voice/src/dictation/`, the browser parts in `apps/portal/web
 | Adapter | Where it runs | Notes |
 |---|---|---|
 | `browser` (default) | a Web Worker, transformers.js on onnxruntime-web, WebGPU | loads on the first mic press, cached in Cache Storage |
-| `server` | the portal Worker's `/api/dictate`, which posts a WAV to an OpenAI-compatible `/audio/transcriptions` | `DICTATE_URL` (+ `DICTATE_MODEL`, `DICTATE_KEY`); unset means off. Groq, faster-whisper or a Parakeet server all fit |
+| `server` | the portal Worker's `/api/dictate`, which posts a WAV to an OpenAI-compatible `/audio/transcriptions` | `DICTATE_URL` (+ `DICTATE_MODEL`, `DICTATE_KEY`); unset means off. Groq, faster-whisper or a Parakeet server all fit. Signed in only, never the demo, `audio/wav` only (no form post from another site), 2 MiB a segment, nothing kept. GET says `{on, model}` |
 | `fake` | tests | reads the words back |
-| `speech` (fallback) | the browser's Web Speech API | off by default: Chrome sends the audio to Google, Safari to Apple |
+| `speech` (fallback) | the browser's Web Speech API, its own mic | off by default: Chrome sends the audio to Google, Safari to Apple. Release stops it and waits up to 3 s for the last words |
 
 **Routing** (`pickAdapter`): browser if WebGPU is there, else server if `/api/dictate` says it's
 on, else the speech fallback if he turned it on, else the button hides and its tooltip says why.
@@ -117,8 +117,12 @@ synthetic WAV as the mic (`--use-file-for-fake-audio-capture`), 2026-10-07:
 Each dictation is timed: mic open (press to the first frame), first words (press to the first
 partial or final), and final (release to the last final in the box). It goes to the run ledger
 as a `dictate` run (adapter, model, the three times, words, audio length; no text, no person),
-pruned after 30 days like the other chatty commands. Voice > Latency shows p50 and p95 per
-adapter beside the agent's pipeline stats.
+pruned after 30 days like the other chatty commands. Model load (a first press only) is timed
+too. Voice > Latency shows p50 and p95 per adapter and stage under the agent's pipeline stats.
+
+Only Wren's team reports (`voice/dictated`, `wren:read`): a client's dictations aren't timed,
+since the route is Wren's and the timings are ours to tune. Measured in the preview: first words
+about 1.5 s from press, because the test WAV opens with 1 s of quiet.
 
 ## The GPU plan (his money call)
 
@@ -154,3 +158,5 @@ Not built, not configured.
 - 2026-10-07: onnxruntime's wasm on our own origin, gzipped to fit a Workers asset (it was on
   jsDelivr first). The weights stay on Hugging Face: R2 is a bucket and a prod write.
 - 2026-10-07: The mic sits inside the box, not on a row under it.
+- 2026-10-07: Only Wren's team's dictations are timed: the report route is a Wren one.
+- 2026-10-07: Dictate also in action dialogs' message box and long fields, and ⌘K's box.

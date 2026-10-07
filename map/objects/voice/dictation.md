@@ -3,7 +3,7 @@ type: object
 cluster: voice
 universe: live
 status: verified
-verified: 2026-10-07 @ 90c5d53a
+verified: 2026-10-07 @ 88bbe3e2
 entity: packages/voice/src/dictation/index.ts
 ---
 
@@ -18,12 +18,14 @@ One seam so the model can move: `Transcriber` turns 16 kHz audio into text, and 
 ## Shape
 
 - seam: `Transcriber` (`transcriber.ts:11`), `TranscriberEars`, `EarStream.finish` (hear the rest, then resolve, `types.ts:97`), `openAiTranscriber` for any `/audio/transcriptions` server (`transcriber.ts:146`), `FakeTranscriber` for tests
-- `startDictation` (`session.ts:47`): one press to the last words, commands applied (`applyCommands`, "new line" and "period" only, `commands.ts:11`), timed as mic, first and final ms
-- kit: `Dictate` and `DictationProvider` (`packages/ui/src/dictate.tsx:114`); hold or Alt+Space to talk, a short press toggles, partials greyed at the caret, one ⌘Z takes a dictation out
-- portal: `PortalDictation` (`apps/portal/web/src/dictation/engine.ts:60`), `BrowserModel` and its worker (`model.ts:10`, `model.worker.ts`), the mic worklet `web/public/dictate-mic.js`; the pick per device in local storage `wren.dictate`
-- CSP (`apps/portal/web/public/_headers`): `'wasm-unsafe-eval'`, Hugging Face hosts, one pinned jsDelivr path for onnxruntime's wasm, which the build leaves out of `dist`
+- `startDictation` (`session.ts:51`): one press to the last words, commands applied (`applyCommands`, "new line" and "period" only, `commands.ts:11`), timed as mic, first and final ms
+- kit: `DictateField` (the mic inside the box), `Dictate` and `DictationProvider` (`packages/ui/src/dictate.tsx`); hold or Alt+Space to talk, a short press toggles, partials greyed at the caret, "Listening" and the time while it hears, one ⌘Z takes a dictation out
+- portal: `PortalDictation` (`apps/portal/web/src/dictation/engine.ts`) routes to `BrowserModel` and its worker (`model.ts`, `model.worker.ts`), `ServerModel` (`server.ts`) or `SpeechEars` (`speech.ts`); the mic worklet `web/public/dictate-mic.js`; the pick per device in local storage `wren.dictate`, set in Your settings (`modules/account/dictation.tsx`)
+- server: `/api/dictate` in the portal Worker (`apps/portal/src/dictate.ts`), off until `DICTATE_URL` is set
+- timings: `dictate` runs in the run ledger (`packages/voice/src/dictation-store.ts`), saved by `VoiceConsole.dictated` for Wren's team, read by `VoiceConsole.dictation` into Voice > Latency (`modules/voice/dictation.tsx`)
+- CSP (`apps/portal/web/public/_headers`): `'wasm-unsafe-eval'` and Hugging Face hosts; onnxruntime's wasm is ours, gzipped by `vite.config.ts` (`/ort/<version>/`)
 
-Citations: `packages/voice/src/dictation/ears.ts:27`, `packages/voice/src/dictation/route.ts:35`, `packages/voice/src/dictation/session.ts:47`, `packages/ui/src/dictate.tsx:114`
+Citations: `packages/voice/src/dictation/ears.ts:27`, `packages/voice/src/dictation/route.ts:35`, `packages/voice/src/dictation/session.ts:51`, `packages/ui/src/dictate.tsx:126`, `apps/portal/src/dictate.ts:56`, `packages/voice/src/dictation-store.ts:39`
 
 ## Connected to
 
@@ -32,14 +34,16 @@ Citations: `packages/voice/src/dictation/ears.ts:27`, `packages/voice/src/dictat
 
 ## If you change this
 
-- **Hits:** every box with a `Dictate` (`draft.tsx`, `edits.tsx`, Ask page, templates, videos and workflow Ask), `main.tsx` (the provider), the CSP when the model or onnxruntime version moves
-- **Does not hit:** the voice agent's call loop (it never calls `finish`), the database
+- **Hits:** every box with a `DictateField` (`draft.tsx`, `edits.tsx`, `action.tsx`, `palette.tsx`, Ask page, templates, videos and workflow Ask), `main.tsx` (the provider), `App.tsx` (the report hook), the CSP when the model moves
+- **Does not hit:** the voice agent's call loop (it never calls `finish`); the database beyond `runs`
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| portal text boxes | writes words into the box; nothing stored |
+| portal text boxes | writes words into the box; the words are never stored |
+| Voice > Latency | p50/p95 per adapter and stage |
+| Your settings | Auto, This device, Our server, Off, and the fallback |
 
 ## See
 

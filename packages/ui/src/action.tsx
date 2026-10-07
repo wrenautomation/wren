@@ -16,6 +16,7 @@ import { Input } from "./components/ui/input.js";
 import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { DictateField } from "./dictate.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
 import { InsertSnippet } from "./snippets.js";
 
@@ -226,6 +227,7 @@ export function FormBox({
   autoFocus?: boolean | undefined;
 }) {
   const required = !f.optional;
+  const longBox = useRef<HTMLTextAreaElement>(null);
   const box =
     f.type === "switch" ? (
       <input
@@ -252,16 +254,19 @@ export function FormBox({
         ))}
       </select>
     ) : f.type === "long" || f.type === "lines" || f.type === "numbers" || f.type === "json" ? (
-      <Textarea
-        id={id}
-        value={value}
-        onChange={(e) => onText(e.target.value)}
-        required={required}
-        autoFocus={autoFocus}
-        rows={4}
-        spellCheck={f.type === "long"}
-        className={f.type === "json" ? "font-mono" : undefined}
-      />
+      <DictateField target={longBox} off={f.type !== "long"}>
+        <Textarea
+          ref={longBox}
+          id={id}
+          value={value}
+          onChange={(e) => onText(e.target.value)}
+          required={required}
+          autoFocus={autoFocus}
+          rows={4}
+          spellCheck={f.type === "long"}
+          className={f.type === "json" ? "font-mono" : undefined}
+        />
+      </DictateField>
     ) : (
       <Input
         id={id}
@@ -438,13 +443,15 @@ export function useRun(
                   channel={shown?.kind}
                 />
               </div>
-              <Textarea
-                ref={textBox}
-                id={textId}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                rows={6}
-              />
+              <DictateField target={textBox}>
+                <Textarea
+                  ref={textBox}
+                  id={textId}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  rows={6}
+                />
+              </DictateField>
               {shown && text.trim() ? <MessagePreview message={shown} body={text} /> : null}
             </div>
           ) : null}

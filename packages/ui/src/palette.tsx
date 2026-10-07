@@ -1,9 +1,9 @@
 /**
  * ⌘K: what you can do here first (this view, the open record: `./palette-scope.ts`), then jump
- * to any app or page. Import it from `@wren/ui/palette` and load it on the first ⌘K: cmdk and
+ * to any app or page. Its box takes dictation. Import it from `@wren/ui/palette` and load it on the first ⌘K: cmdk and
  * the dialog stay out of the first load.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Command,
@@ -15,6 +15,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "./components/ui/command.js";
+import { DictateField } from "./dictate.js";
 import { Icon, type IconName } from "./icons.js";
 import { type ScopeItem, useOpened, useScoped } from "./palette-scope.js";
 
@@ -45,6 +46,7 @@ export function CommandPalette({
   const scope = useScoped();
   const record = useOpened();
   const [q, setQ] = useState("");
+  const box = useRef<HTMLInputElement>(null);
   const groups = [...new Set(items.map((i) => i.group))];
   const here = [...new Set(scope.items.map((i) => i.group))];
   const run = (i: Pick<ScopeItem, "run">) => () => {
@@ -59,7 +61,10 @@ export function CommandPalette({
       description="Do something here, or go to an app or page"
     >
       <Command>
-        <CommandInput placeholder="Do or go to…" value={q} onValueChange={setQ} />
+        {/* The box sits 4px into its wrapper, so the mic does too. */}
+        <DictateField target={box} line className="[&>button]:top-2 [&>button]:right-2">
+          <CommandInput ref={box} placeholder="Do or go to…" value={q} onValueChange={setQ} />
+        </DictateField>
         <CommandList>
           <CommandEmpty>Nothing by that name.</CommandEmpty>
           {scope.search && q.trim() ? (

@@ -1,9 +1,10 @@
-/** Your settings: the mail this person gets from us (D9), and how they sign in. */
+/** Your settings: the mail this person gets from us (D9), dictation on this device, and how they sign in. */
 import { Alert, Button, ButtonLink, Loading, MessagePreview, PageHeader, Section } from "@wren/ui";
 import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { BODY, ERROR, QUIET, TOOLS, useAct } from "../work/bits.js";
+import { Dictation } from "./dictation.js";
 import { usePeople, useRecap } from "./load.js";
 
 const MAIL: [MailLevel, string, string][] = [
@@ -77,6 +78,7 @@ export function You(props: PageProps) {
           </>
         )}
       </Section>
+      <Dictation />
       <Section title="Signing in">
         <p className={BODY}>
           Use the email you were invited with. You can sign in with a passkey, a code we email you,

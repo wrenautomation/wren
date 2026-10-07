@@ -10,6 +10,10 @@ import { atomic, type Db, setAuditActor } from "@wren/db";
 import { z } from "zod";
 import { STAGES } from "./call.js";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "./console-routes.js";
+import { type Dictated, dictatedSchema, dictationStats, saveDictation } from "./dictation-store.js";
+
+export type { Dictated, DictationStat } from "./dictation-store.js";
+
 import { saveCall } from "./store.js";
 import { OUTCOMES } from "./types.js";
 
@@ -57,8 +61,21 @@ export interface SaveTestRequest extends PortalRequest {
   call: TestCall;
 }
 
+export interface DictatedRequest extends PortalRequest {
+  run: Dictated;
+}
+
+/** Dictation's two routes as plain calls, for the handlers and the local preview. */
+export function dictationApi(deps: { db: Db }) {
+  return {
+    dictated: async (req: DictatedRequest) => ({ id: await saveDictation(deps.db, req.run) }),
+    dictation: async (_req: PortalRequest) => ({ rows: await dictationStats(deps.db) }),
+  };
+}
+
 export function makeVoiceConsole(deps: { db: Db }) {
   const { db } = deps;
+  const dictation = dictationApi(deps);
   return portalService({
     name: "VoiceConsole",
     main: db,
@@ -98,6 +115,16 @@ export function makeVoiceConsole(deps: { db: Db }) {
             );
             return { id };
           }),
+      ),
+      dictated: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, run: dictatedSchema }) },
+        (ctx: restate.Context, req: DictatedRequest) =>
+          answer(() => ctx.run("save", () => dictation.dictated(req))),
+      ),
+      dictation: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        (ctx: restate.Context, req: PortalRequest) =>
+          answer(() => ctx.run("read", () => dictation.dictation(req))),
       ),
     },
   });

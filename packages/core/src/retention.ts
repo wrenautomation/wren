@@ -7,7 +7,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export const RETAINED_COMMANDS = ["outreach inbox sync", "send tick"] as const;
+export const RETAINED_COMMANDS = ["outreach inbox sync", "send tick", "dictate"] as const;
 export const RUNS_RETENTION_DAYS = 30;
 const BATCH = 5_000;
 

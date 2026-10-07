@@ -39,6 +39,7 @@ import {
 import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
+import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
@@ -285,6 +286,14 @@ export function App() {
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
+  // Dictation's timings go to Voice > Latency, for Wren's team only (`voice/dictated`).
+  useEffect(() => {
+    if (!dictation) return;
+    dictation.report =
+      operator && !me.data?.demo
+        ? (run) => void call("voice/dictated", { run }).catch(() => {})
+        : null;
+  }, [operator, me.data?.demo]);
   // An address names its app, and the app its workspace; else the last one picked (Wren first).
   const atWren = !named && (client === null || client === WREN.id);
   // Marketing is both a client's app and Wren's: the one for the workspace already picked.

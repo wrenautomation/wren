@@ -6,11 +6,15 @@
 import type { EarStream, Ears, Frame } from "../types.js";
 import { applyCommands } from "./commands.js";
 
-/** The stages a dictation is timed by, as the run ledger keeps them. */
+/**
+ * The stages a dictation is timed by, as the run ledger keeps them. `load` is the app's (press to
+ * a browser model ready, on the press that loaded it); the rest are `DictationRun`'s.
+ */
 export const DICTATION_STAGES = {
+  load: "Model load",
   mic: "Mic open",
   first: "First words",
-  final: "Final words",
+  final: "Release to last words",
 } as const;
 export type DictationStage = keyof typeof DICTATION_STAGES;
 

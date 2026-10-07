@@ -16,4 +16,13 @@ export interface Env {
   /** Turnstile on a client's booking page: both set, a booking must pass it. Unset = honeypot only. */
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET?: string;
+  /**
+   * Dictation's speech server: an OpenAI-compatible `/audio/transcriptions` URL (./dictate.ts).
+   * Unset = the server adapter is off and phones without WebGPU get no mic.
+   */
+  DICTATE_URL?: string;
+  /** Its model name; default whisper-large-v3-turbo. */
+  DICTATE_MODEL?: string;
+  /** Its key, a secret, when it takes one. */
+  DICTATE_KEY?: string;
 }

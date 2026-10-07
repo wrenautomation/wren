@@ -6,6 +6,7 @@
  * - app.<domain>: people sign in at AUTH_ORIGIN (our own sign-in); the app
  *   sends its short-lived token as a bearer, the Worker checks it and passes
  *   the email. The token marks Wren's operators: they see every client.
+ * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -22,6 +23,7 @@
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
 import { bookRoute } from "./book.js";
+import { dictate } from "./dictate.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { SERVICES } from "./services.js";
@@ -183,6 +185,14 @@ export default {
       const auth = await authRoute(req, env);
       if (auth) return auth;
     }
+    if (pathname === "/api/dictate")
+      return dictate(req, env, {
+        demo: site.kind === "demo",
+        signedIn: async () => {
+          const v = await viewerOf(req, env);
+          return v instanceof Response ? v : "demo" in v ? json({ error: "Sign in." }, 401) : null;
+        },
+      });
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);
