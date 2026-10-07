@@ -203,6 +203,35 @@ deleted.
      (rendering, rendered, failed and why). It waits while the Mac is off.
    - New OBS recordings appear by themselves: the Mac ingests a finished file from OBS's
      recording folder (read from OBS's profile) as an Added video.
+5. Formats and captions (William 10-07: "workflows to autodimension for different formats";
+   "mostly the captions are more important", he will often make separate Reels). One recording,
+   each format it suits, captions right in each:
+   - **Orientation kept.** The cut pass scales a landscape track to 1080 high (today) and a
+     portrait one to 1080 wide (1080×1920), not 1080 high. Previews already branch on it.
+   - **Formats on the edit.** `formats: ("long" | "vertical")[]`, set by `wren video add` from the
+     main track: landscape → `["long"]`, portrait → `["vertical"]`; `wren video set` and the page
+     change it (a landscape cam take can add `vertical`). `render` renders what it lists, plus
+     Shorts and thumbnails as now; `--only vertical` works.
+   - **`Vertical` composition**, 1080×1920, the whole cut (not a 20-60 s clip): a portrait source
+     fills the frame; a landscape source is cropped to a 9:16 window centred on the face (the
+     `camBox`/cam file's centre when known, else the frame's centre; face-follow is later, not
+     here). Output `out/vertical.mp4`, 540p preview to S3 like the others.
+   - **Captions per format.** The long video keeps its lower-third line. Vertical (and Shorts) get
+     the Reels style: 2-4 words a line, big (about 80 px on 1080 wide), bold, white with a dark
+     outline, the spoken word highlighted, sitting about 62-70% down, clear of the Reels/Shorts UI
+     (bottom 20%, right 15%). Lines break on pauses and punctuation, never mid-phrase, and never
+     run past the speech.
+   - **Fix a word before render.** Whisper mishears names ("drug fooding" for dogfooding, "Wren").
+     `wren video words <id> --fix "<wrong>=<right>"` (every match, case kept) and `--at <s>
+     <text>` (one word) rewrite the transcript's text, never its times, as a `runs` row like
+     `set`; the page's transcript gets the same edit. An optional `studio.words` list in
+     `wren_settings` (`Wren`, `dogfooding`…) goes to Whisper as its prompt on ingest.
+   - **Approve a vertical.** `wren video approve <id> --vertical [--privacy]`: one YouTube draft
+     (YouTube files a vertical ≤3 min as a Short itself) and an Instagram Reel draft waiting in
+     To approve, as Shorts do now. The page gets "Approve vertical".
+   - Checked: unit tests on the scale filter for both orientations, the caption line breaker
+     (pauses, punctuation, 2-4 words, timing), `formats` defaults and `words --fix`; a render of a
+     synthetic 10 s portrait clip and a 10 s landscape clip to `vertical`, stills looked at.
 
 ## For William
 
