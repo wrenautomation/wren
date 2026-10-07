@@ -18,6 +18,8 @@ export const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
   X_BEARER_TOKEN: /^\S{8,4096}$/,
   MODEL_API_KEY: /^\S{8,4096}$/,
   TELNYX_API_KEY: /^\S{8,4096}$/,
+  /** Telnyx's webhook signing key (Account → Public Key): Ed25519, 32 bytes in base64. Public. */
+  TELNYX_PUBLIC_KEY: /^[A-Za-z0-9+/]{43}=$/,
 };
 
 /** A mailbox's refresh token (designs/2026-10-07-mail-access.md): the address hashed. */
@@ -47,6 +49,8 @@ export function keyProblem(
   if (!shape.test(value)) {
     if (name === "STRIPE_SECRET_KEY") return "That isn't a Stripe secret key (sk_ or rk_)";
     if (name === "STRIPE_WEBHOOK_SECRET") return "That isn't a webhook signing secret (whsec_)";
+    if (name === "TELNYX_PUBLIC_KEY")
+      return "That isn't a Telnyx public key (Account → Public Key, 44 characters)";
     return "That doesn't look like a key";
   }
   return null;

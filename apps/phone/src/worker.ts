@@ -13,6 +13,10 @@
  *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
  *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
  *   `CALCOM_WEBHOOK_SECRETS`; a client with none there is 404.
+ * - Telnyx, either path: the event's number picks whose account signed it
+ *   (`SmsEvents/signer`). A client on its own Telnyx account is checked against its saved
+ *   public key and lands only in its database; Wren's numbers and clients on Wren's account
+ *   against `TELNYX_PUBLIC_KEY`. A path naming someone other than the number's owner is 401.
  * - `/webhooks/gmail`: Gmail's push through Pub/Sub, `?token=` checked against
  *   `GMAIL_PUSH_TOKEN`, then `InboxPush/<address>/notify/send` keyed by Pub/Sub's message
  *   id: the mailbox's inbox loop runs a pass now.
@@ -40,7 +44,13 @@
  * The Worker holds no data but a credential link's ciphertext: the inbox is Postgres, read through Restate.
  */
 import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
-import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyTelnyx } from "@wren/channel-sms/webhook";
+import {
+  ourNumber,
+  SIGNATURE_HEADER,
+  signedFresh,
+  TIMESTAMP_HEADER,
+  verifyTelnyx,
+} from "@wren/channel-sms/webhook";
 import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 
@@ -108,25 +118,76 @@ const clientIn = (pathname: string, site: string): string | null => {
 const forwarded = (raw: string, client: string | null) =>
   client ? `{"client":${JSON.stringify(client)},"body":${raw}}` : raw;
 
-async function telnyxWebhook(req: Request, env: Env, client: string | null): Promise<Response> {
-  if (!env.TELNYX_PUBLIC_KEY) return json({ error: "webhooks off: no TELNYX_PUBLIC_KEY" }, 503);
+/** Whose account signed a webhook, as `SmsEvents/signer` answers (channel-sms signer.ts). */
+type Signer =
+  | { ok: true; client: string | null; publicKey: string | null }
+  | { ok: false; why: string };
+
+const SIGNER_TTL_MS = 5 * 60_000;
+const SIGNERS_KEPT = 500;
+/** Answers kept a few minutes, so a burst of one number's events asks Restate once. Public keys only. */
+const signers = new Map<string, { at: number; answer: Signer }>();
+/** Tests: start with no answers kept. */
+export const forgetSigners = () => signers.clear();
+
+/** Whose key checks a webhook about `number` on `client`'s path; null when Restate can't say. */
+async function signerOf(
+  env: Env,
+  number: string | null,
+  client: string | null,
+): Promise<Signer | null> {
+  const at = `${client ?? ""}|${number ?? ""}`;
+  const kept = signers.get(at);
+  if (kept && Date.now() - kept.at < SIGNER_TTL_MS) return kept.answer;
+  let answer: Signer;
+  try {
+    const res = await fetch(ingress(env, "SmsEvents/signer"), {
+      method: "POST",
+      headers: restateHeaders(env),
+      body: JSON.stringify({ number, client }),
+    });
+    if (!res.ok) return null;
+    answer = (await res.json()) as Signer;
+  } catch {
+    return null;
+  }
+  if (signers.size >= SIGNERS_KEPT) signers.clear();
+  signers.set(at, { at: Date.now(), answer });
+  return answer;
+}
+
+/**
+ * A Telnyx webhook. The number it's about picks whose account signed it: a client on its own
+ * Telnyx account signs with that account's key, and its events land only in its database;
+ * Wren's numbers and clients on Wren's account check against `TELNYX_PUBLIC_KEY`.
+ */
+async function telnyxWebhook(req: Request, env: Env, path: string | null): Promise<Response> {
   const raw = await readBody(req, MAX_BODY);
   if (raw === null) return json({ error: "too large" }, 413);
-  const verdict = await verifyTelnyx({
-    publicKey: env.TELNYX_PUBLIC_KEY,
-    signature: req.headers.get(SIGNATURE_HEADER),
-    timestamp: req.headers.get(TIMESTAMP_HEADER),
-    rawBody: raw,
-  });
-  if (!verdict.ok) return json({ error: verdict.reason }, 401);
+  const signature = req.headers.get(SIGNATURE_HEADER);
+  const timestamp = req.headers.get(TIMESTAMP_HEADER);
+  const fresh = signedFresh({ signature, timestamp });
+  if (!fresh.ok) return json({ error: fresh.reason }, 401);
   let body: { data?: { id?: unknown } };
   try {
     body = JSON.parse(raw) as typeof body;
   } catch {
     return json({ error: "not json" }, 400);
   }
+  const number = ourNumber(body);
+  const who: Signer | null =
+    number === null && path === null
+      ? { ok: true, client: null, publicKey: null }
+      : await signerOf(env, number, path);
+  if (!who) return json({ error: "signer unreachable" }, 502);
+  if (!who.ok) return json({ error: who.why }, 401);
+  const publicKey = who.publicKey ?? env.TELNYX_PUBLIC_KEY;
+  if (!publicKey) return json({ error: "webhooks off: no TELNYX_PUBLIC_KEY" }, 503);
+  const verdict = await verifyTelnyx({ publicKey, signature, timestamp, rawBody: raw });
+  if (!verdict.ok) return json({ error: verdict.reason }, 401);
   const id = body.data?.id;
   if (typeof id !== "string" || id === "") return json({ error: "no event id" }, 400);
+  const client = who.client;
   let res: Response;
   try {
     res = await fetch(ingress(env, `SmsEvents/${client ? "ingestFor" : "ingest"}/send`), {

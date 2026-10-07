@@ -1270,7 +1270,12 @@ export async function buildServices(
   };
   services.push(
     makeSmsSender(clientTexts),
-    makeSmsEvents({ ...sms, fire: spineFire, calls: callHooks({ main: db, clientDb }) }),
+    makeSmsEvents({
+      ...sms,
+      fire: spineFire,
+      calls: callHooks({ main: db, clientDb }),
+      keys,
+    }),
     makeReviews({ main: db, clientDb }),
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),

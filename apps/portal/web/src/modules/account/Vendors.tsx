@@ -88,6 +88,11 @@ function SetMode({
       setKeyError(null);
       try {
         body.keyRef = (await saveKey(client, v.keyName, field(f, "key") ?? "")).ref;
+        // Telnyx signs a client's webhooks with its own account's public key: saved beside it.
+        if (v.publicKeyName)
+          body.publicKeyRef = (
+            await saveKey(client, v.publicKeyName, field(f, "publicKey") ?? "")
+          ).ref;
       } catch (err) {
         setKeyError(err instanceof Error ? err.message : String(err));
         return false;
@@ -134,10 +139,18 @@ function SetMode({
       </label>
       {mode === "own" && v.own === "key" ? (
         keyStore ? (
-          <label className={`${FIELD} grow basis-[220px]`}>
-            <span>{v.keySet ? "Replace their key" : "Their key"}</span>
-            <Input name="key" type="password" autoComplete="off" required maxLength={4096} />
-          </label>
+          <>
+            <label className={`${FIELD} grow basis-[220px]`}>
+              <span>{v.keySet ? "Replace their key" : "Their key"}</span>
+              <Input name="key" type="password" autoComplete="off" required maxLength={4096} />
+            </label>
+            {v.publicKeyName ? (
+              <label className={`${FIELD} grow basis-[220px]`}>
+                <span>Their public key (Account → Public Key)</span>
+                <Input name="publicKey" autoComplete="off" required maxLength={64} />
+              </label>
+            ) : null}
+          </>
         ) : (
           <p className={`${QUIET} basis-full`}>Saving their key isn't turned on yet.</p>
         )

@@ -387,6 +387,8 @@ export function accountsApi(deps: AccountsDeps) {
           own: v.own,
           /** What a pasted key is saved as (`/api/keys/stage`); null when it takes none. */
           keyName: v.keyName,
+          /** A public key saved beside it (Telnyx's webhook key); null when it takes none. */
+          publicKeyName: v.publicKeyName ?? null,
           free: isFree(v),
           offered:
             owner.id === null || (!v.managedDev && settings.managedForClients.includes(v.id)),
@@ -496,6 +498,8 @@ export function accountsApi(deps: AccountsDeps) {
         mode: "managed" | "own" | "none";
         /** Own key: the ref `/api/keys/stage` answered with. */
         keyRef?: string | null;
+        /** Own key: the vendor's public key beside it (Telnyx's webhook key), staged the same way. */
+        publicKeyRef?: string | null;
         perDay?: number | null;
         capCents?: number | null;
       },
@@ -522,6 +526,7 @@ export function accountsApi(deps: AccountsDeps) {
             client,
             vendor: v.id,
             keyRef: String(req.keyRef ?? ""),
+            publicKeyRef: req.publicKeyRef ?? null,
             by: by(req),
           }).catch(fail);
         else throw new PortalRefusal(`${v.name} runs on Wren's only`, 409);
@@ -648,6 +653,9 @@ export function makeAccountsConsole(deps: AccountsDeps) {
               vendor: z.string().max(32),
               mode: z.enum(["managed", "own", "none"]),
               keyRef: keyRef.nullish().describe("Own key: the ref the key store gave it"),
+              publicKeyRef: keyRef
+                .nullish()
+                .describe("Own key: the vendor's public key beside it (Telnyx), by its ref"),
               perDay: z.number().int().min(0).nullish(),
               capCents: z.number().int().min(0).nullish(),
             }),

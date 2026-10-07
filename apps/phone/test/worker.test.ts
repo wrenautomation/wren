@@ -7,12 +7,15 @@
 import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env.js";
-import worker, { DESK_HANDLERS, LINK_SIGNATURE } from "../src/worker.js";
+import worker, { DESK_HANDLERS, forgetSigners, LINK_SIGNATURE } from "../src/worker.js";
 
 const HOST = "https://phone.test";
 const AUTH = "https://auth.test";
 let restateCalls: { url: string; headers: Headers; body: string }[] = [];
 let restateStatus = 200;
+/** What `SmsEvents/signer` answers; default: the path's owner, on Wren's account. */
+let signer: (req: { number: string | null; client: string | null }) => unknown;
+let signerCalls = 0;
 let keys: CryptoKeyPair;
 let env: Env;
 /** The fake KV: what was put, and with which options. */
@@ -49,8 +52,11 @@ async function token(claims: Record<string, unknown>, key = keys.privateKey) {
 
 beforeEach(async () => {
   forgetKeys();
+  forgetSigners();
   restateCalls = [];
   restateStatus = 200;
+  signerCalls = 0;
+  signer = (req) => ({ ok: true, client: req.client, publicKey: null });
   keys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
     "sign",
     "verify",
@@ -80,6 +86,10 @@ beforeEach(async () => {
       // As Better Auth publishes it: alg EdDSA (WebCrypto exports Ed25519).
       return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
     }
+    if (url.endsWith("/SmsEvents/signer")) {
+      signerCalls += 1;
+      return Response.json(signer(JSON.parse(String(init.body))));
+    }
     restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
     return new Response(JSON.stringify({ ok: true }), { status: restateStatus });
   });
@@ -104,10 +114,11 @@ async function signedWebhook(
   body: string,
   at = Math.floor(Date.now() / 1000),
   path = "/webhooks/telnyx",
+  signer = keys.privateKey,
 ) {
   const sig = await crypto.subtle.sign(
     { name: "Ed25519" },
-    keys.privateKey,
+    signer,
     new TextEncoder().encode(`${at}|${body}`),
   );
   return call(path, {
@@ -159,6 +170,101 @@ describe("telnyx webhook", () => {
     });
     expect(res.status).toBe(401);
     expect(restateCalls).toHaveLength(0);
+  });
+
+  describe("a client on its own Telnyx account", () => {
+    const ACME = "+15550001111";
+    const BETA = "+15550002222";
+    const WREN = "+15550009999";
+    const to = (n: string) =>
+      JSON.stringify({
+        data: {
+          id: "evt-2",
+          event_type: "message.received",
+          payload: { from: { phone_number: "+15551230000" }, to: [{ phone_number: n }] },
+        },
+      });
+    let acme: CryptoKeyPair;
+    let beta: CryptoKeyPair;
+    const pubOf = async (k: CryptoKeyPair) =>
+      b64((await crypto.subtle.exportKey("raw", k.publicKey)) as ArrayBuffer);
+    beforeEach(async () => {
+      const pair = () =>
+        crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+          "sign",
+          "verify",
+        ]) as Promise<CryptoKeyPair>;
+      acme = await pair();
+      beta = await pair();
+      const owners: Record<string, { client: string | null; publicKey: string | null }> = {
+        [ACME]: { client: "acme", publicKey: await pubOf(acme) },
+        [BETA]: { client: "beta", publicKey: await pubOf(beta) },
+        [WREN]: { client: null, publicKey: null },
+      };
+      signer = ({ number, client }) => {
+        const o = number ? owners[number] : undefined;
+        if (!o) return { ok: true, client, publicKey: null };
+        if (client && o.client !== client)
+          return { ok: false, why: `that number isn't ${client}'s` };
+        return { ok: true, ...o };
+      };
+    });
+
+    it("its signature passes on its number and lands in its database", async () => {
+      const res = await signedWebhook(
+        to(ACME),
+        undefined,
+        "/webhooks/telnyx/acme",
+        acme.privateKey,
+      );
+      expect(res.status).toBe(200);
+      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+      expect(JSON.parse(restateCalls[0]?.body as string).client).toBe("acme");
+      // The number picks the client on Wren's path too.
+      restateCalls = [];
+      expect(
+        (await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey)).status,
+      ).toBe(200);
+      expect(JSON.parse(restateCalls[0]?.body as string).client).toBe("acme");
+    });
+
+    it("another client's signature fails, and so does Wren's", async () => {
+      expect(
+        (await signedWebhook(to(BETA), undefined, "/webhooks/telnyx", acme.privateKey)).status,
+      ).toBe(401);
+      expect((await signedWebhook(to(ACME), undefined, "/webhooks/telnyx/acme")).status).toBe(401);
+      // A path naming someone other than the number's owner is refused before any check.
+      expect(
+        (await signedWebhook(to(BETA), undefined, "/webhooks/telnyx/acme", acme.privateKey)).status,
+      ).toBe(401);
+      expect(restateCalls).toHaveLength(0);
+    });
+
+    it("Wren's numbers still pass on Wren's key, and never on a client's", async () => {
+      expect((await signedWebhook(to(WREN))).status).toBe(200);
+      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingest/send");
+      restateCalls = [];
+      expect(
+        (await signedWebhook(to(WREN), undefined, "/webhooks/telnyx", acme.privateKey)).status,
+      ).toBe(401);
+      expect(restateCalls).toHaveLength(0);
+    });
+
+    it("asks whose key once per number, and 502 when it can't ask", async () => {
+      await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey);
+      await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey);
+      expect(signerCalls).toBe(1);
+      // An unsigned request costs no lookup.
+      await call("/webhooks/telnyx", { method: "POST", body: to(BETA) });
+      expect(signerCalls).toBe(1);
+      forgetSigners();
+      signer = () => {
+        throw new Error("down");
+      };
+      expect(
+        (await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey)).status,
+      ).toBe(502);
+    });
   });
 
   it("answers 502 when Restate fails, so Telnyx retries; 503 with no key configured", async () => {
@@ -376,6 +482,10 @@ describe("the door", () => {
 
   it("passes a hook's JSON or form to the Spine and answers its status", async () => {
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      if (url.endsWith("/SmsEvents/signer")) {
+        signerCalls += 1;
+        return Response.json(signer(JSON.parse(String(init.body))));
+      }
       restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
       return Response.json({ status: 202, subject: "form:jane@example.com" });
     });
@@ -415,6 +525,10 @@ describe("review links", () => {
   const LINK = "/r/acme/abcdEFGH1234_-xyzABCDEF";
   const reply = (body: unknown) =>
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      if (url.endsWith("/SmsEvents/signer")) {
+        signerCalls += 1;
+        return Response.json(signer(JSON.parse(String(init.body))));
+      }
       restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
       return Response.json(body);
     });

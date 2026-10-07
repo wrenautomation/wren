@@ -22,6 +22,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
+import type { KeyStore } from "@wren/core/keys";
 import { type Notifier, namedFor } from "@wren/core/notify";
 import {
   clientKey,
@@ -66,6 +67,7 @@ import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
 import { type ReminderStats, remindBookings } from "../reminders.js";
 import { CONTACT_BASES, type ContactBasis, DISPOSITIONS, type Disposition } from "../schema.js";
+import { type Signer, telnyxSigner } from "../signer.js";
 import { type SmsStats, smsStats } from "../stats.js";
 import {
   listTemplates,
@@ -240,11 +242,34 @@ export function makeSmsEvents(
     fire?: FireTriggers;
     /** Missed calls and texted-back callers' replies (answers.ts). Unset, calls are rows only. */
     calls?: CallHooks;
+    /** Clients' saved keys: a client on its own Telnyx account signs with its public key. */
+    keys?: KeyStore | null;
   },
 ) {
   return restate.service({
     name: "SmsEvents",
     handlers: {
+      /**
+       * Whose account signed a webhook about `number` sent to `client`'s path (null: Wren's),
+       * for the phone Worker to check it against (signer.ts). The answer is public: Telnyx
+       * publishes each account's public key to whoever holds the account.
+       */
+      signer: async (
+        ctx: restate.Context,
+        req: { number?: string | null; client?: string | null },
+      ): Promise<Signer> => {
+        const clientDb = deps.clientDb;
+        const number = typeof req?.number === "string" ? req.number.slice(0, 16) : null;
+        const client = typeof req?.client === "string" && req.client ? req.client : null;
+        // No client databases here: every number is Wren's.
+        if (!clientDb)
+          return client
+            ? { ok: false, why: "client texts are not wired on this worker" }
+            : { ok: true, client: null, publicKey: null };
+        return ctx.run("signer", () =>
+          telnyxSigner({ main: deps.db, clientDb, keys: deps.keys ?? null }, { number, client }),
+        );
+      },
       /** One webhook body, as the provider sent it. A body we cannot read is terminal: retrying will not help. */
       ingest: async (
         ctx: restate.Context,

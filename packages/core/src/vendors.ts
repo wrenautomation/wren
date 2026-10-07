@@ -28,6 +28,11 @@ export interface Vendor {
   own: "key" | "login" | null;
   /** The key's name in the key store, as Wren's env names it. */
   keyName: string | null;
+  /**
+   * A public key saved beside it, by name: what the vendor signs its webhooks with on the
+   * client's own account (Telnyx). Not secret, kept with the key so one record holds both.
+   */
+  publicKeyName?: string;
   /** "Managed by Wren" isn't built for it yet: clients bring their own, and it says so. */
   managedDev?: true;
 }
@@ -137,6 +142,7 @@ export const VENDORS: readonly Vendor[] = [
     quota: null,
     own: "key",
     keyName: "TELNYX_API_KEY",
+    publicKeyName: "TELNYX_PUBLIC_KEY",
   },
   {
     // Pay links (designs/2026-10-07-forms-and-pay.md). Stripe takes its fee from each payment, on
@@ -210,7 +216,8 @@ export async function modesOf(main: Queryable, client: string): Promise<VendorMo
     .orderBy(asc(vendorModes.vendor));
 }
 
-async function modeOf(main: Queryable, client: string, vendor: string) {
+/** One client's mode row on one vendor; null when it has none. */
+export async function modeOf(main: Queryable, client: string, vendor: string) {
   const [row] = await main
     .select()
     .from(vendorModes)
@@ -282,18 +289,22 @@ export async function setManaged(
 /**
  * Use a client's own key: the key staged at the edge (`keyRef`) becomes its live key, and the
  * row keeps its ref. The key is never read back to a page, only its last 4. A login vendor
- * (LinkedIn) takes the client's account instead.
+ * (LinkedIn) takes the client's account instead. `publicKeyRef`: the vendor's public key staged
+ * beside it (Telnyx's webhook key), live under `publicKeyName`, read back by that name.
  */
 export async function setOwnKey(
   main: Db,
   store: KeyStore | null,
-  o: { client: string; vendor: string; keyRef: string; by: string },
+  o: { client: string; vendor: string; keyRef: string; publicKeyRef?: string | null; by: string },
 ): Promise<{ keyName: string; last4: string }> {
   const v = vendorOf(o.vendor);
   if (v.own !== "key" || !v.keyName) throw new Error(`${v.name} takes no key of the client's`);
   if (!store) throw new Error("Key store not set up here");
+  if (o.publicKeyRef && !v.publicKeyName) throw new Error(`${v.name} takes no public key`);
   const [c] = await main.select({ id: clients.id }).from(clients).where(eq(clients.id, o.client));
   if (!c) throw new Error("no such client");
+  if (o.publicKeyRef && v.publicKeyName)
+    await store.bind({ ref: o.publicKeyRef, client: o.client, name: v.publicKeyName, by: o.by });
   const key = await store.bind({ ref: o.keyRef, client: o.client, name: v.keyName, by: o.by });
   await upsertMode(main, o.client, v.id, { mode: "own", keyName: key.ref, by: o.by });
   return { keyName: key.ref, last4: key.last4 };

@@ -7,7 +7,7 @@ export interface Env {
   CRED_LINK_SECRET?: string;
   /** Wren's sign-in, e.g. https://auth.wrenautomation.com: the token's issuer. Unset = the API is shut. */
   AUTH_ORIGIN?: string;
-  /** Telnyx portal → Account → Public Key (base64). Unset = every webhook refused. */
+  /** Wren's Telnyx account public key (base64). Unset = webhooks on Wren's account refused; clients on their own account sign with their saved key. */
   TELNYX_PUBLIC_KEY?: string;
   /** The secret Wren's cal.com webhook signs with. Unset = every booking webhook refused. */
   CALCOM_WEBHOOK_SECRET?: string;
