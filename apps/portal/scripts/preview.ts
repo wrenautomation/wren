@@ -23,6 +23,8 @@ import {
 } from "@wren/calendar/restate";
 import { callRecord, firmRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
+import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
+import { smsConsoleApi } from "@wren/channel-sms/restate";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
@@ -248,6 +250,13 @@ const SERVICES: Record<
     routes: Object.keys(SITES_CONSOLE_ROUTES),
     guard: { needs: SITES_CONSOLE_ROUTES, apps: SITES_CONSOLE_APPS, unnamed: "wren" },
     api: sitesApi({ db: main, write: null }),
+  },
+  // A client's Texts, from its own database. A reply, Done and a review ask by hand run on
+  // Restate: not here.
+  sms: {
+    routes: Object.keys(SMS_CONSOLE_ROUTES),
+    guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
+    api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
   // Dictation's timings only; a test call's save is Restate's.
   voice: {

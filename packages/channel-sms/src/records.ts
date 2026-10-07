@@ -17,8 +17,9 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { desc, eq } from "drizzle-orm";
-import { type SpeedRun, smsContacts, speedRuns } from "./schema.js";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { formatPhone } from "./phone.js";
+import { reviewAsks, type SpeedRun, smsCalls, smsContacts, speedRuns } from "./schema.js";
 import { listTemplates, slotsOf } from "./template-store.js";
 import { type SmsSequence, sampleFields } from "./templates.js";
 import { getThread, listThreads } from "./threads.js";
@@ -236,7 +237,231 @@ export const speedRecord = defineRecord({
   },
 });
 
-export const SMS_RECORDS = [threadRecord, speedRecord];
+const CALL_ROWS = 500;
+
+const calls = (db: Queryable, id?: number) =>
+  db
+    .select({ call: smsCalls, name: smsContacts.name, runBooked: speedRuns.bookedAt })
+    .from(smsCalls)
+    .leftJoin(smsContacts, eq(smsContacts.id, smsCalls.contactId))
+    .leftJoin(
+      speedRuns,
+      and(
+        eq(speedRuns.workflow, "speed_to_lead.steps"),
+        eq(speedRuns.subject, sql`'call:' || ${smsCalls.id}`),
+      ),
+    )
+    .where(id === undefined ? undefined : eq(smsCalls.id, id))
+    .orderBy(desc(smsCalls.startedAt))
+    .limit(CALL_ROWS);
+
+const TEXT_BACK = {
+  queued: { label: "Texted back", tone: "good" },
+  would_send: { label: "Would send", tone: "neutral" },
+  skipped: { label: "Skipped", tone: "neutral" },
+  refused: { label: "Not sent", tone: "bad" },
+} as const;
+
+/**
+ * Missed-call text back (designs/2026-10-07-missed-call-and-reviews.md): each call to the
+ * client's numbers, how it ended, the text back and why, a reply and a booking.
+ */
+export const missedCallRecord = defineRecord({
+  id: "sms.call",
+  app: "texts",
+  channel: "sms",
+  name: { one: "call", many: "calls" },
+  rows: async (db) =>
+    (await calls(db)).map(({ call: c, name: who, runBooked }) => ({
+      id: c.id,
+      who: who ?? formatPhone(c.fromE164),
+      phone: c.fromE164,
+      tel: /^\+\d{8,15}$/.test(c.fromE164) ? `tel:${c.fromE164}` : null,
+      result: c.result,
+      text_back: c.textBack,
+      why: c.textBackDetail,
+      caller: c.known === null ? null : c.known ? "known" : "new",
+      started_at: c.startedAt,
+      replied_at: c.repliedAt,
+      booked_at: c.bookedAt ?? runBooked,
+    })),
+  key: "id",
+  title: "who",
+  subtitle: "phone",
+  fields: {
+    who: name("Caller"),
+    result: status(
+      {
+        missed: { label: "Missed", tone: "warn" },
+        busy: { label: "Busy", tone: "warn" },
+        voicemail: { label: "Voicemail", tone: "warn" },
+        answered: { label: "Answered", tone: "good" },
+      },
+      "Call",
+    ),
+    textBack: status(TEXT_BACK, "Text back"),
+    why: text("Why not"),
+    caller: status(
+      { known: { label: "Known", tone: "neutral" }, new: { label: "New", tone: "neutral" } },
+      "Caller",
+    ),
+    startedAt: date("Called"),
+    repliedAt: date("Replied"),
+    bookedAt: date("Booked"),
+    tel: link("Call back"),
+    phone: text("Phone"),
+  },
+  views: [
+    {
+      id: "missed",
+      label: "Missed",
+      where: { result: ["missed", "busy", "voicemail"] },
+      sort: "-startedAt",
+      at: "startedAt",
+    },
+    {
+      id: "texted",
+      label: "Texted back",
+      where: { textBack: "queued" },
+      sort: "-startedAt",
+      at: "startedAt",
+    },
+    {
+      id: "replied",
+      label: "Replied",
+      where: { repliedAt: { empty: false } },
+      sort: "-repliedAt",
+      at: "repliedAt",
+    },
+    {
+      id: "booked",
+      label: "Booked",
+      where: { bookedAt: { empty: false } },
+      sort: "-bookedAt",
+      at: "bookedAt",
+    },
+    { id: "all", label: "All", sort: "-startedAt", at: "startedAt" },
+  ],
+  actions: [],
+  /** The call's steps, as speed to lead's. */
+  load: async (db, id) => {
+    const [got] = await calls(db, Number(id));
+    if (!got) return null;
+    const { call: c, runBooked } = got;
+    const booked = c.bookedAt ?? runBooked;
+    return {
+      steps: [
+        {
+          step: "Called",
+          at: c.startedAt,
+          said: c.known ? "known caller" : "new caller",
+          why: null,
+        },
+        { step: "Call", at: c.endedAt, said: c.result, why: c.cause },
+        { step: "Text back", at: c.textBackAt, said: c.textBack, why: c.textBackDetail },
+        { step: "Replied", at: c.repliedAt, said: c.repliedAt ? "replied" : null, why: null },
+        { step: "Booked", at: booked, said: booked ? "booked" : null, why: null },
+      ],
+    };
+  },
+});
+
+const REVIEW_ROWS = 500;
+
+const asks = (db: Queryable, id?: number) =>
+  db
+    .select()
+    .from(reviewAsks)
+    .where(id === undefined ? undefined : eq(reviewAsks.id, id))
+    .orderBy(desc(reviewAsks.askAt))
+    .limit(REVIEW_ROWS);
+
+/**
+ * Review requests (designs/2026-10-07-missed-call-and-reviews.md): each customer asked, why
+ * not when not, the reminder, whether they opened the link, and their private feedback.
+ */
+export const reviewRecord = defineRecord({
+  id: "sms.review",
+  app: "texts",
+  channel: "sms",
+  name: { one: "review ask", many: "review asks" },
+  rows: async (db) =>
+    (await asks(db)).map((a) => ({
+      id: a.id,
+      who: a.name ?? a.email ?? (a.e164 ? formatPhone(a.e164) : a.phone) ?? a.subject,
+      phone: a.e164 ?? a.phone,
+      source: a.source,
+      ask: a.ask,
+      why: a.askDetail ?? a.reminderDetail,
+      reminder: a.reminder,
+      clicks: a.clicks,
+      clicked_at: a.clickedAt,
+      feedback: a.feedback,
+      ask_at: a.askAt,
+    })),
+  key: "id",
+  title: "who",
+  subtitle: "phone",
+  fields: {
+    who: name("Customer"),
+    ask: status({ ...TEXT_BACK, queued: { label: "Asked", tone: "good" } }, "Ask"),
+    why: text("Why not"),
+    reminder: status({ ...TEXT_BACK, queued: { label: "Sent", tone: "good" } }, "Reminder"),
+    clicks: number("Clicks"),
+    clickedAt: date("Opened"),
+    source: status(
+      {
+        won: { label: "Deal won", tone: "neutral" },
+        done: { label: "Appointment", tone: "neutral" },
+        paid: { label: "Paid", tone: "neutral" },
+        hand: { label: "By hand", tone: "neutral" },
+        door: { label: "Webhook", tone: "neutral" },
+      },
+      "From",
+    ),
+    feedback: prose("Feedback"),
+    askAt: date("Asked"),
+    phone: text("Phone"),
+  },
+  views: [
+    { id: "asked", label: "Asked", where: { ask: "queued" }, sort: "-askAt", at: "askAt" },
+    {
+      id: "clicked",
+      label: "Opened",
+      where: { clickedAt: { empty: false } },
+      sort: "-clickedAt",
+      at: "clickedAt",
+    },
+    {
+      id: "feedback",
+      label: "Feedback",
+      where: { feedback: { empty: false } },
+      sort: "-askAt",
+      at: "askAt",
+    },
+    { id: "all", label: "All", sort: "-askAt", at: "askAt" },
+  ],
+  actions: [],
+  load: async (db, id) => {
+    const [a] = await asks(db, Number(id));
+    if (!a) return null;
+    return {
+      steps: [
+        { step: "Asked", at: a.askAt, said: a.ask, why: a.askDetail },
+        { step: "Reminder", at: a.reminderAt, said: a.reminder, why: a.reminderDetail },
+        {
+          step: "Opened the link",
+          at: a.clickedAt,
+          said: a.clicks ? `${a.clicks} ${a.clicks === 1 ? "time" : "times"}` : null,
+          why: null,
+        },
+        { step: "Feedback", at: a.feedbackAt, said: a.feedback, why: null },
+      ],
+    };
+  },
+});
+
+export const SMS_RECORDS = [threadRecord, speedRecord, missedCallRecord, reviewRecord];
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 

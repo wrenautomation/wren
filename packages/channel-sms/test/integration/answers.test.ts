@@ -5,6 +5,7 @@
  */
 import { addSuppression } from "@wren/core";
 import { clients } from "@wren/core/clients";
+import { serveRecords } from "@wren/core/records/serve";
 import { workflowInstalls } from "@wren/core/schema";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
 import { liveFor } from "@wren/core/spine";
@@ -16,6 +17,7 @@ import { applyEvent } from "../../src/events.js";
 import { bookedRun } from "../../src/follow.js";
 import { callReplied, runOfCall, type TextBackOptions, textBack } from "../../src/missed.js";
 import { FakeProvider, type SmsEvent } from "../../src/provider.js";
+import { SMS_RECORDS } from "../../src/records.js";
 import {
   type AskOptions,
   askReview,
@@ -222,6 +224,21 @@ describe("text back", () => {
     const [after] = await pg.db.select().from(smsCalls);
     expect(after?.bookedAt).toEqual(OPEN);
     expect((await pg.db.select().from(speedRuns))[0]?.bookedAt).toEqual(OPEN);
+    const serve = serveRecords(SMS_RECORDS, pg.db);
+    const page = await serve.list({ record: "sms.call", view: "booked" });
+    expect(page.rows).toMatchObject([
+      { result: "missed", textBack: "queued", caller: "new", tel: `tel:${CALLER}` },
+    ]);
+    const detail = await serve.get({ record: "sms.call", id: String(missed) });
+    expect(detail.detail).toMatchObject({
+      steps: [
+        { step: "Called", said: "new caller" },
+        { step: "Call", said: "missed" },
+        { step: "Text back", said: "queued" },
+        { step: "Replied", said: "replied" },
+        { step: "Booked", said: "booked" },
+      ],
+    });
   });
 });
 
@@ -282,6 +299,9 @@ describe("review requests", () => {
     const [row] = await pg.db.select().from(reviewAsks);
     expect(row).toMatchObject({ clicks: 2, clickedAt: OPEN });
     expect(await clickReview(pg.db, "nope-not-a-token", OPEN)).toBeNull();
+    const serve = serveRecords(SMS_RECORDS, pg.db);
+    const opened = await serve.list({ record: "sms.review", view: "clicked" });
+    expect(opened.rows).toMatchObject([{ ask: "queued", clicks: 2, source: "hand" }]);
     // Opened: no reminder.
     expect(await remindReview(pg.db, a.id, ask())).toMatchObject({
       reminder: "skipped",
@@ -328,14 +348,12 @@ describe("review requests", () => {
       .insert(clientAccounts)
       .values({ client: "acme", site: "google_business", ref: PLACE, createdBy: "test" })
       .returning();
-    await pg.db
-      .insert(accountFacts)
-      .values({
-        accountId: acct?.id as number,
-        fact: "google_business.place_id",
-        state: "ok",
-        by: "test",
-      });
+    await pg.db.insert(accountFacts).values({
+      accountId: acct?.id as number,
+      fact: "google_business.place_id",
+      state: "ok",
+      by: "test",
+    });
     expect(await placeIdOf(pg.db, "acme")).toBe(PLACE);
   });
 });

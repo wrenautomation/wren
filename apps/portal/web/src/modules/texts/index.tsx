@@ -1,16 +1,23 @@
 /**
  * Texts: a client's texting threads (O4), from its own database; Wren's team replies. Speed to
  * lead's runs sit beside them: each lead's first text, call and follow-up, and "Call now" until
- * the rep marks it done or the lead books.
+ * the rep marks it done or the lead books. Missed calls and review requests
+ * (designs/2026-10-07-missed-call-and-reviews.md) have their own pages once installed.
  */
 import { segments } from "@wren/channel-sms/templates";
 import type { Action, RecordExtras } from "@wren/ui";
+import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";
+import { AskReview, ReviewsGained } from "./ask.js";
 
 const THREAD = "sms.thread";
 const threads = (view: string) => `/texts/threads?view=${view}`;
 const SPEED = "sms.speed";
 const speed = (view: string) => `/texts/speed?view=${view}`;
+const CALL = "sms.call";
+const calls = (view: string) => `/texts/calls?view=${view}`;
+const REVIEW = "sms.review";
+const reviews = (view: string) => `/texts/reviews?view=${view}`;
 
 const THREAD_ACTIONS: Action[] = [
   {
@@ -82,6 +89,9 @@ const SAID: Record<string, string> = {
   enrolled: "texting",
   new: "not started",
   opted_out: "opted out",
+  missed: "missed",
+  busy: "busy",
+  answered: "answered",
 };
 
 /** A speed-to-lead run's steps in order, each with its state, when, and why. */
@@ -161,7 +171,14 @@ export const texts: Module = {
           none: "No leads yet",
           period: 30,
         },
+        { label: "Missed calls", record: CALL, href: calls("missed"), period: 30 },
+        { label: "Texted back", record: CALL, href: calls("texted"), period: 30 },
+        { label: "Callers who replied", record: CALL, href: calls("replied"), period: 30 },
+        { label: "Callers who booked", record: CALL, href: calls("booked"), period: 30 },
+        { label: "Review asks", record: REVIEW, href: reviews("asked"), period: 30 },
+        { label: "Review links opened", record: REVIEW, href: reviews("clicked"), period: 30 },
       ],
+      below: ReviewsGained,
       top: [
         {
           label: "Their turn",
@@ -209,6 +226,37 @@ export const texts: Module = {
         booked: "Leads who book show here.",
       },
       actions: SPEED_ACTIONS,
+      extras: speedExtras,
+    },
+    {
+      id: "calls",
+      label: "Missed calls",
+      template: "list",
+      record: CALL,
+      columns: ["who", "result", "textBack", "why", "caller", "startedAt", "repliedAt", "tel"],
+      empty: {
+        missed: "Calls nobody picked up show here.",
+        texted: "Callers we texted back show here.",
+        replied: "Callers who text back show here.",
+        booked: "Callers who book show here.",
+        all: "Calls to your numbers show here once call routing is set up.",
+      },
+      extras: speedExtras,
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+      template: "list",
+      record: REVIEW,
+      columns: ["who", "ask", "why", "reminder", "clickedAt", "source", "askAt"],
+      empty: {
+        asked: "Customers we asked for a review show here.",
+        clicked: "Customers who open the review link show here.",
+        feedback: "Private feedback shows here.",
+        all: "Every customer asked for a review shows here.",
+      },
+      head: (_meta, reload, at) =>
+        at.demo ? null : createElement(AskReview, { client: at.client, reload }),
       extras: speedExtras,
     },
   ],

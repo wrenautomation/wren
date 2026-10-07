@@ -3,7 +3,8 @@
  * from its own database, for anyone who may open that client, once `sms.texts` is installed.
  * `reply` is Wren's team only and goes through `SmsDesk.reply` with `client`, so the text is
  * journaled and leaves from the client's `SmsSender/<client>/fleet`. The Worker keeps the write
- * off the demo (`../console-routes.ts`).
+ * off the demo (`../console-routes.ts`). `askReview` puts one customer into the client's live
+ * review requests by hand.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { CALL_OUTCOME_LABELS, outcomeIn } from "@wren/core/calls";
@@ -30,13 +31,17 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { liveFor, spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { TEXTS } from "../clients.js";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "../console-routes.js";
+import { toPhoneE164 } from "../phone.js";
 import { SMS_RECORDS } from "../records.js";
+import { handSubject } from "../reviews.js";
 import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
+import { REVIEWS_FLOW } from "./answers.js";
 import type { SmsDeskService } from "./index.js";
 
 export interface SmsConsoleDeps {
@@ -57,6 +62,11 @@ export interface CallDoneRequest extends PortalRequest {
   ids: (string | number)[];
   /** How it went: a code or its label ("No answer"); left out, just done. */
   outcome?: string | null;
+}
+
+export interface AskReviewRequest extends PortalRequest {
+  name?: string | null;
+  phone: string;
 }
 
 /** The outcome as the Done form's select says it. */
@@ -134,6 +144,16 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
       const closed = new Set(done.map((r) => String(r.id)));
       return { done: [...closed], skipped: asked.filter((id) => !closed.has(id)) };
     },
+    /** One customer for review requests, by hand: the client's, with the template live. */
+    askingReview: async (req: AskReviewRequest) => {
+      const client = await texting(req);
+      if (!(await liveFor(db, client.id, REVIEWS_FLOW)))
+        throw new PortalRefusal("review requests aren't live: install them from the Shop", 409);
+      const phone = typeof req.phone === "string" ? req.phone.trim() : "";
+      if (!toPhoneE164(phone)) throw new PortalRefusal("that isn't a US or Canadian number", 400);
+      const name = typeof req.name === "string" ? req.name.trim().slice(0, 120) || null : null;
+      return { client: client.id, name, phone };
+    },
   };
 }
 
@@ -179,6 +199,35 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
         },
         (ctx: restate.Context, req: CallDoneRequest) =>
           answer(async () => api.callDone(req, new Date(await ctx.date.now()))),
+      ),
+      /** Ask one customer for a review by hand: into the client's live review requests. */
+      askReview: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            name: z.string().max(120).nullish().describe("The customer's name"),
+            phone: z.string().max(40).describe("Their mobile"),
+          }),
+        },
+        (ctx: restate.Context, req: AskReviewRequest) =>
+          answer(async () => {
+            const ask = await api.askingReview(req);
+            const id = ctx.rand.uuidv4();
+            spineEmit(ctx, {
+              client: ask.client,
+              workflow: REVIEWS_FLOW,
+              from: "in.customers",
+              onlyLive: true,
+              events: [
+                {
+                  subject: handSubject(id),
+                  kind: "lead",
+                  data: { name: ask.name, phone: ask.phone, source: "hand" },
+                },
+              ],
+            });
+            return { asked: true };
+          }),
       ),
       /** Text a client's thread from its sticky number; it leaves on the client's next tick. */
       reply: serviceHandler(
