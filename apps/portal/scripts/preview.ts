@@ -64,7 +64,7 @@ import { sitesApi } from "@wren/sites/console";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
 import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { SITES_RECORDS } from "@wren/sites/records";
-import { PAGE_CSP } from "@wren/sites/render";
+import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
@@ -422,15 +422,34 @@ const server = createServer(async (req, res) => {
         await pub.track(body);
         return res.writeHead(204).end();
       }
-      const out = await pub.form({ ...body, host: "localhost" }, async () => ({
-        status: 503,
-        error: "the preview runs no spine",
-      }));
+      const { "cf-turnstile-response": _t, ...fields } = (body.fields ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const out = await pub.form(
+        { ...body, fields, host: "localhost", human: "off", visitor: null },
+        async () => ({ status: 503, error: "the preview runs no spine" }),
+      );
       return res
         .writeHead(out.status, { "content-type": "application/json" })
-        .end(JSON.stringify(out.status < 300 ? { ok: true } : { error: out.error }));
+        .end(
+          JSON.stringify(
+            out.status < 300 ? { ok: true } : { error: out.error, errors: out.errors },
+          ),
+        );
     }
     const u = new URL(req.url ?? "/", "http://x");
+    const hosted = /^\/o\/f\/([a-z0-9-]{1,80}|[0-9a-f-]{36})\/?$/.exec(path);
+    if (hosted) {
+      const got = await pub.serveForm({
+        client: null,
+        slug: hosted[1] ?? "",
+        embed: u.searchParams.get("embed") === "1",
+      });
+      return res
+        .writeHead(got.status, { "content-type": "text/html", "content-security-policy": FORM_CSP })
+        .end(got.html);
+    }
     const pv = /^\/o\/__preview\/([0-9a-f-]{36})$/.exec(path);
     const slug = /^\/o\/([a-z0-9-]{1,80})\/?$/.exec(path);
     const got = pv

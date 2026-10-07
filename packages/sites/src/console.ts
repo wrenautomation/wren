@@ -157,6 +157,14 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
     await may(req, form.client, p);
     return form;
   };
+  const formsTo = async (req: IdsRequest, status: "live" | "draft" | "retired") => {
+    const name = who(req);
+    const ids = [...new Set((req.ids ?? []).map(String))];
+    if (!ids.length) throw new PortalRefusal("nothing picked", 404);
+    for (const id of ids) await formFor({ ...req, id }, "act");
+    const done = await setFormStatus(db, ids, status, name);
+    return { done, changed: done.length };
+  };
   /** The name a form's text consent gives: the client's, or Wren's. */
   const businessOf = async (owner: string | null) => {
     if (owner === null) return "Wren Automation";
@@ -426,17 +434,12 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       return { id: form.id, status: form.status };
     },
 
-    /** Publish, unpublish or retire forms at once. */
-    async formStatus(req: IdsRequest & { status?: string }) {
-      const name = who(req);
-      const status = req.status;
-      if (status !== "live" && status !== "draft" && status !== "retired")
-        throw new PortalRefusal("live, draft or retired", 400);
-      const ids = [...new Set((req.ids ?? []).map(String))];
-      if (!ids.length) throw new PortalRefusal("nothing picked", 404);
-      for (const id of ids) await formFor({ ...req, id }, "act");
-      return { changed: (await setFormStatus(db, ids, status, name)).length };
-    },
+    /** Make forms live at once: no To approve, a form only collects. */
+    formPublish: (req: IdsRequest) => formsTo(req, "live"),
+    /** Take forms back to draft: their URLs answer not found until published again. */
+    formUnpublish: (req: IdsRequest) => formsTo(req, "draft"),
+    /** Take forms down: their URLs answer gone, their numbers and submissions stay. */
+    formRetire: (req: IdsRequest) => formsTo(req, "retired"),
 
     /** An owner's forms, for a page's form section. */
     async forms(req: PortalRequest & { owner?: string | null }) {
@@ -600,15 +603,17 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
         },
         write("formSave", api.formSave),
       ),
-      formStatus: serviceHandler(
-        {
-          input: z.looseObject({
-            ...P,
-            ids: IDS,
-            status: z.enum(["live", "draft", "retired"]),
-          }),
-        },
-        write("formStatus", api.formStatus),
+      formPublish: serviceHandler(
+        { input: z.looseObject({ ...P, ids: IDS }) },
+        write("formPublish", api.formPublish),
+      ),
+      formUnpublish: serviceHandler(
+        { input: z.looseObject({ ...P, ids: IDS }) },
+        write("formUnpublish", api.formUnpublish),
+      ),
+      formRetire: serviceHandler(
+        { input: z.looseObject({ ...P, ids: IDS }) },
+        write("formRetire", api.formRetire),
       ),
       forms: serviceHandler({ input: z.looseObject({ ...P, owner: OWNER }) }, read(api.forms)),
       notes: serviceHandler(

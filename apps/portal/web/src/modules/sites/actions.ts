@@ -113,3 +113,53 @@ export const PAGE_ACTIONS: Action[] = [
   { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
   { id: "sites.notes", label: "Save notes", handler: "sites/notes", inline: true },
 ];
+
+/** Hosted forms: made as a draft, built in their detail, published at once (a form only asks). */
+export const FORM_ACTIONS: Action[] = [
+  {
+    id: "sites.formCreate",
+    label: "New form",
+    handler: "sites/formCreate",
+    form: [
+      { field: "name", label: "Name", hint: "What the team calls it: Quote request." },
+      {
+        field: "slug",
+        label: "Slug",
+        optional: true,
+        hint: "Its address, /o/f/<slug>. Left empty, it's made from the name.",
+      },
+    ],
+    done: (made) =>
+      `Made a draft at /o/f/${(made as { slug?: string }).slug ?? ""}. Open it to build it.`,
+  },
+  {
+    id: "sites.formPublish",
+    label: "Publish",
+    handler: "sites/formPublish",
+    bulk: true,
+    when: { status: ["draft"] },
+    sets: { status: "live" },
+    done: (out) => `Published ${(out as { changed?: number }).changed ?? 0}.`,
+  },
+  {
+    id: "sites.formUnpublish",
+    label: "Unpublish",
+    handler: "sites/formUnpublish",
+    bulk: true,
+    when: { status: ["live"] },
+    sets: { status: "draft" },
+    confirm: "Take these forms back to drafts? Their links stop working until you publish again.",
+    done: (out) => `Back to drafts: ${(out as { changed?: number }).changed ?? 0}.`,
+  },
+  {
+    id: "sites.formRetire",
+    label: "Retire",
+    handler: "sites/formRetire",
+    bulk: true,
+    when: { status: ["draft", "live"] },
+    sets: { status: "retired" },
+    confirm: "Retire these forms? Their links answer gone. Submissions and numbers stay.",
+    done: (out) => `Retired ${(out as { changed?: number }).changed ?? 0}.`,
+  },
+  { id: "sites.formSave", label: "Save", handler: "sites/formSave", inline: true },
+];

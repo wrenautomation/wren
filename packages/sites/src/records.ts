@@ -226,7 +226,14 @@ export const formRecord: RecordType = defineRecord({
     { id: "live", label: "Live", where: { status: "live" }, sort: "-submits", at: "last" },
     { id: "retired", label: "Retired", where: { status: "retired" }, sort: "-changed", at: "changed" },
   ],
-  actions: ["sites.formCreate", "sites.formStatus", "sites.formSave"],
+  actions: [
+    "sites.formCreate",
+    "sites.formPublish",
+    "sites.formUnpublish",
+    "sites.formRetire",
+    // From the form's own detail: the builder's save.
+    "sites.formSave",
+  ],
   load: async (db, id) => (UUID.test(id) ? formDetail(db, id) : null),
 });
 

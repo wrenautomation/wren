@@ -32,7 +32,7 @@ const usd = (n: number) => (n ? money(n, "USD") : "");
 const day = (at: string) => new Date(at).toLocaleDateString("en-CA");
 
 /** A line under a control: working, done, or why not. */
-function useRun(act: RecordAct) {
+export function useRun(act: RecordAct) {
   const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const run = async (name: string, action: string, input: Record<string, unknown>, ok: string) => {
@@ -50,7 +50,7 @@ function useRun(act: RecordAct) {
   return { said, busy, run };
 }
 
-function Said({ said }: { said: { text: string; bad: boolean } | null }) {
+export function Said({ said }: { said: { text: string; bad: boolean } | null }) {
   return (
     <span
       aria-live="polite"
@@ -317,7 +317,7 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
   );
 }
 
-function Table({ head, rows }: { head: (string | [string, "r"])[]; rows: ReactNode[][] }) {
+export function Table({ head, rows }: { head: (string | [string, "r"])[]; rows: ReactNode[][] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-[13.5px]">

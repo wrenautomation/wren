@@ -23,7 +23,9 @@ export const SITES_CONSOLE_ROUTES = {
   formDetail: "read",
   formCreate: "act",
   formSave: "act",
-  formStatus: "act",
+  formPublish: "act",
+  formUnpublish: "act",
+  formRetire: "act",
 } as const satisfies Record<string, Need>;
 
 export const SITES_CONSOLE_APPS = { "*": "sites" } as const satisfies RouteApps<
@@ -44,5 +46,7 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "notes",
   "formCreate",
   "formSave",
-  "formStatus",
+  "formPublish",
+  "formUnpublish",
+  "formRetire",
 ];

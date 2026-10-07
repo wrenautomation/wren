@@ -222,7 +222,7 @@ describe("hosted forms", () => {
 
     // A draft serves nothing; live serves; retired is gone.
     expect((await pub().serveForm({ slug: made.slug })).status).toBe(404);
-    await api().formStatus({ viewer: ADA, ids: [made.id], status: "live" });
+    await api().formPublish({ viewer: ADA, ids: [made.id] });
     const page = await pub().serveForm({ slug: made.slug, embed: true });
     expect(page.status).toBe(200);
     expect(page.html).toContain("data-framed");
@@ -315,7 +315,7 @@ describe("hosted forms", () => {
     });
     expect(String(entries.rows[0]?.answers)).toContain("service: Repair");
 
-    await api().formStatus({ viewer: ADA, ids: [made.id], status: "retired" });
+    await api().formRetire({ viewer: ADA, ids: [made.id] });
     expect((await pub().serveForm({ slug: made.slug })).status).toBe(410);
     expect((await pub().form({ form: made.id, fields: { email: "a@example.test" } }, enter)).status).toBe(404);
   });
@@ -323,7 +323,7 @@ describe("hosted forms", () => {
   it("renders a live form in a page's form section and counts it for both", async () => {
     await siteDoor();
     const f = await api().formCreate({ viewer: ADA, name: "Section form", spec });
-    await api().formStatus({ viewer: ADA, ids: [f.id], status: "live" });
+    await api().formPublish({ viewer: ADA, ids: [f.id] });
     const made = await api().create({ viewer: ADA, offer: offer.id, angle: "speed" });
     const d = await api().detail({ viewer: ADA, id: made.id });
     await api().save({
