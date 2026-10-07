@@ -78,3 +78,13 @@ records.
   come with the records layer. Charts are shadcn's on Recharts, with series colors as inline
   CSS variables because the CSP refuses a style tag. Step 4: the workflow funnel is built; lead
   journey, sequence diagram and infra map wait.
+- 2026-10-06: fit fix, journey, infra map and Play built. The canvas fits the whole graph on
+  load at any width; the minimap shows only when it doesn't fit, in its own room below. A
+  person's record draws their journey on a `lanes` layout, a row per channel (Email, Meetings,
+  Calls) in time order, from `personTouches` in the person's load; Wren's own leads wait, since
+  channel-email is mid-rework. Infra sits under Loops, team only: loops give the worker, box and
+  desk health, the page loading gives portal, sign-in, Restate and Postgres; the rest say where
+  they're checked, since nothing stores their health. Play takes the longest way through the
+  wires, holds each step 1.4 to 3.6 s by its real wait, and fills the live copy (the email
+  variant that sent most per step, the texts and DMs) with a made-up lead. It reads only.
+  Copy by the step's own template, and the sequence diagram, wait on the templates records.

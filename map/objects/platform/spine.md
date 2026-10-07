@@ -48,7 +48,7 @@ Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`,
 | `wren hooks add/list` (`apps/cli/src/hooks.ts`) | writes hooks; prints the URL once |
 | phone Worker `POST /hooks/<token>` | forwards to `Spine/hook` |
 | worker (`apps/worker/src/services.ts`) | serves `Spine`; supplies steps and the rule model |
-| Workflows app, Canvas (`apps/portal/web/src/modules/wren/workflows.tsx`, pure shaping in `canvas.ts`) | Drawn by the graph kit (`packages/ui/src/graph/`). Wires carry 30-day counts, today and the rate from the step before; a spine event runs a dot along its wire (`dotsOf`, polled every 8 s); a funnel of the counted stages under it. Edit wiring: drag an output onto an input, a wire's condition and wait, custom steps; `?client=` for a client |
+| Workflows app, Canvas (`apps/portal/web/src/modules/wren/workflows.tsx`, pure shaping in `canvas.ts`) | Drawn by the graph kit (`packages/ui/src/graph/`). Wires carry 30-day counts, today and the rate from the step before; a spine event runs a dot along its wire (`dotsOf`, polled every 8 s); a funnel of the counted stages under it. Play (`play.ts`, `playback.tsx`) walks a made-up lead down the longest wiring with the live copy filled in, waits cut to seconds; reads only. Edit wiring: drag an output onto an input, a wire's condition and wait, custom steps; `?client=` for a client |
 | Workflows app, Events | failed, waiting and all arrivals; Retry on a failed one |
 
 ## See
