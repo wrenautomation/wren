@@ -6,6 +6,7 @@
  * Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
+import { clearTemplate, reset, saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { setWords } from "@wren/studio/edit";
 import { videoEdits } from "@wren/studio/schema";
@@ -15,11 +16,10 @@ import { contentDrafts } from "../../src/schema.js";
 import { approvalRecord } from "../../src/social/records.js";
 import {
   approveVideo,
-  DEFAULT_YOUTUBE_FOOTER,
   pickThumbnail,
-  setYoutubeFooter,
+  VIDEO_FOOTERS,
   videoRecord,
-  youtubeDescription,
+  withFooter,
 } from "../../src/video.js";
 import { undoVideo, videoTurns } from "../../src/video-ask.js";
 
@@ -30,6 +30,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await pg?.stop();
 });
+
+const BIO = "I'm Will, a Waterloo software engineering student building Wren in public.";
 
 const track = { path: "/rec/main.mp4", durationS: 480, width: 1920, height: 1080, fps: 30 };
 
@@ -84,7 +86,11 @@ describe("marketing.video", () => {
       status: "approved",
       scheduledFor: null,
       title: "Synthetic walkthrough",
-      text: `What it does.\n\n${DEFAULT_YOUTUBE_FOOTER}`,
+      text: expect.stringMatching(
+        new RegExp(
+          `^What it does\\.\\n\\nWebsite: https://wrenautomation\\.com/go/yt/${id}-synthetic-walkthrough\\n`,
+        ),
+      ),
       media: { kind: "video", source: "/rec/out/long.mp4" },
       extra: { privacyStatus: "private", tags: ["demo"], thumbnail: "/rec/out/thumb-2.jpg" },
     });
@@ -96,6 +102,8 @@ describe("marketing.video", () => {
       extra: { privacyStatus: "public" },
     });
     expect(s?.extra).not.toHaveProperty("thumbnail");
+    // A Short's links can't be clicked: the plain footer.
+    expect(s?.text).toBe(`What it does.\n\nwrenautomation.com\n\n${BIO}`);
 
     // The Short's Reel: an Instagram draft of the uploaded full render, waiting for his yes.
     if (!short.reel || !("id" in short.reel)) throw new Error("no reel draft");
@@ -105,7 +113,7 @@ describe("marketing.video", () => {
       platform: "instagram",
       status: "draft",
       scheduledFor: null,
-      text: "The one trick\n\nWhat it does.",
+      text: `The one trick\n\nWhat it does.\n\nwrenautomation.com, link in bio\n\n${BIO}`,
       media: { kind: "video", source: "s3://media/studio/1/reel-1.mp4" },
     });
     expect(await approveVideo(pg.db, id, { source: "api", short: 1 })).toEqual({
@@ -271,12 +279,17 @@ describe("marketing.video", () => {
     expect(u.edit.words.map((w) => w.w)).toEqual(["we", "dogfooding.", "Ren"]);
   });
 
-  it("puts his footer under every description, after the chapters; empty turns it off", async () => {
-    await setYoutubeFooter(pg.db, "  Subscribe.\n", "t");
+  it("puts the footer template under every description, after the chapters, slots filled; emptied, none", async () => {
+    await saveLive(
+      pg.db,
+      VIDEO_FOOTERS.long,
+      "Site: https://wrenautomation.com/go/yt/{video}\n\nSubscribe.\n",
+      { by: "t" },
+    );
     const [v] = await pg.db
       .insert(videoEdits)
       .values({
-        title: "Chaptered",
+        title: "Chaptered, it's the one",
         description: "About it.",
         state: "rendered",
         dir: "/rec",
@@ -292,8 +305,10 @@ describe("marketing.video", () => {
     if (!v) throw new Error("no video");
     const a = await approveVideo(pg.db, v.id, { source: "cli" });
     const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, a.id));
-    expect(d?.text).toBe("About it.\n\n0:00 Start\n1:00 Middle\n2:00 End\n\nSubscribe.");
-    await setYoutubeFooter(pg.db, "", "t");
+    expect(d?.text).toBe(
+      `About it.\n\n0:00 Start\n1:00 Middle\n2:00 End\n\nSite: https://wrenautomation.com/go/yt/${v.id}-chaptered-its-the-one\n\nSubscribe.`,
+    );
+    await clearTemplate(pg.db, VIDEO_FOOTERS.long, "t");
     const [w] = await pg.db
       .insert(videoEdits)
       .values({
@@ -305,14 +320,15 @@ describe("marketing.video", () => {
         files: { long: "/rec/out/long.mp4" },
       })
       .returning();
-    const b = await approveVideo(pg.db, w!.id, { source: "cli" });
+    if (!w) throw new Error("no video");
+    const b = await approveVideo(pg.db, w.id, { source: "cli" });
     const [e] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, b.id));
     expect(e?.text).toBe("Just this.");
     // A long description gives way; the footer is never cut.
-    const long = youtubeDescription(["x".repeat(6000)], "Footer.");
+    const long = withFooter(["x".repeat(6000)], "Footer.", 5000);
     expect(long).toHaveLength(5000);
     expect(long.endsWith("\n\nFooter.")).toBe(true);
-    await setYoutubeFooter(pg.db, DEFAULT_YOUTUBE_FOOTER, "t");
+    await reset(pg.db, VIDEO_FOOTERS.long, { by: "t", why: "back to the default" });
   });
 
   it("refuses a video not rendered yet", async () => {

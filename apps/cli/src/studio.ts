@@ -13,10 +13,8 @@ import {
   approveVideo,
   checkMediaStore,
   reelKey,
-  setYoutubeFooter,
   uploadMedia,
   VIDEO_PRIVACY,
-  youtubeFooter,
 } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
@@ -254,20 +252,6 @@ export function registerStudio(
           console.log(
             `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
           );
-      }),
-    );
-
-  video
-    .command("footer")
-    .description(
-      "the text under every YouTube description (wren_settings youtube.footer); prints it",
-    )
-    .option("--set <file>", 'replace it with this file\'s text ("-" for stdin; empty turns it off)')
-    .action((o: { set?: string }) =>
-      withDb(async (db) => {
-        if (o.set !== undefined) await setYoutubeFooter(db, await readText(o.set), "cli");
-        const footer = await youtubeFooter(db);
-        console.log(footer || "(no footer)");
       }),
     );
 

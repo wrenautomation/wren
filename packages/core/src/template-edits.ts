@@ -3,8 +3,8 @@
  * 4): its live and draft words with a sample render, its slots and variants with their numbers,
  * each version's numbers, the campaigns that sent it; and its edits. A save keeps the words as
  * the draft as a new numbered version; making one live goes through the templates service.
- * Publishing sends nothing. Email and prompts only: a text or DM saves on its copy page, which
- * holds its slot's rules.
+ * Publishing sends nothing. Email, posts and prompts only: a text or DM saves on its copy page,
+ * which holds its slot's rules.
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -60,10 +60,16 @@ export const SAMPLE_LEAD: Readonly<Record<string, string>> = {
   // Firm facts some niches quote.
   "company.aum": "$250M",
   "company.ind_clients": "120",
+  // A video's slug in its footer's links (`videoSlug`).
+  video: "12-how-id-fix-cold-email",
 };
 
 /** The kinds the Library saves; texts and DMs save where their slot's rules live. */
-export const LIBRARY_EDITS: ReadonlySet<TemplateKind> = new Set<TemplateKind>(["email", "prompt"]);
+export const LIBRARY_EDITS: ReadonlySet<TemplateKind> = new Set<TemplateKind>([
+  "email",
+  "post",
+  "prompt",
+]);
 
 /** The longest words a save takes: a long prompt, with room. */
 export const WORDS_MAX = 60_000;

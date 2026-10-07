@@ -4,10 +4,12 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
-import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { fieldsOf, YOUTUBE_PRIVACY } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
+import { renderKind, type Template } from "@wren/core/slots";
+import type { TemplateRef } from "@wren/core/templates";
+import { liveOrDefault } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
@@ -23,37 +25,62 @@ export const videoRef = (id: number, short?: number | "vertical") =>
       ? `video:${id}/short:${short}`
       : `video:${id}`;
 
-/** `wren_settings.youtube`: the footer under every video's description. */
-export const YOUTUBE_SETTINGS = "youtube";
 const YT_DESCRIPTION = 5000;
-/** Until he sets one: who he is and what the channel does. "" turns it off. */
-export const DEFAULT_YOUTUBE_FOOTER = [
-  "Wren Automation: https://wrenautomation.com",
-  "I'm Will, a software engineering student at Waterloo, and I'm building Wren in public. Each video takes one high-ROI business problem, like ads or cold outreach, and works out how I'd solve it with software and AI. Subscribe to follow along.",
-].join("\n\n");
 
-export async function youtubeFooter(db: Queryable): Promise<string> {
-  const block = (await settingsFor(db, null))[YOUTUBE_SETTINGS] as { footer?: unknown } | undefined;
-  return typeof block?.footer === "string" ? block.footer : DEFAULT_YOUTUBE_FOOTER;
+/**
+ * The footer under each upload's words: `post` templates (packages/templates/defaults/post),
+ * edited through the template store like any copy. `long` under a YouTube video's description,
+ * `short` under a Short's (links there can't be clicked), `reel` under a Reel's caption.
+ */
+export const VIDEO_FOOTERS = {
+  long: { kind: "post", system: "youtube", name: "footer" },
+  short: { kind: "post", system: "youtube", name: "shorts-footer" },
+  reel: { kind: "post", system: "instagram", name: "reel-footer" },
+} as const satisfies Record<string, TemplateRef>;
+export type VideoFooter = keyof typeof VIDEO_FOOTERS;
+
+/**
+ * The video in a link's `utm_campaign` (`/go/yt/<slug>`): its id, then its title's first words,
+ * lowercase with dashes, 40 characters at most. The id keeps it unique when titles repeat.
+ */
+export function videoSlug(e: Pick<VideoEdit, "id" | "title">): string {
+  const words = e.title
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/['\u2019]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+  let slug = String(e.id);
+  for (const w of words) {
+    if (slug.length + 1 + w.length > 40) break;
+    slug += `-${w}`;
+  }
+  return slug;
 }
 
-export async function setYoutubeFooter(db: Queryable, footer: string, by: string): Promise<string> {
-  const text = footer.trim();
-  if (text.length > 2000) throw new Error(`footer is ${text.length} characters: 2000 at most`);
-  return atomic(db, async (tx) => {
-    const block = ((await settingsFor(tx, null))[YOUTUBE_SETTINGS] ?? {}) as Record<
-      string,
-      unknown
-    >;
-    await setWrenSettings(tx, YOUTUBE_SETTINGS, { ...block, footer: text }, by);
-    return text;
-  });
+/** A footer's words with the video's slots filled. */
+export const fillFooter = (tpl: Template | null, e: Pick<VideoEdit, "id" | "title">): string =>
+  tpl ? renderKind("post", tpl, { video: videoSlug(e) }, `video:${e.id}`).body : "";
+
+/**
+ * Each footer's live words; null when its template was emptied. A database that never took one
+ * gets its default first, following it, so this runs outside the caller's transaction: that
+ * write sets its own audit actor.
+ */
+export async function videoFooters(db: Queryable): Promise<Record<VideoFooter, Template | null>> {
+  const out = {} as Record<VideoFooter, Template | null>;
+  for (const k of Object.keys(VIDEO_FOOTERS) as VideoFooter[])
+    out[k] = (await liveOrDefault(db, VIDEO_FOOTERS[k]))?.template ?? null;
+  return out;
 }
 
-/** Description, chapters, then the footer, blank lines between; the footer is never cut off. */
-export function youtubeDescription(parts: string[], footer: string): string {
+/** The words, then the footer, blank lines between, `max` long; the footer is never cut off. */
+export function withFooter(parts: string[], footer: string, max: number): string {
   const tail = footer.trim();
-  const room = YT_DESCRIPTION - (tail ? tail.length + 2 : 0);
+  const room = max - (tail ? tail.length + 2 : 0);
   const head = parts.filter(Boolean).join("\n\n").slice(0, Math.max(0, room));
   return [head, tail].filter(Boolean).join("\n\n");
 }
@@ -152,6 +179,7 @@ export async function approveVideo(
   id: number,
   o: ApproveVideo,
 ): Promise<ApprovedVideo> {
+  const footers = await videoFooters(db);
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
     if (!e) throw new Error(`no video ${id}`);
@@ -175,10 +203,11 @@ export async function approveVideo(
       o.short || (vertical && e.tracks.main.durationS - cutSeconds(e.cuts) <= SHORT_MAX_S)
         ? "short"
         : "video";
-    // Chapters go under the description (a Short has none), then the standing footer.
-    const body = youtubeDescription(
+    // Chapters go under the description (a Short has none), then the footer for its kind.
+    const body = withFooter(
       [e.description, kind === "short" ? "" : chapterLines(e)],
-      await youtubeFooter(tx),
+      fillFooter(footers[kind === "short" ? "short" : "long"], e),
+      YT_DESCRIPTION,
     );
     let ideaId = yt?.ideaId;
     let ytId = yt?.id;
@@ -241,7 +270,7 @@ export async function approveVideo(
             : `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
         },
       };
-    const caption = [title, e.description].filter(Boolean).join("\n\n").slice(0, IG_CAPTION);
+    const caption = withFooter([title, e.description], fillFooter(footers.reel, e), IG_CAPTION);
     const [r] = await tx
       .insert(contentDrafts)
       .values({

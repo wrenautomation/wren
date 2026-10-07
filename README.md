@@ -44,6 +44,12 @@ on that platform and its best posts so far, and go out through the channels in
 `WREN_CONTENT_CHANNELS`. A local `--media` file lands in `WREN_MEDIA_BUCKET`
 first (the worker and the box cannot read this laptop); a URL is used as is. Design: `designs/2026-09-22-content-loop.md`.
 
+Video footers are templates: `post:youtube/footer` under a long video's description,
+`post:youtube/shorts-footer` under a Short's, `post:instagram/reel-footer` under a Reel's caption.
+Edit with `wren templates get post:youtube/footer > f.post`, then `wren templates set
+post:youtube/footer f.post --why "..." --expect <n> --publish`, or in Library, Templates. A new
+version waits in To approve. Defaults: `packages/templates/defaults/post/`.
+
 ## Meta ads
 
 ```bash

@@ -18,13 +18,13 @@ A version is kept once and never changed, so a send can name exactly what it sai
 ## Shape
 
 - `templates {kind, system, name, folder, live_version_id, draft_version_id, waiting_version_id, waiting_by, follows_default, why}` (`packages/core/src/schema.ts:1063`); `template_versions {template_id, number, version, source, origin, why, opened_from, default_hash, created_by, published_at, published_by}` (`:1117`)
-- kinds `email | sms | dm | post | prompt` (`slots/kinds.ts:20`). System: the niche for email, `texts` for SMS, `reach` for DMs, the asking package for a prompt (`reactivation`, `content`). Ref text `<kind>:<system>/<name>` (`refText`, `parseRef`)
+- kinds `email | sms | dm | post | prompt` (`slots/kinds.ts:20`). System: the niche for email, `texts` for SMS, `reach` for DMs, the platform for a post (`youtube`, `instagram`), the asking package for a prompt (`reactivation`, `content`). Ref text `<kind>:<system>/<name>` (`refText`, `parseRef`)
 - writes: `saveDraft` checks `expect` (the version opened) and throws `TemplateConflict` when it moved (`templates.ts:317`); `askPublish` makes a prompt live at once and parks copy that sends as waiting (`:434`); `approve`, `decline`, `restore`, `reset`; each sets the audit actor in its transaction
 - reads: `liveTemplates`/`resolveTemplate` (`:666`), `templateState`, `listTemplates` (status per row, `:740`), `versionsOf`
 - defaults: `packages/templates/defaults/<kind>/<system>/**` (`.email .sms .dm .post .prompt`); `loadDefaults`, `syncDefaults` (deploy: main all, clients only what they have), `installDefaults` (a part's `provides.templates` on install), `livePrompt`, `liveOrDefault` (a part's copy: the live row, else the default file seeded as one; `packages/core/src/template-defaults.ts`); `writeDefault` (`templates.ts:829`)
 - every cadence step names its template: `CadenceStep.template` (`packages/core/src/workflows.ts`)
 - `template_stats` view: sends, replies, booked per kind, system, template, version and picks (`packages/core/src/views.ts`)
-- records `templates.template|version|variant|sequence|step`; `TEMPLATE_EDITS` saves a draft of an email or prompt (`packages/core/src/template-edits.ts`)
+- records `templates.template|version|variant|sequence|step`; `TEMPLATE_EDITS` saves a draft of an email, post or prompt (`LIBRARY_EDITS`) (`packages/core/src/template-edits.ts`)
 - `lineDiff`, `unified`: the diff the CLI prints and the Library draws (`packages/core/src/line-diff.ts`)
 
 Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063`, `packages/core/src/template-defaults.ts:1`
@@ -33,6 +33,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 
 - **owns:** the versions each send pins: `messages.template_version`, `sms_messages.template_version`, `reach_messages.template_version`, `compositions.prompt_version`
 - **feeds:** [[email/template]] (`liveEmails`), SMS step bodies (`liveTexts`, `packages/channel-sms/src/template-store.ts:86`), DMs (`liveDms`, `packages/outreach/src/store.ts:34`)
+- **posts:** the video footers `post:youtube/footer`, `post:youtube/shorts-footer`, `post:instagram/reel-footer` (`VIDEO_FOOTERS`, `packages/content/src/video.ts`), read through `liveOrDefault` by [[content/video-edit]] Approve
 - **prompts:** `prompt:reactivation/compose` (`COMPOSE_PROMPT_REF`, `packages/reactivation/src/compose.ts:300`), `prompt:content/draft-ask`, `prompt:content/video-ask`, all read through `livePrompt`
 - **looks-like-but-is-not:** [[platform/offer]] (offers stay in code: the lander reads a snapshot)
 
@@ -47,7 +48,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 
 | Surface | Role |
 |---|---|
-| `wren templates ls\|get\|set\|diff\|history\|restore\|reset` (`apps/cli/src/templates.ts`) | reads all kinds; writes email and prompts, `set --publish` asks |
+| `wren templates ls\|get\|set\|diff\|history\|restore\|reset` (`apps/cli/src/templates.ts`) | reads all kinds; writes email, posts and prompts, `set --publish` asks |
 | `wren templates sync\|install` | defaults into every database (deploy), a client's parts |
 | marketing Texts and DMs pages | save texts and DMs with each slot's rules |
 | `TemplatesConsole` (`packages/core/src/templates-console.ts`, routes `templates/*`) | the Library's reads and writes; checks `act` at each template's app and channel (`templateAt`) |

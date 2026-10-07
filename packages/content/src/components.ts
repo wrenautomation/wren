@@ -200,7 +200,12 @@ export const CONTENT_COMPONENTS = [
     provides: {
       services: ["VideoDesk"],
       records: ["marketing.video"],
-      templates: ["prompt:content/video-ask"],
+      templates: [
+        "prompt:content/video-ask",
+        "post:youtube/footer",
+        "post:youtube/shorts-footer",
+        "post:instagram/reel-footer",
+      ],
     },
     effects: ["posts"],
     out: [

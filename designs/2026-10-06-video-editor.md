@@ -234,9 +234,14 @@ deleted.
      true peak -1.5 dB: two-pass ffmpeg `loudnorm` (measure, then apply with the measured I, TP,
      LRA and threshold), audio only, the video stream copied. No `offset=`: this ffmpeg build
      refuses it.
-   - **A standing YouTube footer.** `youtube.footer` in `wren_settings` goes under every YouTube
-     description (after the chapters, a blank line between), set with `wren video footer --set
-     <file>`. Until he sets one, a default in code: the site link and who he is.
+   - **Footers.** Every upload ends with a footer (after the chapters, a blank line between). Each
+     is a `post` template in the store, defaults in `packages/templates/defaults/post/`:
+     `post:youtube/footer` under a long video (the site, booking, the other socials, the bio),
+     `post:youtube/shorts-footer` under a Short (plain text: links there can't be clicked), and
+     `post:instagram/reel-footer` under a Reel's caption ("link in bio"). `{video}` is the
+     video's slug (id, then title words), the `utm_campaign` of the lander's `/go/yt/<slug>`, so
+     a visit or a booking says which video sent it. Edited with `wren templates get|set` or the
+     Library's Templates; a new version waits in To approve.
    - **Render survives an expired AWS session.** Render checks the AWS session before it starts
      and fails fast with "run aws-login". `wren video render <id> --upload` uploads previews from
      the files already in `out/` and marks it rendered, no re-render. A good render whose upload
@@ -333,3 +338,13 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   control; the expired-token path was checked with fake keys, not a real expired session. The
   local Docker database's migrations are out of step from 0138 (not this branch), so the CLI
   checks ran on a throwaway migrated Postgres.
+- 2026-10-07: footer = post templates, not a setting. William: website first, then book a call,
+  then the other socials. `youtube.footer` in `wren_settings` and `wren video footer` are gone
+  (prod had no row); Approve reads `post:youtube/footer`, `post:youtube/shorts-footer` or
+  `post:instagram/reel-footer` through `liveOrDefault` and fills `{video}` (`videoSlug`: the id,
+  then title words, 40 characters at most). The booking link is
+  `/go/yt/<slug>/book?to=/book/reactivation`: the only offer with a booking, on Wren's own
+  calendar, whose booking keeps the utm (`schedule.ts` reads it off the address). The YouTube
+  channel link is left out: a viewer is already on it. Posts are now editable from the CLI and
+  the Library like emails and prompts; a publish waits in To approve. The studio part names the
+  three footers in `provides.templates`.

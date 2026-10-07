@@ -20,14 +20,16 @@ export * from "./train-backfill.js";
 export {
   type ApprovedVideo,
   approveVideo,
-  DEFAULT_YOUTUBE_FOOTER,
+  fillFooter,
   pickThumbnail,
   reelKey,
-  setYoutubeFooter,
+  VIDEO_FOOTERS,
   VIDEO_PRIVACY,
+  type VideoFooter,
   type VideoPrivacy,
+  videoFooters,
   videoRef,
-  youtubeDescription,
-  youtubeFooter,
+  videoSlug,
+  withFooter,
 } from "./video.js";
 export * from "./voice.js";

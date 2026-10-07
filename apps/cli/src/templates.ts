@@ -305,12 +305,12 @@ function numberOf(text: string): number {
 
 /**
  * Texts and DMs save on their copy pages, which hold each slot's rules (STOP, length) and hand
- * keyword replies to the provider; the CLI reads them but writes emails and prompts only.
+ * keyword replies to the provider; the CLI reads them but writes emails, posts and prompts only.
  */
 function writable(ref: TemplateRef): TemplateRef {
   if (!LIBRARY_EDITS.has(ref.kind))
     throw new Error(
-      `the CLI writes ${[...LIBRARY_EDITS].join(" and ")}; ${ref.kind} copy saves on its page in Marketing`,
+      `the CLI writes ${[...LIBRARY_EDITS].join(", ")}; ${ref.kind} copy saves on its page in Marketing`,
     );
   return ref;
 }
