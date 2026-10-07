@@ -17,7 +17,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 
 ## Shape
 
-- tables in every database (one schema): `notes`, `note_updates`, `note_versions`, `note_shares`, `note_stars`, `note_seen`, `note_links`, `notes_settings`, `note_comments`, `note_mentions` (`packages/notes/src/schema.ts`, migrations `0168_notes` and `_notes_comments` after it)
+- tables in every database (one schema): `notes`, `note_updates`, `note_versions`, `note_shares`, `note_stars`, `note_seen`, `note_links`, `notes_settings`, `note_comments`, `note_mentions` (`packages/notes/src/schema.ts`, migrations `0168_notes`, `0170_notes_comments`)
 - roles `view | comment | edit`, plus owner; shares to an email, `team` (Wren's team) or `client:<id>`; general access `private | workspace` (`packages/notes/src/access.ts`)
 - a note's role is capped by the viewer's app permission at `notes` (read, comment, act) (`readerOf`, `packages/notes/src/console.ts`)
 - a Wren note shared to `client:<id>` is read from main by that client's people
