@@ -13,6 +13,7 @@ import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components
 import { DO_OWNER, type DoRequest } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
 import type { Notifier } from "./notify.js";
+import { type AlertPart, clearStep, factMoved, setupAlert, tellAlerts } from "./setup-alerts.js";
 import {
   type AccountRow,
   accountFacts,
@@ -301,13 +302,23 @@ export function setupOf(
   return null;
 }
 
+/** What a fact was before a write: its state and when it last became true. */
+export interface FactWas {
+  from: FactState | null;
+  okAt: Date | null;
+}
+
 async function setFact(
   db: Queryable,
   accountId: number,
   fact: string,
   state: FactState,
   o: { why: string | null; seen?: unknown; by: string; now: Date },
-) {
+): Promise<FactWas> {
+  const [was] = await db
+    .select({ state: accountFacts.state, okAt: accountFacts.okAt })
+    .from(accountFacts)
+    .where(and(eq(accountFacts.accountId, accountId), eq(accountFacts.fact, fact)));
   const values = {
     accountId,
     fact,
@@ -336,6 +347,43 @@ async function setFact(
             : null,
       },
     });
+  return { from: was?.state ?? null, okAt: was?.okAt ?? null };
+}
+
+/** Alerts' view of where a fact's account and setup stand. */
+interface Moved {
+  parts?: readonly AlertPart[] | undefined;
+  setups: readonly Setup[];
+}
+
+/** A fact moved: lost, or back. The alerts (and the parts paused on it) follow (`factMoved`). */
+async function moved(
+  db: Queryable,
+  d: Moved,
+  acct: { id: number; client: string | null; site: string },
+  fact: string,
+  was: FactWas,
+  to: FactState,
+  why: string | null,
+  now: Date,
+  mode: SetupMode | null = null,
+): Promise<void> {
+  const made = setupOf(fact, d.setups);
+  await factMoved(db, {
+    account: acct,
+    siteLabel: siteLabel(acct.site),
+    fact,
+    factLabel: made?.step.label ?? fact,
+    step: made?.step ?? null,
+    setup: made ? { id: made.setup.id, name: made.setup.name } : null,
+    mode,
+    from: was.from,
+    to,
+    okAt: was.okAt,
+    why,
+    parts: d.parts ?? [],
+    now,
+  });
 }
 
 async function account(main: Queryable, id: number) {
@@ -411,7 +459,14 @@ export async function startSetup(
 export async function markStep(
   main: Db,
   s: Setup,
-  o: { accountId: number; step: string; by: string; now?: Date },
+  o: {
+    accountId: number;
+    step: string;
+    by: string;
+    now?: Date;
+    /** Parts that need facts: a fact back resumes them. */
+    parts?: readonly AlertPart[];
+  },
 ): Promise<SetupEmit | null> {
   const now = o.now ?? new Date();
   const i = s.steps.findIndex((x) => x.id === o.step);
@@ -419,8 +474,10 @@ export async function markStep(
   if (!step) throw new Error("no such step");
   const acct = await account(main, o.accountId);
   if (!acct) throw new Error("no such account");
-  await setFact(main, acct.id, step.fact, "ok", { why: `Marked done by ${o.by}`, by: o.by, now });
+  const why = `Marked done by ${o.by}`;
+  const was = await setFact(main, acct.id, step.fact, "ok", { why, by: o.by, now });
   const run = await runOf(main, acct.id, s.id);
+  await moved(main, { parts: o.parts, setups: [s] }, acct, step.fact, was, "ok", why, now);
   // Not the step it's on: the fact stands, and the run passes it when it gets there.
   if (!run || run.step !== step.id) return null;
   return {
@@ -461,11 +518,18 @@ export async function checkNow(
 export async function factLost(
   main: Db,
   setups: readonly Setup[],
-  o: { client: string | null; site: RegistrySite; fact: string; why: string; by: string },
+  o: {
+    client: string | null;
+    site: RegistrySite;
+    fact: string;
+    why: string;
+    by: string;
+    parts?: readonly AlertPart[];
+  },
   now: Date = new Date(),
 ): Promise<SetupEmit[]> {
   const rows = await main
-    .select({ id: clientAccounts.id })
+    .select({ id: clientAccounts.id, mode: clientAccounts.mode })
     .from(accountFacts)
     .innerJoin(clientAccounts, eq(clientAccounts.id, accountFacts.accountId))
     .where(
@@ -479,7 +543,9 @@ export async function factLost(
   const out: SetupEmit[] = [];
   const made = setupOf(o.fact, setups);
   for (const r of rows) {
-    await setFact(main, r.id, o.fact, "lost", { why: o.why, by: o.by, now });
+    const was = await setFact(main, r.id, o.fact, "lost", { why: o.why, by: o.by, now });
+    const acct = { id: r.id, client: o.client, site: o.site };
+    await moved(main, { parts: o.parts, setups }, acct, o.fact, was, "lost", o.why, now, r.mode);
     if (!made) continue;
     await main
       .update(setupRuns)
@@ -498,7 +564,7 @@ export async function recheck(
   main: Db,
   setups: readonly Setup[],
   checks: Readonly<Record<string, SetupCheck>>,
-  o: { now: Date; limit?: number },
+  o: { now: Date; limit?: number; parts?: readonly AlertPart[] },
 ): Promise<{ checked: number; lost: number; emits: SetupEmit[] }> {
   const due = await main
     .select()
@@ -518,9 +584,11 @@ export async function recheck(
       if (!c) continue;
       const r = await c({ account: acct, now: o.now });
       const by = `check:${step.check}`;
-      if (r.ok) await setFact(main, acct.id, step.fact, "ok", { ...r, by, now: o.now });
-      else {
-        await setFact(main, acct.id, step.fact, "lost", { ...r, by, now: o.now });
+      const to = r.ok ? "ok" : "lost";
+      const was = await setFact(main, acct.id, step.fact, to, { ...r, by, now: o.now });
+      const d = { parts: o.parts, setups };
+      await moved(main, d, acct, step.fact, was, to, r.why, o.now, run.mode);
+      if (!r.ok) {
         failed = { step, r };
         break;
       }
@@ -541,6 +609,56 @@ export async function recheck(
   return { checked: due.length, lost, emits };
 }
 
+/**
+ * Runs past their step's `within` that no round will catch: a step waiting on a person has no
+ * `every`, so nothing checks it again. Each turns stuck once and alerts, as a round would.
+ */
+export async function sweepStuck(main: Db, setups: readonly Setup[], now: Date): Promise<number> {
+  const open = await main
+    .select({ run: setupRuns, acct: clientAccounts })
+    .from(setupRuns)
+    .innerJoin(clientAccounts, eq(clientAccounts.id, setupRuns.accountId))
+    .where(inArray(setupRuns.state, ["checking", "waiting_client", "waiting_wren"]));
+  let n = 0;
+  for (const { run, acct } of open) {
+    const s = setups.find((x) => x.id === run.setup);
+    const step = s?.steps.find((x) => x.id === run.step);
+    // A step with `every` has rounds of its own, and they turn it stuck.
+    if (!s || !step?.within || step.every) continue;
+    if (now.getTime() - run.stepSince.getTime() <= waitMs(step.within)) continue;
+    const turned = await main
+      .update(setupRuns)
+      .set({
+        state: "stuck",
+        why: `Stuck past ${step.within}: ${run.why ?? step.label}`,
+        nextCheckAt: null,
+      })
+      .where(
+        and(
+          eq(setupRuns.id, run.id),
+          eq(setupRuns.gen, run.gen),
+          eq(setupRuns.step, step.id),
+          inArray(setupRuns.state, ["checking", "waiting_client", "waiting_wren"]),
+        ),
+      )
+      .returning({ id: setupRuns.id });
+    if (!turned.length) continue;
+    n++;
+    await setupAlert(main, {
+      kind: "stuck",
+      account: acct,
+      siteLabel: siteLabel(acct.site),
+      setup: s,
+      step,
+      mode: run.mode,
+      why: run.why,
+      change: `${s.id}:g${run.gen}:${step.id}`,
+      now,
+    });
+  }
+  return n;
+}
+
 // ---- the step on the spine ----
 
 export interface SetupDeps {
@@ -551,6 +669,8 @@ export interface SetupDeps {
   agent?: AgentQueue | null;
   /** Wren's team's lane for an owner's setups (null is Wren's own); none: nobody is told. */
   notifierFor?: (client: string | null) => Notifier | null;
+  /** Parts that need facts (the worker's COMPONENTS): a lost fact pauses them, a fact back resumes. */
+  parts?: readonly AlertPart[];
   now?: () => Date;
 }
 
@@ -591,6 +711,7 @@ export async function agentDone(
   job: AgentJob,
   out: AgentAnswer,
   now: Date = new Date(),
+  parts: readonly AlertPart[] = [],
 ): Promise<SetupEmit | null> {
   const i = s.steps.findIndex((x) => x.id === job.step);
   const step = s.steps[i];
@@ -598,7 +719,8 @@ export async function agentDone(
   const run = acct && (await runOf(main, acct.id, s.id));
   if (!step || !acct || !run || run.gen !== job.gen || run.step !== job.step) return null;
   if (out.done) {
-    await setFact(main, acct.id, step.fact, "ok", { why: out.why, by: "agent", now });
+    const was = await setFact(main, acct.id, step.fact, "ok", { why: out.why, by: "agent", now });
+    await moved(main, { parts, setups: [s] }, acct, step.fact, was, "ok", out.why, now, run.mode);
     return {
       client: acct.client,
       workflow: s.id,
@@ -606,9 +728,10 @@ export async function agentDone(
       events: [accountEvent(`${setupSubject(acct.id, run.gen)}#a${now.getTime()}`, acct.id)],
     };
   }
-  await main
+  const why = `The agent couldn't: ${out.why}`.slice(0, 2000);
+  const set = await main
     .update(setupRuns)
-    .set({ state: "waiting_wren", why: `The agent couldn't: ${out.why}`.slice(0, 2000) })
+    .set({ state: "waiting_wren", why })
     .where(
       and(
         eq(setupRuns.id, run.id),
@@ -616,7 +739,21 @@ export async function agentDone(
         eq(setupRuns.step, job.step),
         ne(setupRuns.state, "stuck"),
       ),
-    );
+    )
+    .returning({ id: setupRuns.id });
+  // The agent stopped: now it waits on a person on Wren's team.
+  if (set.length)
+    await setupAlert(main, {
+      kind: "waiting",
+      account: acct,
+      siteLabel: siteLabel(acct.site),
+      setup: { id: s.id, name: s.name },
+      step,
+      mode: "for_you",
+      why,
+      change: `${s.id}:g${run.gen}:${step.id}:agent`,
+      now,
+    });
   return null;
 }
 
@@ -625,25 +762,6 @@ function waiting(step: SetupStep, mode: SetupMode): { state: SetupState; why: st
   if (step.who === "auto") return { state: "checking", why: step.label };
   if (step.who === "client" && mode === "self") return { state: "waiting_client", why: step.how };
   return { state: "waiting_wren", why: step.forYou };
-}
-
-/** Wren's team hears once that a step is stuck; never the client. A ping that fails is logged by the notifier. */
-async function tellStuck(
-  d: SetupDeps,
-  acct: { id: number; client: string | null; site: string },
-  s: Setup,
-  step: SetupStep,
-  why: string,
-): Promise<void> {
-  const notifier = d.notifierFor?.(acct.client);
-  if (!notifier) return;
-  await notifier
-    .notify(
-      `${s.name} is stuck`,
-      `${siteLabel(acct.site)} (account ${acct.id}): "${step.label}" isn't done after ${step.within}. ${why.slice(0, 300)}\nOpen Account, then Accounts.`,
-      "action",
-    )
-    .catch(() => false);
 }
 
 /**
@@ -687,7 +805,25 @@ export function setupStep(d: SetupDeps): Step {
               },
         )
         // An old round of a step already passed moves nothing.
-        .where(and(eq(setupRuns.id, run.id), eq(setupRuns.step, step.id)));
+        .where(and(eq(setupRuns.id, run.id), eq(setupRuns.step, step.id)))
+        .returning({ id: setupRuns.id })
+        .then(async (moved) => {
+          if (!moved.length) return;
+          await clearStep(d.main, { accountId: acct.id, setup: s.id, step: step.id, now });
+          if (i === s.steps.length - 1)
+            await setupAlert(d.main, {
+              kind: "done",
+              account: acct,
+              siteLabel: siteLabel(acct.site),
+              setup: { id: s.id, name: s.name },
+              mode: run.mode,
+              why: null,
+              change: `${s.id}:g${run.gen}`,
+              now,
+            });
+          await tellAlerts(d.main, d.notifierFor, now);
+        });
+    const facts = { parts: d.parts, setups: d.setups };
 
     const [held] = await d.main
       .select()
@@ -705,7 +841,9 @@ export function setupStep(d: SetupDeps): Step {
       const r = await check({ account: acct, now });
       if (r.ok) {
         await atomic(d.main, async (tx) => {
-          await setFact(tx, acct.id, step.fact, "ok", { ...r, by: `check:${step.check}`, now });
+          const by = `check:${step.check}`;
+          const was = await setFact(tx, acct.id, step.fact, "ok", { ...r, by, now });
+          await moved(tx, facts, acct, step.fact, was, "ok", r.why, now, run.mode);
         });
         await advance();
         return done;
@@ -758,6 +896,9 @@ export function setupStep(d: SetupDeps): Step {
     }
 
     const stuck = !!step.within && now.getTime() - run.stepSince.getTime() > waitMs(step.within);
+    // A vendor's review past its time is stuck and told once, but its check keeps going: the
+    // run moves on its own the day the vendor says yes.
+    const again = !!step.every && (!stuck || (step.who === "auto" && !!check));
     // Later rounds of the team's steps keep what the agent or the last round said.
     if (ours && step.goal && run.rounds > 0 && run.state === "waiting_wren" && run.why)
       why = run.why;
@@ -767,7 +908,8 @@ export function setupStep(d: SetupDeps): Step {
       why = `Stuck past ${step.within}: ${why}`;
     }
     const turnedStuck = await atomic(d.main, async (tx) => {
-      await setFact(tx, acct.id, step.fact, "waiting", {
+      // A lost fact stays lost until it's true again: its part stays paused meanwhile.
+      await setFact(tx, acct.id, step.fact, held?.state === "lost" ? "lost" : "waiting", {
         why,
         seen,
         by: step.check ? `check:${step.check}` : "setup",
@@ -788,13 +930,31 @@ export function setupStep(d: SetupDeps): Step {
           why,
           step: step.id,
           rounds: sql`${setupRuns.rounds} + 1`,
-          nextCheckAt: step.every && !stuck ? new Date(now.getTime() + waitMs(step.every)) : null,
+          nextCheckAt: again && step.every ? new Date(now.getTime() + waitMs(step.every)) : null,
         })
         .where(eq(setupRuns.id, run.id));
       return turned.length > 0;
     });
-    if (turnedStuck) await tellStuck(d, acct, s, step, cause);
-    if (!step.every || stuck) return [];
+    const alert = { account: acct, siteLabel: siteLabel(acct.site), setup: s, step, now };
+    if (turnedStuck)
+      await setupAlert(d.main, {
+        ...alert,
+        kind: "stuck",
+        mode: run.mode,
+        why: cause,
+        change: `${s.id}:g${run.gen}:${step.id}`,
+      });
+    // Waiting on a person (not a check, not the agent at work): once per step and whose turn.
+    if ((state === "waiting_client" || state === "waiting_wren") && why !== AGENT_ON_IT)
+      await setupAlert(d.main, {
+        ...alert,
+        kind: "waiting",
+        mode: state === "waiting_wren" ? "for_you" : "self",
+        why,
+        change: `${s.id}:g${run.gen}:${step.id}:${state}`,
+      });
+    await tellAlerts(d.main, d.notifierFor, now);
+    if (!again) return [];
     return [{ port: "again", event: accountEvent(`${subj.base}#${run.rounds + 1}`, acct.id) }];
   };
 }

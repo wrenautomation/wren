@@ -129,6 +129,28 @@ export async function stoppedPass<S>(
   return outcome;
 }
 
+/**
+ * A pass held because a fact its part needs is lost ("Paused: needs …"): nothing runs, the loop
+ * keeps going and looks again after `delayMs`, so it resumes on its own once the fact is back.
+ */
+export async function pausedPass<S>(
+  ctx: restate.ObjectContext,
+  now: Date,
+  why: string,
+  delayMs: number,
+): Promise<PassOutcome<S>> {
+  const outcome: PassOutcome<S> = {
+    stats: null,
+    error: null,
+    failures: 0,
+    delayMs: Math.max(delayMs, MIN_DELAY_MS),
+    now: now.toISOString(),
+    paused: why,
+  };
+  await setLastPass(ctx, outcome);
+  return outcome;
+}
+
 /** Failed passes in a row, this one included (0 when it succeeded). */
 export async function failuresInARow(ctx: restate.ObjectContext, failed: boolean): Promise<number> {
   if (!failed) return 0;
@@ -147,6 +169,8 @@ export interface PassOutcome<S> {
   now: string;
   /** Set when the work is gone (a client off or removed): the loop stops itself, saying why. */
   stopped?: string;
+  /** Set when a fact its part needs is lost: nothing ran, the loop looks again later. */
+  paused?: string;
 }
 
 export interface LoopStatus<S> {

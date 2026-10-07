@@ -168,6 +168,7 @@ import {
   workflowSaves,
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
+import { pausedParts, pausedText } from "./setup-alerts.js";
 import {
   clocksOf,
   editsOf,
@@ -1432,10 +1433,17 @@ export const componentRecord = (
     /** The facts the client's accounts hold: null with no client. */
     facts?: ReadonlySet<string> | null;
     setups?: readonly Setup[];
+    /** The client's installed parts paused on a lost fact: part id to that fact. */
+    paused?: ReadonlyMap<string, string> | null;
   } = { list: [], installs: [] },
 ): RecordType => {
   // A setup is an account's, run from Accounts: never a card in the Shop.
   const flows = workflows.filter((w) => w.kind !== "setup" && (team || w.for === "client"));
+  /** "Paused: needs <the step that makes it>" for a part paused on a lost fact; else null. */
+  const pausedOf = (id: string | null | undefined): string | null => {
+    const fact = id ? sold.paused?.get(id) : undefined;
+    return fact ? pausedText(setupOf(fact, sold.setups ?? [])?.step.label ?? fact) : null;
+  };
   /** The facts a part needs that this client's accounts don't hold; none with no client. */
   const lacksFacts = (c: Component) => !!sold.facts && factsLacking(c, sold.facts).length > 0;
   /**
@@ -1601,6 +1609,8 @@ export const componentRecord = (
         name: n.own?.name ?? named(n.uses ?? n.id),
         note: n.note ?? (n.own ? "Custom step" : null),
         ready: c ? readyOf(c) : f ? flowReady(partsIn(f.id, flows, all)) : null,
+        /** "Paused: needs …": its part waits on a lost fact; the rest of the workflow runs. */
+        paused: pausedOf(c?.id),
         /** The workflow it opens into: one it uses, or the part's own steps. */
         opens: f ? f.id : (c?.inside ?? null),
         count: main ? { ...main.count, label: main.label } : null,
@@ -1649,6 +1659,8 @@ export const componentRecord = (
             !!client &&
             flowReady(parts) === "ready" &&
             parts.some((c) => accountsLacking(c, client).length > 0 || lacksFacts(c));
+          // Installed and a part of it paused on a lost fact: the rest of it keeps running.
+          const paused = on ? parts.map((c) => pausedOf(c.id)).find(Boolean) : null;
           return {
             id: t.id,
             type: "template",
@@ -1658,16 +1670,18 @@ export const componentRecord = (
             stage: t.workflow.stage,
             channels: union(parts.map((c) => c.channels)).join(",") || null,
             for: "client",
-            ready: waits ? "account" : shown(flowReady(parts)),
+            ready: paused ? "paused" : waits ? "account" : shown(flowReady(parts)),
             installed: client ? (on ? "yes" : "no") : null,
             state: client ? (row?.state ?? null) : null,
             effects: t.effects.join(",") || null,
             instead: null,
             provides: null,
             needs: null,
-            missing: behind.length
-              ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
-              : null,
+            missing: paused
+              ? `${parts.find((c) => pausedOf(c.id))?.name}: ${paused}`
+              : behind.length
+                ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
+                : null,
           };
         }),
         ...all
@@ -1681,7 +1695,13 @@ export const componentRecord = (
             stage: c.stage,
             channels: c.channels.join(",") || null,
             for: c.for,
-            ready: off(c) ? "off" : unconnected(c) ? "account" : shown(readyOf(c)),
+            ready: off(c)
+              ? "off"
+              : pausedOf(c.id)
+                ? "paused"
+                : unconnected(c)
+                  ? "account"
+                  : shown(readyOf(c)),
             // Wren's own parts are never on a client: no "not installed" for them.
             installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
             state: null,
@@ -1695,6 +1715,7 @@ export const componentRecord = (
               ) || null,
             missing:
               [
+                ...(pausedOf(c.id) ? [pausedOf(c.id) as string] : []),
                 ...(off(c)
                   ? [
                       `Off: ${c.provides.loops.map(codeLabel).join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start ${c.provides.loops.length > 1 ? "them" : "it"} in Loops`,
@@ -1754,6 +1775,8 @@ export const componentRecord = (
           planned: { label: "In development", tone: "neutral" },
           // Built per client; waits on an account this client hasn't connected.
           account: { label: "Needs your account", tone: "warn" },
+          // Installed, and a fact it needs was lost: it holds until the fact is back.
+          paused: { label: "Paused", tone: "warn" },
           // Built, but its loop is stopped: nothing runs until the team starts it.
           ...(team ? { off: { label: "Off", tone: "neutral" as const } } : {}),
         },
@@ -1805,6 +1828,7 @@ export const componentRecord = (
               blurb: c.blurb,
               effects: c.effects,
               ready: shown(readyOf(c)),
+              paused: pausedOf(c.id),
               settings: shownSettings(c, settings),
               labels: Object.fromEntries((settingsForm(c) ?? []).map((f) => [f.field, f.label])),
               accounts: [
@@ -1882,6 +1906,7 @@ export const componentRecord = (
           }))
           .concat(factAccounts(c)),
         effects: c.effects,
+        paused: pausedOf(c.id),
         // Read-only: only an admin turns a client's sends on, from the CLI.
         sends: client && c.liveSwitch ? sendsWords(client, c.id) : null,
         // Channels it will post on once their apps exist.
@@ -2128,6 +2153,7 @@ export function consoleApi({
               : undefined,
           facts: client ? await factsHeld(main, client.id) : null,
           setups,
+          paused: client ? await pausedParts(main, client.id, components) : null,
         },
       ),
     ];

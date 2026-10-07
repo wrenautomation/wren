@@ -8,6 +8,7 @@ import type { Need, RouteApps } from "./access.js";
 export const ACCOUNTS_CONSOLE_ROUTES = {
   accounts: "read",
   vendors: "read",
+  now: "read",
   start: "act",
   mark: "act",
   checkNow: "act",

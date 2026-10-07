@@ -29,16 +29,18 @@ import {
   clientOfKey,
   errorText,
   makeLoopObject,
+  pausedPass,
   runPass,
   serviceHandler,
   stoppedPass,
 } from "@wren/core/restate";
+import { partPaused, pausedText } from "@wren/core/setup-alerts";
 import { surveyKinds, writeSurveyDays } from "@wren/core/survey-store";
 import type { Db, Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
-import { SEARCH_COMPONENT, searchSettingsSchema } from "../components.js";
+import { SEARCH_COMPONENT, SEARCH_COMPONENTS, searchSettingsSchema } from "../components.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { decideExperiments } from "../experiments.js";
 import { rollupFlags } from "../flag-days.js";
@@ -141,6 +143,10 @@ export function makeSearchWatch(deps: SearchDeps) {
     if (!deps.clientDb) return stoppedPass<WatchStats>(ctx, now, "no client databases here");
     const plan = await ctx.run("client", () => clientSearch(deps.db, client));
     if (plan.kind === "gone") return stoppedPass<WatchStats>(ctx, now, plan.why);
+    // Wren's service account lost the property: hold the read, look again tomorrow.
+    const part = SEARCH_COMPONENTS.find((c) => c.id === SEARCH_COMPONENT);
+    const lost = part ? await ctx.run("paused", () => partPaused(deps.db, client, part)) : null;
+    if (lost) return pausedPass<WatchStats>(ctx, now, pausedText(lost), DAY_MS);
     const db = deps.clientDb(client);
     return runPass<WatchStats>(ctx, db, now, {
       name: SEARCH_SYNC_COMMAND,

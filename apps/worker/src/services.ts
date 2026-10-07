@@ -1210,6 +1210,14 @@ export async function buildServices(
   // What account setups check: DNS over HTTPS, Telnyx's 10DLC status, the roster's warmup and
   // the placement tests, Search Console's property list, a calendar's free/busy as its address,
   // and the client's ad account through autobrowse's `meta`. Free reads, all of them.
+  // Setup alerts reach Wren's team on the clients lane, named for the client; none with
+  // WREN_NOTIFY=none. Parts that need facts pause when one is lost.
+  const setupLane = (client: string | null): Notifier | null => {
+    if (settings.notify === "none") return null;
+    const lane = laneNotifier(settings.discordClientsWebhookUrl);
+    return client ? namedFor(lane, client) : lane;
+  };
+  const setupParts = COMPONENTS.filter((c) => c.requires.facts.length > 0);
   const setupChecks = {
     ...dnsChecks(dohResolve),
     ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
@@ -1269,8 +1277,8 @@ export async function buildServices(
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
         // Account setups. With WREN_SETUP_AGENT a done-for-you step goes to SetupAgent on its
-        // first round; off, it waits on Wren's team. A stuck step tells the team on the clients
-        // lane, named for the client; none with WREN_NOTIFY=none.
+        // first round; off, it waits on Wren's team. Its alerts (stuck, waiting, done, lost)
+        // tell the team on the clients lane.
         [SETUP_STEP]: setupStep({
           main: db,
           setups: SETUPS,
@@ -1279,11 +1287,8 @@ export async function buildServices(
             ? (job, key) =>
                 ingressSend(ingressOf(settings), { service: SETUP_AGENT, handler: "run" }, key, job)
             : null,
-          notifierFor: (client) => {
-            if (settings.notify === "none") return null;
-            const lane = laneNotifier(settings.discordClientsWebhookUrl);
-            return client ? namedFor(lane, client) : lane;
-          },
+          notifierFor: setupLane,
+          parts: setupParts,
         }),
         // A follow-up touch (no step) also reads the clients and why texts can't go now.
         [TOUCH]: touchStep(async (client) => {
@@ -1395,11 +1400,19 @@ export async function buildServices(
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.
     makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
     // Rechecks done setups on their repeat; off until started by hand.
-    makeSetupWatch({ main: db, setups: SETUPS, checks: setupChecks, ...notify }),
+    makeSetupWatch({
+      main: db,
+      setups: SETUPS,
+      checks: setupChecks,
+      parts: setupParts,
+      notifierFor: setupLane,
+      ...notify,
+    }),
     // Done-for-you steps in the owner's autobrowse; only queued with WREN_SETUP_AGENT.
     makeSetupAgent({
       main: db,
       setups: SETUPS,
+      parts: setupParts,
       wake: sitesHost(settings.autobrowseInstanceId).wake,
     }),
     // A client's accounts and vendors. No key store: the role can't write SSM yet (William's).
@@ -1410,6 +1423,7 @@ export async function buildServices(
       checks: new Set(Object.keys(setupChecks)),
       keys: null,
       env: "prod",
+      parts: setupParts,
     }),
     makeConsolePortal({
       main: db,

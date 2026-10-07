@@ -50,6 +50,8 @@ interface PageBase {
    * field is the list's own filter in the address; `waits` count what waits in each state.
    */
   across?: PageAcross;
+  /** Its tab's number in any workspace: what waits there for whoever looks (Accounts' open alerts). */
+  badge?: (client: string, team: boolean) => Promise<number>;
 }
 
 export interface PageAcross {

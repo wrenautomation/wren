@@ -138,6 +138,7 @@ const portAt = (end: string) => {
 const stateOf = (n: DrawnNode, team: boolean): GraphNode["state"] => {
   const flow = !!n.uses && n.opens === n.uses;
   if (!n.uses) return { label: "Custom step", tone: "neutral" };
+  if (n.paused) return { label: n.paused, tone: "warn" };
   if (n.ready === "planned")
     return { label: flow ? "Parts in development" : "In development", tone: "neutral" };
   if (n.ready === "coming")

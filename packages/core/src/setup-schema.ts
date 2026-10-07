@@ -147,3 +147,66 @@ export const setupRuns = pgTable(
   ],
 );
 export type SetupRunRow = typeof setupRuns.$inferSelect;
+
+/**
+ * What a setup alert reports: a fact lost, a step stuck past its `within`, a step waiting on a
+ * person, a setup done, or a part paused or resumed because of a fact.
+ */
+export const ALERT_KINDS = ["lost", "stuck", "waiting", "done", "paused", "resumed"] as const;
+export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/** Who must act on it: the client's people, or Wren's team. */
+export const ALERT_FOR = ["client", "wren"] as const;
+export type AlertFor = (typeof ALERT_FOR)[number];
+
+export const ALERT_LEVELS = ["info", "action", "warning"] as const;
+
+/**
+ * One setup alert per state change (`key`), never one per check round. Open until the state it
+ * reports changes (`cleared_at`); kept after, as the account's timeline. Shown on Now and the
+ * Accounts badge, never in an Inbox. `told_at`: the team's lane heard it; `digest_at`: the last
+ * daily digest that named it, still open.
+ */
+export const setupAlerts = pgTable(
+  "setup_alerts",
+  {
+    id: serial("id").notNull(),
+    /** `<kind>:<account>:...`: the state change it reports, once. */
+    key: varchar("key", { length: 200 }).notNull(),
+    /** Whose; null is Wren's. */
+    client: varchar("client", { length: 40 }),
+    accountId: integer("account_id").notNull(),
+    kind: varchar("kind", { length: 8, enum: ALERT_KINDS }).$type<AlertKind>().notNull(),
+    for: varchar("for", { length: 8, enum: ALERT_FOR }).$type<AlertFor>().notNull(),
+    level: varchar("level", { length: 8, enum: ALERT_LEVELS })
+      .$type<(typeof ALERT_LEVELS)[number]>()
+      .notNull(),
+    setup: varchar("setup", { length: 64 }),
+    step: varchar("step", { length: 40 }),
+    fact: varchar("fact", { length: 80 }),
+    /** The part paused or resumed: a component id. */
+    part: varchar("part", { length: 64 }),
+    /** Said to a person, no secrets: "Sending domain example.com: SPF, DKIM and DMARC lost". */
+    title: text("title").notNull(),
+    body: text("body"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+    toldAt: timestamp("told_at", { withTimezone: true }),
+    digestAt: timestamp("digest_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_setup_alerts" }),
+    unique("uq_setup_alerts_key").on(t.key),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [clientAccounts.id],
+      name: "fk_setup_alerts_account",
+    }).onDelete("cascade"),
+    index("ix_setup_alerts_open").on(t.client, t.clearedAt),
+    index("ix_setup_alerts_account").on(t.accountId, t.at),
+    oneOf("ck_setup_alerts_kind", t.kind, ALERT_KINDS),
+    oneOf("ck_setup_alerts_for", t.for, ALERT_FOR),
+    oneOf("ck_setup_alerts_level", t.level, ALERT_LEVELS),
+  ],
+);
+export type AlertRow = typeof setupAlerts.$inferSelect;

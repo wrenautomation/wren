@@ -11,6 +11,7 @@ import { DoFailed, restateDo } from "./content/do.js";
 import type { Wake } from "./content/restate.js";
 import { serviceHandler } from "./restate/form.js";
 import { type AgentAnswer, type AgentJob, agentDone, type Setup } from "./setup.js";
+import type { AlertPart } from "./setup-alerts.js";
 import { spineEmit } from "./spine.js";
 
 export const SETUP_AGENT = "SetupAgent";
@@ -33,6 +34,8 @@ export function makeSetupAgent(deps: {
   setups: readonly Setup[];
   wake?: Wake | undefined;
   timeoutMs?: number;
+  /** Parts that need facts: a fact back resumes them. */
+  parts?: readonly AlertPart[];
 }) {
   const byId = new Map(deps.setups.map((s) => [s.id, s]));
   return restate.service({
@@ -57,7 +60,9 @@ export function makeSetupAgent(deps: {
             out = { done: false, why: err.message };
           }
           const now = new Date(await ctx.date.now());
-          const emit = await ctx.run("record", () => agentDone(deps.main, s, job, out, now));
+          const emit = await ctx.run("record", () =>
+            agentDone(deps.main, s, job, out, now, deps.parts),
+          );
           if (emit) spineEmit(ctx, emit);
           return out;
         },

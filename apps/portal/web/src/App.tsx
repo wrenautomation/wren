@@ -43,6 +43,7 @@ import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
+import { SetupNow } from "./modules/account/Now.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -72,11 +73,16 @@ const CommandPalette = lazy(() =>
 );
 
 /** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */
-/** Each open page's waiting count, for its tab: pages with a `count`, in Wren's workspace. */
+/**
+ * Each open page's waiting count, for its tab: pages with a `count`, in Wren's workspace, and
+ * pages with a `badge` in any.
+ */
 function useNavCounts(
   module: Module | undefined,
   page: string | undefined,
   on: boolean,
+  client: string | undefined,
+  team: boolean,
 ): Record<string, number> {
   const [counts, setCounts] = useState<Record<string, number>>({});
   // `module` is rebuilt every render, so its id keys the read: depending on the object looped
@@ -84,10 +90,12 @@ function useNavCounts(
   // biome-ignore lint/correctness/useExhaustiveDependencies: a tab change reads the counts again.
   useEffect(() => {
     const pages = on ? (module?.pages ?? []).filter((p) => "count" in p && p.count) : [];
-    if (!pages.length) return void setCounts((c) => (Object.keys(c).length ? {} : c));
+    const badged = client ? (module?.pages ?? []).filter((p) => p.badge) : [];
+    if (!pages.length && !badged.length)
+      return void setCounts((c) => (Object.keys(c).length ? {} : c));
     let live = true;
-    void Promise.all(
-      pages.map((p) =>
+    void Promise.all([
+      ...pages.map((p) =>
         call<{ total: number }>("console/recordsList", {
           record: (p as { record: string }).record,
           where: (p as { count: unknown }).count,
@@ -97,11 +105,17 @@ function useNavCounts(
           () => [p.id, 0] as const,
         ),
       ),
-    ).then((all) => live && setCounts(Object.fromEntries(all)));
+      ...badged.map((p) =>
+        (p.badge as NonNullable<typeof p.badge>)(client as string, team).then(
+          (n) => [p.id, n] as const,
+          () => [p.id, 0] as const,
+        ),
+      ),
+    ]).then((all) => live && setCounts(Object.fromEntries(all)));
     return () => {
       live = false;
     };
-  }, [module?.id, page, on]);
+  }, [module?.id, page, on, client, team]);
   return counts;
 }
 
@@ -364,6 +378,8 @@ export function App() {
     at.kind === "page" ? at.module : undefined,
     at.kind === "page" ? at.page.id : undefined,
     wren,
+    current?.id,
+    team,
   );
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
@@ -523,6 +539,7 @@ export function App() {
         ) : wren ? (
           <>
             <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
+            {team ? <SetupNow client={WREN.id} team /> : null}
             <PinnedRow pins={pins} />
             <AppGrid>{cards.map((m) => card(m))}</AppGrid>
           </>
@@ -656,6 +673,7 @@ function Launcher({
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
+      {props.demo ? null : <SetupNow client={props.client} team={props.team} />}
       <PinnedRow pins={pins} />
       {/* Installing needs `manage`: a viewer or member never sees the offer. */}
       {props.team || props.demo || !props.can?.includes("manage") ? null : (

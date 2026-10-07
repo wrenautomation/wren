@@ -12,10 +12,11 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
-import { clientOfKey, makeLoopObject, runPass, stoppedPass } from "@wren/core/restate";
+import { clientOfKey, makeLoopObject, pausedPass, runPass, stoppedPass } from "@wren/core/restate";
 import { accountsOf } from "@wren/core/setup";
+import { partPaused, pausedText } from "@wren/core/setup-alerts";
 import type { Db, Queryable } from "@wren/db";
-import { INBOX_HEALTH } from "../components.js";
+import { EMAIL_COMPONENTS, INBOX_HEALTH } from "../components.js";
 import {
   type PostmasterClient,
   type PostmasterStats,
@@ -92,6 +93,10 @@ export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
     if (!deps.clientDb) return stoppedPass<ClientStats>(ctx, now, "no client databases here");
     const plan = await ctx.run("client", () => clientPostmaster(deps.db, id));
     if (plan.kind === "gone") return stoppedPass<ClientStats>(ctx, now, plan.why);
+    // A lost fact (Postmaster no longer verified) holds the pull; it resumes once it's back.
+    const part = EMAIL_COMPONENTS.find((c) => c.id === INBOX_HEALTH);
+    const lost = part ? await ctx.run("paused", () => partPaused(deps.db, id, part)) : null;
+    if (lost) return pausedPass<ClientStats>(ctx, now, pausedText(lost), delay);
     const db = deps.clientDb(id);
     return runPass<ClientStats>(ctx, db, now, {
       name: "postmaster sync",

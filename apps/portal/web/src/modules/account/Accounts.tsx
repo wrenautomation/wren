@@ -247,8 +247,41 @@ function Account({
         {!a.runs.length && !a.setups.length ? (
           <p className={QUIET}>Nothing to set up on it.</p>
         ) : null}
+        {a.paused.map((p) => (
+          <p key={p.part}>
+            <Tag tone="accent">{p.text}</Tag>{" "}
+            <span className={QUIET}>{p.name} holds until then.</span>
+          </p>
+        ))}
+        <Timeline items={a.timeline} />
       </div>
     </Section>
+  );
+}
+
+/** What happened to an account, newest first: each alert once, open ones marked. */
+function Timeline({ items }: { items: AccountRow["timeline"] }) {
+  if (!items.length) return null;
+  return (
+    <details className="grid gap-2">
+      <summary className="cursor-pointer text-[13.5px] text-(--ui-ink-2)">
+        What happened ({items.length})
+      </summary>
+      <ol className="mt-2 grid gap-2" aria-label="What happened">
+        {items.map((x) => (
+          <li key={x.id} className="grid gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{x.title}</span>
+              {x.open ? <Tag tone="accent">Open</Tag> : null}
+            </span>
+            <span className={QUIET}>
+              {dayLabel(x.at)}
+              {x.why ? `. ${x.why}` : ""}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }
 
@@ -323,6 +356,12 @@ export function Accounts(props: PageProps) {
         <Loading lines={4} />
       ) : (
         <>
+          {d.paused.length ? (
+            <Callout>
+              {d.paused.map((p) => `${p.name}: ${p.text}.`).join(" ")} It starts again once that's
+              back.
+            </Callout>
+          ) : null}
           {!team && d.accounts.some((a) => a.runs.some((r) => r.state === "waiting_client")) ? (
             <Callout>Steps marked Your turn wait on you. Mark each one done when it is.</Callout>
           ) : null}

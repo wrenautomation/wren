@@ -108,6 +108,8 @@ export interface Drawn {
     name: string;
     note: string | null;
     ready: "ready" | "coming" | "planned" | null;
+    /** "Paused: needs …": its part waits on a lost fact on this client. */
+    paused?: string | null;
     /** The workflow it opens into: one it uses, or a part's own steps. */
     opens?: string | null;
     count?: (CountRef & { label: string }) | null;

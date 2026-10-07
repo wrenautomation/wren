@@ -141,6 +141,7 @@ const SERVICES: Record<
       keys: null,
       env: "dev",
       agent: process.env.WREN_SETUP_AGENT === "true",
+      parts: COMPONENTS.filter((c) => c.requires.facts.length > 0),
     }),
   },
   // A client's Marketing, from its own database. A verdict goes to its desk on Restate: not here.

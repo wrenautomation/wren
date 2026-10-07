@@ -56,7 +56,8 @@ export const TEXTING_SETUP = defineSetup({
       forYou: "Carriers review the campaign. This takes days to weeks.",
       check: "telnyx.campaign",
       every: "1 day",
-      within: "30 days",
+      // Past ten days the team hears; the check keeps going until carriers answer.
+      within: "10 days",
     },
   ],
 });

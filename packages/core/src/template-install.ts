@@ -34,6 +34,7 @@ import {
   workflowTemplates,
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
+import { pausedParts, pausedText } from "./setup-alerts.js";
 import { clocksOf, makeHook } from "./spine.js";
 import { covers, type DefaultFile, installDefaults, loadDefaults } from "./template-defaults.js";
 import { nameLabel } from "./template-labels.js";
@@ -212,6 +213,8 @@ export interface PlanPart {
     setup?: string;
   }[];
   missing: string[];
+  /** "Paused: needs …": installed, and a fact it needs was lost. */
+  paused: string | null;
 }
 
 export interface Plan {
@@ -259,6 +262,16 @@ export function copyRefs(patterns: readonly string[], files: readonly DefaultFil
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
+/** "Paused: needs <the step that makes the fact>", or null. */
+const pausedLabel = (
+  id: string,
+  paused: ReadonlyMap<string, string> | undefined,
+  setups: readonly Setup[] = [],
+) => {
+  const fact = paused?.get(id);
+  return fact ? pausedText(setupOf(fact, setups)?.step.label ?? fact) : null;
+};
+
 /** The plan, from what's there now. Pure. */
 export function planOf(
   t: Template,
@@ -272,6 +285,8 @@ export function planOf(
     facts?: ReadonlySet<string>;
     /** The setups, to say how each missing fact is made true. */
     setups?: readonly Setup[];
+    /** Installed parts paused on a lost fact: part id to that fact. */
+    paused?: ReadonlyMap<string, string>;
   },
 ): Plan {
   const { client, row } = now;
@@ -284,6 +299,7 @@ export function planOf(
       blurb: c.blurb,
       effects: c.effects,
       missing: c.missing,
+      paused: pausedLabel(c.id, now.paused, now.setups),
       accounts: accountsLacking(c, client).map((site) => {
         const how = ACCOUNTS[site as AccountSite];
         return how
@@ -489,6 +505,11 @@ export async function readPlan(
     files,
     facts: await factsHeld(main, client),
     setups,
+    paused: await pausedParts(
+      main,
+      client,
+      t.parts.map((p) => p.part),
+    ),
   });
 }
 

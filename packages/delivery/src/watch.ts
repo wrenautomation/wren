@@ -8,9 +8,12 @@
  * never repeats.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { why } from "@wren/core/access";
 import { type ClientMember, clientMembers, clients } from "@wren/core/clients";
+import { grantsFor } from "@wren/core/grants";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
+import { clientMailAlerts } from "@wren/core/setup-alerts";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
@@ -512,6 +515,14 @@ async function mailContracts(
   }
 }
 
+/** Does this person's role, or a grant, reach the Account app at their client? */
+async function reachesAccounts(main: Db, p: Person): Promise<boolean> {
+  const client = p.m.clientId;
+  const grants = await grantsFor(main, p.m.email, p.m.role, client);
+  const who = { member: p.m.role, client, ...(grants.length ? { grants } : {}) };
+  return why(who, "read", { client, app: "account" }).length > 0;
+}
+
 async function mailPeople(
   deps: WatchDeps,
   send: (m: PortalMail) => Promise<void>,
@@ -634,6 +645,20 @@ async function mailPeople(
             : n > 0
               ? `${c.name}: ${n === 1 ? "something" : `${n} things`} ready to look at`
               : `${c.name}: Wren replied`;
+        if (!(await trySend({ to: p.m.email, subject, text: lines.join("\n") }))) continue;
+        stats.told += 1;
+      }
+    }
+    // A setup step theirs to do, a fact lost, a part paused: only to people whose role or grants
+    // reach the Account app, where they act on it.
+    if (level === "all") {
+      const alerts = await clientMailAlerts(main, c.id, p.mail.toldThrough, now);
+      if (alerts.length > 0 && (await reachesAccounts(main, p))) {
+        const lines = ["Your accounts with Wren:"];
+        for (const a of alerts) lines.push(`- ${a.title}${a.why ? `: ${clip(a.why, 200)}` : ""}`);
+        lines.push(`See and mark them done: ${app}/account/accounts?client=${c.id}`, "");
+        lines.push(settings(c.id));
+        const subject = `${c.name}: ${alerts.length === 1 ? "an account needs" : `${alerts.length} account steps need`} you`;
         if (!(await trySend({ to: p.m.email, subject, text: lines.join("\n") }))) continue;
         stats.told += 1;
       }

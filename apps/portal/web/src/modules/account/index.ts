@@ -6,6 +6,7 @@ import { Accounts } from "./Accounts.js";
 import { Domain } from "./Domain.js";
 import { Included } from "./Included.js";
 import { Look } from "./Look.js";
+import { nowCount } from "./Now.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { Vendors } from "./Vendors.js";
@@ -33,7 +34,7 @@ export const account: Module = {
     ...inGroup(inboxPages(), "People", "asks"),
     { id: "look", label: "Look", Page: Look, requires: { needs: "manage" }, group: "Setup" },
     { id: "domain", label: "Domain", Page: Domain, group: "Setup" },
-    { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup" },
+    { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup", badge: nowCount },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
     {
       id: "billing",

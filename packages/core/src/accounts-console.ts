@@ -7,7 +7,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
-import { eq, gte, sql } from "drizzle-orm";
+import { eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { WREN } from "./access.js";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "./accounts-console-routes.js";
@@ -38,6 +38,16 @@ import {
   siteLabel,
   startSetup,
 } from "./setup.js";
+import {
+  type AlertPart,
+  type AlertView,
+  alertTimeline,
+  clientAlerts,
+  openAlerts,
+  pausedParts,
+  pausedText,
+  teamAlerts,
+} from "./setup-alerts.js";
 import type { SetupRunRow } from "./setup-schema.js";
 import { spineEmit, waitMs } from "./spine.js";
 import { vendorUsage } from "./vendor-schema.js";
@@ -71,6 +81,8 @@ export interface AccountsDeps {
   env: string;
   /** The worker hands done-for-you steps to the agent (`WREN_SETUP_AGENT`); off: the team does them. */
   agent?: boolean;
+  /** Parts that need facts (the worker's COMPONENTS): paused ones show on the page. */
+  parts?: readonly AlertPart[];
   now?: () => Date;
 }
 
@@ -147,10 +159,29 @@ function runView(
   };
 }
 
+/** An alert as a page shows it: no internal keys. */
+const alertOut = (x: AlertView) => ({
+  id: x.id,
+  kind: x.kind,
+  for: x.for,
+  level: x.level,
+  title: x.title,
+  why: x.why,
+  at: x.at,
+  open: x.open,
+});
+
 function accountView(
   a: AccountView,
   setups: readonly Setup[],
-  o: { team: boolean; checks: ReadonlySet<string>; now: Date },
+  o: {
+    team: boolean;
+    checks: ReadonlySet<string>;
+    now: Date;
+    timeline?: readonly AlertView[];
+    /** The parts paused on this account's lost facts: "Paused: needs …". */
+    paused?: readonly { part: string; name: string; fact: string; text: string }[];
+  },
 ) {
   const mine = setups.filter((s) => s.site === a.site);
   return {
@@ -174,6 +205,9 @@ function accountView(
       const s = mine.find((x) => x.id === r.setup);
       return s ? [runView(a, s, r, o)] : [];
     }),
+    /** What happened to it: each alert, newest first. */
+    timeline: (o.timeline ?? []).map(alertOut),
+    paused: o.paused ?? [],
     /** Setups for this account's site not started on it. */
     setups: mine
       .filter((s) => !a.runs.some((r) => r.setup === s.id))
@@ -182,6 +216,7 @@ function accountView(
 }
 
 export type AccountsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["accounts"]>>;
+export type NowView = Awaited<ReturnType<ReturnType<typeof accountsApi>["now"]>>;
 export type VendorsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["vendors"]>>;
 export type UsageView = Awaited<ReturnType<ReturnType<typeof accountsApi>["usage"]>>;
 
@@ -219,6 +254,24 @@ export function accountsApi(deps: AccountsDeps) {
       throw new PortalRefusal("your role can't do that", 403);
     return { owner, team };
   };
+  /** The owner's paused parts, each with the accounts whose lost fact holds it. */
+  const pausedHere = async (client: string | null, list: readonly AccountView[]) => {
+    const parts = deps.parts ?? [];
+    const paused = await pausedParts(db, client, parts);
+    return [...paused].map(([id, fact]) => {
+      const label = setupOf(fact, deps.setups)?.step.label ?? fact;
+      return {
+        part: id,
+        name: parts.find((p) => p.id === id)?.name ?? id,
+        fact,
+        label,
+        text: pausedText(label),
+        accounts: list
+          .filter((a) => a.facts.some((f) => f.fact === fact && f.state === "lost"))
+          .map((a) => a.id),
+      };
+    });
+  };
   const fail = (err: unknown): never => {
     if (err instanceof PortalRefusal) throw err;
     throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
@@ -231,12 +284,25 @@ export function accountsApi(deps: AccountsDeps) {
       const team = teamAt(req, owner.id, "act");
       const o = { team, checks: deps.checks, now: now() };
       const list = await accountsOf(db, owner.id);
+      const timelines = await alertTimeline(
+        db,
+        list.map((a) => a.id),
+      );
+      const paused = await pausedHere(owner.id, list);
       return {
         owner,
         team,
         mayAct: team || (await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })),
         agent: team && !!deps.agent,
-        accounts: list.map((a) => accountView(a, deps.setups, o)),
+        accounts: list.map((a) =>
+          accountView(a, deps.setups, {
+            ...o,
+            timeline: timelines.get(a.id) ?? [],
+            paused: paused.filter((p) => p.accounts.includes(a.id)),
+          }),
+        ),
+        /** Every part paused here, once: the page's head. */
+        paused: paused.map(({ accounts: _, ...p }) => p),
         // What the team may add: each site with the setups that run on it.
         sites: team
           ? REGISTRY_SITES.map((site) => ({
@@ -245,6 +311,48 @@ export function accountsApi(deps: AccountsDeps) {
               setups: deps.setups.filter((s) => s.site === site).map((s) => s.name),
             }))
           : [],
+      };
+    },
+
+    /**
+     * Now: setup items for whoever asks. Wren's team at Wren: every owner's items the team acts
+     * on, and every lost or stuck one. A client's people (the guard checked their role reaches
+     * the Account app): theirs to do, their paused parts, and what finished in three days. The
+     * team looking at a client reads that client's items whoever acts. `count` is the open ones:
+     * the Accounts badge.
+     */
+    async now(req: PortalRequest) {
+      const owner = await ownerOf(db, req);
+      const team = teamAt(req, owner.id, "act") || teamCan(req, "read", owner.id ?? WREN);
+      const at = now();
+      let items: AlertView[];
+      if (owner.id === null) items = team ? await teamAlerts(db) : [];
+      else if (team && !req.asClient) items = await openAlerts(db, { client: owner.id });
+      else items = await clientAlerts(db, owner.id, at);
+      const ids = [...new Set(items.map((x) => x.client).filter((c): c is string => !!c))];
+      const names = new Map(
+        ids.length
+          ? (
+              await db
+                .select({ id: clients.id, name: clients.name })
+                .from(clients)
+                .where(inArray(clients.id, ids))
+            ).map((c) => [c.id, c.name])
+          : [],
+      );
+      return {
+        owner,
+        team: team && !req.asClient,
+        count: items.filter((x) => x.open).length,
+        items: items.map((x) => ({
+          ...alertOut(x),
+          client: x.client,
+          clientName: x.client === null ? "Wren" : (names.get(x.client) ?? x.client),
+          accountId: x.accountId,
+          site: x.site,
+          siteLabel: siteLabel(x.site),
+          ref: x.ref,
+        })),
       };
     },
 
@@ -334,6 +442,7 @@ export function accountsApi(deps: AccountsDeps) {
         step: step.id,
         by: by(req),
         now: now(),
+        ...(deps.parts ? { parts: deps.parts } : {}),
       }).catch(fail);
       return { emits: emit ? [emit] : [] };
     },
@@ -496,6 +605,7 @@ export function makeAccountsConsole(deps: AccountsDeps) {
     handlers: {
       accounts: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.accounts)),
       vendors: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.vendors)),
+      now: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.now)),
       usage: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.usage)),
       start: serviceHandler(
         { input: z.looseObject({ ...on, mode: z.enum(SETUP_MODES).nullish() }) },

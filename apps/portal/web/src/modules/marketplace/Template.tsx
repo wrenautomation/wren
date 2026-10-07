@@ -24,6 +24,8 @@ interface TemplatePart {
   blurb: string;
   effects: string[];
   ready: string;
+  /** "Paused: needs …": installed here, and a fact it needs was lost. */
+  paused?: string | null;
   settings: Record<string, unknown> | null;
   labels: Record<string, string>;
   accounts: { site: string; label: string; how: string; any: boolean; has: boolean | null }[];
@@ -39,6 +41,7 @@ interface Plan {
     name: string;
     status: "add" | "back" | "have" | "same" | "update" | "kept" | "development";
     accounts: { site: string; label: string; how: string }[];
+    paused?: string | null;
   }[];
   copy: { ref: string; status: "add" | "have" | "own" | "none" }[];
   draft: "add" | "have" | "edited" | "live";
@@ -187,8 +190,8 @@ function PartRow({
         <a href={at(p.id)} className="min-w-0 font-medium">
           {partName(p, template)}
         </a>
-        <Tag tone={needs.length ? "accent" : ready ? "green" : "neutral"}>
-          {needs.length ? needsText(needs, team) : ready ? "Ready" : "In development"}
+        <Tag tone={p.paused || needs.length ? "accent" : ready ? "green" : "neutral"}>
+          {p.paused ?? (needs.length ? needsText(needs, team) : ready ? "Ready" : "In development")}
         </Tag>
       </span>
       <span className={QUIET}>{p.id === template ? LOOP : p.blurb}</span>
@@ -250,11 +253,13 @@ function PlanList({ plan, copy }: { plan: Plan; copy: TemplateDetail["template"]
             p.id,
             partName(p, plan.template),
             PART[p.status],
-            p.accounts.length && p.status !== "development"
-              ? `${needsText(p.accounts, true)}. It installs and waits.`
-              : p.id === plan.template
-                ? LOOP
-                : undefined,
+            p.paused
+              ? p.paused
+              : p.accounts.length && p.status !== "development"
+                ? `${needsText(p.accounts, true)}. It installs and waits.`
+                : p.id === plan.template
+                  ? LOOP
+                  : undefined,
           ),
         )}
         {plan.copy.map((c) => line(c.ref, label(c.ref), COPY[c.status]))}
