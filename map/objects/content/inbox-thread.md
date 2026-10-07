@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 90e4fd8f (inbox reply)
+verified: 2026-10-07 @ a4fd1344 (client inbox)
 entity: packages/content/src/schema.ts:465
 ---
 
@@ -44,7 +44,11 @@ GHL Conversations is the model (William, 2026-10-07: "steal all the stuff"). A r
 | Inbox → Waiting on you | reads, writes |
 | Marketing → To approve | reads asked replies, approves |
 | Inbox → Mentions | reads note mentions |
+| client Marketing → Inbox | reads, writes (`MarketingConsole` `inbox*`) |
+| client Marketing → To approve | reads asked replies, approves (`marketing.asked_reply`) |
+| client Notes → Mentions | reads its Inbox mentions |
 
 ## Limits
 
-- The portal replies on Wren's threads only: `console.call` passes no client. `InboxDesk` takes `client`.
+- A client's login works its own threads only, through `MarketingConsole`, on its own database. `InboxDesk` checks `act` on the thread's channel, `effect` plus the approver to send.
+- A client's DMs and comments can't send yet: their desks are Wren's only.

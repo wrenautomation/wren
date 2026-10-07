@@ -72,11 +72,24 @@ Wren's own threads (no client) skip the sends flag. The viewer's `effect` still 
   from the Inbox.
 - Activity rows (follows, likes) have no reply.
 - A person is the join. Rows with no person still show their own thread, without other channels.
-- The portal replies on Wren's own threads only. `console.call` runs at Wren scope and passes no
-  client, so a client workspace's Inbox shows the conversation without a reply box yet.
-  `InboxDesk` already takes `client`.
+- A client's DMs and comments can't send yet: their desks are Wren's only. Text and email can.
 - The local preview has no Restate: the conversation and notes show, but Send, Suggest and the
   row actions need the worker.
+
+## Client workspaces
+
+A client's login works its own threads in Marketing -> Inbox, on its own database.
+
+- Calls go through `MarketingConsole` `inbox*` routes. Each pins the client the guard opened
+  (`pickForWrite`, `marketing.stats` installed), then calls `InboxDesk` with it.
+- `InboxDesk` checks the viewer on the thread's channel: `act` to note, assign, close, snooze or
+  ask; `effect` plus the client's approver to send. Scoped grants (app `marketing`, channel `sms`,
+  `email` or the platform) narrow both. No `effect` is Ask to send.
+- Its asked replies wait in Marketing -> To approve (`marketing.asked_reply`).
+- Suggest signs as the client, without Wren's facts, on the client's own `models` gate.
+- `@` and assign reach the client's people and Wren's team scoped to it. A client's Mentions in
+  Notes lists its Inbox mentions.
+- Wren's own threads stay team-only: a client login on `InboxDesk` with no client is refused.
 
 ## Decisions
 
