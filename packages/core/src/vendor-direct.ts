@@ -4,10 +4,17 @@
  * there, since a Restate call journals its input. So the worker calls the vendor itself, in the
  * shape autobrowse answers the same route, and the call site can't tell which ran.
  *
- * Routes: `web GET /search` with `via: "exa"`, `x GET /2/*` and `youtube GET /youtube/v3/*`.
- * Anything else on an own key is refused with what runs, never sent on Wren's key.
+ * Routes: `web GET /search` with `via: "exa"`, autobrowse's other Exa-backed `web` routes
+ * (people, companies, LinkedIn pages and posts from Exa's index: `vendor-direct-exa.ts`),
+ * `x GET /2/*` and `youtube GET /youtube/v3/*`. Anything else on an own key is refused with
+ * what runs, never sent on Wren's key.
  */
 import type { FetchLike } from "./doh.js";
+import { EXA_ROUTES, exaRoute } from "./vendor-direct-exa.js";
+
+/** autobrowse `web` routes that read Exa's index (people, companies, LinkedIn): Exa's key. */
+export const isExaRoute = (site: string, method: string, path: string) =>
+  site === "web" && method === "GET" && EXA_ROUTES.has(path);
 
 export interface DirectAnswer {
   ok: boolean;
@@ -26,7 +33,8 @@ const query = (input: Record<string, unknown> = {}, drop: string[] = []) => {
 /** Does an own key answer this call here? Null when it does; else why not. */
 export function directRefusal(vendor: string, site: string, method: string, path: string) {
   if (method !== "GET") return `${vendor}: only reads run on your own key`;
-  if (vendor === "exa" && site === "web" && path === "/search") return null;
+  if (vendor === "exa" && site === "web" && (path === "/search" || EXA_ROUTES.has(path)))
+    return null;
   if (vendor === "x" && site === "x" && path.startsWith("/2/")) return null;
   if (vendor === "youtube" && site === "youtube" && path.startsWith("/youtube/v3/")) return null;
   return `${site} ${path} doesn't run on your own ${vendor} key yet`;
@@ -55,6 +63,7 @@ export async function directCall(
   const why = directRefusal(vendor, site, "GET", path);
   if (why) return { ok: false, status: 409, body: { error: why } };
   const timeout = { signal: AbortSignal.timeout(30_000) };
+  if (vendor === "exa" && path !== "/search") return exaRoute(key, path, input, fetch);
   if (vendor === "exa") {
     const q = String(input?.q ?? "");
     const n = Math.min(50, Math.max(1, Number(input?.n ?? 10) || 10));

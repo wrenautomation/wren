@@ -74,8 +74,8 @@ describe("directCall", () => {
   it("anything else is refused, never sent", async () => {
     const f = fake({});
     expect(directRefusal("x", "x", "POST", "/2/tweets")).toContain("only reads");
-    expect(directRefusal("exa", "web", "GET", "/linkedin/posts")).toContain("doesn't run");
-    const a = await directCall("exa", KEY, "web", "/people", {}, f.fetch);
+    expect(directRefusal("exa", "web", "GET", "/read")).toContain("doesn't run");
+    const a = await directCall("exa", KEY, "web", "/read", {}, f.fetch);
     expect([a.ok, a.status, f.seen.length]).toEqual([false, 409, 0]);
   });
 });

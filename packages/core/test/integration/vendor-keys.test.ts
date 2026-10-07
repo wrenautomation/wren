@@ -366,6 +366,37 @@ describe("meteredSites and meteredModel route by mode", () => {
     expect(after.length).toBe(before.length);
   });
 
+  it("people and LinkedIn routes follow the client's Exa key; no mode stays on Wren's ring", async () => {
+    const before = await pg.db.select({ id: vendorUsage.id }).from(vendorUsage);
+    const f = fakeSites();
+    const exa = fakeExa();
+    const journal: string[] = [];
+    const step = async <T>(name: string, fn: () => Promise<T>) => {
+      const out = await fn();
+      journal.push(`${name} ${JSON.stringify(out ?? null)}`);
+      return out;
+    };
+    const on = (client: string) =>
+      meteredSites(f.sites, { main: pg.db, client, part: "t", now, store, step, fetch: exa.fetch });
+    const out = await on("acme").call<{ people: unknown[]; via: string }>("web", "GET", "/people", {
+      q: "recruiters",
+    });
+    expect(out.via).toBe("exa");
+    await on("acme").call("web", "GET", "/linkedin/posts", { q: "Avery" });
+    // Managed and no mode: Wren's ring through autobrowse, as before.
+    await on("beta").call("web", "GET", "/linkedin/profile", { url: "https://linkedin.com/in/a" });
+    await on("gamma").call("web", "GET", "/people", { q: "g" });
+    expect(exa.seen.map((x) => [x.url, x.key])).toEqual([
+      ["https://api.exa.ai/search", EXA_OWN],
+      ["https://api.exa.ai/search", EXA_OWN],
+    ]);
+    expect(f.calls).toEqual(["web /linkedin/profile", "web /people"]);
+    // Only whose key: the caller meters these reads, and no step holds the key.
+    const after = await pg.db.select({ id: vendorUsage.id }).from(vendorUsage);
+    expect(after.length).toBe(before.length);
+    expect(journal.join("\n")).not.toContain(EXA_OWN);
+  });
+
   it("models: own key straight to its provider, managed on Wren's gateway, unset only by choice", async () => {
     const used: string[] = [];
     const gateway = {

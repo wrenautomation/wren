@@ -6,14 +6,15 @@
  *
  * Whose key (designs/2026-10-07-vendor-keys.md): a client on its own Exa, X or YouTube key reads
  * straight from the vendor with it (`vendor-direct.ts`); on Wren's, through autobrowse as before.
+ * autobrowse's people and LinkedIn routes that read Exa's index follow the client's Exa key too.
  * A model call on its own key goes straight to its provider; on Wren's, the gateway.
  */
 import type { Db } from "@wren/db";
 import { SiteCallError, type SiteClient, type SiteMethod } from "./content/autobrowse.js";
 import type { FetchLike } from "./doh.js";
 import type { KeyStore } from "./keys.js";
-import { directCall, directRefusal, unitsOfRead } from "./vendor-direct.js";
-import { scrubKey, vendorKeys } from "./vendor-keys.js";
+import { directCall, directRefusal, isExaRoute, unitsOfRead } from "./vendor-direct.js";
+import { scrubKey, type VendorKeys, vendorKeys } from "./vendor-keys.js";
 import { isVendorStop, VendorStop } from "./vendor-stop.js";
 import { gate, meter, vendorOf } from "./vendors.js";
 
@@ -104,6 +105,10 @@ function routed(
     now: s.now,
     ...(metered ? {} : { unset: "managed" as const }),
   });
+  // Exa under people and LinkedIn routes: a client with no Exa mode stays on Wren's ring.
+  const exaKeys = metered
+    ? vendorKeys({ main: s.main, keys: s.store, now: s.now, unset: "managed" })
+    : keys;
   const step = s.step ?? plain;
   let chain: Promise<unknown> = Promise.resolve();
   const inTurn = <T>(fn: () => Promise<T>): Promise<T> => {
@@ -142,30 +147,67 @@ function routed(
       const g = await step(`gate ${vendor}`, () => gate(s.main, client, vendor, 1, s.now()));
       if (!g.ok) throw stop(g.why);
     }
-    let out: T;
-    if (mode.mode === "own" && client !== null) {
-      const a = await step(`${vendor} on own key`, async (): Promise<Answer> => {
-        const k = await keys.key(client, vendor, why(vendor));
-        if (k.mode !== "own" || !k.key) return { ok: false, status: 409, error: "key changed" };
-        try {
-          const r = await directCall(vendor, k.key, site, path, input, s.fetch);
-          if (r.ok) return { ok: true, body: r.body };
-          const e = scrubKey(new Error(errorText(r.body)), k.key) as Error;
-          return { ok: false, status: r.status, error: e.message };
-        } catch (err) {
-          const e = scrubKey(err, k.key);
-          return { ok: false, status: 502, error: e instanceof Error ? e.message : String(e) };
-        }
-      });
-      if (!a.ok) throw new SiteCallError(site, method, path, a.status, a.error);
-      out = a.body as T;
-    } else out = await go();
+    const out =
+      mode.mode === "own" && client !== null
+        ? await own<T>(keys, client, vendor, site, method, path, input)
+        : await go();
     if (!metered) return out;
     const units = unitsOfRead(vendor, path, out);
     await step(`meter ${vendor}`, () =>
       meter(s.main, { client, vendor, units, part: s.part, runId: s.runId ?? null }),
     );
     return out;
+  }
+
+  /** One read on the client's own key, in a step that reads the key and never returns it. */
+  async function own<T>(
+    on: VendorKeys,
+    client: string,
+    vendor: string,
+    site: string,
+    method: SiteMethod,
+    path: string,
+    input: Record<string, unknown> | undefined,
+  ): Promise<T> {
+    const a = await step(`${vendor} on own key`, async (): Promise<Answer> => {
+      const k = await on.key(client, vendor, why(vendor));
+      if (k.mode !== "own" || !k.key) return { ok: false, status: 409, error: "key changed" };
+      try {
+        const r = await directCall(vendor, k.key, site, path, input, s.fetch);
+        if (r.ok) return { ok: true, body: r.body };
+        const e = scrubKey(new Error(errorText(r.body)), k.key) as Error;
+        return { ok: false, status: r.status, error: e.message };
+      } catch (err) {
+        const e = scrubKey(err, k.key);
+        return { ok: false, status: 502, error: e instanceof Error ? e.message : String(e) };
+      }
+    });
+    if (!a.ok) throw new SiteCallError(site, method, path, a.status, a.error);
+    return a.body as T;
+  }
+
+  /**
+   * autobrowse's Exa-backed people, company and LinkedIn routes: the client's own Exa key when it
+   * brought one, else Wren's ring as before. Only whose key: the caller gates and meters these
+   * reads already (as LinkedIn search), and a client with no Exa mode stays on Wren's.
+   */
+  async function exaBacked<T>(
+    client: string,
+    site: string,
+    method: SiteMethod,
+    path: string,
+    input: Record<string, unknown> | undefined,
+    go: () => Promise<T>,
+  ): Promise<T> {
+    const mode = await step("key exa", () =>
+      exaKeys.key(client, "exa", why("exa")).then(
+        (k) => ({ mode: k.mode }),
+        (err) => (isVendorStop(err) ? { stop: err.why } : Promise.reject(err)),
+      ),
+    );
+    if ("stop" in mode) throw new VendorStop(site, method, path, "exa", mode.stop);
+    if (mode.mode !== "own") return go();
+    return own<T>(exaKeys, client, "exa", site, method, path, input);
   }
 
   return {
@@ -178,6 +220,9 @@ function routed(
     ) => {
       const vendor = vendorOfCall(site, method, path, input);
       const go = () => sites.call<T>(site, method, path, input, account);
+      const client = s.client;
+      if (!vendor && client !== null && isExaRoute(site, method, path))
+        return inTurn(() => exaBacked<T>(client, site, method, path, input, go));
       // On a named login (a client's own X or YouTube account): that login's token, not a key.
       if (!vendor || (account && LOGINS.has(vendor))) return go();
       return inTurn(() => read<T>(vendor, site, method, path, input, go));
