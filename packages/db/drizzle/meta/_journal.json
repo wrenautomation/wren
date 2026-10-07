@@ -1317,6 +1317,13 @@
       "when": 1791410469891,
       "tag": "0187_sites_splits",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1791412714150,
+      "tag": "0188_content_analytics",
+      "breakpoints": true
     }
   ]
 }
