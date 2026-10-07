@@ -39,6 +39,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 |---|---|
 | drafting (`draftIdea`, `redraft`, `sortComment`, `draftThread`, `draftDm`) | write `generated` with the prompt |
 | the draft box, Ask Claude, Undo, `wren drafts set`, `wren content edit`, a changed send | write `edited` |
+| a post field save (`setFields`: editor, attach, `wren content fields`) | writes `edited` with `meta.fields: {key: [before, after]}`; `sent` carries `meta.fields` (what went out) and `meta.notes`. Export versions carry `fields` |
 | `ContentDesk.approve/reject`, `MarketingConsole.rejectDraft`, `wren content reject --reason --note`, drop and skip | write decisions |
 | `ContentScheduler`, `markAnswered`, `markCommented`, `queueDraft` | write `sent` / `failed` |
 | every draft page: Versions section (`draftRecordOf` in each `load`) and Activity tab (`draft_activity`) | read |

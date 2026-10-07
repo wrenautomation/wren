@@ -19,7 +19,7 @@ Per client: the same table in the client's own database. `ContentPlanner/<c>/dai
 
 ## Shape
 
-- `idea_id`, `platform`, `text`, `title`, `media`, `extra` (e.g. reddit `subreddit`), `status` (`DRAFT_STATUSES`, `:28`), `edited`, `scheduled_for`, `approved_at`, `published_at`, `published_id`, `url`, `error`, `redraft_of`, `note`, `prompt_version`, `playbook_id` (the [[content/playbook]] the prompt carried), `llm` (`schema.ts:76`–`112`)
+- `idea_id`, `platform`, `text`, `title`, `media`, `extra` (the platform's post shape, `SHAPES` in `packages/core/src/content/shapes.ts`: checked by `setFields` on save, by approve for required fields, by `postOf` before publish), `status` (`DRAFT_STATUSES`, `:28`), `edited`, `scheduled_for`, `approved_at`, `published_at`, `published_id`, `url`, `error`, `redraft_of`, `note`, `prompt_version`, `playbook_id` (the [[content/playbook]] the prompt carried), `llm` (`schema.ts:76`–`112`)
 
 Citations: `packages/content/src/schema.ts:76`
 
@@ -44,6 +44,7 @@ Citations: `packages/content/src/schema.ts:76`
 | `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes; reject takes an optional `reason` and `note`, kept in [[content/draft-event]] |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`). Marketing → Content → Today (a Day page, `apps/portal/web/src/modules/marketing/index.ts`) shows scheduled drafts by `scheduled`, posts by `published`, waiting drafts by `created` (carried onto today) with Approve; every Content page has the platform switch |
 | the detail's draft box (`DraftAsk/set`, who = the signed-in person), `DraftAsk/ask` (Claude's rewrite), `DraftAsk/undo`, `wren drafts set draft:<id>` | write `text` through `editDraft`, one `runs` row each (`draft-ask`/`draft-set`/`draft-undo`, keeps the text replaced); `marketing.draft`'s `load` adds the thread (`draftTurns`, `packages/core/src/ask.ts`). The `draft-set` rows are his edits: `draftEdits`/`editsFor` feed the last 5 per kind to every drafting call and the Ask Claude prompt, `wren drafts edits` prints them. Kinds: `packages/content/src/draft-ask.ts` |
+| `ContentDesk.fields` / `attach` (`marketing/draftFields`, `marketing/draftAttach`), `wren content fields <id> key=value` | write `extra` and the title through `setFields`; attach puts a thumbnail, cover or subtitles file (2 MB) in [[content/media]] first. The detail's `shape` (`shapeView`, `packages/content/src/shape-view.ts`) feeds the field editor and platform card on Drafts, To approve and Posts (`apps/portal/web/src/modules/marketing/fields.tsx`) |
 | `ContentScheduler/default`, `ContentScheduler/<c>/posts` | moves to published/failed; a client's waits on its live flag |
 | `ContentPlanner` | reads slots; with `draft` on, gives each new draft its slot |
 | `ContentMetrics` | reads |

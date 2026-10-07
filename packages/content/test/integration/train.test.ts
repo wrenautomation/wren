@@ -21,6 +21,7 @@ import {
   markPublished,
   redraft,
   rejectDrafts,
+  setFields,
   writeDraft,
 } from "../../src/index.js";
 import { draftRecord } from "../../src/records.js";
@@ -239,6 +240,32 @@ describe("the export", () => {
     expect(kept?.final?.text).toBe("Shipped it. Ask william@example.com.");
     expect(await trainRecords(pg.db, { kinds: ["dm"] })).toEqual([]);
     expect(await trainRecords(pg.db, { since: new Date(Date.now() + 60_000) })).toEqual([]);
+  });
+
+  it("keeps a field edit as its own version and what went out with the send", async () => {
+    const { draft } = await firstDraft();
+    await setFields(
+      pg.db,
+      draft.id,
+      { visibility: "CONNECTIONS", noReshare: true },
+      { by: "william@example.com" },
+    );
+    await approveDrafts(pg.db, [draft.id], { now: new Date(), at: new Date(), by: "cli" });
+    await markPublished(pg.db, draft.id, {
+      id: `urn:li:share:${draft.id}`,
+      url: null,
+      publishedAt: new Date().toISOString(),
+      fetchedWith: "api",
+      notes: ["Reshares not set: refused"],
+    });
+    const [r] = (await trainRecords(pg.db)) as [TrainRecord];
+    expect(r.versions.map((v) => v.fields)).toEqual([
+      null,
+      { visibility: [null, "CONNECTIONS"], noReshare: [null, true] },
+    ]);
+    expect(r.final?.fields).toEqual({ visibility: "CONNECTIONS", noReshare: true });
+    const [row] = await pg.db.execute(sql`select error from content_drafts where id = ${draft.id}`);
+    expect(row?.error).toBe("Reshares not set: refused");
   });
 
   it("names a commenter [person] in the words and the prompt", async () => {
