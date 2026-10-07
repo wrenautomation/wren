@@ -48,6 +48,7 @@ import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
+import { videoRecord } from "../../../packages/content/src/video.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
 import { CLIENT_MARKETING, MARKETING_NUMBERS } from "../../worker/src/marketing.js";
@@ -120,8 +121,10 @@ const SERVICES: Record<
         // Inbox > Calls, and a client's page (/clients/all/<id>), as the worker registers them.
         callRecord,
         clientRecord,
-        // Marketing's own pages (drafts, posts, comments, DMs, Inbox) and Pipeline's companies.
+        // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
+        // companies. Videos have no media host here: no playback.
         ...MARKETING_NUMBERS,
+        videoRecord(),
         firmRecord,
       ],
     }),
