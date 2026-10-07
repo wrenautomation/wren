@@ -290,6 +290,8 @@ export interface Component {
   liveSwitch: boolean;
   /** Accounts it will take once their run is built: the part page says "In development". */
   soon: AccountSite[];
+  /** Planned parts it will run as steps once they're built (calls): also "In development". */
+  later: string[];
   /** What it takes in and hands on; a workflow wires these. */
   in: Port[];
   out: Port[];
@@ -336,6 +338,7 @@ export const defineComponent = (c: Input): Component => ({
   effects: c.effects ?? [],
   liveSwitch: c.liveSwitch ?? false,
   soon: c.soon ?? [],
+  later: c.later ?? [],
   in: c.in ?? [],
   out: c.out ?? [],
   inside: c.inside ?? null,

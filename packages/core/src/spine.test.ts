@@ -71,6 +71,27 @@ const FLOWS: Workflow[] = [
       { from: "x.replied", to: "out.replied", via: "events", wait: "2 days" },
     ],
   }),
+  // A part whose inside is a workflow of touches, as Follow-up's is.
+  defineWorkflow({
+    ...base,
+    id: "wrapper.inside",
+    name: "wrapper inside",
+    nodes: [{ id: "t", uses: "touch", template: { kind: "sms", system: "t", name: "w#1" } }],
+    wires: [
+      { from: "in.leads", to: "t.lead", via: "events" },
+      { from: "t.replied", to: "out.replied", via: "events" },
+    ],
+  }),
+  defineWorkflow({
+    ...base,
+    id: "top2",
+    name: "top2",
+    nodes: [{ id: "f", uses: "wrapper" }],
+    wires: [
+      { from: "in.leads", to: "f.leads", via: "events" },
+      { from: "f.replied", to: "out.replied", via: "events" },
+    ],
+  }),
   cadenceWorkflow({
     name: "t",
     label: "t",
@@ -163,7 +184,14 @@ function walkWith(store: SpineStore, by: string, rule = async () => false) {
   const later: Array<{ id: string; ms: number }> = [];
   const w: Walk = {
     flows: new Map(FLOWS.map((f) => [f.id, f])),
-    parts: new Map([part("answer"), part("planned"), TOUCH].map((c) => [c.id, c])),
+    parts: new Map(
+      [
+        part("answer"),
+        part("planned"),
+        TOUCH,
+        { ...part("wrapper"), inside: "wrapper.inside" },
+      ].map((c) => [c.id, c]),
+    ),
     steps: { answer, touch },
     store,
     client: null,
@@ -220,6 +248,10 @@ describe("walk", () => {
       { port: "a", subject: "lead:1", kind: "lead", data: { cut: "too big to keep" } },
     ]);
     expect(sentOf([{ port: "a", event: lead("2") }])[0]?.data).toEqual({ n: "2" });
+    const follow = { part: "nurture", did: "queued" };
+    expect(
+      sentOf([{ port: "a", event: { ...big, data: { ...big.data, follow } } }])[0]?.data,
+    ).toEqual({ cut: "too big to keep", follow });
   });
 
   it("lets nothing enter twice, but a retry of the same call steps again", async () => {
@@ -262,6 +294,20 @@ describe("walk", () => {
     modelDown = true;
   });
 
+  it("tells a step inside a part which part it runs in, and its node's copy", async () => {
+    const { store } = memStore();
+    await walk(walkWith(store, "p1").w, "top2", "in.leads", [lead("p")]);
+    expect(touched.at(-1)).toEqual({
+      client: null,
+      workflow: "top2",
+      node: "f.t",
+      with: {},
+      template: { kind: "sms", system: "t", name: "w#1" },
+      part: "wrapper",
+    });
+    touched.length = 0;
+  });
+
   it("runs a cadence: each touch gets its node, the next waits on the sender's sent", async () => {
     const { store } = memStore();
     const { w, later } = walkWith(store, "c1");
@@ -270,6 +316,9 @@ describe("walk", () => {
       workflow: "follow_up.t",
       node: `s${step}`,
       with: { step },
+      // Each touch's own copy, and no part around it: a cadence is a workflow of its own.
+      template: { kind: "sms", system: "t", name: `t#${step}` },
+      part: null,
     });
     expect(await walk(w, "follow_up.t", "in.leads", [lead("1")])).toMatchObject({ arrived: 1 });
     expect(touched).toEqual([at(1)]);

@@ -13,6 +13,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
+import { leadThreads } from "./leads.js";
 import {
   aboutOf,
   dig,
@@ -26,8 +27,10 @@ import {
   type Until,
   untilOf,
   untilOfFacts,
+  untilsFreedBy,
 } from "./logic.js";
 import { hooks, type SentEvent, workflowInstalls, workflowSaves } from "./schema.js";
+import type { TemplateRef } from "./templates.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
 export interface SpineEvent {
@@ -44,6 +47,10 @@ export interface StepAt {
   /** Dotted from the top workflow. */
   node: string;
   with: Record<string, string | number>;
+  /** The node's copy, when it names one (a touch's words). */
+  template?: TemplateRef | null;
+  /** The part whose inside this node runs in (`follow_up`); null at a workflow's top. */
+  part?: string | null;
 }
 
 /** A part's code on the spine: an event at one of its inputs in, events on its outputs out. */
@@ -170,6 +177,14 @@ function flowAt(w: Walk, top: Workflow, at: string[]): Workflow {
   return f;
 }
 
+/** The part a node at `at` runs inside: the node above it, when that one uses a part. */
+function partAt(w: Walk, top: Workflow, at: string[]): string | null {
+  const id = at.at(-1);
+  if (!id) return null;
+  const uses = flowAt(w, top, at.slice(0, -1)).nodes.find((n) => n.id === id)?.uses;
+  return uses && w.parts.has(uses) ? uses : null;
+}
+
 /** A custom step at an https URL: POST `{port, event}`, answer `{out: [{port, event}]}`. */
 const httpStep =
   (url: string): Step =>
@@ -291,7 +306,14 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
         async () => {
           const kept = await w.store.claim(a, w.by);
           if (!kept) return null;
-          const at = { client: w.client, workflow, node: a.node, with: node.with ?? {} };
+          const at: StepAt = {
+            client: w.client,
+            workflow,
+            node: a.node,
+            with: node.with ?? {},
+            template: node.template ?? null,
+            part: partAt(w, top, m.at),
+          };
           const out = step ? await step(a.port, a.event, at) : [];
           await w.store.sent?.(kept, out);
           return out;
@@ -410,7 +432,11 @@ export function sentOf(outs: ReadonlyArray<{ port: string; event: SpineEvent }>)
     data: o.event.data,
   }));
   if (JSON.stringify(all).length <= SENT_MAX) return all;
-  return all.map((o) => ({ ...o, data: { cut: "too big to keep" } }));
+  // A follow-up touch's note is small and is what its journey reads: it stays.
+  return all.map((o) => ({
+    ...o,
+    data: { cut: "too big to keep", ...(o.data.follow ? { follow: o.data.follow } : {}) },
+  }));
 }
 
 export function pgSpineStore(db: Db): SpineStore {
@@ -485,15 +511,22 @@ export function pgSpineStore(db: Db): SpineStore {
   };
 }
 
-/** Arrivals held at a Wait until `until`, about one of `about` (`aboutOf`): their ids. */
+/**
+ * Arrivals held at a Wait that `fired` lets go (`untilsFreedBy`: a reply also frees "a reply or a
+ * booking"), about one of `about` (`aboutOf`): their ids.
+ */
 export async function waitingFor(
   db: Queryable,
-  until: Until,
+  fired: Until,
   about: readonly string[],
 ): Promise<string[]> {
   if (!about.length) return [];
+  const untils = untilsFreedBy(fired);
   const rows = (await db.execute(sql`
-    SELECT id::text FROM events WHERE until = ${until} AND due IS NOT NULL
+    SELECT id::text FROM events WHERE until IN (${sql.join(
+      untils.map((u) => sql`${u}`),
+      sql`, `,
+    )}) AND due IS NOT NULL
       AND about IN (${sql.join(
         about.map((x) => sql`${x}`),
         sql`, `,
@@ -880,9 +913,12 @@ export function makeSpine(d: SpineDeps) {
               .serviceSendClient<SpineService>(SPINE)
               .emit({ client: req.client, ...h, events: [req.event] });
           const db = client ? d.clientDb(client) : d.main;
-          const held = await ctx.run("held", () =>
-            waitingFor(db, untilOfFacts(req.facts), aboutsOf(req)),
-          );
+          // About the same lead on any channel: a reply by email frees a wait held on its texts.
+          const held = await ctx.run("held", async () => {
+            const about = aboutsOf(req);
+            const all = [...new Set([...about, ...(await leadThreads(db, about))])];
+            return waitingFor(db, untilOfFacts(req.facts), all);
+          });
           for (const id of held)
             ctx
               .serviceSendClient<SpineService>(SPINE)

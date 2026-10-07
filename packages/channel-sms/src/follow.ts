@@ -7,11 +7,14 @@
  * Someone who asked to be texted (a form, a client's door) is also let go when they book (asked
  * before each text) or another channel's sequence holds them: one active sequence per lead.
  */
+import { type FollowNote, followStart, isFollowTouch, type Outs, passed } from "@wren/core/follow";
 import { activeElsewhere } from "@wren/core/leads";
-import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
+import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
+import { refText } from "@wren/core/templates";
+import { liveOrDefault } from "@wren/core/templates/defaults";
 import { sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { Bookings } from "./bookings.js";
 import { TOUCH } from "./components.js";
@@ -122,13 +125,91 @@ export async function touch(
   return "queued";
 }
 
-/** Whose texts a touch runs on: the database of whoever's workflow it is, and their copy's facts. */
-export type TouchTexts = Omit<TouchOptions, "now"> & { db: Db };
+/**
+ * Whose texts a touch runs on: the database of whoever's workflow it is, and their copy's facts.
+ * A follow-up touch also needs Wren's main database (`main`: clients, their send flags) and why
+ * texts can't go now (`off`: the global gate, the client's texts), null when they can.
+ */
+export type TouchTexts = Omit<TouchOptions, "now"> & {
+  db: Db;
+  main?: Queryable;
+  off?: string | null;
+};
 
-/** `sms.touch` on the spine: the node's `step`, on the texts of whoever's workflow it is. */
+/** Contact states a follow-up never texts: they said stop, or the number can't take texts. */
+const NEVER = new Set(["opted_out", "unreachable", "stopped"]);
+
+/**
+ * One follow-up text (designs/2026-10-07-follow-up-nurture.md): to someone who asked to be
+ * texted, in the node's live words, queued due now as kind `follow_up` for the sender, which
+ * keeps quiet hours, STOP and the monthly cap. One per contact and node, however often it runs.
+ */
+export async function followText(
+  db: Db,
+  contactId: number,
+  at: Pick<StepAt, "workflow" | "node" | "template">,
+  o: { senderName: string; bookingLink: string | null; would: string | null; now: Date },
+): Promise<Pick<FollowNote, "did" | "why">> {
+  const [c] = await db.select().from(smsContacts).where(eq(smsContacts.id, contactId));
+  if (!c) return { did: "skipped", why: `no text contact ${contactId}` };
+  if (!ASKED.has(c.sourceKind)) return { did: "skipped", why: "never asked to be texted" };
+  if (NEVER.has(c.state)) return { did: "skipped", why: `their texts ended: ${c.state}` };
+  if (!c.numberId) return { did: "skipped", why: "no number of ours on the thread" };
+  if (!at.template) return { did: "skipped", why: "this step has no copy" };
+  const live = await liveOrDefault(db, at.template);
+  if (!live) return { did: "skipped", why: `${refText(at.template)} has no live words` };
+  if (o.would) return { did: "would_send", why: o.would };
+  const text = render(
+    live.template,
+    await fieldsFor(db, c, o.senderName, o.bookingLink),
+    textSeed(c.id),
+  );
+  const ref = `${at.workflow}/${at.node}`.slice(0, 64);
+  await db
+    .insert(smsMessages)
+    .values({
+      contactId: c.id,
+      direction: "out",
+      kind: "follow_up",
+      template: at.template.name,
+      templateVersion: text.provenance.version,
+      provenance: text.provenance,
+      ref,
+      numberId: c.numberId,
+      toE164: c.e164,
+      body: text.body,
+      state: "queued",
+      dueAt: o.now,
+    })
+    .onConflictDoNothing();
+  return { did: "queued", why: null };
+}
+
+async function followTouch(texts: TouchTexts, e: SpineEvent, at: StepAt): Promise<Outs> {
+  if (!texts.main) throw new Error("no main database for follow-up texts here");
+  const start = await followStart(
+    { db: texts.db, main: texts.main, channel: "text", globalOff: texts.off ?? null },
+    e,
+    at,
+  );
+  if ("outs" in start) return start.outs;
+  const got = await followText(texts.db, start.thread, at, {
+    senderName: texts.senderName,
+    bookingLink: texts.bookingLink ?? null,
+    would: start.would,
+    now: new Date(),
+  });
+  return passed(e, { ...start.note, ...got });
+}
+
+/**
+ * `sms.touch` on the spine: the node's `step`, on the texts of whoever's workflow it is. A node
+ * with no `step` is a follow-up touch (`followTouch`).
+ */
 export const touchStep =
   (textsFor: (client: string | null) => TouchTexts | Promise<TouchTexts>): Step =>
   async (_port, e, at) => {
+    if (isFollowTouch(at)) return followTouch(await textsFor(at.client), e, at);
     const other = passOn(e, "sms");
     if (other) return other;
     const contactId = Number(e.data.contactId);

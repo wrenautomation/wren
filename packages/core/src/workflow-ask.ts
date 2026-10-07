@@ -62,7 +62,11 @@ export function workflowAskPrompt(o: {
 /** Claude's patch as a draft, or null when it isn't one: wires and steps arrays. */
 export function patchOf(patch: unknown): WorkflowEdits | null {
   if (!patch || typeof patch !== "object") return null;
-  const p = patch as { wires?: unknown; steps?: unknown };
+  const p = patch as { wires?: unknown; steps?: unknown; settings?: unknown };
   if (!Array.isArray(p.wires) || !Array.isArray(p.steps ?? [])) return null;
-  return { wires: p.wires, steps: (p.steps ?? []) as never } as WorkflowEdits;
+  const settings =
+    p.settings && typeof p.settings === "object" && !Array.isArray(p.settings)
+      ? { settings: p.settings as WorkflowEdits["settings"] }
+      : {};
+  return { wires: p.wires, steps: (p.steps ?? []) as never, ...settings } as WorkflowEdits;
 }

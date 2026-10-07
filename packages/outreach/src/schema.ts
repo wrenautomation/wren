@@ -68,8 +68,11 @@ export type ContactState = (typeof CONTACT_STATES)[number];
 export const DIRECTIONS = ["out", "in"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
-/** `connect` = an invite (LinkedIn); `sequence` = a cold step; `manual` = typed by the operator; `inbound` = theirs. */
-export const MESSAGE_KINDS = ["connect", "sequence", "manual", "inbound"] as const;
+/**
+ * `connect` = an invite (LinkedIn); `sequence` = a cold step; `manual` = typed by the operator;
+ * `inbound` = theirs; `follow_up` = a Follow-up or Nurture touch on a thread we wrote on.
+ */
+export const MESSAGE_KINDS = ["connect", "sequence", "manual", "inbound", "follow_up"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /** Outbound: queued → sending → sent | failed. `unknown` = the platform call's fate is lost; never resent. */
@@ -216,6 +219,10 @@ export const reachMessages = pgTable(
     uniqueIndex("uq_reach_messages_in_ref")
       .on(t.contactId, t.ref)
       .where(sql`(direction)::text = 'in'::text`),
+    /** One follow-up DM per contact and node (`provenance.follow`). */
+    uniqueIndex("uq_reach_messages_follow_up")
+      .on(t.contactId, sql`(${t.provenance} ->> 'follow')`)
+      .where(sql`(kind)::text = 'follow_up'::text`),
     oneOf("ck_reach_messages_direction", t.direction, DIRECTIONS),
     oneOf("ck_reach_messages_kind", t.kind, MESSAGE_KINDS),
     oneOf("ck_reach_messages_state", t.state, MESSAGE_STATES),

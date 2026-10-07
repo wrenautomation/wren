@@ -6,6 +6,7 @@
 import { emailCadence } from "@wren/channel-email";
 import { textCadence } from "@wren/channel-sms";
 import { CONTENT_WORKFLOWS } from "@wren/content/components";
+import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
@@ -231,6 +232,8 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...NICHES.flatMap((n) => [...n.sequences.values()].map((s) => emailCadence(n.name, s))),
   ...[...SMS_SEQUENCES.values()].map(textCadence),
   ...[...REACH_SEQUENCES.values()].filter((s) => s.steps.length > 0).map(reachCadence),
+  // Follow-up and Nurture: touches on every channel, each waiting for an answer.
+  ...FOLLOW_WORKFLOWS,
   ...BLOCKS,
   ...FUNNELS,
   WREN,

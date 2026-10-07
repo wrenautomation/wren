@@ -96,9 +96,10 @@ export type Direction = (typeof DIRECTIONS)[number];
 
 /**
  * `sequence` = a cold step; `manual` = typed by the operator in the app or CLI;
- * `reminder` = about something they booked (`ref` names it); `inbound` = theirs.
+ * `reminder` = about something they booked (`ref` names it); `inbound` = theirs;
+ * `follow_up` = a Follow-up or Nurture touch (`ref` names its workflow and node).
  */
-export const MESSAGE_KINDS = ["sequence", "manual", "reminder", "inbound"] as const;
+export const MESSAGE_KINDS = ["sequence", "manual", "reminder", "inbound", "follow_up"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
@@ -299,6 +300,9 @@ export const smsMessages = pgTable(
     uniqueIndex("uq_sms_messages_reminder_ref")
       .on(t.template, t.ref)
       .where(sql`(kind)::text = 'reminder'::text`),
+    uniqueIndex("uq_sms_messages_follow_up_ref")
+      .on(t.contactId, t.ref)
+      .where(sql`(kind)::text = 'follow_up'::text`),
     foreignKey({
       columns: [t.contactId],
       foreignColumns: [smsContacts.id],

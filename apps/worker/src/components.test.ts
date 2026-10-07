@@ -28,6 +28,7 @@ import {
 } from "@wren/core/console";
 import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
@@ -253,6 +254,28 @@ describe("workflows and hypotheses", () => {
       ).toBe(true);
     }
     expect(speed?.spec.door).toEqual({ input: "forms", subject: "phone" });
+  });
+
+  it("a part's later steps are parts still in development", () => {
+    for (const c of COMPONENTS)
+      for (const id of c.later)
+        expect(COMPONENTS.find((x) => x.id === id)?.planned, `${c.id} later ${id}`).toBe(true);
+  });
+
+  it("follow-up and nurture ship every copy their touches send, as default files", () => {
+    for (const id of ["follow_up", "nurture"]) {
+      const c = COMPONENTS.find((x) => x.id === id);
+      expect(c?.planned, id).toBe(false);
+      expect(c?.provides.templates.length, id).toBeGreaterThan(0);
+      for (const ref of c?.provides.templates ?? []) {
+        const [kind = "", rest = ""] = ref.split(":");
+        const [system = "", ...name] = rest.split("/");
+        expect(
+          defaultFile({ kind: kind as "sms", system, name: name.join("/") }),
+          ref,
+        ).not.toBeNull();
+      }
+    }
   });
 
   it("a part in development is never ready and runs nothing yet", () => {

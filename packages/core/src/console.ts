@@ -325,6 +325,8 @@ export interface WorkflowSaveRequest extends PortalRequest {
   workflow: string;
   wires?: unknown;
   steps?: unknown;
+  /** Built-in logic nodes' settings as the draft has them (`WorkflowEdits.settings`). */
+  settings?: unknown;
   reset?: boolean;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
@@ -341,6 +343,7 @@ export interface WorkflowTestRequest extends PortalRequest {
   workflow: string;
   wires?: unknown;
   steps?: unknown;
+  settings?: unknown;
   node?: unknown;
   port?: unknown;
   kind?: unknown;
@@ -415,6 +418,15 @@ const EDITS = z.object({
         .refine((s) => !s.uses !== !s.own, "is a custom step or uses one thing"),
     )
     .max(40),
+  settings: z
+    .record(
+      NAME,
+      z
+        .record(z.string().max(40), z.union([z.string().max(300), z.number()]))
+        .refine((w) => Object.keys(w).length <= 12, "has too many settings"),
+    )
+    .refine((s) => Object.keys(s).length <= 40, "has too many nodes")
+    .optional(),
 });
 
 /** A stored look stays small: inputs, not tokens. */
@@ -1830,7 +1842,8 @@ export const componentRecord = (
         // Read-only: only an admin turns a client's sends on, from the CLI.
         sends: client && c.liveSwitch ? sendsWords(client, c.id) : null,
         // Channels it will post on once their apps exist.
-        soon: c.soon.map((site) => ACCOUNTS[site].label),
+        // And the steps it will take once their parts are built (calls, voicemail).
+        soon: [...c.soon.map((site) => ACCOUNTS[site].label), ...c.later.map(named)],
         installed,
         in: c.in,
         out: c.out,
@@ -2768,7 +2781,7 @@ export function consoleApi({
       const { w, client, by } = await workflowFor(req);
       let edits: WorkflowEdits | null = null;
       if (!req.reset) {
-        const got = EDITS.safeParse({ wires: req.wires, steps: req.steps });
+        const got = EDITS.safeParse({ wires: req.wires, steps: req.steps, settings: req.settings });
         if (!got.success) {
           const i = got.error.issues[0];
           throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
@@ -2891,7 +2904,11 @@ export function consoleApi({
       if (!message) throw new PortalRefusal("say what to change", 400);
       if (message.length > ASK_MESSAGE_MAX)
         throw new PortalRefusal(`keep it under ${ASK_MESSAGE_MAX} characters`, 400);
-      const got = EDITS.safeParse({ wires: req.wires ?? [], steps: req.steps ?? [] });
+      const got = EDITS.safeParse({
+        wires: req.wires ?? [],
+        steps: req.steps ?? [],
+        settings: req.settings,
+      });
       const draft = got.success ? (got.data as WorkflowEdits) : { wires: [], steps: [] };
       const flows = workflows.filter(
         (x) => x.id !== w.id && (w.for === "wren" || x.for === "client"),
@@ -2940,7 +2957,11 @@ export function consoleApi({
       team(req);
       const w = workflows.find((x) => x.id === req.workflow);
       if (!w) throw new PortalRefusal("no such workflow", 404);
-      const got = EDITS.safeParse({ wires: req.wires ?? [], steps: req.steps ?? [] });
+      const got = EDITS.safeParse({
+        wires: req.wires ?? [],
+        steps: req.steps ?? [],
+        settings: req.settings,
+      });
       if (!got.success) throw new PortalRefusal("that draft doesn't read", 400);
       const { flows, broken } = flowsWith(
         workflows,

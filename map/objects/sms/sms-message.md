@@ -17,7 +17,7 @@ Intent before act, same as email: `sending` is written before the provider is ca
 
 ## Shape
 
-- `contact_id`, `direction`, `kind` (sequence | manual | reminder | inbound), `step`, `template`, `ref` (a reminder's cal.com booking uid), `number_id`, `body`, `state` (`MESSAGE_STATES`, `:85`), `provider_id`, `parts`, `cost_usd`, `error_code`, `due_at`, `attempted_at`, `sent_at`, `delivered_at`, `received_at`, `disposition`, `disposition_source`, `classification`, `run_id` (`schema.ts:204`–`231`)
+- `contact_id`, `direction`, `kind` (sequence | manual | reminder | inbound | follow_up), `step`, `template`, `ref` (a reminder's cal.com booking uid; a follow-up's `<workflow>/<node>`, unique per contact, migration 0159), `number_id`, `body`, `state` (`MESSAGE_STATES`, `:85`), `provider_id`, `parts`, `cost_usd`, `error_code`, `due_at`, `attempted_at`, `sent_at`, `delivered_at`, `received_at`, `disposition`, `disposition_source`, `classification`, `run_id` (`schema.ts:204`–`231`)
 
 Citations: `packages/channel-sms/src/schema.ts:200`
 

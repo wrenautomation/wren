@@ -2,7 +2,8 @@
  * Triggers on a real Restate (designs/2026-10-06-workflow-editor.md, step 5): a reply and a
  * booking fired at the Spine enter each live node that hears them, never an uninstalled template's;
  * a Schedule node's clock ticks its slot in once, and a stale tick does nothing. A reply lets a
- * subject held at a Wait until a reply go by `out`; its most sends it by `timeout`, once.
+ * subject held at a Wait until a reply go by `out`; its most sends it by `timeout`, once. A reply
+ * on one channel lets go of a Wait until an answer held on the same person's other thread.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -185,6 +186,35 @@ describe("triggers on the spine", () => {
     await call().tick({ key, slot: "2020-01-01T00:00:00.000Z" });
     await new Promise((r) => setTimeout(r, 1000));
     expect(await arrivals(1)).toHaveLength(1);
+  }, 60_000);
+
+  it("let a Wait until an answer go on a reply from the same person on another channel", async () => {
+    await truncate(pg.db, ["sms_contacts", "reach_contacts", "people", "companies"]);
+    const answer = {
+      ...EDITS,
+      steps: EDITS.steps.map((n) =>
+        n.id === "hold" ? { ...n, with: { ...n.with, until: "answer" } } : n,
+      ),
+    };
+    await pg.db.update(workflowSaves).set({ edits: answer });
+    const [firm] = (await pg.db.execute(sql`INSERT INTO companies (name, domain, niche)
+      VALUES ('Acme Test', 'acme.test', 'agencies') RETURNING id`)) as unknown as { id: number }[];
+    const [person] = (await pg.db.execute(sql`INSERT INTO people
+      (company_id, full_name, is_compliance, origin, origin_ref, raw)
+      VALUES (${firm?.id}, 'Dana Test', false, 'manual', 't', '{}'::jsonb)
+      RETURNING id`)) as unknown as { id: number }[];
+    const [text] = (await pg.db.execute(sql`INSERT INTO sms_contacts
+      (e164, source_kind, basis, company_id, person_id, state)
+      VALUES ('+15550001111', 'form', 'opt_in', ${firm?.id}, ${person?.id}, 'replied')
+      RETURNING id`)) as unknown as { id: number }[];
+    const [dm] = (await pg.db.execute(sql`INSERT INTO reach_contacts
+      (platform, handle, url, found_in, company_id, person_id, state)
+      VALUES ('linkedin', 'dana-test', 'https://linkedin.test/in/dana-test', 'manual',
+        ${firm?.id}, ${person?.id}, 'finished') RETURNING id`)) as unknown as { id: number }[];
+    await call().emit({ subjects: [`lead:reach:${dm?.id}`] });
+    expect(await arrivals(1, true)).toEqual([`hold lead:reach:${dm?.id}`]);
+    await call().fire(replyFired(null, "sms", text?.id as number));
+    expect(await arrivals(2)).toEqual([`h lead:reach:${dm?.id}`, `r reply:sms:${text?.id}`]);
   }, 60_000);
 
   it("let a subject held until a reply go by out, else by timeout, once", async () => {

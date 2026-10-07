@@ -7,7 +7,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Component, Effect, Port } from "./components.js";
-import { logicOf, logicSteps, type Until } from "./logic.js";
+import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
 import {
   type Arrival,
   resume,
@@ -192,7 +192,7 @@ export async function dryWalk(o: {
     later: (id, ms) => {
       // A Wait until an event the store heard: it comes at once, so the subject leaves by `out`.
       const until = rows.get(byId.get(id) ?? "")?.a.until;
-      const now = !!until && !!o.heard?.includes(until);
+      const now = !!until && !!o.heard?.some((h) => untilsFreedBy(h).includes(until));
       waits.push({ id, at: now ? clock : clock + ms, ...(now && until ? { until } : {}) });
     },
     rule,
@@ -259,7 +259,7 @@ export async function dryStep(o: {
 
 /** What a test's store heard, as the event a Wait until it gets: synthetic. */
 const heardEvent = (until: Until): SpineEvent =>
-  until === "reply"
+  until === "reply" || until === "answer"
     ? { subject: "reply:test", kind: "reply", data: { test: true } }
     : { subject: "call:test", kind: "call", data: { test: true, change: until } };
 

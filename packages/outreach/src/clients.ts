@@ -103,9 +103,13 @@ export async function syncLogins(
 
 /**
  * What may leave for this client, by message kind: an invite (`connect`) on `linkedin.invites`,
- * every other DM on `reach.outreach`. Both also need the global gate.
+ * a Follow-up or Nurture DM on that part's flag, every other DM on `reach.outreach`. All also
+ * need the global gate.
  */
 export const clientSends =
   (client: Pick<Client, "sends">, globalLive: boolean) =>
   (kind: string): boolean =>
-    globalLive && sendsOn(client, kind === "connect" ? "linkedin.invites" : "reach.outreach");
+    globalLive &&
+    (kind === "follow_up"
+      ? sendsOn(client, "follow_up") || sendsOn(client, "nurture")
+      : sendsOn(client, kind === "connect" ? "linkedin.invites" : "reach.outreach"));

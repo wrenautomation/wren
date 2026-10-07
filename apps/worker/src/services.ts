@@ -1069,6 +1069,15 @@ export async function buildServices(
       ...(sms.notifier ? { notifier: namedFor(sms.notifier, plan.client.id) } : {}),
     }),
   };
+  /** Why texts can't leave now, or null: the global gate, the client's texts, the provider. */
+  const textsWhy = (provider: string, off: string | null) =>
+    !settings.smsLive
+      ? "WREN_SMS_LIVE is off"
+      : off
+        ? `texts are off: ${off}`
+        : provider === "none"
+          ? "no SMS provider (WREN_SMS_PROVIDER)"
+          : null;
   /** Whose texts a spine step runs on: Wren's, a client's with texts on, or why they're off. */
   const textsOf = async (client: string | null) => {
     if (!client) return { deps: sms, off: null };
@@ -1270,17 +1279,15 @@ export async function buildServices(
             return client ? namedFor(lane, client) : lane;
           },
         }),
-        [TOUCH]: touchStep(async (client) => (await textsOf(client)).deps),
+        // A follow-up touch (no step) also reads the clients and why texts can't go now.
+        [TOUCH]: touchStep(async (client) => {
+          const { deps, off } = await textsOf(client);
+          return { ...deps, main: db, off: textsWhy(deps.provider.name, off) };
+        }),
         // Speed to lead's first text: live only with WREN_SMS_LIVE and the client's texts on.
         "sms.forms": firstTextStep(async (client) => {
           const { deps: d, off } = await textsOf(client);
-          const why = !settings.smsLive
-            ? "WREN_SMS_LIVE is off"
-            : off
-              ? `texts are off: ${off}`
-              : d.provider.name === "none"
-                ? "no SMS provider (WREN_SMS_PROVIDER)"
-                : null;
+          const why = textsWhy(d.provider.name, off);
           return {
             db: d.db,
             live: why === null,
@@ -1323,6 +1330,7 @@ export async function buildServices(
           db,
           { sequences: reach.sequences, sender: reach.senderName },
           clientDb,
+          { off: () => (settings.reachLive ? null : "WREN_REACH_LIVE is off") },
         ),
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),

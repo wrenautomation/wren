@@ -97,6 +97,9 @@ export async function reconcile(db: Queryable, now: Date): Promise<number> {
   return rows.length;
 }
 
+/** Contact states a queued follow-up text never goes to. */
+const FOLLOW_ENDS = new Set(["replied", "opted_out", "unreachable", "stopped"]);
+
 /** Queued sequence messages of a contact → `skipped`, when its thread ends. */
 export async function skipQueued(db: Queryable, contactId: number, why: string): Promise<number> {
   const rows = await db
@@ -273,6 +276,15 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     const from = number.e164;
     if (msg.kind === "sequence" && contact.state !== "enrolled") {
       await skipQueued(db, contact.id, `contact ${contact.state}`);
+      stats.skipped += 1;
+      continue;
+    }
+    // A follow-up waits on no enrollment, but never goes to someone who answered or ended texts.
+    if (msg.kind === "follow_up" && FOLLOW_ENDS.has(contact.state)) {
+      await db
+        .update(smsMessages)
+        .set({ state: "skipped", detail: `contact ${contact.state}` })
+        .where(eq(smsMessages.id, msg.id));
       stats.skipped += 1;
       continue;
     }

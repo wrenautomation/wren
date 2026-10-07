@@ -193,3 +193,20 @@ export async function livePrompt(
   if (!seeded) throw new Error(`prompt ${refText(r)} did not seed`);
   return seeded;
 }
+
+/**
+ * A template's live words, or its default's when this database never took it (a part installed
+ * before its copy shipped): the default goes in following itself, as an install puts it. Null
+ * when it has neither, or its words were emptied.
+ */
+export async function liveOrDefault(db: Queryable, ref: TemplateRef): Promise<LiveTemplate | null> {
+  const live = await resolveTemplate(db, ref);
+  if (live) return live;
+  const have = (await db.execute(sql`SELECT 1 FROM templates
+    WHERE kind = ${ref.kind} AND system = ${ref.system} AND name = ${ref.name}`)) as unknown[];
+  if (have.length) return null;
+  const f = defaultFile(ref);
+  if (!f) return null;
+  await writeDefault(db, ref, f.source, { hash: f.hash });
+  return resolveTemplate(db, ref);
+}

@@ -370,13 +370,26 @@ export const spineExecutions = pgView("spine_executions", {
         c.name, 'Lead') || case when x.subject like 'lead:%' then ': Text lead' else ': Text reply' end
         from sms_contacts s left join companies c on c.id = s.company_id
         where s.id = split_part(x.subject, ':', 3)::int)
+      when subject ~ '^(lead|reply):reach:[0-9]{1,9}$' then (select coalesce(nullif(r.name, ''),
+        r.handle) || case when x.subject like 'lead:%' then ': DM lead' else ': DM reply' end
+        from reach_contacts r where r.id = split_part(x.subject, ':', 3)::int)
+      when subject ~ '^(lead|reply):email:[0-9]{1,9}$' then (select coalesce(nullif(p.full_name, ''),
+        c.name, e.to_email) || case when x.subject like 'lead:%' then ': Email lead'
+        else ': Email reply' end
+        from enrollments e left join people p on p.id = e.person_id
+        left join companies c on c.id = e.company_id
+        where e.id = split_part(x.subject, ':', 3)::int)
       when subject ~ '^company:[0-9]{1,9}$' then (select c.name from companies c
         where c.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^account:[0-9]{1,9}:' then (select initcap(a.site) || ': ' || a.ref
         from client_accounts a where a.id = split_part(x.subject, ':', 2)::int)
     end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Feed item'
-      when 'company' then 'Company' when 'lead' then 'Text lead' when 'reply' then 'Text reply'
-      when 'account' then 'Account' end || ' (gone)', subject) title
+      when 'company' then 'Company' when 'account' then 'Account'
+      when 'lead' then case split_part(subject, ':', 2) when 'reach' then 'DM lead'
+        when 'email' then 'Email lead' else 'Text lead' end
+      when 'reply' then case split_part(subject, ':', 2) when 'reach' then 'DM reply'
+        when 'email' then 'Email reply' else 'Text reply' end
+    end || ' (gone)', subject) title
   from (select workflow || '/' || subject id, workflow, subject, min(kind) kind,
     case when bool_or(error is not null) then 'failed'
       when bool_or(due is not null) then 'waiting' else 'done' end state,

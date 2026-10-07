@@ -279,11 +279,19 @@ export function checkWorkflows(
 export interface WorkflowEdits {
   wires: Wire[];
   steps: WorkflowNode[];
+  /** A built-in logic node's settings as the save has them (a Wait's "at most"), by node id. */
+  settings?: Record<string, Record<string, string | number>>;
 }
 
 export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
   ...w,
-  nodes: [...w.nodes, ...e.steps],
+  nodes: [
+    ...w.nodes.map((n) => {
+      const set = e.settings?.[n.id];
+      return set ? { ...n, with: set } : n;
+    }),
+    ...e.steps,
+  ],
   wires: [...w.wires.filter((x) => x.via === "code"), ...e.wires],
 });
 
@@ -311,6 +319,9 @@ function editRules(
     ...e.steps
       .filter((s) => s.own && !s.own.run.startsWith("https://"))
       .map((s) => `${w.id}.${s.id}: an added custom step runs at an https URL`),
+    ...Object.keys(e.settings ?? {})
+      .filter((id) => !w.nodes.find((n) => n.id === id)?.uses?.startsWith("logic."))
+      .map((id) => `${w.id}.${id}: only a built-in logic node's settings change in a save`),
     ...e.steps
       .filter(wrens)
       .map((s) => `${w.id}.${s.id}: ${s.uses} runs Wren's own business, not a client's`),

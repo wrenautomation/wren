@@ -17,8 +17,8 @@
  * `unreachable`. An accepted invite's send queues step 1. A sent step is listed
  * in `stepped`: the sender hands it to the spine, whose wire waits `afterDays`
  * and queues the next (`touch`). After the last, the contact is `finished`.
- * The live gate off holds every sequence row; a manual row is William's own yes and goes, from an
- * active or a warming account (its rung's caps still apply).
+ * The live gate off holds every sequence and follow-up row; a manual row is William's own yes and
+ * goes, from an active or a warming account (its rung's caps still apply).
  * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
  * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
@@ -225,11 +225,14 @@ export async function planTick(
     const account = row.accountId ? byAccount.get(row.accountId) : undefined;
     const contact = contacts.get(row.contactId);
     if (!account || !contact) continue;
-    // Sequence rows ride the enrollment; a manual reply goes to anyone who has not asked us to stop.
+    // Sequence rows ride the enrollment; a manual reply goes to anyone who has not asked us to
+    // stop; a follow-up to anyone who has not stopped us or answered since it was queued.
     const allowed =
       row.kind === "manual"
         ? !["opted_out", "blocked", "unreachable"].includes(contact.state)
-        : ["enrolled", "connected"].includes(contact.state);
+        : row.kind === "follow_up"
+          ? !["opted_out", "blocked", "unreachable", "replied"].includes(contact.state)
+          : ["enrolled", "connected"].includes(contact.state);
     if (!allowed) {
       await db
         .update(reachMessages)

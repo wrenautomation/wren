@@ -17,6 +17,7 @@ import {
   triggerHears,
   untilOf,
   untilOfFacts,
+  untilsFreedBy,
   untilText,
 } from "./logic.js";
 import type { SpineEvent, StepAt } from "./spine.js";
@@ -113,6 +114,17 @@ describe("logic parts", () => {
       wait?.settings.filter((s) => !s.shows || s.shows.mode === "until").map((s) => s.field),
     ).toEqual(["mode", "until", "most", "kind"]);
     expect(untilText("booking")).toBe("Waits for a booking");
+    // A reply or a booking: either one lets it go, by `answered`.
+    const answer = { ...until, until: "answer" };
+    expect(wait?.says(answer)).toBe("Until an answer or 3 days");
+    expect(wait?.ports(answer).out.map((p) => [p.id, p.label])).toEqual([
+      ["out", "answered"],
+      ["timeout", "time ran out"],
+    ]);
+    expect(logicProblems("f.w", n(answer))).toEqual([]);
+    expect(untilsFreedBy("reply")).toEqual(["reply", "answer"]);
+    expect(untilsFreedBy("booking")).toEqual(["booking", "answer"]);
+    expect(untilsFreedBy("cancelled")).toEqual(["cancelled"]);
     expect(untilText(null)).toBeNull();
   });
 

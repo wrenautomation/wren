@@ -177,25 +177,31 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
 }
 
 /** What a Wait may wait until: an event fired at the spine about the same subject. */
-export const UNTILS = ["reply", "booking", "cancelled"] as const;
+export const UNTILS = ["reply", "booking", "answer", "cancelled"] as const;
 export type Until = (typeof UNTILS)[number];
 /** What a Wait may wait until, as its panel offers it. */
 export const UNTIL_LABELS: Record<Until, string> = {
   reply: "A reply",
   booking: "A booking",
+  answer: "A reply or a booking",
   cancelled: "A cancelled call",
 };
 /** "a reply": what a Wait waits until, in a sentence. */
 export const UNTIL_WORDS: Record<Until, string> = {
   reply: "a reply",
   booking: "a booking",
+  answer: "an answer",
   cancelled: "a cancelled call",
 };
 const UNTIL_PORT: Record<Until, string> = {
   reply: "replied",
   booking: "booked",
+  answer: "answered",
   cancelled: "cancelled",
 };
+/** The waits a fired event lets go: its own, and "a reply or a booking" for either of those. */
+export const untilsFreedBy = (fired: Until): Until[] =>
+  fired === "reply" || fired === "booking" ? [fired, "answer"] : [fired];
 export const isUntil = (v: unknown): v is Until =>
   (UNTILS as readonly string[]).includes(String(v));
 /** A Wait's until, when its mode is until; null for a timed one. */

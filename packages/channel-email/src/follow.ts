@@ -4,6 +4,7 @@
  * follow-up held. When the tick sends a step it leaves that step's node as `sent`, and the next
  * touch releases the next step at once: the tick's business-day math still picks its day.
  */
+import { followStart, isFollowTouch, passed } from "@wren/core/follow";
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { emailRef } from "@wren/core/templates";
 import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
@@ -126,6 +127,17 @@ export async function release(
 export const emailTouchStep =
   (dbFor: (client: string | null) => Db): Step =>
   async (_port, e, at) => {
+    // A follow-up's Email step: only asks whether they answered, until email to a quiet lead
+    // is built (designs/2026-10-07-follow-up-nurture.md).
+    if (isFollowTouch(at)) {
+      const start = await followStart(
+        { db: dbFor(at.client), main: dbFor(null), channel: "email", globalOff: null },
+        e,
+        at,
+      );
+      if ("outs" in start) return start.outs;
+      return passed(e, { ...start.note, why: "email is in development" });
+    }
     const other = passOn(e, "email");
     if (other) return other;
     const enrollmentId = Number(e.data.enrollmentId);
