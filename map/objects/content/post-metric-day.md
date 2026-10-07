@@ -32,7 +32,7 @@ Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics
 
 ## If you change this
 
-- **Hits:** `restate/metrics.ts:141` (the look writes insights after counts); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0187_content_analytics`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
+- **Hits:** `restate/metrics.ts:141` (the look writes insights after counts); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0188_content_analytics`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
 - **Does not hit:** `content_metrics` or `wren content results`
 
 ## Surfaces
