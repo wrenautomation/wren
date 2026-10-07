@@ -139,6 +139,8 @@ export interface RecordExtras {
   facts?: [string, ReactNode][];
   /** Titled blocks after the fields, such as how the research went. */
   sections?: [string, ReactNode][];
+  /** Field groups the extras draw themselves (a post's numbers): their lines are left out. */
+  drawn?: readonly string[];
   sources?: RecordSource[];
   /** Read the record again in this many ms: something still works on it (Claude on a draft). */
   poll?: number;
@@ -1710,7 +1712,8 @@ export function RecordBody({
       row[f.key] != null &&
       row[f.key] !== "" &&
       !inHead.has(f.key) &&
-      !told.has(f.label),
+      !told.has(f.label) &&
+      !(f.group && more.drawn?.includes(f.group)),
   );
   // Grouped fields after the loose ones, in the order declared; "System" (who, when) folded last.
   const named = [...new Set(rest.map((f) => f.group))].filter(

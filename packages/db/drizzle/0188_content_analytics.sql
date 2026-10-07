@@ -166,7 +166,7 @@ CREATE VIEW "public"."marketing_post_records" AS (
     from link_days k
     where k.content = left(d.id::text, 8)
       or (d.platform = 'youtube' and k.source = 'youtube' and k.content = ''
-        and substring(idea.ref from '^video:([0-9]+)(~|$)') is not null
+        and d.extra->>'kind' is distinct from 'short' and substring(idea.ref from '^video:([0-9]+)(~|$)') is not null
         and (k.campaign = substring(idea.ref from '^video:([0-9]+)(~|$)')
           or k.campaign like substring(idea.ref from '^video:([0-9]+)(~|$)') || '-%'))) l on true
   left join lateral (

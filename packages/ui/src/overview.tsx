@@ -62,6 +62,8 @@ export interface OverviewTop {
   fields: string[];
   /** A field read in full under each title: why this one is first. */
   line?: string;
+  /** Words after a field's value, in place of its label: "3h to reply", "2 of 12 to DM". */
+  units?: Readonly<Record<string, string>>;
   /** Said while it's empty. */
   empty: string;
 }
@@ -483,7 +485,11 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                       <FieldCell field={f} cell={r[f.key]} />
                     )}
                     {/* A bare count says nothing: "3" reads "3 members". */}
-                    {f.kind === "number" ? ` ${f.label.toLowerCase()}` : null}
+                    {top.units?.[f.key]
+                      ? ` ${top.units[f.key]}`
+                      : f.kind === "number"
+                        ? ` ${f.label.toLowerCase()}`
+                        : null}
                   </span>
                 ))}
               </a>

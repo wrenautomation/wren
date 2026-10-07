@@ -46,7 +46,10 @@ const SPANS = {
   all: neutral("All time"),
 };
 
-/** Comments answered, time to reply, comment to DM, DM to booking: per platform and span. */
+/**
+ * Comments answered, time to reply, comment to DM, DM to booking: per platform and span. No
+ * footer totals: the "All platforms" row already is one.
+ */
 export const conversationRecord = defineRecord({
   id: "marketing.conversation",
   app: "marketing",
@@ -59,13 +62,13 @@ export const conversationRecord = defineRecord({
   fields: {
     platform: status(PLATFORM_ALL_STATES, "Platform"),
     span: status(SPANS, "Window"),
-    comments: number("Their comments"),
-    answered: rate("comments", "Answered", { from: "answered" }),
+    comments: number("Their comments", { total: false }),
+    answered: rate("comments", "Answered", { from: "answered", total: false }),
     replySecs: duration("Time to reply (median)", { total: false }),
-    dmed: rate("comments", "Comment to DM", { from: "dmed" }),
-    dms: number("DM threads"),
-    dmsAnswered: rate("dms", "DMs answered by them", { from: "dms_answered" }),
-    booked: rate("dms", "DM to booking", { from: "booked" }),
+    dmed: rate("comments", "Comment to DM", { from: "dmed", total: false }),
+    dms: number("DM threads", { total: false }),
+    dmsAnswered: rate("dms", "DMs answered by them", { from: "dms_answered", total: false }),
+    booked: rate("dms", "DM to booking", { from: "booked", total: false }),
   },
   views: [
     { id: "30d", label: "Last 30 days", where: { span: "30d" }, sort: "platform" },
@@ -409,6 +412,27 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
     const last = series[metric]?.at(-1);
     if (last && latest[metric] === undefined) latest[metric] = last.value;
   }
+  // Ours, per day: likes, comments and shares per 100 views, and per 100 followers that day.
+  const followers = await rowsOf<{ day: string; followers: number }>(
+    db,
+    sql`select to_char(day, 'YYYY-MM-DD') as day, followers from social_days
+      where platform = ${d.platform} order by day`,
+  );
+  const engaged = (series.views ?? []).flatMap((v) => {
+    const at = (m: string) => series[m]?.find((p) => p.at === v.at)?.value ?? 0;
+    return [{ at: v.at, n: at("likes") + at("comments") + at("shares"), views: v.value }];
+  });
+  const per = (metric: string, of: (e: (typeof engaged)[number]) => number | undefined) => {
+    const pts = engaged.flatMap((e) => {
+      const base = of(e);
+      return base ? [{ at: e.at, value: (e.n / base) * 100 }] : [];
+    });
+    if (!pts.length) return;
+    series[metric] = pts;
+    latest[metric] = pts.at(-1)?.value as number;
+  };
+  per("engagement", (e) => e.views);
+  per("per_follower", (e) => followers.filter((f) => f.day <= e.at).at(-1)?.followers);
   const lastDay = (metric: string) => rows.filter((r) => r.metric === metric).at(-1)?.day;
   const keyed = (metric: string) => {
     const day = lastDay(metric);
@@ -438,7 +462,10 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
     };
   });
   const video =
-    d.platform === "youtube" ? (/^video:([0-9]+)(~|$)/.exec(d.ref ?? "")?.[1] ?? null) : null;
+    // A Short's links can't be clicked: the footer's visitors are its long video's alone.
+    d.platform === "youtube" && surface === "long"
+      ? (/^video:([0-9]+)(~|$)/.exec(d.ref ?? "")?.[1] ?? null)
+      : null;
   const links = await rowsOf<{
     source: string;
     campaign: string;

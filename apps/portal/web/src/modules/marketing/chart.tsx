@@ -116,3 +116,87 @@ export function WeeklyBookings() {
     </section>
   );
 }
+
+const FORMATS = {
+  long: "Long videos",
+  short: "Shorts",
+  reel: "Reels",
+  video: "TikToks",
+  carousel: "Carousels",
+  thread: "Threads",
+  post: "Posts",
+} as const;
+type Format = keyof typeof FORMATS;
+const DAYS = 30;
+
+/**
+ * Which formats earn the most, last 30 days: the median engagement per 100 views of each
+ * format's posts, each a link to its posts on the leaderboard.
+ */
+export function FormatBoard() {
+  const load = useCall("marketing-format-board", () =>
+    Promise.all(
+      (Object.keys(FORMATS) as Format[]).map(async (format) => {
+        const ask = {
+          record: "marketing.post",
+          view: "leaderboard",
+          where: { format },
+          period: DAYS,
+          zone: ZONE,
+        };
+        const [score, posts] = await Promise.all([
+          call<RecordsStat>("console/recordsStats", { ...ask, median: "score" }),
+          call<RecordsStat>("console/recordsStats", ask),
+        ]);
+        return { format, score: score.value ?? 0, posts: posts.value ?? 0 };
+      }),
+    ),
+  );
+  const all = load.data?.filter((f) => f.posts > 0).sort((a, b) => b.score - a.score);
+  if (!all) return null;
+  const top = Math.max(1, ...all.map((f) => f.score));
+  return (
+    <section className="mx-auto mt-8 grid w-full max-w-[1200px] gap-3">
+      <h2 className="text-[15px] font-semibold">By format, last 30 days</h2>
+      {all.length === 0 ? (
+        <p className="text-[13px] text-(--ui-ink-2)">No post with views in the last 30 days.</p>
+      ) : (
+        <ul className="grid gap-2">
+          {all.map((f, i) => (
+            <li key={f.format}>
+              <a
+                href={`/marketing/content?view=leaderboard&format=${f.format}`}
+                className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 text-[13.5px] hover:bg-(--ui-hover) max-sm:grid-cols-[5.5rem_1fr_auto]"
+              >
+                <span>{FORMATS[f.format]}</span>
+                <span className="h-3" aria-hidden="true">
+                  <span
+                    className="block h-full"
+                    style={{
+                      width: `${Math.max(2, (f.score / top) * 100)}%`,
+                      background: COLORS[i % COLORS.length],
+                    }}
+                  />
+                </span>
+                <span className="tabular-nums text-(--ui-ink-2)">
+                  {(Math.round(f.score * 10) / 10).toFixed(1)} per 100 views · {num(f.posts)}{" "}
+                  {f.posts === 1 ? "post" : "posts"}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Under Marketing's numbers: formats against each other, then booking clicks by week. */
+export function NumbersBelow() {
+  return (
+    <>
+      <FormatBoard />
+      <WeeklyBookings />
+    </>
+  );
+}

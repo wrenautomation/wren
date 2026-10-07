@@ -12,7 +12,7 @@ import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
-import { INBOX_PAGE } from "../marketing/index.js";
+import { CONVERSATION_TOP, INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
@@ -438,6 +438,7 @@ export const inbox: Module = {
           fields: ["sender", "at"],
           empty: "Nothing in your inboxes needs you.",
         },
+        CONVERSATION_TOP,
       ],
     },
     // What came in, Marketing → Inbox's page; "waiting" keeps old links landing. What we'd send

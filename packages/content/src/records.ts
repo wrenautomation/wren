@@ -193,7 +193,7 @@ export const postRecordOf = (signer?: VideoSigner) =>
       platform: status(PLATFORM_STATES),
       published: date(),
       format: status(POST_FORMATS, "Format"),
-      stage: status(STAGE_STATES, "Stage", { listed: false }),
+      stage: status(STAGE_STATES, "Stage"),
       views: number(),
       reactions: number(),
       comments: number(),

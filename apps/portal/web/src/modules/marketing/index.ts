@@ -7,8 +7,9 @@ import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/rejec
 import type { Action, FormField } from "@wren/ui";
 import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
+import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
-import { WeeklyBookings } from "./chart.js";
+import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
@@ -935,6 +936,16 @@ const TODAY: DayPage = {
   actions: [...DRAFT_ACTIONS, ...COMMENT_ACTIONS, ...DM_ACTIONS, VIDEO_APPROVE],
 };
 
+/** Comment and DM rates, last 30 days: on Marketing's and the Inbox's Overviews. */
+export const CONVERSATION_TOP = {
+  label: "Conversation, last 30 days",
+  record: "marketing.conversation",
+  href: "/marketing/conversation?view=30d",
+  fields: ["answered", "replySecs", "dmed", "booked"],
+  units: { answered: "answered", replySecs: "to reply", dmed: "to DM", booked: "booked" },
+  empty: "No comments from others or DMs in 30 days.",
+};
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
@@ -968,9 +979,13 @@ export const marketing: Module = {
       across: BY_PLATFORM,
       template: "list",
       record: "marketing.post",
-      empty: "Posts show here once one is published.",
+      empty: {
+        leaderboard: "Posts with views show here, best first.",
+        site: "Posts whose link brought a visitor show here.",
+        all: "Posts show here once one is published.",
+      },
       actions: POST_ACTIONS,
-      extras: withShape(postExtras),
+      extras: withAnalytics(withShape(postExtras)),
     },
     {
       id: "comments",
@@ -1160,6 +1175,13 @@ export const marketing: Module = {
           sum: "views",
         },
         {
+          label: "Site visitors from posts",
+          record: "marketing.link_day",
+          href: "/marketing/links?view=posts",
+          period: "month",
+          sum: "clicks",
+        },
+        {
           label: "Ad impressions",
           record: "marketing.ad_day",
           href: "/marketing/ads?view=campaign",
@@ -1261,11 +1283,42 @@ export const marketing: Module = {
           empty: "No follower count yet. SocialWatch reads one a day.",
         },
         {
+          label: "This week against goals",
+          record: "marketing.cadence",
+          href: "/marketing/cadence?view=week",
+          fields: ["done", "goal"],
+          empty: "No goals set.",
+        },
+        {
+          label: "What worked last week",
+          record: "marketing.digest",
+          href: "/marketing/digest?view=worked",
+          fields: ["kind"],
+          empty: "The first digest lands on Monday.",
+        },
+        {
           label: "Top posts",
           record: "marketing.post",
-          href: "/marketing/content?view=top",
-          fields: ["views", "engagement"],
+          href: "/marketing/content?view=leaderboard",
+          fields: ["views", "engagement", "format"],
           empty: "No post has numbers yet.",
+        },
+        {
+          label: "Posts that brought visitors",
+          record: "marketing.post",
+          href: "/marketing/content?view=site",
+          fields: ["clicks", "toSite"],
+          units: { toSite: "of views" },
+          empty: "No post's link has brought a visitor yet.",
+        },
+        CONVERSATION_TOP,
+        {
+          label: "Numbers not read yet",
+          record: "marketing.metric",
+          href: "/marketing/metrics?view=scope",
+          fields: ["state"],
+          line: "step",
+          empty: "Every number that needs a step is read.",
         },
         {
           label: "Top keywords",
@@ -1275,7 +1328,7 @@ export const marketing: Module = {
           empty: "No keyword has impressions yet.",
         },
       ],
-      below: WeeklyBookings,
+      below: NumbersBelow,
     },
     {
       id: "ads",
@@ -1302,6 +1355,55 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.funnel",
       empty: "Funnels show here once the lander export is read.",
+    },
+    {
+      id: "links",
+      label: "Links",
+      group: "Numbers",
+      hidden: true,
+      template: "list",
+      record: "marketing.link_day",
+      empty: {
+        month: "Link days show here once the lander export is read.",
+        posts: "Visitors from a post's link show here.",
+        all: "Link days show here once the lander export is read.",
+      },
+    },
+    {
+      id: "conversation",
+      label: "Conversation",
+      group: "Numbers",
+      hidden: true,
+      template: "list",
+      record: "marketing.conversation",
+      empty: "Comments from others and DMs we sent show here.",
+    },
+    {
+      id: "cadence",
+      label: "Cadence",
+      group: "Numbers",
+      hidden: true,
+      template: "list",
+      record: "marketing.cadence",
+      empty: "No goals set.",
+    },
+    {
+      id: "digest",
+      label: "What worked",
+      group: "Numbers",
+      hidden: true,
+      template: "list",
+      record: "marketing.digest",
+      empty: "The first digest lands on Monday.",
+    },
+    {
+      id: "metrics",
+      label: "Every number",
+      group: "Numbers",
+      hidden: true,
+      template: "list",
+      record: "marketing.metric",
+      empty: { gaps: "Every number is read.", scope: "No number waits on a step." },
     },
     {
       id: "sessions",
