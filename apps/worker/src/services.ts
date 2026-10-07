@@ -255,7 +255,10 @@ import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/r
 import { makeVoiceConsole } from "@wren/voice/console";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { VOICE_RECORDS } from "@wren/voice/records";
-import { type Practice, practiceOf, scoreStep, triageStep, mail as watchMail } from "@wren/watch";
+import { type Practice, practiceOf, readStep as learnRead, scoreStep } from "@wren/learn";
+import { makeLearnConsole } from "@wren/learn/console";
+import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
+import { triageStep, mail as watchMail } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
@@ -1060,9 +1063,14 @@ export async function buildServices(
       db,
       mailboxes: watchBoxes.map(mailboxOf("wren:watch")),
       ...(watchPush ? { watch: watchPush } : {}),
+      // Learn's alerts and its 09:00 digest ride the Monitor's pass, on the main lane.
+      ...notify,
+      zone: settings.sendTimezone,
+      portal: settings.portalOrigin ?? null,
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));
+  services.push(makeLearnConsole(db));
   // Health and flags: Wren's rating, an override, a flag taken, addressed or cleared.
   services.push(makeHealthConsole(db));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
@@ -1408,7 +1416,9 @@ export async function buildServices(
           { off: () => (settings.reachLive ? null : "WREN_REACH_LIVE is off") },
         ),
         "watch.triage": triageStep(db, watchLlm),
-        "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
+        // Learn: an article read here, a video marked for the Mac; then scored like the radar was.
+        "learn.read": learnRead(db, fetch),
+        "learn.score": scoreStep(db, watchLlm, () => practicesOf(db)),
         // A bill in the Monitor's mail runs the books now; the books' pass is the box's.
         "books.bills": billsStep({
           mailOf: async (id) =>
@@ -1501,6 +1511,9 @@ export async function buildServices(
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
         ...WATCH_RECORDS,
+        ...LEARN_RECORDS,
+        // The SOP folders live on the Mac: here the library reads the database only.
+        sopRecordFor(null),
         ...CALENDAR_RECORDS,
         ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
@@ -1621,7 +1634,7 @@ async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
   return rows.map((r) => ({ label: r.sop, text: r.text }));
 }
 
-/** The radar scores against each pushed SOP's newest text. */
+/** Learn scores against each pushed SOP's newest text. */
 const practicesOf = async (db: Db): Promise<Practice[]> =>
   (await playbooksOf(db)).map((r) => practiceOf(r.label, r.text));
 

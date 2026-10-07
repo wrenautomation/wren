@@ -38,6 +38,7 @@ import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
+import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
@@ -97,6 +98,8 @@ const RECORD_TYPES = [
   ...emailRecords([], {} as SendPolicy),
   ...BOOKS_RECORDS,
   ...WATCH_RECORDS,
+  ...LEARN_RECORDS,
+  sopRecordFor(null),
   ...CALENDAR_RECORDS,
   ...VOICE_RECORDS,
   ...MARKETING_NUMBERS,

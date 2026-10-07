@@ -14,6 +14,7 @@ import { NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { OUTREACH_WORKFLOWS } from "@wren/outreach/components";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
+import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
 
@@ -227,6 +228,7 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...DELIVERY_WORKFLOWS,
   ...CONTENT_WORKFLOWS,
   ...WATCH_WORKFLOWS,
+  ...LEARN_WORKFLOWS,
   ...OUTREACH_WORKFLOWS,
   // Follow-ups on the spine: each email and text sequence is its cadence; invite-only DMs have none.
   ...NICHES.flatMap((n) => [...n.sequences.values()].map((s) => emailCadence(n.name, s))),

@@ -29,6 +29,7 @@
     "@wren/auth": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/delivery": "workspace:*",
+    "@wren/learn": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/ui": "workspace:*",

@@ -13,6 +13,7 @@ import type { Component } from "@wren/core/components";
 import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";
 import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
+import { LEARN_COMPONENTS } from "@wren/learn/components";
 import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
@@ -33,6 +34,7 @@ export const COMPONENTS: readonly Component[] = [
   ...BOOKS_COMPONENTS,
   ...CALENDAR_COMPONENTS,
   ...WATCH_COMPONENTS,
+  ...LEARN_COMPONENTS,
   ...VOICE_COMPONENTS,
   ...FOLLOW_COMPONENTS,
   ...FACTS_COMPONENTS,
