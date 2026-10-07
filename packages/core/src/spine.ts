@@ -332,13 +332,10 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       );
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
-      const stopped = await w.run(
-        `failed ${a.node}.${port} ${m.e.subject}`,
-        async () => {
-          const id = await w.store.fail(a, err.message.slice(0, 2000));
-          return typeof id === "string" ? id : null;
-        },
-      );
+      const stopped = await w.run(`failed ${a.node}.${port} ${m.e.subject}`, async () => {
+        const id = await w.store.fail(a, err.message.slice(0, 2000));
+        return typeof id === "string" ? id : null;
+      });
       if (stopped) w.failed?.(stopped, workflow);
       tally.failed++;
       continue;

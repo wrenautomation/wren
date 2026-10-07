@@ -34,6 +34,7 @@ import {
   tomorrowOf,
   whatWorked,
 } from "../../src/index.js";
+import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/index.js";
 import { METRICS_KEY, type MetricsStats, makeContentMetrics } from "../../src/restate/metrics.js";
 import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
@@ -165,6 +166,8 @@ const look = () =>
     .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY)
     .sync() as Promise<PassOutcome<MetricsStats>>;
 
+/** X's single-post cap: Wren's account fact decides it (Premium posts one long post). */
+const X_MAX = PLATFORM_SPECS.x.maxChars;
 describe("content loop", () => {
   it("drafts one row per platform that fits, under one run, and skips a redraft", async () => {
     const out = await desk().add({ text: "shipped the spend gate today" });
@@ -317,7 +320,9 @@ describe("content loop", () => {
       text: "new text",
       approvedAt: expect.any(Date),
     });
-    await expect(editDraft(pg.db, row.id, { text: "a".repeat(281) })).rejects.toThrow(/over 280/);
+    await expect(editDraft(pg.db, row.id, { text: "a".repeat(X_MAX + 1) })).rejects.toThrow(
+      new RegExp(`over ${X_MAX}`),
+    );
     expect((await getDraft(pg.db, row.id)).text).toBe("new text");
   });
 
@@ -330,8 +335,8 @@ describe("content loop", () => {
     if (!row) throw new Error("no row");
     expect(await desk().approve({ ids: [row.id] })).toEqual({ done: [row.id] });
     expect((await getDraft(pg.db, row.id)).scheduledFor).toEqual(expect.any(Date));
-    await expect(desk().edit({ draftId: row.id, text: "a".repeat(281) })).rejects.toThrow(
-      /over 280/,
+    await expect(desk().edit({ draftId: row.id, text: "a".repeat(X_MAX + 1) })).rejects.toThrow(
+      new RegExp(`over ${X_MAX}`),
     );
     expect(await desk().edit({ draftId: row.id, text: "new" })).toEqual({ done: [row.id] });
     expect(await desk().reject({ ids: [row.id] })).toEqual({ done: [row.id] });

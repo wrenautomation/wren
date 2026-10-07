@@ -8,6 +8,7 @@ import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";
@@ -100,7 +101,7 @@ describe("marketing.draft", () => {
         site: "X",
         title: null,
         text: "a draft post",
-        max: 280,
+        max: PLATFORM_SPECS.x.maxChars,
         feed: { laptop: null, phone: null },
       },
       shape: expect.objectContaining({
