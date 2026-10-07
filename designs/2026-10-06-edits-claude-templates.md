@@ -107,3 +107,9 @@ parallel, then meet in 4.
 ## Decision log
 
 - 2026-10-06: written from his note and a map of today's code. Building.
+- 2026-10-06: steps 1 and 2's records layer built (5714dc3). `edits` on `defineRecord` or
+  `withEdits`, the `changes` table (0129), edit with compare-and-swap, history and undo. Undo
+  works once, and only while what it set still stands. Ask Claude runs as a runs row (command
+  `record-ask`) that the Ask service answers on the desk; Accept goes through the same edit
+  with the run id. Text and DM copy moved first. A keyword reply keeps its Edit action, since
+  saving it also sets the provider's own reply, which a database write can't do.
