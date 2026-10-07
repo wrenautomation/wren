@@ -33,7 +33,7 @@ const AMY: Viewer = { email: "amy@acme.example" };
 const MO: Viewer = { email: "mo@acme.example" };
 const BO: Viewer = { email: "bo@beta.example" };
 const acme = { client: "acme" };
-const FROM = { ip: "203.0.113.7", agent: "Test browser" };
+const ORIGIN = { ip: "203.0.113.7", agent: "Test browser" };
 const mail: PortalMail[] = [];
 const pinged: string[] = [];
 const notifier: Notifier = {
@@ -185,7 +185,7 @@ describe("onboarding", () => {
   });
 
   it("only an owner signs, ticking the box, the text they read", async () => {
-    const sign = { sha256: sha, name: "Amy Adams", agreed: true, from: FROM };
+    const sign = { sha256: sha, name: "Amy Adams", agreed: true, origin: ORIGIN };
     expect(await refused(api.sign({ viewer: MO, ...sign }))).toBe(403);
     expect(await refused(api.sign({ viewer: OPS, ...acme, ...sign }))).toBe(403);
     expect(await refused(api.sign({ viewer: AMY, ...sign, agreed: false }))).toBe(400);
@@ -198,7 +198,7 @@ describe("onboarding", () => {
     const [row] = await pg.db.execute<{ signed_ip: string; signed_agent: string }>(
       sql`select signed_ip, signed_agent from delivery.agreements`,
     );
-    expect(row).toEqual({ signed_ip: FROM.ip, signed_agent: FROM.agent });
+    expect(row).toEqual({ signed_ip: ORIGIN.ip, signed_agent: ORIGIN.agent });
   });
 
   it("access is granted, declined with a reason, or taken back; never another client's", async () => {
@@ -252,7 +252,7 @@ describe("the watch", () => {
     const copies = mail.filter((m) => m.subject.includes("signed contract"));
     expect(copies.map((m) => m.to).sort()).toEqual(["amy@acme.example", WREN_PARTY.email].sort());
     expect(copies[0]?.text).toContain("Amy Adams, CEO");
-    expect(copies[0]?.text).toContain(FROM.ip);
+    expect(copies[0]?.text).toContain(ORIGIN.ip);
     mail.splice(0);
     await pass();
     expect(mail.filter((m) => m.subject.includes("signed contract"))).toEqual([]);

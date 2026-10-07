@@ -635,6 +635,7 @@ describe("the demo", () => {
             "delivery.contract",
             "delivery.invoices",
           ],
+          flags: {},
         },
       ],
       demo: true,
