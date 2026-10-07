@@ -70,6 +70,24 @@ export function railOf(run: RunRow, team: boolean, id: string = run.setup): Rail
 export const currentOf = (run: RunRow): StepRow | null =>
   run.step ? (run.steps.find((s) => s.id === run.step) ?? null) : null;
 
+/** A mailbox's state on Account → Mail, as a tag (designs/2026-10-07-mail-access.md). */
+export function mailTag(
+  state: "not_set_up" | "waiting_admin" | "send_only" | "read_send" | "broken",
+): { label: string; tone: TagTone } {
+  switch (state) {
+    case "not_set_up":
+      return { label: "Not set up", tone: "neutral" };
+    case "waiting_admin":
+      return { label: "Waiting on admin", tone: "accent" };
+    case "send_only":
+      return { label: "Connected (send only)", tone: "green" };
+    case "read_send":
+      return { label: "Connected (read and send)", tone: "green" };
+    case "broken":
+      return { label: "Broken", tone: "warn" };
+  }
+}
+
 /** A vendor's mode, as a tag. */
 export function modeTag(
   v: Pick<VendorRow, "mode" | "own">,

@@ -15,6 +15,7 @@
  *   demo. The service's guard decides who may call each route.
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
+ * - `/oauth/mail/<provider>`: a mailbox's sign-in or an admin's consent lands (./mail-oauth.ts).
  * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public.
  * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
  *   host, public, with its own API at `__book/<handler>`.
@@ -33,6 +34,7 @@ import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { liveRoute, NoteRoom } from "./live.js";
+import { mailOAuthRoute } from "./mail-oauth.js";
 import {
   grantFor,
   MEDIA_GRANT_PATH,
@@ -236,6 +238,11 @@ export default {
     if (site.kind === "client") {
       const auth = await authRoute(req, env);
       if (auth) return auth;
+    }
+    // A mailbox's sign-in and an admin's consent come back here; never on the demo.
+    if (pathname.startsWith("/oauth/mail/") && site.kind !== "demo") {
+      const landed = await mailOAuthRoute(req, env);
+      if (landed) return landed;
     }
     if (pathname === "/api/dictate")
       return dictate(req, env, {

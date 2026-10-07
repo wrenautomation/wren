@@ -21,6 +21,9 @@ import {
   calendarOwner,
   ownerDeps,
 } from "@wren/calendar/restate";
+import { mailAccess, mailAppsFrom } from "@wren/channel-email/access/access";
+import { mailConsoleApi } from "@wren/channel-email/access/console";
+import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/channel-email/access/console-routes";
 import { callRecord, firmRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
@@ -43,7 +46,7 @@ import {
   TEMPLATES_CONSOLE_APPS,
   TEMPLATES_CONSOLE_ROUTES,
 } from "@wren/core/templates/console-routes";
-import { cachedDb, createDb } from "@wren/db";
+import { cachedDb, clientDatabaseName, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { healthConsoleApi } from "@wren/delivery/health/console";
@@ -118,6 +121,11 @@ const LIVE_CHECKS = new Set([
   "google_calendar.access",
   "meta.ad_account",
   "meta.page",
+  "mail.google_app",
+  "mail.microsoft_app",
+  "google.mail_trust",
+  "microsoft.admin_consent",
+  "mailbox.token",
 ]);
 /** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
 const SERVICES: Record<
@@ -194,6 +202,37 @@ const SERVICES: Record<
       env: "dev",
       agent: process.env.WREN_SETUP_AGENT === "true",
       parts: COMPONENTS.filter((c) => c.requires.facts.length > 0),
+    }),
+  },
+  // Account → Mail. No key store and no network: Connect is refused here, as in prod until the
+  // IAM grant. Wren's apps from WREN_MAIL_* when set.
+  mail: {
+    routes: Object.keys(MAIL_ACCESS_ROUTES),
+    guard: { needs: MAIL_ACCESS_ROUTES, apps: MAIL_ACCESS_APPS, unnamed: "first" },
+    api: mailConsoleApi({
+      main,
+      access: mailAccess({
+        main,
+        apps: mailAppsFrom(
+          {
+            googleId: settings.mailGoogleClientId,
+            googleSecret: settings.mailGoogleClientSecret,
+            microsoftId: settings.mailMicrosoftClientId,
+            microsoftSecret: settings.mailMicrosoftClientSecret,
+          },
+          null,
+          "dev",
+        ),
+        keys: null,
+        env: "dev",
+        origin: `http://localhost:${port}`,
+        fetch: async () => {
+          throw new Error("no network in the preview");
+        },
+      }),
+      clientDb: (c) =>
+        cachedDb(clientUrl(settings.databaseUrl, { database: clientDatabaseName(c) })),
+      setups: SETUPS,
     }),
   },
   // A client's Marketing, from its own database. A verdict goes to its desk on Restate: not here.

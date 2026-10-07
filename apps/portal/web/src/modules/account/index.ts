@@ -6,6 +6,7 @@ import { Accounts } from "./Accounts.js";
 import { Domain } from "./Domain.js";
 import { Included } from "./Included.js";
 import { Look } from "./Look.js";
+import { Mail } from "./Mail.js";
 import { nowCount } from "./Now.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
@@ -22,7 +23,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
+    "Your company's details, who can see your projects, your email settings, your look, your mailboxes, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -36,6 +37,7 @@ export const account: Module = {
     { id: "look", label: "Look", Page: Look, requires: { needs: "manage" }, group: "Setup" },
     { id: "domain", label: "Domain", Page: Domain, group: "Setup" },
     { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup", badge: nowCount },
+    { id: "mail", label: "Mail", Page: Mail, group: "Setup" },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
     { id: "webhooks", label: "Webhooks", Page: Webhooks, group: "Setup" },
     {

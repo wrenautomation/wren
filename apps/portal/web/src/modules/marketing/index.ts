@@ -599,6 +599,13 @@ const INBOX_ACTIONS: Action[] = [
     // A reply's call invite, as its replies page answers it; a reply with none has no actions.
     ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
     ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+    // Mail to the client's own mailboxes (designs/2026-10-07-mail-access.md): answered in Gmail or
+    // Outlook, then Done here.
+    only(
+      "mail",
+      { id: "mail.done", label: "Done", handler: "mail/done", bulk: true, done: said("Done") },
+      WAITS,
+    ),
   ]
     .filter((a) => !BOXED.includes(a.id))
     .map(unkeyed),
@@ -760,9 +767,10 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     comments: "Comments on our posts show here.",
     dms: "Threads show here once reach messages someone.",
     email: "Email replies from leads show here.",
+    mail: "Mail to the mailboxes you connected on Account → Mail shows here.",
     texts: "Text threads show here once someone texts back.",
     activity: "Follows, mentions and notices show here.",
-    all: "Comments, DMs, email replies, texts and activity show here.",
+    all: "Comments, DMs, email replies, mail, texts and activity show here.",
   },
   actions: INBOX_ACTIONS,
   // The whole conversation with its reply and note boxes; activity has none.

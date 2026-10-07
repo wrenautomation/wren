@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   currentOf,
   dollars,
+  mailTag,
   modeTag,
   type RunRow,
   railOf,
@@ -72,5 +73,15 @@ describe("vendors", () => {
     );
     expect(dollars(21_000)).toBe("$0.02");
     expect(dollars(12_400_000)).toBe("$12.40");
+  });
+});
+
+describe("mailTag", () => {
+  it("names each mailbox state as Account → Mail shows it", () => {
+    expect(mailTag("not_set_up").label).toBe("Not set up");
+    expect(mailTag("waiting_admin").label).toBe("Waiting on admin");
+    expect(mailTag("send_only").label).toBe("Connected (send only)");
+    expect(mailTag("read_send").label).toBe("Connected (read and send)");
+    expect(mailTag("broken")).toEqual({ label: "Broken", tone: "warn" });
   });
 });

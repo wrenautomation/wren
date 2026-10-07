@@ -15,6 +15,11 @@ import {
   CALENDAR_CONSOLE_WRITES,
 } from "@wren/calendar/console-routes";
 import {
+  MAIL_ACCESS_APPS,
+  MAIL_ACCESS_ROUTES,
+  MAIL_ACCESS_WRITES,
+} from "@wren/channel-email/access/console-routes";
+import {
   EMAIL_CONSOLE_APPS,
   EMAIL_CONSOLE_ROUTES,
   EMAIL_CONSOLE_WRITES,
@@ -175,6 +180,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     ACCOUNTS_CONSOLE_APPS,
     ACCOUNTS_CONSOLE_WRITES,
   ),
+  // Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in.
+  mail: service("MailAccess", MAIL_ACCESS_ROUTES, MAIL_ACCESS_APPS, MAIL_ACCESS_WRITES),
 };
 
 /**
