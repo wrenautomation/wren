@@ -1,7 +1,7 @@
 /**
  * The booker's mail: booked, moved, cancelled, and the reminders a day and an hour before.
  * Plain text from Wren's portal address, every time on the booker's own clock, and every mail
- * but the cancel carries their manage link. Google sends its own invite besides.
+ * but the cancel carries their signed links to reschedule and to cancel. Google sends its own invite besides.
  */
 import { canonicalZone } from "@wren/core/time";
 import type { CalendarBooking } from "./schema.js";
@@ -44,7 +44,8 @@ export function mailFor(
   const when = whenOn(b.zone, b.start);
   const join = b.meetUrl ? `Join: ${b.meetUrl}` : "The calendar invite has the link.";
   const hi = firstName(b.name) ? `Hi ${firstName(b.name)},` : "Hi,";
-  const change = `Need a different time? ${o.manage}`;
+  // Both links carry the booking's signed token; the page opens on the one asked for.
+  const change = [`Reschedule: ${o.manage}?do=move`, `Cancel: ${o.manage}?do=cancel`].join("\n");
   const lines: Record<Kind, { subject: string; body: string[] }> = {
     booked: {
       subject: `Booked: ${title}, ${when}`,
