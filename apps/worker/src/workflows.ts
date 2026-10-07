@@ -10,11 +10,11 @@ import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
+import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { OUTREACH_WORKFLOWS } from "@wren/outreach/components";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
-import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
 

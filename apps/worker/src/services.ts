@@ -208,6 +208,9 @@ import { s3Files } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
+import { readStep as learnRead, type Practice, practiceOf, scoreStep } from "@wren/learn";
+import { makeLearnConsole } from "@wren/learn/console";
+import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   adLibraryFor,
@@ -255,9 +258,6 @@ import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/r
 import { makeVoiceConsole } from "@wren/voice/console";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { VOICE_RECORDS } from "@wren/voice/records";
-import { type Practice, practiceOf, readStep as learnRead, scoreStep } from "@wren/learn";
-import { makeLearnConsole } from "@wren/learn/console";
-import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { triageStep, mail as watchMail } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
