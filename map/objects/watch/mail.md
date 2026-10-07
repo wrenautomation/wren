@@ -3,13 +3,13 @@ type: object
 cluster: watch
 universe: live
 status: verified
-verified: 2026-10-05 @ 65d9c85
+verified: 2026-10-07 @ 29aa22e6
 entity: packages/watch/src/schema.ts:42
 ---
 
 # mail (the Monitor)
 
-One email the Monitor read in William's inboxes, a `watch.mail` row, and the rules (`watch.rules`) that sort it into Needs you, held or dropped.
+One email the Monitor read in William's inboxes (`reader = 'monitor'`), or in a client's connected mailboxes in that client's own database (`reader = 'mail'`, [[email/mail-access]]), a `watch.mail` row, and the rules (`watch.rules`) that sort it into Needs you, held or dropped.
 
 ## Why this shape
 
@@ -21,7 +21,8 @@ The Monitor is Wren's first routed workflow: `Watch/all` reads, the spine carrie
 - `rules` (`schema.ts:25`): words, optional sender (address or domain) and subject words, optional verdict. Migration 0095 seeds the Inbox Insiders rule
 - Read: `readMail` (`packages/watch/src/read.ts:25`) searches `in:inbox` minus promotions and social, from an hour before the newest kept
 - Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:68`), `sortAgain` (`:110`), step `triageStep` (`:129`); events are `mail:<row id>`
-- Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books
+- Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books; `MailMeta.link` is the provider's own link (Outlook), else the view builds Gmail's
+- Clients: `MailReader/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. Marketing → Inbox shows those rows as type Mail (`packages/content/src/social/records.ts:145`)
 
 Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/restate.ts:28`
 

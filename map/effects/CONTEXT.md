@@ -25,6 +25,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
+| a client's connected mailboxes, Google trust, Microsoft consent | [[email/mail-access]] | [[platform/account-setup]], [[watch/mail]] (the client reader), Account → Mail, `apps/portal/src/mail-oauth.ts` |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]], [[content/draft-event]] |
 | a post's funnel stage, target or link; promo drafts; comment examples | [[content/funnel]] | [[content/draft]], [[content/video-edit]], [[content/comment]], [[content/draft-event]], `lander/src/data/links.json`, `designs/2026-10-07-content-funnel.md` |
@@ -82,6 +83,7 @@ Nothing in this repo references these; they break silently.
 | the channel readers `activity`/`audience` (O1-O4, each `channel-*` over autobrowse `sites`/`desk`) | `ContentChannel.activity?`/`audience?` in `packages/core/src/content/index.ts`; `SocialWatch` reads them | [[content/platform]] |
 | Restate registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
+| SSM `/wren/prod/owners/<client>/keys/MAIL_*`, Google OAuth client and Entra app "Wren mail" (William creates them) | mailbox refresh tokens and Wren's app ids; Google and Microsoft redirect to `/oauth/mail/<provider>` | [[email/mail-access]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |
 | Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key; a client number's voice connection must post call events to `/webhooks/telnyx/<client>` for missed-call text back (setup `setup.call_routing`) | [[platform/phone-worker]], [[sms/missed-call]] |
 | texts sent to a client's customers | `phone.wrenautomation.com/r/<client>/<token>` (the host is `LINK_ORIGIN`, `packages/channel-sms/src/reviews.ts:40`); old texts keep working only while that path does | [[sms/review-ask]], [[platform/phone-worker]] |
