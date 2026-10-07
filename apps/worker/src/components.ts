@@ -41,6 +41,7 @@ export const PLATFORM = {
     ConsolePortal: "the console: loops, handlers, records, clients and installs",
     Ask: "a question to Claude Code on the Mac, answered on its runs row",
     Spine: "events along every workflow's routed wires, and the door's webhooks",
+    SpineClock: "a Schedule trigger node's clock: ticks each slot into its workflow",
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
