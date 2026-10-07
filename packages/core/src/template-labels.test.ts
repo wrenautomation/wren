@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { promptLabel } from "./slots/preview.js";
-import { folderLabel, labelOf, nameLabel } from "./template-labels.js";
+import { folderLabel, labelOf, namedParts, nameLabel, nameParts } from "./template-labels.js";
 
 describe("template labels", () => {
-  it("reads path parts as names", () => {
+  it("reads path parts as names, a part with its own label as that label", () => {
+    expect(labelOf("sec_ria")).toBe("Sec ria");
+    nameParts({ sec_ria: "SEC RIA" });
     expect(labelOf("sec_ria")).toBe("SEC RIA");
+    expect(folderLabel("sec_ria/book-first")).toBe("SEC RIA / Book first");
+    expect(namedParts()).toEqual({ sec_ria: "SEC RIA" });
     expect(labelOf("book-first")).toBe("Book first");
     expect(labelOf("final_followup")).toBe("Final follow-up");
     expect(labelOf("recruiting")).toBe("Recruiting");

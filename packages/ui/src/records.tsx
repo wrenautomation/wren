@@ -591,14 +591,28 @@ const blank = (c: Cell | undefined) =>
 function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (blank(c)) return 0;
   if (f.kind === "date") return 14;
-  if (f.kind === "status") return (f.states?.[String(c)]?.label ?? String(c)).length + 2;
+  // A state's dot and its gap take about two characters.
+  if (f.kind === "status" || f.kind === "verdict")
+    return (f.states?.[String(c)]?.label ?? String(c)).length + 2;
   if (Array.isArray(c)) return c.join(", ").length;
-  return typeof c === "object" ? 0 : String(c).length + (f.column?.align === "end" ? 3 : 0);
+  if (c && typeof c === "object") {
+    if ("name" in c) return c.name.length;
+    if ("amount" in c) return c.amount.toFixed(2).length + 3;
+    return `${c.n} of ${c.of}`.length;
+  }
+  return String(c).length + (f.column?.align === "end" ? 3 : 0);
 }
 
+/** A cell's width in px: about 7.2 a character at 13px, and the cell's padding. */
+const pxOf = (chars: number) => Math.ceil(chars * 7.2) + 24;
+
+/** The most a column grows to fit its cells: its kind's max (set in core), never below its preset. */
+const maxOf = (f: FieldMeta) => Math.max(f.column?.max ?? 0, widthOf(f));
+
 /**
- * A column's width for the rows shown: what its head and its widest cell need, never more than
- * its preset. A column of "Post" stays narrow, so the title has the room.
+ * A column's width for the rows shown: what its head and its widest cell need, within its
+ * kind's bounds. A column of "Post" stays narrow, so the title has the room; a firm's name or a
+ * short state shows whole.
  */
 export function fitOf(f: FieldMeta, rows: Row[]): number {
   if (!rows.length) return widthOf(f);
@@ -606,13 +620,14 @@ export function fitOf(f: FieldMeta, rows: Row[]): number {
   const words = f.label.split(/\s+/);
   const head = Math.max(...words.map((w) => w.length), Math.ceil(f.label.length / 2)) + 3;
   const chars = Math.max(head, ...rows.map((r) => charsOf(f, r[f.key])));
-  return Math.min(widthOf(f), Math.max(64, Math.ceil(chars * 7.2) + 24));
+  return Math.min(maxOf(f), Math.max(64, pxOf(chars)));
 }
 
 /**
  * Each column's width; none takes what the rest leave. That is the title, unless its words are
- * short and a text column is cut: then the title fits its words and the cut columns share the
- * room, so "Redis or Valkey" doesn't sit in half the table while its reason reads "Costliest...".
+ * short and a column is cut even at its max: then the title fits its words and the cut columns
+ * share the room, so "Redis or Valkey" doesn't sit in half the table while its reason reads
+ * "Costliest...".
  */
 export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
   const widths: Record<string, number | undefined> = {};
@@ -620,10 +635,7 @@ export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
   const title = cols.find((f) => f.key === meta.title);
   if (!title || !rows.length) return widths;
   const cut = cols.filter(
-    (f) =>
-      f !== title &&
-      f.kind === "text" &&
-      rows.some((r) => Math.ceil(charsOf(f, r[f.key]) * 7.2) + 24 > widthOf(f)),
+    (f) => f !== title && rows.some((r) => pxOf(charsOf(f, r[f.key])) > maxOf(f)),
   );
   const words = Math.max(title.label.length, ...rows.map((r) => titleOf(meta, r).length));
   const needs = Math.ceil(words * 7.6) + 24;
@@ -1581,11 +1593,9 @@ export function RecordBody({
               <div key={f.key} className="min-w-0">
                 <dt className="text-[12px] text-(--ui-ink-2)">{f.label}</dt>
                 <dd
-                  className={cn(
-                    "mt-0.5 text-[18px] leading-6 font-semibold tracking-[-0.01em]",
-                    // Tags wrap: each label whole ("Sends messages, Spends money").
-                    f.kind === "tags" ? "text-pretty" : "truncate",
-                  )}
+                  // A fact wraps, never cut: tags at their commas ("Sends messages, Spends
+                  // money"), an address anywhere ("dana@northwind.example" stays whole).
+                  className="mt-0.5 text-[18px] leading-6 font-semibold tracking-[-0.01em] text-pretty [overflow-wrap:anywhere]"
                 >
                   <FieldCell field={f} cell={row[f.key]} />
                 </dd>

@@ -42,6 +42,8 @@ export interface FormField {
   optional?: true;
   /** A select's choices. */
   options?: readonly string[];
+  /** A choice as people read it, by value; the value itself when absent. */
+  labels?: Readonly<Record<string, string>>;
   /** Said under the box. */
   hint?: string;
   /** The pattern its value must match, as in HTML. */
@@ -245,7 +247,7 @@ export function FormBox({
         <option value="">{required ? "Pick one" : "Not set"}</option>
         {(f.options ?? []).map((o) => (
           <option key={o} value={o}>
-            {o}
+            {f.labels?.[o] ?? o}
           </option>
         ))}
       </select>

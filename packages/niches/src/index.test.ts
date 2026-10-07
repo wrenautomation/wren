@@ -153,6 +153,7 @@ describe("registry", () => {
 describe("offers", () => {
   const spec = {
     name: "t",
+    label: "T",
     factsView: null,
     lander: "/agencies",
     crawlHints: [],

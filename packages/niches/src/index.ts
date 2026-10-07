@@ -11,6 +11,7 @@ import {
   type PersonSourceFormat,
   type SourceFormat,
 } from "@wren/core";
+import { nameParts } from "@wren/core/templates/labels";
 import type { Dataset } from "@wren/research/fetch";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
@@ -24,6 +25,8 @@ export { agencies, recruiting, secRia };
 export const NICHES: readonly Niche[] = [secRia, agencies, recruiting];
 export const NICHE_NAMES: ReadonlySet<string> = new Set(NICHES.map((n) => n.name));
 if (NICHE_NAMES.size !== NICHES.length) throw new Error("duplicate niche name in registry");
+// Every page and row that names a niche reads its label ("SEC RIA"), never "Sec ria".
+nameParts(Object.fromEntries(NICHES.map((n) => [n.name, n.label])));
 
 const byName = new Map(NICHES.map((n) => [n.name, n] as const));
 

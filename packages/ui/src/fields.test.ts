@@ -83,10 +83,14 @@ describe("rates and times", () => {
     expect(widthOf(field({ label: "Sent" }))).toBe(144);
     expect(widthOf(field({ label: "Sent" }), true)).toBe(173);
     expect(
-      widthOf(field({ label: "Failures in a row", column: { align: "start", width: "s" } })),
+      widthOf(
+        field({ label: "Failures in a row", column: { align: "start", width: "s", max: 200 } }),
+      ),
     ).toBe(161);
     expect(
-      widthOf(field({ kind: "date", label: "At", column: { align: "start", width: "s" } })),
+      widthOf(
+        field({ kind: "date", label: "At", column: { align: "start", width: "s", max: 200 } }),
+      ),
     ).toBe(125);
     const states = { follow_ups: { label: "Follow-ups only", tone: "neutral" as const } };
     expect(widthOf(field({ kind: "status", label: "State", states }))).toBe(147);

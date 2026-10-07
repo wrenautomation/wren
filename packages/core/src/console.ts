@@ -876,6 +876,8 @@ export interface HandlerField {
   hint?: string;
   /** A select's choices. */
   options?: readonly string[];
+  /** A choice as people read it, by value ("first" is "First batch only"); from `.meta({ labels })`. */
+  labels?: Readonly<Record<string, string>>;
 }
 
 type Schema = {
@@ -888,6 +890,8 @@ type Schema = {
   format?: string;
   title?: string;
   description?: string;
+  /** An enum's choices as people read them: `.meta({ labels })` on the zod enum. */
+  labels?: Record<string, string>;
 };
 
 /** "openersPerDay" → "Openers per day". */
@@ -957,6 +961,7 @@ export function formOf(input: unknown): HandlerField[] | null {
         ...(optional ? { optional: true as const } : {}),
         ...(s.description ? { hint: s.description } : {}),
         ...(s.enum ? { options: s.enum.map(String) } : {}),
+        ...(s.enum && s.labels ? { labels: s.labels } : {}),
       });
     }
   };

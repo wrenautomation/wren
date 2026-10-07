@@ -9,6 +9,7 @@ import {
 
 export const recruiting = defineNiche({
   name: "recruiting",
+  label: "Recruiting",
   factsView: "recruiting_facts",
   lander: "/recruiting/lead-reactivation",
   crawlHints: [

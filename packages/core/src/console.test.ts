@@ -461,6 +461,20 @@ describe("restateAdminGet", () => {
 });
 
 describe("formOf: a schema as form boxes", () => {
+  it("carries a choice's label from the enum's meta", () => {
+    const schema = z.toJSONSchema(
+      z.object({
+        approval: z
+          .enum(["first", "every"])
+          .meta({ labels: { first: "First batch only", every: "Every batch" } }),
+      }),
+    );
+    expect(formOf(schema)?.[0]).toMatchObject({
+      type: "select",
+      options: ["first", "every"],
+      labels: { first: "First batch only", every: "Every batch" },
+    });
+  });
   it("maps each type in the doc's table, nested fields as parent.child", () => {
     const schema = {
       anyOf: [

@@ -9,7 +9,7 @@
 import type { RecordAnswer } from "@wren/core/records/serve";
 import type { TemplateListRow, TemplateOpen, TemplateSaved } from "@wren/core/templates/console";
 import type { TemplateDetail } from "@wren/core/templates/edits";
-import { folderLabel, labelOf, nameLabel } from "@wren/core/templates/labels";
+import { folderLabel, labelOf, nameLabel, nameParts } from "@wren/core/templates/labels";
 import {
   Alert,
   Browser,
@@ -95,9 +95,14 @@ export function Templates({ params, demo, can }: PageProps) {
   const [kind, setKind] = useState("");
   const [app, setApp] = useState("");
   const [status, setStatus] = useState("");
-  const list = useCall("templates:list", () =>
-    call<{ templates: TemplateListRow[] }>("templates/list"),
-  );
+  const list = useCall("templates:list", async () => {
+    const got = await call<{ templates: TemplateListRow[]; labels?: Record<string, string> }>(
+      "templates/list",
+    );
+    // A niche's folder reads its label ("SEC RIA"), as the server names it.
+    nameParts(got.labels ?? {});
+    return got;
+  });
   const rows = list.data?.templates ?? [];
   const folders = useMemo(() => {
     const n = new Map<string, number>();
@@ -849,30 +854,33 @@ function History({
         {d.versions.map((v) => (
           <li
             key={v.number}
-            className="flex flex-wrap items-start gap-x-3 gap-y-1 border-b border-(--ui-hair) py-2.5 text-[13.5px]"
+            // Restore keeps its own column on the right, however the words beside it wrap.
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 border-b border-(--ui-hair) py-2.5 text-[13.5px]"
           >
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={picked.includes(v.number)}
-                onChange={() => pick(v.number)}
-                aria-label={`Compare version ${v.number}`}
-                className="size-4 accent-(--ui-accent)"
-              />
-              <span className="font-medium tabular-nums">Version {v.number}</span>
-            </label>
-            <span className="flex flex-wrap gap-1">{tags(v)}</span>
-            <span className="min-w-0 flex-1 basis-60">
-              <span className={QUIET}>
-                {v.origin === "default"
-                  ? byLine("Wren's default", v.at)
-                  : [ORIGIN[v.origin] ?? v.origin, byLine(who(v.by, v.origin), v.at)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                {v.openedFrom ? ` · from version ${v.openedFrom}` : ""}
+            <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-1">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={picked.includes(v.number)}
+                  onChange={() => pick(v.number)}
+                  aria-label={`Compare version ${v.number}`}
+                  className="size-4 accent-(--ui-accent)"
+                />
+                <span className="font-medium tabular-nums">Version {v.number}</span>
+              </label>
+              <span className="flex flex-wrap gap-1">{tags(v)}</span>
+              <span className="min-w-0 flex-1 basis-60">
+                <span className={QUIET}>
+                  {v.origin === "default"
+                    ? byLine("Wren's default", v.at)
+                    : [ORIGIN[v.origin] ?? v.origin, byLine(who(v.by, v.origin), v.at)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                  {v.openedFrom ? ` · from version ${v.openedFrom}` : ""}
+                </span>
+                {v.why ? <span className="block">{v.why}</span> : null}
               </span>
-              {v.why ? <span className="block">{v.why}</span> : null}
-            </span>
+            </div>
             {mayWrite && v.number !== (d.draft ?? d.live)?.number ? (
               <Button
                 tone="secondary"

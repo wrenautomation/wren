@@ -5,6 +5,7 @@ import { agencies, defineNiche, NICHES, templatesDir } from "./index.js";
 
 const spec = {
   name: "t",
+  label: "T",
   factsView: null,
   lander: "/agencies",
   crawlHints: [],

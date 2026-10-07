@@ -10,11 +10,19 @@ describe("settingRows", () => {
       senders: [],
       senderName: null,
       approval: "first",
+      tone: "plain_spoken",
       days: [1, 3, 7],
     };
     const fields = [
       { field: "on", label: "On" },
       { field: "stages.research", label: "Stages: research" },
+      {
+        field: "approval",
+        label: "Approval",
+        options: ["first", "every"],
+        labels: { first: "First batch only", every: "Every batch" },
+      },
+      { field: "tone", label: "Tone", options: ["plain_spoken", "warm"] },
     ];
     expect(settingRows(values, fields)).toEqual([
       ["On", "Off"],
@@ -23,7 +31,8 @@ describe("settingRows", () => {
       ["Sending: per inbox per day", "Not set"],
       ["Senders", "Not set"],
       ["Sender name", "Not set"],
-      ["Approval", "first"],
+      ["Approval", "First batch only"],
+      ["Tone", "Plain spoken"],
       ["Days", ["1", "3", "7"]],
     ]);
   });

@@ -26,6 +26,8 @@ import type { Dataset } from "@wren/research/fetch";
 
 export interface Niche {
   readonly name: string;
+  /** How people read its name: "SEC RIA" for `sec_ria`, in lists, call pages and the Library. */
+  readonly label: string;
   /** The sanctioned targeting read surface for this niche (a view name), or null. */
   readonly factsView: string | null;
   /** This niche's page on the site, path only (the sign-off links it). Must be a live offer's page. */
@@ -110,6 +112,7 @@ export const US_METROS: readonly string[] = [
 
 export interface NicheSpec {
   readonly name: string;
+  readonly label: string;
   readonly factsView: string | null;
   readonly lander: string;
   readonly crawlHints: readonly string[];
@@ -260,6 +263,7 @@ export function defineNiche(spec: NicheSpec): Niche {
   }
   return {
     name: spec.name,
+    label: spec.label,
     factsView: spec.factsView,
     lander: spec.lander,
     crawlHints: new Set(spec.crawlHints),

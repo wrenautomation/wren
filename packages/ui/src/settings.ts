@@ -1,13 +1,18 @@
 /**
  * A part's settings in words, never JSON: each leaf a labelled row, labels from its form's
  * fields (`a.b` paths, as `formOf` makes them), booleans On or Off, nothing set "Not set", a
- * list as its items. A key the form doesn't name reads as words ("senderName" → "Sender name").
+ * list as its items. A key the form doesn't name reads as words ("senderName" → "Sender name"), and
+ * a choice reads as its label from the form, else as words ("first" → "First").
  */
 
-/** A form field's path and label: all a row needs. */
+/** A form field's path and label, and a select's choices with their labels: all a row needs. */
 export interface SettingField {
   field: string;
   label: string;
+  /** A select's choices: a value among them reads as its label, or as words. */
+  options?: readonly string[] | undefined;
+  /** A choice as people read it, by value. */
+  labels?: Readonly<Record<string, string>> | undefined;
 }
 
 /** One row: a label and a line of text, or a list's items. */
@@ -53,17 +58,21 @@ export function settingRows(
   values: Readonly<Record<string, unknown>> | null | undefined,
   fields?: readonly SettingField[] | null,
 ): SettingRow[] {
-  const labels = new Map((fields ?? []).map((f) => [f.field, f.label]));
+  const byPath = new Map((fields ?? []).map((f) => [f.field, f]));
+  /** A select's value as its choice's label ("first" → "First batch only"), else in words. */
+  const choice = (f: SettingField | undefined, v: unknown) =>
+    f?.options && typeof v === "string" && v ? (f.labels?.[v] ?? words(v)) : null;
   const rows: SettingRow[] = [];
   const walk = (obj: Record<string, unknown>, path: string, label: string) => {
     for (const [k, v] of Object.entries(obj)) {
       const field = path ? `${path}.${k}` : k;
       const own = words(k);
       // A nested row reads "Stages: research", as the form's box does.
-      const at = labels.get(field) ?? (label ? `${label}: ${own.toLowerCase()}` : own);
+      const f = byPath.get(field);
+      const at = f?.label ?? (label ? `${label}: ${own.toLowerCase()}` : own);
       if (plain(v) && Object.keys(v).length) walk(v, field, at);
       else if (Array.isArray(v) && v.length) rows.push([at, v.map(settingText)]);
-      else rows.push([at, settingText(v)]);
+      else rows.push([at, choice(f, v) ?? settingText(v)]);
     }
   };
   walk({ ...(values ?? {}) }, "", "");

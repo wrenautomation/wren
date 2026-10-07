@@ -13,6 +13,7 @@ const ARMS = ["marketing", "build"] as const;
 
 export const agencies = defineNiche({
   name: NICHE,
+  label: "Agencies",
   factsView: "agency_facts",
   lander: "/agencies",
   crawlHints: [

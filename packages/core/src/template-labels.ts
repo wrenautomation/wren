@@ -1,8 +1,23 @@
 /**
- * Template paths as people read them: a folder or name part ("sec_ria", "book-first") becomes a
- * label ("SEC RIA", "Book first"). Pure, so the Library and the CLI share it. The ref itself
+ * Names as people read them: a folder, name part or niche ("sec_ria", "book-first") becomes a
+ * label ("SEC RIA", "Book first"). The Library, the CLI and record rows share it. The ref itself
  * (`email:recruiting/book-first/opener`) stays what Claude Code and the CLI take.
+ *
+ * A part with its own label (each niche's, from `@wren/niches`) reads as that label. Core sits
+ * below the niches, so they hand their labels in when loaded (`nameParts`), and the Library gets
+ * them with its list.
  */
+
+/** Whole parts with their own label: "sec_ria" to "SEC RIA". */
+const NAMED = new Map<string, string>();
+
+/** Gives these parts their own labels: a niche's name to its label. */
+export function nameParts(labels: Readonly<Record<string, string>>): void {
+  for (const [part, label] of Object.entries(labels)) NAMED.set(part, label);
+}
+
+/** Every part with its own label, to hand to a page that labels without the niches. */
+export const namedParts = (): Record<string, string> => Object.fromEntries(NAMED);
 
 /** Parts said letter by letter. */
 const UPPER: ReadonlySet<string> = new Set([
@@ -13,8 +28,6 @@ const UPPER: ReadonlySet<string> = new Set([
   "dm",
   "faq",
   "ps",
-  "ria",
-  "sec",
   "seo",
   "sms",
   "url",
@@ -29,6 +42,8 @@ const SPELLED: Readonly<Record<string, string>> = {
 
 /** One path part as a label: "sec_ria" to "SEC RIA", "final_followup" to "Final follow-up". */
 export function labelOf(part: string): string {
+  const named = NAMED.get(part);
+  if (named) return named;
   const words = part
     .split(/[-_\s]+/)
     .filter(Boolean)

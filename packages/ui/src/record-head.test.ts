@@ -10,7 +10,7 @@ const f = (key: string, kind: FieldMeta["kind"], more: Partial<FieldMeta> = {}):
     ops: [],
     sortable: false,
     searchable: false,
-    column: { align: "start", width: "m" },
+    column: { align: "start", width: "m", max: 280 },
     ...more,
   }) as FieldMeta;
 
@@ -71,5 +71,17 @@ describe("recordHead", () => {
     expect(
       recordHead(m, { name: "A", effects: "sends,spends,posts" }, none).keys.map((x) => x.key),
     ).not.toContain("effects");
+  });
+  it("keeps a whole email or URL as a key fact, up to an address's length", () => {
+    const m = { ...meta, fields: [...meta.fields, f("email", "text"), f("site", "link")] };
+    const row = {
+      name: "Dana",
+      email: "dana.whitfield@northwind-dental.example",
+      site: "https://northwind-dental.example/team",
+      missing: "a plain sentence that runs past the cap",
+    };
+    expect(recordHead(m, row, none).keys.map((x) => x.key)).toEqual(["email", "site"]);
+    const long = { ...row, email: `${"d".repeat(60)}@northwind.example` };
+    expect(recordHead(m, long, none).keys.map((x) => x.key)).toEqual(["site"]);
   });
 });

@@ -34,7 +34,10 @@ export const reactivationSettingsSchema = z
     /** Overrides on Wren's send policy; null keeps Wren's. */
     sending: sendingOverridesSchema,
     /** `first`: the client approves the first batch, then it flows. `every`: each batch. */
-    approval: z.enum(["first", "every"]).default("first"),
+    approval: z
+      .enum(["first", "every"])
+      .meta({ labels: { first: "First batch only", every: "Every batch" } })
+      .default("first"),
     /** The client's mailboxes Wren sends from, each as one recruiter. */
     senders: z
       .array(

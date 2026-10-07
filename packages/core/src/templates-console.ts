@@ -21,6 +21,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "./restate/form.js";
 import { AuthoringError } from "./slots/parse.js";
 import { LIBRARY_EDITS, sampleOf, WORDS_MAX } from "./template-edits.js";
+import { namedParts } from "./template-labels.js";
 import {
   approve,
   askPublish,
@@ -193,7 +194,10 @@ export function templatesApi(deps: { db: Db }) {
   };
 
   return {
-    /** Every template the viewer may read, by folder then name, with its status. */
+    /**
+     * Every template the viewer may read, by folder then name, with its status, and the parts
+     * with their own label (a niche's "SEC RIA"), so the page names folders as the server does.
+     */
     async list(req: PortalRequest) {
       const out = [];
       for (const r of await listTemplates(db))
@@ -205,7 +209,7 @@ export function templatesApi(deps: { db: Db }) {
             at: r.at?.toISOString() ?? null,
             editable: LIBRARY_EDITS.has(r.kind),
           });
-      return { templates: out };
+      return { templates: out, labels: namedParts() };
     },
     /** One template: where it stands, every version with its words, and whether it may be edited. */
     async detail(req: RefRequest) {

@@ -23,6 +23,8 @@ import {
   status,
   text,
 } from "@wren/core/records";
+// A niche or arm as people read it: "sec_ria" is its niche's label, "SEC RIA".
+import { labelOf } from "@wren/core/templates/labels";
 import type { Queryable } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { asc, eq, sql } from "drizzle-orm";
@@ -45,10 +47,6 @@ const AGES = {
   last_month: { label: "Last month", tone: "neutral" },
   earlier: { label: "Earlier", tone: "neutral" },
 } as const;
-
-/** The views' rule (0072): "sec_ria" -> "Sec ria". */
-const campaignName = (niche: string) =>
-  niche.charAt(0).toUpperCase() + niche.slice(1).replaceAll("_", " ");
 
 export const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
@@ -149,7 +147,7 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
           health: !h || h.sent === 0 ? "quiet" : wouldTrip(h, policy) ? "tripping" : "clean",
           bounces: h?.hardBounces ?? 0,
           sent_window: h?.sent ?? 0,
-          campaigns: s.niches === null ? "every campaign" : s.niches.map(campaignName).join(", "),
+          campaigns: s.niches === null ? "every campaign" : s.niches.map(labelOf).join(", "),
         };
       });
     },
@@ -270,7 +268,7 @@ export const callRecord = defineRecord({
         left join enrollments e on e.id = cb.enrollment_id
         left join people p on p.id = e.person_id
         left join companies co on co.id = e.company_id`)
-    ).map((r) => ({ ...r, campaign: r.niche ? campaignName(String(r.niche)) : null })),
+    ).map((r) => ({ ...r, campaign: r.niche ? labelOf(String(r.niche)) : null })),
   key: "id",
   title: "who",
   subtitle: "company",
@@ -450,8 +448,8 @@ export const variantRecord = defineRecord({
       ...r,
       id: `${r.template}@${r.template_version}`,
       // "book-first" reads "Book first"; the version is told apart by when it was written.
-      arm: r.arm ? campaignName(String(r.arm).replaceAll("-", " ")) : r.arm,
-      campaign: campaignName(String(r.niche)),
+      arm: r.arm ? labelOf(String(r.arm)) : r.arm,
+      campaign: labelOf(String(r.niche)),
       step: Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`,
     })),
   key: "id",
@@ -496,7 +494,7 @@ export const stallRecord = defineRecord({
     return (await db.execute<Record<string, unknown>>(sql`select * from pipeline_leaks`)).map(
       (r) => ({
         ...r,
-        campaign: campaignName(String(r.niche)),
+        campaign: labelOf(String(r.niche)),
         waiting_on_touch: touchless.get(String(r.niche)) ?? 0,
       }),
     );

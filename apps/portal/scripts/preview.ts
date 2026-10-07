@@ -12,11 +12,12 @@
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
+import { callRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { askRecord } from "@wren/core/ask";
-import { clientUrl } from "@wren/core/clients";
+import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
@@ -82,6 +83,9 @@ const SERVICES: Record<
         // The Library's Media (no bucket here: listed, not played) and SOPs.
         mediaRecord(),
         sopRecord,
+        // Inbox > Calls, and a client's page (/clients/all/<id>), as the worker registers them.
+        callRecord,
+        clientRecord,
       ],
     }),
   },

@@ -13,7 +13,7 @@ const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   ops: [],
   sortable: false,
   searchable: false,
-  column: { align: "start", width: "m" },
+  column: { align: "start", width: "m", max: 280 },
 });
 const name = field("name");
 const state = field("state", "status");
@@ -63,11 +63,22 @@ describe("shownColumns", () => {
 });
 
 describe("fitOf", () => {
-  it("fits a column to its head and widest cell, up to its preset", () => {
+  it("fits a column to its head and widest cell, up to its kind's max", () => {
     const kind = field("kind", "status");
     expect(fitOf(kind, [{ id: 1, kind: "post" }])).toBeLessThan(widthOf(kind));
-    expect(fitOf(note, [{ id: 1, note: "x".repeat(80) }])).toBe(widthOf(note));
+    expect(fitOf(note, [{ id: 1, note: "x".repeat(80) }])).toBe(280);
     expect(fitOf(note, [])).toBe(widthOf(note));
+  });
+  it("sizes a firm by its name, and a state by its label and dot", () => {
+    const firm = field("company", "company");
+    const firms = [{ id: 1, company: { name: "Northwind Dental Partners", domain: null } }];
+    // 25 characters at 7.2px and the padding: wider than the 144px preset, so never cut.
+    expect(fitOf(firm, firms)).toBeGreaterThanOrEqual(25 * 7.2 + 24);
+    const status = {
+      ...field("status", "status"),
+      states: { upcoming: { label: "Upcoming", tone: "warn" } },
+    } as FieldMeta;
+    expect(fitOf(status, [{ id: 1, status: "upcoming" }])).toBeGreaterThanOrEqual(10 * 7.2 + 24);
   });
 });
 
@@ -111,6 +122,40 @@ describe("KeyHints", () => {
 });
 
 describe("widthsOf", () => {
+  it("gives a call's firm and state their words, and the rest to Who", () => {
+    const who = { ...field("who", "name"), label: "Who" };
+    const firm = { ...field("company", "company"), label: "Company" };
+    const status = {
+      ...field("status", "status"),
+      label: "Status",
+      column: { align: "start", width: "s", max: 200 },
+      states: {
+        upcoming: { label: "Upcoming", tone: "warn" },
+        past: { label: "Say how it went", tone: "neutral" },
+      },
+    } as FieldMeta;
+    const calls = { ...meta, title: "who", fields: [who, firm, status] };
+    const rows = [
+      { id: 1, who: "Dana Whitfield", company: { name: "Northwind Dental", domain: null } },
+      { id: 2, who: "Sam Ortiz", company: { name: "Harbor Roofing Co", domain: null } },
+    ].map((r) => ({ ...r, status: "upcoming" }));
+    const w = widthsOf(calls, [who, firm, status], rows);
+    expect(w.who).toBeUndefined();
+    expect(w.company).toBeGreaterThanOrEqual(17 * 7.2 + 24);
+    expect(w.status).toBeGreaterThanOrEqual(10 * 7.2 + 24);
+    // A state's column fits the widest label it may show, so no state is ever cut.
+    expect(w.status).toBeLessThanOrEqual(widthOf(status));
+  });
+  it("lets a firm's long name share the spare room with a long reason", () => {
+    const firm = field("company", "company");
+    const rows = [
+      { id: 1, name: "Al", company: { name: "z".repeat(60), domain: null }, note: "x".repeat(80) },
+    ];
+    const w = widthsOf(meta, [name, firm, note], rows);
+    expect(w.name).toBeGreaterThan(0);
+    expect(w.company).toBeUndefined();
+    expect(w.note).toBeUndefined();
+  });
   it("lets the title take the room, unless it is short and a text column is cut", () => {
     const long = [{ id: 1, name: "Alpha", note: "x".repeat(80), city: "Springfield" }];
     const short = widthsOf(meta, [name, note, city], long);
@@ -119,6 +164,6 @@ describe("widthsOf", () => {
     const wide = [{ id: 1, name: "y".repeat(120), note: "x".repeat(80), city: "Springfield" }];
     const titled = widthsOf(meta, [name, note, city], wide);
     expect(titled.name).toBeUndefined();
-    expect(titled.note).toBe(widthOf(note));
+    expect(titled.note).toBe(280);
   });
 });

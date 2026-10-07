@@ -10,6 +10,7 @@ const NICHE = "sec_ria";
 
 export const secRia = defineNiche({
   name: NICHE,
+  label: "SEC RIA",
   factsView: "firm_facts",
   // /ria was retired 2026-09-25 (301 to /); the general page until RIA gets its own offer.
   lander: "/",

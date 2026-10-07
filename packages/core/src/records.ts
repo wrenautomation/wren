@@ -36,7 +36,7 @@ interface KindFacts {
   /** It names someone or a firm: the demo never filters, sorts or searches it (`allowed`). */
   masked: boolean;
   /** Its list column; null keeps it to the record's detail. */
-  column: { align: "start" | "end"; width: "s" | "m" | "l" } | null;
+  column: Column | null;
   /** Its CSV cell. */
   csv(cell: Cell, field: Field): string | number | null;
 }
@@ -45,8 +45,21 @@ const NUMBERS = ["eq", "gte", "lte", "empty"] as const;
 const plain = (c: Cell) => (c === null || typeof c === "object" ? null : c);
 const label = (c: Cell, f: Field) => (typeof c === "string" ? (f.states?.[c]?.label ?? c) : null);
 const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
-const left = { align: "start", width: "m" } as const;
-const right = { align: "end", width: "s" } as const;
+/**
+ * A list column: `width` is its preset when there are no rows; with rows it fits its head and
+ * widest cell, never past `max` px. A column cut at its max takes a share of the spare room.
+ */
+export interface Column {
+  align: "start" | "end";
+  width: "s" | "m" | "l";
+  max: number;
+}
+/** Words: a name or a firm stays whole up to here; longer text yields to the room left. */
+const left = { align: "start", width: "m", max: 280 } as const;
+/** Numbers and dates: their widest cell, never wide. */
+const right = { align: "end", width: "s", max: 160 } as const;
+/** A state: its labels are short, and each one shows whole (the preset fits the longest). */
+const state = { align: "start", width: "s", max: 200 } as const;
 
 export const KINDS = {
   text: {
@@ -82,7 +95,7 @@ export const KINDS = {
     sortable: true,
     searchable: false,
     masked: false,
-    column: { align: "start", width: "s" },
+    column: state,
     csv: label,
   },
   number: {
@@ -170,7 +183,7 @@ export const KINDS = {
     sortable: false,
     searchable: false,
     masked: false,
-    column: { align: "start", width: "s" },
+    column: state,
     csv: label,
   },
   score: {
@@ -188,7 +201,8 @@ export const KINDS = {
     sortable: false,
     searchable: false,
     masked: false,
-    column: { align: "start", width: "s" },
+    // A link reads as its host ("northwind.example") or "Open".
+    column: { align: "start", width: "s", max: 220 },
     csv: plain,
   },
   /**
