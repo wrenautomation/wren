@@ -13,7 +13,7 @@
 |---|---|---|
 | `research.social` Social reads | The client's pool (`PoolScheduler/<c>/all`) reads YouTube and Instagram for its companies. Findings in its database. Read buckets count Wren's reads and the client's together. Settings: `youtube`, `instagram`. | A |
 | `research.signals` Signals | The client's pool runs the collectors on its companies, with its own block. Buckets and Google's daily budget count Wren's reads too. Metered collectors and LinkedIn reads stay off for a client. | A |
-| `research.dossier` Firm dossier | The client's Pipeline firm page shows the dossier from its database: facts, people, sources. Read only; spends nothing. | A |
+| `research.dossier` Company dossier | The client's Pipeline firm page shows the dossier from its database: facts, people, sources. Read only; spends nothing. | A |
 | `email.experiments` Copy experiments | `Evolution/<c>/fleet` ticks the client's experiments; candidates wait on Wren's approve. Waits on templates live copy per client (in flight). | A |
 | `email.marketing` Opt-in marketing | The client's topics, signups and preference center, sent from its own mailbox with its postal address. Not built for Wren either. | A |
 | `search.watch` Search watch | `SearchWatch/<c>/daily` reads the client's Search Console property into its database. The client adds Wren's service account as a user on the property. | B |

@@ -1,6 +1,6 @@
 /**
  * A firm's dossier on its page: what the sheet holds on it, each fact with its source and day,
- * its newest posts, and its people. Read only. A client sees it once Firm dossier is installed;
+ * its newest posts, and its people. Read only. A client sees it once Company dossier is installed;
  * until then the section points to the Shop.
  */
 import { Alert, Empty, Loading } from "@wren/ui";
@@ -66,7 +66,7 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
     )
       return (
         <p className={QUIET}>
-          Firm dossier isn't installed.{" "}
+          Company dossier isn't installed.{" "}
           <a href={`/marketplace/catalog/${PART}?client=${encodeURIComponent(client)}`}>
             See it in the Shop
           </a>
@@ -78,7 +78,7 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
   if (!got.data) return <Loading lines={3} />;
   const d = got.data;
   if (!d.facts.length && !d.posts.length && !d.people.length)
-    return <Empty>Nothing on this firm yet. Facts show here as the sheet reads them.</Empty>;
+    return <Empty>Nothing on this company yet. Facts show here as the sheet reads them.</Empty>;
   return (
     <div className="grid gap-6">
       {d.facts.length ? (

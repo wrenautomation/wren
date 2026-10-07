@@ -323,8 +323,8 @@ export const RESEARCH_COMPONENTS = [
   defineComponent({
     id: DOSSIER,
     stage: "find",
-    name: "Firm dossier",
-    blurb: "A sourced brief on one firm before a call.",
+    name: "Company dossier",
+    blurb: "A sourced brief on one company before a call.",
     icon: "flag",
     for: "client",
     ready: true,
