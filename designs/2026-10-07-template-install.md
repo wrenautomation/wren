@@ -14,7 +14,7 @@ GHL's snapshot, in our model. Builds on `2026-10-05-workflows.md` (Templates),
   door, closed. Nothing starts, sends or spends.
 - Publish sends the client's workflow to To approve. A person's yes makes it live: the draft goes
   live, the door opens, the parts' loops start. Decline sends it back to draft.
-- Uninstall stops the client's loops and closes the door. Data, copy, settings and saves stay.
+- Uninstall stops the client's loops and closes the door. Its Reply and Booking nodes hear nothing until it is live again (`notLive`). Data, copy, settings and saves stay.
   Installing again picks them back up.
 - Installing twice changes nothing. After a template update, the plan shows what would change
   before anything does. A client's own copy, settings and wiring are never overwritten.

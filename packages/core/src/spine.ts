@@ -23,7 +23,7 @@ import {
   type TriggerFacts,
   triggerHears,
 } from "./logic.js";
-import { hooks, type SentEvent, workflowSaves } from "./schema.js";
+import { hooks, type SentEvent, workflowInstalls, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
 export interface SpineEvent {
@@ -651,6 +651,20 @@ export function replyFired(
   };
 }
 
+/**
+ * A client's template workflows that aren't live: uninstalled, a draft, or waiting on a yes. Their
+ * Reply and Booking nodes hear nothing. A workflow no template put there keeps hearing.
+ */
+export async function notLive(db: Queryable, client: string): Promise<string[]> {
+  const rows = await db
+    .select({ workflow: workflowInstalls.workflow })
+    .from(workflowInstalls)
+    .where(eq(workflowInstalls.client, client))
+    .groupBy(workflowInstalls.workflow)
+    .having(sql`NOT bool_or(${workflowInstalls.state} = 'live')`);
+  return rows.map((r) => r.workflow);
+}
+
 /** Every Reply and Booking node in `flows` that hears `facts`, as where its event leaves. */
 export function hearersOf(
   flows: Iterable<Workflow>,
@@ -771,7 +785,15 @@ export function makeSpine(d: SpineDeps) {
       fire: restate.handlers.handler(
         { ingressPrivate: true },
         async (ctx: restate.Context, req: Fired) => {
-          const at = hearersOf((await flowsFor(ctx, req.client)).values(), req.facts);
+          const flows = await flowsFor(ctx, req.client);
+          const client = req.client;
+          const quiet = new Set(
+            client === null ? [] : await ctx.run("not live", () => notLive(d.main, client)),
+          );
+          const at = hearersOf(
+            [...flows.values()].filter((f) => !quiet.has(f.id)),
+            req.facts,
+          );
           for (const h of at)
             ctx
               .serviceSendClient<SpineService>(SPINE)

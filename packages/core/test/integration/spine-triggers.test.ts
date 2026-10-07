@@ -1,16 +1,17 @@
 /**
  * Triggers on a real Restate (designs/2026-10-06-workflow-editor.md, step 5): a reply and a
- * booking fired at the Spine enter each live node that hears them; a Schedule node's clock ticks
- * its slot in once, and a stale tick does nothing.
+ * booking fired at the Spine enter each live node that hears them, never an uninstalled template's;
+ * a Schedule node's clock ticks its slot in once, and a stale tick does nothing.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { workflowSaves } from "../../src/schema.js";
+import { clients as clientRows } from "../../src/clients/schema.js";
+import { workflowInstalls, workflowSaves } from "../../src/schema.js";
 import {
   clockKey,
   type Fired,
@@ -88,7 +89,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["events", "workflow_saves"]);
+  await truncate(pg.db, ["events", "workflow_saves", "workflow_installs", "clients"]);
   await pg.db
     .insert(workflowSaves)
     .values({ client: null, workflow: FLOW.id, edits: EDITS, live: true, by: "op@example.test" });
@@ -117,6 +118,41 @@ describe("triggers on the spine", () => {
       event: { subject: "call:9", kind: "call", data: { call: 9 } },
     });
     expect(await arrivals(2)).toEqual(["c call:9", "r reply:sms:5"]);
+  }, 60_000);
+
+  it("a template's workflow hears only while its install is live", async () => {
+    await pg.db.insert(clientRows).values({
+      id: "acme",
+      name: "Acme Test",
+      database: "wren_client_acme",
+      accounts: {},
+      products: {},
+    });
+    await pg.db.insert(workflowSaves).values({
+      client: "acme",
+      workflow: FLOW.id,
+      edits: EDITS,
+      live: true,
+      by: "op@example.test",
+    });
+    await pg.db.insert(workflowInstalls).values({
+      client: "acme",
+      template: FLOW.id,
+      workflow: FLOW.id,
+      version: "v",
+      state: "off",
+      by: "test",
+      applied: { added: [], blocks: {}, copy: [] },
+    });
+    // Uninstalled: the reply enters nothing.
+    await call().fire(replyFired("acme", "sms", 7));
+    await new Promise((r) => setTimeout(r, 1500));
+    await pg.db
+      .update(workflowInstalls)
+      .set({ state: "live" })
+      .where(eq(workflowInstalls.client, "acme"));
+    await call().fire(replyFired("acme", "sms", 8));
+    expect(await arrivals(1)).toEqual(["r reply:sms:8"]);
   }, 60_000);
 
   it("tick a Schedule slot in once; a stale slot does nothing", async () => {
