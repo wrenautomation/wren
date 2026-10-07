@@ -240,6 +240,7 @@ describe("handler forms", () => {
   const EFFECTS: Record<string, string> = {
     "Ads/launch": "spends",
     "Ads/start": "spends",
+    "SetupAgent/run": "spends",
     "EmailConsole/approve": "sends",
     "SmsDesk/enroll": "sends",
     "SmsDesk/reply": "sends",
