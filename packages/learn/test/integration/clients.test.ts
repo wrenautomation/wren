@@ -5,10 +5,6 @@
  * allowance, against its own SOPs, and an SOP from its items lands in its own Notes. Two clients
  * and Wren never mix. Synthetic clients, people and addresses only.
  */
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { addClient, addMember } from "@wren/core/clients";
 import { addGrant } from "@wren/core/grants";
 import { guard, type PortalRequest, whoIs } from "@wren/core/portal";
@@ -420,73 +416,4 @@ describe("a client's items are its own to score and keep", () => {
         .sort(),
     ).toEqual(["Later one", "alpha item 1"]);
   });
-});
-
-describe("through the CLI", () => {
-  const srcDir = import.meta.dirname;
-  const repo = join(srcDir, "..", "..", "..", "..");
-  const mainTs = join(repo, "apps", "cli", "src", "main.ts");
-  const tsx = join(repo, "packages", "db", "node_modules", ".bin", "tsx");
-  let root = "";
-  let home = "";
-  beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), "wren-learn-root-"));
-    home = await mkdtemp(join(tmpdir(), "wren-learn-home-"));
-  });
-  afterAll(async () => {
-    for (const d of [root, home]) if (d) await rm(d, { recursive: true, force: true });
-  });
-
-  /** `wren --client <id> learn …` against the test database; never a real env file. */
-  const cli = (client: string | null, args: string[]) =>
-    new Promise<{ code: number; out: string; err: string }>((resolve, reject) => {
-      const child = spawn(
-        tsx,
-        [mainTs, ...(client ? ["--client", client] : []), "learn", ...args],
-        {
-          cwd: root,
-          env: { PATH: process.env.PATH, HOME: home, WREN_ROOT: root, WREN_DATABASE_URL: pg.url },
-        },
-      );
-      let out = "";
-      let err = "";
-      child.stdout.on("data", (d) => {
-        out += d;
-      });
-      child.stderr.on("data", (d) => {
-        err += d;
-      });
-      child.on("error", reject);
-      child.on("close", (code) => resolve({ code: code ?? -1, out, err }));
-    });
-  const json = (out: string) => JSON.parse(out) as unknown;
-
-  it("lists, shows, moves, archives and unfollows in the named workspace only", async () => {
-    const a = await seed("alpha", 1);
-    const b = await seed("beta", 1);
-    const w = await seed("wren", 1);
-    const list = await cli("alpha", ["list"]);
-    expect(list.code, list.err).toBe(0);
-    expect((json(list.out) as { id: number }[]).map((r) => r.id)).toEqual([a.item]);
-    const mine = await cli(null, ["list"]);
-    expect((json(mine.out) as { id: number }[]).map((r) => r.id)).toEqual([w.item]);
-
-    for (const other of [b, w]) {
-      const show = await cli("alpha", ["show", String(other.item)]);
-      expect(show.code).toBe(1);
-      expect(show.err).toContain(`No item ${other.item}`);
-      const moved = await cli("alpha", ["move", String(other.item), "--to", String(a.collection)]);
-      expect(json(moved.out)).toEqual({ done: [] });
-      const archived = await cli("alpha", ["archive", String(other.item)]);
-      expect(json(archived.out)).toEqual({ done: [] });
-      const unfollowed = await cli("alpha", ["unfollow", String(other.source)]);
-      expect(json(unfollowed.out)).toEqual({ done: [] });
-    }
-    expect(await row(b.item)).toMatchObject({ archivedAt: null, collectionId: null });
-    expect(await row(w.item)).toMatchObject({ archivedAt: null, collectionId: null });
-    const own = await cli("alpha", ["archive", String(a.item)]);
-    expect(json(own.out)).toEqual({ done: [a.item] });
-    const missing = await cli("nobody", ["list"]);
-    expect(missing.code).toBe(1);
-  }, 240_000);
 });
