@@ -965,11 +965,12 @@ export function formOf(input: unknown): HandlerField[] | null {
       const field = path ? `${path}.${name}` : name;
       const day = DAYS[name];
       const own = s.title ?? day ?? words(name);
-      // A nested box reads "Stages: research", never "Stages.Research"; a day keeps its capital.
+      // A nested box reads "Stages: research", never "Stages.Research"; a day or a title keeps
+      // its capital ("Contact: X handle").
       const at = !label
         ? own
-        : day
-          ? `${label}: ${day}`
+        : day || s.title
+          ? `${label}: ${own}`
           : `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}`;
       const optional = parentOptional || !obj.required?.includes(name) || s !== raw;
       if (s.type === "object" && s.properties && Object.keys(s.properties).length) {

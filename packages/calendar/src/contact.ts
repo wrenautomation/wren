@@ -18,22 +18,29 @@ const PHONE = /^\+?[0-9 ().-]{7,20}$/;
 const HANDLE = /^@?[A-Za-z0-9_.]{1,30}$/;
 const LINKEDIN = /^https:\/\/(www\.)?linkedin\.com\/(in|company)\/[A-Za-z0-9_%-]{1,100}\/?$/;
 
-const field = (ok: RegExp, says: string, describe: string) =>
+const field = (ok: RegExp, title: string, says: string, describe: string) =>
   z
     .string()
     .trim()
     .default("")
     .refine((s) => s === "" || ok.test(s), says)
-    .describe(describe);
+    .describe(describe)
+    .meta({ title });
 
 export const contactSchema = z
   .object({
-    email: field(EMAIL, "an email address", "Your email; blank hides it"),
-    phone: field(PHONE, "a phone number, like +1 416 555 0100", "Your phone, optional"),
-    instagram: field(HANDLE, "an Instagram handle, like @acme", "Your Instagram handle"),
-    x: field(HANDLE, "an X handle, like @acme", "Your X handle"),
+    email: field(EMAIL, "Email", "an email address", "Your email; blank hides it"),
+    phone: field(PHONE, "Phone", "a phone number, like +1 416 555 0100", "Your phone, optional"),
+    instagram: field(
+      HANDLE,
+      "Instagram handle",
+      "an Instagram handle, like @acme",
+      "Your Instagram handle",
+    ),
+    x: field(HANDLE, "X handle", "an X handle, like @acme", "Your X handle"),
     linkedin: field(
       LINKEDIN,
+      "LinkedIn page",
       "a LinkedIn link, like https://www.linkedin.com/company/acme",
       "Your LinkedIn page's link",
     ),
