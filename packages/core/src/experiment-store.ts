@@ -248,6 +248,8 @@ const byVariant = (variants: readonly string[], m: Readonly<Record<string, numbe
 export function experimentRecord(): RecordType {
   return defineRecord({
     id: EXPERIMENT,
+    app: "marketing",
+    channel: null,
     name: { one: "experiment", many: "experiments" },
     rows: async (db) => {
       const all = await db

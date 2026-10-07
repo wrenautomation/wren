@@ -48,6 +48,8 @@ const COMMENT_KIND_LABELS = {
 
 export const dmRecord = defineRecord({
   id: "marketing.dm",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "DM thread", many: "DM threads" },
   rows: async (db) => {
     const threads = await listThreads(db, { limit: THREAD_ROWS });
@@ -159,6 +161,8 @@ export const PLATFORM_LABELS = {
  */
 export const commentRecord = defineRecord({
   id: "marketing.comment",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "comment", many: "comments" },
   rows: async (db) =>
     (
@@ -241,6 +245,8 @@ export function dmCopyRecord(sender: string) {
   const sample: RenderFields = sampleFields(sender);
   return defineRecord({
     id: "marketing.dm_copy",
+    app: "marketing",
+    channel: { field: "platform" },
     name: { one: "DM template", many: "DM templates" },
     rows: async (db) =>
       (await listTemplates(db, slots, sender)).map((v) => ({
@@ -307,6 +313,8 @@ const yesNo = (b: unknown) => (b === true ? "yes" : b === false ? "no" : "?");
 /** Subreddits found for Reddit discovery, as judged, with what a post needs there. */
 export const placeRecord = defineRecord({
   id: "marketing.place",
+  app: "marketing",
+  channel: "reddit",
   name: { one: "place", many: "places" },
   rows: async (db) =>
     (
@@ -373,6 +381,8 @@ export const placeRecord = defineRecord({
 /** New posts in watched places: ranked, the day's best queued with a draft. */
 export const threadRecord = defineRecord({
   id: "marketing.thread",
+  app: "marketing",
+  channel: "reddit",
   name: { one: "thread", many: "threads" },
   rows: async (db) =>
     (
@@ -465,6 +475,8 @@ export const threadRecord = defineRecord({
 /** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
 export const inviteRecord = defineRecord({
   id: "marketing.invite",
+  app: "marketing",
+  channel: "linkedin",
   name: { one: "invite", many: "invites" },
   rows: async (db) =>
     (
@@ -553,6 +565,8 @@ const PEOPLE_ROWS = 1000;
  */
 export const personRecord = defineRecord({
   id: "marketing.person",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "person", many: "people" },
   rows: async (db) =>
     (await db.execute(sql`

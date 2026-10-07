@@ -63,8 +63,23 @@ const DRAFT_STATES: Record<DraftStatus, State> = {
   rejected: { label: "Rejected", tone: "neutral" },
 };
 
+/**
+ * A draft's handlers and the input key naming it: what a login limited to a channel may call on
+ * a draft it may act on (`calls` in `@wren/core/records`).
+ */
+export const DRAFT_CALLS = {
+  "ContentDesk/approve": "ids",
+  "ContentDesk/reject": "ids",
+  "ContentDesk/redraft": "draftId",
+  "DraftAsk/set": "id",
+  "DraftAsk/ask": "id",
+  "DraftAsk/undo": "id",
+} as const;
+
 export const draftRecord = defineRecord({
   id: "marketing.draft",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "draft", many: "drafts" },
   view: "marketing_draft_records",
   key: "id",
@@ -119,12 +134,15 @@ export const draftRecord = defineRecord({
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
+  calls: DRAFT_CALLS,
   /** The preview, and Ask Claude's thread on it. */
   load: async (db, id) => ({ post: await postOf(db, id), ask: await draftTurns(db, "draft", id) }),
 });
 
 export const postRecord = defineRecord({
   id: "marketing.post",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "post", many: "posts" },
   view: "marketing_post_records",
   key: "id",

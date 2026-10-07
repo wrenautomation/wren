@@ -1,4 +1,4 @@
-import type { Need } from "@wren/core/access";
+import type { Need, RouteApps } from "@wren/core/access";
 
 /**
  * EmailConsole's handlers (`restate/console.ts`) and what each needs. With no `client` they work
@@ -33,6 +33,16 @@ export const EMAIL_CONSOLE_ROUTES = {
   approveCandidate: "act",
   rejectCandidate: "act",
 } as const satisfies Record<string, Need>;
+/** Where each route works (`RouteAt`): Outbound's email; records check each type. */
+export const EMAIL_CONSOLE_APPS = {
+  "*": { app: "outbound", channel: "email" },
+  answers: null,
+  recordsTypes: null,
+  recordsList: null,
+  recordsGet: null,
+  recordsExport: null,
+  recordsStats: null,
+} as const satisfies RouteApps<typeof EMAIL_CONSOLE_ROUTES>;
 export type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const EMAIL_CONSOLE_WRITES: readonly EmailConsoleRoute[] = (

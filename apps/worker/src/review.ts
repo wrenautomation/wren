@@ -143,6 +143,8 @@ export const PARKED: readonly Parked[] = [
 export const reviewRecord = (parked: readonly Parked[] = PARKED) =>
   defineRecord({
     id: "wren.parked",
+    app: "review",
+    channel: null,
     name: { one: "parked idea", many: "parked ideas" },
     // It shows spend.
     needs: "money",

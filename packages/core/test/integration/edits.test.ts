@@ -41,6 +41,8 @@ beforeEach(async () => {
 
 const card = defineRecord({
   id: "test.card",
+  app: "work",
+  channel: null,
   name: { one: "card", many: "cards" },
   rows: async (db) => (await db.execute(sql`select * from edit_fixture`)) as never,
   key: "id",

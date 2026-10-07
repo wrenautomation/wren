@@ -16,7 +16,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, setAuditActor } from "@wren/db";
 import { z } from "zod";
 import { callsBetween, markShowed } from "./book.js";
-import { CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
+import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
 import { type CalendarDeps, calendarFlows } from "./restate.js";
 import type { Showed } from "./schema.js";
 import { openHours } from "./slots.js";
@@ -60,6 +60,7 @@ export function makeCalendarConsole(deps: CalendarDeps) {
     name: "CalendarConsole",
     main: db,
     routes: CALENDAR_CONSOLE_ROUTES,
+    apps: CALENDAR_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       /**

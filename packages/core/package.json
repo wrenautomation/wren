@@ -25,6 +25,7 @@
     "./flags": "./src/flags.ts",
     "./experiment-store": "./src/experiment-store.ts",
     "./flag-store": "./src/flag-store.ts",
+    "./grants": "./src/grants.ts",
     "./notify": "./src/notify.ts",
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",

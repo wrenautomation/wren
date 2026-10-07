@@ -38,6 +38,8 @@ const WEEK = {
 
 export const searchPageRecord = defineRecord({
   id: "marketing.search_page",
+  app: "marketing",
+  channel: null,
   name: { one: "page", many: "pages" },
   view: "marketing_search_page_records",
   key: "id",
@@ -68,6 +70,8 @@ export const searchPageRecord = defineRecord({
 
 export const keywordRecord = defineRecord({
   id: "marketing.keyword",
+  app: "marketing",
+  channel: null,
   name: { one: "keyword", many: "keywords" },
   view: "marketing_keyword_records",
   key: "id",
@@ -89,6 +93,8 @@ export const keywordRecord = defineRecord({
 
 export const searchDayRecord = defineRecord({
   id: "marketing.search_day",
+  app: "marketing",
+  channel: null,
   name: { one: "day in Google", many: "days in Google" },
   view: "marketing_search_day_records",
   key: "id",
@@ -105,6 +111,8 @@ export const searchDayRecord = defineRecord({
 
 export const answerRecord = defineRecord({
   id: "marketing.answer",
+  app: "marketing",
+  channel: null,
   name: { one: "answer", many: "answers" },
   view: "marketing_answer_records",
   key: "id",
@@ -137,6 +145,8 @@ export const answerRecord = defineRecord({
 
 export const siteDayRecord = defineRecord({
   id: "marketing.site_day",
+  app: "marketing",
+  channel: null,
   name: { one: "site day", many: "site days" },
   view: "marketing_site_day_records",
   key: "id",
@@ -169,6 +179,8 @@ export const siteDayRecord = defineRecord({
 /** Each channel's funnel by first touch (designs/2026-10-06-signals.md). */
 export const funnelRecord = defineRecord({
   id: "marketing.funnel",
+  app: "marketing",
+  channel: null,
   name: { one: "funnel", many: "funnels" },
   view: "marketing_funnel_records",
   key: "id",
@@ -227,6 +239,8 @@ const parsed = (json: string | null | undefined): Record<string, unknown> | null
 export const sessionRecord = (src: SessionSource) =>
   defineRecord({
     id: "marketing.session",
+    app: "marketing",
+    channel: null,
     name: { one: "session", many: "sessions" },
     rows: async () => {
       const [replays, apps] = await Promise.all([
@@ -332,6 +346,8 @@ async function heatOf(
 export const heatRecord = (src?: SessionSource) =>
   defineRecord({
     id: "marketing.heat",
+    app: "marketing",
+    channel: null,
     name: { one: "heatmap", many: "heatmaps" },
     view: "marketing_heat_records",
     key: "id",

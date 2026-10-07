@@ -15,6 +15,8 @@ export const BOOKING_STATUS = {
 
 export const bookingRecord = defineRecord({
   id: "calendar.booking",
+  app: "calendar",
+  channel: null,
   name: { one: "call", many: "calls" },
   view: "calendar.booking_records",
   key: "id",

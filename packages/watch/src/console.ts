@@ -18,7 +18,7 @@ import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { and, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { WATCH_CONSOLE_ROUTES } from "./console-routes.js";
+import { WATCH_CONSOLE_APPS, WATCH_CONSOLE_ROUTES } from "./console-routes.js";
 import { type FetchFn, follow } from "./feeds.js";
 import { feeds, items, mail, rules, VERDICTS, type Verdict } from "./schema.js";
 import { sortAgain } from "./triage.js";
@@ -214,6 +214,7 @@ export function makeWatchConsole(db: Db, llm: LlmClient | null) {
     name: "WatchConsole",
     main: db,
     routes: WATCH_CONSOLE_ROUTES,
+    apps: WATCH_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       done: serviceHandler({ input: z.looseObject(IDS) }, (_: restate.Context, req: IdsRequest) =>

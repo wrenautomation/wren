@@ -125,6 +125,8 @@ async function filesOf(db: Queryable, only?: number): Promise<MediaFile[]> {
 export const mediaRecord = (signer?: VideoSigner) =>
   defineRecord({
     id: "library.media",
+    app: "library",
+    channel: null,
     name: { one: "file", many: "media" },
     rows: async (db) =>
       (await filesOf(db)).map((f) => ({
@@ -177,6 +179,8 @@ const PLATFORM: Record<string, State> = {
 /** SOPs: the newest text of each SOP the content loop follows, with how many times it changed. */
 export const sopRecord = defineRecord({
   id: "library.sop",
+  app: "library",
+  channel: null,
   name: { one: "SOP", many: "SOPs" },
   // A few dozen SOPs at most: read as rows, queried as a table.
   rows: async (db) =>

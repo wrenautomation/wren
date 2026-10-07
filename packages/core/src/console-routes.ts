@@ -1,4 +1,4 @@
-import type { Need } from "./access.js";
+import type { Need, RouteApps } from "./access.js";
 
 /**
  * ConsolePortal's handlers (`console.ts`) and what each needs. With no `client` the need is
@@ -15,10 +15,10 @@ export const CONSOLE_ROUTES = {
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",
-  // A record's edits (`edits.ts`): the handler checks `run` at Wren too.
-  recordsEdit: "wren:run",
-  recordsUndo: "wren:run",
-  recordsAsk: "wren:run",
+  // A record's edits (`edits.ts`): the handler checks `run` at Wren, or `act` on that row.
+  recordsEdit: "wren:act",
+  recordsUndo: "wren:act",
+  recordsAsk: "wren:act",
   // A viewer's own saved views and prefs, where they look; sharing a view checks `manage`.
   savedViews: "read",
   saveView: "read",
@@ -40,8 +40,9 @@ export const CONSOLE_ROUTES = {
   experimentStop: "wren:run",
   experimentRemove: "wren:run",
   addClient: "wren:manage",
-  // A handler with an effect needs `effect` too, checked once the handler is known.
-  call: "wren:run",
+  // Any handler needs `run` over all of Wren, or `act` on the row its record type declares the
+  // call for (`callOn`). A handler with an effect needs `effect` too.
+  call: "wren:act",
   setLook: "manage",
   install: "manage",
   configure: "manage",
@@ -59,6 +60,35 @@ export const CONSOLE_ROUTES = {
   teamSet: "wren:team",
   teamRemove: "wren:team",
 } as const satisfies Record<string, Need>;
+/** Where each route works (`RouteAt`); null where the handler checks the record type. */
+export const CONSOLE_APPS = {
+  // Records, saved views, prefs and calls: the handler checks each record type.
+  "*": null,
+  view: "outbound",
+  loops: "loops",
+  setLoop: "loops",
+  flagAdd: "loops",
+  flagRemove: "loops",
+  experimentAdd: "marketing",
+  experimentStart: "marketing",
+  experimentShip: "marketing",
+  experimentStop: "marketing",
+  experimentRemove: "marketing",
+  snippetAdd: "library",
+  snippetRemove: "library",
+  addClient: "clients",
+  setLook: "account",
+  install: "marketplace",
+  configure: "marketplace",
+  uninstall: "marketplace",
+  ask: "marketplace",
+  workflowSave: "workflows",
+  retryEvent: "workflows",
+  releaseHold: "workflows",
+  question: "ask",
+  teamSet: "team",
+  teamRemove: "team",
+} as const satisfies RouteApps<typeof CONSOLE_ROUTES>;
 export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const CONSOLE_WRITES: readonly ConsoleRoute[] = [

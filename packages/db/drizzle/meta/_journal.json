@@ -953,6 +953,13 @@
       "when": 1791340034916,
       "tag": "0135_flag_experiments",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1791340655437,
+      "tag": "0136_scoped_access",
+      "breakpoints": true
     }
   ]
 }

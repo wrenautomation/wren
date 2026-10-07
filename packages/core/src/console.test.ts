@@ -378,6 +378,8 @@ describe("ConsolePortal.call", () => {
       }),
     }),
     update: () => ({ set: (v: unknown) => ({ where: async () => ran.push({ close: v }) }) }),
+    // Their grants: none past the role.
+    execute: async () => [],
   } as unknown as Db;
   const portal = makeConsolePortal({ main: db, views: [], adminGet: async () => SERVICES });
   const call = (

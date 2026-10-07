@@ -1,4 +1,4 @@
-import type { Need } from "@wren/core/access";
+import type { Need, RouteApps } from "@wren/core/access";
 
 /**
  * The portal API's handlers and what each needs (`@wren/core/access`): the service serves these
@@ -26,6 +26,19 @@ export const PORTAL_ROUTES = {
   recordsExport: "read",
   recordsStats: "read",
 } as const satisfies Record<string, Need>;
+/** Where each route works (`RouteAt`): Reactivation's emails; records check each type. */
+export const PORTAL_APPS = {
+  "*": { app: "reactivation", channel: "email" },
+  overview: "reactivation",
+  person: "reactivation",
+  run: "reactivation",
+  work: null,
+  recordsTypes: null,
+  recordsList: null,
+  recordsGet: null,
+  recordsExport: null,
+  recordsStats: null,
+} as const satisfies RouteApps<typeof PORTAL_ROUTES>;
 export type PortalRoute = keyof typeof PORTAL_ROUTES;
 /** The ones that change a list: never cached, never on the demo. */
 export const PORTAL_WRITES: readonly PortalRoute[] = [

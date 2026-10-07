@@ -15,6 +15,8 @@ const VERDICT = status(
 
 export const mailRecord = defineRecord({
   id: "watch.mail",
+  app: "inbox",
+  channel: null,
   needs: "team",
   name: { one: "email", many: "mail" },
   view: "watch.mail_records",
@@ -57,6 +59,8 @@ export const mailRecord = defineRecord({
 
 export const ruleRecord = defineRecord({
   id: "watch.rule",
+  app: "inbox",
+  channel: null,
   needs: "team",
   name: { one: "rule", many: "rules" },
   view: "watch.rule_records",
@@ -92,6 +96,8 @@ const QUEUE = status({
 
 export const itemRecord = defineRecord({
   id: "watch.item",
+  app: "inbox",
+  channel: null,
   needs: "team",
   name: { one: "feed item", many: "feed items" },
   view: "watch.item_records",
@@ -127,6 +133,8 @@ export const itemRecord = defineRecord({
 
 export const feedRecord = defineRecord({
   id: "watch.feed",
+  app: "inbox",
+  channel: null,
   needs: "team",
   name: { one: "feed", many: "feeds" },
   view: "watch.feed_records",

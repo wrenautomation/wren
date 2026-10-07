@@ -1,4 +1,4 @@
-import type { Need } from "@wren/core/access";
+import type { Need, RouteApps } from "@wren/core/access";
 
 /**
  * SmsConsole's handlers (`restate/console.ts`) and what each needs: a client's texting threads,
@@ -14,6 +14,11 @@ export const SMS_CONSOLE_ROUTES = {
   recordsStats: "read",
   reply: "act",
 } as const satisfies Record<string, Need>;
+/** Where each route works (`RouteAt`): records check each type; a reply is Texts. */
+export const SMS_CONSOLE_APPS = {
+  "*": null,
+  reply: { app: "texts", channel: "sms" },
+} as const satisfies RouteApps<typeof SMS_CONSOLE_ROUTES>;
 export type SmsConsoleRoute = keyof typeof SMS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const SMS_CONSOLE_WRITES: readonly SmsConsoleRoute[] = ["reply"];

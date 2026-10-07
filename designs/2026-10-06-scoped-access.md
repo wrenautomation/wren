@@ -125,3 +125,21 @@ LinkedIn this week, and may publish one post once.
 - 2026-10-06: William asked for it. Written; building. Grants with scopes, over fixed role
   lists, because "a YouTube guy who reads everything" and "LinkedIn until Friday" are scopes
   and times, not new roles. Additive only, so every answer is a list of matching grants.
+- 2026-10-06: Phase 1 built. A login's role stays on its membership or seat row, now a built-in
+  or custom role id with an FK to `roles`; the `grants` table holds extras only. Same answers,
+  one less join, and the last-admin and last-owner checks keep working on the row. Built-ins are
+  seeded rows so the FK holds. `comment` is added to every built-in that holds `act`, so the
+  six old roles answer the old seven verbs exactly as before (test `OLD_VERBS`). A target part
+  left out means "anywhere" (the route-level check); `null` means "none", so only an unscoped
+  grant matches it. A counted grant is spent in its own transaction before a cross-service call,
+  in the same one for a write in the main database.
+- 2026-10-06: Phase 2 built. `app` and `channel` are required on `defineRecord`, checked at
+  declare time, and every type lands in `DECLARED` for the inventory test. A channel-limited
+  login's list wraps the type's source in `channel in (...) or key in (...)`, so totals,
+  facets and stats agree with the rows. A type with none of the login's rows drops out of
+  `recordsTypes`. Routes take their place from a `RouteApps` map per service (`"*"` plus
+  overrides); the guard also checks every channel the input names (`channel`, `platform`,
+  `platforms`). Inline edit and `call` moved from `run` to `act` with a row check: a call
+  needs `on {record, id}`, a handler the type lists in `calls`, and an input that names that
+  row. Built-in roles see no change, since every team role with `act` also has `run`.
+  `marketing.audience` is channel-less, as its rows are keyed by platform and hold no posts.

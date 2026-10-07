@@ -97,7 +97,7 @@ describe("who sees which client", () => {
         name: "Beta Search",
         installed: [],
         role: "member",
-        can: ["read", "act"],
+        can: ["read", "act", "comment"],
         flags: {},
       },
     ]);

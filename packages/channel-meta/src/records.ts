@@ -29,6 +29,8 @@ async function adOf(db: Queryable, campaignId: string) {
 
 export const adDayRecord = defineRecord({
   id: "marketing.ad_day",
+  app: "marketing",
+  channel: "facebook",
   name: { one: "ad set day", many: "ad set days" },
   view: "marketing_ad_day_records",
   key: "id",

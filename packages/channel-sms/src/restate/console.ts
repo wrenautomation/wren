@@ -18,8 +18,10 @@ import {
 import { metaOf } from "@wren/core/records";
 import {
   type ExportAsk,
+  fenceFor,
   type GetAsk,
   type ListAsk,
+  opens,
   type RecordsApi,
   type StatsAsk,
   serveRecords,
@@ -28,7 +30,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
 import { TEXTS } from "../clients.js";
-import { SMS_CONSOLE_ROUTES } from "../console-routes.js";
+import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "../console-routes.js";
 import { SMS_RECORDS } from "../records.js";
 import type { SmsDeskService } from "./index.js";
 
@@ -54,12 +56,16 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
       throw new PortalRefusal("texts are not installed", 404);
     return client;
   };
-  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
-    snapshot(open(await texting(req)), (tx) => use(serveRecords(SMS_RECORDS, tx)));
+  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
+    const client = await texting(req);
+    return snapshot(open(client), (tx) =>
+      use(serveRecords(SMS_RECORDS, tx, undefined, fenceFor(req, client.id))),
+    );
+  };
   return {
     recordsTypes: async (req: PortalRequest) => {
-      await texting(req);
-      return SMS_RECORDS.map((t) => metaOf(t, false));
+      const fence = fenceFor(req, (await texting(req)).id);
+      return SMS_RECORDS.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk) => read(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
@@ -86,6 +92,7 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
     name: "SmsConsole",
     main: deps.db,
     routes: SMS_CONSOLE_ROUTES,
+    apps: SMS_CONSOLE_APPS,
     unnamed: "first",
     handlers: {
       recordsTypes: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>

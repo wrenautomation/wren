@@ -29,7 +29,16 @@ import {
 } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { can, TEAM_ROLES, type TeamRole, WREN } from "./access.js";
+import {
+  can,
+  type Permission,
+  type RoleId,
+  reach,
+  type Target,
+  TEAM_ROLES,
+  WREN,
+  whole,
+} from "./access.js";
 import { ASK, type AskService, ask, type QuestionRequest } from "./ask.js";
 import { release } from "./checks.js";
 import {
@@ -56,7 +65,7 @@ import {
   type Port,
   STAGES,
 } from "./components.js";
-import { CONSOLE_ROUTES } from "./console-routes.js";
+import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
 import {
   ASK_COMMAND,
   ASK_MESSAGE_MAX,
@@ -76,6 +85,7 @@ import {
   stopExperiments,
 } from "./experiment-store.js";
 import { addFlag, type EdgePush, type FlagInput, flagRecord, removeFlags } from "./flag-store.js";
+import { roleFits, spendGrant } from "./grants.js";
 import { inHouseOfPart } from "./in-house.js";
 import {
   addSnippet,
@@ -88,6 +98,7 @@ import {
   workflowRecord,
 } from "./library.js";
 import {
+  accessOf,
   answer,
   isDemo,
   PortalRefusal,
@@ -115,8 +126,10 @@ import {
 } from "./records.js";
 import {
   type ExportAsk,
+  type Fence,
   type GetAsk,
   type ListAsk,
+  opens,
   type RecordAnswer,
   type RecordsApi,
   type RecordsCsv,
@@ -197,7 +210,7 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 /** A seat on Wren's team: a field left out keeps its value; `clients` null is every client. */
 export interface TeamSeatRequest extends PortalRequest {
   email: string;
-  role?: TeamRole;
+  role?: RoleId;
   /** Ids, or a form's comma list; null, blank or "all" is every client. */
   clients?: string[] | string | null;
 }
@@ -303,6 +316,11 @@ export interface CallRequest extends PortalRequest {
   confirm?: string;
   /** Start it and answer at once: a read that takes minutes would outlast the page's request. */
   send?: boolean;
+  /**
+   * The row the call is about (a record type and its id). A login without `run` over all of
+   * Wren calls only that type's `calls`, on a row it may act on, with the input naming the row.
+   */
+  on?: { record?: unknown; id?: unknown };
 }
 
 export type RestateAdmin = (query: string) => Promise<Record<string, unknown>[]>;
@@ -410,6 +428,8 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
 export const loopRecord = (admin: RestateAdmin): RecordType =>
   defineRecord({
     id: "console.loop",
+    app: "loops",
+    channel: null,
     name: { one: "loop", many: "loops" },
     rows: async () =>
       loopsOf(await admin(LOOPS_SQL)).map((l) => ({
@@ -458,6 +478,8 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
  */
 export const eventRecord = defineRecord({
   id: "console.event",
+  app: "workflows",
+  channel: null,
   name: { one: "event", many: "events" },
   view: "spine_events",
   key: "id",
@@ -533,6 +555,8 @@ export async function executionSteps(db: Queryable, id: string): Promise<Executi
  */
 export const executionRecord = defineRecord({
   id: "console.execution",
+  app: "workflows",
+  channel: null,
   name: { one: "execution", many: "executions" },
   view: "spine_executions",
   key: "id",
@@ -570,6 +594,8 @@ export const executionRecord = defineRecord({
  */
 export const holdRecord = defineRecord({
   id: "console.hold",
+  app: "workflows",
+  channel: null,
   name: { one: "hold", many: "holds" },
   view: "unit_holds_now",
   key: "id",
@@ -607,6 +633,8 @@ export const holdRecord = defineRecord({
 /** Each check's pass rate per stage and source over 30 days; under 70% of 50 pauses a source. */
 export const checkRecord = defineRecord({
   id: "console.check",
+  app: "workflows",
+  channel: null,
   name: { one: "check", many: "checks" },
   view: "check_rates",
   key: "id",
@@ -801,6 +829,8 @@ export function formOf(input: unknown): HandlerField[] | null {
 export const handlerRecord = (get: RestateAdminGet): RecordType =>
   defineRecord({
     id: "console.handler",
+    app: "handlers",
+    channel: null,
     name: { one: "handler", many: "handlers" },
     rows: async () =>
       handlersOf(await get("/services"))
@@ -971,6 +1001,8 @@ export function settingRecord(all: readonly Component[]): RecordType {
   };
   return defineRecord({
     id: "console.setting",
+    app: "loops",
+    channel: null,
     name: { one: "setting", many: "settings" },
     rows: async (db) => {
       const saved = await db.select().from(wrenSettings);
@@ -1135,6 +1167,8 @@ export const componentRecord = (
   });
   return defineRecord({
     id: COMPONENT,
+    app: "marketplace",
+    channel: null,
     name: { one: "component", many: "components" },
     rows: async () => {
       const on = team && running ? await running().catch(() => null) : null;
@@ -1360,6 +1394,39 @@ export function consoleApi({
     if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
     return (req.viewer as SignedViewer).email;
   };
+  /** The rows of each of Wren's types this teammate may read; the catalog is everyone's. */
+  const fenceOf =
+    (req: PortalRequest): Fence =>
+    (t) =>
+      t.id === COMPONENT
+        ? null
+        : reach(accessOf(req), "read", {
+            client: WREN,
+            app: t.app,
+            type: t.id,
+            channel: t.channel,
+          });
+  /**
+   * Where one row is, as a check's target: its app, its channel (the type's, or the row's own
+   * when it keeps one), and the row itself. Null when the row isn't there.
+   */
+  const rowAt = async (t: RecordType, id: string): Promise<Target | null> => {
+    const at = { client: WREN, app: t.app, record: `${t.id}:${id}` };
+    if (t.channel === null || typeof t.channel === "string") return { ...at, channel: t.channel };
+    const field = t.channel.field;
+    const got = await serveRecords([t], main)
+      .get({ record: t.id, id })
+      .catch(() => null);
+    if (!got) return null;
+    const c = got.row[field];
+    return { ...at, channel: typeof c === "string" ? c : null };
+  };
+  /**
+   * The verb this teammate does a row's `needs` with: `needs` itself, or `act` on that row when
+   * `needs` is `run` (a login limited to an app or channel works its own rows). Null: neither.
+   */
+  const verbAt = (req: PortalRequest, needs: Permission, at: Target): Permission | null =>
+    teamCan(req, needs, at) ? needs : needs === "run" && teamCan(req, "act", at) ? "act" : null;
   /**
    * The team's types and the catalog, or the catalog alone for anyone else: what a client can
    * have, marked installed for the client picked.
@@ -1369,8 +1436,11 @@ export function consoleApi({
     const client =
       (req.client && req.client !== WREN) || !internal ? await pickClient(main, req) : null;
     const shown = internal ? components : components.filter((c) => c.for === "client");
-    // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
-    const allowed = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
+    // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`) in its
+    // app. Which rows, and whether any, is the fence's (`read`).
+    const allowed = internal
+      ? types.filter((t) => !t.needs || teamCan(req, t.needs, { client: WREN, app: t.app }))
+      : [];
     // Snippets' tags are free text: each one in use is a facet, read when they're asked for.
     const asked = (req as { record?: unknown }).record;
     const tagged =
@@ -1395,14 +1465,17 @@ export function consoleApi({
       ),
     ];
   };
-  /** Records on the main database, read-only, unmasked: the team sees everything. */
+  /**
+   * Records on the main database, read-only, unmasked: the team sees each type's rows its
+   * grants reach (every row for a built-in role).
+   */
   const read = async <T>(
     req: PortalRequest & { record?: unknown },
     use: (api: RecordsApi) => Promise<T>,
   ): Promise<T> => {
     if (req.record !== COMPONENT) team(req);
     const all = await typesFor(req);
-    return snapshot(main, (tx) => use(serveRecords(all, tx)));
+    return snapshot(main, (tx) => use(serveRecords(all, tx, undefined, fenceOf(req))));
   };
   /**
    * Whose saved views and prefs: the viewer's, in Wren's own apps or at the client asked for. The
@@ -1435,19 +1508,24 @@ export function consoleApi({
     if (!t) throw new PortalRefusal("no such record", 404);
     if (!t.edits) throw new PortalRefusal(`${t.name.many} can't be edited`, 400);
     const needs = t.edits.needs ?? "run";
-    if (!teamCan(req, needs, WREN)) throw new PortalRefusal(`changing these needs ${needs}`, 403);
     const id = typeof req.id === "string" || typeof req.id === "number" ? String(req.id) : "";
     if (!id || id.length > 200) throw new PortalRefusal("say which one", 400);
-    return { t, id, by: (req.viewer as SignedViewer).email };
+    const at = await rowAt(t, id);
+    if (!at) throw new PortalRefusal(`no such ${t.name.one}`, 404);
+    const verb = verbAt(req, needs, at);
+    if (!verb) throw new PortalRefusal(`changing these needs ${needs}`, 403);
+    return { t, id, at, verb, by: (req.viewer as SignedViewer).email };
   };
   /** An edit or undo in one transaction, audited as the teammate's. */
   const write = async <T>(
     req: PortalRequest & { record?: unknown; id?: unknown },
     change: (tx: Queryable, t: RecordType, id: string, by: string) => Promise<T>,
   ): Promise<T> => {
-    const { t, id, by } = await editable(req);
+    const { t, id, at, verb, by } = await editable(req);
     return serializable(main, async (tx) => {
       await setAuditActor(tx, by);
+      // A counted grant is spent with the write, so a one-use grant can't be used twice.
+      await spendGrant(tx, accessOf(req), verb, at);
       return change(tx, t, id, by);
     });
   };
@@ -1631,8 +1709,10 @@ export function consoleApi({
     loops: async (req: PortalRequest): Promise<LoopRow[]> =>
       loopsOf(await adminFor(req)(LOOPS_SQL)),
 
-    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> =>
-      (await typesFor(req)).map((t) => metaOf(t, false)),
+    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
+      const fence = fenceOf(req);
+      return (await typesFor(req)).filter((t) => opens(t, fence(t))).map((t) => metaOf(t, false));
+    },
     recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
       read(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
@@ -1806,8 +1886,8 @@ export function consoleApi({
     teamSet: (req: TeamSeatRequest) =>
       teamWrite(req, async (tx, email) => {
         const role = req.role;
-        if (role !== undefined && !TEAM_ROLES.includes(role))
-          throw new PortalRefusal(`role: one of ${TEAM_ROLES.join(", ")}`, 400);
+        if (role !== undefined && (typeof role !== "string" || !(await roleFits(tx, role, WREN))))
+          throw new PortalRefusal(`role: one of ${TEAM_ROLES.join(", ")}, or one of Wren's`, 400);
         const list = await clientsOf(tx, req.clients);
         return setTeamSeat(tx, email, {
           ...(role ? { role } : {}),
@@ -1983,6 +2063,32 @@ export function consoleApi({
         throw new PortalRefusal(`it ${h.effect}: type ${h.handler} to confirm`, 400);
       return h;
     },
+    /**
+     * Whether this teammate may make this call: anyone with `run` over all of Wren may; anyone
+     * else only a call its row's type declares, naming that row, on a row they may act on. A
+     * counted grant is spent here, in its own transaction, before the call goes out.
+     */
+    async callOn(req: CallRequest, h: HandlerRow): Promise<void> {
+      if (whole(accessOf(req), "run", WREN)) return;
+      const on = req.on;
+      const record = typeof on?.record === "string" ? on.record : "";
+      const id = typeof on?.id === "string" || typeof on?.id === "number" ? String(on.id) : "";
+      if (!record || !id) throw new PortalRefusal("your role can't do that", 403);
+      const t = (await typesFor(req)).find((x) => x.id === record);
+      if (!t) throw new PortalRefusal("no such record", 404);
+      const key = t.calls?.[`${h.service}/${h.handler}`];
+      if (!key) throw new PortalRefusal(`your role can't do that on ${t.name.many}`, 403);
+      if (!names((req.input as Record<string, unknown> | undefined)?.[key], id))
+        throw new PortalRefusal("that call isn't about this row", 400);
+      const at = await rowAt(t, id);
+      if (!at) throw new PortalRefusal(`no such ${t.name.one}`, 404);
+      const verb = verbAt(req, "run", at);
+      if (!verb) throw new PortalRefusal("your role can't do that here", 403);
+      await serializable(main, async (tx) => {
+        await setAuditActor(tx, (req.viewer as SignedViewer).email);
+        await spendGrant(tx, accessOf(req), verb, at);
+      });
+    },
     /** The runs row for one call: who, what, with what. Never the answer. */
     openCall: (req: CallRequest, h: HandlerRow) =>
       openRun(main, {
@@ -2003,6 +2109,19 @@ export function consoleApi({
       return loop;
     },
   };
+}
+
+/**
+ * Does a handler's input value name row `id`: the id itself, or a list of just it. A row id may
+ * carry its kind ("draft:3"); the input names the bare id.
+ */
+function names(v: unknown, id: string): boolean {
+  const bare = id.slice(id.indexOf(":") + 1);
+  const one = Array.isArray(v) ? (v.length === 1 ? v[0] : undefined) : v;
+  return (
+    (typeof one === "string" || typeof one === "number") &&
+    (String(one) === id || String(one) === bare)
+  );
 }
 
 // The SDK types `jsonSchema` as optional without `| undefined`; the json serde has it unset.
@@ -2035,6 +2154,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     name: "ConsolePortal",
     main: deps.main,
     routes: CONSOLE_ROUTES,
+    apps: CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
@@ -2106,6 +2226,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const read = api.reader(req);
           // Journaled: the call below suspends the Lambda, and the replay must find the same target.
           const h = api.target(req, await ctx.run("read handler", read));
+          await ctx.run("check row", () => answer(() => api.callOn(req, h)));
           const runId = await ctx.run("open run", () => api.openCall(req, h));
           const target = {
             service: h.service,

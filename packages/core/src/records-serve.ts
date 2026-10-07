@@ -13,8 +13,9 @@
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
+import { type Reach, reach } from "./access.js";
 import { type EditState, editState } from "./edits.js";
-import { PortalRefusal } from "./portal.js";
+import { isDemo, PortalRefusal, type PortalRequest } from "./portal.js";
 import {
   allowed,
   BadAsk,
@@ -415,7 +416,40 @@ function decode(s: unknown, sort: string): Cursor {
   return c as Cursor;
 }
 
-export function serveRecords(types: readonly RecordType[], db: Queryable, mask?: Mask) {
+/**
+ * Which rows of a type this login may read (`reach` in `./access.ts`): null is every row. A
+ * fenced list, count, facet or stat reads only the rows inside, so the numbers match the rows.
+ */
+export type Fence = (t: RecordType) => Reach | null;
+
+/** Does a fence leave any row of `t`? A type with none isn't served: hidden, not empty. */
+export const opens = (t: RecordType, r: Reach | null): boolean =>
+  !r || r.ids.length > 0 || (typeof t.channel === "object" && r.channels.length > 0);
+
+/**
+ * A fence from the login the guard read (`viewer.access`): the rows of each type at `client` it
+ * may read. None when the guard didn't run (a handler called straight, a test, the CLI).
+ */
+export function fenceFor(req: PortalRequest, client: string): Fence | undefined {
+  const v = req.viewer;
+  if (!v || isDemo(v) || !v.access) return undefined;
+  const who = v.access;
+  return (t) => reach(who, "read", { client, app: t.app, type: t.id, channel: t.channel });
+}
+
+const oneOf = (vs: readonly string[]) =>
+  sql.join(
+    vs.map((v) => sql`${v}::text`),
+    sql`, `,
+  );
+
+export function serveRecords(
+  given: readonly RecordType[],
+  db: Queryable,
+  mask?: Mask,
+  fence?: Fence,
+) {
+  const types = fence ? given.filter((t) => opens(t, fence(t))) : given;
   const demo = !!mask;
   const typeOf = (id: unknown): RecordType => {
     const t = types.find((x) => x.id === id);
@@ -432,6 +466,19 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
   const loaded = new Map<string, Promise<Raw[]>>();
   /** What a type's rows are read from, as `r`: its view, or its own rows as a table. */
   async function source(t: RecordType): Promise<SQL> {
+    const all = await unfenced(t);
+    const r = fence?.(t);
+    if (!r) return all;
+    const by: SQL[] = [];
+    if (typeof t.channel === "object" && t.channel !== null && r.channels.length) {
+      const col = t.fields[t.channel.field]?.from ?? t.channel.field;
+      by.push(sql`(${ref(col)})::text in (${oneOf(r.channels)})`);
+    }
+    if (r.ids.length) by.push(sql`(${ref(t.key)})::text in (${oneOf(r.ids)})`);
+    const inside = by.length ? sql.join(by, sql` or `) : sql`false`;
+    return sql`(select r.* from ${all} where ${inside}) r`;
+  }
+  async function unfenced(t: RecordType): Promise<SQL> {
     if (t.view) return sql`${viewSql(t.view)} r`;
     const rows = loaded.get(t.id) ?? t.rows?.(db) ?? Promise.resolve([]);
     loaded.set(t.id, rows);
@@ -614,7 +661,9 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         if (!raw) throw new PortalRefusal(`no such ${t.name.one}`, 404);
         const related = [];
         for (const r of t.related ?? []) {
-          const other = typeOf(r.record);
+          // A type this login can't open isn't served, so it isn't counted either.
+          const other = types.find((x) => x.id === r.record);
+          if (!other) continue;
           const [c] = await db.execute<{ n: number }>(sql`
             select count(*)::int n from ${await source(other)}
             where (${ref(r.by)})::text = ${id}`);

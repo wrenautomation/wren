@@ -12,6 +12,7 @@ import { date, defineRecord, link, name, number, prose, status, text } from "@wr
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
+import { DRAFT_CALLS } from "../records.js";
 import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
@@ -32,6 +33,8 @@ const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>) =>
 
 export const activityRecord = defineRecord({
   id: "marketing.activity",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "activity", many: "activity" },
   rows: (db) =>
     rowsOf(
@@ -170,6 +173,8 @@ const typed = (id: string) => {
  */
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "inbox item", many: "inbox items" },
   rows: async (db) => {
     const cs = (await commentRecord.rows?.(db)) ?? [];
@@ -360,6 +365,8 @@ export const inboxRecord = defineRecord({
  */
 export const approvalRecord = defineRecord({
   id: "marketing.approval",
+  app: "marketing",
+  channel: { field: "platform" },
   name: { one: "item to approve", many: "items to approve" },
   rows: async (db) => {
     const ps = await draftRows(db);
@@ -483,6 +490,8 @@ export const approvalRecord = defineRecord({
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
+  // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
+  calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
   /** An accepted invite's messages; a draft's Ask Claude thread. */
   load: async (db, id) => {
     const [type, rest] = typed(id);
@@ -495,6 +504,8 @@ export const approvalRecord = defineRecord({
 /** Followers per platform: the newest day kept, and the change from a week before it. */
 export const audienceRecord = defineRecord({
   id: "marketing.audience",
+  app: "marketing",
+  channel: null,
   name: { one: "platform", many: "platforms" },
   rows: async (db) =>
     (

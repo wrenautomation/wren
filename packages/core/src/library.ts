@@ -157,6 +157,8 @@ export function snippetRecord(seen: readonly string[] = []): RecordType {
   );
   return defineRecord({
     id: SNIPPET,
+    app: "library",
+    channel: null,
     name: { one: "snippet", many: "snippets" },
     rows: async (db) => {
       const rows = await db
@@ -236,6 +238,8 @@ export function workflowRecord(
 ): RecordType {
   return defineRecord({
     id: "library.workflow",
+    app: "library",
+    channel: null,
     name: { one: "workflow", many: "workflows" },
     rows: async () =>
       workflows.map((w) => ({

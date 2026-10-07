@@ -25,8 +25,11 @@ import {
 import { metaOf } from "@wren/core/records";
 import {
   type ExportAsk,
+  type Fence,
+  fenceFor,
   type GetAsk,
   type ListAsk,
+  opens,
   type RecordsApi,
   type StatsAsk,
   serveRecords,
@@ -37,7 +40,7 @@ import { parseSettings, settingsSchema } from "@wren/experiments";
 import { LEAD_SHEET } from "@wren/research/components";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { EMAIL_CONSOLE_ROUTES } from "../console-routes.js";
+import { EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_ROUTES } from "../console-routes.js";
 import {
   approveCandidate,
   type LlmFor,
@@ -182,16 +185,18 @@ export function emailConsoleApi({
     });
 
   /** The database of a client this viewer may open, with the lead sheet installed. */
-  const sheetDb = async (req: PortalRequest): Promise<Db> => {
+  const sheetOf = async (req: PortalRequest): Promise<{ db: Db; fence: Fence | undefined }> => {
     if (!clients) throw new PortalRefusal("not found", 404);
     const client = await pickClient(clients.main, req);
     if (!client.products || !(LEAD_SHEET in client.products))
       throw new PortalRefusal("the lead sheet is not installed", 404);
-    return clients.open(client);
+    return { db: clients.open(client), fence: fenceFor(req, client.id) };
   };
-  /** The client's sheet, read-only. */
-  const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
-    snapshot(await sheetDb(req), (tx) => use(serveRecords(SHEET_RECORDS, tx)));
+  /** The client's sheet, read-only: the rows this login may read. */
+  const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
+    const { db, fence } = await sheetOf(req);
+    return snapshot(db, (tx) => use(serveRecords(SHEET_RECORDS, tx, undefined, fence)));
+  };
 
   /** With `client` set, that client (Wren's team, `component` installed); else null = Wren's. */
   const clientOf = async (req: PortalRequest, component: string) => {
@@ -332,8 +337,8 @@ export function emailConsoleApi({
     },
     /** The client's lead-sheet record types. */
     recordsTypes: async (req: PortalRequest) => {
-      await sheetDb(req);
-      return SHEET_RECORDS.map((t) => metaOf(t, false));
+      const { fence } = await sheetOf(req);
+      return SHEET_RECORDS.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk) => sheet(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk) => sheet(req, (r) => r.get(req)),
@@ -460,6 +465,7 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
     name: "EmailConsole",
     main: deps.db,
     routes: EMAIL_CONSOLE_ROUTES,
+    apps: EMAIL_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       answers: serviceHandler(

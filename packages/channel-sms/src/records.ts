@@ -12,6 +12,8 @@ const THREAD_ROWS = 500;
 
 export const threadRecord = defineRecord({
   id: "sms.thread",
+  app: "texts",
+  channel: "sms",
   name: { one: "thread", many: "threads" },
   rows: async (db) =>
     (await listThreads(db, { limit: THREAD_ROWS })).map((t) => ({
@@ -90,6 +92,8 @@ const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
 export const textContactRecord = defineRecord({
   id: "marketing.text_contact",
+  app: "marketing",
+  channel: "sms",
   name: { one: "texted contact", many: "texted contacts" },
   view: "marketing_text_contact_records",
   key: "id",
@@ -153,6 +157,8 @@ export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string)
   const sample = sampleFields(sender);
   return defineRecord({
     id: "marketing.text_copy",
+    app: "marketing",
+    channel: "sms",
     name: { one: "text template", many: "text templates" },
     rows: async (db) =>
       (await listTemplates(db, slots, sender)).map((v) => ({

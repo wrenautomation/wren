@@ -8,7 +8,7 @@
  */
 import type { Queryable } from "@wren/db";
 import type { ZodType } from "zod";
-import type { Permission } from "./access.js";
+import { APPS, isChannel, type Permission } from "./access.js";
 
 /** good green, warn amber, bad red, neutral gray. */
 export type Tone = "good" | "warn" | "bad" | "neutral";
@@ -367,7 +367,22 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   load?: (db: Queryable, id: string) => Promise<object | null>;
   /** What a person or Claude may change on it; absent, it's read only. */
   edits?: RecordEdits;
+  /** The app it belongs to (`APPS` in `./access.ts`): what a grant's `apps` names. */
+  app: string;
+  /**
+   * Its channel (`ACCESS_CHANNELS`): one for every row, a field holding it per row, or null when
+   * it has none. A login limited to channels sees only rows on theirs.
+   */
+  channel: RecordChannel;
+  /**
+   * The handlers its actions call ("Service/handler"), each with the input key that names the
+   * row. A login limited to some apps or channels may call these on a row it may act on, and
+   * no other handler.
+   */
+  calls?: Readonly<Record<string, string>>;
 }
+/** A record type's channel: one, a field holding it, or none. */
+export type RecordChannel = string | { field: string } | null;
 export type RecordType = Omit<RecordDecl<Record<string, Draft>>, "fields"> & {
   fields: Readonly<Record<string, Field>>;
 };
@@ -505,7 +520,26 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
       throw new Error(`${decl.id}: ${v.id} counts by ${v.at}, not a date field`);
   }
   if (decl.edits) checkEdits(type, decl.edits);
+  checkAttributes(type);
+  DECLARED.set(type.id, { app: type.app, channel: type.channel });
   return type;
+}
+
+/**
+ * Every record type declared in this process, by id, with its app and channel: the inventory
+ * test reads it after the worker is built, and Access review lists what each app holds.
+ */
+export const DECLARED = new Map<string, { app: string; channel: RecordChannel }>();
+
+/** Its app is one of `APPS`; its channel one of `ACCESS_CHANNELS`, a field it has, or null. */
+export function checkAttributes(type: Pick<RecordType, "id" | "app" | "channel" | "fields">) {
+  if (!Object.hasOwn(APPS, type.app)) throw new Error(`${type.id}: no such app ${type.app}`);
+  const c = type.channel;
+  if (c === null) return;
+  if (typeof c === "string") {
+    if (!isChannel(c)) throw new Error(`${type.id}: no such channel ${c}`);
+  } else if (!Object.hasOwn(type.fields, c.field))
+    throw new Error(`${type.id}: its channel is in a field it doesn't have: ${c.field}`);
 }
 
 function checkEdits(type: RecordType, edits: RecordEdits) {

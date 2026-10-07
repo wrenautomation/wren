@@ -229,6 +229,8 @@ export const videoRecord = (signer?: VideoSigner) => {
       : signer.host.host(key.startsWith("s3://") ? key : `s3://${signer.bucket}/${key}`);
   return defineRecord({
     id: "marketing.video",
+    app: "marketing",
+    channel: "youtube",
     name: { one: "video", many: "videos" },
     rows: async (db) => {
       const rows = await db
@@ -297,6 +299,15 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoAsk",
       "marketing.videoUndo",
     ],
+    calls: {
+      "ContentDesk/approveVideo": "id",
+      "ContentDesk/pickThumbnail": "id",
+      "VideoDesk/set": "id",
+      "VideoDesk/cut": "id",
+      "VideoDesk/ask": "id",
+      "VideoDesk/undo": "id",
+      "VideoDesk/render": "id",
+    },
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
     load: async (db, id) => {
       const [e] = await db

@@ -68,6 +68,8 @@ async function callDetail(db: Queryable, id: string): Promise<CallDetail | null>
 
 export const callRecord = defineRecord({
   id: "voice.call",
+  app: "voice",
+  channel: "phone",
   name: { one: "call", many: "calls" },
   view: "voice_call_records",
   key: "id",
@@ -120,6 +122,8 @@ export const STAGE_STATUS = Object.fromEntries(
 
 export const latencyRecord = defineRecord({
   id: "voice.latency",
+  app: "voice",
+  channel: "phone",
   name: { one: "stage", many: "stages" },
   view: "voice_latency",
   key: "id",

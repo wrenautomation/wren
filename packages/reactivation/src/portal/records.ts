@@ -50,6 +50,8 @@ const NEXT = {
 
 export const person = defineRecord({
   id: "reactivation.person",
+  app: "reactivation",
+  channel: null,
   name: { one: "person", many: "people" },
   view: "reactivation_people",
   key: "id",
@@ -116,6 +118,8 @@ const STOPPED = {
 
 export const email = defineRecord({
   id: "reactivation.email",
+  app: "reactivation",
+  channel: "email",
   name: { one: "email", many: "emails" },
   view: "reactivation_emails",
   key: "id",
@@ -158,6 +162,8 @@ const KIND = {
 
 export const finding = defineRecord({
   id: "reactivation.finding",
+  app: "reactivation",
+  channel: null,
   name: { one: "finding", many: "findings" },
   view: "reactivation_findings",
   key: "id",
@@ -196,6 +202,8 @@ const SAID = {
 
 export const reply = defineRecord({
   id: "reactivation.reply",
+  app: "reactivation",
+  channel: "email",
   name: { one: "reply", many: "replies" },
   view: "reactivation_replies",
   key: "id",
@@ -300,6 +308,8 @@ async function settingRows(db: Queryable, client: Client) {
 export const settingOf = (client: Client) =>
   defineRecord({
     id: "reactivation.setting",
+    app: "reactivation",
+    channel: null,
     name: { one: "setting", many: "settings" },
     rows: (db) => settingRows(db, client),
     key: "id",

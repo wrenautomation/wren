@@ -3,7 +3,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSettings } from "@wren/config";
-import { isNeed } from "@wren/core/access";
+import { APPS, isChannel, isNeed, routeAt } from "@wren/core/access";
+import { DECLARED } from "@wren/core/records";
 import { buildServices } from "@wren/worker/services";
 import { afterAll, describe, expect, it } from "vitest";
 import { SERVICES } from "../src/services.js";
@@ -32,4 +33,32 @@ describe("every portal route has a permission", () => {
         expect(isNeed(need), `${svc.name}/${route}`).toBe(true);
       for (const w of svc.writes) expect(svc.routes.has(w), `${svc.name}/${w}`).toBe(true);
     });
+});
+
+/** Every route works in a known app (or the handler checks), on a known channel. */
+describe("every portal route has a place", () => {
+  for (const [path, svc] of Object.entries(SERVICES))
+    it(`/api/${path}`, () => {
+      for (const route of svc.routes) {
+        const at = routeAt(svc.apps, route);
+        if (at.app !== undefined) expect(Object.keys(APPS), `${path}/${route}`).toContain(at.app);
+        if (at.channel !== undefined) expect(isChannel(at.channel), `${path}/${route}`).toBe(true);
+      }
+      for (const k of Object.keys(svc.apps))
+        if (k !== "*") expect(svc.routes.has(k), `${path}: no route ${k}`).toBe(true);
+    });
+});
+
+/** Every record type the worker serves says its app and channel (designs/2026-10-06-scoped-access.md). */
+describe("every record type has an app and a channel", () => {
+  it("declares both", () => {
+    expect(DECLARED.size).toBeGreaterThan(50);
+    for (const [id, { app, channel }] of DECLARED) {
+      expect(Object.keys(APPS), id).toContain(app);
+      expect(
+        channel === null || isChannel(channel) || (typeof channel === "object" && !!channel.field),
+        id,
+      ).toBe(true);
+    }
+  });
 });

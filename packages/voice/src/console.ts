@@ -9,7 +9,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import { z } from "zod";
 import { STAGES } from "./call.js";
-import { VOICE_CONSOLE_ROUTES } from "./console-routes.js";
+import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "./console-routes.js";
 import { saveCall } from "./store.js";
 import { OUTCOMES } from "./types.js";
 
@@ -63,6 +63,7 @@ export function makeVoiceConsole(deps: { db: Db }) {
     name: "VoiceConsole",
     main: db,
     routes: VOICE_CONSOLE_ROUTES,
+    apps: VOICE_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       saveTest: serviceHandler(

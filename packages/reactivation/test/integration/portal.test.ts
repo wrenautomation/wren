@@ -368,7 +368,7 @@ describe("logins", () => {
           name: "Acme Staffing",
           installed: [],
           role: "member",
-          can: ["read", "act"],
+          can: ["read", "act", "comment"],
           flags: {},
         },
       ],

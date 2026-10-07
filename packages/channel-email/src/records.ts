@@ -51,6 +51,8 @@ const campaignName = (niche: string) =>
 export const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.campaign",
+    app: "outbound",
+    channel: "email",
     name: { one: "campaign", many: "campaigns" },
     rows: async (db) => {
       const controls = new Map((await loadCampaignControls(db)).map((c) => [c.campaign, c]));
@@ -119,6 +121,8 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
 export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.inbox",
+    app: "outbound",
+    channel: "email",
     name: { one: "inbox", many: "inboxes" },
     rows: async (db: Queryable) => {
       const now = new Date();
@@ -180,6 +184,8 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
 
 export const replyRecord = defineRecord({
   id: "email.reply",
+  app: "outbound",
+  channel: "email",
   name: { one: "reply", many: "replies" },
   view: "email_reply_records",
   key: "id",
@@ -231,6 +237,8 @@ export const replyRecord = defineRecord({
 /** Calls booked on cal.com, from its webhook (`call_bookings`), matched to an enrollment or not. */
 export const callRecord = defineRecord({
   id: "email.call",
+  app: "outbound",
+  channel: "email",
   name: { one: "call", many: "calls" },
   rows: async (db) =>
     (
@@ -270,6 +278,8 @@ export const callRecord = defineRecord({
 const IN_PLAY = { declined: { empty: true } } as const;
 export const firmRecord = defineRecord({
   id: "email.firm",
+  app: "pipeline",
+  channel: null,
   name: { one: "firm", many: "firms" },
   view: "email_firm_records",
   key: "id",
@@ -331,6 +341,8 @@ export const firmRecord = defineRecord({
 
 export const modelRecord = defineRecord({
   id: "email.model",
+  app: "money",
+  channel: null,
   needs: "money",
   name: { one: "model usage", many: "model usage" },
   view: "email_model_records",
@@ -382,6 +394,8 @@ async function variantEmail(db: Queryable, id: string) {
 /** One copy version of one step, with sends and its text: `reply_by_arm_step`, versions never sent left out. */
 export const variantRecord = defineRecord({
   id: "email.variant",
+  app: "outbound",
+  channel: "email",
   name: { one: "variant", many: "variants" },
   rows: async (db) =>
     (
@@ -423,6 +437,8 @@ export const variantRecord = defineRecord({
  */
 export const stallRecord = defineRecord({
   id: "email.stall",
+  app: "pipeline",
+  channel: null,
   name: { one: "stall", many: "stalls" },
   rows: async (db) => {
     const touchless = new Map(
@@ -582,6 +598,8 @@ export function settingsForm(raw: unknown) {
 
 export const experimentRecord = defineRecord({
   id: "email.experiment",
+  app: "outbound",
+  channel: "email",
   name: { one: "experiment", many: "experiments" },
   view: "email_experiment_records",
   key: "id",
@@ -628,6 +646,8 @@ export const experimentRecord = defineRecord({
 
 export const alleleRecord = defineRecord({
   id: "email.allele",
+  app: "outbound",
+  channel: "email",
   name: { one: "option", many: "options" },
   view: "email_allele_records",
   key: "id",
@@ -704,6 +724,8 @@ async function candidateFrame(db: Queryable, id: number) {
 
 export const candidateRecord = defineRecord({
   id: "email.candidate",
+  app: "outbound",
+  channel: "email",
   name: { one: "copy candidate", many: "copy candidates" },
   view: "email_candidate_records",
   key: "id",

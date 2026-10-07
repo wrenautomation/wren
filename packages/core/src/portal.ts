@@ -8,32 +8,40 @@ import type { Db } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   can,
+  channelsIn,
+  type Grant,
   granted,
-  type MemberRole,
   type Need,
   needOf,
   type Permission,
-  type TeamRole,
+  type RoleId,
+  type RouteApps,
+  routeAt,
+  type Target,
   type Who,
   WREN,
 } from "./access.js";
 import { normalEmail, touchMember } from "./clients/index.js";
 import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
 import { evaluateFlags, subjectOf } from "./flags.js";
+import { grantsFor } from "./grants.js";
 import { handlerForm, serviceHandler } from "./restate/form.js";
 import { flags } from "./schema.js";
 
 /** A team login's row, read fresh: its role and its clients (null = every client). */
 export interface TeamSeat {
-  role: TeamRole;
+  role: RoleId;
   clients: readonly string[] | null;
 }
 
 /**
  * An email our sign-in vouched for, or anyone on the demo host. `operator` comes from the token;
- * the access guard overwrites it, and sets `team`, from a fresh read before any handler runs.
+ * the access guard overwrites it, and sets `team` and `access`, from a fresh read before any
+ * handler runs. `access` is the whole answer, grants and all, that `canAt` checks targets with.
  */
-export type Viewer = { email: string; operator?: boolean; team?: TeamSeat } | { demo: true };
+export type Viewer =
+  | { email: string; operator?: boolean; team?: TeamSeat; access?: Who }
+  | { demo: true };
 export type SignedViewer = Exclude<Viewer, { demo: true }>;
 
 export interface PortalRequest {
@@ -76,7 +84,10 @@ export async function teamSeat(main: Db, email: string): Promise<TeamSeat | null
 export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<Who> {
   if (isDemo(viewer)) return { demo: true };
   const seat = await teamSeat(main, viewer.email);
-  if (seat) return { team: seat.role, clients: seat.clients };
+  if (seat) {
+    const grants = await grantsFor(main, viewer.email, seat.role);
+    return { team: seat.role, clients: seat.clients, ...(grants.length ? { grants } : {}) };
+  }
   const [row] = await main
     .select({ role: clientMembers.role, client: clientMembers.clientId })
     .from(clientMembers)
@@ -90,7 +101,9 @@ export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<
     )
     .orderBy(asc(clients.id))
     .limit(1);
-  return row ? { member: row.role, client: row.client } : null;
+  if (!row) return null;
+  const grants = await grantsFor(main, viewer.email, row.role, row.client);
+  return { member: row.role, client: row.client, ...(grants.length ? { grants } : {}) };
 }
 
 /**
@@ -104,13 +117,15 @@ export type Unnamed = "first" | "wren";
 /**
  * The access guard: reads who is asking fresh, refuses what `can` refuses, and hands the
  * handler the request with the fresh `operator` and `team` on its viewer. `wren:` needs are
- * checked at Wren's own apps whatever client is named.
+ * checked at Wren's own apps whatever client is named. The need holds at the route's `place` (its
+ * app, and channel when the whole service is one) and on every channel the request names.
  */
 export async function guard<R extends PortalRequest>(
   main: Db,
   need: Need,
   req: R,
   unnamed: Unnamed,
+  place: Target = {},
 ): Promise<R> {
   const { permission, wren } = needOf(need);
   const named = typeof req.client === "string" ? req.client : undefined;
@@ -120,11 +135,23 @@ export async function guard<R extends PortalRequest>(
   // `wren` is for the team: a client's people naming no client stay on their own.
   const team = who !== null && "team" in who;
   const client = wren ? WREN : (named ?? (unnamed === "wren" && team ? WREN : undefined));
-  if (!can(who, permission, client))
+  const at = (channel?: string): Target => ({
+    ...place,
+    client,
+    ...(channel ? { channel } : {}),
+  });
+  // A handler's input names its channel at the top, or under `input` for a console call.
+  const channels = [
+    ...new Set([...channelsIn(req), ...channelsIn((req as { input?: unknown }).input)]),
+  ];
+  const ok = channels.length
+    ? channels.every((c) => can(who, permission, at(c)))
+    : can(who, permission, at());
+  if (!ok)
     throw new PortalRefusal(
       isDemo(viewer)
         ? "the demo is read-only"
-        : can(who, "read", client)
+        : can(who, "read", at())
           ? "your role can't do that"
           : "no access",
       403,
@@ -132,8 +159,13 @@ export async function guard<R extends PortalRequest>(
   if (isDemo(viewer)) return req;
   const fresh: SignedViewer =
     who && "team" in who
-      ? { email: viewer.email, operator: true, team: { role: who.team, clients: who.clients } }
-      : { email: viewer.email };
+      ? {
+          email: viewer.email,
+          operator: true,
+          team: { role: who.team, clients: who.clients },
+          access: who,
+        }
+      : { email: viewer.email, ...(who ? { access: who } : {}) };
   return { ...req, viewer: fresh };
 }
 
@@ -153,6 +185,8 @@ export function portalService<
   name: N;
   main: Db;
   routes: R;
+  /** Each route's app, from its routes map. */
+  apps: RouteApps<R>;
   unnamed: Unnamed;
   handlers: H;
 }): restate.ServiceDefinition<N, H> {
@@ -166,7 +200,7 @@ export function portalService<
     ) => Promise<unknown>;
     const need = o.routes[key] as Need;
     const run = async (ctx: restate.Context, req: PortalRequest) =>
-      fn(ctx, await answer(() => guard(o.main, need, req, o.unnamed)));
+      fn(ctx, await answer(() => guard(o.main, need, req, o.unnamed, routeAt(o.apps, key))));
     const form = handlerForm(fn);
     handlers[key] = form ? serviceHandler(form, run) : run;
   }
@@ -180,11 +214,42 @@ export function portalService<
  * May this team viewer do `p` at `client`? Their fresh `team` (set by the guard), or an admin
  * when a handler is called straight (tests, the CLI). Never a client's people.
  */
-export function teamCan(req: PortalRequest, p: Permission, client: string): boolean {
+export function teamCan(req: PortalRequest, p: Permission, at: string | Target): boolean {
   if (!seesInternal(req) || isDemo(req.viewer)) return false;
-  const team = req.viewer.team;
-  return can({ team: team?.role ?? "admin", clients: team?.clients ?? null }, p, client);
+  return can(accessOf(req), p, at);
 }
+
+/**
+ * What the guard read for this viewer (grants and all); a team viewer called straight (tests, the
+ * CLI) is an admin, anyone else nobody until the guard has read them.
+ */
+export function accessOf(req: PortalRequest): Who {
+  const v = req.viewer;
+  if (isDemo(v)) return { demo: true };
+  if (v.access) return v.access;
+  if (v.operator) return { team: v.team?.role ?? "admin", clients: v.team?.clients ?? null };
+  return null;
+}
+
+/**
+ * May this viewer do `p` at this target: the app, channel and record a handler knows once it
+ * has the row. Reads the person fresh when the guard didn't (a handler called straight).
+ */
+export async function canAt(
+  main: Db,
+  req: PortalRequest,
+  p: Permission,
+  at: Target,
+): Promise<boolean> {
+  const v = req.viewer;
+  const who =
+    !isDemo(v) && !v.access && !v.operator ? await whoIs(main, v, at.client) : accessOf(req);
+  return can(who, p, at);
+}
+
+/** Every grant a viewer holds, for the web to hide what a target refuses: none for a built-in. */
+export const extraGrants = (who: Who): readonly Grant[] =>
+  who && !("demo" in who) ? (who.grants ?? []) : [];
 
 /**
  * The clients this viewer may open: the demo's; for an operator every one, or only their
@@ -247,15 +312,17 @@ export interface Me {
     look?: unknown;
     installed: string[];
     can: Permission[];
-    role?: MemberRole;
+    role?: RoleId;
     /** Each portal flag's variant for this login there (`./flags.ts`); none on the demo. */
     flags: Record<string, string>;
+    /** Grants past a built-in role (a custom role's rows, extras): the web checks targets with them. */
+    grants?: Grant[];
   }[];
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
   /** A team login's role, and what it may do in Wren's own apps. */
-  team?: { role: TeamRole; wren: Permission[]; flags: Record<string, string> };
+  team?: { role: RoleId; wren: Permission[]; flags: Record<string, string>; grants?: Grant[] };
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
@@ -264,7 +331,11 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
   if (!isDemo(viewer)) await touchMember(main, viewer.email);
   const team = isDemo(viewer) ? undefined : viewer.team;
   const seat = isOperator(viewer)
-    ? { team: team?.role ?? ("admin" as const), clients: team?.clients ?? null }
+    ? {
+        team: team?.role ?? "admin",
+        clients: team?.clients ?? null,
+        grants: await grantsFor(main, (viewer as SignedViewer).email, team?.role ?? "admin"),
+      }
     : null;
   const roles = new Map(
     seat || isDemo(viewer)
@@ -276,11 +347,14 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
             .where(eq(clientMembers.email, normalEmail(viewer.email)))
         ).map((r) => [r.client, r.role]),
   );
+  const extras = new Map<string, Grant[]>();
+  if (!seat && !isDemo(viewer))
+    for (const [id, role] of roles) extras.set(id, await grantsFor(main, viewer.email, role, id));
   const whoAt = (id: string): Who => {
     if (isDemo(viewer)) return { demo: true };
     if (seat) return seat;
     const role = roles.get(id);
-    return role ? { member: role, client: id } : null;
+    return role ? { member: role, client: id, grants: extras.get(id) ?? [] } : null;
   };
   // Portal flags, each login's own: the demo gets none, so it shows released things alone.
   const defs = isDemo(viewer)
@@ -300,11 +374,21 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
         can: granted(whoAt(c.id), c.id),
         ...(role ? { role } : {}),
         flags: flagsAt(c.id),
+        ...(extras.get(c.id)?.length ? { grants: extras.get(c.id) ?? [] } : {}),
       };
     }),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
-    ...(seat ? { team: { role: seat.team, wren: granted(seat, WREN), flags: flagsAt(WREN) } } : {}),
+    ...(seat
+      ? {
+          team: {
+            role: seat.team,
+            wren: granted(seat, WREN),
+            flags: flagsAt(WREN),
+            ...(seat.grants.length ? { grants: seat.grants } : {}),
+          },
+        }
+      : {}),
   };
 }
 

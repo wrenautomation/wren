@@ -203,7 +203,7 @@ describe("setLook", () => {
         look,
         installed: ["other", "reactivation"],
         role: "owner",
-        can: ["read", "act", "money", "manage"],
+        can: ["read", "act", "money", "manage", "comment"],
         flags: {},
       },
     ]);

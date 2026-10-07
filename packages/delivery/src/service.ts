@@ -5,6 +5,7 @@
  * Wren's team. The demo reads its sample and writes nothing.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { RoleId } from "@wren/core/access";
 import {
   addMember,
   type Client,
@@ -17,6 +18,7 @@ import {
   normalEmail,
   removeMember,
 } from "@wren/core/clients";
+import { roleFits } from "@wren/core/grants";
 import {
   answer,
   clientsFor,
@@ -36,6 +38,7 @@ import {
 import { metaOf, type RecordMeta } from "@wren/core/records";
 import {
   type ExportAsk,
+  fenceFor,
   type GetAsk,
   type ListAsk,
   type RecordAnswer,
@@ -81,7 +84,7 @@ import {
   type UpdateView,
 } from "./index.js";
 import { deliveryRecords } from "./records.js";
-import { DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
+import { DELIVERY_APPS, DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
 import { type BoardRow, type DeliveryWatch, opsBoard, recapOf, WATCH, WATCH_KEY } from "./watch.js";
 
@@ -144,7 +147,9 @@ const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq)
       (operator ? teamCan(req, "manage", c.id) : await isOwner(db, c.id, req.viewer.email)),
   );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
-  read(deps, req, (db, c, operator) => use(serveRecords(recordsOf(db, c, operator, req), db)));
+  read(deps, req, (db, c, operator) =>
+    use(serveRecords(recordsOf(db, c, operator, req), db, undefined, fenceFor(req, c.id))),
+  );
 
 /**
  * A change in one transaction, logged as this person's. `team` writes are
@@ -187,11 +192,12 @@ const emailOf = (v: unknown): string => {
   if (!EMAIL.test(e) || e.length > 254) throw new PortalRefusal("that isn't an email", 400);
   return e;
 };
-const roleOf = (v: unknown): MemberRole => {
+/** A built-in member role, or one of this client's own roles (`roleFits`). */
+const roleOf = async (db: Queryable, client: string, v: unknown): Promise<RoleId> => {
   if (v === undefined) return "member";
-  if (!MEMBER_ROLES.includes(v as MemberRole))
-    throw new PortalRefusal(`role is one of ${MEMBER_ROLES.join(", ")}`, 400);
-  return v as MemberRole;
+  if (typeof v !== "string" || !(await roleFits(db, v, client)))
+    throw new PortalRefusal(`role is one of ${MEMBER_ROLES.join(", ")}, or one of yours`, 400);
+  return v;
 };
 
 const storeOf = (deps: DeliveryDeps): FileStore => {
@@ -202,7 +208,7 @@ const storeOf = (deps: DeliveryDeps): FileStore => {
 /** Someone who sees this client, for the account's People page. */
 export interface MemberView {
   email: string;
-  role: MemberRole;
+  role: RoleId;
   invitedBy: string | null;
   invitedAt: string;
   lastSeenAt: string | null;
@@ -213,7 +219,7 @@ export interface AccountView {
   name: string;
   /** When they became a client. */
   since: string;
-  you: { email: string | null; role: MemberRole | null; wren: boolean };
+  you: { email: string | null; role: RoleId | null; wren: boolean };
   bought: Awaited<ReturnType<typeof boughtBy>>;
   people: number;
   owners: string[];
@@ -575,15 +581,16 @@ export function deliveryApi(deps: DeliveryDeps) {
       return { recap: await recapOf(at, client.id, new Date()) };
     },
     /** Let an email sign in and see this client; again changes their role. */
-    invite: (req: PortalRequest & { email: string; role?: MemberRole }) =>
+    invite: (req: PortalRequest & { email: string; role?: RoleId }) =>
       write(deps, req, "owner", async (db, c, v) => {
         const email = emailOf(req.email);
-        const role = roleOf(req.role);
+        const role = await roleOf(db, c.id, req.role);
         if (role !== "owner") await keepAnOwner(db, c.id, email);
         const was = (await listMembers(db, c.id)).find((m) => m.email === email)?.role;
         const m = await addMember(db, c.id, email, { role, invitedBy: v.email });
-        // Demoted: signed out, so the next token carries the new role.
-        if (was && MEMBER_ROLES.indexOf(role) > MEMBER_ROLES.indexOf(was))
+        // Demoted, or moved to or from a custom role: signed out, so the next token is fresh.
+        const rank = (r: string) => MEMBER_ROLES.indexOf(r as MemberRole);
+        if (was && was !== role && (rank(role) < 0 || rank(was) < 0 || rank(role) > rank(was)))
           await endSessions(db, email);
         return { email: m.email, role: m.role };
       }),
@@ -707,6 +714,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
     name: "DeliveryPortal",
     main: deps.main,
     routes: DELIVERY_ROUTES,
+    apps: DELIVERY_APPS,
     unnamed: "first",
     handlers: {
       me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),

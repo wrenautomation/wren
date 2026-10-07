@@ -17,7 +17,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, serializable, setAuditActor } from "@wren/db";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
-import { BOOKS_CONSOLE_ROUTES } from "./console-routes.js";
+import { BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_ROUTES } from "./console-routes.js";
 import { accounts, BUCKETS } from "./schema.js";
 
 /** A record action on accounts: their ids, as `books.account` keys them. */
@@ -71,6 +71,7 @@ export function makeBooksConsole(db: Db) {
     name: "BooksConsole",
     main: db,
     routes: BOOKS_CONSOLE_ROUTES,
+    apps: BOOKS_CONSOLE_APPS,
     unnamed: "wren",
     handlers: {
       setAccount: serviceHandler(

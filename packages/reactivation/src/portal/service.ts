@@ -20,6 +20,7 @@ import {
 import { metaOf, type RecordMeta } from "@wren/core/records";
 import {
   type ExportAsk,
+  fenceFor,
   type GetAsk,
   type ListAsk,
   type RecordAnswer,
@@ -41,7 +42,7 @@ import { reactivationSettingsOf } from "../settings.js";
 import { makeMask } from "./mask.js";
 import { type EmailFilter, type EmailsPage, portalEmails } from "./outbox.js";
 import { EDITABLE, REACTIVATION_RECORDS, settingOf } from "./records.js";
-import { PORTAL_ROUTES } from "./routes.js";
+import { PORTAL_APPS, PORTAL_ROUTES } from "./routes.js";
 import { portalRun, type RunPage } from "./run.js";
 import {
   listNames,
@@ -102,7 +103,7 @@ async function records<T>(
   const client = await pickClient(deps.main, req);
   return snapshot(deps.open(client), async (tx) => {
     const mask = masked(client, req) ? await demoMask(tx, client) : undefined;
-    return use(serveRecords(typesOf(client), tx, mask));
+    return use(serveRecords(typesOf(client), tx, mask, fenceFor(req, client.id)));
   });
 }
 
@@ -406,6 +407,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
     name: "ReactivationPortal",
     main: deps.main,
     routes: PORTAL_ROUTES,
+    apps: PORTAL_APPS,
     unnamed: "first",
     handlers: {
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),

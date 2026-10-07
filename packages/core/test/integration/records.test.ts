@@ -38,6 +38,8 @@ const CHANNELS = {
 
 const item = defineRecord({
   id: "test.item",
+  app: "work",
+  channel: null,
   name: { one: "item", many: "items" },
   view: "rec_items",
   key: "id",
@@ -73,6 +75,8 @@ const item = defineRecord({
 });
 const kid = defineRecord({
   id: "test.kid",
+  app: "work",
+  channel: null,
   name: { one: "kid", many: "kids" },
   view: "rec_kids",
   key: "id",

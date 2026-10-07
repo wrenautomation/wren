@@ -1,20 +1,21 @@
-import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   pgView,
   primaryKey,
+  serial,
   text,
   timestamp,
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
-import { MEMBER_ROLES, TEAM_ROLES } from "../access.js";
+import type { Permission, RoleId } from "../access.js";
 
 /** The channels a client can come in through: an engagement's source, a spend account's. */
 export const CHANNELS = ["email", "sms", "ads", "content", "search", "reach"] as const;
@@ -74,6 +75,79 @@ export const wrenSettings = pgTable(
 export { MEMBER_ROLES, type MemberRole, TEAM_ROLES, type TeamRole } from "../access.js";
 
 /**
+ * A named bundle of grants (designs/2026-10-06-scoped-access.md). The built-ins are rows with no
+ * client, their verbs fixed in code (`TEAM_GRANTS`, `MEMBER_GRANTS`); a custom role belongs to a
+ * client, or to `wren` for Wren's team, and its grants are `role_grants` rows. Its id is
+ * `<client>.<slug>`. A seat or membership names its role here.
+ */
+export const roles = pgTable(
+  "roles",
+  {
+    id: varchar("id", { length: 64 }).notNull(),
+    /** Null for a built-in; a client id, or `wren` for Wren's own team. */
+    client: varchar("client", { length: 40 }),
+    name: text("name").notNull(),
+    about: text("about"),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.id], name: "pk_roles" }), index("ix_roles_client").on(t.client)],
+);
+
+/** One grant of a custom role: verbs over a scope. Left-out parts are all. */
+export const roleGrants = pgTable(
+  "role_grants",
+  {
+    id: serial("id").notNull(),
+    role: varchar("role", { length: 64 }).notNull(),
+    verbs: text("verbs").array().$type<Permission[]>().notNull(),
+    apps: text("apps").array(),
+    channels: text("channels").array(),
+    /** `<type>:<id>`: one record. */
+    record: text("record"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_role_grants" }),
+    foreignKey({
+      columns: [t.role],
+      foreignColumns: [roles.id],
+      name: "fk_role_grants_role",
+    }).onDelete("cascade"),
+    index("ix_role_grants_role").on(t.role),
+  ],
+);
+
+/**
+ * An extra grant to one login past its role: verbs over a scope at one client (or `wren`), until
+ * a time or for a number of uses. Ending one sets `until`; ended and used-up grants drop out when
+ * read, so nothing sweeps them, and the audit log keeps every change.
+ */
+export const grants = pgTable(
+  "grants",
+  {
+    id: serial("id").notNull(),
+    email: text("email").notNull(),
+    /** A client id, or `wren` for Wren's own apps. */
+    client: varchar("client", { length: 40 }).notNull(),
+    verbs: text("verbs").array().$type<Permission[]>().notNull(),
+    apps: text("apps").array(),
+    channels: text("channels").array(),
+    record: text("record"),
+    until: timestamp("until", { withTimezone: true }),
+    usesLeft: integer("uses_left"),
+    reason: text("reason"),
+    /** Who handed it out. */
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_grants" }),
+    index("ix_grants_email").on(t.email, t.client),
+  ],
+);
+export type GrantRow = typeof grants.$inferSelect;
+
+/**
  * Who sees which client in the portal, by sign-in email (lowercase). Auth says
  * who someone is; this says what they see. An owner invites teammates.
  */
@@ -82,7 +156,8 @@ export const clientMembers = pgTable(
   {
     clientId: varchar("client_id", { length: 40 }).notNull(),
     email: text("email").notNull(),
-    role: varchar("role", { length: 16, enum: MEMBER_ROLES }).default("member").notNull(),
+    /** A built-in (`MEMBER_ROLES`) or this client's custom role. */
+    role: varchar("role", { length: 64 }).$type<RoleId>().default("member").notNull(),
     /** Who invited them: an operator's or an owner's email. */
     invitedBy: text("invited_by"),
     invitedAt: timestamp("invited_at", { withTimezone: true }).defaultNow().notNull(),
@@ -96,7 +171,12 @@ export const clientMembers = pgTable(
       name: "fk_client_members_client",
     }).onDelete("cascade"),
     index("ix_client_members_email").on(t.email),
-    oneOf("ck_client_members_role", t.role, MEMBER_ROLES),
+    foreignKey({
+      columns: [t.role],
+      foreignColumns: [roles.id],
+      name: "fk_client_members_role",
+    }),
+    index("ix_client_members_role").on(t.role),
   ],
 );
 
@@ -153,13 +233,15 @@ export const operators = pgTable(
   "operators",
   {
     email: text("email").notNull(),
-    role: varchar("role", { length: 16, enum: TEAM_ROLES }).default("admin").notNull(),
+    /** A built-in (`TEAM_ROLES`) or one of Wren's custom roles (`wren.<slug>`). */
+    role: varchar("role", { length: 64 }).$type<RoleId>().default("admin").notNull(),
     clients: text("clients").array(),
     addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.email], name: "pk_operators" }),
-    oneOf("ck_operators_role", t.role, TEAM_ROLES),
+    foreignKey({ columns: [t.role], foreignColumns: [roles.id], name: "fk_operators_role" }),
+    index("ix_operators_role").on(t.role),
   ],
 );
 

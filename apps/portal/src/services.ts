@@ -4,47 +4,85 @@
  * a line; a route with no need doesn't type-check, and `test/inventory.test.ts` holds each map to
  * the handlers the service serves.
  */
-import { BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES } from "@wren/books/console-routes";
-import { CALENDAR_CONSOLE_ROUTES, CALENDAR_CONSOLE_WRITES } from "@wren/calendar/console-routes";
-import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
-import { SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES } from "@wren/channel-sms/console-routes";
-import { type Need, needOf, type Permission } from "@wren/core/access";
-import { CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
-import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
-import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
-import { VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_WRITES } from "@wren/voice/console-routes";
-import { WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES } from "@wren/watch/console-routes";
+import {
+  BOOKS_CONSOLE_APPS,
+  BOOKS_CONSOLE_ROUTES,
+  BOOKS_CONSOLE_WRITES,
+} from "@wren/books/console-routes";
+import {
+  CALENDAR_CONSOLE_APPS,
+  CALENDAR_CONSOLE_ROUTES,
+  CALENDAR_CONSOLE_WRITES,
+} from "@wren/calendar/console-routes";
+import {
+  EMAIL_CONSOLE_APPS,
+  EMAIL_CONSOLE_ROUTES,
+  EMAIL_CONSOLE_WRITES,
+} from "@wren/channel-email/console-routes";
+import {
+  SMS_CONSOLE_APPS,
+  SMS_CONSOLE_ROUTES,
+  SMS_CONSOLE_WRITES,
+} from "@wren/channel-sms/console-routes";
+import { type Need, needOf, type Permission, type RouteApps } from "@wren/core/access";
+import { CONSOLE_APPS, CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
+import { DELIVERY_APPS, DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
+import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
+import {
+  VOICE_CONSOLE_APPS,
+  VOICE_CONSOLE_ROUTES,
+  VOICE_CONSOLE_WRITES,
+} from "@wren/voice/console-routes";
+import {
+  WATCH_CONSOLE_APPS,
+  WATCH_CONSOLE_ROUTES,
+  WATCH_CONSOLE_WRITES,
+} from "@wren/watch/console-routes";
 
 export interface Service {
   /** The Restate service. */
   name: string;
   needs: Readonly<Record<string, Need>>;
+  /** Where each route works (`RouteAt`): its app, or null where the handler checks. */
+  apps: RouteApps<object>;
   routes: ReadonlySet<string>;
   writes: ReadonlySet<string>;
 }
 const service = <R extends Readonly<Record<string, Need>>>(
   name: string,
   needs: R,
+  apps: RouteApps<R>,
   writes: readonly (keyof R & string)[],
-): Service => ({ name, needs, routes: new Set(Object.keys(needs)), writes: new Set(writes) });
+): Service => ({
+  name,
+  needs,
+  apps,
+  routes: new Set(Object.keys(needs)),
+  writes: new Set(writes),
+});
 
 export const SERVICES: Readonly<Record<string, Service>> = {
-  delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
-  reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
+  delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_APPS, DELIVERY_WRITES),
+  reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_APPS, PORTAL_WRITES),
   // Views by name, records, the loops, any public handler by its form, a client's components.
-  console: service("ConsolePortal", CONSOLE_ROUTES, CONSOLE_WRITES),
+  console: service("ConsolePortal", CONSOLE_ROUTES, CONSOLE_APPS, CONSOLE_WRITES),
   // Warm replies, inboxes, campaigns and copy experiments; a client's lead sheet.
-  email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
+  email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_WRITES),
   // A client's texting threads (O4); replies are Wren's team only.
-  sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES),
+  sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_APPS, SMS_CONSOLE_WRITES),
   // Where an account's spend counts.
-  books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES),
+  books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Watch: William's mail and its rules.
-  watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES),
+  watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
   // Our booking calendar: how a call went, and cancel.
-  calendar: service("CalendarConsole", CALENDAR_CONSOLE_ROUTES, CALENDAR_CONSOLE_WRITES),
+  calendar: service(
+    "CalendarConsole",
+    CALENDAR_CONSOLE_ROUTES,
+    CALENDAR_CONSOLE_APPS,
+    CALENDAR_CONSOLE_WRITES,
+  ),
   // The voice agent: test calls saved with their turns' timings.
-  voice: service("VoiceConsole", VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_WRITES),
+  voice: service("VoiceConsole", VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_APPS, VOICE_CONSOLE_WRITES),
 };
 
 /**

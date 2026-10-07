@@ -1,4 +1,4 @@
-import type { Need } from "@wren/core/access";
+import type { Need, RouteApps } from "@wren/core/access";
 
 /**
  * The delivery API's handlers and what each needs (`@wren/core/access`): the service serves
@@ -46,6 +46,28 @@ export const DELIVERY_ROUTES = {
   addDomain: "manage",
   removeDomain: "manage",
 } as const satisfies Record<string, Need>;
+/** Where each route works (`RouteAt`): Work, or the Account pages; records check each type. */
+export const DELIVERY_APPS = {
+  "*": "work",
+  // Who you are and your own mail settings: anyone signed in.
+  me: null,
+  mail: null,
+  recordsTypes: null,
+  recordsList: null,
+  recordsGet: null,
+  recordsExport: null,
+  recordsStats: null,
+  people: "account",
+  account: "account",
+  invite: "account",
+  remove: "account",
+  start: "account",
+  contract: "account",
+  sign: "account",
+  domains: "account",
+  addDomain: "account",
+  removeDomain: "account",
+} as const satisfies RouteApps<typeof DELIVERY_ROUTES>;
 export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const DELIVERY_WRITES: readonly DeliveryRoute[] = [

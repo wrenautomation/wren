@@ -13,6 +13,7 @@ import {
   setAuditActor,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
+import type { RoleId } from "../access.js";
 import { actor, date, defineRecord, number, status, text } from "../records.js";
 import {
   type Client,
@@ -186,7 +187,7 @@ export async function addMember(
   main: Queryable,
   clientId: string,
   email: string,
-  opts: { role?: MemberRole; invitedBy?: string } = {},
+  opts: { role?: MemberRole | RoleId; invitedBy?: string } = {},
 ): Promise<ClientMember> {
   await getClient(main, clientId);
   const role = opts.role ?? "member";
@@ -250,8 +251,8 @@ export async function removeOperator(main: Db, email: string): Promise<boolean> 
 export async function setTeamSeat(
   db: Queryable,
   email: string,
-  seat: { role?: TeamRole; clients?: readonly string[] | null },
-): Promise<{ email: string; role: TeamRole; clients: string[] | null }> {
+  seat: { role?: RoleId; clients?: readonly string[] | null },
+): Promise<{ email: string; role: RoleId; clients: string[] | null }> {
   const e = normalEmail(email);
   const [was] = await db.select().from(operators).where(eq(operators.email, e));
   const role = seat.role ?? was?.role ?? "operator";
@@ -263,7 +264,12 @@ export async function setTeamSeat(
     .values({ email: e, role, clients: clientsOf })
     .onConflictDoUpdate({ target: operators.email, set: { role, clients: clientsOf } })
     .returning();
-  const demoted = was && TEAM_ROLES.indexOf(role) > TEAM_ROLES.indexOf(was.role);
+  // A step down the built-ins, or any move to or from a custom role, signs them out.
+  const rank = (r: string) => TEAM_ROLES.indexOf(r as TeamRole);
+  const demoted =
+    was &&
+    was.role !== role &&
+    (rank(role) < 0 || rank(was.role) < 0 || rank(role) > rank(was.role));
   if (was && (demoted || narrower(was.clients, clientsOf))) await endSessions(db, e);
   return { email: e, role: row?.role ?? role, clients: row?.clients ?? null };
 }
@@ -339,6 +345,8 @@ export async function touchMember(main: Db, email: string): Promise<void> {
 /** Wren's team as a console record: each seat, and when they last signed in. The Team page. */
 export const teamRecord = defineRecord({
   id: "console.team",
+  app: "team",
+  channel: null,
   name: { one: "teammate", many: "team" },
   needs: "team",
   rows: async (db) =>
@@ -422,6 +430,8 @@ export const CHANGE_VIEWS = [
  */
 export const changeRecord = defineRecord({
   id: "console.change",
+  app: "team",
+  channel: null,
   name: { one: "change", many: "changes" },
   needs: "team",
   view: "audit_changes",
@@ -435,6 +445,8 @@ export const changeRecord = defineRecord({
 /** Wren's clients as a console record, over `client_records`. */
 export const clientRecord = defineRecord({
   id: "console.client",
+  app: "clients",
+  channel: null,
   name: { one: "client", many: "clients" },
   view: "client_records",
   key: "id",

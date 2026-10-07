@@ -11,6 +11,8 @@ const CHANNELS = {
 
 export const subscriberRecord = defineRecord({
   id: "marketing.subscriber",
+  app: "marketing",
+  channel: "email",
   name: { one: "subscriber", many: "subscribers" },
   view: "marketing_subscriber_records",
   key: "id",
@@ -71,6 +73,8 @@ export const subscriberRecord = defineRecord({
 
 export const topicRecord = defineRecord({
   id: "marketing.topic",
+  app: "marketing",
+  channel: "email",
   name: { one: "topic", many: "topics" },
   view: "marketing_topic_records",
   key: "id",
