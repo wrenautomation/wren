@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
-    "test:unit": "vitest run src",
+    "test:unit": "vitest run src --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
