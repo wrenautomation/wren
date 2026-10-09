@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./lines": "./src/lines.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {
