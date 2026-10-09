@@ -848,3 +848,26 @@ export const inboxReplies = pgTable(
   ],
 );
 export type InboxReply = typeof inboxReplies.$inferSelect;
+
+/** What happens when someone writes in (designs/2026-10-09-auto-reply.md). */
+export const AUTO_REPLY_MODES = ["off", "suggest", "auto"] as const;
+export type AutoReplyMode = (typeof AUTO_REPLY_MODES)[number];
+
+/**
+ * Auto-reply, per channel, in the database that holds the threads: Wren's in main, a client's in
+ * its own. No row is Suggest.
+ */
+export const autoReplies = pgTable(
+  "auto_replies",
+  {
+    channel: varchar("channel", { length: 8, enum: INBOX_CHANNELS }).notNull(),
+    mode: varchar("mode", { length: 8, enum: AUTO_REPLY_MODES }).notNull(),
+    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.channel], name: "pk_auto_replies" }),
+    oneOf("ck_auto_replies_channel", t.channel, INBOX_CHANNELS),
+    oneOf("ck_auto_replies_mode", t.mode, AUTO_REPLY_MODES),
+  ],
+);

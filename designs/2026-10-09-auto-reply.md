@@ -25,10 +25,11 @@ setting, at Wren.
 until William says go, as publishing is on hold. The setting can still be picked; the page says
 it's held.
 
-## Data (one migration, main)
+## Data (one migration)
 
-`auto_replies`: `owner` (client, null is Wren; FK clients, cascade), `channel`, `mode` (off,
-suggest, auto), `updated_*`. Primary key (owner, channel), nulls not distinct. No row is Suggest.
+`auto_replies`: `channel` primary key, `mode` (off, suggest, auto), `updated_*`. It lives in the
+database that holds the threads: main for Wren, the client's own for a client, so no owner column.
+No row is Suggest.
 
 The draft itself is an `inbox_replies` row (waiting), so To approve, Approve, Drop and the audit
 need nothing new. `why` says "Drafted on arrival" or why Auto didn't send.
@@ -58,7 +59,7 @@ need nothing new. `why` says "Drafted on arrival" or why Auto didn't send.
 
 ## Portal
 
-- **Marketing → Inbox → Auto-reply** (settings tab): one row per channel with Off, Suggest,
+- **Marketing → Auto-reply**: one row per channel with Off, Suggest,
   Auto. `manage` to change. Auto shows "Held: nothing sends on its own yet" while the flag is off.
 - To approve marks a drafted-on-arrival reply "Drafted for you".
 - The thread shows an auto-sent reply with a small "Auto" tag; Undo isn't possible, so none is
@@ -70,6 +71,13 @@ need nothing new. `why` says "Drafted on arrival" or why Auto didn't send.
 - Learning from edits (Approve after an edit as a few-shot): later, with the comments feed's
   approvals.
 - Voice and missed-call text-back: they have their own flows.
+
+## Shipped
+
+2026-10-09, round one: modes, the table (0217), `AutoReply.arrived` on the spine's reply trigger
+for email, text and DM, drafts into To approve, Marketing → Auto-reply for Wren and clients. Auto
+is held in code (acts as Suggest, says so); its send path, model check and caps come with
+William's go. Comments wait on a reply trigger of their own.
 
 ## Decision log
 

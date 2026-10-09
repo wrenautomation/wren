@@ -10,6 +10,7 @@ import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
+import { AutoReplyPage } from "./auto-reply.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
@@ -1030,6 +1031,7 @@ export const marketing: Module = {
   requires: { audience: "team" },
   pages: [
     { id: "inbox", ...INBOX_PAGE },
+    { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
     APPROVAL_PAGE,
     TODAY,
     {
@@ -1641,6 +1643,7 @@ export const clientMarketing: Module = {
       actions: INBOX_THREAD_ACTIONS.map(clientInbox),
       extras: conversationExtras,
     }),
+    { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
     CLIENT_APPROVE,
     asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
     asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),

@@ -187,10 +187,12 @@ import {
 import { askFollowEmail } from "@wren/content/inbox";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
+  autoReplyFire,
   type ContentDesk,
   clientDrafting,
   DESK_KEY,
   DESK_UNIT,
+  makeAutoReply,
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
@@ -244,6 +246,7 @@ import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
 import {
+  type FireTriggers,
   failedRuns,
   makeSpine,
   makeSpineClock,
@@ -443,6 +446,11 @@ export async function buildServices(
   log: Logger,
   opts: BuildOptions,
 ): Promise<Services> {
+  // The spine hears every trigger; a reply also reaches AutoReply.
+  const fireAll: FireTriggers = (ctx, req) => {
+    spineFire(ctx, req);
+    autoReplyFire(ctx, req);
+  };
   const { rootDir } = opts;
   const databaseUrl = pooled(settings);
   const handle = createDb(databaseUrl, {
@@ -758,7 +766,7 @@ export async function buildServices(
     shared: settings.siteExportToken ?? null,
     site: settings.siteBaseUrl.replace(/\/+$/, ""),
     send: bookerMailer?.("Wren") ?? null,
-    fire: spineFire,
+    fire: fireAll,
   };
   // A client's booking calendar: its database, its connected Google account, its host. Its mail
   // and Google's invite wait on its sends flag (`ownerDeps`).
@@ -769,7 +777,7 @@ export async function buildServices(
     shared: settings.siteExportToken ?? null,
     portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
     mailer: bookerMailer,
-    fire: spineFire,
+    fire: fireAll,
   };
   // Site flags, pushed to the lander's edge on every change and each search pass.
   const edge = settings.siteEdgeToken
@@ -896,7 +904,7 @@ export async function buildServices(
       classify,
       ...(watch ? { watch } : {}),
       ...emailNotify,
-      fire: spineFire,
+      fire: fireAll,
     }),
     inboxPush,
     makeDisposition({
@@ -947,7 +955,7 @@ export async function buildServices(
     }),
     // cal.com's booking webhook, through the phone Worker: a booked lead stops getting mail.
     // A client's comes in by its own path and secret, into its database.
-    makeCallBookings({ db, clientDb, fire: spineFire }),
+    makeCallBookings({ db, clientDb, fire: fireAll }),
     // The lander's signup form and preference center, through the phone Worker. Wren's own
     // lists only; the confirm email goes from portal@.
     makeMarketing({
@@ -983,11 +991,11 @@ export async function buildServices(
     }),
     // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md). No key
     // store yet, as for Accounts: connect says "in development" and nothing reaches Stripe.
-    makePayments({ ...payDeps, mailer: bookerMailer, fire: spineFire }),
+    makePayments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makePaymentsConsole(payDeps),
     // Opportunities: deals on a board of stages; each move tells the spine
     // (designs/2026-10-09-opportunities.md).
-    makeDealsConsole({ main: db, fire: spineFire }),
+    makeDealsConsole({ main: db, fire: fireAll }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1202,6 +1210,17 @@ export async function buildServices(
       mentionMail: notesDeps.mail ?? null,
     }),
   );
+  // A reply drafted when someone writes in (designs/2026-10-09-auto-reply.md); Auto is held.
+  services.push(
+    makeAutoReply({
+      db,
+      clientDb,
+      llm: watchLlm,
+      keys,
+      senderName: settings.smsSenderName,
+      facts: () => wrenFacts(db),
+    }),
+  );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(
     makeTokenRenewal({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
@@ -1403,7 +1422,7 @@ export async function buildServices(
     makeSmsSender(clientTexts),
     makeSmsEvents({
       ...sms,
-      fire: spineFire,
+      fire: fireAll,
       calls: callHooks({ main: db, clientDb }),
       keys,
     }),
@@ -1419,7 +1438,7 @@ export async function buildServices(
   if (!settings.reachLive) log.info("WREN_REACH_LIVE off: reach plans and holds, nothing is sent");
   const reach = {
     db,
-    fire: spineFire,
+    fire: fireAll,
     policy: reachPolicyFrom(settings),
     sequences: REACH_SEQUENCES,
     live: settings.reachLive,
@@ -1537,7 +1556,7 @@ export async function buildServices(
             : null,
         app: portal,
         zone: settings.sendTimezone,
-        fire: spineFire,
+        fire: fireAll,
         // The error digest: each database's failed runs, a flag per client and workflow.
         failures: {
           of: (client) => failedRuns(client ? clientDb(client) : db),

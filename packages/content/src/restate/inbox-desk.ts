@@ -5,7 +5,7 @@
  * still run.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Who } from "@wren/core/access";
+import { can, type Who, WREN } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel } from "@wren/core/metered";
@@ -18,6 +18,7 @@ import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { autoModes, setAutoMode } from "../inbox/auto.js";
 import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
 import { clientRoutes, routeOf } from "../inbox/routes.js";
 import {
@@ -37,6 +38,8 @@ import {
 import { suggestReply } from "../inbox/suggest.js";
 import { setThread } from "../inbox/threads.js";
 import {
+  AUTO_REPLY_MODES,
+  type AutoReplyMode,
   INBOX_CHANNELS,
   INBOX_STATUSES,
   type InboxChannel,
@@ -234,9 +237,54 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
       if (!mayWork(who, client, channel)) throw new Error("your role can't do that here");
     });
 
+  /** Auto-reply's settings: anyone working here reads them; `manage` here changes them. */
+  const mayAuto = (req: Req, need: "read" | "manage") =>
+    terminal(async () => {
+      const client = clientOf(req);
+      const who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
+      if (!can(who, need, { client: client ?? WREN }))
+        throw new Error(need === "read" ? "no access" : "you don't manage this here");
+    });
+
   return restate.service({
     name: "InboxDesk",
     handlers: {
+      /** Each channel's auto-reply mode (designs/2026-10-09-auto-reply.md). */
+      autoReplies: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        async (
+          ctx: restate.Context,
+          req: Req,
+        ): Promise<{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }> => {
+          by(req);
+          await ctx.run("may", () => mayAuto(req, "read"));
+          const modes = await ctx.run("modes", () => autoModes(dbOf(clientOf(req))));
+          // Auto sends nothing until William says go: it drafts like Suggest.
+          return { modes, held: true };
+        },
+      ),
+      autoReplySet: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            channel: z.enum(INBOX_CHANNELS).describe("email, text, dm or comment"),
+            mode: z.enum(AUTO_REPLY_MODES).describe("off, suggest or auto"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: Req & { channel: InboxChannel; mode: AutoReplyMode },
+        ): Promise<{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }> => {
+          const me = by(req);
+          await ctx.run("may", () => mayAuto(req, "manage"));
+          const db = dbOf(clientOf(req));
+          const modes = await ctx.run("set", async () => {
+            await setAutoMode(db, req.channel, req.mode, me);
+            return autoModes(db);
+          });
+          return { modes, held: true };
+        },
+      ),
       /**
        * Send a reply on the channel picked, through its own desk; when the gate says ask, it waits
        * in To approve instead. The thread then waits on them.

@@ -51,7 +51,14 @@ import {
   type PromoPlatform,
   promotable,
 } from "../promo.js";
-import { INBOX_CHANNELS, INBOX_STATUSES, type InboxChannel, type InboxStatus } from "../schema.js";
+import {
+  AUTO_REPLY_MODES,
+  type AutoReplyMode,
+  INBOX_CHANNELS,
+  INBOX_STATUSES,
+  type InboxChannel,
+  type InboxStatus,
+} from "../schema.js";
 import type { ShapeView } from "../shape-view.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 import type { InboxDesk } from "./inbox-desk.js";
@@ -462,6 +469,27 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
         ASKED,
         (ctx: restate.Context, req: PortalRequest & { id: number }) =>
           inbox(ctx, req, (d, at) => d.drop({ ...at, id: req.id })),
+      ),
+      /** The client's auto-reply modes, per channel. */
+      inboxAuto: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        (ctx: restate.Context, req: PortalRequest) => inbox(ctx, req, (d, at) => d.autoReplies(at)),
+      ),
+      inboxAutoSet: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            channel: z.enum(INBOX_CHANNELS),
+            mode: z.enum(AUTO_REPLY_MODES),
+          }),
+        },
+        (
+          ctx: restate.Context,
+          req: PortalRequest & { channel: InboxChannel; mode: AutoReplyMode },
+        ) =>
+          inbox(ctx, req, (d, at) =>
+            d.autoReplySet({ ...at, channel: req.channel, mode: req.mode }),
+          ),
       ),
       /** A client draft's stage and target. Its posts carry no Wren link. */
       draftFunnel: serviceHandler(
