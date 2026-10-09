@@ -29,7 +29,7 @@ Places (subreddits) come from research ([[content/reddit-thread]]), never hard-c
 
 ## Shape
 
-- Stage `reach | trust | convert`, target `video | site | booking`, the video it points at, whether it carries its link: columns on `content_drafts` (see [[content/draft]])
+- Stage `reach | trust | convert`, target `video | site | booking | page`, the video or Sites page (`site_page`, Wren's own, link `?to=/o/<slug>`) it points at, whether it carries its link: columns on `content_drafts` (see [[content/draft]])
 - Link derivation and the per-platform link rule: `packages/content/src/funnel.ts` (`targetLink`, `youtubeId`, `funnelOf`)
 - Promo drafts: `packages/content/src/promo.ts` (`promotable` checks, `promoBase`, `draftPromo`, `draftThread`, `draftCarousel`; `PROMO_PIECES` posts | thread | carousel)
 - Thread: posts split by a `---` line in the text (`threadPosts`, `threadUnfit`, `withLink`); the facts guard checks each post (`guardParts`, `packages/core/src/grounded.ts`); X posts the rest as replies (`packages/channel-x/src/content.ts`), a partial failure kept in the notes
@@ -54,7 +54,7 @@ Citations: `designs/2026-10-07-content-funnel.md`
 
 | Surface | Role |
 |---|---|
-| the post editor's Funnel group, `wren content funnel` | writes stage, target, video, link |
+| the post editor's Funnel group, `wren content funnel` | writes stage, target, video, page, link |
 | Videos → Promote, Posts → Promote (Wren's and a client's), `wren content promote [--pieces]` | writes promo drafts: posts, an X thread, a carousel |
 | the slides editor (Save slides, Draw), `wren content slides` | writes the slide set and its drawn files |
 | comment drafting (`sortComment`, `draftThread`, LinkedIn posts), Ask Claude on those, `wren drafts examples` | reads examples |

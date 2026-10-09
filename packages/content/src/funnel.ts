@@ -28,6 +28,7 @@ export const TARGET_LABELS: Record<FunnelTarget, string> = {
   video: "The video",
   site: "The site",
   booking: "Booking",
+  page: "A page",
 };
 
 /** Wren's site: the lander the footers already name. */
@@ -37,7 +38,7 @@ export const BOOKING_PATH = "/book/reactivation";
 
 type FunnelRow = Pick<
   ContentDraft,
-  "id" | "platform" | "text" | "extra" | "stage" | "pointsTo" | "videoDraft" | "linked"
+  "id" | "platform" | "text" | "extra" | "stage" | "pointsTo" | "videoDraft" | "sitePage" | "linked"
 >;
 
 /** The YouTube draft a post points at. */
@@ -48,9 +49,18 @@ export interface FunnelVideo {
   status: DraftStatus;
 }
 
-/** What the rule reads past the row: the video, the subreddit's word on links, whose database. */
+/** A Sites page a post points at: Wren's own, served at `/o/<slug>`. */
+export interface FunnelPage {
+  id: string;
+  title: string;
+  slug: string;
+  live: boolean;
+}
+
+/** What the rule reads past the row: the video, the page, the subreddit's word on links, whose database. */
 export interface FunnelContext {
   video: FunnelVideo | null;
+  page?: FunnelPage | null;
   /** Reddit only: the watched place named in the draft's subreddit field, if researched. */
   place: { name: string; links: boolean } | null;
   /** A client's database: its posts never carry Wren's link. */
@@ -62,6 +72,7 @@ export interface FunnelView {
   stage: FunnelStage;
   to: FunnelTarget;
   video: FunnelVideo | null;
+  page: FunnelPage | null;
   /** His choice, or the rule's when he made none. */
   linked: boolean;
   /** He set it himself. */
@@ -103,17 +114,23 @@ const goLink = (d: Pick<FunnelRow, "id" | "platform" | "stage">) =>
 
 /**
  * The target's link. Wren's posts go through the lander's `/go/<channel>/<stage>/<post>`, which
- * counts the click: to the video with `?v=<YouTube id>` (none until it's up), to booking with
- * `?to=`. A client's post links only its own video, straight: Wren's lander never carries a
- * client's traffic.
+ * counts the click: to the video with `?v=<YouTube id>` (none until it's up), to booking or a
+ * Sites page with `?to=`. A client's post links only its own video, straight: Wren's lander never
+ * carries a client's traffic.
  */
-export function targetLink(d: FunnelRow, video: FunnelVideo | null, client = false): string | null {
+export function targetLink(
+  d: FunnelRow,
+  video: FunnelVideo | null,
+  client = false,
+  page: FunnelPage | null = null,
+): string | null {
   if (d.pointsTo === "video") {
     if (!video?.url) return null;
     const id = client ? null : youtubeId(video.url);
     return id ? `${goLink(d)}?v=${id}` : video.url;
   }
   if (client) return null;
+  if (d.pointsTo === "page") return page ? `${goLink(d)}?to=/o/${page.slug}` : null;
   return d.pointsTo === "booking" ? `${goLink(d)}?to=${BOOKING_PATH}` : goLink(d);
 }
 
@@ -165,7 +182,8 @@ export function linkRule(
 /** The funnel of a draft, given its context. Pure: the scheduler and the editor read the same. */
 export function funnelOf(d: FunnelRow, ctx: FunnelContext): FunnelView {
   const rule = linkRule(d, ctx.place);
-  const link = targetLink(d, ctx.video, ctx.client);
+  const page = ctx.page ?? null;
+  const link = targetLink(d, ctx.video, ctx.client, page);
   const linked = d.linked ?? rule.on;
   const inText =
     Boolean(link && d.text.includes(link)) || d.text.includes(`${WREN_SITE.slice(8)}/go/`);
@@ -179,16 +197,21 @@ export function funnelOf(d: FunnelRow, ctx: FunnelContext): FunnelView {
             ? "Off for this post"
             : rule.why
           : !link
-            ? ctx.video
-              ? "Fills in when the video is on YouTube"
-              : "Pick the video it points to"
-            : inText
-              ? "Already in the text"
-              : null;
+            ? d.pointsTo === "page"
+              ? "Pick the page it points to"
+              : ctx.video
+                ? "Fills in when the video is on YouTube"
+                : "Pick the video it points to"
+            : d.pointsTo === "page" && !page?.live
+              ? "Its page isn't live yet: approve it in Sites first"
+              : inText
+                ? "Already in the text"
+                : null;
   return {
     stage: d.stage,
     to: d.pointsTo,
     video: ctx.video,
+    page,
     linked,
     chosen: d.linked !== null,
     allowed: rule.allowed,
@@ -203,6 +226,25 @@ const subredditOf = (extra: Record<string, unknown> | null | undefined): string 
   const s = extra?.subreddit;
   return typeof s === "string" && s.trim() ? s.trim().replace(/^r\//i, "").toLowerCase() : null;
 };
+
+/** Wren's Sites page by id: `site_pages` is Sites' table, read by SQL as `reddit_places` is. */
+async function pageOf(db: Queryable, id: string): Promise<FunnelPage | null> {
+  const [p] = await db.execute<{ id: string; title: string; slug: string; status: string }>(
+    sql`select id::text, title, slug, status from site_pages
+        where id = ${id} and client is null and source = 'data'`,
+  );
+  return p ? { id: p.id, title: p.title, slug: p.slug, live: p.status === "live" } : null;
+}
+
+/** Wren's data pages a post may point at, live first: the editor's picker. */
+export async function pickablePages(db: Queryable): Promise<FunnelPage[]> {
+  const rows = await db.execute<{ id: string; title: string; slug: string; status: string }>(
+    sql`select id::text, title, slug, status from site_pages
+        where client is null and source = 'data' and status <> 'retired'
+        order by (status = 'live') desc, updated_at desc limit 50`,
+  );
+  return rows.map((p) => ({ id: p.id, title: p.title, slug: p.slug, live: p.status === "live" }));
+}
 
 /** Read the context: the video row, the place's rules, whose database this is. */
 export async function funnelContext(db: Queryable, d: FunnelRow): Promise<FunnelContext> {
@@ -227,6 +269,7 @@ export async function funnelContext(db: Queryable, d: FunnelRow): Promise<Funnel
   );
   return {
     video: video ?? null,
+    page: d.sitePage ? await pageOf(db, d.sitePage) : null,
     place: sub && row?.name ? { name: row.name, links: row.links === true } : null,
     client: row?.client === true,
   };
@@ -247,6 +290,8 @@ export interface FunnelPatch {
   to?: FunnelTarget;
   /** The YouTube draft it points at; null clears it. */
   video?: string | null;
+  /** The Sites page it points at; null clears it. */
+  page?: string | null;
   /** On, off, or null: back to the platform's rule. */
   linked?: boolean | null;
 }
@@ -280,14 +325,17 @@ export async function setFunnel(
     if (v?.platform !== "youtube" || isShort(v))
       throw new Error(`${patch.video} isn't a YouTube video`);
   }
+  if (patch.page && !(await pageOf(db, patch.page)))
+    throw new Error(`${patch.page} isn't one of Wren's Sites pages`);
   const next = {
     stage: patch.stage ?? d.stage,
     pointsTo: patch.to ?? d.pointsTo,
     videoDraft: patch.video !== undefined ? patch.video : d.videoDraft,
+    sitePage: patch.page !== undefined ? patch.page : d.sitePage,
     linked: patch.linked !== undefined ? patch.linked : d.linked,
   };
   const changed: Record<string, [unknown, unknown]> = {};
-  for (const k of ["stage", "pointsTo", "videoDraft", "linked"] as const)
+  for (const k of ["stage", "pointsTo", "videoDraft", "sitePage", "linked"] as const)
     if (next[k] !== d[k]) changed[k] = [d[k], next[k]];
   if (Object.keys(changed).length === 0) return d;
   const [row] = await db
@@ -311,16 +359,26 @@ export async function setFunnel(
 }
 
 /**
- * Approve refuses a post that would go out pointing at a video not yet up: its link would be
- * missing. He approves it once the video is on YouTube, or turns the link off.
+ * Approve refuses a post that would go out pointing at a video not yet up, or at a page that
+ * isn't live: its link would be missing or dead. He approves it once the target is up, or turns
+ * the link off.
  */
 export async function refuseUnlinked(db: Queryable, rows: readonly FunnelRow[]): Promise<void> {
   const waiting: string[] = [];
   for (const r of rows) {
-    if (r.pointsTo !== "video") continue;
+    if (r.pointsTo !== "video" && r.pointsTo !== "page") continue;
     const ctx = await funnelContext(db, r);
     const f = funnelOf(r, ctx);
-    if (!f.linked || !f.allowed || f.link) continue;
+    if (!f.linked || !f.allowed) continue;
+    if (r.pointsTo === "page") {
+      // A client's post carries no page link (the note says so): nothing to wait on.
+      if (ctx.client) continue;
+      if (!f.page) waiting.push(`${r.id}: pick the page it points to, or turn the link off`);
+      else if (!f.page.live)
+        waiting.push(`${r.id}: its page /o/${f.page.slug} isn't live; approve it in Sites first`);
+      continue;
+    }
+    if (f.link) continue;
     waiting.push(
       f.video
         ? `${r.id}: its video isn't on YouTube yet; approve once it is, or turn the link off`

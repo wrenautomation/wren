@@ -392,9 +392,13 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .option("--stage <stage>", FUNNEL_STAGES.join(" | "))
     .option("--to <target>", FUNNEL_TARGETS.join(" | "))
     .option("--video <draftId>", "the YouTube draft it points at; '' clears it")
+    .option("--page <id>", "the Sites page it points at (wren sites list); '' clears it")
     .option("--link <on|off|auto>", "carry the link; auto follows the platform's rule")
     .action(
-      async (id: string, o: { stage?: string; to?: string; video?: string; link?: string }) => {
+      async (
+        id: string,
+        o: { stage?: string; to?: string; video?: string; page?: string; link?: string },
+      ) => {
         const linked =
           o.link === undefined
             ? undefined
@@ -409,6 +413,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
               ...(o.stage ? { stage: oneOf("stage", o.stage, FUNNEL_STAGES) } : {}),
               ...(o.to ? { to: oneOf("to", o.to, FUNNEL_TARGETS) } : {}),
               ...(o.video !== undefined ? { video: o.video || null } : {}),
+              ...(o.page !== undefined ? { page: o.page || null } : {}),
               ...(linked !== undefined ? { linked } : {}),
             },
             { by: "cli" },

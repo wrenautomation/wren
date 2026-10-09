@@ -196,6 +196,10 @@ const FUNNEL = z.looseObject({
     .string()
     .nullish()
     .describe("The YouTube draft it points at; empty clears it, left out: unchanged"),
+  page: z
+    .string()
+    .nullish()
+    .describe("The Sites page it points at (Wren's); empty clears it, left out: unchanged"),
   linked: z
     .union([z.boolean(), z.enum(["on", "off", "auto"])])
     .nullish()
@@ -238,6 +242,7 @@ export interface FunnelRequest {
   stage?: FunnelStage | null;
   to?: FunnelTarget | null;
   video?: string | null;
+  page?: string | null;
   linked?: boolean | "on" | "off" | "auto" | null;
   viewer?: unknown;
 }
@@ -256,6 +261,7 @@ export function funnelPatch(req: FunnelRequest): FunnelPatch {
     ...(req.stage ? { stage: req.stage } : {}),
     ...(req.to ? { to: req.to } : {}),
     ...(req.video !== undefined && req.video !== null ? { video: req.video || null } : {}),
+    ...(req.page !== undefined && req.page !== null ? { page: req.page || null } : {}),
     ...(linked !== undefined ? { linked } : {}),
   };
 }

@@ -56,7 +56,7 @@ export type DraftStatus = (typeof DRAFT_STATUSES)[number];
 /** The funnel (designs/2026-10-07-content-funnel.md): which stage a post serves, where it points. */
 export const FUNNEL_STAGES = ["reach", "trust", "convert"] as const;
 export type FunnelStage = (typeof FUNNEL_STAGES)[number];
-export const FUNNEL_TARGETS = ["video", "site", "booking"] as const;
+export const FUNNEL_TARGETS = ["video", "site", "booking", "page"] as const;
 export type FunnelTarget = (typeof FUNNEL_TARGETS)[number];
 
 export const contentIdeas = pgTable(
@@ -136,10 +136,12 @@ export const contentDrafts = pgTable(
     llm: jsonb("llm").$type<Record<string, unknown>>(),
     /** The funnel stage it serves: reach (top), trust (middle), convert (bottom). */
     stage: varchar("stage", { length: 16, enum: FUNNEL_STAGES }).notNull().default("reach"),
-    /** Where it sends people: a video, the site, booking. Its link is derived (`funnel.ts`). */
+    /** Where it sends people: a video, the site, booking, a Sites page. Its link is derived (`funnel.ts`). */
     pointsTo: varchar("points_to", { length: 16, enum: FUNNEL_TARGETS }).notNull().default("site"),
     /** The YouTube draft it points at, when it points to a video. */
     videoDraft: uuid("video_draft"),
+    /** The Sites page it points at, when it points to a page (`site_pages`, Wren's own). */
+    sitePage: uuid("site_page"),
     /** He said the post carries its link (true) or not (false); null follows the platform's rule. */
     linked: boolean("linked"),
   },

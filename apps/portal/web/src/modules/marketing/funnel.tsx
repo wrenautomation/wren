@@ -12,11 +12,13 @@ import { SELECT } from "../work/bits.js";
 export const FUNNEL = "marketing.draftFunnel";
 
 export type FunnelVideo = { id: string; title: string | null; url: string | null; status: string };
+export type FunnelPage = { id: string; title: string; slug: string; live: boolean };
 /** `@wren/content`'s `FunnelView` with the videos it may point at. */
 export type Funnel = {
   stage: "reach" | "trust" | "convert";
-  to: "video" | "site" | "booking";
+  to: "video" | "site" | "booking" | "page";
   video: FunnelVideo | null;
+  page: FunnelPage | null;
   linked: boolean;
   chosen: boolean;
   allowed: boolean;
@@ -24,6 +26,7 @@ export type Funnel = {
   posts: string | null;
   note: string | null;
   videos: FunnelVideo[];
+  pages: FunnelPage[];
 };
 
 const STAGES = [
@@ -35,6 +38,7 @@ const TARGETS = [
   { value: "video", label: "The video" },
   { value: "site", label: "The site" },
   { value: "booking", label: "Booking" },
+  { value: "page", label: "A page" },
 ] as const;
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
@@ -94,7 +98,7 @@ function Pick({
   options: readonly { value: string; label: string }[];
   hint?: string | undefined;
   act: RecordAct;
-  field: "stage" | "to" | "video";
+  field: "stage" | "to" | "video" | "page";
 }) {
   const { said, bad, run } = useSave(act);
   return (
@@ -112,6 +116,7 @@ function Pick({
         onChange={(e) => void run({ [field]: e.target.value })}
       >
         {field === "video" ? <option value="">Pick a video</option> : null}
+        {field === "page" ? <option value="">Pick a page</option> : null}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -205,6 +210,10 @@ export function FunnelFields({
   const stage = STAGES.find((s) => s.value === funnel.stage);
   const summary = `${labelOf(STAGES, funnel.stage)} → ${labelOf(TARGETS, funnel.to)}`;
   const videos = funnel.videos.map((v) => ({ value: v.id, label: videoName(v) }));
+  const pages = funnel.pages.map((p) => ({
+    value: p.id,
+    label: `${p.title} · /o/${p.slug}${p.live ? "" : " · not live"}`,
+  }));
   return (
     <section aria-label="Funnel" className="grid gap-4">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -248,6 +257,23 @@ export function FunnelFields({
                 />
               </div>
             ) : null}
+            {funnel.to === "page" ? (
+              <div className="min-w-0 @min-[440px]/fields:col-span-2">
+                <Pick
+                  id={`funnel-page-${draftId}`}
+                  label="Page"
+                  value={funnel.page?.id ?? ""}
+                  options={pages}
+                  hint={
+                    pages.length
+                      ? "One of Wren's Sites pages. Approve waits until it's live."
+                      : "No Sites page yet. Make one in Sites."
+                  }
+                  act={act}
+                  field="page"
+                />
+              </div>
+            ) : null}
           </>
         ) : (
           <>
@@ -257,7 +283,9 @@ export function FunnelFields({
               value={
                 funnel.to === "video" && funnel.video
                   ? `${labelOf(TARGETS, funnel.to)}: ${funnel.video.title ?? "Untitled"}`
-                  : labelOf(TARGETS, funnel.to)
+                  : funnel.to === "page" && funnel.page
+                    ? `${funnel.page.title} (/o/${funnel.page.slug})`
+                    : labelOf(TARGETS, funnel.to)
               }
             />
           </>

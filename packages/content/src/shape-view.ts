@@ -25,7 +25,13 @@ import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { partFlags } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, ne, notInArray, sql } from "drizzle-orm";
-import { type FunnelVideo, type FunnelView, readFunnel } from "./funnel.js";
+import {
+  type FunnelPage,
+  type FunnelVideo,
+  type FunnelView,
+  pickablePages,
+  readFunnel,
+} from "./funnel.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { RECORDED } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
@@ -51,7 +57,7 @@ export interface ShapeView {
   /** Posted: where, when, and what the platform refused after it went up. */
   published: { url: string | null; at: string | null; notes: string | null } | null;
   /** Its stage, target and link (designs/2026-10-07-content-funnel.md), and the videos it may point at. */
-  funnel: FunnelView & { videos: FunnelVideo[] };
+  funnel: FunnelView & { videos: FunnelVideo[]; pages: FunnelPage[] };
   /** An X thread: its limits, and each saved post's count and facts-guard flags. */
   thread: ThreadView | null;
   /** A carousel: its slides, the drawn files, and the drafts that share the set. */
@@ -148,6 +154,8 @@ export async function shapeView(
   const videos = await pickableVideos(db, d.id);
   // The one it points at stays pickable even past the newest 30.
   if (funnel.video && !videos.some((v) => v.id === funnel.video?.id)) videos.push(funnel.video);
+  const pages = await pickablePages(db);
+  if (funnel.page && !pages.some((p) => p.id === funnel.page?.id)) pages.push(funnel.page);
   return {
     thread: isThread(d) ? await threadView(db, d, funnel.posts) : null,
     carousel: isCarousel(d) ? await carouselView(db, d, signer) : null,
@@ -167,7 +175,7 @@ export async function shapeView(
     published: posted
       ? { url: d.url, at: d.publishedAt?.toISOString() ?? null, notes: d.error }
       : null,
-    funnel: { ...funnel, videos },
+    funnel: { ...funnel, videos, pages },
   };
 }
 

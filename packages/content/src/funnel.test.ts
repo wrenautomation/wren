@@ -17,6 +17,7 @@ const base = {
   stage: "reach" as const,
   pointsTo: "site" as const,
   videoDraft: null,
+  sitePage: null,
   linked: null,
 };
 const ctx: FunnelContext = { video: null, place: null, client: false };
@@ -37,6 +38,22 @@ describe("funnel links", () => {
       "https://wrenautomation.com/go/li/reach/3f2a9c1e?v=dQw4w9WgXcQ",
     );
     expect(targetLink({ ...base, pointsTo: "video" }, { ...video, url: null })).toBeNull();
+  });
+
+  it("a page goes through the lander to /o/<slug>; a page not live says so", () => {
+    const page = { id: "p", title: "Speed lander", slug: "speed", live: true };
+    const toPage = { ...base, pointsTo: "page" as const, sitePage: "p" };
+    expect(targetLink(toPage, null, false, page)).toBe(
+      "https://wrenautomation.com/go/li/reach/3f2a9c1e?to=/o/speed",
+    );
+    expect(funnelOf(toPage, { ...ctx, page }).posts).toBe(
+      "https://wrenautomation.com/go/li/reach/3f2a9c1e?to=/o/speed",
+    );
+    expect(funnelOf(toPage, ctx).note).toBe("Pick the page it points to");
+    const draft = funnelOf(toPage, { ...ctx, page: { ...page, live: false } });
+    expect(draft.posts).toBeNull();
+    expect(draft.note).toContain("isn't live");
+    expect(targetLink(toPage, null, true, page)).toBeNull();
   });
 
   it("a client's post links its own video straight, and nothing of Wren's", () => {

@@ -135,6 +135,24 @@ describe("funnel", () => {
     await expect(setFunnel(pg.db, d.id, { video: d.id })).rejects.toThrow(/itself/);
   });
 
+  it("points a post at a Sites page; approve waits until the page is live", async () => {
+    const [page] = await pg.db.execute<{ id: string }>(
+      sql`insert into site_pages (slug, title, kind, source, status, preview_token, created_by, updated_by)
+          values ('speed', 'Speed lander', 'lander', 'data', 'draft', ${"t".repeat(43)}, 't', 't')
+          returning id::text`,
+    );
+    const d = await post("linkedin");
+    await expect(setFunnel(pg.db, d.id, { to: "page", page: d.id })).rejects.toThrow(/Sites pages/);
+    const row = await setFunnel(pg.db, d.id, { to: "page", page: page!.id });
+    let f = await readFunnel(pg.db, row);
+    expect(f).toMatchObject({ to: "page", page: { slug: "speed", live: false }, posts: null });
+    await expect(approveDrafts(pg.db, [d.id], { now: new Date() })).rejects.toThrow(/isn't live/);
+
+    await pg.db.execute(sql`update site_pages set status = 'live' where id = ${page!.id}`);
+    f = await readFunnel(pg.db, row);
+    expect(f.posts).toBe(`https://wrenautomation.com/go/li/reach/${d.id.slice(0, 8)}?to=/o/speed`);
+  });
+
   it("keeps X and unresearched Reddit posts unlinked", async () => {
     const x = await post("x");
     expect(await readFunnel(pg.db, x)).toMatchObject({ allowed: true, linked: false, posts: null });
