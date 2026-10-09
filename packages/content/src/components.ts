@@ -173,7 +173,7 @@ export const CONTENT_COMPONENTS = [
     // A client's Meta ads wait on its ad account; its ad days stay empty until then.
     soon: ["meta"],
     provides: {
-      services: ["MarketingConsole"],
+      services: ["MarketingConsole", "ClientReport"],
       records: [
         "marketing.draft",
         "marketing.post",
