@@ -1,10 +1,11 @@
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { setupWorkflow } from "@wren/core/setup";
 import type { AccountRow } from "@wren/core/setup-schema";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import { describe, expect, it } from "vitest";
 import { FakeRegistration } from "./provider.js";
-import { SMS_SETUPS, smsChecks } from "./setups.js";
+import { findPlace, type PlaceFound, SMS_SETUPS, smsChecks } from "./setups.js";
 
 const wrens = (ref: string) => ({ id: 1, client: null, site: "number", ref }) as AccountRow;
 const now = new Date(0);
@@ -49,5 +50,47 @@ describe("the texting setups", () => {
       ok: false,
       why: "No campaign id set yet",
     });
+  });
+});
+
+describe("findPlace", () => {
+  const PLACE = "ChIJsynthetic_place-0001";
+  const asked: unknown[] = [];
+  const sites = (answer: PlaceFound | Error): SiteClient => ({
+    call: async <T>(...args: unknown[]) => {
+      asked.push(args);
+      if (answer instanceof Error) throw answer;
+      return answer as T;
+    },
+    via: async () => "browser",
+  });
+  const found: PlaceFound = {
+    placeId: PLACE,
+    name: "Northwind Plumbing",
+    address: "12 Elm St, Springfield",
+    via: "place",
+  };
+
+  it("asks Maps on the desk for the name and address, and keeps the Place ID", async () => {
+    const got = await findPlace(sites(found), "Northwind Plumbing, 12 Elm St");
+    expect(got).toEqual({
+      ref: PLACE,
+      why: "Found on Google Maps: Northwind Plumbing, 12 Elm St, Springfield",
+    });
+    expect(asked.at(-1)).toEqual(["web", "GET", "/place", { q: "Northwind Plumbing, 12 Elm St" }]);
+  });
+
+  it("a Place ID stands; no match or a failed read says why", async () => {
+    asked.length = 0;
+    expect(await findPlace(sites(found), PLACE)).toEqual({ ref: PLACE, why: "Already a Place ID" });
+    expect(asked).toHaveLength(0);
+    const none = { ...found, placeId: null, via: "none" as const };
+    expect((await findPlace(sites(none), "Contoso, 1 Main St")).ref).toBeNull();
+    const off = new SiteCallError("web", "GET", "/place", 503, "desk is off");
+    expect(await findPlace(sites(off), "Contoso, 1 Main St")).toMatchObject({
+      ref: null,
+      why: expect.stringContaining("desk is off"),
+    });
+    await expect(findPlace(sites(new Error("boom")), "Contoso")).rejects.toThrow("boom");
   });
 });

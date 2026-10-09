@@ -6,15 +6,22 @@
  * the wire's wait unless the link was opened. An optional private feedback form is offered to
  * everyone in the same text, never in place of the review link.
  *
- * Off switches as for every text: with `WREN_SMS_LIVE`, the client's texts or its sends off, an
- * ask records "would send" and nothing is queued. Asking by email is in development.
+ * By email: the same counted link, reminder and feedback line, mailed from portal@ under the
+ * client's name, with a fixed line (and `List-Unsubscribe`) that stops them. `via` picks the
+ * first channel; a customer with only the other is asked on that one.
+ *
+ * Off switches as for every text: with `WREN_SMS_LIVE`, the client's texts or its sends off, a
+ * text ask records "would send" and nothing is queued. An email ask waits only on the client's
+ * sends and a mailer here.
  */
 import { randomBytes } from "node:crypto";
-import { activeSuppressionOf } from "@wren/core";
+import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { leadOf } from "@wren/core/door";
 import { linkPeople } from "@wren/core/leads";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
+import { factKeys, renderKind } from "@wren/core/slots";
 import type { SpineEvent, Step } from "@wren/core/spine";
+import type { TemplateRef } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, gt, inArray, ne, or, sql } from "drizzle-orm";
@@ -24,13 +31,14 @@ import {
   type AnswerState,
   type ReviewAsk,
   type ReviewSource,
+  type ReviewVia,
   reviewAsks,
   smsContacts,
   smsMessages,
 } from "./schema.js";
 import { reviewUrl } from "./setups.js";
 import { fieldsFor, textRef } from "./template-store.js";
-import { render, textSeed } from "./templates.js";
+import { firstName, render, textSeed } from "./templates.js";
 
 export const REVIEW_ASK = "review-ask";
 export const REVIEW_REMINDER = "review-reminder";
@@ -50,6 +58,44 @@ export const reviewLink = (origin: string, client: string, token: string) =>
   `${origin}/r/${encodeURIComponent(client)}/${token}`;
 export const feedbackLink = (origin: string, client: string, token: string) =>
   `${reviewLink(origin, client, token)}/feedback`;
+/** An email's stop link: a page with one button, and the `List-Unsubscribe` one-click target. */
+export const stopLink = (origin: string, client: string, token: string) =>
+  `${reviewLink(origin, client, token)}/stop`;
+
+/** The email copy's place in the template store: kind email, system `reviews`, same keys. */
+export const REVIEW_EMAILS = "reviews";
+export const reviewEmailRef = (key: string): TemplateRef => ({
+  kind: "email",
+  system: REVIEW_EMAILS,
+  name: key,
+});
+
+/** Plain mail from portal@ under the client's name (the worker's `bookerMailer`). */
+export type SendMail = (m: {
+  to: string;
+  subject: string;
+  text: string;
+  headers?: readonly (readonly [string, string])[];
+}) => Promise<void>;
+
+/** How an email ask goes: `send` null means no mailer here; `why` set means it may not go now. */
+export interface MailOptions {
+  send: SendMail | null;
+  why: string | null;
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** An address trimmed and lowercased, or null when it isn't one. */
+export const cleanEmail = (raw: string | null | undefined): string | null => {
+  const e = raw?.trim().toLowerCase() ?? "";
+  return EMAIL.test(e) && e.length <= 254 ? e : null;
+};
+
+/** The channel an ask goes on: the one `via` names, else the one they have. */
+export function channelOf(via: ReviewVia, phone: string | null, email: string | null) {
+  if (via === "email") return email ? "email" : phone ? "text" : null;
+  return phone ? "text" : email ? "email" : null;
+}
 
 /** 22 url-safe random characters. It only counts a click and opens a public page: kept plain. */
 export const newToken = () => randomBytes(16).toString("base64url");
@@ -71,8 +117,10 @@ export interface AskOptions {
   senderName: string;
   /** The client's Google Place ID; null until the setup found it. */
   placeId: string | null;
-  /** Text or email: email asks are in development. */
-  via: "text" | "email";
+  /** The first channel to ask on; a customer with only the other is asked there. */
+  via: ReviewVia;
+  /** The email side: portal@ under the client's name. */
+  mail: MailOptions;
   /** Add the private feedback line to every ask. */
   feedback: boolean;
   onceEvery: number;
@@ -144,10 +192,14 @@ async function wordsFor(
  */
 export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<ReviewAsk> {
   const [have] = await db.select().from(reviewAsks).where(eq(reviewAsks.subject, c.subject));
+  // A queued email that never went (its send failed): the retry sends it.
+  if (have?.via === "email" && have.ask === "queued" && !have.sentAt) return mailAsk(db, have, o);
   if (have) return have;
+  const email = cleanEmail(c.email);
   const e164 = c.phone ? toPhoneE164(c.phone) : null;
-  const thread = await threadOf(db, e164, c.email);
+  const thread = await threadOf(db, e164, email);
   const to = e164 ?? thread?.e164 ?? null;
+  const via = channelOf(o.via, to, email);
   const row = async (ask: AnswerState, detail: string | null, contactId: number | null) => {
     const [made] = await db
       .insert(reviewAsks)
@@ -157,7 +209,8 @@ export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<Rev
         name: c.name,
         phone: c.phone?.slice(0, 64) ?? null,
         e164: to,
-        email: c.email,
+        email,
+        via: via ?? o.via,
         token: newToken(),
         placeId: o.placeId,
         contactId,
@@ -172,21 +225,21 @@ export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<Rev
     return again as ReviewAsk;
   };
   if (!o.placeId) return row("refused", "no Google review link yet", null);
-  if (o.via === "email") return row("skipped", "asking by email is in development", null);
-  if (!to)
-    return row(
-      "skipped",
-      c.email ? "no phone number; asking by email is in development" : "no phone number",
-      null,
-    );
-  if (await activeSuppressionOf(db, "phone", to))
+  if (!via) return row("skipped", "no phone number or email", null);
+  if (via === "email" && email && (await activeSuppressionOf(db, "email", email)))
+    return row("refused", "the email opted out", null);
+  if (via === "text" && to && (await activeSuppressionOf(db, "phone", to)))
     return row("refused", "the phone opted out", null);
+  const same = [
+    ...(to ? [eq(reviewAsks.e164, to)] : []),
+    ...(email ? [eq(reviewAsks.email, email)] : []),
+  ];
   const [recent] = await db
     .select({ at: reviewAsks.askAt })
     .from(reviewAsks)
     .where(
       and(
-        eq(reviewAsks.e164, to),
+        or(...same),
         ne(reviewAsks.subject, c.subject),
         inArray(reviewAsks.ask, ["queued", "would_send"]),
         gt(reviewAsks.askAt, new Date(o.now.getTime() - o.onceEvery * 86_400_000)),
@@ -194,6 +247,14 @@ export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<Rev
     )
     .limit(1);
   if (recent) return row("skipped", `asked on ${recent.at.toISOString().slice(0, 10)}`, null);
+  if (via === "email") {
+    const off = mailOff(o);
+    if (off) return row("would_send", off, thread?.id ?? null);
+    const asked = await row("queued", null, thread?.id ?? null);
+    if (asked.ask !== "queued" || asked.via !== "email" || asked.sentAt) return asked;
+    return mailAsk(db, asked, o);
+  }
+  if (!to) throw new Error(`no phone for ${c.subject}`);
   if (thread && ENDED.has(thread.state))
     return row("refused", `their texts ended: ${thread.state}`, thread.id);
   if (!o.live) return row("would_send", o.why ?? "texts are off", thread?.id ?? null);
@@ -266,7 +327,10 @@ export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<Rev
 export async function remindReview(
   db: Db,
   id: number,
-  o: Pick<AskOptions, "live" | "why" | "senderName" | "feedback" | "client" | "origin" | "now">,
+  o: Pick<
+    AskOptions,
+    "live" | "why" | "senderName" | "feedback" | "client" | "origin" | "now" | "mail"
+  >,
 ): Promise<ReviewAsk> {
   const [a] = await db.select().from(reviewAsks).where(eq(reviewAsks.id, id));
   if (!a) throw new Error(`no review ask ${id}`);
@@ -281,6 +345,15 @@ export async function remindReview(
   };
   if (a.ask !== "queued") return done("skipped", "the ask didn't go");
   if (a.clicks > 0) return done("skipped", "they opened the link");
+  if (a.via === "email") {
+    if (!a.email) return done("skipped", "no email");
+    if (await activeSuppressionOf(db, "email", a.email))
+      return done("refused", "the email opted out");
+    const off = mailOff(o);
+    if (off) return done("would_send", off);
+    const why = await mailTo(db, a, REVIEW_REMINDER, o);
+    return why ? done("refused", why) : done("queued", null);
+  }
   if (!a.contactId) return done("skipped", "no text thread");
   const [c] = await db.select().from(smsContacts).where(eq(smsContacts.id, a.contactId));
   if (!c?.numberId) return done("skipped", "no text thread");
@@ -318,6 +391,62 @@ export async function remindReview(
   return done("queued", null);
 }
 
+/** Why an email may not go now, or null. */
+const mailOff = (o: Pick<AskOptions, "mail">): string | null =>
+  o.mail.why ?? (o.mail.send ? null : "no mailer here: WREN_PORTAL_FROM is unset");
+
+type MailOpts = Pick<AskOptions, "senderName" | "feedback" | "client" | "origin" | "mail">;
+
+/**
+ * One review email to an ask's address: the template's words, the feedback line when it's on,
+ * then the fixed stop line. Null once it went; why not when the copy can't go. A failed send
+ * throws, so the step retries.
+ */
+async function mailTo(db: Queryable, a: ReviewAsk, key: string, o: MailOpts) {
+  const send = o.mail.send;
+  if (!send || !a.email) return "no mailer here";
+  const words = await liveOrDefault(db, reviewEmailRef(key));
+  if (!words) return `email template ${key} is empty`;
+  if (!factKeys(words.template).has("review_link"))
+    return `email template ${key} has no {review_link}`;
+  const stop = stopLink(o.origin, o.client, a.token);
+  const fields = {
+    first_name: firstName(a.name),
+    sender: o.senderName,
+    review_link: reviewLink(o.origin, o.client, a.token),
+    feedback_link: o.feedback ? feedbackLink(o.origin, o.client, a.token) : null,
+  };
+  const seed = `review:${a.id}`;
+  const out = renderKind("email", words.template, fields, seed);
+  const parts = [out.body];
+  if (o.feedback) {
+    const more = await liveOrDefault(db, reviewEmailRef(REVIEW_FEEDBACK));
+    if (more) parts.push(renderKind("email", more.template, fields, seed).body);
+  }
+  parts.push(`--\nDon't want these emails from ${o.senderName}? ${stop}`);
+  await send({
+    to: a.email,
+    subject: out.subject ?? `A review for ${o.senderName}`,
+    text: parts.join("\n\n"),
+    headers: [
+      ["List-Unsubscribe", `<${stop}>`],
+      ["List-Unsubscribe-Post", "List-Unsubscribe=One-Click"],
+    ],
+  });
+  return null;
+}
+
+/** The ask's email: sent and stamped, or refused with why. */
+async function mailAsk(db: Db, a: ReviewAsk, o: MailOpts & Pick<AskOptions, "now">) {
+  const why = await mailTo(db, a, REVIEW_ASK, o);
+  const [r] = await db
+    .update(reviewAsks)
+    .set(why ? { ask: "refused", askDetail: why } : { sentAt: o.now })
+    .where(eq(reviewAsks.id, a.id))
+    .returning();
+  return r as ReviewAsk;
+}
+
 /**
  * A click on a counted link: counted, and where it goes. Null for a token we never gave, or an
  * ask with no Place ID (nothing to open).
@@ -342,6 +471,23 @@ export async function saveFeedback(db: Queryable, token: string, words: string, 
     .where(eq(reviewAsks.token, token))
     .returning({ id: reviewAsks.id });
   return !!a;
+}
+
+/**
+ * The stop link of a review email: the address is suppressed in the client's database, so no
+ * ask, reminder or other mail of theirs reaches it. False for a token we never gave.
+ */
+export async function stopReview(db: Queryable, token: string, now: Date) {
+  const [a] = await db.select().from(reviewAsks).where(eq(reviewAsks.token, token));
+  if (!a) return false;
+  if (a.email)
+    await addSuppression(db, {
+      kind: "email",
+      value: a.email,
+      reason: "opt_out",
+      evidence: { source: "review email", ask: a.id, at: now.toISOString() },
+    });
+  return true;
 }
 
 /** What the step needs for one client's asks. */
@@ -372,14 +518,14 @@ export const reviewStep =
       const id = Number(e.data.review);
       if (!Number.isInteger(id)) throw new Error(`${e.subject} is no review ask`);
       const r = await remindReview(db, id, { ...o, client: at.client, now });
-      if (r.reminder === "queued") await nudge(`review:${at.workflow}:${id}:2`);
+      if (r.reminder === "queued" && r.via === "text") await nudge(`review:${at.workflow}:${id}:2`);
       const data = { ...e.data, reminder: r.reminder, why: r.reminderDetail };
       return [{ port: r.reminder === "queued" ? "asked" : "unasked", event: { ...e, data } }];
     }
     const a = await askReview(db, customerOf(e, sourceOf(e)), { ...o, client: at.client, now });
-    const data = { ...e.data, review: a.id, ask: a.ask, why: a.askDetail };
+    const data = { ...e.data, review: a.id, ask: a.ask, via: a.via, why: a.askDetail };
     if (a.ask !== "queued") return [{ port: "unasked", event: { ...e, data } }];
-    await nudge(`review:${at.workflow}:${a.id}`);
+    if (a.via === "text") await nudge(`review:${at.workflow}:${a.id}`);
     return [{ port: "asked", event: { subject: `review:${a.id}`, kind: "lead", data } }];
   };
 

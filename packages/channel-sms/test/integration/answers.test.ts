@@ -24,7 +24,9 @@ import {
   clickReview,
   placeIdOf,
   remindReview,
+  type SendMail,
   saveFeedback,
+  stopReview,
 } from "../../src/reviews.js";
 import { reviewAsks, smsCalls, smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
 import { numbers, POLICY, TABLES } from "./fixtures.js";
@@ -262,12 +264,18 @@ describe("only live", () => {
 });
 
 const PLACE = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+/** The fake mailer: every email it was handed. */
+const mailed: Parameters<SendMail>[0][] = [];
+const fakeMail: SendMail = async (m) => {
+  mailed.push(m);
+};
 const ask = (o: Partial<AskOptions> = {}): AskOptions => ({
   live: true,
   why: null,
   senderName: "Test Co",
   placeId: PLACE,
   via: "text",
+  mail: { send: fakeMail, why: null },
   feedback: false,
   onceEvery: 90,
   client: "acme",
@@ -275,12 +283,16 @@ const ask = (o: Partial<AskOptions> = {}): AskOptions => ({
   now: OPEN,
   ...o,
 });
-const customer = (subject: string, phone: string | null = "(212) 555-0187") => ({
+const customer = (
+  subject: string,
+  phone: string | null = "(212) 555-0187",
+  email: string | null = null,
+) => ({
   subject,
   source: "hand" as const,
   name: "Ada Test",
   phone,
-  email: null,
+  email,
   zone: null,
 });
 
@@ -330,7 +342,7 @@ describe("review requests", () => {
     ).toMatchObject({ ask: "refused", askDetail: "no Google review link yet" });
     expect(await askReview(pg.db, customer("hand:4", null), ask())).toMatchObject({
       ask: "skipped",
-      askDetail: "no phone number",
+      askDetail: "no phone number or email",
     });
     expect(
       await askReview(
@@ -340,6 +352,105 @@ describe("review requests", () => {
       ),
     ).toMatchObject({ ask: "would_send", askDetail: "off" });
     expect(await pg.db.select().from(smsMessages)).toHaveLength(1);
+  });
+
+  it("emails a customer with no phone: counted link, feedback, stop line, one reminder", async () => {
+    mailed.length = 0;
+    const o = ask({ feedback: true });
+    const a = await askReview(pg.db, customer("hand:1", null, " Ada@Example.TEST "), o);
+    expect(a).toMatchObject({ ask: "queued", via: "email", email: "ada@example.test" });
+    expect(a.sentAt).toEqual(OPEN);
+    expect(await pg.db.select().from(smsMessages)).toHaveLength(0);
+    expect(mailed).toHaveLength(1);
+    const m = mailed[0];
+    expect(m?.to).toBe("ada@example.test");
+    expect(m?.subject).toBe("A quick review for Test Co?");
+    expect(m?.text).toContain("Hi Ada,");
+    expect(m?.text).toContain(`https://phone.example.test/r/acme/${a.token}\n`);
+    expect(m?.text).toContain(`/r/acme/${a.token}/feedback`);
+    expect(m?.text).toContain(`/r/acme/${a.token}/stop`);
+    expect(m?.headers).toContainEqual([
+      "List-Unsubscribe",
+      `<https://phone.example.test/r/acme/${a.token}/stop>`,
+    ]);
+    // Again for the same subject sends nothing; the reminder goes once.
+    await askReview(pg.db, customer("hand:1", null, "ada@example.test"), o);
+    expect(mailed).toHaveLength(1);
+    expect((await remindReview(pg.db, a.id, o)).reminder).toBe("queued");
+    expect((await remindReview(pg.db, a.id, o)).reminder).toBe("queued");
+    expect(mailed.map((x) => x.subject)).toEqual([
+      "A quick review for Test Co?",
+      "Still have a minute for Test Co?",
+    ]);
+    // Once per person: the same address on another subject is skipped.
+    expect(await askReview(pg.db, customer("hand:2", null, "ADA@example.test"), o)).toMatchObject({
+      ask: "skipped",
+    });
+    const serve = serveRecords(SMS_RECORDS, pg.db);
+    const all = await serve.list({ record: "sms.review", view: "asked" });
+    expect(all.rows).toMatchObject([{ via: "email", email: "ada@example.test" }]);
+  });
+
+  it("the stop link suppresses the address; no ask or reminder reaches it after", async () => {
+    mailed.length = 0;
+    const a = await askReview(pg.db, customer("hand:1", null, "bo@example.test"), ask());
+    expect(await stopReview(pg.db, a.token, OPEN)).toBe(true);
+    expect(await stopReview(pg.db, "nope-not-a-token", OPEN)).toBe(false);
+    expect(await remindReview(pg.db, a.id, ask())).toMatchObject({
+      reminder: "refused",
+      reminderDetail: "the email opted out",
+    });
+    expect(
+      await askReview(pg.db, customer("hand:9", null, "bo@example.test"), ask({ onceEvery: 1 })),
+    ).toMatchObject({ ask: "refused", askDetail: "the email opted out" });
+    expect(mailed).toHaveLength(1);
+  });
+
+  it("via email picks email over a phone; sends off or no mailer says would send", async () => {
+    mailed.length = 0;
+    const both = customer("hand:1", "(212) 555-0187", "cy@example.test");
+    expect(await askReview(pg.db, both, ask({ via: "email" }))).toMatchObject({
+      via: "email",
+      ask: "queued",
+    });
+    expect(await pg.db.select().from(smsMessages)).toHaveLength(0);
+    expect(
+      await askReview(
+        pg.db,
+        customer("hand:2", null, "di@example.test"),
+        ask({ mail: { send: fakeMail, why: "sends are off for this client" } }),
+      ),
+    ).toMatchObject({ ask: "would_send", askDetail: "sends are off for this client" });
+    expect(
+      await askReview(
+        pg.db,
+        customer("hand:3", null, "ed@example.test"),
+        ask({ mail: { send: null, why: null } }),
+      ),
+    ).toMatchObject({ ask: "would_send", via: "email" });
+    // Text first: a customer with both is texted.
+    expect(
+      await askReview(pg.db, customer("hand:4", "(212) 555-0144", "fy@example.test"), ask()),
+    ).toMatchObject({ via: "text", ask: "queued" });
+    expect(mailed).toHaveLength(1);
+  });
+
+  it("a failed send throws; the retry sends it once", async () => {
+    mailed.length = 0;
+    let fail = true;
+    const flaky: SendMail = async (m) => {
+      if (fail) throw new Error("smtp down");
+      mailed.push(m);
+    };
+    const o = ask({ mail: { send: flaky, why: null } });
+    const c = customer("hand:1", null, "gu@example.test");
+    await expect(askReview(pg.db, c, o)).rejects.toThrow("smtp down");
+    const [held] = await pg.db.select().from(reviewAsks);
+    expect(held).toMatchObject({ ask: "queued", sentAt: null });
+    fail = false;
+    expect((await askReview(pg.db, c, o)).sentAt).toEqual(OPEN);
+    await askReview(pg.db, c, o);
+    expect(mailed).toHaveLength(1);
   });
 
   it("finds the Place ID the setup confirmed", async () => {

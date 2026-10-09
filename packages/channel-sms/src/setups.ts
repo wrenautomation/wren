@@ -5,6 +5,7 @@
  */
 
 import { findClient } from "@wren/core/clients";
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import type { Db } from "@wren/db";
 import { eq, max } from "drizzle-orm";
@@ -123,13 +124,49 @@ export const CALL_ROUTING_SETUP = defineSetup({
 /** A Google Place ID, as Google prints it: `ChIJ` and the rest, letters, digits, `-` and `_`. */
 export const PLACE_ID = /^[A-Za-z0-9_-]{16,200}$/;
 
+/** The Google review link setup's finder, by name (SetupAgent's `finders`). */
+export const PLACE_FINDER = "google_business.place";
+
+/** What autobrowse's `web GET /place` answers. */
+export interface PlaceFound {
+  placeId: string | null;
+  name: string | null;
+  address: string | null;
+  via: "place" | "list" | "none";
+}
+
+/**
+ * A business's Place ID from its name and address (the account's ref), read off Google Maps by
+ * autobrowse on the Mac (`web GET /place`). A ref that is already a Place ID stands. A site error
+ * (the Mac off, the cap spent) is a why, not a retry: the step waits on Wren's team.
+ */
+export async function findPlace(
+  sites: SiteClient,
+  ref: string,
+): Promise<{ ref: string | null; why: string }> {
+  if (PLACE_ID.test(ref)) return { ref, why: "Already a Place ID" };
+  let got: PlaceFound;
+  try {
+    got = await sites.call<PlaceFound>("web", "GET", "/place", { q: ref });
+  } catch (err) {
+    if (!(err instanceof SiteCallError)) throw err;
+    return { ref: null, why: `Google Maps read failed: ${err.message}` };
+  }
+  if (!got.placeId || !PLACE_ID.test(got.placeId))
+    return { ref: null, why: `Google Maps has no place named like "${ref}"` };
+  const at = [got.name, got.address].filter(Boolean).join(", ");
+  return { ref: got.placeId, why: `Found on Google Maps: ${at || got.placeId}` };
+}
+
 /** Where a customer writes a review of the place: Google's own form. */
 export const reviewUrl = (placeId: string) =>
   `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
 
 /**
  * The client's Google Business Profile, by its Place ID: the review link every ask carries
- * (reviews.ts). The account's ref is the Place ID.
+ * (reviews.ts). The account's ref is the Place ID. Done for you, the account is added under the
+ * business's name and address instead, and SetupAgent's finder (`findPlace`) looks it up on
+ * Google Maps and makes the Place ID its ref.
  */
 export const GOOGLE_BUSINESS_SETUP = defineSetup({
   id: "setup.google_business",
@@ -144,8 +181,8 @@ export const GOOGLE_BUSINESS_SETUP = defineSetup({
       label: "Review link found",
       who: "client",
       how: "Find your business with Google's Place ID Finder and send Wren the Place ID.",
-      forYou: "Wren finds your Google Business Profile and its review link for you.",
-      goal: "find this business's Google Business Profile and its Place ID",
+      forYou: "Wren finds your Google Business Profile from its name and address.",
+      find: PLACE_FINDER,
       check: "google_business.place_id",
       every: "1 hour",
       within: "7 days",

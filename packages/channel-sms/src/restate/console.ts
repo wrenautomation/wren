@@ -39,7 +39,7 @@ import { TEXTS } from "../clients.js";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "../console-routes.js";
 import { toPhoneE164 } from "../phone.js";
 import { SMS_RECORDS } from "../records.js";
-import { handSubject } from "../reviews.js";
+import { cleanEmail, handSubject } from "../reviews.js";
 import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
 import { REVIEWS_FLOW } from "./answers.js";
 import type { SmsDeskService } from "./index.js";
@@ -66,7 +66,9 @@ export interface CallDoneRequest extends PortalRequest {
 
 export interface AskReviewRequest extends PortalRequest {
   name?: string | null;
-  phone: string;
+  /** A mobile, an email, or both: at least one. */
+  phone?: string | null;
+  email?: string | null;
 }
 
 /** The outcome as the Done form's select says it. */
@@ -150,9 +152,14 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
       if (!(await liveFor(db, client.id, REVIEWS_FLOW)))
         throw new PortalRefusal("review requests aren't live: install them from the Shop", 409);
       const phone = typeof req.phone === "string" ? req.phone.trim() : "";
-      if (!toPhoneE164(phone)) throw new PortalRefusal("that isn't a US or Canadian number", 400);
+      const rawEmail = typeof req.email === "string" ? req.email.trim() : "";
+      if (!phone && !rawEmail) throw new PortalRefusal("give a mobile or an email", 400);
+      if (phone && !toPhoneE164(phone))
+        throw new PortalRefusal("that isn't a US or Canadian number", 400);
+      const email = rawEmail ? cleanEmail(rawEmail) : null;
+      if (rawEmail && !email) throw new PortalRefusal("that isn't an email address", 400);
       const name = typeof req.name === "string" ? req.name.trim().slice(0, 120) || null : null;
-      return { client: client.id, name, phone };
+      return { client: client.id, name, phone: phone || null, email };
     },
   };
 }
@@ -206,7 +213,8 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             name: z.string().max(120).nullish().describe("The customer's name"),
-            phone: z.string().max(40).describe("Their mobile"),
+            phone: z.string().max(40).nullish().describe("Their mobile"),
+            email: z.string().max(254).nullish().describe("Their email"),
           }),
         },
         (ctx: restate.Context, req: AskReviewRequest) =>
@@ -222,7 +230,7 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
                 {
                   subject: handSubject(id),
                   kind: "lead",
-                  data: { name: ask.name, phone: ask.phone, source: "hand" },
+                  data: { name: ask.name, phone: ask.phone, email: ask.email, source: "hand" },
                 },
               ],
             });

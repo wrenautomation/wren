@@ -78,6 +78,12 @@ export interface SetupStep {
   forYou: string;
   /** autobrowse `do` goal for the agent, done for you; the account's ref and site go as inputs. */
   goal?: string;
+  /**
+   * A registered finder's name (`SetupAgent`'s `finders`): done for you, it runs in place of the
+   * `do` agent and what it finds becomes the account's ref (a Place ID found from the business's
+   * name and address).
+   */
+  find?: string;
   /** It creates an account or spends: done for you waits on William's yes for the client. */
   buys?: boolean;
   /** A registered check's name; none: a person marks it done. */
@@ -448,6 +454,11 @@ async function moved(
   });
 }
 
+/** One account by id, or null. */
+export async function accountRow(main: Queryable, id: number): Promise<AccountRow | null> {
+  return account(main, id);
+}
+
 async function account(main: Queryable, id: number) {
   const [row] = await main.select().from(clientAccounts).where(eq(clientAccounts.id, id));
   return row ?? null;
@@ -761,6 +772,8 @@ export type AgentQueue = (job: AgentJob, key: string) => Promise<void>;
 export interface AgentAnswer {
   done: boolean;
   why: string;
+  /** The account's ref from now on: what a finder found. */
+  ref?: string;
 }
 
 /**
@@ -780,9 +793,18 @@ export async function agentDone(
   const acct = step ? await account(main, job.accountId) : null;
   const run = acct && (await runOf(main, acct.id, s.id));
   if (!step || !acct || !run || run.gen !== job.gen || run.step !== job.step) return null;
-  if (out.done) {
-    const was = await setFact(main, acct.id, step.fact, "ok", { why: out.why, by: "agent", now });
-    await moved(main, { parts, setups: [s] }, acct, step.fact, was, "ok", out.why, now, run.mode);
+  let got = out;
+  if (got.done && got.ref && got.ref !== acct.ref) {
+    const taken = await refTaken(main, acct, got.ref);
+    if (taken) got = { done: false, why: `Another account already holds ${got.ref}` };
+    else {
+      await main.update(clientAccounts).set({ ref: got.ref }).where(eq(clientAccounts.id, acct.id));
+      acct.ref = got.ref;
+    }
+  }
+  if (got.done) {
+    const was = await setFact(main, acct.id, step.fact, "ok", { why: got.why, by: "agent", now });
+    await moved(main, { parts, setups: [s] }, acct, step.fact, was, "ok", got.why, now, run.mode);
     return {
       client: acct.client,
       workflow: s.id,
@@ -790,7 +812,7 @@ export async function agentDone(
       events: [accountEvent(`${setupSubject(acct.id, run.gen)}#a${now.getTime()}`, acct.id)],
     };
   }
-  const why = `The agent couldn't: ${out.why}`.slice(0, 2000);
+  const why = `The agent couldn't: ${got.why}`.slice(0, 2000);
   const set = await main
     .update(setupRuns)
     .set({ state: "waiting_wren", why })
@@ -817,6 +839,24 @@ export async function agentDone(
       now,
     });
   return null;
+}
+
+/** The owner already has an account on this site under `ref`. */
+async function refTaken(main: Db, acct: AccountRow, ref: string): Promise<boolean> {
+  const [row] = await main
+    .select({ id: clientAccounts.id })
+    .from(clientAccounts)
+    .where(
+      and(
+        acct.client === null
+          ? isNull(clientAccounts.client)
+          : eq(clientAccounts.client, acct.client),
+        eq(clientAccounts.site, acct.site),
+        eq(clientAccounts.ref, ref),
+        ne(clientAccounts.id, acct.id),
+      ),
+    );
+  return !!row;
 }
 
 /** What a step waiting on someone says, and whose turn it is. */
@@ -916,7 +956,8 @@ export function setupStep(d: SetupDeps): Step {
 
     // Wren's steps, and every step done for you: the agent tries once per step, never on later rounds.
     const ours = step.who === "wren" || (run.mode === "for_you" && step.who === "client");
-    if (ours && step.goal && run.rounds === 0) {
+    const agentDoes = !!(step.goal || step.find);
+    if (ours && agentDoes && run.rounds === 0) {
       // Wren's own buys are spend too: William says yes by hand, so they wait on the team.
       const [owner] = acct.client
         ? await d.main
@@ -935,7 +976,7 @@ export function setupStep(d: SetupDeps): Step {
           step: step.id,
           owner: acct.client ?? DO_OWNER,
           request: {
-            goal: step.goal,
+            goal: step.goal ?? step.forYou,
             inputs: {
               account: acct.ref,
               site: acct.site,
@@ -962,7 +1003,7 @@ export function setupStep(d: SetupDeps): Step {
     // run moves on its own the day the vendor says yes.
     const again = !!step.every && (!stuck || (step.who === "auto" && !!check));
     // Later rounds of the team's steps keep what the agent or the last round said.
-    if (ours && step.goal && run.rounds > 0 && run.state === "waiting_wren" && run.why)
+    if (ours && agentDoes && run.rounds > 0 && run.state === "waiting_wren" && run.why)
       why = run.why;
     const cause = why;
     if (stuck) {

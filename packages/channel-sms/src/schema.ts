@@ -612,6 +612,9 @@ export type SmsCall = typeof smsCalls.$inferSelect;
 /** What put a customer in line for a review ask. */
 export const REVIEW_SOURCES = ["won", "done", "paid", "hand", "door"] as const;
 export type ReviewSource = (typeof REVIEW_SOURCES)[number];
+/** How a review ask goes: a text through the sender, or an email from portal@ under the client's name. */
+export const REVIEW_VIA = ["text", "email"] as const;
+export type ReviewVia = (typeof REVIEW_VIA)[number];
 
 /**
  * One customer asked for a Google review (reviews.ts): who, what asked, the ask and its one
@@ -628,7 +631,11 @@ export const reviewAsks = pgTable(
     name: text("name"),
     phone: varchar("phone", { length: 64 }),
     e164: varchar("e164", { length: 16 }),
+    /** Trimmed and lowercased, so "once per person" matches. */
     email: text("email"),
+    via: varchar("via", { length: 8, enum: REVIEW_VIA }).notNull().default("text"),
+    /** When the ask's email went; a text's time is on its message. A queued email without it resends. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
     /** 22 random url-safe characters: the counted link's key. */
     token: varchar("token", { length: 32 }).notNull(),
     /** The Google Place ID the link goes to, as it was when asked. */
@@ -652,6 +659,7 @@ export const reviewAsks = pgTable(
     unique("uq_review_asks_token").on(t.token),
     index("ix_review_asks_ask_at").on(t.askAt),
     index("ix_review_asks_e164").on(t.e164),
+    index("ix_review_asks_email").on(t.email),
     index("ix_review_asks_contact_id").on(t.contactId),
     foreignKey({
       columns: [t.contactId],
@@ -659,6 +667,7 @@ export const reviewAsks = pgTable(
       name: "fk_review_asks_contact_id_sms_contacts",
     }).onDelete("set null"),
     oneOf("ck_review_asks_source", t.source, REVIEW_SOURCES),
+    oneOf("ck_review_asks_via", t.via, REVIEW_VIA),
     oneOf("ck_review_asks_ask", t.ask, ANSWER_STATES),
     oneOf("ck_review_asks_reminder", t.reminder, ANSWER_STATES),
   ],

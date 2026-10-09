@@ -1,0 +1,10 @@
+subject: A quick review for {sender}?
+
+Hi {first_name|there},
+
+Thanks for choosing {sender}. If you have a minute, would you leave us a Google review? It helps people nearby find us.
+
+{review_link}
+
+Thank you,
+{sender}

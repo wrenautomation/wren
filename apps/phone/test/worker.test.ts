@@ -571,6 +571,26 @@ describe("review links", () => {
     expect(JSON.parse(restateCalls[0]?.body ?? "").words).toBe("Parking was hard");
   });
 
+  it("a stop link asks first; the button or a one-click POST goes to Reviews/stop", async () => {
+    const form = await call(`${LINK}/stop`);
+    expect(await form.text()).toContain("Stop emails");
+    expect(restateCalls).toHaveLength(0);
+    reply({ ok: true });
+    const res = await call(`${LINK}/stop`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "List-Unsubscribe=One-Click",
+    });
+    expect(await res.text()).toContain("won't get these emails");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Reviews/stop");
+    expect(JSON.parse(restateCalls[0]?.body ?? "")).toEqual({
+      client: "acme",
+      token: "abcdEFGH1234_-xyzABCDEF",
+    });
+    reply({ ok: false });
+    expect((await call(`${LINK}/stop`, { method: "POST" })).status).toBe(404);
+  });
+
   it("answers 502 when Restate fails", async () => {
     restateStatus = 500;
     expect((await call(LINK)).status).toBe(502);

@@ -1,7 +1,7 @@
 /**
- * Review requests by hand: one customer's name and mobile, into the client's live template
- * (`sms/askReview`). The ask goes out under the same rules as any other: texting hours, opt-outs,
- * once per customer, the client's sends switch.
+ * Review requests by hand: one customer's name and mobile or email, into the client's live
+ * template (`sms/askReview`). The ask goes out under the same rules as any other: texting hours,
+ * opt-outs, once per customer, the client's sends switch.
  */
 import { Button, Input, Tag } from "@wren/ui";
 import { type FormEvent, useState } from "react";
@@ -10,17 +10,25 @@ import { call } from "../../api.js";
 export function AskReview({ client, reload }: { client: string; reload: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const any = !!(phone.trim() || email.trim());
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!phone.trim() || busy) return;
+    if (!any || busy) return;
     setBusy(true);
     setSaid(null);
     try {
-      await call("sms/askReview", { client, name: name.trim() || null, phone: phone.trim() });
+      await call("sms/askReview", {
+        client,
+        name: name.trim() || null,
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+      });
       setName("");
       setPhone("");
+      setEmail("");
       setSaid({ ok: true, line: "Asked. It shows here in a moment." });
       setTimeout(reload, 1500);
     } catch (err) {
@@ -50,7 +58,15 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
           placeholder="Mobile"
           aria-label="Customer's mobile"
         />
-        <Button size="dense" type="submit" busy={busy} disabled={!phone.trim()}>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="min-w-0 flex-1 basis-32"
+          placeholder="Email"
+          aria-label="Customer's email"
+        />
+        <Button size="dense" type="submit" busy={busy} disabled={!any}>
           Ask for a review
         </Button>
       </div>

@@ -1,0 +1,10 @@
+subject: Still have a minute for {sender}?
+
+Hi {first_name|there},
+
+{sender} again. If you get a minute, a short Google review would mean a lot to us.
+
+{review_link}
+
+Thank you,
+{sender}

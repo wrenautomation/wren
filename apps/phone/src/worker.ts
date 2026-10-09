@@ -520,8 +520,8 @@ async function door(req: Request, env: Env, token: string): Promise<Response> {
   return json(rest, status ?? 200);
 }
 
-/** `/r/<client>/<token>[/feedback]`, parsed; null when the path is not one. */
-const REVIEW_PATH = /^\/r\/([a-z0-9][a-z0-9_-]{0,39})\/([A-Za-z0-9_-]{8,32})(\/feedback)?$/;
+/** `/r/<client>/<token>[/feedback|/stop]`, parsed; null when the path is not one. */
+const REVIEW_PATH = /^\/r\/([a-z0-9][a-z0-9_-]{0,39})\/([A-Za-z0-9_-]{8,32})(\/feedback|\/stop)?$/;
 
 /** Link unfurlers: they fetch a link to preview it, and a preview is not a click. */
 const PREVIEWER = /bot|crawler|spider|preview|facebookexternalhit|slurp|whatsapp/i;
@@ -541,17 +541,38 @@ const feedbackForm = () =>
     "Your feedback",
     `<h1>How did we do?</h1><p>Tell us what we could do better. Only the business reads this.</p><form method="post"><textarea name="words" maxlength="4000" required aria-label="Your feedback"></textarea><button type="submit">Send</button></form>`,
   );
+const stopForm = () =>
+  page(
+    "Stop these emails",
+    `<h1>Stop these emails?</h1><p>The business won't email you about reviews again.</p><form method="post"><button type="submit">Stop emails</button></form>`,
+  );
 const gone = () =>
   page("Link not found", "<h1>This link doesn't work</h1><p>It may be mistyped.</p>", 404);
 
 async function review(req: Request, bindings: Env, path: RegExpExecArray): Promise<Response> {
-  const [, client, token, feedback] = path;
+  const [, client, token, more] = path;
+  const feedback = more === "/feedback";
   const service = (handler: string, body: object) =>
     fetch(ingress(bindings, `Reviews/${handler}`), {
       method: "POST",
       headers: restateHeaders(bindings),
       body: JSON.stringify({ client, token, ...body }),
     });
+  if (more === "/stop") {
+    // A GET only shows the button: mail scanners open links. A POST is the button or a
+    // List-Unsubscribe one-click (RFC 8058), whose body says nothing we need.
+    if (req.method === "GET" || req.method === "HEAD") return stopForm();
+    if (req.method !== "POST") return json({ error: "GET or POST" }, 405);
+    let res: Response;
+    try {
+      res = await service("stop", {});
+    } catch {
+      return json({ error: "restate unreachable" }, 502);
+    }
+    if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+    const { ok } = (await res.json()) as { ok: boolean };
+    return ok ? page("Stopped", "<h1>Done</h1><p>You won't get these emails again.</p>") : gone();
+  }
   if (!feedback) {
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "GET only" }, 405);
     if (PREVIEWER.test(req.headers.get("user-agent") ?? ""))

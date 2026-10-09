@@ -122,11 +122,13 @@ import {
   CalcomBookings,
   type ClientSms,
   clientSms,
+  findPlace,
   firstTextStep,
   healthFrom,
   keyedProvider,
   LINK_ORIGIN,
   NoProvider,
+  PLACE_FINDER,
   placeIdOf,
   policyFrom,
   providerFrom,
@@ -1647,13 +1649,13 @@ export async function buildServices(
             nudge: nudgeSender(client),
           };
         }),
-        // Review requests: the same gates, the Place ID the setup found.
+        // Review requests: the same gates, the Place ID the setup found. An email ask goes from
+        // portal@ under the client's name and waits only on its sends switch.
         [REVIEW_STEP]: reviewStep(async (client) => {
           const { deps: d, off } = await textsOf(client);
           const c = await findClient(db, client);
-          const why =
-            textsWhy(d.provider.name, off) ??
-            (c && !sendsOn(c, REVIEWS) ? "sends are off for this client" : null);
+          const sendsOff = c && !sendsOn(c, REVIEWS) ? "sends are off for this client" : null;
+          const why = textsWhy(d.provider.name, off) ?? sendsOff;
           const set = reviewsSettingsSchema.safeParse(c?.products[REVIEWS] ?? {});
           return {
             db: d.db,
@@ -1662,6 +1664,7 @@ export async function buildServices(
             senderName: d.senderName,
             placeId: await placeIdOf(db, client),
             via: set.success ? set.data.via : "text",
+            mail: { send: bookerMailer?.(d.senderName) ?? null, why: sendsOff },
             feedback: set.success ? set.data.feedback : false,
             onceEvery: set.success ? set.data.daysBetween : 90,
             origin: LINK_ORIGIN,
@@ -1813,12 +1816,17 @@ export async function buildServices(
       notifierFor: setupLane,
       ...notify,
     }),
-    // Done-for-you steps in the owner's autobrowse; only queued with WREN_SETUP_AGENT.
+    // Done-for-you steps in the owner's autobrowse; only queued with WREN_SETUP_AGENT. A Place
+    // ID is a fixed read off Google Maps on the Mac (Google bot-checks the box), not the agent.
     makeSetupAgent({
       main: db,
       setups: SETUPS,
       parts: setupParts,
       wake: sitesHost(settings.autobrowseInstanceId).wake,
+      finders: {
+        [PLACE_FINDER]: (ctx, { account }) =>
+          findPlace(restateSites(ctx, { caller: "wren:setup", service: DESK }), account.ref),
+      },
     }),
     // A client's accounts and vendors; own keys bind by ref from the key store.
     makeAccountsConsole({

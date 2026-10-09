@@ -401,6 +401,8 @@ export const reviewRecord = defineRecord({
       who: a.name ?? a.email ?? (a.e164 ? formatPhone(a.e164) : a.phone) ?? a.subject,
       phone: a.e164 ?? a.phone,
       source: a.source,
+      via: a.via,
+      email: a.email,
       ask: a.ask,
       why: a.askDetail ?? a.reminderDetail,
       reminder: a.reminder,
@@ -414,6 +416,10 @@ export const reviewRecord = defineRecord({
   subtitle: "phone",
   fields: {
     who: name("Customer"),
+    via: status(
+      { text: { label: "Text", tone: "neutral" }, email: { label: "Email", tone: "neutral" } },
+      "By",
+    ),
     ask: status({ ...TEXT_BACK, queued: { label: "Asked", tone: "good" } }, "Ask"),
     why: text("Why not"),
     reminder: status({ ...TEXT_BACK, queued: { label: "Sent", tone: "good" } }, "Reminder"),
@@ -432,6 +438,7 @@ export const reviewRecord = defineRecord({
     feedback: prose("Feedback"),
     askAt: date("Asked"),
     phone: text("Phone"),
+    email: text("Email"),
   },
   views: [
     { id: "asked", label: "Asked", where: { ask: "queued" }, sort: "-askAt", at: "askAt" },
@@ -460,7 +467,7 @@ export const reviewRecord = defineRecord({
         {
           step: "Asked",
           at: a.askAt,
-          said: a.ask === "queued" ? "asked" : a.ask,
+          said: a.ask === "queued" ? (a.via === "email" ? "emailed" : "texted") : a.ask,
           why: a.askDetail,
         },
         {

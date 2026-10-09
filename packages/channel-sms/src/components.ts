@@ -43,7 +43,10 @@ export type MissedCallSettings = z.infer<typeof missedCallSettingsSchema>;
 
 export const reviewsSettingsSchema = z
   .object({
-    via: z.enum(["text", "email"]).default("text").describe("Ask by text or email"),
+    via: z
+      .enum(["text", "email"])
+      .default("text")
+      .describe("Ask by text or email first; someone with only the other is asked there"),
     feedback: z.boolean().default(false).describe("Add a private feedback form to every ask"),
     daysBetween: z
       .number()
@@ -347,7 +350,7 @@ export const SMS_COMPONENTS = [
   defineComponent({
     id: REVIEWS,
     stage: "deliver",
-    channels: ["text"],
+    channels: ["text", "email"],
     name: "Review requests",
     blurb: "Asks every customer for a Google review, with one reminder.",
     icon: "star",
@@ -376,6 +379,7 @@ export const SMS_COMPONENTS = [
           says: "A private feedback form beside the link.",
           built: "settings.feedback",
         },
+        { is: "change", says: "Text or email first.", built: "settings.via" },
         {
           is: "needs",
           says: "The client's Google Place ID.",
@@ -389,16 +393,24 @@ export const SMS_COMPONENTS = [
   defineComponent({
     id: REVIEW_STEP,
     stage: "deliver",
-    channels: ["text"],
+    channels: ["text", "email"],
     name: "Ask for a review",
-    blurb: "Texts one customer the review link, or the one reminder if they haven't opened it.",
+    blurb:
+      "Texts or emails one customer the review link, or the one reminder if they haven't opened it.",
     icon: "star",
     for: "client",
     ready: true,
     comesWith: REVIEWS,
     requires: { components: [TEXTS] },
     provides: {
-      templates: ["sms:texts/review-ask", "sms:texts/review-reminder", "sms:texts/review-feedback"],
+      templates: [
+        "sms:texts/review-ask",
+        "sms:texts/review-reminder",
+        "sms:texts/review-feedback",
+        "email:reviews/review-ask",
+        "email:reviews/review-reminder",
+        "email:reviews/review-feedback",
+      ],
     },
     effects: ["sends"],
     in: [{ id: "customers", label: "customers", kind: "lead" }],

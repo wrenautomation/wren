@@ -2,7 +2,8 @@
  * The restate side of missed-call text back and review requests
  * (designs/2026-10-07-missed-call-and-reviews.md). `callHooks` is what SmsEvents does with a
  * missed call and with a texted-back caller's reply; `makeReviews` counts a review link's
- * clicks and keeps the private feedback, for the phone Worker's `/r/` pages.
+ * clicks, keeps the private feedback and stops a review email's address, for the phone Worker's
+ * `/r/` pages.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
@@ -11,7 +12,7 @@ import { liveFor, spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { callReplied, missedCallEvent, runOfCall } from "../missed.js";
-import { clickReview, saveFeedback } from "../reviews.js";
+import { clickReview, saveFeedback, stopReview } from "../reviews.js";
 
 export const MISSED_FLOW = "missed_call.steps";
 export const REVIEWS_FLOW = "reviews.steps";
@@ -113,6 +114,18 @@ export function makeReviews(d: { main: Db; clientDb(id: string): Db }) {
           const now = new Date(await ctx.date.now());
           const ok = await ctx.run("feedback", () =>
             saveFeedback(d.clientDb(req.client), req.token, req.words, now),
+          );
+          return { ok };
+        },
+      ),
+      /** A review email's stop link (the page's button or a one-click unsubscribe). */
+      stop: serviceHandler(
+        { input: CLICK },
+        async (ctx: restate.Context, req: z.infer<typeof CLICK>): Promise<{ ok: boolean }> => {
+          if (!(await known(ctx, req.client))) return { ok: false };
+          const now = new Date(await ctx.date.now());
+          const ok = await ctx.run("stop", () =>
+            stopReview(d.clientDb(req.client), req.token, now),
           );
           return { ok };
         },

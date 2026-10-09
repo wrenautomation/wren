@@ -364,6 +364,88 @@ describe("a setup run, done for you", () => {
     });
   });
 
+  it("a step with a finder queues it; what it finds becomes the account's ref", async () => {
+    now = T0;
+    const FIND = defineSetup({
+      id: "setup.find",
+      name: "Find setup",
+      blurb: "One step a finder does.",
+      site: "google_business",
+      steps: [
+        {
+          id: "place",
+          fact: "t.place",
+          label: "Found",
+          who: "client",
+          how: "Send the id.",
+          forYou: "Wren finds the id.",
+          find: "t.finder",
+        },
+      ],
+    });
+    const queued: AgentJob[] = [];
+    const w: Walk = {
+      flows: new Map([[FIND.id, setupWorkflow(FIND)]]),
+      parts: new Map(),
+      steps: {
+        "setup.step": setupStep({
+          main: pg.db,
+          setups: [FIND],
+          checks: {},
+          agent: async (job) => {
+            queued.push(job);
+          },
+          now: () => now,
+        }),
+      },
+      store: pgSpineStore(pg.db),
+      client: "beta",
+      by: "inv-beta-find",
+      run: (_n, fn) => fn(),
+      later: () => undefined,
+      rule: async () => false,
+    };
+    const go = (e: SetupEmit) => walk(w, e.workflow, e.from, e.events);
+    const acct = await addAccount(pg.db, {
+      client: "beta",
+      site: "google_business",
+      ref: "Northwind Plumbing, 12 Elm St",
+      mode: "for_you",
+      by: "op",
+    });
+    await go(await startSetup(pg.db, FIND, { accountId: acct.id, by: "op", now }));
+    expect(queued.map((j) => [j.step, j.request.goal])).toEqual([["place", "Wren finds the id."]]);
+    const job = queued[0] as AgentJob;
+
+    // Another of the owner's accounts already holds that ref: not done, and says so.
+    await addAccount(pg.db, {
+      client: "beta",
+      site: "google_business",
+      ref: "ChIJtaken-0001",
+      by: "op",
+    });
+    expect(
+      await agentDone(pg.db, FIND, job, { done: true, why: "Found", ref: "ChIJtaken-0001" }, now),
+    ).toBeNull();
+    expect(await runOf(acct.id)).toMatchObject({
+      state: "waiting_wren",
+      why: "The agent couldn't: Another account already holds ChIJtaken-0001",
+    });
+
+    const e = await agentDone(
+      pg.db,
+      FIND,
+      job,
+      { done: true, why: "Found on Google Maps", ref: "ChIJsynthetic-0001" },
+      now,
+    );
+    if (e) await go(e);
+    const [row] = await accountsOf(pg.db, "beta").then((a) => a.filter((x) => x.id === acct.id));
+    expect(row?.ref).toBe("ChIJsynthetic-0001");
+    expect(row?.facts.find((f) => f.fact === "t.place")).toMatchObject({ state: "ok" });
+    expect(await runOf(acct.id)).toMatchObject({ state: "done" });
+  });
+
   it("another owner's walk can't move an account", async () => {
     const acct = await addAccount(pg.db, {
       client: "acme",

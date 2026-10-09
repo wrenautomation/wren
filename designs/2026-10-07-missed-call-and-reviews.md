@@ -11,8 +11,8 @@ setup facts hold.
   voicemail), the caller gets a text from that number within a minute. New callers and known
   contacts get different copy. A reply opens the thread in Texts. With speed to lead live, the
   reply also starts a speed-to-lead run, so the rep gets "Call now".
-- Review requests: every customer is asked. Rating never decides who gets asked. The ask
-  carries a counted link that sends them to Google's review form. One reminder goes out after
+- Review requests: every customer is asked, by text or by email. Rating never decides who
+  gets asked. The ask carries a counted link that sends them to Google's review form. One reminder goes out after
   3 days unless they opened the link. An optional private feedback line goes to everyone and
   is never a gate.
 - Triggers: a call marked won, or met (not yet or not fit), enters review requests. Invoice
@@ -21,7 +21,7 @@ setup facts hold.
 - Needs setup: missed calls need `number.calls_routed`, which the call routing setup holds
   once Telnyx call events arrive for the number. Reviews need `google_business.place_id`,
   which the Google review link setup holds once the Place ID resolves. The client sends it,
-  or Wren finds it for them.
+  or Wren finds it on Google Maps from the business's name and address.
 - Metrics in Texts > Overview: missed calls, texted back, callers who replied, callers who
   booked, review asks, review links opened. Reviews gained is "In development" until
   Google approves Business Profile API access.
@@ -50,17 +50,38 @@ setup facts hold.
 
 1. A customer arrives at `reviews.steps` (`in.customers`) with name, phone and email. Call
    outcomes carry only an email, so the ask finds the phone on that person's text thread.
-2. `reviews.ask` (`askReview` in `reviews.ts`) keeps one `review_asks` row per subject. It
-   refuses with no Place ID, skips with no phone (email asks are in development), refuses on
-   opt-out or an ended thread, and skips anyone asked within `daysBetween` (90). It records
-   "would send" when sends are off. Otherwise it queues the `review-ask` text with
+2. `reviews.ask` (`askReview` in `reviews.ts`) keeps one `review_asks` row per subject. The
+   part's `via` setting picks text (the default) or email. A customer with only the other
+   channel is asked on that one, and the row keeps `via`. It refuses with no Place ID, skips
+   with no phone and no email, refuses on opt-out, an ended thread or an email suppression,
+   and skips anyone asked within `daysBetween` (90) by phone or email. It records "would send"
+   when sends are off. Otherwise it queues the `review-ask` text with
    `https://phone.wrenautomation.com/r/<client>/<token>`, plus the `review-feedback` line when
    that setting is on.
-3. After the wire's 3-day wait, the same step with `round: 2` sends `review-reminder`, but
-   only if the ask was queued and the link is still unopened.
-4. The phone Worker's `/r/<client>/<token>` calls `Reviews/click`. That counts the click and
+3. By email, the same link goes in `email:reviews/review-ask`, sent from portal@ under the
+   client's name (the mailer payments and the client calendar use). The feedback line follows
+   when on, then a stop line, with `List-Unsubscribe` one-click headers. `sent_at` marks the
+   send, so a retry after a failed send sends once. No portal mailer or the client's sends off:
+   "would send".
+4. After the wire's 3-day wait, the same step with `round: 2` sends `review-reminder` on the
+   ask's channel, but only if the ask was queued and the link is still unopened.
+5. The phone Worker's `/r/<client>/<token>` calls `Reviews/click`. That counts the click and
    302s to `search.google.com/local/writereview?placeid=...`. Link previews (bot user agents)
    count nothing. `/r/.../feedback` serves a plain form whose words go to `Reviews/feedback`.
+   `/r/.../stop` confirms on GET and on POST (or a mail client's one-click) adds an `opt_out`
+   email suppression in the client's database.
+
+## How the Place ID is found
+
+Self-serve, the client adds the Google review link account under its Place ID. Done for you,
+they add it under the business's name and address. The step's first round queues
+`SetupAgent`, which runs the step's finder (`find: google_business.place`) instead of the
+`do` agent. `findPlace` calls autobrowse `web GET /place` on the desk: Google Maps, signed
+out. One match lands on the place's page, and the Place ID comes from Maps' own search
+response. Many land on a list, and the first result whose name fits is taken. `agentDone`
+makes the Place ID the account's ref and marks the fact. The setup's check then confirms
+Google serves the review form. No match, or the Mac off: the step waits on Wren's team with
+the reason, and the client step still works.
 
 ## Copy
 
@@ -74,6 +95,9 @@ The slot rules in `ANSWER_SLOTS` enforce what each must say.
 | `review-ask` | the review link, STOP |
 | `review-reminder` | the review link |
 | `review-feedback` | the feedback link |
+
+Email defaults are in `packages/templates/defaults/email/reviews/` (`review-ask`,
+`review-reminder`, `review-feedback`). Ask and reminder must carry `{review_link}`.
 
 ## Decisions
 
@@ -89,11 +113,15 @@ The slot rules in `ANSWER_SLOTS` enforce what each must say.
   `source: paid`.
 - Copy keys use dashes so Shop labels read "Review ask text".
 
+## Live
+
+- Call routing: the Telnyx Call Control app `wren-calls` points both numbers at
+  `phone.wrenautomation.com/webhooks/telnyx`. The setup check passes once a call event
+  arrives.
+
 ## Not built
 
-- Live call routing: "Needs setup". The Telnyx number's voice connection has to point at the
-  webhook. The setup check passes once a call event arrives.
-- Finding the Place ID by autobrowse: the setup is marked done for you, with the client step
-  as fallback. No walk exists yet.
 - Reviews gained: needs Google Business Profile API approval.
-- Asking by email.
+- Email-only customers through the door: the door's subject is `phone`, so a customer with
+  only an email is refused there. Call outcomes and the by-hand form take an email.
+- A per-client sender for review emails. They go from portal@ under the client's name.
