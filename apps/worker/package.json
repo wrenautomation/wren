@@ -14,7 +14,8 @@
     "test:unit": "vitest run src",
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "build:lambda": "node scripts/build-lambda.mjs"
+    "build:lambda": "node scripts/build-lambda.mjs",
+    "templates:export": "tsx scripts/gallery-export.ts"
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",

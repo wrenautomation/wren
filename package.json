@@ -20,7 +20,8 @@
     "worker": "pnpm --filter @wren/worker dev",
     "register": "./scripts/register-worker.sh",
     "wren": "./bin/wren",
-    "offers:export": "pnpm --filter @wren/offers export"
+    "offers:export": "pnpm --filter @wren/offers export",
+    "templates:export": "pnpm --filter @wren/worker templates:export"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
