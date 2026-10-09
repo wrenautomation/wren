@@ -5,7 +5,6 @@
  */
 import type { MailPageView } from "@wren/channel-email/access/console";
 import {
-  Alert,
   Button,
   Callout,
   Empty,

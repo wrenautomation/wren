@@ -45,7 +45,7 @@ import {
   History,
   thinking,
 } from "./edits.js";
-import { Alert, Empty, LoadFailed } from "./feedback.js";
+import { Empty, LoadFailed } from "./feedback.js";
 import {
   actorParts,
   type CiteTo,

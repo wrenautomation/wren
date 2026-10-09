@@ -11,7 +11,7 @@ import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
-import { Alert, Empty, LoadFailed } from "./feedback.js";
+import { Empty, LoadFailed } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
 import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";

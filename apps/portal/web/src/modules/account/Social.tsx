@@ -5,7 +5,6 @@
  */
 import type { SocialPageView } from "@wren/content/connect";
 import {
-  Alert,
   Button,
   Callout,
   Empty,
