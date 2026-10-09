@@ -14,6 +14,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { APPROVERS, type Approver, type Permission, type RoleId } from "../access.js";
@@ -339,6 +340,38 @@ export const operators = pgTable(
     primaryKey({ columns: [t.email], name: "pk_operators" }),
     foreignKey({ columns: [t.role], foreignColumns: [roles.id], name: "fk_operators_role" }),
     index("ix_operators_role").on(t.role),
+  ],
+);
+
+/**
+ * A person's access tokens for AI tools over MCP (designs/2026-10-09-mcp.md). A token acts as its
+ * email and nothing more: every call passes the portal's own guards as that viewer. Only the
+ * SHA-256 is kept; `prefix` tells two apart. `client` pins it to one workspace.
+ */
+export const accessTokens = pgTable(
+  "access_tokens",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    email: text("email").notNull(),
+    name: text("name").notNull(),
+    hash: varchar("hash", { length: 64 }).notNull(),
+    prefix: varchar("prefix", { length: 16 }).notNull(),
+    client: varchar("client", { length: 40 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_access_tokens" }),
+    unique("uq_access_tokens_hash").on(t.hash),
+    index("ix_access_tokens_email").on(t.email),
+    index("ix_access_tokens_client").on(t.client).where(sql`client is not null`),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_access_tokens_client",
+    }).onDelete("cascade"),
   ],
 );
 
