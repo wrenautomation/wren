@@ -5,7 +5,9 @@
  * is a stub that says what it would do and passes the event on: by its outputs of the event's
  * kind, else down every branch. Nothing leaves this process.
  */
+
 import * as restate from "@restatedev/restate-sdk";
+import { CODE_STEPS } from "./code-step.js";
 import type { Component, Effect, Port } from "./components.js";
 import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
 import {
@@ -166,7 +168,7 @@ export async function dryWalk(o: {
   };
 
   const rule = async () => o.rules ?? true;
-  const logic = logicSteps(rule);
+  const logic = { ...logicSteps(rule), ...CODE_STEPS };
   const dry = (n: WorkflowNode): Step => {
     // Send webhook posts nothing in a test: it says where, and the event leaves as answered.
     if (n.uses === "logic.webhook")

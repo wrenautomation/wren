@@ -110,6 +110,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "3.1136.0",
+    "@jitl/quickjs-singlefile-mjs-release-sync": "0.32.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
     "@wren/db": "workspace:*",
@@ -118,6 +119,7 @@
     "entities": "8.1.0",
     "free-email-domains": "1.12.20",
     "postal-mime": "4.0.4",
+    "quickjs-emscripten-core": "0.32.0",
     "tldts": "7.4.16",
     "zod": "4.6.5"
   },

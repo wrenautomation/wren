@@ -392,6 +392,34 @@ export const LOGIC: readonly LogicPart[] = [
     says: () => "Either way in",
   },
   {
+    id: "logic.code",
+    name: "Code",
+    blurb:
+      "Runs a few lines of JavaScript on each event. Return an object to add its fields to data and pass it on; return null to skip.",
+    icon: "code",
+    group: "logic",
+    ready: true,
+    settings: [
+      {
+        field: "code",
+        label: "Code (a function body; sees event and now)",
+        type: "long",
+        hint: 'const [first] = event.data.name.split(" ");\nreturn { first };',
+      },
+      KIND,
+    ],
+    ports: (w) => ({
+      in: [one("in", "in", kindOf(w))],
+      out: [one("out", "out", kindOf(w)), one("skip", "skip", kindOf(w))],
+    }),
+    says: (w) =>
+      text(w.code)
+        .split("\n")
+        .find((l) => l.trim())
+        ?.trim()
+        .slice(0, 48) || "Write the code",
+  },
+  {
     id: "logic.webhook",
     name: "Send webhook",
     blurb: "Posts the event to any URL, with your headers and body, and keeps the answer.",
@@ -617,6 +645,24 @@ export const startWith = (l: LogicPart): Record<string, string | number> =>
     l.settings.flatMap((s) => (s.start === undefined ? [] : [[s.field, s.start]])),
   );
 
+export const CODE_MOST = 10_000;
+
+/**
+ * Why a Code node's code won't run: empty, too long, or a syntax error. Parsing only (the body
+ * never runs here); where the page's policy forbids parsing, the server's check stands.
+ */
+export function codeProblems(code: string): string[] {
+  if (!code.trim()) return ["Code needs a few lines"];
+  if (code.length > CODE_MOST)
+    return [`Code is over ${CODE_MOST.toLocaleString("en-US")} characters`];
+  try {
+    new Function("event", "now", code);
+  } catch (err) {
+    if (err instanceof SyntaxError) return [`Code doesn't parse: ${err.message}`];
+  }
+  return [];
+}
+
 const WAIT_FOR = /^\d+ (minute|hour|day|week)s?$/;
 
 /** Why a logic node's settings won't run, as readable lines; empty when sound. */
@@ -646,6 +692,7 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   if (l.id === "logic.split" && w.a !== undefined && shareOf(w.a) !== Number(w.a))
     out.push(`${at}: Split's share is 1 to 99`);
+  if (l.id === "logic.code") out.push(...codeProblems(text(w.code)).map((p) => `${at}: ${p}`));
   if (l.id === "logic.webhook") {
     // Slots may fill the URL's path and query; its host must read as written.
     const url = urlProblem(fillText(text(w.url), {}, true));
@@ -758,6 +805,7 @@ export function logicSteps(
 
 /** Steps that change nothing outside the walk: a dry test runs them for real. */
 export const PURE_STEPS: ReadonlySet<string> = new Set([
+  "logic.code",
   "logic.switch",
   "logic.wait",
   "logic.split",

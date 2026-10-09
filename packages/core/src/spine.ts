@@ -6,10 +6,12 @@
  * (planned, or moved by its own code) keeps the arrival and stops there. One walk is one Restate
  * call; every arrival is a row in `events`, so nothing enters a node twice.
  */
+
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
+import { CODE_STEPS } from "./code-step.js";
 import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
@@ -1034,7 +1036,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function makeSpine(d: SpineDeps) {
   const parts = new Map(d.components.map((c) => [c.id, c]));
-  const steps = { ...logicSteps(d.rule), ...d.steps };
+  const steps = { ...logicSteps(d.rule), ...CODE_STEPS, ...d.steps };
   // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
   const savesFor = (ctx: restate.Context, client: string | null) =>
     ctx.run("saved workflows", () => savedWorkflows(d.main, client));
