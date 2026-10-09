@@ -41,6 +41,54 @@ const LINKS: ListPage = {
   extras: linkExtras,
 };
 
+/** Hosted forms: Wren's and each client's, the same page in both workspaces. */
+const FORMS: ListPage = {
+  id: "forms",
+  label: "Forms",
+  template: "list",
+  record: "sites.form",
+  empty: {
+    forms: "No forms. Make one with New form.",
+    live: "No form is live. Publish one from its page.",
+    retired: "No form is retired.",
+  },
+  actions: FORM_ACTIONS,
+  columns: [
+    "name",
+    "address",
+    "owner",
+    "status",
+    "views",
+    "starts",
+    "submits",
+    "conversion",
+    "last",
+    "changedBy",
+  ],
+  extras: formExtras,
+};
+
+/** Every form sent, whole. */
+const SUBMISSIONS: ListPage = {
+  id: "submissions",
+  label: "Submissions",
+  template: "list",
+  record: "sites.entry",
+  empty: "No forms sent. Every submit from a page or a hosted form lands here, whole.",
+  columns: [
+    "who",
+    "email",
+    "phone",
+    "formName",
+    "pageTitle",
+    "at",
+    "channel",
+    "source",
+    "consented",
+    "entered",
+  ],
+};
+
 export const sites: Module = {
   id: "sites",
   name: "Sites",
@@ -93,50 +141,8 @@ export const sites: Module = {
     // The same rows drawn: sources, pages, forms, bookings.
     { id: "funnel-map", label: "Funnel map", Page: FunnelGraph, wide: true },
     LINKS,
-    {
-      id: "forms",
-      label: "Forms",
-      template: "list",
-      record: "sites.form",
-      empty: {
-        forms: "No forms. Make one with New form.",
-        live: "No form is live. Publish one from its page.",
-        retired: "No form is retired.",
-      },
-      actions: FORM_ACTIONS,
-      columns: [
-        "name",
-        "address",
-        "owner",
-        "status",
-        "views",
-        "starts",
-        "submits",
-        "conversion",
-        "last",
-        "changedBy",
-      ],
-      extras: formExtras,
-    },
-    {
-      id: "submissions",
-      label: "Submissions",
-      template: "list",
-      record: "sites.entry",
-      empty: "No forms sent. Every submit from a page or a hosted form lands here, whole.",
-      columns: [
-        "who",
-        "email",
-        "phone",
-        "formName",
-        "pageTitle",
-        "at",
-        "channel",
-        "source",
-        "consented",
-        "entered",
-      ],
-    },
+    FORMS,
+    SUBMISSIONS,
   ],
 };
 
@@ -185,5 +191,7 @@ export const clientSites: Module = {
       extras: clientPageExtras,
     },
     LINKS,
+    FORMS,
+    SUBMISSIONS,
   ],
 };

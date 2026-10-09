@@ -18,7 +18,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { pageDetail } from "./detail.js";
-import { formDetail } from "./form-store.js";
+import { formById, formDetail } from "./form-store.js";
 import { pageById, UUID } from "./store.js";
 
 export const PAGE_RECORD = "sites.page";
@@ -262,12 +262,11 @@ export const funnelRecord: RecordType = defineRecord({
   ],
 });
 
-export const formRecord: RecordType = defineRecord({
+const FORM_BASE = {
   id: FORM_RECORD,
   app: "sites",
   channel: null,
   name: { one: "form", many: "forms" },
-  view: "site_form_records",
   key: "id",
   title: "name",
   subtitle: "address",
@@ -310,18 +309,40 @@ export const formRecord: RecordType = defineRecord({
     "sites.formPublish",
     "sites.formUnpublish",
     "sites.formRetire",
-    // From the form's own detail: the builder's save.
+    // From the form's own detail: the builder's save and its A/B test.
     "sites.formSave",
+    "sites.formSplitStart",
+    "sites.formSplitSave",
+    "sites.formSplitStop",
+    "sites.formSplitShip",
   ],
+} as const;
+
+export const formRecord: RecordType = defineRecord({
+  ...FORM_BASE,
+  view: "site_form_records",
   load: async (db, id) => (UUID.test(id) ? formDetail(db, id) : null),
 });
 
-export const entryRecord: RecordType = defineRecord({
+/** A client's own forms, on its host: its rows only, and only its form opens. */
+export function formRecordFor(client: string): RecordType {
+  return defineRecord({
+    ...FORM_BASE,
+    rows: async (db) => [
+      ...(await db.execute(sql`select * from site_form_records where owner = ${client}`)),
+    ],
+    load: async (db, id) => {
+      const f = UUID.test(id) ? await formById(db, id) : null;
+      return f && f.client === client ? formDetail(db, id) : null;
+    },
+  });
+}
+
+const ENTRY_BASE = {
   id: ENTRY_RECORD,
   app: "sites",
   channel: null,
   name: { one: "submission", many: "submissions" },
-  view: "site_entry_records",
   key: "id",
   title: "who",
   subtitle: "formName",
@@ -372,7 +393,22 @@ export const entryRecord: RecordType = defineRecord({
     { id: "consent", label: "Opted in", where: { consented: "yes" }, sort: "-at", at: "at" },
     { id: "out", label: "Not in the door", where: { entered: "out" }, sort: "-at", at: "at" },
   ],
+} as const;
+
+export const entryRecord: RecordType = defineRecord({
+  ...ENTRY_BASE,
+  view: "site_entry_records",
 });
+
+/** A client's own submissions, on its host. */
+export function entryRecordFor(client: string): RecordType {
+  return defineRecord({
+    ...ENTRY_BASE,
+    rows: async (db) => [
+      ...(await db.execute(sql`select * from site_entry_records where owner = ${client}`)),
+    ],
+  });
+}
 
 const LINK_FIELDS = {
   name: text("Link"),

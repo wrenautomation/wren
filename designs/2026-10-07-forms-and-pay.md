@@ -240,6 +240,10 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
   (in development)" on Vendors.
 - Tests: forms and Stripe unit tests; sites and payments integration on a real Postgres with a
   fake Stripe (no network, no charge).
+- Round two (2026-10-09): show-when rules and steps (743e0826, migration `0204_form_steps`);
+  A/B per form (495ae61c, `form-split.ts`, migration `0205_form_splits`, the Worker's form
+  branch shares the page split cache and cookie); a client's own Forms and Submissions
+  (`formRecordFor`, `entryRecordFor`, New form owned by the asking workspace).
 
 ## Build
 

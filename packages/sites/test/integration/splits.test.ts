@@ -268,6 +268,45 @@ describe("a client's pages", () => {
     await refused(api().detail({ viewer: BEA, id: mine.id }), 403);
   });
 
+  it("makes, lists and opens a client's own forms and submissions on its host", async () => {
+    await addMember(pg.db, "acme", "cam@acme.example", { role: "member" });
+    await addMember(pg.db, "beta", "bea@beta.example", { role: "member" });
+    const mine = await api().formCreate({
+      viewer: CAM,
+      client: "acme",
+      name: "Acme quote",
+    } as never);
+    const theirs = await api().formCreate({
+      viewer: BEA,
+      client: "beta",
+      name: "Beta quote",
+    } as never);
+    await api().formCreate({ viewer: ADA, name: "Wren quote" });
+    await api().formPublish({ viewer: CAM, client: "acme", ids: [mine.id] } as never);
+    const kept = await pub().form(
+      { form: mine.id, fields: { name: "Kim", email: "kim@example.test" } },
+      async () => ({ status: 202 }),
+    );
+    expect(kept.status).toBe(202);
+    const ask = { viewer: CAM, client: "acme" };
+    const forms = await api().recordsList({ ...ask, record: "sites.form" } as never);
+    expect(forms.rows.map((r) => r.id)).toEqual([mine.id]);
+    const entries = await api().recordsList({ ...ask, record: "sites.entry" } as never);
+    expect(entries.rows.map((r) => r.formName)).toEqual(["Acme quote"]);
+    const one = (await api().recordsGet({
+      ...ask,
+      record: "sites.form",
+      id: mine.id,
+    } as never)) as {
+      detail?: unknown;
+    } | null;
+    expect(one?.detail).toBeTruthy();
+    // Another client's form doesn't open here.
+    await expect(
+      api().recordsGet({ ...ask, record: "sites.form", id: theirs.id } as never),
+    ).rejects.toThrow(/no such form/);
+  });
+
   it("publishes through the client's approver setting", async () => {
     await addMember(pg.db, "acme", "cam@acme.example", { role: "member" });
     const made = await api().create({ viewer: ADA, offer: offer.id, owner: "acme" });

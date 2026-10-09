@@ -213,4 +213,19 @@ export const FORM_ACTIONS: Action[] = [
     done: (out) => `Retired ${(out as { changed?: number }).changed ?? 0}.`,
   },
   { id: "sites.formSave", label: "Save", handler: "sites/formSave", inline: true },
+  // The form's A/B test, from its detail.
+  {
+    id: "sites.formSplitStart",
+    label: "Start a test",
+    handler: "sites/formSplitStart",
+    inline: true,
+  },
+  { id: "sites.formSplitSave", label: "Save B", handler: "sites/formSplitSave", inline: true },
+  { id: "sites.formSplitStop", label: "Stop", handler: "sites/formSplitStop", inline: true },
+  {
+    id: "sites.formSplitShip",
+    label: "Make B the form",
+    handler: "sites/formSplitShip",
+    inline: true,
+  },
 ];

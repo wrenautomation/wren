@@ -67,7 +67,7 @@ import {
   SPLIT_GOALS,
   type SplitGoal,
 } from "./model.js";
-import { linkRecordFor, pageRecordFor } from "./records.js";
+import { entryRecordFor, formRecordFor, linkRecordFor, pageRecordFor } from "./records.js";
 import { type SitePage, sitePages } from "./schema.js";
 import { SHARE_DAYS, shareToken } from "./share.js";
 import {
@@ -192,6 +192,14 @@ export interface AddRequest extends PortalRequest {
  * Restate service wraps them (writes journaled once), and the local preview calls them straight.
  * `write` is the model behind a Claude draft; null where none runs (the preview, tests).
  */
+/** What a client sees of Sites on its host: its pages, links, forms and submissions. */
+const clientRecords = (client: string) => [
+  pageRecordFor(client),
+  linkRecordFor(client),
+  formRecordFor(client),
+  entryRecordFor(client),
+];
+
 export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string | null }) {
   const { db } = deps;
   const at = (owner: string | null) => ({ client: owner ?? WREN, app: "sites", channel: null });
@@ -215,6 +223,9 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     const o = req.owner?.trim();
     return !o || o === WREN ? null : o;
   };
+  /** A form's owner: the one named, else the client whose workspace asks, else Wren. */
+  const formOwnerOf = (req: PortalRequest & { owner?: string | null }) =>
+    ownerOf(req) ?? (req.client && req.client !== WREN ? req.client : null);
   /** Each id the viewer may act on, refused whole if one isn't. */
   const actable = async (req: IdsRequest) => {
     const ids = [...new Set((req.ids ?? []).map(String))];
@@ -302,13 +313,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     const client = await pickClient(db, req);
     return snapshot(db, (tx) =>
       use(
-        serveRecords(
-          [pageRecordFor(client.id), linkRecordFor(client.id)],
-          tx,
-          undefined,
-          fenceFor(req, client.id),
-          meOf(req),
-        ),
+        serveRecords(clientRecords(client.id), tx, undefined, fenceFor(req, client.id), meOf(req)),
       ),
     );
   };
@@ -664,7 +669,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     /** A new hosted form, a draft: the default fields, or the spec given. */
     async formCreate(req: PortalRequest & FormCreate) {
       const name = who(req);
-      const owner = ownerOf(req);
+      const owner = formOwnerOf(req);
       await may(req, owner, "act");
       const form = await refused(
         createForm(db, {
@@ -734,7 +739,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
 
     /** An owner's forms, for a page's form section. */
     async forms(req: PortalRequest & { owner?: string | null }) {
-      const owner = ownerOf(req);
+      const owner = formOwnerOf(req);
       await may(req, owner, "read");
       return { forms: await formsOf(db, owner) };
     },
@@ -743,7 +748,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     recordsTypes: async (req: PortalRequest) => {
       const client = await pickClient(db, req);
       const fence = fenceFor(req, client.id);
-      return [pageRecordFor(client.id), linkRecordFor(client.id)]
+      return clientRecords(client.id)
         .filter((t) => !fence || opens(t, fence(t)))
         .map((t) => metaOf(t, false));
     },
