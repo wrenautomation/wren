@@ -258,7 +258,7 @@ const SERVICES: Record<
           process.env.WREN_PREVIEW_SOCIAL_APPS === "true"
             ? async () =>
                 Object.fromEntries(SOCIAL_APPS.map((a) => [a, { id: `${a}-app`, secret: "x" }]))
-            : socialAppsFrom(keys),
+            : socialAppsFrom(keys, process.env),
         keys,
         origin: `http://localhost:${port}`,
         fetch: async () => {

@@ -325,7 +325,8 @@ export const settingsSchema = z.object({
   /**
    * Client social platforms whose app review passed (designs/2026-10-07-client-social.md), comma
    * separated: `facebook,instagram,youtube,tiktok,google_business`. X and LinkedIn need none.
-   * Wren's social apps themselves come from the key store (`SOCIAL_<APP>_CLIENT_ID`).
+   * Wren's social apps themselves come from env (`WREN_SOCIAL_<APP>_CLIENT_ID`, in SSM env-2), else
+   * the key store (`SOCIAL_<APP>_CLIENT_ID`).
    */
   socialLive: z.string().default(""),
   /** Hand done-for-you setup steps to autobrowse `do` in the account owner's autobrowse. Off: they wait on Wren's team. */

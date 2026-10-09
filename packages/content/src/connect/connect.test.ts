@@ -2,7 +2,7 @@
 // states the page shows and the calls a connected account makes. Synthetic ids; no network.
 
 import { describe, expect, it } from "vitest";
-import { connectionIdOf, loginOf, platformStates, tokenName } from "./access.js";
+import { connectionIdOf, loginOf, platformStates, socialAppsFrom, tokenName } from "./access.js";
 import { connectUrl, landCode, refreshToken, SocialAuthError, whoAmI } from "./oauth.js";
 import { liveFrom, SOCIAL, SOCIAL_PLATFORMS } from "./platforms.js";
 import type { SocialConnectionRow } from "./schema.js";
@@ -566,5 +566,17 @@ describe("socialSites", () => {
       /no connected account/,
     );
     expect(asked).toHaveLength(0);
+  });
+});
+
+describe("socialAppsFrom", () => {
+  it("takes an app from env, needing both halves", async () => {
+    const apps = await socialAppsFrom(null, {
+      WREN_SOCIAL_META_CLIENT_ID: "meta-id",
+      WREN_SOCIAL_META_CLIENT_SECRET: "meta-secret",
+      WREN_SOCIAL_X_CLIENT_ID: "x-id",
+      WREN_SOCIAL_TIKTOK_CLIENT_SECRET: " ",
+    })();
+    expect(apps).toEqual({ meta: { id: "meta-id", secret: "meta-secret" } });
   });
 });

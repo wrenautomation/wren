@@ -432,7 +432,7 @@ export async function buildServices(
   // token in the key store, never printed; their API calls go straight to each platform.
   const clientSocial = socialAccess({
     main: db,
-    apps: socialAppsFrom(keys),
+    apps: socialAppsFrom(keys, process.env),
     keys,
     origin: settings.portalOrigin ?? null,
     fetch,

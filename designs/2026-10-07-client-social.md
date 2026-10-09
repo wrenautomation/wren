@@ -99,7 +99,7 @@ Every redirect URI is `<portal origin>/oauth/social/<platform>`. Each app needs 
 
 ## Wren's apps
 
-App ids and secrets live in the key store under the client `wren`:
+App ids and secrets live in SSM `/wren/prod/env-2` as `WREN_<name>` (Wren's own client has no clients row, so the key store refuses them on prod). The key store under `wren` is read second:
 
 | Names | App |
 |---|---|
@@ -165,7 +165,7 @@ Not built: Meta's HUMAN_AGENT tag past 24 hours, picking one of several company 
 
 ## What William does
 
-1. Put each app's id and secret into the key store: `wren keys put --client wren SOCIAL_X_CLIENT_ID`, and so on.
+1. Put each app's id and secret into SSM `/wren/prod/env-2` as `WREN_SOCIAL_X_CLIENT_ID`, and so on, merged into the JSON.
 2. Add `<portal origin>/oauth/social/<platform>` to each app's redirect URIs.
 3. Apply for the reviews: Meta App Review and Business Verification, Google OAuth verification and the YouTube audit, TikTok review and the Direct Post audit, LinkedIn Community Management, the Business Profile access form.
 4. Fund X credits.

@@ -495,17 +495,23 @@ export async function sweepSocialGrants(main: Queryable, at: Date): Promise<void
 }
 
 /**
- * Wren's apps from the key store under Wren's own client (`wren keys put --client wren
- * SOCIAL_X_CLIENT_ID`). All found: kept an hour; one missing: asked again in 10 minutes.
+ * Wren's apps: the worker's env first (`WREN_SOCIAL_X_CLIENT_ID`, from the SSM env-2 parameter,
+ * since Wren's own client has no clients row for the key store to hang them on), else the key
+ * store under Wren's own client (`SOCIAL_X_CLIENT_ID`). All found: kept an hour; one missing:
+ * asked again in 10 minutes.
  */
-export function socialAppsFrom(keys: KeyStore | null): () => Promise<SocialApps> {
+export function socialAppsFrom(
+  keys: KeyStore | null,
+  env: Record<string, string | undefined> = {},
+): () => Promise<SocialApps> {
   let memo: { at: number; ttl: number; apps: SocialApps } | null = null;
-  const named = (name: string) =>
-    keys
-      ? keys
+  const named = async (name: string) =>
+    env[`WREN_${name}`]?.trim() ||
+    (keys
+      ? await keys
           .named({ client: WREN, name, by: SOCIAL_KEYS, why: "Wren's social app" })
           .catch(() => null)
-      : Promise.resolve(null);
+      : null);
   return async () => {
     if (memo && Date.now() - memo.at < memo.ttl) return memo.apps;
     const apps: SocialApps = {};
