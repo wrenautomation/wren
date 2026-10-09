@@ -1,7 +1,8 @@
 /**
  * Webhooks (designs/2026-10-07-webhooks-out.md): the client's own URLs that hear events as they
  * happen, each signed. A secret shows once, on add and on rotate. The log keeps every try; a
- * finished delivery goes again on Redeliver.
+ * finished delivery goes again on Redeliver. A failed try waiting on the next shows when that
+ * runs, and a URL that fails for 5 days is turned off until someone turns it back on.
  */
 import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -20,6 +21,9 @@ interface Hook {
   at: string;
   rotatedAt: string | null;
   prevUntil: string | null;
+  failingSince: string | null;
+  disabledAt: string | null;
+  disabledWhy: string | null;
 }
 interface Delivery {
   id: string;
@@ -34,6 +38,7 @@ interface Delivery {
   error: string | null;
   at: string;
   lastAt: string | null;
+  nextAt: string | null;
 }
 interface Try {
   n: number;
@@ -54,7 +59,18 @@ const STATE = {
   pending: { label: "Sending", tone: "neutral" },
   delivered: { label: "Delivered", tone: "green" },
   failed: { label: "Failed", tone: "warn" },
+  retrying: { label: "Retrying", tone: "warn" },
 } as const;
+/** A pending delivery with a next try set failed its last one and waits on the ladder. */
+const stateOf = (d: Delivery) => (d.state === "pending" && d.nextAt ? "retrying" : d.state);
+/** Matches `DISABLE_AFTER_DAYS` in packages/core/src/webhooks.ts. */
+const OFF_AFTER_DAYS = 5;
+const hookTag = (h: Hook) =>
+  h.disabledAt ? (
+    <Tag tone="warn">Turned off</Tag>
+  ) : (
+    <Tag tone={h.active ? "green" : "neutral"}>{h.active ? "On" : "Off"}</Tag>
+  );
 const PRE =
   "m-0 max-h-[220px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap break-all";
 const at = (iso: string) =>
@@ -175,9 +191,20 @@ export function Webhooks(props: PageProps) {
               <li key={h.id} className="grid gap-2 border-b border-(--ui-hair) pb-4">
                 <p className="m-0 flex flex-wrap items-center gap-2">
                   <b>{h.name}</b>
-                  <Tag tone={h.active ? "green" : "neutral"}>{h.active ? "On" : "Off"}</Tag>
+                  {hookTag(h)}
                 </p>
                 <code className="break-all text-[13px]">{h.url}</code>
+                {h.disabledAt ? (
+                  <p className="m-0 text-[13px]" role="status">
+                    Turned off {at(h.disabledAt)}. {h.disabledWhy} Nothing is sent until it's turned
+                    back on.
+                  </p>
+                ) : h.active && h.failingSince ? (
+                  <p className="m-0 text-[13px]">
+                    Failing since {at(h.failingSince)}. It turns off after {OFF_AFTER_DAYS} days of
+                    failures.
+                  </p>
+                ) : null}
                 <p className={cx("m-0 text-[13px]", QUIET)}>
                   Hears{" "}
                   {h.events.map((e, i) => (
@@ -200,7 +227,7 @@ export function Webhooks(props: PageProps) {
                       disabled={act.busy}
                       onClick={() => void act.run("webhookEdit", { id: h.id, active: !h.active })}
                     >
-                      {h.active ? "Turn off" : "Turn on"}
+                      {h.active ? "Turn off" : h.disabledAt ? "Turn back on" : "Turn on"}
                     </Button>
                     <Button
                       size="sm"
@@ -283,7 +310,10 @@ export function Webhooks(props: PageProps) {
       ) : null}
 
       {data?.webhooks.length ? (
-        <Section title="Deliveries" note="The newest 50. A failed one is tried 7 times over a day.">
+        <Section
+          title="Deliveries"
+          note={`The newest 50. A failed one is tried 7 times over a day. A URL that fails for ${OFF_AFTER_DAYS} days is turned off.`}
+        >
           {data.deliveries.length === 0 ? (
             <Empty>Nothing sent yet.</Empty>
           ) : (
@@ -298,7 +328,7 @@ export function Webhooks(props: PageProps) {
                   >
                     <span className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-medium">{d.event}</span>
-                      <Tag tone={STATE[d.state].tone}>{STATE[d.state].label}</Tag>
+                      <Tag tone={STATE[stateOf(d)].tone}>{STATE[stateOf(d)].label}</Tag>
                     </span>
                     <span
                       className={cx("flex flex-wrap justify-between gap-2 text-[12.5px]", QUIET)}
@@ -306,6 +336,9 @@ export function Webhooks(props: PageProps) {
                       <span>
                         {nameOf(d.subscription)} · {answerOf(d)} · {d.attempts}{" "}
                         {d.attempts === 1 ? "try" : "tries"}
+                        {stateOf(d) === "retrying" && d.nextAt
+                          ? ` · retrying at ${at(d.nextAt)}`
+                          : ""}
                       </span>
                       <span className="tabular-nums">{at(d.at)}</span>
                     </span>

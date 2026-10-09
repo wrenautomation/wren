@@ -30,6 +30,8 @@ An event's id is the Restate call plus the event name and subject, so a retried 
 
 - Tables on main: `webhook_subscriptions` (client, url, events, sealed secret, the old secret until 24 h after a rotate, on/off), `webhook_deliveries` (one per subscription and event id: payload, state, attempts, last status, latency, snippet) and `webhook_attempts` (one row per try).
 - `Webhooks/deliver` (private) tries, then `ctx.sleep`s 1 min, 5 min, 30 min, 2 h, 6 h, 12 h: 7 tries over about 21 hours, durable in Restate. It retries a network error, 408, 425, 429 and 5xx; any other 4xx stops at once.
+- A failed try that waits for the next sets `next_at`, and the row shows "Retrying at <time>".
+- Failing URLs turn off. The first failed try sets `failing_since` on the subscription and a landed one clears it. A failed try 5 days (`DISABLE_AFTER_DAYS`) past `failing_since` turns the subscription off and sets `disabled_at` and `disabled_why` ("Nothing landed in 5 days. Last try: ..."). Its pending deliveries then fail as "the webhook is off". Turning it on clears all three, so it starts clean. Turning it off by hand leaves `disabled_at` empty. Test sends don't count.
 - Signing follows Standard Webhooks (standardwebhooks.com), so receivers can use its libraries: headers `webhook-id`, `webhook-timestamp` (seconds) and `webhook-signature: v1,<base64 HMAC-SHA256 of "id.timestamp.body">`, secret `whsec_<base64>`. During the 24 hours after a rotate, both signatures go, space separated. Receivers drop a timestamp more than 5 minutes off (`verifyWebhook` does this).
 - The secret is AES-256-GCM sealed with `WREN_HOOK_KEY`, the door's key. It is shown once on add and on rotate. Without the key, adding refuses.
 - SSRF guard (`safeUrl`, `safePost`): https only, no user or password in the URL, no `localhost`, `.local`, `.internal` or metadata hosts. Every address the host resolves to must be public. The check runs in the socket's own lookup, so a DNS rebind can't slip past it. Redirects are not followed. 10 s timeout, the first 64 KB read, and 1,000 characters kept.
@@ -59,15 +61,15 @@ An event's id is the Restate call plus the event name and subject, so a retried 
 
 ## Surfaces
 
-- Account > Webhooks: list, add (secret shown once), events, on/off, rotate, test send, delivery log with attempts, redeliver. Owners and team `manage` change it; anyone who may read sees it.
+- Account > Webhooks: list, add (secret shown once), events, on/off, rotate, test send, delivery log with attempts, redeliver. A URL Wren turned off shows "Turned off" with why and a "Turn back on" button; one still failing shows since when. Owners and team `manage` change it; anyone who may read sees it.
 - `wren [--client <id>] webhooks list|add|remove|on|off|rotate|test|log|redeliver`.
 
 ## Not built
 
-- Disabling a subscription after days of failures. Today it keeps trying each event.
-- A "retrying at" time on a failed row. Restate holds the timer; the row shows Failed until it runs.
+- No email to the client when Wren turns a URL off. The portal and `wren webhooks list` show it.
 - The Zapier app (on hold). Its triggers would be REST hooks onto these subscriptions.
 
 ## Decision log
 
 - 2026-10-07: Built. Standard Webhooks over a homemade header, so receivers verify with a library. A service with a sleep loop over a virtual object per delivery: the state flip (`failed|delivered` to `pending`) guards a double redeliver. Wren never adds subscriptions on prod; a client's URL is their config.
+- 2026-10-09: A URL that fails for 5 days turns off, and turning it on starts clean. A failed row shows when it retries (`next_at`). The clock counts from the first failed try, not from the delivery, so a URL that fails once a day still turns off. Migration 0202.

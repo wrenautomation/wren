@@ -8,6 +8,8 @@ import { failedOf, failedRuns } from "../../src/spine.js";
 import {
   addSubscription,
   attemptDelivery,
+  DELIVERY_LADDER_MS,
+  DISABLE_AFTER_MS,
   deliveriesOf,
   deliveryOf,
   editSubscription,
@@ -140,6 +142,65 @@ describe("deliveries", () => {
     ).toEqual([]);
     await removeSubscription(pg.db, null, s.id);
     await expect(deliveryOf(pg.db, null, id as string)).rejects.toThrow(/no such delivery/);
+  });
+});
+
+describe("failing", () => {
+  it("shows the next try, turns a URL off after days of failures, and on starts clean", async () => {
+    const { subscription: s } = await addSubscription(
+      pg.db,
+      null,
+      { name: "Down", url: "https://down.example.com/in", events: ["lead.created"] },
+      "t",
+    );
+    const queue = async (n: string) =>
+      (
+        await queueDeliveries(pg.db, { client: null, event: "lead.created", id: n, payload }, s.id)
+      )[0] as string;
+    const t0 = new Date("2026-10-01T00:00:00Z");
+    const one = await queue("msg_down1");
+    await attemptDelivery(pg.db, one, false, { ...local, now: t0 });
+    const d = await deliveryOf(pg.db, null, one);
+    expect(d.nextAt).toBe(new Date(t0.getTime() + (DELIVERY_LADDER_MS[0] as number)).toISOString());
+    expect((await subscriptionsOf(pg.db, null)).find((x) => x.id === s.id)).toMatchObject({
+      active: true,
+      failingSince: t0.toISOString(),
+      disabledAt: null,
+    });
+
+    // Still failing a day short of the line: on, failing since the first.
+    await attemptDelivery(pg.db, one, true, {
+      ...local,
+      now: new Date(t0.getTime() + DISABLE_AFTER_MS - 86_400_000),
+    });
+    expect((await deliveryOf(pg.db, null, one)).nextAt).toBeNull();
+    let view = (await subscriptionsOf(pg.db, null)).find((x) => x.id === s.id);
+    expect(view).toMatchObject({ active: true, failingSince: t0.toISOString() });
+
+    // Past it: off, with why; its pending ones stop.
+    const two = await queue("msg_down2");
+    const three = await queue("msg_down3");
+    const late = new Date(t0.getTime() + DISABLE_AFTER_MS + 1);
+    await attemptDelivery(pg.db, two, false, { ...local, now: late });
+    view = (await subscriptionsOf(pg.db, null)).find((x) => x.id === s.id);
+    expect(view).toMatchObject({ active: false, disabledAt: late.toISOString() });
+    expect(view?.disabledWhy).toMatch(/Nothing landed in 5 days\. Last try: .*private/);
+    await attemptDelivery(pg.db, three, false, local);
+    expect((await deliveryOf(pg.db, null, three)).error).toBe("the webhook is off");
+
+    // Turned back on: clean.
+    view = await editSubscription(pg.db, null, s.id, { active: true });
+    expect(view).toMatchObject({
+      active: true,
+      failingSince: null,
+      disabledAt: null,
+      disabledWhy: null,
+    });
+    // Off by hand is not "turned off by Wren".
+    await attemptDelivery(pg.db, await queue("msg_down4"), false, local);
+    view = await editSubscription(pg.db, null, s.id, { active: false });
+    expect(view).toMatchObject({ active: false, disabledAt: null });
+    expect(view.failingSince).not.toBeNull();
   });
 });
 

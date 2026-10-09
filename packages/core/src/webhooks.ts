@@ -8,7 +8,7 @@ import { lookup as dnsLookup, type LookupAddress } from "node:dns";
 import { request } from "node:https";
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { openToken, sealToken } from "./doors.js";
 import { PortalRefusal } from "./portal.js";
@@ -227,6 +227,10 @@ export const DELIVERY_LADDER_MS = [
 ] as const;
 export const DELIVERY_TRIES = DELIVERY_LADDER_MS.length + 1;
 
+/** A subscription whose tries have all failed this long is turned off until someone turns it on. */
+export const DISABLE_AFTER_DAYS = 5;
+export const DISABLE_AFTER_MS = DISABLE_AFTER_DAYS * 86_400_000;
+
 // ---- Subscriptions ----
 
 /** A subscription as anyone may see it: never its secret. */
@@ -241,6 +245,11 @@ export interface SubscriptionView {
   rotatedAt: string | null;
   /** The old secret still signs until then. */
   prevUntil: string | null;
+  /** Every try has failed since then; null while it lands. */
+  failingSince: string | null;
+  /** Wren turned it off after `DISABLE_AFTER_DAYS` days of failures, and why. */
+  disabledAt: string | null;
+  disabledWhy: string | null;
 }
 
 const viewOf = (s: WebhookSubscription): SubscriptionView => ({
@@ -253,6 +262,9 @@ const viewOf = (s: WebhookSubscription): SubscriptionView => ({
   at: s.at.toISOString(),
   rotatedAt: s.rotatedAt?.toISOString() ?? null,
   prevUntil: s.prevUntil?.toISOString() ?? null,
+  failingSince: s.failingSince?.toISOString() ?? null,
+  disabledAt: s.disabledAt?.toISOString() ?? null,
+  disabledWhy: s.disabledWhy,
 });
 
 const whose = (client: string | null) =>
@@ -325,7 +337,10 @@ async function mine(db: Queryable, client: string | null, id: string) {
   return row;
 }
 
-/** Name, URL, events or on/off changed; the secret stays. */
+/**
+ * Name, URL, events or on/off changed; the secret stays. Turned on, it starts clean: failing
+ * since and turned-off-by-Wren are cleared. Turned off by hand, it's off by hand.
+ */
 export async function editSubscription(
   db: Queryable,
   client: string | null,
@@ -338,9 +353,15 @@ export async function editSubscription(
     url: edit.url ?? was.url,
     events: edit.events ?? was.events,
   });
+  const moved = edit.active !== undefined && edit.active !== was.active;
   const [row] = await db
     .update(webhookSubscriptions)
-    .set({ ...v, active: edit.active ?? was.active })
+    .set({
+      ...v,
+      active: edit.active ?? was.active,
+      ...(moved ? { disabledAt: null, disabledWhy: null } : {}),
+      ...(moved && edit.active ? { failingSince: null } : {}),
+    })
     .where(eq(webhookSubscriptions.id, id))
     .returning();
   return viewOf(row ?? was);
@@ -400,6 +421,8 @@ export interface DeliveryView {
   error: string | null;
   at: string;
   lastAt: string | null;
+  /** When the next try runs, while a failed one waits. */
+  nextAt: string | null;
 }
 
 const deliveryView = (d: typeof webhookDeliveries.$inferSelect): DeliveryView => ({
@@ -415,6 +438,7 @@ const deliveryView = (d: typeof webhookDeliveries.$inferSelect): DeliveryView =>
   error: d.error,
   at: d.at.toISOString(),
   lastAt: d.lastAt?.toISOString() ?? null,
+  nextAt: d.nextAt?.toISOString() ?? null,
 });
 
 /** The newest deliveries of a client's subscriptions, or of one. */
@@ -470,7 +494,7 @@ export async function deliveryOf(db: Queryable, client: string | null, id: strin
 export async function reopen(db: Queryable, id: string): Promise<string | null> {
   const [row] = await db
     .update(webhookDeliveries)
-    .set({ state: "pending", attempts: 0, error: null })
+    .set({ state: "pending", attempts: 0, error: null, nextAt: null })
     .where(
       and(eq(webhookDeliveries.id, id), inArray(webhookDeliveries.state, ["delivered", "failed"])),
     )
@@ -551,7 +575,7 @@ export async function attemptDelivery(
   if (!row.s.active && !test) {
     await db
       .update(webhookDeliveries)
-      .set({ state: "failed", error: "the webhook is off" })
+      .set({ state: "failed", error: "the webhook is off", nextAt: null })
       .where(eq(webhookDeliveries.id, id));
     return { done: true, answer: null };
   }
@@ -590,9 +614,42 @@ export async function attemptDelivery(
       response: snippet,
       error: ok ? null : (answer.error ?? `answered ${answer.status}`),
       lastAt: now,
+      nextAt: done ? null : new Date(now.getTime() + (DELIVERY_LADDER_MS[n - 1] ?? 0)),
     })
     .where(eq(webhookDeliveries.id, id));
+  if (!test) await tally(db, row.s.id, ok, now, answer.error ?? `answered ${answer.status}`);
   return { done, answer };
+}
+
+/**
+ * A try's mark on its subscription: one that lands clears `failing_since`; one that fails starts
+ * it, and past `DISABLE_AFTER_MS` of nothing landing turns the subscription off with why. Its
+ * pending deliveries then stop on their next try ("the webhook is off").
+ */
+async function tally(db: Queryable, sub: string, ok: boolean, now: Date, error: string) {
+  if (ok) {
+    await db
+      .update(webhookSubscriptions)
+      .set({ failingSince: null })
+      .where(and(eq(webhookSubscriptions.id, sub), isNotNull(webhookSubscriptions.failingSince)));
+    return;
+  }
+  const [s] = await db
+    .update(webhookSubscriptions)
+    .set({
+      failingSince: sql`coalesce(${webhookSubscriptions.failingSince}, ${now.toISOString()}::timestamptz)`,
+    })
+    .where(eq(webhookSubscriptions.id, sub))
+    .returning({ since: webhookSubscriptions.failingSince, active: webhookSubscriptions.active });
+  if (!s?.active || !s.since || now.getTime() - s.since.getTime() < DISABLE_AFTER_MS) return;
+  await db
+    .update(webhookSubscriptions)
+    .set({
+      active: false,
+      disabledAt: now,
+      disabledWhy: `Nothing landed in ${DISABLE_AFTER_DAYS} days. Last try: ${error}`.slice(0, 500),
+    })
+    .where(and(eq(webhookSubscriptions.id, sub), eq(webhookSubscriptions.active, true)));
 }
 
 // ---- The service ----

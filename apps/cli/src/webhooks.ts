@@ -55,7 +55,12 @@ export function registerWebhooks(program: Command, withMainDb: WithDb, settings:
       if (!subs.length) console.log("No webhooks.");
       for (const s of subs)
         console.log(
-          `${s.id}\t${s.active ? "on" : "off"}\t${s.name}\t${s.url}\t${s.events.join(",")}`,
+          `${s.id}\t${s.disabledAt ? "turned off" : s.active ? "on" : "off"}\t${s.name}\t${s.url}\t${s.events.join(",")}` +
+            (s.disabledWhy
+              ? `\t${s.disabledWhy}`
+              : s.failingSince
+                ? `\tfailing since ${s.failingSince}`
+                : ""),
         );
     });
 
@@ -92,7 +97,11 @@ export function registerWebhooks(program: Command, withMainDb: WithDb, settings:
   ] as const)
     cmd
       .command(`${name} <id>`)
-      .description(active ? "Send it events again" : "Send it nothing; pending tries stop")
+      .description(
+        active
+          ? "Send it events again; one Wren turned off after days of failures starts clean"
+          : "Send it nothing; pending tries stop",
+      )
       .action(async (sub: string) => {
         await onMain((db, id) => editSubscription(db, id, sub, { active }));
         console.log(active ? "On." : "Off.");
@@ -135,7 +144,15 @@ export function registerWebhooks(program: Command, withMainDb: WithDb, settings:
       if (!rows.length) console.log("Nothing sent yet.");
       for (const d of rows)
         console.log(
-          [d.id, d.at, d.event, d.state, d.attempts, d.status ?? "-", d.error ?? ""].join("\t"),
+          [
+            d.id,
+            d.at,
+            d.event,
+            d.state === "pending" && d.nextAt ? `retrying at ${d.nextAt}` : d.state,
+            d.attempts,
+            d.status ?? "-",
+            d.error ?? "",
+          ].join("\t"),
         );
     });
 

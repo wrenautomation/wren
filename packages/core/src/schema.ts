@@ -528,6 +528,11 @@ export const webhookSubscriptions = pgTable(
     by: text("by").notNull(),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
     rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+    /** The first failed try since the last one that landed; null while it lands. */
+    failingSince: timestamp("failing_since", { withTimezone: true }),
+    /** Turned off by Wren after `DISABLE_AFTER_MS` of failures, and why; null when on or off by hand. */
+    disabledAt: timestamp("disabled_at", { withTimezone: true }),
+    disabledWhy: text("disabled_why"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_webhook_subscriptions" }),
@@ -569,6 +574,8 @@ export const webhookDeliveries = pgTable(
     error: text("error"),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
     lastAt: timestamp("last_at", { withTimezone: true }),
+    /** When the next try runs, while a failed one waits on the ladder; null otherwise. */
+    nextAt: timestamp("next_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_webhook_deliveries" }),
