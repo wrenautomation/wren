@@ -131,7 +131,7 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
       const profile = creator?.username
         ? `https://www.tiktok.com/@${creator.username}`
         : "https://www.tiktok.com/";
-      if (!creator) return { id, url: profile, publishedAt: now().toISOString(), fetchedWith };
+      // Wren's own posts ask too: autobrowse waits the same way a client's call does.
       const s = await sites.call<PublishStatus>("tiktok", "POST", STATUS, {
         publish_id: id,
         wait: STATUS_WAIT,
@@ -140,10 +140,12 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
         throw new Error(`tiktok: the post failed (${s.data.fail_reason ?? "no reason given"})`);
       // A public post has its id once done; a private one or one still processing keeps the publish id.
       const postId = s.data?.publicaly_available_post_id?.[0];
-      return postId !== undefined && creator.username
+      return postId !== undefined
         ? {
             id: String(postId),
-            url: `${profile}/video/${postId}`,
+            url: creator?.username
+              ? `${profile}/video/${postId}`
+              : `https://m.tiktok.com/v/${postId}.html`,
             publishedAt: now().toISOString(),
             fetchedWith,
           }

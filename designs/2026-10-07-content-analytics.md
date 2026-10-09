@@ -279,9 +279,9 @@ setting when he asks to change them.
 
 ## Not built (next)
 
-Nothing listed. TikTok comments read only for a post whose id is TikTok's video id. A client's
-public direct post keeps it; Wren's own posts (over autobrowse) keep the publish id, so the read
-skips them until that publish keeps the video id too.
+Nothing listed. TikTok comments read only for a post whose id is TikTok's video id. Since 10-09
+every public post keeps it, Wren's own too (autobrowse d4398ef waits on the publish status). A
+private post never gets one, so its comments stay unread.
 
 Built 2026-10-09 (second pass): title, thumbnail and hook swaps on YouTube (`post_variants`,
 `wren content swap`, To approve "Swaps", "Title, thumbnail and hook" on a post's page), TikTok

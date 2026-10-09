@@ -40,7 +40,10 @@ function fake(answers: Record<string, (input: Record<string, unknown>) => unknow
 
 describe("tiktok post fields", () => {
   it("sends the toggles, the cover frame and the labels its shape holds", async () => {
-    const { sites, calls } = fake({ [INIT]: () => ({ data: { publish_id: "p1" } }) });
+    const { sites, calls } = fake({
+      [INIT]: () => ({ data: { publish_id: "p1" } }),
+      [STATUS]: () => ({ data: { status: "PROCESSING_DOWNLOAD" } }),
+    });
     await tiktokContent(sites).publish({
       text: "a short",
       media: video,

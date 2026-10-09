@@ -38,6 +38,10 @@ describe("tiktok content channel", () => {
         });
         return { data: { publish_id: "pub1" } };
       },
+      "POST /v2/post/publish/status/fetch/": (i) => {
+        expect(i).toEqual({ publish_id: "pub1", wait: 120 });
+        return { data: { status: "PUBLISH_COMPLETE", publicaly_available_post_id: [7400000001] } };
+      },
       "POST /v2/video/list/": () => ({
         data: {
           videos: [
@@ -62,7 +66,8 @@ describe("tiktok content channel", () => {
       media: { kind: "video", source: "/data/short.mp4" },
       extra: { privacy: "PUBLIC_TO_EVERYONE" },
     });
-    expect(out.id).toBe("pub1");
+    // Public and done: the video's own id, so its comments and counts read.
+    expect(out).toMatchObject({ id: "7400000001", url: "https://m.tiktok.com/v/7400000001.html" });
     expect((await ch.list()).map((r) => r.url)).toEqual(["https://www.tiktok.com/@w/video/v1"]);
     expect(await ch.metrics("v1")).toMatchObject({
       views: 9,
@@ -70,7 +75,7 @@ describe("tiktok content channel", () => {
       comments: 1,
       shares: 2,
     });
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
   });
 
   it("reads a video's comments off its page: ours marked, replies keep their parent", async () => {
