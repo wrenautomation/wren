@@ -362,3 +362,17 @@
     }
   }
 }
+
+/* Read aloud's bars while it speaks (read-aloud.tsx). */
+@theme {
+  --animate-ui-read: ui-read 900ms ease-in-out infinite;
+  @keyframes ui-read {
+    0%,
+    100% {
+      scale: 1 0.35;
+    }
+    50% {
+      scale: 1 1;
+    }
+  }
+}

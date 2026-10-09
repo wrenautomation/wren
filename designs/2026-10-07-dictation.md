@@ -152,9 +152,25 @@ Not built, not configured.
 - **Switch:** set `DICTATE_URL` to the box. Routing already prefers the browser, so the GPU only
   takes phones and machines without WebGPU until we flip the default.
 
+## Reading aloud (built 10-09)
+
+- **What:** a speaker button (`Read aloud`) on every message preview (To approve, templates), the
+  Notes toolbar (the selection, else the note) and each message they sent in the Inbox. Press to
+  read, press again to stop. One reading at a time on the page. While it reads: moving bars and
+  "2 of 5".
+- **Engine:** Kokoro 82M (Apache 2.0) in a Web Worker through transformers.js, as the voice
+  agent's `Mouth` (`KokoroMouth`). WebGPU at full size (about 330 MB once), else wasm at 8 bits
+  (about 90 MB once): its quantized weights sound wrong on WebGPU. Phonemes through phonemizer
+  (espeak-ng in wasm, bundled in the worker). Voices come from the model's repo at the pinned
+  revision, kept in Cache Storage. The words never leave the device. $0.
+- **Flow:** `readAloud` cleans the text for the ear (links say "a link", markdown drops), cuts it
+  into sentences (a long one at a comma), and makes sentence n+1 while n plays. First sound after
+  one sentence.
+- **Settings** (Your settings, per device): on (default) or off, seven voices (Kokoro's best
+  graded, US and UK; Heart default), four speeds, a sample.
+
 ## Later
 
-- **Reading aloud:** a Kokoro `Mouth` adapter (82M, Apache 2.0, runs on WebGPU too). Not built.
 - A WebSocket stream to the GPU server, once there is one: the HTTP route posts whole segments
   because OpenAI-style transcription is batch.
 - Whisper small as a "more accurate" choice, if Moonshine's misses annoy him.
@@ -174,3 +190,5 @@ Not built, not configured.
 - 2026-10-07: First words count from talking, not the press, and the first partial waits for
   150 ms of speech instead of running on the quiet before it: 489 to 242 ms p50. Same model.
 - 2026-10-07: Dictate also in action dialogs' message box and long fields, and ⌘K's box.
+- 2026-10-09: Reading aloud built on Kokoro in the browser, not the Web Speech voices: same
+  voice on every device, nothing sent out. Our own runner on transformers.js 4 (kokoro-js pins 3).

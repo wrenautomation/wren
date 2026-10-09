@@ -39,6 +39,7 @@
     "@wren/voice": "workspace:*",
     "@wren/watch": "workspace:*",
     "mammoth": "1.13.0",
+    "phonemizer": "1.2.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "rrweb-player": "2.1.7",

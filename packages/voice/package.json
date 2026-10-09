@@ -10,6 +10,7 @@
     "./console-routes": "./src/console-routes.ts",
     "./dictation": "./src/dictation/index.ts",
     "./node": "./src/node.ts",
+    "./reading": "./src/reading.ts",
     "./records": "./src/records.ts",
     "./schema": "./src/schema.ts"
   },

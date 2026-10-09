@@ -151,6 +151,17 @@ export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
 export { DeviceFrame, type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
+export {
+  ReadAloud,
+  type ReadEvents,
+  type ReadHandle,
+  type ReadingEngine,
+  ReadingProvider,
+  type ReadPhase,
+  type ReadStatus,
+  useReadAloud,
+  useReadStatus,
+} from "./read-aloud.js";
 export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";
 export {
   Panel as RecordPanel,

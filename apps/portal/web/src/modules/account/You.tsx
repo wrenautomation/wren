@@ -14,6 +14,7 @@ import type { PageProps } from "../../module.js";
 import { BODY, ERROR, QUIET, TOOLS, useAct } from "../work/bits.js";
 import { Dictation } from "./dictation.js";
 import { usePeople, useRecap } from "./load.js";
+import { Reading } from "./reading.js";
 
 const MAIL: [MailLevel, string, string][] = [
   ["all", "Everything", "An email when something needs you, plus a recap on Friday."],
@@ -87,6 +88,7 @@ export function You(props: PageProps) {
         )}
       </Section>
       <Dictation />
+      <Reading />
       <Section title="Signing in">
         <p className={BODY}>
           Use the email you were invited with. You can sign in with a passkey, a code we email you,

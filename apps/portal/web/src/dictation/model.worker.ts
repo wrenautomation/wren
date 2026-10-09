@@ -5,6 +5,7 @@
  * is kept there too. Its loader is in this bundle, so no blob script is needed.
  */
 import { env, pipeline } from "@huggingface/transformers";
+import { kept } from "./kept.js";
 import { BROWSER_MODEL, BROWSER_REVISION, type FromModel, type ToModel } from "./protocol.js";
 
 const ctx = self as unknown as {
@@ -19,34 +20,6 @@ const WASM = `/ort/${ort.versions?.web}/ort-wasm-simd-threaded.asyncify.wasm.gz`
 // The bundled loader, not one fetched from the CDN.
 if (ort.wasm) ort.wasm.wasmPaths = undefined as never;
 
-/** The wasm, unzipped unless something on the way already did. */
-async function unzip(res: Response): Promise<ArrayBuffer> {
-  const raw = await res.arrayBuffer();
-  const head = new Uint8Array(raw, 0, 2);
-  if (head[0] !== 0x1f || head[1] !== 0x8b) return raw;
-  const out = new Blob([raw]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return new Response(out).arrayBuffer();
-}
-
-/** A file kept in Cache Storage after the first fetch, as it came (gzipped). */
-async function kept(url: string): Promise<ArrayBuffer> {
-  try {
-    const box = await caches.open("wren-dictate");
-    const hit = await box.match(url);
-    if (hit) return await unzip(hit);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${res.status} for ${url}`);
-    await box.put(url, res.clone());
-    return await unzip(res);
-  } catch (err) {
-    if (err instanceof Error && /^\d{3} for /.test(err.message)) throw err;
-    // No Cache Storage (a private window): fetch it plain.
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`${res.status} for ${url}`);
-    return await unzip(res);
-  }
-}
-
 type Asr = (
   audio: Float32Array,
   o: { max_new_tokens: number },
@@ -56,7 +29,7 @@ let asr: Promise<Asr> | null = null;
 function load(): Promise<Asr> {
   asr ??= (async () => {
     const files = new Map<string, { loaded: number; total: number }>();
-    if (ort.wasm) ort.wasm.wasmBinary = await kept(WASM);
+    if (ort.wasm) ort.wasm.wasmBinary = await kept(WASM, "wren-dictate");
     const p = await pipeline("automatic-speech-recognition", BROWSER_MODEL, {
       revision: BROWSER_REVISION,
       device: "webgpu",

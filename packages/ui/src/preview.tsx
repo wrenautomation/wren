@@ -6,6 +6,7 @@
  * or a DM's cap and where a feed cuts, and passes them in.
  */
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { ReadAloud } from "./read-aloud.js";
 
 export type MessageKind =
   | {
@@ -136,7 +137,14 @@ export function MessagePreview({
   );
   return (
     <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
-      <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
+        <ReadAloud
+          text={"subject" in message && message.subject ? `${message.subject}.\n\n${body}` : body}
+          label="Read the message aloud"
+          className="-my-1.5"
+        />
+      </div>
       {message.kind === "dm" ? (
         <>
           <DeviceFrame label={`Messages, laptop (${message.site})`} width={DM_LIST}>

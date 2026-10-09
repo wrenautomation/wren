@@ -9,7 +9,7 @@ entity: packages/voice/src/dictation/index.ts
 
 # dictation (voice)
 
-Speech to text in the portal's text boxes, through the voice agent's `Ears` (designs/2026-10-07-dictation.md). Product word: Dictate, the mic button.
+Speech to text in the portal's text boxes, through the voice agent's `Ears` (designs/2026-10-07-dictation.md). Product word: Dictate, the mic button. Its reverse lives here too: Read aloud, the speaker button, text to speech through the voice agent's `Mouth`.
 
 ## Why this shape
 
@@ -23,6 +23,7 @@ One seam so the model can move: `Transcriber` turns 16 kHz audio into text, and 
 - portal: `PortalDictation` (`apps/portal/web/src/dictation/engine.ts`) routes to `BrowserModel` and its worker (`model.ts`, `model.worker.ts`), `ServerModel` (`server.ts`) or `SpeechEars` (`speech.ts`); the mic worklet `web/public/dictate-mic.js`; the pick per device in local storage `wren.dictate`, set in Your settings (`modules/account/dictation.tsx`)
 - server: `/api/dictate` in the portal Worker (`apps/portal/src/dictate.ts`), off until `DICTATE_URL` is set
 - timings: `dictate` runs in the run ledger (`packages/voice/src/dictation-store.ts`), saved by `VoiceConsole.dictated` for Wren's team, read by `VoiceConsole.dictation` into Voice > Latency (`modules/voice/dictation.tsx`)
+- reading aloud: `readAloud` (`packages/voice/src/reading.ts`) cleans text for the ear (`readable`), cuts sentences (`sentencesOf`) and makes sentence n+1 while n plays; kit `ReadAloud`, `ReadingProvider`, `useReadAloud` (`packages/ui/src/read-aloud.tsx`); portal `PortalReading` (`apps/portal/web/src/reading/engine.ts`) with `KokoroMouth` and its worker (`mouth.ts`, `voice.worker.ts`: Kokoro 82M, WebGPU fp32 else wasm q8, `phonemes.ts` via phonemizer), `PageSpeakers` (Web Audio); settings per device in `wren.read` (on, voice, speed), set in Your settings (`modules/account/reading.tsx`); buttons on every `MessagePreview`, the Notes toolbar and inbound Inbox messages
 - CSP (`apps/portal/web/public/_headers`): `'wasm-unsafe-eval'` and Hugging Face hosts; onnxruntime's wasm is ours, gzipped by `vite.config.ts` (`/ort/<version>/`)
 
 Citations: `packages/voice/src/dictation/ears.ts:30`, `packages/voice/src/dictation/route.ts:35`, `packages/voice/src/dictation/session.ts:54`, `packages/ui/src/dictate.tsx:126`, `apps/portal/src/dictate.ts:56`, `packages/voice/src/dictation-store.ts:39`
@@ -35,6 +36,7 @@ Citations: `packages/voice/src/dictation/ears.ts:30`, `packages/voice/src/dictat
 ## If you change this
 
 - **Hits:** every box with a `DictateField` (`draft.tsx`, `edits.tsx`, `action.tsx`, `palette.tsx`, Ask page, templates, videos and workflow Ask), `main.tsx` (the provider), `App.tsx` (the report hook), the CSP when the model moves
+- **Hits (reading):** `MessagePreview` (To approve, templates), Notes `doc.tsx`, the Inbox `conversation.tsx`; Cache Storage `wren-read`
 - **Does not hit:** the voice agent's call loop (it never calls `finish`); the database beyond `runs`
 
 ## Surfaces
@@ -43,7 +45,7 @@ Citations: `packages/voice/src/dictation/ears.ts:30`, `packages/voice/src/dictat
 |---|---|
 | portal text boxes | writes words into the box; the words are never stored |
 | Voice > Latency | p50/p95 per adapter and stage |
-| Your settings | Auto, This device, Our server, Off, and the fallback |
+| Your settings | Auto, This device, Our server, Off, and the fallback; Reading aloud on or off, voice, speed, a sample |
 
 ## See
 

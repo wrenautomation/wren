@@ -14,6 +14,7 @@ import {
   type IconName,
   InsertSnippet,
   PlatformMark,
+  ReadAloud,
   type RecordAct,
   type RecordExtras,
   relative,
@@ -131,6 +132,15 @@ function Line({ e }: { e: Entry }) {
       </time>
       {e.state && STATE[e.state] ? (
         <span className={e.state === "failed" ? "text-(--ui-bad)" : ""}>{STATE[e.state]}</span>
+      ) : null}
+      {e.direction === "in" && e.body ? (
+        <span className="ml-auto">
+          <ReadAloud
+            text={e.subject ? `${e.subject}.\n\n${e.body}` : e.body}
+            label="Read their message aloud"
+            className="-my-1 h-6 min-w-6"
+          />
+        </span>
       ) : null}
     </span>
   );
