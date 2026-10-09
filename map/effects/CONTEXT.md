@@ -65,6 +65,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | CLI commands | [[platform/cli]] | `README.md`, `walkthrough/` |
 | a hosted form's spec, consent words, serving or door payload | [[platform/hosted-form]] | [[platform/spine]] (`HOOK_PRESETS.site`), [[platform/webhook-subscription]] (`form.submitted`), embeds on client sites, `apps/portal/src/sites.ts` |
 | pay links, Stripe's webhook or the `pay` text | [[platform/pay-link]] | [[sms/sms-message]], [[sms/sms-contact]], [[platform/vendors]], To approve in `packages/content/src/social/records.ts`, `apps/portal/src/pay.ts` |
+| a deal, a pipeline's stages or a move | [[platform/deal]] | [[platform/spine]] (`trigger.deal`), [[platform/webhook-subscription]] (`deal.moved`, `deal.won`), workflows naming a stage key |
 
 ## Outside the tree (what points in)
 

@@ -55,3 +55,9 @@ Opportunities app, in Wren's workspace and each client's, the same pages:
   sales, not our delivery to them.
 - 2026-10-09: main database, owner column, as pay links and forms. The board reads one place.
 - 2026-10-09: status follows the stage's kind; won and lost are stages, not flags. One move path.
+
+## Shipped
+
+- 2026-10-09: `@wren/deals` (pipelines, deals, moves; migration 0208), DealsConsole, the Deal
+  trigger and `deal.moved` webhook event, the Opportunities app in Wren's workspace and each
+  client's (Board, Deals, Pipelines). Map card `map/objects/platform/deal.md`.

@@ -249,6 +249,8 @@ import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
+import { makeDealsConsole } from "@wren/deals/console";
+import { dealRecordFor } from "@wren/deals/records";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
@@ -947,6 +949,9 @@ export async function buildServices(
     // store yet, as for Accounts: connect says "in development" and nothing reaches Stripe.
     makePayments({ ...payDeps, mailer: bookerMailer, fire: spineFire }),
     makePaymentsConsole(payDeps),
+    // Opportunities: deals on a board of stages; each move tells the spine
+    // (designs/2026-10-09-opportunities.md).
+    makeDealsConsole({ main: db, fire: spineFire }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1938,6 +1943,8 @@ export async function buildServices(
         ...NOTES_RECORDS,
         // Every page we run and its numbers by source (Sites).
         ...SITES_RECORDS,
+        // Wren's own deals (Opportunities); a client's come from DealsConsole.
+        dealRecordFor(null),
         reviewRecord(),
         askRecord,
       ],

@@ -1457,6 +1457,13 @@
       "when": 1791563631871,
       "tag": "0207_learn_creator_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1791563778156,
+      "tag": "0208_deals",
+      "breakpoints": true
     }
   ]
 }

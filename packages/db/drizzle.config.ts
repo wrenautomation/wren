@@ -42,6 +42,7 @@ export default defineConfig({
     "../sites/src/schema.ts",
     "../sites/src/views.ts",
     "../payments/src/schema.ts",
+    "../deals/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

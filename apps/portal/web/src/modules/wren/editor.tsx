@@ -398,6 +398,8 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires within the hour a client flag is raised or clears. Only in Wren's own workflows.",
   "trigger.payment":
     "Fires when Stripe says a pay link was paid. The amount and who paid come with it.",
+  "trigger.deal":
+    "Fires when a deal moves stage on the Opportunities board. The deal, its value and contact come with it.",
 };
 
 /** What a Wait until an event does with a late one, said once in its panel. */

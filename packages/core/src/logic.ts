@@ -35,6 +35,7 @@ export const KINDS = [
   "comment",
   "item",
   "account",
+  "deal",
 ] as const satisfies readonly EventKind[];
 
 /** One setting on a logic node: a line he types, a few lines, a number, or one of a few. */
@@ -175,7 +176,8 @@ export type TriggerFacts =
   | { trigger: "trigger.reply"; channel: "email" | "sms" | "dm" }
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
   | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
-  | { trigger: "trigger.payment"; change: "paid" };
+  | { trigger: "trigger.payment"; change: "paid" }
+  | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string };
 
 /** A Reply or Booking node hears this event by its settings. */
 export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
@@ -186,6 +188,11 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     return on === "any" || on === f.channel;
   }
   if (f.trigger === "trigger.payment") return true;
+  if (f.trigger === "trigger.deal") {
+    const on = text(w.on) || "any";
+    const stage = text(w.stage);
+    return (on === "any" || on === f.change) && (!stage || stage === f.stage);
+  }
   if (f.trigger === "trigger.flag") {
     const on = text(w.on) || "raised";
     const side = text(w.side) || "any";
@@ -231,7 +238,9 @@ const untilSet = (w: Readonly<Record<string, string | number>>): Until | null =>
 export const untilOfFacts = (f: TriggerFacts): Until | null =>
   f.trigger === "trigger.reply"
     ? "reply"
-    : f.trigger === "trigger.flag" || f.trigger === "trigger.payment"
+    : f.trigger === "trigger.flag" ||
+        f.trigger === "trigger.payment" ||
+        f.trigger === "trigger.deal"
       ? null
       : f.change === "booked"
         ? "booking"
@@ -540,6 +549,29 @@ export const LOGIC: readonly LogicPart[] = [
     "invoice",
     [],
     () => "A pay link paid",
+  ),
+  trigger(
+    "deal",
+    "Deal",
+    "Starts when a deal moves stage on the Opportunities board, or is won or lost.",
+    "board",
+    "deal",
+    [
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["any", "moved", "won", "lost"],
+        labels: { any: "Any move", moved: "Moved to an open stage", won: "Won", lost: "Lost" },
+        start: "any",
+      },
+      { field: "stage", label: "Only into stage (its key)", type: "text", hint: "quoted" },
+    ],
+    (w) => {
+      const on = text(w.on) || "any";
+      const what = on === "won" ? "A deal won" : on === "lost" ? "A deal lost" : "A deal moved";
+      return text(w.stage) ? `${what} into ${text(w.stage)}` : what;
+    },
   ),
   trigger(
     "flag",
