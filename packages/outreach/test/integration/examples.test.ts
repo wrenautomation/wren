@@ -9,7 +9,7 @@ import { FakeLlm } from "@wren/llm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sortComment } from "../../src/comments.js";
 import { commentDecisions, commentExamples } from "../../src/examples.js";
-import { comments, linkedinPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { comments, reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -92,9 +92,9 @@ describe("comment examples", () => {
     });
 
     const [post] = await pg.db
-      .insert(linkedinPosts)
+      .insert(reachPosts)
       .values({
-        urn: "urn:li:activity:1",
+        ref: "urn:li:activity:1",
         author: "A Founder",
         text: "Hiring is the hardest part of a small agency.",
         url: "https://example.com/li1",
@@ -104,8 +104,8 @@ describe("comment examples", () => {
       })
       .returning();
     await recordDraft(pg.db, {
-      item: `lipost:${post!.id}`,
-      kind: "linkedin_comment",
+      item: `onpost:${post!.id}`,
+      kind: "post_comment",
       platform: "linkedin",
       event: "sent",
       via: "person",
@@ -126,7 +126,7 @@ describe("comment examples", () => {
       note: "never pitch in a thread",
       about: "How do you chase late invoices?\nSpending hours a week on it.",
     });
-    expect(byItem[`lipost:${post!.id}`]?.about).toBe(
+    expect(byItem[`onpost:${post!.id}`]?.about).toBe(
       "Hiring is the hardest part of a small agency.",
     );
 

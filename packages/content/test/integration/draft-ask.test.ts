@@ -20,9 +20,9 @@ import {
   addProspects,
   comments,
   contactByHandle,
-  linkedinPosts,
   reachContacts,
   reachMessages,
+  reachPosts,
   receive,
 } from "@wren/outreach";
 import { eq } from "drizzle-orm";
@@ -71,7 +71,7 @@ beforeEach(async () => {
     "reach_messages",
     "reach_contacts",
     "reach_accounts",
-    "linkedin_posts",
+    "reach_posts",
     "draft_events",
   ]);
   answers.length = 0;
@@ -227,9 +227,9 @@ describe("drafts from a terminal", () => {
 describe("a LinkedIn comment on someone else's post", () => {
   it("reads with the post, waits, takes his words, and closes once commented", async () => {
     const [p] = await pg.db
-      .insert(linkedinPosts)
+      .insert(reachPosts)
       .values({
-        urn: "urn:li:activity:9",
+        ref: "urn:li:activity:9",
         author: "Ben C",
         headline: "Founder at Acme",
         text: "Hiring is slow this quarter.",
@@ -243,7 +243,7 @@ describe("a LinkedIn comment on someone else's post", () => {
         raw: {},
       })
       .returning();
-    const item = `lipost:${p?.id}`;
+    const item = `onpost:${p?.id}`;
     const got = await readDraft(pg.db, item);
     expect(got).toMatchObject({
       platform: "linkedin",
@@ -252,17 +252,17 @@ describe("a LinkedIn comment on someone else's post", () => {
       open: true,
     });
     expect(got.context).toContain("Hiring is slow this quarter.");
-    expect((await listWaiting(pg.db, { type: "lipost" })).map((w) => w.item)).toEqual([item]);
+    expect((await listWaiting(pg.db, { type: "onpost" })).map((w) => w.item)).toEqual([item]);
     await writeDraft(pg.db, item, "His words.", { command: "draft-set", by: "cli" });
     const [row] = await pg.db
       .select()
-      .from(linkedinPosts)
-      .where(eq(linkedinPosts.id, Number(p?.id)));
+      .from(reachPosts)
+      .where(eq(reachPosts.id, Number(p?.id)));
     expect(row?.draft).toBe("His words.");
     await pg.db
-      .update(linkedinPosts)
+      .update(reachPosts)
       .set({ state: "commented" })
-      .where(eq(linkedinPosts.id, Number(p?.id)));
+      .where(eq(reachPosts.id, Number(p?.id)));
     await expect(
       writeDraft(pg.db, item, "Late.", { command: "draft-set", by: "cli" }),
     ).rejects.toThrow(/commented/);

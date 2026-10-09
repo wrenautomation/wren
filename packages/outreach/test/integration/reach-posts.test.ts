@@ -1,8 +1,9 @@
 /**
- * Comments on others' LinkedIn posts, end to end on Postgres and Restate with fakes: the watch's
- * daily pass reads as linkedin@wren (topics, companies), keeps and ranks the posts, drafts the
- * day's cap and queues them. Nothing posts until his Comment: then `Content.reply` on the post's
- * urn, once. Skip drops it with his why. Off, or on his own login, nothing is read. Job ads,
+ * Comments on others' posts, end to end on Postgres and Restate with fakes: the watch's daily
+ * pass reads as each platform's account (LinkedIn topics and companies, X and Instagram searches
+ * and accounts), keeps and ranks the posts, drafts the day's cap and queues them. Nothing posts
+ * until his Comment: then `Content.reply` on the post (LinkedIn, X) or Instagram's comment route,
+ * once, with the like and follow the settings ask for, each a touch. Skip drops it with his why. Off, or on his own login, nothing is read. Job ads,
  * posts outside the audience's world and posts under the minimum fit get no draft; a draft that
  * makes things up is asked for again, then dropped; redraft rewrites queued drafts from the kept
  * post.
@@ -20,15 +21,15 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_POLICY } from "../../src/policy.js";
 import {
-  COMMENTS_COMPONENT,
-  commentsSettingsSchema,
+  COMMENTS_COMPONENTS,
+  COMMENTS_SETTINGS,
   type FeedPost,
   isJobAd,
   MIN_FIT,
   rankPost,
-} from "../../src/linkedin-posts.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
+} from "../../src/reach-posts.js";
 import {
   makeReachDesk,
   makeReachWatch,
@@ -37,7 +38,7 @@ import {
   WATCH_KEY,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { linkedinPosts } from "../../src/schema.js";
+import { type ReachPostPlatform, reachPosts } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 
 const NOW = new Date("2026-10-07T15:00:00Z");
@@ -47,7 +48,7 @@ const ago = (h: number) => new Date(now.getTime() - h * HOUR).toISOString();
 const HOUR = 3_600_000;
 
 const post = (n: number, o: Partial<FeedPost> = {}): FeedPost => ({
-  urn: `urn:li:activity:${7_000 + n}`,
+  ref: `urn:li:activity:${7_000 + n}`,
   author: `Author ${n}`,
   authorUrl: `https://www.linkedin.com/in/author-${n}`,
   headline: "Recruiter",
@@ -59,9 +60,20 @@ const post = (n: number, o: Partial<FeedPost> = {}): FeedPost => ({
   ...o,
 });
 
+/** LinkedIn's posts as autobrowse answers them: the post's urn, not our ref. */
+const feed = (posts: FeedPost[]) => ({
+  posts: posts.map(({ ref, ...p }) => ({ ...p, urn: ref })),
+  dropped: 0,
+});
+
 /** What the fake desk answers, by path; a function may throw. */
 let routes: Record<string, (input: Record<string, unknown>) => unknown> = {};
-const calls: { method: string; path: string; account: string | undefined }[] = [];
+const calls: {
+  method: string;
+  path: string;
+  input: Record<string, unknown>;
+  account: string | undefined;
+}[] = [];
 const sites: SiteClient = {
   call: async <T>(
     _site: string,
@@ -70,7 +82,7 @@ const sites: SiteClient = {
     input: Record<string, unknown> = {},
     account?: string,
   ) => {
-    calls.push({ method, path, account });
+    calls.push({ method, path, input, account });
     const r = routes[path];
     return (r ? r(input) : {}) as T;
   },
@@ -97,7 +109,7 @@ let proposed: string[] = [];
 const topicAsks: string[] = [];
 const llm = new FakeLlm({
   respond: (prompt, system) => {
-    if (prompt.startsWith("Who we want to find on LinkedIn")) {
+    if (prompt.startsWith("Who we want to find on ")) {
       topicAsks.push(prompt);
       return JSON.stringify({ topics: proposed });
     }
@@ -163,10 +175,12 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, [
-    "linkedin_posts",
+    "reach_posts",
     "reach_accounts",
     "reach_contacts",
     "social_activity",
+    "touches",
+    "social_handles",
     "wren_settings",
     "draft_events",
     "runs",
@@ -194,9 +208,14 @@ const sync = async () => {
   return (await w.sync()) as PassOutcome<WatchStats>;
 };
 const desk = () => ingress().serviceClient<ReachDeskService>({ name: "ReachDesk" });
-const settings = (o: Record<string, unknown>) =>
-  setWrenSettings(db(), COMMENTS_COMPONENT, commentsSettingsSchema.parse(o), "test");
-const rows = () => db().select().from(linkedinPosts).orderBy(linkedinPosts.id);
+const settings = (o: Record<string, unknown>, platform: ReachPostPlatform = "linkedin") =>
+  setWrenSettings(
+    db(),
+    COMMENTS_COMPONENTS[platform],
+    COMMENTS_SETTINGS[platform].parse(o),
+    "test",
+  );
+const rows = () => db().select().from(reachPosts).orderBy(reachPosts.id);
 const events = () =>
   db().execute(
     sql`select item, kind, event, via, by, text, reason, note, meta from draft_events order by id`,
@@ -224,15 +243,15 @@ const statsOf = (o: PassOutcome<WatchStats>) => {
 
 describe("settings", () => {
   it("off by default; never his own login or the research alt", () => {
-    expect(commentsSettingsSchema.parse({})).toMatchObject({
+    expect(COMMENTS_SETTINGS.linkedin.parse({})).toMatchObject({
       account: "",
       perDay: 10,
       minFit: MIN_FIT,
     });
     expect(MIN_FIT).toBe(70);
-    expect(commentsSettingsSchema.safeParse({ account: "linkedin" }).success).toBe(false);
-    expect(commentsSettingsSchema.safeParse({ account: "linkedin@alt" }).success).toBe(false);
-    expect(commentsSettingsSchema.safeParse({ account: "reddit@wren" }).success).toBe(false);
+    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "linkedin" }).success).toBe(false);
+    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "linkedin@alt" }).success).toBe(false);
+    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "reddit@wren" }).success).toBe(false);
   });
 
   it("ranks topic, title, people we know above a bare match", () => {
@@ -298,7 +317,7 @@ describe("settings", () => {
 describe("the daily pass", () => {
   it("off: reads nothing", async () => {
     const out = await sync();
-    expect(statsOf(out)?.posts).toBeNull();
+    expect(statsOf(out)?.posts).toEqual([]);
     expect(calls.filter((c) => c.path.includes("posts") || c.path.includes("search"))).toEqual([]);
   });
 
@@ -307,27 +326,23 @@ describe("the daily pass", () => {
       account: "linkedin@wren",
       perDay: 2,
       topics: ["recruiting agency"],
-      companies: ["acme-staffing"],
+      pages: ["acme-staffing"],
       people: false,
       minFit: 0,
     });
-    routes["/search/results/content"] = () => ({
-      posts: [
+    routes["/search/results/content"] = () =>
+      feed([
         post(1, { headline: "Founder at Acme Staffing", reactions: 80 }),
         post(2, { at: ago(100) }), // too old
         post(3, { authorUrl: "https://www.linkedin.com/company/wren-automation/" }), // ours
         post(4, { text: "Hiring!" }), // too short
         post(5, { authorUrl: post(1).authorUrl, text: `${post(1).text} Again.` }), // same author
-      ],
-      dropped: 0,
-    });
-    routes["/company/acme-staffing/posts"] = () => ({
-      posts: [post(6, { headline: "VP, Acme Staffing" }), post(7)],
-      dropped: 0,
-    });
+      ]);
+    routes["/company/acme-staffing/posts"] = () =>
+      feed([post(6, { headline: "VP, Acme Staffing" }), post(7)]);
 
     const out = statsOf(await sync());
-    expect(out?.posts).toMatchObject({ reads: 2, kept: 4, dropped: 3, queued: 2, errors: [] });
+    expect(out?.posts[0]).toMatchObject({ reads: 2, kept: 4, dropped: 3, queued: 2, errors: [] });
     const reads = calls.filter((c) => c.method === "GET");
     expect(reads.map((c) => [c.path, c.account])).toEqual([
       ["/search/results/content", "linkedin@wren"],
@@ -337,14 +352,14 @@ describe("the daily pass", () => {
     expect(replies).toEqual([]);
 
     const got = await rows();
-    const by = (n: number) => got.find((r) => r.urn === post(n).urn);
+    const by = (n: number) => got.find((r) => r.ref === post(n).ref);
     expect(by(2)?.stateReason).toBe("older than 72 hours");
     expect(by(3)?.stateReason).toBe("ours");
     expect(by(4)?.stateReason).toBe("too short to answer");
     // The best two, one per author: the founder, then the VP; the founder's second post waits.
-    expect(got.filter((r) => r.state === "queued").map((r) => r.urn)).toEqual([
-      post(1).urn,
-      post(6).urn,
+    expect(got.filter((r) => r.state === "queued").map((r) => r.ref)).toEqual([
+      post(1).ref,
+      post(6).ref,
     ]);
     expect(by(1)).toMatchObject({ draft: GOOD, account: "linkedin@wren" });
     // The prompt carries his facts.
@@ -353,13 +368,13 @@ describe("the daily pass", () => {
     expect(by(1)?.why).toContain("Founder at Acme Staffing");
     const ev = await events();
     expect(ev.map((e) => [e.kind, e.event, e.via])).toEqual([
-      ["linkedin_comment", "generated", "model"],
-      ["linkedin_comment", "generated", "model"],
+      ["post_comment", "generated", "model"],
+      ["post_comment", "generated", "model"],
     ]);
 
     // The day's pass ran: a second sync reads nothing more.
     calls.length = 0;
-    expect(statsOf(await sync())?.posts).toBeNull();
+    expect(statsOf(await sync())?.posts).toEqual([]);
     expect(calls).toEqual([]);
   });
 
@@ -372,7 +387,7 @@ describe("the daily pass", () => {
     routes["/search/results/content"] = () => {
       throw new SiteCallError("linkedin", "GET", "/search/results/content", 429, "posts: cap");
     };
-    const out = statsOf(await sync())?.posts;
+    const out = statsOf(await sync())?.posts[0];
     expect(out).toMatchObject({ reads: 0, capped: true, queued: 0 });
     expect(calls.filter((c) => c.path === "/search/results/content")).toHaveLength(1);
   });
@@ -390,9 +405,9 @@ describe("search words", () => {
     // Last week's reads: "client reactivation" found only off-target posts.
     for (let i = 0; i < 15; i++)
       await db()
-        .insert(linkedinPosts)
+        .insert(reachPosts)
         .values({
-          urn: `urn:li:activity:${9_000 + i}`,
+          ref: `urn:li:activity:${9_000 + i}`,
           author: `Seller ${i}`,
           text: "Off target.",
           url: `https://www.linkedin.com/feed/update/urn:li:activity:${9_000 + i}/`,
@@ -408,9 +423,9 @@ describe("search words", () => {
     const searched: string[] = [];
     routes["/search/results/content"] = (input) => {
       searched.push(String(input.keywords));
-      return { posts: [], dropped: 0 };
+      return feed([]);
     };
-    const out = statsOf(await sync())?.posts;
+    const out = statsOf(await sync())?.posts[0];
     expect(out).toMatchObject({
       topics: ["recruiting agency", "our recruiting clients"],
       rested: ["client reactivation"],
@@ -428,8 +443,8 @@ describe("search words", () => {
       people: false,
       newTopics: 0,
     });
-    routes["/search/results/content"] = () => ({ posts: [], dropped: 0 });
-    expect(statsOf(await sync())?.posts).toMatchObject({ topics: ["recruiting agency"] });
+    routes["/search/results/content"] = () => feed([]);
+    expect(statsOf(await sync())?.posts[0]).toMatchObject({ topics: ["recruiting agency"] });
     expect(topicAsks).toEqual([]);
   });
 });
@@ -446,8 +461,8 @@ describe("what gets a draft", () => {
 
   it("under the minimum fit, or off target: no draft", async () => {
     await on();
-    routes["/search/results/content"] = () => ({
-      posts: [
+    routes["/search/results/content"] = () =>
+      feed([
         growthPost(1),
         post(2), // a recruiter's day: under 70, stays found
         post(3, {
@@ -456,13 +471,11 @@ describe("what gets a draft", () => {
         post(4, {
           text: "Most contractors stop following up the day the job is done. The money is in the CRM.",
         }),
-      ],
-      dropped: 0,
-    });
+      ]);
     const out = statsOf(await sync());
-    expect(out?.posts).toMatchObject({ kept: 2, dropped: 2, queued: 1 });
+    expect(out?.posts[0]).toMatchObject({ kept: 2, dropped: 2, queued: 1 });
     const got = await rows();
-    const by = (n: number) => got.find((r) => r.urn === post(n).urn);
+    const by = (n: number) => got.find((r) => r.ref === post(n).ref);
     expect(by(1)?.state).toBe("queued");
     expect(by(1)?.fit).toBeGreaterThanOrEqual(MIN_FIT);
     expect(by(2)).toMatchObject({ state: "found", draft: null });
@@ -474,18 +487,18 @@ describe("what gets a draft", () => {
 
   it("made up once: asked again; made up twice: dropped; both in the run ledger", async () => {
     await on();
-    routes["/search/results/content"] = () => ({ posts: [growthPost(5)], dropped: 0 });
+    routes["/search/results/content"] = () => feed([growthPost(5)]);
     invent = 1;
-    expect(statsOf(await sync())?.posts).toMatchObject({ queued: 1 });
+    expect(statsOf(await sync())?.posts[0]).toMatchObject({ queued: 1 });
     const [first] = await rows();
     expect(first).toMatchObject({ state: "queued", draft: GOOD });
     expect(asked[1]).toContain("a number from nowhere: 30");
 
     now = new Date(now.getTime() + 25 * HOUR);
-    routes["/search/results/content"] = () => ({ posts: [growthPost(6)], dropped: 0 });
+    routes["/search/results/content"] = () => feed([growthPost(6)]);
     invent = 2;
-    expect(statsOf(await sync())?.posts).toMatchObject({ queued: 0 });
-    const second = (await rows()).find((r) => r.urn === post(6).urn);
+    expect(statsOf(await sync())?.posts[0]).toMatchObject({ queued: 0 });
+    const second = (await rows()).find((r) => r.ref === post(6).ref);
     expect(second?.state).toBe("dropped");
     expect(second?.stateReason).toMatch(/^made things up: "We built a scheduler/);
     expect(second?.draft).toBeNull();
@@ -495,7 +508,7 @@ describe("what gets a draft", () => {
       ["linkedin.comment_draft", "redrafted"],
       ["linkedin.comment_draft", "dropped"],
     ]);
-    expect(runs[1]?.argv.item).toBe(`lipost:${second?.id}`);
+    expect(runs[1]?.argv.item).toBe(`onpost:${second?.id}`);
     // Only the clean draft reached the training record.
     expect((await events()).map((e) => [e.event, e.text])).toEqual([["generated", GOOD]]);
   });
@@ -504,9 +517,9 @@ describe("what gets a draft", () => {
 describe("redraft", () => {
   const keep = async (p: FeedPost, draft: string, state: "queued" | "found" = "queued") => {
     const [r] = await db()
-      .insert(linkedinPosts)
+      .insert(reachPosts)
       .values({
-        urn: p.urn,
+        ref: p.ref,
         author: p.author,
         authorUrl: p.authorUrl,
         headline: p.headline ?? null,
@@ -563,9 +576,9 @@ describe("redraft", () => {
     // The redraft is the model's, not his no; a post off target is Wren's no, by the rank.
     const ev = await events();
     expect(ev.map((e) => [e.item, e.event, e.via, e.by, e.reason])).toEqual([
-      [`lipost:${good.id}`, "generated", "model", "fake", null],
-      [`lipost:${ad.id}`, "rejected", "wren", "rank", "topic"],
-      [`lipost:${low.id}`, "rejected", "wren", "rank", "topic"],
+      [`onpost:${good.id}`, "generated", "model", "fake", null],
+      [`onpost:${ad.id}`, "rejected", "wren", "rank", "topic"],
+      [`onpost:${low.id}`, "rejected", "wren", "rank", "topic"],
     ]);
     expect(ev[0]?.meta).toMatchObject({ redraft: "facts guard" });
     expect(ev[1]?.note).toBe("a job ad");
@@ -589,9 +602,9 @@ describe("redraft", () => {
 describe("his Comment", () => {
   const queued = async (n: number, state: "queued" | "found" = "queued") => {
     const [r] = await db()
-      .insert(linkedinPosts)
+      .insert(reachPosts)
       .values({
-        urn: post(n).urn,
+        ref: post(n).ref,
         author: post(n).author,
         authorUrl: post(n).authorUrl,
         text: post(n).text,
@@ -618,14 +631,14 @@ describe("his Comment", () => {
 
     await desk().commentPost({ id: p.id, body: "His edited words." });
     expect(replies).toEqual([
-      { platform: "linkedin", commentId: post(1).urn, text: "His edited words." },
+      { platform: "linkedin", commentId: post(1).ref, text: "His edited words." },
     ]);
-    const [after] = await db().select().from(linkedinPosts).where(eq(linkedinPosts.id, p.id));
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
     expect(after).toMatchObject({ state: "commented", comment: "His edited words." });
     const ev = await events();
     expect(ev.map((e) => [e.item, e.event, e.via])).toEqual([
-      [`lipost:${p.id}`, "edited", "person"],
-      [`lipost:${p.id}`, "sent", "person"],
+      [`onpost:${p.id}`, "edited", "person"],
+      [`onpost:${p.id}`, "sent", "person"],
     ]);
 
     await expect(desk().commentPost({ id: p.id })).rejects.toThrow(/already commented/);
@@ -657,5 +670,195 @@ describe("his Comment", () => {
     expect(ev.map((e) => [e.via, e.by, e.reason, e.note])).toEqual([
       ["person", "william@example.com", "facts", "made up a story"],
     ]);
+  });
+});
+
+const TWEET_TEXT =
+  "Our recruiting agency lost two retainer clients last year. Referrals dried up, so we built outbound and follow up with old clients.";
+const tweet = (id: string, user: string, o: Record<string, unknown> = {}) => ({
+  id,
+  text: `${TWEET_TEXT} (${id})`,
+  author_username: user,
+  author_name: `Founder ${user}`,
+  created_at: ago(5),
+  public_metrics: { reply_count: 3, retweet_count: 2, like_count: 20 },
+  ...o,
+});
+
+describe("X and Instagram", () => {
+  it("X: searches and reads accounts as x@wren; reposts and pinned posts are left", async () => {
+    await settings(
+      {
+        account: "x@wren",
+        topics: ["recruiting agency"],
+        pages: ["AcmeStaffing"],
+        people: false,
+        minFit: 0,
+      },
+      "x",
+    );
+    const queries: string[] = [];
+    routes["/2/tweets/search/recent"] = (input) => {
+      queries.push(String(input.query));
+      return { data: [tweet("101", "FounderOne")] };
+    };
+    routes["/2/users/AcmeStaffing/tweets"] = () => ({
+      data: [
+        tweet("102", "AcmeStaffing"),
+        tweet("103", "AcmeStaffing", { pinned: true }),
+        tweet("104", "Other", { reposted_by: "AcmeStaffing" }),
+      ],
+    });
+    const out = statsOf(await sync())?.posts;
+    expect(out?.map((p) => [p.platform, p.reads, p.kept, p.queued])).toEqual([["x", 2, 2, 2]]);
+    expect(queries[0]).toMatch(
+      /^recruiting agency lang:en -filter:replies -filter:retweets since:\d{4}-\d{2}-\d{2}$/,
+    );
+    expect(calls.filter((c) => c.method === "GET").map((c) => c.account)).toEqual([
+      "x@wren",
+      "x@wren",
+    ]);
+    const got = await rows();
+    expect(got.map((r) => [r.platform, r.ref, r.handle, r.url, r.state])).toEqual([
+      ["x", "101", "founderone", "https://x.com/FounderOne/status/101", "queued"],
+      ["x", "102", "acmestaffing", "https://x.com/AcmeStaffing/status/102", "queued"],
+    ]);
+    expect(asked[0]).toContain("one X comment");
+    expect(asked[0]).toContain("under 250 characters");
+    expect((await guardRuns()).length).toBe(0);
+  });
+
+  it("Instagram: a search's posts read one by one; an account through business discovery", async () => {
+    await settings(
+      {
+        account: "instagram@wren",
+        topics: ["recruiting agency"],
+        pages: ["acmestaffing"],
+        people: false,
+        minFit: 0,
+      },
+      "instagram",
+    );
+    routes["/web/search"] = () => ({ shortcodes: ["AAA111", "GONE22"] });
+    routes["/web/p/AAA111"] = () => ({
+      shortcode: "AAA111",
+      url: "https://www.instagram.com/p/AAA111/",
+      username: "founder.one",
+      caption: TWEET_TEXT,
+      likes: 40,
+      comments: 5,
+      timestamp: ago(5),
+    });
+    routes["/web/p/GONE22"] = () => ({ found: false, reason: "no post" });
+    routes["/instagram/acmestaffing"] = () => ({
+      found: true,
+      profile: { biography: "Founder, Acme Staffing" },
+      media: [
+        {
+          caption: `${TWEET_TEXT} Again.`,
+          permalink: "https://www.instagram.com/reel/BBB222/",
+          timestamp: ago(6),
+          like_count: 12,
+          comments_count: 1,
+        },
+      ],
+    });
+    const out = statsOf(await sync())?.posts;
+    expect(out?.map((p) => [p.platform, p.reads, p.kept])).toEqual([["instagram", 2, 2]]);
+    expect(calls.find((c) => c.path === "/instagram/acmestaffing")?.account).toBeUndefined();
+    expect(calls.find((c) => c.path === "/web/search")?.account).toBe("instagram@wren");
+    const got = await rows();
+    expect(got.map((r) => [r.platform, r.ref, r.handle, r.headline])).toEqual([
+      ["instagram", "AAA111", "founder.one", null],
+      ["instagram", "BBB222", "acmestaffing", "Founder, Acme Staffing"],
+    ]);
+  });
+});
+
+describe("his Comment, with a like and a follow", () => {
+  const queuedOn = async (platform: ReachPostPlatform, ref: string, handle: string) => {
+    const [r] = await db()
+      .insert(reachPosts)
+      .values({
+        platform,
+        ref,
+        author: handle,
+        authorUrl:
+          platform === "x" ? `https://x.com/${handle}` : `https://www.instagram.com/${handle}/`,
+        handle,
+        text: TWEET_TEXT,
+        url:
+          platform === "x"
+            ? `https://x.com/${handle}/status/${ref}`
+            : `https://www.instagram.com/p/${ref}/`,
+        foundBy: "topic: x",
+        account: `${platform}@wren`,
+        fit: 80,
+        state: "queued",
+        draft: "Draft words.",
+        queuedAt: NOW,
+        raw: {},
+      })
+      .returning();
+    if (!r) throw new Error("no row");
+    return r;
+  };
+  const touchRefs = async () =>
+    (
+      (await db().execute(
+        sql`select t.ref, t.kind, t.account, h.handle from touches t join social_handles h on h.id = t.handle_id order by t.id`,
+      )) as unknown as { ref: string; kind: string; account: string; handle: string }[]
+    ).map((r) => [r.ref, r.kind, r.account, r.handle]);
+
+  it("X: replies as Wren's page, then likes and follows as x@wren; each a touch", async () => {
+    await settings({ account: "x@wren", follow: true }, "x");
+    const p = await queuedOn("x", "555", "founderone");
+    await desk().commentPost({ id: p.id });
+    expect(replies).toEqual([{ platform: "x", commentId: "555", text: "Draft words." }]);
+    expect(calls.map((c) => [c.method, c.path, c.input, c.account])).toEqual([
+      ["POST", "/2/users/me/likes", { id: "555" }, "x@wren"],
+      ["POST", "/2/users/me/following", { username: "founderone" }, "x@wren"],
+    ]);
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
+    expect(after?.likedAt).not.toBeNull();
+    expect(after?.followedAt).not.toBeNull();
+    expect(await touchRefs()).toEqual([
+      [`rp:${p.id}`, "comment", "wren", "founderone"],
+      [`rp:${p.id}:like`, "like", "x@wren", "founderone"],
+      [`rp:${p.id}:follow`, "follow", "x@wren", "founderone"],
+    ]);
+  });
+
+  it("over X's length: refused before anything goes", async () => {
+    await settings({ account: "x@wren" }, "x");
+    const p = await queuedOn("x", "556", "founderone");
+    await expect(desk().commentPost({ id: p.id, body: "a".repeat(281) })).rejects.toThrow(
+      /280 characters/,
+    );
+    expect(replies).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("Instagram: comments through the page as instagram@wren; a failed like doesn't undo it", async () => {
+    await settings({ account: "instagram@wren" }, "instagram");
+    routes["/web/p/AAA111/like"] = () => {
+      throw new SiteCallError("instagram", "POST", "/web/p/AAA111/like", 429, "like: cap");
+    };
+    const p = await queuedOn("instagram", "AAA111", "founder.one");
+    await desk().commentPost({ id: p.id, body: "His words." });
+    expect(replies).toEqual([]);
+    expect(calls.map((c) => [c.path, c.input, c.account])).toEqual([
+      ["/web/p/AAA111/comments", { shortcode: "AAA111", text: "His words." }, "instagram@wren"],
+      ["/web/p/AAA111/like", { shortcode: "AAA111" }, "instagram@wren"],
+    ]);
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
+    expect(after).toMatchObject({ state: "commented", comment: "His words.", likedAt: null });
+    expect(await touchRefs()).toEqual([[`rp:${p.id}`, "comment", "instagram@wren", "founder.one"]]);
+  });
+
+  it("Instagram with no account set: refused", async () => {
+    const p = await queuedOn("instagram", "CCC333", "founder.one");
+    await expect(desk().commentPost({ id: p.id })).rejects.toThrow(/no instagram account/);
+    expect(calls).toEqual([]);
   });
 });

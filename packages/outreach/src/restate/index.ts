@@ -135,19 +135,24 @@ import {
   type TopUpStats,
   topUp,
 } from "../invites.js";
+import type { ReachPolicy } from "../policy.js";
 import {
+  allCommentsSettings,
+  COMMENT_MAX,
+  type CommentsSettings,
   commentsSettings,
   listPosts,
+  markPostActed,
   markPostCommented,
   type PostsStats,
   planPostComment,
+  postActs,
   postReader,
   postsPass,
   type RedraftResult,
   redraftPosts,
   skipPost,
-} from "../linkedin-posts.js";
-import type { ReachPolicy } from "../policy.js";
+} from "../reach-posts.js";
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
 import {
@@ -158,8 +163,10 @@ import {
   type DmPlatform,
   isReachPlatform,
   type Platform,
+  REACH_POST_PLATFORMS,
   type ReachAccount,
   type ReachContact,
+  type ReachPostPlatform,
   reachContacts,
 } from "../schema.js";
 import { type ReachSequence, slotsOf } from "../sequences.js";
@@ -191,6 +198,8 @@ const INVITES = "invites";
 const INVITES_EVERY_MS = 6 * 60 * 60 * 1000;
 /** And for others' LinkedIn posts to comment on, once a day. */
 const POSTS = "posts";
+/** LinkedIn keeps the first key, so a deploy doesn't read it twice in a day. */
+const postsKey = (p: ReachPostPlatform) => (p === "linkedin" ? POSTS : `${POSTS}:${p}`);
 const POSTS_EVERY_MS = 24 * 60 * 60 * 1000;
 
 export interface ReachDeps {
@@ -412,7 +421,8 @@ export interface WatchStats {
   invites: InvitesPass | null;
   drafts: { written: number; errors: string[] };
   /** Others' LinkedIn posts read, ranked and drafted for To approve: once a day, Wren's only. */
-  posts: PostsStats | null;
+  /** One per platform read this pass. */
+  posts: PostsStats[];
   /** A client's vendor gate said no: why, and the pass read no more. */
   stopped: string | null;
 }
@@ -493,19 +503,24 @@ async function notesPass(
   return out;
 }
 
-/** Others' LinkedIn posts: read as the settings' account, ranked, drafted for his yes. */
+/** Others' posts on one platform: read as the settings' account, ranked, drafted for his yes. */
 function postsFor(
   deps: ReachDeps,
   ctx: restate.Context,
-  settings: Awaited<ReturnType<typeof commentsSettings>>,
+  platform: ReachPostPlatform,
+  settings: CommentsSettings,
   now: Date,
 ): Promise<PostsStats> {
   const guide = deps.drafts?.commentGuide;
   return postsPass(deps.db, {
+    platform,
     settings,
-    read: postReader(deps.sitesFor(ctx), settings.account),
+    read: postReader(deps.sitesFor(ctx), platform, settings.account, {
+      authorTitle: settings.authorTitle,
+      now,
+    }),
     llm: deps.drafts?.llm ?? null,
-    ...(guide ? { guide: () => guide("linkedin") } : {}),
+    ...(guide ? { guide: () => guide(platform) } : {}),
     ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
     ...(deps.drafts?.facts ? { facts: deps.drafts.facts } : {}),
     now,
@@ -729,13 +744,20 @@ async function watchPass(
     }
   }
   const drafts = scope.drafts ? await draftsPass(deps, ctx, now) : { written: 0, errors: [] };
-  let posts: PostsStats | null = null;
-  const postsAt = (await ctx.get<number>(POSTS)) ?? 0;
-  if (scope.posts && !stopped && now.getTime() - postsAt >= POSTS_EVERY_MS) {
-    const settings = await ctx.run("comment settings", () => commentsSettings(deps.db));
-    if (settings.account) {
-      ctx.set(POSTS, now.getTime());
-      posts = await postsFor(deps, ctx, settings, now);
+  const posts: PostsStats[] = [];
+  if (scope.posts && !stopped) {
+    const all = await ctx.run("comment settings", () => allCommentsSettings(deps.db));
+    for (const platform of REACH_POST_PLATFORMS) {
+      const settings = all[platform];
+      const key = postsKey(platform);
+      const at = (await ctx.get<number>(key)) ?? 0;
+      if (!settings.account || now.getTime() - at < POSTS_EVERY_MS) continue;
+      ctx.set(key, now.getTime());
+      try {
+        posts.push(await postsFor(deps, ctx, platform, settings, now));
+      } catch (err) {
+        health.errors.push(`posts ${platform}: ${errorText(err)}`);
+      }
     }
   }
   ctx.set(READS, reads);
@@ -752,7 +774,7 @@ async function watchPass(
   await setLastPass(ctx, outcome);
   const notifier = deps.notifier;
   const accepted = invites?.sweep.accepted.length ?? 0;
-  const toComment = posts?.queued ?? 0;
+  const toComment = posts.reduce((n, p) => n + p.queued, 0);
   if (
     notifier &&
     (replies.received > 0 ||
@@ -765,7 +787,7 @@ async function watchPass(
       replies.received ? `${replies.received} new DMs` : null,
       kept.kept ? `${kept.kept} new comments` : null,
       accepted ? `${accepted} accepted invites` : null,
-      toComment ? `${toComment} LinkedIn comments to approve` : null,
+      toComment ? `${toComment} post comments to approve` : null,
     ].filter(Boolean);
     await ctx.run("notify", () =>
       notifier.notify(
@@ -1310,8 +1332,10 @@ export function makeReachDesk(deps: ReachDeps) {
         },
       ),
       /**
-       * Comment on someone else's LinkedIn post: his words, or the draft he left untouched. Sent
-       * now through the content channel on Wren's token: the click is the yes.
+       * Comment on someone else's post: his words, or the draft he left untouched. The click is
+       * the yes. LinkedIn and X go through the content channel as Wren's page; Instagram through
+       * the settings' account. Then the like and follow the settings ask for, as that account;
+       * neither fails the comment.
        */
       commentPost: serviceHandler(
         { input: POST, effect: "sends" },
@@ -1325,14 +1349,40 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           const body = (req.body ?? post.draft ?? "").trim();
           if (!body) throw new restate.TerminalError("the comment is empty");
-          if (body.length > 1250)
-            throw new restate.TerminalError("LinkedIn takes 1250 characters at most");
-          await ctx
-            .serviceClient<ContentReply>({ name: "Content" })
-            .reply({ platform: "linkedin", commentId: post.urn, text: body });
+          const max = COMMENT_MAX[post.platform];
+          if (body.length > max)
+            throw new restate.TerminalError(`${post.platform} takes ${max} characters at most`);
+          const settings = await ctx.run("settings", () =>
+            commentsSettings(deps.db, post.platform),
+          );
+          const account = settings.account || null;
+          const acts = postActs(post, settings, body);
+          const sites = deps.sitesFor(ctx);
+          if (acts.comment) {
+            if (!account)
+              throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
+            const [site, method, path, input] = acts.comment;
+            await sites.call(site, method, path, input, account);
+          } else
+            await ctx
+              .serviceClient<ContentReply>({ name: "Content" })
+              .reply({ platform: post.platform, commentId: post.ref, text: body });
           await ctx.run("commented", () =>
             markPostCommented(deps.db, post, { body, by: byOf(req), now }),
           );
+          for (const [what, act] of [
+            ["like", acts.like],
+            ["follow", acts.follow],
+          ] as const) {
+            if (!act || !account) continue;
+            try {
+              const [site, method, path, input] = act;
+              await sites.call(site, method, path, input, account);
+              await ctx.run(what, () => markPostActed(deps.db, post.id, what, now));
+            } catch (err) {
+              console.warn(`post ${post.id} ${what}: ${errorText(err)}`);
+            }
+          }
           return { commented: post.id };
         },
       ),
@@ -1354,7 +1404,7 @@ export function makeReachDesk(deps: ReachDeps) {
         },
       ),
       /**
-       * Write queued drafts again from the posts kept at read time (no LinkedIn read): ranked
+       * Write queued drafts again from the posts kept at read time (no platform read): ranked
        * again, guarded, and the new words replace the old in To approve. One now off target, or
        * one the guard drops, leaves To approve.
        */
@@ -1364,9 +1414,15 @@ export function makeReachDesk(deps: ReachDeps) {
           const llm = deps.drafts?.llm;
           if (!llm) throw new restate.TerminalError("no model is set for drafts");
           const now = await nowOf(ctx);
-          const settings = await ctx.run("settings", () => commentsSettings(deps.db));
+          const settings = await ctx.run("settings", () => allCommentsSettings(deps.db));
           const guide = deps.drafts?.commentGuide;
-          const g = guide ? await ctx.run("guide", () => guide("linkedin")) : "";
+          const guides = guide
+            ? await ctx.run("guides", async () =>
+                Object.fromEntries(
+                  await Promise.all(REACH_POST_PLATFORMS.map(async (p) => [p, await guide(p)])),
+                ),
+              )
+            : {};
           const facts = deps.drafts?.facts;
           const truths = facts ? await ctx.run("facts", async () => [...(await facts())]) : [];
           const out: RedraftResult = { redrafted: [], dropped: [], skipped: [] };
@@ -1375,7 +1431,7 @@ export function makeReachDesk(deps: ReachDeps) {
             const r = await ctx.run(`redraft ${id}`, () =>
               redraftPosts(deps.db, llm, [id], {
                 settings,
-                guide: g,
+                guides,
                 facts: truths,
                 ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
                 now,
@@ -1399,13 +1455,17 @@ export function makeReachDesk(deps: ReachDeps) {
             }),
           ),
       ),
-      /** The posts pass now: read, rank, draft up to the day's cap. Off with no account set. */
+      /** The posts pass now on each platform with an account set: read, rank, draft to the cap. */
       postsNow: serviceHandler(
         { input: NO_INPUT },
-        async (ctx: restate.Context): Promise<PostsStats> => {
+        async (ctx: restate.Context): Promise<PostsStats[]> => {
           const now = await nowOf(ctx);
-          const settings = await ctx.run("settings", () => commentsSettings(deps.db));
-          return postsFor(deps, ctx, settings, now);
+          const all = await ctx.run("settings", () => allCommentsSettings(deps.db));
+          const out: PostsStats[] = [];
+          for (const platform of REACH_POST_PLATFORMS)
+            if (all[platform].account)
+              out.push(await postsFor(deps, ctx, platform, all[platform], now));
+          return out;
         },
       ),
       /** A person from People: their contact, added when new, with a model draft to edit. */

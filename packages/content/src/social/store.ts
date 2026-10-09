@@ -11,7 +11,7 @@ import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/outreach/tou
 import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { keepLive } from "../analytics/store.js";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
-import { touchFromActivity } from "../touches.js";
+import { linkCommentAuthors, touchFromActivity } from "../touches.js";
 
 const DAY = 86_400_000;
 /** Posts this young are read for comments. */
@@ -135,6 +135,8 @@ export async function keepPostComments(
     .map(({ sort: _, body, ...k }) => ({ ...k, asked: askedInWords(body) }))
     .sort((a, b) => a.id - b.id);
   for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  if (post.platform === "linkedin" && theirs.length)
+    await keepTouch("comment authors", () => linkCommentAuthors(db));
   await answeredByHand(db, post, rows);
   return theirs;
 }
@@ -226,6 +228,9 @@ export async function keepActivity(
     .onConflictDoNothing()
     .returning({ id: socialActivity.id, kind: socialActivity.kind });
   for (const k of kept) await keepTouch(`sa:${k.id}`, () => touchFromActivity(db, k.id));
+  // A LinkedIn comment notice may name who wrote a comment we hold only by URN.
+  if (platform === "linkedin" && kept.some((k) => k.kind === "notification"))
+    await keepTouch("comment authors", () => linkCommentAuthors(db));
   return kept;
 }
 

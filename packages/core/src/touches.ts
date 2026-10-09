@@ -358,6 +358,29 @@ export async function linkHandle(
 }
 
 /**
+ * One person under two handles (a LinkedIn URN a comment named, the vanity a notification named):
+ * the touches move to `to`, which takes the name and links `from` held, and `from` goes.
+ */
+export async function mergeHandle(
+  db: Queryable,
+  fromId: number,
+  to: HandleRef,
+  o: { name?: string | null } = {},
+): Promise<SocialHandle | null> {
+  const [from] = await db.select().from(socialHandles).where(eq(socialHandles.id, fromId));
+  if (!from) return null;
+  const h = await resolveHandle(db, to, {
+    name: o.name ?? from.name,
+    personId: from.personId,
+    leadId: from.leadId,
+  });
+  if (h.id === from.id) return h;
+  await db.update(touches).set({ handleId: h.id }).where(eq(touches.handleId, from.id));
+  await db.delete(socialHandles).where(eq(socialHandles.id, from.id));
+  return h;
+}
+
+/**
  * Handles not linked yet, tried again: a person or lead added since links now. Run by the
  * backfill and after imports.
  */

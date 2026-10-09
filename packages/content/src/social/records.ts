@@ -214,13 +214,13 @@ const connectRows = (db: Queryable) =>
       order by m.id limit ${ACTIVITY_ROWS}`,
   );
 
-/** Others' LinkedIn posts with a comment drafted, waiting on his yes. */
-const liPostRows = (db: Queryable) =>
+/** Others' posts (LinkedIn, X, Instagram) with a comment drafted, waiting on his yes. */
+const onPostRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, author, text, why, draft, url, account, coalesce(posted_at, created_at) at,
+    sql`select id, platform, author, text, why, draft, url, account, coalesce(posted_at, created_at) at,
         queued_at
-      from linkedin_posts where state = 'queued'
+      from reach_posts where state = 'queued'
       order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
   );
 
@@ -541,7 +541,7 @@ export const inboxRecord = defineRecord({
 /**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
  * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7` (accepted), `connect:7` (a
- * proposed invite, by contact), `lipost:9` (a comment drafted on someone else's LinkedIn post),
+ * proposed invite, by contact), `onpost:9` (a comment drafted on someone else's post),
  * `template:4:3` (version 3 asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
  * draft's slot, else when it came.
  */
@@ -558,7 +558,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
       const is = await acceptedRows(db);
       const cs = await connectRows(db);
-      const ls = await liPostRows(db);
+      const ls = await onPostRows(db);
       const asks = await waitingAsks(db);
       const ws = await waitingInstalls(db);
       const pgs = await waitingPages(db);
@@ -647,11 +647,11 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           url: i.url,
         })),
         ...ls.map((l) => ({
-          id: `lipost:${l.id}`,
-          type: "lipost",
+          id: `onpost:${l.id}`,
+          type: "onpost",
           who: l.author,
-          platform: "linkedin",
-          kind: "lipost",
+          platform: l.platform,
+          kind: "onpost",
           state: "waiting",
           body: l.text,
           post_title: null,
@@ -789,7 +789,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           thread: neutral("Thread"),
           invite: neutral("Invite"),
           connect: neutral("Invite"),
-          lipost: neutral("Comment"),
+          onpost: neutral("Comment"),
           template: neutral("Template"),
           workflow: neutral("Workflow"),
           page: neutral("Page"),
@@ -811,7 +811,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           thread: neutral("Thread to answer"),
           invite: neutral("Accepted your invite"),
           connect: neutral("Invite to send"),
-          lipost: neutral("Comment to post"),
+          onpost: neutral("Comment to post"),
           template: neutral("Copy to make live"),
           workflow: neutral("Workflow to make live"),
           page: neutral("Page to make live"),
@@ -839,7 +839,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
       { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
       { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
-      { id: "comments", label: "Comments", where: { type: "lipost" }, sort: "due", at: "due" },
+      { id: "comments", label: "Comments", where: { type: "onpost" }, sort: "due", at: "due" },
       {
         id: "invites",
         label: "Invites",
@@ -874,8 +874,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "marketing.inviteRead",
       "marketing.connectApprove",
       "marketing.connectSkip",
-      "marketing.lipostComment",
-      "marketing.lipostSkip",
+      "marketing.onpostComment",
+      "marketing.onpostSkip",
       "marketing.draftSet",
       "marketing.draftAsk",
       "marketing.draftUndo",

@@ -1,5 +1,5 @@
 /**
- * `wren reach …`: cold outreach on Reddit and LinkedIn from the keyboard.
+ * `wren reach …`: cold outreach on Reddit and LinkedIn, and comments on others' posts, from the keyboard.
  * Reads that need no platform (templates, threads, stats) go straight to
  * Postgres; everything else goes through the ReachDesk / ReachSender /
  * ReachWatch Restate services, so every platform call is journaled and runs
@@ -13,11 +13,11 @@ import { setWrenSettings } from "@wren/core/clients";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
-  COMMENTS_COMPONENT,
+  COMMENTS_COMPONENTS,
+  COMMENTS_SETTINGS,
   CONTACT_STATES,
   type ContactState,
   commentsSettings,
-  commentsSettingsSchema,
   INVITES_COMPONENT,
   inviteSettings,
   invitesSettingsSchema,
@@ -29,7 +29,9 @@ import {
   platformOf,
   policyFrom,
   proposedInvites,
+  REACH_POST_PLATFORMS,
   REACH_SEQUENCES,
+  type ReachPostPlatform,
   reachStats,
   slotsOf,
   topicYields,
@@ -427,33 +429,49 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   const posts = cmd
     .command("posts")
     .description(
-      "Comments on others' LinkedIn posts: read daily by the watch as Shop → LinkedIn comments' account, drafted for your yes in To approve",
+      "Comments on others' posts (LinkedIn, X, Instagram): read daily by the watch as each platform's comments account, drafted for your yes in To approve",
     );
+  const postPlatformOf = (v: string | undefined): ReachPostPlatform => {
+    const p = (v ?? "linkedin").toLowerCase();
+    if (!(REACH_POST_PLATFORMS as readonly string[]).includes(p))
+      throw new Error(`--platform is one of ${REACH_POST_PLATFORMS.join(", ")}`);
+    return p as ReachPostPlatform;
+  };
   posts
     .command("status", { isDefault: true })
-    .description("The settings, posts by state, and each search word's yield lately")
-    .action(async () =>
+    .description("One platform's settings, posts by state, and each search word's yield lately")
+    .option("--platform <p>", "linkedin, x or instagram", "linkedin")
+    .action(async (o: { platform?: string }) => {
+      const platform = postPlatformOf(o.platform);
       json(
         await withDb(async (db) => {
-          const settings = await commentsSettings(db);
+          const settings = await commentsSettings(db, platform);
           return {
+            platform,
             settings,
             posts: await db.execute(
-              sql`select state, count(*)::int n from linkedin_posts group by 1 order by 2 desc`,
+              sql`select state, count(*)::int n from reach_posts where platform = ${platform} group by 1 order by 2 desc`,
             ),
-            topics: await topicYields(db, { minFit: settings.minFit, now: new Date() }),
+            topics: await topicYields(db, { platform, minFit: settings.minFit, now: new Date() }),
           };
         }),
-      ),
-    );
+      );
+    });
   posts
     .command("set")
-    .description("Change the settings; a field left out keeps its value")
-    .option("--account <key>", "the autobrowse login that reads (linkedin@wren); empty = off")
+    .description("Change one platform's settings; a field left out keeps its value")
+    .option("--platform <p>", "linkedin, x or instagram", "linkedin")
+    .option(
+      "--account <key>",
+      "the autobrowse login that reads (linkedin@wren, x@wren); empty = off",
+    )
     .option("--per-day <n>", "comments queued for your yes a day at most")
     .option("--topics <list>", "comma separated search words")
-    .option("--companies <list>", "comma separated company page handles")
+    .option("--pages <list>", "comma separated LinkedIn company handles or X/Instagram usernames")
     .option("--people <on|off>", "also read people who accepted our invites or engaged")
+    .option("--author-title <words>", "LinkedIn search: authors whose title has these words")
+    .option("--like <on|off>", "like the post with the comment")
+    .option("--follow <on|off>", "follow the author with the comment")
     .option("--max-age-hours <n>", "posts older than this are left")
     .option("--min-fit <n>", "the rank (0 to 100) a post needs for a draft")
     .option("--audience <list>", "comma separated word starts a post must have (recruit,staffing)")
@@ -461,11 +479,15 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--new-topics <n>", "search words the model adds a pass (0 = only --topics)")
     .action(
       async (o: {
+        platform?: string;
         account?: string;
         perDay?: string;
         topics?: string;
-        companies?: string;
+        pages?: string;
         people?: string;
+        authorTitle?: string;
+        like?: string;
+        follow?: string;
         maxAgeHours?: string;
         minFit?: string;
         audience?: string;
@@ -477,14 +499,18 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
             .split(",")
             .map((x) => x.trim())
             .filter(Boolean);
-        if (o.people !== undefined && !["on", "off"].includes(o.people))
-          throw new Error(`on or off, not ${o.people}`);
+        const platform = postPlatformOf(o.platform);
+        for (const v of [o.people, o.like, o.follow])
+          if (v !== undefined && !["on", "off"].includes(v)) throw new Error(`on or off, not ${v}`);
         const change = {
           ...(o.account !== undefined && { account: o.account }),
           ...(o.perDay !== undefined && { perDay: Number(o.perDay) }),
           ...(o.topics !== undefined && { topics: list(o.topics) }),
-          ...(o.companies !== undefined && { companies: list(o.companies) }),
+          ...(o.pages !== undefined && { pages: list(o.pages) }),
           ...(o.people !== undefined && { people: o.people === "on" }),
+          ...(o.authorTitle !== undefined && { authorTitle: o.authorTitle }),
+          ...(o.like !== undefined && { like: o.like === "on" }),
+          ...(o.follow !== undefined && { follow: o.follow === "on" }),
           ...(o.maxAgeHours !== undefined && { maxAgeHours: Number(o.maxAgeHours) }),
           ...(o.minFit !== undefined && { minFit: Number(o.minFit) }),
           ...(o.audience !== undefined && { audience: list(o.audience) }),
@@ -493,13 +519,13 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         };
         json(
           await withDb(async (db) => {
-            const next = commentsSettingsSchema.parse({
-              ...(await commentsSettings(db)),
+            const next = COMMENTS_SETTINGS[platform].parse({
+              ...(await commentsSettings(db, platform)),
               ...change,
             });
             await atomic(db, async (tx) => {
               await setAuditActor(tx, "cli");
-              await setWrenSettings(tx, COMMENTS_COMPONENT, next, "cli");
+              await setWrenSettings(tx, COMMENTS_COMPONENTS[platform], next, "cli");
             });
             return next;
           }),
@@ -519,7 +545,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   posts
     .command("redraft <ids...>")
     .description(
-      "Write queued drafts again from the posts kept at read time (no LinkedIn read): ranked again, facts-guarded, replaced in To approve; one now off target leaves it",
+      "Write queued drafts again from the posts kept at read time (no platform read): ranked again, facts-guarded, replaced in To approve; one now off target leaves it",
     )
     .action(async (ids: string[]) =>
       json(

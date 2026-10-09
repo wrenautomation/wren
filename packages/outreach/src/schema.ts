@@ -567,22 +567,33 @@ export type RedditPlace = typeof redditPlaces.$inferSelect;
 export type RedditThread = typeof redditThreads.$inferSelect;
 
 /**
- * Others' LinkedIn posts to comment on (designs/2026-10-07-posting-flow.md, item 4): found by a
- * topic search, a company's posts or a key person's, ranked by code, drafted by the model, then
- * `queued` in To approve. Only his Comment posts it, from Wren's token. Dropped: too old, ours,
- * or no words.
+ * Others' posts to comment on, like, and follow the author of (designs/2026-10-07-posting-flow.md,
+ * item 4; designs/2026-10-07-touches.md): on LinkedIn, X or Instagram, found by a topic search, a
+ * company's or account's posts or a key person's, ranked by code, drafted by the model, then
+ * `queued` in To approve. Only his Comment posts it, with a like and a follow under the caps.
+ * Dropped: too old, ours, or no words.
  */
-export const LINKEDIN_POST_STATES = ["found", "queued", "commented", "skipped", "dropped"] as const;
-export type LinkedinPostState = (typeof LINKEDIN_POST_STATES)[number];
+export const REACH_POST_STATES = ["found", "queued", "commented", "skipped", "dropped"] as const;
+export type ReachPostState = (typeof REACH_POST_STATES)[number];
+export const REACH_POST_PLATFORMS = ["linkedin", "x", "instagram"] as const;
+export type ReachPostPlatform = (typeof REACH_POST_PLATFORMS)[number];
 
-export const linkedinPosts = pgTable(
-  "linkedin_posts",
+export const reachPosts = pgTable(
+  "reach_posts",
   {
     id: serial("id"),
-    /** `urn:li:activity:N`, `urn:li:ugcPost:N` or `urn:li:share:N`: what the comment route takes. */
-    urn: varchar("urn", { length: 80 }).notNull(),
+    platform: varchar("platform", { length: 12, enum: REACH_POST_PLATFORMS })
+      .notNull()
+      .default("linkedin"),
+    /**
+     * What the platform's routes take: LinkedIn's `urn:li:activity:N` (or `ugcPost`, `share`), X's
+     * post id, Instagram's shortcode.
+     */
+    ref: varchar("ref", { length: 80 }).notNull(),
     author: text("author").notNull(),
     authorUrl: text("author_url"),
+    /** The author's handle as `normalizeHandle` keeps it: X and Instagram usernames, LinkedIn vanity. */
+    handle: varchar("handle", { length: 120 }),
     headline: text("headline"),
     text: text("text").notNull(),
     url: text("url").notNull(),
@@ -590,14 +601,14 @@ export const linkedinPosts = pgTable(
     postedAt: timestamp("posted_at", { withTimezone: true }),
     reactions: integer("reactions").notNull().default(0),
     comments: integer("comments").notNull().default(0),
-    /** `topic: <words>`, `company: <handle>` or `person: <vanity>`. */
+    /** `topic: <words>`, `company: <handle>`, `account: <handle>` or `person: <handle>`. */
     foundBy: varchar("found_by", { length: 200 }).notNull(),
-    /** The read's account (`linkedin@wren`). */
+    /** The read's account (`linkedin@wren`, `x@wren`). */
     account: varchar("account", { length: 80 }).notNull(),
     /** Code's rank, higher first, and one line on why. */
     fit: smallint("fit"),
     why: text("why"),
-    state: varchar("state", { length: 12, enum: LINKEDIN_POST_STATES }).notNull().default("found"),
+    state: varchar("state", { length: 12, enum: REACH_POST_STATES }).notNull().default("found"),
     stateReason: text("state_reason"),
     draft: text("draft"),
     queuedAt: timestamp("queued_at", { withTimezone: true }),
@@ -605,15 +616,19 @@ export const linkedinPosts = pgTable(
     comment: text("comment"),
     commentedAt: timestamp("commented_at", { withTimezone: true }),
     commentedBy: varchar("commented_by", { length: 120 }),
+    /** Our like on the post and our follow of its author, each sent with his Comment. */
+    likedAt: timestamp("liked_at", { withTimezone: true }),
+    followedAt: timestamp("followed_at", { withTimezone: true }),
     raw: jsonb("raw").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    primaryKey({ columns: [t.id], name: "pk_linkedin_posts" }),
-    unique("uq_linkedin_posts_urn").on(t.urn),
-    index("ix_linkedin_posts_state").on(t.state),
-    oneOf("ck_linkedin_posts_state", t.state, LINKEDIN_POST_STATES),
+    primaryKey({ columns: [t.id], name: "pk_reach_posts" }),
+    unique("uq_reach_posts_platform_ref").on(t.platform, t.ref),
+    index("ix_reach_posts_state").on(t.state),
+    oneOf("ck_reach_posts_state", t.state, REACH_POST_STATES),
+    oneOf("ck_reach_posts_platform", t.platform, REACH_POST_PLATFORMS),
   ],
 );
 
-export type LinkedinPost = typeof linkedinPosts.$inferSelect;
+export type ReachPost = typeof reachPosts.$inferSelect;

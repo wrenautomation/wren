@@ -737,7 +737,7 @@ export const DRAFT_RECORD_KINDS = [
   "invite",
   "video",
   "invite_note",
-  "linkedin_comment",
+  "post_comment",
 ] as const;
 export type DraftRecordKind = (typeof DRAFT_RECORD_KINDS)[number];
 /** One step in a draft's life. `generated` is its first words, whoever wrote them. */

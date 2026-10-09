@@ -130,6 +130,21 @@ describe("x content channel", () => {
     expect(posts).toEqual([["POST", "/2/tweets", { text }]]);
   });
 
+  it("names comment authors by username: the page's, else the API's includes", async () => {
+    const { sites } = fakeSites({
+      "GET /2/tweets/search/recent": () => ({
+        data: [
+          { id: "t2", text: "a", author_id: "11", created_at: "2026-10-09T10:00:00Z" },
+          { id: "t3", text: "b", author_username: "PageName", created_at: "2026-10-09T10:00:00Z" },
+          { id: "t4", text: "c", author_id: "99", created_at: "2026-10-09T10:00:00Z" },
+        ],
+        includes: { users: [{ id: "11", username: "ApiName" }] },
+      }),
+    });
+    const rows = await xContent(sites, { now }).comments("t1");
+    expect(rows.map((r) => r.author)).toEqual(["ApiName", "PageName", "99"]);
+  });
+
   it("answers no comments when search is a tier the account lacks", async () => {
     const sites: SiteClient = {
       async call(_s, _m, path) {

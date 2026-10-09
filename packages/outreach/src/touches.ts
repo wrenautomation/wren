@@ -2,7 +2,7 @@
  * The outreach tables as touches (designs/2026-10-07-touches.md): one function per source row,
  * called where the row is written and again by the backfill, so both keep the same line under
  * the same ref. `rm:` a DM or invite, `c:` their comment, `ca:` our answer to it, `rt:` our
- * comment on a Reddit thread, `lp:` ours on a LinkedIn post.
+ * comment on a Reddit thread, `rp:` ours on someone's post (LinkedIn, X, Instagram).
  */
 import {
   recordTouch,
@@ -16,10 +16,10 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   type Comment,
   comments,
-  linkedinPosts,
   reachAccounts,
   reachContacts,
   reachMessages,
+  reachPosts,
   redditThreads,
 } from "./schema.js";
 
@@ -197,26 +197,55 @@ export async function touchFromThread(db: Queryable, id: string) {
 }
 
 /**
- * Our comment on someone's LinkedIn post: theirs by profile URL (a company page keys as
- * `company:<slug>`), else by name. The comment's own id isn't returned, so replies to it aren't
- * read yet.
+ * Ours on someone's post: the comment, then the like and the follow that went with it. LinkedIn
+ * keys them by profile URL (a company page keys as `company:<slug>`), else by name; X and
+ * Instagram by username. LinkedIn and X comments go out as our own page (`wren`), the rest as
+ * the reading account. The comment's own id isn't returned, so replies to it aren't read yet.
  */
-export async function touchFromLinkedinPost(db: Queryable, id: number) {
-  const [p] = await db.select().from(linkedinPosts).where(eq(linkedinPosts.id, id));
-  if (p?.state !== "commented" || !p.comment || !p.commentedAt) return null;
-  return recordTouch(db, {
-    platform: "linkedin",
-    handle: p.authorUrl || p.author,
-    name: p.author,
-    kind: "comment",
-    direction: "ours",
-    account: OWN_ACCOUNT,
-    url: p.url,
-    text: p.comment,
-    at: p.commentedAt,
-    source: "linkedin_posts",
-    ref: `lp:${p.id}`,
-  });
+export async function touchesFromReachPost(db: Queryable, id: number) {
+  const [p] = await db.select().from(reachPosts).where(eq(reachPosts.id, id));
+  if (!p) return null;
+  const handle = p.platform === "linkedin" ? p.authorUrl || p.author : p.handle || p.author;
+  const base = { platform: p.platform, handle, name: p.author, direction: "ours" as const };
+  const done: Array<{ created: boolean } | null> = [];
+  if (p.state === "commented" && p.comment && p.commentedAt)
+    done.push(
+      await recordTouch(db, {
+        ...base,
+        kind: "comment",
+        account: p.platform === "instagram" ? p.account : OWN_ACCOUNT,
+        url: p.url,
+        text: p.comment,
+        at: p.commentedAt,
+        source: "reach_posts",
+        ref: `rp:${p.id}`,
+      }),
+    );
+  if (p.likedAt)
+    done.push(
+      await recordTouch(db, {
+        ...base,
+        kind: "like",
+        account: p.account,
+        url: p.url,
+        at: p.likedAt,
+        source: "reach_posts",
+        ref: `rp:${p.id}:like`,
+      }),
+    );
+  if (p.followedAt)
+    done.push(
+      await recordTouch(db, {
+        ...base,
+        kind: "follow",
+        account: p.account,
+        url: p.authorUrl,
+        at: p.followedAt,
+        source: "reach_posts",
+        ref: `rp:${p.id}:follow`,
+      }),
+    );
+  return { created: done.some((d) => d?.created) };
 }
 
 export interface TouchBackfill {
@@ -263,10 +292,10 @@ export async function backfillOutreachTouches(
     .where(eq(redditThreads.state, "commented"))
     .orderBy(redditThreads.answeredAt);
   const posts = await db
-    .select({ id: linkedinPosts.id })
-    .from(linkedinPosts)
-    .where(eq(linkedinPosts.state, "commented"))
-    .orderBy(linkedinPosts.commentedAt);
+    .select({ id: reachPosts.id })
+    .from(reachPosts)
+    .where(sql`state = 'commented' or liked_at is not null or followed_at is not null`)
+    .orderBy(sql`coalesce(commented_at, liked_at, followed_at)`, reachPosts.id);
   if (o.dryRun) {
     return {
       ...out,
@@ -280,7 +309,7 @@ export async function backfillOutreachTouches(
   const made = (t: { created: boolean } | null) => (t?.created ? 1 : 0);
   // Ours first, then theirs, so a reply's parent is already a touch.
   for (const t of threads) out.threads += made(await touchFromThread(db, t.id));
-  for (const p of posts) out.posts += made(await touchFromLinkedinPost(db, p.id));
+  for (const p of posts) out.posts += made(await touchesFromReachPost(db, p.id));
   for (const c of ours) if (c.answered) out.answers += made(await touchFromAnswer(db, c.id));
   for (const m of msgs) out.messages += made(await touchFromMessage(db, m.id));
   for (const c of ours) out.comments += made(await touchFromComment(db, c.id));

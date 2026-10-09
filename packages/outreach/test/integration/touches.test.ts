@@ -15,21 +15,16 @@ import { keepComments, markAnswered } from "../../src/comments.js";
 import { dmContext } from "../../src/drafts.js";
 import { personContact } from "../../src/from-people.js";
 import { markAccepted } from "../../src/invites.js";
-import { markPostCommented } from "../../src/linkedin-posts.js";
+import { markPostCommented } from "../../src/reach-posts.js";
 import { personRecord } from "../../src/records.js";
-import {
-  linkedinPosts,
-  type ReachAccount,
-  reachContacts,
-  reachMessages,
-} from "../../src/schema.js";
+import { type ReachAccount, reachContacts, reachMessages, reachPosts } from "../../src/schema.js";
 import { backfillOutreachTouches, touchFromMessage } from "../../src/touches.js";
 
 const TABLES = [
   "touches",
   "social_handles",
   "comments",
-  "linkedin_posts",
+  "reach_posts",
   "reach_messages",
   "reach_contacts",
   "reach_accounts",
@@ -98,9 +93,9 @@ beforeEach(async () => {
 /** Our comment on Sam's LinkedIn post, as his Comment click keeps it. */
 async function commentOnTheirPost(at: Date) {
   const [post] = await db()
-    .insert(linkedinPosts)
+    .insert(reachPosts)
     .values({
-      urn: "urn:li:activity:7001",
+      ref: "urn:li:activity:7001",
       author: "Sam Test",
       authorUrl: "https://www.linkedin.com/in/sam-test",
       text: "Placed three nurses this week.",
@@ -112,7 +107,7 @@ async function commentOnTheirPost(at: Date) {
       raw: {},
     })
     .returning();
-  await markPostCommented(db(), post as typeof linkedinPosts.$inferSelect, {
+  await markPostCommented(db(), post as typeof reachPosts.$inferSelect, {
     body: "Three in a week is quick.",
     by: "william",
     now: at,

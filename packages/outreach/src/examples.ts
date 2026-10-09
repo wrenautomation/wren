@@ -8,13 +8,13 @@ import type { DraftRecordKind } from "@wren/core/draft-record";
 import { REJECT_LABELS, type RejectReason } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { comments, linkedinPosts, redditThreads } from "./schema.js";
+import { comments, reachPosts, redditThreads } from "./schema.js";
 
 /** The kinds that are comments: answers on our posts, Reddit threads, others' LinkedIn posts. */
 export const COMMENT_KINDS_LEARNED = [
   "comment",
   "thread",
-  "linkedin_comment",
+  "post_comment",
 ] as const satisfies readonly DraftRecordKind[];
 export type LearnedKind = (typeof COMMENT_KINDS_LEARNED)[number];
 
@@ -110,8 +110,8 @@ export async function commentDecisions(
     left join ${comments} c on d.kind = 'comment'
       and c.id = case when d.kind = 'comment' then split_part(d.item, ':', 2)::int end
     left join ${redditThreads} t on d.kind = 'thread' and t.id = split_part(d.item, ':', 2)
-    left join ${linkedinPosts} p on d.kind = 'linkedin_comment'
-      and p.id = case when d.kind = 'linkedin_comment' then split_part(d.item, ':', 2)::int end
+    left join ${reachPosts} p on d.kind = 'post_comment'
+      and p.id = case when d.kind = 'post_comment' then split_part(d.item, ':', 2)::int end
     order by d.at desc
     limit ${POOL}`);
   return rows.map((r) => ({

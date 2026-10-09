@@ -48,6 +48,8 @@ interface Tweet {
   text?: string;
   created_at?: string;
   author_id?: string;
+  /** The page leg's author. */
+  author_username?: string;
   public_metrics?: {
     impression_count?: number;
     like_count?: number;
@@ -203,9 +205,9 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
       };
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
-      let r: { data?: Tweet[] };
+      let r: { data?: Tweet[]; includes?: { users?: { id: string; username: string }[] } };
       try {
-        r = await sites.call<{ data?: Tweet[] }>("x", "GET", "/2/tweets/search/recent", {
+        r = await sites.call<typeof r>("x", "GET", "/2/tweets/search/recent", {
           query: `conversation_id:${id} -from:me`,
           max_results: Math.min(Math.max(q.limit ?? 100, 10), 100),
         });
@@ -214,13 +216,15 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         if (err instanceof SiteCallError && (err.status === 402 || err.status === 403)) return [];
         throw err;
       }
+      // The author by username: the page leg says it; the API in `includes.users`.
+      const users = new Map((r.includes?.users ?? []).map((u) => [u.id, u.username]));
       return pageOf(
         (r.data ?? [])
           .filter((t) => t.id !== id)
           .map((t) => ({
             id: t.id,
             postId: id,
-            author: t.author_id ?? "",
+            author: t.author_username ?? users.get(t.author_id ?? "") ?? t.author_id ?? "",
             text: t.text ?? "",
             at: t.created_at ?? now().toISOString(),
           })),

@@ -481,20 +481,20 @@ const CONNECT_ACTIONS: Action[] = [
   },
 ];
 
-/** A comment drafted on someone else's LinkedIn post: his click posts it from Wren's account. */
-const LIPOST_ACTIONS: Action[] = [
+/** A comment drafted on someone else's post (LinkedIn, X, Instagram): his click posts it, with a like and follow when set. */
+const ONPOST_ACTIONS: Action[] = [
   {
-    id: "marketing.lipostComment",
+    id: "marketing.onpostComment",
     label: "Comment",
-    handler: "marketing/lipostComment",
-    confirm: "Post this comment on their LinkedIn post?",
+    handler: "marketing/onpostComment",
+    confirm: "Post this comment on their post?",
     key: "r",
     done: said("Commented"),
   },
   {
-    id: "marketing.lipostSkip",
+    id: "marketing.onpostSkip",
     label: "Skip",
-    handler: "marketing/lipostSkip",
+    handler: "marketing/onpostSkip",
     form: REJECT_FORM,
     each: true,
     bulk: true,
@@ -764,13 +764,13 @@ const APPROVAL_ACTIONS: Action[] = [
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
-  ...LIPOST_ACTIONS.map((a) => only("lipost", a, WAITS)),
+  ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a, WAITS)),
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
   ...fieldActions({ type: ["draft"], state: ["new", "waiting", "read"] }),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
-    type: ["draft", "thread", "invite", "lipost"],
+    type: ["draft", "thread", "invite", "onpost"],
     state: ["new", "waiting", "read"],
   }),
 ];
@@ -810,17 +810,17 @@ const NOTE_DRAFT: DraftOf = {
   label: "Your invite note, 200 characters at most",
   send: "marketing.connectApprove",
 };
-const LIPOST_DRAFT: DraftOf = {
+const ONPOST_DRAFT: DraftOf = {
   field: "draft",
   label: "Your comment, posted under their post",
-  send: "marketing.lipostComment",
+  send: "marketing.onpostComment",
 };
 /** To approve's row type picks its box; a post's words are the row's body there. */
 const APPROVAL_DRAFT: Record<string, DraftOf> = {
   draft: { ...POST_DRAFT, field: "body" },
   invite: INVITE_DRAFT,
   thread: THREAD_DRAFT,
-  lipost: LIPOST_DRAFT,
+  onpost: ONPOST_DRAFT,
   connect: NOTE_DRAFT,
 };
 

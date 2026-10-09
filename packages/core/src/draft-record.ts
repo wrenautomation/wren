@@ -52,8 +52,8 @@ const PREFIX_KIND: Readonly<Record<string, DraftRecordKind>> = {
   dm: "dm",
   invite: "invite",
   video: "video",
-  // A comment on someone else's LinkedIn post (designs/2026-10-07-posting-flow.md, item 4).
-  lipost: "linkedin_comment",
+  // A comment on someone else's post, on LinkedIn, X or Instagram (`reach_posts`).
+  onpost: "post_comment",
   // A drafted note on a LinkedIn invite: `note:<contact id>`.
   note: "invite_note",
 };

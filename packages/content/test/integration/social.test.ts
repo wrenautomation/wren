@@ -21,10 +21,10 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import {
   answerComment,
   comments,
-  linkedinPosts,
   planAnswer,
   reachContacts,
   reachMessages,
+  reachPosts,
   redditPlaces,
   redditThreads,
 } from "@wren/outreach";
@@ -110,7 +110,7 @@ beforeEach(async () => {
     "social_days",
     "reach_messages",
     "reach_contacts",
-    "linkedin_posts",
+    "reach_posts",
     "reddit_threads",
     "reddit_places",
   ]);
@@ -309,9 +309,9 @@ describe("SocialWatch", () => {
     expect(inbox.find((r) => String(r.id).startsWith("connect:"))).toBeUndefined();
     // A comment drafted on someone else's LinkedIn post: the post, why, and our draft.
     const [lp] = await pg.db
-      .insert(linkedinPosts)
+      .insert(reachPosts)
       .values({
-        urn: "urn:li:activity:1",
+        ref: "urn:li:activity:1",
         author: "Ben C",
         text: "Hiring is slow this quarter.",
         url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
@@ -324,9 +324,9 @@ describe("SocialWatch", () => {
       })
       .returning();
     const again = (await approvalRecord.rows?.(pg.db)) ?? [];
-    expect(again.find((r) => r.id === `lipost:${lp?.id}`)).toMatchObject({
-      type: "lipost",
-      kind: "lipost",
+    expect(again.find((r) => r.id === `onpost:${lp?.id}`)).toMatchObject({
+      type: "onpost",
+      kind: "onpost",
       who: "Ben C",
       platform: "linkedin",
       state: "waiting",
@@ -360,7 +360,7 @@ describe("SocialWatch", () => {
     });
     const inboxAfter = (await inboxRecord.rows?.(pg.db)) ?? [];
     expect(inboxAfter.find((r) => String(r.id).startsWith("thread:"))).toBeUndefined();
-    expect(inboxAfter.find((r) => String(r.id).startsWith("lipost:"))).toBeUndefined();
+    expect(inboxAfter.find((r) => String(r.id).startsWith("onpost:"))).toBeUndefined();
     expect(approvals.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
       type: "draft",
       state: "waiting",

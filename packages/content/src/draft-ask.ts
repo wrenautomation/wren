@@ -29,9 +29,9 @@ import {
   DRAFT_MAX,
   dmContext,
   examplesFor,
-  COMMENT_MAX as LINKEDIN_COMMENT_MAX,
-  linkedinPosts,
+  COMMENT_MAX as POST_COMMENT_MAX,
   reachContacts,
+  reachPosts,
   redditThreads,
 } from "@wren/outreach";
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
@@ -41,7 +41,7 @@ import { editDraft } from "./review.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
 
 /** What `wren drafts list --type` names: a post is an Inbox `draft:`. */
-export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite", "lipost"] as const;
+export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite", "onpost"] as const;
 export type DraftType = (typeof DRAFT_TYPES)[number];
 
 export interface DraftItem {
@@ -85,7 +85,7 @@ interface DraftKind {
 }
 
 /** A comment's cap where the platform has one under Reddit's and YouTube's 10,000. */
-const COMMENT_MAX: Record<string, number> = { linkedin: 1250, x: 280, instagram: 2200 };
+const COMMENT_MAX: Readonly<Record<string, number>> = POST_COMMENT_MAX;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SITE: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -272,53 +272,51 @@ const thread: DraftKind = {
     })),
 };
 
-/** Our comment on someone else's LinkedIn post (`linkedin_posts.draft`), while it waits. */
-const lipost: DraftKind = {
-  type: "lipost",
+/** Our comment on someone else's post (`reach_posts.draft`), while it waits. */
+const onpost: DraftKind = {
+  type: "onpost",
   read: async (db, id) => {
     if (!/^\d+$/.test(id)) return null;
     const [p] = await db
       .select()
-      .from(linkedinPosts)
-      .where(eq(linkedinPosts.id, Number(id)));
+      .from(reachPosts)
+      .where(eq(reachPosts.id, Number(id)));
     if (!p) return null;
     return {
-      what: "LinkedIn comment on someone else's post",
-      platform: "linkedin",
-      title: `LinkedIn: ${p.author}`,
+      what: `${PLATFORM_SPECS[p.platform].name} comment on someone else's post`,
+      platform: p.platform,
+      title: `${PLATFORM_SPECS[p.platform].name}: ${p.author}`,
       draft: p.draft,
-      max: LINKEDIN_COMMENT_MAX,
+      max: POST_COMMENT_MAX[p.platform],
       open: p.state === "found" || p.state === "queued",
       context: facts([
         [`Post by ${p.author}`, `${p.headline ? `${p.headline}\n\n` : ""}${p.text}`],
         ["Why it was picked", p.why],
       ]),
       about: p.text,
-      guide: await commentGuide(db, "linkedin"),
+      guide: await commentGuide(db, p.platform),
     };
   },
   write: async (db, id, text) => {
     const done = await db
-      .update(linkedinPosts)
+      .update(reachPosts)
       .set({ draft: text })
-      .where(
-        and(eq(linkedinPosts.id, Number(id)), inArray(linkedinPosts.state, ["found", "queued"])),
-      )
-      .returning({ id: linkedinPosts.id });
+      .where(and(eq(reachPosts.id, Number(id)), inArray(reachPosts.state, ["found", "queued"])))
+      .returning({ id: reachPosts.id });
     if (!done.length) throw new Error(`post ${id} is commented, skipped or dropped`);
   },
   waiting: async (db, limit) =>
     (
       await db
         .select()
-        .from(linkedinPosts)
-        .where(and(eq(linkedinPosts.state, "queued"), isNotNull(linkedinPosts.draft)))
-        .orderBy(desc(linkedinPosts.queuedAt))
+        .from(reachPosts)
+        .where(and(eq(reachPosts.state, "queued"), isNotNull(reachPosts.draft)))
+        .orderBy(desc(reachPosts.queuedAt))
         .limit(limit)
     ).map((p) => ({
-      item: `lipost:${p.id}`,
-      type: "lipost" as const,
-      title: `LinkedIn: ${p.author}`,
+      item: `onpost:${p.id}`,
+      type: "onpost" as const,
+      title: `${PLATFORM_SPECS[p.platform].name}: ${p.author}`,
       draft: p.draft,
       at: p.queuedAt ?? p.createdAt,
     })),
@@ -398,7 +396,7 @@ export const DRAFT_KINDS: Record<string, DraftKind> = {
   thread,
   dm: reach("dm"),
   invite: reach("invite"),
-  lipost,
+  onpost,
 };
 
 /** "comment:12" as its kind and id; throws on one no kind holds. */

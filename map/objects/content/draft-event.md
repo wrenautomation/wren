@@ -31,7 +31,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 ## If you change this
 
-- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,linkedin-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
+- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,reach-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
 - **Does not hit:** `changes` (the records layer's field edits) or `runs` (still written as before)
 
 ## Surfaces

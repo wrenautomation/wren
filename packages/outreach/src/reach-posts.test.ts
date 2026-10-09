@@ -17,11 +17,11 @@ import {
   proposeTopics,
   REST_AFTER,
   rankPost,
-} from "./linkedin-posts.js";
+} from "./reach-posts.js";
 
 const NOW = new Date("2026-10-07T15:00:00Z");
 const post = (o: Partial<FeedPost> = {}): FeedPost => ({
-  urn: "urn:li:activity:1",
+  ref: "urn:li:activity:1",
   author: "Sam Example",
   authorUrl: "https://www.linkedin.com/in/sam-example",
   text: "Our recruiting agency spends hours chasing candidates for interview slots every week.",

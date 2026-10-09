@@ -114,7 +114,7 @@ export const touches = pgTable(
     answers: integer("answers"),
     /** The platform's id for it (a comment's or message's), what their reply's parent names. */
     externalId: varchar("external_id", { length: 200 }),
-    /** The source table it came from: `reach_messages`, `comments`, `linkedin_posts`, ... */
+    /** The source table it came from: `reach_messages`, `comments`, `reach_posts`, ... */
     source: varchar("source", { length: 32 }).notNull(),
     /** Unique key from the source row (`rm:12`, `ca:7`): a writer and the backfill agree. */
     ref: varchar("ref", { length: 200 }).notNull(),

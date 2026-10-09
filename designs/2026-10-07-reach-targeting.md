@@ -25,16 +25,27 @@ Search words get measured live from the next pass on. `wren reach posts status` 
 
 ## What changed
 
-- Job posts. `jobPost(text, headline)` gives one of three reasons. A job ad: the old phrases, plus "interested candidates", "candidates must", "send their resumes", three or more field labels ("Location:", "Rate:"), shift and days-per-week lines, and "recruiting reliable/experienced". A job seeker: "you're recruiting for", "happy to interview", or a headline like "Open to work" or "Available for". For job seekers: "get you a job", "place you", or two career-advice cues (land a job, students, graduate, your CV). `isJobAd` is true for all three. Synthetic copies of the cases the model caught are in `src/linkedin-posts.test.ts`.
+- Job posts. `jobPost(text, headline)` gives one of three reasons. A job ad: the old phrases, plus "interested candidates", "candidates must", "send their resumes", three or more field labels ("Location:", "Rate:"), shift and days-per-week lines, and "recruiting reliable/experienced". A job seeker: "you're recruiting for", "happy to interview", or a headline like "Open to work" or "Available for". For job seekers: "get you a job", "place you", or two career-advice cues (land a job, students, graduate, your CV). `isJobAd` is true for all three. Synthetic copies of the cases the model caught are in `src/reach-posts.test.ts`.
 - Author fit. `authorFit(headline, audience)`. An owner title with an audience word in the headline is a buyer (+18). Any other owner gets +10, a manager +5 (+10 in the audience's world). A headline that sells ("I help", "helping", consultant, coach, advisor, fractional) gets -15. A buyer's post passes the audience gate even when the text never names the world.
 - Post voice. The owner's own voice ("our recruiting agency", "my clients", "I started my firm") adds up to 10. A pitch ("book a call", "link in the comments", "join the waitlist") costs 8.
 - Search words from research. New settings `about` (who the buyers are) and `newTopics` (default 3). Each pass reads every word's yield over 14 days (`topicYields`). His own words go best yield first. A word that read 15 posts with none on target rests until those reads age out. Past model words with 2 or more on target come back. The model proposes the rest from `about` and those yields (`proposeTopics`). Code drops any phrase with job words, over 5 words, or already known. Key people always get their reads.
 - Audience. "agency owner" joins Wren's default words.
 
-Everything targeting lives in the `linkedin.comments` settings block, with Wren's defaults. Nothing names a niche in code.
+Everything targeting lives in each platform's settings block (`linkedin.comments`, `x.comments`, `instagram.comments`), with Wren's defaults. Nothing names a niche in code.
+
+## 2026-10-09: the title filter, X and Instagram
+
+- `authorTitle` (LinkedIn only): autobrowse's `postsSearchUrl` passes it as LinkedIn's
+  `authorJobTitle` filter, so a search reads only authors whose title has the words ("founder").
+- `companies` became `pages`: LinkedIn company handles, or X and Instagram usernames.
+- X reads: recent search with `lang:en -filter:replies -filter:retweets since:<day>`, and an
+  account's own posts (no reposts, no pinned post). Instagram reads: keyword search, then each
+  post page (3 searches a pass, 6 posts each), and an account through Graph business discovery.
+- Key people on X and Instagram: handles that touched us. LinkedIn keeps accepted invites and
+  engagers.
+- The model's search words and the comment prompt name the platform; each has its own length rule.
 
 ## Not done
 
 - No LinkedIn reads to test the new search words. They are measured on prod passes.
-- The author job title filter on LinkedIn's post search would need autobrowse's `postsSearchUrl` to change. Left for that repo.
 - Company posts carry no headline, so their author fit stays 0.

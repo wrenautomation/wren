@@ -4,7 +4,7 @@ import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
 import { invitesSettingsSchema } from "./invites.js";
-import { commentsSettingsSchema } from "./linkedin-posts.js";
+import { COMMENTS_SETTINGS } from "./reach-posts.js";
 
 /** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
 export const WATCH_UNIT = "daily";
@@ -276,7 +276,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "reply",
     for: "wren",
     ready: true,
-    settings: commentsSettingsSchema,
+    settings: COMMENTS_SETTINGS.linkedin,
     wrenSettings: true,
     // The watch reads and drafts; ReachDesk comments; To approve shows them.
     requires: { components: ["reach.outreach", "content.social"], accounts: ["linkedin"] },
@@ -289,7 +289,7 @@ export const OUTREACH_COMPONENTS = [
         {
           is: "change",
           says: "What to read: topics, companies, people we know.",
-          built: "settings.topics, companies, people",
+          built: "settings.topics, pages, people, authorTitle",
         },
         {
           is: "change",
@@ -304,8 +304,65 @@ export const OUTREACH_COMPONENTS = [
         { is: "needs", says: "autobrowse's post reads on linkedin@wren, 12 a day.", built: null },
         { is: "fixed", says: "Never his personal login or the research alt." },
         { is: "fixed", says: "No comment posts without your yes in To approve." },
+        {
+          is: "change",
+          says: "With the comment, like the post and follow its author.",
+          built: "settings.like, follow",
+        },
       ],
     },
+  }),
+  ...(["x", "instagram"] as const).map((p) => {
+    const name = p === "x" ? "X" : "Instagram";
+    return defineComponent({
+      id: `${p}.comments`,
+      stage: "reach",
+      channels: ["social"],
+      name: `${name} comments`,
+      blurb: `Finds the day's best ${name} posts by others on your topics, accounts and people, and drafts a comment in your voice for each. Each waits on your yes; a like and follow can go with it.`,
+      icon: "reply",
+      for: "wren",
+      ready: true,
+      settings: COMMENTS_SETTINGS[p],
+      wrenSettings: true,
+      requires: { components: ["reach.outreach", "content.social"], accounts: [p] },
+      provides: {},
+      effects: ["sends"],
+      hypothesis: {
+        from: `Wren's ${name}, 2026-10`,
+        guesses: [
+          {
+            is: "change",
+            says: "Which login reads, likes and follows; empty is off.",
+            built: "settings.account",
+          },
+          {
+            is: "change",
+            says: "What to read: topics, accounts, people who touched us.",
+            built: "settings.topics, pages, people",
+          },
+          {
+            is: "change",
+            says: "How many a day, and how fresh.",
+            built: "settings.perDay, maxAgeHours",
+          },
+          {
+            is: "change",
+            says: "With the comment, like the post and follow its author.",
+            built: "settings.like, follow",
+          },
+          {
+            is: "needs",
+            says:
+              p === "x"
+                ? "autobrowse's X search and reply, metered per account."
+                : "autobrowse's Instagram search, post reads and comments, metered per account.",
+            built: null,
+          },
+          { is: "fixed", says: "No comment posts without your yes in To approve." },
+        ],
+      },
+    });
   }),
 ];
 
