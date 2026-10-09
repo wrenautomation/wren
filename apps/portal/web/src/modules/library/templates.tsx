@@ -11,7 +11,6 @@ import type { TemplateListRow, TemplateOpen, TemplateSaved } from "@wren/core/te
 import type { TemplateDetail } from "@wren/core/templates/edits";
 import { folderLabel, labelOf, nameLabel, nameParts } from "@wren/core/templates/labels";
 import {
-  Alert,
   Browser,
   BrowserRow,
   Button,
@@ -19,6 +18,7 @@ import {
   Diff,
   Empty,
   Input,
+  LoadFailed,
   Loading,
   type MessageKind,
   MessagePreview,
@@ -140,7 +140,7 @@ export function Templates({ params, demo, can }: PageProps) {
         lede="Every template and prompt in its folder. Saving keeps a new version. Nothing sends until a version is live."
       />
       {list.error && !list.data ? (
-        <Alert onRetry={list.retry}>{list.error.message}</Alert>
+        <LoadFailed error={list.error} onRetry={list.retry} />
       ) : !list.data ? (
         <Loading lines={8} />
       ) : (
@@ -358,7 +358,7 @@ function Open({
     got.retry();
     onChanged();
   };
-  if (got.error && !d) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !d) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!d) return <Loading lines={8} />;
   const mayWrite = writes && d.mayAct && d.editable;
   return (
@@ -917,7 +917,7 @@ function NumbersTab({ id }: { id: string }) {
   const got = useCall(`templates:numbers:${id}`, () =>
     call<RecordAnswer>("console/recordsGet", { record: "templates.template", id }),
   );
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={5} />;
   const d = got.data.detail as TemplateDetail | null;
   return d ? <Numbers d={d} /> : <p className={QUIET}>No numbers yet.</p>;

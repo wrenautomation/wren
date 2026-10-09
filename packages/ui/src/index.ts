@@ -49,7 +49,16 @@ export {
   type RecordDraft,
   useDraftText,
 } from "./draft.js";
-export { Alert, Callout, Empty, InDevelopment, Loading } from "./feedback.js";
+export {
+  Alert,
+  Callout,
+  Empty,
+  failureOf,
+  InDevelopment,
+  LoadFailed,
+  Loading,
+  ShowRawErrors,
+} from "./feedback.js";
 export {
   type CiteTo,
   Cue,

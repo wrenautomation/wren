@@ -17,6 +17,7 @@ import {
   type GraphEdit,
   type GraphMark,
   Input,
+  LoadFailed,
   Loading,
   PageHeader,
   type Place,
@@ -206,7 +207,7 @@ export function Workflows({ params, team, can }: PageProps) {
       return new Map(got.filter((x) => x !== null));
     },
   );
-  if (trail.error && !trail.data) return <Alert onRetry={trail.retry}>{trail.error.message}</Alert>;
+  if (trail.error && !trail.data) return <LoadFailed error={trail.error} onRetry={trail.retry} />;
   if (!trail.data || (!current && trail.loading)) return <Loading lines={6} />;
   if (!d || !w) return <Alert>No workflow called {path.at(-1)}.</Alert>;
   return (

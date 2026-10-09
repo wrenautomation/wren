@@ -3,7 +3,7 @@
  * who and how much. Open one to read it, name it, restore it (a new version; nothing is lost), or
  * compare any two with each change colored by its author.
  */
-import { Alert, Button, Icon, Input, Loading, say, Tag } from "@wren/ui";
+import { Button, Icon, Input, LoadFailed, Loading, say, Tag } from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
 import { hueOf, type NoteCompare, type NoteVersions, notes } from "./api.js";
@@ -205,7 +205,7 @@ export function VersionOpen({
       {against !== null ? (
         <Compare client={client} id={id} a={against} b={number} />
       ) : one.error && !one.data ? (
-        <Alert onRetry={one.retry}>{one.error.message}</Alert>
+        <LoadFailed error={one.error} onRetry={one.retry} />
       ) : !one.data ? (
         <Loading lines={8} />
       ) : (
@@ -223,7 +223,7 @@ function Compare({ client, id, a, b }: { client: string; id: string; a: number; 
   const got = useCall(`notes:compare:${client}:${id}:${a}:${b}`, () =>
     notes(client, "compare", { id, from: a, to: b }),
   );
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={8} />;
   const c: NoteCompare = got.data;
   const authorOf = (by: number | null) => (by === null ? null : (c.authors[by]?.[0] ?? null));

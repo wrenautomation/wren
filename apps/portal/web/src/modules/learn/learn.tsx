@@ -9,6 +9,7 @@ import {
   Fieldset,
   FRAME,
   Input,
+  LoadFailed,
   Loading,
   PageHeader,
   relative,
@@ -18,7 +19,6 @@ import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "rea
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { call, inWorkspace, keyOf } from "./api.js";
-import { LearnFrame } from "./frame.js";
 
 interface Saved {
   id: string;
@@ -161,14 +161,10 @@ function Snippet({ text }: { text: string }): ReactNode {
   );
 }
 
-/** Search across every transcript, summary and title, beside the rail like every Learn page. */
+/** Search across every transcript, summary and title. */
 export function SearchPage({ params, client }: PageProps) {
   inWorkspace(client);
-  return (
-    <LearnFrame here="search">
-      <SearchBody params={params} />
-    </LearnFrame>
-  );
+  return <SearchBody params={params} />;
 }
 
 function SearchBody({ params }: { params: URLSearchParams }) {
@@ -208,7 +204,7 @@ function SearchBody({ params }: { params: URLSearchParams }) {
       {!asked ? (
         <Empty>Search finds words in anything saved or followed.</Empty>
       ) : hits.error && !hits.data ? (
-        <Alert onRetry={hits.retry}>{hits.error.message}</Alert>
+        <LoadFailed error={hits.error} onRetry={hits.retry} />
       ) : !hits.data ? (
         <Loading lines={4} />
       ) : !hits.data.hits.length ? (

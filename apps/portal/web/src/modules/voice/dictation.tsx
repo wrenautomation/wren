@@ -2,7 +2,7 @@
  * Voice dictation on the Latency page: p50 and p95 per way of dictating and stage, over the last
  * 30 days of `dictate` runs (packages/voice/src/dictation-store.ts). Only Wren's team reports.
  */
-import { Alert, Empty, Loading, Section } from "@wren/ui";
+import { Empty, LoadFailed, Loading, Section } from "@wren/ui";
 import type { DictationStat } from "@wren/voice/console";
 import { DICTATION_STAGES } from "@wren/voice/dictation";
 import { call } from "../../api.js";
@@ -37,7 +37,7 @@ export function DictationLatency() {
         </p>
       </div>
       {got.error && !got.data ? (
-        <Alert onRetry={got.retry}>{got.error.message}</Alert>
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !got.data ? (
         <Loading lines={3} />
       ) : !adapters.length ? (

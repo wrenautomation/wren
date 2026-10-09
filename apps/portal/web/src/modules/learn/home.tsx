@@ -3,9 +3,9 @@
  * per type, and the SOPs items went into lately.
  */
 import {
-  Alert,
   ButtonLink,
   cx,
+  LoadFailed,
   Loading,
   PAGE_TITLE,
   relative,
@@ -29,7 +29,7 @@ const SOP_STATES = {
 export function HomePage({ client }: PageProps) {
   inWorkspace(client);
   return (
-    <LearnFrame here="home">
+    <LearnFrame>
       <HomeBody />
     </LearnFrame>
   );
@@ -65,7 +65,7 @@ function HomeBody() {
         </div>
       </header>
       {load.error && !home ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !home ? (
         <Loading lines={4} shape="cards" />
       ) : !home.shelves.length && !home.continue.length && !home.top.length && !home.sops.length ? (

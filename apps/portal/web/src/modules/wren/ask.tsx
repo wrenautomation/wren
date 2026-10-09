@@ -5,11 +5,11 @@
  */
 import type { RecordsPage } from "@wren/core/records/serve";
 import {
-  Alert,
   Button,
   DictateField,
   Empty,
   exact,
+  LoadFailed,
   Loading,
   PageHeader,
   relative,
@@ -123,7 +123,7 @@ export function Ask() {
         </div>
       </form>
       {list.error && !list.data ? (
-        <Alert onRetry={list.retry}>{list.error.message}</Alert>
+        <LoadFailed error={list.error} onRetry={list.retry} />
       ) : !list.data ? (
         <Loading lines={4} />
       ) : !list.data.rows.length ? (

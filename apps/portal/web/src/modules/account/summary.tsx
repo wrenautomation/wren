@@ -3,7 +3,7 @@
  * month's managed usage across clients (designs/2026-10-07-setup-and-vendors.md).
  */
 import type { AccountsView, UsageView } from "@wren/core/accounts/console";
-import { Alert, ButtonLink, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { ButtonLink, Empty, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { dayLabel, LIST, QUIET, SPLIT, TOOLS } from "../work/bits.js";
@@ -15,7 +15,7 @@ export function ClientAccounts({ client }: { client: string }) {
     call<AccountsView>("accounts/accounts", { client, asClient: false }),
   );
   const q = `?client=${encodeURIComponent(client)}`;
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={2} />;
   return (
     <div className="grid gap-3">
@@ -79,7 +79,7 @@ export function VendorUsage() {
         }
       />
       {got.error && !d ? (
-        <Alert onRetry={got.retry}>{got.error.message}</Alert>
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !d ? (
         <Loading lines={4} />
       ) : byOwner.size === 0 ? (

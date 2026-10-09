@@ -1,5 +1,5 @@
 /** People: who sees this account's projects. An owner invites and removes. */
-import { Alert, Button, Empty, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Button, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
 import { PersonAccess } from "../access/PersonAccess.js";
@@ -36,7 +36,7 @@ export function People(props: PageProps) {
       />
       <Section>
         {people.error && !people.data ? (
-          <Alert onRetry={people.retry}>{people.error.message}</Alert>
+          <LoadFailed error={people.error} onRetry={people.retry} />
         ) : !people.data ? (
           <Loading lines={3} />
         ) : people.data.people.length === 0 ? (

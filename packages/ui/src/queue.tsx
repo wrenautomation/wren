@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { type Action, applies, blockedOf, sayBlocked, useRun } from "./action.js";
 import { Button } from "./controls.js";
-import { Alert } from "./feedback.js";
+import { LoadFailed } from "./feedback.js";
 import { Cue, relative } from "./fields.js";
 import { num } from "./format.js";
 import { PAGE_TITLE } from "./layout.js";
@@ -45,7 +45,7 @@ const NAV =
 export function RecordQueue(props: RecordTemplateProps) {
   const types = useTypes(props.api);
   const meta = types.data?.find((t) => t.id === props.record);
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!types.data) return <ListSkeleton />;
   if (!meta) return <NotHere />;
   return <Queue {...props} meta={meta} types={types.data} />;
@@ -170,7 +170,7 @@ function Queue({
       </div>
 
       {page.error && !page.data ? (
-        <Alert onRetry={page.retry}>{page.error.message}</Alert>
+        <LoadFailed error={page.error} onRetry={page.retry} />
       ) : !page.data ? (
         <ListSkeleton />
       ) : !rows.length ? (

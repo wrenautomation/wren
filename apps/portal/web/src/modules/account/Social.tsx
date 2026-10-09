@@ -9,6 +9,7 @@ import {
   Button,
   Callout,
   Empty,
+  LoadFailed,
   Loading,
   PageHeader,
   PlatformMark,
@@ -172,7 +173,7 @@ export function Social(props: PageProps) {
         lede="The accounts Wren posts from and answers on. Each takes one sign-in. Posts and replies wait in To approve before they go."
       />
       {load.error && !data ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !data ? (
         <Loading lines={6} />
       ) : data.wren ? (

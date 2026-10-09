@@ -5,7 +5,7 @@
  * (`saveKey`) and setVendor gets its ref; the page shows only its last 4.
  */
 import type { VendorsView } from "@wren/core/accounts/console";
-import { Alert, Button, Callout, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Button, Callout, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
 import { saveKey } from "../../keys.js";
@@ -245,7 +245,7 @@ export function Vendors(props: PageProps) {
         }
       />
       {load.error && !d ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !d ? (
         <Loading lines={4} />
       ) : (

@@ -1,11 +1,21 @@
 /**
- * Learn's Items: a place from the rail (Inbox, Watch later, a collection, a source), as a feed
+ * Learn's Items: a place from the sidebar (Inbox, Watch later, a collection, a source), as a feed
  * of cards, a list or a compact list (remembered per viewer). Chips filter by type and by
  * source with counts; sort by newest, score, length, source or title. Select with x or the box,
- * then move, tag, archive or add to an SOP; drag cards onto the rail. Keys: ? lists them.
+ * then move, tag, archive or add to an SOP; drag cards onto the sidebar. Keys: ? lists them.
  * /learn/items/<id> is one item, in place (./item.tsx).
  */
-import { Alert, Button, cx, Empty, Input, Loading, PAGE_TITLE, relative, usePref } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Empty,
+  Input,
+  LoadFailed,
+  Loading,
+  PAGE_TITLE,
+  relative,
+  usePref,
+} from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   Archive,
@@ -16,6 +26,7 @@ import {
   Ellipsis,
   ExternalLink,
   FolderInput,
+  FolderPlus,
   Hash,
   Keyboard,
   LayoutGrid,
@@ -73,6 +84,7 @@ import {
   MoveDialog,
   many,
   markItems,
+  NameDialog,
   SopDialog,
   TagDialog,
   trailOf,
@@ -94,7 +106,7 @@ const SORTS = [
 const PAGE = 60;
 const MAX = 200;
 
-type Dialog = { kind: "move" | "tag" | "sop" | "keys"; ids: number[] } | null;
+type Dialog = { kind: "move" | "tag" | "sop" | "keys" | "collection"; ids: number[] } | null;
 
 /** Pieces of a comma list in the address. */
 const listOf = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
@@ -108,13 +120,10 @@ export function ItemsPage({ client }: PageProps) {
   const route = useRoute();
   const id = route.path[2];
   const p = route.params;
-  const place = p.get("in") || "inbox";
-  const tag = p.get("tag");
-  const here = tag && place === "all" ? `tag:${tag}` : place;
   // Items on screen: what the sources brought is seen, and the tab's badge clears.
   useEffect(() => markSeen(), []);
   return (
-    <LearnFrame here={here}>
+    <LearnFrame>
       {id ? <ItemView id={id} back={href("/learn/items", {}, p)} /> : <Browse params={p} />}
     </LearnFrame>
   );
@@ -122,7 +131,7 @@ export function ItemsPage({ client }: PageProps) {
 
 const EMPTIES: Record<string, ReactNode> = {
   inbox: "You're caught up. New posts from your sources land here, read and scored.",
-  later: "Press L on any item, or drag it onto Watch later in the rail, to queue it here.",
+  later: "Press L on any item, or drag it onto Watch later in the sidebar, to queue it here.",
   starred: "Press S on an item to star it. Stars stay when you archive.",
   saved: "Links you save show here. Share one from your phone, or paste it above.",
   all: "Everything you save or follow shows here, read and scored against your SOPs.",
@@ -364,6 +373,15 @@ function Browse({ params }: { params: URLSearchParams }) {
           <ViewToggle view={view} onPick={(v) => pref.set(v)} />
           <button
             type="button"
+            onClick={() => setDialog({ kind: "collection", ids: [] })}
+            className="inline-flex size-8 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+            title="New collection"
+          >
+            <FolderPlus size={16} />
+            <span className="sr-only">New collection</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setDialog({ kind: "keys", ids: [] })}
             className="hidden h-8 items-center gap-1.5 border-0 bg-transparent px-2 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) min-[901px]:inline-flex"
             title="Keys"
@@ -383,7 +401,7 @@ function Browse({ params }: { params: URLSearchParams }) {
       <Chips data={data} types={types} srcs={srcs} tag={tag} place={place} set={set} />
 
       {load.error && !data ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !data ? (
         <Loading lines={6} shape={view === "cards" ? "cards" : "lines"} />
       ) : !items.length ? (
@@ -415,7 +433,7 @@ function Browse({ params }: { params: URLSearchParams }) {
           {filtered
             ? "Nothing here matches these filters."
             : col
-              ? "Drag items onto this collection in the rail, or press M on one and pick it."
+              ? "Drag items onto this collection in the sidebar, or press M on one and pick it."
               : src
                 ? "Nothing new from this source. Its next posts show here once read and scored."
                 : (EMPTIES[place] ?? EMPTIES.all)}
@@ -506,6 +524,15 @@ function Browse({ params }: { params: URLSearchParams }) {
         />
       ) : dialog?.kind === "keys" ? (
         <KeysDialog onClose={() => setDialog(null)} />
+      ) : dialog?.kind === "collection" ? (
+        <NameDialog
+          title="New collection"
+          action="Create"
+          onSave={(name) =>
+            learn.collectionAdd(name, null).then((made) => navigate(`/learn/items?in=c${made.id}`))
+          }
+          onClose={() => setDialog(null)}
+        />
       ) : null}
     </div>
   );

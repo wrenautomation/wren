@@ -10,7 +10,7 @@ import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type Action, runs, useRun } from "./action.js";
 import { Button, ButtonLink } from "./controls.js";
-import { Alert, Empty } from "./feedback.js";
+import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
 import { GROUP_LABEL, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
@@ -116,7 +116,7 @@ const groupOf = (meta: RecordMeta | undefined, row: Row, by: string) =>
 
 export function RecordDay(props: RecordDayProps) {
   const types = useTypes(props.api);
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!types.data) return <ListSkeleton />;
   return <Day {...props} types={types.data} />;
 }
@@ -289,7 +289,7 @@ function Day({
       </nav>
 
       {load.error && !load.data ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !load.data ? (
         <ListSkeleton />
       ) : !busy.length ? (

@@ -9,7 +9,7 @@ import type { Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { useState } from "react";
 import { Button } from "./controls.js";
-import { Alert } from "./feedback.js";
+import { LoadFailed } from "./feedback.js";
 import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
 import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
@@ -35,7 +35,7 @@ import {
 export function RecordShop(props: RecordTemplateProps) {
   const types = useTypes(props.api);
   const meta = types.data?.find((t) => t.id === props.record);
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!types.data) return <ListSkeleton />;
   if (!meta) return <NotHere />;
   return <Shop {...props} meta={meta} types={types.data} />;
@@ -117,7 +117,7 @@ function Shop({
         </aside>
 
         {page.error && !page.data ? (
-          <Alert onRetry={page.retry}>{page.error.message}</Alert>
+          <LoadFailed error={page.error} onRetry={page.retry} />
         ) : !page.data ? (
           <ul className={GRID} aria-busy="true">
             {Array.from({ length: 9 }, (_, i) => (

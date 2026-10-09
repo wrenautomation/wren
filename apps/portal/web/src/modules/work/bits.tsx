@@ -2,7 +2,7 @@
  * What the work's and the account's pages share: the client's engagements, a write that
  * reloads them, a small form, dates as the client reads them, and the classes they draw with.
  */
-import { Alert, Button, DictateField, Empty, Loading, Textarea } from "@wren/ui";
+import { Button, DictateField, Empty, LoadFailed, Loading, Textarea } from "@wren/ui";
 import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
 import {
   ApiError,
@@ -65,7 +65,7 @@ export function Engagements({
   work: ReturnType<typeof useWork>;
   children: (e: EngagementView) => ReactNode;
 }) {
-  if (work.error && !work.data) return <Alert onRetry={work.retry}>{work.error.message}</Alert>;
+  if (work.error && !work.data) return <LoadFailed error={work.error} onRetry={work.retry} />;
   if (!work.data) return <Loading lines={8} />;
   const es = ofThisApp(work.data.engagements);
   if (es.length === 0) return <Empty>Nothing started yet. Your plan shows here on day one.</Empty>;

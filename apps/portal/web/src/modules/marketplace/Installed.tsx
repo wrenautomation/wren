@@ -3,7 +3,7 @@
  * installed, each with its settings, prices left out.
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { Alert, ButtonLink, Empty, Loading, type SettingField, Settings, Tag } from "@wren/ui";
+import { ButtonLink, Empty, LoadFailed, Loading, type SettingField, Settings, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { LIST, QUIET } from "../work/bits.js";
@@ -24,7 +24,7 @@ async function installed(client: string) {
 export function ClientComponents({ client }: { client: string }) {
   const got = useCall(`installed:${client}`, () => installed(client));
   const at = (path: string) => `/marketplace/catalog${path}?client=${encodeURIComponent(client)}`;
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={3} />;
   return (
     <div className="grid gap-3">
@@ -88,7 +88,7 @@ export function ClientTemplates({ client }: { client: string }) {
     call<InstalledTemplate[]>("console/templateInstalls", { client }),
   );
   const at = (path: string) => `/marketplace/catalog${path}?client=${encodeURIComponent(client)}`;
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={2} />;
   return (
     <div className="grid gap-3">

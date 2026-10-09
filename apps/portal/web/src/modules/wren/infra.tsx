@@ -1,6 +1,6 @@
 /** Where Wren runs: every host and what calls what, each with its health (`hosts.ts`). */
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, Graph, PageHeader } from "@wren/ui";
+import { Graph, LoadFailed, PageHeader } from "@wren/ui";
 import { useMemo } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -35,7 +35,7 @@ export function Infra(_: PageProps) {
         title="Infra"
         lede="Every host and what calls what. Health comes from each host's loops and from this page loading. The rest says where it's checked."
       />
-      {loops.error ? <Alert onRetry={loops.retry}>{loops.error.message}</Alert> : null}
+      {loops.error ? <LoadFailed error={loops.error} onRetry={loops.retry} /> : null}
       <Graph {...graph} label="Where Wren runs" name="wren-infra" />
     </>
   );

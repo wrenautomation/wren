@@ -11,6 +11,7 @@ import {
   Empty,
   Facts,
   Input,
+  LoadFailed,
   Loading,
   PageHeader,
   Section,
@@ -291,7 +292,7 @@ export function Mail(props: PageProps) {
         lede="The mailboxes Wren sends from and reads. Sending takes one sign-in per mailbox. Reading also needs your admin, once per domain."
       />
       {load.error && !data ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !data ? (
         <Loading lines={4} />
       ) : data.wren ? (

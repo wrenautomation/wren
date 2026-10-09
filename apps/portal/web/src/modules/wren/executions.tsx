@@ -6,7 +6,7 @@
  */
 import { wordsOf } from "@wren/core/models/labels";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { Alert, Button, cx, Empty, Graph, Input, Loading, StateMark } from "@wren/ui";
+import { Button, cx, Empty, Graph, Input, LoadFailed, Loading, StateMark } from "@wren/ui";
 import { useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -128,7 +128,7 @@ export function Executions({
           <ReplayAll ids={rows.map((r) => r.id)} onDone={() => setNonce((n) => n + 1)} />
         ) : null}
         {list.error && !list.data ? (
-          <Alert onRetry={list.retry}>{list.error.message}</Alert>
+          <LoadFailed error={list.error} onRetry={list.retry} />
         ) : !list.data ? (
           <Loading lines={5} />
         ) : rows.length ? (
@@ -243,7 +243,7 @@ function OneExecution({
   const got = useCall(`execution:${id}:${nonce}`, () =>
     call<RecordAnswer>("console/recordsGet", { record: "console.execution", id }),
   );
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={6} />;
   const steps = (got.data.detail as { steps?: TraceStep[] } | null)?.steps ?? [];
   const row = got.data.row as unknown as ExecutionRow;
@@ -440,7 +440,7 @@ function ExecutionOnList({
   can: readonly string[] | undefined;
 }) {
   const w = useDrawn(workflow, null);
-  if (w.error && !w.data) return <Alert onRetry={w.retry}>{w.error.message}</Alert>;
+  if (w.error && !w.data) return <LoadFailed error={w.error} onRetry={w.retry} />;
   if (!w.data) return <Loading lines={4} />;
   const drawn = w.data;
   return (

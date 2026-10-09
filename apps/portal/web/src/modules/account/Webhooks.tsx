@@ -3,7 +3,7 @@
  * happen, each signed. A secret shows once, on add and on rotate. The log keeps every try; a
  * finished delivery goes again on Redeliver.
  */
-import { Alert, Button, cx, Empty, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -164,7 +164,7 @@ export function Webhooks(props: PageProps) {
       {secret ? <Secret key={secret} secret={secret} onClose={() => setSecret(null)} /> : null}
       <Section>
         {load.error && !data ? (
-          <Alert onRetry={load.retry}>{load.error.message}</Alert>
+          <LoadFailed error={load.error} onRetry={load.retry} />
         ) : !data ? (
           <Loading lines={3} />
         ) : data.webhooks.length === 0 ? (
@@ -368,7 +368,7 @@ function OneDelivery({
     setNonce((n) => n + 1);
     onSent();
   });
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={2} />;
   const d = got.data;
   return (

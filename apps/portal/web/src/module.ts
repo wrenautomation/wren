@@ -8,6 +8,7 @@ import type {
   Action,
   DaySource,
   IconName,
+  NavItem,
   OverviewTile,
   OverviewTop,
   RecordAct,
@@ -149,4 +150,17 @@ export interface Module {
   component?: string;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
+  /** Tabs read from its data, beside its pages: Learn's places and collections. */
+  nav?: ModuleNav;
+}
+
+/** An app's tabs that come from its data, read again on every move and every `changed`. */
+export interface ModuleNav {
+  /** They go after this page's tab. */
+  after: string;
+  load: (client: string, team: boolean) => Promise<NavItem[]>;
+  /** Calls `fn` when they may have changed; answers the stop. */
+  changed?: (fn: () => void) => () => void;
+  /** The tab lit for this address, a page's or one of these; null for the page's own. */
+  here: (path: readonly string[], params: URLSearchParams) => string | null;
 }

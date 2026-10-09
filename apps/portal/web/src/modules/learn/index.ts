@@ -8,8 +8,8 @@
 import { createElement, useEffect } from "react";
 import type { Module, PageProps } from "../../module.js";
 import { navigate, useRoute } from "../../route.js";
-import { unseenCount } from "./api.js";
 import { ItemsPage } from "./drive.js";
+import { learnNav } from "./frame.js";
 import { HomePage } from "./home.js";
 import { AddPage, SearchPage } from "./learn.js";
 import { SourcesPage } from "./sources.js";
@@ -27,16 +27,16 @@ function SavedPage(_: PageProps) {
   return createElement("div");
 }
 
+// Items' places, collections and tags are tabs from its data, after Search (./frame.tsx).
 const pages: Module["pages"] = [
   { id: "overview", label: "Home", Page: HomePage, wide: true },
   // Your daily digest: the last 24 hours, best first, and your alert picks.
   { id: "today", label: "Today", Page: TodayPage, wide: true },
-  // What the sources brought since you last looked at Items.
-  { id: "items", label: "Items", Page: ItemsPage, wide: true, badge: unseenCount },
-  { id: "sources", label: "Sources", Page: SourcesPage, wide: true },
   { id: "search", label: "Search", Page: SearchPage, wide: true },
+  { id: "sources", label: "Sources", group: "Setup", Page: SourcesPage, wide: true },
 ];
 const hidden: Module["pages"] = [
+  { id: "items", label: "Items", hidden: true, Page: ItemsPage, wide: true },
   { id: "saved", label: "Saved", hidden: true, Page: SavedPage },
   { id: "add", label: "Save a link", hidden: true, Page: AddPage },
 ];
@@ -49,11 +49,13 @@ export const learn: Module = {
     "Saved links and followed sources, read, scored against Wren's SOPs, and kept like a drive.",
   requires: TEAM,
   action: { page: "add", label: "Save a link", icon: "pin" },
+  nav: learnNav,
   pages: [
     ...pages,
     {
       id: "sops",
       label: "SOPs",
+      group: "Setup",
       template: "list",
       record: "learn.sop",
       empty: "SOPs show here once one is pushed or an item is added to one.",
@@ -70,5 +72,6 @@ export const clientLearn: Module = {
   blurb: "Links you save and sources you follow, read, scored and kept like a drive.",
   requires: { audience: "client", needs: "read", at: { app: "learn" } },
   action: { page: "add", label: "Save a link", icon: "pin" },
+  nav: learnNav,
   pages: [...pages, ...hidden],
 };

@@ -3,7 +3,7 @@
  * in Loops > Settings with History and Undo, as every part that runs for Wren is.
  */
 import type { RecordAnswer } from "@wren/core/records/serve";
-import { Alert, Facts, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Alert, Facts, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { type AgentSettings, agentOf, openingLine, TOOL_NAMES, VOICE_AGENT } from "@wren/voice";
 import { call } from "../../api.js";
 import { type Load, useCall } from "../../load.js";
@@ -66,7 +66,7 @@ export function Agent(_: PageProps) {
         Until then, try the agent on a test call.
       </InDevelopment>
       {got.error && !got.data ? (
-        <Alert onRetry={got.retry}>{got.error.message}</Alert>
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !got.data ? (
         <Loading lines={6} />
       ) : (

@@ -9,8 +9,8 @@
 import { CALL_OUTCOME_LABELS, type MeetingOutcome } from "@wren/core/calls";
 import type { RecordMeta } from "@wren/core/records";
 import {
-  Alert,
   Button,
+  LoadFailed,
   Loading,
   type RecordActs,
   RecordPanel,
@@ -300,7 +300,7 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
       </div>
 
       {got.error && !got.data ? (
-        <Alert onRetry={got.retry}>{got.error.message}</Alert>
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !got.data ? (
         <Loading lines={8} />
       ) : view === "month" ? (

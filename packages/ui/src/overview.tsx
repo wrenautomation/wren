@@ -11,7 +11,7 @@ import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
-import { Alert, Empty } from "./feedback.js";
+import { Alert, Empty, LoadFailed } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
 import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
@@ -138,7 +138,7 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
   const tiles = arrangeTiles(all, pref.value).shown.filter(here);
   // Each period tile's answer, for the chart under them: asked once, by the tile.
   const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   const metaOf = (id: string) => types.data?.find((t) => t.id === id);
   const spans = perRow(tiles.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
   const told = (label: string, shown: Shown) =>
@@ -448,9 +448,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
         </a>
       </div>
       {page.error && !page.data ? (
-        <Alert className="m-4" onRetry={page.retry}>
-          {page.error.message}
-        </Alert>
+        <LoadFailed className="m-4" error={page.error} onRetry={page.retry} />
       ) : !page.data ? (
         <div className="m-4 h-32 animate-pulse bg-(--ui-fill)" aria-busy="true" />
       ) : !rows.length ? (

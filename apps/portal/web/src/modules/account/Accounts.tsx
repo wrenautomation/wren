@@ -5,12 +5,12 @@
  */
 import type { AccountsView } from "@wren/core/accounts/console";
 import {
-  Alert,
   Button,
   Callout,
   Empty,
   hostMark,
   Input,
+  LoadFailed,
   Loading,
   PageHeader,
   PlatformMark,
@@ -364,7 +364,7 @@ export function Accounts(props: PageProps) {
         }
       />
       {load.error && !d ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !d ? (
         <Loading lines={4} />
       ) : (

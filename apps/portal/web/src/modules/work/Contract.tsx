@@ -3,7 +3,17 @@
  * signs with. Signing sends back the text's fingerprint, so what's signed is
  * exactly what was read. Prints alone.
  */
-import { Alert, Button, ButtonLink, Empty, Input, Loading, PageHeader, Section } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  Empty,
+  failureOf,
+  Input,
+  Loading,
+  PageHeader,
+  Section,
+} from "@wren/ui";
 import { type FormEvent, Fragment, type ReactNode, useState } from "react";
 import { ApiError, type ContractView, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -36,7 +46,7 @@ export function Contract(props: PageProps) {
           <Alert onRetry={c.error.status === 403 ? undefined : c.retry}>
             {c.error.status === 403
               ? "Only an owner of your account can read and sign the contract. Ask one to sign in."
-              : c.error.message}
+              : failureOf(c.error, "contract").line}
           </Alert>
         )}
       </>

@@ -20,13 +20,13 @@ import {
 } from "@wren/core/facts-list";
 import type { RecordAnswer } from "@wren/core/records/serve";
 import {
-  Alert,
   Button,
   cx,
   Diff,
   Empty,
   exact,
   Icon,
+  LoadFailed,
   Loading,
   PageHeader,
   relative,
@@ -392,7 +392,7 @@ export function FactsPage({ demo, can }: PageProps) {
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!saved || !rows || !base)
     return (
       <>

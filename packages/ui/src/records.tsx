@@ -45,7 +45,7 @@ import {
   History,
   thinking,
 } from "./edits.js";
-import { Alert, Empty } from "./feedback.js";
+import { Alert, Empty, LoadFailed } from "./feedback.js";
 import {
   actorParts,
   type CiteTo,
@@ -625,7 +625,7 @@ export function RecordList(props: RecordTemplateProps) {
   const { record, api, place, empty, columns, extras, acts, head, title } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!types.data) return <ListSkeleton />;
   if (!meta) return <NotHere />;
   return (
@@ -1144,7 +1144,7 @@ function List({
       </div>
 
       {page.error && !page.data ? (
-        <Alert onRetry={page.retry}>{page.error.message}</Alert>
+        <LoadFailed error={page.error} onRetry={page.retry} />
       ) : (
         <div
           ref={scroller}
@@ -1536,7 +1536,7 @@ export function Panel({
 export function RecordPage({ id, ...props }: RecordTemplateProps & { id: string }) {
   const types = useTypes(props.api);
   const meta = types.data?.find((t) => t.id === props.record);
-  if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
+  if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!meta || !types.data) return <ListSkeleton />;
   return (
     <div className={cn(ROOT, "mx-auto grid max-w-[880px] gap-4")}>
@@ -1685,7 +1685,8 @@ export function RecordBody({
     }
   }, [want, tab, pickMark]);
 
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data)
+    return <LoadFailed error={got.error} onRetry={got.retry} what={meta.name.one} />;
   if (!got.data)
     return (
       <div className="grid gap-3" role="status" aria-busy="true" aria-label="Loading">
@@ -2157,7 +2158,7 @@ function Related({
   const sort = meta.views[0]?.sort;
   const ask: ListAsk = { record: meta.id, of, limit: 25, ...(sort ? { sort } : {}) };
   const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
-  if (page.error && !page.data) return <Alert onRetry={page.retry}>{page.error.message}</Alert>;
+  if (page.error && !page.data) return <LoadFailed error={page.error} onRetry={page.retry} />;
   if (!page.data) return <div className="h-24 w-full animate-pulse bg-(--ui-wash)" />;
   if (!page.data.rows.length)
     return (

@@ -17,8 +17,10 @@ import {
   can,
   Empty,
   Gate,
+  LoadFailed,
   Loading,
   moved,
+  type NavItem,
   PageHeader,
   type PaletteItem,
   type PinLine,
@@ -27,6 +29,7 @@ import {
   type RailPins,
   type RailPref,
   readTheme,
+  ShowRawErrors,
   SnippetsProvider,
   type SnippetsSource,
   Tag,
@@ -121,6 +124,37 @@ function useNavCounts(
     };
   }, [module?.id, page, on, client, team]);
   return counts;
+}
+
+/**
+ * The open app's tabs read from its data (Learn's places and collections), in the workspace on
+ * screen: again on every move, and when the app says they changed.
+ */
+function useModuleNav(
+  module: Module | undefined,
+  client: string | undefined,
+  team: boolean,
+  at: string,
+): NavItem[] {
+  const [items, setItems] = useState<{ key: string; items: NavItem[] }>({ key: "", items: [] });
+  const nav = module?.nav;
+  const key = nav && client ? `${module.id}:${client}:${team}` : "";
+  const [again, setAgain] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names the module and workspace.
+  useEffect(() => (key ? nav?.changed?.(() => setAgain((n) => n + 1)) : undefined), [key]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names the module and workspace; a move reads them again.
+  useEffect(() => {
+    if (!key || !nav || !client) return;
+    let live = true;
+    nav.load(client, team).then(
+      (got) => live && setItems({ key, items: got }),
+      () => live && setItems((s) => (s.key === key ? s : { key, items: [] })),
+    );
+    return () => {
+      live = false;
+    };
+  }, [key, at, again]);
+  return items.key === key ? items.items : [];
 }
 
 function usePaletteKey() {
@@ -397,6 +431,12 @@ export function App() {
     current?.id,
     team,
   );
+  const extra = useModuleNav(
+    at.kind === "page" ? at.module : undefined,
+    current?.id,
+    team,
+    `${route.path.join("/")}?${route.params}`,
+  );
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
@@ -405,7 +445,7 @@ export function App() {
   if (me.error && !me.data)
     return (
       <Gate stamp={STAMP} title="Your client portal" theme={theme}>
-        <Alert onRetry={me.retry}>{me.error.message}</Alert>
+        <LoadFailed error={me.error} onRetry={me.retry} />
       </Gate>
     );
   if (me.data && !current)
@@ -444,6 +484,8 @@ export function App() {
     ...withWho(whoAt(me.data, id)),
   });
   const open = at.kind === "page" ? at : null;
+  // The tab lit: one the app reads from its data, else the page's own.
+  const lit = open ? (open.module.nav?.here(route.path, route.params) ?? open.page.id) : "";
   // The team sees every app; one this client hasn't installed points at its Marketplace row.
   const missing =
     !wren && open?.module.component && !installed.has(open.module.component)
@@ -453,128 +495,137 @@ export function App() {
 
   return (
     <SnippetsProvider source={snippets}>
-      <AppShell
-        brand={{ name: "Wren", href: home, stamp: STAMP }}
-        workspace={{
-          current,
-          options: operator ? [WREN, ...clients] : clients,
-          chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
-          href: account ? firstOf(account) : undefined,
-          label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
-          onPick: pick,
-        }}
-        launcher={launcher}
-        bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
-        pins={railPins}
-        app={
-          open
-            ? {
-                name: open.module.name,
-                icon: open.module.icon,
-                href: firstOf(open.module),
-                // The app's action opens its page: one way in, not a tab as well.
-                tabs: open.module.pages
-                  .filter((p) => (!p.hidden && p.id !== action?.page) || p.id === open.page.id)
-                  .map((p) => ({
-                    id: p.id,
-                    label: p.label,
-                    href: tabOf(open.module, open.page, p, route.params),
-                    ...(p.group ? { group: p.group } : {}),
-                    ...(counts[p.id] ? { count: counts[p.id] } : {}),
-                  })),
-                current: open.page.id,
-                action:
-                  action && action.page !== open.page.id ? (
-                    <ButtonLink
-                      href={`/${open.module.id}/${action.page}`}
-                      tone="quiet"
-                      size="sm"
-                      icon={action.icon}
-                    >
-                      {action.label}
-                    </ButtonLink>
-                  ) : undefined,
+      {/* A failure's raw text, under its plain sentence: Wren's team only. */}
+      <ShowRawErrors value={team}>
+        <AppShell
+          brand={{ name: "Wren", href: home, stamp: STAMP }}
+          workspace={{
+            current,
+            options: operator ? [WREN, ...clients] : clients,
+            chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
+            href: account ? firstOf(account) : undefined,
+            label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
+            onPick: pick,
+          }}
+          launcher={launcher}
+          bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
+          pins={railPins}
+          app={
+            open
+              ? {
+                  name: open.module.name,
+                  icon: open.module.icon,
+                  href: firstOf(open.module),
+                  // The app's action opens its page: one way in, not a tab as well.
+                  tabs: open.module.pages
+                    .filter((p) => (!p.hidden && p.id !== action?.page) || p.id === lit)
+                    .flatMap((p) => [
+                      {
+                        id: p.id,
+                        label: p.label,
+                        href: tabOf(open.module, open.page, p, route.params),
+                        ...(p.group ? { group: p.group } : {}),
+                        ...(counts[p.id] ? { count: counts[p.id] } : {}),
+                      },
+                      ...(p.id === open.module.nav?.after ? extra : []),
+                    ]),
+                  current: lit,
+                  action:
+                    action && action.page !== open.page.id ? (
+                      <ButtonLink
+                        href={`/${open.module.id}/${action.page}`}
+                        tone="quiet"
+                        size="sm"
+                        icon={action.icon}
+                      >
+                        {action.label}
+                      </ButtonLink>
+                    ) : undefined,
+                }
+              : null
+          }
+          actions={
+            <>
+              {operator && !wren ? (
+                <Button tone="quiet" size="sm" onClick={flip}>
+                  {/* A phone's top bar keeps room for the workspace's name. */}
+                  <span className="sm:hidden">{team ? "As client" : "Team view"}</span>
+                  <span className="max-sm:hidden">
+                    {team ? "View as client" : "Back to team view"}
+                  </span>
+                </Button>
+              ) : null}
+              {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
+              {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
+                <LearnBell key={current.id} client={current.id} />
+              ) : null}
+              {account ? (
+                <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
+                  Account
+                </ButtonLink>
+              ) : null}
+              {signOutUrl ? (
+                <ButtonLink href={signOutUrl} tone="quiet" size="sm">
+                  Sign out
+                </ButtonLink>
+              ) : null}
+            </>
+          }
+          page={open ? pathOf(open.module, open.page) : "/"}
+          theme={theme}
+          wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
+        >
+          {!current ? (
+            <Loading lines={8} heading />
+          ) : open && missing ? (
+            <Empty
+              action={
+                <ButtonLink
+                  size="dense"
+                  href={`/marketplace/catalog/${encodeURIComponent(missing)}`}
+                >
+                  Open in Marketplace
+                </ButtonLink>
               }
-            : null
-        }
-        actions={
-          <>
-            {operator && !wren ? (
-              <Button tone="quiet" size="sm" onClick={flip}>
-                {/* A phone's top bar keeps room for the workspace's name. */}
-                <span className="sm:hidden">{team ? "As client" : "Team view"}</span>
-                <span className="max-sm:hidden">
-                  {team ? "View as client" : "Back to team view"}
-                </span>
-              </Button>
-            ) : null}
-            {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
-            {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
-              <LearnBell key={current.id} client={current.id} />
-            ) : null}
-            {account ? (
-              <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
-                Account
-              </ButtonLink>
-            ) : null}
-            {signOutUrl ? (
-              <ButtonLink href={signOutUrl} tone="quiet" size="sm">
-                Sign out
-              </ButtonLink>
-            ) : null}
-          </>
-        }
-        page={open ? pathOf(open.module, open.page) : "/"}
-        theme={theme}
-        wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
-      >
-        {!current ? (
-          <Loading lines={8} heading />
-        ) : open && missing ? (
-          <Empty
-            action={
-              <ButtonLink size="dense" href={`/marketplace/catalog/${encodeURIComponent(missing)}`}>
-                Open in Marketplace
-              </ButtonLink>
-            }
-          >
-            {open.module.name} isn't installed for {current.name}.
-          </Empty>
-        ) : open ? (
-          <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
-            <Suspense fallback={<Loading lines={8} heading />}>
-              {"Page" in open.page ? (
-                <open.page.Page {...props(current.id)} />
-              ) : (
-                <TemplatePage
-                  {...props(current.id)}
-                  app={open.module.name}
-                  page={open.page}
-                  path={pathOf(open.module, open.page)}
-                  id={route.path[2]}
-                />
-              )}
-            </Suspense>
-          </Contained>
-        ) : wren ? (
-          <>
-            <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
-            {team ? <SetupNow client={WREN.id} team /> : null}
-            {team ? <HealthNow /> : null}
-            <PinnedRow pins={pins} />
-            <AppGrid>{cards.map((m) => card(m))}</AppGrid>
-          </>
-        ) : (
-          <Launcher
-            key={current.id}
-            name={current.name}
-            apps={cards}
-            installed={installed}
-            props={props(current.id)}
-            pins={pins}
-          />
-        )}
-      </AppShell>
+            >
+              {open.module.name} isn't installed for {current.name}.
+            </Empty>
+          ) : open ? (
+            <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
+              <Suspense fallback={<Loading lines={8} heading />}>
+                {"Page" in open.page ? (
+                  <open.page.Page {...props(current.id)} />
+                ) : (
+                  <TemplatePage
+                    {...props(current.id)}
+                    app={open.module.name}
+                    page={open.page}
+                    path={pathOf(open.module, open.page)}
+                    id={route.path[2]}
+                  />
+                )}
+              </Suspense>
+            </Contained>
+          ) : wren ? (
+            <>
+              <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
+              {team ? <SetupNow client={WREN.id} team /> : null}
+              {team ? <HealthNow /> : null}
+              <PinnedRow pins={pins} />
+              <AppGrid>{cards.map((m) => card(m))}</AppGrid>
+            </>
+          ) : (
+            <Launcher
+              key={current.id}
+              name={current.name}
+              apps={cards}
+              installed={installed}
+              props={props(current.id)}
+              pins={pins}
+            />
+          )}
+        </AppShell>
+      </ShowRawErrors>
       <Toasts />
       {noteAt && quick ? <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} /> : null}
       {!operator && onDemo === false && current && current.id !== WREN.id ? (

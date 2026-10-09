@@ -3,7 +3,7 @@
  * Read only: a mod goes on from the desk (`autobrowse mods add`), never from here. The same
  * search as autobrowse's `searchMods`, from the browser.
  */
-import { Alert, Empty, Loading, PageHeader, Tag } from "@wren/ui";
+import { Empty, LoadFailed, Loading, PageHeader, Tag } from "@wren/ui";
 import { useCall } from "../../load.js";
 import { BLOCK, LIST, QUIET } from "../work/bits.js";
 
@@ -74,7 +74,7 @@ export function Mods() {
     <>
       <PageHeader title="Browser mods" lede="What each mod can touch. Wren turns one on for you." />
       {mods.error && !mods.data ? (
-        <Alert onRetry={mods.retry}>{mods.error.message}</Alert>
+        <LoadFailed error={mods.error} onRetry={mods.retry} />
       ) : !mods.data ? (
         <Loading lines={4} />
       ) : !mods.data.length ? (

@@ -3,7 +3,7 @@
  * last 30 days (`voice_latency`). "Heard" is the number a caller feels. Under it, dictation's.
  */
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, ButtonLink, Empty, Loading, PageHeader, Section } from "@wren/ui";
+import { ButtonLink, Empty, LoadFailed, Loading, PageHeader, Section } from "@wren/ui";
 import { STAGES, type Stage } from "@wren/voice";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -41,7 +41,7 @@ export function Latency(_: PageProps) {
         pipeline on its own.
       </InDevelopment>
       {got.error && !got.data ? (
-        <Alert onRetry={got.retry}>{got.error.message}</Alert>
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !got.data ? (
         <Loading lines={5} />
       ) : !pipelines.length ? (

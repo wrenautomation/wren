@@ -1,9 +1,9 @@
 /** The account at a glance: who the company is to us, what they bought, who's on it, what's owed. */
 import {
-  Alert,
   ButtonLink,
   Empty,
   Facts,
+  LoadFailed,
   Loading,
   month,
   PageHeader,
@@ -31,7 +31,7 @@ export function Overview(props: PageProps) {
     return (
       <>
         <PageHeader title="Account" />
-        <Alert onRetry={acct.retry}>{acct.error.message}</Alert>
+        <LoadFailed error={acct.error} onRetry={acct.retry} />
       </>
     );
   if (!acct.data)

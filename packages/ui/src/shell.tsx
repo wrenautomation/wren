@@ -5,7 +5,7 @@
  * can keep coming without the frame growing. On a phone the sidebar becomes the window's head,
  * its pages tabs that scroll sideways, so nothing hides behind a menu.
  */
-import { type ReactNode, useEffect, useRef } from "react";
+import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { cx, initials, num } from "./format.js";
@@ -20,6 +20,16 @@ export interface NavItem {
   count?: number | undefined;
   /** Its heading in the sidebar; on a phone the groups are the first row of tabs. */
   group?: string | undefined;
+  /** Nested this deep under the tab above it: a collection inside another. Sidebar only. */
+  depth?: number | undefined;
+  /** It takes what's dragged onto it: Learn's cards dropped on a collection. */
+  drop?: NavDrop | undefined;
+}
+
+/** A tab as a drop target: data of `type` dropped on it goes to `onDrop`. */
+export interface NavDrop {
+  type: string;
+  onDrop: (data: string) => void;
 }
 
 /** The app on screen. */
@@ -205,6 +215,60 @@ const GROUP =
 const TAB_ON =
   "aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]";
 
+/** A sidebar tab's indent by its depth. */
+const DEPTH = ["pl-2.5", "pl-6", "pl-9", "pl-12"];
+/** A tab with something dragged over it that it takes. */
+const TAB_OVER =
+  "bg-(--ui-accent-wash) text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-accent)]";
+
+/** One tab in the sidebar: a link that may take what's dropped on it. */
+function SideTab({ t, on }: { t: NavItem; on: boolean }) {
+  const [over, setOver] = useState(false);
+  const className = cx(
+    HOVER,
+    "flex h-[38px] w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
+    TAB_ON,
+    over && TAB_OVER,
+  );
+  const body = (
+    <>
+      <span className="min-w-0 truncate">{t.label}</span>
+      {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
+    </>
+  );
+  const tab = (
+    <a className={className} href={t.href} aria-current={on ? "page" : undefined}>
+      {body}
+    </a>
+  );
+  const drop = t.drop;
+  if (!drop) return tab;
+  const takes = (e: DragEvent) => e.dataTransfer.types.includes(drop.type);
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the page has a keyboard way.
+    <div
+      onDragOver={(e) => {
+        if (!takes(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (!over) setOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+      }}
+      onDrop={(e) => {
+        setOver(false);
+        if (!takes(e)) return;
+        e.preventDefault();
+        drop.onDrop(e.dataTransfer.getData(drop.type));
+      }}
+    >
+      {tab}
+    </div>
+  );
+}
+
 /** Tabs in runs of one group; a tab with none is a run of its own. */
 function runs(tabs: NavItem[]): { group: string | undefined; tabs: NavItem[] }[] {
   const out: { group: string | undefined; tabs: NavItem[] }[] = [];
@@ -278,18 +342,7 @@ function AppSide({
                     : undefined
                 }
               >
-                <a
-                  className={cx(
-                    HOVER,
-                    "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
-                    TAB_ON,
-                  )}
-                  href={t.href}
-                  aria-current={t.id === app.current ? "page" : undefined}
-                >
-                  {t.label}
-                  {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
-                </a>
+                <SideTab t={t} on={t.id === app.current} />
               </li>
             )),
           ])}
@@ -304,6 +357,9 @@ function AppSide({
     </aside>
   );
 }
+
+const PHONE_TAB =
+  "inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)";
 
 /** One row of tabs that scrolls sideways, the one on screen scrolled into view. */
 function PhoneTabs({
@@ -332,7 +388,7 @@ function PhoneTabs({
         {tabs.map((t) => (
           <li key={t.id} className="flex-none">
             <a
-              className="inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)"
+              className={PHONE_TAB}
               href={t.href}
               aria-current={t.id === current ? "page" : undefined}
             >

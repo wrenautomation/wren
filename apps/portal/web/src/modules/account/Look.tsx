@@ -1,5 +1,5 @@
 /** A workspace's look: Account's Look page for its owners, a client's record for Wren's team. */
-import { Alert, Loading, LookEditor, PageHeader } from "@wren/ui";
+import { LoadFailed, Loading, LookEditor, PageHeader } from "@wren/ui";
 import { call, ME_CHANGED, type Me } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -9,7 +9,7 @@ import { usePeople } from "./load.js";
 /** The editor on `client`'s stored look; `setLook` says who may save it. */
 export function ClientLook({ client }: { client: string }) {
   const me = useCall(`look:${client}`, () => call<Me>("delivery/me"));
-  if (me.error && !me.data) return <Alert onRetry={me.retry}>{me.error.message}</Alert>;
+  if (me.error && !me.data) return <LoadFailed error={me.error} onRetry={me.retry} />;
   if (!me.data) return <Loading lines={4} />;
   const here = me.data.clients.find((c) => c.id === client);
   if (here && !here.can.includes("manage"))
@@ -35,7 +35,7 @@ export function Look(props: PageProps) {
         lede="Your workspace's colors. Pick a preset, or start from your brand color or logo."
       />
       {people.error && !people.data ? (
-        <Alert onRetry={people.retry}>{people.error.message}</Alert>
+        <LoadFailed error={people.error} onRetry={people.retry} />
       ) : !people.data ? (
         <Loading lines={4} />
       ) : people.data.canManage ? (

@@ -1,5 +1,5 @@
 /** What a screen says while it waits, when it has nothing, and when something broke. */
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { Button, Tag } from "./controls.js";
 import { cx } from "./format.js";
@@ -165,5 +165,70 @@ export function Alert({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+/** Whether a failure's raw text shows under its plain sentence: Wren's team only, never a client. */
+const RawErrors = createContext(false);
+/** Set by the shell for Wren's team, so they can see what a call really said. */
+export const ShowRawErrors = RawErrors.Provider;
+
+/** A call's failure as a plain sentence, and whether trying again could help. */
+export function failureOf(
+  err: unknown,
+  what?: string,
+): { line: string; again: boolean; raw: string } {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const status = (err as { status?: unknown } | null)?.status;
+  if (status === 404 || /\b(not found|no such|doesn't exist|does not exist)\b/i.test(raw))
+    return {
+      line: what
+        ? `This ${what} wasn't found. It may have been deleted, or the link is out of date.`
+        : "This page wasn't found. The link may be out of date.",
+      again: false,
+      raw,
+    };
+  if (status === 401 || status === 403)
+    return { line: "You don't have access to this.", again: false, raw };
+  if (status === 0)
+    return { line: "Couldn't reach Wren. Check your connection.", again: true, raw };
+  if (status === 429)
+    return { line: "Too many requests just now. Wait a minute.", again: true, raw };
+  // A sentence written for people (it starts with a capital and ends with a stop) stands as is.
+  if (/^[A-Z][^\n]{0,200}[.!?]$/.test(raw)) return { line: raw, again: true, raw };
+  return {
+    line: what ? `This ${what} couldn't load.` : "This page couldn't load.",
+    again: true,
+    raw,
+  };
+}
+
+/**
+ * A read that failed, said plainly: "This page couldn't load." with Try again, or what's missing.
+ * Wren's team also sees the raw text, small, under it.
+ */
+export function LoadFailed({
+  error,
+  onRetry,
+  what,
+  className,
+}: {
+  error: unknown;
+  onRetry?: (() => void) | undefined;
+  /** The thing it was reading, for its sentences: "draft" says "This draft wasn't found." */
+  what?: string | undefined;
+  className?: string | undefined;
+}) {
+  const raw = useContext(RawErrors);
+  const f = failureOf(error, what);
+  return (
+    <Alert onRetry={f.again ? onRetry : undefined} className={className}>
+      <span className="block text-(--ui-ink)">{f.line}</span>
+      {raw && f.raw && f.raw !== f.line ? (
+        <span className="mt-1 block font-mono text-[12px] text-(--ui-ink-3) break-all">
+          {f.raw}
+        </span>
+      ) : null}
+    </Alert>
   );
 }

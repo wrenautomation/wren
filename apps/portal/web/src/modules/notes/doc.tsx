@@ -7,7 +7,18 @@
 import type { Editor } from "@tiptap/core";
 import { readTitle, toMarkdown } from "@wren/notes/doc";
 import { type Role, Y_TITLE } from "@wren/notes/types";
-import { Alert, Button, Empty, GROUP_LABEL, Icon, Loading, relative, say, Tag } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  Empty,
+  failureOf,
+  GROUP_LABEL,
+  Icon,
+  Loading,
+  relative,
+  say,
+  Tag,
+} from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
 import { socketToken, viewingAs } from "../../api.js";
@@ -138,7 +149,7 @@ export function NoteDoc({ client, demo, params }: PageProps) {
       >
         {got.error.status === 404
           ? "No such note, or it isn't shared with you."
-          : got.error.message}
+          : failureOf(got.error, "note").line}
       </Empty>
     );
   if (!got.data) return <Loading lines={10} heading />;

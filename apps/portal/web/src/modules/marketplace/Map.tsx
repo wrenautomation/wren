@@ -4,7 +4,7 @@
  * What this client hasn't installed is faded. The picture for a sales video.
  */
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, FlowMap, Loading, PageHeader } from "@wren/ui";
+import { FlowMap, LoadFailed, Loading, PageHeader } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -24,7 +24,7 @@ export function ComponentMap({ client, team }: PageProps) {
   );
   const at = (id: string) =>
     `/marketplace/catalog/${encodeURIComponent(id)}?client=${encodeURIComponent(client)}`;
-  if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={6} />;
   const { groups, alone } = mapOf(got.data.rows, at, team);
   return (

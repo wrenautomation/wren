@@ -4,7 +4,17 @@
  * an episode plays through `/media`; an Instagram, TikTok or X post shows its own embed; an
  * article reads clean. Where you stopped is kept, and the next visit starts there.
  */
-import { Alert, Button, cx, GROUP_LABEL, Loading, PAGE_TITLE, relative, StateMark } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  cx,
+  GROUP_LABEL,
+  LoadFailed,
+  Loading,
+  PAGE_TITLE,
+  relative,
+  StateMark,
+} from "@wren/ui";
 import {
   Archive,
   ArchiveRestore,
@@ -703,7 +713,8 @@ export function ItemView({ id, back }: { id: string; back: string }) {
     return () => removeEventListener("keydown", onKey);
   }, [item, dialog, back]);
 
-  if (load.error && !item) return <Alert onRetry={load.retry}>{load.error.message}</Alert>;
+  if (load.error && !item)
+    return <LoadFailed error={load.error} onRetry={load.retry} what="item" />;
   if (!item) return <Loading lines={6} heading />;
 
   const t = TYPES[item.type] ?? TYPES.link;

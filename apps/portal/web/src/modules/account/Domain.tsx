@@ -1,5 +1,15 @@
 /** Domain: this portal on the client's own address, like portal.theirfirm.com. An owner sets it up. */
-import { Alert, Button, Empty, Facts, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import {
+  Button,
+  Empty,
+  Facts,
+  Input,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  Tag,
+} from "@wren/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -80,7 +90,7 @@ export function Domain(props: PageProps) {
       />
       <Section>
         {load.error && !data ? (
-          <Alert onRetry={load.retry}>{load.error.message}</Alert>
+          <LoadFailed error={load.error} onRetry={load.retry} />
         ) : !data ? (
           <Loading lines={3} />
         ) : data.domains.length === 0 ? (

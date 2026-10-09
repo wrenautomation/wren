@@ -1,5 +1,13 @@
 /** Your settings: the mail this person gets from us (D9), dictation on this device, and how they sign in. */
-import { Alert, Button, ButtonLink, Loading, MessagePreview, PageHeader, Section } from "@wren/ui";
+import {
+  Button,
+  ButtonLink,
+  LoadFailed,
+  Loading,
+  MessagePreview,
+  PageHeader,
+  Section,
+} from "@wren/ui";
 import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
@@ -31,7 +39,7 @@ export function You(props: PageProps) {
       />
       <Section title="Email from us">
         {people.error && !people.data ? (
-          <Alert onRetry={people.retry}>{people.error.message}</Alert>
+          <LoadFailed error={people.error} onRetry={people.retry} />
         ) : !people.data ? (
           <Loading lines={2} />
         ) : !mail ? (
@@ -59,7 +67,7 @@ export function You(props: PageProps) {
       </Section>
       <Section title="The Friday recap">
         {recap.error && !recap.data ? (
-          <Alert onRetry={recap.retry}>{recap.error.message}</Alert>
+          <LoadFailed error={recap.error} onRetry={recap.retry} />
         ) : !recap.data ? (
           <Loading lines={2} />
         ) : !recap.data.recap ? (

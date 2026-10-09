@@ -3,7 +3,7 @@
  * first. Only notes you can open: tagging someone never shares a note with them. Opening the note
  * marks it seen.
  */
-import { Alert, Empty, Icon, Loading, PageHeader, relative } from "@wren/ui";
+import { Empty, Icon, LoadFailed, Loading, PageHeader, relative } from "@wren/ui";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { docPath, type NoteMention, notes } from "./api.js";
@@ -32,7 +32,7 @@ export function NoteMentions({ client }: PageProps) {
       <div className="border border-(--ui-hair) bg-(--ui-paper)">
         {got.error && !data ? (
           <div className="p-3">
-            <Alert onRetry={got.retry}>{got.error.message}</Alert>
+            <LoadFailed error={got.error} onRetry={got.retry} />
           </div>
         ) : !data ? (
           <Loading lines={5} />

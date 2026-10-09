@@ -5,11 +5,11 @@
  * manages it turns it on).
  */
 import {
-  Alert,
   Button,
   ButtonLink,
   cx,
   Empty,
+  LoadFailed,
   Loading,
   PageHeader,
   relative,
@@ -35,7 +35,6 @@ import {
   onChanged,
   type TodayLine,
 } from "./api.js";
-import { LearnFrame } from "./frame.js";
 import { ScoreBadge, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
 
@@ -94,11 +93,7 @@ export function PickGroup({
 
 export function TodayPage({ client }: PageProps) {
   inWorkspace(client);
-  return (
-    <LearnFrame here="today">
-      <TodayBody />
-    </LearnFrame>
-  );
+  return <TodayBody />;
 }
 
 function TodayBody() {
@@ -127,7 +122,7 @@ function TodayBody() {
         }
       />
       {today.error && !t ? (
-        <Alert onRetry={today.retry}>{today.error.message}</Alert>
+        <LoadFailed error={today.error} onRetry={today.retry} />
       ) : !t ? (
         <Loading lines={6} />
       ) : !t.items.length ? (
@@ -155,7 +150,7 @@ function TodayBody() {
         </Section>
       )}
       {settings.error && !s ? (
-        <Alert onRetry={settings.retry}>{settings.error.message}</Alert>
+        <LoadFailed error={settings.error} onRetry={settings.retry} />
       ) : s ? (
         <>
           <Alerts s={s} />

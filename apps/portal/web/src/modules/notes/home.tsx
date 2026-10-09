@@ -9,6 +9,7 @@ import {
   Empty,
   Icon,
   Input,
+  LoadFailed,
   Loading,
   PageHeader,
   relative,
@@ -220,7 +221,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
         </div>
         {list.error && !data ? (
           <div className="p-3">
-            <Alert onRetry={list.retry}>{list.error.message}</Alert>
+            <LoadFailed error={list.error} onRetry={list.retry} />
           </div>
         ) : !data ? (
           <Loading lines={6} />

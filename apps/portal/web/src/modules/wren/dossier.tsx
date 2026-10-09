@@ -3,7 +3,7 @@
  * its newest posts, and its people. Read only. A client sees it once Company dossier is installed;
  * until then the section points to the Shop.
  */
-import { Alert, Empty, Loading } from "@wren/ui";
+import { Empty, LoadFailed, Loading } from "@wren/ui";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { dayLabel, LIST, QUIET, SPLIT } from "../work/bits.js";
@@ -73,7 +73,7 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
           .
         </p>
       );
-    return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
+    return <LoadFailed error={got.error} onRetry={got.retry} />;
   }
   if (!got.data) return <Loading lines={3} />;
   const d = got.data;

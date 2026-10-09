@@ -5,12 +5,12 @@
  * the Discord push).
  */
 import {
-  Alert,
   Button,
   cx,
   Empty,
   InDevelopment,
   Input,
+  LoadFailed,
   Loading,
   PAGE_TITLE,
   relative,
@@ -36,7 +36,6 @@ import {
   onChanged,
   type SourceRow,
 } from "./api.js";
-import { LearnFrame } from "./frame.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
 import { PICKS } from "./today.js";
@@ -58,11 +57,7 @@ const hostOf = (url: string) => {
 
 export function SourcesPage({ client }: PageProps) {
   inWorkspace(client);
-  return (
-    <LearnFrame here="sources">
-      <SourcesBody />
-    </LearnFrame>
-  );
+  return <SourcesBody />;
 }
 
 function SourcesBody() {
@@ -83,7 +78,7 @@ function SourcesBody() {
         <Follow />
       </header>
       {load.error && !load.data ? (
-        <Alert onRetry={load.retry}>{load.error.message}</Alert>
+        <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !load.data ? (
         <Loading lines={4} shape="cards" />
       ) : !kinds.length ? (
