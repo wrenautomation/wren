@@ -34,7 +34,22 @@ const OPTIONAL = [
   "WREN_POOL_LINKEDIN",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
+// `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in
+// deploy/terraform/terraform.tfvars as keystore_public_key, the value the sign-in Lambda gets. Only that one line is
+// read from the file, and never printed. A shell's WREN_KEYSTORE_PUBLIC wins.
+function keystorePublic() {
+  let tfvars;
+  try {
+    tfvars = readFileSync(join(root, "deploy/terraform/terraform.tfvars"), "utf8");
+  } catch {
+    return null;
+  }
+  const value = /^\s*keystore_public_key\s*=\s*"([^"\n]*)"/m.exec(tfvars)?.[1];
+  return value && /^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/.test(value) ? value : null;
+}
+const keystore = keystorePublic();
 const env = {
+  ...(keystore ? { WREN_KEYSTORE_PUBLIC: keystore } : {}),
   ...Object.fromEntries(
     Object.keys(prod)
       .filter((k) => isOptional(k) && prod[k])

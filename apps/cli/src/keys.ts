@@ -27,7 +27,9 @@ function sealer() {
   const priv = process.env.WREN_KEYSTORE_KEY;
   if (pub) return keySealer(pub);
   if (priv) return keySealer(publicSpecOf(priv));
-  throw new Error("Set WREN_KEYSTORE_PUBLIC (terraform.tfvars keystore_public_key).");
+  throw new Error(
+    "Set WREN_KEYSTORE_PUBLIC (terraform.tfvars keystore_public_key). scripts/prod-wren.mjs sets it.",
+  );
 }
 
 export function registerKeys(program: Command, withMainDb: WithDb) {
