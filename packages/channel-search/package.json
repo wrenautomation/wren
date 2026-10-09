@@ -22,6 +22,7 @@
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/sites": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

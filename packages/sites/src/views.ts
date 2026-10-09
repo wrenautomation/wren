@@ -9,8 +9,9 @@
  * - `site_form_records`: every hosted form with its views, starts, submits and conversion.
  * - `site_entry_records`: every form sent, from a page or a hosted form, whole.
  * - `site_link_records`: every tracked `/go/` link with its hits: clicks counted at a client's
- *   edge (Wren's `/go/` is the lander's, which doesn't count them), and the visits, forms and
- *   booking clicks its page saw with the link's utm, on any arm of a split at its address.
+ *   edge, or Wren's read off the lander's click log (`./hops.ts` `importLanderClicks`), and the
+ *   visits, forms and booking clicks its page saw with the link's utm, on any arm of a split at
+ *   its address. `owner_name` is the client's name ("Wren" for Wren's).
  *
  * An ad links to a page when its creative's link holds the page's address: a data page's
  * `/o/<slug>` (also as a `/go/...?to=/o/<slug>` short link), a code page's URL.
@@ -223,6 +224,7 @@ export const siteEntryRecords = pgView("site_entry_records", {
 export const siteLinkRecords = pgView("site_link_records", {
   id: text("id"),
   owner: text("owner"),
+  ownerName: text("owner_name"),
   name: text("name"),
   page: text("page"),
   pageTitle: text("page_title"),
@@ -244,6 +246,7 @@ export const siteLinkRecords = pgView("site_link_records", {
   createdBy: text("created_by"),
 }).as(sql`
   select l.id::text id, coalesce(l.client, 'wren')::text owner,
+    coalesce(c.name, 'Wren')::text owner_name,
     coalesce(l.name, concat_ws(' / ', l.link, l.campaign, l.content))::text name,
     l.page::text page, p.title::text page_title, p.slug::text, l.link::text, l.source::text,
     l.medium::text, l.channel::text, l.campaign::text, l.content::text, h.host,
@@ -253,6 +256,7 @@ export const siteLinkRecords = pgView("site_link_records", {
     greatest(e.last, k.last) last, l.created_at created, l.created_by::text created_by
   from site_links l
   join site_pages p on p.id = l.page
+  left join clients c on c.id = l.client
   left join lateral (select case when l.client is null then '${sql.raw(WREN_SITE)}'
       else (select d.hostname from client_domains d where d.client_id = l.client
         and d.status = 'active' order by d.created_at limit 1) end::text host) h on true
@@ -265,7 +269,7 @@ export const siteLinkRecords = pgView("site_link_records", {
       and x.source = l.source and x.medium = l.medium and x.campaign = l.campaign
       and coalesce(x.content, '') = coalesce(l.content, '')) e on true
   left join lateral (
-    select case when l.client is null then null else count(*)::int end clicks, max(y.at) last
+    select count(*)::int clicks, max(y.at) last
     from site_hops y
-    where l.client is not null and y.client = l.client and y.page = l.page and y.link = l.link
+    where y.client is not distinct from l.client and y.page = l.page and y.link = l.link
       and y.campaign = l.campaign and coalesce(y.content, '') = coalesce(l.content, '')) k on true`);

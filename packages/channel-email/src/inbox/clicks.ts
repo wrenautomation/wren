@@ -99,6 +99,20 @@ export interface SiteAnswer {
   value: string;
 }
 
+/** One `/go/` hop to a page of ours (`clicks`): the short name, its utm and the path it went to. */
+export interface SiteClick {
+  id: number;
+  ts: string;
+  link: string;
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  content: string | null;
+  page: string;
+  ref: string | null;
+  country: string | null;
+}
+
 export interface SiteTables {
   hits: SiteHit;
   applications: SiteApplication;
@@ -107,6 +121,7 @@ export interface SiteTables {
   /** `exp.seen` events with a visitor (cookie yes): what experiments count. */
   exposures: SiteEvent;
   answers: SiteAnswer;
+  clicks: SiteClick;
 }
 
 /** Every row of one lander table after id `since` (all of them by default), paged forward by id. */

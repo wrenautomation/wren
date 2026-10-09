@@ -1359,6 +1359,13 @@
       "when": 1791544382500,
       "tag": "0193_social_connections_account_index",
       "breakpoints": true
+    },
+    {
+      "idx": 194,
+      "version": "7",
+      "when": 1791545301267,
+      "tag": "0194_site_link_clicks",
+      "breakpoints": true
     }
   ]
 }

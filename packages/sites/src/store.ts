@@ -857,3 +857,62 @@ export async function recordHop(
   });
   return true;
 }
+
+/** A click the lander's `/go/` logged (its `clicks` table, read through `/api/export`). */
+export interface LanderClick {
+  id: number;
+  ts: string;
+  link: string;
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  content: string | null;
+  /** The path it hopped to: `/o/<slug>` is one of Wren's data pages. */
+  page: string;
+  ref: string | null;
+}
+
+const WREN_PAGE = /^\/o\/([a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?)$/;
+
+/**
+ * Wren's `/go/` clicks, from the lander's log, as `site_hops` rows with no client: each with the
+ * page it went to when that's one of Wren's (`/o/<slug>`), so Sites → Links counts them. One
+ * transaction: a failed batch leaves nothing, and the caller's cursor stays where it was.
+ */
+export async function importLanderClicks(db: Db, rows: readonly LanderClick[]): Promise<number> {
+  const kept = rows.flatMap((r) => {
+    const link = clip(r.link, 80);
+    const to = clip(r.page, 200);
+    const at = new Date(r.ts);
+    if (!link || !to || Number.isNaN(at.getTime())) return [];
+    const t = touchOf(r);
+    return [{ link, to, at, t, slug: WREN_PAGE.exec(to)?.[1] ?? null }];
+  });
+  if (!kept.length) return 0;
+  return atomic(db, async (tx) => {
+    const slugs = [...new Set(kept.flatMap((k) => (k.slug ? [k.slug] : [])))];
+    const pages = slugs.length
+      ? await tx
+          .select({ id: sitePages.id, slug: sitePages.slug })
+          .from(sitePages)
+          .where(and(ownerIs(null), inArray(sitePages.slug, slugs)))
+      : [];
+    const pageOf = new Map(pages.map((p) => [p.slug, p.id]));
+    await tx.insert(siteHops).values(
+      kept.map((k) => ({
+        client: null,
+        at: k.at,
+        link: k.link,
+        channel: k.t.channel,
+        source: k.t.source,
+        medium: k.t.medium,
+        campaign: k.t.campaign,
+        content: k.t.content,
+        to: k.to,
+        page: (k.slug && pageOf.get(k.slug)) ?? null,
+        ref: k.t.ref,
+      })),
+    );
+    return kept.length;
+  });
+}

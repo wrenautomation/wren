@@ -38,6 +38,7 @@ import { partPaused, pausedText } from "@wren/core/setup-alerts";
 import { surveyKinds, writeSurveyDays } from "@wren/core/survey-store";
 import type { Db, Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { importLanderClicks } from "@wren/sites/store";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { SEARCH_COMPONENT, SEARCH_COMPONENTS, searchSettingsSchema } from "../components.js";
@@ -59,6 +60,8 @@ export const SEARCH_WEEK_COMMAND = "search week";
 const WEEK = "week";
 /** The lander event id heatmaps read after (`../heat.ts`). */
 const HEAT_FROM = "heat from";
+/** The lander click id Wren's `/go/` clicks are read after (`@wren/sites/store` `importLanderClicks`). */
+const CLICKS_FROM = "clicks from";
 const MONDAY = 1;
 const DAY_MS = 86_400_000;
 /** Keywords asked per engine per week: far under Google's pace and the free Perplexity plan. */
@@ -104,6 +107,7 @@ type WatchStats = SyncStats & {
   week: string | null;
   site?: Step<{ days: number; flags: number; surveys: number }>;
   heat?: Step<{ rows: number }>;
+  clicks?: Step<{ rows: number }>;
   experiments?: Step<{ moved: number; settled: number }>;
 };
 
@@ -243,6 +247,23 @@ export function makeSearchWatch(deps: SearchDeps) {
       if (heat.from !== null) ctx.set(HEAT_FROM, heat.from);
       if (outcome.stats)
         outcome.stats.heat = "error" in heat ? { error: heat.error } : { rows: heat.rows };
+      // Wren's `/go/` clicks with the page each went to: Sites → Links counts them.
+      const clicksFrom = (await ctx.get<number>(CLICKS_FROM)) ?? 0;
+      const clicks = await ctx.run("link clicks", async () => {
+        try {
+          const rows = await siteExport("clicks", {
+            ...site,
+            fetch: deps.fetch,
+            since: clicksFrom,
+          });
+          return { rows: await importLanderClicks(deps.db, rows), from: rows.at(-1)?.id ?? null };
+        } catch (err) {
+          return { error: err instanceof Error ? err.message : String(err), from: null };
+        }
+      });
+      if (clicks.from !== null) ctx.set(CLICKS_FROM, clicks.from);
+      if (outcome.stats)
+        outcome.stats.clicks = "error" in clicks ? { error: clicks.error } : { rows: clicks.rows };
     }
     // The bandit moves running experiments' shares on the days just written; the push carries them.
     const moved = await ctx.run("experiments", async () => {

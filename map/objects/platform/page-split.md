@@ -20,7 +20,7 @@ Many landers per offer and per client need a fair test with a plain call. The ar
 - `site_splits`: `client` (null is Wren), `page` (A), `state` running|shipping|shipped|stopped, `goal` forms|books|won, `winner`, `ship_version`, `started_*`, `ended_*`. One live split per page (partial unique on running|shipping).
 - `site_split_arms`: `(split, label)` key, `page` (unique per split), `weight` 1..100.
 - `site_events.split` and `site_forms.split`: set only when the arm's page matches. Migration `0187_sites_splits`.
-- `site_hops`: a client host's `/go/` clicks (`link`, `channel`, utm, `to`, `page`). Same migration.
+- `site_hops`: a client host's `/go/` clicks (`link`, `channel`, utm, `to`, `page`). Same migration. Wren's (no client) come from the lander's `clicks` log: SearchWatch reads `/api/export?table=clicks` each pass into it (`importLanderClicks`, `packages/sites/src/store.ts`; 0194 counts them and adds `owner_name`).
 - Call: `splitCall` (`packages/sites/src/split-call.ts:49`): Beta(1 + goals, 1 + visits - goals) per arm; under 100 visits on any arm it says "Too early"; 95% is "wins".
 - Serve: `armToServe` (`split.ts:241`) behind `Sites/serve` with `arm`, `bot`, `roll`; the Worker's `page` (`apps/portal/src/sites.ts:270`) sets `wab`, keys the cache per arm, bots get A.
 - `site_links` (0189): tracked `/go/` links, one per page and utm, made in Sites → Links (`packages/sites/src/links.ts`); `site_link_records` counts each one's clicks, visits, forms and bookings. QR codes from `packages/sites/src/qr.ts`.

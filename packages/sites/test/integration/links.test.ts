@@ -12,7 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { pageApprovalId, retireApprovalId, sitesApi } from "../../src/console.js";
 import { hopOf } from "../../src/hops.js";
 import { sitesPublicApi } from "../../src/service.js";
-import { waitingRetires } from "../../src/store.js";
+import { importLanderClicks, waitingRetires } from "../../src/store.js";
 
 let pg: TestPostgres;
 const TABLES = [
@@ -127,6 +127,8 @@ describe("tracked links", () => {
     } as never);
     const row = list.rows.find((r) => r.id === made.id);
     expect(row).toMatchObject({ clicks: 1, visits: 1, books: 1, forms: 0, channel: "ads" });
+    // The owner reads as the client's name; its id stays for filters.
+    expect(row).toMatchObject({ owner: "acme", ownerName: "Acme Roofing" });
     expect(list.rows.find((r) => r.id === plain.id)).toMatchObject({ clicks: 0, visits: 0 });
   });
 
@@ -150,6 +152,50 @@ describe("tracked links", () => {
     );
     await refused(api().linkCreate({ viewer: CAM, page: mine.id, link: "ads" } as never), 403);
     await refused(api().linkCreate({ viewer: ADA, page: mine.id, link: "--" } as never), 400);
+  });
+
+  it("counts Wren's clicks from the lander's click log, by the page each went to", async () => {
+    const mine = await livePage("speed");
+    const other = await livePage("other");
+    const made = await api().linkCreate({
+      viewer: ADA,
+      page: mine.id,
+      link: "yt",
+      campaign: "q4",
+      content: "abc123",
+    } as never);
+    const click = (id: number, page: string, content = "abc123") => ({
+      id,
+      ts: "2026-10-08T12:00:00.000Z",
+      link: "yt",
+      source: "youtube",
+      medium: "organic",
+      campaign: "q4",
+      content,
+      page,
+      ref: null,
+    });
+    const n = await importLanderClicks(pg.db, [
+      click(1, `/o/${mine.slug}`),
+      click(2, `/o/${mine.slug}`),
+      // Another page, another post, a page that isn't Wren's: not this link's.
+      click(3, `/o/${other.slug}`),
+      click(4, `/o/${mine.slug}`, "zzz"),
+      click(5, "/book"),
+      // Not a click: no name.
+      { ...click(6, `/o/${mine.slug}`), link: "" },
+    ]);
+    expect(n).toBe(5);
+    // Wren's links list off the view itself (the core console serves Wren's records).
+    const [row] = await pg.db.execute(
+      sql`select clicks, owner, owner_name, last from site_link_records where id = ${made.id}`,
+    );
+    expect(row).toMatchObject({ clicks: 2, owner: "wren", owner_name: "Wren" });
+    expect(new Date(row?.last as string).toISOString()).toBe("2026-10-08T12:00:00.000Z");
+    const [hop] = await pg.db.execute(
+      sql`select client, page, "to" from site_hops where "to" = '/book'`,
+    );
+    expect(hop).toEqual({ client: null, page: null, to: "/book" });
   });
 });
 
