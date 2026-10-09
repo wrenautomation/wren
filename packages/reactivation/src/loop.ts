@@ -37,6 +37,7 @@ import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { type FeedStats, feedDelivery } from "./delivery.js";
 import { type ForwardStats, forwardHandoffs } from "./forward.js";
+import { readVisits, type VisitStats } from "./keep.js";
 import { readClientProfile } from "./profile.js";
 import { type CrmRunDeps, type CrmStageResult, runCrm } from "./run.js";
 import { sendingOff, settingsOrNull } from "./sending.js";
@@ -84,6 +85,8 @@ export interface ReactivationPassStats {
   loops: MailboxLoops;
   /** What went into the client's delivery portal; a failure there never fails the pass. */
   portal?: FeedStats | { error: string };
+  /** Forms the client's accounts sent on its site, for Keep; a failure never fails the pass. */
+  visits?: VisitStats | { error: string };
 }
 
 const STARTED = "started";
@@ -220,7 +223,10 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
           const portal = await feedDelivery(deps.main, db, ctx.key, settings, now).catch(
             (err: unknown) => ({ error: errorText(err) }),
           );
-          return { off: null, stages, handoff, loops: plan.loops, portal };
+          const visits = await readVisits(deps.main, db, ctx.key, now).catch((err: unknown) => ({
+            error: errorText(err),
+          }));
+          return { off: null, stages, handoff, loops: plan.loops, portal, visits };
         },
         delayAfter: () => passMs,
         retryMs,

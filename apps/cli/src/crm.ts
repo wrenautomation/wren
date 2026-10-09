@@ -33,12 +33,15 @@ import {
   formatCrmHealth,
   formatCrmStatus,
   formatRanked,
+  importJobOrders,
   markMeetingBooked,
+  ORDER_FORMATS,
   portalEmails,
   type RedraftStats,
   rankedContacts,
   reactivationSettingsOf,
   readClientProfile,
+  readJobOrders,
   runCrmImport,
   seedDemo,
   setClientProfile,
@@ -117,6 +120,27 @@ export function registerCrm(
       );
       console.log(`import ${batch.id}: ${JSON.stringify(stats)}`);
       console.log("next: `wren --client <id> crm run`");
+    });
+
+  crm
+    .command("job-orders <path>")
+    .description("Import the client's job orders (an ATS export, CSV): Keep reads the open ones")
+    .option("--format <name>", `one of ${[...ORDER_FORMATS.keys()].join(", ")}`, "ats-generic")
+    .action(async (path: string, opts: { format: string }) => {
+      const format = ORDER_FORMATS.get(opts.format);
+      if (!format)
+        throw new Error(
+          `unknown format ${opts.format}; one of ${[...ORDER_FORMATS.keys()].join(", ")}`,
+        );
+      // Read before the database opens: an unreadable header fails with nothing written.
+      const read = readJobOrders(format, resolve(path));
+      console.log(
+        `headers: ${Object.entries(read.headers)
+          .map(([field, h]) => `${field}=${h}`)
+          .join("  ")}`,
+      );
+      const stats = await withClientDb((db) => importJobOrders(db, format, read));
+      console.log(`job orders: ${JSON.stringify(stats)}`);
     });
 
   const profile = crm

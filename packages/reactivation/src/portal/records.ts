@@ -328,7 +328,9 @@ const SIGNAL = {
   champion_left: { label: "Champion left", tone: "bad" },
   overdue: { label: "Past the usual gap", tone: "warn" },
   hiring: { label: "Hiring again", tone: "good" },
+  visited: { label: "On your site", tone: "good" },
   news: { label: "In the news", tone: "good" },
+  orders: { label: "Open job orders", tone: "good" },
   steady: { label: "Steady", tone: "neutral" },
 } as const;
 
@@ -353,13 +355,15 @@ export const keep = defineRecord({
     usualGap: number("Usual gap, days"),
     since: number("Days since"),
     lastContact: date("Last contact"),
+    visited: date("On your site"),
+    openOrders: number("Open job orders"),
   },
   views: [
     { id: "risk", label: "At risk", where: { risk: { gte: 30 } }, sort: "-risk" },
     {
       id: "call",
       label: "Reason to call",
-      where: { signal: ["hiring", "news"] },
+      where: { signal: ["hiring", "visited", "news", "orders"] },
       sort: "-lastPlacement",
     },
     { id: "all", label: "All accounts", sort: "-risk" },

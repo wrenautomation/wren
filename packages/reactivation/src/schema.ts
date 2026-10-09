@@ -386,3 +386,79 @@ export const calls = pgTable(
     }),
   ],
 );
+
+/**
+ * A form an account sent on one of the client's own Sites pages or forms: Keep's "visited"
+ * signal (designs/2026-10-07-health.md, Keep). Our pages keep no visitor id, so only a visitor
+ * who says who they are counts: an email at the account's domain, or a known contact's email.
+ * Copied from Wren's `site_forms` by the reactivation pass; `entry` is that row's id.
+ */
+export const accountVisits = pgTable(
+  "account_visits",
+  {
+    id: serial("id").notNull(),
+    entry: uuid("entry").notNull(),
+    companyId: integer("company_id").notNull(),
+    /** The contact whose email it was, when one is known. */
+    personId: integer("person_id"),
+    email: varchar("email", { length: 320 }).notNull(),
+    /** The form's name, else the page's title. */
+    what: text("what").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_account_visits" }),
+    unique("uq_account_visits_entry").on(t.entry),
+    index("ix_account_visits_company_at").on(t.companyId, t.at),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_account_visits_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_account_visits_person_id_people",
+    }),
+  ],
+);
+
+/**
+ * A job order from the client's ATS export, kept whole (`wren crm job-orders`). An open one
+ * means the account is giving work, so Keep doesn't call it overdue. A row whose company we
+ * don't know keeps the name and no `company_id`. Again replaces each order by its id.
+ */
+export const jobOrders = pgTable(
+  "job_orders",
+  {
+    id: serial("id").notNull(),
+    /** The ATS dialect it came in as: bullhorn, jobadder, ats-generic. */
+    format: varchar("format", { length: 32 }).notNull(),
+    /** The ATS's own id, else a hash of who and what. */
+    orderKey: varchar("order_key", { length: 128 }).notNull(),
+    companyId: integer("company_id"),
+    companyName: text("company_name"),
+    title: text("title"),
+    status: text("status"),
+    /** Read from the status and the close date: closed, filled, lost, cancelled or on hold are not. */
+    open: boolean("open").notNull(),
+    openings: integer("openings"),
+    owner: text("owner"),
+    openedOn: date("opened_on"),
+    closedOn: date("closed_on"),
+    raw: jsonb("raw").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_job_orders" }),
+    unique("uq_job_orders_key").on(t.format, t.orderKey),
+    index("ix_job_orders_company_id").on(t.companyId).where(sql`open`),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_job_orders_company_id_companies",
+    }),
+  ],
+);

@@ -3,7 +3,7 @@ type: object
 cluster: reactivation
 universe: live
 status: verified
-verified: 2026-10-03 @ fc9fe66
+verified: 2026-10-09 @ 25f37b6e
 entity: packages/reactivation/src/schema.ts:29
 ---
 
@@ -20,6 +20,8 @@ The export is the client's truth; people and companies are ours. Keeping the CRM
 - `crm_contacts` (`schema.ts:29`), `contact_scores` (`:94`), `mover_addresses` (`:130`), `briefs` (`:184`)
 - `contact_scores.next_step` (`:86`): `reach_out` (a signal: a move with a firm, or open roles), `keep_warm` (no signal: the portal's Keep warm), `none` (left). Compose writes only to `reach_out`. Reasons are recruiter words ("Moved to Beta Labs 4 months ago"), signal first (`score.ts:113`).
 - `mover_addresses`: one row per move tried, `found|no_domain|catch_all|not_found`; `found` links the verified `contact_candidates` row at the new firm, the only address compose uses for a mover (`movers.ts:96`). A found address adds the new firm to `companies` by domain; the mover's enrollment is filed under it.
+- `job_orders` (`schema.ts:432`): the client's ATS job orders, `wren crm job-orders` (`crm/job-orders.ts`), formats `ats-generic|bullhorn|jobadder`; `open` read from an open column, a close date or the status. Unplaced rows keep `company_name`, no `company_id`.
+- `account_visits` (`schema.ts:396`): a form an account sent on the client's Sites pages, copied from Wren's `site_entry_records` by the reactivation pass (`keep.ts`, `loop.ts:226`), matched by a contact's email or a work domain.
 - Formats: `packages/reactivation/src/crm/formats.ts`; import `crm/import.ts:23`; health gate `crm/health.ts`
 
 Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/movers.ts:96`, `packages/reactivation/src/crm/import.ts:23`
@@ -31,16 +33,17 @@ Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/
 
 ## If you change this
 
-- **Hits:** `crm import|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm, the `reactivation_people` record view ([[platform/records]]; a column change needs a migration)
+- **Hits:** `crm import|job-orders|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm, the `reactivation_people` record view ([[platform/records]]; a column change needs a migration)
 - **Does not hit:** Wren's own leads (main database)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `wren --client <id> crm import` | writes |
+| `wren --client <id> crm import`, `crm job-orders` | writes |
+| the reactivation pass (`readVisits`) | writes `account_visits` |
 | `Reactivation/{client}`, portal | reads |
-| Reactivation app, Keep (`reactivation_keep`, `packages/reactivation/src/portal/record-views.ts:187`; record `reactivation.keep`, `records.ts:336`) | reads: accounts placed with in 24 months, ranked by risk (champion left, past the usual reorder, hiring again) |
+| Reactivation app, Keep (`reactivation_keep`, `packages/reactivation/src/portal/record-views.ts:188`; record `reactivation.keep`, `records.ts:338`) | reads: accounts placed with in 24 months, ranked by risk (champion left, past the usual reorder unless a job order is open, hiring again, on your site, news, open orders) |
 
 ## See
 

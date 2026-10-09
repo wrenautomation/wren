@@ -180,9 +180,10 @@ export const reactivationPersonActivity = pgView("reactivation_person_activity",
  * Keep (designs/2026-10-07-health.md): each company placed with in the last 24 months, scored
  * for the risk of losing it. Its usual gap is the median between its placement days; with
  * fewer than two, the client's median; with none, 180 days. The champion is the person behind
- * the latest placement. Signal, first that holds: champion left, past the usual gap by 25%,
- * hiring again, news in 6 months, steady. Risk: champion left 50, past the gap 30, no contact
- * in 6 months 20; hiring and news are reasons to call, not risk.
+ * the latest placement. Signal, first that holds: champion left, past the usual gap by 25%
+ * (not while a job order is open), hiring again, a form sent on the client's site in 30 days,
+ * news in 6 months, open job orders, steady. Risk: champion left 50, past the gap 30, no
+ * contact in 6 months 20; hiring, visits, news and orders are reasons to call, not risk.
  */
 export const reactivationKeep = pgView("reactivation_keep", {
   id: integer("id"),
@@ -198,6 +199,8 @@ export const reactivationKeep = pgView("reactivation_keep", {
   usualGap: integer("usual_gap"),
   since: integer("since"),
   lastContact: timestamp("last_contact", { withTimezone: true }),
+  visited: timestamp("visited", { withTimezone: true }),
+  openOrders: integer("open_orders"),
 }).as(sql`
   with placed as (
     select company_id, person_id, last_placement_on d from crm_contacts
@@ -227,18 +230,28 @@ export const reactivationKeep = pgView("reactivation_keep", {
     select c.company_id,
       greatest(max(c.last_contacted_on)::timestamptz, max(k.called_at)) last_contact
     from crm_contacts c left join calls k on k.person_id = c.person_id group by c.company_id),
+  visit as (
+    select distinct on (company_id) company_id, at visited, what visit_what from account_visits
+    where at > now() - interval '30 days' order by company_id, at desc, id desc),
+  orders as (
+    select company_id, count(*)::int open_orders from job_orders
+    where open and company_id is not null group by company_id),
   sig as (
     select cur.*, w.kind where_kind, w.value ->> 'to' moved_to, t.last_contact,
-      cur.since > 1.25 * cur.usual_gap overdue,
+      v.visited, v.visit_what, coalesce(o.open_orders, 0) open_orders,
+      cur.since > 1.25 * cur.usual_gap and o.open_orders is null overdue,
       coalesce(w.kind in ('job_change', 'left'), false) gone,
       (select coalesce(n.value ->> 'title', n.value ->> 'event') from findings n
         where n.id = cur.news_id) news
     from cur left join findings w on w.id = cur.where_id
-    left join touched t on t.company_id = cur.company_id)
+    left join touched t on t.company_id = cur.company_id
+    left join visit v on v.company_id = cur.company_id
+    left join orders o on o.company_id = cur.company_id)
   select s.company_id id, coalesce(co.name, co.domain, '?') company, co.domain,
     coalesce(${NAME("p")}, p.full_name, '(no name)') champion, s.champion champion_id,
     case when s.gone then 'champion_left' when s.overdue then 'overdue'
-      when s.hiring_id is not null then 'hiring' when s.news_id is not null then 'news'
+      when s.hiring_id is not null then 'hiring' when s.visited is not null then 'visited'
+      when s.news_id is not null then 'news' when s.open_orders > 0 then 'orders'
       else 'steady' end signal,
     ((case when s.gone then 50 else 0 end) + (case when s.overdue then 30 else 0 end)
       + (case when s.last_contact is null or s.last_contact < now() - interval '6 months'
@@ -249,11 +262,14 @@ export const reactivationKeep = pgView("reactivation_keep", {
       when s.where_kind = 'left' then coalesce(${NAME("p")}, p.full_name, 'The champion') || ' left'
       when s.overdue then s.since || ' days since the last placement; usually ' || s.usual_gap
       when s.hiring_id is not null then 'Open roles found in the last 30 days'
+      when s.visited is not null then 'Filled ' || s.visit_what || ' on your site'
       when s.news_id is not null then coalesce(s.news, 'In the news')
+      when s.open_orders > 0 then s.open_orders || case when s.open_orders = 1
+        then ' open job order' else ' open job orders' end
       else s.placements || case when s.placements = 1 then ' placement' else ' placements' end
         || ', the last ' || s.since || ' days ago' end why,
     s.last_placement::timestamptz last_placement, s.placements, s.usual_gap, s.since,
-    s.last_contact
+    s.last_contact, s.visited, s.open_orders
   from sig s
   join companies co on co.id = s.company_id
   join people p on p.id = s.champion`);
