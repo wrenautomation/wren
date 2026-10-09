@@ -208,7 +208,6 @@ import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
-import { makeTokens } from "@wren/core/tokens";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import {
@@ -252,6 +251,7 @@ import {
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
+import { makeTokens } from "@wren/core/tokens";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
