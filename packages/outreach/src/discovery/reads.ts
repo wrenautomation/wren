@@ -110,7 +110,7 @@ export function reader(sites: SiteClient): Reader {
     latest: async (sub) => itemsOf<Post>(await call<Listing>(`/r/${sub}/new`, { limit: 50 })),
     async thread(id) {
       const [head, tree] = await call<[Listing, Listing]>(`/comments/${id.replace(/^t3_/, "")}`, {
-        limit: 200,
+        limit: 100,
       });
       const comments: (Thing & { depth: number })[] = [];
       const walk = (l: Listing | undefined, depth: number) => {
