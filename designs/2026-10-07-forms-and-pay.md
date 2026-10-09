@@ -169,10 +169,64 @@ Main database, `client` column, so To approve and the webhook read one place.
 - **Texts → thread**: "Send pay link"; the detail shows what they paid.
 - **To approve**: pay links waiting, type "Payment".
 
+## Forms, round two (2026-10-09)
+
+Gaps item 7: show-when rules, steps, A/B per form, and forms in a client's own Sites. One
+migration.
+
+### Show when
+
+A field may carry `show: {key, op, values?}`. `key` names an earlier field, so rules read top to
+bottom and can't loop. `op` is `is` or `not` (with `values`), or `filled` or `empty`.
+
+- `is` on pick one: its pick is one of `values`. On pick any: any pick is. On text: the same
+  words, any case. `not` is the opposite. `filled` and `empty` work on any kind, hidden too, so a
+  `utm_source` from the link can pick what shows.
+- A field its rule hides isn't asked, isn't required, and its value is dropped on the server: the
+  submission holds only what the visitor saw.
+- One email or phone field has no rule, so every lead can be reached.
+- The kit hides and disables a hidden field (a disabled field isn't sent). The server works out
+  the same from the values, in order.
+
+### Steps
+
+Field kind `step` ("New step"). Its label heads the step that starts there. The form shows one
+step at a time with Back and Next. Next checks only the step's shown fields. A step whose fields
+are all hidden is skipped. Without script every step shows, as one form.
+
+- Not first, not last, never two in a row, at most 9 (10 steps). Its key is `step_<n>`; it never
+  holds a value and takes no rule.
+- The kit counts `step` with its number (`site_events.step`) when a visitor reaches step 2 and
+  on. The form's numbers read views, starts, each step, submits: where people stop.
+
+### A/B per form
+
+`site_form_splits`: `id`, `client`, `form`, `state` (running | shipped | stopped), `b` (B's
+spec), `weight` (B's share, 1 to 99), `winner`, `started_*`, `ended_*`. One running per form.
+
+- `/o/f/<slug>` serves A or B by weight. The `wab` cookie on `/o/f/<slug>` keeps a visitor on
+  their arm for 30 days, as page splits do. A frame on another site rarely keeps a cookie, so
+  there each load rolls again. Bots get A, uncounted.
+- The form tag carries `data-fsplit` and `data-arm`; the kit sends both with every event and the
+  submit. `site_events` and `site_forms` gain `form_split` and `arm`.
+- A submit is checked against its arm's spec: the split's `b`, even after the split ends.
+- The call: views and submits per arm through `splitCall` (beta-binomial, 100 views an arm before
+  a call, 95% sure to name a winner).
+- Start copies A as B to edit. Ship B: B's spec becomes the form's and the split ends `shipped`.
+  Stop: ends `stopped`, A stays. All direct, no To approve: a form only collects.
+- A page's form section always shows A. The page's own split tests the page.
+- Routes: `formSplitStart`, `formSplitSave` (B's spec and weight), `formSplitStop`,
+  `formSplitShip`.
+
+### A client's own Sites
+
+Its Sites gets Forms and Submissions with its rows only (`formRecordFor`, `entryRecordFor`, as
+pages and links have). Its people build, publish and split their own forms; publish is direct, as
+above. New form makes the form the workspace's: a client's in theirs, Wren's in Wren's.
+
 ## In development
 
-- Stripe Connect (managed by Wren). Refunds and invoices. Conditional logic and multi-step forms.
-  A drag editor. Per-form A/B. Forms on a client's own Sites list (Sites is team-only today).
+- Stripe Connect (managed by Wren). Refunds and invoices. A drag editor.
 
 ## Shipped
 
