@@ -39,6 +39,10 @@ import {
   ARM_LABELS,
   CHANNELS,
   EVENT_NAMES,
+  FORM_ARMS,
+  FORM_SPLIT_STATES,
+  type FormArm,
+  type FormSplitState,
   PAGE_KINDS,
   PAGE_SOURCES,
   PAGE_STAGES,
@@ -258,6 +262,55 @@ export const siteFormDefs = pgTable(
 );
 export type SiteFormDef = typeof siteFormDefs.$inferSelect;
 
+/**
+ * A form's A/B split (designs/2026-10-07-forms-and-pay.md, "A/B per form"): its address serves
+ * the form (A) or `b` by weight, sticky by the `wab` cookie. One running per form. Kept when it
+ * ends: a submit from B is checked against `b` even after.
+ */
+export const siteFormSplits = pgTable(
+  "site_form_splits",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** Whose; null is Wren's. Always the form's owner. */
+    client: varchar("client", { length: 40 }),
+    form: uuid("form").notNull(),
+    state: varchar("state", { length: 8 }).$type<FormSplitState>().notNull().default("running"),
+    /** B's spec: A's copied at the start, then edited. */
+    b: jsonb("b").$type<FormSpec>().notNull(),
+    /** B's share of new visitors, 1 to 99; A gets the rest. */
+    weight: integer("weight").notNull().default(50),
+    /** The arm kept when it ended: B when shipped, A when stopped. */
+    winner: varchar("winner", { length: 1 }).$type<FormArm>(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    startedBy: text("started_by").notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endedBy: text("ended_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text("updated_by").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_site_form_splits" }),
+    uniqueIndex("uq_site_form_splits_running").on(t.form).where(sql`${t.state} = 'running'`),
+    index("ix_site_form_splits_form").on(t.form),
+    index("ix_site_form_splits_client").on(t.client),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_site_form_splits_client",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.form],
+      foreignColumns: [siteFormDefs.id],
+      name: "fk_site_form_splits_form",
+    }).onDelete("cascade"),
+    oneOf("ck_site_form_splits_state", t.state, FORM_SPLIT_STATES),
+    oneOf("ck_site_form_splits_winner", t.winner, FORM_ARMS),
+    check("ck_site_form_splits_weight", sql`${t.weight} between 1 and 99`),
+    check("ck_site_form_splits_ended", sql`(${t.state} = 'running') = (${t.endedAt} is null)`),
+  ],
+);
+export type SiteFormSplit = typeof siteFormSplits.$inferSelect;
+
 export const siteEvents = pgTable(
   "site_events",
   {
@@ -281,6 +334,9 @@ export const siteEvents = pgTable(
     width: integer("width"),
     /** On a `step`: the hosted form's step reached, 2 and on. */
     step: smallint("step"),
+    /** The form split that served it, and the arm. */
+    formSplit: uuid("form_split"),
+    arm: varchar("arm", { length: 1 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_site_events" }),
@@ -303,6 +359,13 @@ export const siteEvents = pgTable(
       name: "fk_site_events_split",
     }).onDelete("set null"),
     check("ck_site_events_where", sql`${t.page} is not null or ${t.form} is not null`),
+    index("ix_site_events_form_split").on(t.formSplit).where(sql`${t.formSplit} is not null`),
+    foreignKey({
+      columns: [t.formSplit],
+      foreignColumns: [siteFormSplits.id],
+      name: "fk_site_events_form_split",
+    }).onDelete("set null"),
+    oneOf("ck_site_events_arm", t.arm, FORM_ARMS),
     check(
       "ck_site_events_step",
       sql`(${t.name} = 'step') = (${t.step} is not null) and (${t.step} is null or ${t.step} between 2 and 10)`,
@@ -338,6 +401,9 @@ export const siteForms = pgTable(
     form: uuid("form"),
     /** The split that served its page, when one did. */
     split: uuid("split"),
+    /** The form split that served it, and the arm whose spec checked it. */
+    formSplit: uuid("form_split"),
+    arm: varchar("arm", { length: 1 }),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     fields: jsonb("fields").$type<Record<string, string>>().notNull(),
     /** The text consent it ticked, with the words shown; null when it didn't. */
@@ -373,6 +439,13 @@ export const siteForms = pgTable(
       name: "fk_site_forms_split",
     }).onDelete("set null"),
     check("ck_site_forms_where", sql`${t.page} is not null or ${t.form} is not null`),
+    index("ix_site_forms_form_split").on(t.formSplit).where(sql`${t.formSplit} is not null`),
+    foreignKey({
+      columns: [t.formSplit],
+      foreignColumns: [siteFormSplits.id],
+      name: "fk_site_forms_form_split",
+    }).onDelete("set null"),
+    oneOf("ck_site_forms_arm", t.arm, FORM_ARMS),
     oneOf("ck_site_forms_human", t.human, ["yes", "off"]),
     oneOf("ck_site_forms_channel", t.channel, CHANNELS),
   ],

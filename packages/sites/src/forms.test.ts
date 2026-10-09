@@ -255,9 +255,9 @@ describe("show-when rules and steps", () => {
     const base = { title: "T", after: { kind: "thanks", text: "x" } };
     const bad = (fields: unknown[]) => () => parseSpec({ ...base, fields });
     const email = { kind: "email", label: "Email" };
-    expect(bad([{ kind: "text", label: "A", show: { key: "email", op: "filled" } }, email])).toThrow(
-      /above it/,
-    );
+    expect(
+      bad([{ kind: "text", label: "A", show: { key: "email", op: "filled" } }, email]),
+    ).toThrow(/above it/);
     expect(bad([email, { kind: "text", label: "A", show: { key: "email", op: "is" } }])).toThrow(
       /which answer/,
     );
@@ -277,7 +277,13 @@ describe("show-when rules and steps", () => {
     expect(bad([{ kind: "step", label: "x" }, email])).toThrow(/start with a new step/);
     expect(bad([email, { kind: "step", label: "x" }])).toThrow(/end with a new step/);
     expect(
-      bad([email, { kind: "step" }, { key: "utm_source", kind: "hidden" }, { kind: "step" }, email]),
+      bad([
+        email,
+        { kind: "step" },
+        { key: "utm_source", kind: "hidden" },
+        { kind: "step" },
+        email,
+      ]),
     ).toThrow(/two fields share|Step 2 has no questions/i);
     expect(
       bad([email, { key: "utm", kind: "hidden", show: { key: "email", op: "filled" } }]),

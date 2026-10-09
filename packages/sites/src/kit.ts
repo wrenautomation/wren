@@ -17,6 +17,7 @@
  *
  * - `data-split`: the split that served this arm (the Worker picked it by the `wab` cookie, which
  *   holds only the arm); sent with every event and form so the arm's numbers count it.
+ * - a hosted form's `data-fsplit` and `data-arm`: its form split and arm, sent the same way.
  *
  * No cookie of its own and no visitor id: views, not visitors. Bodies go as text/plain, so another
  * origin's page (a code page on Pages) posts with no preflight.
@@ -45,6 +46,7 @@ addEventListener("message",function(e){if(e.origin===base&&e.source===fr.content
 return}
 var page=s.getAttribute("data-page"),split=s.getAttribute("data-split")||null,first=document.querySelector("form[data-form]");
 var form=s.getAttribute("data-form")||(first&&first.getAttribute("data-form"))||null;
+var fsplit=first&&first.getAttribute("data-fsplit")||null,arm=first&&first.getAttribute("data-arm")||null;
 if(!page&&!form)return;
 var K="wren_touch",touch=null;
 try{touch=JSON.parse(sessionStorage.getItem(K)||"null")}catch(e){}
@@ -52,7 +54,7 @@ var ref="";try{if(document.referrer&&new URL(document.referrer).host!==location.
 var now={source:q.get("utm_source"),medium:q.get("utm_medium"),campaign:q.get("utm_campaign"),content:q.get("utm_content"),ref:q.get("ref")||ref||null};
 if(!touch||now.source||now.medium){touch=now;try{sessionStorage.setItem(K,JSON.stringify(touch))}catch(e){}}
 var view=crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2);
-function send(name,n){var b=JSON.stringify({page:page,form:form,split:split,view:view,name:name,step:n||null,touch:touch,w:innerWidth});
+function send(name,n){var b=JSON.stringify({page:page,form:form,split:split,formSplit:fsplit,arm:arm,view:view,name:name,step:n||null,touch:touch,w:innerWidth});
 if(navigator.sendBeacon&&navigator.sendBeacon(base+"${TRACK_PATH}",new Blob([b],{type:"text/plain"})))return;
 fetch(base+"${TRACK_PATH}",{method:"POST",body:b,keepalive:true,headers:{"content-type":"text/plain"}}).catch(function(){})}
 send("view");
@@ -107,7 +109,7 @@ clear(f);var miss=check(f);if(miss){if(sp)sp.show(miss);if(miss.focus)miss.focus
 var d={};new FormData(f).forEach(function(v,k){if(typeof v!=="string")return;d[k]=d[k]!==undefined&&k!=="cf-turnstile-response"?d[k]+", "+v:v});
 var b=f.querySelector("button[type=submit]"),out=f.querySelector(".sent");if(b)b.disabled=true;
 function say(t){if(out){out.hidden=false;out.textContent=t}}
-fetch(base+"${FORM_PATH}",{method:"POST",headers:{"content-type":"text/plain"},body:JSON.stringify({page:page,form:f.getAttribute("data-form"),split:split,view:view,fields:d,touch:touch})})
+fetch(base+"${FORM_PATH}",{method:"POST",headers:{"content-type":"text/plain"},body:JSON.stringify({page:page,form:f.getAttribute("data-form"),split:split,formSplit:f.getAttribute("data-fsplit"),arm:f.getAttribute("data-arm"),view:view,fields:d,touch:touch})})
 .then(function(r){return r.json().then(function(j){if(!r.ok){var er=new Error(j.error||"");er.fields=j.errors;throw er}return j})})
 .then(function(){var go=f.getAttribute("data-redirect");if(go){try{top.location.href=go}catch(x){location.href=go}return}
 say(f.getAttribute("data-thanks")||"Thanks. We got it.");var bk=f.getAttribute("data-booking");

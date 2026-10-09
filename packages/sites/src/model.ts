@@ -53,6 +53,13 @@ export type SplitGoal = (typeof SPLIT_GOALS)[number];
 export const ARM_LABELS = ["A", "B", "C", "D", "E"] as const;
 export type ArmLabel = (typeof ARM_LABELS)[number];
 
+/** A form's split: running, B made the form (`shipped`), or ended with A kept (`stopped`). */
+export const FORM_SPLIT_STATES = ["running", "shipped", "stopped"] as const;
+export type FormSplitState = (typeof FORM_SPLIT_STATES)[number];
+/** A form split has two arms: the form as it is, and B. */
+export const FORM_ARMS = ["A", "B"] as const;
+export type FormArm = (typeof FORM_ARMS)[number];
+
 /** A hosted form's address on its owner's host: `/o/f/<slug>`. */
 export const FORM_PREFIX = "/o/f/";
 export const formUrl = (host: string, slug: string) => `https://${host}${FORM_PREFIX}${slug}`;

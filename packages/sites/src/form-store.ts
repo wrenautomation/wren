@@ -2,9 +2,11 @@
  * Hosted forms' reads and writes on the main database (designs/2026-10-07-forms-and-pay.md).
  * A form's spec is checked on every save; its status moves draft, live, retired by a person.
  */
+
 import { createHash } from "node:crypto";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { type FormSplitDetail, formSplitDetail, formSplitsOf } from "./form-split.js";
 import { defaultSpec, FormProblem, type FormSpec, parseSpec } from "./forms.js";
 import { embedSnippets } from "./kit.js";
 import { formUrl, type PageStatus, SLUG, SLUG_MAX, slugOf, WREN_SITE } from "./model.js";
@@ -218,6 +220,8 @@ export interface FormDetail {
   steps: FormStepNumbers[];
   /** The newest few submissions, whole. */
   recent: { id: string; at: Date; fields: Record<string, string>; entered: boolean }[];
+  /** Its A/B splits, newest first, with each arm's numbers: the running one leads. */
+  splits: FormSplitDetail[];
 }
 
 /** Where a form lives: Wren's apex, else the owner's first live custom domain, else none yet. */
@@ -246,6 +250,7 @@ export async function formDetail(db: Queryable, id: string): Promise<FormDetail 
     .where(eq(siteForms.form, id))
     .orderBy(desc(siteForms.at))
     .limit(5);
+  const splits = await Promise.all((await formSplitsOf(db, id)).map((s) => formSplitDetail(db, s)));
   return {
     id: f.id,
     name: f.name,
@@ -259,6 +264,7 @@ export async function formDetail(db: Queryable, id: string): Promise<FormDetail 
     sources,
     steps,
     recent,
+    splits,
   };
 }
 

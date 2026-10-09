@@ -438,6 +438,8 @@ export interface FormContext {
   page?: string | null;
   /** The host the post goes to: "" for its own. */
   base: string;
+  /** The form split that served this arm: the kit sends both with every event and the submit. */
+  split?: { id: string; arm: string } | null;
 }
 
 const AUTOCOMPLETE: Partial<Record<string, string>> = {
@@ -515,7 +517,10 @@ export function formHtml(spec: FormSpec, ctx: FormContext): string {
   const fields = spec.fields.some((f) => f.kind === "step")
     ? stepsHtml(spec.fields, id)
     : spec.fields.map((f, i) => fieldHtml(f, id(i))).join("\n");
-  return `<form method="post" action="${esc(ctx.base)}/o/__form" data-wren-form data-form="${esc(ctx.form)}"${after}${booking} novalidate>
+  const split = ctx.split
+    ? ` data-fsplit="${esc(ctx.split.id)}" data-arm="${esc(ctx.split.arm)}"`
+    : "";
+  return `<form method="post" action="${esc(ctx.base)}/o/__form" data-wren-form data-form="${esc(ctx.form)}"${split}${after}${booking} novalidate>
 <input type="hidden" name="form" value="${esc(ctx.form)}">
 ${ctx.page ? `<input type="hidden" name="page" value="${esc(ctx.page)}">` : ""}
 ${fields}

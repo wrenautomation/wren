@@ -9,6 +9,7 @@ import { serviceHandler } from "@wren/core/restate";
 import { SPINE, type SpineService } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
+import { formArmToServe, specForArm } from "./form-split.js";
 import { consentVersion, formById, formOf, formToServe } from "./form-store.js";
 import { checkEntry, consentOf, type FormSpec } from "./forms.js";
 import { EVENT_NAMES, type EventName, formUrl, pageUrl, WREN_SITE } from "./model.js";
@@ -84,12 +85,13 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       unknown
     >;
     if (typeof raw.website === "string" && raw.website.trim()) return { status: 202 };
-    const { values, errors } = checkEntry(form.spec, raw);
+    const arm = await specForArm(main, form, req.formSplit, req.arm);
+    const { values, errors } = checkEntry(arm.spec, raw);
     if (Object.keys(errors).length)
       return { status: 400, error: "Check the marked fields.", errors };
     const p = req.page ? await pageById(main, String(req.page)) : null;
     const page = p && p.status === "live" && p.client === form.client ? p : null;
-    const words = consentOf(form.spec);
+    const words = consentOf(arm.spec);
     const consent =
       words && values.sms_consent === "yes"
         ? { text: words, version: consentVersion(words) }
@@ -98,6 +100,8 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       page,
       form: form.id,
       split: req.split ?? null,
+      formSplit: arm.split,
+      arm: arm.arm,
       view: req.view ?? null,
       fields: values,
       touch: req.touch,
@@ -120,6 +124,7 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
         page: page ? addressOf(page, req.host ?? null) : formAddressOf(form, req.host ?? null),
         ...(page ? { page_id: page.id, offer: page.offer, angle: page.angle } : {}),
         ...(kept.split ? { split: kept.split } : {}),
+        ...(kept.formSplit ? { form_split: kept.formSplit, arm: kept.arm } : {}),
         ...(consent ? { consent_text: consent.text, consent_version: consent.version } : {}),
         visitor: req.visitor ?? null,
         utm_source: t.source ?? values.utm_source ?? null,
@@ -203,19 +208,44 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       };
     },
 
-    /** A live hosted form on its owner's host, by slug or id; `embed` drops the page chrome. */
+    /**
+     * A live hosted form on its owner's host, by slug or id; `embed` drops the page chrome. A
+     * running form split serves A or B as `serve` does a page's.
+     */
     async serveForm(req: {
       client?: string | null;
       slug?: string;
       embed?: boolean | null;
+      /** The `wab` cookie: the arm this visitor saw before. */
+      arm?: string | null;
+      /** A crawler or link preview: always A, never counted in a split. */
+      bot?: boolean | null;
+      /** The edge's random number in [0, 1) that picks a new visitor's arm. */
+      roll?: number | null;
     }): Promise<Served> {
       const client = req.client ?? null;
       if (client !== null && !CLIENT.test(client)) return { status: 404, html: goneHtml(404) };
       const got = await formToServe(main, client, String(req.slug ?? ""));
       if ("status" in got) return { status: got.status, html: goneHtml(got.status) };
+      const roll =
+        typeof req.roll === "number" && req.roll >= 0 && req.roll < 1 ? req.roll : Math.random();
+      const arm = req.bot ? null : await formArmToServe(main, got.form, req.arm ?? null, roll);
       return {
         status: 200,
-        html: renderFormPage(got.form.spec, { form: got.form.id, base: "", embed: !!req.embed }),
+        html: renderFormPage(arm?.spec ?? got.form.spec, {
+          form: got.form.id,
+          base: "",
+          embed: !!req.embed,
+          split: arm ? { id: arm.split, arm: arm.label } : null,
+        }),
+        split: arm
+          ? {
+              id: arm.split,
+              label: arm.label,
+              cookie: splitCookieValue(arm.split, arm.label),
+              days: SPLIT_COOKIE_DAYS,
+            }
+          : null,
       };
     },
 
@@ -224,6 +254,8 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       page?: string | null;
       form?: string | null;
       split?: string | null;
+      formSplit?: string | null;
+      arm?: string | null;
       view?: string;
       name?: string;
       step?: number | null;
@@ -242,6 +274,8 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
         width: typeof req.w === "number" ? req.w : null,
         split: req.split ? String(req.split) : null,
         step: typeof req.step === "number" ? req.step : null,
+        formSplit: req.formSplit ? String(req.formSplit) : null,
+        arm: req.arm ? String(req.arm) : null,
       });
       return { kept };
     },
@@ -363,6 +397,9 @@ export interface FormRequest {
   split?: string | null;
   /** A hosted form's id: checked against its spec. */
   form?: string | null;
+  /** The form split and arm that served it (the kit's `data-fsplit`, `data-arm`). */
+  formSplit?: string | null;
+  arm?: string | null;
   view?: string | null;
   fields?: unknown;
   touch?: unknown;
@@ -401,6 +438,8 @@ const TOUCH = z
 const PAGE = z.string().max(64).describe("The page's id");
 const FORM = z.string().max(64).nullish().describe("A hosted form's id");
 const SPLIT = z.string().max(64).nullish().describe("The split that served the page");
+const FORM_SPLIT = z.string().max(64).nullish().describe("The form split that served the form");
+const ARM = z.string().max(1).nullish().describe("The form split's arm: A or B");
 
 export const SITES = { name: "Sites" } as const;
 
@@ -429,6 +468,9 @@ export function makeSites(deps: { main: Db; shareKey?: string | null }) {
             client: z.string().max(40).nullish().describe("The host's client; null is Wren's"),
             slug: z.string().max(80),
             embed: z.boolean().nullish().describe("Drawn in a frame on another site"),
+            arm: z.string().max(16).nullish().describe("The wab cookie: the arm seen before"),
+            bot: z.boolean().nullish().describe("A crawler: served A, never split"),
+            roll: z.number().min(0).max(1).nullish().describe("The edge's pick for a new visitor"),
           }),
         },
         (_: restate.Context, req: Parameters<typeof api.serveForm>[0]) => api.serveForm(req),
@@ -439,6 +481,8 @@ export function makeSites(deps: { main: Db; shareKey?: string | null }) {
             page: PAGE.nullish(),
             form: FORM,
             split: SPLIT,
+            formSplit: FORM_SPLIT,
+            arm: ARM,
             view: z.string().max(64).optional(),
             name: z.string().max(8),
             step: z.number().int().nullish().describe("On a step event: the step reached"),
@@ -471,6 +515,8 @@ export function makeSites(deps: { main: Db; shareKey?: string | null }) {
             page: PAGE.nullish(),
             form: FORM,
             split: SPLIT,
+            formSplit: FORM_SPLIT,
+            arm: ARM,
             view: z.string().max(64).nullish(),
             fields: z.record(z.string(), z.unknown()),
             touch: TOUCH,

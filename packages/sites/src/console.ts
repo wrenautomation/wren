@@ -47,6 +47,7 @@ import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PageDetail, pageDetail } from "./detail.js";
 import { draftCopy, rewritePart, type Write } from "./draft.js";
+import { endFormSplit, formSplitById, saveFormSplit, startFormSplit } from "./form-split.js";
 import {
   createForm,
   type FormDetail,
@@ -227,6 +228,18 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     if (!form) throw new PortalRefusal("no such form", 404);
     await may(req, form.client, p);
     return form;
+  };
+  /** A form split, checked through its form's owner. */
+  const formSplitFor = async (req: IdRequest) => {
+    const s = await formSplitById(db, String(req.id ?? ""));
+    if (!s) throw new PortalRefusal("no such split", 404);
+    await formFor({ ...req, id: s.form }, "act");
+    return s;
+  };
+  const formSplitEnd = async (req: IdRequest, how: "stopped" | "shipped") => {
+    await formSplitFor(req);
+    const s = await refused(endFormSplit(db, { id: String(req.id), how, by: who(req) }));
+    return { id: s.id, state: s.state };
   };
   const formsTo = async (req: IdsRequest, status: "live" | "draft" | "retired") => {
     const name = who(req);
@@ -691,6 +704,34 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     /** Take forms down: their URLs answer gone, their numbers and submissions stay. */
     formRetire: (req: IdsRequest) => formsTo(req, "retired"),
 
+    /** A/B on a form: B starts as A's copy, at the share given (half when none). */
+    async formSplitStart(req: IdRequest & { weight?: number | null }) {
+      const form = await formFor(req, "act");
+      const s = await refused(
+        startFormSplit(db, { form, weight: req.weight ?? null, by: who(req) }),
+      );
+      return { id: s.id };
+    },
+
+    /** B's fields or B's share, on a running split. */
+    async formSplitSave(req: IdRequest & { spec?: unknown; weight?: number | null }) {
+      await formSplitFor(req);
+      const s = await refused(
+        saveFormSplit(db, {
+          id: String(req.id),
+          spec: req.spec ?? null,
+          weight: req.weight ?? null,
+          by: who(req),
+        }),
+      );
+      return { id: s.id };
+    },
+
+    /** End a split, keeping A. */
+    formSplitStop: (req: IdRequest) => formSplitEnd(req, "stopped"),
+    /** End a split and make B the form: direct, a form only collects. */
+    formSplitShip: (req: IdRequest) => formSplitEnd(req, "shipped"),
+
     /** An owner's forms, for a page's form section. */
     async forms(req: PortalRequest & { owner?: string | null }) {
       const owner = ownerOf(req);
@@ -788,6 +829,8 @@ const ID = z.string().max(64).describe("The page's id");
 const WHY = z.string().max(500).nullish().describe("One line: why");
 const IDS = z.array(z.string().max(80)).max(200);
 const FORM_ID = z.string().max(64).describe("The form's id");
+const FORM_SPLIT_ID = z.string().max(64).describe("The form split's id");
+const SHARE = z.number().int().min(1).max(99).nullish().describe("B's share of new visitors, %");
 const OWNER = z.string().max(40).nullish().describe("The client it's for; Wren's when left out");
 const WEIGHTS = z
   .array(z.number().int().min(1).max(100))
@@ -976,6 +1019,29 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
       formRetire: serviceHandler(
         { input: z.looseObject({ ...P, ids: IDS }) },
         write("formRetire", api.formRetire),
+      ),
+      formSplitStart: serviceHandler(
+        { input: z.looseObject({ ...P, id: FORM_ID, weight: SHARE }) },
+        write("formSplitStart", api.formSplitStart),
+      ),
+      formSplitSave: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            id: FORM_SPLIT_ID,
+            spec: z.record(z.string(), z.unknown()).nullish().describe("B's fields"),
+            weight: SHARE,
+          }),
+        },
+        write("formSplitSave", api.formSplitSave),
+      ),
+      formSplitStop: serviceHandler(
+        { input: z.looseObject({ ...P, id: FORM_SPLIT_ID }) },
+        write("formSplitStop", api.formSplitStop),
+      ),
+      formSplitShip: serviceHandler(
+        { input: z.looseObject({ ...P, id: FORM_SPLIT_ID }) },
+        write("formSplitShip", api.formSplitShip),
       ),
       forms: serviceHandler({ input: z.looseObject({ ...P, owner: OWNER }) }, read(api.forms)),
       recordsTypes: serviceHandler(RECORDS, read(api.recordsTypes)),

@@ -450,10 +450,54 @@ function Preview({ spec }: { spec: FormSpec }) {
 }
 
 /** The builder: the whole spec saved at once, checked again on the server. */
+type FormSplit = FormDetail["splits"][number];
+
+/**
+ * The builder. With a test running it edits A (the form) or B, picked at the top; B saves to the
+ * test and goes live to its share of new visitors at once.
+ */
 function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
-  const [spec, setSpec] = useState<FormSpec>(() => structuredClone(d.spec));
+  const test = d.splits[0]?.state === "running" ? d.splits[0] : null;
+  const [arm, setArm] = useState<"A" | "B">("A");
+  if (!test) return <Editor id={id} d={d} base={d.spec} act={act} />;
+  return (
+    <div className="grid min-w-0 gap-4">
+      <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
+        <span className={LABEL}>Editing</span>
+        {(["A", "B"] as const).map((a) => (
+          <label key={a} className="flex items-center gap-1.5">
+            <input type="radio" name="arm" checked={arm === a} onChange={() => setArm(a)} />
+            {a === "A" ? "A, the form" : `B, the test (${test.weight}% of new visitors)`}
+          </label>
+        ))}
+      </div>
+      {arm === "A" ? (
+        <Editor key="A" id={id} d={d} base={d.spec} act={act} />
+      ) : (
+        <Editor key="B" id={id} d={d} base={test.b} test={test} act={act} />
+      )}
+    </div>
+  );
+}
+
+function Editor({
+  id,
+  d,
+  base,
+  test,
+  act,
+}: {
+  id: string;
+  d: FormDetail;
+  /** The spec this edits: the form's, or B's. */
+  base: FormSpec;
+  /** Set when this edits B: saves go to the test. */
+  test?: FormSplit;
+  act: RecordAct;
+}) {
+  const [spec, setSpec] = useState<FormSpec>(() => structuredClone(base));
   const { said, busy, run } = useRun(act);
-  const changed = JSON.stringify(spec) !== JSON.stringify(d.spec);
+  const changed = JSON.stringify(spec) !== JSON.stringify(base);
   const put = (patch: Partial<FormSpec>) => setSpec((s) => ({ ...s, ...patch }));
   const setField = (i: number, f: FormField) =>
     put({ fields: spec.fields.map((x, j) => (j === i ? f : x)) });
@@ -499,15 +543,24 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
         className="grid min-w-0 content-start gap-5"
         onSubmit={(e) => {
           e.preventDefault();
-          void run("save", "sites.formSave", { id, spec: toSave() }, "Saved.");
+          void (test
+            ? run(
+                "save",
+                "sites.formSplitSave",
+                { id: test.id, spec: toSave() },
+                "Saved. B's visitors see it on their next visit.",
+              )
+            : run("save", "sites.formSave", { id, spec: toSave() }, "Saved."));
         }}
       >
         <p className={`text-[13.5px] ${QUIET}`}>
-          {d.status === "live"
-            ? "Live. Saved changes show on the next visit."
-            : d.status === "retired"
-              ? "Retired. Its link no longer works."
-              : "A draft. Nobody can open it until you publish."}
+          {test
+            ? "B. Saved changes show to B's visitors on their next visit. A page's form section always shows A."
+            : d.status === "live"
+              ? "Live. Saved changes show on the next visit."
+              : d.status === "retired"
+                ? "Retired. Its link no longer works."
+                : "A draft. Nobody can open it until you publish."}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1.5 sm:col-span-2">
@@ -656,7 +709,7 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
           <Button type="submit" tone="primary" disabled={!changed} busy={busy === "save"}>
             Save
           </Button>
-          {d.status !== "live" ? (
+          {test ? null : d.status !== "live" ? (
             <Button
               disabled={changed}
               busy={busy === "publish"}
@@ -742,6 +795,163 @@ function Numbers({ d }: { d: FormDetail }) {
   );
 }
 
+const day = (at: unknown) => new Date(String(at)).toLocaleDateString("en-CA");
+
+/**
+ * A/B per form: start a test (B starts as a copy of A), then each version's numbers, the call
+ * on sends per view, B's share, ship B or stop. Direct: a form only collects.
+ */
+function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
+  const { said, busy, run } = useRun(act);
+  const test = d.splits[0]?.state === "running" ? d.splits[0] : null;
+  const [share, setShare] = useState(String(test?.weight ?? 50));
+  const valid = /^\d{1,2}$/.test(share) && +share >= 1 && +share <= 99;
+  const past = d.splits.filter((s) => s.state !== "running");
+  if (!test)
+    return (
+      <div className="grid gap-3">
+        {d.status === "retired" ? (
+          <p className={`text-[13.5px] ${QUIET}`}>A retired form can't be tested.</p>
+        ) : (
+          <>
+            <p className="text-[13.5px]">
+              B starts as a copy of this form. Change it above, and new visitors to the form's link
+              get A or B. Each keeps the one they saw.
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="grid gap-1 text-[13px]">
+                B's share, %
+                <Input
+                  className="w-[80px]"
+                  inputMode="numeric"
+                  value={share}
+                  onChange={(e) => setShare(e.target.value.trim())}
+                />
+              </label>
+              <Button
+                tone="primary"
+                disabled={!valid}
+                busy={busy === "start"}
+                onClick={() =>
+                  void run(
+                    "start",
+                    "sites.formSplitStart",
+                    { id, weight: Number(share) },
+                    "Test started. Pick B at the top to change it.",
+                  )
+                }
+              >
+                Start a test
+              </Button>
+              <Said said={said} />
+            </div>
+          </>
+        )}
+        {past.map((s) => (
+          <p key={s.id} className={`text-[13px] ${QUIET}`}>
+            {day(s.startedAt)} to {day(s.endedAt)}: {s.call.words}.{" "}
+            {s.state === "shipped" ? "B became the form." : "Stopped, A kept."}
+          </p>
+        ))}
+      </div>
+    );
+  return (
+    <div className="grid gap-4">
+      <p className="flex flex-wrap items-center gap-2 text-[18px] font-medium">
+        {test.call.words}
+        <Tag
+          tone={
+            test.call.kind === "settled"
+              ? "green"
+              : test.call.kind === "leading"
+                ? "accent"
+                : "neutral"
+          }
+        >
+          {test.call.kind === "settled"
+            ? "Settled"
+            : test.call.kind === "leading"
+              ? "Ahead"
+              : "Waiting"}
+        </Tag>
+      </p>
+      <p className={`text-[13px] ${QUIET}`}>
+        Judged on sends per view. Started {day(test.startedAt)} by {test.startedBy}. Bots see A and
+        aren't counted.
+      </p>
+      <Table
+        head={[
+          "Version",
+          ["Views", "r"],
+          ["Started", "r"],
+          ["Sent", "r"],
+          ["Rate", "r"],
+          ["Chance best", "r"],
+        ]}
+        rows={test.arms.map((a, i) => [
+          <span key="v" className="flex items-center gap-2">
+            <span className="font-medium">{a.label}</span>
+            {a.label === test.call.leader ? <Tag tone="accent">Leads</Tag> : null}
+          </span>,
+          num(a.views),
+          num(a.starts),
+          num(a.submits),
+          rate(a.rate),
+          test.call.kind === "too_early"
+            ? ""
+            : `${Math.min(99, Math.floor((test.call.sure[i] ?? 0) * 100))}%`,
+        ])}
+      />
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="grid gap-1 text-[13px]">
+          B's share, %
+          <Input
+            className="w-[80px]"
+            inputMode="numeric"
+            value={share}
+            onChange={(e) => setShare(e.target.value.trim())}
+          />
+        </label>
+        <Button
+          disabled={!valid || Number(share) === test.weight}
+          busy={busy === "share"}
+          onClick={() =>
+            void run(
+              "share",
+              "sites.formSplitSave",
+              { id: test.id, weight: Number(share) },
+              "Saved. New visitors get it; others keep their version.",
+            )
+          }
+        >
+          Save share
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-t border-(--ui-hair) pt-4">
+        <Button
+          tone={test.call.leader === "B" ? "primary" : undefined}
+          busy={busy === "ship"}
+          onClick={() =>
+            void run("ship", "sites.formSplitShip", { id: test.id }, "B is the form now.")
+          }
+        >
+          Make B the form
+        </Button>
+        <Button
+          tone="quiet"
+          busy={busy === "stop"}
+          onClick={() =>
+            void run("stop", "sites.formSplitStop", { id: test.id }, "Stopped. Everyone sees A.")
+          }
+        >
+          Stop, keep A
+        </Button>
+        <Said said={said} />
+      </div>
+    </div>
+  );
+}
+
 /** Views, starts, each step reached, submits: where people stop, last 30 days. */
 function Steps({ d }: { d: FormDetail }) {
   const sum = (k: "views" | "starts" | "submits") => d.days.reduce((t, x) => t + x[k], 0);
@@ -804,6 +1014,15 @@ export const formExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
   const sections: [string, ReactNode][] = [
     ["Link and embed", <Share key="s" d={d} />],
     ["Views, last 30 days", <Numbers key="n" d={d} />],
+    [
+      "A/B test",
+      <Test
+        key={`t:${d.splits[0]?.id ?? ""}:${d.splits[0]?.weight ?? ""}`}
+        id={id}
+        d={d}
+        act={act}
+      />,
+    ],
     ...(d.spec.fields.some((f) => f.kind === "step")
       ? ([["Where people stop, last 30 days", <Steps key="st" d={d} />]] as [string, ReactNode][])
       : []),
@@ -813,7 +1032,12 @@ export const formExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
   return {
     // Keyed by its last change: a save opens fresh.
     form: (
-      <Builder key={`${id}:${JSON.stringify(d.spec).length}:${d.status}`} id={id} d={d} act={act} />
+      <Builder
+        key={`${id}:${JSON.stringify(d.spec).length}:${d.status}:${d.splits[0]?.state === "running" ? JSON.stringify(d.splits[0].b).length : ""}`}
+        id={id}
+        d={d}
+        act={act}
+      />
     ),
     sections,
   } satisfies RecordExtras;

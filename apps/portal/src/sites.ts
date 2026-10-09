@@ -102,9 +102,9 @@ async function served(env: Env, body: unknown, handler = "Sites/serve"): Promise
 /** A new visitor's roll for a split arm, in [0, 1). */
 const roll = () => (crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) / 2 ** 32;
 
-/** The split cookie for a page: only the arm, on that page's path, for its days. */
-const armCookie = (slug: string, value: string, days: number) =>
-  `wab=${value}; Path=/o/${slug}; Max-Age=${days * 86400}; Secure; HttpOnly; SameSite=Lax`;
+/** The split cookie for a page or form: only the arm, on its path, for its days. */
+const armCookie = (path: string, value: string, days: number) =>
+  `wab=${value}; Path=/o/${path}; Max-Age=${days * 86400}; Secure; HttpOnly; SameSite=Lax`;
 
 /** A form without JS: urlencoded fields, the page named in a hidden field. */
 function formOf(raw: string, type: string): Record<string, unknown> | null {
@@ -224,31 +224,38 @@ export async function sitesRoute(
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
   const formPage = FORM_PAGE.exec(path);
   if (formPage && owner) {
+    const slug = formPage[1] as string;
     const embed = url.searchParams.get("embed") === "1";
-    const key = new Request(`${url.origin}/o/f/${formPage[1]}${embed ? "?embed=1" : ""}`);
-    const hit = await cache?.match(key);
-    if (hit) return hit;
-    const got = await served(
+    return page(
+      req,
       env,
-      { client: owner.client, slug: formPage[1], embed },
-      "Sites/serveForm",
+      {
+        path: `f/${slug}`,
+        // The embed is its own copy: a cache key only, never a path served.
+        key: `${url.origin}/o/f/${slug}${embed ? "/embed" : ""}`,
+        handler: "Sites/serveForm",
+        body: { client: owner.client, slug, embed },
+        headers: { "content-security-policy": FORM_CSP },
+      },
+      cache,
+      ctx,
     );
-    const out = html(
-      got.html,
-      got.status,
-      got.status === 200 ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store",
-      { "content-security-policy": FORM_CSP },
-    );
-    if (cache && got.status === 200) {
-      const put = cache.put(key, out.clone());
-      if (ctx) ctx.waitUntil(put);
-      else await put;
-    }
-    return out;
   }
   const slug = SLUG.exec(path);
   if (!slug || !owner) return null;
-  return page(req, env, url, slug[1] as string, owner.client, cache, ctx);
+  const s = slug[1] as string;
+  return page(
+    req,
+    env,
+    {
+      path: s,
+      key: `${url.origin}/o/${s}`,
+      handler: "Sites/serve",
+      body: { client: owner.client, slug: s },
+    },
+    cache,
+    ctx,
+  );
 }
 
 const keep = (cache: Cache | undefined, key: Request, out: Response, ctx?: ExecutionContext) => {
@@ -262,23 +269,31 @@ const keep = (cache: Cache | undefined, key: Request, out: Response, ctx?: Execu
 };
 
 /**
- * A data page, split or not. Not split: one cached copy per page. Split: one cached copy per arm,
- * keyed by the visitor's cookie; a new visitor (no cookie, or one from an old split) misses and
- * gets an arm by weight and a cookie. Split pages go to the browser uncached, so the cookie
- * decides each visit. Bots get A under their own key, never split.
+ * A data page or a hosted form, split or not. Not split: one cached copy. Split: one cached copy
+ * per arm, keyed by the visitor's cookie; a new visitor (no cookie, or one from an old split)
+ * misses and gets an arm by weight and a cookie. Split copies go to the browser uncached, so the
+ * cookie decides each visit. Bots get A under their own key, never split.
  */
 async function page(
   req: Request,
   env: Env,
-  url: URL,
-  slug: string,
-  client: string | null,
+  at: {
+    /** The path after `/o/`: the cookie's scope. */
+    path: string;
+    /** The cache key's base. */
+    key: string;
+    handler: string;
+    body: Record<string, unknown>;
+    headers?: Record<string, string>;
+  },
   cache: Cache | undefined,
   ctx?: ExecutionContext,
 ): Promise<Response> {
   const bot = isBot(req.headers.get("user-agent"));
   const arm = bot ? null : (ARM.exec(req.headers.get("cookie") ?? "")?.[1] ?? null);
-  const base = `${url.origin}/o/${slug}`;
+  const base = at.key;
+  const show = (body: string, status: number, cacheControl: string) =>
+    html(body, status, cacheControl, at.headers);
   const key = new Request(bot ? `${base}?bot=1` : arm ? `${base}?arm=${arm}` : base);
   const hit = await cache?.match(key);
   if (hit) {
@@ -288,20 +303,20 @@ async function page(
     out.headers.set("cache-control", "private, no-store");
     return out;
   }
-  const got = await served(env, { client, slug, arm, bot, roll: roll() });
+  const got = await served(env, { ...at.body, arm, bot, roll: roll() }, at.handler);
   const ok = got.status === 200;
   const shared = ok ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store";
   if (!got.split) {
-    const out = html(got.html, got.status, shared);
+    const out = show(got.html, got.status, shared);
     // A cookie from a split that's over: cleared, so the page caches as one again.
-    if (arm) out.headers.append("set-cookie", armCookie(slug, "", 0));
+    if (arm) out.headers.append("set-cookie", armCookie(at.path, "", 0));
     if (ok) await keep(cache, new Request(bot ? `${base}?bot=1` : base), out.clone(), ctx);
     return out;
   }
   const { cookie, days } = got.split;
-  if (ok) await keep(cache, new Request(`${base}?arm=${cookie}`), html(got.html, 200, shared), ctx);
-  const out = html(got.html, got.status, "private, no-store");
-  if (cookie !== arm) out.headers.append("set-cookie", armCookie(slug, cookie, days));
+  if (ok) await keep(cache, new Request(`${base}?arm=${cookie}`), show(got.html, 200, shared), ctx);
+  const out = show(got.html, got.status, "private, no-store");
+  if (cookie !== arm) out.headers.append("set-cookie", armCookie(at.path, cookie, days));
   return out;
 }
 

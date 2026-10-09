@@ -23,6 +23,7 @@ let pg: TestPostgres;
 const TABLES = [
   "site_events",
   "site_forms",
+  "site_form_splits",
   "site_form_defs",
   "site_page_versions",
   "site_pages",
@@ -329,6 +330,71 @@ describe("hosted forms", () => {
     expect(
       (await pub().form({ form: made.id, fields: { email: "a@example.test" } }, enter)).status,
     ).toBe(404);
+  });
+
+  it("splits a form A/B: sticky arms, B's own check, numbers per arm, ship makes B the form", async () => {
+    await siteDoor();
+    const made = await api().formCreate({ viewer: ADA, name: "Split form", spec });
+    await api().formPublish({ viewer: ADA, ids: [made.id] });
+    const started = await api().formSplitStart({ viewer: ADA, id: made.id, weight: 50 });
+    await refused(api().formSplitStart({ viewer: ADA, id: made.id }), 409);
+    await refused(api().formSplitStart({ viewer: VIC, id: made.id }), 403);
+    // B drops the required Service question.
+    const b = {
+      ...spec,
+      title: "Quick quote",
+      fields: spec.fields.filter((f) => f.label !== "Service"),
+    };
+    await api().formSplitSave({ viewer: ADA, id: started.id, spec: b });
+
+    const toB = await pub().serveForm({ slug: made.slug, roll: 0.1 });
+    expect(toB.html).toContain("Quick quote");
+    expect(toB.html).toContain(`data-fsplit="${started.id}" data-arm="B"`);
+    expect(toB.split).toMatchObject({ id: started.id, label: "B" });
+    const toA = await pub().serveForm({ slug: made.slug, roll: 0.9 });
+    expect(toA.html).toContain("Get a quote");
+    // The cookie wins over the roll; a bot gets A, outside the split.
+    const kept = await pub().serveForm({ slug: made.slug, roll: 0.9, arm: toB.split?.cookie ?? null });
+    expect(kept.split?.label).toBe("B");
+    const bot = await pub().serveForm({ slug: made.slug, roll: 0.1, bot: true });
+    expect(bot.split ?? null).toBeNull();
+    expect(bot.html).toContain("Get a quote");
+
+    const arm = (a: "A" | "B") => ({ formSplit: started.id, arm: a });
+    await pub().track({ form: made.id, view: "a1", name: "view", ...arm("A") });
+    await pub().track({ form: made.id, view: "b1", name: "view", ...arm("B") });
+    await pub().track({ form: made.id, view: "b2", name: "view", ...arm("B") });
+    const enter = async () => ({ status: 202 });
+    const fields = { name: "Kim", email: "kim@example.test" };
+    // A still needs Service; B checks against its own fields.
+    expect(
+      (await pub().form({ form: made.id, view: "a1", fields, ...arm("A") }, enter)).status,
+    ).toBe(400);
+    expect(
+      (await pub().form({ form: made.id, view: "b1", fields, ...arm("B") }, enter)).status,
+    ).toBe(202);
+    // A forged split id counts as none: checked against A.
+    const forged = { formSplit: "00000000-0000-4000-8000-000000000000", arm: "B" };
+    expect((await pub().form({ form: made.id, fields, ...forged }, enter)).status).toBe(400);
+
+    const d = await api().formDetail({ viewer: ADA, id: made.id });
+    expect(d.splits[0]?.state).toBe("running");
+    expect(d.splits[0]?.arms).toEqual([
+      { label: "A", views: 1, starts: 0, submits: 0, rate: 0 },
+      { label: "B", views: 2, starts: 0, submits: 1, rate: 0.5 },
+    ]);
+    expect(d.splits[0]?.call.kind).toBe("too_early");
+
+    await api().formSplitShip({ viewer: ADA, id: started.id });
+    await refused(api().formSplitStop({ viewer: ADA, id: started.id }), 404);
+    const after = await api().formDetail({ viewer: ADA, id: made.id });
+    expect(after.spec.title).toBe("Quick quote");
+    expect(after.splits[0]).toMatchObject({ state: "shipped", winner: "B" });
+    const plain = await pub().serveForm({ slug: made.slug, roll: 0.1 });
+    expect(plain.split ?? null).toBeNull();
+    expect(plain.html).not.toContain("data-fsplit");
+    // A submit from B's page still open in a tab: checked against B, counted to B.
+    expect((await pub().form({ form: made.id, fields, ...arm("B") }, enter)).status).toBe(202);
   });
 
   it("renders a live form in a page's form section and counts it for both", async () => {

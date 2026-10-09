@@ -107,7 +107,14 @@ ${t.body(c, ctx)}
 /** A hosted form's page at `/o/f/<slug>`: the heading, the form, the kit counting it. */
 export function renderFormPage(
   spec: FormSpec,
-  ctx: { form: string; base: string; embed?: boolean; track?: boolean; banner?: string },
+  ctx: {
+    form: string;
+    base: string;
+    embed?: boolean;
+    track?: boolean;
+    banner?: string;
+    split?: { id: string; arm: string } | null;
+  },
 ): string {
   const track = ctx.track !== false;
   return `<!doctype html>
@@ -124,7 +131,7 @@ ${ctx.banner ? `<div class="banner">${esc(ctx.banner)}</div>` : ""}
 <main>
 <section class="form" id="form">
 ${formIntro(spec, ctx.embed ? "h2" : "h1")}
-${formHtml(spec, { form: ctx.form, base: ctx.base })}
+${formHtml(spec, { form: ctx.form, base: ctx.base, split: ctx.split ?? null })}
 </section>
 </main>
 </body></html>`;

@@ -35,6 +35,11 @@ export const SITES_CONSOLE_ROUTES = {
   formPublish: "act",
   formUnpublish: "act",
   formRetire: "act",
+  /** A/B per form: B starts as A's copy; save B or its share; stop keeps A, ship makes B the form. */
+  formSplitStart: "act",
+  formSplitSave: "act",
+  formSplitStop: "act",
+  formSplitShip: "act",
   /** A client's own pages, on its host: kept to that client. */
   recordsTypes: "read",
   recordsList: "read",
@@ -73,6 +78,10 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "formPublish",
   "formUnpublish",
   "formRetire",
+  "formSplitStart",
+  "formSplitSave",
+  "formSplitStop",
+  "formSplitShip",
   "splitStart",
   "splitWeights",
   "splitStop",

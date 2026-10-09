@@ -48,6 +48,15 @@ beforeEach(() => {
     if (url.endsWith("/Domains/resolve"))
       return Response.json({ client: body.host === HOST ? "acme" : null });
     calls.push({ url, body });
+    if (url.endsWith("/Sites/serveForm")) {
+      const want = /^5a1b2c3d\.([AB])$/.exec(String(body.arm ?? ""))?.[1];
+      const label = body.bot ? null : (want ?? "B");
+      return Response.json({
+        status: 200,
+        html: `<form>${label ?? "A"}</form>`,
+        split: label ? { id: SPLIT, label, cookie: `5a1b2c3d.${label}`, days: 30 } : null,
+      });
+    }
     if (url.endsWith("/Sites/serve")) {
       if (!split || body.bot) return Response.json({ status: 200, html: "<p>A</p>" });
       const want = /^5a1b2c3d\.([AB])$/.exec(String(body.arm ?? ""))?.[1];
@@ -62,6 +71,21 @@ beforeEach(() => {
   });
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe("a split hosted form at the edge", () => {
+  it("cookies the arm on the form's path, keeps it per arm, and still lets any site frame it", async () => {
+    const res = await get("/o/f/quote");
+    expect(await res.text()).toBe("<form>B</form>");
+    expect(res.headers.get("set-cookie")).toMatch(/^wab=5a1b2c3d\.B; Path=\/o\/f\/quote;/);
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(res.headers.get("content-security-policy")).toContain("frame-ancestors *");
+    const ask = calls.find((c) => c.url.endsWith("/Sites/serveForm"))?.body;
+    expect(ask).toMatchObject({ client: "acme", slug: "quote", embed: false, bot: false });
+    expect(kept.has(`https://${HOST}/o/f/quote?arm=5a1b2c3d.B`)).toBe(true);
+    await get("/o/f/quote?embed=1", { cookie: "wab=5a1b2c3d.B" });
+    expect(kept.has(`https://${HOST}/o/f/quote/embed?arm=5a1b2c3d.B`)).toBe(true);
+  });
+});
 
 describe("a split page at the edge", () => {
   it("gives a new visitor an arm, a cookie on the page's path, and no browser cache", async () => {

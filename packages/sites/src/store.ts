@@ -12,6 +12,7 @@ import {
   type Channel,
   channelOf,
   type EventName,
+  type FormArm,
   type PageKind,
   type PageStage,
   SLUG,
@@ -595,8 +596,13 @@ export async function recordEvent(
     split?: string | null;
     /** On a `step`: the step reached, 2 to 10. */
     step?: number | null;
+    /** The form split that served the form, and the arm; kept only when it's that form's. */
+    formSplit?: string | null;
+    arm?: string | null;
   },
 ): Promise<boolean> {
+  const arm = e.arm === "A" || e.arm === "B" ? e.arm : null;
+  const formSplit = arm && e.formSplit && UUID.test(e.formSplit) ? e.formSplit : null;
   const step =
     e.name === "step" && typeof e.step === "number" && Number.isInteger(e.step) ? e.step : null;
   if (e.name === "step" && (step === null || step < 2 || step > STEPS_MAX + 1)) return false;
@@ -611,13 +617,15 @@ export async function recordEvent(
       ? Math.max(0, Math.min(10_000, Math.round(e.width)))
       : null;
   const rows = await db.execute(sql`
-    insert into site_events (page, form, split, view, name, channel, source, medium, campaign, content, ref, width, step)
+    insert into site_events (page, form, split, view, name, channel, source, medium, campaign, content, ref, width, step, form_split, arm)
     select p.id, f.id,
       (select a.split from site_split_arms a where a.split = ${split}::uuid and a.page = p.id),
-      ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}, ${step}::smallint
+      ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}, ${step}::smallint,
+      fs.id, case when fs.id is not null then ${arm}::varchar end
     from (select 1) one
     left join site_pages p on p.id = ${page}::uuid and p.status <> 'retired'
     left join site_form_defs f on f.id = ${form}::uuid and f.status = 'live'
+    left join site_form_splits fs on fs.id = ${formSplit}::uuid and fs.form = f.id
     where p.id is not null or f.id is not null
     returning id`);
   return rows.length > 0;
@@ -657,9 +665,14 @@ export async function keepForm(
     fields: Record<string, string>;
     touch: unknown;
     split?: string | null;
+    /** The form split and arm whose spec checked it (`specForArm`): already checked. */
+    formSplit?: string | null;
+    arm?: FormArm | null;
   } & EntryMeta,
 ) {
   const t = touchOf(f.touch);
+  const formSplit = f.formSplit && f.arm ? f.formSplit : null;
+  const arm = formSplit ? (f.arm ?? null) : null;
   const split = await splitOfArm(db, f.split, f.page?.id ?? null);
   const { channel, ...touch } = t;
   const page = f.page?.id ?? null;
@@ -671,6 +684,8 @@ export async function keepForm(
       page,
       form,
       split,
+      formSplit,
+      arm,
       fields: f.fields,
       touch,
       channel,
@@ -683,6 +698,8 @@ export async function keepForm(
     page,
     form,
     split,
+    formSplit,
+    arm,
     view: clip(f.view, 36) ?? "form",
     name: "form",
     channel,
