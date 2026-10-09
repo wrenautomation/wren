@@ -147,7 +147,9 @@ export async function readItem(
     return "mac";
   }
   let { title, creator, text, thumbnailUrl } = item;
-  if (text.length < WHOLE_POST) {
+  // A creator's post is whole as its site gave it; the page is a login wall.
+  const social = item.type === "instagram" || item.type === "x" || item.type === "tiktok";
+  if (text.length < WHOLE_POST && !social) {
     try {
       const res = await fetchFn(item.url, {
         headers: { "user-agent": "wren-learn/1.0 (+https://wrenautomation.com)" },

@@ -9,7 +9,8 @@ import { decodeHtml } from "@wren/core/html";
 import type { SpineEvent } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, asc, eq, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
+import { CREATOR_KINDS, creatorSource } from "./creators.js";
 import { cleanUrl, creatorSite, kindOf, typeOf, youtubeThumb } from "./links.js";
 import { items, type SourceKind, sources, type Tell } from "./schema.js";
 
@@ -251,7 +252,7 @@ export async function findFeed(
   const site = creatorSite(url);
   if (site)
     throw new Error(
-      `${site} creators are in development: public reads only. Save their posts one at a time for now.`,
+      `${site}: follow a creator by their profile address (instagram.com/name, x.com/name, tiktok.com/@name). Threads is in development.`,
     );
   const body = await get(fetchFn, url);
   if (isFeed(body)) return { feedUrl: url, page: null, feed: parseFeed(body), pageImage: null };
@@ -312,6 +313,30 @@ export async function follow(
     by?: string | null;
   },
 ): Promise<{ id: number; name: string; kind: SourceKind; items: number }> {
+  const creator = creatorSource(p.url);
+  if (creator) {
+    // Read on the next pass (TikTok's on the Mac's), which keeps what was already posted as seen.
+    const name = p.name?.trim() || creator.name;
+    const tell = p.tell ?? "top";
+    const [row] = await db
+      .insert(sources)
+      .values({
+        client: p.client,
+        url: creator.url,
+        page: creator.url,
+        name,
+        kind: creator.kind,
+        tell,
+        by: p.by ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [sources.client, sources.url],
+        set: { name, tell, stoppedAt: null, failure: null },
+      })
+      .returning({ id: sources.id });
+    if (!row) throw new Error("insert returned no row");
+    return { id: row.id, name, kind: creator.kind, items: 0 };
+  }
   const { feedUrl, page, feed, pageImage } = await findFeed(fetchFn, p.url.trim());
   const name = p.name?.trim() || feed.title || new URL(feedUrl).hostname;
   const kind = sourceKindOf(feedUrl, feed);
@@ -396,6 +421,7 @@ export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<Pu
     .where(
       and(
         isNull(sources.stoppedAt),
+        notInArray(sources.kind, [...CREATOR_KINDS]),
         or(
           isNull(sources.fetchedAt),
           lt(sources.fetchedAt, new Date(now.getTime() - FEED_EVERY_MS)),

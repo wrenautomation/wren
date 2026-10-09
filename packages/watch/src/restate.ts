@@ -8,6 +8,7 @@
  * inbox it couldn't read shows on the loop.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { SiteClient } from "@wren/core/content";
 import type { Mailbox } from "@wren/core/mailbox";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
@@ -22,7 +23,9 @@ import {
   itemEvent,
   mailLearnDigests,
   type PullStats,
+  pullCreators,
   pullFeeds,
+  sitesReader,
   tellLearn,
 } from "@wren/learn";
 import { LEARN_FEEDS_FROM, LEARN_FLOW } from "@wren/learn/console";
@@ -60,6 +63,8 @@ export interface WatchDeps {
   watch?: (address: string) => Promise<number | null>;
   /** Embeds Learn's read items for search by meaning; absent, search is by words alone. */
   embed?: Embed | null;
+  /** Reads Learn's Instagram and X creators (autobrowse on the desk); absent, they wait. */
+  sites?: SiteClient | null;
 }
 
 /** `InboxPush` (channel-email) as far as the Monitor calls it. */
@@ -108,6 +113,19 @@ async function keepWatches(
 
 type Stats = ReadStats & { feeds: PullStats };
 
+/** Learn's feeds, then its Instagram and X creators that are due. */
+async function pullAll(deps: WatchDeps, now: Date): Promise<PullStats> {
+  const feeds = await pullFeeds(deps.db, deps.fetch ?? fetch, now);
+  if (!deps.sites) return feeds;
+  const creators = await pullCreators(deps.db, sitesReader(deps.sites), now, {
+    kinds: ["instagram", "x"],
+  });
+  return {
+    added: [...feeds.added, ...creators.added],
+    failed: [...feeds.failed, ...creators.failed],
+  };
+}
+
 export function makeWatch(deps: WatchDeps) {
   return makeLoopObject("Watch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
@@ -117,7 +135,7 @@ export function makeWatch(deps: WatchDeps) {
       ledger: { command: "watch read", argv: { daemon: true } },
       body: async () => ({
         ...(await readMail(deps.db, deps.mailboxes, now)),
-        feeds: await pullFeeds(deps.db, deps.fetch ?? fetch, now),
+        feeds: await pullAll(deps, now),
       }),
       delayAfter: () => (pushed ? WATCH_NET_MS : WATCH_EVERY_MS),
       retryMs: WATCH_EVERY_MS,

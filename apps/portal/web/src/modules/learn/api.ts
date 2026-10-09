@@ -52,7 +52,10 @@ export type SourceKind =
   | "blog"
   | "reddit"
   | "forum"
-  | "releases";
+  | "releases"
+  | "instagram"
+  | "x"
+  | "tiktok";
 export type Sort = "newest" | "score" | "length" | "source" | "title";
 export type Mark =
   | "star"

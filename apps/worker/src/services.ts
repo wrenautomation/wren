@@ -1238,6 +1238,12 @@ export async function buildServices(
       // Each person's Learn digest, from portal@, only in a workspace that turned it on.
       send: bookerMailer?.("Wren") ?? null,
       embed: gatewayEmbed(process.env),
+      // Learn's Instagram and X creators: Graph business discovery and X's signed-in page, free.
+      sites: ingressSites(ingressOf(settings), {
+        caller: "wren:learn",
+        service: DESK,
+        timeoutMs: 60_000,
+      }),
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));

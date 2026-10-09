@@ -24,6 +24,7 @@ import {
   needsMac,
   type Practice,
   practiceOf,
+  pullCreators,
   readItem,
   readVideo,
   saveLink,
@@ -32,6 +33,7 @@ import {
   sourcesByKind,
   TELLS,
   type Tell,
+  tiktokReader,
   unfollowSources,
   type VideoReader,
   waitingForMac,
@@ -166,6 +168,12 @@ export function registerLearn(
     const read = reader();
     const judge = judgeFor(db, o.model);
     const out: Array<{ id: number; read: string | null; verdict: string | null }> = [];
+    // TikTok creators are listed here (yt-dlp, the home IP); their new videos read below.
+    const tiktok = await pullCreators(db, tiktokReader(settings.ytDlp), new Date(), {
+      kinds: ["tiktok"],
+      macReads: true,
+    });
+    for (const f of tiktok.failed) console.error(`tiktok ${f.source}: ${f.error}`);
     const waiting = await waitingForMac(db, {
       limit: o.limit,
       retry: o.retry ?? false,

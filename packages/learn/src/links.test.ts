@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { creatorOf } from "./creators.js";
 import { tagOf } from "./drive.js";
 import { decode, feedLinkOf, ogImageOf, parseFeed, secondsOf, sourceKindOf } from "./feeds.js";
 import { cleanUrl, creatorSite, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
@@ -201,5 +202,19 @@ describe("reading", () => {
     expect(frontField(md, "title")).toBe('A "quoted" post');
     expect(frontField(md, "uploaded")).toBe("2026-01-02");
     expect(frontField(md, "channel")).toBeNull();
+  });
+});
+
+describe("creatorOf", () => {
+  it("names a creator by profile address", () => {
+    expect(creatorOf("https://www.instagram.com/synth.creator/?hl=en")).toEqual({
+      kind: "instagram",
+      handle: "synth.creator",
+      page: "https://instagram.com/synth.creator",
+    });
+    expect(creatorOf("twitter.com/synthposter")?.page).toBe("https://x.com/synthposter");
+    expect(creatorOf("https://www.tiktok.com/@synthtok?lang=en")?.handle).toBe("synthtok");
+    expect(creatorOf("https://www.tiktok.com/synthtok")).toBeNull();
+    expect(creatorOf("https://example.com/someone")).toBeNull();
   });
 });

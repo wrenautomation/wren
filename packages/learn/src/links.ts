@@ -70,7 +70,7 @@ export function kindOf(clean: string, audio?: string | null): ItemKind {
 export const needsMac = (kind: ItemKind, media?: string | null): boolean =>
   kind === "video" || kind === "reel" || (kind === "episode" && !!media);
 
-/** A profile on a site whose creators can't be followed yet: public reads only, in development. */
+/** The site a social profile is on, for a follow that isn't a creator Learn reads (`creatorOf`). */
 export function creatorSite(raw: string): string | null {
   const host = new URL(raw).hostname.toLowerCase().replace(/^www\./, "");
   if (/(^|\.)instagram\.com$/.test(host)) return "Instagram";

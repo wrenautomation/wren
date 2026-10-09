@@ -43,6 +43,9 @@ export const SOURCE_KINDS = [
   "reddit",
   "forum",
   "releases",
+  "instagram",
+  "x",
+  "tiktok",
 ] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 

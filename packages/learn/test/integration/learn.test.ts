@@ -9,6 +9,7 @@
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";
 import { pgSpineStore, type Walk, walk } from "@wren/core/spine";
@@ -25,6 +26,7 @@ import {
   items,
   judges,
   practiceOf,
+  pullCreators,
   pullFeeds,
   readItem,
   readStep,
@@ -32,6 +34,7 @@ import {
   scoreItem,
   scoreStep,
   searchItems,
+  sitesReader,
   sopLibrary,
   sources,
   tellLearn,
@@ -316,6 +319,83 @@ describe("Learn", () => {
     expect((await waitingForMac(pg.db)).map((w) => w.id)).toEqual([Number(bad.id)]);
   });
 
+  it("follows Instagram and X creators: first read seen, then new posts read from their text", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const ig = await api.follow({ ...viewer, url: "https://www.instagram.com/synth.creator/" });
+    const xs = await api.follow({ ...viewer, url: "https://x.com/synthposter" });
+    expect(ig).toMatchObject({ name: "@synth.creator", kind: "instagram", items: 0 });
+    expect(xs).toMatchObject({ name: "@synthposter", kind: "x" });
+    await expect(api.follow({ ...viewer, url: "https://threads.net/@someone" })).rejects.toThrow(
+      /Threads is in development/,
+    );
+    let posts = 1;
+    const calls: string[] = [];
+    const sites = {
+      via: async () => "api" as const,
+      call: async (site: string, _m: string, path: string) => {
+        calls.push(`${site} ${path}`);
+        if (site === "meta")
+          return {
+            found: true,
+            profile: { username: "synth.creator" },
+            media: Array.from({ length: posts }, (_, i) => ({
+              caption: `Post ${i}\nThree hooks that hold a viewer.`,
+              media_type: i === 0 ? "VIDEO" : "IMAGE",
+              media_product_type: i === 0 ? "REELS" : "FEED",
+              permalink: `https://www.instagram.com/p/Csynth${i}/`,
+              timestamp: "2026-10-09T10:00:00+0000",
+            })),
+          };
+        return {
+          data: Array.from({ length: posts }, (_, i) => ({
+            id: `19${i}`,
+            text: `Long post ${i} about reply rates.`,
+            author_username: "synthposter",
+            created_at: "2026-10-09T10:00:00.000Z",
+            ...(i === 0 ? {} : {}),
+          })),
+        };
+      },
+    } as unknown as SiteClient;
+    const t0 = new Date("2026-10-09T12:00:00Z");
+    const first = await pullCreators(pg.db, sitesReader(sites), t0, { kinds: ["instagram", "x"] });
+    expect(first).toEqual({ added: [], failed: [] });
+    expect(calls).toEqual(["meta /instagram/synth.creator", "x /2/users/synthposter/tweets"]);
+    // Not due again for 6 hours.
+    posts = 3;
+    const soon = await pullCreators(pg.db, sitesReader(sites), new Date(t0.getTime() + 3_600_000), {
+      kinds: ["instagram", "x"],
+    });
+    expect(soon.added).toEqual([]);
+    const later = await pullCreators(
+      pg.db,
+      sitesReader(sites),
+      new Date(t0.getTime() + 7 * 3_600_000),
+      { kinds: ["instagram", "x"] },
+    );
+    expect(later.added).toHaveLength(4);
+    const got = await pg.db
+      .select({ id: items.id, kind: items.kind, type: items.type, url: items.url })
+      .from(items)
+      .where(sql`${items.id} in ${later.added}`)
+      .orderBy(asc(items.url));
+    expect(got.map((g) => [g.kind, g.type])).toEqual([
+      ["article", "instagram"],
+      ["article", "instagram"],
+      ["article", "x"],
+      ["article", "x"],
+    ]);
+    // A creator's post reads from its text: the page is never fetched.
+    const never: FetchFn = async () => {
+      throw new Error("fetched");
+    };
+    for (const g of got) expect(await readItem(pg.db, never, g.id)).toBe("read");
+    // TikTok waits for the Mac's reader; the worker's never lists it.
+    await api.follow({ ...viewer, url: "https://www.tiktok.com/@synthtok" });
+    const none = await pullCreators(pg.db, sitesReader(sites), t0, { kinds: ["tiktok"] });
+    expect(none).toEqual({ added: [], failed: [] });
+  });
+
   it("keeps a failed read with why, and reads it again on ask", async () => {
     const api = learnConsoleApi(pg.db, web({ entries: [] }));
     const s = await api.save({ ...viewer, url: "https://youtu.be/synthVid01?si=x" });
@@ -390,12 +470,12 @@ describe("Learn", () => {
     }
   });
 
-  it("refuses an Instagram creator follow as in development, and keeps a failing source's error", async () => {
+  it("refuses a Threads follow as in development, and keeps a failing source's error", async () => {
     const state = { entries: ["a"], down: false };
     const fetchFn = web(state);
     const api = learnConsoleApi(pg.db, fetchFn);
     await expect(
-      api.follow({ ...viewer, url: "https://www.instagram.com/someone/" }),
+      api.follow({ ...viewer, url: "https://www.threads.net/@someone" }),
     ).rejects.toThrow(/in development/);
     await expect(
       api.follow({ ...viewer, url: "https://news.example/feed", tell: "loud" }),

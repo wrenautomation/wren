@@ -1450,6 +1450,13 @@
       "when": 1791563259313,
       "tag": "0206_learn_embeddings",
       "breakpoints": true
+    },
+    {
+      "idx": 207,
+      "version": "7",
+      "when": 1791563631871,
+      "tag": "0207_learn_creator_kinds",
+      "breakpoints": true
     }
   ]
 }

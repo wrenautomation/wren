@@ -86,6 +86,9 @@ export const KIND_LABELS: Record<SourceKind, string> = {
   reddit: "Subreddits",
   forum: "Forums",
   releases: "Release notes",
+  instagram: "Instagram creators",
+  x: "X creators",
+  tiktok: "TikTok creators",
 };
 
 /** A source kind's mark: the type its items mostly are. */
@@ -97,6 +100,9 @@ export const KIND_TYPE: Record<SourceKind, ItemType> = {
   reddit: "reddit",
   forum: "link",
   releases: "releases",
+  instagram: "instagram",
+  x: "x",
+  tiktok: "tiktok",
 };
 
 /** A Short or a Reel: a red stood-up tile with a play in it. */

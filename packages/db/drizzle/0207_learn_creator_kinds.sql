@@ -1,0 +1,2 @@
+ALTER TABLE "learn"."sources" DROP CONSTRAINT "ck_learn_sources_kind";--> statement-breakpoint
+ALTER TABLE "learn"."sources" ADD CONSTRAINT "ck_learn_sources_kind" CHECK (("kind")::text = ANY ((ARRAY['youtube'::character varying, 'podcast'::character varying, 'newsletter'::character varying, 'blog'::character varying, 'reddit'::character varying, 'forum'::character varying, 'releases'::character varying, 'instagram'::character varying, 'x'::character varying, 'tiktok'::character varying])::text[]));

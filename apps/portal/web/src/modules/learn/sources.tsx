@@ -8,7 +8,6 @@ import {
   Button,
   cx,
   Empty,
-  InDevelopment,
   Input,
   LoadFailed,
   Loading,
@@ -83,8 +82,9 @@ function SourcesBody() {
         <Loading lines={4} shape="cards" />
       ) : !kinds.length ? (
         <Empty>
-          Paste a channel, podcast, newsletter or blog above. Its page works, and so does its feed.
-          New posts are read, summed up and scored, then land in your Inbox.
+          Paste a channel, podcast, newsletter, blog or creator above. Its page works, and so does
+          its feed. Instagram, X and TikTok creators work by their profile address. New posts are
+          read, summed up and scored, then land in your Inbox.
         </Empty>
       ) : (
         kinds.map((k) => (
@@ -104,18 +104,6 @@ function SourcesBody() {
           </section>
         ))
       )}
-      <section className="flex flex-col gap-3 border-(--ui-hair) border-t pt-6">
-        <h2 className={cx("m-0 flex flex-wrap items-center gap-2", SECTION_TITLE)}>
-          <TypeMark type="instagram" size={16} />
-          <TypeMark type="tiktok" size={16} />
-          <TypeMark type="x" size={16} />
-          Instagram, TikTok and X creators
-        </h2>
-        <InDevelopment>
-          Following them is in development. Save their posts from your phone meanwhile; each plays
-          here in its own embed.
-        </InDevelopment>
-      </section>
     </div>
   );
 }
@@ -146,7 +134,7 @@ function Follow() {
         type="url"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="A channel, podcast, newsletter or blog"
+        placeholder="A channel, podcast, blog, or a creator's profile"
         aria-label="Address to follow"
         className="min-w-0 flex-1"
       />
