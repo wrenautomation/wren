@@ -70,6 +70,8 @@ export const payLinks = pgTable(
     session: varchar("session", { length: 80 }),
     /** Stripe's livemode on the paying event: false is a test payment. */
     live: boolean("live"),
+    /** The signed document whose deposit it is (`docs.id`, `@wren/documents`). */
+    document: uuid("document"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
@@ -80,6 +82,7 @@ export const payLinks = pgTable(
     index("ix_pay_links_client_created").on(t.client, t.createdAt),
     uniqueIndex("uq_pay_links_stripe_link").on(t.stripeLink),
     index("ix_pay_links_status").on(t.status),
+    index("ix_pay_links_document").on(t.document),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],

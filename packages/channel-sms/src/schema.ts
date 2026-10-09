@@ -111,7 +111,8 @@ export type Direction = (typeof DIRECTIONS)[number];
  * `follow_up` = a Follow-up or Nurture touch (`ref` names its workflow and node);
  * `text_back` = the text after a missed call (`ref` names the call); `review` = a review ask or
  * its reminder (`ref` names the ask and round). One per contact and ref. `pay` = a pay link
- * (`@wren/payments`) typed from a thread: an answer, so the asked window, never early.
+ * (`@wren/payments`) typed from a thread: an answer, so the asked window, never early. `doc` = a
+ * document's signing link (`@wren/documents`), the same way.
  */
 export const MESSAGE_KINDS = [
   "sequence",
@@ -122,9 +123,10 @@ export const MESSAGE_KINDS = [
   "text_back",
   "review",
   "pay",
+  "doc",
 ] as const;
 /** Kinds that answer something the person did: the asked window, never cold volume. */
-export const ANSWER_KINDS: ReadonlySet<string> = new Set(["text_back", "review", "pay"]);
+export const ANSWER_KINDS: ReadonlySet<string> = new Set(["text_back", "review", "pay", "doc"]);
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
