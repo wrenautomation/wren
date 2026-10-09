@@ -208,7 +208,7 @@ function Shut({ o }: { o: ReplyOption }) {
 }
 
 const SELECT =
-  "h-8 min-w-0 max-w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink)";
+  "h-8 min-w-0 max-w-full max-sm:w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink)";
 
 /** What the reply handler answered. */
 type Replied = { sent: boolean; asked: number | null; why: string | null };
@@ -299,7 +299,7 @@ function ReplyBox({
               disabled={!!o.off}
             >
               {o.label}
-              {o.off ? ` (${o.off})` : ""}
+              {o === shut ? " (off)" : o.off ? ` (${o.off})` : ""}
             </option>
           ))}
         </select>
