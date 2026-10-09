@@ -188,6 +188,7 @@ import {
   makeContentScheduler,
   makeDraftAsk,
   makeInboxDesk,
+  makeMailReply,
   makeMarketingConsole,
   makeSocialDesk,
   makeSocialInbox,
@@ -1819,6 +1820,12 @@ export async function buildServices(
     // Account → Mail, the OAuth callbacks, and the reader over every client's connected mailboxes.
     makeMailAccess({ main: db, access: clientMail, clientDb, setups: SETUPS }),
     makeMailCallback({ main: db, access: clientMail, clientDb, setups: SETUPS }),
+    // A reply from the Inbox to mail in a client's mailbox, through that mailbox.
+    makeMailReply({
+      main: db,
+      clientDb,
+      sender: (client, address) => clientMail.senderOf(client, address),
+    }),
     // Account → Social, its callback, and a client's DMs and comment answers on its own accounts.
     makeSocialAccess({ main: db, access: clientSocial }),
     makeSocialCallback({ main: db, access: clientSocial }),

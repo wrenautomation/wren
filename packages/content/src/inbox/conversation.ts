@@ -39,6 +39,15 @@ export interface Party {
   reachIds: number[];
   commentIds: number[];
   emails: string[];
+  /** Mail to the client's own mailbox (`watch.mail`): the thread it sits in there. */
+  mail: MailThread | null;
+}
+
+/** A thread in a client's connected mailbox: its mailbox and the provider's thread id. */
+export interface MailThread {
+  id: number;
+  mailbox: string;
+  threadId: string;
 }
 
 /** A person's by a social handle: the touches model's link. */
@@ -62,7 +71,7 @@ async function handlePerson(db: Queryable, platform: unknown, handle: unknown) {
 export async function threadChannelOf(db: Queryable, thread: string): Promise<string | null> {
   const [type, rest] = typed(thread);
   if (type === "text") return "sms";
-  if (type === "email" || type === "reply") return "email";
+  if (type === "email" || type === "reply" || type === "mail") return "email";
   const n = Number(rest);
   if (!Number.isInteger(n)) return null;
   const table = type === "dm" ? sql`reach_contacts` : type === "comment" ? sql`comments` : null;
@@ -88,6 +97,7 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     reachIds: [],
     commentIds: [],
     emails: [],
+    mail: null,
   };
   const email = async (eventId: number) => {
     const [e] = await rowsOf(
@@ -145,6 +155,17 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     p.personId = c.person_id == null ? null : Number(c.person_id);
     p.smsIds.push(n);
     if (c.email) p.emails.push(String(c.email).toLowerCase());
+  } else if (type === "mail") {
+    const [m] = await rowsOf(
+      db,
+      sql`select id, mailbox, thread_id, from_address,
+          coalesce(nullif(from_name, ''), from_address) who
+        from watch.mail where id = ${n} and reader = 'mail'`,
+    );
+    if (!m) return null;
+    p.who = str(m.who);
+    p.mail = { id: n, mailbox: String(m.mailbox), threadId: String(m.thread_id) };
+    p.emails.push(String(m.from_address).toLowerCase());
   } else if (type === "activity") {
     const [a] = await rowsOf(db, sql`select platform, actor from social_activity where id = ${n}`);
     if (!a) return null;
@@ -399,6 +420,7 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
       });
     }
   }
+  if (p.mail) out.push(...(await mailLines(db, p.mail)));
   for (const n of await inboxNotesOf(db, { threads: [p.thread], personId: p.personId }))
     out.push({
       id: `note:${n.id}`,
@@ -424,6 +446,54 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
   return out.sort((a, b) => a.at.localeCompare(b.at)).slice(-TIMELINE_MAX);
 }
 
+/**
+ * A mailbox thread's lines: theirs as triage kept them (the summary, never a body) and our replies
+ * from the Inbox (`watch.mail_sent`).
+ */
+async function mailLines(db: Queryable, m: MailThread): Promise<Entry[]> {
+  const [ins, outs] = await Promise.all([
+    rowsOf(
+      db,
+      sql`select id, at, subject, coalesce(summary, snippet, '') body,
+          coalesce(nullif(from_name, ''), from_address) who
+        from watch.mail where mailbox = ${m.mailbox} and thread_id = ${m.threadId}
+          and reader = 'mail'`,
+    ),
+    rowsOf(
+      db,
+      sql`select id, coalesce(sent_at, created_at) at, subject, body, state, mailbox
+        from watch.mail_sent where mailbox = ${m.mailbox} and thread_id = ${m.threadId}`,
+    ),
+  ]);
+  return [
+    ...ins.map(
+      (e): Entry => ({
+        id: `wm:${e.id}`,
+        at: iso(e.at),
+        channel: "email",
+        direction: "in",
+        platform: null,
+        who: str(e.who),
+        body: String(e.body),
+        subject: str(e.subject),
+      }),
+    ),
+    ...outs.map(
+      (e): Entry => ({
+        id: `ws:${e.id}`,
+        at: iso(e.at),
+        channel: "email",
+        direction: "out",
+        platform: null,
+        who: str(e.mailbox),
+        body: String(e.body),
+        subject: str(e.subject),
+        state: str(e.state),
+      }),
+    ),
+  ];
+}
+
 /** A touch with no words, said plainly. */
 function touchWords(kind: string, ours: boolean): string {
   const said: Record<string, [string, string]> = {
@@ -442,7 +512,10 @@ function touchWords(kind: string, ours: boolean): string {
 /** A channel a reply can take: its path's id, and why it can't, when it can't. */
 export interface ReplyOption {
   channel: InboxChannel;
-  /** The path's own id: `<contact>` for DMs and texts, `<comment>`, `invite:<id>` or `reply:<id>`. */
+  /**
+   * The path's own id: `<contact>` for DMs and texts, `<comment>`, `invite:<id>`, `reply:<id>` or
+   * `mail:<id>` (the newest of theirs in a mailbox thread).
+   */
   target: string;
   label: string;
   platform: string | null;
@@ -450,8 +523,13 @@ export interface ReplyOption {
   own: boolean;
   /** Why it can't send there (opted out); null when it can. */
   off: string | null;
-  /** What fixes it: `social`, a client connects that platform's account on Account → Social. */
-  fix?: "social" | null;
+  /**
+   * What fixes it: `social`, a client connects that platform's account on Account → Social;
+   * `mail`, it connects the mailbox on Account → Mail.
+   */
+  fix?: "social" | "mail" | null;
+  /** Mail to a client's mailbox: the mailbox the reply goes out from. */
+  from?: string | null;
 }
 
 const SITE: Record<string, string> = {
@@ -540,6 +618,25 @@ export async function optionsOf(db: Queryable, p: Party): Promise<ReplyOption[]>
         off: null,
       });
     }
+  }
+  if (p.mail) {
+    // Their newest in the mailbox thread: the reply answers it, from the mailbox it came to.
+    const [m] = await rowsOf(
+      db,
+      sql`select id, from_address from watch.mail
+        where mailbox = ${p.mail.mailbox} and thread_id = ${p.mail.threadId} and reader = 'mail'
+        order by at desc, id desc limit 1`,
+    );
+    if (m)
+      out.push({
+        channel: "email",
+        target: `mail:${m.id}`,
+        label: `Email ${String(m.from_address)}`,
+        platform: null,
+        own: true,
+        off: null,
+        from: p.mail.mailbox,
+      });
   }
   return out.sort((a, b) => Number(b.own) - Number(a.own));
 }

@@ -25,6 +25,16 @@ export const SENDS_PART: Record<InboxChannel, string> = {
   text: "follow_up",
 };
 
+/**
+ * The `sends` part a reply answers under: mail to a client's own mailbox under `mail.triage`, the
+ * part that reads it in; every other channel by `SENDS_PART`.
+ */
+export const partOf = (o: Pick<ReplyOption, "channel" | "from">): string =>
+  o.from ? MAIL_PART : SENDS_PART[o.channel];
+
+/** The part a client's connected mailboxes read and reply under. */
+export const MAIL_PART = "mail.triage";
+
 /** How long a reply may run. */
 export const REPLY_MAX = 4000;
 
@@ -63,6 +73,8 @@ const targetOf = (client: string, channel: string | null): Target => ({
 export function replyGate(o: {
   channel: InboxChannel;
   platform?: string | null;
+  /** The `sends` part, when not the channel's own (`partOf`). */
+  part?: string;
   client: Pick<Client, "id" | "sends" | "approver"> | null;
   who: Who;
 }): Gate {
@@ -70,7 +82,7 @@ export function replyGate(o: {
   if (!can(o.who, "effect", at))
     return { mode: "ask", why: "You can't send. Someone who can says yes." };
   if (!o.client) return { mode: "send", why: null };
-  if (!sendsOn(o.client, SENDS_PART[o.channel]))
+  if (!sendsOn(o.client, o.part ?? SENDS_PART[o.channel]))
     return { mode: "ask", why: "Sends are off for this client." };
   const approver = (o.client.approver ?? "wren") as Approver;
   if (!mayApprove(o.who, o.client.id, approver))
@@ -132,6 +144,8 @@ export interface ReplySender {
   invite(inviteId: number, body: string): Promise<void>;
   /** An email with no open invite: answer in its thread. */
   email(threadEventId: number, body: string): Promise<void>;
+  /** Mail to a client's mailbox (`watch.mail`): answer in its thread, from that mailbox. */
+  mail(mailId: number, body: string): Promise<void>;
 }
 
 /** Send `body` on `option`'s path. */
@@ -150,9 +164,9 @@ export async function sendOn(sender: ReplySender, option: ReplyOption, body: str
     case "comment":
       return sender.comment(n(t), body);
     case "email":
-      return t.startsWith("invite:")
-        ? sender.invite(n(t.slice(7)), body)
-        : sender.email(n(t.slice(t.indexOf(":") + 1)), body);
+      if (t.startsWith("invite:")) return sender.invite(n(t.slice(7)), body);
+      if (t.startsWith("mail:")) return sender.mail(n(t.slice(5)), body);
+      return sender.email(n(t.slice(t.indexOf(":") + 1)), body);
   }
 }
 

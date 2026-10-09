@@ -18,12 +18,13 @@ import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
-import { clientAccounts, clientRoute } from "../inbox/routes.js";
+import { clientRoutes, routeOf } from "../inbox/routes.js";
 import {
   accessChannel,
   askReply,
   failReply,
   mayWork,
+  partOf,
   pickOption,
   type ReplySender,
   replyGate,
@@ -82,6 +83,10 @@ type SocialInboxDesk = {
   send: Fn<{ client: string; contactId: number; body: string; by?: string | null }, unknown>;
   answer: Fn<{ client: string; id: number; body: string; by?: string | null }, unknown>;
 };
+/** A client's connected mailboxes (`makeMailReply`). */
+type MailReplyDesk = {
+  send: Fn<{ client: string; mailId: number; body: string; by?: string | null }, unknown>;
+};
 type Outcome = { ok: boolean; reason?: string | null };
 type Disposition = {
   approve: Fn<{ id: number; body: string }, Outcome>;
@@ -90,7 +95,8 @@ type Disposition = {
 
 /**
  * The channels' own desks, called as this viewer. A client's DMs and comments go through its own
- * connected accounts (`SocialInbox`); Wren's through reach.
+ * connected accounts (`SocialInbox`); Wren's through reach. Mail to a client's mailbox goes back
+ * out through that mailbox (`MailReply`).
  */
 function restateChannels(ctx: restate.Context, client: string | null, viewer: Viewer): ReplySender {
   const reach = () => ctx.serviceClient<ReachDesk>({ name: "ReachDesk" });
@@ -120,6 +126,12 @@ function restateChannels(ctx: restate.Context, client: string | null, viewer: Vi
     },
     invite: async (id, body) => ok(await disposition().approve({ id, body })),
     email: async (threadEventId, body) => ok(await disposition().reply({ threadEventId, body })),
+    mail: async (mailId, body) => {
+      if (!client) throw new restate.TerminalError("Only a client's mailbox answers mail here.");
+      await ctx
+        .serviceClient<MailReplyDesk>({ name: "MailReply" })
+        .send({ client, mailId, body, by });
+    },
   };
 }
 
@@ -172,24 +184,33 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
   /**
    * A client's DM or comment goes out on its own connected account only: none, a broken one, or a
    * platform with no API for it refuses, before anything is kept or sent. Never Wren's accounts.
+   * A reply to mail goes out through the client's mailbox it came to, connected.
    */
   const routed = (client: string | null, option: ReplyOption) =>
     terminal(async () => {
-      if (!client) return;
-      const accounts = await clientAccounts(deps.db, client);
-      const shut = clientRoute(option.channel, option.platform, accounts);
+      if (!client) {
+        if (option.from) throw new Error("Only a client's connected mailbox answers mail here.");
+        return;
+      }
+      const shut = routeOf(option, await clientRoutes(deps.db, client));
       if (shut) throw new Error(shut.off);
     });
   const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
     (deps.channels ?? restateChannels)(ctx, client, viewer);
   /** Who they are, and the client's sends and approver: what the gate reads. */
-  const gateOf = (req: Req, channel: InboxChannel, platform: string | null) =>
+  const gateOf = (req: Req, option: ReplyOption) =>
     terminal(async () => {
       const client = clientOf(req);
       const who: Who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
       const row: Client | null = client ? await findClient(deps.db, client) : null;
       if (client && !row) throw new Error(`no client ${client}`);
-      return replyGate({ channel, platform, client: row, who });
+      return replyGate({
+        channel: option.channel,
+        platform: option.platform,
+        part: partOf(option),
+        client: row,
+        who,
+      });
     });
   /**
    * May they work here? Wren's own threads are the team's: the console checked the row. A
@@ -232,7 +253,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
             mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
           );
           await ctx.run("route", () => routed(client, option));
-          const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
+          const gate = await ctx.run("gate", () => gateOf(req, option));
           if (gate.mode === "ask") {
             const asked = await ctx.run("ask", async () => {
               const p = await partyOf(db, req.thread);
@@ -303,7 +324,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
             mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
           );
           await ctx.run("route", () => routed(client, option));
-          const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
+          const gate = await ctx.run("gate", () => gateOf(req, option));
           if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
           const claimed = await ctx.run("claim", () => settleReply(db, req.id, "sent", me));
           if (!claimed) throw new restate.TerminalError("that reply was settled already");

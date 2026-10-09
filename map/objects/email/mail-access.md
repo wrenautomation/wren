@@ -3,7 +3,7 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-07 @ 29aa22e6
+verified: 2026-10-09 @ 0ad591c4
 entity: packages/channel-email/src/access/schema.ts:71
 ---
 
@@ -22,7 +22,8 @@ Per-mailbox 3-legged OAuth on a trusted app, never domain-wide delegation: Wren 
 - `mail_consents` (`schema.ts:111`): one per `microsoft_365` account; the tenant id the admin consented in
 - Token: key store row `MAIL_<PROVIDER>_<16 hex>` under the mailbox's client (`tokenName`), JSON `{refresh, address}`; `token_name` holds the ref. Wren's app ids: key store client `wren`, names `MAIL_*`, or `WREN_MAIL_*` (`mailAppsFrom`). `packages/core/src/keys.ts`
 - OAuth (`oauth.ts`): `scopesFor` (`:29`), `connectUrl` (`:67`, PKCE, Google `hd`, Microsoft tenant in path), `consentUrl` (`:108`, v2 adminconsent), `exchange`/`refresh` (`:206`/`:224`), `appInTenant` (`:243`, AADSTS700016 = not consented)
-- Mailboxes (`mailbox.ts`): `gmailMailbox` (`:44`) and `graphMailbox` (`:116`) as core's `Mailbox`, so the Monitor's `readMail` reads them
+- Mailboxes (`mailbox.ts`): `gmailMailbox` (`:46`) and `graphMailbox` (`:118`) as core's `Mailbox`, so the Monitor's `readMail` reads them
+- Replies (`mailbox.ts`): `gmailReply` (`:207`, MIME with In-Reply-To and References, Gmail's `threadId`) and `graphReply` (`:253`, Graph's own `/reply`); `senderOf` (`access.ts:706`) hands core's `MailSender` for a connected mailbox, else "Needs setup"; a 401/403 breaks it ("Sending was refused"). `MailReply` (content) calls it from the Inbox
 - States (`mailboxStates`, `access.ts:143`): not_set_up, waiting_admin, send_only, read_send, broken; personal Gmail sends only, personal Outlook refused
 - Setups (`setups.ts`): `setup.google_mail` (app, trust), `setup.microsoft_mail` (app, consent), `setup.mailbox` (connected); checks `mailChecks` (`:110`): `mail.google_app`, `mail.microsoft_app`, `google.mail_trust` (a real read), `microsoft.admin_consent`, `mailbox.token`
 - Services: `MailAccess` (`console.ts:234`; routes `console-routes.ts:8`) and `MailCallback/land` (`console.ts:310`, private; the portal Worker's `/oauth/mail/<provider>` forwards to it, `apps/portal/src/mail-oauth.ts`)
@@ -38,7 +39,7 @@ Citations: `packages/channel-email/src/access/schema.ts:37`, `:71`, `:111`; `pac
 
 ## If you change this
 
-- **Hits:** Account → Mail (`apps/portal/web/src/modules/account/Mail.tsx`), the setups' checks, the reader, migration 0184
+- **Hits:** Account → Mail (`apps/portal/web/src/modules/account/Mail.tsx`), the setups' checks, the reader, Inbox mail replies ([[content/inbox-thread]]), migration 0184
 - **Does not hit:** Wren's own sending inboxes, the Monitor's own mail
 
 ## Surfaces

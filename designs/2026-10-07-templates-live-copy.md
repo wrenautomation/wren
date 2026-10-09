@@ -138,7 +138,8 @@ priority.
 ## Legacy tables
 
 A migration copies any `sms_templates` or `reach_templates` row not already in the store, checks
-the counts match, then drops both tables. Code that still reads them moves to `resolveTemplate`.
+the counts match, then drops both tables. Code that still reads them moves to `resolveTemplate`. Done in
+`0142_templates_legacy_drop.sql`; no code reads either table now.
 
 ## Build (one implementer)
 

@@ -1,6 +1,14 @@
 // A connected mailbox as the Monitor's Mailbox, on fake Gmail and Graph APIs: no network.
 import { describe, expect, it } from "vitest";
-import { gmailMailbox, graphMailbox, graphMetaOf, MailApiError } from "./mailbox.js";
+import {
+  gmailMailbox,
+  gmailReply,
+  graphMailbox,
+  graphMetaOf,
+  graphReply,
+  MailApiError,
+  replySubject,
+} from "./mailbox.js";
 
 type Route = (url: URL) => { status?: number; body: unknown } | undefined;
 
@@ -109,5 +117,128 @@ describe("graphMailbox", () => {
 
   it("a message with no sender reads as blank", () => {
     expect(graphMetaOf({ id: "x" })).toMatchObject({ fromAddress: "", subject: "", link: null });
+  });
+});
+
+/** A fake provider that records each write's method, path and JSON body. */
+function writes(answer: (path: string) => { status?: number; body?: unknown } | undefined) {
+  const posts: { method: string; path: string; body: unknown }[] = [];
+  const fetch = async (url: string, init?: RequestInit) => {
+    const u = new URL(url);
+    const method = init?.method ?? "GET";
+    if (method === "POST")
+      posts.push({ method, path: u.pathname, body: JSON.parse(String(init?.body ?? "null")) });
+    const r = answer(`${method} ${u.pathname}`);
+    if (!r) return new Response("nope", { status: 404 });
+    return r.body === undefined
+      ? new Response(null, { status: r.status ?? 202 })
+      : Response.json(r.body, { status: r.status ?? 200 });
+  };
+  return { fetch, posts };
+}
+
+const TO = {
+  messageId: "m1",
+  threadId: "t1",
+  to: "lee@patient.example",
+  subject: "Quote for a crown?",
+};
+
+describe("replySubject", () => {
+  it("adds Re once", () => {
+    expect(replySubject("Quote")).toBe("Re: Quote");
+    expect(replySubject("RE: Quote")).toBe("RE: Quote");
+    expect(replySubject("Quote\r\nBcc: x@y.example")).toBe("Re: Quote Bcc: x@y.example");
+  });
+});
+
+describe("gmailReply", () => {
+  it("threads by Gmail's thread id and the original's Message-ID and References", async () => {
+    const g = writes((at) => {
+      if (at === "GET /gmail/v1/users/me/messages/m1")
+        return {
+          body: {
+            id: "m1",
+            payload: {
+              headers: [
+                { name: "Message-ID", value: "<orig@patient.example>" },
+                { name: "References", value: "<first@kappa.example>" },
+              ],
+            },
+          },
+        };
+      if (at === "POST /gmail/v1/users/me/messages/send")
+        return { body: { id: "s1", threadId: "t1" } };
+      return undefined;
+    });
+    const out = await gmailReply(g.fetch, async () => "tok", {
+      from: "front@kappa.example",
+      to: TO,
+      body: "A crown runs $1,200. Saturday works.",
+      ours: "<ours@kappa.example>",
+      read: true,
+    });
+    expect(out).toEqual({ id: "s1", threadId: "t1" });
+    const [post] = g.posts;
+    const sent = post?.body as { raw: string; threadId: string };
+    expect(sent.threadId).toBe("t1");
+    const mime = Buffer.from(sent.raw, "base64url").toString("utf8");
+    expect(mime).toContain("From: front@kappa.example");
+    expect(mime).toContain("To: lee@patient.example");
+    expect(mime).toContain("Subject: Re: Quote for a crown?");
+    expect(mime).toContain("In-Reply-To: <orig@patient.example>");
+    expect(mime).toMatch(/References: <first@kappa\.example>\s+<orig@patient\.example>/);
+    expect(mime).toContain("Message-ID: <ours@kappa.example>");
+  });
+
+  it("threads by thread id alone on a send-only mailbox", async () => {
+    const g = writes((at) =>
+      at === "POST /gmail/v1/users/me/messages/send" ? { body: { id: "s2" } } : undefined,
+    );
+    const out = await gmailReply(g.fetch, async () => "tok", {
+      from: "front@kappa.example",
+      to: TO,
+      body: "Yes.",
+      ours: "<ours2@kappa.example>",
+      read: false,
+    });
+    expect(out).toEqual({ id: "s2", threadId: "t1" });
+    const raw = (g.posts[0]?.body as { raw: string } | undefined)?.raw ?? "";
+    const mime = Buffer.from(raw, "base64url").toString();
+    expect(mime).not.toContain("In-Reply-To");
+  });
+
+  it("says a refused send with its status", async () => {
+    const g = writes((at) =>
+      at.startsWith("POST")
+        ? { status: 403, body: { error: { message: "Insufficient Permission" } } }
+        : undefined,
+    );
+    const err = await gmailReply(g.fetch, async () => "tok", {
+      from: "front@kappa.example",
+      to: TO,
+      body: "Yes.",
+      ours: "<o@kappa.example>",
+      read: false,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(MailApiError);
+    expect((err as MailApiError).status).toBe(403);
+  });
+});
+
+describe("graphReply", () => {
+  it("answers through Graph's own reply on their message", async () => {
+    const g = writes((at) =>
+      at === "POST /v1.0/me/messages/m1/reply" ? { status: 202 } : undefined,
+    );
+    const out = await graphReply(g.fetch, async () => "tok", { to: TO, body: "Saturday works." });
+    expect(out).toEqual({ id: null, threadId: "t1" });
+    expect(g.posts).toEqual([
+      {
+        method: "POST",
+        path: "/v1.0/me/messages/m1/reply",
+        body: { message: { body: { contentType: "Text", content: "Saturday works." } } },
+      },
+    ]);
   });
 });

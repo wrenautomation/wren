@@ -3,8 +3,8 @@ type: object
 cluster: watch
 universe: live
 status: verified
-verified: 2026-10-07 @ 29aa22e6
-entity: packages/watch/src/schema.ts:42
+verified: 2026-10-09 @ 0ad591c4
+entity: packages/watch/src/schema.ts:50
 ---
 
 # mail (the Monitor)
@@ -17,14 +17,15 @@ The Monitor is Wren's first routed workflow: `Watch/all` reads, the spine carrie
 
 ## Shape
 
-- `mail` (`schema.ts:42`): one per (mailbox, Gmail message id); `verdict` null until triage, `done_at` when William clears it
-- `rules` (`schema.ts:25`): words, optional sender (address or domain) and subject words, optional verdict. Migration 0095 seeds the Inbox Insiders rule
+- `mail` (`schema.ts:50`): one per (mailbox, Gmail message id); `verdict` null until triage, `done_at` when William clears it
+- `mail_sent` (`schema.ts:106`, migration 0198): a reply from the Inbox through the client's mailbox; ours only, `sending` then `sent` or `failed`. The thread's timeline shows it as ours
+- `rules` (`schema.ts:30`): words, optional sender (address or domain) and subject words, optional verdict. Migration 0095 seeds the Inbox Insiders rule
 - Read: `readMail` (`packages/watch/src/read.ts:25`) searches `in:inbox` minus promotions and social, from an hour before the newest kept
 - Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:68`), `sortAgain` (`:110`), step `triageStep` (`:129`); events are `mail:<row id>`
 - Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books; `MailMeta.link` is the provider's own link (Outlook), else the view builds Gmail's
 - Clients: `MailReader/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. Marketing → Inbox shows those rows as type Mail (`packages/content/src/social/records.ts:145`)
 
-Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/restate.ts:28`
+Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/watch/src/restate.ts:28`
 
 ## Connected to
 

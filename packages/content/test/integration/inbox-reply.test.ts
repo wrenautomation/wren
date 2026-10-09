@@ -34,6 +34,7 @@ const fake = (ctx: Context): ReplySender => {
     comment: push("comment"),
     invite: push("invite"),
     email: push("email"),
+    mail: push("mail"),
   };
 };
 const llm = new FakeLlm({

@@ -72,6 +72,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 - Reader (`packages/watch/src/clients.ts`): `MailReader/all`, every 15 minutes. For each client with the `mail.triage` part, it reads each connected read mailbox through the Monitor's `readMail` into the client's own `watch.mail` with `reader = 'mail'`. Then it emits to the client's `mail` workflow, where `clientTriageStep` sorts with the Monitor's rules and model and names the client in the prompt. A dead mailbox doesn't stop the others.
 - Inbox (`packages/content/src/social/records.ts`): the client's mail shows as type Mail, with sender, subject, summary and the provider's own link. Done clears it. Wren's own Monitor rows never show there.
 - Tables (migration 0184): `mail_connections`, `mail_consents` and `mail_grants` on main. `watch.mail` gets `link` and `reader`.
+- Replies: a reply in Marketing → Inbox to a client's mail goes out through the mailbox it came to, in the same thread. Gmail gets a MIME message with In-Reply-To and References from the original, sent with Gmail's thread id. Microsoft gets Graph's own reply on the message. `InboxDesk` gates it on the client's `mail.triage` sends and its approver, so an ask waits in To approve. `MailReply/send` (`packages/content/src/restate/mail-reply.ts`) keeps ours in the client's `watch.mail_sent` (migration 0198) as `sending`, then `sent` or `failed`; the thread's timeline shows it. A mailbox that isn't connected, or is broken, says "Needs setup" and points at Account → Mail. A 401 or 403 on a send breaks the connection. One try per send: a lost answer fails rather than sends twice.
 - Services: `MailAccess` (portal routes `mail`, `addMailbox`, `connect`, `consent`, `check`, `done`) and `MailCallback/land` (private, reached only through the portal Worker).
 
 ## What William must create
@@ -95,7 +96,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 - Done for you: an autobrowse `do` walk for both admin consoles. It needs a real test Workspace and tenant to build against.
 - Start `MailReader/all` and `SetupWatch/all` on prod after the apps exist. Sell `mail.triage` per client.
 - Google push (Pub/Sub watch) and Graph subscriptions, if 15 minutes is too slow. Both cost setup, not money.
-- Replying from the Inbox through the connected mailbox (the send scope is already granted).
+- One Inbox row per mail: a thread with three mails shows three rows, each with the whole thread. Fold them into one row per thread.
 
 ## Open questions
 
@@ -105,3 +106,4 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 ## Decision log
 
 - 2026-10-07: tokens and Wren's mail apps moved from SSM owner paths to the one key store (`designs/2026-10-07-key-store.md`, "One store, not two"). No prod data existed to move.
+- 2026-10-09: Inbox replies through the connected mailbox built. They answer under the `mail.triage` part, not `follow_up`: the part that reads the mail in is the one that answers it. Only our words are kept, in `watch.mail_sent`; theirs stay headers and a summary.

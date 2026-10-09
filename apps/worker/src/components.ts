@@ -63,6 +63,7 @@ export const PLATFORM = {
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
     SocialAccess: "Account → Social: a client's own social accounts, each one's state and sign-in",
     SocialCallback: "where each social platform sends an account's sign-in back",
+    MailReply: "a reply from the Inbox to a client's mail, sent through its own mailbox",
     SocialInbox: "a client's DMs in, and its DM and comment answers out, on its own accounts",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",

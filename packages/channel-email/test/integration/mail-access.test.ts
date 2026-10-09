@@ -12,6 +12,7 @@ import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { accountsOf } from "@wren/core/setup";
 import { accountFacts } from "@wren/core/setup-schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FACTS, mailAccess } from "../../src/access/access.js";
 import { mailConsoleApi } from "../../src/access/console.js";
@@ -45,9 +46,24 @@ const fake = {
   revoked: false,
   consented: true,
   asked: [] as string[],
+  /** Each send: the URL and its JSON body. */
+  sent: [] as { url: string; body: unknown }[],
+  /** The next send answers 403, as a send scope taken back does. */
+  refuseSend: false,
 };
 const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
   fake.asked.push(url);
+  if (
+    init?.method === "POST" &&
+    (url.endsWith("/messages/send") || url.startsWith("https://graph.microsoft.com/"))
+  ) {
+    if (fake.refuseSend)
+      return Response.json({ error: { message: "Insufficient Permission" } }, { status: 403 });
+    fake.sent.push({ url, body: JSON.parse(String(init.body)) });
+    return url.endsWith("/messages/send")
+      ? Response.json({ id: "s1", threadId: "t1" })
+      : new Response(null, { status: 202 });
+  }
   const form = new URLSearchParams(String(init?.body ?? ""));
   if (url === "https://oauth2.googleapis.com/token" || url.includes("/oauth2/v2.0/token")) {
     const ms = url.includes("microsoftonline");
@@ -227,6 +243,45 @@ describe("Google Workspace", () => {
     expect(await box?.meta("m1")).toMatchObject({ fromAddress: "lee@patient.example" });
   });
 
+  it("a reply goes out through the mailbox, in Gmail's thread", async () => {
+    const box = await acc.senderOf("acme", "Ann@acme.example");
+    const out = await box.reply(
+      { messageId: "m1", threadId: "t1", to: "lee@patient.example", subject: "Quote" },
+      "A crown runs $1,200.",
+      "<ours@acme.example>",
+    );
+    expect(out).toEqual({ id: "s1", threadId: "t1" });
+    const [send] = fake.sent;
+    expect(send?.url).toBe("https://gmail.googleapis.com/gmail/v1/users/me/messages/send");
+    const { raw, threadId } = (send?.body ?? {}) as { raw: string; threadId: string };
+    expect(threadId).toBe("t1");
+    const mime = Buffer.from(raw, "base64url").toString();
+    expect(mime).toContain("From: ann@acme.example");
+    expect(mime).toContain("Subject: Re: Quote");
+  });
+
+  it("a refused send breaks the mailbox with why", async () => {
+    fake.refuseSend = true;
+    const box = await acc.senderOf("acme", "ann@acme.example");
+    const to = { messageId: "m1", threadId: "t1", to: "lee@patient.example", subject: "Quote" };
+    await expect(box.reply(to, "Yes.", "<o2@acme.example>")).rejects.toThrow(/403/);
+    fake.refuseSend = false;
+    const ann = await account("acme", "ann@acme.example");
+    expect(await acc.connectionOf(ann.id)).toMatchObject({
+      state: "broken",
+      why: "Sending was refused. Connect it again.",
+    });
+    await expect(acc.senderOf("acme", "ann@acme.example")).rejects.toThrow(
+      "Needs setup: ann@acme.example needs connecting again.",
+    );
+    await expect(acc.senderOf("acme", "nobody@acme.example")).rejects.toThrow(
+      "Needs setup: nobody@acme.example isn't connected to send.",
+    );
+    // Another client never sends from it.
+    await expect(acc.senderOf("beta", "ann@acme.example")).rejects.toThrow(/Needs setup/);
+    await pg.db.execute(sql`update mail_connections set state = 'connected', why = null`);
+  });
+
   it("a grant taken back breaks the mailbox; the page says connect again", async () => {
     acc = access(); // a fresh worker: no access token in memory
     fake.revoked = true;
@@ -347,6 +402,28 @@ describe("Microsoft 365", () => {
     expect(after.mailboxes[0]?.may.connectRead).toBe(true);
     const c = await api().connect({ viewer: BO, client: "beta", account: bo.id, want: "read" });
     expect(c.url).toContain(`/${TENANT}/oauth2/v2.0/authorize`);
+
+    // Connected, a reply goes through Graph's own reply on their message.
+    fake.signedIn = "bo@beta.example";
+    fake.scope =
+      "openid email https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send";
+    expect(
+      await acc.land({ provider: "microsoft", state: stateOf(c.url), code: "c" }),
+    ).toMatchObject({ ok: true });
+    fake.sent.length = 0;
+    const box = await acc.senderOf("beta", "bo@beta.example");
+    const out = await box.reply(
+      { messageId: "AAMk=1", threadId: "conv-1", to: "lee@patient.example", subject: "Roof" },
+      "Tuesday works.",
+      "<o3@beta.example>",
+    );
+    expect(out).toEqual({ id: null, threadId: "conv-1" });
+    expect(fake.sent).toEqual([
+      {
+        url: "https://graph.microsoft.com/v1.0/me/messages/AAMk%3D1/reply",
+        body: { message: { body: { contentType: "Text", content: "Tuesday works." } } },
+      },
+    ]);
   });
 });
 

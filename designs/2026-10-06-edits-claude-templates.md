@@ -124,7 +124,8 @@ parallel, then meet in 4.
   one, and records the store version in `compositions.prompt_version`. Parity tests hold every
   `.email` file and all three prompts byte for byte against the old code. `review` and
   `deliverability` still read the files; they author, they don't send. `sms_templates` and
-  `reach_templates` stay until a later migration drops them.
+  `reach_templates` stayed until migration 0142 copied their rows into the store and dropped
+  them.
 - 2026-10-06: Wren's own settings moved onto edits (8a349a6): `console.setting`, one row per
   setting, on Loops > Settings; `needs: "manage"` on the declaration. The Shop shows the values
   and links there. Drafts (DraftAsk) and the video edit stay on their own path for now: the

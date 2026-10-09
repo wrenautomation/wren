@@ -7,13 +7,21 @@
 import { createHash } from "node:crypto";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
-import type { Mailbox } from "@wren/core/mailbox";
+import type { Mailbox, MailSender } from "@wren/core/mailbox";
 import { type AccountView, accountsOf, addAccount } from "@wren/core/setup";
 import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
-import { gmailMailbox, gmailReads, graphMailbox, graphReads, MailApiError } from "./mailbox.js";
+import {
+  gmailMailbox,
+  gmailReads,
+  gmailReply,
+  graphMailbox,
+  graphReads,
+  graphReply,
+  MailApiError,
+} from "./mailbox.js";
 import {
   accessOf,
   CONSUMER_GOOGLE,
@@ -365,12 +373,16 @@ export function mailAccess(deps: MailDeps) {
   };
 
   /** A provider call refused for the token or its scopes: the connection breaks. */
-  const guarded = async <T>(c: ConnectionRow, fn: () => Promise<T>): Promise<T> => {
+  const guarded = async <T>(
+    c: ConnectionRow,
+    fn: () => Promise<T>,
+    why = "Reading was refused. Connect it again.",
+  ): Promise<T> => {
     try {
       return await fn();
     } catch (err) {
       if (err instanceof MailApiError && (err.status === 401 || err.status === 403))
-        await broke(c.accountId, "Reading was refused. Connect it again.");
+        await broke(c.accountId, why);
       throw err;
     }
   };
@@ -685,6 +697,42 @@ export function mailAccess(deps: MailDeps) {
           meta: (id) => guarded(c, () => box.meta(id)),
         };
       });
+    },
+
+    /**
+     * A client's mailbox that sends, for a reply from its Inbox. Not connected, or broken: "Needs
+     * setup" and where to fix it. Every connection sends; reading adds the original's headers.
+     */
+    async senderOf(client: string, address: string): Promise<MailSender> {
+      const at = address.trim().toLowerCase();
+      const [row] = await main
+        .select({ c: mailConnections })
+        .from(mailConnections)
+        .innerJoin(clientAccounts, eq(clientAccounts.id, mailConnections.accountId))
+        .where(and(eq(clientAccounts.client, client), eq(mailConnections.address, at)));
+      const c = row?.c;
+      if (!c) throw new MailRefusal(`Needs setup: ${at} isn't connected to send.`);
+      if (c.state !== "connected")
+        throw new MailRefusal(`Needs setup: ${at} needs connecting again.`);
+      const token = () => tokenOf(c);
+      return {
+        address: at,
+        reply: (to, body, ours) =>
+          guarded(
+            c,
+            () =>
+              c.provider === "google"
+                ? gmailReply(deps.fetch, token, {
+                    from: at,
+                    to,
+                    body,
+                    ours,
+                    read: c.access === "read",
+                  })
+                : graphReply(deps.fetch, token, { to, body }),
+            "Sending was refused. Connect it again.",
+          ),
+      };
     },
 
     /** The page: the client's mailboxes and orgs, each with its state and next step. */

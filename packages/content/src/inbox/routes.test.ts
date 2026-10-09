@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReplyOption } from "./conversation.js";
-import { clientRoute, withRoutes } from "./routes.js";
+import { clientRoute, mailRoute, withRoutes } from "./routes.js";
 
 const x = [{ platform: "x", state: "connected" }];
 
@@ -71,12 +71,53 @@ describe("withRoutes", () => {
       ({ channel, target: "1", label: "l", platform, own: false, off }) as ReplyOption;
     const out = withRoutes(
       [o("dm", "x", null), o("dm", "x", "They opted out."), o("comment", "youtube", null)],
-      x,
+      { accounts: x, mailboxes: [] },
     );
     expect(out.map((r) => [r.off, r.fix])).toEqual([
       [null, undefined],
       ["They opted out.", undefined],
       ["No YouTube channel account connected. Replies go out on your own account.", "social"],
     ]);
+  });
+});
+
+describe("mailRoute", () => {
+  const boxes = [
+    { address: "front@kappa.example", state: "connected" },
+    { address: "old@kappa.example", state: "broken" },
+  ];
+
+  it("goes through a connected mailbox, any case", () => {
+    expect(mailRoute("Front@Kappa.example", boxes)).toBeNull();
+  });
+
+  it("says Needs setup and points at Account → Mail otherwise", () => {
+    expect(mailRoute("billing@kappa.example", boxes)).toEqual({
+      off: "Needs setup: billing@kappa.example isn't connected to send.",
+      fix: "mail",
+    });
+    expect(mailRoute("old@kappa.example", boxes)).toEqual({
+      off: "Needs setup: old@kappa.example needs connecting again.",
+      fix: "mail",
+    });
+  });
+
+  it("checks a mail option by its mailbox, not by social accounts", () => {
+    const mail = {
+      channel: "email",
+      target: "mail:3",
+      label: "Email lee@patient.example",
+      platform: null,
+      own: true,
+      off: null,
+      from: "billing@kappa.example",
+    } as ReplyOption;
+    const [out] = withRoutes([mail], { accounts: x, mailboxes: boxes });
+    expect(out?.fix).toBe("mail");
+    const [ok] = withRoutes([{ ...mail, from: "front@kappa.example" }], {
+      accounts: [],
+      mailboxes: boxes,
+    });
+    expect(ok?.off).toBeNull();
   });
 });

@@ -42,7 +42,7 @@ import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
 import type { ReplyOption } from "../inbox/conversation.js";
-import { clientAccounts, withRoutes } from "../inbox/routes.js";
+import { clientRoutes, withRoutes } from "../inbox/routes.js";
 import {
   PROMO_PIECES,
   PROMO_PLATFORMS,
@@ -136,7 +136,7 @@ export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps)
       const client = await installed(req);
       const out = await readAt(client, req, (r) => r.get(req));
       const c = (out.detail as { conversation?: { options?: ReplyOption[] } } | null)?.conversation;
-      if (c?.options) c.options = withRoutes(c.options, await clientAccounts(db, client.id));
+      if (c?.options) c.options = withRoutes(c.options, await clientRoutes(db, client.id));
       return out;
     },
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),

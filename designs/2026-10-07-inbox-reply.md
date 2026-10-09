@@ -61,6 +61,7 @@ A reply sent from the box sets waiting. Closing never touches the channel's own 
 | Comment | `content.posting` |
 | Email | `follow_up` |
 | Text | `follow_up` |
+| Mail to a client's mailbox | `mail.triage` |
 
 Wren's own threads (no client) skip the sends flag. The viewer's `effect` still decides Send.
 

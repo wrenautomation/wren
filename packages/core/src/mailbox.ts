@@ -32,6 +32,31 @@ export interface Mailbox {
   meta(id: string): Promise<MailMeta>;
 }
 
+/** The mail a reply answers, as the reader kept it (`watch.mail`). */
+export interface ReplyTo {
+  /** The provider's id for it: Gmail's message id or Graph's. */
+  messageId: string;
+  threadId: string;
+  /** Their address: the reply goes there. */
+  to: string;
+  subject: string;
+}
+
+/** What a reply came back as: the provider's ids when it names them (Graph's reply names none). */
+export interface Replied {
+  id: string | null;
+  threadId: string | null;
+}
+
+/**
+ * A client's connected mailbox that sends (designs/2026-10-07-mail-access.md): a reply from the
+ * Inbox, in the same thread, as the mailbox. `ours` is the Message-ID minted before the send.
+ */
+export interface MailSender {
+  readonly address: string;
+  reply(to: ReplyTo, body: string, ours: string): Promise<Replied>;
+}
+
 /** What the delegated Gmail client offers (channel-email's `GmailClient` fits). */
 export interface DelegatedGmail {
   listMessages(

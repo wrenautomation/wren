@@ -10,6 +10,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
 import { addGrant } from "@wren/core/grants";
+import type { MailSender } from "@wren/core/mailbox";
 import { whoIs } from "@wren/core/portal";
 import { startTestRestate } from "@wren/core/testing";
 import { setManaged } from "@wren/core/vendors";
@@ -22,6 +23,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { conversationOf, type ReplySender } from "../../src/inbox/index.js";
 import { CONTENT_RECORDS } from "../../src/records.js";
 import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
+import { type MailReply, makeMailReply } from "../../src/restate/mail-reply.js";
 import {
   type MarketingConsoleService,
   makeMarketingConsole,
@@ -44,6 +46,37 @@ const fake = (ctx: Context, client: string | null): ReplySender => {
     comment: push("comment"),
     invite: push("invite"),
     email: push("email"),
+    // Mail goes the real way: MailReply, over a fake mailbox.
+    mail: async (mailId, body) => {
+      if (!client) throw new Error("no client");
+      await ctx.serviceClient<MailReply>({ name: "MailReply" }).send({ client, mailId, body });
+    },
+  };
+};
+/** What the fake mailboxes sent: from, to, the thread and the words. */
+const mailed: { from: string; to: string; thread: string; body: string; ours: string }[] = [];
+/** A fake provider that answers "refused" for this mailbox, as a 403 would. */
+let refusing: string | null = null;
+/** The real check's shape: a mailbox not connected is "Needs setup". */
+const fakeSender = async (client: string, address: string): Promise<MailSender> => {
+  const [c] = (await pg.db.execute(sql`select mc.state from mail_connections mc
+    join client_accounts a on a.id = mc.account_id
+    where a.client = ${client} and mc.address = ${address}`)) as unknown as { state: string }[];
+  if (c?.state !== "connected")
+    throw Object.assign(new Error(`Needs setup: ${address} isn't connected to send.`), {
+      name: "MailRefusal",
+    });
+  return {
+    address,
+    reply: async (to, body, ours) => {
+      if (refusing === address)
+        throw Object.assign(new Error("403: Insufficient Permission"), {
+          name: "MailApiError",
+          status: 403,
+        });
+      mailed.push({ from: address, to: to.to, thread: to.threadId, body, ours });
+      return { id: `g-${mailed.length}`, threadId: to.threadId };
+    },
   };
 };
 const prompts: string[] = [];
@@ -105,6 +138,7 @@ beforeAll(async () => {
     services: [
       makeInboxDesk({ db: pg.db, clientDb: open, llm, senderName: "Will", channels: fake }),
       makeMarketingConsole({ db: pg.db, open: (c) => open(c.id), records }),
+      makeMailReply({ main: pg.db, clientDb: open, sender: fakeSender }),
     ],
     disableRetries: true,
   });
@@ -338,6 +372,132 @@ describe("a client's DMs and comments, on its own accounts", () => {
   it("Wren's own comment threads answer as before", async () => {
     await desk().reply({ ...comment(w), body: "Thanks!", viewer: { email: ADMIN } });
     expect(sent).toEqual([{ client: null, channel: "comment", id: w.commentId, body: "Thanks!" }]);
+  });
+});
+
+const FRONT = "front@kappa.example.test";
+const BILLING = "billing@kappa.example.test";
+/** Kappa's mailbox, connected to send (a synthetic row, no token). */
+async function connectMailbox(address: string, state: "connected" | "broken" = "connected") {
+  const [a] = (await pg.db.execute(sql`insert into client_accounts (client, site, ref, role,
+      created_by)
+    values ('kappa', 'mailbox', ${address}, 'read', 'test') returning id`)) as unknown as {
+    id: number;
+  }[];
+  await pg.db.execute(sql`insert into mail_connections (account_id, provider, address, scopes,
+      access, token_name, state, by)
+    values (${a?.id}, 'google', ${address}, 'openid email gmail.send gmail.readonly', 'read',
+      'ks_test', ${state}, 'test')`);
+}
+
+describe("a client's mail, answered through its own mailbox", () => {
+  let front: number;
+  let billing: number;
+  const mail = (id: number) => ({
+    thread: `mail:${id}`,
+    channel: "email" as const,
+    target: `mail:${id}`,
+  });
+  beforeAll(async () => {
+    const rows = (await kappa.execute(sql`insert into watch.mail (mailbox, message_id, thread_id,
+        from_name, from_address, subject, summary, verdict, at, reader)
+      values
+        (${FRONT}, 'gm-1', 'gt-1', 'Lee Park', 'lee@patient.example.test', 'Quote for a crown?',
+          'Asks what a crown costs.', 'show', '2026-10-01T09:00:00Z', 'mail'),
+        (${BILLING}, 'gm-2', 'gt-2', 'Sam Ortiz', 'sam@patient.example.test', 'Invoice',
+          'Charged twice.', 'show', '2026-10-01T10:00:00Z', 'mail')
+      returning id`)) as unknown as { id: number }[];
+    front = Number(rows[0]?.id);
+    billing = Number(rows[1]?.id);
+  });
+  beforeEach(async () => {
+    await kappa.execute(sql`delete from watch.mail_sent`);
+    await pg.db.execute(sql`delete from client_accounts where site = 'mailbox'`);
+    await connectMailbox(FRONT);
+    await updateClient(pg.db, "kappa", { sends: ["mail.triage"] });
+    mailed.length = 0;
+    refusing = null;
+  });
+
+  it("shows the thread and offers Email from the mailbox it came to", async () => {
+    const c = await conversationOf(kappa, `mail:${front}`);
+    expect(c?.who).toBe("Lee Park");
+    expect(c?.entries).toMatchObject([
+      { channel: "email", direction: "in", who: "Lee Park", subject: "Quote for a crown?" },
+    ]);
+    expect(await replyOf(`mail:${front}`)).toMatchObject({
+      channel: "email",
+      target: `mail:${front}`,
+      label: "Email lee@patient.example.test",
+      from: FRONT,
+      off: null,
+    });
+  });
+
+  it("sends through the mailbox, in its thread, and shows ours in the timeline", async () => {
+    const out = await svc().inboxReply({ ...as(BO), ...mail(front), body: "A crown is $1,200." });
+    expect(out).toEqual({ sent: true, asked: null, why: null });
+    expect(mailed).toMatchObject([
+      { from: FRONT, to: "lee@patient.example.test", thread: "gt-1", body: "A crown is $1,200." },
+    ]);
+    expect(mailed[0]?.ours).toMatch(/^<[0-9a-f]{32}@kappa\.example\.test>$/);
+    const c = await conversationOf(kappa, `mail:${front}`);
+    expect(c?.entries.at(-1)).toMatchObject({
+      channel: "email",
+      direction: "out",
+      who: FRONT,
+      body: "A crown is $1,200.",
+      state: "sent",
+    });
+    expect(await statusOf(kappa, `mail:${front}`)).toBe("waiting");
+  });
+
+  it("waits in To approve when the approver says so; a yes sends it", async () => {
+    await updateClient(pg.db, "kappa", { approver: "wren" });
+    const out = await svc().inboxReply({ ...as(BO), ...mail(front), body: "Saturday works." });
+    expect(out).toMatchObject({ sent: false, why: "Wren approves these sends." });
+    expect(mailed).toEqual([]);
+    expect((await askedReplyRecord.rows?.(kappa))?.[0]).toMatchObject({ state: "waiting" });
+    await svc().inboxApprove({ ...as(ADMIN), id: out.asked as number });
+    expect(mailed).toMatchObject([{ from: FRONT, body: "Saturday works." }]);
+  });
+
+  it("asks while the client's mail sends are off", async () => {
+    await updateClient(pg.db, "kappa", { sends: ["follow_up"] });
+    const out = await svc().inboxReply({ ...as(BO), ...mail(front), body: "Hi." });
+    expect(out).toMatchObject({ sent: false, why: "Sends are off for this client." });
+    expect(mailed).toEqual([]);
+  });
+
+  it("a mailbox that isn't connected: Needs setup, Account → Mail; nothing goes", async () => {
+    expect(await replyOf(`mail:${billing}`)).toMatchObject({
+      off: `Needs setup: ${BILLING} isn't connected to send.`,
+      fix: "mail",
+    });
+    await expect(
+      svc().inboxReply({ ...as(BO), ...mail(billing), body: "Refunded." }),
+    ).rejects.toThrow(/Needs setup/);
+    await expect(
+      svc().inboxAsk({ ...as(AMY), ...mail(billing), body: "Refunded." }),
+    ).rejects.toThrow(/Needs setup/);
+    expect(mailed).toEqual([]);
+    expect(await askedReplyRecord.rows?.(kappa)).toEqual([]);
+  });
+
+  it("a refused send is kept as failed and said", async () => {
+    refusing = FRONT;
+    await expect(
+      svc().inboxReply({ ...as(BO), ...mail(front), body: "A crown is $1,200." }),
+    ).rejects.toThrow(/Insufficient Permission/);
+    const c = await conversationOf(kappa, `mail:${front}`);
+    expect(c?.entries.at(-1)).toMatchObject({ direction: "out", state: "failed" });
+  });
+
+  it("another client's login can't answer kappa's mail", async () => {
+    await expect(
+      svc().inboxReply({ ...as(LEE, "kappa"), ...mail(front), body: "hi" }),
+    ).rejects.toThrow();
+    expect(mailed).toEqual([]);
   });
 });
 

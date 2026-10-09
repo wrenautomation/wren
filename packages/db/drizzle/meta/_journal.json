@@ -1387,6 +1387,13 @@
       "when": 1791550049411,
       "tag": "0197_client_social_platforms",
       "breakpoints": true
+    },
+    {
+      "idx": 198,
+      "version": "7",
+      "when": 1791555621117,
+      "tag": "0198_mail_sent",
+      "breakpoints": true
     }
   ]
 }

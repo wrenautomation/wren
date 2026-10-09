@@ -95,6 +95,52 @@ export const mail = watch.table(
   ],
 );
 
+export const MAIL_SENT_STATES = ["sending", "sent", "failed"] as const;
+export type MailSentState = (typeof MAIL_SENT_STATES)[number];
+
+/**
+ * A reply from the Inbox through the client's connected mailbox (designs/2026-10-07-mail-access.md):
+ * the words we sent, never theirs. Written `sending` before the provider call, then `sent` or
+ * `failed`. It shows in the thread's timeline as ours.
+ */
+export const mailSent = watch.table(
+  "mail_sent",
+  {
+    id: serial("id"),
+    /** The mail it answers. */
+    mailId: integer("mail_id").notNull(),
+    /** The mailbox it went out from. */
+    mailbox: varchar("mailbox", { length: 320 }).notNull(),
+    threadId: varchar("thread_id", { length: 255 }).notNull(),
+    toAddress: varchar("to_address", { length: 320 }).notNull(),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    /** Our Message-ID, minted before the send. */
+    ours: varchar("ours", { length: 320 }).notNull(),
+    /** The provider's id for it, when it names one (Gmail does, Graph's reply doesn't). */
+    providerId: varchar("provider_id", { length: 255 }),
+    state: varchar("state", { length: 8, enum: MAIL_SENT_STATES })
+      .$type<MailSentState>()
+      .default("sending")
+      .notNull(),
+    why: text("why"),
+    by: varchar("by", { length: 320 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_mail_sent" }),
+    foreignKey({
+      columns: [t.mailId],
+      foreignColumns: [mail.id],
+      name: "fk_mail_sent_mail_id_mail",
+    }),
+    index("ix_watch_mail_sent_thread").on(t.mailbox, t.threadId),
+    index("ix_watch_mail_sent_mail").on(t.mailId),
+    oneOf("ck_watch_mail_sent_state", t.state, MAIL_SENT_STATES),
+  ],
+);
+
 /**
  * `mail` as console records (`./records.ts`). `queue` is where it shows: needs you (shown and not
  * done, or unread by triage), held, dropped, or done. `held` counts held mail from the same sender.

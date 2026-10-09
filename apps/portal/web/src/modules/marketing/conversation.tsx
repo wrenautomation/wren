@@ -47,8 +47,10 @@ export type ReplyOption = {
   platform: string | null;
   own: boolean;
   off: string | null;
-  /** `social`: the client connects that platform's account on Account → Social. */
-  fix?: "social" | null;
+  /** `social`: connect the account on Account → Social. `mail`: the mailbox, on Account → Mail. */
+  fix?: "social" | "mail" | null;
+  /** Mail to the client's mailbox: the mailbox the reply goes out from. */
+  from?: string | null;
 };
 export type Conversation = {
   thread: string;
@@ -185,22 +187,27 @@ export function Timeline({ entries }: { entries: Entry[] }) {
   );
 }
 
-/** Where a client connects its own accounts. */
-const SOCIAL_PAGE = "/account/social";
+/** Where a client connects its own accounts and mailboxes. */
+const FIX: Record<"social" | "mail", { href: string; label: string }> = {
+  social: { href: "/account/social", label: "Connect it on Account → Social" },
+  mail: { href: "/account/mail", label: "Connect it on Account → Mail" },
+};
 
 /**
  * The thread's own channel can't answer: why, and the way to fix it when connecting an account
- * does. A client's DMs and comments go out on its own accounts, never Wren's.
+ * does. A client's DMs and comments go out on its own accounts, its mail replies through its own
+ * mailbox, never Wren's.
  */
 function Shut({ o }: { o: ReplyOption }) {
+  const fix = o.fix ? FIX[o.fix] : null;
   return (
     <div className="grid justify-items-start gap-2">
       <Callout tone={o.fix ? "warn" : undefined} className="mb-0">
         {o.off}
       </Callout>
-      {o.fix === "social" ? (
-        <ButtonLink href={SOCIAL_PAGE} size="dense" tone="secondary" arrow>
-          Connect it on Account → Social
+      {fix ? (
+        <ButtonLink href={fix.href} size="dense" tone="secondary" arrow>
+          {fix.label}
         </ButtonLink>
       ) : null}
     </div>
@@ -303,6 +310,7 @@ function ReplyBox({
             </option>
           ))}
         </select>
+        {option?.from ? <span className="break-all">from {option.from}</span> : null}
       </label>
       <Textarea
         ref={box}

@@ -2,10 +2,11 @@
  * Where a client's DM or comment reply can go (designs/2026-10-07-inbox-reply.md): only through
  * the client's own connected account for that platform, never Wren's. A platform with no API for
  * it says "Not available yet" and why; one with no connected account says so and points at
- * Account → Social.
+ * Account → Social. A reply to mail goes out through the client's mailbox it came to: one that
+ * isn't connected says "Needs setup" and points at Account → Mail.
  */
 import type { Queryable } from "@wren/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { socialConnections } from "../connect/schema.js";
 import type { InboxChannel } from "../schema.js";
 import type { ReplyOption } from "./conversation.js";
@@ -16,14 +17,21 @@ export interface AccountState {
   state: string;
 }
 
-/** Why a route is shut, and whether connecting an account fixes it. */
+/** A client's mailbox connection: its address and state (`mail_connections`). */
+export interface MailboxState {
+  address: string;
+  state: string;
+}
+
+/** Why a route is shut, and what fixes it: connecting a social account, or a mailbox. */
 export interface Shut {
   off: string;
-  fix: "social" | null;
+  fix: "social" | "mail" | null;
 }
 
 /** Where the fix lives in the portal. */
 export const SOCIAL_PAGE = "/account/social";
+export const MAIL_PAGE = "/account/mail";
 
 const NAME: Record<string, string> = {
   facebook: "Facebook Page",
@@ -94,16 +102,57 @@ export function clientRoute(
   };
 }
 
+/**
+ * Is a reply to mail through `from` shut? Null when the mailbox is connected. Every connection
+ * sends: the send scope is part of each.
+ */
+export function mailRoute(from: string, mailboxes: readonly MailboxState[]): Shut | null {
+  const at = from.toLowerCase();
+  const m = mailboxes.find((b) => b.address.toLowerCase() === at);
+  if (m?.state === "connected") return null;
+  return {
+    off: m
+      ? `Needs setup: ${at} needs connecting again.`
+      : `Needs setup: ${at} isn't connected to send.`,
+    fix: "mail",
+  };
+}
+
+/** What a client's routes read: its social accounts and its mailboxes. */
+export interface Routes {
+  accounts: readonly AccountState[];
+  mailboxes: readonly MailboxState[];
+}
+
+/** One option's route for a client: mail by its mailbox, a DM or comment by its account. */
+export const routeOf = (o: ReplyOption, r: Routes): Shut | null =>
+  o.from ? mailRoute(o.from, r.mailboxes) : clientRoute(o.channel, o.platform, r.accounts);
+
 /** Each option a client's thread offers, with its route checked. One already shut stays as is. */
-export function withRoutes(
-  options: readonly ReplyOption[],
-  accounts: readonly AccountState[],
-): ReplyOption[] {
+export function withRoutes(options: readonly ReplyOption[], r: Routes): ReplyOption[] {
   return options.map((o) => {
     if (o.off) return o;
-    const shut = clientRoute(o.channel, o.platform, accounts);
+    const shut = routeOf(o, r);
     return shut ? { ...o, ...shut } : o;
   });
+}
+
+/** A client's mailbox connections, live or broken (channel-email's `mail_connections`). */
+export async function clientMailboxes(main: Queryable, client: string): Promise<MailboxState[]> {
+  const rows = (await main.execute(
+    sql`select lower(mc.address) address, mc.state from mail_connections mc
+      join client_accounts a on a.id = mc.account_id where a.client = ${client}`,
+  )) as unknown as MailboxState[];
+  return rows.map((r) => ({ address: String(r.address), state: String(r.state) }));
+}
+
+/** Everything a client's routes read. */
+export async function clientRoutes(main: Queryable, client: string): Promise<Routes> {
+  const [accounts, mailboxes] = await Promise.all([
+    clientAccounts(main, client),
+    clientMailboxes(main, client),
+  ]);
+  return { accounts, mailboxes };
 }
 
 /** A client's connected accounts, live or broken. */

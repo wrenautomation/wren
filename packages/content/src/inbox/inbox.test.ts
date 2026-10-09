@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mayWork, replyGate, sendOn } from "./send.js";
+import { mayWork, partOf, replyGate, sendOn } from "./send.js";
 import { statusOf } from "./threads.js";
 
 const now = new Date("2026-10-07T12:00:00Z");
@@ -44,6 +44,20 @@ describe("replyGate", () => {
     expect(replyGate({ channel: "text", client: null, who: operator })).toMatchObject({
       mode: "ask",
     });
+  });
+
+  it("gates mail to a client's mailbox on mail.triage, not follow_up", () => {
+    const mail = { channel: "email" as const, from: "front@acme.example" };
+    expect(partOf(mail)).toBe("mail.triage");
+    expect(partOf({ channel: "email" })).toBe("follow_up");
+    expect(replyGate({ channel: "email", part: partOf(mail), client, who: admin })).toEqual({
+      mode: "ask",
+      why: "Sends are off for this client.",
+    });
+    const on = { ...client, sends: ["mail.triage"] };
+    expect(replyGate({ channel: "email", part: partOf(mail), client: on, who: admin }).mode).toBe(
+      "send",
+    );
   });
 
   it("asks when the client's sends are off for that channel", () => {
@@ -126,12 +140,14 @@ describe("sendOn", () => {
       comment: rec("comment"),
       invite: rec("invite"),
       email: rec("email"),
+      mail: rec("mail"),
     };
     const o = { label: "", platform: null, own: true, off: null };
     await sendOn(sender, { ...o, channel: "email", target: "invite:4" }, "hi");
     await sendOn(sender, { ...o, channel: "email", target: "reply:9" }, "hi");
+    await sendOn(sender, { ...o, channel: "email", target: "mail:7" }, "hi");
     await sendOn(sender, { ...o, channel: "text", target: "3" }, "hi");
-    expect(calls).toEqual(["invite:4", "email:9", "text:3"]);
+    expect(calls).toEqual(["invite:4", "email:9", "mail:7", "text:3"]);
     await expect(sendOn(sender, { ...o, channel: "dm", target: "x" }, "hi")).rejects.toThrow(
       /bad target/,
     );
