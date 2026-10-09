@@ -7,6 +7,8 @@ import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
+import { DOC_ACTIONS } from "../documents/documents.js";
+import { PAY_ACTIONS } from "../payments/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
@@ -769,6 +771,11 @@ const APPROVAL_ACTIONS: Action[] = [
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a, WAITS)),
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
+  // Payments: a pay link or a document someone without the yes asked to send.
+  ...PAY_ACTIONS.map((a) => only("pay", a, WAITS)),
+  ...DOC_ACTIONS.filter((a) => a.id === "documents.approve" || a.id === "documents.decline").map(
+    (a) => only("doc", a, WAITS),
+  ),
   ...fieldActions({ type: ["draft"], state: ["new", "waiting", "read"] }),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {

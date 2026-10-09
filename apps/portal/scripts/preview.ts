@@ -74,6 +74,8 @@ import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/healt
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { webhooksApi } from "@wren/delivery/webhooks";
+import { documentsConsoleApi } from "@wren/documents/console";
+import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/documents/console-routes";
 import { learnConsoleApi } from "@wren/learn/console";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
@@ -393,6 +395,31 @@ const SERVICES: Record<
         approve: (r: never) => api.approve(r, now()),
         decline: (r: never) => api.decline(r, now()),
         connect: (r: never) => api.connect(r, now()),
+      };
+    })(),
+  },
+  // Documents: drafts, templates and To approve. Nothing is sent: a send stops at "sending".
+  documents: {
+    routes: Object.keys(DOCUMENTS_CONSOLE_ROUTES),
+    guard: { needs: DOCUMENTS_CONSOLE_ROUTES, apps: DOCUMENTS_CONSOLE_APPS, unnamed: "first" },
+    api: (() => {
+      const api = documentsConsoleApi({
+        main,
+        open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      });
+      const now = () => new Date();
+      return {
+        ...api,
+        create: (r: never) => api.create(r, now()),
+        update: (r: never) => api.update(r, now()),
+        send: (r: never) => api.send(r, now()),
+        approve: (r: never) => api.approve(r, now()),
+        decline: (r: never) => api.decline(r, now()),
+        void: (r: never) => api.void(r, now()),
+        remind: (r: never) => api.remind(r, now()),
+        duplicate: (r: never) => api.duplicate(r, now()),
+        templateSave: (r: never) => api.templateSave(r, now()),
+        templateArchive: (r: never) => api.templateArchive(r, now()),
       };
     })(),
   },

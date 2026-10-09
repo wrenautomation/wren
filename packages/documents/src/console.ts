@@ -160,7 +160,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
     return mayApprove(who, client.id, client.approver);
   };
   const may = async (req: PortalRequest, client: Client) => {
-    if (!(await canAt(main, req, "act", { client: client.id, app: "payments" })))
+    if (!(await canAt(main, req, "act", { client: client.id, app: "documents" })))
       throw new PortalRefusal("your role can't do that here", 403);
   };
   /** The thread a phone or an id names, in the client's database, with its name and email. */

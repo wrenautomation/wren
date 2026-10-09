@@ -3,7 +3,7 @@ import type { Need, RouteApps } from "@wren/core/access";
 /**
  * DocumentsConsole's handlers (`console.ts`) and what each needs: a client's documents and
  * templates, read by whoever may see that client; writing, sending and approving are acts in
- * Payments (approving also checks the client's approver). The edge Worker opens only these and
+ * Documents (approving also checks the client's approver). The edge Worker opens only these and
  * refuses the writes on the demo. Type imports only, so the Worker bundles it alone.
  */
 export const DOCUMENTS_CONSOLE_ROUTES = {
@@ -25,9 +25,9 @@ export const DOCUMENTS_CONSOLE_ROUTES = {
   templateSave: "act",
   templateArchive: "act",
 } as const satisfies Record<string, Need>;
-/** Where each route works (`RouteAt`): records check each type; the rest are Payments. */
+/** Where each route works (`RouteAt`): records check each type; the rest are Documents. */
 export const DOCUMENTS_CONSOLE_APPS = {
-  "*": "payments",
+  "*": "documents",
   recordsTypes: null,
   recordsList: null,
   recordsGet: null,

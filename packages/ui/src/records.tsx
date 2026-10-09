@@ -139,7 +139,10 @@ export interface RecordExtras {
   facts?: [string, ReactNode][];
   /** Titled blocks after the fields, such as how the research went. */
   sections?: [string, ReactNode][];
-  /** Field groups the extras draw themselves (a post's numbers): their lines are left out. */
+  /**
+   * Field groups the extras draw themselves (a post's numbers), or long-text fields by key (a
+   * document's words, in its preview): their lines are left out.
+   */
   drawn?: readonly string[];
   sources?: RecordSource[];
   /** Read the record again in this many ms: something still works on it (Claude on a draft). */
@@ -1727,7 +1730,8 @@ export function RecordBody({
       (f.kind === "cited" || f.kind === "prose") &&
       row[f.key] &&
       f.key !== box?.field &&
-      !own.has(f.key),
+      !own.has(f.key) &&
+      !more.drawn?.includes(f.key),
   );
   /**
    * An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. A fact named

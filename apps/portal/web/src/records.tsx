@@ -443,6 +443,20 @@ const head = (id: string, n: number) => id.split("/").slice(0, n);
  * the thread's id, on the client's own database.
  */
 const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
+  // Documents (Payments): one document's handlers take `{ id }`; the editor's fields ride along.
+  "documents/send": (id) => ["documents/send", { id }],
+  "documents/remind": (id) => ["documents/remind", { id }],
+  "documents/duplicate": (id) => ["documents/duplicate", { id }],
+  "documents/update": (id, { ids: _, ...fields }) => ["documents/update", { ...fields, id }],
+  "documents/templateSave": (id, { ids: _, ...fields }) => [
+    "documents/templateSave",
+    { ...fields, id },
+  ],
+  // Texts' Send estimate: a draft estimate to that thread, finished in Payments.
+  "documents/fromThread": (id, { title }) => [
+    "documents/create",
+    { contact: Number(id), kind: "estimate", title },
+  ],
   "marketing/inboxReply": (id, { channel, target, body }) => [
     "marketing/inboxReply",
     { thread: id, channel, target, body },

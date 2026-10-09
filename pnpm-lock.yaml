@@ -966,6 +966,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/documents':
+        specifier: workspace:*
+        version: link:../documents
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm

@@ -9,7 +9,7 @@ entity: packages/documents/src/schema.ts:107
 
 # document
 
-Documents and e-sign: a contract, proposal or estimate from the client's template, sent by text or email, signed on a page under the client's host by a typed name, an email and a consent box. Tables `docs`, `doc_templates`, `doc_events`, `doc_counters`; services `Documents`, `DocumentsConsole`; pages in the Payments app.
+Documents and e-sign: a contract, proposal or estimate from the client's template, sent by text or email, signed on a page under the client's host by a typed name, an email and a consent box. Tables `docs`, `doc_templates`, `doc_events`, `doc_counters`; services `Documents`, `DocumentsConsole`; its own Documents app (Documents, Templates); Send estimate on a texting thread.
 
 ## Why this shape
 
@@ -44,7 +44,7 @@ Citations: `packages/documents/src/schema.ts:107`, `packages/documents/src/servi
 
 | Surface | Role |
 |---|---|
-| Payments app → Documents, Templates | drafts, Send, approve/decline, remind, void, duplicate, PDF |
+| Documents app → Documents, Templates | drafts, Send, approve/decline, remind, void, duplicate, PDF |
 | Texts thread | Send estimate |
 | Marketing → To approve | documents waiting, type Document |
 | Signing page `/o/d/<token>` | read, sign, decline, PDF, pay deposit |

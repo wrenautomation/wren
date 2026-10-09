@@ -26,6 +26,8 @@ import { refText, waitingAsks } from "@wren/core/templates";
 import { approvalId, templateAt } from "@wren/core/templates/console";
 import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
 import type { Queryable } from "@wren/db";
+import { KIND_NAME } from "@wren/documents/lines";
+import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
@@ -602,6 +604,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const outs = await waitingRetires(db);
       const rs = await waitingReplies(db, ACTIVITY_ROWS);
       const pays = await waitingPayLinks(db);
+      const dcs = await waitingDocs(db);
       const sws = await waitingSwaps(db);
       return [
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
@@ -815,6 +818,22 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: p.at,
           url: `/payments/links/${p.id}?client=${encodeURIComponent(p.client)}`,
         })),
+        // A document someone without the yes asked to send (Payments): a yes sends it to be signed.
+        ...dcs.map((d) => ({
+          id: docApprovalId(d.id),
+          type: "doc",
+          who: `${d.name ?? d.email ?? "A text thread"}: ${money(d.total, d.currency)}`,
+          platform: d.channel,
+          kind: "doc",
+          state: "waiting",
+          body: `${d.by} asked to send ${KIND_NAME[d.kind as keyof typeof KIND_NAME] ?? "a document"} ${d.number}, ${d.title}${d.clientName ? ` (${d.clientName})` : ""}.`,
+          post_title: d.title,
+          draft: null,
+          account: null,
+          at: d.at,
+          due: d.at,
+          url: `/documents/all/${d.id}?client=${encodeURIComponent(d.client)}`,
+        })),
       ];
     },
     key: "id",
@@ -836,6 +855,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           retire: neutral("Page"),
           reply: neutral("Reply"),
           pay: neutral("Payment"),
+          doc: neutral("Document"),
           swap: neutral("Swap"),
         }),
         "Type",
@@ -858,6 +878,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           retire: neutral("Page to take down"),
           reply: neutral("Reply to send"),
           pay: neutral("Pay link to send"),
+          doc: neutral("Document to send"),
           swap: neutral("Swap on a live post"),
         }),
         "Kind",
@@ -897,7 +918,13 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         at: "at",
       },
       { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
-      { id: "payments", label: "Payments", where: { type: "pay" }, sort: "-at", at: "at" },
+      {
+        id: "payments",
+        label: "Payments",
+        where: { type: ["pay", "doc"] },
+        sort: "-at",
+        at: "at",
+      },
       { id: "swaps", label: "Swaps", where: { type: "swap" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
@@ -935,6 +962,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "inbox.replyDrop",
       "payments.approve",
       "payments.decline",
+      "documents.approve",
+      "documents.decline",
       "marketing.swapApprove",
       "marketing.swapSkip",
     ],
@@ -955,6 +984,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "page" ||
         type === "retire" ||
         type === "pay" ||
+        type === "doc" ||
         type === "swap"
       )
         return null;

@@ -95,7 +95,7 @@ export const threadRecord = defineRecord({
     { id: "unread", label: "New", where: { unread: { gte: 1 } }, sort: "-lastAt", at: "lastAt" },
     { id: "all", label: "All", sort: "-lastAt", at: "lastAt" },
   ],
-  actions: ["sms.reply", "payments.fromThread"],
+  actions: ["sms.reply", "payments.fromThread", "documents.fromThread"],
   /** The thread's texts, oldest first; the monthly count is the desk's, not shown here. */
   load: async (db, id) => {
     const t = await getThread(db, Number(id), { now: new Date(), cap: 0 });

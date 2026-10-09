@@ -8,6 +8,7 @@ import { segments } from "@wren/channel-sms/templates";
 import { type Action, money, type RecordExtras } from "@wren/ui";
 import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";
+import { THREAD_ESTIMATE } from "../documents/documents.js";
 import { THREAD_PAY } from "../payments/index.js";
 import { AskReview, ReviewsGained } from "./ask.js";
 
@@ -31,6 +32,7 @@ const THREAD_ACTIONS: Action[] = [
     done: () => "Queued. It leaves on the next tick.",
   },
   THREAD_PAY,
+  THREAD_ESTIMATE,
 ];
 
 /** Closes "Call now": the rep called. How it went is optional. */

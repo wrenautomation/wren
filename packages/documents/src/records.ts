@@ -92,7 +92,7 @@ const rowsOf = async (db: Queryable, client: string, id?: string) =>
 export function documentRecordFor(client: string): RecordType {
   return defineRecord({
     id: DOC_RECORD,
-    app: "payments",
+    app: "documents",
     channel: null,
     name: { one: "document", many: "documents" },
     rows: (db) => rowsOf(db, client),
@@ -213,7 +213,7 @@ export function documentRecordFor(client: string): RecordType {
 export function templateRecordFor(client: string): RecordType {
   return defineRecord({
     id: TEMPLATE_RECORD,
-    app: "payments",
+    app: "documents",
     channel: null,
     name: { one: "template", many: "templates" },
     rows: async (db) =>
