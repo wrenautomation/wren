@@ -45,7 +45,7 @@ export function registerAppReviews(program: Command, rootDir: string): void {
   };
   const mark = (checks: readonly Check[]) => {
     const todo = checks.filter((c) => !c.ok).length;
-    return todo ? `${todo} checks to do` : "checks pass";
+    return todo ? `${todo} ${todo === 1 ? "check" : "checks"} to do` : "checks pass";
   };
 
   const reviews = program
@@ -56,6 +56,7 @@ export function registerAppReviews(program: Command, rootDir: string): void {
     .description("Each review: filed or not, what it waits on, its checks")
     .action(async () => {
       const d = await deps();
+      const wide = Math.max(...REVIEWS.map((r) => r.name.length));
       for (const r of REVIEWS) {
         const checks = await checkReview(r, d);
         const open = r.open.length ? `, ${r.open.length} open` : "";
@@ -63,7 +64,7 @@ export function registerAppReviews(program: Command, rootDir: string): void {
           ? `filed ${r.filed}`
           : `${checks.length ? mark(checks) : "no checks"}${open}`;
         const after = r.after.length ? `  after ${r.after.join(", ")}` : "";
-        console.log(`${r.id.padEnd(20)} ${r.name.padEnd(46)} ${state}${after}`);
+        console.log(`${r.id.padEnd(20)} ${r.name.padEnd(wide)} ${state}${after}`);
       }
     });
   reviews
