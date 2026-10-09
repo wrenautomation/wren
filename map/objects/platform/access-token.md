@@ -9,7 +9,7 @@ entity: packages/core/src/clients/schema.ts:351
 
 # access-token
 
-A person's token for AI tools over MCP (designs/2026-10-09-mcp.md). Table `access_tokens` in main; Restate service `Tokens`; the portal Worker's `POST /api/mcp`. Account > AI tools for a client login, Handlers > AI tools for the team.
+A person's token for AI tools: the `wren` CLI and its skill (designs/2026-10-09-ai-tools.md). Table `access_tokens` in main; Restate service `Tokens`; the portal Worker's `/api/agent`. Account > AI tools for a client login, Handlers > AI tools for the team.
 
 ## Why this shape
 
@@ -21,9 +21,10 @@ A token acts as its person and nothing more: the Worker reads who it is, then fo
 - Token: `wren_` + 32 random bytes base64url (43 chars). `packages/core/src/tokens.ts`: `makeToken`, `listTokens`, `revokeToken`, `checkToken` (operator read fresh from `operators`).
 - Console routes `tokens`, `tokenMake`, `tokenRevoke` (need `read`; the viewer's own email only). Made with a request client (a client's host, or a client's Account) it's pinned there; a pin needs membership or an operator.
 - `Tokens/check {token}`: public on ingress (zod input), so only the Worker, holding the ingress token, reaches it.
-- `/api/mcp` (`apps/portal/src/mcp.ts`): stateless Streamable HTTP, one JSON-RPC message per POST, no SSE. Tools `list_record_types`, `list_records` (50 max), `get_record`, `list_handlers` and `describe_handler` (team only), `call_handler` (`console/call`; an effect needs `confirm`). A guard's refusal is a tool result with `isError`. A bad token is 401 with `WWW-Authenticate: Bearer`. A pinned token goes as `{client, asClient: true}`; on a client's host, a token pinned elsewhere is refused. None on the demo.
+- `/api/agent` (`apps/portal/src/agent.ts`): plain HTTP. `GET /api/agent` lists the tools; `POST /api/agent/<tool>` with a JSON object runs one: `types`, `list` (50 max), `get`, `handlers` and `describe` (team only), `call` (`console/call`; an effect needs `confirm`). A guard's refusal keeps its status as `{error}`. A bad token is 401 with `WWW-Authenticate: Bearer`. A pinned token goes as `{client, asClient: true}`; on a client's host, a token pinned elsewhere is refused. None on the demo.
+- `/agent/wren.mjs` and `/agent/SKILL.md` (`apps/portal/web/public/agent/`): the CLI (one file, no dependencies) and the skill an agent reads. `wren login` keeps the token in `~/.config/wren/agent.json` (0600).
 
-Citations: `packages/core/src/clients/schema.ts:351`, `packages/core/src/tokens.ts:1`, `apps/portal/src/mcp.ts:1`, `apps/portal/web/src/modules/account/AiTools.tsx:1`
+Citations: `packages/core/src/clients/schema.ts:351`, `packages/core/src/tokens.ts:1`, `apps/portal/src/agent.ts:1`, `apps/portal/web/public/agent/wren.mjs:1`, `apps/portal/web/src/modules/account/AiTools.tsx:1`
 
 ## Connected to
 
@@ -34,13 +35,13 @@ Citations: `packages/core/src/clients/schema.ts:351`, `packages/core/src/tokens.
 
 ## If you change this
 
-- **Hits:** every AI tool holding a token: the `wren_` format, the tool names and their inputs are a contract. A route a tool forwards to changing shape changes what the model reads.
+- **Hits:** every AI tool holding a token: the `wren_` format, the tool names, their inputs and the CLI's commands are a contract; an old `wren.mjs` keeps calling them. A route a tool forwards to changing shape changes what the model reads.
 - **Does not hit:** portal sign-in; the console's own guards (the tokens only pass through them).
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| Account > AI tools, Handlers > AI tools (`AiTools.tsx`) | list, make (shown once, lasts 30/90/365 days or until removed), remove, setup snippets for Claude Code and other clients |
-| portal Worker `/api/mcp` | MCP for AI tools |
+| Account > AI tools, Handlers > AI tools (`AiTools.tsx`) | list, make (shown once, lasts 30/90/365 days or until removed), remove, the two lines that install the skill and sign the CLI in |
+| portal Worker `/api/agent`, `/agent/` | the tools over HTTP; the CLI and skill files |
 | worker (`apps/worker/src/services.ts`) | serves `Tokens` |

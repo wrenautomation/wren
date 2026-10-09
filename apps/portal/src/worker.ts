@@ -10,7 +10,8 @@
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
  *   for an operator, or for a client's login on its own items.
- * - `/api/mcp`: Wren for AI tools over MCP, by a `wren_` access token (./mcp.ts).
+ * - `/api/agent`: Wren for AI tools (the CLI and skill under `/agent/`), by a `wren_` access
+ *   token (./agent.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -42,7 +43,7 @@ import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
 import { liveRoute, NoteRoom } from "./live.js";
 import { mailOAuthRoute } from "./mail-oauth.js";
-import { MCP_PATH, mcpRoute } from "./mcp.js";
+import { AGENT_PATH, agentRoute } from "./agent.js";
 import {
   grantFor,
   MEDIA_GRANT_PATH,
@@ -289,7 +290,8 @@ export default {
       const key = site.kind === "demo" ? null : await keyOf(env);
       return key ? mediaProxy(req, key) : new Response(null, { status: 404 });
     }
-    if (pathname === MCP_PATH) return mcpRoute(req, env, site);
+    if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
+      return agentRoute(req, env, site);
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);

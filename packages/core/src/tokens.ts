@@ -1,5 +1,5 @@
 /**
- * Access tokens for AI tools over MCP (designs/2026-10-09-mcp.md). A token is `wren_` and 32
+ * Access tokens for AI tools, the `wren` CLI and its skill (designs/2026-10-09-ai-tools.md). A token is `wren_` and 32
  * random bytes; main keeps its SHA-256, never the token. It acts as its email: the Worker reads
  * it here, then every call passes the portal's guards as that viewer, so it never holds more than
  * its person does now. A pin keeps it to one client the person belongs to.
@@ -147,7 +147,7 @@ export async function checkToken(main: Queryable, token: string): Promise<TokenV
 }
 
 /**
- * `Tokens/check`: who a token acts as, for the portal Worker's `/api/mcp`. Not a portal route, so a
+ * `Tokens/check`: who a token acts as, for the portal Worker's `/api/agent`. Not a portal route, so a
  * browser can't reach it; the Worker holds the ingress token.
  */
 export function makeTokens(main: Db) {

@@ -344,7 +344,7 @@ export const operators = pgTable(
 );
 
 /**
- * A person's access tokens for AI tools over MCP (designs/2026-10-09-mcp.md). A token acts as its
+ * A person's access tokens for AI tools (designs/2026-10-09-ai-tools.md). A token acts as its
  * email and nothing more: every call passes the portal's own guards as that viewer. Only the
  * SHA-256 is kept; `prefix` tells two apart. `client` pins it to one workspace.
  */

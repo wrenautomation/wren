@@ -1,6 +1,6 @@
 /**
- * AI tools (designs/2026-10-09-mcp.md): a person's access tokens for Claude, Cursor and other MCP
- * clients. A token shows once and acts as its person, nothing more. Made in a client's Account,
+ * AI tools (designs/2026-10-09-ai-tools.md): a person's access tokens for the `wren` CLI and its
+ * skill, which Claude Code and other agents run. A token shows once and acts as its person, nothing more. Made in a client's Account,
  * it is pinned to that client; made on the team's page, it reaches what its operator does.
  */
 import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
@@ -70,7 +70,7 @@ export function AiTools(props: PageProps) {
       form.reset();
     }
   };
-  const url = `${location.origin}/api/mcp`;
+  const host = location.origin;
   const tokens = load.data;
 
   if (props.demo)
@@ -84,7 +84,7 @@ export function AiTools(props: PageProps) {
     <>
       <PageHeader
         title="AI tools"
-        lede="Connect Claude, Cursor or any MCP client. A token sees and does only what you can, and stops working the moment you remove it."
+        lede="Let Claude Code or another agent read your Wren. A token can see and do only what you can. It stops working as soon as you remove it."
       />
       {made ? <Secret key={made} secret={made} what="token" onClose={() => setMade(null)} /> : null}
       <Section title="Your tokens">
@@ -165,27 +165,23 @@ export function AiTools(props: PageProps) {
         </form>
       </Section>
 
-      <Section title="Connect" note="Paste your token in place of the one shown.">
+      <Section title="Connect" note="Run these in a terminal. Login asks for your token.">
         <div className="grid gap-3 text-[13.5px]">
-          <p className="m-0">Claude Code:</p>
+          <p className="m-0">1. Add the Wren skill and its CLI:</p>
           <pre className={PRE}>
-            {`claude mcp add --transport http wren ${url} --header "Authorization: Bearer wren_…"`}
+            {`mkdir -p ~/.claude/skills/wren && cd ~/.claude/skills/wren \\
+  && curl -fsSLO ${host}/agent/SKILL.md && curl -fsSLO ${host}/agent/wren.mjs`}
           </pre>
-          <p className="m-0">Cursor and other clients, in their MCP settings:</p>
-          <pre className={PRE}>
-            {JSON.stringify(
-              {
-                mcpServers: {
-                  wren: { url, headers: { Authorization: "Bearer wren_…" } },
-                },
-              },
-              null,
-              2,
-            )}
-          </pre>
+          <p className="m-0">2. Sign it in:</p>
+          <pre className={PRE}>{`node ~/.claude/skills/wren/wren.mjs login ${host}`}</pre>
+          <p className="m-0">
+            3. Ask Claude Code about your Wren, for example "which leads replied this week". Other
+            agents that run commands can use the same folder. Point them at SKILL.md.
+          </p>
           <p className={cx("m-0", QUIET)}>
-            It reads your records. For Wren's team it can also run handlers; one that sends, spends
-            or posts runs only when the tool confirms it by name.
+            It reads your records. Wren's team can also run handlers with it. A handler that sends,
+            spends or posts runs only when the agent confirms it by name, and the skill tells the
+            agent to ask you first.
           </p>
         </div>
       </Section>

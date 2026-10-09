@@ -9,7 +9,7 @@ export const handlers: Module = {
   id: "handlers",
   name: "Handlers",
   icon: "play",
-  blurb: "Run any handler from a form built from its input, or from your AI tools over MCP.",
+  blurb: "Run any handler from a form built from its input, or from your AI tools with the wren CLI.",
   requires: { audience: "team" },
   pages: [
     {

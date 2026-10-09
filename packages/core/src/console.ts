@@ -2677,7 +2677,7 @@ export function consoleApi({
         value: req.value,
       });
     },
-    /** The signed-in person's live AI tool tokens (designs/2026-10-09-mcp.md). Never the demo's. */
+    /** The signed-in person's live AI tool tokens (designs/2026-10-09-ai-tools.md). Never the demo's. */
     tokens: async (req: PortalRequest) => {
       if (isDemo(req.viewer)) return [];
       return listTokens(main, (req.viewer as SignedViewer).email);

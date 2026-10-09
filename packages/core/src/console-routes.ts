@@ -66,7 +66,7 @@ export const CONSOLE_ROUTES = {
   // A client login's own portal surveys: what it's due, and its answer.
   surveysDue: "read",
   surveyAnswer: "read",
-  // A login's own access tokens for AI tools (designs/2026-10-09-mcp.md): its email only.
+  // A login's own access tokens for AI tools (designs/2026-10-09-ai-tools.md): its email only.
   tokens: "read",
   tokenMake: "read",
   tokenRevoke: "read",

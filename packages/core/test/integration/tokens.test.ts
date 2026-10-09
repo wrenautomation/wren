@@ -1,5 +1,5 @@
 /**
- * Access tokens for MCP on a real Postgres (`../../src/tokens.ts`): made once and kept as a hash,
+ * Access tokens for AI tools on a real Postgres (`../../src/tokens.ts`): made once and kept as a hash,
  * read back as their person, pinned only where that person belongs, dead once removed or past
  * their end. Synthetic throughout.
  */
