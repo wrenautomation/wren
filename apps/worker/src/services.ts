@@ -193,6 +193,7 @@ import {
   DESK_KEY,
   DESK_UNIT,
   makeAutoReply,
+  makeChat,
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
@@ -1221,6 +1222,8 @@ export async function buildServices(
       facts: () => wrenFacts(db),
     }),
   );
+  // The site chat bubble's calls, through the portal Worker (designs/2026-10-09-site-chat.md).
+  services.push(makeChat({ db, clientDb }));
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(
     makeTokenRenewal({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),

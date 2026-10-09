@@ -11,6 +11,8 @@
  *   Every form submit passes Turnstile first when TURNSTILE_SECRET is set; the `wv` cookie rides
  *   along where the browser sends it.
  *
+ * - `/o/__chat.js`, `/o/__chat`: the site chat bubble and its calls, for the host's owner
+ *   (designs/2026-10-09-site-chat.md).
  * - `/o/<slug>` with a split running: each new visitor gets an arm by weight and a `wab` cookie
  *   (the arm only, scoped to that page's path) that keeps them on it; each arm is cached under
  *   its own key. Bots get A, uncounted in the split.
@@ -20,6 +22,7 @@
  * Bodies come as text/plain JSON (no preflight) or, for a form without JS, urlencoded.
  */
 import { readBody } from "@wren/core/http";
+import { CHAT_PATH, CHAT_SCRIPT_PATH, chatJs } from "@wren/sites/chat-widget";
 import { hopOf, isBot } from "@wren/sites/hops";
 import { FORM_PATH, KIT_PATH, kitJs, TRACK_PATH } from "@wren/sites/kit";
 import { FORM_CSP, goneHtml, PAGE_CSP } from "@wren/sites/render";
@@ -127,6 +130,53 @@ const NOT_HUMAN = THANKS.replace("<title>Thanks</title>", "<title>Not sent</titl
   "<h1>That didn't send.</h1><p>This form needs JavaScript on to check you're a person. Turn it on and try again.</p>",
 );
 
+/**
+ * Site chat (designs/2026-10-09-site-chat.md): the bubble's script, and its `say` and `read`, for
+ * the host's owner. Bots get nothing. Open CORS: the bubble sits on the owner's other sites too.
+ */
+async function chatRoute(
+  req: Request,
+  env: Env,
+  owner: { client: string | null } | null,
+): Promise<Response | null> {
+  if (!owner) return null;
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: OPEN });
+  const path = new URL(req.url).pathname;
+  if (path === CHAT_SCRIPT_PATH)
+    return new Response(chatJs(), {
+      headers: {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+        "x-content-type-options": "nosniff",
+        ...OPEN,
+      },
+    });
+  if (req.method !== "POST") return answer({ error: "POST only" }, 405);
+  if (isBot(req.headers.get("user-agent"))) return answer({ error: "Chat is for people." }, 403);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return answer({ error: "too large" }, 413);
+  const body = formOf(raw, "application/json");
+  if (!body || (body.op !== "say" && body.op !== "read"))
+    return answer({ error: "say or read" }, 400);
+  try {
+    const res = await ingress(env, body.op === "say" ? "Chat/say" : "Chat/read", {
+      client: owner.client,
+      key: body.key,
+      body: body.body,
+      name: body.name,
+      contact: body.contact,
+      page: body.page,
+      after: body.after,
+    });
+    const out = (await res.json().catch(() => ({}))) as { status?: number; error?: string };
+    if (!res.ok) return answer({ error: "That didn't send. Try again." }, 502);
+    const { status = 200, ...rest } = out;
+    return answer(rest, status);
+  } catch {
+    return answer({ error: "That didn't send. Try again." }, 502);
+  }
+}
+
 /** The answer for a Sites path, or null when the path isn't one. */
 export async function sitesRoute(
   req: Request,
@@ -142,6 +192,8 @@ export async function sitesRoute(
   // Where we serve nothing: the tools on any of our hosts; pages where an owner is known.
   if (!owner && !tools && !(site.kind === "app" && PREVIEW.test(path))) return null;
   if (req.method === "OPTIONS" && tools) return new Response(null, { status: 204, headers: OPEN });
+
+  if (path === CHAT_SCRIPT_PATH || path === CHAT_PATH) return chatRoute(req, env, owner);
 
   if (path === KIT_PATH)
     return new Response(kitJs(env.TURNSTILE_SITE_KEY), {

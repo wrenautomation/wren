@@ -142,6 +142,7 @@ describe("sendOn", () => {
       email: rec("email"),
       thread: rec("thread"),
       mail: rec("mail"),
+      chat: rec("chat"),
     };
     const o = { label: "", platform: null, own: true, off: null };
     await sendOn(sender, { ...o, channel: "email", target: "invite:4" }, "hi");
@@ -149,7 +150,8 @@ describe("sendOn", () => {
     await sendOn(sender, { ...o, channel: "email", target: "mail:7" }, "hi");
     await sendOn(sender, { ...o, channel: "email", target: "thread:5" }, "hi");
     await sendOn(sender, { ...o, channel: "text", target: "3" }, "hi");
-    expect(calls).toEqual(["invite:4", "email:9", "mail:7", "thread:5", "text:3"]);
+    await sendOn(sender, { ...o, channel: "chat", target: "2" }, "hi");
+    expect(calls).toEqual(["invite:4", "email:9", "mail:7", "thread:5", "text:3", "chat:2"]);
     await expect(sendOn(sender, { ...o, channel: "dm", target: "x" }, "hi")).rejects.toThrow(
       /bad target/,
     );

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./chat-widget": "./src/chat-widget.ts",
     "./components": "./src/components.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",

@@ -24,6 +24,7 @@ export const SENDS_PART: Record<InboxChannel, string> = {
   comment: "content.posting",
   email: "follow_up",
   text: "follow_up",
+  chat: "sites.chat",
 };
 
 /**
@@ -149,6 +150,8 @@ export interface ReplySender {
   thread(enrollmentId: number, body: string): Promise<void>;
   /** Mail to a client's mailbox (`watch.mail`): answer in its thread, from that mailbox. */
   mail(mailId: number, body: string): Promise<void>;
+  /** A site chat: our message in the bubble. */
+  chat(threadId: number, body: string): Promise<void>;
 }
 
 /** Send `body` on `option`'s path. */
@@ -166,6 +169,8 @@ export async function sendOn(sender: ReplySender, option: ReplyOption, body: str
       return sender.text(n(t), body);
     case "comment":
       return sender.comment(n(t), body);
+    case "chat":
+      return sender.chat(n(t), body);
     case "email":
       if (t.startsWith("invite:")) return sender.invite(n(t.slice(7)), body);
       if (t.startsWith("mail:")) return sender.mail(n(t.slice(5)), body);

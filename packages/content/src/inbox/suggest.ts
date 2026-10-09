@@ -28,6 +28,7 @@ const HOW: Record<Exclude<InboxChannel, "dm">, string> = {
   email: "an email reply: plain text, no subject, under 120 words, no sign-off",
   text: "a text message: under 300 characters, no links unless they asked",
   comment: "a public reply under their comment: one or two sentences, friendly, no pitch",
+  chat: "a live chat reply on the website: one to three short sentences, plain, no sign-off",
 };
 
 export interface SuggestDeps {

@@ -38,6 +38,8 @@ export interface Party {
   smsIds: number[];
   reachIds: number[];
   commentIds: number[];
+  /** Site chat threads (`chat_threads`): this one, and theirs by the same email or phone. */
+  chatIds: number[];
   emails: string[];
   /** Mail to the client's own mailbox (`watch.mail`): the thread it sits in there. */
   mail: MailThread | null;
@@ -97,6 +99,7 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     smsIds: [],
     reachIds: [],
     commentIds: [],
+    chatIds: [],
     emails: [],
     mail: null,
   };
@@ -182,6 +185,27 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     p.who = str(m.who);
     p.mail = { id: n, mailbox: String(m.mailbox), threadId: String(m.thread_id) };
     p.emails.push(String(m.from_address).toLowerCase());
+  } else if (type === "chat") {
+    const [c] = await rowsOf(
+      db,
+      sql`select id, email, phone, coalesce(name, email, phone, 'Site visitor') who
+        from chat_threads where id = ${n}`,
+    );
+    if (!c) return null;
+    p.who = str(c.who);
+    p.chatIds.push(n);
+    if (c.email) p.emails.push(String(c.email).toLowerCase());
+    if (c.phone) {
+      // A phone they gave that texts us already: that contact's person.
+      const [s] = await rowsOf(
+        db,
+        sql`select id, person_id from sms_contacts where e164 = ${String(c.phone)} limit 1`,
+      );
+      if (s) {
+        p.smsIds.push(Number(s.id));
+        if (s.person_id != null) p.personId = Number(s.person_id);
+      }
+    }
   } else if (type === "activity") {
     const [a] = await rowsOf(db, sql`select platform, actor from social_activity where id = ${n}`);
     if (!a) return null;
@@ -241,6 +265,13 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     p.emails.push(...from.map((r) => String(r.a)));
   }
   p.emails = uniq(p.emails);
+  if (p.emails.length) {
+    const cs = await rowsOf(
+      db,
+      sql`select id from chat_threads where lower(email) in ${list(p.emails)}`,
+    );
+    p.chatIds = uniq([...p.chatIds, ...ids(cs)]);
+  }
   return p;
 }
 
@@ -273,7 +304,7 @@ export const TIMELINE_MAX = 200;
 /** Everything with this person, oldest first; the newest `TIMELINE_MAX`. */
 export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
   const out: Entry[] = [];
-  const [inMail, outMail, texts, dms, comments, bookings, asked] = await Promise.all([
+  const [inMail, outMail, texts, dms, comments, bookings, asked, chats] = await Promise.all([
     p.enrollmentIds.length
       ? rowsOf(
           db,
@@ -329,6 +360,13 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
       sql`select id, channel, body, asked_by, asked_at at from inbox_replies
         where thread = ${p.thread} and state = 'waiting'`,
     ),
+    p.chatIds.length
+      ? rowsOf(
+          db,
+          sql`select id, direction, body, by, at from chat_messages
+            where thread_id in ${list(p.chatIds)}`,
+        )
+      : [],
   ]);
   for (const e of inMail)
     out.push({
@@ -399,6 +437,17 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
         state: "sent",
       });
   }
+  for (const c of chats)
+    out.push({
+      id: `chat:${c.id}`,
+      at: iso(c.at),
+      channel: "chat",
+      direction: c.direction === "in" ? "in" : "out",
+      platform: null,
+      who: c.direction === "in" ? p.who : str(c.by),
+      body: String(c.body ?? ""),
+      state: c.direction === "in" ? null : "sent",
+    });
   for (const b of bookings)
     out.push({
       id: `bk:${b.id}`,
@@ -581,6 +630,20 @@ export async function optionsOf(db: Queryable, p: Party): Promise<ReplyOption[]>
       off: null,
     });
   }
+  // Site chat answers in the bubble: this thread, or their newest when another one is open.
+  const chat =
+    p.chatIds.includes(Number(typed(p.thread)[1])) && type === "chat"
+      ? Number(typed(p.thread)[1])
+      : Math.max(...p.chatIds);
+  if (p.chatIds.length)
+    out.push({
+      channel: "chat",
+      target: String(chat),
+      label: "Site chat",
+      platform: null,
+      own: p.thread === `chat:${chat}`,
+      off: null,
+    });
   if (p.reachIds.length) {
     const cs = await rowsOf(
       db,

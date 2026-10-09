@@ -47,6 +47,7 @@ const fake = (ctx: Context, client: string | null): ReplySender => {
     invite: push("invite"),
     email: push("email"),
     thread: push("thread"),
+    chat: push("chat"),
     // Mail goes the real way: MailReply, over a fake mailbox.
     mail: async (mailId, body) => {
       if (!client) throw new Error("no client");

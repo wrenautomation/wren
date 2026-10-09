@@ -812,7 +812,7 @@ export const inboxThreads = pgTable(
 );
 export type InboxThread = typeof inboxThreads.$inferSelect;
 
-export const INBOX_CHANNELS = ["email", "text", "dm", "comment"] as const;
+export const INBOX_CHANNELS = ["email", "text", "dm", "comment", "chat"] as const;
 export type InboxChannel = (typeof INBOX_CHANNELS)[number];
 export const INBOX_REPLY_STATES = ["waiting", "sent", "dropped", "failed"] as const;
 export type InboxReplyState = (typeof INBOX_REPLY_STATES)[number];
@@ -848,6 +848,62 @@ export const inboxReplies = pgTable(
   ],
 );
 export type InboxReply = typeof inboxReplies.$inferSelect;
+
+/**
+ * A site chat (designs/2026-10-09-site-chat.md): one visitor's thread from the bubble on the
+ * owner's site. The visitor holds the key; we keep its hash. Name and contact are what they typed.
+ */
+export const chatThreads = pgTable(
+  "chat_threads",
+  {
+    id: serial("id").notNull(),
+    keyHash: varchar("key_hash", { length: 64 }).notNull(),
+    name: varchar("name", { length: 120 }),
+    email: varchar("email", { length: 200 }),
+    phone: varchar("phone", { length: 32 }),
+    /** The page it started on. */
+    page: text("page"),
+    /** Their last message: the Inbox orders and opens on it. */
+    lastInAt: timestamp("last_in_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When someone on our side last opened it. */
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_chat_threads" }),
+    unique("uq_chat_threads_key").on(t.keyHash),
+    index("ix_chat_threads_last").on(t.lastInAt),
+    index("ix_chat_threads_created").on(t.createdAt),
+  ],
+);
+export type ChatThread = typeof chatThreads.$inferSelect;
+
+export const CHAT_DIRECTIONS = ["in", "out"] as const;
+export type ChatDirection = (typeof CHAT_DIRECTIONS)[number];
+
+/** One message in a site chat: theirs (`in`) or ours (`out`, with who sent it). */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: serial("id").notNull(),
+    threadId: integer("thread_id").notNull(),
+    direction: varchar("direction", { length: 3, enum: CHAT_DIRECTIONS }).notNull(),
+    body: text("body").notNull(),
+    by: varchar("by", { length: 200 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_chat_messages" }),
+    foreignKey({
+      columns: [t.threadId],
+      foreignColumns: [chatThreads.id],
+      name: "fk_chat_messages_thread",
+    }).onDelete("cascade"),
+    index("ix_chat_messages_thread").on(t.threadId, t.id),
+    oneOf("ck_chat_messages_direction", t.direction, CHAT_DIRECTIONS),
+  ],
+);
+export type ChatMessage = typeof chatMessages.$inferSelect;
 
 /** What happens when someone writes in (designs/2026-10-09-auto-reply.md). */
 export const AUTO_REPLY_MODES = ["off", "suggest", "auto"] as const;

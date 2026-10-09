@@ -1,4 +1,5 @@
 export * from "./auto-reply.js";
+export * from "./chat.js";
 export * from "./desk.js";
 export * from "./draft-ask.js";
 export * from "./inbox-desk.js";

@@ -68,4 +68,29 @@ export const SITES_COMPONENTS = [
       ],
     },
   }),
+  defineComponent({
+    id: "sites.chat",
+    stage: "follow",
+    channels: ["web"],
+    name: "Site chat",
+    blurb:
+      "A chat bubble on the client's website, one tag from its own domain; each visitor's thread lands in the Inbox and is answered there.",
+    icon: "chat",
+    for: "client",
+    ready: false,
+    missing: ["No client site carries the tag yet"],
+    effects: ["sends"],
+    provides: { services: ["Chat"] },
+    hypothesis: {
+      from: "The product audit, 2026-10-07",
+      guesses: [
+        {
+          is: "change",
+          says: "The bubble polls every few seconds; no socket.",
+          built: "code, CHAT_POLL_MS in packages/sites/src/chat-widget.ts",
+        },
+        { is: "fixed", says: "Only a person answers. Bots get no thread." },
+      ],
+    },
+  }),
 ];

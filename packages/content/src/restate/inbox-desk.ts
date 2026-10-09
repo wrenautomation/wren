@@ -18,6 +18,7 @@ import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { ChatRefusal, replyChat } from "../chat/store.js";
 import { autoModes, setAutoMode } from "../inbox/auto.js";
 import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
 import { clientRoutes, routeOf } from "../inbox/routes.js";
@@ -105,7 +106,12 @@ type Disposition = {
  * connected accounts (`SocialInbox`); Wren's through reach. Mail to a client's mailbox goes back
  * out through that mailbox (`MailReply`).
  */
-function restateChannels(ctx: restate.Context, client: string | null, viewer: Viewer): ReplySender {
+function restateChannels(
+  ctx: restate.Context,
+  client: string | null,
+  viewer: Viewer,
+  db: Db,
+): ReplySender {
   const reach = () => ctx.serviceClient<ReachDesk>({ name: "ReachDesk" });
   const social = () => ctx.serviceClient<SocialInboxDesk>({ name: "SocialInbox" });
   const by = viewer && !isDemo(viewer) ? (viewer.email ?? null) : null;
@@ -140,13 +146,24 @@ function restateChannels(ctx: restate.Context, client: string | null, viewer: Vi
         .serviceClient<MailReplyDesk>({ name: "MailReply" })
         .send({ client, mailId, body, by });
     },
+    // A site chat has no desk: ours lands in the owner's database, and the bubble reads it.
+    chat: async (threadId, body) => {
+      await ctx.run("chat", async () => {
+        try {
+          await replyChat(db, threadId, body, by ?? "wren");
+        } catch (e) {
+          if (e instanceof ChatRefusal) throw new restate.TerminalError(e.message);
+          throw e;
+        }
+      });
+    },
   };
 }
 
 const THREAD = z.string().min(3).max(80).describe("The Inbox thread's id: dm:5, text:8, reply:6");
 const BASE = z.looseObject({ thread: THREAD, ...PORTAL_FIELDS });
 const REPLY = BASE.extend({
-  channel: z.enum(INBOX_CHANNELS).describe("Where it goes: email, text, dm or comment"),
+  channel: z.enum(INBOX_CHANNELS).describe("Where it goes: email, text, dm, comment or chat"),
   target: z.string().min(1).max(80).describe("The channel's id from the thread's options"),
   body: z.string().describe("The words"),
 });
@@ -204,7 +221,9 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
       if (shut) throw new Error(shut.off);
     });
   const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
-    (deps.channels ?? restateChannels)(ctx, client, viewer);
+    deps.channels
+      ? deps.channels(ctx, client, viewer)
+      : restateChannels(ctx, client, viewer, dbOf(client));
   /** Who they are, and the client's sends and approver: what the gate reads. */
   const gateOf = (req: Req, option: ReplyOption) =>
     terminal(async () => {

@@ -1,4 +1,7 @@
-/** Domain: this portal on the client's own address, like portal.theirfirm.com. An owner sets it up. */
+/**
+ * Domain: this portal on the client's own address, like portal.theirfirm.com. An owner sets it up.
+ * Once it's live, the site chat tag for their website comes from it (designs/2026-10-09-site-chat.md).
+ */
 import {
   Button,
   Empty,
@@ -57,6 +60,29 @@ function Copyable({ text }: { text: string }) {
         {done ? "Copied" : "Copy"}
       </Button>
     </span>
+  );
+}
+
+/** The chat bubble for their website: one tag, served from their live domain. */
+function SiteChat({ live }: { live: string | null }) {
+  return (
+    <Section
+      title="Site chat"
+      note="A chat bubble on your website. Messages land in Marketing → Inbox, and you answer there."
+    >
+      {live ? (
+        <div className="grid gap-3">
+          <Copyable text={`<script src="https://${live}/o/__chat.js" async></script>`} />
+          <p className={QUIET}>
+            Paste it before {"</body>"} on every page, or once in your site builder's footer code.
+            Add data-color="#1d4ed8" to match your brand, or data-greeting="Ask us anything" for the
+            first line.
+          </p>
+        </div>
+      ) : (
+        <Empty>The chat tag comes from your domain. Set one up above and it shows here.</Empty>
+      )}
+    </Section>
   );
 }
 
@@ -174,6 +200,7 @@ export function Domain(props: PageProps) {
       ) : data && !data.canManage && data.domains.length === 0 ? (
         <p className={QUIET}>Ask an owner to set up your domain.</p>
       ) : null}
+      {data ? <SiteChat live={data.domains.find((d) => d.live)?.hostname ?? null} /> : null}
     </>
   );
 }

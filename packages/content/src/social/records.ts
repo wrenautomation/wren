@@ -147,6 +147,22 @@ const textRows = (db: Queryable) =>
       order by i.at desc limit ${ACTIVITY_ROWS}`,
   );
 
+/** Site chats (designs/2026-10-09-site-chat.md): their last word, and the page they wrote from. */
+const chatRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select t.id, coalesce(t.name, t.email, t.phone, 'Site visitor') who, t.page, i.body words,
+        i.at,
+        exists (select 1 from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+          and o.at > i.at) answered,
+        (t.read_at is null or t.read_at < i.at) unread
+      from chat_threads t
+      join lateral (select body, at from chat_messages
+        where thread_id = t.id and direction = 'in'
+        order by at desc, id desc limit 1) i on true
+      order by i.at desc limit ${ACTIVITY_ROWS}`,
+  );
+
 /**
  * Mail a client's connected mailboxes brought in (designs/2026-10-07-mail-access.md), as triage
  * left it. Only the `mail` reader's: William's own mail is the Inbox app's "Your mail".
@@ -250,7 +266,7 @@ const STATES = status({
 
 /**
  * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
- * (a call invite), `reply:6` (a reply with none), `text:8`, `activity:9`); each action reads the
+ * (a call invite), `reply:6` (a reply with none), `text:8`, `chat:3`, `activity:9`); each action reads the
  * id after the colon. `due` orders "Waiting on you": when it came.
  */
 export const inboxRecord = defineRecord({
@@ -265,6 +281,7 @@ export const inboxRecord = defineRecord({
     const xs = await textRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
     const ms = await mailRows(db);
+    const hs = await chatRows(db);
     const kept = await threadStates(db);
     const now = new Date();
     // The team's state on each: who has it, open, waiting, closed or snoozed.
@@ -350,6 +367,23 @@ export const inboxRecord = defineRecord({
         due: x.at,
         url: null,
       })),
+      // Site chats: answered in the bubble, as texts are.
+      ...hs.map((h) => ({
+        id: `chat:${h.id}`,
+        type: "chat",
+        who: h.who,
+        platform: null,
+        kind: "chat",
+        channel: null,
+        state: h.answered ? "answered" : h.unread ? "waiting" : "read",
+        body: h.words,
+        post_title: h.page,
+        draft: null,
+        account: null,
+        at: h.at,
+        due: h.at,
+        url: null,
+      })),
       // Mail to the client's own mailboxes: opened in Gmail or Outlook, Done when dealt with.
       ...ms.map((m) => ({
         id: `mail:${m.id}`,
@@ -409,6 +443,7 @@ export const inboxRecord = defineRecord({
         email: neutral("Email"),
         mail: neutral("Mail"),
         text: neutral("Text"),
+        chat: neutral("Site chat"),
         activity: neutral("Activity"),
       }),
       "Type",
@@ -423,6 +458,7 @@ export const inboxRecord = defineRecord({
         email: neutral("Email reply"),
         mail: neutral("To your mailbox"),
         text: neutral("Text"),
+        chat: neutral("Site chat"),
         ...KIND_LABELS,
       }),
       "Kind",
@@ -480,6 +516,7 @@ export const inboxRecord = defineRecord({
     { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
     { id: "mail", label: "Mail", where: { type: "mail" }, sort: "-at", at: "at" },
     { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
+    { id: "chats", label: "Site chat", where: { type: "chat" }, sort: "-at", at: "at" },
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],

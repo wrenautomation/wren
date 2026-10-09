@@ -1541,6 +1541,13 @@
       "when": 1791577308487,
       "tag": "0219_review_stars",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1791577508689,
+      "tag": "0220_site_chat",
+      "breakpoints": true
     }
   ]
 }

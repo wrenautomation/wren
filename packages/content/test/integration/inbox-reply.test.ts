@@ -41,6 +41,7 @@ const fake = (ctx: Context): ReplySender => {
     invite: push("invite"),
     email: push("email"),
     thread: push("thread"),
+    chat: push("chat"),
     mail: push("mail"),
   };
 };
