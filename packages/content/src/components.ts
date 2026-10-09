@@ -137,6 +137,29 @@ export const CONTENT_COMPONENTS = [
       ],
     },
   }),
+  defineComponent({
+    id: "content.whatsapp",
+    stage: "follow",
+    channels: ["dm"],
+    name: "WhatsApp",
+    blurb:
+      "The client's business number on WhatsApp: each chat lands in the Inbox and is answered there, like a text.",
+    icon: "chat",
+    for: "client",
+    ready: false,
+    missing: ["Waits on Meta's review of Wren as a WhatsApp provider"],
+    effects: ["sends"],
+    hypothesis: {
+      from: "The product audit, 2026-10-07",
+      guesses: [
+        { is: "needs", says: "The client's own WhatsApp Business number.", built: null },
+        {
+          is: "fixed",
+          says: "Past 24 hours since their last message, only approved templates send.",
+        },
+      ],
+    },
+  }),
   /** The Marketing app's numbers: content, ads, search, texts and the site, read only. */
   defineComponent({
     id: "marketing.stats",

@@ -157,6 +157,27 @@ function PlatformRow({ p, mayAct, act }: { p: Platform; mayAct: boolean; act: Ac
   );
 }
 
+/** Not built: a business number's chats in the Inbox. Waits on Meta's provider review. */
+function WhatsAppRow() {
+  return (
+    <Section
+      title="WhatsApp"
+      cue={<PlatformMark mark="whatsapp" size={15} />}
+      note={
+        <span className="flex flex-wrap items-center gap-2">
+          <Tag tone="accent">In development</Tag>
+          <span>Chats come into your Inbox</span>
+        </span>
+      }
+    >
+      <p className={QUIET}>
+        Connect your business number here and answer its chats from the Inbox, like texts. It waits
+        on Meta's review of Wren as a WhatsApp provider.
+      </p>
+    </Section>
+  );
+}
+
 export function Social(props: PageProps) {
   const [nonce, setNonce] = useState(0);
   const load = useCall(`social:${props.client}:${nonce}`, () =>
@@ -186,6 +207,7 @@ export function Social(props: PageProps) {
           {view.platforms.map((p) => (
             <PlatformRow key={p.platform} p={p} mayAct={view.mayAct} act={act} />
           ))}
+          <WhatsAppRow />
           {view.mayAct ? null : (
             <p className={QUIET}>Ask an owner to connect or turn off an account.</p>
           )}

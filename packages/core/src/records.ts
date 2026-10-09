@@ -40,6 +40,7 @@ export const MARKS = [
   "meta",
   "discord",
   "google",
+  "whatsapp",
   "email",
   "text",
   "call",
@@ -88,6 +89,8 @@ const HOSTS: Readonly<Record<string, Mark>> = {
   "discord.com": "discord",
   "discord.gg": "discord",
   "google.com": "google",
+  "whatsapp.com": "whatsapp",
+  "wa.me": "whatsapp",
 };
 /** A host's mark ("www.reddit.com/r/x" is Reddit; a bare site key like "youtube" too), or none. */
 export function markOfHost(site: string): Mark | undefined {
