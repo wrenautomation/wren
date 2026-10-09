@@ -16,6 +16,7 @@ export const FIELD_KINDS = [
   "date",
   "consent",
   "hidden",
+  "step",
 ] as const;
 export type FieldKind = (typeof FIELD_KINDS)[number];
 
@@ -33,7 +34,26 @@ export const FIELD_KIND_LABELS: Record<FieldKind, string> = {
   date: "Date",
   consent: "Text consent",
   hidden: "Hidden (from the link)",
+  step: "New step",
 };
+
+/** A show-when rule's test on the earlier field it names. */
+export const SHOW_OPS = ["is", "not", "filled", "empty"] as const;
+export type ShowOp = (typeof SHOW_OPS)[number];
+export const SHOW_OP_LABELS: Record<ShowOp, string> = {
+  is: "is",
+  not: "is not",
+  filled: "is filled in",
+  empty: "is empty",
+};
+
+/** Shown only when an earlier field passes: `service` is "Repair", `phone` is filled in. */
+export interface ShowRule {
+  key: string;
+  op: ShowOp;
+  /** For `is` and `not`: any one matches, in any case. */
+  values?: string[];
+}
 export const FIELD_RULE_LABELS: Record<FieldRule, string> = {
   digits: "Digits only",
   letters: "Letters only",
@@ -53,6 +73,8 @@ export interface FormField {
   rule?: FieldRule;
   /** Pick one, pick any. */
   options?: string[];
+  /** Asked only when this holds; hidden, it isn't required and its value isn't kept. */
+  show?: ShowRule;
 }
 
 export type FormAfter = { kind: "thanks"; text: string } | { kind: "redirect"; url: string };
@@ -70,6 +92,8 @@ export interface FormSpec {
 /** The consent box's key: the door reads it (`HOOK_PRESETS.site`) and only a "yes" counts. */
 export const CONSENT_KEY = "sms_consent";
 export const FIELDS_MAX = 30;
+/** Steps past the first: a form has at most 10. */
+export const STEPS_MAX = 9;
 export const OPTIONS_MAX = 30;
 const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** Never a field: the kit's own and the trap. */
@@ -124,8 +148,15 @@ export function parseSpec(raw: unknown): FormSpec {
   if (list.length > FIELDS_MAX) throw new FormProblem(`At most ${FIELDS_MAX} fields.`);
   const seen = new Set<string>();
   const fields = list.map((f, i) => fieldOf(f, i, seen));
-  if (!fields.some((f) => f.kind === "email" || f.kind === "phone"))
-    throw new FormProblem("Add an email or a phone field, so the lead can be reached.");
+  fields.forEach((f, i) => {
+    const show = showOf((list[i] as Record<string, unknown> | null)?.show, f, fields.slice(0, i));
+    if (show) f.show = show;
+  });
+  stepsCheck(fields);
+  if (!fields.some((f) => (f.kind === "email" || f.kind === "phone") && !f.show))
+    throw new FormProblem(
+      "Add an email or a phone field that's always asked, so the lead can be reached.",
+    );
   if (fields.filter((f) => f.kind === "consent").length > 1)
     throw new FormProblem("One text consent box per form.");
   const a = (r.after && typeof r.after === "object" ? r.after : {}) as Record<string, unknown>;
@@ -164,6 +195,13 @@ function fieldOf(raw: unknown, i: number, seen: Set<string>): FormField {
   if (!(FIELD_KINDS as readonly string[]).includes(kind))
     throw new FormProblem(`Field ${i + 1}: no such kind "${String(f.kind).slice(0, 20)}".`);
   const label = str(f.label, kind === "consent" ? 1000 : 200);
+  if (kind === "step") {
+    // A step's key is its place: it never holds a value.
+    const key = `step_${i + 1}`;
+    if (seen.has(key)) throw new FormProblem(`Two fields share the key "${key}".`);
+    seen.add(key);
+    return { key, kind, label };
+  }
   const key = kind === "consent" ? CONSENT_KEY : str(f.key, 40) || keyOf(label);
   const name = label || key || `field ${i + 1}`;
   if (!KEY.test(key) || RESERVED.has(key))
@@ -204,6 +242,69 @@ function fieldOf(raw: unknown, i: number, seen: Set<string>): FormField {
   return out;
 }
 
+/** A field's show-when rule, checked against the fields above it; none when not given. */
+function showOf(raw: unknown, f: FormField, above: FormField[]): ShowRule | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const key = str(r.key, 40);
+  if (!key) return undefined;
+  const name = f.label || f.key;
+  if (f.kind === "step" || f.kind === "hidden")
+    throw new FormProblem(
+      `"${name}": a ${FIELD_KIND_LABELS[f.kind].toLowerCase()} can't have a show rule.`,
+    );
+  const src = above.find((a) => a.key === key && a.kind !== "step");
+  if (!src) throw new FormProblem(`"${name}": its show rule must name a field above it.`);
+  const op = String(r.op ?? "") as ShowOp;
+  if (!(SHOW_OPS as readonly string[]).includes(op))
+    throw new FormProblem(`"${name}": no such show test "${op.slice(0, 20)}".`);
+  if (op === "filled" || op === "empty") return { key, op };
+  const vals = (Array.isArray(r.values) ? r.values : String(r.values ?? "").split("\n"))
+    .map((v) => str(v, 80))
+    .filter(Boolean);
+  const values = [...new Set(vals)].slice(0, OPTIONS_MAX);
+  if (!values.length) throw new FormProblem(`"${name}": say which answer shows it.`);
+  if (src.options) {
+    const odd = values.find((v) => !src.options?.some((o) => o.toLowerCase() === v.toLowerCase()));
+    if (odd) throw new FormProblem(`"${name}": "${odd}" isn't a choice of "${src.label}".`);
+  }
+  return { key, op, values };
+}
+
+/** Steps split the form: never first or last, never two in a row, at most `STEPS_MAX`. */
+function stepsCheck(fields: FormField[]) {
+  const at = fields.flatMap((f, i) => (f.kind === "step" ? [i] : []));
+  if (!at.length) return;
+  if (at.length > STEPS_MAX) throw new FormProblem(`At most ${STEPS_MAX + 1} steps.`);
+  // Hidden fields fill from the link, so they don't count as a step's questions.
+  const asked = (i: number) => fields[i]?.kind !== "hidden" && fields[i]?.kind !== "step";
+  const runs = [-1, ...at, fields.length];
+  for (let n = 0; n + 1 < runs.length; n++) {
+    const from = (runs[n] as number) + 1;
+    const to = runs[n + 1] as number;
+    let any = false;
+    for (let i = from; i < to; i++) if (asked(i)) any = true;
+    if (!any)
+      throw new FormProblem(
+        n === 0
+          ? "A form can't start with a new step."
+          : n === runs.length - 2
+            ? "A form can't end with a new step."
+            : `Step ${n + 1} has no questions.`,
+      );
+  }
+}
+
+/** Whether a rule holds on what its field holds now (none or hidden: nothing). */
+export function shows(rule: ShowRule | undefined, got: readonly string[]): boolean {
+  if (!rule) return true;
+  if (rule.op === "filled") return got.length > 0;
+  if (rule.op === "empty") return got.length === 0;
+  const want = new Set((rule.values ?? []).map((v) => v.toLowerCase()));
+  const hit = got.some((g) => want.has(g.toLowerCase()));
+  return rule.op === "is" ? hit : !hit;
+}
+
 /** A key from a label: "Best time to call" -> "best_time_to_call". */
 export function keyOf(label: string): string {
   const k = label
@@ -241,7 +342,46 @@ function rawOf(v: unknown): string[] {
 export function checkEntry(spec: FormSpec, raw: Record<string, unknown>): Checked {
   const values: Record<string, string> = {};
   const errors: Record<string, string> = {};
+  // What each kept field holds, as a list: the show rules below it read these.
+  const held: Record<string, string[]> = {};
+  const shown = new Set<string>();
   for (const f of spec.fields) {
+    if (f.kind === "step" || !shows(f.show, f.show ? (held[f.show.key] ?? []) : [])) continue;
+    shown.add(f.key);
+    checkOne(f, raw, values, errors);
+    const v = values[f.key];
+    if (v !== undefined)
+      held[f.key] = f.kind === "multi" ? rawPicks(rawOf(raw[f.key]), f.options ?? []) : [v];
+  }
+  const reach = spec.fields.filter(
+    (f) => (f.kind === "email" || f.kind === "phone") && shown.has(f.key),
+  );
+  if (!Object.keys(errors).length && !reach.some((f) => values[f.key])) {
+    const first = reach.find((f) => !f.show) ?? reach[0];
+    if (first) errors[first.key] = "Add an email or a phone number.";
+  }
+  return { values, errors };
+}
+
+/** Pick any's picks as sent: a list, or one comma list. */
+function picksOf(got: string[]): string[] {
+  return got
+    .flatMap((s) => (got.length === 1 ? s.split(",") : [s]))
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+const rawPicks = (got: string[], options: string[]) => [
+  ...new Set(picksOf(got.map((s) => s.trim())).filter((p) => options.includes(p))),
+];
+
+/** One shown field checked: its value kept, or why not. */
+function checkOne(
+  f: FormField,
+  raw: Record<string, unknown>,
+  values: Record<string, string>,
+  errors: Record<string, string>,
+) {
+  {
     const got = rawOf(raw[f.key]).map((s) => s.trim());
     const one = (got[0] ?? "").slice(0, VALUE_MAX);
     const bad = (why: string) => {
@@ -250,26 +390,23 @@ export function checkEntry(spec: FormSpec, raw: Record<string, unknown>): Checke
     if (f.kind === "consent") {
       if (one === "yes" || one === "on" || one === "true") values[f.key] = "yes";
       else if (f.required) bad("Tick the box to go on.");
-      continue;
+      return;
     }
     if (f.kind === "multi") {
-      const picked = got
-        .flatMap((s) => (got.length === 1 ? s.split(",") : [s]))
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const picked = picksOf(got);
       const known = picked.filter((p) => f.options?.includes(p));
       if (known.length !== picked.length) bad("Pick from the list.");
       else if (known.length) values[f.key] = [...new Set(known)].join(", ");
       else if (f.required) bad("Pick at least one.");
-      continue;
+      return;
     }
     if (!one) {
       if (f.required) bad("Fill this in.");
-      continue;
+      return;
     }
     if (f.kind === "hidden") {
       values[f.key] = one.slice(0, 200);
-      continue;
+      return;
     }
     if (f.kind === "email" && !EMAIL.test(one)) bad("That email doesn't look right.");
     else if (f.kind === "phone") {
@@ -287,12 +424,6 @@ export function checkEntry(spec: FormSpec, raw: Record<string, unknown>): Checke
     else if (f.rule && !RULE_TESTS[f.rule][0].test(one)) bad(RULE_TESTS[f.rule][1]);
     if (!errors[f.key]) values[f.key] = one;
   }
-  const reach = spec.fields.filter((f) => f.kind === "email" || f.kind === "phone");
-  if (!Object.keys(errors).length && !reach.some((f) => values[f.key])) {
-    const first = reach[0];
-    if (first) errors[first.key] = "Add an email or a phone number.";
-  }
-  return { values, errors };
 }
 
 /** The consent words a spec shows, or null when it has no box. */
@@ -319,7 +450,17 @@ const AUTOCOMPLETE: Partial<Record<string, string>> = {
   zip: "postal-code",
 };
 
+/** A field's show rule for the kit, on its outermost tag. */
+const showAttr = (f: FormField) => (f.show ? ` data-show="${esc(JSON.stringify(f.show))}"` : "");
+
 function fieldHtml(f: FormField, id: string): string {
+  const html = fieldTag(f, id);
+  const show = showAttr(f);
+  // The outermost tag is a label or a fieldset: the rule goes on it.
+  return show ? html.replace(/^<(label|fieldset)/, `<$1${show}`) : html;
+}
+
+function fieldTag(f: FormField, id: string): string {
   const req = f.required ? " required" : "";
   const hint = f.hint ? `<small>${esc(f.hint)}</small>` : "";
   const words = `${esc(f.label)}${f.required ? "" : ' <span class="opt">(optional)</span>'}`;
@@ -330,6 +471,8 @@ function fieldHtml(f: FormField, id: string): string {
   switch (f.kind) {
     case "hidden":
       return `<input type="hidden" name="${esc(f.key)}" data-q="${esc(f.key)}">`;
+    case "step":
+      return "";
     case "consent":
       return `<label class="check"><input type="checkbox" name="${esc(f.key)}" value="yes"${req}> <span>${esc(f.label)}</span></label>`;
     case "long":
@@ -368,9 +511,10 @@ export function formHtml(spec: FormSpec, ctx: FormContext): string {
   const booking = spec.booking
     ? ` data-booking="${esc(spec.booking.url)}" data-booking-label="${esc(spec.booking.label ?? "Pick a time")}"`
     : "";
-  const fields = spec.fields
-    .map((f, i) => fieldHtml(f, `f-${ctx.form.slice(0, 8)}-${i}`))
-    .join("\n");
+  const id = (i: number) => `f-${ctx.form.slice(0, 8)}-${i}`;
+  const fields = spec.fields.some((f) => f.kind === "step")
+    ? stepsHtml(spec.fields, id)
+    : spec.fields.map((f, i) => fieldHtml(f, id(i))).join("\n");
   return `<form method="post" action="${esc(ctx.base)}/o/__form" data-wren-form data-form="${esc(ctx.form)}"${after}${booking} novalidate>
 <input type="hidden" name="form" value="${esc(ctx.form)}">
 ${ctx.page ? `<input type="hidden" name="page" value="${esc(ctx.page)}">` : ""}
@@ -379,6 +523,27 @@ ${fields}
 <button type="submit">${esc(spec.button)}</button>
 <p class="sent" role="status" hidden></p>
 </form>`;
+}
+
+/**
+ * Fields split at each new step, one `div.step` a step, the step's words heading it. All show
+ * without script; the kit shows one at a time with Back and Next.
+ */
+function stepsHtml(fields: FormField[], id: (i: number) => string): string {
+  const out: string[] = [];
+  let open = `<div class="step" data-step="1">`;
+  let n = 1;
+  fields.forEach((f, i) => {
+    if (f.kind !== "step") {
+      open += `\n${fieldHtml(f, id(i))}`;
+      return;
+    }
+    out.push(`${open}\n</div>`);
+    n++;
+    open = `<div class="step" data-step="${n}">${f.label ? `\n<h3>${esc(f.label)}</h3>` : ""}`;
+  });
+  out.push(`${open}\n</div>`);
+  return out.join("\n");
 }
 
 /** The form's heading and intro over the form. */

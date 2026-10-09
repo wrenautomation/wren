@@ -66,6 +66,11 @@ label small,fieldset small{font-size:13px;color:var(--muted)}
 .bad{font-size:13px;color:#b3261e}
 [aria-invalid=true]{border-color:#b3261e}
 .next{margin-top:8px}
+.step{display:grid;gap:14px}
+.step h3{margin:0;color:var(--ink)}
+.progress{margin:0;font-size:13px;color:var(--muted)}
+.steps-nav{display:flex;gap:8px;flex-wrap:wrap}
+button.back{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .form-page main{max-width:560px;padding-top:40px}
 .form-page.embed main{padding:16px 16px 24px;max-width:none}
 .form-page section{border-top:0;padding-top:0}

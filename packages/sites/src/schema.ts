@@ -27,6 +27,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -278,6 +279,8 @@ export const siteEvents = pgTable(
     content: varchar("content", { length: 120 }),
     ref: varchar("ref", { length: 200 }),
     width: integer("width"),
+    /** On a `step`: the hosted form's step reached, 2 and on. */
+    step: smallint("step"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_site_events" }),
@@ -300,6 +303,10 @@ export const siteEvents = pgTable(
       name: "fk_site_events_split",
     }).onDelete("set null"),
     check("ck_site_events_where", sql`${t.page} is not null or ${t.form} is not null`),
+    check(
+      "ck_site_events_step",
+      sql`(${t.name} = 'step') = (${t.step} is not null) and (${t.step} is null or ${t.step} between 2 and 10)`,
+    ),
     oneOf("ck_site_events_name", t.name, EVENT_NAMES),
     oneOf("ck_site_events_channel", t.channel, CHANNELS),
   ],

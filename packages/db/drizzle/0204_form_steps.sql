@@ -1,0 +1,4 @@
+ALTER TABLE "site_events" DROP CONSTRAINT "ck_site_events_name";--> statement-breakpoint
+ALTER TABLE "site_events" ADD COLUMN "step" smallint;--> statement-breakpoint
+ALTER TABLE "site_events" ADD CONSTRAINT "ck_site_events_step" CHECK (("site_events"."name" = 'step') = ("site_events"."step" is not null) and ("site_events"."step" is null or "site_events"."step" between 2 and 10));--> statement-breakpoint
+ALTER TABLE "site_events" ADD CONSTRAINT "ck_site_events_name" CHECK (("name")::text = ANY ((ARRAY['view'::character varying, 'cta'::character varying, 'form'::character varying, 'book'::character varying, 'start'::character varying, 'step'::character varying])::text[]));

@@ -226,6 +226,7 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       split?: string | null;
       view?: string;
       name?: string;
+      step?: number | null;
       touch?: unknown;
       w?: number;
     }) {
@@ -240,6 +241,7 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
         touch: req.touch,
         width: typeof req.w === "number" ? req.w : null,
         split: req.split ? String(req.split) : null,
+        step: typeof req.step === "number" ? req.step : null,
       });
       return { kept };
     },
@@ -439,6 +441,7 @@ export function makeSites(deps: { main: Db; shareKey?: string | null }) {
             split: SPLIT,
             view: z.string().max(64).optional(),
             name: z.string().max(8),
+            step: z.number().int().nullish().describe("On a step event: the step reached"),
             touch: TOUCH,
             w: z.number().optional(),
           }),

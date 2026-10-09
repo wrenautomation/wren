@@ -6,8 +6,11 @@
  * - `data-page` (a page) or `data-form` (a hosted form): a `view` on load with the utm and
  *   referrer the visit arrived on (kept for the tab's session, so later events and the form carry
  *   the first touch); `cta` on a `[data-cta]` click, `book` on a `[data-book]` click; `start` the
- *   first time someone touches a hosted form's field.
- * - every `form[data-wren-form]`: hidden fields filled from the link, checked in the browser,
+ *   first time someone touches a hosted form's field; `step` with its number the first time a
+ *   visitor reaches each step past the first.
+ * - every `form[data-wren-form]`: hidden fields filled from the link, show-when rules applied as
+ *   it's filled (a hidden field is disabled, so it isn't sent), steps shown one at a time with
+ *   Back and Next (Next checks that step), checked in the browser,
  *   Turnstile added when the Worker has a site key, the fields sent as JSON to `/o/__form`, then
  *   its thanks, its redirect, or its booking step.
  * - `data-embed="<slug>"`: the hosted form in a frame right after the tag, sized to fit.
@@ -49,7 +52,7 @@ var ref="";try{if(document.referrer&&new URL(document.referrer).host!==location.
 var now={source:q.get("utm_source"),medium:q.get("utm_medium"),campaign:q.get("utm_campaign"),content:q.get("utm_content"),ref:q.get("ref")||ref||null};
 if(!touch||now.source||now.medium){touch=now;try{sessionStorage.setItem(K,JSON.stringify(touch))}catch(e){}}
 var view=crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2);
-function send(name){var b=JSON.stringify({page:page,form:form,split:split,view:view,name:name,touch:touch,w:innerWidth});
+function send(name,n){var b=JSON.stringify({page:page,form:form,split:split,view:view,name:name,step:n||null,touch:touch,w:innerWidth});
 if(navigator.sendBeacon&&navigator.sendBeacon(base+"${TRACK_PATH}",new Blob([b],{type:"text/plain"})))return;
 fetch(base+"${TRACK_PATH}",{method:"POST",body:b,keepalive:true,headers:{"content-type":"text/plain"}}).catch(function(){})}
 send("view");
@@ -65,16 +68,42 @@ function bad(el,t){var box=el.closest("label,fieldset")||el;el.setAttribute("ari
 var m=box.querySelector(".bad");if(!m){m=document.createElement("span");m.className="bad";box.appendChild(m)}m.textContent=t}
 function clear(f){f.querySelectorAll(".bad").forEach(function(m){m.remove()});f.querySelectorAll("[aria-invalid]").forEach(function(el){el.removeAttribute("aria-invalid")})}
 function check(f){var out=null;function no(el,t){bad(el,t);if(!out)out=el}
-f.querySelectorAll("input[required],select[required],textarea[required]").forEach(function(el){
+f.querySelectorAll("input[required]:not(:disabled),select[required]:not(:disabled),textarea[required]:not(:disabled)").forEach(function(el){
 if(el.type==="checkbox"){if(!el.checked)no(el,"Tick the box to go on.")}else if(!el.value.trim())no(el,"Fill this in.");
 else if(el.validity&&!el.validity.valid)no(el,el.type==="email"?"That email doesn't look right.":"Check this one.")});
-f.querySelectorAll("fieldset[data-required]").forEach(function(fs){if(!fs.querySelector("input:checked"))no(fs.querySelector("input")||fs,"Pick at least one.")});
+f.querySelectorAll("fieldset[data-required]:not(:disabled)").forEach(function(fs){if(!fs.querySelector("input:checked"))no(fs.querySelector("input")||fs,"Pick at least one.")});
 return out}
+function vals(f,k){var o=[];f.querySelectorAll("[name='"+k+"']").forEach(function(el){if(el.disabled)return;if(el.type==="checkbox"||el.type==="radio"){if(el.checked)o.push(el.value)}else if(el.value&&el.value.trim())o.push(el.value.trim())});return o}
+function holds(r,got){if(r.op==="filled")return got.length>0;if(r.op==="empty")return!got.length;
+var w=(r.values||[]).map(function(v){return String(v).toLowerCase()}),hit=got.some(function(g){return w.indexOf(g.toLowerCase())>=0});return r.op==="is"?hit:!hit}
+function seen(el,on){el.hidden=!on;el.style.display=on?"":"none"}
+function rules(f){f.querySelectorAll("[data-show]").forEach(function(el){var r;try{r=JSON.parse(el.getAttribute("data-show"))}catch(x){return}
+var on=holds(r,vals(f,String(r.key).replace(/[^a-z0-9_]/g,"")));seen(el,on);
+if(el.tagName==="FIELDSET")el.disabled=!on;else el.querySelectorAll("input,select,textarea").forEach(function(i){i.disabled=!on})})}
+function stepper(f){var st=[].slice.call(f.querySelectorAll(".step"));if(st.length<2)return null;
+var sb=f.querySelector("button[type=submit]"),nav=document.createElement("div"),back=document.createElement("button"),next=document.createElement("button"),pr=document.createElement("p");
+nav.className="steps-nav";back.type="button";back.className="back";back.textContent="Back";next.type="button";next.textContent="Next";pr.className="progress";
+sb.parentNode.insertBefore(nav,sb);nav.appendChild(back);nav.appendChild(next);nav.appendChild(sb);f.insertBefore(pr,st[0]);
+var cur=0,met={1:true};
+function live(i){return[].some.call(st[i].querySelectorAll("label,fieldset"),function(el){var r=el.closest("[data-show]");return!r||!r.hidden})}
+function list(){var o=[];st.forEach(function(x,i){if(live(i))o.push(i)});return o}
+function go(i){cur=i;st.forEach(function(x,j){seen(x,j===i)});var l=list(),p=l.indexOf(i),last=p===l.length-1;
+seen(back,p>0);seen(next,!last);seen(sb,last);pr.textContent="Step "+(p+1)+" of "+l.length;
+var n=+st[i].getAttribute("data-step");if(n>1&&!met[n]){met[n]=true;send("step",n)}}
+function move(by){var l=list(),p=l.indexOf(cur);if(by>0){clear(f);var miss=check(st[cur]);if(miss){if(miss.focus)miss.focus();return}}
+var to=l[p+by];if(to===undefined)return;go(to);var first=st[to].querySelector("input:not([type=hidden]):not(:disabled),select:not(:disabled),textarea:not(:disabled)");if(first)first.focus()}
+back.addEventListener("click",function(){move(-1)});next.addEventListener("click",function(){move(1)});go(0);
+return{last:function(){var l=list();return cur===l[l.length-1]},next:function(){move(1)},
+sync:function(){var l=list();go(l.indexOf(cur)<0?l[0]:cur)},show:function(el){var x=el.closest(".step");if(x)go(st.indexOf(x))},
+reset:function(){met={1:true};go(list()[0])}}}
 forms.forEach(function(f){
 f.querySelectorAll("input[type=hidden][data-q]").forEach(function(h){var k=h.getAttribute("data-q"),v=q.get(k);if(!v&&touch&&MAP[k])v=touch[MAP[k]];if(v)h.value=String(v).slice(0,200)});
 f.addEventListener("focusin",function(){if(!started&&f.hasAttribute("data-form")){started=true;send("start")}});
+rules(f);var sp=stepper(f);function changed(){rules(f);if(sp)sp.sync()}
+f.addEventListener("input",changed);f.addEventListener("change",changed);
 f.addEventListener("submit",function(e){
-e.preventDefault();clear(f);var miss=check(f);if(miss){if(miss.focus)miss.focus();return}
+e.preventDefault();if(sp&&!sp.last()){sp.next();return}
+clear(f);var miss=check(f);if(miss){if(sp)sp.show(miss);if(miss.focus)miss.focus();return}
 var d={};new FormData(f).forEach(function(v,k){if(typeof v!=="string")return;d[k]=d[k]!==undefined&&k!=="cf-turnstile-response"?d[k]+", "+v:v});
 var b=f.querySelector("button[type=submit]"),out=f.querySelector(".sent");if(b)b.disabled=true;
 function say(t){if(out){out.hidden=false;out.textContent=t}}
@@ -84,8 +113,8 @@ fetch(base+"${FORM_PATH}",{method:"POST",headers:{"content-type":"text/plain"},b
 say(f.getAttribute("data-thanks")||"Thanks. We got it.");var bk=f.getAttribute("data-booking");
 if(bk&&!f.querySelector(".next")){var u=new URL(bk,location.href);if(d.name)u.searchParams.set("name",d.name);if(d.email)u.searchParams.set("email",d.email);
 var a=document.createElement("a");a.className="btn next";a.href=u.href;a.target="_top";a.setAttribute("data-book","");a.textContent=f.getAttribute("data-booking-label")||"Pick a time";out.after(a)}
-f.reset();f.querySelectorAll("input[type=hidden][data-q]").forEach(function(h){h.value=h.defaultValue})})
-.catch(function(err){if(err.fields)Object.keys(err.fields).forEach(function(k){var el=f.querySelector("[name='"+k.replace(/[^a-z0-9_]/g,"")+"']");if(el)bad(el,err.fields[k])});say(err.message||"That didn't send. Try again.")})
+f.reset();f.querySelectorAll("input[type=hidden][data-q]").forEach(function(h){h.value=h.defaultValue});rules(f);if(sp)sp.reset()})
+.catch(function(err){var at=null;if(err.fields)Object.keys(err.fields).forEach(function(k){var el=f.querySelector("[name='"+k.replace(/[^a-z0-9_]/g,"")+"']");if(el){bad(el,err.fields[k]);if(!at)at=el}});if(sp&&at)sp.show(at);say(err.message||"That didn't send. Try again.")})
 .finally(function(){if(b)b.disabled=false;if(window.turnstile&&TK)try{window.turnstile.reset()}catch(x){}})})})
 })();`;
 

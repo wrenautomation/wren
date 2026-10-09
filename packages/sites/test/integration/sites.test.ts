@@ -234,6 +234,14 @@ describe("hosted forms", () => {
       true,
     );
     expect((await pub().track({ form: again.id, view: "v2", name: "view" })).kept).toBe(false);
+    // A step past the first counts with its number; a step event without one is dropped.
+    expect((await pub().track({ form: made.id, view: "v1", name: "step", step: 2 })).kept).toBe(
+      true,
+    );
+    expect((await pub().track({ form: made.id, view: "v1", name: "step" })).kept).toBe(false);
+    expect((await pub().track({ form: made.id, view: "v1", name: "step", step: 1 })).kept).toBe(
+      false,
+    );
 
     const entered: { hook: string; payload: Record<string, unknown> }[] = [];
     const enter = async (h: string, payload: Record<string, unknown>) => {
@@ -289,6 +297,7 @@ describe("hosted forms", () => {
     expect(d.embed.script).toContain('data-embed="quote-request"');
     expect(d.sources[0]).toMatchObject({ channel: "ads", views: 1, starts: 1, submits: 1 });
     expect(d.recent).toHaveLength(1);
+    expect(d.steps).toEqual([{ step: 2, views: 1 }]);
 
     const forms = await serveRecords([formRecord], pg.db).list({
       record: formRecord.id,

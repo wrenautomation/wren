@@ -7,6 +7,7 @@ import { HOOK_PRESETS } from "@wren/core/door";
 import { hooks } from "@wren/core/schema";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { STEPS_MAX } from "./forms.js";
 import {
   type Channel,
   channelOf,
@@ -592,8 +593,13 @@ export async function recordEvent(
     width?: number | null;
     /** The split that served the page; kept only when the page is one of its arms. */
     split?: string | null;
+    /** On a `step`: the step reached, 2 to 10. */
+    step?: number | null;
   },
 ): Promise<boolean> {
+  const step =
+    e.name === "step" && typeof e.step === "number" && Number.isInteger(e.step) ? e.step : null;
+  if (e.name === "step" && (step === null || step < 2 || step > STEPS_MAX + 1)) return false;
   const page = e.page && UUID.test(e.page) ? e.page : null;
   const split = e.split && UUID.test(e.split) ? e.split : null;
   const form = e.form && UUID.test(e.form) ? e.form : null;
@@ -605,10 +611,10 @@ export async function recordEvent(
       ? Math.max(0, Math.min(10_000, Math.round(e.width)))
       : null;
   const rows = await db.execute(sql`
-    insert into site_events (page, form, split, view, name, channel, source, medium, campaign, content, ref, width)
+    insert into site_events (page, form, split, view, name, channel, source, medium, campaign, content, ref, width, step)
     select p.id, f.id,
       (select a.split from site_split_arms a where a.split = ${split}::uuid and a.page = p.id),
-      ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}
+      ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}, ${step}::smallint
     from (select 1) one
     left join site_pages p on p.id = ${page}::uuid and p.status <> 'retired'
     left join site_form_defs f on f.id = ${form}::uuid and f.status = 'live'

@@ -157,6 +157,10 @@ export interface FormDayNumbers {
   starts: number;
   submits: number;
 }
+export interface FormStepNumbers {
+  step: number;
+  views: number;
+}
 export interface FormSourceNumbers {
   channel: string;
   source: string;
@@ -187,9 +191,15 @@ export async function formNumbers(db: Queryable, id: string) {
         end conversion
     from site_events where form = ${id}
     group by 1, 2, 3 order by views desc, submits desc limit 50`);
+  // Where people stop: views that reached each step past the first, last 30 days.
+  const steps = await db.execute(sql`
+    select step, count(distinct view)::int views from site_events
+    where form = ${id} and name = 'step' and at >= current_date - 29
+    group by step order by step`);
   return {
     days: [...days] as unknown as FormDayNumbers[],
     sources: [...sources] as unknown as FormSourceNumbers[],
+    steps: [...steps] as unknown as FormStepNumbers[],
   };
 }
 
@@ -204,6 +214,8 @@ export interface FormDetail {
   embed: ReturnType<typeof embedSnippets>;
   days: FormDayNumbers[];
   sources: FormSourceNumbers[];
+  /** Views that reached each step past the first, last 30 days: empty with no steps. */
+  steps: FormStepNumbers[];
   /** The newest few submissions, whole. */
   recent: { id: string; at: Date; fields: Record<string, string>; entered: boolean }[];
 }
@@ -222,7 +234,7 @@ export async function formDetail(db: Queryable, id: string): Promise<FormDetail 
   const f = await formById(db, id);
   if (!f) return null;
   const host = (await formHost(db, f.client)) ?? WREN_SITE;
-  const { days, sources } = await formNumbers(db, id);
+  const { days, sources, steps } = await formNumbers(db, id);
   const recent = await db
     .select({
       id: siteForms.id,
@@ -245,6 +257,7 @@ export async function formDetail(db: Queryable, id: string): Promise<FormDetail 
     embed: embedSnippets({ origin: `https://${host}`, slug: f.slug, title: f.name }),
     days,
     sources,
+    steps,
     recent,
   };
 }

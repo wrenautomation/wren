@@ -31,7 +31,7 @@ export const VERSION_ORIGINS = ["offer", "edit", "ai", "copy", "restore"] as con
 export type VersionOrigin = (typeof VERSION_ORIGINS)[number];
 
 /** What the tracker counts. `start`: someone touched a form's first field. */
-export const EVENT_NAMES = ["view", "cta", "form", "book", "start"] as const;
+export const EVENT_NAMES = ["view", "cta", "form", "book", "start", "step"] as const;
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** Where a visit came from, read off its utm on arrival (`channelOf`). */

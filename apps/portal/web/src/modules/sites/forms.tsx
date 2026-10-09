@@ -15,6 +15,11 @@ import {
   type FormField,
   type FormSpec,
   keyOf,
+  SHOW_OP_LABELS,
+  SHOW_OPS,
+  type ShowOp,
+  type ShowRule,
+  STEPS_MAX,
 } from "@wren/sites/forms";
 import {
   Button,
@@ -40,11 +45,115 @@ const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`
 
 const HAS_RULES = new Set<FieldKind>(["text", "long"]);
 const HAS_OPTIONS = new Set<FieldKind>(["select", "multi"]);
+/** Kinds a show rule can sit on: everything a visitor sees. */
+const CAN_HIDE = (k: FieldKind) => k !== "hidden" && k !== "step";
+
+/** "Show only when": an earlier field, a test, and for is or is not the answers that count. */
+function ShowRow({
+  f,
+  above,
+  set,
+}: {
+  f: FormField;
+  above: FormField[];
+  set: (f: FormField) => void;
+}) {
+  const sources = above.filter((a) => a.kind !== "step");
+  const { show: _s, ...rest } = f;
+  const put = (show: ShowRule | null) => set(show ? { ...rest, show } : rest);
+  if (!f.show)
+    return (
+      <div>
+        <Button
+          size="sm"
+          tone="quiet"
+          disabled={!sources.length}
+          onClick={() => {
+            const src = sources[sources.length - 1];
+            if (src) put({ key: src.key, op: src.options ? "is" : "filled" });
+          }}
+        >
+          Show only when…
+        </Button>
+      </div>
+    );
+  const rule = f.show;
+  const src = sources.find((a) => a.key === rule.key);
+  const wantsValues = rule.op === "is" || rule.op === "not";
+  return (
+    <div className="grid gap-2 bg-(--ui-fill) p-2">
+      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+        <span className={HINT}>Show only when</span>
+        <select
+          aria-label="Field it reads"
+          className={SELECT}
+          value={rule.key}
+          onChange={(e) => {
+            const next = sources.find((a) => a.key === e.target.value);
+            put({ key: e.target.value, op: next?.options ? "is" : "filled" });
+          }}
+        >
+          {src ? null : <option value={rule.key}>(a field below this one)</option>}
+          {sources.map((a) => (
+            <option key={a.key} value={a.key}>
+              {a.kind === "hidden" ? a.key : a.label.slice(0, 40) || a.key}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Test"
+          className={SELECT}
+          value={rule.op}
+          onChange={(e) => {
+            const op = e.target.value as ShowOp;
+            put(op === "is" || op === "not" ? { ...rule, op } : { key: rule.key, op });
+          }}
+        >
+          {SHOW_OPS.map((o) => (
+            <option key={o} value={o}>
+              {SHOW_OP_LABELS[o]}
+            </option>
+          ))}
+        </select>
+        <Button size="sm" tone="quiet" onClick={() => put(null)}>
+          Always show
+        </Button>
+      </div>
+      {wantsValues && src?.options ? (
+        <div className="flex flex-wrap gap-3 text-[13px]">
+          {src.options.filter(Boolean).map((o) => (
+            <label key={o} className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={!!rule.values?.includes(o)}
+                onChange={(e) => {
+                  const have = (rule.values ?? []).filter((v) => v !== o);
+                  put({ ...rule, values: e.target.checked ? [...have, o] : have });
+                }}
+              />
+              {o}
+            </label>
+          ))}
+        </div>
+      ) : wantsValues ? (
+        <label className="grid gap-1">
+          <span className={HINT}>Answers that count, one per line (any case)</span>
+          <Textarea
+            rows={2}
+            value={(rule.values ?? []).join("\n")}
+            onChange={(e) => put({ ...rule, values: e.target.value.split("\n") })}
+          />
+        </label>
+      ) : null}
+    </div>
+  );
+}
 
 /** One field's row in the builder: kind, label, then what that kind takes. */
 function FieldRow({
   f,
   i,
+  above,
   last,
   set,
   move,
@@ -52,6 +161,7 @@ function FieldRow({
 }: {
   f: FormField;
   i: number;
+  above: FormField[];
   last: boolean;
   set: (f: FormField) => void;
   move: (by: -1 | 1) => void;
@@ -59,14 +169,18 @@ function FieldRow({
 }) {
   const id = `ff-${i}`;
   const kind = (k: FieldKind) => {
+    if (k === "step") return set({ key: f.key, kind: k, label: "" });
     const next: FormField = { key: f.key, kind: k, label: f.label };
     if (f.required && k !== "hidden") next.required = true;
+    if (f.show && CAN_HIDE(k)) next.show = f.show;
     if (HAS_OPTIONS.has(k)) next.options = f.options?.length ? f.options : ["One", "Two"];
     set(next);
   };
   return (
-    <fieldset className="grid min-w-0 gap-2 border-l-2 border-(--ui-hair) pl-3">
-      <legend className={LABEL}>Field {i + 1}</legend>
+    <fieldset
+      className={`grid min-w-0 gap-2 border-l-2 pl-3 ${f.kind === "step" ? "border-(--ui-accent)" : "border-(--ui-hair)"}`}
+    >
+      <legend className={LABEL}>{f.kind === "step" ? "New step" : `Field ${i + 1}`}</legend>
       <div className="grid gap-2 sm:grid-cols-[160px_minmax(0,1fr)]">
         <select
           aria-label="Kind"
@@ -87,6 +201,15 @@ function FieldRow({
             rows={4}
             value={f.label}
             maxLength={1000}
+            onChange={(e) => set({ ...f, label: e.target.value })}
+          />
+        ) : f.kind === "step" ? (
+          <Input
+            id={`${id}-label`}
+            aria-label="Step heading"
+            placeholder="Step heading (optional): A few more details"
+            value={f.label}
+            maxLength={200}
             onChange={(e) => set({ ...f, label: e.target.value })}
           />
         ) : (
@@ -160,8 +283,11 @@ function FieldRow({
           </label>
         </div>
       ) : null}
+      {CAN_HIDE(f.kind) ? <ShowRow f={f} above={above} set={set} /> : null}
       <div className="flex flex-wrap items-center gap-2">
-        {f.kind !== "hidden" ? (
+        {f.kind === "step" ? (
+          <span className={HINT}>Back and Next show here; the fields below are the next step.</span>
+        ) : f.kind !== "hidden" ? (
           <label className="flex items-center gap-1.5 text-[13px]">
             <input
               type="checkbox"
@@ -192,11 +318,75 @@ function FieldRow({
   );
 }
 
+/** A show rule in words over its field: "Shown when Service is Repair". */
+function ShownWhen({ rule, fields }: { rule: ShowRule; fields: FormField[] }) {
+  const src = fields.find((f) => f.key === rule.key);
+  const name = src ? (src.kind === "hidden" ? src.key : src.label.slice(0, 40)) : rule.key;
+  const vals = rule.op === "is" || rule.op === "not" ? ` ${(rule.values ?? []).join(" or ")}` : "";
+  return (
+    <span className="text-[12px] text-[#5b6170]">
+      Shown when {name} {SHOW_OP_LABELS[rule.op]}
+      {vals}
+    </span>
+  );
+}
+
+/** One field as a visitor sees it. */
+function FieldPreview({ f }: { f: FormField }) {
+  const box = "mt-1 block w-full border border-[#cfcac0] bg-white px-3 py-2.5 text-[16px]";
+  const opt = f.required ? null : <span className="font-normal text-[#5b6170]"> (optional)</span>;
+  if (f.kind === "consent")
+    return (
+      <label className="flex items-start gap-2 text-[13px] leading-snug">
+        <input type="checkbox" className="mt-0.5" tabIndex={-1} />
+        <span>{f.label}</span>
+      </label>
+    );
+  if (f.kind === "multi")
+    return (
+      <fieldset className="m-0 grid gap-1.5 border-0 p-0">
+        <legend className="mb-1 font-medium">
+          {f.label}
+          {opt}
+        </legend>
+        {(f.options ?? []).filter(Boolean).map((o) => (
+          <label key={o} className="flex items-center gap-2">
+            <input type="checkbox" tabIndex={-1} /> {o}
+          </label>
+        ))}
+      </fieldset>
+    );
+  return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the control is the input below, picked by the field's kind
+    <label className="grid font-medium">
+      <span>
+        {f.label}
+        {opt}
+      </span>
+      {f.hint ? <small className="font-normal text-[#5b6170]">{f.hint}</small> : null}
+      {f.kind === "long" ? (
+        <textarea className={box} rows={3} tabIndex={-1} readOnly />
+      ) : f.kind === "select" ? (
+        <select className={box} tabIndex={-1}>
+          <option>Pick one</option>
+          {(f.options ?? []).filter(Boolean).map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className={box}
+          tabIndex={-1}
+          readOnly
+          type={f.kind === "date" ? "date" : f.kind === "email" ? "email" : "text"}
+        />
+      )}
+    </label>
+  );
+}
+
 /** The form as a visitor sees it, drawn from the spec as it's edited. */
 function FormPreview({ spec }: { spec: FormSpec }) {
-  const box = "mt-1 block w-full border border-[#cfcac0] bg-white px-3 py-2.5 text-[16px]";
-  const opt = (f: FormField) =>
-    f.required ? null : <span className="font-normal text-[#5b6170]"> (optional)</span>;
   return (
     <div className="grid gap-4 bg-[#fbfaf7] p-5 text-[#16181d]">
       <h2 className="m-0 text-[24px] leading-tight font-semibold">{spec.title || "Untitled"}</h2>
@@ -204,54 +394,22 @@ function FormPreview({ spec }: { spec: FormSpec }) {
       {spec.fields.map((f, i) => {
         if (f.kind === "hidden") return null;
         const key = `${f.key}-${i}`;
-        if (f.kind === "consent")
+        if (f.kind === "step")
           return (
-            <label key={key} className="flex items-start gap-2 text-[13px] leading-snug">
-              <input type="checkbox" className="mt-0.5" tabIndex={-1} />
-              <span>{f.label}</span>
-            </label>
+            <div key={key} className="grid gap-1 border-t border-dashed border-[#cfcac0] pt-3">
+              <span className="text-[12px] tracking-wide text-[#5b6170] uppercase">Next step</span>
+              {f.label ? <h3 className="m-0 text-[18px] font-semibold">{f.label}</h3> : null}
+            </div>
           );
-        if (f.kind === "multi")
+        const when = f.show ? <ShownWhen rule={f.show} fields={spec.fields} /> : null;
+        if (when)
           return (
-            <fieldset key={key} className="m-0 grid gap-1.5 border-0 p-0">
-              <legend className="mb-1 font-medium">
-                {f.label}
-                {opt(f)}
-              </legend>
-              {(f.options ?? []).filter(Boolean).map((o) => (
-                <label key={o} className="flex items-center gap-2">
-                  <input type="checkbox" tabIndex={-1} /> {o}
-                </label>
-              ))}
-            </fieldset>
+            <div key={key} className="grid gap-1 border-l-2 border-[#cfcac0] pl-2">
+              {when}
+              <FieldPreview f={f} />
+            </div>
           );
-        return (
-          // biome-ignore lint/a11y/noLabelWithoutControl: the control is the input below, picked by the field's kind
-          <label key={key} className="grid font-medium">
-            <span>
-              {f.label}
-              {opt(f)}
-            </span>
-            {f.hint ? <small className="font-normal text-[#5b6170]">{f.hint}</small> : null}
-            {f.kind === "long" ? (
-              <textarea className={box} rows={3} tabIndex={-1} readOnly />
-            ) : f.kind === "select" ? (
-              <select className={box} tabIndex={-1}>
-                <option>Pick one</option>
-                {(f.options ?? []).filter(Boolean).map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className={box}
-                tabIndex={-1}
-                readOnly
-                type={f.kind === "date" ? "date" : f.kind === "email" ? "email" : "text"}
-              />
-            )}
-          </label>
-        );
+        return <FieldPreview key={key} f={f} />;
       })}
       <div>
         <span className="inline-block bg-[#24594b] px-5 py-3 font-semibold text-white">
@@ -313,15 +471,28 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
       fields: [...spec.fields, { key: `question_${n}`, kind: "text", label: `Question ${n}` }],
     });
   };
-  /** Keys follow labels for fields a person named; hidden fields keep the key they typed. */
-  const toSave = (): FormSpec => ({
-    ...spec,
-    fields: spec.fields.map((f) =>
-      f.kind === "hidden" || f.kind === "consent" || !/^question_\d+$/.test(f.key)
-        ? f
-        : { ...f, key: keyOf(f.label) || f.key },
-    ),
-  });
+  /**
+   * Keys follow labels for fields a person named; hidden fields keep the key they typed. A show
+   * rule follows its field's key when that changes.
+   */
+  const toSave = (): FormSpec => {
+    const renamed = new Map<string, string>();
+    const fields = spec.fields.map((f) => {
+      if (f.kind === "hidden" || f.kind === "consent" || f.kind === "step") return f;
+      if (!/^question_\d+$/.test(f.key)) return f;
+      const key = keyOf(f.label) || f.key;
+      renamed.set(f.key, key);
+      return { ...f, key };
+    });
+    return {
+      ...spec,
+      fields: fields.map((f) =>
+        f.show && renamed.has(f.show.key)
+          ? { ...f, show: { ...f.show, key: renamed.get(f.show.key) as string } }
+          : f,
+      ),
+    };
+  };
   return (
     <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <form
@@ -375,6 +546,7 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
               key={i}
               f={f}
               i={i}
+              above={spec.fields.slice(0, i)}
               last={i === spec.fields.length - 1}
               set={(next) => setField(i, next)}
               move={(by) => move(i, by)}
@@ -384,6 +556,19 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
           <div>
             <Button size="sm" disabled={spec.fields.length >= 30} onClick={add}>
               Add field
+            </Button>{" "}
+            <Button
+              size="sm"
+              tone="quiet"
+              disabled={
+                spec.fields.length >= 30 ||
+                spec.fields.filter((f) => f.kind === "step").length >= STEPS_MAX
+              }
+              onClick={() =>
+                put({ fields: [...spec.fields, { key: "step_new", kind: "step", label: "" }] })
+              }
+            >
+              Add step
             </Button>
           </div>
         </div>
@@ -557,6 +742,24 @@ function Numbers({ d }: { d: FormDetail }) {
   );
 }
 
+/** Views, starts, each step reached, submits: where people stop, last 30 days. */
+function Steps({ d }: { d: FormDetail }) {
+  const sum = (k: "views" | "starts" | "submits") => d.days.reduce((t, x) => t + x[k], 0);
+  const views = sum("views");
+  const rows: [string, number][] = [
+    ["Opened", views],
+    ["Started", sum("starts")],
+    ...d.steps.map((x): [string, number] => [`Reached step ${x.step}`, x.views]),
+    ["Sent", sum("submits")],
+  ];
+  return (
+    <Table
+      head={["", ["Views", "r"], ["Of opened", "r"]]}
+      rows={rows.map(([what, n]) => [what, num(n), views ? rate(n / views) : ""])}
+    />
+  );
+}
+
 function Sources({ d }: { d: FormDetail }) {
   if (!d.sources.length) return <p className={QUIET}>No views counted.</p>;
   return (
@@ -601,6 +804,9 @@ export const formExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
   const sections: [string, ReactNode][] = [
     ["Link and embed", <Share key="s" d={d} />],
     ["Views, last 30 days", <Numbers key="n" d={d} />],
+    ...(d.spec.fields.some((f) => f.kind === "step")
+      ? ([["Where people stop, last 30 days", <Steps key="st" d={d} />]] as [string, ReactNode][])
+      : []),
     ["Where visitors came from", <Sources key="src" d={d} />],
     ["Newest submissions", <Recent key="r" d={d} />],
   ];

@@ -12,6 +12,7 @@ import {
   formHtml,
   keyOf,
   parseSpec,
+  shows,
 } from "./forms.js";
 import { embedSnippets, KIT_JS, kitJs } from "./kit.js";
 import { formUrl } from "./model.js";
@@ -212,6 +213,122 @@ describe("rendering a form", () => {
     expect(withForm).toContain('name="service"');
     expect(withForm).toContain(`<input type="hidden" name="page" value="${ID}">`);
     expect(withForm).not.toContain('name="note"');
+  });
+});
+
+describe("show-when rules and steps", () => {
+  const job = parseSpec({
+    title: "Get a quote",
+    button: "Send",
+    fields: [
+      { kind: "email", label: "Email", required: true },
+      { kind: "select", label: "Service", options: ["Repair", "Install"], required: true },
+      {
+        kind: "text",
+        label: "What broke",
+        required: true,
+        show: { key: "service", op: "is", values: ["repair"] },
+      },
+      { kind: "step", label: "A few more details" },
+      { kind: "phone", label: "Phone", show: { key: "service", op: "not", values: ["Repair"] } },
+      { kind: "consent", label: consentWords("Acme"), show: { key: "phone", op: "filled" } },
+      { key: "utm_source", kind: "hidden" },
+    ],
+    after: { kind: "thanks", text: "Thanks." },
+  });
+
+  it("keeps rules on fields above and steps by place", () => {
+    expect(job.fields.map((f) => f.key)).toEqual([
+      "email",
+      "service",
+      "what_broke",
+      "step_4",
+      "phone",
+      CONSENT_KEY,
+      "utm_source",
+    ]);
+    expect(job.fields[2]?.show).toEqual({ key: "service", op: "is", values: ["repair"] });
+    expect(job.fields[5]?.show).toEqual({ key: "phone", op: "filled" });
+  });
+
+  it("refuses rules and steps that can't work", () => {
+    const base = { title: "T", after: { kind: "thanks", text: "x" } };
+    const bad = (fields: unknown[]) => () => parseSpec({ ...base, fields });
+    const email = { kind: "email", label: "Email" };
+    expect(bad([{ kind: "text", label: "A", show: { key: "email", op: "filled" } }, email])).toThrow(
+      /above it/,
+    );
+    expect(bad([email, { kind: "text", label: "A", show: { key: "email", op: "is" } }])).toThrow(
+      /which answer/,
+    );
+    expect(
+      bad([
+        email,
+        { kind: "select", label: "S", options: ["A"] },
+        { kind: "text", label: "B", show: { key: "s", op: "is", values: ["Z"] } },
+      ]),
+    ).toThrow(/isn't a choice/);
+    expect(
+      bad([
+        { kind: "text", label: "A" },
+        { ...email, show: { key: "a", op: "filled" } },
+      ]),
+    ).toThrow(/always asked/);
+    expect(bad([{ kind: "step", label: "x" }, email])).toThrow(/start with a new step/);
+    expect(bad([email, { kind: "step", label: "x" }])).toThrow(/end with a new step/);
+    expect(
+      bad([email, { kind: "step" }, { key: "utm_source", kind: "hidden" }, { kind: "step" }, email]),
+    ).toThrow(/two fields share|Step 2 has no questions/i);
+    expect(
+      bad([email, { key: "utm", kind: "hidden", show: { key: "email", op: "filled" } }]),
+    ).toThrow(/can't have a show rule/);
+  });
+
+  it("tests a rule in any case", () => {
+    expect(shows(undefined, [])).toBe(true);
+    expect(shows({ key: "a", op: "is", values: ["Repair"] }, ["repair"])).toBe(true);
+    expect(shows({ key: "a", op: "not", values: ["Repair"] }, ["Install"])).toBe(true);
+    expect(shows({ key: "a", op: "filled" }, [])).toBe(false);
+    expect(shows({ key: "a", op: "empty" }, [])).toBe(true);
+  });
+
+  it("asks and keeps only the fields shown", () => {
+    const repair = checkEntry(job, {
+      email: "a@b.co",
+      service: "Repair",
+      what_broke: "Sink",
+      phone: "555 010 0000",
+      sms_consent: "yes",
+    });
+    expect(repair.errors).toEqual({});
+    // Phone was hidden for a repair, so its value and the consent it gated are dropped.
+    expect(repair.values).toEqual({ email: "a@b.co", service: "Repair", what_broke: "Sink" });
+
+    const install = checkEntry(job, { email: "a@b.co", service: "Install", phone: "5550100000" });
+    expect(install.errors).toEqual({});
+    expect(install.values).toEqual({ email: "a@b.co", service: "Install", phone: "5550100000" });
+
+    // A shown required field still needs filling.
+    expect(checkEntry(job, { email: "a@b.co", service: "Repair" }).errors).toEqual({
+      what_broke: "Fill this in.",
+    });
+  });
+
+  it("draws one div a step with its heading, and each rule on its field", () => {
+    const html = formHtml(job, { form: ID, base: "" });
+    expect(html.match(/class="step"/g)).toHaveLength(2);
+    expect(html).toContain('<div class="step" data-step="2">\n<h3>A few more details</h3>');
+    expect(html).toContain(
+      `<label data-show="${'{"key":"service","op":"is","values":["repair"]}'.replace(/"/g, "&quot;")}" for=`,
+    );
+    expect(html).toMatch(/<label data-show="[^"]+" class="check">/);
+    expect(html).not.toContain("step_4");
+  });
+
+  it("kit applies rules and steps, and counts a step", () => {
+    expect(KIT_JS).toContain('send("step",n)');
+    expect(KIT_JS).toContain("[data-show]");
+    expect(KIT_JS).toContain("input[required]:not(:disabled)");
   });
 });
 
