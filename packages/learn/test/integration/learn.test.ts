@@ -34,6 +34,7 @@ import {
   sopLibrary,
   sources,
   tellLearn,
+  type VideoReader,
   waitingForMac,
   writeAsked,
 } from "../../src/index.js";
@@ -287,8 +288,8 @@ describe("Learn", () => {
     const ok = await api.save({ ...viewer, url: "https://youtu.be/synthVid02a?si=x" });
     const md = `---\nsource: "youtube:synthVid02a"\ntitle: "Reply rates"\nchannel: "Synth"\npriority: 5\n---\n\n# Reply rates\n\n## Speech\n\n[0:00] Words.\n`;
     const seen: unknown[] = [];
-    const reader = async (url: string, kind: string, durationS?: number | null) => {
-      seen.push([url, kind, durationS ?? null]);
+    const reader: VideoReader = async ({ url, kind, duration }) => {
+      seen.push([url, kind, duration]);
       return { file: "youtube-synthVid02a.md", md };
     };
     expect(await readItem(pg.db, web({ entries: [] }), Number(ok.id), reader)).toBe("read");

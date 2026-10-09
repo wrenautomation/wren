@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,6 +6,7 @@ import { FakeLlm } from "@wren/llm";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addSource,
+  audioSource,
   buildSop,
   captionsMarkdown,
   clock,
@@ -186,5 +188,55 @@ describe("youtube by URL", () => {
       /^https:\/\/gw\.example\/v1beta\/models\/[\w.-]+:generateContent$/,
     );
     expect(gemini.every((c) => c.auth === "Bearer tok" && c.goog === null)).toBe(true);
+  });
+});
+
+const hasFfmpeg = (() => {
+  try {
+    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+describe("audio source", () => {
+  it.skipIf(!hasFfmpeg)("cuts an episode into clips and keeps their order and times", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sops-audio-test-"));
+    try {
+      const file = join(dir, "tone.ogg");
+      execFileSync("ffmpeg", [
+        ...["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=700"],
+        ...["-ac", "1", "-c:a", "libopus", "-b:a", "8k", file],
+      ]);
+      const audio = await readFile(file);
+      const asks: string[] = [];
+      const fetchFn = (async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "https://cdn.example.com/ep1.mp3") return new Response(audio);
+        const body = JSON.parse(String(init?.body)) as {
+          contents: { parts: { inlineData?: { mimeType: string }; text?: string }[] }[];
+        };
+        const parts = body.contents[0]?.parts ?? [];
+        expect(parts[0]?.inlineData?.mimeType).toBe("audio/ogg");
+        const at = /clip starts at ([\d:]+)/.exec(parts[1]?.text ?? "")?.[1] ?? "?";
+        asks.push(at);
+        return Response.json({ candidates: [{ content: { parts: [{ text: `heard ${at}` }] } }] });
+      }) as unknown as typeof fetch;
+      const s = await audioSource("https://cdn.example.com/ep1.mp3", {
+        url: "https://show.example/ep1",
+        title: "Episode one",
+        creator: "Synth Show",
+        geminiKeys: ["k"],
+        fetchFn,
+      });
+      expect(asks.sort()).toEqual(["0:00", "10:00"]);
+      expect(s.name).toMatch(/^podcast-[0-9a-f]{12}\.md$/);
+      expect(s.md).toContain('channel: "Synth Show"');
+      expect(s.md).toContain("duration: 700");
+      expect(s.md.indexOf("heard 0:00")).toBeLessThan(s.md.indexOf("heard 10:00"));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

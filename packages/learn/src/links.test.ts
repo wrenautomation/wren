@@ -53,6 +53,7 @@ describe("kindOf", () => {
     expect(needsMac("reel")).toBe(true);
     expect(needsMac("article")).toBe(false);
     expect(needsMac("episode")).toBe(false);
+    expect(needsMac("episode", "https://cdn.example.com/1.mp3")).toBe(true);
   });
 
   it("names the sites whose creators can't be followed yet", () => {

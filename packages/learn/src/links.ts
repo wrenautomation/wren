@@ -63,10 +63,12 @@ export function kindOf(clean: string, audio?: string | null): ItemKind {
 }
 
 /**
- * Whether only the Mac's reader can read it: video needs yt-dlp, a home IP and the Gemini keys. A
- * podcast episode is read from its show notes until audio transcripts land.
+ * Whether the Mac's reader reads it: video needs yt-dlp, a home IP and the Gemini keys (the worker
+ * tries YouTube first), and an episode's audio needs ffmpeg. An episode with no audio file is read
+ * from its show notes.
  */
-export const needsMac = (kind: ItemKind): boolean => kind === "video" || kind === "reel";
+export const needsMac = (kind: ItemKind, media?: string | null): boolean =>
+  kind === "video" || kind === "reel" || (kind === "episode" && !!media);
 
 /** A profile on a site whose creators can't be followed yet: public reads only, in development. */
 export function creatorSite(raw: string): string | null {

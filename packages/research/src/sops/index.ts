@@ -7,6 +7,7 @@
  * SOP.md and building again. Nothing here touches a database.
  */
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
@@ -454,6 +455,100 @@ export async function videoSource(
         ...(info.duration ? { duration: Math.round(info.duration) } : {}),
         ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
       })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}## Speech\n\n${speech.text}\n\n## On screen\n\n${shown}\n`,
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+const AUDIO_MAX = 600_000_000;
+
+const HEARD = (start: number) =>
+  `Transcribe the speech in this podcast audio: every word spoken, in paragraphs, each starting with its time in the episode as [m:ss], or [h:mm:ss] past the hour (this clip starts at ${clock(start)}), and the speaker's name in bold when it's known. Fix only obvious mishearings. Leave out ad reads. Markdown, no heading. If nobody speaks, reply with the single word none.`;
+
+/**
+ * A podcast episode heard from its audio file: downloaded, cut by ffmpeg into `CLIP_S` mono
+ * clips small enough to send inline (about 2 MB each), and each transcribed by Gemini, 4 at a
+ * time, times running on across clips. `url` is the episode's page; `title` and `creator` are
+ * what its feed said.
+ */
+export async function audioSource(
+  audioUrl: string,
+  opts: {
+    url: string;
+    title?: string | null;
+    creator?: string | null;
+    geminiKeys: readonly string[];
+    fetchFn?: typeof fetch;
+    ffmpeg?: string;
+    priority?: number;
+  },
+): Promise<Source> {
+  if (!opts.geminiKeys.length) throw new Error(`${audioUrl}: needs GEMINI keys to transcribe`);
+  const fetchFn = opts.fetchFn ?? fetch;
+  const ffmpeg = opts.ffmpeg ?? "ffmpeg";
+  const dir = await mkdtemp(join(tmpdir(), "sop-audio-"));
+  try {
+    const res = await fetchFn(audioUrl, { signal: AbortSignal.timeout(600_000) });
+    if (!res.ok || !res.body) throw new Error(`${audioUrl}: HTTP ${res.status}`);
+    if (Number(res.headers.get("content-length") ?? 0) > AUDIO_MAX)
+      throw new Error(`${audioUrl}: over ${AUDIO_MAX / 1e6} MB`);
+    const whole = join(dir, "episode");
+    await writeFile(whole, Buffer.from(await res.arrayBuffer()));
+    await run(
+      ffmpeg,
+      [
+        ...["-hide_banner", "-loglevel", "error", "-i", whole, "-vn", "-ac", "1", "-ar", "16000"],
+        ...["-c:a", "libopus", "-b:a", "24k", "-f", "segment", "-segment_time", String(CLIP_S)],
+        ...["-reset_timestamps", "1", join(dir, "clip%03d.ogg")],
+      ],
+      { maxBuffer: 16 * 1024 * 1024 },
+    );
+    const clips = (await readdir(dir)).filter((f) => f.startsWith("clip")).sort();
+    if (!clips.length) throw new Error(`${audioUrl}: ffmpeg cut no clips`);
+    const id = createHash("sha1").update(audioUrl).digest("hex").slice(0, 12);
+    const hear = async (file: string, i: number) => {
+      const data = (await readFile(join(dir, file))).toString("base64");
+      const said = await askGemini(
+        {
+          contents: [
+            {
+              parts: [{ inlineData: { mimeType: "audio/ogg", data } }, { text: HEARD(i * CLIP_S) }],
+            },
+          ],
+        },
+        opts.geminiKeys,
+        fetchFn,
+        `${id} ${clock(i * CLIP_S)} speech`,
+      );
+      if ("unread" in said)
+        throw new Error(`gemini ${id} ${clock(i * CLIP_S)}: unread, last ${said.unread}`);
+      return said.text.toLowerCase() === "none" ? "" : said.text;
+    };
+    const speech: string[] = [];
+    for (let i = 0; i < clips.length; i += 4)
+      speech.push(...(await Promise.all(clips.slice(i, i + 4).map((f, j) => hear(f, i + j)))));
+    const { stdout } = await run(ffmpeg.replace(/ffmpeg$/, "ffprobe"), [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      whole,
+    ]).catch(() => ({ stdout: "" }));
+    const duration = Math.round(Number(stdout.trim()) || 0);
+    const title = opts.title?.trim() || opts.url;
+    return {
+      name: `podcast-${id}.md`,
+      md: `${frontMatter({
+        source: `podcast:${id}`,
+        title,
+        url: opts.url,
+        ...(opts.creator ? { channel: opts.creator } : {}),
+        priority: opts.priority ?? DEFAULT_PRIORITY,
+        ...(duration ? { duration } : {}),
+      })}# ${title}\n\n## Speech\n\n${speech.filter(Boolean).join("\n\n") || "(no speech)"}\n`,
     };
   } finally {
     await rm(dir, { recursive: true, force: true });

@@ -135,7 +135,7 @@ export async function readItem(
   const [item] = await db.select().from(items).where(eq(items.id, id));
   if (!item) return null;
   if (item.readAt) return "read";
-  if (needsMac(item.kind)) {
+  if (needsMac(item.kind, item.mediaUrl)) {
     if (video && youtubeOf(item.url)) {
       const r = await readVideo(db, video, id);
       if (r === "read") return "read";
@@ -190,12 +190,17 @@ export const readStep =
       ? [{ port: "read", event: e }]
       : [];
 
-/** A video reader: a transcript as markdown and its SOP source file name. */
-export type VideoReader = (
-  url: string,
-  kind: ItemKind,
-  durationS?: number | null,
-) => Promise<{ file: string; md: string }>;
+/** A video or audio reader: a transcript as markdown and its SOP source file name. */
+export type VideoReader = (item: {
+  url: string;
+  kind: ItemKind;
+  title: string;
+  creator: string | null;
+  /** Seconds, when the feed said. */
+  duration: number | null;
+  /** An episode's audio file. */
+  mediaUrl: string | null;
+}) => Promise<{ file: string; md: string }>;
 
 const youtubeOf = (raw: string): string | null => {
   try {
@@ -261,7 +266,7 @@ export async function readVideo(
     }
   }
   try {
-    const { file, md } = await reader(item.url, item.kind, item.duration);
+    const { file, md } = await reader(item);
     const title = frontField(md, "title");
     const creator = frontField(md, "channel");
     const duration = secondsOf(frontField(md, "duration") ?? "");

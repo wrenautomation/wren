@@ -13,7 +13,7 @@ One thing to learn from (`learn.items`), in one workspace (`client`: a client's 
 
 ## Why this shape
 
-Saved and followed items are one table, so a link saved after its feed brought it keeps its read and score. The score sets the verdict: 7 and up shows (Worth reading), 4 to 6 holds, the rest drops. Following a source marks its back catalog done: only what comes next is read. A YouTube video up to 40 minutes reads on the worker, by URL through the gateway's Gemini keys (`youtubeByUrl`). Other videos, reels, longer ones and failed worker reads need yt-dlp and a home IP, so they wait for the Mac (`needs_mac`). A client's items score on its own models allowance, against its own SOP names; its SOP asks land in its own Notes. Was the Monitor's radar (`watch.feeds`, `watch.items`) until 2026-10-07.
+Saved and followed items are one table, so a link saved after its feed brought it keeps its read and score. The score sets the verdict: 7 and up shows (Worth reading), 4 to 6 holds, the rest drops. Following a source marks its back catalog done: only what comes next is read. A YouTube video up to 40 minutes reads on the worker, by URL through the gateway's Gemini keys (`youtubeByUrl`). Other videos, reels, longer ones and failed worker reads need yt-dlp and a home IP, and an episode's audio needs ffmpeg, so they wait for the Mac (`needs_mac`). A client's items score on its own models allowance, against its own SOP names; its SOP asks land in its own Notes. Was the Monitor's radar (`watch.feeds`, `watch.items`) until 2026-10-07.
 
 ## Shape
 
@@ -40,7 +40,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 |---|---|
 | `Watch/all` on the box, each source hourly | writes items, emits to Spine, sends alerts and the digest, writes each person's bell alerts |
 | Spine `learn.read`, `learn.score` (Lambda) | reads articles and YouTube videos, marks other videos for the Mac, scores |
-| `wren learn read` on the Mac | reads videos and reels for every workspace, scores, writes Wren's SOP asks into folders |
+| `wren learn read` on the Mac | reads videos, reels and episode audio for every workspace, scores, writes Wren's SOP asks into folders |
 | LearnConsole (Learn app, `/learn/add?url=`) | writes |
 | Learn app: Wren's team in Wren's own; a client's logins in theirs, by grants on app `learn` | reads |
 | The portal bell and Learn Today, per person | reads, marks seen, sets picks |

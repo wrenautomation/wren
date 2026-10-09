@@ -405,10 +405,10 @@ function youtubeReader(env: NodeJS.ProcessEnv): VideoReader | null {
   const token = env.WREN_LLM_GATEWAY_TOKEN;
   if (!gateway || !token) return null;
   const fetchFn = gatewayGemini(gateway, token);
-  return async (url, _kind, durationS) => {
+  return async ({ url, duration }) => {
     // Longer reads outrun a step: the Mac reads those from the captions.
-    if (durationS && durationS > 2400) throw new Error("over 40 minutes: read on the Mac");
-    const s = await youtubeByUrl(url, { geminiKeys: ["gateway"], fetchFn, durationS });
+    if (duration && duration > 2400) throw new Error("over 40 minutes: read on the Mac");
+    const s = await youtubeByUrl(url, { geminiKeys: ["gateway"], fetchFn, durationS: duration });
     return { file: s.name, md: s.md };
   };
 }

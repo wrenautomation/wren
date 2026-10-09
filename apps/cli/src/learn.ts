@@ -38,7 +38,13 @@ import {
   writeClientAsked,
 } from "@wren/learn";
 import { ClaudeCodeLlm, fleetKeys, type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
-import { addSource, extractPoints, videoSource, youtubeSource } from "@wren/research/sops";
+import {
+  addSource,
+  audioSource,
+  extractPoints,
+  videoSource,
+  youtubeSource,
+} from "@wren/research/sops";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
 
@@ -95,16 +101,19 @@ export function registerLearn(
   const inWorkspace = <T>(fn: (db: Db, client: string) => Promise<T>) =>
     withDb(async (db) => fn(db, await dbs.workspace()));
   const sopsDir = resolve(rootDir, settings.sopsDir);
-  /** The `sop add` readers: YouTube by captions plus the screen, other video by Gemini. */
+  /** The `sop add` readers: YouTube by captions plus the screen, other video by Gemini, audio cut by ffmpeg. */
   const reader = (): VideoReader => {
     // Gemini keys come from llm.env; never logged.
     loadLlmEnv(settings.llmEnvPath, rootDir);
     const geminiKeys = fleetKeys(process.env, "gemini");
-    return async (url) => {
+    return async ({ url, kind, title, creator, mediaUrl }) => {
       const youtube = /^https:\/\/youtube\.com\//.test(url);
-      const s = youtube
-        ? await youtubeSource(url, settings.ytDlp, undefined, { geminiKeys })
-        : await videoSource(url, settings.ytDlp, undefined, { geminiKeys });
+      const s =
+        kind === "episode" && mediaUrl
+          ? await audioSource(mediaUrl, { url, title, creator, geminiKeys })
+          : youtube
+            ? await youtubeSource(url, settings.ytDlp, undefined, { geminiKeys })
+            : await videoSource(url, settings.ytDlp, undefined, { geminiKeys });
       return { file: s.name, md: s.md };
     };
   };
