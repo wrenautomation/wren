@@ -19,7 +19,9 @@ which review.
 - Lander branch `app-reviews-privacy` (local, not pushed): privacy covers the app's connected
   accounts, Limited Use and YouTube API Services; terms bind YouTube's terms; `/data-deletion` is
   Meta's instructions URL. Every check passes against its build. Push = deploy, so it waits.
-- Reviewers sign in to the test client `wren_test` at portal.wrenautomationreviews.com.
+- Reviewers sign in to the test client `wren_test` at portal.wrenautomationreviews.com as
+  william+review@wrenautomation.com (owner) with a password, no code. The password is in autobrowse
+  creds `wren-review` (`autobrowse creds copy wren-review` when filing).
 
 ## Open
 
@@ -28,7 +30,7 @@ which review.
   a model that doesn't train on it before Google verification, and before the privacy branch's
   Limited Use line goes live. A paid key is William's call.
 - Meta Business Verification needs William's document with the legal name and address.
-- Screencasts: recorded once the reviewer login and test accounts are connected.
+- Screencasts: recorded on the reviewer login once each platform's test account is connected.
 
 ## Decision log
 
