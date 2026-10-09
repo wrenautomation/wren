@@ -1380,6 +1380,13 @@
       "when": 1791548323029,
       "tag": "0196_site_owner_names",
       "breakpoints": true
+    },
+    {
+      "idx": 197,
+      "version": "7",
+      "when": 1791550049411,
+      "tag": "0197_client_social_platforms",
+      "breakpoints": true
     }
   ]
 }
