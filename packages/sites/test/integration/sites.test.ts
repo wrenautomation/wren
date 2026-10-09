@@ -354,7 +354,11 @@ describe("hosted forms", () => {
     const toA = await pub().serveForm({ slug: made.slug, roll: 0.9 });
     expect(toA.html).toContain("Get a quote");
     // The cookie wins over the roll; a bot gets A, outside the split.
-    const kept = await pub().serveForm({ slug: made.slug, roll: 0.9, arm: toB.split?.cookie ?? null });
+    const kept = await pub().serveForm({
+      slug: made.slug,
+      roll: 0.9,
+      arm: toB.split?.cookie ?? null,
+    });
     expect(kept.split?.label).toBe("B");
     const bot = await pub().serveForm({ slug: made.slug, roll: 0.1, bot: true });
     expect(bot.split ?? null).toBeNull();
