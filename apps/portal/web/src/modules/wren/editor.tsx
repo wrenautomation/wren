@@ -15,6 +15,7 @@ import {
   type GraphNode,
   Icon,
   Input,
+  LoadFailed,
   StateMark,
   Tag,
   Textarea,
@@ -513,7 +514,7 @@ export function useLast(workflow: string, node: string) {
 /** The node's last event on the spine: what came in, and what its step sent on. */
 function LastOutput({ workflow, node }: { workflow: string; node: string }) {
   const got = useLast(workflow, node);
-  if (got.error) return <p className={QUIET}>Couldn't read it: {got.error.message}</p>;
+  if (got.error) return <LoadFailed error={got.error} onRetry={got.retry} what="event" />;
   if (!got.data)
     return got.loading ? (
       <p className={QUIET}>Reading…</p>

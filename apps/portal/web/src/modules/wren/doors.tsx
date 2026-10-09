@@ -5,7 +5,7 @@
  * field map: where each lead fact sits in what the form posts.
  */
 import { COMMON, DOOR_URL, LEAD_FIELDS, type LeadField, mapKey, NAMES } from "@wren/core/door";
-import { Button, cx, Input, StateMark, say } from "@wren/ui";
+import { Button, cx, Input, LoadFailed, StateMark, say } from "@wren/ui";
 import { useId, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -227,7 +227,7 @@ export function DoorBlock({
 }) {
   const [nonce, setNonce] = useState(0);
   const got = useDoors(workflow, client, nonce);
-  if (got.error) return <p className={QUIET}>Couldn't read it: {got.error.message}</p>;
+  if (got.error) return <LoadFailed error={got.error} onRetry={got.retry} what="door" />;
   if (!got.data) return <p className={QUIET}>Reading…</p>;
   const door = got.data.find((d) => d.node === node);
   if (!door)
