@@ -37,7 +37,8 @@ export interface AutoReplyDeps {
 
 interface Arrived {
   client: string | null;
-  channel: "email" | "sms" | "dm";
+  /** A reply's channel, or `comment` for a review just read (its comment id). */
+  channel: "email" | "sms" | "dm" | "comment";
   id: number;
 }
 
@@ -54,6 +55,21 @@ export const autoReplyFire: FireTriggers = (ctx, req: Fired) => {
   const a: Arrived = { client: req.client, channel: req.facts.channel, id };
   ctx.objectSendClient<AutoReply>({ name: "AutoReply" }, keyOf(a)).arrived(a);
 };
+
+/**
+ * Tell AutoReply about reviews just kept (designs/2026-10-09-review-replies.md); one the owner
+ * answered already is skipped there. Send-only.
+ */
+export function autoReplyReviews(
+  ctx: restate.Context,
+  client: string | null,
+  ids: readonly number[],
+): void {
+  for (const id of ids) {
+    const a: Arrived = { client, channel: "comment", id };
+    ctx.objectSendClient<AutoReply>({ name: "AutoReply" }, keyOf(a)).arrived(a);
+  }
+}
 
 export function makeAutoReply(deps: AutoReplyDeps) {
   const dbOf = (client: string | null): Db => {

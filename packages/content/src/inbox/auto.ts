@@ -54,9 +54,10 @@ export async function setAutoMode(
 /** What a reply the spine heard is, as an Inbox thread; null when there is none to answer. */
 export async function threadOfReply(
   db: Queryable,
-  channel: "email" | "sms" | "dm",
+  channel: "email" | "sms" | "dm" | "comment",
   id: number,
 ): Promise<string | null> {
+  if (channel === "comment") return `comment:${id}`;
   if (channel === "sms") return `text:${id}`;
   if (channel === "dm") return `dm:${id}`;
   const [r] = (await db.execute(
@@ -67,7 +68,7 @@ export async function threadOfReply(
 }
 
 /** The thread's own channel as the Inbox names it. */
-export const inboxChannelOf = (channel: "email" | "sms" | "dm"): InboxChannel =>
+export const inboxChannelOf = (channel: "email" | "sms" | "dm" | "comment"): InboxChannel =>
   channel === "sms" ? "text" : channel;
 
 /** "STOP", "unsubscribe": a last message that only opts out gets no reply. */

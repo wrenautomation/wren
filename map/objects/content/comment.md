@@ -17,6 +17,8 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 
 ## Shape
 
+- Reviews of the business are comments too (designs/2026-10-09-review-replies.md): kind `review`, `stars` 1 to 5 (0219), kept by `keepReviews`; an owner reply read from the source sets it answered. Each new one goes to `AutoReply` (`autoReplyReviews`) for a drafted reply. Record `marketing.review` (`packages/content/src/social/review-record.ts`), Marketing → Reviews.
+
 - `comments` (`schema.ts:242`): unique (platform, ref); `platform` any content platform; `channel` reach|content, a reach row needs `account_id` (null for content); `sort` asked/question/chat/hostile/ours; `state` new/waiting/answered/dropped; `draft`, `answer`, `contact_id` once DMed (migration 0119)
 - Readers: `redditOutreach().comments` (`packages/channel-reddit/src/outreach.ts`), shared inbox read with `replies`; `Content.comments` on posts of the last 14 days (`packages/content/src/social/store.ts` `keepPostComments`, ours kept as dropped)
 - Drafts: `sortStep` takes a guide per platform, the worker passes `commentGuide` (`packages/content/src/playbook.ts`: the post playbook plus the `comments` SOP) and his last 5 comment edits (`editsFor`); none keeps the old prompt. Wren's sort carries Wren's facts (`factsBlock`) and an answer goes through the facts guard (`guardDraft`, a `runs` row `guard`); a client's carries none, so it claims nothing first-person

@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { InboxChannel } from "../schema.js";
 import { type Entry, partyOf, timelineOf } from "./conversation.js";
+import { reviewHow, reviewOf } from "./review.js";
 import { REPLY_MAX } from "./send.js";
 
 const DRAFT = z.object({ draft: z.string() });
@@ -67,10 +68,11 @@ export async function suggestReply(
     return draftDm(db, deps.llm, Number(o.target), { sender: deps.sender, facts, now: o.now });
   const p = await partyOf(db, o.thread);
   if (!p) throw new Error("that thread is gone");
-  const [entries, touches, dossier] = await Promise.all([
+  const [entries, touches, dossier, review] = await Promise.all([
     timelineOf(db, p),
     touchesFor(db, { personId: p.personId, leadId: p.leadId }, 20),
     dossierOf(db, p.personId),
+    reviewOf(db, p.commentId),
   ]);
   const said = entries.filter((e) => e.channel !== "touch" && e.body.trim()).slice(-TAIL);
   const prompt = [
@@ -78,7 +80,7 @@ export async function suggestReply(
     dossier ? `What we know about their company:\n${dossier}` : "",
     touchesContext(touches, o.now),
     `The conversation, oldest first:\n${said.map(line).join("\n") || "(nothing yet)"}`,
-    `Write ${HOW[o.channel]}. Answer their last message. Return JSON {"draft": "..."}.`,
+    `Write ${review ? reviewHow(review) : HOW[o.channel]}. Answer their last message. Return JSON {"draft": "..."}.`,
   ]
     .filter(Boolean)
     .join("\n\n");

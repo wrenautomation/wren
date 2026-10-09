@@ -98,12 +98,22 @@ export async function keepPostComments(
   db: Queryable,
   post: RecentPost,
   rows: readonly CommentRow[],
+  o: { reviews?: boolean; now?: Date } = {},
 ): Promise<KeptComment[]> {
   if (!rows.length) return [];
   const values = [...rows]
     .sort((a, b) => a.at.localeCompare(b.at))
     .map((c) => {
       const reply = !!c.parentId && c.parentId !== post.id;
+      // A review the owner already answered, on the site or by hand, counts as answered.
+      const answered =
+        o.reviews && c.repliedWith
+          ? {
+              state: "answered" as const,
+              answer: c.repliedWith,
+              answeredAt: o.now ?? new Date(),
+            }
+          : {};
       return {
         platform: post.platform,
         channel: "content" as const,
@@ -111,7 +121,12 @@ export async function keepPostComments(
         ref: c.id.slice(0, 200),
         post: post.id.slice(0, 200),
         parent: (reply ? (c.parentId as string) : post.id).slice(0, 200),
-        kind: reply ? ("comment_reply" as const) : ("post_reply" as const),
+        kind: o.reviews
+          ? ("review" as const)
+          : reply
+            ? ("comment_reply" as const)
+            : ("post_reply" as const),
+        stars: o.reviews ? (c.stars ?? null) : null,
         place: null,
         postTitle: post.title,
         author: c.author.slice(0, 120),
@@ -119,6 +134,7 @@ export async function keepPostComments(
         url: c.url ?? post.url ?? "",
         at: new Date(c.at),
         raw: c.raw ?? c,
+        ...answered,
         ...(c.mine ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" } : {}),
       };
     });
@@ -186,6 +202,7 @@ export async function keepReviews(
         db,
         { platform, id: place, url: null, title: "Reviews", publishedAt: now.toISOString() },
         rows.filter((r) => r.postId === place),
+        { reviews: true, now },
       )),
     );
   return kept;

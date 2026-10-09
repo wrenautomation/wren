@@ -164,6 +164,7 @@ export function businessProfileContent(
             ? "A Google user"
             : (r.reviewer?.displayName ?? "A Google user"),
           text: reviewText(r),
+          ...(STARS[r.starRating ?? ""] ? { stars: STARS[r.starRating ?? ""] } : {}),
           at: r.createTime ?? now().toISOString(),
           ...(r.reviewReply?.comment ? { repliedWith: r.reviewReply.comment } : {}),
           raw: r,

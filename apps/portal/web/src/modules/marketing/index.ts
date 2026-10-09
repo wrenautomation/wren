@@ -845,8 +845,9 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     email: "Email replies from leads show here.",
     mail: "Mail to the mailboxes you connected on Account → Mail shows here.",
     texts: "Text threads show here once someone texts back.",
+    chats: "Chats from your site show here. The tag is on Account → Setup.",
     activity: "Follows, mentions and notices show here.",
-    all: "Comments, DMs, email replies, mail, texts and activity show here.",
+    all: "Comments, DMs, email replies, mail, texts, site chats and activity show here.",
   },
   actions: INBOX_ACTIONS,
   // The whole conversation with its reply and note boxes; activity has none.
@@ -1022,6 +1023,21 @@ export const CONVERSATION_TOP = {
   empty: "No comments from others or DMs in 30 days.",
 };
 
+/** Reviews of the business with their stars; a reply is drafted as each lands. */
+const REVIEWS_PAGE: ListPage = {
+  id: "reviews",
+  label: "Reviews",
+  group: "People",
+  template: "list",
+  record: "marketing.review",
+  columns: ["who", "stars", "words", "reply", "platform", "at"],
+  empty: {
+    waiting: "Every review has a reply.",
+    low: "No review under 4 stars.",
+    all: "Reviews show here once a Business Profile is connected.",
+  },
+};
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
@@ -1032,6 +1048,7 @@ export const marketing: Module = {
   pages: [
     { id: "inbox", ...INBOX_PAGE },
     { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
+    REVIEWS_PAGE,
     APPROVAL_PAGE,
     TODAY,
     {
@@ -1644,6 +1661,7 @@ export const clientMarketing: Module = {
       extras: conversationExtras,
     }),
     { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
+    REVIEWS_PAGE,
     CLIENT_APPROVE,
     asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
     asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),

@@ -1534,6 +1534,13 @@
       "when": 1791576882050,
       "tag": "0218_invoice_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 219,
+      "version": "7",
+      "when": 1791577308487,
+      "tag": "0219_review_stars",
+      "breakpoints": true
     }
   ]
 }

@@ -51,6 +51,7 @@ import {
   pingOf,
   recentPosts,
 } from "../social/store.js";
+import { autoReplyReviews } from "./auto-reply.js";
 import { nextRunAt } from "./planner.js";
 
 export const SOCIAL_KEY = "wren";
@@ -213,6 +214,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         stats.errors.push(`${platform} reviews: ${errorText(err)}`);
       }
     stats.reviews = kept.length - reviewsBefore;
+    // Each new review gets a reply drafted (designs/2026-10-09-review-replies.md).
+    autoReplyReviews(
+      ctx,
+      client,
+      kept.slice(reviewsBefore).map((k) => k.id),
+    );
     if (kept.length)
       spineEmit(ctx, {
         client,

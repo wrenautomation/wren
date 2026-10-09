@@ -120,6 +120,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.approval",
         "marketing.activity",
         "marketing.audience",
+        "marketing.review",
       ],
     },
     out: [{ id: "comment", label: "new comments", kind: "comment" }],

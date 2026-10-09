@@ -276,7 +276,8 @@ export const reachMessages = pgTable(
 );
 
 /** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */
-export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention"] as const;
+/** `review`: a review of the business itself (designs/2026-10-09-review-replies.md). */
+export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention", "review"] as const;
 export type CommentKind = (typeof COMMENT_KINDS)[number];
 
 /** What the sort read a comment as; `ours` = written by one of our accounts. */
@@ -308,6 +309,8 @@ export const comments = pgTable(
     parent: varchar("parent", { length: 200 }).notNull(),
     kind: varchar("kind", { length: 32, enum: COMMENT_KINDS }).notNull(),
     place: varchar("place", { length: 200 }),
+    /** A review's stars, 1 to 5; null on anything else. */
+    stars: smallint("stars"),
     postTitle: text("post_title"),
     author: varchar("author", { length: 120 }).notNull(),
     body: text("body").notNull(),
@@ -340,6 +343,7 @@ export const comments = pgTable(
       sql`((channel)::text <> 'reach'::text) OR (account_id IS NOT NULL)`,
     ),
     oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
+    check("ck_comments_stars", sql`stars IS NULL OR (stars BETWEEN 1 AND 5)`),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),
     foreignKey({

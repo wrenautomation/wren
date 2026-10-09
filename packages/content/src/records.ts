@@ -285,4 +285,5 @@ export { ANALYTICS_RECORDS } from "./analytics/records.js";
 export { mediaRecord, sopRecord } from "./library.js";
 export { type ShapeView, shapeView } from "./shape-view.js";
 export * from "./social/records.js";
+export { reviewRecord } from "./social/review-record.js";
 export { type VideoSigner, videoRecord } from "./video.js";

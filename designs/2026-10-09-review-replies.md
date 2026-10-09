@@ -38,10 +38,9 @@ On `comments` (each database that holds comments):
 
 - kind `review` joins `post_reply`, `comment_reply`, `username_mention`.
 - `stars` smallint, 1 to 5, null for anything but a review.
-- `replied_text` text: the owner's reply as read from the source, so a reply made on Google by
-  hand counts as answered.
-
-`keepReviews` writes kind `review`, `stars` from `starRating` or Maps' number, and the reply.
+`keepReviews` writes kind `review` and `stars` (from `starRating` or Maps' number). An owner's
+reply read from the source sets the row answered (`state`, `answer`, `answered_at`), so a reply
+made on Google by hand counts.
 
 ## Drafting
 
@@ -75,6 +74,12 @@ On `comments` (each database that holds comments):
 - Facebook, Yelp (its API gives three excerpts and no replies) and others.
 - Posting a reply on its own: Auto stays held, and a public reply always waits on a yes.
 - Review widgets on the client's site.
+
+## Shipped
+
+2026-10-09, part one: 0219 (`review` kind, `stars`), API reviews kept with stars and owner
+replies, a draft on arrival through `AutoReply` with the review brief, Marketing → Reviews for
+Wren and clients. Next: the Maps read (`web GET /place/reviews`) and the Copy and post item.
 
 ## Decision log
 

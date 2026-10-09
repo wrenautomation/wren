@@ -127,6 +127,8 @@ export interface CommentRow {
   url?: string;
   /** Written by our own account. */
   mine?: boolean;
+  /** A review's stars, 1 to 5. */
+  stars?: number;
   /** The platform's whole answer for this comment. */
   raw?: unknown;
 }

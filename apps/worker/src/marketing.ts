@@ -12,6 +12,7 @@ import {
   askedReplyRecord,
   contentRecords,
   inboxRecord,
+  reviewRecord,
   socialRecords,
   type VideoSigner,
 } from "@wren/content/records";
@@ -39,6 +40,7 @@ export const marketingNumbers = (signer?: VideoSigner) => [
   inviteRecord,
   personRecord,
   ...socialRecords(signer),
+  reviewRecord,
   // The facts every draft may claim, edited on Marketing → Facts.
   factsRecord,
 ];
@@ -57,5 +59,6 @@ export const clientMarketing = (signer?: VideoSigner) => [
   searchDayRecord,
   inboxRecord,
   askedReplyRecord,
+  reviewRecord,
 ];
 export const CLIENT_MARKETING = clientMarketing();
