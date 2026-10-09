@@ -221,6 +221,7 @@ import {
   uninstallTemplate,
 } from "./template-install.js";
 import { codeLabel } from "./template-labels.js";
+import { listTokens, makeToken, revokeToken } from "./tokens.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import { deleteWorkflowTemplate, saveWorkflowTemplate } from "./workflow-templates.js";
 import {
@@ -2672,6 +2673,29 @@ export function consoleApi({
         value: req.value,
       });
     },
+    /** The signed-in person's live AI tool tokens (designs/2026-10-09-mcp.md). Never the demo's. */
+    tokens: async (req: PortalRequest) => {
+      if (isDemo(req.viewer)) return [];
+      return listTokens(main, (req.viewer as SignedViewer).email);
+    },
+    /**
+     * A new token, shown once. Pinned to the request's client (a client's own host, or the
+     * workspace picked), else to `pin` if given, else as wide as its person.
+     */
+    tokenMake: async (req: PortalRequest & { name?: unknown; pin?: unknown; days?: unknown }) => {
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      if (typeof req.name !== "string") throw new PortalRefusal("name the token", 400);
+      const client = req.client || (typeof req.pin === "string" && req.pin ? req.pin : null);
+      const days = req.days === undefined || req.days === null ? null : Number(req.days);
+      return makeToken(main, (req.viewer as SignedViewer).email, { name: req.name, client, days });
+    },
+    tokenRevoke: async (req: PortalRequest & { id?: unknown }) => {
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      if (typeof req.id !== "string" || !/^[0-9a-f-]{36}$/i.test(req.id))
+        throw new PortalRefusal("say which token", 400);
+      await revokeToken(main, (req.viewer as SignedViewer).email, req.id);
+      return { revoked: req.id };
+    },
     /** A record action: `{ids}`, each removed. */
     snippetRemove: async (req: PortalRequest & { ids?: unknown }) => {
       teamWriter(req);
@@ -3500,6 +3524,13 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         ctx: restate.Context,
         req: PortalRequest & { survey?: unknown; value?: unknown },
       ) => answer(() => ctx.run("answer survey", () => answer(() => api.surveyAnswer(req)))),
+      tokens: (_: restate.Context, req: PortalRequest) => answer(() => api.tokens(req)),
+      tokenMake: (
+        ctx: restate.Context,
+        req: PortalRequest & { name?: unknown; pin?: unknown; days?: unknown },
+      ) => answer(() => ctx.run("make token", () => answer(() => api.tokenMake(req)))),
+      tokenRevoke: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => ctx.run("revoke token", () => answer(() => api.tokenRevoke(req)))),
       setPref: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>

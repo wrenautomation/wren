@@ -3,7 +3,9 @@ import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { Accounts } from "./Accounts.js";
+import { AiTools } from "./AiTools.js";
 import { Domain } from "./Domain.js";
+import { Facts, Fields } from "./Fields.js";
 import { Included } from "./Included.js";
 import { Look } from "./Look.js";
 import { Mail } from "./Mail.js";
@@ -24,7 +26,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look, your mailboxes, your social accounts, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
+    "Your company's details, who can see your projects, your email settings, your look, your mailboxes, your social accounts, the accounts and vendors Wren works in, webhooks, AI tools, your own fields and business facts, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -42,6 +44,9 @@ export const account: Module = {
     { id: "social", label: "Social", Page: Social, group: "Setup" },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
     { id: "webhooks", label: "Webhooks", Page: Webhooks, group: "Setup" },
+    { id: "ai", label: "AI tools", Page: AiTools, group: "Setup" },
+    { id: "fields", label: "Fields", Page: Fields, group: "Setup" },
+    { id: "facts", label: "Business facts", Page: Facts, group: "Setup" },
     {
       id: "billing",
       label: "Billing",

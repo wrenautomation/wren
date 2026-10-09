@@ -60,6 +60,10 @@ export const CONSOLE_ROUTES = {
   // A client login's own portal surveys: what it's due, and its answer.
   surveysDue: "read",
   surveyAnswer: "read",
+  // A login's own access tokens for AI tools (designs/2026-10-09-mcp.md): its email only.
+  tokens: "read",
+  tokenMake: "read",
+  tokenRevoke: "read",
   addClient: "wren:manage",
   // Any handler needs `run` over all of Wren, or `act` on the row its record type declares the
   // call for (`callOn`). A handler with an effect needs `effect` too.
@@ -202,6 +206,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "surveyPause",
   "surveyRemove",
   "surveyAnswer",
+  "tokenMake",
+  "tokenRevoke",
   "addClient",
   "call",
   "setLook",

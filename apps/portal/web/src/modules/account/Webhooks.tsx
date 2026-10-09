@@ -106,7 +106,16 @@ function useRun(props: PageProps, reload: () => void) {
   return { busy, error, run };
 }
 
-function Secret({ secret, onClose }: { secret: string; onClose: () => void }) {
+/** A secret or token that shows once, with Copy. */
+export function Secret({
+  secret,
+  onClose,
+  what = "secret",
+}: {
+  secret: string;
+  onClose: () => void;
+  what?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   // It shows once: bring it into view from wherever Add or New secret was pressed.
@@ -117,7 +126,7 @@ function Secret({ secret, onClose }: { secret: string; onClose: () => void }) {
       className="mb-4 grid gap-2 border border-(--ui-accent) bg-(--ui-tile) p-3"
       role="status"
     >
-      <p className="m-0 font-medium">Copy this secret now. It won't show again.</p>
+      <p className="m-0 font-medium">Copy this {what} now. It won't show again.</p>
       <code className="break-all text-[13px]">{secret}</code>
       <div className={TOOLS}>
         <Button

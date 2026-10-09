@@ -3,12 +3,13 @@ import { type FormField, HandlerForm, type RecordExtras } from "@wren/ui";
 import { createElement } from "react";
 import { call } from "../../api.js";
 import type { Module } from "../../module.js";
+import { AiTools } from "../account/AiTools.js";
 
 export const handlers: Module = {
   id: "handlers",
   name: "Handlers",
   icon: "play",
-  blurb: "Run any handler from a form built from its input.",
+  blurb: "Run any handler from a form built from its input, or from your AI tools over MCP.",
   requires: { audience: "team" },
   pages: [
     {
@@ -48,5 +49,6 @@ export const handlers: Module = {
         };
       },
     },
+    { id: "ai", label: "AI tools", Page: AiTools },
   ],
 };

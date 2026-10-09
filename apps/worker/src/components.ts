@@ -53,6 +53,7 @@ export const PLATFORM = {
   services: {
     ConsolePortal: "the console: loops, handlers, records, clients and installs",
     Ask: "a question to Claude Code on the Mac, answered on its runs row",
+    Tokens: "who an AI tool's access token acts as, for the portal's MCP door",
     Spine: "events along every workflow's routed wires, and the door's webhooks",
     SpineClock: "a Schedule trigger node's clock: ticks each slot into its workflow",
     AuditSealer: "seals the audit log every write lands in",

@@ -208,6 +208,7 @@ import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
+import { makeTokens } from "@wren/core/tokens";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import {
@@ -1633,6 +1634,7 @@ export async function buildServices(
     makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeAsk(db),
+    makeTokens(db),
     makeCallBriefs({
       ...callBriefs,
       // The email lane: a count and a link, named for the client. None with WREN_NOTIFY=none.

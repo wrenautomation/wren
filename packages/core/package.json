@@ -41,6 +41,7 @@
     "./grants": "./src/grants.ts",
     "./notify": "./src/notify.ts",
     "./survey-store": "./src/survey-store.ts",
+    "./tokens": "./src/tokens.ts",
     "./surveys": "./src/surveys.ts",
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
