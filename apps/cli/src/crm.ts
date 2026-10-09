@@ -3,8 +3,9 @@
  * every stage that is due, `crm status` says where things stand and `crm top`
  * shows who to call first. The single-stage commands (verify, lookup) are for
  * debugging one stage. `crm emails`, `approve`, `skip` and `book` are the
- * operator's side of the portal's writes. `crm loop` runs it all on the
- * worker instead. Always a client's database.
+ * operator's side of the portal's writes. `crm run` runs on the worker
+ * (`CrmRun`), where the client's own model and vendor keys open; `crm loop`
+ * runs the client's loop there. Always a client's database.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,7 +13,7 @@ import * as restate from "@restatedev/restate-sdk-clients";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { recordedRun, runFeed } from "@wren/core";
+import { recordedRun } from "@wren/core";
 import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import { atomic, type Db } from "@wren/db";
@@ -39,19 +40,21 @@ import {
   reactivationSettingsOf,
   readClientProfile,
   redraftAwaiting,
-  runCrm,
   runCrmImport,
   seedDemo,
   setClientProfile,
   settleMoves,
   skipDrafts,
 } from "@wren/reactivation";
-import type { Reactivation } from "@wren/reactivation/restate";
+import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db, client: Client) => Promise<T>) => Promise<T>;
+
+/** `crm run` stops after this many rounds on the worker; run it again to go on. */
+const MAX_ROUNDS = 200;
 
 /** What compose needs from the registry and the client's database. */
 const composeInputs = async (db: Db, client: Client) => ({
@@ -155,67 +158,57 @@ export function registerCrm(
 
   crm
     .command("run")
-    .description("Do every stage that is due, in order; Ctrl-C pauses, running again resumes")
-    .option("--limit <n>", "at most n units per stage", positive("--limit"))
+    .description(
+      "Do every stage that is due, in order, on the worker (the client's own keys); Ctrl-C pauses, running again resumes",
+    )
+    .option(
+      "--limit <n>",
+      `one round of at most n units per stage (up to ${MAX_LIMIT})`,
+      positive("--limit"),
+    )
     .option("--no-linkedin", "search only, even when the client has a LinkedIn account")
-    .option("--verifier <name>", "smtp, smtp-direct or fake", settings.verifier)
     .option("--only <stages>", `only these, comma separated: ${CRM_STAGES.join(", ")}`)
-    .action(
-      async (opts: { limit?: number; linkedin: boolean; verifier: string; only?: string }) => {
-        const only = opts.only?.split(",").map((x) => x.trim()) as CrmStage[] | undefined;
-        const bad = only?.filter((x) => !CRM_STAGES.includes(x));
-        if (bad?.length) throw new Error(`--only: no stage ${bad.join(", ")}`);
-        const verifier = await makeVerifier(opts.verifier, {
-          smtpProbeUrl: settings.smtpProbeUrl ?? null,
-          smtpProbeToken: settings.smtpProbeToken ?? null,
-          smtpHelo: settings.smtpHelo ?? null,
+    .action(async (opts: { limit?: number; linkedin: boolean; only?: string }) => {
+      const only = opts.only?.split(",").map((x) => x.trim()) as CrmStage[] | undefined;
+      const bad = only?.filter((x) => !CRM_STAGES.includes(x));
+      if (bad?.length) throw new Error(`--only: no stage ${bad.join(", ")}`);
+      if (opts.limit && opts.limit > MAX_LIMIT)
+        throw new Error(`--limit: at most ${MAX_LIMIT} a round; leave it out to run until done`);
+      const id = await withClientDb(async (_db, client) => client.id);
+      const object = restate
+        .connect(ingressOf(settings))
+        .objectClient<CrmRunObject>({ name: "CrmRun" }, id);
+      // Rounds of a bounded slice each, until nothing is due, a stage stops, or a round does nothing.
+      let before = "";
+      let rounds = 0;
+      let stopped = false;
+      for (;;) {
+        const r = await object.run({
+          only: only ?? null,
+          limit: opts.limit ?? null,
+          linkedin: opts.linkedin,
         });
-        // Key fleets and provider keys live in llm.env (or the host's env); never logged.
-        loadLlmEnv(settings.llmEnvPath, rootDir);
-        const deps = {
-          verifier,
-          checker: defaultLocalChecker(),
-          sites: ingressSites(settings, "wren:crm-run"),
-          // Company sites and job boards: identified, short timeouts, one retry.
-          fetcher: settings.fetchContact
-            ? new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 })
-            : null,
-          llm:
-            settings.llm === "fake"
-              ? null
-              : makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
-        };
-        if (!deps.fetcher)
-          console.log("WREN_FETCH_CONTACT unset: job boards skipped, LinkedIn only");
-        const { client, run, stages, status } = await withClientDb(async (db, client) => {
-          const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
-          const argv = { ...opts, linkedin };
-          const compose = await composeInputs(db, client);
-          const { run, stats } = await recordedRun(db, { command: "crm run", argv }, async (r) => ({
-            stages: await runCrm(
-              db,
-              deps,
-              {
-                linkedin,
-                compose,
-                runId: r.id,
-                feed: runFeed(db, r.id),
-                timezone: settings.sendTimezone,
-                ...(opts.limit ? { limit: opts.limit } : {}),
-                ...(only ? { only } : {}),
-              },
-              (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
-            ),
-          }));
-          return { client, run, stages: stats.stages, status: await crmStatus(db, { compose }) };
-        });
+        rounds++;
+        for (const s of r.stages) console.log(`${s.stage}: ${JSON.stringify(s.stats)}`);
         console.log(
-          `run ${run.id}: ${stages.length ? stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
+          `run ${r.run}: ${r.stages.length ? r.stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
         );
-        for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
-        if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
-      },
-    );
+        stopped = r.stages.some((s) => s.stats.aborted);
+        const now = JSON.stringify(
+          await withClientDb(async (db, client) =>
+            crmStatus(db, { compose: await composeInputs(db, client) }),
+          ),
+        );
+        if (opts.limit || stopped || !r.stages.length || now === before || rounds >= MAX_ROUNDS)
+          break;
+        before = now;
+      }
+      const status = await withClientDb(async (db, client) =>
+        crmStatus(db, { compose: await composeInputs(db, client) }),
+      );
+      for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", id));
+      if (stopped) process.exitCode = 1;
+    });
 
   const loop = crm
     .command("loop")

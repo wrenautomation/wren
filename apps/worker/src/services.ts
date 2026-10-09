@@ -224,7 +224,7 @@ import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
-import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
+import { isVendorStop, keyedSites, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -293,7 +293,12 @@ import { makePaymentsConsole } from "@wren/payments/console";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
 import { clientSendScope } from "@wren/reactivation";
-import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
+import {
+  DEMO_NAME,
+  makeCrmRun,
+  makeReactivation,
+  makeReactivationPortal,
+} from "@wren/reactivation/restate";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -1933,6 +1938,38 @@ export async function buildServices(
       freeVerify: freeVerdicts,
       transport,
       ...clientsNotify,
+    }),
+    // `crm run` from the CLI: here a client's own model and vendor keys can be opened.
+    makeCrmRun({
+      main: db,
+      open: openClient,
+      crm: {
+        verifier,
+        checker: defaultLocalChecker(),
+        fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 1 }) : null,
+        llm: classify ? llm : null,
+      },
+      clientLlm: (client, base) =>
+        meteredModel(base, {
+          main: db,
+          client,
+          part: "reactivation.run",
+          now: () => new Date(),
+          store: keys,
+          own: llmForKey,
+          unset: "managed",
+        }),
+      // Inside the run's step, so through the ingress; Exa, X and YouTube on the client's own key.
+      clientSites: (client) =>
+        keyedSites(
+          ingressSites(ingressOf(settings), {
+            caller: `wren:crm-run:${client}`,
+            ...sitesHost(settings.autobrowseInstanceId),
+            timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+          }),
+          { main: db, client, part: "reactivation.run", now: () => new Date(), store: keys },
+        ),
+      timezone: settings.sendTimezone,
     }),
   );
 

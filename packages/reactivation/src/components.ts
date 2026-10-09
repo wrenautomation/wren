@@ -15,7 +15,7 @@ export const REACTIVATION_COMPONENTS = [
     settings: reactivationSettingsSchema,
     priced: ["offer"],
     provides: {
-      services: ["Reactivation", "ReactivationPortal"],
+      services: ["Reactivation", "ReactivationPortal", "CrmRun"],
       loops: ["Reactivation"],
       records: [
         "reactivation.person",

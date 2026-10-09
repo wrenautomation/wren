@@ -12,7 +12,7 @@ One pass of one client's reactivation: read its settings, run the due CRM stages
 
 ## Input → Movement → Output
 
-The client's registry row and database. `Reactivation/{client}` plans from the registry, runs `runCrm` (verify, score, brief, compose; `crm run` also does lookup, signals and movers), `forwardHandoffs` and `feedDelivery`, then starts or stops `SendScheduler` / `InboxScheduler` at `<client>/<mailbox>`. It records a run and schedules the next pass.
+The client's registry row and database. `Reactivation/{client}` plans from the registry, runs `runCrm` (verify, score, brief, compose; `crm run` also does lookup, signals and movers, on the worker's `CrmRun/{client}` so the client's own keys apply, `packages/reactivation/src/crm-run.ts`), `forwardHandoffs` and `feedDelivery`, then starts or stops `SendScheduler` / `InboxScheduler` at `<client>/<mailbox>`. It records a run and schedules the next pass.
 
 ## Why this shape
 

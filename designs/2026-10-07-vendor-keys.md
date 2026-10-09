@@ -101,7 +101,17 @@ Prices: Telnyx gives dollars per text. Models and Exa use the `VENDORS` micros w
 - `channel-email/test/integration/per-client-reads.test.ts`: an own YouTube key reads on its own bucket while Wren's is spent.
 - `research/src/restate/units.test.ts`: a vendor stop ends at once, nothing held.
 
+## `crm run` on the worker (2026-10-09)
+
+The CLI holds only the store's public key, so it can't read a client's key. The worker can. `crm run` now runs there:
+
+- `CrmRun/<client>/run` (`reactivation/src/crm-run.ts`), exclusive per client. Input: `only`, `limit` (10 by default, 25 at most), `linkedin`. One call is one round in one step: the run's ledger row in the client's database, then each due stage.
+- Its model: `meteredModel`, part `reactivation.run`, `unset: "managed"`, the client's own key when it has one.
+- Its sites legs (lookup, signals, events): `keyedSites` over the ingress (inside the step), so Exa, X and YouTube read on the client's own key when it brought one. Routes only, as signals: no new gate, and a client with no mode stays on Wren's.
+- The CLI calls it through the ingress round after round until nothing is due, a stage stops, or a round changes nothing. `--limit` is one round. `--verifier` is gone: the worker's verifier runs.
+- Test: `reactivation/test/integration/crm-run.test.ts`.
+
 ## Left
 
-- CLI `crm` model calls: the CLI holds only the store's public key, so it can't read a client's key. They stay on Wren's.
-- Reactivation's sites legs run only in CLI `crm run` (the loop passes `sites: null`): same reason.
+- The other CLI `crm` model calls stay on Wren's key: `redraft`, `settle`, `lookup`'s judge-free reads and `seed-demo` (the demo client, Wren's own work). Next: `redraft` and `settle` as `CrmRun` handlers, same shape.
+- `CrmRun` sites legs aren't gated or metered on the client's share yet (`keyedSites`, like signals). Moving to `meteredSites` needs the no-mode default settled first, or clients with no Exa mode stop.
