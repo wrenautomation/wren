@@ -17,18 +17,20 @@ export const REVIEWER_PORTAL = "https://portal.wrenautomationreviews.com";
 export const ICON = "deploy/reviews/app-icon-1024.png";
 
 export const callbackOf = (p: SocialPlatform) => `${PORTAL}/oauth/social/${p}`;
+/** The mail apps' callbacks (designs/2026-10-07-mail-access.md). */
+export const mailCallbackOf = (p: "google" | "microsoft") => `${PORTAL}/oauth/mail/${p}`;
 
 /** Something a review needs that a machine can check. */
 export type Need =
   | { kind: "page"; url: string; has: readonly string[]; why: string }
-  | { kind: "callback"; platform: SocialPlatform }
+  | { kind: "callback"; url: string }
   | { kind: "key"; name: string }
   | { kind: "icon" };
 
 export interface Review {
   id: string;
   name: string;
-  app: SocialApp | "meta-business" | "whatsapp";
+  app: SocialApp | "meta-business" | "whatsapp" | "mail-google" | "mail-microsoft";
   /** The platforms it lets every client connect (`WREN_SOCIAL_LIVE` once it passes). */
   unlocks: readonly SocialPlatform[];
   /** Where it's filed. */
@@ -67,6 +69,10 @@ const keys = (app: string): Need[] => [
   { kind: "key", name: `WREN_SOCIAL_${app}_CLIENT_ID` },
   { kind: "key", name: `WREN_SOCIAL_${app}_CLIENT_SECRET` },
 ];
+
+const cb = (p: SocialPlatform): Need => ({ kind: "callback", url: callbackOf(p) });
+/** Google user data reaches only this model: it must be one that doesn't train on it. */
+const GOOGLE_LLM: Need = { kind: "key", name: "WREN_GOOGLE_LLM" };
 
 const META_WHY: Record<string, string> = {
   pages_show_list: "Lists the Pages the person manages so they pick the one Wren posts as.",
@@ -148,8 +154,8 @@ export const REVIEWS: readonly Review[] = [
     filed: null,
     needs: [
       ...keys("META"),
-      { kind: "callback", platform: "facebook" },
-      { kind: "callback", platform: "instagram" },
+      cb("facebook"),
+      cb("instagram"),
       privacy(
         ["Facebook", "Instagram", "delete"],
         "privacy policy that covers Page and Instagram data",
@@ -194,8 +200,9 @@ export const REVIEWS: readonly Review[] = [
     filed: null,
     needs: [
       ...keys("GOOGLE"),
-      { kind: "callback", platform: "youtube" },
-      { kind: "callback", platform: "google_business" },
+      cb("youtube"),
+      cb("google_business"),
+      GOOGLE_LLM,
       privacy(
         ["Google API Services User Data Policy", "Limited Use"],
         "privacy policy with the Limited Use statement",
@@ -225,7 +232,7 @@ export const REVIEWS: readonly Review[] = [
     ],
     open: [
       "Upload the video unlisted on YouTube; the form takes its link.",
-      "Limited Use: Google user data (YouTube comments, Business Profile reviews) must not reach a model that trains on it. Reply suggestions run on the LLM gateway, whose Gemini keys are free tier. Route Google-sourced text to a no-training model before filing, and before the lander's Limited Use line goes live (a paid key is William's call).",
+      "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Set it to a model whose provider doesn't train on input (a paid key: William's call) before filing, and before the lander's Limited Use line goes live.",
     ],
   },
   {
@@ -272,7 +279,7 @@ export const REVIEWS: readonly Review[] = [
     filed: null,
     needs: [
       ...keys("TIKTOK"),
-      { kind: "callback", platform: "tiktok" },
+      cb("tiktok"),
       privacy(["TikTok"], "privacy policy that covers TikTok data"),
       page(TERMS, ["Wren"], "terms of service"),
       { kind: "icon" },
@@ -327,7 +334,7 @@ export const REVIEWS: readonly Review[] = [
     where: "https://www.linkedin.com/developers/apps/264113599/products",
     after: [],
     filed: "2026-10-09: Development tier access form (Microsoft vetting email next)",
-    needs: [...keys("LINKEDIN_PAGES"), { kind: "callback", platform: "linkedin_page" }],
+    needs: [...keys("LINKEDIN_PAGES"), cb("linkedin_page")],
     fields: [
       ["App", "Wren Pages (264113599)"],
       ["Redirect URL", callbackOf("linkedin_page")],
@@ -360,6 +367,78 @@ export const REVIEWS: readonly Review[] = [
     video: [],
     open: [
       "Google asks for a verified Business Profile tied to the website that has been active 60 days or more.",
+    ],
+  },
+  {
+    id: "google-mail",
+    name: "Google OAuth verification, Wren mail app (send only)",
+    app: "mail-google",
+    unlocks: [],
+    where: "https://console.cloud.google.com/auth/verification",
+    after: [],
+    filed: null,
+    needs: [
+      { kind: "key", name: "WREN_MAIL_GOOGLE_CLIENT_ID" },
+      { kind: "key", name: "WREN_MAIL_GOOGLE_CLIENT_SECRET" },
+      { kind: "callback", url: mailCallbackOf("google") },
+      GOOGLE_LLM,
+      privacy(["Limited Use", "Gmail"], "privacy policy covering connected mailboxes"),
+    ],
+    fields: [
+      ["App name", "Wren mail"],
+      ["User support email", "william@wrenautomation.com"],
+      ["Application home page", SITE],
+      ["Application privacy policy link", PRIVACY],
+      ["Application terms of service link", TERMS],
+      ["Authorized domains", "wrenautomation.com"],
+      ["Authorized redirect URIs", mailCallbackOf("google")],
+      ["Description", DESCRIPTION],
+    ],
+    scopes: [
+      [
+        "https://www.googleapis.com/auth/gmail.send",
+        "Sends the replies the business approves in Wren from its own mailbox, in the thread the customer wrote in.",
+      ],
+    ],
+    video: [
+      `Sign in at ${REVIEWER_PORTAL}; open Account, Mail; press Connect on a Gmail mailbox.`,
+      "Google's consent screen: the app name, the client id in the address bar, the send scope; allow.",
+      "Back in Wren the mailbox shows Connected, send only.",
+      "Marketing, Inbox: approve a reply on an email thread; show it in that mailbox's Sent folder.",
+      "Disconnect in Account, Mail.",
+    ],
+    open: [
+      "Verify send only. Reading (gmail.readonly) is a restricted scope with a yearly CASA assessment, so it stays on Workspace trust: a client's admin trusts the app, and personal Gmail gets send only (designs/2026-10-07-mail-access.md). CASA is money: William's call.",
+      "Upload the video unlisted on YouTube; the form takes its link.",
+    ],
+  },
+  {
+    id: "microsoft-mail",
+    name: "Microsoft publisher verification, Wren mail app",
+    app: "mail-microsoft",
+    unlocks: [],
+    where: "https://entra.microsoft.com (App registrations, Wren mail, Branding & properties)",
+    after: [],
+    filed: null,
+    needs: [
+      { kind: "key", name: "WREN_MAIL_MICROSOFT_CLIENT_ID" },
+      { kind: "key", name: "WREN_MAIL_MICROSOFT_CLIENT_SECRET" },
+      { kind: "callback", url: mailCallbackOf("microsoft") },
+      privacy(["Microsoft 365"], "privacy policy covering connected mailboxes"),
+      page(TERMS, ["Wren app"], "terms of service"),
+    ],
+    fields: [
+      ["Publisher domain", "wrenautomation.com"],
+      ["Home page URL", SITE],
+      ["Terms of service URL", TERMS],
+      ["Privacy statement URL", PRIVACY],
+      ["MPN ID", "the Partner ID from the Microsoft AI Cloud Partner Program"],
+    ],
+    scopes: [],
+    video: [],
+    open: [
+      "Needs a Microsoft AI Cloud Partner Program Partner ID (free), on an account whose email domain is wrenautomation.com; it verifies the business's legal name and address. That enrollment is held with Meta business verification.",
+      "Without it the app works; a client's admin sees an unverified publisher on consent.",
     ],
   },
   {
@@ -435,9 +514,9 @@ export async function checkReview(r: Review, deps: CheckDeps): Promise<Check[]> 
       });
     } else if (n.kind === "callback") {
       // Without a sign-in in flight the callback refuses with 400; a 404 means it isn't served.
-      const { status } = await load(callbackOf(n.platform));
+      const { status } = await load(n.url);
       out.push({
-        need: `callback ${callbackOf(n.platform)}`,
+        need: `callback ${n.url}`,
         ok: status > 0 && status !== 404 && status < 500,
         detail: status === 404 || status === 0 || status >= 500 ? `answers ${status}` : "served",
       });

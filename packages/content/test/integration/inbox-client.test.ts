@@ -89,6 +89,29 @@ const llm = new FakeLlm({
     return JSON.stringify({ draft: "Happy to help." });
   },
 });
+/** The model for Google data: one that doesn't train on it. Its words say which model wrote. */
+const googlePrompts: string[] = [];
+const googleLlm = new FakeLlm({
+  respond: (prompt, system) => {
+    googlePrompts.push(`${system ?? ""}\n${prompt}`);
+    return JSON.stringify({ draft: "Glad you asked." });
+  },
+});
+/** Whether kappa's mailbox is a Google one, as the worker's check reads it. */
+const googleMailbox = async (client: string, address: string) => {
+  const [c] = (await pg.db.execute(sql`select mc.provider from mail_connections mc
+    join client_accounts a on a.id = mc.account_id
+    where a.client = ${client} and mc.address = ${address}`)) as unknown as { provider: string }[];
+  return c?.provider === "google";
+};
+const deskDeps: Parameters<typeof makeInboxDesk>[0] = {
+  db: undefined as unknown as Db,
+  llm,
+  google: googleLlm,
+  googleMailbox,
+  senderName: "Will",
+  channels: fake,
+};
 
 const ADMIN = "ada@wren.example.test";
 const AMY = "amy@kappa.example.test"; // kappa's owner: acts, can't send
@@ -139,7 +162,7 @@ beforeAll(async () => {
   w = await seedInbox(pg.db);
   env = await startTestRestate({
     services: [
-      makeInboxDesk({ db: pg.db, clientDb: open, llm, senderName: "Will", channels: fake }),
+      makeInboxDesk(Object.assign(deskDeps, { db: pg.db, clientDb: open })),
       makeMarketingConsole({ db: pg.db, open: (c) => open(c.id), records }),
       makeMailReply({ main: pg.db, clientDb: open, sender: fakeSender }),
     ],
@@ -159,6 +182,8 @@ beforeEach(async () => {
   await updateClient(pg.db, "kappa", { approver: "client", sends: ["follow_up"] });
   sent.length = 0;
   prompts.length = 0;
+  googlePrompts.length = 0;
+  deskDeps.google = googleLlm;
 });
 
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
@@ -223,16 +248,28 @@ describe("a client's own threads", () => {
   });
 
   it("suggests signed by the client, on its own models gate", async () => {
+    // The person's thread holds their YouTube comment: Google data, so the no-training model writes.
     const { text: words } = await svc().inboxSuggest({ ...as(AMY), ...text(k) });
-    expect(words).toBe("Happy to help.");
-    expect(prompts.join("\n")).toContain("You are Kappa");
-    expect(prompts.join("\n")).not.toContain("You are Will");
+    expect(words).toBe("Glad you asked.");
+    expect(googlePrompts.join("\n")).toContain("You are Kappa");
+    expect(googlePrompts.join("\n")).not.toContain("You are Will");
+    expect(prompts).toEqual([]);
     // Lambda has no models gate: nothing is asked.
     prompts.length = 0;
     await expect(svc().inboxSuggest({ ...as(LEE, "lambda"), ...text(l) })).rejects.toThrow(
       /models: /,
     );
     expect(prompts).toEqual([]);
+  });
+
+  it("Google data reaches only the no-training model: none set, it says why; Wren's own as before", async () => {
+    deskDeps.google = null;
+    await expect(svc().inboxSuggest({ ...as(AMY), ...text(k) })).rejects.toThrow(/Google data/);
+    expect([...prompts, ...googlePrompts]).toEqual([]);
+    // Wren's own thread with the same comment goes through no client app: the usual model.
+    const { text: words } = await desk().suggest({ ...text(w), viewer: { email: ADMIN } });
+    expect(words).toBe("Happy to help.");
+    expect(googlePrompts).toEqual([]);
   });
 
   it("notes mention the client's teammates only; assign, close, snooze and wake", async () => {
@@ -435,6 +472,13 @@ describe("a client's mail, answered through its own mailbox", () => {
       from: FRONT,
       off: null,
     });
+  });
+
+  it("a Google mailbox's mail is suggested on by the no-training model only", async () => {
+    const { text: words } = await svc().inboxSuggest({ ...as(AMY), ...mail(front) });
+    expect(words).toBe("Glad you asked.");
+    expect(prompts).toEqual([]);
+    expect(googlePrompts.join("\n")).toContain("Asks what a crown costs.");
   });
 
   it("sends through the mailbox, in its thread, and shows ours in the timeline", async () => {

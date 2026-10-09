@@ -145,16 +145,25 @@ export async function sortAgain(
 
 /**
  * `mail.triage` on the spine: a client's email, in its own database, by its own rules. `of` says
- * the client's database, its name, and the model when its gate is open (null: rules, else it shows).
+ * the client's database, its name, and the model for a mailbox when its gate is open (null: rules,
+ * else it shows). A Google mailbox's model is one that doesn't train on it, or none.
  */
 export const clientTriageStep =
-  (of: (client: string) => Promise<{ db: Db; name: string; llm: LlmClient | null }>): Step =>
+  (
+    of: (client: string) => Promise<{
+      db: Db;
+      name: string;
+      modelFor: (mailbox: string) => Promise<LlmClient | null>;
+    }>,
+  ): Step =>
   async (_port, e, at) => {
     if (!at.client) return [];
     const id = Number(e.data.mailId);
     if (!Number.isInteger(id)) throw new Error(`${e.subject} is no kept email`);
     const c = await of(at.client);
-    const verdict = await triage(c.db, c.llm, id, clientSystem(c.name));
+    const [m] = await c.db.select({ mailbox: mail.mailbox }).from(mail).where(eq(mail.id, id));
+    const llm = m ? await c.modelFor(m.mailbox) : null;
+    const verdict = await triage(c.db, llm, id, clientSystem(c.name));
     return verdict ? [{ port: verdict, event: e }] : [];
   };
 

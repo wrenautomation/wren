@@ -29,6 +29,10 @@ export interface AutoReplyDeps {
   db: Db;
   clientDb?: (client: string) => Db;
   llm?: LlmClient | null;
+  /** The model for threads holding Google data (`SuggestDeps.google`). */
+  google?: LlmClient | null;
+  /** Whether a client's mailbox is a Google one; absent, every one counts. */
+  googleMailbox?: (client: string, address: string) => Promise<boolean>;
   keys?: KeyStore | null;
   /** Who signs Wren's own: his name. */
   senderName: string;
@@ -104,25 +108,39 @@ export function makeAutoReply(deps: AutoReplyDeps) {
             try {
               const client = req.client;
               let sender = deps.senderName;
-              let model = llm;
+              let meter = (m: LlmClient) => m;
               if (client) {
                 const row = await findClient(deps.db, client);
                 if (!row) return { text: null, why: `no client ${client}` };
                 const g = await gate(deps.db, client, "models", 1, now);
                 if (!g.ok) return { text: null, why: `models: ${g.why}` };
                 sender = row.name;
-                model = meteredModel(llm, {
-                  main: deps.db,
-                  client,
-                  part: "inbox.auto",
-                  now: () => now,
-                  store: deps.keys ?? null,
-                  own: llmForKey,
-                });
+                meter = (m) =>
+                  meteredModel(m, {
+                    main: deps.db,
+                    client,
+                    part: "inbox.auto",
+                    now: () => now,
+                    store: deps.keys ?? null,
+                    own: llmForKey,
+                  });
               }
               const text = await suggestReply(
                 db,
-                { llm: model, sender, ...(!client && deps.facts ? { facts: deps.facts } : {}) },
+                {
+                  llm: meter(llm),
+                  ...(client
+                    ? {
+                        google: {
+                          llm: deps.google ? meter(deps.google) : null,
+                          mailbox: (a: string) =>
+                            deps.googleMailbox?.(client, a) ?? Promise.resolve(true),
+                        },
+                      }
+                    : {}),
+                  sender,
+                  ...(!client && deps.facts ? { facts: deps.facts } : {}),
+                },
                 { thread, channel: at.option.channel, target: at.option.target, now },
               );
               return { text, why: text ? null : "the model gave nothing usable" };

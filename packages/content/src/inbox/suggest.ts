@@ -31,8 +31,20 @@ const HOW: Record<Exclude<InboxChannel, "dm">, string> = {
   chat: "a live chat reply on the website: one to three short sentences, plain, no sign-off",
 };
 
+/** The platforms whose words are Google user data: YouTube comments, Business Profile reviews. */
+const GOOGLE_PLATFORMS = new Set(["youtube", "google_business"]);
+/** Why a suggestion over Google user data waits (designs/2026-10-09-app-reviews.md). */
+export const GOOGLE_HELD =
+  "This thread holds Google data (YouTube, Business Profile or Gmail), and it goes only to a model that doesn't train on it. None is set (WREN_GOOGLE_LLM).";
+
 export interface SuggestDeps {
   llm: LlmClient;
+  /**
+   * A client's thread, through Wren's apps: Google user data in it (YouTube comments, Business
+   * Profile reviews, a Google mailbox's mail) goes only to `llm`, a model that doesn't train on
+   * it (Google's Limited Use); null refuses with `GOOGLE_HELD`. Absent for Wren's own threads.
+   */
+  google?: { llm: LlmClient | null; mailbox: (address: string) => Promise<boolean> };
   /** Who signs: his name. */
   sender: string;
   /** What is true about him (`wrenFacts`); left out, the draft claims nothing first-person. */
@@ -76,6 +88,14 @@ export async function suggestReply(
     reviewOf(db, p.commentId),
   ]);
   const said = entries.filter((e) => e.channel !== "touch" && e.body.trim()).slice(-TAIL);
+  const app = deps.google;
+  const google =
+    !!app &&
+    (!!review ||
+      said.some((e) => GOOGLE_PLATFORMS.has(e.platform ?? "")) ||
+      (!!p.mail && said.some((e) => e.channel === "email") && (await app.mailbox(p.mail.mailbox))));
+  const llm = google ? app?.llm : deps.llm;
+  if (!llm) throw new Error(GOOGLE_HELD);
   const prompt = [
     `About them:\nName: ${p.who ?? "unknown"}`,
     dossier ? `What we know about their company:\n${dossier}` : "",
@@ -92,7 +112,7 @@ export async function suggestReply(
   ].join("\n\n");
   const g = await guardDraft(
     async (fix) => {
-      const out = await completeAndParse(deps.llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
+      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
         maxTokens: 500,
         system,
         name: "inbox.reply_suggest",

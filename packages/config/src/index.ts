@@ -265,6 +265,12 @@ export const settingsSchema = z.object({
   watchSiteTopic: z.string().min(1).optional(),
   /** The model for mail the Monitor's rules can't settle (`makeLlm`); `none` shows it all. */
   watchLlm: z.string().min(1).default("none"),
+  /**
+   * The model for Google user data (a client's YouTube comments, Business Profile reviews, Gmail):
+   * one whose provider doesn't train on what it's sent, as Google's Limited Use asks. `none`: that
+   * data reaches no model (suggestions say why; triage shows the mail).
+   */
+  googleLlm: z.string().min(1).default("none"),
   /** The first day the books cover; imports look no further back. */
   booksSince: z
     .string()
@@ -592,6 +598,7 @@ export const ENV_KEYS = {
   watchMailboxes: "WREN_WATCH_MAILBOXES",
   watchSiteTopic: "WREN_WATCH_SITE_TOPIC",
   watchLlm: "WREN_WATCH_LLM",
+  googleLlm: "WREN_GOOGLE_LLM",
   booksSince: "WREN_BOOKS_SINCE",
   booksAwsUsage: "WREN_BOOKS_AWS_USAGE",
   metaPageId: "WREN_META_PAGE_ID",

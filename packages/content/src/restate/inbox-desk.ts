@@ -70,6 +70,10 @@ export interface InboxDeskDeps {
   clientDb?: (client: string) => Db;
   /** The model Suggest drafts with; absent, Suggest refuses. */
   llm?: LlmClient | null;
+  /** The model for threads holding Google data, one that doesn't train on it (`SuggestDeps.google`). */
+  google?: LlmClient | null;
+  /** Whether a client's mailbox is a Google one; absent, every one counts. */
+  googleMailbox?: (client: string, address: string) => Promise<boolean>;
   /** Clients' own keys: a client on its own model key drafts on it. */
   keys?: KeyStore | null;
   /** Who signs a suggestion: his name. */
@@ -468,20 +472,31 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
               // A client's words are signed by the client, claim nothing of Wren's, and run on
               // its own models gate.
               const sender = client ? await clientSigner(client, now) : deps.senderName;
+              // A client's call runs on its own key or Wren's share, metered either way.
+              const meter = (m: LlmClient) =>
+                client
+                  ? meteredModel(m, {
+                      main: deps.db,
+                      client,
+                      part: "inbox.suggest",
+                      now: () => now,
+                      store: deps.keys ?? null,
+                      own: llmForKey,
+                    })
+                  : m;
               return suggestReply(
                 db,
                 {
-                  // A client's call runs on its own key or Wren's share, metered either way.
-                  llm: client
-                    ? meteredModel(llm, {
-                        main: deps.db,
-                        client,
-                        part: "inbox.suggest",
-                        now: () => now,
-                        store: deps.keys ?? null,
-                        own: llmForKey,
-                      })
-                    : llm,
+                  llm: meter(llm),
+                  ...(client
+                    ? {
+                        google: {
+                          llm: deps.google ? meter(deps.google) : null,
+                          mailbox: (a: string) =>
+                            deps.googleMailbox?.(client, a) ?? Promise.resolve(true),
+                        },
+                      }
+                    : {}),
                   sender,
                   ...(!client && deps.facts ? { facts: deps.facts } : {}),
                 },

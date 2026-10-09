@@ -81,7 +81,11 @@ describe("the client's mail workflow", () => {
     flows: new Map(WATCH_WORKFLOWS.map((f) => [f.id, f])),
     parts: new Map(MAIL_COMPONENTS.map((c) => [c.id, c])),
     steps: {
-      "mail.triage": clientTriageStep(async () => ({ db: pg.db, name: "Acme Dental", llm })),
+      "mail.triage": clientTriageStep(async () => ({
+        db: pg.db,
+        name: "Acme Dental",
+        modelFor: async () => llm,
+      })),
     },
     store: pgSpineStore(pg.db),
     client: "acme",

@@ -766,6 +766,29 @@ export function mailAccess(deps: MailDeps) {
 }
 export type MailAccessApi = ReturnType<typeof mailAccess>;
 
+/**
+ * Whether a client's connected mailbox is a Google one: its mail is Google user data, so a model
+ * reads it only if it doesn't train on it (designs/2026-10-09-app-reviews.md).
+ */
+export async function isGoogleMailbox(
+  main: Queryable,
+  client: string,
+  address: string,
+): Promise<boolean> {
+  const [c] = await main
+    .select({ provider: mailConnections.provider })
+    .from(mailConnections)
+    .innerJoin(clientAccounts, eq(clientAccounts.id, mailConnections.accountId))
+    .where(
+      and(
+        eq(clientAccounts.client, client),
+        sql`lower(${mailConnections.address}) = ${address.toLowerCase()}`,
+      ),
+    )
+    .limit(1);
+  return c?.provider === "google";
+}
+
 /** Expired or used grants older than a day: swept by the reader's pass. */
 export async function sweepGrants(main: Queryable, at: Date): Promise<void> {
   await main

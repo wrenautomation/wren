@@ -28,7 +28,7 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 - DMs (`dms.ts`): Facebook, Instagram, X. `readDms` + `keepDms` into the client's `reach_contacts`/`reach_messages` (a `theirs` touch each); `planDm` (Meta's 24 h window, opt-outs), `sendDm`, `sentDm` (an `ours` touch, draft log)
 - Services: `SocialAccess` (`console.ts:125`, routes `console-routes.ts`), `SocialCallback/land` (`console.ts:192`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/social-oauth.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
 - Setup: `setup.social`, check `social.token` hourly (`setups.ts`)
-- App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`
+- App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`
 
 Citations: `packages/content/src/connect/schema.ts:30`, `:68`; `packages/content/src/connect/access.ts:123`, `:178`; `apps/worker/src/services.ts:433`
 

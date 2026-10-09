@@ -23,7 +23,7 @@ The Monitor is Wren's first routed workflow: `Watch/all` reads, the spine carrie
 - Read: `readMail` (`packages/watch/src/read.ts:25`) searches `in:inbox` minus promotions and social, from an hour before the newest kept
 - Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:68`), `sortAgain` (`:110`), step `triageStep` (`:129`); events are `mail:<row id>`
 - Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books; `MailMeta.link` is the provider's own link (Outlook), else the view builds Gmail's
-- Clients: `MailReader/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. Marketing → Inbox shows those rows as type Mail (`packages/content/src/social/records.ts:145`)
+- Clients: `MailReader/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. A Google mailbox's mail goes only to `WREN_GOOGLE_LLM` (a model that doesn't train on it; unset, the rules alone and the rest shows), by `isGoogleMailbox` (`packages/channel-email/src/access/access.ts`). Marketing → Inbox shows those rows as type Mail (`packages/content/src/social/records.ts:145`)
 
 Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/watch/src/restate.ts:28`
 

@@ -75,7 +75,12 @@ import {
   type Transport,
   withImap,
 } from "@wren/channel-email";
-import { mailAccess, mailAppsFrom, sweepGrants } from "@wren/channel-email/access/access";
+import {
+  isGoogleMailbox,
+  mailAccess,
+  mailAppsFrom,
+  sweepGrants,
+} from "@wren/channel-email/access/access";
 import { makeMailAccess, makeMailCallback } from "@wren/channel-email/access/console";
 import { mailChecks } from "@wren/channel-email/access/setups";
 import { briefSettingsOf, briefStep, CALL_BRIEF, makeCallBriefs } from "@wren/channel-email/calls";
@@ -1177,6 +1182,8 @@ export async function buildServices(
   };
   // The Monitor's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
+  // Google user data goes only to a model that doesn't train on it (Limited Use); none by default.
+  const googleLlm = settings.googleLlm === "none" ? null : makeLlm(settings.googleLlm, process.env);
   services.push(
     makeContentDesk({
       db,
@@ -1253,6 +1260,8 @@ export async function buildServices(
       db,
       clientDb,
       llm: watchLlm,
+      google: googleLlm,
+      googleMailbox: (client, address) => isGoogleMailbox(db, client, address),
       keys,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
@@ -1265,6 +1274,8 @@ export async function buildServices(
       db,
       clientDb,
       llm: watchLlm,
+      google: googleLlm,
+      googleMailbox: (client, address) => isGoogleMailbox(db, client, address),
       keys,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
@@ -1841,20 +1852,23 @@ export async function buildServices(
         "mail.triage": clientTriageStep(async (client) => {
           const c = await findClient(db, client);
           const ok = !!c && "mail.triage" in c.products && (await gate(db, client, "models", 1)).ok;
+          const meter = (m: NonNullable<typeof watchLlm>) =>
+            meteredModel(m, {
+              main: db,
+              client,
+              part: "mail.triage",
+              now: () => new Date(),
+              store: keys,
+              own: llmForKey,
+            });
           return {
             db: clientDb(client),
             name: c?.name ?? client,
-            llm:
-              ok && watchLlm
-                ? meteredModel(watchLlm, {
-                    main: db,
-                    client,
-                    part: "mail.triage",
-                    now: () => new Date(),
-                    store: keys,
-                    own: llmForKey,
-                  })
-                : null,
+            modelFor: async (mailbox) => {
+              if (!ok) return null;
+              const m = (await isGoogleMailbox(db, client, mailbox)) ? googleLlm : watchLlm;
+              return m ? meter(m) : null;
+            },
           };
         }),
         // Learn: an article and a YouTube video read here, other videos marked for the Mac; then scored.
