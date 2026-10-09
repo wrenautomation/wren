@@ -124,9 +124,16 @@ export interface Routes {
   mailboxes: readonly MailboxState[];
 }
 
-/** One option's route for a client: mail by its mailbox, a DM or comment by its account. */
+/**
+ * One option's route for a client: mail by its mailbox, a DM or comment by its account. A review
+ * copied to Google by hand needs neither.
+ */
 export const routeOf = (o: ReplyOption, r: Routes): Shut | null =>
-  o.from ? mailRoute(o.from, r.mailboxes) : clientRoute(o.channel, o.platform, r.accounts);
+  o.copy
+    ? null
+    : o.from
+      ? mailRoute(o.from, r.mailboxes)
+      : clientRoute(o.channel, o.platform, r.accounts);
 
 /** Each option a client's thread offers, with its route checked. One already shut stays as is. */
 export function withRoutes(options: readonly ReplyOption[], r: Routes): ReplyOption[] {

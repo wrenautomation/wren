@@ -21,6 +21,7 @@ import {
   type ListQuery,
   PLATFORMS,
   type Platform,
+  type SiteClient,
 } from "@wren/core/content";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
@@ -38,6 +39,8 @@ import type { Db } from "@wren/db";
 import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/outreach";
 import { z } from "zod";
 import { clientContent } from "../clients.js";
+import { MAPS_EVERY_MS, readMapsReviews } from "../social/maps-reviews.js";
+import { ringLowReviews } from "../social/review-ring.js";
 import {
   hasDay,
   isDue,
@@ -62,6 +65,8 @@ const LAST_HOUR = 23;
 const READS = "reads";
 /** Object state: each platform's last activity read, ms. */
 const ACTIVITY_READS = "activityReads";
+/** Object state: the last Google Maps review read, ms. */
+const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
 export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
@@ -110,6 +115,14 @@ export interface SocialWatchDeps {
   texter?: Notifier;
   /** A client's database; absent, a client's key stops. */
   clientDb?: ((client: string) => Db) | null;
+  /**
+   * Google reviews off Maps for a client whose Business Profile doesn't read them: its Place ID,
+   * and autobrowse's desk to read them on.
+   */
+  maps?: {
+    placeId: (client: string) => Promise<string | null>;
+    sites: (ctx: restate.Context) => SiteClient;
+  };
 }
 
 export interface SocialStats {
@@ -213,7 +226,40 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       } catch (err) {
         stats.errors.push(`${platform} reviews: ${errorText(err)}`);
       }
+    // No Profile reading them: Google Maps, by the Place ID, every 6 hours.
+    const lastMaps = (await ctx.get<number>(MAPS_READ)) ?? 0;
+    if (
+      client &&
+      deps.maps &&
+      !reviewed.includes("google_business") &&
+      now.getTime() - lastMaps >= MAPS_EVERY_MS
+    ) {
+      const maps = deps.maps;
+      ctx.set(MAPS_READ, now.getTime());
+      try {
+        const place = await ctx.run("place", () => maps.placeId(client));
+        if (place) {
+          const rows = await readMapsReviews(maps.sites(ctx), place);
+          if (rows.length)
+            kept.push(
+              ...(await ctx.run("reviews maps", () =>
+                keepReviews(db, "google_business", rows, now),
+              )),
+            );
+        }
+      } catch (err) {
+        stats.errors.push(`Google Maps reviews: ${errorText(err)}`);
+      }
+    }
     stats.reviews = kept.length - reviewsBefore;
+    // A 1 or 2 star review: its owners hear of it like an @ mention.
+    const fresh = kept.slice(reviewsBefore).map((k) => k.id);
+    if (client && fresh.length)
+      try {
+        await ctx.run("ring", () => ringLowReviews(deps.db, db, client, fresh, now));
+      } catch (err) {
+        stats.errors.push(`review ring: ${errorText(err)}`);
+      }
     // Each new review gets a reply drafted (designs/2026-10-09-review-replies.md).
     autoReplyReviews(
       ctx,

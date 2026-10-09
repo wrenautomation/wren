@@ -6,9 +6,12 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { autoModes, draftable, setAutoMode, threadOfReply } from "../../src/inbox/auto.js";
+import { optionsOf, partyOf } from "../../src/inbox/conversation.js";
 import { reviewHow, reviewOf } from "../../src/inbox/review.js";
 import { askReply } from "../../src/inbox/send.js";
+import { type MapsRead, mapsRows } from "../../src/social/maps-reviews.js";
 import { reviewRecord } from "../../src/social/review-record.js";
+import { ringLowReviews } from "../../src/social/review-ring.js";
 import { keepReviews } from "../../src/social/store.js";
 import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
 
@@ -19,7 +22,7 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, ["auto_replies", ...INBOX_TABLES]);
+  await truncate(pg.db, ["auto_replies", "client_members", "clients", ...INBOX_TABLES]);
   s = await seedInbox(pg.db);
 });
 
@@ -128,6 +131,64 @@ describe("reviews", () => {
     expect(rows.map((x) => [x.who, x.stars, x.reply])).toEqual([
       ["Priya Shah", 5, "replied"],
       ["Jordan Lee", 2, "none"],
+    ]);
+  });
+
+  const place = "ChIJsynthetic_place-0001";
+  const maps: MapsRead = {
+    placeId: place,
+    name: "Synthetic Bakery",
+    url: `https://www.google.com/maps/place/?q=place_id:${place}`,
+    reviews: [
+      {
+        id: "ChZDSUhNsynthetic1",
+        author: "Jordan Lee",
+        authorUrl: null,
+        stars: 1,
+        text: "Showed up late.",
+        at: "2026-10-08T10:00:20Z",
+        estimated: false,
+        ago: "a day ago",
+        edited: false,
+        reply: null,
+      },
+    ],
+  };
+
+  it("keeps a Maps review once, copied to Google, until the API takes it over", async () => {
+    const [kept] = await keepReviews(pg.db, "google_business", mapsRows(maps), now);
+    expect(await keepReviews(pg.db, "google_business", mapsRows(maps), now)).toEqual([]);
+    const p = await partyOf(pg.db, `comment:${kept?.id}`);
+    if (!p) throw new Error("no party");
+    const [own] = await optionsOf(pg.db, p);
+    expect(own).toMatchObject({ label: "Copy and post on Google", copy: maps.url, off: null });
+    // The Business Profile API reads it later, 20 seconds off: one row, now the API's.
+    expect(await keep()).toHaveLength(1);
+    const [row] = await pg.db.execute(
+      sql`select count(*)::int n, max(ref) ref from comments where author = 'Jordan Lee'`,
+    );
+    expect(row).toEqual({ n: 1, ref: "accounts/1/locations/2/reviews/a" });
+    const [after] = await optionsOf(pg.db, p);
+    expect(after?.copy).toBeUndefined();
+  });
+
+  it("rings a client's owners for a 1 or 2 star review", async () => {
+    await pg.db.execute(
+      sql`insert into clients (id, name, database) values ('kappa', 'Kappa', 'wren_client_kappa')`,
+    );
+    await pg.db.execute(sql`insert into client_members (client_id, email, role) values
+      ('kappa', 'Owner@kappa.example', 'owner'), ('kappa', 'staff@kappa.example', 'member')`);
+    const kept = await keep();
+    const ids = kept.map((k) => k.id);
+    expect(await ringLowReviews(pg.db, pg.db, "kappa", ids, now)).toBe(1);
+    const notes = await pg.db.execute(sql`select n.thread, n.body, m.who from inbox_notes n
+      join note_mentions m on m.inbox_note_id = n.id`);
+    expect(notes).toEqual([
+      {
+        thread: `comment:${ids[0]}`,
+        body: "2 star review from Jordan Lee. It needs a reply. @owner@kappa.example",
+        who: "owner@kappa.example",
+      },
     ]);
   });
 });

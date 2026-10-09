@@ -42,6 +42,7 @@ const fake = (ctx: Context): ReplySender => {
     email: push("email"),
     thread: push("thread"),
     chat: push("chat"),
+    posted: push("posted"),
     mail: push("mail"),
   };
 };

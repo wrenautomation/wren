@@ -596,6 +596,11 @@ export interface ReplyOption {
   fix?: "social" | "mail" | null;
   /** Mail to a client's mailbox: the mailbox the reply goes out from. */
   from?: string | null;
+  /**
+   * A review read off Google Maps: no API answers it. Sending marks it answered and hands back
+   * the words and this page, where a person pastes the reply on Google.
+   */
+  copy?: string | null;
 }
 
 const SITE: Record<string, string> = {
@@ -620,14 +625,22 @@ export async function optionsOf(db: Queryable, p: Party): Promise<ReplyOption[]>
   const out: ReplyOption[] = [];
   const [type] = typed(p.thread);
   if (p.commentId !== null) {
-    const [c] = await rowsOf(db, sql`select platform from comments where id = ${p.commentId}`);
+    const [c] = await rowsOf(
+      db,
+      sql`select platform, url, raw->>'source' source from comments where id = ${p.commentId}`,
+    );
+    // A review read off Maps has no API to answer it: the reply is copied and posted on Google.
+    const copy = c?.source === "maps" ? (str(c.url) ?? null) : null;
     out.push({
       channel: "comment",
       target: String(p.commentId),
-      label: `Comment on ${SITE[String(c?.platform)] ?? "the post"}`,
+      label: copy
+        ? "Copy and post on Google"
+        : `Comment on ${SITE[String(c?.platform)] ?? "the post"}`,
       platform: str(c?.platform),
       own: true,
       off: null,
+      ...(copy ? { copy } : {}),
     });
   }
   // Site chat answers in the bubble: this thread, or their newest when another one is open.

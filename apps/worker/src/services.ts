@@ -1209,6 +1209,11 @@ export async function buildServices(
       zone: SOCIAL_ZONE,
       ...contentNotify,
       ...(operatorText && settings.notify !== "none" ? { texter: operatorText } : {}),
+      // A client's Google reviews off Maps, by its Place ID, when its Profile can't read them.
+      maps: {
+        placeId: (client) => placeIdOf(db, client),
+        sites: (ctx) => restateSites(ctx, { caller: "wren:reviews", service: DESK }),
+      },
     }),
     makeSocialDesk({ db, zone: SOCIAL_ZONE }),
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.

@@ -152,7 +152,19 @@ export interface ReplySender {
   mail(mailId: number, body: string): Promise<void>;
   /** A site chat: our message in the bubble. */
   chat(threadId: number, body: string): Promise<void>;
+  /** A review read off Maps: no API answers it, so it's marked answered and pasted by hand. */
+  posted(commentId: number, body: string): Promise<void>;
 }
+
+/** What a person pastes on Google for a review read off Maps, and where. */
+export interface Copied {
+  text: string;
+  url: string;
+}
+
+/** A sent option's words to paste by hand, when it has no API: null for every other. */
+export const copiedOf = (option: ReplyOption, body: string): Copied | null =>
+  option.copy ? { text: body, url: option.copy } : null;
 
 /** Send `body` on `option`'s path. */
 export async function sendOn(sender: ReplySender, option: ReplyOption, body: string) {
@@ -168,6 +180,7 @@ export async function sendOn(sender: ReplySender, option: ReplyOption, body: str
     case "text":
       return sender.text(n(t), body);
     case "comment":
+      if (option.copy) return sender.posted(n(t), body);
       return sender.comment(n(t), body);
     case "chat":
       return sender.chat(n(t), body);

@@ -79,6 +79,19 @@ describe("withRoutes", () => {
       ["No YouTube channel account connected. Replies go out on your own account.", "social"],
     ]);
   });
+
+  it("leaves a review off Maps open: it's pasted on Google, no account needed", () => {
+    const maps = {
+      channel: "comment",
+      target: "1",
+      label: "Copy and post on Google",
+      platform: "google_business",
+      own: true,
+      off: null,
+      copy: "https://maps.example/p",
+    } as ReplyOption;
+    expect(withRoutes([maps], { accounts: [], mailboxes: [] })[0]?.off).toBeNull();
+  });
 });
 
 describe("mailRoute", () => {

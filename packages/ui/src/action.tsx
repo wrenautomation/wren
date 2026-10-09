@@ -130,6 +130,31 @@ export function inputOf(
   return said && said !== String(start ?? "").trim() ? { ...rest, [field]: said } : rest;
 }
 
+/**
+ * Words to paste by hand and the page to paste them on: a review read off Google Maps, which no
+ * API answers. A handler's answer carries it as `copy`.
+ */
+export interface Copied {
+  text: string;
+  url: string;
+}
+
+/** The `copy` in a handler's answer, bare or under `answer`. */
+export function copiedIn(answer: unknown): Copied | null {
+  const a = answer as { copy?: Copied | null; answer?: { copy?: Copied | null } } | null;
+  const c = a?.copy ?? a?.answer?.copy ?? null;
+  return c && typeof c.text === "string" && /^https:\/\//.test(c.url) ? c : null;
+}
+
+/** Copy the words, then open the page. A click's own handler, so the browser allows both. */
+export function copyAndOpen(c: Copied) {
+  void navigator.clipboard?.writeText(c.text).then(
+    () => toast.success("Copied. Paste it as the owner's reply."),
+    () => toast.error("Couldn't copy. Select the words in the thread."),
+  );
+  window.open(c.url, "_blank", "noopener");
+}
+
 /** How long an undo is offered. */
 export const UNDO_MS = 10_000;
 
@@ -377,7 +402,13 @@ export function useRun(
       const undo = action.undo;
       const done = doneOf(answer, ids);
       changed = done;
-      if (!undo || !done.length) toast.success(line);
+      const copied = copiedIn(answer);
+      if (copied)
+        toast.success("Marked answered. Now paste it on Google.", {
+          duration: Number.POSITIVE_INFINITY,
+          action: { label: "Copy and open", onClick: () => copyAndOpen(copied) },
+        });
+      else if (!undo || !done.length) toast.success(line);
       else
         toast.success(line, {
           duration: UNDO_MS,

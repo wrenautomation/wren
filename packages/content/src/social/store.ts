@@ -196,16 +196,58 @@ export async function keepReviews(
   now: Date,
 ): Promise<KeptComment[]> {
   const kept: KeptComment[] = [];
-  for (const place of new Set(rows.map((r) => r.postId)))
+  const fresh = [];
+  for (const r of rows) if (!(await keptElsewhere(db, platform, r))) fresh.push(r);
+  for (const place of new Set(fresh.map((r) => r.postId)))
     kept.push(
       ...(await keepPostComments(
         db,
         { platform, id: place, url: null, title: "Reviews", publishedAt: now.toISOString() },
-        rows.filter((r) => r.postId === place),
+        fresh.filter((r) => r.postId === place),
         { reviews: true, now },
       )),
     );
   return kept;
+}
+
+/** A review read off Google Maps, not through the Business Profile API. */
+export const fromMaps = (raw: unknown): boolean =>
+  (raw as { source?: unknown } | null)?.source === "maps";
+
+/**
+ * Is this review kept already under the other source's id? Maps and the API name one review
+ * differently, so it matches by author and time within a minute, or the same words. The API's
+ * read wins: it takes over a Maps row, which then answers on Google like any other.
+ */
+async function keptElsewhere(db: Queryable, platform: Platform, r: CommentRow): Promise<boolean> {
+  const at = new Date(r.at);
+  const [twin] = await db
+    .select({ id: comments.id, raw: comments.raw })
+    .from(comments)
+    .where(
+      and(
+        eq(comments.platform, platform),
+        eq(comments.kind, "review"),
+        eq(comments.author, r.author.slice(0, 120)),
+        sql`${comments.ref} <> ${r.id.slice(0, 200)}`,
+        sql`(abs(extract(epoch from ${comments.at} - ${at.toISOString()}::timestamptz)) <= 60
+          or (${comments.body} <> '' and ${comments.body} = ${r.text}))`,
+      ),
+    )
+    .limit(1);
+  if (!twin) return false;
+  if (fromMaps(twin.raw) && !fromMaps(r.raw))
+    await db
+      .update(comments)
+      .set({
+        ref: r.id.slice(0, 200),
+        post: r.postId.slice(0, 200),
+        parent: r.postId.slice(0, 200),
+        url: r.url ?? "",
+        raw: r.raw ?? r,
+      })
+      .where(eq(comments.id, twin.id));
+  return true;
 }
 
 /** The newest kept activity time on the platform: the next read starts there. */

@@ -20,7 +20,7 @@ A person approves each reply. Nothing posts on its own.
 | Source | Needs | Reply |
 |---|---|---|
 | Business Profile API (have) | the client's Profile connected; Google's API approval (held) | posts on Google |
-| Google Maps, signed out (new) | the Place ID only | none: copy the draft, open the review on Google |
+| Google Maps, signed in as Wren (new) | the Place ID only | none: copy the draft, open the review on Google |
 
 - New autobrowse route `web GET /place/reviews` (`placeId`, newest first, up to 50): name,
   stars, words, time, the owner's reply if any, and the review's link. A browser leg on the desk,
@@ -79,7 +79,13 @@ made on Google by hand counts.
 
 2026-10-09, part one: 0219 (`review` kind, `stars`), API reviews kept with stars and owner
 replies, a draft on arrival through `AutoReply` with the review brief, Marketing → Reviews for
-Wren and clients. Next: the Maps read (`web GET /place/reviews`) and the Copy and post item.
+Wren and clients.
+
+2026-10-09, part two: autobrowse `web GET /place/reviews` (a5fcf8b), read signed in as Wren's own
+Google profile: Maps hides reviews from a signed-out browser. `SocialWatch` reads it every 6
+hours for a client with a Place ID and no Profile reading reviews. One row per review across
+sources. Copy and post: sending marks it answered and offers "Copy and open" on Google. A 1 or 2
+star review `@`s the client's owners in an Inbox note, and the mention mail tells them.
 
 ## Decision log
 

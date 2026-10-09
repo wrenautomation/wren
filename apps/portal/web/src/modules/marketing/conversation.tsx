@@ -9,6 +9,9 @@ import {
   Button,
   ButtonLink,
   Callout,
+  type Copied,
+  copiedIn,
+  copyAndOpen,
   exact,
   Icon,
   type IconName,
@@ -52,6 +55,8 @@ export type ReplyOption = {
   fix?: "social" | "mail" | null;
   /** Mail to the client's mailbox: the mailbox the reply goes out from. */
   from?: string | null;
+  /** A review read off Google Maps: the page its reply is pasted on by hand. */
+  copy?: string | null;
 };
 export type Conversation = {
   thread: string;
@@ -228,7 +233,7 @@ const SELECT =
   "h-8 min-w-0 max-w-full max-sm:w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink)";
 
 /** What the reply handler answered. */
-type Replied = { sent: boolean; asked: number | null; why: string | null };
+type Replied = { sent: boolean; asked: number | null; why: string | null; copy?: Copied | null };
 const answerOf = <T,>(out: unknown): T | null =>
   ((out as { answer?: T } | null)?.answer ?? null) as T | null;
 
@@ -253,6 +258,7 @@ function ReplyBox({
   const [text, setText] = useState(option?.own ? draft : "");
   const [busy, setBusy] = useState<"send" | "suggest" | null>(null);
   const [said, setSaid] = useState<string | null>(null);
+  const [copied, setCopied] = useState<Copied | null>(null);
   if (!options.length)
     return (
       <p className="text-[14px] text-(--ui-ink-2)">
@@ -264,14 +270,19 @@ function ReplyBox({
     if (!where || !text.trim() || busy) return;
     setBusy("send");
     setSaid(null);
+    setCopied(null);
     try {
       const out = answerOf<Replied>(
         await act(send ? "inbox.reply" : "inbox.ask", { ...where, body: text.trim() }),
       );
       setText("");
+      const copy = copiedIn(out);
       if (out?.sent === false || !send)
         setSaid(`Asked. It waits in To approve.${out?.why ? ` ${out.why}` : ""}`);
-      else setSaid("Sent.");
+      else if (copy) {
+        setCopied(copy);
+        setSaid("Marked answered. Now paste it on Google as the owner's reply.");
+      } else setSaid("Sent.");
     } catch (err) {
       say.failed(err);
     } finally {
@@ -346,7 +357,15 @@ function ReplyBox({
           disabled={!option || !text.trim() || !!busy}
           onClick={() => void go()}
         >
-          {busy === "send" ? (send ? "Sending" : "Asking") : send ? "Send" : "Ask to send"}
+          {busy === "send"
+            ? send
+              ? "Sending"
+              : "Asking"
+            : !send
+              ? "Ask to send"
+              : option?.copy
+                ? "Mark answered"
+                : "Send"}
         </Button>
         <Button
           size="dense"
@@ -372,6 +391,11 @@ function ReplyBox({
         <p role="status" className="text-[13px] text-(--ui-ink-2)">
           {said}
         </p>
+      ) : null}
+      {copied ? (
+        <Button size="dense" tone="primary" onClick={() => copyAndOpen(copied)}>
+          Copy and open Google
+        </Button>
       ) : null}
     </div>
   );

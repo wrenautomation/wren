@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mayWork, partOf, replyGate, sendOn } from "./send.js";
+import { copiedOf, mayWork, partOf, replyGate, sendOn } from "./send.js";
 import { statusOf } from "./threads.js";
 
 const now = new Date("2026-10-07T12:00:00Z");
@@ -143,6 +143,7 @@ describe("sendOn", () => {
       thread: rec("thread"),
       mail: rec("mail"),
       chat: rec("chat"),
+      posted: rec("posted"),
     };
     const o = { label: "", platform: null, own: true, off: null };
     await sendOn(sender, { ...o, channel: "email", target: "invite:4" }, "hi");
@@ -152,6 +153,13 @@ describe("sendOn", () => {
     await sendOn(sender, { ...o, channel: "text", target: "3" }, "hi");
     await sendOn(sender, { ...o, channel: "chat", target: "2" }, "hi");
     expect(calls).toEqual(["invite:4", "email:9", "mail:7", "thread:5", "text:3", "chat:2"]);
+    // A review off Maps has no API: it's marked answered, its words handed back to paste.
+    const maps = { ...o, channel: "comment" as const, target: "6", copy: "https://maps.example/p" };
+    await sendOn(sender, maps, "Thanks");
+    await sendOn(sender, { ...o, channel: "comment", target: "8" }, "hi");
+    expect(calls.slice(-2)).toEqual(["posted:6", "comment:8"]);
+    expect(copiedOf(maps, "Thanks")).toEqual({ text: "Thanks", url: "https://maps.example/p" });
+    expect(copiedOf({ ...o, channel: "comment", target: "8" }, "hi")).toBeNull();
     await expect(sendOn(sender, { ...o, channel: "dm", target: "x" }, "hi")).rejects.toThrow(
       /bad target/,
     );

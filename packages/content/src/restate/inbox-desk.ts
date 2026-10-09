@@ -16,6 +16,7 @@ import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
+import { markAnswered } from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { ChatRefusal, replyChat } from "../chat/store.js";
@@ -25,6 +26,8 @@ import { clientRoutes, routeOf } from "../inbox/routes.js";
 import {
   accessChannel,
   askReply,
+  type Copied,
+  copiedOf,
   failReply,
   mayWork,
   partOf,
@@ -145,6 +148,13 @@ function restateChannels(
       await ctx
         .serviceClient<MailReplyDesk>({ name: "MailReply" })
         .send({ client, mailId, body, by });
+    },
+    // A review off Maps: answered here, its words pasted on Google by whoever approved it.
+    posted: async (id, body) => {
+      const now = new Date(await ctx.date.now());
+      await ctx.run("posted", () =>
+        markAnswered(db, id, { body, ref: null, now, ...(by ? { by } : {}) }),
+      );
     },
     // A site chat has no desk: ours lands in the owner's database, and the bubble reads it.
     chat: async (threadId, body) => {
@@ -313,7 +323,12 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         async (
           ctx: restate.Context,
           req: Req & { thread: string; channel: InboxChannel; target: string; body: string },
-        ): Promise<{ sent: boolean; asked: number | null; why: string | null }> => {
+        ): Promise<{
+          sent: boolean;
+          asked: number | null;
+          why: string | null;
+          copy?: Copied;
+        }> => {
           const me = by(req);
           const client = clientOf(req);
           const db = dbOf(client);
@@ -344,7 +359,8 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           await sendOn(channels(ctx, client, req.viewer as Viewer), option, body);
           const now = await nowOf(ctx);
           await ctx.run("waiting", () => setThread(db, req.thread, { status: "waiting" }, me, now));
-          return { sent: true, asked: null, why: null };
+          const copy = copiedOf(option, body);
+          return { sent: true, asked: null, why: null, ...(copy ? { copy } : {}) };
         },
       ),
       /** Ask for a yes: the reply waits in To approve. Nothing sends. */
@@ -384,7 +400,10 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
       /** A yes on an asked reply: sent on its channel now. A second yes finds it sent and stops. */
       approve: serviceHandler(
         { input: ASKED, effect: "sends" },
-        async (ctx: restate.Context, req: Req & { id: number }): Promise<{ sent: true }> => {
+        async (
+          ctx: restate.Context,
+          req: Req & { id: number },
+        ): Promise<{ sent: true; copy?: Copied }> => {
           const me = by(req);
           const client = clientOf(req);
           const db = dbOf(client);
@@ -408,7 +427,8 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           }
           const now = await nowOf(ctx);
           await ctx.run("waiting", () => setThread(db, row.thread, { status: "waiting" }, me, now));
-          return { sent: true };
+          const copy = copiedOf(option, row.body);
+          return { sent: true, ...(copy ? { copy } : {}) };
         },
       ),
       /** No to an asked reply: nothing sends. */
