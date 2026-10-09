@@ -164,6 +164,13 @@ import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
 import {
+  connectorAccess,
+  connectorAppsFrom,
+  makeConnectorCallback,
+  makeConnectorSync,
+  makeConnectors,
+} from "@wren/connectors";
+import {
   clientContent,
   commentGuide,
   DEFAULT_VOICE,
@@ -314,7 +321,7 @@ import {
 import { makePaymentsConsole } from "@wren/payments/console";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
-import { clientSendScope } from "@wren/reactivation";
+import { clientSendScope, crmLanding } from "@wren/reactivation";
 import {
   DEMO_NAME,
   makeCrmRun,
@@ -478,6 +485,14 @@ export async function buildServices(
     origin: settings.portalOrigin ?? null,
     fetch,
     live: liveFrom(settings.socialLive),
+  });
+  // Client connected apps (designs/2026-10-09-connectors.md): same shape, read-only.
+  const clientConnectors = connectorAccess({
+    main: db,
+    apps: connectorAppsFrom(keys, process.env),
+    keys,
+    origin: settings.portalOrigin ?? null,
+    fetch,
   });
   const socialApi = socialSites({
     connection: clientSocial.connection,
@@ -1943,6 +1958,17 @@ export async function buildServices(
     // Account → Social, its callback, and a client's DMs and comment answers on its own accounts.
     makeSocialAccess({ main: db, access: clientSocial }),
     makeSocialCallback({ main: db, access: clientSocial }),
+    // Account → Connectors, its callback, and each connected app's hourly read into the CRM.
+    makeConnectors({ main: db, access: clientConnectors }),
+    makeConnectorCallback({ main: db, access: clientConnectors }),
+    makeConnectorSync({
+      main: db,
+      clientDb,
+      crm: crmLanding,
+      access: clientConnectors,
+      fetch,
+      fire: fireAll,
+    }),
     makeSocialInbox({
       main: db,
       clientDb,

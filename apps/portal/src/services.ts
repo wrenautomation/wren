@@ -30,6 +30,11 @@ import {
   SMS_CONSOLE_WRITES,
 } from "@wren/channel-sms/console-routes";
 import {
+  CONNECTORS_APPS,
+  CONNECTORS_ROUTES,
+  CONNECTORS_WRITES,
+} from "@wren/connectors/console-routes";
+import {
   SOCIAL_ACCESS_APPS,
   SOCIAL_ACCESS_ROUTES,
   SOCIAL_ACCESS_WRITES,
@@ -196,6 +201,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   mail: service("MailAccess", MAIL_ACCESS_ROUTES, MAIL_ACCESS_APPS, MAIL_ACCESS_WRITES),
   // Account → Social: a client's own social accounts, each one sign-in.
   social: service("SocialAccess", SOCIAL_ACCESS_ROUTES, SOCIAL_ACCESS_APPS, SOCIAL_ACCESS_WRITES),
+  // Account → Connectors: a client's HubSpot, QuickBooks or Jobber, read hourly into its CRM.
+  connectors: service("Connectors", CONNECTORS_ROUTES, CONNECTORS_APPS, CONNECTORS_WRITES),
 };
 
 /**

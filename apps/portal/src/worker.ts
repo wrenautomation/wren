@@ -33,6 +33,7 @@ import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
 import { bookRoute } from "./book.js";
+import { connectorOAuthRoute } from "./connector-oauth.js";
 import { dictate } from "./dictate.js";
 import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
@@ -262,6 +263,11 @@ export default {
     // A client's social account's sign-in comes back here; never on the demo.
     if (pathname.startsWith("/oauth/social/") && site.kind !== "demo") {
       const landed = await socialOAuthRoute(req, env);
+      if (landed) return landed;
+    }
+    // A client's connected app (HubSpot, QuickBooks, Jobber) comes back here; never on the demo.
+    if (pathname.startsWith("/oauth/connector/") && site.kind !== "demo") {
+      const landed = await connectorOAuthRoute(req, env);
       if (landed) return landed;
     }
     if (pathname === "/api/dictate")

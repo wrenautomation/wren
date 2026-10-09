@@ -400,6 +400,8 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires when Stripe says a pay link was paid. The amount and who paid come with it.",
   "logic.code":
     "Runs in a sandbox: no internet, one second, 32 MB. Test this node to run it on a sample event.",
+  "trigger.app":
+    "Fires within the hour of a change in a client's connected app (Account → Connectors). The person's name, email and phone come with it.",
   "trigger.deal":
     "Fires when a deal moves stage on the Opportunities board. The deal, its value and contact come with it.",
 };

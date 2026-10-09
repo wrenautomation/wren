@@ -177,7 +177,22 @@ export type TriggerFacts =
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
   | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
   | { trigger: "trigger.payment"; change: "paid" }
-  | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string };
+  | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
+  | { trigger: "trigger.app"; app: string; change: AppChange };
+
+/** What a connected app tells the spine (designs/2026-10-09-connectors.md). */
+export const APP_CHANGES = {
+  contact_added: "A contact added",
+  invoice_paid: "An invoice paid",
+  job_done: "A job done",
+} as const;
+export type AppChange = keyof typeof APP_CHANGES;
+/** The apps a client connects on Account → Connectors. */
+export const CONNECTOR_APP_NAMES = {
+  hubspot: "HubSpot",
+  quickbooks: "QuickBooks",
+  jobber: "Jobber",
+} as const;
 
 /** A Reply or Booking node hears this event by its settings. */
 export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
@@ -188,6 +203,11 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     return on === "any" || on === f.channel;
   }
   if (f.trigger === "trigger.payment") return true;
+  if (f.trigger === "trigger.app") {
+    const app = text(w.app) || "any";
+    const on = text(w.on) || "any";
+    return (app === "any" || app === f.app) && (on === "any" || on === f.change);
+  }
   if (f.trigger === "trigger.deal") {
     const on = text(w.on) || "any";
     const stage = text(w.stage);
@@ -240,7 +260,8 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
     ? "reply"
     : f.trigger === "trigger.flag" ||
         f.trigger === "trigger.payment" ||
-        f.trigger === "trigger.deal"
+        f.trigger === "trigger.deal" ||
+        f.trigger === "trigger.app"
       ? null
       : f.change === "booked"
         ? "booking"
@@ -601,6 +622,41 @@ export const LOGIC: readonly LogicPart[] = [
     "invoice",
     [],
     () => "A pay link paid",
+  ),
+  trigger(
+    "app",
+    "Connected app",
+    "Starts when a connected app (HubSpot, QuickBooks, Jobber) adds a contact, gets an invoice paid or finishes a job.",
+    "link",
+    "person",
+    [
+      {
+        field: "app",
+        label: "App",
+        type: "choice",
+        options: ["any", ...Object.keys(CONNECTOR_APP_NAMES)],
+        labels: { any: "Any app", ...CONNECTOR_APP_NAMES },
+        start: "any",
+      },
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["any", ...Object.keys(APP_CHANGES)],
+        labels: { any: "Anything", ...APP_CHANGES },
+        start: "any",
+      },
+    ],
+    (w) => {
+      const on = text(w.on) || "any";
+      const app = text(w.app) || "any";
+      const what = on === "any" ? "Anything" : (APP_CHANGES[on as AppChange] ?? on);
+      const where =
+        app === "any"
+          ? "a connected app"
+          : (CONNECTOR_APP_NAMES[app as keyof typeof CONNECTOR_APP_NAMES] ?? app);
+      return `${what} in ${where}`;
+    },
   ),
   trigger(
     "deal",

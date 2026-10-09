@@ -28,6 +28,7 @@
     "@tiptap/y-tiptap": "3.0.9",
     "@wren/auth": "workspace:*",
     "@wren/calendar": "workspace:*",
+    "@wren/connectors": "workspace:*",
     "@wren/deals": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/learn": "workspace:*",

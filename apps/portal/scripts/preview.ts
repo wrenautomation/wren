@@ -30,6 +30,13 @@ import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-
 import { smsConsoleApi } from "@wren/channel-sms/restate";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import {
+  CONNECTOR_APPS,
+  connectorAccess,
+  connectorAppsFrom,
+  connectorsConsoleApi,
+} from "@wren/connectors";
+import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-routes";
+import {
   liveFrom,
   SOCIAL_ACCESS_APPS,
   SOCIAL_ACCESS_ROUTES,
@@ -267,6 +274,28 @@ const SERVICES: Record<
           throw new Error("no network in the preview");
         },
         live: liveFrom(settings.socialLive),
+      }),
+    }),
+  },
+  // Account → Connectors. No network: Connect can't reach an app here; Wren's apps from the key
+  // store, or stand-ins with WREN_PREVIEW_SOCIAL_APPS=true to see every state.
+  connectors: {
+    routes: Object.keys(CONNECTORS_ROUTES),
+    guard: { needs: CONNECTORS_ROUTES, apps: CONNECTORS_APPS, unnamed: "first" },
+    api: connectorsConsoleApi({
+      main,
+      access: connectorAccess({
+        main,
+        apps:
+          process.env.WREN_PREVIEW_SOCIAL_APPS === "true"
+            ? async () =>
+                Object.fromEntries(CONNECTOR_APPS.map((a) => [a, { id: `${a}-app`, secret: "x" }]))
+            : connectorAppsFrom(keys, process.env),
+        keys,
+        origin: `http://localhost:${port}`,
+        fetch: async () => {
+          throw new Error("no network in the preview");
+        },
       }),
     }),
   },

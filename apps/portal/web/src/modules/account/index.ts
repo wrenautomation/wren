@@ -4,6 +4,7 @@ import type { ListPage, Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { Accounts } from "./Accounts.js";
 import { AiTools } from "./AiTools.js";
+import { Connectors } from "./Connectors.js";
 import { Domain } from "./Domain.js";
 import { Facts, Fields } from "./Fields.js";
 import { Included } from "./Included.js";
@@ -42,6 +43,7 @@ export const account: Module = {
     { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup", badge: nowCount },
     { id: "mail", label: "Mail", Page: Mail, group: "Setup" },
     { id: "social", label: "Social", Page: Social, group: "Setup" },
+    { id: "connectors", label: "Connectors", Page: Connectors, group: "Setup" },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
     { id: "webhooks", label: "Webhooks", Page: Webhooks, group: "Setup" },
     { id: "ai", label: "AI tools", Page: AiTools, group: "Setup" },

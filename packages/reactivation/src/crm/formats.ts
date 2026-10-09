@@ -89,6 +89,16 @@ export const CRM_FORMATS: ReadonlyMap<string, CrmFormat> = new Map(
       },
     },
     {
+      name: "quickbooks",
+      help: "QuickBooks Online customers (read live by Account → Connectors, or a customer list export)",
+      headers: { company: ["company", "company name", "customer"], phone: ["phone", "mobile"] },
+    },
+    {
+      name: "jobber",
+      help: "Jobber clients (read live by Account → Connectors, or a client list export)",
+      headers: { company: ["company", "company name", "client name"] },
+    },
+    {
       name: "salesforce",
       help: "Salesforce contacts report or Data Loader export (API names work too)",
       headers: {

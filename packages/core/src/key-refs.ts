@@ -29,15 +29,21 @@ export const MAIL_TOKEN_NAME = /^MAIL_(GOOGLE|MICROSOFT)_[0-9A-F]{16}$/;
 export const SOCIAL_TOKEN_NAME =
   /^SOCIAL_(FACEBOOK|INSTAGRAM|LINKEDIN|LINKEDIN_PAGE|YOUTUBE|X|TIKTOK|GOOGLE_BUSINESS)_[0-9A-F]{16}$/;
 
+/** A connected app's token (designs/2026-10-09-connectors.md): its account id hashed. */
+export const CONNECTOR_TOKEN_NAME = /^CONNECTOR_(HUBSPOT|QUICKBOOKS|JOBBER)_[0-9A-F]{16}$/;
+
 /**
- * Names only Wren keeps, never pasted on a page: a mailbox's or a social account's token as JSON,
- * and Wren's own mail and social apps (kept under the client `wren`).
+ * Names only Wren keeps, never pasted on a page: a mailbox's, a social account's or a connected
+ * app's token as JSON, and Wren's own mail, social and connector apps (kept under the client `wren`).
  */
 function wrenShape(name: string): RegExp | undefined {
   if (MAIL_TOKEN_NAME.test(name) || SOCIAL_TOKEN_NAME.test(name)) return /^\{[\s\S]{8,4000}\}$/;
+  // QuickBooks' access token alone runs past a thousand characters.
+  if (CONNECTOR_TOKEN_NAME.test(name)) return /^\{[\s\S]{8,8000}\}$/;
   if (/^MAIL_(GOOGLE|MICROSOFT)_CLIENT_(ID|SECRET)$/.test(name)) return /^\S{8,4096}$/;
   if (/^SOCIAL_(META|LINKEDIN|LINKEDIN_PAGES|GOOGLE|X|TIKTOK)_CLIENT_(ID|SECRET)$/.test(name))
     return /^\S{4,4096}$/;
+  if (/^CONNECTOR_(HUBSPOT|QUICKBOOKS|JOBBER)_(ID|SECRET)$/.test(name)) return /^\S{4,4096}$/;
   return undefined;
 }
 
