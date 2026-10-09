@@ -3,9 +3,10 @@
  * every stage that is due, `crm status` says where things stand and `crm top`
  * shows who to call first. The single-stage commands (verify, lookup) are for
  * debugging one stage. `crm emails`, `approve`, `skip` and `book` are the
- * operator's side of the portal's writes. `crm run` runs on the worker
- * (`CrmRun`), where the client's own model and vendor keys open; `crm loop`
- * runs the client's loop there. Always a client's database.
+ * operator's side of the portal's writes. `crm run`, `lookup`, `redraft` and
+ * `settle` run on the worker (`CrmRun`), where the client's own model and
+ * vendor keys open; `crm loop` runs the client's loop there. `seed-demo` stays
+ * here on Wren's keys: the demo client is Wren's own. Always a client's database.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -29,21 +30,18 @@ import {
   crmStatus,
   EMAIL_FILTERS,
   type EmailFilter,
-  familyJudge,
   formatCrmHealth,
   formatCrmStatus,
   formatRanked,
-  lookUpCrmPeople,
   markMeetingBooked,
   portalEmails,
+  type RedraftStats,
   rankedContacts,
   reactivationSettingsOf,
   readClientProfile,
-  redraftAwaiting,
   runCrmImport,
   seedDemo,
   setClientProfile,
-  settleMoves,
   skipDrafts,
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
@@ -53,7 +51,7 @@ import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db, client: Client) => Promise<T>) => Promise<T>;
 
-/** `crm run` stops after this many rounds on the worker; run it again to go on. */
+/** `crm run`, `lookup`, `redraft` and `settle` stop after this many calls; run again to go on. */
 const MAX_ROUNDS = 200;
 
 /** What compose needs from the registry and the client's database. */
@@ -156,6 +154,12 @@ export function registerCrm(
           console.log(line.replaceAll("<id>", status.client));
     });
 
+  /** The client's `CrmRun` object on the worker, where its own keys open. */
+  const crmRunObject = async () => {
+    const id = await withClientDb(async (_db, client) => client.id);
+    return restate.connect(ingressOf(settings)).objectClient<CrmRunObject>({ name: "CrmRun" }, id);
+  };
+
   crm
     .command("run")
     .description(
@@ -175,9 +179,7 @@ export function registerCrm(
       if (opts.limit && opts.limit > MAX_LIMIT)
         throw new Error(`--limit: at most ${MAX_LIMIT} a round; leave it out to run until done`);
       const id = await withClientDb(async (_db, client) => client.id);
-      const object = restate
-        .connect(ingressOf(settings))
-        .objectClient<CrmRunObject>({ name: "CrmRun" }, id);
+      const object = await crmRunObject();
       // Rounds of a bounded slice each, until nothing is due, a stage stops, or a round does nothing.
       let before = "";
       let rounds = 0;
@@ -297,18 +299,22 @@ export function registerCrm(
 
   crm
     .command("settle")
-    .description("Make each kept move to the same employer under another name a stay (Disney, CBS)")
+    .description(
+      "Make each kept move to the same employer under another name a stay (Disney, CBS), on the worker (the client's own model key)",
+    )
     .action(async () => {
-      // The fake model knows no companies: by name only.
-      let judge: ReturnType<typeof familyJudge> | null = null;
-      if (settings.llm !== "fake") {
-        loadLlmEnv(settings.llmEnvPath, rootDir);
-        judge = familyJudge(
-          makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
-        );
+      const object = await crmRunObject();
+      let after: number | null = null;
+      let settled = 0;
+      let byName = false;
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        const r = await object.settle({ after });
+        settled += r.stats.settled;
+        byName = r.stats.byName;
+        if (r.stats.last === null) break;
+        after = r.stats.last;
       }
-      const n = await withClientDb((db) => settleMoves(db, judge));
-      console.log(`settled ${n} moves${judge ? "" : " by name only (the model is fake)"}`);
+      console.log(`settled ${settled} moves${byName ? " by name only (no model)" : ""}`);
     });
 
   crm
@@ -356,30 +362,34 @@ export function registerCrm(
 
   crm
     .command("redraft [ids...]")
-    .description("Write drafts still waiting for approval again, with today's composer and brief")
+    .description(
+      "Write drafts still waiting for approval again, with today's composer and brief, on the worker (the client's own model key)",
+    )
     .option("--all", "every draft still waiting that nobody edited")
     .action(async (args: string[], opts: { all?: boolean }) => {
       if (!opts.all && !args.length) throw new Error("give ids, or --all");
-      if (settings.llm === "fake") throw new Error("redraft needs a real model, not the fake");
-      loadLlmEnv(settings.llmEnvPath, rootDir);
-      const llm = makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel });
-      const stats = await withClientDb(async (db, client) => {
-        const { settings: rx, profile } = await composeInputs(db, client);
-        const { stats } = await recordedRun(
-          db,
-          { command: "crm redraft", argv: { ...opts, ids: args } },
-          async (r) =>
-            redraftAwaiting(db, llm, {
-              profile,
-              senders: rx.senders,
-              ...(opts.all ? {} : { enrollmentIds: ids(args) }),
-              runId: r.id,
-            }),
-        );
-        return stats;
-      });
-      console.log(JSON.stringify(stats));
-      if (stats.aborted) process.exitCode = 1;
+      const object = await crmRunObject();
+      const total = { selected: 0, redrafted: 0, failed: 0, skipped: 0 };
+      let aborted: string | null = null;
+      const add = (s: RedraftStats) => {
+        for (const k of Object.keys(total) as (keyof typeof total)[]) total[k] += s[k];
+        aborted ??= s.aborted;
+      };
+      if (!opts.all) {
+        const all = ids(args);
+        for (let i = 0; i < all.length && !aborted; i += MAX_LIMIT)
+          add((await object.redraft({ ids: all.slice(i, i + MAX_LIMIT) })).stats);
+      } else {
+        let after: number | null = null;
+        for (let round = 0; round < MAX_ROUNDS && !aborted; round++) {
+          const r = await object.redraft({ after, limit: MAX_LIMIT });
+          add(r.stats);
+          if (r.stats.last === null || r.stats.selected < MAX_LIMIT) break;
+          after = r.stats.last;
+        }
+      }
+      console.log(JSON.stringify({ ...total, aborted }));
+      if (aborted) process.exitCode = 1;
     });
 
   crm
@@ -448,29 +458,40 @@ export function registerCrm(
 
   crm
     .command("lookup")
-    .description("Where is each CRM contact now: search, then LinkedIn when the client allows it")
+    .description(
+      "Where is each CRM contact now: search, then LinkedIn when the client allows it, on the worker (the client's own keys)",
+    )
     .option("--limit <n>", "look up at most n people", positive("--limit"))
-    .option("--concurrency <n>", "people looked up at once", positive("--concurrency"), 2)
+    .option("--concurrency <n>", "people looked up at once (up to 4)", positive("--concurrency"), 2)
     .option("--no-linkedin", "search only, even when the client has a LinkedIn account")
     .option("--again", "look up people already looked up, too")
     .action(
       async (opts: { limit?: number; concurrency: number; linkedin: boolean; again?: boolean }) => {
-        const sites = ingressSites(settings, "wren:crm-lookup");
-        const { run, stats } = await withClientDb(async (db, client) => {
-          const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
-          const argv = { ...opts, linkedin };
-          return recordedRun(db, { command: "crm lookup", argv }, (r) =>
-            lookUpCrmPeople(db, sites, {
-              linkedin,
-              concurrency: opts.concurrency,
-              again: opts.again ?? false,
-              runId: r.id,
-              ...(opts.limit ? { limit: opts.limit } : {}),
-            }),
-          );
-        });
-        console.log(`run ${run.id}: ${JSON.stringify(stats)}`);
-        if (stats.aborted) process.exitCode = 1;
+        if (opts.concurrency > 4) throw new Error("--concurrency: at most 4");
+        const object = await crmRunObject();
+        // Slices of at most MAX_LIMIT people, until --limit, nobody is left, or one stops.
+        let left = opts.limit ?? Number.POSITIVE_INFINITY;
+        let after: number | null = null;
+        for (let round = 0; round < MAX_ROUNDS && left > 0; round++) {
+          const limit = Math.min(left, MAX_LIMIT);
+          const r = await object.lookup({
+            limit,
+            after,
+            concurrency: opts.concurrency,
+            linkedin: opts.linkedin,
+            again: opts.again ?? false,
+          });
+          console.log(`run ${r.run}: ${JSON.stringify(r.stats)}`);
+          if (r.stats.aborted) {
+            process.exitCode = 1;
+            break;
+          }
+          left -= r.stats.selected;
+          // Without --again a person looked up isn't due again; one still due didn't resolve.
+          const done = r.stats.matched + r.stats.unresolved + r.stats.capped;
+          if (r.stats.selected < limit || r.stats.last === null || (!opts.again && !done)) break;
+          if (opts.again) after = r.stats.last;
+        }
       },
     );
 

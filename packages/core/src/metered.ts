@@ -74,10 +74,14 @@ type Answer = { ok: true; body: unknown } | { ok: false; status: number; error: 
  * it brings its own. Reads go one at a time, in the order asked: a caller's `Promise.all` would
  * otherwise await journaled steps at once, which a Restate handler can't, and a replay must meet
  * them in the same order. A key is read inside the step that spends it and never returned.
+ *
+ * `unset`: a client with no Exa, X or YouTube mode is refused ("Pick how … runs", the default),
+ * or with `managed` reads on Wren's path as before modes, metered on its share but not gated, as
+ * `vendorKeys` does for a call site that ran before modes.
  */
 export function meteredSites(
   sites: SiteClient,
-  s: MeterScope & { store: KeyStore | null; fetch?: FetchLike },
+  s: MeterScope & { store: KeyStore | null; fetch?: FetchLike; unset?: "refuse" | "managed" },
 ): SiteClient {
   return routed(sites, s, true);
 }
@@ -96,19 +100,16 @@ export function keyedSites(
 
 function routed(
   sites: SiteClient,
-  s: MeterScope & { store: KeyStore | null; fetch?: FetchLike },
+  s: MeterScope & { store: KeyStore | null; fetch?: FetchLike; unset?: "refuse" | "managed" },
   metered: boolean,
 ): SiteClient {
-  const keys = vendorKeys({
-    main: s.main,
-    keys: s.store,
-    now: s.now,
-    ...(metered ? {} : { unset: "managed" as const }),
-  });
+  const unset = metered ? (s.unset ?? "refuse") : "managed";
+  const keys = vendorKeys({ main: s.main, keys: s.store, now: s.now, unset });
   // Exa under people and LinkedIn routes: a client with no Exa mode stays on Wren's ring.
-  const exaKeys = metered
-    ? vendorKeys({ main: s.main, keys: s.store, now: s.now, unset: "managed" })
-    : keys;
+  const exaKeys =
+    unset === "managed"
+      ? keys
+      : vendorKeys({ main: s.main, keys: s.store, now: s.now, unset: "managed" });
   const step = s.step ?? plain;
   let chain: Promise<unknown> = Promise.resolve();
   const inTurn = <T>(fn: () => Promise<T>): Promise<T> => {
@@ -128,22 +129,22 @@ function routed(
   ): Promise<T> {
     const stop = (w: string) => new VendorStop(site, method, path, vendor, w);
     const client = s.client;
-    // Whose key: the step answers the mode, never the key.
+    // Whose key: the step answers the mode, never the key. `unset`: no mode, Wren's ungated.
     const mode =
       client !== null && vendorOf(vendor).own === "key"
         ? await step(`key ${vendor}`, () =>
             keys.key(client, vendor, why(vendor)).then(
-              (k) => ({ mode: k.mode }),
+              (k) => ({ mode: k.mode, unset: k.mode === "managed" && k.unset === true }),
               (err) => (isVendorStop(err) ? { stop: err.why } : Promise.reject(err)),
             ),
           )
-        : { mode: "managed" as const };
+        : { mode: "managed" as const, unset: false };
     if ("stop" in mode) throw stop(mode.stop);
     if (mode.mode === "own") {
       const no = directRefusal(vendor, site, method, path);
       if (no) throw stop(no);
     }
-    if (metered) {
+    if (metered && !mode.unset) {
       const g = await step(`gate ${vendor}`, () => gate(s.main, client, vendor, 1, s.now()));
       if (!g.ok) throw stop(g.why);
     }

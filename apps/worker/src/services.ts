@@ -224,7 +224,7 @@ import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
-import { isVendorStop, keyedSites, meteredModel, meteredSites } from "@wren/core/metered";
+import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -1939,7 +1939,7 @@ export async function buildServices(
       transport,
       ...clientsNotify,
     }),
-    // `crm run` from the CLI: here a client's own model and vendor keys can be opened.
+    // `crm run`, `lookup`, `redraft` and `settle` from the CLI: here a client's own keys open.
     makeCrmRun({
       main: db,
       open: openClient,
@@ -1949,25 +1949,27 @@ export async function buildServices(
         fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 1 }) : null,
         llm: classify ? llm : null,
       },
-      clientLlm: (client, base) =>
+      clientLlm: (client, base, { part, runId }) =>
         meteredModel(base, {
           main: db,
           client,
-          part: "reactivation.run",
+          part,
+          runId,
           now: () => new Date(),
           store: keys,
           own: llmForKey,
           unset: "managed",
         }),
-      // Inside the run's step, so through the ingress; Exa, X and YouTube on the client's own key.
-      clientSites: (client) =>
-        keyedSites(
+      // Inside the call's step, so through the ingress. Exa, X and YouTube on the client's own
+      // key, gated and metered on its share; no mode: Wren's, metered, not gated (as signals).
+      clientSites: (client, { part, runId }) =>
+        meteredSites(
           ingressSites(ingressOf(settings), {
             caller: `wren:crm-run:${client}`,
             ...sitesHost(settings.autobrowseInstanceId),
             timeoutMs: BOOKS_DESK_TIMEOUT_MS,
           }),
-          { main: db, client, part: "reactivation.run", now: () => new Date(), store: keys },
+          { main: db, client, part, runId, now: () => new Date(), store: keys, unset: "managed" },
         ),
       timezone: settings.sendTimezone,
     }),

@@ -812,13 +812,16 @@ export interface RedraftStats {
   /** Its mailbox is gone, or someone approved or edited it while it was being written. */
   skipped: number;
   aborted: string | null;
+  /** The last enrollment it took, in id order: `after` for the next slice. Null: none. */
+  last: number | null;
 }
 
 /**
  * Write drafts that still wait for approval again with today's composer and
  * brief, in place: same enrollment, address and mailbox. Only pairs nobody
  * approved or sent, and without ids only pairs nobody edited. A refused
- * rewrite leaves the old draft as it was.
+ * rewrite leaves the old draft as it was. `after` and `limit` take one slice
+ * in id order (the worker's `CrmRun/redraft`, a bounded call each).
  */
 export async function redraftAwaiting(
   db: Queryable,
@@ -827,10 +830,21 @@ export async function redraftAwaiting(
     profile: ClientProfile | null;
     senders: readonly Sender[];
     enrollmentIds?: number[];
+    /** Only enrollments past this id. */
+    after?: number | null;
+    /** At most this many. */
+    limit?: number | null;
     runId?: string | null;
   },
 ): Promise<RedraftStats> {
-  const stats: RedraftStats = { selected: 0, redrafted: 0, failed: 0, skipped: 0, aborted: null };
+  const stats: RedraftStats = {
+    selected: 0,
+    redrafted: 0,
+    failed: 0,
+    skipped: 0,
+    aborted: null,
+    last: null,
+  };
   const { profile } = opts;
   if (!profile) {
     stats.aborted = "no firm profile: `wren --client <id> crm profile set <file.json>`";
@@ -868,8 +882,11 @@ export async function redraftAwaiting(
             sql`and not exists (select 1 from messages x
               where x.enrollment_id = e.id and x.edited_at is not null)`
       }
-    order by e.id`);
+      ${opts.after != null ? sql`and e.id > ${opts.after}` : sql``}
+    order by e.id
+    ${opts.limit != null ? sql`limit ${opts.limit}` : sql``}`);
   stats.selected = rows.length;
+  stats.last = rows.at(-1)?.enrollment_id ?? null;
   const prompt = rows.length ? await livePrompt(db, COMPOSE_PROMPT_REF) : null;
   for (const r of rows) {
     const sender = opts.senders.find((x) => x.address === r.sender && !x.suspended);

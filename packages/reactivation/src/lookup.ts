@@ -36,6 +36,8 @@ export interface CrmLookupStats {
   moved: number;
   left: number;
   aborted: string | null;
+  /** The last person it took, in id order: `after` for the next slice. Null: none. */
+  last: number | null;
 }
 
 export interface CrmLookupOptions {
@@ -45,6 +47,8 @@ export interface CrmLookupOptions {
   concurrency?: number;
   /** Look up people already looked up, too. */
   again?: boolean;
+  /** Only people past this id (a slice of `again`, which would otherwise take the same ones). */
+  after?: number | null;
   runId?: string | null;
   now?: () => Date;
   feed?: Feed;
@@ -83,7 +87,7 @@ export const dueForLookup = (personId: SQL) =>
  */
 export async function crmLookupSubjects(
   db: Queryable,
-  opts: { limit?: number; again?: boolean } = {},
+  opts: { limit?: number; again?: boolean; after?: number | null } = {},
 ): Promise<(LookupSubject & { retry: boolean })[]> {
   const due = opts.again ? sql`true` : sql`(${dueForLookup(sql`p.id`)} or ${rereadDue(sql`p.id`)})`;
   const rows = await db.execute<Row>(sql`
@@ -107,7 +111,7 @@ export async function crmLookupSubjects(
         v.checked_at desc, v.id desc
       limit 1
     ) vd on true
-    where ${due}
+    where ${due} ${opts.after != null ? sql`and p.id > ${opts.after}` : sql``}
     order by p.id
     limit ${opts.limit ?? 1_000_000}`);
   return rows.map((r) => ({
@@ -140,6 +144,7 @@ export async function lookUpCrmPeople(
     moved: 0,
     left: 0,
     aborted: null,
+    last: subjects.at(-1)?.personId ?? null,
   };
   const lookup: LookupOptions = { linkedin: opts.linkedin, ...(opts.now ? { now: opts.now } : {}) };
   const feed = opts.feed ?? NO_FEED;

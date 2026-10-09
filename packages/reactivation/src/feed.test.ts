@@ -237,6 +237,7 @@ describe("stageDone", () => {
     moved: 0,
     left: 0,
     aborted: null,
+    last: null,
   };
   const signals = {
     selected: 4,

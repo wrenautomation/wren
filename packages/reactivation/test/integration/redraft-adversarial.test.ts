@@ -181,12 +181,20 @@ beforeEach(async () => {
 });
 
 const redraft = (
-  opts: { enrollmentIds?: number[]; senders?: readonly Sender[]; p?: ClientProfile | null } = {},
+  opts: {
+    enrollmentIds?: number[];
+    senders?: readonly Sender[];
+    p?: ClientProfile | null;
+    after?: number | null;
+    limit?: number;
+  } = {},
 ) =>
   redraftAwaiting(db(), llm, {
     profile: opts.p === undefined ? profile : opts.p,
     senders: opts.senders ?? settings.senders,
     ...(opts.enrollmentIds ? { enrollmentIds: opts.enrollmentIds } : {}),
+    after: opts.after ?? null,
+    ...(opts.limit ? { limit: opts.limit } : {}),
   });
 
 interface Msg extends Record<string, unknown> {
@@ -216,7 +224,7 @@ describe("what it rewrites", () => {
     const ids = (await rows<{ id: number }>(sql`select id from messages order by id`)).map(
       (m) => m.id,
     );
-    expect(await redraft()).toEqual({
+    expect(await redraft()).toMatchObject({
       selected: 3,
       redrafted: 3,
       failed: 0,
@@ -243,6 +251,18 @@ describe("what it rewrites", () => {
           opener?.body.endsWith("\n\nBob Roe\nNorthside Talent"),
       ).toBe(true);
     }
+  });
+
+  it("takes slices in id order: each starts past the last one's end", async () => {
+    const first = await redraft({ limit: 2 });
+    expect(first).toMatchObject({ selected: 2, redrafted: 2 });
+    const rest = await redraft({ after: first.last, limit: 2 });
+    expect(rest).toMatchObject({ selected: 1, redrafted: 1 });
+    expect(rest.last).toBeGreaterThan(first.last ?? 0);
+    expect(await redraft({ after: rest.last, limit: 2 })).toMatchObject({
+      selected: 0,
+      last: null,
+    });
   });
 
   it("the new provenance carries today's brief lines and a why the portal can read", async () => {

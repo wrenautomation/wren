@@ -54,6 +54,7 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 - `crm status` always ends with a `next:` line. Do what it says.
 - `--limit n` caps each stage for a trial run. `--no-linkedin` means web search only.
 - `crm verify` and `crm lookup` run a single stage and are for debugging. `crm lookup --again` redoes people already looked up.
+- `crm run`, `lookup`, `redraft` and `settle` run on the worker (`CrmRun`), on the client's own model and vendor keys. `seed-demo` runs here on Wren's keys.
 
 ### Emails, sending, replies
 

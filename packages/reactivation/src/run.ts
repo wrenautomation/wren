@@ -226,6 +226,7 @@ const NO_LOOKUPS: CrmLookupStats = {
   moved: 0,
   left: 0,
   aborted: null,
+  last: null,
 };
 
 const NO_SIGNALS: CrmSignalsStats = {

@@ -17,7 +17,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";
 import { runCrmImport } from "../../src/crm/import.js";
 import { CrmCsvSource } from "../../src/crm/source.js";
-import { type CrmRunObject, makeCrmRun } from "../../src/crm-run.js";
+import { type CrmRunObject, type CrmRunScope, makeCrmRun } from "../../src/crm-run.js";
 
 const CSV = [
   "ID,Name,Email,Company,Website",
@@ -34,8 +34,10 @@ const checker: LocalCheckerLike = {
 const askedSites: string[] = [];
 const askedLlm: string[] = [];
 const calls: string[] = [];
-const sitesFor = (client: string): SiteClient => {
+const parts: string[] = [];
+const sitesFor = (client: string, scope: CrmRunScope): SiteClient => {
   askedSites.push(client);
+  parts.push(`sites ${scope.part} ${scope.runId ? "run" : "none"}`);
   return {
     async call(site, method, path, input = {}) {
       calls.push(`${client} ${site} ${method} ${path}`);
@@ -68,8 +70,9 @@ beforeAll(async () => {
           fetcher: null,
           llm,
         },
-        clientLlm: (client, base: LlmClient) => {
+        clientLlm: (client, base: LlmClient, scope) => {
           askedLlm.push(client);
+          parts.push(`llm ${scope.part} ${scope.runId ? "run" : "none"}`);
           return base;
         },
         clientSites: sitesFor,
@@ -89,6 +92,7 @@ beforeEach(async () => {
   askedSites.length = 0;
   askedLlm.length = 0;
   calls.length = 0;
+  parts.length = 0;
   await truncate(pg.db, [
     "person_lookups",
     "findings",
@@ -124,6 +128,37 @@ describe("CrmRun", () => {
     expect(calls.every((c) => c.startsWith("acme web "))).toBe(true);
     const [run] = await pg.db.execute(sql`select command from runs where id = ${r.run}`);
     expect(run).toEqual({ command: "crm run" });
+  });
+
+  it("lookup takes a slice on the client's sites and model; again goes on past the last", async () => {
+    const first = await crmRun("acme").lookup({ limit: 1 });
+    expect(first.stats).toMatchObject({ selected: 1, aborted: null });
+    expect(parts).toEqual(["llm reactivation.lookup run", "sites reactivation.lookup run"]);
+    expect(calls.every((c) => c.startsWith("acme web "))).toBe(true);
+    const [run] = await pg.db.execute(sql`select command from runs where id = ${first.run}`);
+    expect(run).toEqual({ command: "crm lookup" });
+    // Again, past the first person: the second.
+    const next = await crmRun("acme").lookup({ limit: 1, again: true, after: first.stats.last });
+    expect(next.stats.selected).toBe(1);
+    expect(next.stats.last).toBeGreaterThan(first.stats.last ?? 0);
+    const done = await crmRun("acme").lookup({ limit: 1, again: true, after: next.stats.last });
+    expect(done.stats).toMatchObject({ selected: 0, last: null });
+  });
+
+  it("redraft and settle run on the client's model, each a recorded slice", async () => {
+    // No firm profile yet: redraft says so and writes nothing.
+    const r = await crmRun("acme").redraft({ limit: 5 });
+    expect(r.stats).toMatchObject({ selected: 0, aborted: expect.stringMatching(/profile/) });
+    const s = await crmRun("acme").settle({});
+    expect(s.stats).toEqual({ selected: 0, settled: 0, last: null, byName: false });
+    expect(parts).toEqual(["llm reactivation.redraft run", "llm reactivation.settle run"]);
+    const runs = await pg.db.execute(
+      sql`select command from runs where id in (${r.run}, ${s.run}) order by command`,
+    );
+    expect(runs).toEqual([{ command: "crm redraft" }, { command: "crm settle" }]);
+    await expect(
+      crmRun("acme").redraft({ ids: Array.from({ length: 26 }, (_, i) => i) }),
+    ).rejects.toThrow();
   });
 
   it("refuses a client that isn't there, and a round past the cap", async () => {

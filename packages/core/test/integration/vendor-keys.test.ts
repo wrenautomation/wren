@@ -313,6 +313,40 @@ describe("meteredSites and meteredModel route by mode", () => {
     expect([f.calls, exa.seen]).toEqual([[], []]);
   });
 
+  it("no mode with unset managed: Wren's ring, metered on the client's share, not gated", async () => {
+    const f = fakeSites();
+    const exa = fakeExa();
+    const s = meteredSites(f.sites, {
+      main: pg.db,
+      client: "gamma",
+      part: "test.unset",
+      now,
+      store,
+      fetch: exa.fetch,
+      unset: "managed",
+    });
+    // The gate alone would say "Needs setup" for a client with no mode.
+    await s.call("web", "GET", "/search", { q: "x", via: "exa" });
+    expect([f.calls, exa.seen]).toEqual([["web /search"], []]);
+    const rows = await pg.db
+      .select({ mode: vendorUsage.mode, bucket: vendorUsage.bucket, part: vendorUsage.part })
+      .from(vendorUsage)
+      .where(and(eq(vendorUsage.client, "gamma"), eq(vendorUsage.vendor, "exa")));
+    expect(rows).toEqual([{ mode: "managed", bucket: "exa:managed", part: "test.unset" }]);
+    // An own key still reads straight from Exa, gated as before.
+    const mine = meteredSites(f.sites, {
+      main: pg.db,
+      client: "acme",
+      part: "test.unset",
+      now,
+      store,
+      fetch: exa.fetch,
+      unset: "managed",
+    });
+    await mine.call("web", "GET", "/search", { q: "y", via: "exa" });
+    expect(exa.seen.map((x) => x.key)).toEqual([EXA_OWN]);
+  });
+
   it("a vendor's error on the client's key never carries the key", async () => {
     const exa = fakeExa(401, true);
     const s = meteredSites(fakeSites().sites, {

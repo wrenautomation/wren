@@ -101,17 +101,31 @@ Prices: Telnyx gives dollars per text. Models and Exa use the `VENDORS` micros w
 - `channel-email/test/integration/per-client-reads.test.ts`: an own YouTube key reads on its own bucket while Wren's is spent.
 - `research/src/restate/units.test.ts`: a vendor stop ends at once, nothing held.
 
-## `crm run` on the worker (2026-10-09)
+## `crm` on the worker (2026-10-09)
 
-The CLI holds only the store's public key, so it can't read a client's key. The worker can. `crm run` now runs there:
+The CLI holds only the store's public key, so it can't read a client's key. The worker can. `crm run`, `lookup`, `redraft` and `settle` run there, as handlers of `CrmRun/<client>` (`reactivation/src/crm-run.ts`), exclusive per client:
 
-- `CrmRun/<client>/run` (`reactivation/src/crm-run.ts`), exclusive per client. Input: `only`, `limit` (10 by default, 25 at most), `linkedin`. One call is one round in one step: the run's ledger row in the client's database, then each due stage.
-- Its model: `meteredModel`, part `reactivation.run`, `unset: "managed"`, the client's own key when it has one.
-- Its sites legs (lookup, signals, events): `keyedSites` over the ingress (inside the step), so Exa, X and YouTube read on the client's own key when it brought one. Routes only, as signals: no new gate, and a client with no mode stays on Wren's.
-- The CLI calls it through the ingress round after round until nothing is due, a stage stops, or a round changes nothing. `--limit` is one round. `--verifier` is gone: the worker's verifier runs.
-- Test: `reactivation/test/integration/crm-run.test.ts`.
+| Handler | One call | Part |
+|---|---|---|
+| `run` | one round of each due stage, `limit` units each (10 by default, 25 at most), `only`, `linkedin` | `reactivation.run` |
+| `lookup` | one slice of people (25 at most), `concurrency` up to 4; `again` with `after` goes past the last slice | `reactivation.lookup` |
+| `redraft` | named enrollments (25 at most), or untouched drafts past `after` | `reactivation.redraft` |
+| `settle` | kept moves past `after` (100 at most) | `reactivation.settle` |
+
+- Each call is one step: its ledger row in the client's database (`crm run`, `crm lookup`, `crm redraft`, `crm settle`), then its work. The model and sites are made inside it, with the run's id on every usage row.
+- Model: `meteredModel`, `unset: "managed"`, the client's own key when it has one. `lookup` now also settles moves with the family judge on that model, as `run`'s lookup stage does.
+- Sites (`run`, `lookup`): `meteredSites` over the ingress, `unset: "managed"`. Exa, X and YouTube read on the client's own key when it brought one, gated and metered on its share. No mode: Wren's path, metered on the client's share, not gated. LinkedIn account reads are gated on the client's LinkedIn setup, as signals; a stop parks them like a cap and the rest go on by search. `redraft` and `settle` make no sites.
+- The CLI loops calls through the ingress: `run` until nothing is due, a stage stops, or a round changes nothing; `lookup` until `--limit`, nobody is left, or a slice stops; `redraft` and `settle` slice by slice past the last id. `--verifier` is gone from `run`: the worker's verifier runs.
+- `seed-demo` stays in the CLI on Wren's keys.
+- Tests: `reactivation/test/integration/crm-run.test.ts`, `redraft-adversarial.test.ts` (slices), `lookup.test.ts` (settle slices), `core/test/integration/vendor-keys.test.ts` (`meteredSites` with `unset`).
+
+## Decisions
+
+- 2026-10-09: `redraft`, `settle` and `lookup` became `CrmRun` handlers, each a bounded slice the CLI loops. A Lambda call has 15 minutes; `--all` over hundreds of drafts doesn't fit one.
+- 2026-10-09: `seed-demo` stays on Wren's keys. It refuses any client but a demo one, the demo client is Wren's showcase (client zero's work), and nobody brings keys for it. Moving it would add a worker handler for no change in whose key pays.
+- 2026-10-09: no-mode default for `CrmRun` sites is `unset: "managed"`: Wren's key, metered on the client's share, not gated. That is how signals treat a client with no mode (talks: "No mode: Wren's, metered"; news stays on Wren's ring) and how `vendorKeys.use` treats `unset`. Refusing instead would stop every lookup, signals and events stage for a client that never opened Account → Vendors.
+- 2026-10-09: `meteredSites` takes `unset`. It applies to key vendors (Exa, X, YouTube) only. LinkedIn is a login: no mode stays "Needs setup", as in signals.
 
 ## Left
 
-- The other CLI `crm` model calls stay on Wren's key: `redraft`, `settle`, `lookup`'s judge-free reads and `seed-demo` (the demo client, Wren's own work). Next: `redraft` and `settle` as `CrmRun` handlers, same shape.
-- `CrmRun` sites legs aren't gated or metered on the client's share yet (`keyedSites`, like signals). Moving to `meteredSites` needs the no-mode default settled first, or clients with no Exa mode stop.
+- Nothing from this design. The no-mode default can tighten to `refuse` once every client has picked its modes.

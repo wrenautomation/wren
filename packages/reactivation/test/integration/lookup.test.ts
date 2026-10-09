@@ -175,9 +175,18 @@ describe("crm lookup", () => {
 
   it("`crm settle` makes a kept move to the same employer a stay; another employer stays a move", async () => {
     await lookUpCrmPeople(db(), sites().client, { linkedin: null });
-    expect(await settleMoves(db(), async () => "different")).toBe(0);
+    expect(await settleMoves(db(), async () => "different")).toMatchObject({
+      selected: 1,
+      settled: 0,
+    });
     expect((await jane())[0]?.[0]).toBe("job_change");
-    expect(await settleMoves(db(), owner)).toBe(1);
+    // A slice past the last move takes nothing.
+    const { last } = await settleMoves(db(), owner, { limit: 1 });
+    expect(await settleMoves(db(), owner, { after: last })).toEqual({
+      selected: 0,
+      settled: 0,
+      last: null,
+    });
     expect(await jane()).toEqual([stay]);
   });
 

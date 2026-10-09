@@ -106,11 +106,25 @@ export async function settleDrafts(
   );
 }
 
+export interface SettleStats {
+  /** Moves it looked at. */
+  selected: number;
+  /** Of those, how many became stays. */
+  settled: number;
+  /** The last finding it looked at, in id order: `after` for the next slice. Null: none. */
+  last: number | null;
+}
+
 /**
  * The same over moves already kept (`wren crm settle`): each one to the same employer becomes
- * a stay in place, so scores and briefs that cite it still find it. Returns how many it settled.
+ * a stay in place, so scores and briefs that cite it still find it. `after` and `limit` take
+ * one slice in id order (the worker's `CrmRun/settle`, a bounded call each).
  */
-export async function settleMoves(db: Queryable, judge: Judge | null): Promise<number> {
+export async function settleMoves(
+  db: Queryable,
+  judge: Judge | null,
+  opts: { after?: number | null; limit?: number | null } = {},
+): Promise<SettleStats> {
   const moves = await db.execute<{
     id: number;
     fact_key: string;
@@ -124,7 +138,9 @@ export async function settleMoves(db: Queryable, judge: Judge | null): Promise<n
     join latest l on l.person_id = f.person_id
     join companies co on co.id = l.company_id
     where f.kind = 'job_change' and nullif(btrim(f.value->>'to'), '') is not null
-    order by f.id`);
+      ${opts.after != null ? sql`and f.id > ${opts.after}` : sql``}
+    order by f.id
+    ${opts.limit != null ? sql`limit ${opts.limit}` : sql``}`);
   let settled = 0;
   for (const m of moves) {
     const relation = await stayedAs(m.value, { name: m.firm_name, domain: m.firm_domain }, judge);
@@ -139,5 +155,5 @@ export async function settleMoves(db: Queryable, judge: Judge | null): Promise<n
       where id = ${m.id}`);
     settled += 1;
   }
-  return settled;
+  return { selected: moves.length, settled, last: moves.at(-1)?.id ?? null };
 }
