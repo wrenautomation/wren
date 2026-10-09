@@ -326,7 +326,7 @@ describe("X conversation and the rows that wait for a first number", () => {
     });
     expect(await row("Comment to DM, DM to booking")).toMatchObject({ state: "live" });
 
-    await keepDay(pg.db, "x", iso(now).slice(0, 10), { followers: 40, asOf: iso(now) });
+    await keepDay(pg.db, "x", iso(now).slice(0, 10), { followers: 40, asOf: iso(now), raw: {} });
     expect(await row("Followers")).toMatchObject({ state: "live" });
   });
 
