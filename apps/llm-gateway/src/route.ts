@@ -179,3 +179,73 @@ function totalTokens(text: string): number | null {
     return null;
   }
 }
+
+/** Gemini's own API, for what the OpenAI shape can't say: a YouTube URL to read, embeddings. */
+export const NATIVE_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+export const NATIVE_METHODS = ["generateContent", "embedContent", "batchEmbedContents"] as const;
+export type NativeMethod = (typeof NATIVE_METHODS)[number];
+/** A video read takes minutes: one try waits this long. */
+export const NATIVE_ATTEMPT_MS = 240_000;
+
+/**
+ * `POST /v1beta/models/<model>:<method>` passed through to Gemini on a key with room: the same
+ * ledger, the next key on a 429 or a dead key. One model, no chain: the caller named it.
+ */
+export async function native(
+  model: string,
+  method: NativeMethod,
+  body: string,
+  env: Env,
+  ledger: LedgerApi,
+  fetcher: typeof fetch = fetch,
+): Promise<Response> {
+  const t: Target = { provider: "gemini", model };
+  const keys = keysOf(env, "gemini");
+  const tried: string[] = [];
+  for (let n = 0; n < TRIES_PER_MODEL; n++) {
+    const idx = await ledger.acquire(t);
+    if (idx === null) break;
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), NATIVE_ATTEMPT_MS);
+    let res: Response;
+    let text: string;
+    try {
+      res = await fetcher(`${NATIVE_BASE}/${model}:${method}`, {
+        method: "POST",
+        headers: { "x-goog-api-key": keys[idx] as string, "content-type": "application/json" },
+        body,
+        signal: abort.signal,
+      });
+      text = await res.text();
+    } catch {
+      tried.push(`#${idx}:timeout`);
+      await ledger.report(t, idx, "model", `timeout after ${NATIVE_ATTEMPT_MS / 1000}s`);
+      break;
+    } finally {
+      clearTimeout(timer);
+    }
+    if (res.ok) {
+      await ledger.report(t, idx, "ok");
+      return new Response(text, {
+        status: 200,
+        headers: { "content-type": "application/json", "x-gateway-key": `gemini#${idx}` },
+      });
+    }
+    const outcome = classify(res.status, text);
+    tried.push(`#${idx}:${res.status}`);
+    if (outcome) {
+      await ledger.report(t, idx, outcome, describe(res.status, text));
+      if (outcome === "model") break;
+      continue;
+    }
+    return new Response(text, {
+      status: res.status,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  return error(
+    429,
+    `every Gemini key is spent or cooling for '${model}' (tried ${tried.length ? tried.join(", ") : "none with room"})`,
+    { "retry-after": "60" },
+  );
+}

@@ -9,9 +9,11 @@ import {
   captionsMarkdown,
   clock,
   driveSources,
+  gatewayGemini,
   readSopDir,
   sopPrompt,
   videoSource,
+  youtubeByUrl,
 } from "./index.js";
 
 describe("sops", () => {
@@ -140,5 +142,49 @@ console.log(JSON.stringify({ id: "abc", title: "Video by x", extractor_key: "Ins
     expect(again.current).toContain("Do it");
     expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP.md below");
     expect(await readFile(join(dir, "notes.md"), "utf8")).toBe("mine");
+  });
+});
+
+describe("youtube by URL", () => {
+  it("reads speech and screen through the gateway, clips in order", async () => {
+    const calls: { url: string; auth: string | null; goog: string | null; body: string }[] = [];
+    const base = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      const h = new Headers(init?.headers);
+      calls.push({
+        url,
+        auth: h.get("authorization"),
+        goog: h.get("x-goog-api-key"),
+        body: String(init?.body ?? ""),
+      });
+      if (url.includes("oembed"))
+        return Response.json({ title: "Cold email in 2026", author_name: "Synth Channel" });
+      const body = JSON.parse(String(init?.body)) as {
+        contents: { parts: { videoMetadata?: { startOffset: string }; text?: string }[] }[];
+      };
+      const parts = body.contents[0]?.parts ?? [];
+      const start = parts[0]?.videoMetadata?.startOffset ?? "?";
+      const speech = parts[1]?.text?.startsWith("Transcribe the speech");
+      return Response.json({
+        candidates: [{ content: { parts: [{ text: speech ? `said ${start}` : "none" }] } }],
+      });
+    }) as unknown as typeof fetch;
+    const fetchFn = gatewayGemini("https://gw.example/v1", "tok", base);
+    const s = await youtubeByUrl("https://youtu.be/abcdefghijk", {
+      geminiKeys: ["gateway"],
+      fetchFn,
+      durationS: 900,
+    });
+    expect(s.name).toBe("youtube-abcdefghijk.md");
+    expect(s.md).toContain('title: "Cold email in 2026"');
+    expect(s.md).toContain('channel: "Synth Channel"');
+    expect(s.md.indexOf("said 0s")).toBeLessThan(s.md.indexOf("said 600s"));
+    expect(s.md).not.toContain("## On screen");
+    const gemini = calls.filter((c) => !c.url.includes("oembed"));
+    expect(gemini).toHaveLength(4);
+    expect(gemini[0]?.url).toMatch(
+      /^https:\/\/gw\.example\/v1beta\/models\/[\w.-]+:generateContent$/,
+    );
+    expect(gemini.every((c) => c.auth === "Bearer tok" && c.goog === null)).toBe(true);
   });
 });

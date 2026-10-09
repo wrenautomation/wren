@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dayKey, resolve, type Target } from "../src/catalog.js";
 import { classify, describe as describeError, Ledger } from "../src/ledger.js";
-import { complete, type Env, keysOf, splitThought } from "../src/route.js";
+import { complete, type Env, keysOf, NATIVE_BASE, native, splitThought } from "../src/route.js";
 
 const T0 = Date.parse("2026-10-06T18:00:00Z");
 const FLASH: Target = { provider: "gemini", model: "gemini-3.8-flash" }; // 5 a minute, 20 a day
@@ -180,5 +180,47 @@ describe("splitThought", () => {
       reasoning_content: "they want pong",
     });
     expect(splitThought('{"choices":[]}')).toBe('{"choices":[]}');
+  });
+});
+
+describe("native Gemini pass-through", () => {
+  const env: Env = { GEMINI_KEYS: "k0\nk1" };
+  const ledgerOf = () => {
+    const l = new Ledger();
+    return {
+      acquire: (t: Target) => l.acquire(t, 2, T0),
+      report: (t: Target, i: number, o: Parameters<Ledger["report"]>[2]) => l.report(t, i, o, T0),
+    };
+  };
+
+  it("passes the body to Gemini's own endpoint and moves keys on a 429", async () => {
+    const seen: { url: string; key: string | null; body: string }[] = [];
+    const fetcher = (async (url: string, init: RequestInit) => {
+      const key = new Headers(init.headers).get("x-goog-api-key");
+      seen.push({ url, key, body: String(init.body) });
+      return key === "k0"
+        ? new Response('{"error":{"message":"Resource exhausted"}}', { status: 429 })
+        : new Response('{"embedding":{"values":[0.1]}}', { status: 200 });
+    }) as unknown as typeof fetch;
+    const res = await native(
+      "gemini-embedding-001",
+      "embedContent",
+      '{"content":{"parts":[{"text":"hi"}]}}',
+      env,
+      ledgerOf(),
+      fetcher,
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ embedding: { values: [0.1] } });
+    expect(seen.map((s) => s.key)).toEqual(["k0", "k1"]);
+    expect(seen[1]?.url).toBe(`${NATIVE_BASE}/gemini-embedding-001:embedContent`);
+    expect(seen[1]?.body).toBe('{"content":{"parts":[{"text":"hi"}]}}');
+  });
+
+  it("returns the request's own error as it came", async () => {
+    const fetcher = (async () =>
+      new Response('{"error":{"message":"bad part"}}', { status: 400 })) as unknown as typeof fetch;
+    const res = await native("gemini-3.5-flash", "generateContent", "{}", env, ledgerOf(), fetcher);
+    expect(res.status).toBe(400);
   });
 });

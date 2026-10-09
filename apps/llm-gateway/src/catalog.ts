@@ -44,6 +44,7 @@ export const PROVIDERS: Record<Provider, ProviderSpec> = {
       "gemini-2.5-flash-lite": { rpm: 10, rpd: 20 },
       "gemma-4-31b-it": { rpm: 30, rpd: 14400 },
       "gemma-4-26b-a4b-it": { rpm: 30, rpd: 14400 },
+      "gemini-embedding-001": { rpm: 100, rpd: 1000 },
     },
   },
   openrouter: {

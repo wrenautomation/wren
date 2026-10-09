@@ -25,8 +25,9 @@ import {
   judges,
   practiceOf,
   pullFeeds,
-  readOnMac,
   readStep,
+  readItem,
+  readVideo,
   scoreItem,
   scoreStep,
   searchItems,
@@ -258,7 +259,7 @@ describe("Learn", () => {
     expect((await waitingForMac(pg.db)).map((w) => w.id)).toEqual([Number(first.id)]);
     const md = `---\nsource: "instagram:Csynth1"\ntitle: "Three warmup rules"\nchannel: "synthetic.creator"\npriority: 5\n---\n\n# Three warmup rules\n\n## Speech\n\n[0:00] Never send more than forty a day from a new inbox.\n\n## On screen\n\nA table of daily caps.\n`;
     const reader = async () => ({ file: "instagram-Csynth1.md", md });
-    expect(await readOnMac(pg.db, reader, Number(first.id))).toBe("read");
+    expect(await readVideo(pg.db, reader, Number(first.id))).toBe("read");
     expect(await scoreItem(pg.db, judge(llmScoring()), Number(first.id))).toBe("drop");
     const [row] = await pg.db
       .select()
@@ -281,12 +282,30 @@ describe("Learn", () => {
     expect(sent).toEqual([]);
   });
 
+  it("reads a YouTube save on the worker, and leaves it to the Mac when that fails", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const ok = await api.save({ ...viewer, url: "https://youtu.be/synthVid02a?si=x" });
+    const md = `---\nsource: "youtube:synthVid02a"\ntitle: "Reply rates"\nchannel: "Synth"\npriority: 5\n---\n\n# Reply rates\n\n## Speech\n\n[0:00] Words.\n`;
+    const seen: unknown[] = [];
+    const reader = async (url: string, kind: string, durationS?: number | null) => {
+      seen.push([url, kind, durationS ?? null]);
+      return { file: "youtube-synthVid02a.md", md };
+    };
+    expect(await readItem(pg.db, web({ entries: [] }), Number(ok.id), reader)).toBe("read");
+    expect(seen).toEqual([["https://youtube.com/watch?v=synthVid02a", "video", null]]);
+
+    const bad = await api.save({ ...viewer, url: "https://youtu.be/synthVid03b" });
+    const fail = async () => Promise.reject(new Error("keys spent"));
+    expect(await readItem(pg.db, web({ entries: [] }), Number(bad.id), fail)).toBe("mac");
+    expect((await waitingForMac(pg.db)).map((w) => w.id)).toEqual([Number(bad.id)]);
+  });
+
   it("keeps a failed read with why, and reads it again on ask", async () => {
     const api = learnConsoleApi(pg.db, web({ entries: [] }));
     const s = await api.save({ ...viewer, url: "https://youtu.be/synthVid01?si=x" });
     expect(s).toMatchObject({ url: "https://youtube.com/watch?v=synthVid01", kind: "video" });
     expect(
-      await readOnMac(pg.db, async () => Promise.reject(new Error("no captions")), Number(s.id)),
+      await readVideo(pg.db, async () => Promise.reject(new Error("no captions")), Number(s.id)),
     ).toBe("failed");
     expect(await waitingForMac(pg.db)).toEqual([]);
     expect(await waitingForMac(pg.db, { retry: true })).toHaveLength(1);
@@ -545,7 +564,7 @@ describe("Learn", () => {
     const s = await api.save({ ...viewer, url: "https://youtu.be/synthVid03" });
     const md = `---\nsource: "youtube:synthVid03"\ntitle: "Synthetic talk"\nchannel: "Synthetic Channel"\npriority: 5\nduration: 640\n---\n\n# Synthetic talk\n\n[0:00] Hello.\n\n[2:05] The warmup rule.\n`;
     expect(
-      await readOnMac(pg.db, async () => ({ file: "youtube-synthVid03.md", md }), Number(s.id)),
+      await readVideo(pg.db, async () => ({ file: "youtube-synthVid03.md", md }), Number(s.id)),
     ).toBe("read");
     let asked = "";
     const llm = new FakeLlm({

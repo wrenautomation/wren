@@ -24,7 +24,7 @@ import {
   type Practice,
   practiceOf,
   readItem,
-  readOnMac,
+  readVideo,
   saveLink,
   scoreItem,
   searchItems,
@@ -155,7 +155,7 @@ export function registerLearn(
       client: o.client ?? null,
     });
     for (const w of waiting) {
-      const r = await readOnMac(db, read, w.id);
+      const r = await readVideo(db, read, w.id);
       const verdict = r === "read" ? await scoreItem(db, judge, w.id) : null;
       if (r === "read" && o.sops) await notesFor(db, w.client, w.id);
       out.push({ id: w.id, read: r, verdict });
@@ -190,7 +190,7 @@ export function registerLearn(
           });
           if (!saved.unread || !o.read) return saved;
           const r = needsMac(saved.kind)
-            ? await readOnMac(db, reader(), saved.id)
+            ? await readVideo(db, reader(), saved.id)
             : await readItem(db, fetch, saved.id);
           const verdict =
             r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;

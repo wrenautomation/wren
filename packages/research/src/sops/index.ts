@@ -265,6 +265,111 @@ export async function youtubeSource(
   return { name: `youtube-${info.id}.md`, md };
 }
 
+/**
+ * Gemini's own API through the LLM gateway, as `askGemini`'s fetch: the gateway holds the keys
+ * and rotates them, so the caller passes any one placeholder key. `gateway` is its base URL
+ * (`WREN_LLM_GATEWAY_URL`, the `/v1` OpenAI path is dropped).
+ */
+export function gatewayGemini(gateway: string, token: string, fetchFn: typeof fetch = fetch) {
+  const origin = new URL(gateway).origin;
+  const google = "https://generativelanguage.googleapis.com/";
+  return ((input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (!url.startsWith(google)) return fetchFn(input, init);
+    const headers = new Headers(init?.headers);
+    headers.delete("x-goog-api-key");
+    headers.set("authorization", `Bearer ${token}`);
+    return fetchFn(`${origin}/${url.slice(google.length)}`, { ...init, headers });
+  }) as typeof fetch;
+}
+
+const SPEECH =
+  "Transcribe the speech in this video: every word spoken, in paragraphs, each starting with its [m:ss] video time. Fix only obvious mishearings. Markdown, no heading. If nobody speaks, reply with the single word none.";
+
+/**
+ * A YouTube video read from its URL alone, no download and no home IP: Gemini hears the speech
+ * and reads the screen in `CLIP_S` clips (one clip when the length isn't known). The title,
+ * channel and thumbnail come from YouTube's oEmbed. What the worker reads with; the Mac's
+ * `youtubeSource` uses the captions instead.
+ */
+export async function youtubeByUrl(
+  url: string,
+  opts: {
+    geminiKeys: readonly string[];
+    fetchFn?: typeof fetch;
+    durationS?: number | null | undefined;
+    priority?: number;
+  },
+): Promise<Source> {
+  const fetchFn = opts.fetchFn ?? fetch;
+  const id = /(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/.exec(url)?.[1];
+  if (!id) throw new Error(`${url}: not a YouTube video`);
+  const watch = `https://www.youtube.com/watch?v=${id}`;
+  const meta = (await fetchFn(
+    `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watch)}`,
+  )
+    .then((r) => (r.ok ? r.json() : {}))
+    .catch(() => ({}))) as { title?: string; author_name?: string; thumbnail_url?: string };
+  const duration = opts.durationS ?? 0;
+  const starts = duration
+    ? Array.from({ length: Math.ceil(duration / CLIP_S) }, (_, i) => i * CLIP_S)
+    : [null];
+  const readClip = async (start: number | null) => {
+    const part = {
+      fileData: { fileUri: watch },
+      ...(start === null
+        ? {}
+        : {
+            videoMetadata: {
+              startOffset: `${start}s`,
+              endOffset: `${Math.min(start + CLIP_S, duration)}s`,
+            },
+          }),
+    };
+    const ask = (text: string) => ({
+      contents: [{ parts: [part, { text }] }],
+      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" },
+    });
+    const label = `${id} ${clock(start ?? 0)}`;
+    const [said, screen] = await Promise.all([
+      askGemini(ask(SPEECH), opts.geminiKeys, fetchFn, `${label} speech`),
+      askShown(
+        (paraphrase) =>
+          ask(
+            `${SHOWN(start ?? 0, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
+          ),
+        opts.geminiKeys,
+        fetchFn,
+        `${label} screen`,
+      ),
+    ]);
+    if ("unread" in said) throw new Error(`gemini ${label} speech: unread, last ${said.unread}`);
+    return { said: said.text, screen: "text" in screen ? screen.text : "" };
+  };
+  const clips: { said: string; screen: string }[] = [];
+  // 4 clips at a time, kept in order: the gateway spreads them over its keys.
+  for (let i = 0; i < starts.length; i += 4)
+    clips.push(...(await Promise.all(starts.slice(i, i + 4).map(readClip))));
+  const real = (s: string) => s && s.toLowerCase() !== "none";
+  const speech = clips.map((c) => c.said).filter(real);
+  const shown = clips.map((c) => c.screen).filter(real);
+  const title = meta.title?.trim() || watch;
+  return {
+    name: `youtube-${id}.md`,
+    md: `${frontMatter({
+      source: `youtube:${id}`,
+      title,
+      url: watch,
+      ...(meta.author_name ? { channel: meta.author_name } : {}),
+      priority: opts.priority ?? DEFAULT_PRIORITY,
+      ...(duration ? { duration: Math.round(duration) } : {}),
+      ...(meta.thumbnail_url ? { thumbnail: meta.thumbnail_url } : {}),
+    })}# ${title}\n\n## Speech\n\n${speech.join("\n\n") || "(no speech)"}\n${
+      shown.length ? `\n## On screen\n\n${shown.join("\n\n")}\n` : ""
+    }`,
+  };
+}
+
 // Gemini takes 20 MB a request inline, and base64 adds a third.
 const INLINE_MAX = 14_000_000;
 

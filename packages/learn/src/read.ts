@@ -1,9 +1,10 @@
 /**
  * Reading: an item's words, kept as its transcript. An article is read on the worker, from its
- * feed text when that's the whole post, else from its page. A video or reel needs yt-dlp, a home
- * IP and the Gemini key fleet, so it waits for the Mac's reader (`wren learn read`), which reads
- * it with the `sop add` readers and scores it there. A client's video is read on that client's
- * own `models` allowance: gated before, metered after.
+ * feed text when that's the whole post, else from its page. A YouTube video is read on the
+ * worker too when it has a video reader (Gemini through the gateway, by URL). Any other video or
+ * reel, and a YouTube read that failed, needs yt-dlp and a home IP, so it waits for the Mac's
+ * reader (`wren learn read`), which reads it with the `sop add` readers and scores it there. A
+ * client's video is read on that client's own `models` allowance: gated before, metered after.
  */
 import { WREN } from "@wren/core/access";
 import type { Step } from "@wren/core/spine";
@@ -125,11 +126,22 @@ export type ReadResult = "read" | "mac" | "failed" | null;
  * Read one item on the worker. A video or reel is marked for the Mac; an article keeps its feed
  * text when that's the whole post, else its page is fetched. Null for no such item or one read.
  */
-export async function readItem(db: Db, fetchFn: FetchFn, id: number): Promise<ReadResult> {
+export async function readItem(
+  db: Db,
+  fetchFn: FetchFn,
+  id: number,
+  video: VideoReader | null = null,
+): Promise<ReadResult> {
   const [item] = await db.select().from(items).where(eq(items.id, id));
   if (!item) return null;
   if (item.readAt) return "read";
   if (needsMac(item.kind)) {
+    if (video && youtubeOf(item.url)) {
+      const r = await readVideo(db, video, id);
+      if (r === "read") return "read";
+      // The Mac reads it from the captions: the worker's failure isn't the item's.
+      if (r === "failed") await db.update(items).set({ readFailure: null }).where(eq(items.id, id));
+    }
     if (!item.needsMac)
       await db.update(items).set({ needsMac: new Date() }).where(eq(items.id, id));
     return "mac";
@@ -172,12 +184,26 @@ export async function readItem(db: Db, fetchFn: FetchFn, id: number): Promise<Re
 
 /** `learn.read` on the spine: a read item leaves by `read`; one for the Mac stops here. */
 export const readStep =
-  (db: Db, fetchFn: FetchFn): Step =>
+  (db: Db, fetchFn: FetchFn, video: VideoReader | null = null): Step =>
   async (_port, e) =>
-    (await readItem(db, fetchFn, itemIdOf(e))) === "read" ? [{ port: "read", event: e }] : [];
+    (await readItem(db, fetchFn, itemIdOf(e), video)) === "read"
+      ? [{ port: "read", event: e }]
+      : [];
 
-/** The Mac's video reader: a transcript as markdown and its SOP source file name. */
-export type VideoReader = (url: string, kind: ItemKind) => Promise<{ file: string; md: string }>;
+/** A video reader: a transcript as markdown and its SOP source file name. */
+export type VideoReader = (
+  url: string,
+  kind: ItemKind,
+  durationS?: number | null,
+) => Promise<{ file: string; md: string }>;
+
+const youtubeOf = (raw: string): string | null => {
+  try {
+    return youtubeId(new URL(raw));
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Items waiting for the Mac, saved ones first, newest first, in every workspace or `client`'s
@@ -210,11 +236,11 @@ export async function waitingForMac(
 }
 
 /**
- * Read one waiting item with the Mac's reader; its failure is kept on the row. A client's item
- * reads only while its `models` gate is open ("waits", and why on the row, when shut), and each
- * read is metered to it.
+ * Read one video item with a reader (the Mac's, or the worker's for YouTube); its failure is
+ * kept on the row. A client's item reads only while its `models` gate is open ("waits", and why
+ * on the row, when shut), and each read is metered to it.
  */
-export async function readOnMac(
+export async function readVideo(
   db: Db,
   reader: VideoReader,
   id: number,
@@ -235,7 +261,7 @@ export async function readOnMac(
     }
   }
   try {
-    const { file, md } = await reader(item.url, item.kind);
+    const { file, md } = await reader(item.url, item.kind, item.duration);
     const title = frontField(md, "title");
     const creator = frontField(md, "channel");
     const duration = secondsOf(frontField(md, "duration") ?? "");

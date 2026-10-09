@@ -3,6 +3,8 @@
  * `POST /v1/chat/completions` takes an alias ("free", "free-bulk", "cohere") or
  * "<provider>/<model>", asks the ledger for a key with room, and on a 429 or a dead key
  * moves to the next key, then the next model. `GET /v1/models` lists what it routes;
+ * `POST /v1beta/models/<model>:generateContent` (and `embedContent`, `batchEmbedContents`) is
+ * Gemini's own API on the same keys: a YouTube URL to read, embeddings.
  * `GET /usage` shows each model's keys and each caller's use today; `POST /reset` (admin
  * callers) clears the key ledger after the keys change. Every route but /health takes a
  * caller's bearer token, and every request passes the caller's limits (guard.ts) first.
@@ -21,7 +23,16 @@ import {
   sanitize,
 } from "./guard.js";
 import { Ledger, type Outcome, type Saved } from "./ledger.js";
-import { complete, error, json, keyCounts, type Env as RouteEnv } from "./route.js";
+import {
+  complete,
+  error,
+  json,
+  keyCounts,
+  NATIVE_METHODS,
+  type NativeMethod,
+  native,
+  type Env as RouteEnv,
+} from "./route.js";
 
 export interface Env extends RouteEnv {
   LEDGER: DurableObjectNamespace<KeyLedger>;
@@ -145,6 +156,40 @@ async function chat(req: Request, env: Env, ledger: Stub, caller: string): Promi
   return new Response(res.body, { status: res.status, headers });
 }
 
+const NATIVE_PATH = /^\/v1beta\/models\/([\w.-]+):(\w+)$/;
+
+/** Gemini's own API through the keys: the caller's limits first, the body as it came. */
+async function geminiNative(
+  req: Request,
+  env: Env,
+  ledger: Stub,
+  caller: string,
+  model: string,
+  method: string,
+): Promise<Response> {
+  if (!(NATIVE_METHODS as readonly string[]).includes(method))
+    return error(404, `${method}: only ${NATIVE_METHODS.join(", ")}`);
+  if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY_BYTES)
+    return error(413, `body over ${MAX_BODY_BYTES} bytes`);
+  const raw = await req.text();
+  if (raw.length > MAX_BODY_BYTES) return error(413, `body over ${MAX_BODY_BYTES} bytes`);
+  const admission = await ledger.admit(caller, 0);
+  if (!admission.ok) return error(429, admission.reason, admission.headers);
+  const started = Date.now();
+  const res = await native(model, method as NativeMethod, raw, env, ledger);
+  console.log(
+    JSON.stringify({
+      caller,
+      model: `gemini/${model}:${method}`,
+      status: res.status,
+      ms: Date.now() - started,
+    }),
+  );
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(admission.headers)) headers.set(k, v);
+  return new Response(res.body, { status: res.status, headers });
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -154,6 +199,9 @@ export default {
     const ledger = env.LEDGER.get(env.LEDGER.idFromName("all"));
     if (req.method === "POST" && url.pathname === "/v1/chat/completions")
       return chat(req, env, ledger, caller);
+    const nativeHit = req.method === "POST" ? NATIVE_PATH.exec(url.pathname) : null;
+    if (nativeHit)
+      return geminiNative(req, env, ledger, caller, nativeHit[1] as string, nativeHit[2] as string);
     if (req.method === "GET" && url.pathname === "/v1/models") {
       const ids = [
         ...Object.keys(ALIASES),

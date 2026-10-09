@@ -261,6 +261,7 @@ import {
   type Practice,
   practiceOf,
   scoreStep,
+  type VideoReader,
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
@@ -317,6 +318,7 @@ import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
+import { gatewayGemini, youtubeByUrl } from "@wren/research/sops";
 import { makeSitesConsole } from "@wren/sites/console";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { makeSites } from "@wren/sites/service";
@@ -395,6 +397,20 @@ function pooled({ databaseUrl, databasePoolPort }: Settings): string {
   const url = new URL(databaseUrl);
   url.port = String(databasePoolPort);
   return url.toString();
+}
+
+/** Learn's YouTube reads on the worker: Gemini by URL through the gateway, up to 40 minutes. */
+function youtubeReader(env: NodeJS.ProcessEnv): VideoReader | null {
+  const gateway = env.WREN_LLM_GATEWAY_URL;
+  const token = env.WREN_LLM_GATEWAY_TOKEN;
+  if (!gateway || !token) return null;
+  const fetchFn = gatewayGemini(gateway, token);
+  return async (url, _kind, durationS) => {
+    // Longer reads outrun a step: the Mac reads those from the captions.
+    if (durationS && durationS > 2400) throw new Error("over 40 minutes: read on the Mac");
+    const s = await youtubeByUrl(url, { geminiKeys: ["gateway"], fetchFn, durationS });
+    return { file: s.name, md: s.md };
+  };
 }
 
 /**
@@ -1717,8 +1733,8 @@ export async function buildServices(
                 : null,
           };
         }),
-        // Learn: an article read here, a video marked for the Mac; then scored like the radar was.
-        "learn.read": learnRead(db, fetch),
+        // Learn: an article and a YouTube video read here, other videos marked for the Mac; then scored.
+        "learn.read": learnRead(db, fetch, youtubeReader(process.env)),
         // Each item by its own workspace: a client's on its models allowance, against its own SOPs,
         // and an SOP it asked for written into its Notes once read.
         "learn.score": scoreStep(
