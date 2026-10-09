@@ -4,6 +4,7 @@
  * flags that raise once and clear themselves, told urgently or in the morning
  * digest, and the ops board. The demo is never mailed and never on the board.
  */
+import { usageLines } from "@wren/books/schema";
 import { addMember, clients, roleGrants, roles, updateClient } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
@@ -14,6 +15,9 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addInvoice,
+  type Bill,
+  billCents,
+  billLines,
   billsDue,
   engagementOf,
   markInvoice,
@@ -504,6 +508,56 @@ describe("the 1st's bills (D15)", () => {
     await api.result({ viewer: OPS, client: "bolt", key: "meetings", value: 40 });
     // The $13.5k cap less $1.5k billed leaves 24 meetings.
     expect(await billsDue(pg.db, "2027-01")).toMatchObject([{ monthlyCents: 30_000, units: 24 }]);
+  });
+
+  it("usage rides the next bill line for line; void, it rides the one after", async () => {
+    const line = { client: "bolt", vendor: "telnyx", markupPct: 0, currency: "USD" };
+    await pg.db.insert(usageLines).values([
+      { ...line, month: "2026-12-01", units: 1240, costCents: 496, amountCents: 496 },
+      // The month still running waits.
+      { ...line, month: "2027-01-01", units: 10, costCents: 4, amountCents: 4 },
+    ]);
+    const [bill] = await billsDue(pg.db, "2027-01");
+    expect(bill?.usage).toEqual([{ vendor: "telnyx", month: "2026-12", units: 1240, cents: 496 }]);
+    expect(billLines(bill as Bill).map((l) => l.what)).toEqual([
+      "Monthly fee",
+      "24 × meeting booked at USD 500",
+      "Texts, December 2026: 1,240 message parts",
+    ]);
+    const e = await engagementOf(pg.db, "bolt");
+    const invoice = {
+      number: "BOLT-01",
+      description: "January 2027",
+      cents: billCents(bill as Bill),
+      dueOn: "2027-01-15",
+      issuedOn: "2027-01-01",
+      period: "2027-01",
+      units: 24,
+      by: "ops@wren.example",
+    };
+    const made = await addInvoice(pg.db, e, invoice);
+    expect(made.lines).toHaveLength(3);
+    const state = async () =>
+      (
+        await pg.db
+          .select({ state: usageLines.state })
+          .from(usageLines)
+          .where(sql`${usageLines.month} = '2026-12-01'`)
+      )[0]?.state;
+    expect(await state()).toBe("on_invoice");
+    expect((await billsDue(pg.db, "2027-02"))[0]?.usage.map((u) => u.month)).toEqual(["2027-01"]);
+
+    await markInvoice(pg.db, "bolt", "BOLT-01", "void");
+    expect(await state()).toBe("draft");
+    expect((await billsDue(pg.db, "2027-02"))[0]?.usage.map((u) => u.month)).toEqual([
+      "2026-12",
+      "2027-01",
+    ]);
+
+    // An amount that isn't the bill is one line, and the usage waits.
+    const other = await addInvoice(pg.db, e, { ...invoice, number: "BOLT-01B", cents: 100 });
+    expect(other.lines).toEqual([{ what: "January 2027", cents: 100 }]);
+    expect(await state()).toBe("draft");
   });
 });
 

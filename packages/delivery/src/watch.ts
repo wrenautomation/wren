@@ -50,6 +50,7 @@ import {
   addDays,
   type Bill,
   billCents,
+  billLines,
   billsDue,
   HALFWAY,
   LAST_WEEK,
@@ -1125,12 +1126,10 @@ async function billing(main: Db, today: string): Promise<Found[]> {
   const day = Number(today.slice(8));
   const next = addDays(`${period}-01`, 32).slice(0, 7);
   const soon = addDays(today, BILL_HEADS_UP_DAYS) >= `${next}-01`;
+  // Line for line, so the Wise invoice is typed from it.
   const said = (b: Bill) =>
-    [
-      b.monthlyCents ? `${amount(b.monthlyCents, b.currency)} monthly` : "",
-      b.units ? `${b.units} × ${b.unit ?? "unit"} at ${amount(b.unitCents, b.currency)}` : "",
-    ]
-      .filter(Boolean)
+    billLines(b)
+      .map((l) => `${l.what} (${amount(l.cents, b.currency)})`)
       .join(" + ");
   const now = (await billsDue(main, period)).map(
     (b): Found => ({

@@ -5,13 +5,15 @@
  * imports one. Every write names the client, and a row of another client's
  * is "not found", so one client can never reach another's by id.
  */
+import { usageLines } from "@wren/books/schema";
 import { CHANNELS, type Channel, clients } from "@wren/core/clients";
+import { VENDORS } from "@wren/core/vendors";
 import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { DELIVERY_COMPONENTS } from "./components.js";
-import { CONTRACT_VERSION, contractText, sha256 } from "./contract.js";
+import { amount, CONTRACT_VERSION, contractText, sha256 } from "./contract.js";
 import { fileNameOf } from "./files.js";
 import {
   ACCESS_STATUSES,
@@ -33,6 +35,7 @@ import {
   engagements,
   INVOICE_STATUSES,
   type Invoice,
+  type InvoiceLine,
   type InvoiceStatus,
   interests,
   invoices,
@@ -754,12 +757,18 @@ export async function addInvoice(
   }
   if (input.units !== undefined && !(Number.isSafeInteger(input.units) && input.units >= 0))
     throw bad("units is a whole number, 0 or more");
+  const description = textIn(input.description, "what it's for", 200);
+  // The month's bill, line by line, when this invoice is it; else one line, its description.
+  const bill =
+    period === null ? undefined : (await billsDue(db, period)).find((b) => b.engagementId === e.id);
+  const itemized = bill !== undefined && billCents(bill) === input.cents;
+  const lines = itemized ? billLines(bill) : [{ what: description, cents: input.cents }];
   const [row] = await db
     .insert(invoices)
     .values({
       engagementId: e.id,
       number,
-      description: textIn(input.description, "what it's for", 200),
+      description,
       cents: input.cents,
       currency,
       issuedOn,
@@ -768,13 +777,24 @@ export async function addInvoice(
       setup: input.setup === true,
       period,
       units: input.units ?? null,
+      lines,
       createdBy: input.by,
     })
     .returning();
+  await markUsage(db, e.clientId, lines, true);
   return row as Invoice;
 }
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** One vendor's month of the client's managed usage, at cost plus markup, not billed yet. */
+export interface UsageItem {
+  vendor: string;
+  /** `2026-10`. */
+  month: string;
+  units: number;
+  cents: number;
+}
 
 /** What to bill one engagement for a month (D15). */
 export interface Bill {
@@ -789,8 +809,106 @@ export interface Bill {
   unit: string | null;
   currency: string;
   payDays: number;
+  /** The client's unbilled usage before this month (designs/2026-10-09-rebilling.md). */
+  usage: UsageItem[];
 }
-export const billCents = (b: Bill): number => b.monthlyCents + b.units * b.unitCents;
+export const billCents = (b: Bill): number =>
+  b.monthlyCents + b.units * b.unitCents + b.usage.reduce((n, u) => n + u.cents, 0);
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+/** `2026-10` as "October 2026". */
+export const monthName = (period: string) =>
+  `${MONTHS[Number(period.slice(5, 7)) - 1]} ${period.slice(0, 4)}`;
+
+/** A bill as the lines the client reads on the invoice, in order. */
+export function billLines(b: Bill): InvoiceLine[] {
+  const out: InvoiceLine[] = [];
+  if (b.monthlyCents > 0) out.push({ what: "Monthly fee", cents: b.monthlyCents });
+  if (b.units > 0)
+    out.push({
+      what: `${b.units} × ${b.unit ?? "unit"} at ${amount(b.unitCents, b.currency)}`,
+      cents: b.units * b.unitCents,
+    });
+  for (const u of b.usage) {
+    const v = VENDORS.find((x) => x.id === u.vendor);
+    const unit = v ? ` ${v.unit}${u.units === 1 ? "" : "s"}` : "";
+    out.push({
+      what: `${v?.name ?? u.vendor}, ${monthName(u.month)}: ${u.units.toLocaleString("en-US")}${unit}`,
+      cents: u.cents,
+      usage: { vendor: u.vendor, month: u.month },
+    });
+  }
+  return out;
+}
+
+/**
+ * Each client's draft usage lines before `period`, in cents over 0: what its next bill carries.
+ * Lines on an invoice are past; a month still running is not billed.
+ */
+async function unbilledUsage(
+  db: Queryable,
+  clientIds: string[],
+  period: string,
+): Promise<Map<string, (UsageItem & { currency: string })[]>> {
+  const out = new Map<string, (UsageItem & { currency: string })[]>();
+  if (clientIds.length === 0) return out;
+  const rows = await db
+    .select({
+      client: usageLines.client,
+      vendor: usageLines.vendor,
+      month: usageLines.month,
+      units: usageLines.units,
+      cents: usageLines.amountCents,
+      currency: usageLines.currency,
+    })
+    .from(usageLines)
+    .where(
+      and(
+        inArray(usageLines.client, clientIds),
+        eq(usageLines.state, "draft"),
+        lt(usageLines.month, `${period}-01`),
+        sql`${usageLines.amountCents} > 0`,
+      ),
+    )
+    .orderBy(asc(usageLines.month), asc(usageLines.vendor));
+  for (const { client, ...r } of rows) {
+    if (client === null) continue;
+    const list = out.get(client) ?? [];
+    list.push({ ...r, month: r.month.slice(0, 7) });
+    out.set(client, list);
+  }
+  return out;
+}
+
+/** Usage lines from draft to `on_invoice`, or back: what an invoice's usage lines name. */
+async function markUsage(db: Queryable, clientId: string, lines: InvoiceLine[], billed: boolean) {
+  for (const l of lines) {
+    if (!l.usage) continue;
+    await db
+      .update(usageLines)
+      .set({ state: billed ? "on_invoice" : "draft" })
+      .where(
+        and(
+          eq(usageLines.client, clientId),
+          eq(usageLines.vendor, l.usage.vendor),
+          eq(usageLines.month, `${l.usage.month}-01`),
+        ),
+      );
+  }
+}
 
 /**
  * The month's bills, from each signed contract's terms: the monthly fee while the work runs
@@ -823,9 +941,18 @@ export async function billsDue(db: Queryable, period: string): Promise<Bill[]> {
       .where(and(inArray(invoices.engagementId, ids), sql`${invoices.status} <> 'void'`)),
     db.select().from(results).where(inArray(results.engagementId, ids)),
   ]);
-  return rows.flatMap(({ e, terms: t }): Bill[] => {
+  const usage = await unbilledUsage(db, [...new Set(rows.map((r) => r.e.clientId))], period);
+  // A client's usage rides one bill: its lowest engagement not billed yet this month.
+  const sorted = [...rows].sort((a, b) => a.e.id - b.e.id);
+  return sorted.flatMap(({ e, terms: t }): Bill[] => {
     const mine = billed.filter((b) => b.engagementId === e.id);
     if (mine.some((b) => b.period === period)) return [];
+    const theirs = usage.get(e.clientId) ?? [];
+    const rides = theirs.filter((u) => u.currency === t.currency);
+    usage.set(
+      e.clientId,
+      theirs.filter((u) => u.currency !== t.currency),
+    );
     const monthlyCents =
       e.status === "active" && t.monthlyCents && e.startsOn < `${period}-01` ? t.monthlyCents : 0;
     let units = 0;
@@ -849,6 +976,7 @@ export async function billsDue(db: Queryable, period: string): Promise<Bill[]> {
       unit: t.unit,
       currency: t.currency,
       payDays: t.payDays,
+      usage: rides.map(({ currency: _, ...u }) => u),
     };
     return billCents(bill) > 0 ? [bill] : [];
   });
@@ -873,6 +1001,8 @@ export async function markInvoice(
     .where(and(eq(invoices.number, number.trim()), ofClient(db, invoices.engagementId, clientId)))
     .returning();
   if (!row) throw missing(`invoice '${number}'`);
+  // Void, its usage is unbilled again and rides the next bill.
+  await markUsage(db, clientId, row.lines, row.status !== "void");
   if (row.status === "paid" && row.setup)
     await startIfReady(db, await engagementOf(db, clientId, row.engagementId));
   return row;
@@ -1555,7 +1685,16 @@ export async function timeline(
 
 export type InvoiceView = Pick<
   Invoice,
-  "id" | "number" | "description" | "cents" | "currency" | "issuedOn" | "dueOn" | "paidOn" | "link"
+  | "id"
+  | "number"
+  | "description"
+  | "cents"
+  | "currency"
+  | "issuedOn"
+  | "dueOn"
+  | "paidOn"
+  | "link"
+  | "lines"
 > & {
   /** Overdue: open and past its due day. */
   status: InvoiceStatus | "overdue";
@@ -1585,6 +1724,7 @@ export async function invoicesOf(
     dueOn: i.dueOn,
     paidOn: i.paidOn,
     link: i.link,
+    lines: i.lines,
     status: i.status === "open" && i.dueOn < today ? "overdue" : i.status,
     offer: offerFor(offerId).name,
   }));

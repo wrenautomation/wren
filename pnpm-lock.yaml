@@ -1101,6 +1101,9 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
+      '@wren/books':
+        specifier: workspace:*
+        version: link:../books
       '@wren/core':
         specifier: workspace:*
         version: link:../core

@@ -13,6 +13,7 @@ import {
   link,
   money,
   number,
+  prose,
   type RecordType,
   type State,
   status,
@@ -21,6 +22,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import {
+  amount,
   type DeliveryHome,
   deliveryHome,
   invoicesOf,
@@ -484,6 +486,7 @@ export function deliveryRecords(
         sent: i.issuedOn,
         paid: i.paidOn,
         link: i.link,
+        lines: i.lines.map((l) => `${l.what}: ${amount(l.cents, i.currency)}`).join("\n"),
       }));
     },
     key: "id",
@@ -498,6 +501,7 @@ export function deliveryRecords(
       offer: text("Offer"),
       sent: date("Sent"),
       paid: date("Paid"),
+      lines: prose("Lines"),
       link: link("In Wise"),
     },
     views: [

@@ -344,6 +344,16 @@ export const INVOICE_STATUSES = ["open", "paid", "void"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
 /**
+ * One line of an invoice as the client reads it: "Monthly fee", "Texts, October". A usage line
+ * names its vendor and month, so voiding the invoice can put that usage back to draft.
+ */
+export interface InvoiceLine {
+  what: string;
+  cents: number;
+  usage?: { vendor: string; month: string };
+}
+
+/**
  * An invoice we sent through Wise for an engagement, tracked here so the client
  * sees what's owed and we see what's late. Wise holds the invoice itself; `link`
  * is its page to view and pay. Overdue is an open one past `due_on`.
@@ -372,6 +382,8 @@ export const invoices = delivery.table(
     period: varchar("period", { length: 7 }),
     /** How many per-unit fees it bills ("meetings booked"); what's billed stops at the cap. */
     units: integer("units"),
+    /** What it billed, line by line (designs/2026-10-09-rebilling.md); empty before lines. */
+    lines: jsonb("lines").$type<InvoiceLine[]>().default([]).notNull(),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
