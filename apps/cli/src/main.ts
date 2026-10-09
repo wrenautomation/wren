@@ -27,6 +27,7 @@ import {
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAds } from "./ads.js";
+import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
 import { registerClients } from "./clients.js";
@@ -287,6 +288,7 @@ registerLearn(
   rootDir,
 );
 registerCalendar(program, withMainDb);
+registerAppReviews(program, rootDir);
 registerSocial(program, settings);
 registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);

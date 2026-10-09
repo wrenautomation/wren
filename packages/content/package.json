@@ -10,6 +10,7 @@
     "./connect": "./src/connect/index.ts",
     "./connect/routes": "./src/connect/console-routes.ts",
     "./connect/platforms": "./src/connect/platforms.ts",
+    "./connect/app-reviews": "./src/connect/app-reviews.ts",
     "./inbox": "./src/inbox/index.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
