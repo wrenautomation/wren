@@ -201,6 +201,7 @@ import {
   DESK_UNIT,
   makeAutoReply,
   makeChat,
+  makeClientReport,
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
@@ -1156,6 +1157,18 @@ export async function buildServices(
   const mediaSigner = settings.mediaBucket
     ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
     : undefined;
+  // Client reports: kept every run; mailed from portal@ only once WREN_CLIENT_REPORTS_MAIL=on.
+  const clientReportDeps = {
+    records: clientMarketing(mediaSigner),
+    zone: settings.sendTimezone,
+    reportMail: bookerMailer
+      ? {
+          send: bookerMailer("Wren"),
+          on: settings.clientReportsMail === "on",
+          portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
+        }
+      : undefined,
+  };
   // The Monitor's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   services.push(
@@ -1188,6 +1201,15 @@ export async function buildServices(
         const c = (await liveConnections(db, client)).find((r) => r.platform === "tiktok");
         return c ? tiktokCreator(asAccount(socialApi, loginOf(c.id))) : null;
       },
+      zone: clientReportDeps.zone,
+      reportMail: clientReportDeps.reportMail,
+    }),
+    // Marketing → Reports: each report wakes on its Monday or 1st and mails its members.
+    makeClientReport({
+      main: db,
+      open: openClient,
+      records: clientReportDeps.records,
+      mail: clientReportDeps.reportMail,
     }),
     makeContentScheduler({
       db,

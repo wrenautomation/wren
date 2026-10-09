@@ -7,6 +7,7 @@ export * from "./mail-reply.js";
 export * from "./marketing-console.js";
 export * from "./metrics.js";
 export * from "./planner.js";
+export * from "./reports.js";
 export * from "./scheduler.js";
 export * from "./social.js";
 export * from "./social-inbox.js";

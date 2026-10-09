@@ -42,6 +42,16 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
+import {
+  deleteReport,
+  type ReportDeps,
+  type ReportInput,
+  ReportRefusal,
+  reportsOf,
+  runReport,
+  saveReport,
+} from "../client-reports/store.js";
+import { REPORT_EVERY, REPORT_TILE_IDS } from "../client-reports/tiles.js";
 import type { ReplyOption } from "../inbox/conversation.js";
 import { clientRoutes, withRoutes } from "../inbox/routes.js";
 import {
@@ -62,6 +72,7 @@ import {
 import type { ShapeView } from "../shape-view.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 import type { InboxDesk } from "./inbox-desk.js";
+import { startReport } from "./reports.js";
 
 export const MARKETING_STATS = "marketing.stats";
 
@@ -77,6 +88,14 @@ export interface MarketingConsoleDeps {
    * draft's form draws from it (TikTok's Direct Post rules).
    */
   tiktokCreator?: (client: string) => Promise<TikTokCreator | null>;
+  /** Client reports' mail from portal@ (designs/2026-10-09-client-reports.md); absent, none. */
+  reportMail?: ReportDeps["mail"];
+  /** A new report's zone. */
+  zone?: string;
+}
+
+export interface ReportSaveRequest extends PortalRequest, ReportInput {
+  id?: number | null;
 }
 
 export interface DraftsRequest extends PortalRequest {
@@ -128,7 +147,27 @@ const NOT_YOURS = { wren: "Wren's team approves these", client: "the client appr
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function marketingConsoleApi({ db, open, records, tiktokCreator }: MarketingConsoleDeps) {
+export function marketingConsoleApi({
+  db,
+  open,
+  records,
+  tiktokCreator,
+  reportMail,
+  zone,
+}: MarketingConsoleDeps) {
+  const reportDeps: ReportDeps = { main: db, open, records, mail: reportMail };
+  const reportRefusal = (err: unknown): never => {
+    if (err instanceof ReportRefusal) throw new PortalRefusal(err.message, err.status);
+    throw err;
+  };
+  /** The client a report change is on: never the demo, Marketing installed. */
+  const reporting = async (req: PortalRequest): Promise<Client> => {
+    const { client } = await pickForWrite(db, req);
+    if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+      throw new PortalRefusal("Marketing numbers is not installed", 404);
+    return client;
+  };
+  const byOf = (req: PortalRequest) => (isDemo(req.viewer) ? "demo" : req.viewer.email);
   /** A client this viewer may open, with Marketing installed. */
   const installed = async (req: PortalRequest): Promise<Client> => {
     const client = await pickClient(db, req);
@@ -185,6 +224,45 @@ export function marketingConsoleApi({ db, open, records, tiktokCreator }: Market
     },
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
+    /** Marketing → Reports: each report, its last runs, and who may get it. */
+    reports: async (req: PortalRequest) => {
+      const client = await installed(req);
+      return {
+        ...(await reportsOf(db, client.id)),
+        mail: reportMail?.on === true,
+        zone: zone ?? "America/Toronto",
+      };
+    },
+    reportSave: async (req: ReportSaveRequest) => {
+      const client = await reporting(req);
+      const { name, tiles, every, zone: z, recipients, on } = req;
+      const r = await saveReport(db, {
+        client: client.id,
+        id: req.id ?? null,
+        input: { name, tiles, every, zone: z, recipients, on },
+        by: byOf(req),
+        now: new Date(),
+      }).catch(reportRefusal);
+      return { id: r.id };
+    },
+    reportDelete: async (req: PortalRequest & { id: number }) => {
+      const client = await reporting(req);
+      await deleteReport(db, client.id, req.id).catch(reportRefusal);
+      return { ok: true };
+    },
+    /** The period so far, kept on the page, mailed to nobody. */
+    reportRun: async (req: PortalRequest & { id: number }) => {
+      const client = await reporting(req);
+      const mine = (await reportsOf(db, client.id)).reports.some((r) => r.id === req.id);
+      if (!mine) throw new PortalRefusal("no such report", 404);
+      const s = await runReport(reportDeps, {
+        id: req.id,
+        at: new Date(),
+        closed: false,
+        by: byOf(req),
+      });
+      return { id: s?.id ?? null };
+    },
     /**
      * The client whose Inbox a change is on: never the demo, Marketing installed. InboxDesk
      * then checks the viewer on the thread.
@@ -255,6 +333,20 @@ const REJECT = {
       .nullish()
       .describe(`Why, as a quick pick: ${REJECT_REASONS.join(", ")}`),
     note: z.string().nullish().describe("Why, in a few words"),
+  }),
+};
+
+const REPORT_ID = z.number().int().positive().describe("The report's id");
+const REPORT_SAVE = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    id: REPORT_ID.nullish().describe("The report's id; empty makes a new one"),
+    name: z.string().min(1).max(120).describe("What the report is called"),
+    tiles: z.array(z.enum(REPORT_TILE_IDS)).min(1).max(REPORT_TILE_IDS.length),
+    every: z.enum(REPORT_EVERY).describe("week (Mondays) or month (the 1st)"),
+    zone: z.string().min(1).max(64).describe("IANA time zone it runs at 9:00 in"),
+    recipients: z.array(z.string().email().max(320)).max(10).describe("Members' addresses"),
+    on: z.boolean(),
   }),
 };
 
@@ -330,6 +422,27 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
       ),
       recordsStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsAsk) =>
         answer(() => api.recordsStats(req)),
+      ),
+      reports: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.reports(req)),
+      ),
+      /** A report saved; its chain restarts from its next Monday or 1st. */
+      reportSave: serviceHandler(REPORT_SAVE, (ctx: restate.Context, req: ReportSaveRequest) =>
+        answer(async () => {
+          const out = await ctx.run("save", () => answer(() => api.reportSave(req)));
+          startReport(ctx, out.id);
+          return out;
+        }),
+      ),
+      reportDelete: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: REPORT_ID }) },
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          answer(() => ctx.run("delete", () => answer(() => api.reportDelete(req)))),
+      ),
+      reportRun: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: REPORT_ID }) },
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          answer(() => ctx.run("run", () => answer(() => api.reportRun(req)))),
       ),
       /** Yes on the client's drafts: each takes its platform's next slot; posting waits on its live flag. */
       approveDraft: serviceHandler(IDS, (ctx: restate.Context, req: DraftsRequest) =>

@@ -236,6 +236,8 @@ export const settingsSchema = z.object({
   portalFrom: z.string().email().optional(),
   /** A mailbox the service account may impersonate that can send as `portalFrom`. */
   portalMailbox: z.string().email().optional(),
+  /** `on` mails client reports from portal@; anything else keeps each run unmailed. */
+  clientReportsMail: z.enum(["on", "off"]).optional(),
   /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video demo render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
@@ -577,6 +579,7 @@ export const ENV_KEYS = {
   portalOrigin: "WREN_PORTAL_ORIGIN",
   portalFrom: "WREN_PORTAL_FROM",
   portalMailbox: "WREN_PORTAL_MAILBOX",
+  clientReportsMail: "WREN_CLIENT_REPORTS_MAIL",
   videosBucket: "WREN_VIDEOS_BUCKET",
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",

@@ -20,6 +20,7 @@ import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
+import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
 import { SLIDES } from "./slides.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
@@ -1513,6 +1514,13 @@ export const marketing: Module = {
       empty: { gaps: "Every number is read.", scope: "No number waits on a step." },
     },
     {
+      id: "reports",
+      label: "Reports",
+      group: "Numbers",
+      Page: ReportsPage,
+      requires: { needs: "manage" },
+    },
+    {
       id: "sessions",
       label: "Sessions",
       group: "Numbers",
@@ -1668,5 +1676,6 @@ export const clientMarketing: Module = {
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
     asClient("search"),
     asClient("keywords"),
+    { id: "reports", label: "Reports", Page: ReportsPage, requires: { needs: "manage" } },
   ],
 };

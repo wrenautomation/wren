@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./client-reports": "./src/client-reports/tiles.ts",
     "./components": "./src/components.ts",
     "./connect": "./src/connect/index.ts",
     "./connect/routes": "./src/connect/console-routes.ts",

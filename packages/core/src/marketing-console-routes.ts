@@ -35,6 +35,11 @@ export const MARKETING_CONSOLE_ROUTES = {
   // Auto-reply per channel: InboxDesk checks `manage` to change it.
   inboxAuto: "read",
   inboxAutoSet: "read",
+  // Client reports (designs/2026-10-09-client-reports.md): owners and admins.
+  reports: "manage",
+  reportSave: "manage",
+  reportDelete: "manage",
+  reportRun: "manage",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; a verdict is Marketing's. */
 export const MARKETING_CONSOLE_APPS = {
@@ -59,6 +64,10 @@ export const MARKETING_CONSOLE_APPS = {
   inboxDrop: "marketing",
   inboxAuto: "marketing",
   inboxAutoSet: "marketing",
+  reports: "marketing",
+  reportSave: "marketing",
+  reportDelete: "marketing",
+  reportRun: "marketing",
 } as const satisfies RouteApps<typeof MARKETING_CONSOLE_ROUTES>;
 export type MarketingConsoleRoute = keyof typeof MARKETING_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -82,4 +91,7 @@ export const MARKETING_CONSOLE_WRITES: readonly MarketingConsoleRoute[] = [
   "inboxApprove",
   "inboxDrop",
   "inboxAutoSet",
+  "reportSave",
+  "reportDelete",
+  "reportRun",
 ];
