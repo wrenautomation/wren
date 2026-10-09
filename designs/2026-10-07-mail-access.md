@@ -87,7 +87,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
    - delegated Graph permissions `Mail.Read`, `Mail.Send`, `offline_access`, `openid`, `email`;
    - one client secret.
    - Publisher verification is worth doing, so admins see a verified name.
-3. Secrets: don't add the ids and secrets to the SSM env parameter; it's near its 8 KB cap. Put them in the key store under the client `wren`: `wren keys put wren MAIL_GOOGLE_CLIENT_ID` (value on stdin), and the same for `MAIL_GOOGLE_CLIENT_SECRET`, `MAIL_MICROSOFT_CLIENT_ID` and `MAIL_MICROSOFT_CLIENT_SECRET`. The env names `WREN_MAIL_*` also work for local runs.
+3. Secrets: the ids and secrets go in SSM `/wren/prod/env-2` as `WREN_MAIL_GOOGLE_CLIENT_ID`, `WREN_MAIL_GOOGLE_CLIENT_SECRET`, `WREN_MAIL_MICROSOFT_CLIENT_ID` and `WREN_MAIL_MICROSOFT_CLIENT_SECRET`. Merge them into its JSON; never overwrite it. Prod has no `wren` client row, so `keys put wren` fails on the client foreign key. Done 2026-10-09 for Microsoft: Entra app "Wren mail", client id `f7c38514-1d37-4128-bc1c-da2804f1a88b`, secret expires 2028-10-08, no publisher verification (it needs an MPN ID).
 4. The key store's infra steps (`designs/2026-10-07-key-store.md`) cover mail too. No `owners/*/keys/*` grant and no `WREN_KEY_STORE`: both are gone. Until the store is up, Connect says Wren's key store isn't set up yet.
 
 ## Left
