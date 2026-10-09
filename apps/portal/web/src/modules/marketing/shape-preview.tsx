@@ -311,11 +311,15 @@ function Reel({ s, text, fields }: Post) {
 function TikTok({ s, text, fields }: Post) {
   const at = secs(fieldValue(fields, "coverMs"));
   const who = pickLabel(fields, "privacy");
+  // TikTok's labels: either brand choice under a disclosure; both read as a paid partnership.
+  const disclose = on(fields, "disclose");
+  const branded = disclose && on(fields, "brandedContent");
   const labels = [
     on(fields, "aiGenerated") ? "Creator labeled as AI-generated" : null,
-    on(fields, "brandContent") ? "Paid partnership" : null,
-    on(fields, "brandOrganic") ? "Promotional content" : null,
+    branded ? "Paid partnership" : null,
+    disclose && !branded && on(fields, "yourBrand") ? "Promotional content" : null,
   ].filter((x): x is string => !!x);
+  const handle = s.tiktok?.creator?.username ?? s.tiktok?.creator?.nickname ?? "wrenautomation";
   return (
     <Pair>
       <DeviceFrame label="Profile grid" width={180}>
@@ -330,9 +334,9 @@ function TikTok({ s, text, fields }: Post) {
               {who}
             </span>
           ) : null}
-          <Rail items={["0", on(fields, "noComment") ? null : "0", "0", "Share"]} />
+          <Rail items={["0", on(fields, "allowComment") ? "0" : null, "0", "Share"]} />
           <Wash>
-            <p className="text-[14px] font-semibold">wrenautomation</p>
+            <p className="text-[14px] font-semibold">{handle}</p>
             <p className="line-clamp-3 text-[13px] leading-[18px]">{text.trim() || "No caption"}</p>
             {labels.map((l) => (
               <span

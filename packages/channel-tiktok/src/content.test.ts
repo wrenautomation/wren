@@ -21,11 +21,19 @@ function fakeSites(answers: Record<string, (input?: Record<string, unknown>) => 
 const host: MediaHost = { host: async () => "https://cdn.test/short.mp4" };
 
 describe("tiktok content channel", () => {
-  it("publishes a hosted video by URL, lists, reads counts", async () => {
+  it("publishes a hosted video by URL over autobrowse, lists, reads counts", async () => {
     const { sites, calls } = fakeSites({
       "POST /v2/post/publish/video/init/": (i) => {
         expect(i).toEqual({
-          post_info: { title: "a short", privacy_level: "PUBLIC_TO_EVERYONE" },
+          post_info: {
+            title: "a short",
+            privacy_level: "PUBLIC_TO_EVERYONE",
+            disable_comment: true,
+            disable_duet: true,
+            disable_stitch: true,
+            brand_organic_toggle: false,
+            brand_content_toggle: false,
+          },
           source_info: { source: "PULL_FROM_URL", video_url: "https://cdn.test/short.mp4" },
         });
         return { data: { publish_id: "pub1" } };

@@ -679,6 +679,7 @@ export const draftPeople = pgView("draft_people", {
 /**
  * Every draft not yet out (`marketing.draft`): waiting on a person, scheduled, failed or turned
  * down. `title` reads as a post's does; `written` says whether a person changed the model's words.
+ * `missing` is what a person must still pick before the yes (TikTok's privacy or disclosure).
  */
 export const marketingDraftRecords = pgView("marketing_draft_records", {
   id: text("id"),
@@ -693,6 +694,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   stage: text("stage"),
   to: text("to"),
   format: text("format"),
+  missing: text("missing"),
   scheduled: timestamp("scheduled", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
 }).as(sql`
@@ -706,6 +708,12 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
         or (d.platform = 'linkedin' and d.extra->>'kind' = 'document') then 'carousel'
       when d.platform = 'x' and d.extra->>'kind' = 'thread' then 'thread'
       else 'post' end format,
+    case
+      when d.platform = 'tiktok' and coalesce(d.extra->>'privacy', '') = '' then 'privacy'
+      when d.platform = 'tiktok' and d.extra->>'disclose' = 'true'
+        and coalesce(d.extra->>'yourBrand', '') <> 'true'
+        and coalesce(d.extra->>'brandedContent', '') <> 'true' then 'disclosure'
+      end missing,
     d.scheduled_for scheduled, d.created_at created
   from content_drafts d
   where d.status <> 'published'`);

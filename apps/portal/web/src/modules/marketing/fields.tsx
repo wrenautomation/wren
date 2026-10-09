@@ -6,6 +6,7 @@
  * edits; on a posted one it shows what went out. Drafts, To approve and Posts all draw it here.
  */
 import type { FieldView } from "@wren/core/content/shapes";
+import type { TikTokCreator } from "@wren/core/content/tiktok";
 import type { RecordAct, RecordExtras } from "@wren/ui";
 import { Button, Input, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -16,6 +17,7 @@ import { postLooks } from "./posts.js";
 import { PlatformPreview, type Typed } from "./shape-preview.js";
 import { type CarouselShape, SlidesEditor } from "./slides.js";
 import type { ThreadShape } from "./thread.js";
+import { TIKTOK_PANEL_KEYS, TikTokPanel, type TikTokValues } from "./tiktok.js";
 
 /** `@wren/content`'s `shapeView`: a draft's fields, words and file links. */
 export type Shape = {
@@ -40,6 +42,8 @@ export type Shape = {
   thread?: ThreadShape | null;
   /** A carousel's slides and drawn files; null on any other post. */
   carousel?: CarouselShape | null;
+  /** TikTok: the client's account as TikTok answered when the post opened; absent for Wren's own. */
+  tiktok?: { creator: TikTokCreator | null; note: string | null };
 };
 
 export const FIELDS = "marketing.draftFields";
@@ -557,8 +561,41 @@ function Schedule({ shape }: { shape: Shape }) {
   );
 }
 
+/** TikTok's settings in their own panel (`./tiktok.tsx`), each choice saved as it's made. */
+function TikTokFields({ shape, act }: { shape: Shape; act: RecordAct }) {
+  const typed = useTyped(shape.draftId);
+  const values: TikTokValues = {};
+  for (const f of shape.fields)
+    if (TIKTOK_PANEL_KEYS.has(f.key)) {
+      const t = typed(f.key);
+      const v = t.has ? t.value : f.value;
+      if (v !== null && v !== undefined) (values as Record<string, unknown>)[f.key] = v;
+    }
+  const choose = async (key: keyof TikTokValues, value: unknown) => {
+    const was = shape.fields.find((f) => f.key === key)?.value;
+    typeIn(shape.draftId, key, value ?? undefined);
+    try {
+      await act(FIELDS, { patch: { [key]: value } });
+      return null;
+    } catch (err) {
+      typeIn(shape.draftId, key, was ?? undefined);
+      return errorOf(err);
+    }
+  };
+  return (
+    <TikTokPanel
+      values={values}
+      choose={choose}
+      tiktok={shape.tiktok}
+      video={shape.links.media ?? null}
+    />
+  );
+}
+
 /** Every field of the post, grouped: editable while it waits, as it went out once posted. */
 export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
+  // A TikTok post still open: its Direct Post settings in their own panel.
+  const tiktok = shape.platform === "tiktok" && shape.editable;
   const cells = (fields: FieldView[]) =>
     fields.map((f) => {
       const link = shape.links[f.key] ?? null;
@@ -590,7 +627,10 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
       );
     });
   // A carousel's slides have their own editor above.
-  const of = (g: Group) => shape.fields.filter((f) => f.input !== "slides" && groupOf(f) === g);
+  const of = (g: Group) =>
+    shape.fields.filter(
+      (f) => f.input !== "slides" && groupOf(f) === g && !(tiktok && TIKTOK_PANEL_KEYS.has(f.key)),
+    );
   const media = of("media");
   const details = of("details");
   return (
@@ -613,9 +653,10 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
           />
         </div>
       ) : null}
+      {tiktok ? <TikTokFields shape={shape} act={act} /> : null}
       <section
         aria-label="Basics"
-        className={`grid gap-4 ${shape.funnel || shape.carousel ? "border-t border-(--ui-hair) pt-5" : ""}`}
+        className={`grid gap-4 ${shape.funnel || shape.carousel || tiktok ? "border-t border-(--ui-hair) pt-5" : ""}`}
       >
         <h3 className={GROUP_HEAD}>Basics</h3>
         <div className={GRID}>

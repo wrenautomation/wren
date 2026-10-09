@@ -127,14 +127,13 @@ The web composer path (no Graph) sends caption and file only; the others fail lo
 | Key | Field | Limit | Status |
 |---|---|---|---|
 | text | Caption | 2200 UTF-16 | sent |
-| `privacy` | Who can see it, required | creator_info's options | sent |
-| `noComment`, `noDuet`, `noStitch` | Turn off comments, duets, stitches | | build |
-| `coverMs` | Cover frame in ms | | build |
-| `aiGenerated` | AI-generated label (`is_aigc`) | | build |
-| `brandContent`, `brandOrganic` | Paid partnership, Own business | | build |
-| | Live privacy options from `creator_info/query` | | dev |
+| `privacy` | Who can see it, required, no default | creator_info's options | sent |
+| `allowComment`, `allowDuet`, `allowStitch` | Allow comment, duet, stitch; off by default | greyed where creator_info turns them off | sent |
+| `disclose`, `yourBrand`, `brandedContent` | Content disclosure and its two choices | branded content can't be private | sent |
+| `coverMs` | Cover frame in ms | | sent |
+| `aiGenerated` | AI-generated label (`is_aigc`) | | sent |
 
-An unaudited TikTok app posts SELF_ONLY whatever is picked.
+The form and the rules follow TikTok's Direct Post guidelines (designs/2026-10-07-client-social.md, "Direct Post"). An unaudited TikTok app posts SELF_ONLY whatever is picked.
 
 ### X (`POST /2/tweets`)
 

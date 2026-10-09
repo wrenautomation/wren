@@ -8,6 +8,7 @@
 
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
+import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
   actor,
@@ -174,7 +175,8 @@ const mailState = (m: Record<string, unknown>) =>
 const draftRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, platform, title, text, format, scheduled, created from marketing_draft_records
+    sql`select id, platform, title, text, format, missing, scheduled, created
+      from marketing_draft_records
       where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
   );
 
@@ -226,6 +228,12 @@ export const FORMATS = {
   post: neutral("Post"),
   thread: neutral("Thread"),
   carousel: neutral("Carousel"),
+};
+
+/** What a person must pick before a post's yes (`marketing_draft_records.missing`). */
+export const MISSING_PICKS = {
+  privacy: { label: "Who can see it", tone: "warn" as const },
+  disclosure: { label: TIKTOK_COPY.pickOne, tone: "warn" as const },
 };
 
 /** A row's state, as both lists say it. */
@@ -581,6 +589,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           platform: p.platform,
           kind: "post",
           format: p.format,
+          missing: p.missing,
           state: "waiting",
           body: p.text,
           post_title: null,
@@ -793,6 +802,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       ),
       state: STATES,
       format: status(FORMATS, "Format", { listed: false }),
+      missing: status(MISSING_PICKS, "Pick first", { listed: false }),
       body: prose("Words"),
       postTitle: text("Post"),
       why: text("Picked for"),

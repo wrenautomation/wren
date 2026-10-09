@@ -15,6 +15,13 @@ import {
   SLIDES_MAX,
   SLIDES_MIN,
 } from "./slides.js";
+import {
+  TIKTOK_COPY,
+  TIKTOK_PRIVACY,
+  TIKTOK_PRIVACY_LABELS,
+  tiktokBroken,
+  tiktokMissing,
+} from "./tiktok.js";
 
 export type FieldInput =
   | "line"
@@ -221,26 +228,34 @@ const deckId = (kinds: readonly string[]) => ({
 type Fields = Record<string, Field>;
 type SchemaOf<F extends Fields> = z.ZodObject<{ [K in keyof F]: F[K]["zod"] }>;
 
-export interface Shape<F extends Fields = Fields> {
+/** Rules across a shape's fields, past each field's own. */
+interface ShapeRules {
+  /** Why fields that each pass can't go together (an X poll with images); the schema refuses it. */
+  broken?: (v: Record<string, unknown>) => string | null;
+  /** What's still to pick before the yes, past the required fields. */
+  missing?: (v: Record<string, unknown>) => string[];
+  /** The person's yes covers the fields: a change sends an approved post back for another. */
+  consent?: true;
+}
+
+export interface Shape<F extends Fields = Fields> extends ShapeRules {
   schema: SchemaOf<F>;
   fields: readonly (FieldUi & { key: string })[];
 }
 
-/** `check` says why fields that each pass can't go together (an X poll with images), or null. */
-function shape<F extends Fields>(
-  fields: F,
-  check?: (v: Record<string, unknown>) => string | null,
-): Shape<F> {
+function shape<F extends Fields>(fields: F, rules: ShapeRules = {}): Shape<F> {
   const zods = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.zod]));
   const object = z.object(zods);
+  const { broken } = rules;
   return {
-    schema: (check
+    schema: (broken
       ? object.superRefine((v, ctx) => {
-          const why = check(v);
+          const why = broken(v);
           if (why) ctx.addIssue({ code: "custom", message: why });
         })
       : object) as unknown as SchemaOf<F>,
     fields: Object.entries(fields).map(([key, f]) => ({ key, ...f.ui })),
+    ...rules,
   };
 }
 
@@ -449,30 +464,31 @@ const instagram = shape({
   rendered: slideFiles(["carousel"]),
 });
 
-const tiktok = shape({
-  privacy: pick(
-    "Who can see it",
-    ["PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY"],
-    {
-      PUBLIC_TO_EVERYONE: "Everyone",
-      MUTUAL_FOLLOW_FRIENDS: "Friends",
-      FOLLOWER_OF_CREATOR: "Followers",
-      SELF_ONLY: "Only me",
-    },
-    {
+/**
+ * TikTok's Direct Post form (`./tiktok.ts`): who can see it has no default, every interaction
+ * starts off, and the disclosure starts off with its two choices under it. The person's yes covers
+ * these, so a change sends an approved post back for another yes.
+ */
+const tiktok = shape(
+  {
+    privacy: pick("Who can see it", TIKTOK_PRIVACY, TIKTOK_PRIVACY_LABELS, {
       required: true,
-      default: "SELF_ONLY",
-      hint: "An app TikTok hasn't audited posts as Only me",
-    },
-  ),
-  noComment: flag("Turn off comments", { default: false }),
-  noDuet: flag("Turn off duets", { default: false }),
-  noStitch: flag("Turn off stitches", { default: false }),
-  coverMs: ms("Cover frame"),
-  aiGenerated: flag("AI-generated label", { default: false }),
-  brandContent: flag("Paid partnership", { default: false }),
-  brandOrganic: flag("Promotes my business", { default: false }),
-});
+      hint: "Pick one. The options are the account's own.",
+    }),
+    allowComment: flag("Allow comment", { default: false }),
+    allowDuet: flag("Allow duet", { default: false }),
+    allowStitch: flag("Allow stitch", { default: false }),
+    disclose: flag(TIKTOK_COPY.disclose, { default: false, hint: TIKTOK_COPY.discloseHint }),
+    yourBrand: flag(TIKTOK_COPY.yourBrand, { default: false, hint: TIKTOK_COPY.yourBrandHint }),
+    brandedContent: flag(TIKTOK_COPY.brandedContent, {
+      default: false,
+      hint: TIKTOK_COPY.brandedContentHint,
+    }),
+    coverMs: ms("Cover frame"),
+    aiGenerated: flag("AI-generated label", { default: false }),
+  },
+  { broken: tiktokBroken, missing: tiktokMissing, consent: true },
+);
 
 const POST_ID = /^\d{1,19}$/;
 /** X: four images a post, a poll choice 25 characters. */
@@ -538,10 +554,12 @@ const x = shape(
       },
     },
   },
-  (v) =>
-    v.poll && Array.isArray(v.images) && v.images.length
-      ? "A post on X takes a poll or images, not both"
-      : null,
+  {
+    broken: (v) =>
+      v.poll && Array.isArray(v.images) && v.images.length
+        ? "A post on X takes a poll or images, not both"
+        : null,
+  },
 );
 
 const facebook = shape({
@@ -594,10 +612,15 @@ const messageOf = (err: z.ZodError) => {
  * (the publish path's `title`, now carried in the shape) are dropped.
  */
 export function fieldsOf<P extends Platform>(platform: P, extra: unknown): FieldsOf<P> {
-  const got = SHAPES[platform].schema.safeParse(extra ?? {});
+  const s: Shape = SHAPES[platform];
+  const got = s.schema.safeParse(extra ?? {});
   if (!got.success) throw new ShapeError(`${platform}: ${messageOf(got.error)}`);
   return got.data as FieldsOf<P>;
 }
+
+/** The person's yes covers this platform's fields (TikTok's): a change asks for it again. */
+export const consented = (platform: Platform): boolean =>
+  (SHAPES[platform] as Shape).consent === true;
 
 const blank = (v: unknown) =>
   v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
@@ -675,10 +698,12 @@ export function missingFields(
   title: string | null | undefined,
 ): string[] {
   const kind = kindOf(extra);
-  return SHAPES[platform].fields
+  const s: Shape = SHAPES[platform];
+  const labels = s.fields
     .filter((f) => f.required && f.status === "sent" && f.default === undefined && onKind(f, kind))
     .filter((f) => blank(f.column === "title" ? title : extra[f.key]))
     .map((f) => f.label);
+  return [...new Set([...labels, ...(s.missing?.(extra) ?? [])])];
 }
 
 /** The draft's fields as the portal draws them, for its kind. */

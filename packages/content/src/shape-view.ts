@@ -21,6 +21,7 @@ import {
   X_POST_MAX,
   xLength,
 } from "@wren/core/content/thread";
+import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { partFlags } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, ne, notInArray, sql } from "drizzle-orm";
@@ -55,6 +56,11 @@ export interface ShapeView {
   thread: ThreadView | null;
   /** A carousel: its slides, the drawn files, and the drafts that share the set. */
   carousel: CarouselView | null;
+  /**
+   * TikTok: the connected account as `creator_info` answers it, set where the client's console
+   * reads it; null creator with a note when it can't be read. Absent: Wren's own, no live read.
+   */
+  tiktok?: { creator: TikTokCreator | null; note: string | null };
 }
 
 export interface ThreadView {

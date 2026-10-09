@@ -157,7 +157,7 @@ import {
   makeSmsWatch,
   SENDER_KEY,
 } from "@wren/channel-sms/restate";
-import { tiktokContent } from "@wren/channel-tiktok";
+import { tiktokContent, tiktokCreator } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
@@ -172,7 +172,9 @@ import {
 import {
   businessProfileContent,
   connectionIdOf,
+  liveConnections,
   liveFrom,
+  loginOf,
   makeSocialAccess,
   makeSocialCallback,
   socialAccess,
@@ -1093,7 +1095,16 @@ export async function buildServices(
           : {}),
     }),
     // A client's Marketing in the portal: its drafts, posts, ads and search; verdicts to its desk.
-    makeMarketingConsole({ db, open: openClient, records: clientMarketing(mediaSigner) }),
+    makeMarketingConsole({
+      db,
+      open: openClient,
+      records: clientMarketing(mediaSigner),
+      // A TikTok draft's form reads the client's account live (TikTok's Direct Post rules).
+      tiktokCreator: async (client) => {
+        const c = (await liveConnections(db, client)).find((r) => r.platform === "tiktok");
+        return c ? tiktokCreator(asAccount(socialApi, loginOf(c.id))) : null;
+      },
+    }),
     makeContentScheduler({
       db,
       // A post's replies come in through reach's watch: it reads warm from now.
@@ -2160,7 +2171,7 @@ function contentClientsFor(
         ...(x ? { x: xContent(x, hosted) } : {}),
         ...(ig ? { instagram: instagramContent(ig, hosted) } : {}),
         ...(fb ? { facebook: facebookContent(fb, { ...hosted, pageComments: true }) } : {}),
-        ...(tt ? { tiktok: tiktokContent(tt, hosted) } : {}),
+        ...(tt ? { tiktok: tiktokContent(tt, { ...hosted, direct: true }) } : {}),
         ...(li
           ? {
               linkedin: linkedinContent(li, {

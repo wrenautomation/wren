@@ -4,7 +4,13 @@
  * what goes out is always something a person approved as written.
  */
 import type { Platform } from "@wren/core/content";
-import { fieldsOf, mediaUnfit, missingFields, patchFields } from "@wren/core/content/shapes";
+import {
+  consented,
+  fieldsOf,
+  mediaUnfit,
+  missingFields,
+  patchFields,
+} from "@wren/core/content/shapes";
 import { carouselUnfit, isCarousel } from "@wren/core/content/slides";
 import { isThread, threadPosts, threadUnfit } from "@wren/core/content/thread";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
@@ -201,14 +207,16 @@ export async function setFields(
   const retitled = next.title !== undefined && next.title !== current.title;
   if (retitled && !next.title && PLATFORM_SPECS[current.platform].title)
     throw new Error(`${current.platform} needs a title`);
-  if (!retitled && Object.keys(next.changed).length === 0) return current;
+  const changed = Object.keys(next.changed).length > 0;
+  if (!retitled && !changed) return current;
+  // The yes covers TikTok's settings: a change waits on another (designs/2026-10-07-client-social.md).
+  const reask = retitled || (changed && consented(current.platform));
   const [row] = await db
     .update(contentDrafts)
     .set({
       extra: next.extra,
-      ...(retitled
-        ? { title: next.title ?? null, edited: true, status: "draft", error: null }
-        : {}),
+      ...(retitled ? { title: next.title ?? null, edited: true } : {}),
+      ...(reask ? { status: "draft", error: null } : {}),
     })
     .where(eq(contentDrafts.id, id))
     .returning();

@@ -10,6 +10,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
+import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import {
   MARKETING_CONSOLE_APPS,
@@ -51,6 +52,7 @@ import {
   promotable,
 } from "../promo.js";
 import { INBOX_CHANNELS, INBOX_STATUSES, type InboxChannel, type InboxStatus } from "../schema.js";
+import type { ShapeView } from "../shape-view.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 import type { InboxDesk } from "./inbox-desk.js";
 
@@ -63,6 +65,11 @@ export interface MarketingConsoleDeps {
   open: (client: Pick<Client, "id" | "database">) => Db;
   /** The record types a client's Marketing serves: what its loops write. */
   records: readonly RecordType[];
+  /**
+   * The client's connected TikTok as `creator_info` answers it now, or null with none: its
+   * draft's form draws from it (TikTok's Direct Post rules).
+   */
+  tiktokCreator?: (client: string) => Promise<TikTokCreator | null>;
 }
 
 export interface DraftsRequest extends PortalRequest {
@@ -107,17 +114,35 @@ export interface AttachRequest extends PortalRequest {
   data: string;
 }
 
+const CREATOR_TTL_MS = 30_000;
+const NO_TIKTOK = "Connect the client's TikTok under Account → Social to post to it.";
+const TIKTOK_UNREAD = "TikTok didn't answer for this account. Open the post again in a minute.";
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps) {
+export function marketingConsoleApi({ db, open, records, tiktokCreator }: MarketingConsoleDeps) {
   /** A client this viewer may open, with Marketing installed. */
   const installed = async (req: PortalRequest): Promise<Client> => {
     const client = await pickClient(db, req);
     if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
       throw new PortalRefusal("Marketing numbers is not installed", 404);
     return client;
+  };
+  /**
+   * The account a TikTok form draws, kept half a minute: each saved choice reads the post again,
+   * and TikTok allows 20 reads a minute per token. The post itself reads it fresh.
+   */
+  const creators = new Map<string, { at: number; value: Promise<TikTokCreator | null> }>();
+  const creatorOf = (client: string) => {
+    if (!tiktokCreator) return null;
+    const now = Date.now();
+    const hit = creators.get(client);
+    if (hit && now - hit.at < CREATOR_TTL_MS) return hit.value;
+    const value = tiktokCreator(client);
+    creators.set(client, { at: now, value });
+    value.catch(() => creators.delete(client));
+    return value;
   };
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
     readAt(await installed(req), req, use);
@@ -135,8 +160,20 @@ export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps)
     recordsGet: async (req: PortalRequest & GetAsk) => {
       const client = await installed(req);
       const out = await readAt(client, req, (r) => r.get(req));
-      const c = (out.detail as { conversation?: { options?: ReplyOption[] } } | null)?.conversation;
+      const detail = out.detail as {
+        conversation?: { options?: ReplyOption[] };
+        shape?: ShapeView | null;
+      } | null;
+      const c = detail?.conversation;
       if (c?.options) c.options = withRoutes(c.options, await clientRoutes(db, client.id));
+      // A TikTok draft still open: the account as TikTok answers now, read each time it opens.
+      const shape = detail?.shape;
+      const creator = shape?.platform === "tiktok" && shape.editable ? creatorOf(client.id) : null;
+      if (shape && creator)
+        shape.tiktok = await creator.then(
+          (creator) => ({ creator, note: creator ? null : NO_TIKTOK }),
+          () => ({ creator: null, note: TIKTOK_UNREAD }),
+        );
       return out;
     },
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),

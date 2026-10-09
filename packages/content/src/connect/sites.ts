@@ -18,6 +18,7 @@ import {
   X_API,
 } from "./oauth.js";
 import type { SocialConnectionRow } from "./schema.js";
+import { videoSeconds } from "./video-length.js";
 
 const TIKTOK_FIELDS =
   "id,title,create_time,cover_image_url,share_url,view_count,like_count,comment_count,share_count";
@@ -27,9 +28,19 @@ export interface SocialSitesDeps {
   tokenOf: (c: SocialConnectionRow) => Promise<string>;
   broke: (id: number, why: string) => Promise<void>;
   fetch: FetchLike;
-  /** Waits between X's video processing checks; tests pass one that returns at once. */
+  /** Waits between X's and TikTok's processing checks; tests pass one that returns at once. */
   sleep?: (ms: number) => Promise<void>;
 }
+
+/**
+ * TikTok's chunk for a FILE_UPLOAD: 5 to 64 MB each, the last takes the rest (up to 128 MB). A
+ * file under two chunks goes whole.
+ */
+export const TIKTOK_CHUNK = 10 * 1024 * 1024;
+/** How long one status call waits for TikTok to finish a post before answering what it has. */
+const TIKTOK_WAIT_MAX_SEC = 120;
+const TIKTOK_POLL_MS = 5_000;
+const TIKTOK_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
 /** X's chunk size for a video upload, under its 5 MB per append. */
 export const X_CHUNK = 4 * 1024 * 1024;
@@ -198,6 +209,128 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
     return { urn };
   }
 
+  /**
+   * A hosted file read by range: its size and type from a one-byte probe, then each part on ask.
+   * A host that ignores ranges answers the whole file once and the parts come from memory.
+   */
+  async function ranged(site: string, path: string, file: unknown) {
+    if (typeof file !== "string" || !/^https:\/\//.test(file))
+      throw new SiteCallError(site, "POST", path, 422, "media must be a hosted https URL");
+    const probe = await deps.fetch(file, { method: "GET", headers: { range: "bytes=0-0" } });
+    if (!probe.ok) throw new SiteCallError(site, "POST", path, 422, `media fetch ${probe.status}`);
+    const type = (probe.headers.get("content-type") ?? "").split(";")[0]?.trim() ?? "";
+    const total = /\/(\d+)\s*$/.exec(probe.headers.get("content-range") ?? "")?.[1];
+    if (probe.status === 206 && total) {
+      await probe.body?.cancel();
+      const read = async (start: number, end: number) => {
+        const r = await deps.fetch(file, {
+          method: "GET",
+          headers: { range: `bytes=${start}-${end}` },
+        });
+        if (!r.ok) throw new SiteCallError(site, "POST", path, 422, `media fetch ${r.status}`);
+        const b = new Uint8Array(await r.arrayBuffer());
+        // A host that answers the whole file to a range: the part from it.
+        return r.status === 206 ? b : b.subarray(start, end + 1);
+      };
+      return { size: Number(total), type, read };
+    }
+    const all = new Uint8Array(await probe.arrayBuffer());
+    return {
+      size: all.byteLength,
+      type,
+      read: async (start: number, end: number) => all.subarray(start, end + 1),
+    };
+  }
+
+  /**
+   * A TikTok Direct Post by FILE_UPLOAD (its media come from a host TikTok hasn't verified): init
+   * with the file's size and chunks, then PUT each chunk in order to the upload URL. `maxSeconds`
+   * (the creator's limit) refuses a longer MP4 before anything is sent. Answers init's own body.
+   */
+  async function tiktokUpload(
+    c: SocialConnectionRow,
+    auth: Record<string, string>,
+    path: string,
+    input: Json,
+  ): Promise<Json> {
+    const { file, maxSeconds, source_info: _source, ...rest } = input;
+    const f = await ranged("tiktok", path, file);
+    if (f.size <= 0) throw new SiteCallError("tiktok", "POST", path, 422, "the video is empty");
+    const type = TIKTOK_TYPES.includes(f.type) ? f.type : "video/mp4";
+    const max = Number(maxSeconds);
+    if (max > 0 && type !== "video/webm") {
+      const secs = await videoSeconds(f.read, f.size);
+      if (secs !== null && secs > max)
+        throw new SiteCallError(
+          "tiktok",
+          "POST",
+          path,
+          422,
+          `the video is ${Math.ceil(secs)} seconds; this account posts up to ${max}`,
+        );
+    }
+    const whole = f.size < 2 * TIKTOK_CHUNK;
+    const chunk = whole ? f.size : TIKTOK_CHUNK;
+    const count = whole ? 1 : Math.floor(f.size / TIKTOK_CHUNK);
+    const init = await http(c, "tiktok", "POST", path, `${TIKTOK_API}${path}`, {
+      method: "POST",
+      headers: { ...auth, "content-type": "application/json; charset=UTF-8" },
+      body: JSON.stringify({
+        ...rest,
+        source_info: {
+          source: "FILE_UPLOAD",
+          video_size: f.size,
+          chunk_size: chunk,
+          total_chunk_count: count,
+        },
+      }),
+    }).then(body);
+    const data = (init.data ?? {}) as Json;
+    const to = str(data.upload_url);
+    if (!str(data.publish_id) || !to)
+      throw new SiteCallError("tiktok", "POST", path, 502, "init answered no upload address");
+    for (let i = 0; i < count; i++) {
+      const first = i * chunk;
+      const last = i === count - 1 ? f.size - 1 : first + chunk - 1;
+      const bytes = await f.read(first, last);
+      // The upload URL is TikTok's own and signed: the token stays off it.
+      await http(c, "tiktok", "PUT", path, to, {
+        method: "PUT",
+        headers: {
+          "content-type": type,
+          "content-length": String(last - first + 1),
+          "content-range": `bytes ${first}-${last}/${f.size}`,
+        },
+        body: bytes,
+      });
+    }
+    return { data: { publish_id: data.publish_id } };
+  }
+
+  /**
+   * TikTok's post status, waited on up to `wait` seconds while it processes; answers the last
+   * status it read, so a slow post is "still processing", never a second post.
+   */
+  async function tiktokStatus(
+    c: SocialConnectionRow,
+    auth: Record<string, string>,
+    path: string,
+    input: Json,
+  ): Promise<Json> {
+    const { wait, ...rest } = input;
+    const until = Math.min(Math.max(Number(wait) || 0, 0), TIKTOK_WAIT_MAX_SEC) * 1000;
+    for (let waited = 0; ; waited += TIKTOK_POLL_MS) {
+      const b = await http(c, "tiktok", "POST", path, `${TIKTOK_API}${path}`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json; charset=UTF-8" },
+        body: JSON.stringify(rest),
+      }).then(body);
+      const status = (b.data as Json | undefined)?.status;
+      if (status === "PUBLISH_COMPLETE" || status === "FAILED" || waited >= until) return b;
+      await sleep(TIKTOK_POLL_MS);
+    }
+  }
+
   async function send(
     c: SocialConnectionRow,
     site: string,
@@ -335,6 +468,10 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
         return plain(X_API);
       }
       case "tiktok": {
+        if (method === "POST" && path === "/v2/post/publish/video/init/" && input.file)
+          return tiktokUpload(c, auth, path, input);
+        if (method === "POST" && path === "/v2/post/publish/status/fetch/")
+          return tiktokStatus(c, auth, path, input);
         const listing = path === "/v2/video/list/" || path === "/v2/video/query/";
         const url = listing
           ? `${TIKTOK_API}${path}?fields=${encodeURIComponent(TIKTOK_FIELDS)}`

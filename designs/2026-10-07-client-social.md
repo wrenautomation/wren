@@ -81,12 +81,26 @@ Every redirect URI is `<portal origin>/oauth/social/<platform>`. Each app needs 
 
 ### TikTok
 
-- API: Login Kit v2 and the Content Posting API (Direct Post from a URL), plus the Display API for the video list.
+- API: Login Kit v2 and the Content Posting API (Direct Post by FILE_UPLOAD), plus the Display API for the video list.
 - Scopes: `user.info.basic`, `user.info.stats` (followers per day), `video.publish`, `video.upload`, `video.list`. A token from before `user.info.stats` answers followers with 403 (needs scope); its posting still works.
 - Review: app review for production, with a demo video per scope. Direct Post also needs its own audit, and until it passes every post is `SELF_ONLY`. Free. William applies.
 - Today: sandbox. Only target users added to the sandbox can connect. Posts stay private.
 - Tokens: the access token lasts 24 hours and the refresh token 365 days.
 - Comments and DMs: TikTok has no public API for either.
+
+#### Direct Post (the audit's UX)
+
+Built to TikTok's content sharing guidelines. The rules and TikTok's exact words are in `@wren/core/content/tiktok`.
+
+- The post's form has a TikTok panel (`apps/portal/web/src/modules/marketing/tiktok.tsx`), on the draft and in To approve. It shows the account's nickname and @handle from `creator_info/query`, read when the post opens and cached 30 seconds. If TikTok says the account can't post now, the panel says try again later.
+- Who can see it is a dropdown of the account's own `privacy_level_options`, with nothing picked by default. Approve stays off until one is picked (`marketing_draft_records.missing`), and approving is refused server side too.
+- Allow comment, duet and stitch all start off. Each is greyed out where the account turned it off, and it's sent off whatever was picked.
+- Disclose post content starts off. Turned on, it shows "Your brand" and "Branded content" with TikTok's words and the label each puts on the post. With neither ticked, Approve stays off and its hover says "You need to indicate if your content promotes yourself, a third party, or both." Branded content can't be private: "Only me" is disabled once it's ticked, and it's disabled while "Only me" is picked.
+- Above the yes: the Music Usage Confirmation declaration, or the Branded Content Policy one when branded content is on, with links. Also the note that a post can take a few minutes to show on the profile.
+- A video preview with its length against `max_video_post_duration_sec`.
+- The yes covers these settings, so changing one on an approved post sends it back to waiting (`consented` in the shape).
+- At publish, the adapter (`direct`) reads `creator_info` again. It refuses if the account can't post, if the privacy isn't one of its options, or on a disclosure rule. `socialSites` then reads the presigned S3 file by range, refuses an MP4 longer than the account's max, and sends init with FILE_UPLOAD. It PUTs the file in 10 MB chunks with `Content-Range`, the last chunk taking the rest; a file under 20 MB goes whole. Then it polls `status/fetch` for up to 2 minutes. FAILED fails the draft with TikTok's reason. A public post comes back as its video URL; a private or still-processing one as the profile.
+- Wren's own TikTok (autobrowse) keeps PULL_FROM_URL and the same fields, without the live creator read.
 
 ### Google Business Profile
 
@@ -181,3 +195,4 @@ Not built: Meta's HUMAN_AGENT tag past 24 hours, picking one of several company 
 - 2026-10-09: Business Profile is a full content platform (`google_business`). Its reviews are comments on the location, read through a new optional `ContentChannel.reviews`.
 - 2026-10-09: connected accounts don't wait on `WREN_CONTENT_CHANNELS`. That list gates Wren's autobrowse channels only.
 - 2026-10-09: X video upload on the chunked v2 endpoints, so a client's X can post video. TikTok's missing-scope 401 (`scope_not_authorized`) is a 403 and leaves the connection connected; any other 401 still breaks it.
+- 2026-10-09: TikTok Direct Post follows TikTok's guidelines for the audit: no default privacy, every interaction off by default, the disclosure and its declarations, and a re-approve after any settings change. Uploads use FILE_UPLOAD, because presigned S3 URLs aren't on a domain verified with TikTok. The privacy value is `MUTUAL_FOLLOW_FRIENDS` (the old `MUTUALLY_` spelling was wrong).

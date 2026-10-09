@@ -3,6 +3,7 @@
  * as one funnel, in Wren's workspace. Records and templates only; the console serves them.
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
+import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
@@ -100,6 +101,10 @@ const DRAFT_ACTIONS: Action[] = [
     key: "a",
     bulk: true,
     when: WAITING,
+    // TikTok's Direct Post rules: no yes before who can see it, nor with a disclosure left empty.
+    blocked: {
+      missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
+    },
     done: said("Scheduled at its next slot"),
   },
   {

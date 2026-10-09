@@ -1,9 +1,12 @@
 /**
- * TikTok as a `ContentChannel`, over autobrowse's `tiktok` site in the
- * Content Posting API's shape: publish = a video from a public URL (a local
- * file is hosted first), list = the account's videos, metrics = a video's
- * counts. Comments have no self-serve API: an empty page. Audience = `user/info` followers
- * (scope user.info.stats).
+ * TikTok as a `ContentChannel` in the Content Posting API's shape: list = the account's videos,
+ * metrics = a video's counts. Comments have no self-serve API: an empty page. Audience =
+ * `user/info` followers (scope user.info.stats).
+ *
+ * Publish over a client's connected account (`direct`) follows TikTok's Direct Post rules
+ * (`@wren/core/content/tiktok`): creator_info right before, refuse what the creator can't post,
+ * send the file by FILE_UPLOAD, then wait on its status. Over autobrowse (Wren's own) it posts
+ * from a public URL (PULL_FROM_URL).
  */
 import {
   type Audience,
@@ -25,13 +28,33 @@ import {
   publicUrlOf,
   type SiteClient,
 } from "@wren/core/content";
-import { fieldsOf } from "@wren/core/content/shapes";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { creatorFrom, type TikTokCreator, tiktokHold } from "@wren/core/content/tiktok";
 
 export interface TikTokContentOptions {
   now?: () => Date;
   host?: MediaHost;
-  /** Who may see it; `extra.privacy` on the post overrides. */
-  privacy?: "PUBLIC_TO_EVERYONE" | "MUTUALLY_FOLLOW_FRIENDS" | "FOLLOWER_OF_CREATOR" | "SELF_ONLY";
+  /** A client's connected account on TikTok's API: the Direct Post path. */
+  direct?: boolean;
+}
+
+const CREATOR = "/v2/post/publish/creator_info/query/";
+const INIT = "/v2/post/publish/video/init/";
+const STATUS = "/v2/post/publish/status/fetch/";
+/** Seconds one status call waits on TikTok to finish the post. */
+const STATUS_WAIT = 120;
+
+/** The creator as TikTok answers it now (20 a minute per token). */
+export async function tiktokCreator(sites: SiteClient): Promise<TikTokCreator> {
+  return creatorFrom(await sites.call("tiktok", "POST", CREATOR, {}));
+}
+
+interface PublishStatus {
+  data?: {
+    status?: string;
+    fail_reason?: string;
+    publicaly_available_post_id?: (string | number)[];
+  };
 }
 
 interface Video {
@@ -55,34 +78,60 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
     async publish(post: Post): Promise<Published> {
       if (post.media?.kind !== "video") throw new Error("tiktok: a post is a video");
       const f = fieldsOf("tiktok", post.extra);
+      if (!f.privacy) throw new ShapeError("tiktok: pick who can see it first");
+      const creator = o.direct ? await tiktokCreator(sites) : null;
+      if (creator) {
+        const hold = tiktokHold(f, creator);
+        if (hold) throw new ShapeError(`tiktok: ${hold}`);
+      }
       const url = await publicUrlOf(post.media.source, o.host, "tiktok");
+      const post_info = {
+        title: post.text.slice(0, 2200),
+        privacy_level: f.privacy,
+        // Off where the creator turned it off, whatever was picked.
+        disable_comment: !f.allowComment || !!creator?.commentOff,
+        disable_duet: !f.allowDuet || !!creator?.duetOff,
+        disable_stitch: !f.allowStitch || !!creator?.stitchOff,
+        brand_organic_toggle: !!(f.disclose && f.yourBrand),
+        brand_content_toggle: !!(f.disclose && f.brandedContent),
+        ...(f.coverMs !== undefined ? { video_cover_timestamp_ms: f.coverMs } : {}),
+        ...(f.aiGenerated !== undefined ? { is_aigc: f.aiGenerated } : {}),
+      };
       const r = await sites.call<{ data?: { publish_id?: string } }>(
         "tiktok",
         "POST",
-        "/v2/post/publish/video/init/",
-        {
-          post_info: {
-            title: post.text.slice(0, 2200),
-            privacy_level: f.privacy ?? o.privacy ?? "SELF_ONLY",
-            ...(f.noComment !== undefined ? { disable_comment: f.noComment } : {}),
-            ...(f.noDuet !== undefined ? { disable_duet: f.noDuet } : {}),
-            ...(f.noStitch !== undefined ? { disable_stitch: f.noStitch } : {}),
-            ...(f.coverMs !== undefined ? { video_cover_timestamp_ms: f.coverMs } : {}),
-            ...(f.aiGenerated !== undefined ? { is_aigc: f.aiGenerated } : {}),
-            ...(f.brandContent !== undefined ? { brand_content_toggle: f.brandContent } : {}),
-            ...(f.brandOrganic !== undefined ? { brand_organic_toggle: f.brandOrganic } : {}),
-          },
-          source_info: { source: "PULL_FROM_URL", video_url: url },
-        },
+        INIT,
+        creator
+          ? {
+              post_info,
+              file: url,
+              ...(creator.maxVideoSec ? { maxSeconds: creator.maxVideoSec } : {}),
+            }
+          : { post_info, source_info: { source: "PULL_FROM_URL", video_url: url } },
       );
       const id = r.data?.publish_id;
       if (!id) throw new Error("tiktok: the publish answered no id");
-      return {
-        id,
-        url: `https://www.tiktok.com/`,
-        publishedAt: now().toISOString(),
-        fetchedWith: await via("POST", "/v2/post/publish/video/init/"),
-      };
+      const fetchedWith = await via("POST", INIT);
+      const profile = creator?.username
+        ? `https://www.tiktok.com/@${creator.username}`
+        : "https://www.tiktok.com/";
+      if (!creator) return { id, url: profile, publishedAt: now().toISOString(), fetchedWith };
+      const s = await sites.call<PublishStatus>("tiktok", "POST", STATUS, {
+        publish_id: id,
+        wait: STATUS_WAIT,
+      });
+      if (s.data?.status === "FAILED")
+        throw new Error(`tiktok: the post failed (${s.data.fail_reason ?? "no reason given"})`);
+      // A public post has its id once done; a private one or one still processing keeps the publish id.
+      const postId = s.data?.publicaly_available_post_id?.[0];
+      return postId !== undefined && creator.username
+        ? {
+            id: String(postId),
+            url: `${profile}/video/${postId}`,
+            publishedAt: now().toISOString(),
+            fetchedWith,
+          }
+        : { id, url: profile, publishedAt: now().toISOString(), fetchedWith };
     },
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const r = await sites.call<{ data?: { videos?: Video[] } }>(
