@@ -14,6 +14,7 @@ import { checkEntry, consentOf, type FormSpec } from "./forms.js";
 import { EVENT_NAMES, type EventName, formUrl, pageUrl, WREN_SITE } from "./model.js";
 import { goneHtml, renderFormPage, renderPage } from "./render.js";
 import type { SiteFormDef, SitePage } from "./schema.js";
+import { isShareToken, readShare } from "./share.js";
 import { armToServe, SPLIT_COOKIE_DAYS, splitCookieValue } from "./split.js";
 import {
   doorFor,
@@ -27,8 +28,9 @@ import {
   recordEvent,
   recordHop,
   touchOf,
+  versionOf,
 } from "./store.js";
-import { templateOf } from "./templates/index.js";
+import { formKeyOf, templateOf } from "./templates/index.js";
 import { DEFAULT_CONSENT } from "./templates/parts.js";
 import type { Content } from "./templates/types.js";
 
@@ -60,7 +62,7 @@ async function sectionForm(
   page: Pick<SitePage, "client">,
   c: Content,
 ): Promise<{ id: string; spec: FormSpec } | null> {
-  const key = typeof c.form === "string" ? c.form.trim() : "";
+  const key = formKeyOf(c);
   if (!key) return null;
   const f = await formOf(main, page.client, key);
   return f && f.status === "live" ? { id: f.id, spec: f.spec } : null;
@@ -68,7 +70,7 @@ async function sectionForm(
 
 const humanOf = (h: unknown): "yes" | "off" | null => (h === "yes" || h === "off" ? h : null);
 
-export function sitesPublicApi(main: Db) {
+export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}) {
   /**
    * A hosted form's submit, checked against its spec: kept with the consent words it showed, the
    * visitor and Turnstile's answer, then the payload for its door. A page it sits on rides along.
@@ -129,8 +131,18 @@ export function sitesPublicApi(main: Db) {
     };
   }
 
+  /** The version a share link opens, while its 7 days run and its page still exists. */
+  async function sharedVersion(id: string, token: string) {
+    if (!opts.shareKey) return null;
+    const number = readShare(opts.shareKey, id, token, new Date());
+    if (number === null) return null;
+    const page = await pageById(main, id);
+    const v = page?.source === "data" ? await versionOf(main, id, number) : null;
+    return page && v ? { page, content: v.content, number } : null;
+  }
+
   return {
-    /** A live page on its owner's host, or a draft by its preview token. */
+    /** A live page on its owner's host, or a draft by its preview or share token. */
     async serve(req: {
       client?: string | null;
       slug?: string;
@@ -143,7 +155,10 @@ export function sitesPublicApi(main: Db) {
       roll?: number | null;
     }): Promise<Served> {
       if (req.preview) {
-        const d = await draftToPreview(main, String(req.preview.id), String(req.preview.token));
+        const id = String(req.preview.id);
+        const token = String(req.preview.token);
+        const shared = isShareToken(token);
+        const d = shared ? await sharedVersion(id, token) : await draftToPreview(main, id, token);
         if (!d) return { status: 404, html: goneHtml(404) };
         const t = templateOf(d.page.template);
         return {
@@ -152,7 +167,9 @@ export function sitesPublicApi(main: Db) {
             page: d.page.id,
             base: "",
             track: false,
-            banner: `Draft preview, version ${d.number}. Not live.`,
+            banner: shared
+              ? `Shared draft, version ${d.number}. Not live.`
+              : `Draft preview, version ${d.number}. Not live.`,
             form: await sectionForm(main, d.page, d.content),
           }),
         };
@@ -386,8 +403,8 @@ const SPLIT = z.string().max(64).nullish().describe("The split that served the p
 export const SITES = { name: "Sites" } as const;
 
 /** The Restate service. Public: the Worker calls it for anyone's browser. */
-export function makeSites(deps: { main: Db }) {
-  const api = sitesPublicApi(deps.main);
+export function makeSites(deps: { main: Db; shareKey?: string | null }) {
+  const api = sitesPublicApi(deps.main, { shareKey: deps.shareKey ?? null });
   return restate.service({
     name: SITES.name,
     handlers: {

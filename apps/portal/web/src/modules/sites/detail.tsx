@@ -552,8 +552,35 @@ function CopyEditor({
  * The page as it will look, beside the editor: drawn here from the copy as it's typed, with no
  * script and nothing counted. The saved draft opens on our host by its link.
  */
-function Preview({ id, d, slug }: { id: string; d: PageDetail; slug: string | null }) {
+function Preview({
+  id,
+  d,
+  slug,
+  act,
+}: {
+  id: string;
+  d: PageDetail;
+  slug: string | null;
+  act: RecordAct;
+}) {
   const [phone, setPhone] = useState(false);
+  const [shared, setShared] = useState<{ url: string; until: string } | { error: string } | null>(
+    null,
+  );
+  const [sharing, setSharing] = useState(false);
+  const share = async () => {
+    setSharing(true);
+    try {
+      const out = (await act("sites.share", { id })) as { path: string; expires: string };
+      const url = `${location.origin}${out.path}`;
+      await navigator.clipboard?.writeText(url).catch(() => {});
+      setShared({ url, until: day(out.expires) });
+    } catch (err) {
+      setShared({ error: errorOf(err) });
+    } finally {
+      setSharing(false);
+    }
+  };
   const typed = useTyping(id);
   const content = typed ?? d.draft?.content ?? null;
   const html = useMemo(() => {
@@ -603,8 +630,31 @@ function Preview({ id, d, slug }: { id: string; d: PageDetail; slug: string | nu
               Open the saved draft
             </a>
           ) : null}
+          {d.preview ? (
+            <Button size="sm" busy={sharing} onClick={() => void share()}>
+              Share link
+            </Button>
+          ) : null}
           {slug ? <span className={HINT}>Live at /o/{slug} once approved.</span> : null}
         </div>
+        {shared ? (
+          "error" in shared ? (
+            <p className="text-[13px] text-(--ui-bad)">{shared.error}</p>
+          ) : (
+            <div className="grid gap-1">
+              <Input
+                readOnly
+                aria-label="Share link"
+                value={shared.url}
+                onFocus={(e) => e.target.select()}
+              />
+              <span className={HINT}>
+                Copied. Anyone with it sees this version until {shared.until}. No sign-in, nothing
+                counted.
+              </span>
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
@@ -935,7 +985,7 @@ function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolea
           ),
         }),
     ...(d.draft
-      ? { aside: <Preview key={`${id}:${d.draft.number}`} id={id} d={d} slug={slug} /> }
+      ? { aside: <Preview key={`${id}:${d.draft.number}`} id={id} d={d} slug={slug} act={act} /> }
       : {}),
     sections,
   };

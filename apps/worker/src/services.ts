@@ -919,9 +919,10 @@ export async function buildServices(
     makeNotesConsole(notesDeps),
     // Sites: offer landers as data at /o/<slug>, code pages by URL, one tracker and form into the
     // door (designs/2026-10-07-sites.md). Claude drafts copy only where a real model runs.
-    makeSites({ main: db }),
+    makeSites({ main: db, shareKey: settings.siteExportToken ?? null }),
     makeSitesConsole({
       db,
+      shareKey: settings.siteExportToken ?? null,
       write: settings.llm === "fake" ? null : (p) => llm.complete(p).then((r) => r.text),
     }),
     // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md). No key

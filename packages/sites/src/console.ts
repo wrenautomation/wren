@@ -56,6 +56,7 @@ import {
   saveForm,
   setFormStatus,
 } from "./form-store.js";
+import { PREVIEW_PATH } from "./kit.js";
 import { createLink, linkHost, linkTargets } from "./links.js";
 import {
   PAGE_KINDS,
@@ -67,6 +68,7 @@ import {
 } from "./model.js";
 import { linkRecordFor, pageRecordFor } from "./records.js";
 import { type SitePage, sitePages } from "./schema.js";
+import { SHARE_DAYS, shareToken } from "./share.js";
 import {
   liveSplitOf,
   type SplitWithArms,
@@ -189,7 +191,7 @@ export interface AddRequest extends PortalRequest {
  * Restate service wraps them (writes journaled once), and the local preview calls them straight.
  * `write` is the model behind a Claude draft; null where none runs (the preview, tests).
  */
-export function sitesApi(deps: { db: Db; write?: Write | null }) {
+export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string | null }) {
   const { db } = deps;
   const at = (owner: string | null) => ({ client: owner ?? WREN, app: "sites", channel: null });
   const may = async (req: PortalRequest, owner: string | null, p: "read" | "act") => {
@@ -470,6 +472,25 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
         }),
       );
       return { saved: out.draftVersion, outcome: g.outcome, flags };
+    },
+
+    /**
+     * A link anyone can open for 7 days: the draft as it is now (or a version), no sign-in,
+     * nothing counted. A new link per press; none are stored.
+     */
+    async share(req: IdRequest & { number?: number | null }) {
+      const page = await pageFor(req, "act");
+      if (!deps.shareKey) throw new PortalRefusal("sharing isn't set up here", 503);
+      const number = req.number ?? page.draftVersion;
+      if (page.source !== "data" || !number)
+        throw new PortalRefusal("only a data page's version is shared", 409);
+      if (!(await versionOf(db, page.id, number))) throw new PortalRefusal("no such version", 404);
+      const now = new Date();
+      return {
+        path: `${PREVIEW_PATH}${page.id}?t=${shareToken(deps.shareKey, page.id, number, now)}`,
+        version: number,
+        expires: new Date(now.getTime() + SHARE_DAYS * 86_400_000).toISOString(),
+      };
     },
 
     /** Ask for the draft (or a version) to go live: it waits in To approve. */
@@ -777,7 +798,7 @@ const WEIGHTS = z
 const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
 
 /** The Restate service. */
-export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
+export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?: string | null }) {
   const api = sitesApi(deps);
   /** A read: not journaled, read again on a retry. */
   const read =
@@ -841,6 +862,10 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
           }),
         },
         write("rewrite", api.rewrite),
+      ),
+      share: serviceHandler(
+        { input: z.looseObject({ ...P, id: ID, number: z.number().int().nullish() }) },
+        write("share", api.share),
       ),
       ask: serviceHandler(
         { input: z.looseObject({ ...P, id: ID, number: z.number().int().nullish() }) },

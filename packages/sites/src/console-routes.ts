@@ -13,6 +13,8 @@ export const SITES_CONSOLE_ROUTES = {
   draft: "act",
   /** Claude rewrites one part of the draft to an ask. */
   rewrite: "act",
+  /** A 7-day link to a draft version, anyone can open. */
+  share: "act",
   ask: "act",
   approve: "act",
   decline: "act",
@@ -56,6 +58,7 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "save",
   "draft",
   "rewrite",
+  "share",
   "ask",
   "approve",
   "decline",
