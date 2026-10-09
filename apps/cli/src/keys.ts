@@ -4,6 +4,7 @@
  * (WREN_KEYSTORE_PUBLIC), so it never needs the private one. `rewrap` does: run it under
  * `node scripts/secrets.mjs run /wren/prod/keystore -- 'pnpm wren keys rewrap'`.
  */
+import { WREN } from "@wren/core/access";
 import { getClient } from "@wren/core/clients";
 import { keyRing, keySealer, pgKeyStore, publicSpecOf, rewrapAll } from "@wren/core/keys";
 import { clientSecrets } from "@wren/core/keys-schema";
@@ -13,6 +14,11 @@ import { and, eq } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 const BY = "cli";
+
+/** A client's row must exist, except Wren's own: its apps live under `wren`, which has no row. */
+async function known(db: Db, client: string) {
+  if (client !== WREN) await getClient(db, client);
+}
 
 async function stdin(): Promise<string> {
   if (process.stdin.isTTY) throw new Error("Pipe the value in on stdin; it never goes in argv.");
@@ -41,7 +47,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
     .description("A client's keys: name, last 4, version, when and by whom")
     .action(async (client: string) => {
       const rows = await withMainDb(async (db) => {
-        await getClient(db, client);
+        await known(db, client);
         return db
           .select({
             ref: clientSecrets.id,
@@ -69,7 +75,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
     .action(async (client: string, name: string) => {
       const value = await stdin();
       const info = await withMainDb(async (db) => {
-        await getClient(db, client);
+        await known(db, client);
         return pgKeyStore(db, sealer()).put({ client, name, value, by: BY });
       });
       console.log(`${info.ref}\t${info.name}\t…${info.last4}\tv${info.version}`);
