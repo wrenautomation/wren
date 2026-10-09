@@ -50,6 +50,42 @@ const PROMOTE_FORM: readonly FormField[] = [
   },
 ];
 
+/** A new title, thumbnail or hook for a live YouTube post: it waits in To approve. */
+const SWAP_FORM: readonly FormField[] = [
+  {
+    field: "field",
+    label: "What to change",
+    type: "select",
+    options: ["title", "thumbnail", "hook"],
+    from: () => "title",
+    labels: {
+      title: "The title",
+      thumbnail: "The thumbnail (a stored image)",
+      hook: "The hook (the description's first line)",
+    },
+  },
+  { field: "value", label: "New one", hint: "A title is 100 characters at most" },
+  { field: "why", label: "What it tests", optional: true },
+];
+const SWAP_ACTIONS: Action[] = [
+  {
+    id: "marketing.swapApprove",
+    label: "Change it",
+    handler: "marketing/swapApprove",
+    confirm: "Change it on the live post now?",
+    key: "a",
+    done: said("Changed. Its window starts tomorrow."),
+  },
+  {
+    id: "marketing.swapSkip",
+    label: "Skip",
+    handler: "marketing/swapSkip",
+    bulk: true,
+    key: "e",
+    done: said("Skipped. The post stays as it is."),
+  },
+];
+
 const POST_ACTIONS: Action[] = [
   {
     id: "marketing.draftAgain",
@@ -67,6 +103,15 @@ const POST_ACTIONS: Action[] = [
     form: PROMOTE_FORM,
     when: { platform: ["youtube"] },
     done: PROMOTE_DONE,
+  },
+  {
+    id: "marketing.swapAsk",
+    label: "Try a new title",
+    handler: "marketing/swapAsk",
+    each: true,
+    form: SWAP_FORM,
+    when: { platform: ["youtube"] },
+    done: said("Asked. It waits in To approve."),
   },
 ];
 
@@ -721,6 +766,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
   ...LIPOST_ACTIONS.map((a) => only("lipost", a, WAITS)),
   ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a, WAITS)),
+  ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
   ...fieldActions({ type: ["draft"], state: ["new", "waiting", "read"] }),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
@@ -759,6 +805,11 @@ const THREAD_DRAFT: DraftOf = {
   label: "Your comment, posted in the thread",
   send: "marketing.threadComment",
 };
+const NOTE_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your invite note, 200 characters at most",
+  send: "marketing.connectApprove",
+};
 const LIPOST_DRAFT: DraftOf = {
   field: "draft",
   label: "Your comment, posted under their post",
@@ -770,6 +821,7 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   invite: INVITE_DRAFT,
   thread: THREAD_DRAFT,
   lipost: LIPOST_DRAFT,
+  connect: NOTE_DRAFT,
 };
 
 /**
@@ -820,7 +872,8 @@ const APPROVAL_PAGE: ListPage = {
     templates: "No template version waits on a yes.",
     workflows: "No client workflow waits on a yes.",
     replies: "No Inbox reply waits on a yes.",
-    all: "Post drafts, videos, thread comments, first messages, copy, workflows and replies show here.",
+    swaps: "No title, thumbnail or hook swap waits on a yes.",
+    all: "Post drafts, videos, thread comments, first messages, copy, workflows, replies and swaps show here.",
   },
   actions: APPROVAL_ACTIONS,
   extras: withDraft(

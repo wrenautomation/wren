@@ -113,6 +113,14 @@ import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
 import { messageAccount, personContact } from "../from-people.js";
 import {
+  draftInviteNote,
+  invitesToNote,
+  NOTE_MAX,
+  notesLeft,
+  recordNote,
+  setInviteNote,
+} from "../invite-notes.js";
+import {
   applyWithdraw,
   approveInvites,
   INVITE_SEQUENCE,
@@ -393,6 +401,8 @@ export interface InvitesPass {
   account: string;
   sweep: SweepStats;
   topUp: TopUpStats | null;
+  /** Notes drafted on proposed invites this pass. */
+  notes: { written: number; errors: string[] };
 }
 
 export interface WatchStats {
@@ -438,7 +448,49 @@ async function invitesPass(
       now,
     }),
   );
-  return { account: a.account, sweep, topUp: top };
+  return { account: a.account, sweep, topUp: top, notes: await notesPass(deps, ctx, a, now) };
+}
+
+/**
+ * A note on proposed invites while the month's free notes last: one model call each. A failed
+ * call is kept as its words; the invite waits bare and the next pass asks again.
+ */
+async function notesPass(
+  deps: ReachDeps,
+  ctx: restate.Context,
+  a: ReachAccount,
+  now: Date,
+): Promise<InvitesPass["notes"]> {
+  const out: InvitesPass["notes"] = { written: 0, errors: [] };
+  const llm = deps.drafts?.llm;
+  if (!llm) return out;
+  const due = await ctx.run(`notes due ${a.account}`, async () =>
+    invitesToNote(
+      deps.db,
+      a.id,
+      await notesLeft(deps.db, a.id, deps.policy.linkedin.notesPerMonth, now),
+    ),
+  );
+  const factsOf = deps.drafts?.facts;
+  const facts =
+    due.length && factsOf ? await ctx.run("note facts", async () => [...(await factsOf())]) : [];
+  for (const id of due) {
+    const r = await ctx.run(`note ${id}`, async () => {
+      try {
+        const note = await draftInviteNote(deps.db, llm, id, {
+          sender: deps.senderName,
+          facts,
+          now,
+        });
+        return { written: note ? 1 : 0, error: null };
+      } catch (err) {
+        return { written: 0, error: `note ${id}: ${errorText(err)}` };
+      }
+    });
+    out.written += r.written;
+    if (r.error) out.errors.push(r.error);
+  }
+  return out;
 }
 
 /** Others' LinkedIn posts: read as the settings' account, ranked, drafted for his yes. */
@@ -818,6 +870,13 @@ const POSTS_LIST = z
   .nullish();
 const INVITE_IDS = z.looseObject({
   ids: z.array(z.number().int()).min(1).max(100).describe("contacts with a proposed invite"),
+});
+const INVITE_APPROVE = INVITE_IDS.extend({
+  note: z
+    .string()
+    .max(NOTE_MAX)
+    .nullish()
+    .describe("His words for the note, one invite only; empty sends it bare"),
 });
 const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
@@ -1210,10 +1269,21 @@ export function makeReachDesk(deps: ReachDeps) {
       ),
       /** His yes on proposed invites: queued, sent by the tick under the day's cap and ramp. */
       approveInvites: serviceHandler(
-        { input: INVITE_IDS, effect: "sends" },
-        async (ctx: restate.Context, req: { ids: number[] }): Promise<{ approved: number[] }> => {
+        { input: INVITE_APPROVE, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { ids: number[]; note?: string | null; viewer?: unknown },
+        ): Promise<{ approved: number[] }> => {
           const now = await nowOf(ctx);
-          const approved = await ctx.run("approve", () => approveInvites(deps.db, req.ids, now));
+          const by = byOf(req);
+          const approved = await ctx.run("approve", async () => {
+            const [one] = req.ids;
+            if (typeof req.note === "string" && req.ids.length === 1 && one !== undefined)
+              await setInviteNote(deps.db, one, req.note, by);
+            const ids = await approveInvites(deps.db, req.ids, now);
+            await recordNote(deps.db, ids, "approved", by);
+            return ids;
+          });
           if (approved.length === 0)
             throw new restate.TerminalError("no proposed invite among these: already answered?", {
               errorCode: 409,
@@ -1225,9 +1295,18 @@ export function makeReachDesk(deps: ReachDeps) {
       /** His no: skipped, and the person is never proposed again. */
       skipInvites: serviceHandler(
         { input: INVITE_IDS },
-        async (ctx: restate.Context, req: { ids: number[] }): Promise<{ skipped: number[] }> => {
+        async (
+          ctx: restate.Context,
+          req: { ids: number[]; viewer?: unknown },
+        ): Promise<{ skipped: number[] }> => {
           const now = await nowOf(ctx);
-          return { skipped: await ctx.run("skip", () => skipInvites(deps.db, req.ids, now)) };
+          return {
+            skipped: await ctx.run("skip", async () => {
+              const ids = await skipInvites(deps.db, req.ids, now);
+              await recordNote(deps.db, ids, "rejected", byOf(req));
+              return ids;
+            }),
+          };
         },
       ),
       /**

@@ -32,6 +32,15 @@ describe("social store", () => {
     expect(isDue(post(5), undefined, NOW)).toBe(true);
   });
 
+  it("isDue: a TikTok post every 6 hours while young, daily after (its page read is capped)", () => {
+    const tt = (d: number): RecentPost => ({ ...post(d), platform: "tiktok" });
+    expect(isDue(tt(1), NOW.getTime() - 5 * HOUR, NOW)).toBe(false);
+    expect(isDue(tt(1), NOW.getTime() - 6 * HOUR, NOW)).toBe(true);
+    expect(isDue(tt(5), NOW.getTime() - 23 * HOUR, NOW)).toBe(false);
+    expect(isDue(tt(5), NOW.getTime() - 24 * HOUR, NOW)).toBe(true);
+    expect(isDue(tt(5), undefined, NOW)).toBe(true);
+  });
+
   it("nextPassAt: 30 minutes on inside 07:00-23:00 New York, else the next 07:00", () => {
     const zone = "America/New_York";
     expect(nextPassAt(NOW, zone).toISOString()).toBe("2026-10-06T16:30:00.000Z");

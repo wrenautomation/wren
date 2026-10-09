@@ -1,7 +1,8 @@
 /**
  * TikTok as a `ContentChannel` in the Content Posting API's shape: list = the account's videos,
- * metrics = a video's counts. Comments have no self-serve API: an empty page. Audience =
- * `user/info` followers (scope user.info.stats).
+ * metrics = a video's counts. Comments have no self-serve API: the box reads a video's from its
+ * page (`/web/videos/{id}/comments`, browser, 24 a day). Audience = `user/info` followers (scope
+ * user.info.stats).
  *
  * Publish over a client's connected account (`direct`) follows TikTok's Direct Post rules
  * (`@wren/core/content/tiktok`): creator_info right before, refuse what the creator can't post,
@@ -66,6 +67,21 @@ interface Video {
   like_count?: number;
   comment_count?: number;
   share_count?: number;
+}
+
+/** One comment as the box reads it off the video's page. */
+interface WebComment {
+  id: string;
+  text: string;
+  at: string;
+  author: string;
+  authorName?: string;
+  authorId?: string;
+  /** The comment it answers; absent on the video itself. */
+  parentId?: string | null;
+  /** Written by the video's own account: ours. */
+  creator?: boolean;
+  likes?: number;
 }
 
 export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): ContentChannel {
@@ -171,8 +187,30 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
         fetchedWith: await via("POST", "/v2/video/query/"),
       };
     },
-    async comments(): Promise<CommentRow[]> {
-      return [];
+    // Newest first, as the page lists them; ours (the creator's) come back marked.
+    async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
+      if (!/^[0-9]+$/.test(id)) return [];
+      const r = await sites.call<{ url?: string; comments?: WebComment[] }>(
+        "tiktok",
+        "GET",
+        `/web/videos/${id}/comments`,
+        { max: Math.min(q.limit ?? 50, 100) },
+      );
+      return pageOf(
+        (r.comments ?? []).map((c) => ({
+          id: c.id,
+          postId: id,
+          author: c.author || c.authorId || "someone",
+          text: c.text,
+          // A comment the page gave no time: now, so it still sorts and counts.
+          at: c.at || now().toISOString(),
+          ...(c.parentId ? { parentId: c.parentId } : {}),
+          ...(r.url ? { url: r.url } : {}),
+          ...(c.creator ? { mine: true } : {}),
+          raw: c,
+        })),
+        q,
+      );
     },
     async audience(): Promise<Audience> {
       const r = await sites.call<{ data?: { user?: { follower_count?: number } } }>(

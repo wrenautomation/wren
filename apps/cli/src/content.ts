@@ -9,6 +9,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   approveDrafts,
+  askSwap,
   type ContentDraft,
   DRAFT_STATUSES,
   type DraftStatus,
@@ -37,6 +38,10 @@ import {
   slotsOf,
   tomorrowOf,
   uploadMedia,
+  VARIANT_FIELDS,
+  type VariantField,
+  variantWindows,
+  waitingSwaps,
   whatWorked,
 } from "@wren/content";
 import type {
@@ -298,6 +303,52 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       const why = rejectWhy(o);
       const rows = await withDb((db) => rejectDrafts(db, ids, { by: "cli", ...why }));
       for (const d of rows) printDraftRow(d);
+    });
+
+  content
+    .command("swap <draftId> <field> <value...>")
+    .description(
+      "Ask for a new title, thumbnail (a stored image) or hook on a live YouTube post; it waits in To approve",
+    )
+    .option("--why <text>", "what the swap tests")
+    .action(async (id: string, field: string, value: string[], o: { why?: string }) => {
+      if (!(VARIANT_FIELDS as readonly string[]).includes(field))
+        throw new Error(`field is one of: ${VARIANT_FIELDS.join(", ")}`);
+      const v = await withDb((db) =>
+        askSwap(
+          db,
+          {
+            draftId: id,
+            field: field as VariantField,
+            value: value.join(" "),
+            why: o.why ?? null,
+            by: "cli",
+          },
+          new Date(),
+        ),
+      );
+      console.log(`swap ${v.id} waits in To approve: new ${v.field} "${v.value}"`);
+    });
+
+  content
+    .command("swaps [draftId]")
+    .description("Swaps waiting on a yes; with a post, its titles, thumbnails and hooks over time")
+    .action(async (id: string | undefined) => {
+      if (!id) {
+        const rows = await withDb((db) => waitingSwaps(db));
+        if (!rows.length) console.log("no swap waits");
+        for (const w of rows)
+          console.log(
+            `${String(w.id).padEnd(6)} ${w.draftId.slice(0, 8)} ${w.field.padEnd(9)} ${w.value}`,
+          );
+        return;
+      }
+      const rows = await withDb((db) => variantWindows(db, id, new Date()));
+      if (!rows.length) console.log("no variants kept for this post");
+      for (const v of rows)
+        console.log(
+          `${v.field.padEnd(9)} ${v.state.padEnd(8)} ${(v.from ?? "-").padEnd(10)} ${(v.to ?? "-").padEnd(10)} ${String(v.days).padStart(3)}d ${String(v.viewsPerDay ?? "-").padStart(7)}/day ctr ${v.ctr ?? "-"}  ${v.value}`,
+        );
     });
 
   content

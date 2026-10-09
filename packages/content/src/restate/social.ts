@@ -178,7 +178,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const kept: KeptComment[] = [];
     const happened: { kind: ActivityRow["kind"] }[] = [];
 
-    // Only where its account can read them: a LinkedIn profile or TikTok has no comments API.
+    // Only where its account can read them: a LinkedIn profile has no comments API.
     const read = platforms.filter((p) => commented.includes(p));
     const posts = await ctx.run("posts", () => recentPosts(db, read, now));
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};

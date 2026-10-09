@@ -23,6 +23,7 @@
  * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
 import { SiteCallError } from "@wren/core/content";
+import { recordDraft } from "@wren/core/draft-record";
 import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
@@ -151,7 +152,7 @@ async function sentToday(
 }
 
 /** Invites with a note this account sent this fleet month. */
-async function notesThisMonth(db: Queryable, accountId: string, now: Date): Promise<number> {
+export async function notesThisMonth(db: Queryable, accountId: string, now: Date): Promise<number> {
   const month = fleetDay(now).slice(0, 7);
   const [r] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -422,6 +423,20 @@ export async function recordSent(
     .set({ state: "sent", sentAt: o.now, ref: sent.ref })
     .where(eq(reachMessages.id, c.row.id));
   await keepTouch(`rm:${c.row.id}`, () => touchFromMessage(db, c.row.id));
+  // A note the model drafted (invite-notes.ts): its send closes its draft record.
+  if (
+    c.row.kind === "connect" &&
+    c.row.body &&
+    (c.row.provenance as { source?: string } | null)?.source === "model"
+  )
+    await recordDraft(db, {
+      item: `note:${c.contact.id}`,
+      platform: "linkedin",
+      event: "sent",
+      via: "wren",
+      text: c.row.body,
+      meta: { message: c.row.id },
+    });
   stats.sent++;
   const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
   if (!seq) return;

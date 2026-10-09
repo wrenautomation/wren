@@ -327,6 +327,67 @@ describe("linkedin content channel", () => {
     ).insights?.(q);
     expect(missing?.gaps.find((g) => g.metric === "impressions")?.state).toBe("not_built");
   });
+
+  it("account insights read Wren's dashboard as Wren: profile visits and search appearances", async () => {
+    const calls: Array<[string, string | undefined]> = [];
+    const answer = (d: Record<string, unknown>): SiteClient => ({
+      async call(_site, _method, path, _input, account) {
+        calls.push([path, account]);
+        return d as never;
+      },
+      async via() {
+        return "browser";
+      },
+    });
+    const now = () => new Date("2026-10-02T12:00:00.000Z");
+    const got = await linkedinContent(
+      answer({
+        profileViewers: 41,
+        searchAppearances: 17,
+        postImpressions: 900,
+        followers: 300,
+        windows: { profileViewers: "Past 90 days", searchAppearances: "Previous week" },
+        url: "https://www.linkedin.com/dashboard/",
+      }),
+      { author: "a", now },
+    ).accountInsights?.();
+    expect(calls).toEqual([["/analytics/dashboard", "linkedin@wren"]]);
+    expect(got?.days).toEqual([
+      {
+        day: "2026-10-02",
+        values: [
+          { metric: "profile_visits", value: 41 },
+          { metric: "search_appearances", value: 17 },
+        ],
+      },
+    ]);
+    expect(got?.gaps).toEqual([]);
+    const half = await linkedinContent(
+      answer({ profileViewers: 41, searchAppearances: null, windows: {}, url: "" }),
+      { author: "a", now },
+    ).accountInsights?.();
+    expect(half?.gaps.map((g) => [g.metric, g.state])).toEqual([["search_appearances", "error"]]);
+  });
+
+  it("account insights: a capped day reads nothing; a route the box lacks is a gap", async () => {
+    const failing = (status: number): SiteClient => ({
+      async call() {
+        throw new SiteCallError("linkedin", "GET", "/analytics/dashboard", status, "no");
+      },
+      async via() {
+        return "browser";
+      },
+    });
+    const now = () => new Date("2026-10-02T12:00:00.000Z");
+    expect(
+      await linkedinContent(failing(429), { author: "a", now }).accountInsights?.(),
+    ).toMatchObject({ days: [], gaps: [] });
+    const missing = await linkedinContent(failing(501), { author: "a", now }).accountInsights?.();
+    expect(missing?.gaps.map((g) => g.state)).toEqual(["not_built", "not_built"]);
+    expect(linkedinContent(failing(501), { author: "a", direct: true }).accountInsights).toBe(
+      undefined,
+    );
+  });
 });
 
 describe("linkedin company page", () => {

@@ -264,7 +264,7 @@ export const postRecordOf = (signer?: VideoSigner) =>
     ],
     activity: { view: "draft_activity", by: "post", seq: "seq" },
     drafts: (id) => [`draft:${id.split("/").at(-1)}`],
-    actions: ["marketing.draftAgain", "marketing.postPromote"],
+    actions: ["marketing.draftAgain", "marketing.postPromote", "marketing.swapAsk"],
     load: async (db, id) => ({
       post: await postOf(db, id.split("/")[2] ?? ""),
       shape: await shapeView(db, id.split("/")[2] ?? "", signer),

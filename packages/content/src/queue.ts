@@ -7,6 +7,7 @@ import type { Published } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { keepFirstVariants } from "./analytics/variants.js";
 import { type ContentDraft, contentDrafts } from "./schema.js";
 
 const dueAt = (now: Date) =>
@@ -63,27 +64,29 @@ export async function markPublished(
     })
     .where(eq(contentDrafts.id, id))
     .returning();
+  if (!d) return;
+  // Its title, thumbnail and hook as they went out: the first window of each.
+  await keepFirstVariants(db, d, new Date(published.publishedAt), published.notes ?? []);
   // The words as they went out, frozen with the platform's id.
-  if (d)
-    await recordDraft(db, {
-      item: `draft:${id}`,
-      platform: d.platform,
-      event: "sent",
-      via: "wren",
-      by: "scheduler",
-      text: d.text,
-      title: d.title,
-      externalId: published.id,
-      url: published.url,
-      // The fields as they went out, and any the platform refused after.
-      meta: {
-        fields: d.extra,
-        ...(link ? { link } : {}),
-        ...(published.notes?.length ? { notes: published.notes } : {}),
-      },
-      // A journaled step that runs again keeps one.
-      ref: `sent:draft:${id}`,
-    });
+  await recordDraft(db, {
+    item: `draft:${id}`,
+    platform: d.platform,
+    event: "sent",
+    via: "wren",
+    by: "scheduler",
+    text: d.text,
+    title: d.title,
+    externalId: published.id,
+    url: published.url,
+    // The fields as they went out, and any the platform refused after.
+    meta: {
+      fields: d.extra,
+      ...(link ? { link } : {}),
+      ...(published.notes?.length ? { notes: published.notes } : {}),
+    },
+    // A journaled step that runs again keeps one.
+    ref: `sent:draft:${id}`,
+  });
 }
 
 export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {

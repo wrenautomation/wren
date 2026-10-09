@@ -31,6 +31,7 @@ import {
   stateLine,
   surfaceOf,
 } from "./catalog.js";
+import { type VariantWindow, variantWindows } from "./variants.js";
 
 const neutral = (label: string): State => ({ label, tone: "neutral" });
 const rowsOf = async <T = Record<string, unknown>>(db: Queryable, q: ReturnType<typeof sql>) =>
@@ -237,7 +238,8 @@ export function stateOf(
 
 /**
  * The platforms' last answers, plus the numbers built from our own rows: a platform's
- * comment-to-DM and DM-to-booking are live once a DM we sent there exists.
+ * comment-to-DM and DM-to-booking are live once a DM we sent there exists, its reply rate once
+ * we hold a comment from someone else there, and its variants once a swap went out.
  */
 export const readSources = async (db: Queryable): Promise<Map<string, SourceRow>> =>
   new Map(
@@ -252,7 +254,18 @@ export const readSources = async (db: Queryable): Promise<Map<string, SourceRow>
         cross join (values ('to_dm'), ('dm_booked')) k(metric)
         where not exists (select 1 from metric_sources s
           where s.platform = r.platform::text and s.metric = k.metric)
-        group by r.platform, k.metric`,
+        group by r.platform, k.metric
+        union all
+        select c.platform::text, 'reply_rate', 'live', null, max(c.at)
+        from comments c where c.channel = 'content' and c.sort is distinct from 'ours'
+          and not exists (select 1 from metric_sources s
+            where s.platform = c.platform::text and s.metric = 'reply_rate')
+        group by c.platform
+        union all
+        select d.platform::text, 'variants', 'live', null, max(v.started_at)
+        from post_variants v join content_drafts d on d.id = v.draft_id
+        where v.source = 'swap' and v.started_at is not null
+        group by d.platform`,
       )
     ).map((s) => [`${s.platform}|${s.metric}`, s]),
   );
@@ -376,10 +389,16 @@ export interface PostAnalytics {
     links: { source: string; campaign: string; content: string; clicks: number }[];
   };
   conversation: { theirs: number; answered: number; replySecs: number | null; dmed: number };
+  /** Its titles, thumbnails and hooks over time, each with its window's numbers. */
+  variants: VariantWindow[];
 }
 
 /** Everything a post's page draws under "How it did", "What it brought" and "Its conversation". */
-export async function postAnalytics(db: Queryable, draftId: string): Promise<PostAnalytics | null> {
+export async function postAnalytics(
+  db: Queryable,
+  draftId: string,
+  now = new Date(),
+): Promise<PostAnalytics | null> {
   if (!/^[0-9a-f-]{36}$/i.test(draftId)) return null;
   const [d] = await rowsOf<{
     platform: Platform;
@@ -568,5 +587,6 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
       replySecs: c?.reply_secs ?? null,
       dmed: c?.dmed ?? 0,
     },
+    variants: await variantWindows(db, draftId, now),
   };
 }

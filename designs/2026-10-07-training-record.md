@@ -172,9 +172,6 @@ right after the deploy.
 
 ## Left out
 
-- LinkedIn comments on others' posts and drafted invite notes: their code is on another branch
-  (`posting`). They call `recordDraft` with kinds `linkedin_comment` and `invite_note`.
-- YouTube follows (scope and route above).
 - The training job itself.
 
 ## Decision log
@@ -199,3 +196,9 @@ right after the deploy.
   read orders by `(at, id)`; `draft_activity` gains `seq` (the step's id) for the Activity tab,
   and `draft_outcomes` breaks reply ties by id (migration 0165). The backfill writes oldest
   first, so ids follow time.
+- 2026-10-09, left-outs built: no `posting` branch existed. LinkedIn comments on others' posts
+  were already on main (`lipost:`, `linkedin_comment`). Drafted invite notes are rebuilt as
+  `note:<contact id>` (`invite_note`): the model notes a proposed invite while the month's free
+  notes last (200 characters, LinkedIn's cap); his edit at Send invite is `edited`, then
+  approved, rejected or sent. YouTube follows come from the post's insight days
+  (`post_metric_days` `follows`) in `draft_outcomes` when the snapshot has none.

@@ -85,7 +85,7 @@ digest. Each platform table names only what differs.
 | Shares, saves | saves = added to playlists | collector built | Analytics `shares`, `videosAddedToPlaylists` | Needs scope | Trust |
 | Comment reply rate, time to reply | our answers on its comments | built here (`comments`) | none | Live | Trust |
 | Comment → DM, DM → booking | | | YouTube has no DMs | No API | Convert |
-| Title or thumbnail variants and CTR | Studio's Test and compare | none | not in any API: the reach report has no variant column, and Test and compare shows the variants at once | No API | Reach |
+| Title, thumbnail and hook variants | each variant's window: views a day, impressions, CTR | `post_variants` + `post_metric_days` | Data API `videos.update`, `thumbnails.set`. A swap over time; Studio's Test and compare has no API | Waiting | Reach |
 | Account: subscribers per day | | `social_days` | Data API `channels.statistics` | Live | Reach |
 | Account: subscribers gained, lost per day, views per day | | collector built | Analytics channel report by day | Needs scope | Reach |
 
@@ -130,7 +130,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Views, likes, comments, shares | | `content_metrics` | `video/query`, video.list | Live | Reach, Trust |
 | Reach, average watch time, full-watch rate, retention, traffic sources | | none | Business API (TikTok for Business account and its review) | Needs William | Reach, Trust |
 | Saves | | none | Business API | Needs William | Trust |
-| Comment reply rate | comments come from the browser leg, not yet stored | none | Business API, or the box's `/web/videos/{id}/comments` | Not built | Trust |
+| Comment reply rate, time to reply | our replies made by hand count as answers | `comments` (SocialWatch) | the box's `GET /web/videos/{id}/comments` as wren@tiktok, capped 24 a day | Waiting | Trust |
 | Account: followers per day | | `social_days` (SocialWatch, daily) | `user/info` `follower_count`, user.info.stats | Waiting | Reach |
 | Profile visits, link-in-bio clicks | | | Business API | Needs William | Reach |
 
@@ -143,7 +143,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Comment reply rate, time to reply | | built here | none | Live | Trust |
 | Comment → DM, DMs answered, DM → booking | reach DMs | built here | none | Live | Convert |
 | Account: followers | | `social_days` (browser `/audience`) | none | Live | Reach |
-| Account: profile visits, search appearances | | none | browser dashboard route | Not built | Reach |
+| Account: profile visits, search appearances | LinkedIn's own windows: viewers past 90 days, appearances last week | `account_metric_days` (`profile_visits`, `search_appearances`) | the dashboard in the browser as `linkedin@wren` (autobrowse `GET /analytics/dashboard`, shares the 10 a day cap) | Waiting | Reach |
 
 ### X
 
@@ -172,11 +172,11 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 
 | Platform | Live | Waiting | Needs scope | Needs William | Not built | No API |
 |---|---|---|---|---|---|---|
-| YouTube long-form | 4 | 0 | 10 | 0 | 0 | 2 |
+| YouTube long-form | 4 | 1 | 10 | 0 | 0 | 1 |
 | YouTube Shorts (past long-form) | 0 | 0 | 2 | 0 | 0 | 2 |
 | Instagram | 8 | 0 | 1 | 0 | 0 | 3 |
-| TikTok | 1 | 1 | 0 | 3 | 1 | 0 |
-| LinkedIn | 4 | 1 | 0 | 0 | 1 | 0 |
+| TikTok | 1 | 2 | 0 | 3 | 0 | 0 |
+| LinkedIn | 4 | 2 | 0 | 0 | 0 | 0 |
 | X | 4 | 3 | 0 | 0 | 0 | 0 |
 | Reddit | 5 | 0 | 0 | 0 | 0 | 1 |
 
@@ -279,11 +279,13 @@ setting when he asks to change them.
 
 ## Not built (next)
 
-1. Hook, title and thumbnail variants: we keep his three thumbnails and every title edit, but
-   YouTube's own test runs in Studio and no API names a variant. If we ever swap a title or
-   thumbnail ourselves, the daily CTR rows give before and after; nothing swaps today.
-2. TikTok comment reply rate (comments come from the browser leg, not stored yet).
-3. LinkedIn account profile visits and search appearances (a browser dashboard route).
+Nothing listed. TikTok comments read only for a post whose id is TikTok's video id. A client's
+public direct post keeps it; Wren's own posts (over autobrowse) keep the publish id, so the read
+skips them until that publish keeps the video id too.
+
+Built 2026-10-09 (second pass): title, thumbnail and hook swaps on YouTube (`post_variants`,
+`wren content swap`, To approve "Swaps", "Title, thumbnail and hook" on a post's page), TikTok
+comments and reply rate, LinkedIn profile visits and search appearances (Followers columns).
 
 Built 2026-10-09: LinkedIn post analytics in the browser, TikTok and X followers per day, X
 video views and playback quartiles, a client's X video upload (chunked), comment → DM and
@@ -335,3 +337,16 @@ report (autobrowse caps it at 300 a day). No model calls: the digest's "next pos
   the API leg (the browser shows no plays), one paid read per video post per daily look.
 - 2026-10-09: a client's TikTok asks user.info.stats for followers. A token without it answers
   403 (needs scope), not a broken connection.
+- 2026-10-09: variants are swaps over time, not YouTube's Test and compare (no API). The one a
+  post went out with is kept at publish. A swap waits in To approve; his yes changes the live
+  video, then the new variant is live and the old one ends. The swap's own day counts for
+  neither window. Views a day come from the day totals, impressions and CTR from the reach
+  report's days.
+- 2026-10-09: a hook is the description's first line; a swap sends the snippet back whole with
+  that line changed. Swaps are YouTube only: other platforms can't edit a live post's title or
+  cover through their API.
+- 2026-10-09: TikTok replies have no API, so we post them by hand; our reply under a comment,
+  read on the post, marks that comment answered at the reply's time. A TikTok post is read every
+  6 hours while young and daily after, under the box's 24 a day cap.
+- 2026-10-09: LinkedIn's dashboard numbers are window totals (viewers past 90 days, search
+  appearances last week). Each read keeps them on the day it read them; no per-day split exists.

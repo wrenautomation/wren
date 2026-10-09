@@ -29,6 +29,7 @@ import {
   mediaFileOf,
   numberOf,
   type Post,
+  type PostPatch,
   type Published,
   type PublishedRow,
   pageOf,
@@ -36,6 +37,7 @@ import {
   type ReportDays,
   readGroup,
   type SiteClient,
+  withHook,
 } from "@wren/core/content";
 import { fieldsOf, languageName } from "@wren/core/content/shapes";
 
@@ -54,6 +56,15 @@ interface Video {
   snippet?: { title?: string; description?: string; publishedAt?: string };
   status?: { publishAt?: string };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
+}
+/** What `videos.update` needs back whole: title and category, plus what it holds. */
+interface Snippet {
+  title?: string;
+  description?: string;
+  categoryId?: string;
+  tags?: string[];
+  defaultLanguage?: string;
+  defaultAudioLanguage?: string;
 }
 interface PlaylistItem {
   snippet?: {
@@ -302,6 +313,34 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
           : [];
       });
       return pageOf(rows, q);
+    },
+    // A swap on a live video: the snippet goes back whole (YouTube replaces the part), changed.
+    async update(id: string, patch: PostPatch): Promise<void> {
+      if (patch.title !== undefined || patch.hook !== undefined) {
+        const r = await read<{ items?: Array<{ snippet?: Snippet }> }>("videos", {
+          part: "snippet",
+          id,
+        });
+        const s = r.items?.[0]?.snippet;
+        if (!s) throw new Error(`youtube: no video ${id}`);
+        const snippet = {
+          title: patch.title ?? s.title ?? "",
+          description:
+            patch.hook !== undefined ? withHook(s.description ?? "", patch.hook) : s.description,
+          categoryId: s.categoryId,
+          ...(s.tags?.length ? { tags: s.tags } : {}),
+          ...(s.defaultLanguage ? { defaultLanguage: s.defaultLanguage } : {}),
+          ...(s.defaultAudioLanguage ? { defaultAudioLanguage: s.defaultAudioLanguage } : {}),
+        };
+        await sites.call("youtube", "PUT", "/youtube/v3/videos", { id, snippet });
+      }
+      const thumb = patch.thumbnail;
+      if (thumb)
+        await sites.call("youtube", "POST", "/upload/youtube/v3/thumbnails/set", {
+          videoId: id,
+          file: await mediaFileOf(thumb, o.host, "youtube"),
+          ...(/\.png$/i.test(thumb) ? { contentType: "image/png" } : {}),
+        });
     },
     async metrics(id: string): Promise<Metrics> {
       const r = await read<{ items?: Video[] }>("videos", { part: "statistics", id });

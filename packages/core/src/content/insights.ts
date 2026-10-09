@@ -89,6 +89,7 @@ export const METRICS = {
   follows: "follows",
   unfollows: "unfollows",
   profileVisits: "profile_visits",
+  searchAppearances: "search_appearances",
   linkClicks: "link_clicks",
   profileClicks: "profile_clicks",
   avgViewSecs: "avg_view_secs",

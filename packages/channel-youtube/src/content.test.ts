@@ -136,6 +136,58 @@ describe("youtube content channel", () => {
     }
   });
 
+  it("a swap sends the snippet back whole with the new title or hook, and sets a thumbnail", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /youtube/v3/videos": () => ({
+        items: [
+          {
+            snippet: {
+              title: "Old title",
+              description: "Old hook\n\nChapters:\n0:00 Start",
+              categoryId: "28",
+              tags: ["a"],
+              defaultAudioLanguage: "en",
+              channelTitle: "dropped",
+            },
+          },
+        ],
+      }),
+      "PUT /youtube/v3/videos": () => ({}),
+      "POST /upload/youtube/v3/thumbnails/set": () => ({}),
+    });
+    const ch = youtubeContent(sites);
+    await ch.update?.("v1", { title: "New title" });
+    await ch.update?.("v1", { hook: "New hook" });
+    await ch.update?.("v1", { thumbnail: "/mac/thumb2.png" });
+    expect(calls.filter((c) => c[0] === "PUT").map((c) => c[2])).toEqual([
+      {
+        id: "v1",
+        snippet: {
+          title: "New title",
+          description: "Old hook\n\nChapters:\n0:00 Start",
+          categoryId: "28",
+          tags: ["a"],
+          defaultAudioLanguage: "en",
+        },
+      },
+      {
+        id: "v1",
+        snippet: {
+          title: "Old title",
+          description: "New hook\n\nChapters:\n0:00 Start",
+          categoryId: "28",
+          tags: ["a"],
+          defaultAudioLanguage: "en",
+        },
+      },
+    ]);
+    expect(calls.at(-1)).toEqual([
+      "POST",
+      "/upload/youtube/v3/thumbnails/set",
+      { videoId: "v1", file: "/mac/thumb2.png", contentType: "image/png" },
+    ]);
+  });
+
   it("sends every field of its shape: kids, AI label, languages, notify, subtitles, playlist", async () => {
     const { sites, calls } = fakeSites({
       "POST /upload/youtube/v3/videos": () => ({ id: "v3" }),

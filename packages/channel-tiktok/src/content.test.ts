@@ -70,8 +70,50 @@ describe("tiktok content channel", () => {
       comments: 1,
       shares: 2,
     });
-    expect(await ch.comments("v1")).toEqual([]);
     expect(calls).toHaveLength(3);
+  });
+
+  it("reads a video's comments off its page: ours marked, replies keep their parent", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /web/videos/7400000000000000001/comments": () => ({
+        videoId: "7400000000000000001",
+        url: "https://www.tiktok.com/@w/video/7400000000000000001",
+        comments: [
+          {
+            id: "c2",
+            text: "Thanks!",
+            at: "2026-09-22T11:00:00.000Z",
+            author: "wren",
+            authorName: "Wren",
+            authorId: "1",
+            parentId: "c1",
+            creator: true,
+            likes: 0,
+          },
+          {
+            id: "c1",
+            text: "How long did it take?",
+            at: "",
+            author: "sam.example",
+            authorName: "Sam",
+            authorId: "2",
+            parentId: null,
+            creator: false,
+            likes: 3,
+          },
+        ],
+      }),
+    });
+    const ch = tiktokContent(sites, { now: () => new Date("2026-09-22T12:00:00Z") });
+    const rows = await ch.comments("7400000000000000001");
+    expect(calls[0]).toEqual(["GET", "/web/videos/7400000000000000001/comments", { max: 50 }]);
+    expect(rows.map((r) => [r.id, r.author, r.parentId ?? null, r.mine ?? false, r.at])).toEqual([
+      ["c1", "sam.example", null, false, "2026-09-22T12:00:00.000Z"],
+      ["c2", "wren", "c1", true, "2026-09-22T11:00:00.000Z"],
+    ]);
+    // A publish id isn't a video's: nothing to read.
+    expect(await ch.comments("v_pub_url~v2.1")).toEqual([]);
+    expect(calls).toHaveLength(1);
   });
 
   it("refuses anything but a video", async () => {

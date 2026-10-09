@@ -32,6 +32,7 @@ import type {
   ListQuery,
   Platform,
   Post,
+  PostPatch,
   ReportDays,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
@@ -246,6 +247,14 @@ const REPLY = z.looseObject({
   client: CLIENT,
 });
 
+const UPDATE = ONE_POST.extend({
+  patch: z.looseObject({
+    title: z.string().min(1).max(100).optional().describe("The new title"),
+    thumbnail: z.string().min(1).optional().describe("A stored image: the new thumbnail"),
+    hook: z.string().min(1).optional().describe("The new first line of the text"),
+  }),
+});
+
 export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) {
   /** Wren's channel, or a client's on its own login (`client`). */
   const pick = async (
@@ -333,6 +342,25 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               errorCode: 501,
             });
           await refusalsFinal(ch.reply(req.commentId, req.text));
+        },
+      ),
+      /**
+       * A swap on a live post (title, thumbnail, hook): a publish, so only after his yes in To
+       * approve. 501 where a post can't change once up.
+       */
+      update: serviceHandler(
+        { input: UPDATE, effect: "posts" },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; id: string; patch: PostPatch } & ForClient,
+        ) => {
+          await sending(ctx, req.client);
+          const ch = await pick(ctx, req.platform, req.client);
+          if (!ch.update)
+            throw new restate.TerminalError(`a ${req.platform} post can't change once it's up`, {
+              errorCode: 501,
+            });
+          await refusalsFinal(ch.update(req.id, req.patch));
         },
       ),
       /** Reviews of the account itself (Business Profile). Null when the channel has none. */

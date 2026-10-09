@@ -30,6 +30,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -341,6 +342,53 @@ export const metricSources = pgTable(
   ],
 );
 
+export const VARIANT_FIELDS = ["title", "thumbnail", "hook"] as const;
+export type VariantField = (typeof VARIANT_FIELDS)[number];
+export const VARIANT_STATES = ["proposed", "live", "ended", "rejected"] as const;
+export type VariantState = (typeof VARIANT_STATES)[number];
+/** The one it went out with, or a swap on the live post. */
+export const VARIANT_SOURCES = ["publish", "swap"] as const;
+
+/**
+ * A post's titles, thumbnails and hooks over time (designs/2026-10-07-content-analytics.md): the
+ * one it went out with, then each swap. A swap waits in To approve (`proposed`); his yes puts it
+ * on the platform, makes it `live` and ends the one before. Its window is `started_at` to
+ * `ended_at`. `value` is the title, the thumbnail's file, or the hook's line.
+ */
+export const postVariants = pgTable(
+  "post_variants",
+  {
+    id: serial("id").notNull(),
+    draftId: uuid("draft_id").notNull(),
+    field: varchar("field", { length: 16, enum: VARIANT_FIELDS }).notNull(),
+    value: text("value").notNull(),
+    state: varchar("state", { length: 16, enum: VARIANT_STATES }).notNull(),
+    source: varchar("source", { length: 16, enum: VARIANT_SOURCES }).notNull(),
+    /** Why this one: his note on the swap. */
+    why: text("why"),
+    askedBy: varchar("asked_by", { length: 200 }),
+    askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Who said yes or no, and when. */
+    decidedBy: varchar("decided_by", { length: 200 }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_post_variants" }),
+    foreignKey({
+      columns: [t.draftId],
+      foreignColumns: [contentDrafts.id],
+      name: "fk_post_variants_draft_id_content_drafts",
+    }).onDelete("cascade"),
+    index("ix_post_variants_draft_id_field").on(t.draftId, t.field),
+    uniqueIndex("uq_post_variants_live").on(t.draftId, t.field).where(sql`state = 'live'`),
+    oneOf("ck_post_variants_field", t.field, VARIANT_FIELDS),
+    oneOf("ck_post_variants_state", t.state, VARIANT_STATES),
+    oneOf("ck_post_variants_source", t.source, VARIANT_SOURCES),
+  ],
+);
+export type PostVariant = typeof postVariants.$inferSelect;
+
 /**
  * The Monday "what worked" note: top and bottom posts, the number that moved, the next post to
  * make. One per week and platform (`all` for every platform); a second run that week replaces it.
@@ -557,7 +605,7 @@ export const marketingConversation = pgView("marketing_conversation", {
 
 /**
  * A draft's timeline (designs/2026-10-07-training-record.md, View), each draft page's Activity
- * tab: its `draft_events` steps, then a post's metrics snapshots and the replies under it. One
+ * tab: its `draft_events` steps, then a post's metrics snapshots, swaps and the replies under it. One
  * key column per page, null on another kind's lines, so `7` is never both a comment and a DM.
  */
 export const draftActivity = pgView("draft_activity", {
@@ -600,6 +648,10 @@ export const draftActivity = pgView("draft_activity", {
         m.shares || ' shares', m.follows || ' follows')
     from content_metrics m join content_drafts d on d.id = m.draft_id
     union all
+    select 'draft:' || v.draft_id, v.started_at, null, 'variant',
+      initcap(v.field) || ' swapped to: ' || left(v.value, 200)
+    from post_variants v where v.source = 'swap' and v.started_at is not null
+    union all
     select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 200)
     from comments c join content_drafts d on d.published_id = c.post and d.platform::text = c.platform::text
     where c.sort is distinct from 'ours'
@@ -609,7 +661,8 @@ export const draftActivity = pgView("draft_activity", {
     case when l.item like 'draft:%' then concat_ws('/', d.idea_id, d.platform, d.id) end post,
     case when l.item like 'comment:%' then split_part(l.item, ':', 2) end comment,
     case when l.item like 'thread:%' then split_part(l.item, ':', 2) end thread,
-    case when l.item like 'dm:%' or l.item like 'invite:%' then split_part(l.item, ':', 2) end contact,
+    case when l.item like 'dm:%' or l.item like 'invite:%' or l.item like 'note:%'
+      then split_part(l.item, ':', 2) end contact,
     case when l.item like 'video:%' then split_part(l.item, ':', 2) end video,
     l.at, l.seq, l.kind, l.what
   from lines l
@@ -617,8 +670,9 @@ export const draftActivity = pgView("draft_activity", {
 
 /**
  * What each sent draft got (designs/2026-10-07-training-record.md, Outcomes), read by `wren train`:
- * a post's newest metrics snapshot and the replies under it; an answered comment's or thread's
- * replies to our answer; a DM contact's messages back. One row per item.
+ * a post's newest metrics snapshot and the replies under it (follows from its insights days when
+ * the snapshot has none: YouTube's subscribers gained); an answered comment's or thread's replies
+ * to our answer; a DM or invite contact's messages back. One row per item.
  */
 export const draftOutcomes = pgView("draft_outcomes", {
   item: text("item"),
@@ -632,7 +686,9 @@ export const draftOutcomes = pgView("draft_outcomes", {
   replies: jsonb("replies").$type<{ author: string; text: string; at: string }[]>(),
 }).as(sql`
   select 'draft:' || d.id item, m.as_of measured, m.views, m.reactions, m.comments, m.shares,
-    m.follows, (select count(*)::int from content_metrics x where x.draft_id = d.id) snapshots,
+    coalesce(m.follows, (select f.value::int from post_metric_days f where f.draft_id = d.id
+      and f.metric = 'follows' and f.key = '' order by f.day desc limit 1)) follows,
+    (select count(*)::int from content_metrics x where x.draft_id = d.id) snapshots,
     coalesce((select jsonb_agg(jsonb_build_object('author', c.author, 'text', c.body, 'at', c.at)
       order by c.at, c.id) from comments c where c.post = d.published_id
         and c.platform::text = d.platform::text and c.sort is distinct from 'ours'), '[]') replies
@@ -657,7 +713,7 @@ export const draftOutcomes = pgView("draft_outcomes", {
     coalesce((select jsonb_agg(jsonb_build_object('author', coalesce(r.name, r.handle),
       'text', i.body, 'at', i.created_at) order by i.created_at, i.id) from reach_messages i
       where i.contact_id = r.id and i.direction = 'in'), '[]')
-  from reach_contacts r cross join (values ('dm:'), ('invite:')) k(prefix)
+  from reach_contacts r cross join (values ('dm:'), ('invite:'), ('note:')) k(prefix)
   where exists (select 1 from reach_messages o where o.contact_id = r.id and o.direction = 'out'
     and o.state = 'sent')`);
 
@@ -674,7 +730,7 @@ export const draftPeople = pgView("draft_people", {
   select 'thread:' || t.id, t.author from reddit_threads t
   union all
   select k.prefix || r.id, n.name from reach_contacts r
-  cross join (values ('dm:'), ('invite:')) k(prefix)
+  cross join (values ('dm:'), ('invite:'), ('note:')) k(prefix)
   cross join lateral (values (r.name), (r.handle)) n(name)
   where n.name is not null and n.name <> ''`);
 

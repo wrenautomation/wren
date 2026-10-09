@@ -9,7 +9,7 @@ entity: packages/outreach/src/schema.ts:242
 
 # comment (comments on our posts, as events)
 
-Every comment on our posts and every answer to our comments. Two sources (`channel`): `reach`, as each reach account's inbox lists it; `content`, as `SocialWatch/wren` reads Wren's own posts on every content platform (designs/2026-10-06-social-inbox.md). A row, then one `comment` event on the `reach.comments` workflow. William answers, DMs or drops each one from Marketing → Inbox; nothing goes out without his click.
+Every comment on our posts and every answer to our comments. Two sources (`channel`): `reach`, as each reach account's inbox lists it; `content`, as `SocialWatch/wren` reads Wren's own posts on every content platform (designs/2026-10-06-social-inbox.md). A row, then one `comment` event on the `reach.comments` workflow. William answers, DMs or drops each one from Marketing → Inbox; nothing goes out without his click. TikTok comments come from the box's `/web/videos/{id}/comments` (no reply API): our reply made by hand under one marks it answered at the reply's time (`answeredByHand`, `social/store.ts`), so the reply rate counts it; a TikTok post is read every 6 h while young, daily after.
 
 ## Why this shape
 

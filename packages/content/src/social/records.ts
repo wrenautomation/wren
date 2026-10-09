@@ -31,6 +31,7 @@ import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
 import { sql } from "drizzle-orm";
+import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
 import { conversationOf } from "../inbox/conversation.js";
 import { waitingReplies } from "../inbox/send.js";
@@ -206,7 +207,7 @@ const connectRows = (db: Queryable) =>
   rowsOf(
     db,
     sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.fit->>'why' why,
-        c.fit->>'company' company, c.url, a.handle account, m.created_at at
+        c.fit->>'company' company, c.url, a.handle account, m.created_at at, m.body note
       from reach_messages m join reach_contacts c on c.id = m.contact_id
       left join reach_accounts a on a.id = m.account_id
       where m.kind = 'connect' and m.direction = 'out' and m.state = 'proposed'
@@ -564,6 +565,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const outs = await waitingRetires(db);
       const rs = await waitingReplies(db, ACTIVITY_ROWS);
       const pays = await waitingPayLinks(db);
+      const sws = await waitingSwaps(db);
       return [
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
         ...rs.map((r) => ({
@@ -670,7 +672,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           body: c.why ?? c.headline,
           post_title: c.company,
           why: c.why,
-          draft: null,
+          // Its note: drafted while the month's free notes last; empty sends it bare.
+          draft: c.note || null,
           account: c.account,
           at: c.at,
           due: c.at,
@@ -739,6 +742,23 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: p.at,
           url: `/sites/pages/${p.id}`,
         })),
+        // A new title, thumbnail or hook for a live post: a yes changes it on the platform.
+        ...sws.map((w) => ({
+          id: `swap:${w.id}`,
+          type: "swap",
+          who: w.title ?? `Post ${w.draftId.slice(0, 8)}`,
+          platform: w.platform,
+          kind: "swap",
+          state: "waiting",
+          body: `New ${w.field}: ${w.value}`,
+          post_title: w.live ? `Now: ${w.live}` : null,
+          why: w.why,
+          draft: null,
+          account: w.by,
+          at: w.at,
+          due: w.at,
+          url: w.url,
+        })),
         // A pay link someone without the yes made (Payments): a yes makes it on Stripe and sends it.
         ...pays.map((p) => ({
           id: payApprovalId(p.id),
@@ -776,6 +796,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           retire: neutral("Page"),
           reply: neutral("Reply"),
           pay: neutral("Payment"),
+          swap: neutral("Swap"),
         }),
         "Type",
       ),
@@ -797,6 +818,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           retire: neutral("Page to take down"),
           reply: neutral("Reply to send"),
           pay: neutral("Pay link to send"),
+          swap: neutral("Swap on a live post"),
         }),
         "Kind",
       ),
@@ -836,6 +858,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       },
       { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
       { id: "payments", label: "Payments", where: { type: "pay" }, sort: "-at", at: "at" },
+      { id: "swaps", label: "Swaps", where: { type: "swap" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
@@ -872,6 +895,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "inbox.replyDrop",
       "payments.approve",
       "payments.decline",
+      "marketing.swapApprove",
+      "marketing.swapSkip",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: {
@@ -889,7 +914,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "workflow" ||
         type === "page" ||
         type === "retire" ||
-        type === "pay"
+        type === "pay" ||
+        type === "swap"
       )
         return null;
       // An asked reply: the conversation it answers.
@@ -988,16 +1014,23 @@ export const audienceRecord = defineRecord({
         sql`select distinct on (d.platform) d.platform id, d.platform, d.followers, d.day,
           d.followers - (select w.followers from social_days w
             where w.platform = d.platform and w.day <= d.day - 7 order by w.day desc limit 1) week,
-          a.reach, a.visits, a.links, a.gained, a.lost
+          a.reach, a.visits, a.links, a.gained, a.lost, l.viewers, l.search
         from social_days d
         left join lateral (select
             sum(m.value) filter (where m.metric = 'reach')::int reach,
-            sum(m.value) filter (where m.metric = 'profile_visits')::int visits,
+            sum(m.value) filter (where m.metric = 'profile_visits' and m.platform <> 'linkedin')::int visits,
             sum(m.value) filter (where m.metric = 'link_clicks')::int links,
             sum(m.value) filter (where m.metric = 'follows')::int gained,
             sum(m.value) filter (where m.metric = 'unfollows')::int lost
           from account_metric_days m where m.platform = d.platform and m.key = ''
             and m.day > current_date - 7) a on true
+        -- LinkedIn's dashboard: window totals on the day read, so the latest, not a sum.
+        left join lateral (select
+            (select v.value from account_metric_days v where v.platform = d.platform
+              and v.metric = 'profile_visits' and v.key = '' order by v.day desc limit 1)::int viewers,
+            (select v.value from account_metric_days v where v.platform = d.platform
+              and v.metric = 'search_appearances' and v.key = '' order by v.day desc limit 1)::int search
+          where d.platform = 'linkedin') l on true
         order by d.platform, d.day desc`,
       )
     ).map((r) => ({ ...r, site: PLATFORM_NAMES[r.platform as keyof typeof PLATFORM_NAMES] })),
@@ -1012,6 +1045,8 @@ export const audienceRecord = defineRecord({
     reach: number("Reach in 7 days"),
     visits: number("Profile visits in 7 days"),
     links: number("Link clicks in 7 days"),
+    viewers: number("Profile viewers, LinkedIn's 90 days"),
+    search: number("Search appearances, LinkedIn's last week"),
     day: date("As of"),
   },
   views: [{ id: "all", label: "All", sort: "-followers", at: "day" }],

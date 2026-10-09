@@ -1,7 +1,8 @@
 /**
  * A post's numbers on its page (designs/2026-10-07-content-analytics.md, Where each number
  * lives): how it did, with a sparkline a metric and its state where it isn't read; the
- * retention curve; where viewers came from; what it brought to the site; its conversation.
+ * retention curve; where viewers came from; its title, thumbnail and hook windows; what it
+ * brought to the site; its conversation.
  * Every number links to its rows. Read from the post's detail (`postAnalytics`).
  */
 import type { Row } from "@wren/core/records/serve";
@@ -42,6 +43,22 @@ interface Analytics {
     links: { source: string; campaign: string; content: string; clicks: number }[];
   };
   conversation: { theirs: number; answered: number; replySecs: number | null; dmed: number };
+  variants?: Variant[];
+}
+/** One title, thumbnail or hook and its window's numbers (`variantWindows`). */
+interface Variant {
+  id: number;
+  field: "title" | "thumbnail" | "hook";
+  value: string;
+  state: "proposed" | "live" | "ended" | "rejected";
+  source: "publish" | "swap";
+  from: string | null;
+  to: string | null;
+  days: number;
+  views: number | null;
+  viewsPerDay: number | null;
+  impressions: number | null;
+  ctr: number | null;
 }
 
 const QUIET = "text-(--ui-ink-2)";
@@ -319,6 +336,80 @@ function Conversation({ a, comments }: { a: Analytics; comments: string }) {
   );
 }
 
+const FIELD_NAMES = { title: "Title", thumbnail: "Thumbnail", hook: "Hook" } as const;
+const VARIANT_STATES = {
+  live: "Live",
+  ended: "Ended",
+  proposed: "Waiting in To approve",
+  rejected: "Skipped",
+} as const;
+const shortDay = (day: string) =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
+/** One variant's window, in words: when, how long, and what it earned. */
+function windowLine(v: Variant): string {
+  if (v.state === "proposed" || v.state === "rejected") return VARIANT_STATES[v.state];
+  if (!v.from || !v.to || !v.days) return "Its window starts tomorrow";
+  const parts = [
+    `${shortDay(v.from)} to ${shortDay(v.to)}, ${v.days} ${v.days === 1 ? "day" : "days"}`,
+    v.viewsPerDay === null ? "views not read" : `${num(v.viewsPerDay)} views a day`,
+    ...(v.impressions === null ? [] : [`${num(v.impressions)} impressions`]),
+    ...(v.ctr === null ? [] : [`${v.ctr.toFixed(1)}% CTR`]),
+  ];
+  return parts.join(", ");
+}
+
+/**
+ * Each title, thumbnail and hook the post had, side by side: a test is a swap over time, so each
+ * window's views a day and CTR compare. The swap's own day counts for neither.
+ */
+function Variants({ a }: { a: Analytics }) {
+  const vs = a.variants ?? [];
+  if (!vs.some((v) => v.source === "swap"))
+    return (
+      <p className={`text-[14px] ${QUIET}`}>
+        No swaps yet. Try a new title, thumbnail or hook from the post's actions; it waits in To
+        approve.
+      </p>
+    );
+  const fields = (["title", "thumbnail", "hook"] as const).filter((f) =>
+    vs.some((v) => v.field === f),
+  );
+  return (
+    <div className="grid gap-4">
+      {fields.map((f) => {
+        const mine = vs.filter((v) => v.field === f);
+        const ran = mine.filter((v) => v.viewsPerDay !== null && v.days > 0);
+        const best =
+          ran.length > 1
+            ? ran.reduce((b, v) => ((v.viewsPerDay ?? 0) > (b.viewsPerDay ?? 0) ? v : b)).id
+            : null;
+        return (
+          <div key={f} className="grid gap-2">
+            <h4 className="text-[13px] text-(--ui-ink-2)">{FIELD_NAMES[f]}</h4>
+            <ol className="grid gap-2">
+              {mine.map((v) => (
+                <li key={v.id} className="grid gap-0.5 border-l-2 border-(--ui-hair) pl-3">
+                  <span className="text-[14px] break-words">
+                    {f === "thumbnail" ? (v.value.split("/").at(-1) ?? v.value) : v.value}
+                    {v.state === "live" ? <span className={QUIET}> (live)</span> : null}
+                    {v.id === best ? <span className="font-medium"> Best views a day</span> : null}
+                  </span>
+                  <span className={`text-[13px] tabular-nums ${QUIET}`}>{windowLine(v)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** The sections a post's numbers add, in the page's order. */
 export function analyticsSections(detail: unknown, row: Row, team = true): [string, ReactNode][] {
   const a = (detail as { analytics?: Analytics | null } | null)?.analytics;
@@ -347,6 +438,8 @@ export function analyticsSections(detail: unknown, row: Row, team = true): [stri
       "What they searched",
       <BarsChart key="terms" rows={bars(a.terms)} label="Views by search term" format={num} />,
     ]);
+  if (a.platform === "youtube" && a.variants)
+    out.push(["Title, thumbnail and hook", <Variants key="variants" a={a} />]);
   out.push(["What it brought", <Brought key="brought" a={a} links={links} />]);
   out.push(["Its conversation", <Conversation key="conv" a={a} comments={comments} />]);
   return out;

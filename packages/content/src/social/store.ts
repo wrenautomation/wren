@@ -7,8 +7,8 @@ import type { ActivityRow, Audience, CommentRow, Platform } from "@wren/core/con
 import { plural } from "@wren/core/notify";
 import type { Queryable } from "@wren/db";
 import { askedInWords, type Comment, comments } from "@wren/outreach";
-import { keepTouch, touchFromComment } from "@wren/outreach/touches";
-import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/outreach/touches";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { keepLive } from "../analytics/store.js";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
 import { touchFromActivity } from "../touches.js";
@@ -69,10 +69,22 @@ export async function recentPosts(
   );
 }
 
+/**
+ * How often a post's comments are read: young, then older. TikTok's come off its page in a
+ * browser, 24 a day, so its posts are read every 6 hours while young and daily after.
+ */
+const EVERY: Partial<Record<Platform, { fresh: number; slow: number }>> = {
+  tiktok: { fresh: 6 * 60 * 60 * 1000, slow: DAY },
+};
+
 /** Young posts every pass; older ones once per `SLOW_EVERY_MS` since their last read. */
-export const isDue = (p: RecentPost, lastRead: number | undefined, now: Date): boolean =>
-  now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY ||
-  now.getTime() - (lastRead ?? 0) >= SLOW_EVERY_MS;
+export const isDue = (p: RecentPost, lastRead: number | undefined, now: Date): boolean => {
+  const since = now.getTime() - (lastRead ?? 0);
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  const every = EVERY[p.platform];
+  if (every) return since >= (young ? every.fresh : every.slow);
+  return young || since >= SLOW_EVERY_MS;
+};
 
 export type KeptComment = Pick<Comment, "id" | "platform" | "author" | "post"> & {
   asked: boolean;
@@ -123,7 +135,36 @@ export async function keepPostComments(
     .map(({ sort: _, body, ...k }) => ({ ...k, asked: askedInWords(body) }))
     .sort((a, b) => a.id - b.id);
   for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  await answeredByHand(db, post, rows);
   return theirs;
+}
+
+/**
+ * Our reply under their comment, made on the platform by hand (a TikTok reply has no API): their
+ * comment counts as answered at our reply's time, so the reply rate counts it like any other.
+ */
+async function answeredByHand(db: Queryable, post: RecentPost, rows: readonly CommentRow[]) {
+  for (const c of rows) {
+    if (!c.mine || !c.parentId || c.parentId === post.id) continue;
+    const [k] = await db
+      .update(comments)
+      .set({
+        state: "answered",
+        answer: c.text,
+        answerRef: c.id.slice(0, 200),
+        answeredAt: new Date(c.at),
+      })
+      .where(
+        and(
+          eq(comments.platform, post.platform),
+          eq(comments.ref, c.parentId.slice(0, 200)),
+          isNull(comments.answeredAt),
+          sql`${comments.sort} is distinct from 'ours'`,
+        ),
+      )
+      .returning({ id: comments.id });
+    if (k) await keepTouch(`ca:${k.id}`, () => touchFromAnswer(db, k.id));
+  }
 }
 
 /**

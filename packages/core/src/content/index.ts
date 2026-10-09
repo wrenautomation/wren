@@ -204,6 +204,32 @@ export interface ContentChannel {
    * reach report: impressions and CTR). Absent = the platform has none.
    */
   reportDays?(q: { after?: string | null }): Promise<ReportDays>;
+  /**
+   * Change a live post: its title, its thumbnail (a stored file) or its hook (the text's first
+   * line). A swap (designs/2026-10-07-content-analytics.md). Absent = a post can't change once up.
+   */
+  update?(id: string, patch: PostPatch): Promise<void>;
+}
+
+/** What a swap changes on a live post; each part left out stays. */
+export interface PostPatch {
+  title?: string;
+  thumbnail?: string;
+  /** The new first line; the rest of the text stays as it reads on the platform. */
+  hook?: string;
+}
+
+/** A text's first non-empty line: its hook. */
+export const hookOf = (text: string): string =>
+  (text.split("\n").find((l) => l.trim()) ?? "").trim();
+
+/** The text with its first non-empty line replaced by `hook`. */
+export function withHook(text: string, hook: string): string {
+  const lines = text.split("\n");
+  const i = lines.findIndex((l) => l.trim());
+  if (i < 0) return hook;
+  lines[i] = hook;
+  return lines.join("\n");
 }
 
 /** One page of rows newest first, from a full newest-first array: the paging rule every adapter follows. */
@@ -227,6 +253,8 @@ export function fakeContentChannel(
   o: { now?: () => Date; urlOf?: (id: string) => string } = {},
 ): ContentChannel & {
   posts: Array<Published & { post: Post }>;
+  /** Every swap asked of a live post, in order. */
+  updates: Array<{ id: string; patch: PostPatch }>;
   count(id: string, m: Partial<Omit<Metrics, "id" | "asOf" | "fetchedWith">>): void;
   receive(c: Omit<CommentRow, "repliedWith">): void;
   happen(a: ActivityRow): void;
@@ -248,9 +276,14 @@ export function fakeContentChannel(
   const insights = new Map<string, Omit<Insights, "asOf">>();
   let account: Omit<AccountInsights, "asOf"> = { days: [], gaps: [] };
   let reported: Omit<ReportDays, "asOf"> = { rows: [], gaps: [], cursor: null };
+  const updates: Array<{ id: string; patch: PostPatch }> = [];
   return {
     platform,
     posts,
+    updates,
+    async update(id, patch) {
+      updates.push({ id, patch: { ...patch } });
+    },
     measure(id, i) {
       insights.set(id, i);
     },

@@ -1,3 +1,11 @@
+export {
+  askSwap,
+  SWAPS,
+  type VariantWindow,
+  variantWindows,
+  type WaitingSwap,
+  waitingSwaps,
+} from "./analytics/variants.js";
 export * from "./attach.js";
 export * from "./carousel.js";
 export * from "./clients.js";

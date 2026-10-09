@@ -4,13 +4,15 @@
  * API or a browser flow is the worker's business; rows say which.
  * Activity reads the notifications page (a browser read, capped per day). Audience reads Wren's
  * own profile and Page (4 a day), on demand only: SocialWatch never asks for it. Insights read a
- * post's analytics page as Wren's account on a few days after it went up.
+ * post's analytics page as Wren's account on a few days after it went up; account insights read
+ * its dashboard (profile visits, search appearances) once a day, under the same cap.
  *
  * Over a client's connected account (`direct`) there is no browser: no notifications, no audience
  * page, no analytics page. A company page (`organization`) posts, reads its comments and answers
  * them as the page, on the Community Management API, and reads its follower count there.
  */
 import {
+  type AccountInsights,
   type ActivityKind,
   type ActivityQuery,
   type ActivityRow,
@@ -43,6 +45,17 @@ import { carouselFiles, cleanSlides, isCarousel } from "@wren/core/content/slide
 
 /** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
 export const AUDIENCE_ACCOUNT = "linkedin@wren";
+
+/** The box's read of Wren's dashboard (`GET /analytics/dashboard`): counts, null when not shown. */
+interface Dashboard {
+  profileViewers: number | null;
+  searchAppearances: number | null;
+  postImpressions: number | null;
+  followers: number | null;
+  /** The page's window per count: profile viewers 90 days, search appearances the week before. */
+  windows: Record<string, string | null>;
+  url: string;
+}
 
 /** Days after a post went up when its analytics page is read: 5 reads a post, light on the account. */
 export const ANALYTICS_DAYS: readonly number[] = [1, 3, 7, 14, 28];
@@ -315,7 +328,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         }
       : direct
         ? {}
-        : { audience: wrenAudience, activity: notifications }),
+        : { audience: wrenAudience, activity: notifications, accountInsights: dashboard }),
     // A client's own account has no analytics page here: the Community Management API's.
     async insights(q: InsightsQuery): Promise<Insights> {
       if (direct)
@@ -363,6 +376,47 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
     }
     return { ...into, asOf };
+  }
+
+  /**
+   * Wren's own dashboard in the browser, as Wren's account, once a day (the metrics loop): profile
+   * visits and search appearances. They are the window totals the page shows (LinkedIn's own
+   * windows, said in `raw`), kept on the day read. Over the box's cap: nothing read today.
+   */
+  async function dashboard(): Promise<AccountInsights> {
+    const asOf = now().toISOString();
+    const day = asOf.slice(0, 10);
+    const wanted = [M.profileVisits, M.searchAppearances];
+    try {
+      const d = await sites.call<Dashboard>(
+        "linkedin",
+        "GET",
+        "/analytics/dashboard",
+        {},
+        AUDIENCE_ACCOUNT,
+      );
+      const values: InsightValue[] = [
+        ...(typeof d.profileViewers === "number"
+          ? [{ metric: M.profileVisits, value: d.profileViewers }]
+          : []),
+        ...(typeof d.searchAppearances === "number"
+          ? [{ metric: M.searchAppearances, value: d.searchAppearances }]
+          : []),
+      ];
+      const read = new Set(values.map((v) => v.metric));
+      const missing = wanted.filter((m) => !read.has(m));
+      return {
+        days: values.length ? [{ day, values }] : [],
+        gaps: missing.length
+          ? knownGaps("error", "The dashboard showed no number for it", missing)
+          : [],
+        asOf,
+      };
+    } catch (err) {
+      if (err instanceof SiteCallError && err.status === 429) return { days: [], gaps: [], asOf };
+      const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+      return { days: [], gaps: knownGaps(gapStateOf(err) ?? "error", why, wanted), asOf };
+    }
   }
 
   async function wrenAudience(): Promise<Audience> {

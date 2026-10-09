@@ -41,7 +41,7 @@ Citations: `packages/core/src/content/index.ts:12`, `:122`
 
 | Surface | Role |
 |---|---|
-| `Content` service (publish, list, metrics, comments, reply, activity, audience; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
+| `Content` service (publish, update, list, metrics, comments, reply, activity, audience; `update` changes a live post's title, hook or thumbnail, YouTube only, 501 elsewhere; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
 | `SocialWatch/wren` (`packages/content/src/restate/social.ts`) | reads comments, activity, audience into `comments`, `social_activity`, `social_days`; never the audience of `AUDIENCE_ON_DEMAND` (LinkedIn: autobrowse `GET /audience` as `linkedin@wren`), read only by `SocialDesk.readAudience` (`wren social audience linkedin`, Followers → Read now), which replaces the day's row |
 | `TokenRenewal/box` | keeps their tokens alive |
 

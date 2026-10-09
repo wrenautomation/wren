@@ -316,9 +316,26 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { confirm: "withdrawInvite" },
     ),
   // A proposed invite (`connect:7`, or the Invites row's contact id): his yes sends it.
-  "marketing/connectApprove": (id) =>
-    handlerCall("ReachDesk", "approveInvites", { ids: [num(id)] }, { confirm: "approveInvites" }),
+  // From the note box, his words replace the drafted note; an untouched one is left out.
+  "marketing/connectApprove": (id, { body }) =>
+    handlerCall(
+      "ReachDesk",
+      "approveInvites",
+      { ids: [num(id)], ...(typeof body === "string" ? { note: body } : {}) },
+      { confirm: "approveInvites" },
+    ),
   "marketing/connectSkip": (id) => handlerCall("ReachDesk", "skipInvites", { ids: [num(id)] }),
+  // A swap on a live post (`swap:4` in To approve). Asked from the post; his yes changes it.
+  "marketing/swapAsk": (id, { field, value, why }) =>
+    desk("swap", { draftId: draftOf(id), field, value, why: why || null }),
+  "marketing/swapApprove": (id) =>
+    handlerCall(
+      "ContentDesk",
+      "swapApprove",
+      { ids: [num(id)] },
+      { key: "default", confirm: "swapApprove" },
+    ),
+  "marketing/swapSkip": (id) => desk("swapSkip", { ids: [num(id)] }),
   "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
   "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
   "marketing/placeMove": (id, { account }) =>

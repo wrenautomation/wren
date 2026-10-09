@@ -266,12 +266,12 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "youtube",
       "long",
-      "Title and thumbnail tests",
+      "Title, thumbnail and hook variants",
       ["variants"],
       "iteration",
       "reach",
-      "no_api",
-      "Studio's Test and compare only: the reach report has no variant, and both run at once",
+      "waiting",
+      "our swaps over time, each window's views and the reach report's CTR (Studio's Test and compare has no API)",
     ],
     ["youtube", null, "Subscribers", [M.followers], "account", "reach", "live", DATA],
     [
@@ -466,8 +466,8 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       ["reply_rate"],
       "conversation",
       "trust",
-      "not_built",
-      "the box's TikTok comments read",
+      "waiting",
+      "the box's /web/videos/{id}/comments (browser), our answers",
     ],
     [
       "tiktok",
@@ -546,11 +546,11 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "linkedin",
       null,
       "Profile visits and search appearances",
-      [M.profileVisits],
+      [M.profileVisits, M.searchAppearances],
       "account",
       "reach",
-      "not_built",
-      "a browser route on the box",
+      "waiting",
+      "the box's /analytics/dashboard as linkedin@wren (browser, 10 a day with post analytics)",
     ],
 
     // ---- X ----
