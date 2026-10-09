@@ -31,7 +31,7 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
 - **wren rollup:** `heat_days` (day, page, bucket, path, clicks, rage) and `scroll_days` (day,
   page, bucket, 10% band, views). Counts only, no visitor ids.
 - **Portal (Marketing → Heatmaps):**
-  - Pick a page, a width and 7 or 30 days.
+  - Pick a page, a width and 7 or 30 days, or one day (By day, with the date filter for any day or range).
   - The framed `/replay` page rebuilds the newest replay snapshot of that page at that width.
     It finds each path in the rebuilt page and draws the click density.
   - The scroll map shades bands by how many visitors reached them. Rage clicks are marked.
@@ -183,3 +183,4 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
     hero b`, `clients acme`), parsed on edit. Choices lock once a survey leaves draft, so
     tallies keep their meaning. Delete only when not live; it takes the answers with it.
   - Add, Go live, Pause and Delete need `manage` at Wren.
+- 2026-10-09: William: "i just want to be able to see per day if needed." Heatmaps gain a By day view: one row per page, width and day, read from the same daily rollups. No new table.

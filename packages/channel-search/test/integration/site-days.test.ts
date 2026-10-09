@@ -295,5 +295,23 @@ describe("site days", () => {
     const bare = await heatRecord().load?.(pg.db, "7d:phone:/agencies");
     expect(bare).toMatchObject({ heat: { snapshot: null } });
     expect(await record.load?.(pg.db, "1y:phone:/agencies")).toBeNull();
+
+    // By day: one row per day, and one day's heat alone.
+    const days = await api.list({ record: "marketing.heat", view: "day", limit: 5 });
+    expect(days.rows).toMatchObject([
+      {
+        id: `${today}:phone:/agencies`,
+        day: `${today}T00:00:00.000Z`,
+        views: 1,
+        clicks: 2,
+        rage: 0,
+      },
+    ]);
+    expect(await heatRecord().load?.(pg.db, `${today}:phone:/agencies`)).toMatchObject({
+      heat: { cells: [{ path: "#cta", clicks: 2 }], bands: [1, 1, 1, 1, 1, 0, 0, 0, 0, 0] },
+    });
+    expect(await heatRecord().load?.(pg.db, "2001-01-01:phone:/agencies")).toMatchObject({
+      heat: { cells: [], bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    });
   });
 });

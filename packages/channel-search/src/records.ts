@@ -389,6 +389,7 @@ export const surveyAnswerRecord = (site: SessionSource["site"]) =>
 export const widthOf = (w: number): HeatWidth =>
   w < 768 ? "phone" : w < 1024 ? "tablet" : w < 1440 ? "laptop" : "wide";
 const WINDOW_DAYS: Record<string, number> = { "7d": 7, "30d": 30 };
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** One page's heatmap: clicks per element path and grid cell, views per tenth, a page to draw on. */
 export interface Heat {
@@ -406,14 +407,19 @@ async function heatOf(
   const [window = "", width = "", ...rest] = id.split(":");
   const page = rest.join(":");
   const days = WINDOW_DAYS[window];
-  if (!days || !page) return null;
-  const since = sql`current_date - ${days}::int`;
+  // "7d" and "30d" up to today, or one day ("2026-10-08").
+  const when = days
+    ? sql`day > current_date - ${days}::int`
+    : DAY.test(window)
+      ? sql`day = ${window}::date`
+      : null;
+  if (!when || !page) return null;
   const [cells, bands] = await Promise.all([
     db.execute(sql`SELECT path, cell, sum(clicks)::int clicks, sum(rage)::int rage FROM heat_days
-      WHERE page = ${page} AND width = ${width} AND day > ${since}
+      WHERE page = ${page} AND width = ${width} AND ${when}
       GROUP BY path, cell ORDER BY clicks DESC LIMIT 5000`),
     db.execute(sql`SELECT band, sum(views)::int views FROM scroll_days
-      WHERE page = ${page} AND width = ${width} AND day > ${since} GROUP BY band`),
+      WHERE page = ${page} AND width = ${width} AND ${when} GROUP BY band`),
   ]);
   const byBand = Array.from({ length: 10 }, () => 0);
   for (const b of bands as unknown as { band: number; views: number }[]) byBand[b.band] = b.views;
@@ -453,7 +459,11 @@ export const heatRecord = (src?: SessionSource) =>
         },
         "Width",
       ),
-      window: status({ "7d": neutral("Last 7 days"), "30d": neutral("Last 30 days") }, "Window"),
+      window: status(
+        { "1d": neutral("One day"), "7d": neutral("Last 7 days"), "30d": neutral("Last 30 days") },
+        "Window",
+      ),
+      day: date("Day"),
       views: number(),
       clicks: number(),
       rage: number("Rage clicks"),
@@ -461,6 +471,8 @@ export const heatRecord = (src?: SessionSource) =>
     views: [
       { id: "7d", label: "Last 7 days", where: { window: "7d" }, sort: "-views" },
       { id: "30d", label: "Last 30 days", where: { window: "30d" }, sort: "-views" },
+      // One row per page, width and day: pick a day or a range in the date filter.
+      { id: "day", label: "By day", where: { window: "1d" }, sort: "-day", at: "day" },
     ],
     load: (db, id) => heatOf(db, id, src),
   });
