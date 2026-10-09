@@ -255,6 +255,27 @@ describe("compose", () => {
     expect(followup?.linkCode).not.toBe(opener?.linkCode);
   });
 
+  it("{page.<slug>} links a live Sites page with the email's utm; a page not live refuses the run", async () => {
+    const company = await makeCompany(db());
+    await makePerson(db(), company, { email: "jane@oakbridge.example" });
+    const paged = new Map([
+      ["opener", parseTemplate("opener", "Hi {first_name},\n\nSee {page.speed-lander}")],
+      ["followup", FOLLOWUP],
+    ]);
+    await db().execute(sql`delete from site_pages where slug = 'speed-lander'`);
+    await db().execute(
+      sql`insert into site_pages (slug, title, kind, source, status, preview_token, created_by, updated_by)
+          values ('speed-lander', 'Speed', 'lander', 'data', 'draft', ${"t".repeat(43)}, 't', 't')`,
+    );
+    await expect(runCompose(db(), { templates: paged })).rejects.toThrow(/\/o\/speed-lander/);
+    await db().execute(sql`update site_pages set status = 'live' where slug = 'speed-lander'`);
+    expect((await runCompose(db(), { templates: paged })).enrolled).toBe(1);
+    const [opener] = await messagesOf(db(), await one(allEnrollments(db())));
+    expect(opener?.body).toBe(
+      `Hi Jane,\n\nSee https://wrenautomation.com/o/speed-lander?utm_source=email&utm_medium=email&utm_campaign=test-offer&utm_content=${opener?.linkCode}`,
+    );
+  });
+
   it("copy that needs a link skips the company when there is none to give", async () => {
     const company = await makeCompany(db());
     await makePerson(db(), company, { email: "jane@oakbridge.example" });

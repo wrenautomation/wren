@@ -44,6 +44,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { activeSuppressions, type SharedSuppressions } from "../guards.js";
+import { offPage } from "../outreach/pages.js";
 import {
   type Enrollment,
   enrollments,
@@ -109,6 +110,7 @@ export const STAT_KEYS = [
   "openers_capped",
   "first_touch_waiting",
   "waiting_touch",
+  "page_not_live",
   "raced",
   "sender_errors",
   "reconciled_sent",
@@ -645,6 +647,11 @@ async function nextDue(
     }
     if (today.compare(due) < 0) {
       stats.waiting += 1;
+      return null;
+    }
+    if ((await offPage(tx, nxt.body)) !== null) {
+      // It links a Sites page gone off since compose: it waits, never a dead link.
+      stats.page_not_live += 1;
       return null;
     }
     return { message: nxt, anchor };

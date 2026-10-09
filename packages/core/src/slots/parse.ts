@@ -9,6 +9,7 @@
  *
  * Four marks, nothing else:
  * - `{key}` fills a fact; missing -> the draft is refused (never "Hi ,").
+ * - `{page.<slug>}` is one of Wren's Sites pages, its link tracked (an email's `pages.ts`).
  * - `{key|fallback}` renders the fallback when the fact is missing (`{key|}` renders nothing).
  * - `[[a | b | c]]` is a variant point, auto-named v1, v2, ... in document order.
  *   `[[#hook a | b]]` names it (a lowercase name, then a space): the name is its locus key
@@ -44,7 +45,8 @@ export class AuthoringError extends Error {
   override readonly name = "AuthoringError";
 }
 
-const FIELD_NAME = /^[A-Za-z0-9_.]+$/;
+/** A fact's name; `page.<slug>` (a Sites page's link) may carry the slug's dashes. */
+const FIELD_NAME = /^(?:[A-Za-z0-9_.]+|page\.[a-z0-9][a-z0-9-]*)$/;
 const SUBJECT_NEAR_MISS = /^\s*subject\s*:/i;
 const BOM = "﻿";
 

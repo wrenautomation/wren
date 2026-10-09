@@ -448,6 +448,24 @@ describe("cadence and stops", () => {
     expect(delivered(transport)).toEqual([]);
   });
 
+  it("a step linking a Sites page that went off waits, and goes once it's live", async () => {
+    const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
+    const opener = await step(enrollment, 0);
+    await db()
+      .update(messages)
+      .set({ body: `${opener.body}\n\nhttps://wrenautomation.com/o/gone-page?utm_source=email` })
+      .where(eq(messages.id, opener.id));
+    await db().execute(sql`delete from site_pages where slug = 'gone-page'`);
+    const held = await tick(console_());
+    expect([held.sent, held.page_not_live]).toEqual([0, 1]);
+    await db().execute(
+      sql`insert into site_pages (slug, title, kind, source, status, preview_token, created_by, updated_by)
+          values ('gone-page', 'Gone', 'lander', 'data', 'live', ${"t".repeat(43)}, 't', 't')`,
+    );
+    expect((await tick(console_())).sent).toBe(1);
+    await db().execute(sql`delete from site_pages where slug = 'gone-page'`);
+  });
+
   it("a wedged step needs re-approval, not a retry loop", async () => {
     const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
     const stats = await tick(console_({ refuse: () => new TransportRefused("smtp exploded") }));

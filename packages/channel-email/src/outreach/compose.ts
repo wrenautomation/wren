@@ -44,6 +44,7 @@ import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
+import { checkPages, pageFacts } from "./pages.js";
 import {
   type AddressRecord,
   peopleWithAddress,
@@ -447,6 +448,8 @@ interface Shared {
   readonly done: ReadonlySet<string>;
   readonly suppressions: SharedSuppressions | null;
   readonly fill: Filler | null;
+  /** The Sites pages the sequence links (`{page.<slug>}`), each live at compose. */
+  readonly pages: readonly string[];
 }
 
 /**
@@ -497,6 +500,11 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     done: await doneAddresses(db),
     suppressions: opts.shared ?? null,
     fill: opts.fill ?? null,
+    pages: await checkPages(
+      db,
+      opts.sequence.name,
+      opts.sequence.steps.map((s) => opts.templates.get(s.template) as Template),
+    ),
   };
   const kind = opts.kind ?? "all";
   const limit = opts.limit ?? null;
@@ -710,6 +718,7 @@ function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
             shared.offerFacts,
             linkCodes[i] as string,
           ),
+          ...pageFacts(shared.pages, shared.offer, linkCodes[i] as string),
         },
         seed,
         shared.allocations.get(step.template),

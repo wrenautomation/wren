@@ -21,6 +21,7 @@ Every word a sent email contains is human-authored; `render()` only assembles an
 - a file without a leading `subject:` is a thread-riding follow-up; `<arm>/opener` belongs to an arm, a root-level file is shared (`sequences.ts:1`)
 - `template_versions`: `niche`, `template`, `version`, `source`, and for a genome `parent_version`, `experiment_id` (`packages/channel-email/src/schema.ts:225`)
 - pickers choose among variants, deterministic by hash, or along an experiment's shares (`sharePick`, `outreach/pickers.ts`)
+- `{page.<slug>}` links one of Wren's live Sites pages with the email's utm (`outreach/pages.ts`); compose refuses a page that isn't live, the send holds a step whose page went off (`page_not_live`)
 - each message keeps its picks (`provenance.picks`, `v1` → option); `variantOutcomes` scores every option per version, `wren email variants` prints it (`packages/channel-email/src/report/variants.ts:1`)
 
 Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:142`

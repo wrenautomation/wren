@@ -28,6 +28,7 @@ import { CALL_TIMES } from "../send/call-times.js";
 import { linkFacts, mintLinkCode, mintOpenToken, signed } from "./compose.js";
 import { type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
+import { livePages, pageFacts, pageSlugs } from "./pages.js";
 
 export interface RefreshOptions {
   readonly niche: string;
@@ -141,6 +142,8 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
     for (const [id, facts] of factsByEnrollment)
       factsByEnrollment.set(id, await fill.fill(facts, templatesByEnrollment.get(id) ?? []));
   }
+  // Only live pages fill: a copy linking one gone off keeps its words, and the send holds it.
+  const pages = [...(await livePages(db, pageSlugs(opts.templates.values())))];
   const recorded = new Set<string>();
   for (const { m, e } of queued) {
     const update: Partial<typeof messages.$inferInsert> = {};
@@ -174,6 +177,7 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
                   ...offerFacts,
                   "call.times": CALL_TIMES,
                   ...linkFacts(opts.site, e.offer, facts.values, offerFacts, linkCode),
+                  ...pageFacts(pages, e.offer, linkCode),
                 },
                 e.personId !== null ? `person:${e.personId}` : `company:${e.companyId}`,
                 opts.allocations?.get(tpl.name),
