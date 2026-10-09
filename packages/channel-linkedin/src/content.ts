@@ -123,17 +123,20 @@ export interface LinkedInContentOptions {
 
 /**
  * The site path that uploads one file: LinkedIn's `initializeUpload` for an image or a document,
- * then the bytes PUT to its `uploadUrl` with the same token. Answers the URN a post names. Both
+ * then the bytes PUT to its `uploadUrl` with the same token; a video goes up in LinkedIn's parts
+ * and answers once processed. Answers the URN a post names. Both
  * autobrowse (Wren's login) and a client's connected account (`socialSites`) serve it.
  */
 export const UPLOAD_PATH = "/upload";
 export type UploadInput = {
-  kind: "image" | "document";
+  kind: "image" | "document" | "video";
   /** The member or organization the file belongs to: the post's author. */
   owner: string;
   /** An https URL the server fetches the bytes from (a signed media URL). */
   file: string;
 };
+
+const VIDEO_FILE = /\.(mp4|mov|m4v|webm)$/;
 
 const postUrl = (urn: string) => `https://www.linkedin.com/feed/update/${urn}/`;
 
@@ -228,18 +231,25 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
           },
         };
       } else if (f.attachment) {
-        // A file on the post's own field: a PDF goes up as a document, titled by the text's first line.
-        const pdf = f.attachment.toLowerCase().endsWith(".pdf");
-        const id = await upload(pdf ? "document" : "image", f.attachment);
+        // A file on the post's own field: a PDF goes up as a document, titled by the text's first
+        // line; a video by its own upload.
+        const name = f.attachment.toLowerCase().split("?")[0] ?? "";
+        const pdf = name.endsWith(".pdf");
+        const kind = pdf ? "document" : VIDEO_FILE.test(name) ? "video" : "image";
+        const id = await upload(kind, f.attachment);
         const head = post.text.split("\n")[0]?.trim().slice(0, 100);
-        body.content = { media: pdf ? { id, title: head || "Document" } : { id } };
+        body.content = {
+          media:
+            kind === "document"
+              ? { id, title: head || "Document" }
+              : kind === "video" && head
+                ? { id, title: head }
+                : { id },
+        };
       } else if (post.media) {
-        // Video takes LinkedIn's multipart Videos API: not wired, said before anything sends.
-        if (post.media.kind === "video" && !post.media.source.startsWith("urn:li:"))
-          throw new Error("linkedin: video upload is in development; post an image or a document");
         body.content = {
           media: {
-            id: await upload("image", post.media.source),
+            id: await upload(post.media.kind === "video" ? "video" : "image", post.media.source),
             ...(post.media.title ? { title: post.media.title } : {}),
           },
         };

@@ -95,16 +95,36 @@ describe("linkedin content channel", () => {
     expect(calls.filter(([, p]) => p === "/v2/userinfo")).toHaveLength(1);
   });
 
-  it("refuses a local file with no host, and a video upload, before anything sends", async () => {
+  it("refuses a local file with no host before anything sends", async () => {
     const { sites, calls } = fakeSites({});
     const ch = linkedinContent(sites, { author: "urn:li:person:abc" });
     await expect(
       ch.publish({ text: "x", media: { kind: "image", source: "/tmp/a.png" } }),
     ).rejects.toThrow(/media host/);
-    await expect(
-      ch.publish({ text: "x", media: { kind: "video", source: "s3://m/v.mp4" } }),
-    ).rejects.toThrow(/video upload is in development/);
     expect(calls).toEqual([]);
+  });
+
+  it("uploads a video, then posts it by URN, titled by its media title", async () => {
+    const host = { host: async (p: string) => `https://cdn.test/${p.split("/").pop()}` };
+    const { sites } = fakeSites({
+      "POST /upload": (i) => {
+        expect(i).toEqual({
+          kind: "video",
+          owner: "urn:li:person:abc",
+          file: "https://cdn.test/v.mp4",
+        });
+        return { urn: "urn:li:video:1" };
+      },
+      "POST /rest/posts": (i) => {
+        expect(i?.content).toEqual({ media: { id: "urn:li:video:1", title: "Demo" } });
+        return { id: "urn:li:share:3" };
+      },
+    });
+    const ch = linkedinContent(sites, { author: "urn:li:person:abc", host });
+    await ch.publish({
+      text: "x",
+      media: { kind: "video", source: "s3://m/v.mp4", title: "Demo" },
+    });
   });
 
   it("uploads an image, then posts it by URN", async () => {

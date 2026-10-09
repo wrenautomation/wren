@@ -105,7 +105,8 @@ Unverified API projects post private only until Google's audit.
 | text | Text, required | 3000 chars | sent |
 | `visibility` | PUBLIC or CONNECTIONS | | sent |
 | `noReshare` | Turn off reshares (`isReshareDisabledByAuthor`) | | build |
-| `attachment` | Image or PDF document (title = the text's first line) | 2 MB | sent 2026-10-09 through autobrowse `POST /upload`; video dev |
+| `attachment` | Image or PDF document (title = the text's first line) | 2 MB | sent 2026-10-09 through autobrowse `POST /upload` |
+| media | Video (the post's own video) | | sent 2026-10-09: the Videos API in parts, finalized by ETags, posted once AVAILABLE (5 min cap); Wren's through autobrowse, a client's on its own token |
 
 ### Instagram Reel (`/{ig}/media`, `media_publish`)
 

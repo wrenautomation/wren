@@ -578,6 +578,46 @@ describe("socialSites", () => {
     expect(asked[2]?.init?.method).toBe("PUT");
   });
 
+  it("LinkedIn's /upload of a video PUTs each part, finalizes by ETags, waits until ready", async () => {
+    const row = conn({ platform: "linkedin" });
+    const { client, asked } = sites(row, (url) =>
+      url.includes("rest/videos?action=initializeUpload")
+        ? Response.json({
+            value: {
+              video: "urn:li:video:5",
+              uploadToken: "t",
+              uploadInstructions: [
+                { uploadUrl: "https://up.example/1", firstByte: 0, lastByte: 1 },
+                { uploadUrl: "https://up.example/2", firstByte: 2, lastByte: 3 },
+              ],
+            },
+          })
+        : url === "https://files.example/v.mp4"
+          ? new Response("abcd", { headers: { "content-type": "video/mp4" } })
+          : url.startsWith("https://up.example/")
+            ? new Response(null, { status: 200, headers: { etag: `e${url.slice(-1)}` } })
+            : url.includes("action=finalizeUpload")
+              ? new Response(null, { status: 200 })
+              : url.endsWith("urn%3Ali%3Avideo%3A5")
+                ? Response.json({ status: "AVAILABLE" })
+                : undefined,
+    );
+    const out = await client.call<{ urn: string }>(
+      "linkedin",
+      "POST",
+      "/upload",
+      { kind: "video", owner: "urn:li:person:1", file: "https://files.example/v.mp4" },
+      "social:7",
+    );
+    expect(out.urn).toBe("urn:li:video:5");
+    const fin = asked.find((a) => a.url.includes("finalizeUpload"));
+    expect(JSON.parse(String(fin?.init?.body)).finalizeUploadRequest.uploadedPartIds).toEqual([
+      "e1",
+      "e2",
+    ]);
+    expect(asked.filter((a) => a.url.startsWith("https://up.example/"))).toHaveLength(2);
+  });
+
   it("a Business Profile reaches only its own location", async () => {
     const row = conn({
       platform: "google_business",

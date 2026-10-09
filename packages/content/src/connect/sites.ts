@@ -46,6 +46,9 @@ const TIKTOK_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 export const X_CHUNK = 4 * 1024 * 1024;
 /** Longest wait for X to finish processing a video before the call fails (and its step retries). */
 const X_PROCESSING_MS = 5 * 60_000;
+/** A LinkedIn video is ready for a post once processed: asked every 5 s, up to 5 minutes. */
+const LINKEDIN_VIDEO_POLL_MS = 5_000;
+const LINKEDIN_VIDEO_MS = 5 * 60_000;
 
 type Json = Record<string, unknown>;
 
@@ -168,7 +171,8 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
 
   /**
    * One image or document onto LinkedIn: `initializeUpload` for the owner, then the bytes PUT to
-   * its `uploadUrl`. Answers the URN a post names (channel-linkedin's `UPLOAD_PATH`).
+   * its `uploadUrl`. A video goes by `linkedinVideo`. Answers the URN a post names
+   * (channel-linkedin's `UPLOAD_PATH`).
    */
   async function linkedinUpload(
     c: SocialConnectionRow,
@@ -176,9 +180,17 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
     auth: Record<string, string>,
   ): Promise<{ urn: string }> {
     const path = "/upload";
+    if (input.kind === "video" && typeof input.owner === "string")
+      return linkedinVideo(c, input.owner, input.file, auth);
     const kind = input.kind === "document" ? "documents" : input.kind === "image" ? "images" : null;
     if (!kind || typeof input.owner !== "string")
-      throw new SiteCallError("linkedin", "POST", path, 422, "kind (image|document) and owner");
+      throw new SiteCallError(
+        "linkedin",
+        "POST",
+        path,
+        422,
+        "kind (image|document|video) and owner",
+      );
     const m = await media("linkedin", path, input.file);
     const headers = {
       ...auth,
@@ -207,6 +219,95 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
       body: m.bytes,
     });
     return { urn };
+  }
+
+  /**
+   * A video onto LinkedIn by its Videos API: initialize with the size, PUT each part it names (the
+   * part's ETag is its id), finalize, then wait until AVAILABLE, since a post can't name it before.
+   */
+  async function linkedinVideo(
+    c: SocialConnectionRow,
+    owner: string,
+    file: unknown,
+    auth: Record<string, string>,
+  ): Promise<{ urn: string }> {
+    const path = "/upload";
+    const f = await ranged("linkedin", path, file);
+    const headers = {
+      ...auth,
+      "LinkedIn-Version": LINKEDIN_VERSION,
+      "X-Restli-Protocol-Version": "2.0.0",
+    };
+    const call = (url: string, payload: unknown) =>
+      http(c, "linkedin", "POST", path, url, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    const init = (await call(`${LINKEDIN_API}/rest/videos?action=initializeUpload`, {
+      initializeUploadRequest: {
+        owner,
+        fileSizeBytes: f.size,
+        uploadCaptions: false,
+        uploadThumbnail: false,
+      },
+    }).then(body)) as {
+      value?: {
+        video?: string;
+        uploadToken?: string;
+        uploadInstructions?: Array<{ uploadUrl: string; firstByte: number; lastByte: number }>;
+      };
+    };
+    const video = init.value?.video;
+    const parts = init.value?.uploadInstructions ?? [];
+    if (!video || parts.length === 0)
+      throw new SiteCallError("linkedin", "POST", path, 502, "initializeUpload gave no parts");
+    const ids: string[] = [];
+    for (const part of parts) {
+      const res = await http(c, "linkedin", "PUT", path, part.uploadUrl, {
+        method: "PUT",
+        headers: { ...auth, "content-type": "application/octet-stream" },
+        body: await f.read(part.firstByte, part.lastByte),
+      });
+      const etag = res.headers.get("etag");
+      if (!etag) throw new SiteCallError("linkedin", "PUT", path, 502, "a part gave no ETag");
+      ids.push(etag);
+    }
+    await call(`${LINKEDIN_API}/rest/videos?action=finalizeUpload`, {
+      finalizeUploadRequest: {
+        video,
+        uploadToken: init.value?.uploadToken ?? "",
+        uploadedPartIds: ids,
+      },
+    });
+    for (let waited = 0; ; waited += LINKEDIN_VIDEO_POLL_MS) {
+      const v = (await http(
+        c,
+        "linkedin",
+        "GET",
+        path,
+        `${LINKEDIN_API}/rest/videos/${encodeURIComponent(video)}`,
+        { method: "GET", headers },
+      ).then(body)) as { status?: string };
+      if (v.status === "AVAILABLE") return { urn: video };
+      if (v.status === "PROCESSING_FAILED")
+        throw new SiteCallError(
+          "linkedin",
+          "POST",
+          path,
+          422,
+          "LinkedIn could not process the video",
+        );
+      if (waited >= LINKEDIN_VIDEO_MS)
+        throw new SiteCallError(
+          "linkedin",
+          "POST",
+          path,
+          504,
+          "LinkedIn is still processing the video",
+        );
+      await sleep(LINKEDIN_VIDEO_POLL_MS);
+    }
   }
 
   /**

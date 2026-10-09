@@ -420,7 +420,7 @@ const linkedin = shape({
   noReshare: flag("Turn off reshares", { default: false }),
   attachment: file("Image or PDF", ["image/jpeg", "image/png", "application/pdf"], 2 * MB, {
     // No `kinds`: a draft with no kind reads as "video" (`kindOf`). A carousel's own PDF wins.
-    hint: "JPEG, PNG or a PDF shown as a document, up to 2 MB. Video is in development.",
+    hint: "JPEG, PNG or a PDF shown as a document, up to 2 MB. A video goes as the post's own video.",
   }),
   deck: deckId(["document"]),
   slides: slideSet(["document"]),
