@@ -227,7 +227,7 @@ export function Workflows({ params, team, can }: PageProps) {
       ) : null}
       <PageHeader
         title={w.name}
-        lede={`${client ? `Wired for ${client}. ` : ""}Numbers are the last ${DAYS} days. A stacked card opens what runs inside it. Faded: not built yet.`}
+        lede={`${client ? `Wired for ${client}. ` : ""}Numbers are the last ${DAYS} days. A stacked card opens what runs inside it. Faded: in development.`}
       />
       {client ? null : <Panes params={params} />}
       {!client && params.get("pane") === "runs" ? (
