@@ -519,7 +519,7 @@ function Snippet({ label, code }: { label: string; code: string }) {
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>
-      <code className="block overflow-x-auto bg-(--ui-fill) p-2 text-[12.5px] whitespace-pre">
+      <code className="block bg-(--ui-fill) p-2 text-[12.5px] break-all whitespace-pre-wrap">
         {code}
       </code>
     </div>

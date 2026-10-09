@@ -1,10 +1,20 @@
 /**
  * Account → Social (designs/2026-10-07-client-social.md): the client's own social accounts, one
- * row per platform with its state (Not connected, Waiting on review, Connected, Broken), what
- * blocks it and the next step. Connecting sends the person to the platform to sign in.
+ * framed section per platform with its state (Not connected, Waiting on review, Connected,
+ * Broken), what blocks it and the next step. Connecting sends the person to the platform to sign in.
  */
 import type { SocialPageView } from "@wren/content/connect";
-import { Alert, Button, Callout, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  Callout,
+  Empty,
+  Loading,
+  PageHeader,
+  PlatformMark,
+  Section,
+  Tag,
+} from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -99,24 +109,18 @@ function PlatformRow({ p, mayAct, act }: { p: Platform; mayAct: boolean; act: Ac
   const what = reads(p);
   const connected = p.state === "connected";
   return (
-    <div className="grid gap-2 border-(--ui-hair) border-t pt-4 first:border-t-0 first:pt-0">
-      <p className="flex flex-wrap items-center gap-2">
-        <b className="font-medium">{p.label}</b>
-        <Tag tone={tag.tone}>{tag.label}</Tag>
-        {what ? <span className={QUIET}>{what} come into your Inbox</span> : null}
-      </p>
-      {p.blocking && p.state !== "broken" ? <p>{p.blocking}</p> : null}
-      {p.today ? <p className={QUIET}>Until then: {p.today}</p> : null}
-      {p.connections.map((c) => (
-        <AccountLine key={c.id} c={c} mayAct={mayAct} act={act} />
-      ))}
-      {!connected ? (
-        <p className={QUIET}>
-          {p.selfServe} Rather we do it? {p.forYou}
-        </p>
-      ) : null}
-      {mayAct && p.may.connect ? (
-        <div className={TOOLS}>
+    // Each platform its own frame: name, state and what it brings in on the head strip.
+    <Section
+      title={p.label}
+      cue={<PlatformMark mark={p.platform.split("_")[0] ?? p.platform} size={15} />}
+      note={
+        <span className="flex flex-wrap items-center gap-2">
+          <Tag tone={tag.tone}>{tag.label}</Tag>
+          {what ? <span>{what} come into your Inbox</span> : null}
+        </span>
+      }
+      actions={
+        mayAct && p.may.connect ? (
           <Button
             size="sm"
             tone={connected ? "quiet" : undefined}
@@ -125,9 +129,31 @@ function PlatformRow({ p, mayAct, act }: { p: Platform; mayAct: boolean; act: Ac
           >
             {p.state === "broken" ? "Connect again" : connected ? "Add another" : "Connect"}
           </Button>
-        </div>
-      ) : null}
-    </div>
+        ) : null
+      }
+    >
+      <div className="grid gap-3">
+        {p.blocking && p.state !== "broken" ? <p>{p.blocking}</p> : null}
+        {p.today ? <p className={QUIET}>Until then: {p.today}</p> : null}
+        {p.connections.length ? (
+          <ul className="m-0 grid list-none gap-3 p-0">
+            {p.connections.map((c) => (
+              <li
+                key={c.id}
+                className="border-(--ui-hair) border-t pt-3 first:border-t-0 first:pt-0"
+              >
+                <AccountLine c={c} mayAct={mayAct} act={act} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {!connected ? (
+          <p className={QUIET}>
+            {p.selfServe} Rather we do it? {p.forYou}
+          </p>
+        ) : null}
+      </div>
+    </Section>
   );
 }
 
@@ -156,14 +182,10 @@ export function Social(props: PageProps) {
           {Object.values(view.apps).every((on) => !on) ? (
             <Callout tone="warn">Needs setup: Wren's social apps. Wren's team is on it.</Callout>
           ) : null}
-          <Section title="Accounts">
-            <div className="grid gap-4">
-              {view.platforms.map((p) => (
-                <PlatformRow key={p.platform} p={p} mayAct={view.mayAct} act={act} />
-              ))}
-            </div>
-            {act.error ? <p className={ERROR}>{act.error}</p> : null}
-          </Section>
+          {act.error ? <p className={ERROR}>{act.error}</p> : null}
+          {view.platforms.map((p) => (
+            <PlatformRow key={p.platform} p={p} mayAct={view.mayAct} act={act} />
+          ))}
           {view.mayAct ? null : (
             <p className={QUIET}>Ask an owner to connect or turn off an account.</p>
           )}

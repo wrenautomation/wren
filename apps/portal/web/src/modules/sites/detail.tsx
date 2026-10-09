@@ -461,7 +461,7 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
           <div className="grid gap-0.5">
             <dt className={LABEL}>Kit tag, in its head</dt>
             <dd>
-              <code className="block overflow-x-auto bg-(--ui-fill) p-2 text-[12.5px] whitespace-pre">
+              <code className="block bg-(--ui-fill) p-2 text-[12.5px] break-all whitespace-pre-wrap">
                 {d.kit}
               </code>
             </dd>
