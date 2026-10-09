@@ -1352,6 +1352,13 @@
       "when": 1791416351355,
       "tag": "0192_learn_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1791544382500,
+      "tag": "0193_social_connections_account_index",
+      "breakpoints": true
     }
   ]
 }

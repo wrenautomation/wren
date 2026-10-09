@@ -92,7 +92,7 @@ export const socialConnections = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_social_connections" }),
     unique("uq_social_connections_account").on(t.client, t.platform, t.externalId),
-    index("ix_social_connections_client").on(t.client),
+    index("ix_social_connections_account").on(t.accountId),
     foreignKey({
       columns: [t.accountId],
       foreignColumns: [clientAccounts.id],

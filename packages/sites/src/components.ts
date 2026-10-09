@@ -1,6 +1,6 @@
 /** Sites as a part (designs/2026-10-07-sites.md): landers, listicles and funnel pages, counted. */
 import { defineComponent } from "@wren/core/components";
-import { ENTRY_RECORD, FORM_RECORD, FUNNEL_RECORD, PAGE_RECORD } from "./records.js";
+import { ENTRY_RECORD, FORM_RECORD, FUNNEL_RECORD, LINK_RECORD, PAGE_RECORD } from "./records.js";
 
 export const SITES_COMPONENTS = [
   defineComponent({
@@ -19,7 +19,7 @@ export const SITES_COMPONENTS = [
     effects: ["spends"],
     provides: {
       services: ["Sites", "SitesConsole"],
-      records: [PAGE_RECORD, FUNNEL_RECORD],
+      records: [PAGE_RECORD, FUNNEL_RECORD, LINK_RECORD],
       apps: ["sites"],
     },
     out: [{ id: "forms", label: "filled forms", kind: "form" }],
