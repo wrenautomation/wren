@@ -5,7 +5,13 @@
  */
 import type { Platform } from "@wren/core/content";
 import { type FieldView, fieldViews, kindOf } from "@wren/core/content/shapes";
-import { cleanSlides, isCarousel, type Slide, slidesKey } from "@wren/core/content/slides";
+import {
+  carouselUnfit,
+  cleanSlides,
+  isCarousel,
+  type Slide,
+  slidesKey,
+} from "@wren/core/content/slides";
 import {
   isThread,
   THREAD_MAX,
@@ -19,7 +25,7 @@ import { partFlags } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, ne, notInArray, sql } from "drizzle-orm";
 import { type FunnelVideo, type FunnelView, readFunnel } from "./funnel.js";
-import { CAROUSEL_UPLOAD_DEV, PLATFORM_SPECS } from "./platforms.js";
+import { PLATFORM_SPECS } from "./platforms.js";
 import { RECORDED } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
 import type { VideoSigner } from "./video.js";
@@ -70,8 +76,8 @@ export interface CarouselView {
   drawn: string | null;
   /** The drafts drawn from the same set, this one first. */
   shares: { id: string; platform: Platform; kind: string; status: DraftStatus }[];
-  /** What can't happen yet: the upload. */
-  upload: string;
+  /** Why it can't post yet (not drawn, or drawn before an edit), or null when it can. */
+  unfit: string | null;
 }
 
 /** YouTube videos a post may point at: the newest not turned down, Shorts left out. */
@@ -223,6 +229,6 @@ async function carouselView(
         .filter((r) => r.id !== d.id)
         .map((r) => ({ id: r.id, platform: r.platform, kind: kindOf(r.extra), status: r.status })),
     ],
-    upload: CAROUSEL_UPLOAD_DEV,
+    unfit: carouselUnfit(d),
   };
 }

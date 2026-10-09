@@ -15,7 +15,7 @@ import {
   slidesHtml,
   slidesUnfit,
 } from "@wren/core/content/slides";
-import { Button, DeviceFrame, Input, type RecordAct, Tag, Textarea } from "@wren/ui";
+import { Button, DeviceFrame, Input, type RecordAct, Textarea } from "@wren/ui";
 import { useState } from "react";
 
 export const SLIDES = "marketing.draftSlides";
@@ -28,7 +28,7 @@ export type CarouselShape = {
   fresh: boolean;
   drawn: string | null;
   shares: { id: string; platform: string; kind: string; status: string }[];
-  upload: string;
+  unfit: string | null;
 };
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
@@ -329,10 +329,9 @@ function Files({ carousel, changed }: { carousel: CarouselShape; changed: boolea
         </p>
       )}
       <p className="text-(--ui-ink-2)">
-        <Tag tone="accent" className="mr-1.5">
-          In development
-        </Tag>
-        {carousel.upload}
+        {carousel.unfit
+          ? `Can't post yet: ${carousel.unfit}.`
+          : "Ready to post. Approve uploads the PDF to LinkedIn and each image to Instagram."}
       </p>
     </div>
   );

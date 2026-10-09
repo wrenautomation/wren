@@ -265,7 +265,7 @@ describe("funnel", () => {
     expect(out.text.endsWith(`video.\n\n${link}`)).toBe(true);
     await approveDrafts(pg.db, [thread.id], { now: new Date() });
 
-    // The carousel: two drafts on one set; a save writes both; upload is in development.
+    // The carousel: two drafts on one set; a save writes both; approve waits on a drawn set.
     expect(li.extra).toMatchObject({ kind: "document" });
     expect(ig.extra).toMatchObject({ kind: "carousel", deck: li.extra?.deck });
     const cv = await shapeView(pg.db, ig.id);
@@ -277,11 +277,11 @@ describe("funnel", () => {
     expect(li2?.extra?.slides).toEqual(next);
     await expect(saveSlides(pg.db, li.id, next.slice(0, 3))).rejects.toThrow(/5 to 10 slides/);
     await expect(approveDrafts(pg.db, [li.id], { now: new Date() })).rejects.toThrow(
-      /in development/,
+      /draw the slides first/,
     );
     // A bulk approve with a carousel in it refuses whole; the list's format lets the UI skip it.
     await expect(approveDrafts(pg.db, [ig.id, thread.id], { now: new Date() })).rejects.toThrow(
-      /in development/,
+      /draw the slides first/,
     );
     const formats = await pg.db.execute<{ id: string; format: string }>(
       sql`select id, format from marketing_draft_records where id in (${ig.id}, ${li.id}, ${thread.id})`,
@@ -300,20 +300,23 @@ describe("funnel", () => {
         return {};
       },
     } as unknown as S3Client;
-    const png = (n: number) => new Uint8Array([137, 80, 78, 71, n]);
+    const jpeg = (n: number) => new Uint8Array([255, 216, 255, n]);
     const files = await renderSlides(
       pg.db,
       li.id,
       async (html, count) => {
         expect(html).toContain("Find the one step");
-        return { images: Array.from({ length: count }, (_, i) => png(i)), pdf: png(99) };
+        return { images: Array.from({ length: count }, (_, i) => jpeg(i)), pdf: jpeg(99) };
       },
       { bucket: "media", client },
     );
     expect(files.images).toHaveLength(5);
     expect(puts.some((k) => k.endsWith(".pdf"))).toBe(true);
     const drawn = await shapeView(pg.db, ig.id);
-    expect(drawn?.carousel).toMatchObject({ fresh: true });
+    expect(drawn?.carousel).toMatchObject({ fresh: true, unfit: null });
+    expect(files.images.every((k) => k.endsWith(".jpg"))).toBe(true);
+    // Drawn, both post: the LinkedIn PDF and the Instagram JPEGs go out as files.
+    await approveDrafts(pg.db, [li.id, ig.id], { now: new Date() });
 
     const kinds = (await promosOf(pg.db, long.id)).map((p) => `${p.platform}/${p.kind}`).sort();
     expect(kinds).toEqual(["instagram/carousel", "linkedin/carousel", "x/thread"]);

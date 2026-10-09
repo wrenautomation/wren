@@ -36,6 +36,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
+import { carouselFiles, isCarousel } from "@wren/core/content/slides";
 
 export interface MetaContentOptions {
   now?: () => Date;
@@ -146,12 +147,50 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const inbox = async () =>
     sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
+  const published = async (id: string): Promise<Published> => ({
+    id,
+    url: `https://www.instagram.com/p/${id}/`,
+    publishedAt: now().toISOString(),
+    fetchedWith: await via("POST", "/{igUserId}/media_publish"),
+  });
+  /**
+   * A carousel: one child container per drawn slide (JPEG, `is_carousel_item`), then the
+   * parent (`CAROUSEL`, the children's ids, the caption), then publish. Answers the post's id.
+   */
+  async function carousel(ig: string, post: Post, collaborators?: string[]): Promise<string> {
+    const { images } = carouselFiles({ extra: post.extra ?? null });
+    if (images.length < 2 || images.length > 10)
+      throw new Error(`instagram: a carousel is 2 to 10 images, not ${images.length}`);
+    const children: string[] = [];
+    for (const key of images) {
+      const c = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
+        image_url: await publicUrlOf(key, o.host, "instagram"),
+        is_carousel_item: true,
+      });
+      if (!c.id) throw new Error("instagram: a carousel item answered no id");
+      children.push(c.id);
+    }
+    const parent = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
+      media_type: "CAROUSEL",
+      children: children.join(","),
+      caption: post.text,
+      ...(collaborators?.length ? { collaborators } : {}),
+    });
+    if (!parent.id) throw new Error("instagram: the carousel container answered no id");
+    const r = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media_publish`, {
+      creation_id: parent.id,
+    });
+    if (!r.id) throw new Error("instagram: publish answered no id");
+    return r.id;
+  }
   return {
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
-      if (!post.media) throw new Error("instagram: a post is an image or a video");
       const f = fieldsOf("instagram", post.extra);
       const ig = await igUser();
+      if (isCarousel({ platform: "instagram", extra: post.extra ?? null }))
+        return published(await carousel(ig, post, f.collaborators));
+      if (!post.media) throw new Error("instagram: a post is an image or a video");
       const url = await publicUrlOf(post.media.source, o.host, "instagram");
       const video = post.media.kind === "video";
       const reel = video
@@ -175,12 +214,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         creation_id: container.id,
       });
       if (!r.id) throw new Error("instagram: publish answered no id");
-      return {
-        id: r.id,
-        url: `https://www.instagram.com/p/${r.id}/`,
-        publishedAt: now().toISOString(),
-        fetchedWith: await via("POST", "/{igUserId}/media_publish"),
-      };
+      return published(r.id);
     },
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const ig = await igUser();

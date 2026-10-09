@@ -2069,7 +2069,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     return {
       // Wren's own login (William, 10-06): bare `linkedin` is his personal account, never used here.
       ...(on.includes("linkedin")
-        ? { linkedin: linkedinContent(asAccount(sites, "linkedin@wren")) }
+        ? { linkedin: linkedinContent(asAccount(sites, "linkedin@wren"), host ? { host } : {}) }
         : {}),
       ...(reddit
         ? {
@@ -2156,7 +2156,10 @@ function contentClientsFor(
         ...(tt ? { tiktok: tiktokContent(tt, hosted) } : {}),
         ...(li
           ? {
-              linkedin: linkedinContent(li, orgUrn ? { organization: orgUrn } : { direct: true }),
+              linkedin: linkedinContent(li, {
+                ...(orgUrn ? { organization: orgUrn } : { direct: true }),
+                ...hosted,
+              }),
             }
           : {}),
         ...(gb && location
@@ -2166,6 +2169,7 @@ function contentClientsFor(
           ? {
               linkedin: linkedinContent(
                 metered(restateSites(ctx, { caller, ...sitesAt }), logins.linkedin),
+                hosted,
               ),
             }
           : {}),

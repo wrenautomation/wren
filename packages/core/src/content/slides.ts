@@ -136,3 +136,41 @@ export const isCarousel = (d: {
 }): boolean =>
   (d.platform === "instagram" && d.extra?.kind === "carousel") ||
   (d.platform === "linkedin" && d.extra?.kind === "document");
+
+/** The stored files a carousel posts: the slide images and the PDF, as drawn. */
+export interface CarouselFiles {
+  images: string[];
+  pdf: string | null;
+}
+
+/**
+ * Why a carousel can't go out yet, or null when its drawn files match its slides. A set edited
+ * after drawing is stale; Instagram takes JPEG only, so slides drawn as PNG before 10-09 redraw.
+ */
+export function carouselUnfit(d: {
+  platform: string;
+  extra?: Readonly<Record<string, unknown>> | null;
+}): string | null {
+  const slides = cleanSlides(d.extra?.slides);
+  const bad = slidesUnfit(slides);
+  if (bad) return bad;
+  const r = d.extra?.rendered as { images?: unknown; pdf?: unknown; of?: unknown } | undefined;
+  if (!r || r.of !== slidesKey(slides)) return "draw the slides first: the images don't match them";
+  const images = Array.isArray(r.images) ? r.images : [];
+  if (d.platform === "linkedin" && typeof r.pdf !== "string")
+    return "draw the slides again: no PDF";
+  if (d.platform === "instagram" && !images.every((k) => /\.jpe?g$/i.test(String(k))))
+    return "draw the slides again: Instagram takes JPEG slides";
+  return null;
+}
+
+/** The files to post, once `carouselUnfit` says null. */
+export function carouselFiles(d: {
+  extra?: Readonly<Record<string, unknown>> | null;
+}): CarouselFiles {
+  const r = (d.extra?.rendered ?? {}) as { images?: unknown; pdf?: unknown };
+  return {
+    images: Array.isArray(r.images) ? r.images.map(String) : [],
+    pdf: typeof r.pdf === "string" ? r.pdf : null,
+  };
+}

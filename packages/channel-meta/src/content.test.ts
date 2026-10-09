@@ -1,4 +1,5 @@
 import type { MediaHost, SiteClient } from "@wren/core/content";
+import { slidesKey } from "@wren/core/content/slides";
 import { describe, expect, it } from "vitest";
 import { facebookContent, instagramContent } from "./content.js";
 
@@ -94,6 +95,40 @@ describe("instagram content channel", () => {
     expect((await ch.comments("p1")).map((c) => c.author)).toEqual(["bob"]);
     await ch.reply?.("c9", "ty");
     expect(calls.filter((c) => c[1] === "/me/accounts")).toHaveLength(1);
+  });
+
+  it("posts a carousel: a child per drawn slide, the parent, then publish", async () => {
+    const slides = Array.from({ length: 5 }, (_, i) => ({ title: `Slide ${i + 1}`, lines: [] }));
+    const images = slides.map((_, i) => `s3://media/media/s${i}.jpg`);
+    const extra = {
+      kind: "carousel",
+      slides,
+      rendered: { images, pdf: "s3://media/media/d.pdf", of: slidesKey(slides), at: "x" },
+    };
+    let n = 0;
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": (i) => {
+        if (i?.media_type === "CAROUSEL") {
+          expect(i).toEqual({
+            media_type: "CAROUSEL",
+            children: "k0,k1,k2,k3,k4",
+            caption: "five slides",
+          });
+          return { id: "parent" };
+        }
+        expect(i).toEqual({ image_url: `https://cdn.test/s${n}.jpg`, is_carousel_item: true });
+        return { id: `k${n++}` };
+      },
+      "POST /ig9/media_publish": (i) => {
+        expect(i).toEqual({ creation_id: "parent" });
+        return { id: "p7" };
+      },
+    });
+    const ch = instagramContent(sites, { host, now });
+    const out = await ch.publish({ text: "five slides", extra });
+    expect(out.id).toBe("p7");
+    expect(calls.filter(([m, p]) => m === "POST" && p === "/ig9/media")).toHaveLength(6);
   });
 
   it("refuses a local file with no host, and a Page without an Instagram account", async () => {

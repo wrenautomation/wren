@@ -5,13 +5,13 @@
  */
 import type { Platform } from "@wren/core/content";
 import { fieldsOf, missingFields, patchFields } from "@wren/core/content/shapes";
-import { isCarousel } from "@wren/core/content/slides";
+import { carouselUnfit, isCarousel } from "@wren/core/content/slides";
 import { isThread, threadPosts, threadUnfit } from "@wren/core/content/thread";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { postedLink, refuseUnlinked } from "./funnel.js";
-import { CAROUSEL_UPLOAD_DEV, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
+import { PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 
@@ -166,7 +166,8 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     } catch (err) {
       return [`${r.id}: ${(err as Error).message}`];
     }
-    if (isCarousel(r)) return [`${r.id}: ${CAROUSEL_UPLOAD_DEV}`];
+    const unfit = isCarousel(r) ? carouselUnfit(r) : null;
+    if (unfit) return [`${r.id}: carousel: ${unfit}`];
     const missing = missingFields(r.platform, r.extra, r.title);
     return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
   });

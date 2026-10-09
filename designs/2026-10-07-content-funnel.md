@@ -169,7 +169,7 @@ lander's `/go/<channel>/<campaign>/<content>`.
 
 ## Built, third pass (2026-10-07): X thread and carousel
 
-Both are drafts only. Nothing posts without his Approve, and the carousel upload is not built.
+Both are drafts only. Nothing posts without his Approve. The carousel upload landed 2026-10-09 (below).
 
 ### X thread
 
@@ -202,8 +202,14 @@ Both are drafts only. Nothing posts without his Approve, and the carousel upload
 - Editor: Slides above Basics, with a strip of each slide as it renders, title and lines per
   slide, Up, Down, Add after, Remove, Save slides and Draw, and download links. Beside it,
   Instagram's swipe or LinkedIn's document post.
-- Upload is "In development" in the editor. Approve refuses a carousel and says so. Download the
-  files and post by hand.
+- Upload (2026-10-09). Approve refuses a carousel until its drawn files match its slides
+  (`carouselUnfit` in `@wren/core/content/slides`). Slides draw as JPEG, since Instagram takes no
+  PNG; a set drawn as PNG before this asks to be drawn again. LinkedIn: the adapter sends the PDF
+  through the site path `POST /upload` (`initializeUpload` on `/rest/documents`, then the bytes
+  PUT with the same token), and the post names the document URN, titled by slide 1. Images on a
+  plain post take the same path. Video stays "in development". Instagram: one child container
+  per JPEG (`is_carousel_item`), then the `CAROUSEL` parent with the caption, then
+  `media_publish`. The web composer refuses a carousel. Both still wait on Approve.
 
 ### Promote picks the piece
 
@@ -221,8 +227,8 @@ Both are drafts only. Nothing posts without his Approve, and the carousel upload
    approve), LinkedIn (hook plus short lines), X (dense). One idea, three drafts. Today's
    `shape` lines become per-platform briefs with examples.
 2. Built (third pass): X thread, 3 to 7 posts in one draft, posted as replies in a chain.
-3. Built (third pass): carousel, one slide set as an IG carousel and a LinkedIn PDF. Next: the
-   upload (LinkedIn document, Instagram carousel container).
+3. Built (third pass): carousel, one slide set as an IG carousel and a LinkedIn PDF. Upload built
+   2026-10-09.
 4. Follows: X and IG, within limits, gated like LinkedIn invites.
 5. Comments on others' posts for X and IG, through the same examples.
 6. Joining watched subreddits from the place's account.

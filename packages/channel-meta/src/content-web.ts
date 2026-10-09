@@ -25,6 +25,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { isCarousel } from "@wren/core/content/slides";
 
 const NO_READ =
   "instagram: reading posts back needs the API (INSTAGRAM_CLIENT_ID/SECRET, then a consent); the browser leg only publishes";
@@ -37,6 +38,8 @@ export function instagramWebContent(
   return {
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
+      if (isCarousel({ platform: "instagram", extra: post.extra ?? null }))
+        throw new ShapeError("instagram: a carousel posts through the API, not the web composer");
       if (!post.media) throw new Error("instagram: a post is an image or a video");
       // The composer takes a file and a caption: a field it can't set fails, never drops.
       const f = fieldsOf("instagram", post.extra);

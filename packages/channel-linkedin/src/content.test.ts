@@ -1,4 +1,5 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { slidesKey } from "@wren/core/content/slides";
 import { describe, expect, it } from "vitest";
 import { linkedinContent } from "./content.js";
 
@@ -94,12 +95,58 @@ describe("linkedin content channel", () => {
     expect(calls.filter(([, p]) => p === "/v2/userinfo")).toHaveLength(1);
   });
 
-  it("refuses media that is not an uploaded URN", async () => {
-    const { sites } = fakeSites({});
+  it("refuses a local file with no host, and a video upload, before anything sends", async () => {
+    const { sites, calls } = fakeSites({});
     const ch = linkedinContent(sites, { author: "urn:li:person:abc" });
     await expect(
       ch.publish({ text: "x", media: { kind: "image", source: "/tmp/a.png" } }),
-    ).rejects.toThrow(/uploaded urn:li:image/);
+    ).rejects.toThrow(/media host/);
+    await expect(
+      ch.publish({ text: "x", media: { kind: "video", source: "s3://m/v.mp4" } }),
+    ).rejects.toThrow(/video upload is in development/);
+    expect(calls).toEqual([]);
+  });
+
+  it("uploads an image, then posts it by URN", async () => {
+    const host = { host: async (p: string) => `https://cdn.test/${p.split("/").pop()}` };
+    const { sites } = fakeSites({
+      "POST /upload": (i) => {
+        expect(i).toEqual({
+          kind: "image",
+          owner: "urn:li:person:abc",
+          file: "https://cdn.test/a.jpg",
+        });
+        return { urn: "urn:li:image:1" };
+      },
+      "POST /rest/posts": (i) => {
+        expect(i?.content).toEqual({ media: { id: "urn:li:image:1" } });
+        return { id: "urn:li:share:2" };
+      },
+    });
+    const ch = linkedinContent(sites, { author: "urn:li:person:abc", host });
+    await ch.publish({ text: "x", media: { kind: "image", source: "s3://m/a.jpg" } });
+  });
+
+  it("posts a carousel as a document: the drawn PDF, titled by its first slide", async () => {
+    const host = { host: async (p: string) => `https://cdn.test/${p.split("/").pop()}` };
+    const slides = Array.from({ length: 5 }, (_, i) => ({ title: `Slide ${i + 1}`, lines: [] }));
+    const extra = {
+      kind: "document",
+      slides,
+      rendered: { images: [], pdf: "s3://m/deck.pdf", of: slidesKey(slides), at: "x" },
+    };
+    const { sites } = fakeSites({
+      "POST /upload": (i) => {
+        expect(i).toMatchObject({ kind: "document", file: "https://cdn.test/deck.pdf" });
+        return { urn: "urn:li:document:9" };
+      },
+      "POST /rest/posts": (i) => {
+        expect(i?.content).toEqual({ media: { id: "urn:li:document:9", title: "Slide 1" } });
+        return { id: "urn:li:share:3" };
+      },
+    });
+    const ch = linkedinContent(sites, { organization: "urn:li:organization:5", host });
+    expect((await ch.publish({ text: "slides", extra })).id).toBe("urn:li:share:3");
   });
 
   it("activity maps notification kinds, drops views and news, since filters, a capped day reads nothing", async () => {

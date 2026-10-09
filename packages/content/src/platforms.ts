@@ -5,7 +5,7 @@
  */
 import type { Media, Platform, Post } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
-import { isCarousel } from "@wren/core/content/slides";
+import { carouselUnfit, isCarousel } from "@wren/core/content/slides";
 import {
   isThread,
   threadPosts,
@@ -130,10 +130,6 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
   return null;
 }
 
-/** Said wherever a carousel would go out: drafts and renders work, the upload doesn't yet. */
-export const CAROUSEL_UPLOAD_DEV =
-  "Uploading carousels to LinkedIn and Instagram is in development. Download the images or PDF and post by hand.";
-
 /**
  * Why these words can't be the draft's text, or null: the platform's cap, or for an X thread
  * 3 to 7 posts of 280 each (`@wren/core/content/thread`).
@@ -160,7 +156,9 @@ export function postOf(
     ...draft.extra,
     ...(draft.title ? { title: draft.title } : {}),
   });
-  if (isCarousel(draft)) throw new ShapeError(CAROUSEL_UPLOAD_DEV);
+  // A carousel goes out as its drawn files (the adapter uploads them), so they must match it.
+  const unfit = isCarousel(draft) ? carouselUnfit(draft) : null;
+  if (unfit) throw new ShapeError(`Carousel: ${unfit}`);
   if (isThread(draft)) {
     // The link rides on the last post; dropped, like a single post's, if it would pass 280.
     const posts = threadPosts(draft.text);

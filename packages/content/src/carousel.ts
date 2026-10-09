@@ -4,8 +4,8 @@
  * (its words plus the slides as a PDF) and an Instagram carousel (a caption plus a square image
  * per slide). The set is the drafts' `slides` field, written to both at once (`saveSlides`);
  * `renderSlides` draws it with
- * `@wren/core/content/slides` and stores the images and the PDF. Nothing uploads: approve says the
- * upload is in development, and he can download the files to post by hand.
+ * `@wren/core/content/slides` and stores the images and the PDF. Publishing uploads them: the
+ * LinkedIn adapter the PDF as a document, the Instagram one each image as a carousel child.
  */
 import { fieldsOf } from "@wren/core/content/shapes";
 import {
@@ -22,7 +22,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { type MediaStoreOptions, putMedia } from "./media.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 
-/** A slide set drawn: one PNG per slide, square, and the same slides as one PDF. */
+/** A slide set drawn: one JPEG per slide, square, and the same slides as one PDF. */
 export interface SlidePaint {
   images: Uint8Array[];
   pdf: Uint8Array;
@@ -131,7 +131,7 @@ export async function paintSlides(
   if (drawn.images.length !== slides.length)
     throw new Error(`drew ${drawn.images.length} of ${slides.length} slides`);
   const images: string[] = [];
-  for (const img of drawn.images) images.push(await putMedia(img, ".png", store));
+  for (const img of drawn.images) images.push(await putMedia(img, ".jpg", store));
   return {
     images,
     pdf: await putMedia(drawn.pdf, ".pdf", store),

@@ -26,7 +26,9 @@ import {
   knownGaps,
   type ListQuery,
   METRICS as M,
+  type MediaHost,
   type Metrics,
+  mediaFileOf,
   numberOf,
   type Post,
   type Published,
@@ -37,6 +39,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
+import { carouselFiles, cleanSlides, isCarousel } from "@wren/core/content/slides";
 
 /** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
 export const AUDIENCE_ACCOUNT = "linkedin@wren";
@@ -100,8 +103,24 @@ export interface LinkedInContentOptions {
   organization?: string;
   /** The official API only (a client's connected account): no autobrowse-only reads. */
   direct?: boolean;
+  /** Makes a stored file (`s3://…`) a URL the upload fetches: images and a carousel's PDF. */
+  host?: MediaHost;
   now?: () => Date;
 }
+
+/**
+ * The site path that uploads one file: LinkedIn's `initializeUpload` for an image or a document,
+ * then the bytes PUT to its `uploadUrl` with the same token. Answers the URN a post names. Both
+ * autobrowse (Wren's login) and a client's connected account (`socialSites`) serve it.
+ */
+export const UPLOAD_PATH = "/upload";
+export type UploadInput = {
+  kind: "image" | "document";
+  /** The member or organization the file belongs to: the post's author. */
+  owner: string;
+  /** An https URL the server fetches the bytes from (a signed media URL). */
+  file: string;
+};
 
 const postUrl = (urn: string) => `https://www.linkedin.com/feed/update/${urn}/`;
 
@@ -175,13 +194,33 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         lifecycleState: "PUBLISHED",
         ...(f.noReshare ? { isReshareDisabledByAuthor: true } : {}),
       };
-      if (post.media) {
-        // The image/video URN comes from the worker's upload routes; a source path is not a URN.
-        if (!post.media.source.startsWith("urn:li:"))
-          throw new Error("linkedin: media.source must be an uploaded urn:li:image|video URN");
+      const upload = async (kind: UploadInput["kind"], source: string) => {
+        if (source.startsWith("urn:li:")) return source;
+        const file = await mediaFileOf(source, o.host, "linkedin");
+        if (!/^https:\/\//.test(file))
+          throw new Error("linkedin: a file needs a media host to upload (an https URL)");
+        const input: UploadInput = { kind, owner: String(body.author), file };
+        const { urn } = await sites.call<{ urn: string }>("linkedin", "POST", UPLOAD_PATH, input);
+        return urn;
+      };
+      if (isCarousel({ platform: "linkedin", extra: post.extra ?? null })) {
+        // A document post: the slides' PDF, titled by the first slide (LinkedIn needs a title).
+        const { pdf } = carouselFiles({ extra: post.extra ?? null });
+        if (!pdf) throw new Error("linkedin: the carousel has no PDF drawn");
+        const first = cleanSlides(post.extra?.slides)[0]?.title;
         body.content = {
           media: {
-            id: post.media.source,
+            id: await upload("document", pdf),
+            title: post.media?.title ?? first ?? "Slides",
+          },
+        };
+      } else if (post.media) {
+        // Video takes LinkedIn's multipart Videos API: not wired, said before anything sends.
+        if (post.media.kind === "video" && !post.media.source.startsWith("urn:li:"))
+          throw new Error("linkedin: video upload is in development; post an image or a document");
+        body.content = {
+          media: {
+            id: await upload("image", post.media.source),
             ...(post.media.title ? { title: post.media.title } : {}),
           },
         };

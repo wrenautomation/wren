@@ -1,5 +1,5 @@
 /**
- * The slide painter: a chromium draws `slidesHtml`'s page, a 1080 square PNG per slide and the
+ * The slide painter: a chromium draws `slidesHtml`'s page, a 1080 square JPEG per slide (Instagram takes JPEG only) and the
  * whole page as a PDF (one square page each) for LinkedIn. A local chromium on the laptop or the
  * desk; over CDP (`WREN_CDP_URL`, browserless on the box) where none can run, the Lambda.
  * Playwright loads lazily, so a host that never draws never loads it.
@@ -49,7 +49,7 @@ export function slidePainter(o: { connectUrl?: string | null } = {}): SlidePaint
           images.push(
             await page
               .locator(`.slide[data-n="${n}"]`)
-              .screenshot({ type: "png", animations: "disabled" }),
+              .screenshot({ type: "jpeg", quality: 92, animations: "disabled" }),
           );
         const pdf = await page.pdf({
           width: `${SLIDE_PX}px`,
