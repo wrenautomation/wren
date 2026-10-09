@@ -411,6 +411,7 @@ export const accountVisits = pgTable(
     primaryKey({ columns: [t.id], name: "pk_account_visits" }),
     unique("uq_account_visits_entry").on(t.entry),
     index("ix_account_visits_company_at").on(t.companyId, t.at),
+    index("ix_account_visits_person_id").on(t.personId).where(sql`person_id is not null`),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],

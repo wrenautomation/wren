@@ -36,6 +36,7 @@ ALTER TABLE "account_visits" ADD CONSTRAINT "fk_account_visits_company_id_compan
 ALTER TABLE "account_visits" ADD CONSTRAINT "fk_account_visits_person_id_people" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_orders" ADD CONSTRAINT "fk_job_orders_company_id_companies" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "ix_account_visits_company_at" ON "account_visits" USING btree ("company_id","at");--> statement-breakpoint
+CREATE INDEX "ix_account_visits_person_id" ON "account_visits" USING btree ("person_id") WHERE person_id is not null;--> statement-breakpoint
 CREATE INDEX "ix_job_orders_company_id" ON "job_orders" USING btree ("company_id") WHERE open;--> statement-breakpoint
 CREATE VIEW "public"."reactivation_keep" AS (
   with placed as (
