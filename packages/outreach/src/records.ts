@@ -173,6 +173,7 @@ export const PLATFORM_LABELS = cued({
   instagram: neutral("Instagram"),
   facebook: neutral("Facebook"),
   tiktok: neutral("TikTok"),
+  google_business: neutral("Business Profile"),
 });
 
 /**
@@ -687,6 +688,7 @@ export const personRecord = defineRecord({
         youtube: neutral("YouTube"),
         facebook: neutral("Facebook"),
         tiktok: neutral("TikTok"),
+        google_business: neutral("Business Profile"),
       }),
       "Site",
     ),

@@ -41,13 +41,28 @@ describe("clientRoute", () => {
     expect(clientRoute("dm", "linkedin", all)?.off).toBe(
       "Not available yet. LinkedIn has no messaging API.",
     );
-    expect(clientRoute("comment", "linkedin", all)?.off).toMatch(/^Not available yet\. LinkedIn/);
     expect(clientRoute("dm", "reddit", all)?.off).toMatch(/^Not available yet\. Reddit/);
     expect(clientRoute("comment", "reddit", all)?.off).toMatch(/^Not available yet\. Reddit/);
     expect(clientRoute("comment", "tiktok", all)?.off).toMatch(/^Not available yet\. TikTok/);
     expect(clientRoute("dm", "youtube", all)).toEqual({ off: "YouTube has no DMs.", fix: null });
     expect(clientRoute("dm", null, all)?.fix).toBeNull();
   });
+});
+
+it("LinkedIn comments answer on a company page, reviews on a Business Profile", () => {
+  const page = [{ platform: "linkedin_page", state: "connected" }];
+  expect(clientRoute("comment", "linkedin", page)).toBeNull();
+  expect(
+    clientRoute("comment", "linkedin", [{ platform: "linkedin", state: "connected" }]),
+  ).toEqual({
+    off: "No LinkedIn company page account connected. Replies go out on your own account.",
+    fix: "social",
+  });
+  expect(clientRoute("dm", "linkedin", page)?.off).toMatch(/^Not available yet\. LinkedIn/);
+  const gb = [{ platform: "google_business", state: "connected" }];
+  expect(clientRoute("comment", "google_business", gb)).toBeNull();
+  expect(clientRoute("comment", "google_business", [])?.fix).toBe("social");
+  expect(clientRoute("dm", "google_business", gb)?.fix).toBeNull();
 });
 
 describe("withRoutes", () => {

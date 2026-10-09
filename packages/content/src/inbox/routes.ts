@@ -27,7 +27,9 @@ export const SOCIAL_PAGE = "/account/social";
 
 const NAME: Record<string, string> = {
   facebook: "Facebook Page",
+  google_business: "Business Profile",
   instagram: "Instagram",
+  linkedin: "LinkedIn company page",
   x: "X",
   youtube: "YouTube channel",
 };
@@ -35,10 +37,15 @@ const NAME: Record<string, string> = {
 /** Which channels each platform's official API answers on a client's own account. */
 const ANSWERS: Record<string, readonly ("dm" | "comment")[]> = {
   facebook: ["dm", "comment"],
+  google_business: ["comment"],
   instagram: ["dm", "comment"],
+  linkedin: ["comment"],
   x: ["dm", "comment"],
   youtube: ["comment"],
 };
+
+/** The connected account that answers a platform's comments when it isn't the platform itself. */
+const ACCOUNT_OF: Record<string, string> = { linkedin: "linkedin_page" };
 
 const REDDIT =
   "Not available yet. Reddit approves each API app by hand, and client accounts can't connect yet.";
@@ -47,8 +54,8 @@ const REDDIT =
 const NOT_YET: Record<string, Partial<Record<"dm" | "comment", string>>> = {
   linkedin: {
     dm: "Not available yet. LinkedIn has no messaging API.",
-    comment: "Not available yet. LinkedIn's API doesn't let apps read or answer profile comments.",
   },
+  google_business: { dm: "Business Profile chat isn't connected." },
   reddit: {
     dm: REDDIT,
     comment: REDDIT,
@@ -76,7 +83,8 @@ export function clientRoute(
       off: NOT_YET[p]?.[channel] ?? "Not available yet. That site has no API for it.",
       fix: null,
     };
-  const mine = accounts.filter((a) => a.platform === p);
+  const account = ACCOUNT_OF[p] ?? p;
+  const mine = accounts.filter((a) => a.platform === account);
   const name = NAME[p] ?? p;
   if (mine.some((a) => a.state === "connected")) return null;
   if (mine.length) return { off: `Your ${name} account needs connecting again.`, fix: "social" };

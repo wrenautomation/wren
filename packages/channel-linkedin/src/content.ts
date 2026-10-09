@@ -5,6 +5,10 @@
  * Activity reads the notifications page (a browser read, capped per day). Audience reads Wren's
  * own profile and Page (4 a day), on demand only: SocialWatch never asks for it. Insights read a
  * post's analytics page as Wren's account on a few days after it went up.
+ *
+ * Over a client's connected account (`direct`) there is no browser: no notifications, no audience
+ * page, no analytics page. A company page (`organization`) posts, reads its comments and answers
+ * them as the page, on the Community Management API, and reads its follower count there.
  */
 import {
   type ActivityKind,
@@ -92,6 +96,10 @@ export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
 export interface LinkedInContentOptions {
   /** The member's URN (`urn:li:person:…`); resolved from `/v2/userinfo` when absent. */
   author?: string;
+  /** A company page (`urn:li:organization:…`) it posts and answers as. Implies `direct`. */
+  organization?: string;
+  /** The official API only (a client's connected account): no autobrowse-only reads. */
+  direct?: boolean;
   now?: () => Date;
 }
 
@@ -109,6 +117,10 @@ interface LiSocial {
 }
 interface LiComment {
   id?: string;
+  /** `urn:li:comment:(<post>,<id>)`: what an answer names. */
+  commentUrn?: string;
+  $URN?: string;
+  parentComment?: string;
   actor?: string;
   message?: { text?: string };
   created?: { time?: number };
@@ -134,9 +146,15 @@ const ACTIVITY_OF: Partial<Record<LiNotification["kind"], ActivityKind>> = {
   connection: "notification",
 };
 
+/** A comment's URN: `urn:li:comment:(<post URN>,<id>)`. */
+const COMMENT_URN = /^urn:li:comment:\((.+),[^,]+\)$/;
+
 export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
-  let author: Promise<string> | null = o.author ? Promise.resolve(o.author) : null;
+  const org = o.organization ?? null;
+  const direct = !!org || !!o.direct;
+  const fixed = org ?? o.author;
+  let author: Promise<string> | null = fixed ? Promise.resolve(fixed) : null;
   const me = () => {
     author ??= sites
       .call<{ sub: string }>("linkedin", "GET", "/v2/userinfo")
@@ -212,96 +230,133 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         `/rest/socialActions/${encodeURIComponent(id)}/comments`,
         { count: Math.min(q.limit ?? 100, 100) },
       );
+      // A page's comments go by URN, which an answer needs, and say which are the page's own.
       const rows = (out.elements ?? []).map((c, i) => ({
-        id: c.id ?? String(i),
+        id: (org ? (c.commentUrn ?? c.$URN) : null) ?? c.id ?? String(i),
         postId: id,
         author: c.actor ?? "",
         text: c.message?.text ?? "",
         at: iso(c.created?.time),
+        ...(org && c.parentComment ? { parentId: c.parentComment } : {}),
+        ...(org && c.actor === org ? { mine: true } : {}),
       }));
       return pageOf(rows, q);
     },
     async reply(commentId: string, text: string): Promise<void> {
+      // An answer to a comment names its post and the comment as its parent.
+      const nested = COMMENT_URN.exec(commentId);
       await sites.call(
         "linkedin",
         "POST",
         `/rest/socialActions/${encodeURIComponent(commentId)}/comments`,
         {
           actor: await me(),
+          ...(nested ? { object: nested[1], parentComment: commentId } : {}),
           message: { text },
         },
       );
     },
-    async audience(): Promise<Audience> {
-      const out = await sites.call<{ followers: number }>(
+    ...(org
+      ? {
+          async audience(): Promise<Audience> {
+            const out = await sites.call<{ firstDegreeSize?: number }>(
+              "linkedin",
+              "GET",
+              `/rest/networkSizes/${encodeURIComponent(org)}`,
+              { edgeType: "COMPANY_FOLLOWED_BY_MEMBER" },
+            );
+            return { followers: out.firstDegreeSize ?? 0, asOf: now().toISOString(), raw: out };
+          },
+        }
+      : direct
+        ? {}
+        : { audience: wrenAudience, activity: notifications }),
+    // A client's own account has no analytics page here: the Community Management API's.
+    async insights(q: InsightsQuery): Promise<Insights> {
+      if (direct)
+        return {
+          values: [],
+          gaps: knownGaps(
+            "needs_william",
+            "LinkedIn post impressions and reach need the Community Management API on Wren's app",
+            [M.impressions, M.reach, M.shares, M.profileVisits],
+          ),
+          asOf: now().toISOString(),
+        };
+      return analyticsPage(q);
+    },
+  };
+
+  /**
+   * The post's analytics page in the browser, as Wren's account, while the Community Management
+   * API (`r_member_postAnalytics`) waits on review. Light: only on the days in
+   * `ANALYTICS_DAYS` after it went up, and a day over the box's cap reads nothing. A day with
+   * no read writes nothing, so the last read's numbers and state stand.
+   */
+  async function analyticsPage(q: InsightsQuery): Promise<Insights> {
+    const asOf = now().toISOString();
+    if (!analyticsDue(q.published, now())) return { values: [], gaps: [], asOf };
+    const into: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+    try {
+      const a = await sites.call<PostAnalytics>(
         "linkedin",
         "GET",
-        "/audience",
+        `/analytics/post-summary/${encodeURIComponent(q.id)}`,
         {},
         AUDIENCE_ACCOUNT,
       );
-      return { followers: out.followers, asOf: now().toISOString(), raw: out };
-    },
-    async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
-      let out: { notifications?: LiNotification[] };
-      try {
-        out = await sites.call("linkedin", "GET", "/notifications", { max: q.limit ?? 40 });
-      } catch (err) {
-        // Over the day's cap: nothing read this pass, not a failure.
-        if (err instanceof SiteCallError && err.status === 429) return [];
-        throw err;
-      }
-      const { since } = q;
-      return (out.notifications ?? []).flatMap((n) => {
-        const kind = ACTIVITY_OF[n.kind];
-        const at = n.at ?? null;
-        if (!kind || (since && at !== null && at < since)) return [];
-        return [
-          {
-            id: n.id,
-            kind,
-            actor: n.actor ?? null,
-            actorUrl: n.actorUrl ?? null,
-            text: n.text,
-            url: n.url ?? null,
-            at,
-            raw: n,
-          },
-        ];
-      });
-    },
-    /**
-     * The post's analytics page in the browser, as Wren's account, while the Community Management
-     * API (`r_member_postAnalytics`) waits on review. Light: only on the days in
-     * `ANALYTICS_DAYS` after it went up, and a day over the box's cap reads nothing. A day with
-     * no read writes nothing, so the last read's numbers and state stand.
-     */
-    async insights(q: InsightsQuery): Promise<Insights> {
-      const asOf = now().toISOString();
-      if (!analyticsDue(q.published, now())) return { values: [], gaps: [], asOf };
-      const into: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
-      try {
-        const a = await sites.call<PostAnalytics>(
-          "linkedin",
-          "GET",
-          `/analytics/post-summary/${encodeURIComponent(q.id)}`,
-          {},
-          AUDIENCE_ACCOUNT,
+      into.values.push(...analyticsValues(a));
+      if (!into.values.length)
+        into.gaps.push(
+          ...knownGaps("error", "The post's analytics page showed no numbers", ANALYTICS_METRICS),
         );
-        into.values.push(...analyticsValues(a));
-        if (!into.values.length)
-          into.gaps.push(
-            ...knownGaps("error", "The post's analytics page showed no numbers", ANALYTICS_METRICS),
-          );
-      } catch (err) {
-        // Over the day's cap: nothing read today, not a failure.
-        if (err instanceof SiteCallError && err.status === 429)
-          return { values: [], gaps: [], asOf };
-        // A browser read that broke: said where the number sits, never retried as a storm.
-        const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
-        into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
-      }
-      return { ...into, asOf };
-    },
-  };
+    } catch (err) {
+      // Over the day's cap: nothing read today, not a failure.
+      if (err instanceof SiteCallError && err.status === 429) return { values: [], gaps: [], asOf };
+      // A browser read that broke: said where the number sits, never retried as a storm.
+      const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+      into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
+    }
+    return { ...into, asOf };
+  }
+
+  async function wrenAudience(): Promise<Audience> {
+    const out = await sites.call<{ followers: number }>(
+      "linkedin",
+      "GET",
+      "/audience",
+      {},
+      AUDIENCE_ACCOUNT,
+    );
+    return { followers: out.followers, asOf: now().toISOString(), raw: out };
+  }
+
+  async function notifications(q: ActivityQuery = {}): Promise<ActivityRow[]> {
+    let out: { notifications?: LiNotification[] };
+    try {
+      out = await sites.call("linkedin", "GET", "/notifications", { max: q.limit ?? 40 });
+    } catch (err) {
+      // Over the day's cap: nothing read this pass, not a failure.
+      if (err instanceof SiteCallError && err.status === 429) return [];
+      throw err;
+    }
+    const { since } = q;
+    return (out.notifications ?? []).flatMap((n) => {
+      const kind = ACTIVITY_OF[n.kind];
+      const at = n.at ?? null;
+      if (!kind || (since && at !== null && at < since)) return [];
+      return [
+        {
+          id: n.id,
+          kind,
+          actor: n.actor ?? null,
+          actorUrl: n.actorUrl ?? null,
+          text: n.text,
+          url: n.url ?? null,
+          at,
+          raw: n,
+        },
+      ];
+    });
+  }
 }

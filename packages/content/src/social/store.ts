@@ -126,6 +126,28 @@ export async function keepPostComments(
   return theirs;
 }
 
+/**
+ * Reviews of the account (Business Profile) as comments on its place: `post` is the location, so
+ * the Inbox threads them like any comment and an answer goes back through `reply`.
+ */
+export async function keepReviews(
+  db: Queryable,
+  platform: Platform,
+  rows: readonly CommentRow[],
+  now: Date,
+): Promise<KeptComment[]> {
+  const kept: KeptComment[] = [];
+  for (const place of new Set(rows.map((r) => r.postId)))
+    kept.push(
+      ...(await keepPostComments(
+        db,
+        { platform, id: place, url: null, title: "Reviews", publishedAt: now.toISOString() },
+        rows.filter((r) => r.postId === place),
+      )),
+    );
+  return kept;
+}
+
 /** The newest kept activity time on the platform: the next read starts there. */
 export async function newestActivityAt(db: Queryable, platform: Platform): Promise<string | null> {
   const [row] = await db
@@ -217,6 +239,7 @@ export const PLATFORM_NAMES: Record<Platform, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google_business: "Business Profile",
 };
 
 const KIND_WORDS: Record<ActivityRow["kind"], [string, string]> = {

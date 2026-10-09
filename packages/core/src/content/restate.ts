@@ -26,6 +26,7 @@ import type {
   ActivityQuery,
   ActivityRow,
   Audience,
+  CommentRow,
   ContentChannel,
   Insights,
   ListQuery,
@@ -332,6 +333,17 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               errorCode: 501,
             });
           await refusalsFinal(ch.reply(req.commentId, req.text));
+        },
+      ),
+      /** Reviews of the account itself (Business Profile). Null when the channel has none. */
+      reviews: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, q: ACTIVITY_QUERY, client: CLIENT }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; q?: ActivityQuery | null } & ForClient,
+        ): Promise<CommentRow[] | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          return ch.reviews ? refusalsFinal(ch.reviews(req.q ?? {})) : null;
         },
       ),
       /** Null when the channel reads no activity, so a caller skips it without an error. */

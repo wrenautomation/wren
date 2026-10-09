@@ -31,6 +31,7 @@ export const TOUCH_PLATFORMS = [
   "instagram",
   "facebook",
   "tiktok",
+  "google_business",
 ] as const;
 export const TOUCH_KINDS = [
   "follow",
@@ -160,7 +161,8 @@ export const personTouchLines = pgView("person_touch_lines", {
     select t.id, t.at, h.person_id, h.platform, h.handle,
       case h.platform when 'linkedin' then 'LinkedIn' when 'x' then 'X'
         when 'instagram' then 'Instagram' when 'reddit' then 'Reddit' when 'youtube' then 'YouTube'
-        when 'facebook' then 'Facebook' when 'tiktok' then 'TikTok' else h.platform end
+        when 'facebook' then 'Facebook' when 'tiktok' then 'TikTok'
+        when 'google_business' then 'Business Profile' else h.platform end
         || ' ' || t.kind kind,
       case when t.direction = 'ours' then
         case t.kind when 'follow' then 'We followed them'

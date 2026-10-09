@@ -170,6 +170,7 @@ import {
   slidePainter,
 } from "@wren/content";
 import {
+  businessProfileContent,
   connectionIdOf,
   liveFrom,
   makeSocialAccess,
@@ -1050,9 +1051,11 @@ export async function buildServices(
   if (settings.reportTo && !report) log.warn("WREN_REPORT_TO set but no sender to mail from");
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
+  // Bound with no channel of Wren's too: a client's connected accounts post and read through it.
   const content = contentFor(settings, log);
-  if (content)
-    services.push(makeContent(content, contentClientsFor(settings, db, keys, socialApi)));
+  services.push(
+    makeContent(content ?? (() => ({})), contentClientsFor(settings, db, keys, socialApi)),
+  );
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
@@ -2096,8 +2099,9 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
 }
 
 /**
- * A client's content channels: its own LinkedIn and Reddit logins, only where Wren's are on
- * (WREN_CONTENT_CHANNELS), every read through its vendor gate. Posts wait on its live flag.
+ * A client's content channels: its connected accounts on each platform's API, and its own
+ * LinkedIn and Reddit autobrowse logins only where Wren's are on (WREN_CONTENT_CHANNELS, the
+ * autobrowse channels). Every read goes through its vendor gate. Posts wait on its live flag.
  */
 function contentClientsFor(
   settings: Settings,
@@ -2111,9 +2115,11 @@ function contentClientsFor(
   const hosted = host ? { host } : {};
   return {
     channels: async (ctx, client, part) => {
-      const logins = await ctx.run(`${client} logins`, async () => {
+      const { logins, connected } = await ctx.run(`${client} logins`, async () => {
         const c = await clientContent(db, client, part);
-        return c.kind === "work" ? c.logins : {};
+        return c.kind === "work"
+          ? { logins: c.logins, connected: c.connected }
+          : { logins: {}, connected: {} };
       });
       const scope = {
         main: db,
@@ -2129,7 +2135,7 @@ function contentClientsFor(
       // A connected account (`social:<id>`): its platform's API, each call one journaled step.
       const own = (p: Platform) => {
         const login = logins[p];
-        return login && connectionIdOf(login) !== null && on.includes(p)
+        return login && connectionIdOf(login) !== null
           ? metered(journaledSites(ctx, social), login)
           : null;
       };
@@ -2139,13 +2145,23 @@ function contentClientsFor(
       const fb = own("facebook");
       const tt = own("tiktok");
       const li = own("linkedin");
+      const gb = own("google_business");
+      const orgUrn = connected.linkedin?.extra.orgUrn;
+      const location = connected.google_business?.extra.location;
       return {
         ...(yt ? { youtube: youtubeContent(yt, hosted) } : {}),
         ...(x ? { x: xContent(x, hosted) } : {}),
         ...(ig ? { instagram: instagramContent(ig, hosted) } : {}),
         ...(fb ? { facebook: facebookContent(fb, { ...hosted, pageComments: true }) } : {}),
         ...(tt ? { tiktok: tiktokContent(tt, hosted) } : {}),
-        ...(li ? { linkedin: linkedinContent(li) } : {}),
+        ...(li
+          ? {
+              linkedin: linkedinContent(li, orgUrn ? { organization: orgUrn } : { direct: true }),
+            }
+          : {}),
+        ...(gb && location
+          ? { google_business: businessProfileContent(gb, { location, ...hosted }) }
+          : {}),
         ...(!li && logins.linkedin && on.includes("linkedin")
           ? {
               linkedin: linkedinContent(

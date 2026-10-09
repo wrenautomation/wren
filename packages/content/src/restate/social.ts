@@ -45,6 +45,7 @@ import {
   keepActivity,
   keepDay,
   keepPostComments,
+  keepReviews,
   markSeen,
   newestActivityAt,
   pingOf,
@@ -83,6 +84,10 @@ type ContentReads = {
     ctx: restate.Context,
     req: { platform: Platform } & ForClient,
   ) => Promise<Audience | null>;
+  reviews: (
+    ctx: restate.Context,
+    req: { platform: Platform; q?: ActivityQuery } & ForClient,
+  ) => Promise<CommentRow[] | null>;
 };
 /** A client's DMs through its connected accounts (`makeSocialInbox`). */
 type SocialInboxRead = {
@@ -109,6 +114,8 @@ export interface SocialWatchDeps {
 export interface SocialStats {
   posts: number;
   comments: number;
+  /** New reviews of a client's Business Profile. */
+  reviews: number;
   asked: number;
   activity: number;
   /** New DMs a client's connected accounts brought in. */
@@ -141,6 +148,9 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const client = clientOfKey(ctx.key)?.client ?? null;
     let db = deps.db;
     let platforms = deps.platforms;
+    /** Platforms whose post comments are read; Wren's own: every one. */
+    let commented: readonly Platform[] = deps.platforms;
+    let reviewed: readonly Platform[] = [];
     let dms = false;
     if (client) {
       if (!deps.clientDb) return stoppedPass<SocialStats>(ctx, now, "no client databases here");
@@ -148,13 +158,16 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       if (plan.kind === "gone") return stoppedPass<SocialStats>(ctx, now, plan.why);
       db = deps.clientDb(client);
       dms = plan.dms.length > 0;
-      // Its logins, on the channels the worker runs (the global gate).
-      platforms = plan.platforms.filter((p) => deps.platforms.includes(p));
+      // Its connected accounts, and its autobrowse logins on the channels the worker runs.
+      platforms = plan.platforms.filter((p) => plan.connected[p] || deps.platforms.includes(p));
+      commented = plan.comments;
+      reviewed = plan.reviews.filter((p) => platforms.includes(p));
     }
     const mine = client ? { client } : {};
     const stats: SocialStats = {
       posts: 0,
       comments: 0,
+      reviews: 0,
       asked: 0,
       activity: 0,
       dms: 0,
@@ -165,7 +178,9 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const kept: KeptComment[] = [];
     const happened: { kind: ActivityRow["kind"] }[] = [];
 
-    const posts = await ctx.run("posts", () => recentPosts(db, platforms, now));
+    // Only where its account can read them: a LinkedIn profile or TikTok has no comments API.
+    const read = platforms.filter((p) => commented.includes(p));
+    const posts = await ctx.run("posts", () => recentPosts(db, read, now));
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};
     const reads: Record<string, number> = {};
     for (const p of posts) {
@@ -185,6 +200,19 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     }
     // Posts past the window drop out of state.
     ctx.set(READS, reads);
+    // Reviews of the account itself, since the newest kept.
+    const reviewsBefore = kept.length;
+    for (const platform of reviewed)
+      try {
+        const rows = await content.reviews({ platform, ...mine });
+        if (rows?.length)
+          kept.push(
+            ...(await ctx.run(`reviews ${platform}`, () => keepReviews(db, platform, rows, now))),
+          );
+      } catch (err) {
+        stats.errors.push(`${platform} reviews: ${errorText(err)}`);
+      }
+    stats.reviews = kept.length - reviewsBefore;
     if (kept.length)
       spineEmit(ctx, {
         client,

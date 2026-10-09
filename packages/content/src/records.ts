@@ -37,6 +37,7 @@ const NAMES: Record<Platform, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google_business: "Business Profile",
 };
 const PLATFORM_STATES: Record<string, State> = cued(
   Object.fromEntries(Object.entries(NAMES).map(([p, label]) => [p, { label, tone: "neutral" }])),

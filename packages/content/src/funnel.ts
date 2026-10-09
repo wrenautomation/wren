@@ -127,6 +127,8 @@ export function linkRule(
 ): { allowed: boolean; on: boolean; why: string | null } {
   const promo = d.pointsTo === "video";
   switch (d.platform) {
+    case "google_business":
+      return { allowed: false, on: false, why: "The post's button carries the link" };
     case "instagram":
     case "tiktok":
       return {

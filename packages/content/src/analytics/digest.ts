@@ -71,7 +71,8 @@ const PLATFORM_WORD: Record<Platform, string> = {
   x: "X",
   reddit: "Reddit",
   facebook: "Facebook",
-} as Record<Platform, string>;
+  google_business: "Business Profile",
+};
 
 /** The numbers "moved" compares, each a week's summary of its posts. */
 const MOVERS: ReadonlyArray<{

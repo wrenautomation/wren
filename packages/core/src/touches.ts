@@ -35,6 +35,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
   youtube: "YouTube",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google_business: "Business Profile",
 };
 const label = (p: string) => PLATFORM_LABELS[p] ?? p;
 

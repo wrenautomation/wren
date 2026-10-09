@@ -13,6 +13,7 @@ import { listAccounts, loginsOf } from "@wren/outreach";
 import { type ClientPlannerSettings, clientPlannerSchema } from "./components.js";
 import { liveConnections, loginOf } from "./connect/access.js";
 import { channelOf, SOCIAL, type SocialPlatform } from "./connect/platforms.js";
+import type { SocialExtra } from "./connect/schema.js";
 import type { Brand } from "./voice.js";
 
 /** The channels a client's own autobrowse login posts on. */
@@ -26,8 +27,15 @@ const CHANNEL_ORDER = [
   "instagram",
   "facebook",
   "tiktok",
+  "google_business",
 ] as const;
 export type ClientPlatform = Platform;
+
+/** A connected account behind a channel: what its adapter needs past the token. */
+export interface ConnectedAccount {
+  platform: SocialPlatform;
+  extra: SocialExtra;
+}
 
 /** A client's voice until it sets its own: plain, and never William's first person. */
 export const CLIENT_VOICE = `Plain and concise. Short sentences a person would say out loud.
@@ -42,13 +50,26 @@ export type ClientContent =
       /** Its logins by platform, Wren's own left out; a connected account is `social:<id>`. */
       logins: Partial<Record<ClientPlatform, string>>;
       platforms: ClientPlatform[];
+      /** The connected account behind each channel that has one. */
+      connected: Partial<Record<ClientPlatform, ConnectedAccount>>;
+      /** Channels whose post comments its account can read: an autobrowse login reads them all. */
+      comments: ClientPlatform[];
+      /** Channels with reviews of the account itself (Business Profile). */
+      reviews: ClientPlatform[];
       /** Its connected accounts whose DMs come into its Inbox. */
       dms: SocialPlatform[];
     };
 
+/** Business Profile is the one channel whose comments are reviews of the account. */
+const REVIEWED: readonly ClientPlatform[] = ["google_business"];
+/** Only a connected account posts here: a Business Profile login is for review asks, not posts. */
+const CONNECTED_ONLY: readonly ClientPlatform[] = ["google_business"];
+/** On LinkedIn a company page posts ahead of a person's profile. */
+const AHEAD: readonly SocialPlatform[] = ["linkedin_page"];
+
 /**
- * Is this client's `part` run, and on which logins? A connected account comes first, then its
- * first autobrowse login per platform.
+ * Is this client's `part` run, and on which logins? A connected account comes first (a company
+ * page ahead of a profile), then its first autobrowse login per platform.
  */
 export async function clientContent(
   main: Queryable,
@@ -61,18 +82,40 @@ export async function clientContent(
   if (!(part in client.products)) return { kind: "gone", why: `${part} is not installed` };
   const wren = new Set((await listAccounts(main)).map((a) => a.account));
   const logins: Partial<Record<ClientPlatform, string>> = {};
+  const connected: Partial<Record<ClientPlatform, ConnectedAccount>> = {};
   const dms = new Set<SocialPlatform>();
-  for (const c of await liveConnections(main, id)) {
+  const conns = await liveConnections(main, id);
+  const ahead = (p: SocialPlatform) => (AHEAD.includes(p) ? 0 : 1);
+  for (const c of [...conns].sort((a, b) => ahead(a.platform) - ahead(b.platform))) {
     const ch = channelOf(c.platform);
-    if (ch) logins[ch] ??= loginOf(c.id);
+    if (!logins[ch]) {
+      logins[ch] = loginOf(c.id);
+      connected[ch] = { platform: c.platform, extra: c.extra };
+    }
     if (SOCIAL[c.platform].dms) dms.add(c.platform);
   }
   for (const l of loginsOf(client.accounts, wren).logins)
-    if ((CLIENT_PLATFORMS as readonly string[]).includes(l.platform))
+    if (
+      (CLIENT_PLATFORMS as readonly string[]).includes(l.platform) &&
+      !CONNECTED_ONLY.includes(l.platform as ClientPlatform)
+    )
       logins[l.platform as ClientPlatform] ??= l.account;
   const platforms = CHANNEL_ORDER.filter((p) => logins[p]);
   if (!platforms.length) return { kind: "gone", why: "no social account connected" };
-  return { kind: "work", client, logins, platforms, dms: [...dms] };
+  const account = (p: ClientPlatform) => connected[p];
+  return {
+    kind: "work",
+    client,
+    logins,
+    platforms,
+    connected,
+    comments: platforms.filter((p) => {
+      const a = account(p);
+      return !REVIEWED.includes(p) && (!a || SOCIAL[a.platform].comments);
+    }),
+    reviews: platforms.filter((p) => REVIEWED.includes(p) && !!account(p)),
+    dms: [...dms],
+  };
 }
 
 /** Its planner block, or why it won't draft: a client's posts never speak as Wren. */

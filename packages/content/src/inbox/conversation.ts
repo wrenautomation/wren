@@ -462,6 +462,7 @@ const SITE: Record<string, string> = {
   youtube: "YouTube",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google_business: "Business Profile",
 };
 
 /**

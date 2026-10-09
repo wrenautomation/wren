@@ -234,7 +234,11 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       const r = await sites.call<
         Edge<{ id: string; text?: string; username?: string; timestamp?: string }>
-      >("meta", "GET", `/${id}/comments`, { limit: Math.min(q.limit ?? 100, 100) });
+      >("meta", "GET", `/${id}/comments`, {
+        // Without fields the Graph API leaves out who wrote it.
+        fields: "id,text,username,timestamp",
+        limit: Math.min(q.limit ?? 100, 100),
+      });
       return pageOf(
         (r.data ?? []).map((c) => ({
           id: c.id,
@@ -418,12 +422,20 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       // Page comments need `pages_read_user_content`: a connected Page's token has it.
       if (!o.pageComments) return [];
       const r = await sites.call<
-        Edge<{ id: string; message?: string; from?: { name?: string }; created_time?: string }>
+        Edge<{
+          id: string;
+          message?: string;
+          from?: { id?: string; name?: string };
+          parent?: { id?: string };
+          created_time?: string;
+        }>
       >("meta", "GET", `/${id}/comments`, {
-        fields: "id,message,from,created_time",
+        fields: "id,message,from{id,name},parent{id},created_time",
         filter: "stream",
         limit: Math.min(q.limit ?? 100, 100),
       });
+      // The Page's own answers come back in the stream: kept as ours, never in the Inbox.
+      const own = (await page()).id;
       return pageOf(
         (r.data ?? []).map((c) => ({
           id: c.id,
@@ -431,6 +443,8 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
           author: c.from?.name ?? "",
           text: c.message ?? "",
           at: c.created_time ?? now().toISOString(),
+          ...(c.parent?.id ? { parentId: c.parent.id } : {}),
+          ...(c.from?.id && c.from.id === own ? { mine: true } : {}),
         })),
         q,
       );

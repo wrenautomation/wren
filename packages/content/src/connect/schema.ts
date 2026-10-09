@@ -50,11 +50,18 @@ export const socialGrants = pgTable(
 );
 export type SocialGrantRow = typeof socialGrants.$inferSelect;
 
-/** What a connection carries beside its token: the Page an Instagram account posts through. */
+/**
+ * What a connection carries beside its token: the Page an Instagram account posts through, a
+ * LinkedIn company page's URN, a Business Profile's location.
+ */
 export interface SocialExtra {
   pageId?: string;
   pageName?: string;
   igUserId?: string;
+  /** `urn:li:organization:<id>`: the company page it posts as. */
+  orgUrn?: string;
+  /** `accounts/<a>/locations/<l>`: the Business Profile it posts as and reads reviews of. */
+  location?: string;
 }
 
 /** A connected account: who it is on the platform and where its token is kept. */

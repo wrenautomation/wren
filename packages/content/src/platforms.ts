@@ -109,6 +109,16 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     goCode: "fb",
     feed: { laptop: 5, phone: 3 },
   },
+  // A client's Profile only (designs/2026-10-07-client-social.md): no `/go/` link rides on it.
+  google_business: {
+    platform: "google_business",
+    maxChars: 1500,
+    shape:
+      "a Google Business Profile update: two or three short sentences on one offer, event or piece of news, plain words, no hashtags, no links in the text",
+    name: "Business Profile",
+    goCode: "gb",
+    feed: { laptop: 3, phone: 3 },
+  },
 };
 
 /** Why the platform cannot take this idea, or null when it can. */

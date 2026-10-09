@@ -474,6 +474,24 @@ const facebook = shape({
   link: url("Link"),
 });
 
+/** A Business Profile post's button: what it says and where it goes. */
+const googleBusiness = shape({
+  action: pick(
+    "Button",
+    ["LEARN_MORE", "BOOK", "ORDER", "SHOP", "SIGN_UP", "CALL"],
+    {
+      LEARN_MORE: "Learn more",
+      BOOK: "Book",
+      ORDER: "Order online",
+      SHOP: "Buy",
+      SIGN_UP: "Sign up",
+      CALL: "Call now",
+    },
+    { hint: "Unset: no button" },
+  ),
+  actionUrl: url("Button link", { hint: "https://… (not for Call now)" }),
+});
+
 export const SHAPES = {
   youtube,
   reddit,
@@ -482,6 +500,7 @@ export const SHAPES = {
   tiktok,
   x,
   facebook,
+  google_business: googleBusiness,
 } as const satisfies Record<Platform, Shape>;
 
 export type FieldsOf<P extends Platform> = z.output<(typeof SHAPES)[P]["schema"]>;

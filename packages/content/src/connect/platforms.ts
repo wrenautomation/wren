@@ -9,6 +9,7 @@ export const SOCIAL_PLATFORMS = [
   "facebook",
   "instagram",
   "linkedin",
+  "linkedin_page",
   "youtube",
   "x",
   "tiktok",
@@ -17,16 +18,28 @@ export const SOCIAL_PLATFORMS = [
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 /** The content channels a connected account posts as: a subset of `@wren/core/content`'s. */
-export type SocialChannel = "facebook" | "instagram" | "linkedin" | "youtube" | "x" | "tiktok";
+export type SocialChannel =
+  | "facebook"
+  | "instagram"
+  | "linkedin"
+  | "youtube"
+  | "x"
+  | "tiktok"
+  | "google_business";
 
-/** Wren's developer apps: one Meta app for a Page and its Instagram, one Google client for both. */
-export const SOCIAL_APPS = ["meta", "linkedin", "google", "x", "tiktok"] as const;
+/**
+ * Wren's developer apps: one Meta app for a Page and its Instagram, one Google client for YouTube
+ * and Business Profile. Company pages are their own LinkedIn app: the Community Management API
+ * must be the only product on its app.
+ */
+export const SOCIAL_APPS = ["meta", "linkedin", "linkedin_pages", "google", "x", "tiktok"] as const;
 export type SocialApp = (typeof SOCIAL_APPS)[number];
 
 /** Each app's name as a person says it, and its key store prefix (`SOCIAL_META_CLIENT_ID`). */
 export const APP_NAMES: Record<SocialApp, string> = {
   meta: "Meta",
   linkedin: "LinkedIn",
+  linkedin_pages: "LinkedIn Pages",
   google: "Google",
   x: "X",
   tiktok: "TikTok",
@@ -37,8 +50,8 @@ export const appKey = (app: SocialApp, part: "ID" | "SECRET") =>
 export interface SocialSpec {
   label: string;
   app: SocialApp;
-  /** The content channel it posts as; null where Wren doesn't post yet (Business Profile). */
-  channel: SocialChannel | null;
+  /** The content channel it posts as. */
+  channel: SocialChannel;
   authorize: string;
   token: string;
   scopes: readonly string[];
@@ -46,7 +59,7 @@ export interface SocialSpec {
   pkce: boolean;
   /** Whether its DMs come into the Inbox and answer from it. */
   dms: boolean;
-  /** Whether its comments come into the Inbox. */
+  /** Whether its comments (Business Profile: reviews) come into the Inbox and answer from it. */
   comments: boolean;
   /** What waits on review, said to the client. */
   review: string;
@@ -125,6 +138,21 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
     selfServe: "Press Connect and sign in as the person Wren posts as.",
     forYou: "Only that person can sign in. Wren's team helps on a call.",
   },
+  linkedin_page: {
+    label: "LinkedIn company page",
+    app: "linkedin_pages",
+    channel: "linkedin",
+    authorize: "https://www.linkedin.com/oauth/v2/authorization",
+    token: "https://www.linkedin.com/oauth/v2/accessToken",
+    scopes: ["r_organization_social", "w_organization_social", "rw_organization_admin"],
+    pkce: false,
+    dms: false,
+    comments: true,
+    review: "LinkedIn is reviewing Wren's company page app.",
+    before: null,
+    selfServe: "Press Connect and sign in as a super admin of the page.",
+    forYou: "Make a Wren team member a super admin of the page. They connect it.",
+  },
   youtube: {
     label: "YouTube channel",
     app: "google",
@@ -185,13 +213,13 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
   google_business: {
     label: "Google Business Profile",
     app: "google",
-    channel: null,
+    channel: "google_business",
     authorize: GOOGLE_AUTH,
     token: GOOGLE_TOKEN,
     scopes: ["https://www.googleapis.com/auth/business.manage"],
     pkce: true,
     dms: false,
-    comments: false,
+    comments: true,
     review: "Google is granting Wren's app access to the Business Profile API.",
     before: null,
     selfServe: "Press Connect and sign in as a Profile owner or manager.",
@@ -199,8 +227,8 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
   },
 };
 
-/** The platforms that post through a content channel, with that channel. */
-export const channelOf = (p: SocialPlatform): SocialChannel | null => SOCIAL[p].channel;
+/** The content channel a connected account posts as. */
+export const channelOf = (p: SocialPlatform): SocialChannel => SOCIAL[p].channel;
 
 /**
  * Platforms whose review passed, from `WREN_SOCIAL_LIVE` (`facebook,instagram`). X and a LinkedIn

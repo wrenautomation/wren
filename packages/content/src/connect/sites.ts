@@ -8,10 +8,17 @@
 import type { FetchLike } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { connectionIdOf, SocialRefusal } from "./access.js";
-import { GOOGLE_API, GRAPH, LINKEDIN_API, TIKTOK_API, X_API } from "./oauth.js";
+import {
+  GBP_API,
+  GOOGLE_API,
+  GRAPH,
+  LINKEDIN_API,
+  LINKEDIN_VERSION,
+  TIKTOK_API,
+  X_API,
+} from "./oauth.js";
 import type { SocialConnectionRow } from "./schema.js";
 
-export const LINKEDIN_VERSION = "202508";
 const TIKTOK_FIELDS =
   "id,title,create_time,cover_image_url,share_url,view_count,like_count,comment_count,share_count";
 
@@ -296,6 +303,13 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
             body: JSON.stringify(input),
           }),
         );
+      }
+      case "google_business": {
+        // Only the connected location's own posts and reviews.
+        const own = c.extra.location ? `/v4/${c.extra.location}/` : null;
+        if (!own || !path.startsWith(own))
+          throw new SiteCallError(site, method, path, 404, "not this Profile's location");
+        return plain(GBP_API);
       }
       default:
         throw new SiteCallError(site, method, path, 404, "no such site on a client's account");

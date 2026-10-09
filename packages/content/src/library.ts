@@ -175,6 +175,7 @@ const PLATFORM: Record<string, State> = cued({
   instagram: { label: "Instagram", tone: "neutral" },
   facebook: { label: "Facebook", tone: "neutral" },
   tiktok: { label: "TikTok", tone: "neutral" },
+  google_business: { label: "Business Profile", tone: "neutral" },
   reddit: { label: "Reddit", tone: "neutral" },
 });
 

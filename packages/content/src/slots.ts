@@ -36,6 +36,7 @@ export const DEFAULT_SLOTS: Slots = {
   instagram: [{ hour: 18, minute: 0 }],
   tiktok: [{ hour: 19, minute: 0 }],
   youtube: [{ hour: 15, minute: 0 }],
+  google_business: [{ hour: 10, minute: 0, days: [2, 4] }],
 };
 
 /**

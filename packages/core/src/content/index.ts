@@ -19,7 +19,8 @@ export type Platform =
   | "x"
   | "instagram"
   | "facebook"
-  | "tiktok";
+  | "tiktok"
+  | "google_business";
 export const PLATFORMS: readonly Platform[] = [
   "linkedin",
   "reddit",
@@ -28,6 +29,7 @@ export const PLATFORMS: readonly Platform[] = [
   "instagram",
   "facebook",
   "tiktok",
+  "google_business",
 ];
 export type FetchedWith = "api" | "browser";
 
@@ -184,6 +186,11 @@ export interface ContentChannel {
   comments(id: string, q?: ListQuery): Promise<CommentRow[]>;
   /** Absent when the platform gives no way to answer (LinkedIn without the partner API). */
   reply?(commentId: string, text: string): Promise<void>;
+  /**
+   * What people said about the account itself, not on a post (Business Profile reviews), newest
+   * first, as comments: `postId` is the account's place. `reply` answers one. Absent = none.
+   */
+  reviews?(q?: ActivityQuery): Promise<CommentRow[]>;
   /** Follows, subscribes, mentions and notices on our account, newest first. Absent = not read. */
   activity?(q?: ActivityQuery): Promise<ActivityRow[]>;
   /** Our follower count now. Absent = not read. */

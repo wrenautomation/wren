@@ -22,6 +22,11 @@ export const GRAPH = "https://graph.facebook.com/v23.0";
 export const LINKEDIN_API = "https://api.linkedin.com";
 export const GOOGLE_API = "https://www.googleapis.com";
 export const GBP_ACCOUNTS = "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
+/** Business Profile locations (v1) and their posts and reviews (v4). */
+export const GBP_INFO = "https://mybusinessbusinessinformation.googleapis.com/v1";
+export const GBP_API = "https://mybusiness.googleapis.com";
+/** LinkedIn's versioned REST API: the month it speaks. */
+export const LINKEDIN_VERSION = "202508";
 export const X_API = "https://api.x.com";
 export const TIKTOK_API = "https://open.tiktokapis.com";
 
@@ -136,6 +141,15 @@ const bearer = (token: string): RequestInit => ({
   method: "GET",
   headers: { authorization: `Bearer ${token}` },
 });
+/** LinkedIn's REST reads: its version and Rest.li 2.0. */
+const linkedinGet = (token: string): RequestInit => ({
+  method: "GET",
+  headers: {
+    authorization: `Bearer ${token}`,
+    "LinkedIn-Version": LINKEDIN_VERSION,
+    "X-Restli-Protocol-Version": "2.0.0",
+  },
+});
 const basic = (app: SocialAppKeys) => ({
   authorization: `Basic ${Buffer.from(`${app.id}:${app.secret}`).toString("base64")}`,
 });
@@ -205,7 +219,8 @@ export async function landCode(
     throw new SocialAuthError("no_refresh", "No lasting sign-in came back. Try again.", false);
   const access = String(t.access_token ?? "");
   const who = await whoAmI(fetch, platform, access, {});
-  const refreshFor = Number(t.refresh_expires_in ?? 0);
+  // TikTok says `refresh_expires_in`, LinkedIn's company pages `refresh_token_expires_in`.
+  const refreshFor = Number(t.refresh_expires_in ?? t.refresh_token_expires_in ?? 0);
   return {
     ...who,
     scopes: scopesOf(t.scope),
@@ -213,7 +228,7 @@ export async function landCode(
     access,
     accessFor: Number(t.expires_in ?? 3600),
     expiresAt: refreshFor > 0 ? new Date(o.now.getTime() + refreshFor * 1000) : null,
-    extra: {},
+    extra: who.extra ?? {},
   };
 }
 
@@ -339,13 +354,22 @@ export async function refreshToken(
   };
 }
 
-/** Who the token is: one free read. A Page or Instagram account reads itself by id. */
+/**
+ * Who the token is: one free read. A Page, Instagram account, company page or Profile location
+ * reads itself by id. Signing in, a company page or a Profile takes the first one the person
+ * manages, and says it in `extra`.
+ */
 export async function whoAmI(
   fetch: FetchLike,
   platform: SocialPlatform,
   access: string,
   extra: SocialExtra,
-): Promise<{ externalId: string; name: string | null; handle: string | null }> {
+): Promise<{
+  externalId: string;
+  name: string | null;
+  handle: string | null;
+  extra?: SocialExtra;
+}> {
   switch (platform) {
     case "facebook": {
       const b = await json(fetch, `${GRAPH}/${extra.pageId}?fields=id,name`, bearer(access));
@@ -393,12 +417,62 @@ export async function whoAmI(
         handle: str(u.username),
       };
     }
+    case "linkedin_page": {
+      let org = extra.orgUrn;
+      if (!org) {
+        const acl = await json(
+          fetch,
+          `${LINKEDIN_API}/rest/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED`,
+          linkedinGet(access),
+        );
+        const first = ((acl.elements as Json[] | undefined) ?? [])[0];
+        org = str(first?.organization) ?? str(first?.organizationalTarget) ?? undefined;
+        if (!org)
+          throw new SocialAuthError(
+            "no_page",
+            "You aren't an admin of a LinkedIn company page. Sign in as one.",
+            false,
+          );
+      }
+      const id = org.split(":").pop() ?? "";
+      const b = await json(fetch, `${LINKEDIN_API}/rest/organizations/${id}`, linkedinGet(access));
+      return {
+        externalId: id,
+        name: str(b.localizedName),
+        handle: str(b.vanityName),
+        extra: { orgUrn: org },
+      };
+    }
     case "google_business": {
+      const fields = "readMask=name,title";
+      if (extra.location) {
+        const at = extra.location.slice(extra.location.indexOf("locations/"));
+        const b = await json(fetch, `${GBP_INFO}/${at}?${fields}`, bearer(access));
+        return { externalId: extra.location, name: str(b.title), handle: null, extra };
+      }
       const b = await json(fetch, GBP_ACCOUNTS, bearer(access));
       const a = ((b.accounts as Json[] | undefined) ?? [])[0];
       if (!a)
         throw new SocialAuthError("no_profile", "This Google account manages no Profile.", false);
-      return { externalId: String(a.name), name: str(a.accountName), handle: null };
+      const l = await json(
+        fetch,
+        `${GBP_INFO}/${String(a.name)}/locations?${fields}&pageSize=100`,
+        bearer(access),
+      );
+      const loc = ((l.locations as Json[] | undefined) ?? [])[0];
+      if (!loc)
+        throw new SocialAuthError(
+          "no_profile",
+          "This Google account manages no business location.",
+          false,
+        );
+      const location = `${String(a.name)}/${String(loc.name)}`;
+      return {
+        externalId: location,
+        name: str(loc.title) ?? str(a.accountName),
+        handle: null,
+        extra: { location },
+      };
     }
   }
 }

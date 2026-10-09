@@ -114,6 +114,7 @@ const NAMES: Record<string, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  google_business: "Business Profile",
 };
 
 /**
