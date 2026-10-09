@@ -9,6 +9,7 @@ import type { Queryable } from "@wren/db";
 import { askedInWords, type Comment, comments } from "@wren/outreach";
 import { keepTouch, touchFromComment } from "@wren/outreach/touches";
 import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import { keepLive } from "../analytics/store.js";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
 import { touchFromActivity } from "../touches.js";
 
@@ -188,6 +189,10 @@ export async function keepDay(
     ? insert.onConflictDoUpdate({ target: [socialDays.platform, socialDays.day], set: row })
     : insert.onConflictDoNothing()
   ).returning({ day: socialDays.day });
+  // The catalog's Followers row reads live from here on (designs/2026-10-07-content-analytics.md).
+  const at = new Date(a.asOf);
+  if (kept.length)
+    await keepLive(db, platform, ["account.followers"], Number.isNaN(+at) ? new Date() : at);
   return kept.length > 0;
 }
 

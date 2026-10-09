@@ -6,8 +6,11 @@
  * side; an empty page when the tier refuses); reply = a post in reply.
  * A thread (kind `thread`) posts its first post with the fields, then each next one in reply to
  * the last; a break partway stays posted and says so in `notes`, since a retry would post twice.
+ * Audience = `users/me` followers. A video post's insights also ask for its media's plays and
+ * playback quartiles, which sends that one read to X's API (designs/2026-10-07-content-analytics.md).
  */
 import {
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -61,7 +64,40 @@ interface Tweet {
   };
 }
 interface Me {
-  data?: { id?: string; username?: string };
+  data?: { id?: string; username?: string; public_metrics?: { followers_count?: number } };
+}
+/** A post's media as `expansions=attachments.media_keys` returns it; the counts are the author's. */
+interface XMedia {
+  media_key?: string;
+  type?: string;
+  public_metrics?: { view_count?: number };
+  non_public_metrics?: Partial<Record<Playback, number>>;
+  organic_metrics?: Partial<Record<Playback, number>> & { view_count?: number };
+}
+type Playback =
+  | "playback_0_count"
+  | "playback_25_count"
+  | "playback_50_count"
+  | "playback_75_count"
+  | "playback_100_count";
+const QUARTILES = ["0", "25", "50", "75", "100"] as const;
+/** Asking for these sends the read to X's API (the browser leg has no plays): video posts only. */
+const VIDEO_QUERY = {
+  expansions: "attachments.media_keys",
+  "media.fields": "type,duration_ms,public_metrics,non_public_metrics,organic_metrics",
+};
+
+/** A video's plays and how far they got, from the first video on the post. */
+export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[] | null {
+  const v = media?.find((m) => m.type === "video" || m.type === "animated_gif");
+  if (!v) return null;
+  const own = v.organic_metrics ?? v.non_public_metrics;
+  const views = v.organic_metrics?.view_count ?? v.public_metrics?.view_count;
+  const out = [
+    ...numberOf(M.videoViews, views),
+    ...QUARTILES.flatMap((q) => numberOf(M.playback, own?.[`playback_${q}_count`], q)),
+  ];
+  return out.length ? out : null;
 }
 
 export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentChannel {
@@ -183,6 +219,15 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         q,
       );
     },
+    async audience(): Promise<Audience> {
+      const r = await sites.call<Me>("x", "GET", "/2/users/me", {
+        "user.fields": "id,username,public_metrics",
+      });
+      const n = r.data?.public_metrics?.followers_count;
+      if (typeof n !== "number")
+        throw new Error("x: the account's follower count didn't come back");
+      return { followers: n, asOf: now().toISOString(), raw: r.data };
+    },
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("x", "POST", "/2/tweets", {
         text,
@@ -191,12 +236,37 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
     },
     async insights(q: InsightsQuery): Promise<Insights> {
       const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      const video = q.media === "video";
       await readGroup(
-        [M.views, M.likes, M.comments, M.shares, M.saves, M.linkClicks, M.profileClicks],
+        [
+          M.views,
+          M.likes,
+          M.comments,
+          M.shares,
+          M.saves,
+          M.linkClicks,
+          M.profileClicks,
+          ...(video ? [M.videoViews, M.playback] : []),
+        ],
         async () => {
-          const t = (await sites.call<{ data?: Tweet }>("x", "GET", `/2/tweets/${q.id}`, {})).data;
+          const r = await sites.call<{ data?: Tweet; includes?: { media?: XMedia[] } }>(
+            "x",
+            "GET",
+            `/2/tweets/${q.id}`,
+            video ? VIDEO_QUERY : {},
+          );
+          const t = r.data;
           const p = t?.public_metrics ?? {};
           const own = t?.non_public_metrics;
+          const watch = video ? videoWatch(r.includes?.media) : null;
+          if (video && !watch)
+            out.gaps.push(
+              ...knownGaps(
+                "no_api",
+                "X gives a video's plays to the API leg only, for 30 days after it posts",
+                [M.videoViews, M.playback],
+              ),
+            );
           if (!own)
             out.gaps.push(
               ...knownGaps(
@@ -213,6 +283,7 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
             ...numberOf(M.saves, p.bookmark_count),
             ...numberOf(M.linkClicks, own?.url_link_clicks),
             ...numberOf(M.profileClicks, own?.user_profile_clicks),
+            ...(watch ?? []),
           ];
         },
         out,

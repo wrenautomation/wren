@@ -9,7 +9,7 @@ entity: packages/core/src/content/index.ts:12
 
 # platform
 
-One of seven places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count).
+One of seven places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count; X `users/me`, TikTok `user/info`, both daily).
 
 ## Why this shape
 

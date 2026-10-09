@@ -462,7 +462,8 @@ export const marketingSiteDayRecords = pgView("marketing_site_day_records", {
 /**
  * Each `/go/` link's day (`marketing.link_day`, designs/2026-10-07-content-analytics.md): its
  * visitors, then forms, calls and clients won by first and by last touch, revenue in USD. A
- * post's own link names it (`content` = its draft's first 8); `post` is its record id.
+ * post's own link names it (`content` = its draft's first 8); a long video's footer link names
+ * its video (`campaign` = the video's number, or number-slug). `post` is its record id.
  */
 export const marketingLinkDayRecords = pgView("marketing_link_day_records", {
   id: text("id"),
@@ -496,8 +497,14 @@ export const marketingLinkDayRecords = pgView("marketing_link_day_records", {
   from link_days l
   left join lateral (select concat_ws('/', d.idea_id, d.platform, d.id) id,
       coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title
-    from content_drafts d where l.content <> '' and left(d.id::text, 8) = l.content
-    limit 1) p on true`);
+    from content_drafts d join content_ideas idea on idea.id = d.idea_id
+    where (l.content <> '' and left(d.id::text, 8) = l.content)
+      or (l.content = '' and l.source = 'youtube' and d.platform = 'youtube'
+        and d.status = 'published' and d.extra->>'kind' is distinct from 'short'
+        and substring(idea.ref from '^video:([0-9]+)(~|$)') is not null
+        and (l.campaign = substring(idea.ref from '^video:([0-9]+)(~|$)')
+          or l.campaign like substring(idea.ref from '^video:([0-9]+)(~|$)') || '-%'))
+    order by d.published_at desc nulls last limit 1) p on true`);
 
 /**
  * Each channel's funnel (`marketing.funnel`) over the last 30 days, 90 days and all time: new

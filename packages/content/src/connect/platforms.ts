@@ -173,7 +173,7 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
     channel: "tiktok",
     authorize: "https://www.tiktok.com/v2/auth/authorize/",
     token: "https://open.tiktokapis.com/v2/oauth/token/",
-    scopes: ["user.info.basic", "video.publish", "video.upload", "video.list"],
+    scopes: ["user.info.basic", "user.info.stats", "video.publish", "video.upload", "video.list"],
     pkce: false,
     dms: false,
     comments: false,

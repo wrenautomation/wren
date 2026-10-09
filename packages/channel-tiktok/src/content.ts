@@ -2,9 +2,11 @@
  * TikTok as a `ContentChannel`, over autobrowse's `tiktok` site in the
  * Content Posting API's shape: publish = a video from a public URL (a local
  * file is hosted first), list = the account's videos, metrics = a video's
- * counts. Comments have no self-serve API: an empty page.
+ * counts. Comments have no self-serve API: an empty page. Audience = `user/info` followers
+ * (scope user.info.stats).
  */
 import {
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -122,6 +124,18 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
     },
     async comments(): Promise<CommentRow[]> {
       return [];
+    },
+    async audience(): Promise<Audience> {
+      const r = await sites.call<{ data?: { user?: { follower_count?: number } } }>(
+        "tiktok",
+        "GET",
+        "/v2/user/info/",
+        { fields: "open_id,follower_count" },
+      );
+      const n = r.data?.user?.follower_count;
+      if (typeof n !== "number")
+        throw new Error("tiktok: no follower count (the token needs user.info.stats)");
+      return { followers: n, asOf: now().toISOString(), raw: r.data?.user };
     },
     // The Display API answers counts only (`metrics`); the rest is the Business API's.
     async insights(_q: InsightsQuery): Promise<Insights> {

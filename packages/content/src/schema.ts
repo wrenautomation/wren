@@ -479,7 +479,9 @@ export const marketingPostRecords = pgView("marketing_post_records", {
  * How conversations go (`marketing.conversation`), per platform and for all of them, over the
  * last 7 days, 30 days and all time: their comments answered and how fast, the commenters we
  * DMed, DMs they answered, and DMs that led to a booked call (their email, by the person behind
- * the contact, booked after our first DM). Comments we dropped are out of the base.
+ * the contact or its linked handle, booked after our first DM). A commenter counts as DMed when
+ * the DM came from the comment, or a DM we sent later went to the same handle or platform id
+ * (a client's X DMs, our `dm` touches). Comments we dropped are out of the base.
  */
 export const marketingConversation = pgView("marketing_conversation", {
   id: text("id"),
@@ -498,10 +500,20 @@ export const marketingConversation = pgView("marketing_conversation", {
     ('7d', now() - interval '7 days'), ('30d', now() - interval '30 days'),
     ('all', '-infinity'::timestamptz)),
   theirs as (
-    select c.platform::text platform, c.at, c.state, c.answered_at, c.contact_id from comments c
+    select c.platform::text platform, c.at, c.state, c.answered_at,
+      c.contact_id is not null
+        or exists (select 1 from reach_contacts r
+          join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
+          where r.platform::text = c.platform::text and m.sent_at > c.at
+            and (lower(r.handle) = lower(c.author) or r.profile->>'id' = c.author))
+        or exists (select 1 from social_handles h
+          join touches t on t.handle_id = h.id and t.kind = 'dm' and t.direction = 'ours'
+          where h.platform = c.platform::text and lower(h.handle) = lower(c.author)
+            and t.at > c.at) dmed
+    from comments c
     where c.sort is distinct from 'ours' and c.state <> 'dropped'),
   firsts as (
-    select r.id contact, r.platform::text platform, r.person_id,
+    select r.id contact, r.platform::text platform, r.handle, r.person_id,
       min(m.sent_at) first_out from reach_contacts r
     join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
     group by r.id),
@@ -510,7 +522,11 @@ export const marketingConversation = pgView("marketing_conversation", {
       exists (select 1 from reach_messages i where i.contact_id = f.contact and i.direction = 'in'
         and i.created_at > f.first_out) answered,
       exists (select 1 from leads ld join call_bookings b on lower(b.email) = lower(ld.email)
-        where ld.person_id = f.person_id and b.booked_at > f.first_out) booked
+        where b.booked_at > f.first_out
+          and (ld.person_id = f.person_id
+            or exists (select 1 from social_handles h
+              where h.platform = f.platform and lower(h.handle) = lower(f.handle)
+                and (h.lead_id = ld.id or h.person_id = ld.person_id)))) booked
     from firsts f),
   cs as (
     select s.span, case when grouping(t.platform) = 1 then 'all' else t.platform end platform,
@@ -518,7 +534,7 @@ export const marketingConversation = pgView("marketing_conversation", {
       count(t.answered_at)::int answered,
       (percentile_cont(0.5) within group (order by extract(epoch from t.answered_at - t.at))
         filter (where t.answered_at is not null))::float8 reply_secs,
-      count(t.contact_id)::int dmed
+      count(*) filter (where t.dmed)::int dmed
     from spans s left join theirs t on t.at >= s.since
     group by grouping sets ((s.span, t.platform), (s.span))),
   ds as (

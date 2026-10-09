@@ -209,15 +209,18 @@ export interface SourceRow {
   checked_at: string | Date;
 }
 
+/** What a built row with no number yet says. */
+export const NO_NUMBER_YET = "built, no number yet";
+
 /**
  * An entry's state now: a number that came back makes it live; a refusal of one we thought
- * live says what it is, and so does a report on its way; otherwise the catalog's word stands,
- * its step with it. An account row reads the account's sources (`account.<metric>`).
+ * live or built says what it is, and so does a report on its way; otherwise the catalog's word
+ * stands, its step with it. An account row reads the account's sources (`account.<metric>`).
  */
 export function stateOf(
   e: CatalogEntry,
   sources: ReadonlyMap<string, SourceRow>,
-): { state: CatalogState | "error" | "waiting"; why: string | null; checked: string | null } {
+): { state: CatalogState | "error"; why: string | null; checked: string | null } {
   const prefix = e.group === "account" ? "account." : "";
   const mine = e.metrics
     .map((m) => sources.get(`${e.platform}|${prefix}${m}`))
@@ -226,17 +229,30 @@ export function stateOf(
   const live = mine.find((s) => s.state === "live");
   if (live) return { state: "live", why: null, checked: at(live) };
   const gap = mine.find((s) => s.state === "waiting") ?? mine[0];
-  if (gap && (e.state === "live" || gap.state === "waiting"))
+  if (gap && (e.state === "live" || e.state === "waiting" || gap.state === "waiting"))
     return { state: gap.state as CatalogState | "error", why: gap.why, checked: at(gap) };
+  if (e.state === "waiting") return { state: "waiting", why: NO_NUMBER_YET, checked: null };
   return { state: e.state, why: gap?.why ?? null, checked: at(gap) };
 }
 
+/**
+ * The platforms' last answers, plus the numbers built from our own rows: a platform's
+ * comment-to-DM and DM-to-booking are live once a DM we sent there exists.
+ */
 export const readSources = async (db: Queryable): Promise<Map<string, SourceRow>> =>
   new Map(
     (
       await rowsOf<SourceRow>(
         db,
-        sql`select platform, metric, state, why, checked_at from metric_sources`,
+        sql`select platform, metric, state, why, checked_at from metric_sources
+        union all
+        select r.platform::text, k.metric, 'live', null, max(m.sent_at)
+        from reach_contacts r
+        join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
+        cross join (values ('to_dm'), ('dm_booked')) k(metric)
+        where not exists (select 1 from metric_sources s
+          where s.platform = r.platform::text and s.metric = k.metric)
+        group by r.platform, k.metric`,
       )
     ).map((s) => [`${s.platform}|${s.metric}`, s]),
   );
@@ -500,11 +516,21 @@ export async function postAnalytics(db: Queryable, draftId: string): Promise<Pos
   const [c] = d.published_id
     ? await rowsOf<{ theirs: number; answered: number; reply_secs: number | null; dmed: number }>(
         db,
-        sql`select count(*)::int theirs, count(answered_at)::int answered, count(contact_id)::int dmed,
-          (percentile_cont(0.5) within group (order by extract(epoch from answered_at - at))
-            filter (where answered_at is not null))::float8 reply_secs
-        from comments where post = ${d.published_id} and platform::text = ${d.platform}
-          and sort is distinct from 'ours' and state <> 'dropped'`,
+        // DMed: as `marketing_conversation` counts it (from the comment, or a later DM to them).
+        sql`select count(*)::int theirs, count(c.answered_at)::int answered,
+          count(*) filter (where c.contact_id is not null
+            or exists (select 1 from reach_contacts r
+              join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
+              where r.platform::text = c.platform::text and m.sent_at > c.at
+                and (lower(r.handle) = lower(c.author) or r.profile->>'id' = c.author))
+            or exists (select 1 from social_handles h
+              join touches t on t.handle_id = h.id and t.kind = 'dm' and t.direction = 'ours'
+              where h.platform = c.platform::text and lower(h.handle) = lower(c.author)
+                and t.at > c.at))::int dmed,
+          (percentile_cont(0.5) within group (order by extract(epoch from c.answered_at - c.at))
+            filter (where c.answered_at is not null))::float8 reply_secs
+        from comments c where c.post = ${d.published_id} and c.platform::text = ${d.platform}
+          and c.sort is distinct from 'ours' and c.state <> 'dropped'`,
       )
     : [];
   return {

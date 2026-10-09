@@ -13,7 +13,7 @@ import { stateOf } from "./records.js";
 
 const DOC = new URL("../../../../designs/2026-10-07-content-analytics.md", import.meta.url);
 
-/** The doc's Counts table, row by row: label, then Live, Needs scope, Needs William, Not built, No API. */
+/** The doc's Counts table, row by row: label, then Live, Waiting, Needs scope, Needs William, Not built, No API. */
 function docCounts(): Map<string, number[]> {
   const text = readFileSync(DOC, "utf8");
   const at = text.indexOf("| Platform | Live |");
@@ -37,7 +37,7 @@ describe("analytics catalog", () => {
       if (c.label === "Every platform") continue;
       expect([c.label, doc.get(c.label)]).toEqual([
         c.label,
-        [c.live, c.needs_scope, c.needs_william, c.not_built, c.no_api],
+        [c.live, c.waiting, c.needs_scope, c.needs_william, c.not_built, c.no_api],
       ]);
     }
     expect(doc.size).toBe(CATALOG_TABLES.length - 1);
@@ -96,5 +96,27 @@ describe("analytics catalog", () => {
     const days = entry("Channel views and subscribers per day");
     expect(stateOf(days, new Map([src("views", "live")])).state).toBe("needs_scope");
     expect(stateOf(days, new Map([src("account.views", "live")])).state).toBe("live");
+  });
+
+  it("a built row waits for its first number, shows a refusal, and goes live on a number", () => {
+    const watch = ANALYTICS_CATALOG.find(
+      (e) => e.platform === "x" && e.label === "Video views and playback quartiles",
+    );
+    if (!watch) throw new Error("x watch row");
+    expect(watch.state).toBe("waiting");
+    const src = (metric: string, state: string, why: string | null = null) =>
+      [`x|${metric}`, { platform: "x", metric, state, why, checked_at: "2026-10-09" }] as const;
+    expect(stateOf(watch, new Map())).toMatchObject({
+      state: "waiting",
+      why: "built, no number yet",
+    });
+    expect(stateOf(watch, new Map([src("video_views", "no_api", "browser leg")]))).toMatchObject({
+      state: "no_api",
+      why: "browser leg",
+    });
+    expect(stateOf(watch, new Map([src("playback", "live")])).state).toBe("live");
+    const followers = ANALYTICS_CATALOG.find((e) => e.platform === "x" && e.group === "account");
+    if (!followers) throw new Error("x followers row");
+    expect(stateOf(followers, new Map([src("account.followers", "live")])).state).toBe("live");
   });
 });

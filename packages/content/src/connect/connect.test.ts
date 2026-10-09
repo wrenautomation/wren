@@ -6,7 +6,7 @@ import { connectionIdOf, loginOf, platformStates, tokenName } from "./access.js"
 import { connectUrl, landCode, refreshToken, SocialAuthError, whoAmI } from "./oauth.js";
 import { liveFrom, SOCIAL, SOCIAL_PLATFORMS } from "./platforms.js";
 import type { SocialConnectionRow } from "./schema.js";
-import { socialSites } from "./sites.js";
+import { socialSites, X_CHUNK } from "./sites.js";
 
 const APP = { id: "app-id", secret: "app-secret" };
 const NOW = new Date("2026-10-07T12:00:00Z");
@@ -317,6 +317,7 @@ describe("socialSites", () => {
   const sites = (row: SocialConnectionRow, route: Route) => {
     const f = fakeFetch(route);
     const broken: string[] = [];
+    const slept: number[] = [];
     const client = socialSites({
       connection: async (id) => (id === row.id ? row : null),
       tokenOf: async () => SECRET,
@@ -324,9 +325,90 @@ describe("socialSites", () => {
         broken.push(why);
       },
       fetch: f.fetch,
+      sleep: async (ms) => {
+        slept.push(ms);
+      },
     });
-    return { client, asked: f.asked, broken };
+    return { client, asked: f.asked, broken, slept };
   };
+
+  it("an X video goes up in chunks, then waits while X processes it", async () => {
+    const row = conn({ platform: "x" });
+    const size = X_CHUNK + 10;
+    let checks = 0;
+    const { client, asked, slept } = sites(row, (url) => {
+      if (url === "https://cdn.test/v.mp4")
+        return new Response(new Uint8Array(size), { headers: { "content-type": "video/mp4" } });
+      if (url.endsWith("/2/media/upload/initialize")) return Response.json({ data: { id: "m1" } });
+      if (url.endsWith("/2/media/upload/m1/append")) return new Response(null, { status: 204 });
+      if (url.endsWith("/2/media/upload/m1/finalize"))
+        return Response.json({
+          data: { id: "m1", processing_info: { state: "pending", check_after_secs: 3 } },
+        });
+      if (url.includes("command=STATUS")) {
+        checks += 1;
+        return Response.json({
+          data: {
+            id: "m1",
+            processing_info:
+              checks < 2 ? { state: "in_progress", check_after_secs: 1 } : { state: "succeeded" },
+          },
+        });
+      }
+      return undefined;
+    });
+    const out = await client.call<{ data: { id: string } }>(
+      "x",
+      "POST",
+      "/2/media/upload",
+      { file: "https://cdn.test/v.mp4" },
+      "social:7",
+    );
+    expect(out).toEqual({ data: { id: "m1" } });
+    const init = asked.find((a) => a.url.endsWith("/initialize"));
+    expect(JSON.parse(String(init?.init?.body))).toEqual({
+      media_type: "video/mp4",
+      total_bytes: size,
+      media_category: "tweet_video",
+    });
+    const appends = asked.filter((a) => a.url.endsWith("/append"));
+    const form = (i: number) => appends[i]?.init?.body as FormData;
+    expect(appends.map((_, i) => form(i).get("segment_index"))).toEqual(["0", "1"]);
+    expect((form(1).get("media") as Blob).size).toBe(10);
+    expect(slept).toEqual([3000, 1000]);
+    expect(checks).toBe(2);
+  });
+
+  it("an X video that fails processing is refused", async () => {
+    const row = conn({ platform: "x" });
+    const { client } = sites(row, (url) => {
+      if (url === "https://cdn.test/v.mp4")
+        return new Response(new Uint8Array(5), { headers: { "content-type": "video/mp4" } });
+      if (url.endsWith("/initialize")) return Response.json({ data: { id: "m2" } });
+      if (url.endsWith("/append")) return new Response(null, { status: 204 });
+      if (url.endsWith("/finalize"))
+        return Response.json({ data: { id: "m2", processing_info: { state: "failed" } } });
+      return undefined;
+    });
+    await expect(
+      client.call("x", "POST", "/2/media/upload", { file: "https://cdn.test/v.mp4" }, "social:7"),
+    ).rejects.toThrow(/could not process/);
+  });
+
+  it("TikTok's missing scope is a 403 and the connection stays", async () => {
+    const row = conn({ platform: "tiktok" });
+    const { client, broken } = sites(row, () =>
+      Response.json(
+        { error: { code: "scope_not_authorized", message: "needs user.info.stats" } },
+        { status: 401 },
+      ),
+    );
+    const err = await client
+      .call("tiktok", "GET", "/v2/user/info/", { fields: "follower_count" }, "social:7")
+      .catch((e: unknown) => e);
+    expect((err as { status?: number }).status).toBe(403);
+    expect(broken).toEqual([]);
+  });
 
   it("Meta answers its own Page for /me/accounts and reads Graph with a query", async () => {
     const row = conn({ platform: "instagram", extra: { pageId: "p2", igUserId: "ig9" } });

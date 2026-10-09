@@ -20,7 +20,14 @@ export interface SocialSitesDeps {
   tokenOf: (c: SocialConnectionRow) => Promise<string>;
   broke: (id: number, why: string) => Promise<void>;
   fetch: FetchLike;
+  /** Waits between X's video processing checks; tests pass one that returns at once. */
+  sleep?: (ms: number) => Promise<void>;
 }
+
+/** X's chunk size for a video upload, under its 5 MB per append. */
+export const X_CHUNK = 4 * 1024 * 1024;
+/** Longest wait for X to finish processing a video before the call fails (and its step retries). */
+const X_PROCESSING_MS = 5 * 60_000;
 
 type Json = Record<string, unknown>;
 
@@ -31,6 +38,7 @@ const query = (input: Json) => {
       q.set(k, typeof v === "object" ? JSON.stringify(v) : String(v));
   return q;
 };
+const str = (v: unknown) => (typeof v === "string" && v ? v : null);
 const withQuery = (url: string, q: URLSearchParams) =>
   q.size ? `${url}${url.includes("?") ? "&" : "?"}${q}` : url;
 
@@ -45,10 +53,13 @@ function saidOf(b: Json): string {
     "";
   return String(m).split(/\r?\n/)[0]?.slice(0, 200) || "refused";
 }
+const codeOf = (b: Json) =>
+  b.error && typeof b.error === "object" ? (b.error as Json).code : undefined;
+/** A scope the token lacks (TikTok answers it with a 401): a missing scope, not a dead token. */
+const missingScope = (b: Json) => codeOf(b) === "scope_not_authorized";
 /** Meta's code 190 is a dead token whatever the status. */
 const deadToken = (status: number, b: Json) =>
-  status === 401 ||
-  (!!b.error && typeof b.error === "object" && Number((b.error as Json).code) === 190);
+  (status === 401 && !missingScope(b)) || Number(codeOf(b)) === 190;
 
 export function socialSites(deps: SocialSitesDeps): SiteClient {
   const http = async (
@@ -64,7 +75,7 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
     const b = (await res.json().catch(() => ({}))) as Json;
     if (deadToken(res.status, b))
       await deps.broke(c.id, "Access was taken back. Connect it again.");
-    throw new SiteCallError(site, method, path, res.status, saidOf(b));
+    throw new SiteCallError(site, method, path, missingScope(b) ? 403 : res.status, saidOf(b));
   };
   const body = async (res: Response) => {
     const t = await res.text();
@@ -78,6 +89,64 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
     if (!res.ok) throw new SiteCallError(site, "POST", path, 422, `media fetch ${res.status}`);
     return { bytes: await res.arrayBuffer(), type: res.headers.get("content-type") ?? "" };
   };
+
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+
+  /**
+   * A video on X's v2 chunked upload: initialize, append each 4 MB chunk, finalize, then wait
+   * while X processes it. Answers `{data: {id}}` like the image upload; the id posts once ready.
+   */
+  async function xVideo(
+    c: SocialConnectionRow,
+    auth: Record<string, string>,
+    m: { bytes: ArrayBuffer; type: string },
+  ): Promise<Json> {
+    const path = "/2/media/upload";
+    const json = (to: string, input: Json) =>
+      http(c, "x", "POST", path, `${X_API}${to}`, {
+        method: "POST",
+        headers: { ...auth, "content-type": "application/json" },
+        body: JSON.stringify(input),
+      }).then(body);
+    const init = await json("/2/media/upload/initialize", {
+      media_type: m.type,
+      total_bytes: m.bytes.byteLength,
+      media_category: "tweet_video",
+    });
+    const id = str((init.data as Json | undefined)?.id);
+    if (!id) throw new SiteCallError("x", "POST", path, 502, "the upload answered no id");
+    for (let at = 0, seg = 0; at < m.bytes.byteLength; at += X_CHUNK, seg++) {
+      const f = new FormData();
+      f.set("segment_index", String(seg));
+      f.set("media", new Blob([m.bytes.slice(at, at + X_CHUNK)], { type: m.type }));
+      await http(c, "x", "POST", path, `${X_API}/2/media/upload/${id}/append`, {
+        method: "POST",
+        headers: auth,
+        body: f,
+      });
+    }
+    let state = await json(`/2/media/upload/${id}/finalize`, {});
+    let waited = 0;
+    for (;;) {
+      const info = (state.data as Json | undefined)?.processing_info as Json | undefined;
+      if (!info || info.state === "succeeded") return { data: { id } };
+      if (info.state === "failed")
+        throw new SiteCallError("x", "POST", path, 422, "X could not process the video");
+      if (waited >= X_PROCESSING_MS)
+        throw new SiteCallError("x", "POST", path, 504, "X is still processing the video");
+      const wait = Math.min(Math.max(Number(info.check_after_secs) || 2, 1) * 1000, 30_000);
+      await sleep(wait);
+      waited += wait;
+      state = await http(
+        c,
+        "x",
+        "GET",
+        path,
+        withQuery(`${X_API}/2/media/upload`, query({ command: "STATUS", media_id: id })),
+        { method: "GET", headers: auth },
+      ).then(body);
+    }
+  }
 
   async function send(
     c: SocialConnectionRow,
@@ -198,8 +267,9 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
       case "x": {
         if (method === "POST" && path === "/2/media/upload") {
           const m = await media(site, path, input.file);
+          if (m.type.startsWith("video/")) return xVideo(c, auth, m);
           if (!m.type.startsWith("image/"))
-            throw new SiteCallError(site, method, path, 422, "only images upload to a client's X");
+            throw new SiteCallError(site, method, path, 422, "only images and videos upload to X");
           const f = new FormData();
           f.set("media", new Blob([m.bytes], { type: m.type }));
           f.set("media_category", "tweet_image");

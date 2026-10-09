@@ -56,9 +56,9 @@ and the scope in `youtubeOAuth.scopes` (see "William's steps"). X's `GET /2/twee
 asks for `non_public_metrics`. The `meta` site's `/{mediaId}/insights` and `/{objectId}` cover
 Instagram.
 
-Status words: **Live** we read it today. **Needs scope** a consent away. **Needs William** an app
-review or account only he can apply for. **Not built** buildable, not yet. **No API** the
-platform shows it in its own app only.
+Status words: **Live** we read it today. **Waiting** built, live once its first number lands.
+**Needs scope** a consent away. **Needs William** an app review or account only he can apply
+for. **Not built** buildable, not yet. **No API** the platform shows it in its own app only.
 
 Stage: **Reach** (top), **Trust** (middle), **Convert** (bottom), as in
 `2026-10-07-content-funnel.md`.
@@ -131,7 +131,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Reach, average watch time, full-watch rate, retention, traffic sources | | none | Business API (TikTok for Business account and its review) | Needs William | Reach, Trust |
 | Saves | | none | Business API | Needs William | Trust |
 | Comment reply rate | comments come from the browser leg, not yet stored | none | Business API, or the box's `/web/videos/{id}/comments` | Not built | Trust |
-| Account: followers, likes | | none | `user/info` with user.info.stats | Not built (route exists) | Reach |
+| Account: followers per day | | `social_days` (SocialWatch, daily) | `user/info` `follower_count`, user.info.stats | Waiting | Reach |
 | Profile visits, link-in-bio clicks | | | Business API | Needs William | Reach |
 
 ### LinkedIn (Wren's member account)
@@ -139,8 +139,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
 | Reactions, comments | | `content_metrics` | `socialActions`, w_member_social | Live | Trust |
-| Impressions, members reached, reshares, profile views from the post | | 0 today (`views: 0`) | `memberCreatorPostAnalytics`, r_member_postAnalytics (Community Management API) | Needs William | Reach |
-| The same from the post's analytics page in the browser | | none | autobrowse route on `/analytics/post-summary/` | Not built | Reach |
+| Impressions, members reached, reposts, saves, sends, profile views, follows from the post | | `post_metric_days` | the post's analytics page in the browser as `linkedin@wren` (autobrowse `GET /analytics/post-summary/{urn}`, capped 10 a day), read on days 1, 3, 7, 14 and 28 after it posts. The Community Management API (r_member_postAnalytics) would replace it | Waiting | Reach |
 | Comment reply rate, time to reply | | built here | none | Live | Trust |
 | Comment → DM, DMs answered, DM → booking | reach DMs | built here | none | Live | Convert |
 | Account: followers | | `social_days` (browser `/audience`) | none | Live | Reach |
@@ -153,10 +152,10 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Impressions, likes, replies, reposts and quotes | | `content_metrics` | `public_metrics`, tweet.read | Live | Reach, Trust |
 | Bookmarks (saves) | | collector built | `public_metrics.bookmark_count` | Live | Trust |
 | Link clicks, profile clicks | | collector built | `non_public_metrics` on the API leg (the box's default asks for them) | Live on the API leg; the browser leg leaves them out | Convert, Reach |
-| Video views, watch | | | `organic_metrics` on video posts | Not built | Trust |
+| Video views, playback quartiles (0, 25, 50, 75, 100%) | | `post_metric_days` (`video_views`, `playback` keyed by percent) | media `organic_metrics` (`view_count`, `playback_*_count`) on video posts, API leg; X keeps them 30 days | Waiting | Trust |
 | Comment reply rate, time to reply | replies need search (a paid tier) | built here over what we hold | `tweets/search/recent` | Live over held rows | Trust |
-| Comment → DM, DM → booking | | none: we send no X DMs | `dm.read`, `dm.write` | Not built | Convert |
-| Account: followers | | none | `users/me` `public_metrics` | Not built (route exists) | Reach |
+| Comment → DM, DM → booking | a client's X DMs (`dm.read`, `dm.write`) | built here: a commenter whose X id or handle we DMed after | none | Waiting (live once an X DM is sent) | Convert |
+| Account: followers per day | | `social_days` (SocialWatch, daily) | `users/me` `public_metrics` | Waiting | Reach |
 
 ### Reddit
 
@@ -171,15 +170,15 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 
 ### Counts
 
-| Platform | Live | Needs scope | Needs William | Not built | No API |
-|---|---|---|---|---|---|
-| YouTube long-form | 4 | 10 | 0 | 0 | 2 |
-| YouTube Shorts (past long-form) | 0 | 2 | 0 | 0 | 2 |
-| Instagram | 8 | 1 | 0 | 0 | 3 |
-| TikTok | 1 | 0 | 3 | 2 | 0 |
-| LinkedIn | 4 | 0 | 1 | 2 | 0 |
-| X | 4 | 0 | 0 | 3 | 0 |
-| Reddit | 5 | 0 | 0 | 0 | 1 |
+| Platform | Live | Waiting | Needs scope | Needs William | Not built | No API |
+|---|---|---|---|---|---|---|
+| YouTube long-form | 4 | 0 | 10 | 0 | 0 | 2 |
+| YouTube Shorts (past long-form) | 0 | 0 | 2 | 0 | 0 | 2 |
+| Instagram | 8 | 0 | 1 | 0 | 0 | 3 |
+| TikTok | 1 | 1 | 0 | 3 | 1 | 0 |
+| LinkedIn | 4 | 1 | 0 | 0 | 1 | 0 |
+| X | 4 | 3 | 0 | 0 | 0 | 0 |
+| Reddit | 5 | 0 | 0 | 0 | 0 | 1 |
 
 The same counts live in code (`ANALYTICS_CATALOG`, `packages/content/src/analytics/catalog.ts`);
 a test keeps this table and the catalog in step.
@@ -223,7 +222,8 @@ its Activity tab, its link rows and its comments. Conversation and link rows are
   `revenue_last_cents`. Re-read and upserted like `site_days`.
 - `content_digests`: one per Monday and platform (`all` included): the lines. First kept.
 - A post matches its link rows by `content` = the first 8 of its id, or for a YouTube upload by
-  the footer's campaign (`<video id>-...`).
+  the footer's campaign (`<video id>-...`). `marketing_link_day_records` names the post for
+  both, so the "Site visitors from posts" tile counts footer clicks too.
 
 Collectors: `ContentChannel.insights(id, { published, kind })` and `accountInsights(day)`, both
 optional, both answering numbers plus gaps rather than throwing per metric. `Content.insights`
@@ -238,9 +238,13 @@ Derived (the `marketing_conversation` view and `postAnalytics` in `packages/cont
 
 - reply rate: their comments on our posts we answered, of all theirs;
 - time to reply: median of answered at minus their comment's at;
-- comment → DM: their comments whose author we then DMed (`comments.contact_id`);
-- DMs answered: DM threads where they wrote back after our first message (LinkedIn and Reddit, the only DMs we send);
-- DM → booking: contacts whose person's lead email booked a call after the first DM;
+- comment → DM: their comments whose author we then DMed: from the comment
+  (`comments.contact_id`), or a DM we sent later to the same handle or platform id (a client's
+  X DMs carry the X id), or our `dm` touch on that handle;
+- DMs answered: DM threads where they wrote back after our first message (LinkedIn, Reddit and
+  a client's X);
+- DM → booking: contacts whose person, or whose linked handle's lead or person, booked a call
+  after the first DM;
 - post → site: link clicks over the post's views.
 
 Won and revenue: a booking's or application's email that matches a client member of an
@@ -263,9 +267,11 @@ setting when he asks to change them.
    and click Allow. The next daily look fills every YouTube row above; impressions and CTR follow
    within 2 days.
 2. (Folded into step 1.)
-3. **LinkedIn post analytics.** Apply for the Community Management API on the Wren LinkedIn app
-   (developer portal → Products → Community Management API → Request access). On approval add
-   `r_member_postAnalytics` and consent again.
+3. **LinkedIn post analytics.** Read from the browser now. Optional: the Community Management
+   API on the Wren LinkedIn app (developer portal → Products → Community Management API →
+   Request access) would replace the browser read; on approval add `r_member_postAnalytics`.
+   The browser route ships when autobrowse branch `analytics-reads` merges (the desk deploys
+   main); until then the LinkedIn row says "In development".
 4. **TikTok.** Apply for TikTok for Business API access on the Wren account (and the sandbox
    app's review for public posts). Say when.
 5. **Instagram DMs.** Reading the IG inbox adds `instagram_manage_messages`, which needs Meta app
@@ -273,12 +279,15 @@ setting when he asks to change them.
 
 ## Not built (next)
 
-1. LinkedIn post analytics through the browser while the API waits.
-2. TikTok and X follower counts (routes exist; `audience` on both adapters).
-3. Hook, title and thumbnail variants: we keep his three thumbnails and every title edit, but
+1. Hook, title and thumbnail variants: we keep his three thumbnails and every title edit, but
    YouTube's own test runs in Studio and no API names a variant. If we ever swap a title or
    thumbnail ourselves, the daily CTR rows give before and after; nothing swaps today.
-4. X video watch (`organic_metrics`).
+2. TikTok comment reply rate (comments come from the browser leg, not stored yet).
+3. LinkedIn account profile visits and search appearances (a browser dashboard route).
+
+Built 2026-10-09: LinkedIn post analytics in the browser, TikTok and X followers per day, X
+video views and playback quartiles, a client's X video upload (chunked), comment → DM and
+DM → booking on X, and footer clicks in "Site visitors from posts".
 
 ## Cost
 
@@ -314,3 +323,15 @@ report (autobrowse caps it at 300 a day). No model calls: the digest's "next pos
   and Test and compare runs its variants at once, so no day maps to one variant.
 - 2026-10-07: a channel's day rows read their `account.` sources (they read a post's before and
   could show Live wrongly).
+- 2026-10-09: `waiting` is also a catalog word: built, no number yet. Every new number starts
+  there and flips to Live when its first number lands (a followers day writes
+  `account.followers` live; a sent DM makes that platform's comment → DM and DM → booking live).
+  A refusal shows over it, so a broken read says why.
+- 2026-10-09: LinkedIn post analytics come from the post's analytics page as `linkedin@wren`,
+  on 5 days per post, not every day. A browser read is heavier than an API call and the account
+  is Wren's main one. A day off writes nothing, so the last read stands. One catalog row covers
+  the numbers; the API row is gone since the browser reads the same ones.
+- 2026-10-09: X video watch asks for media fields only on video posts. That sends the read to
+  the API leg (the browser shows no plays), one paid read per video post per daily look.
+- 2026-10-09: a client's TikTok asks user.info.stats for followers. A token without it answers
+  403 (needs scope), not a broken connection.

@@ -70,4 +70,22 @@ describe("tiktok content channel", () => {
     const { sites } = fakeSites({});
     await expect(tiktokContent(sites).publish({ text: "x" })).rejects.toThrow(/a video/);
   });
+
+  it("audience reads the follower count from user/info", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /v2/user/info/": () => ({ data: { user: { open_id: "o", follower_count: 31 } } }),
+    });
+    const a = await tiktokContent(sites, {
+      now: () => new Date("2026-10-09T00:00:00Z"),
+    }).audience?.();
+    expect(a).toMatchObject({ followers: 31, asOf: "2026-10-09T00:00:00.000Z" });
+    expect(String(calls[0]?.[2]?.fields)).toContain("follower_count");
+  });
+
+  it("audience without the stats scope fails rather than writing a zero", async () => {
+    const { sites } = fakeSites({
+      "GET /v2/user/info/": () => ({ data: { user: { open_id: "o" } } }),
+    });
+    await expect(tiktokContent(sites).audience?.()).rejects.toThrow(/user.info.stats/);
+  });
 });

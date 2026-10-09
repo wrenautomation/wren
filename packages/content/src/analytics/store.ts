@@ -55,6 +55,10 @@ async function writeSources(
     });
 }
 
+/** Numbers read by another path (a follower count into `social_days`): live as of `at`. */
+export const keepLive = (db: Queryable, platform: Platform, metrics: readonly string[], at: Date) =>
+  writeSources(db, platform, metrics, [], at);
+
 /** A post's insights for the day they were read. Returns the rows written. */
 export async function writeInsights(
   db: Queryable,

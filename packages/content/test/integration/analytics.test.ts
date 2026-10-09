@@ -20,6 +20,7 @@ import {
 import { writeAccountInsights, writeInsights, writeReportDays } from "../../src/analytics/store.js";
 import { postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics, postMetricDays } from "../../src/schema.js";
+import { keepDay } from "../../src/social/store.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -248,6 +249,113 @@ describe("conversation", () => {
     });
     expect(li?.replySecs).toBe(2 * 3600);
     expect(week.rows.find((r) => r.platform === "all")).toMatchObject({ comments: 3, dms: 1 });
+  });
+});
+
+describe("X conversation and the rows that wait for a first number", () => {
+  it("a commenter DMed later by X id counts; a linked handle's lead books; rows flip live", async () => {
+    // A fresh server each time: one reads a rows-backed type once.
+    const row = async (label: string) =>
+      (
+        await serveRecords([metricRecord], pg.db).list({
+          record: metricRecord.id,
+          view: "all",
+          limit: 300,
+        })
+      ).rows.find((r) => r.platform === "x" && r.label === label);
+    expect(await row("Comment to DM, DM to booking")).toMatchObject({ state: "waiting" });
+    expect(await row("Followers")).toMatchObject({ state: "waiting" });
+
+    const t = daysAgo(4);
+    await pg.db.insert(comments).values({
+      platform: "x",
+      channel: "content",
+      ref: "x-c1",
+      post: "x-post",
+      parent: "x-post",
+      kind: "post_reply",
+      author: "90001",
+      body: "Does this work for a small shop?",
+      url: "https://x.test/c",
+      at: t,
+      raw: {},
+      state: "answered",
+      answeredAt: new Date(t.getTime() + HOUR),
+    });
+    // A client's X DM thread with the same person: handle is the username, profile.id the X id.
+    const [contact] = await pg.db
+      .insert(reachContacts)
+      .values({
+        platform: "x",
+        handle: "sample_shop",
+        url: "https://x.com/sample_shop",
+        foundIn: "dms",
+        name: "Sample Shop",
+        profile: { id: "90001" },
+      })
+      .returning();
+    await pg.db.insert(reachMessages).values({
+      contactId: contact!.id,
+      direction: "out",
+      kind: "manual",
+      body: "Happy to show you",
+      state: "sent",
+      sentAt: daysAgo(3),
+    });
+    await pg.db.transaction(async (tx) => {
+      await tx.execute(sql`set local session_replication_role = replica`);
+      const [lead] = (await tx.execute(sql`insert into leads (email, status, raw, import_id)
+        values ('shop@example.com', 'imported', '{}', 1) returning id`)) as unknown as {
+        id: number;
+      }[];
+      await tx.execute(sql`insert into social_handles (platform, handle, lead_id)
+        values ('x', 'sample_shop', ${lead!.id})`);
+      await tx.execute(sql`insert into call_bookings (uid, state, email, booked_at)
+        values ('x-b1', 'booked', 'shop@example.com', ${iso(daysAgo(2))})`);
+    });
+    const week = await serveRecords([conversationRecord], pg.db).list({
+      record: conversationRecord.id,
+      view: "7d",
+      limit: 20,
+    });
+    expect(week.rows.find((r) => r.platform === "x")).toMatchObject({
+      comments: 1,
+      dmed: { n: 1, of: 1 },
+      dms: 1,
+      booked: { n: 1, of: 1 },
+    });
+    expect(await row("Comment to DM, DM to booking")).toMatchObject({ state: "live" });
+
+    await keepDay(pg.db, "x", iso(now).slice(0, 10), { followers: 40, asOf: iso(now) });
+    expect(await row("Followers")).toMatchObject({ state: "live" });
+  });
+
+  it("a long video's footer link names its post in the link days", async () => {
+    const [idea] = await pg.db
+      .insert(contentIdeas)
+      .values({ text: "synthetic footer idea", source: "cli", ref: "video:4242" })
+      .returning();
+    const [d] = await pg.db
+      .insert(contentDrafts)
+      .values({
+        ideaId: idea!.id,
+        platform: "youtube",
+        text: "A synthetic footer video",
+        status: "published",
+        promptVersion: "t",
+        publishedAt: daysAgo(2),
+        publishedId: "yt-footer",
+      })
+      .returning();
+    const draft = d!.id;
+    await pg.db.execute(sql`insert into link_days (day, source, campaign, content, clicks, hops,
+      forms_first, forms_last, calls_first, calls_last, won_first, won_last, revenue_first, revenue_last)
+      values (${iso(daysAgo(1)).slice(0, 10)}, 'youtube', '4242-sample-slug', '', 5, 0, 0, 0, 0, 0, 0, 0, 0, 0)`);
+    const [r] = (await pg.db.execute(
+      sql`select post, clicks from marketing_link_day_records where campaign = '4242-sample-slug'`,
+    )) as unknown as { post: string | null; clicks: number }[];
+    expect(r?.post).toMatch(new RegExp(`/youtube/${draft}$`));
+    expect(r?.clicks).toBe(5);
   });
 });
 

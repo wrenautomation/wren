@@ -370,6 +370,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           input: ONE_POST.extend({
             published: z.string().nullish().describe("ISO time it went up"),
             kind: z.string().nullish().describe("Its shape's kind: short, video, carousel"),
+            media: z.enum(["image", "video"]).nullish().describe("What it carries"),
           }),
         },
         async (
@@ -379,12 +380,18 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             id: string;
             published?: string | null;
             kind?: string | null;
+            media?: "image" | "video" | null;
           } & ForClient,
         ): Promise<Insights | null> => {
           const ch = await pick(ctx, req.platform, req.client, "content.social");
           if (!ch.insights) return null;
           return refusalsFinal(
-            ch.insights({ id: req.id, published: req.published ?? null, kind: req.kind ?? null }),
+            ch.insights({
+              id: req.id,
+              published: req.published ?? null,
+              kind: req.kind ?? null,
+              media: req.media ?? null,
+            }),
           );
         },
       ),

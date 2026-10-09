@@ -62,6 +62,7 @@ type ContentService = {
       id: string;
       published?: string | null;
       kind?: string | null;
+      media?: "image" | "video" | null;
       client?: string | null;
     },
   ) => Promise<Insights | null>;
@@ -155,6 +156,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
             // Journaled rows come back as JSON: a date is a string.
             published: draft.publishedAt ? new Date(draft.publishedAt).toISOString() : null,
             kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
+            media: draft.media?.kind ?? null,
             ...(client ? { client } : {}),
           });
         } catch (err) {

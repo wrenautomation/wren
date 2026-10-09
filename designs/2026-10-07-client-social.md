@@ -74,12 +74,13 @@ Every redirect URI is `<portal origin>/oauth/social/<platform>`. Each app needs 
 - Review: none. The app is on pay-per-use, so every call bills Wren's credits. Each client's calls go through its vendor gate, so the meter shows them per client.
 - Tokens: the access token lasts 2 hours. The refresh token rotates on every use, and the key store keeps the newest under the same ref.
 - DMs: read from `/2/dm_events`, send with `POST /2/dm_conversations/with/{participant}/messages`.
+- Media: images in one upload. Videos on the chunked upload (`/2/media/upload/initialize`, `/{id}/append` per 4 MB, `/{id}/finalize`, then `STATUS` until processed, 5 minutes at most).
 - Self-serve: Connect and authorize.
 
 ### TikTok
 
 - API: Login Kit v2 and the Content Posting API (Direct Post from a URL), plus the Display API for the video list.
-- Scopes: `user.info.basic`, `video.publish`, `video.upload`, `video.list`.
+- Scopes: `user.info.basic`, `user.info.stats` (followers per day), `video.publish`, `video.upload`, `video.list`. A token from before `user.info.stats` answers followers with 403 (needs scope); its posting still works.
 - Review: app review for production, with a demo video per scope. Direct Post also needs its own audit, and until it passes every post is `SELF_ONLY`. Free. William applies.
 - Today: sandbox. Only target users added to the sandbox can connect. Posts stay private.
 - Tokens: the access token lasts 24 hours and the refresh token 365 days.
@@ -119,7 +120,7 @@ A missing app makes its platforms show "Needs setup: Wren's <name> app" with Con
 
 - `clientContent` (`packages/content/src/clients.ts`) adds each connected account to `logins` as `social:<connection id>` and widens `platforms`. The planner, publisher, SocialWatch and ContentMetrics all read it, so each one takes a client account without any other change.
 - The worker's `contentClientsFor` builds each platform's existing adapter (`linkedinContent`, `facebookContent`, `instagramContent`, `youtubeContent`, `xContent`, `tiktokContent`) over `socialSites`, the direct API client. That runs inside `journaledSites` and the client's vendor meter. Meta gets the connected Page's id.
-- `socialSites` speaks each platform's official API. GETs go as a query, writes as JSON, with LinkedIn's version headers. The Meta Page lookup (`/me/accounts`) is answered from the connection. YouTube and X uploads take a hosted URL.
+- `socialSites` speaks each platform's official API. GETs go as a query, writes as JSON, with LinkedIn's version headers. The Meta Page lookup (`/me/accounts`) is answered from the connection. YouTube and X uploads take a hosted URL; an X video goes up in chunks.
 - `Content`'s own wall (`sendsOn(client, "content.posting")`) still stops every post and comment reply from a client whose posting is off.
 
 ## Inbox
@@ -167,3 +168,4 @@ Not built: LinkedIn company pages, Business Profile posting and reviews, Meta's 
 - 2026-10-07: a Meta connection stores the Page token, not the user token. It has no expiry and can't reach the person's other Pages.
 - 2026-10-07: DMs go into the existing `reach_contacts` and `reach_messages`, so the Inbox, touches and the reply gate need no new thread type.
 - 2026-10-07: review state comes from config (`WREN_SOCIAL_LIVE`). No platform tells an app its review state.
+- 2026-10-09: X video upload on the chunked v2 endpoints, so a client's X can post video. TikTok's missing-scope 401 (`scope_not_authorized`) is a 403 and leaves the connection connected; any other 401 still breaks it.

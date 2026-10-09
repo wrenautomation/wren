@@ -7,8 +7,11 @@
 import { type GapState, METRICS as M, type Platform } from "@wren/core/content";
 import type { FunnelStage } from "../schema.js";
 
-/** A catalog row's word; `error` and `waiting` only ever come from a platform's answer. */
-export type CatalogState = "live" | Exclude<GapState, "error" | "waiting">;
+/**
+ * A catalog row's word; `error` only ever comes from a platform's answer. `waiting` on a row:
+ * built, and live once its first number lands.
+ */
+export type CatalogState = "live" | Exclude<GapState, "error">;
 /** Where on a platform: YouTube's long videos and Shorts read differently; the rest are posts. */
 export type Surface = "long" | "short" | "post";
 /** What the number is about, as the doc groups them. */
@@ -49,10 +52,6 @@ export const NEEDS = {
   youtubeReach: {
     name: "YouTube reach report",
     step: "The YouTube Analytics step (same APIs, same consent). The next metrics pass starts the daily job; its first report lands within 2 days.",
-  },
-  linkedinAnalytics: {
-    name: "LinkedIn Community Management API",
-    step: "Request the Community Management API for Wren's LinkedIn app (developer portal, Products), then consent again with r_member_postAnalytics.",
   },
   tiktokBusiness: {
     name: "TikTok Business API",
@@ -477,7 +476,7 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       [M.followers],
       "account",
       "reach",
-      "not_built",
+      "waiting",
       "Display API user/info, user.info.stats",
     ],
     [
@@ -506,23 +505,12 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "linkedin",
       null,
-      "Impressions, reach, reshares, profile views",
-      [M.impressions, M.reach, M.shares, M.profileVisits],
+      "Impressions, reach, reposts, saves, sends, profile views, follows",
+      [M.impressions, M.reach, M.shares, M.saves, M.sends, M.profileVisits, M.follows],
       "reach",
       "reach",
-      "needs_william",
-      "memberCreatorPostAnalytics, r_member_postAnalytics",
-      NEEDS.linkedinAnalytics,
-    ],
-    [
-      "linkedin",
-      null,
-      "Impressions from the post's analytics page",
-      ["browser_impressions"],
-      "reach",
-      "reach",
-      "not_built",
-      "a browser route on the box",
+      "waiting",
+      "the post's analytics page in the box's browser, as Wren, days 1, 3, 7, 14 and 28",
     ],
     [
       "linkedin",
@@ -590,12 +578,12 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "x",
       null,
-      "Video views and watch",
-      ["video_views"],
+      "Video views and playback quartiles",
+      [M.videoViews, M.playback],
       "retention",
       "trust",
-      "not_built",
-      "organic_metrics",
+      "waiting",
+      "media organic_metrics, the API leg, video posts only",
     ],
     [
       "x",
@@ -614,8 +602,8 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       ["to_dm", "dm_booked"],
       "conversation",
       "convert",
-      "not_built",
-      "dm.read, dm.write",
+      "waiting",
+      OURS,
     ],
     [
       "x",
@@ -624,8 +612,8 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       [M.followers],
       "account",
       "reach",
-      "not_built",
-      "users/me public_metrics",
+      "waiting",
+      "users/me public_metrics, daily",
     ],
 
     // ---- Reddit ----
@@ -691,10 +679,10 @@ export function tableRows(t: (typeof CATALOG_TABLES)[number]): CatalogEntry[] {
   });
 }
 
-/** Live, Needs scope, Needs William, Not built and No API per table: the doc's Counts. */
+/** Live, Waiting, Needs scope, Needs William, Not built and No API per table: the doc's Counts. */
 export function catalogCounts(): Array<{ label: string } & Record<CatalogState, number>> {
   return CATALOG_TABLES.map((t) => {
-    const n = { live: 0, needs_scope: 0, needs_william: 0, not_built: 0, no_api: 0 };
+    const n = { live: 0, waiting: 0, needs_scope: 0, needs_william: 0, not_built: 0, no_api: 0 };
     for (const e of tableRows(t)) n[e.state] += 1;
     return { label: t.label, ...n };
   });

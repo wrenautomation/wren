@@ -49,6 +49,8 @@ export interface InsightsQuery {
   published?: string | null;
   /** Its shape's kind: `short`, `video`, `carousel`, `thread`. */
   kind?: string | null;
+  /** What it carries: X reads a video's watch numbers only on a post with one. */
+  media?: "image" | "video" | null;
 }
 
 /** An account's numbers per day (`day` = YYYY-MM-DD). */
@@ -103,6 +105,12 @@ export const METRICS = {
   skipRate: "skip_rate",
   followers: "followers",
   accountsEngaged: "accounts_engaged",
+  /** Shares sent in a private message (LinkedIn's "Sends on LinkedIn"). */
+  sends: "sends",
+  /** A post's video plays (X's media `view_count`). */
+  videoViews: "video_views",
+  /** Plays that reached a share of the video, keyed by percent ("0", "25", "50", "75", "100"). */
+  playback: "playback",
 } as const;
 export type MetricName = (typeof METRICS)[keyof typeof METRICS];
 

@@ -3,7 +3,8 @@
  * own shape (Posts API, Social Actions). Whether a call is answered by the
  * API or a browser flow is the worker's business; rows say which.
  * Activity reads the notifications page (a browser read, capped per day). Audience reads Wren's
- * own profile and Page (4 a day), on demand only: SocialWatch never asks for it.
+ * own profile and Page (4 a day), on demand only: SocialWatch never asks for it. Insights read a
+ * post's analytics page as Wren's account on a few days after it went up.
  */
 import {
   type ActivityKind,
@@ -13,12 +14,16 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  gapStateOf,
+  type InsightGap,
   type Insights,
   type InsightsQuery,
+  type InsightValue,
   knownGaps,
   type ListQuery,
   METRICS as M,
   type Metrics,
+  numberOf,
   type Post,
   type Published,
   type PublishedRow,
@@ -31,6 +36,58 @@ import { fieldsOf } from "@wren/core/content/shapes";
 
 /** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
 export const AUDIENCE_ACCOUNT = "linkedin@wren";
+
+/** Days after a post went up when its analytics page is read: 5 reads a post, light on the account. */
+export const ANALYTICS_DAYS: readonly number[] = [1, 3, 7, 14, 28];
+const DAY_MS = 86_400_000;
+
+/** Whether today is one of a post's analytics days (whole days since it went up). */
+export function analyticsDue(published: string | null | undefined, now: Date): boolean {
+  if (!published) return false;
+  const at = Date.parse(published);
+  if (Number.isNaN(at)) return false;
+  return ANALYTICS_DAYS.includes(Math.floor((now.getTime() - at) / DAY_MS));
+}
+
+/** autobrowse `GET /analytics/post-summary/{urn}`: the page's counts, null where it showed none. */
+export interface PostAnalytics {
+  urn: string;
+  url?: string;
+  impressions: number | null;
+  reached: number | null;
+  reactions: number | null;
+  comments: number | null;
+  reposts: number | null;
+  saves: number | null;
+  sends: number | null;
+  profileViewers: number | null;
+  followersGained: number | null;
+}
+
+/** The names the analytics page answers in. */
+const ANALYTICS_METRICS = [
+  M.impressions,
+  M.reach,
+  M.likes,
+  M.comments,
+  M.shares,
+  M.saves,
+  M.sends,
+  M.profileVisits,
+  M.follows,
+];
+
+export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
+  ...numberOf(M.impressions, a.impressions),
+  ...numberOf(M.reach, a.reached),
+  ...numberOf(M.likes, a.reactions),
+  ...numberOf(M.comments, a.comments),
+  ...numberOf(M.shares, a.reposts),
+  ...numberOf(M.saves, a.saves),
+  ...numberOf(M.sends, a.sends),
+  ...numberOf(M.profileVisits, a.profileViewers),
+  ...numberOf(M.follows, a.followersGained),
+];
 
 export interface LinkedInContentOptions {
   /** The member's URN (`urn:li:person:…`); resolved from `/v2/userinfo` when absent. */
@@ -213,17 +270,38 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         ];
       });
     },
-    // Post analytics are the Community Management API's (`r_member_postAnalytics`).
-    async insights(_q: InsightsQuery): Promise<Insights> {
-      return {
-        values: [],
-        gaps: knownGaps(
-          "needs_william",
-          "LinkedIn post impressions and reach need the Community Management API on Wren's app",
-          [M.impressions, M.reach, M.shares, M.profileVisits],
-        ),
-        asOf: now().toISOString(),
-      };
+    /**
+     * The post's analytics page in the browser, as Wren's account, while the Community Management
+     * API (`r_member_postAnalytics`) waits on review. Light: only on the days in
+     * `ANALYTICS_DAYS` after it went up, and a day over the box's cap reads nothing. A day with
+     * no read writes nothing, so the last read's numbers and state stand.
+     */
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const asOf = now().toISOString();
+      if (!analyticsDue(q.published, now())) return { values: [], gaps: [], asOf };
+      const into: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      try {
+        const a = await sites.call<PostAnalytics>(
+          "linkedin",
+          "GET",
+          `/analytics/post-summary/${encodeURIComponent(q.id)}`,
+          {},
+          AUDIENCE_ACCOUNT,
+        );
+        into.values.push(...analyticsValues(a));
+        if (!into.values.length)
+          into.gaps.push(
+            ...knownGaps("error", "The post's analytics page showed no numbers", ANALYTICS_METRICS),
+          );
+      } catch (err) {
+        // Over the day's cap: nothing read today, not a failure.
+        if (err instanceof SiteCallError && err.status === 429)
+          return { values: [], gaps: [], asOf };
+        // A browser read that broke: said where the number sits, never retried as a storm.
+        const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+        into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
+      }
+      return { ...into, asOf };
     },
   };
 }

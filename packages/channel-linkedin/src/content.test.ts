@@ -196,4 +196,72 @@ describe("linkedin content channel", () => {
     });
     expect(accounts).toEqual(["linkedin@wren"]);
   });
+
+  it("insights read the post's analytics page as Wren, on its analytics days only", async () => {
+    const page = {
+      urn: "urn:li:share:7",
+      impressions: 1204,
+      reached: 800,
+      reactions: 12,
+      comments: 3,
+      reposts: 1,
+      saves: null,
+      sends: 2,
+      profileViewers: 9,
+      followersGained: 1,
+    };
+    const calls: Array<[string, string | undefined]> = [];
+    const sites: SiteClient = {
+      async call(_site, _method, path, _input, account) {
+        calls.push([path, account]);
+        return page as never;
+      },
+      async via() {
+        return "browser";
+      },
+    };
+    const at = (iso: string) => linkedinContent(sites, { author: "a", now: () => new Date(iso) });
+    const published = "2026-10-01T10:00:00.000Z";
+    const off = await at("2026-10-03T12:00:00.000Z").insights?.({
+      id: "urn:li:share:7",
+      published,
+    });
+    expect(off).toMatchObject({ values: [], gaps: [] });
+    expect(calls).toEqual([]);
+    const got = await at("2026-10-02T12:00:00.000Z").insights?.({
+      id: "urn:li:share:7",
+      published,
+    });
+    expect(calls).toEqual([["/analytics/post-summary/urn%3Ali%3Ashare%3A7", "linkedin@wren"]]);
+    const of = (m: string) => got?.values.find((v) => v.metric === m)?.value;
+    expect([of("impressions"), of("reach"), of("likes"), of("shares"), of("sends")]).toEqual([
+      1204, 800, 12, 1, 2,
+    ]);
+    expect(of("profile_visits")).toBe(9);
+    expect(of("saves")).toBeUndefined();
+    expect(got?.gaps).toEqual([]);
+  });
+
+  it("insights: a capped day reads nothing; a route the box lacks is a gap", async () => {
+    const failing = (err: Error): SiteClient => ({
+      async call() {
+        throw err;
+      },
+      async via() {
+        return "browser";
+      },
+    });
+    const q = { id: "urn:li:share:7", published: "2026-10-01T10:00:00.000Z" };
+    const now = () => new Date("2026-10-02T12:00:00.000Z");
+    const capped = await linkedinContent(
+      failing(new SiteCallError("linkedin", "GET", "/analytics", 429, "cap")),
+      { author: "a", now },
+    ).insights?.(q);
+    expect(capped).toMatchObject({ values: [], gaps: [] });
+    const missing = await linkedinContent(
+      failing(new SiteCallError("linkedin", "GET", "/analytics", 404, "no route")),
+      { author: "a", now },
+    ).insights?.(q);
+    expect(missing?.gaps.find((g) => g.metric === "impressions")?.state).toBe("not_built");
+  });
 });
