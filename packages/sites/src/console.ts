@@ -46,7 +46,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PageDetail, pageDetail } from "./detail.js";
-import { draftCopy, type Write } from "./draft.js";
+import { draftCopy, rewritePart, type Write } from "./draft.js";
 import {
   createForm,
   type FormDetail,
@@ -93,7 +93,7 @@ import {
   UUID,
   versionOf,
 } from "./store.js";
-import { TEMPLATE_IDS, templateOf } from "./templates/index.js";
+import { ContentProblem, TEMPLATE_IDS, templateOf } from "./templates/index.js";
 import type { Content } from "./templates/types.js";
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
@@ -427,6 +427,45 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
           origin: "ai",
           by: name,
           why: angle ? `Claude's draft, angle: ${angle}` : "Claude's draft",
+          expect: page.draftVersion,
+        }),
+      );
+      return { saved: out.draftVersion, outcome: g.outcome, flags };
+    },
+
+    /**
+     * Claude rewrites one part of the draft (a group, or one section) to a person's ask, through
+     * the facts guard, as a new version. Wren's pages only, like the first draft.
+     */
+    async rewrite(req: IdRequest & { part?: string; ask?: string }) {
+      const name = who(req);
+      const page = await pageFor(req, "act");
+      if (!deps.write) throw new PortalRefusal("no model runs here", 503);
+      if (page.client) throw new PortalRefusal("Claude rewrites Wren's own pages only", 409);
+      if (page.source !== "data" || !page.draftVersion)
+        throw new PortalRefusal("only a data page with a draft is rewritten", 409);
+      const ask = String(req.ask ?? "").trim();
+      if (!ask) throw new PortalRefusal("say what to change", 400);
+      const t = templateOf(page.template);
+      const v = await versionOf(db, page.id, page.draftVersion);
+      if (!v) throw new PortalRefusal("the draft is gone", 404);
+      const g = await rewritePart(deps.write, t, v.content, {
+        part: String(req.part ?? ""),
+        ask,
+        facts: await factsFor(page.client),
+        offer: page.offer && OFFER_IDS.has(page.offer) ? offerFor(page.offer) : null,
+      }).catch((err: unknown) => {
+        if (err instanceof ContentProblem) throw new PortalRefusal(err.message, 400);
+        throw err;
+      });
+      const flags = [...g.flags, ...g.still].map((f) => f.text);
+      if (g.text === null) return { saved: null, outcome: g.outcome, flags };
+      const out = await refused(
+        saveVersion(db, page.id, {
+          content: g.result,
+          origin: "ai",
+          by: name,
+          why: ask.slice(0, 500),
           expect: page.draftVersion,
         }),
       );
@@ -791,6 +830,17 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
       draft: serviceHandler(
         { input: z.looseObject({ ...P, id: ID, angle: z.string().max(120).nullish() }) },
         write("draft", api.draft),
+      ),
+      rewrite: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            id: ID,
+            part: z.string().max(80).describe("A part's key: group:<name> or section:<id>"),
+            ask: z.string().max(500).describe("What to change"),
+          }),
+        },
+        write("rewrite", api.rewrite),
       ),
       ask: serviceHandler(
         { input: z.looseObject({ ...P, id: ID, number: z.number().int().nullish() }) },

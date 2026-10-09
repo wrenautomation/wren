@@ -11,6 +11,8 @@ export const SITES_CONSOLE_ROUTES = {
   create: "act",
   save: "act",
   draft: "act",
+  /** Claude rewrites one part of the draft to an ask. */
+  rewrite: "act",
   ask: "act",
   approve: "act",
   decline: "act",
@@ -53,6 +55,7 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "create",
   "save",
   "draft",
+  "rewrite",
   "ask",
   "approve",
   "decline",

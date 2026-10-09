@@ -2,11 +2,12 @@
  * The Library: the words Wren sends and the sequences that send them (Wren's workspace).
  * Templates browse by folder and edit in a browser (TemplatesConsole): a save keeps a numbered
  * version, publishing copy that sends waits in To approve, and nothing sends from here. Snippets are inserted from
- * any draft or reply box; Media, SOPs and Workflows read only, a workflow opening on the canvas.
+ * any draft or reply box; Media, Sections, SOPs and Workflows read only, a workflow opening on the canvas.
  */
 import type { Module } from "../../module.js";
 import { workflowExtras } from "./flows.js";
 import { mediaExtras } from "./media.js";
+import { Sections } from "./sections.js";
 import { sequenceExtras } from "./sequences.js";
 import { SNIPPET, SNIPPET_ACTIONS, snippetExtras } from "./snippets.js";
 import { Templates } from "./templates.js";
@@ -48,6 +49,8 @@ export const library: Module = {
       columns: ["name", "kind", "video", "used", "url", "changed"],
       extras: mediaExtras,
     },
+    // Read only: the blocks of a Sections page, drawn from sample words.
+    { id: "sections", label: "Sections", Page: Sections },
     {
       id: "sops",
       label: "SOPs",

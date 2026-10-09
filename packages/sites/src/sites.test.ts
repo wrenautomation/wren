@@ -1,14 +1,18 @@
 import { OFFERS } from "@wren/offers";
 import { describe, expect, it } from "vitest";
 import { pageApprovalId, parsePageApprovalId } from "./console.js";
-import { draftCopy, jsonIn } from "./draft.js";
+import { draftCopy, jsonIn, rewritePart } from "./draft.js";
 import { KIT_JS, kitTag } from "./kit.js";
 import { channelOf, SLUG, slugOf } from "./model.js";
 import { goneHtml, renderPage } from "./render.js";
 import {
   ContentProblem,
   checkContent,
+  partsOf,
+  SECTIONS,
   safeHref,
+  sectionOf,
+  sectionsOf,
   TEMPLATE_IDS,
   templateOf,
 } from "./templates/index.js";
@@ -63,6 +67,43 @@ describe("templates", () => {
     expect(() => checkContent(t, { ...c, headline: ["a"] })).toThrow(ContentProblem);
     expect(() => checkContent(t, { ...c, headline: "x".repeat(1000) })).toThrow(ContentProblem);
     expect(() => checkContent(t, { ...c, headline: "" })).toThrow(ContentProblem);
+  });
+
+  it("Sections: each block checked by its own fields, ids kept or made, one form, words read", () => {
+    const t = templateOf("page");
+    const c = t.fill(offer, {});
+    const kept = checkContent(t, c);
+    expect(kept.sections).toEqual(c.sections);
+    for (const block of SECTIONS) {
+      const one = checkContent(t, {
+        title: "T",
+        sections: [{ id: "a", type: block.type, ...block.sample }],
+      });
+      expect(renderPage(t, one, { page: "p", base: "", track: false })).toContain("<main");
+    }
+    const made = checkContent(t, { title: "T", sections: [{ type: "text", body: "Hi" }] });
+    expect(sectionsOf(made)[0]?.id).toMatch(/^[a-z0-9-]{8}$/);
+    expect(() => checkContent(t, { title: "T", sections: [] })).toThrow("at least one");
+    expect(() =>
+      checkContent(t, { title: "T", sections: [{ id: "a", type: "marquee", body: "x" }] }),
+    ).toThrow("isn't a block");
+    expect(() =>
+      checkContent(t, { title: "T", sections: [{ id: "a", type: "text", body: "" }] }),
+    ).toThrow("Section 1 (Text): Text is empty");
+    const twoForms = [1, 2].map((i) => ({
+      id: `f${i}`,
+      type: "form",
+      ...sectionOf("form")?.sample,
+    }));
+    expect(() => checkContent(t, { title: "T", sections: twoForms })).toThrow("one form");
+    expect(() =>
+      checkContent(t, {
+        title: "T",
+        sections: [
+          { id: "h", type: "hero", ...sectionOf("hero")?.sample, book_url: "javascript:x" },
+        ],
+      }),
+    ).toThrow("Booking link isn't a link");
   });
 
   it("escapes copy and drops unsafe links", () => {
@@ -135,5 +176,63 @@ describe("Claude's draft", () => {
     );
     expect(g.text).toBeNull();
     expect(g.outcome).not.toBe("clean");
+  });
+
+  it("keeps a Sections page's blocks, order, ids and links", async () => {
+    const p = templateOf("page");
+    const begin = checkContent(p, p.fill(offer, {}));
+    const hero = sectionsOf(begin)[0];
+    const g = await draftCopy(
+      async () =>
+        JSON.stringify({
+          sections: [
+            { id: hero?.id, type: "text", body: "swapped block" },
+            { id: "new", type: "footer", text: "added" },
+          ],
+        }),
+      p,
+      offer,
+      { facts: [], start: begin },
+    );
+    expect(sectionsOf(g.result).map((s) => [s.id, s.type])).toEqual(
+      sectionsOf(begin).map((s) => [s.id, s.type]),
+    );
+    expect(sectionsOf(g.result)[0]?.headline).toBe(hero?.headline);
+  });
+
+  it("rewrites one part only: a group or a section, links kept", async () => {
+    const asked: string[] = [];
+    const g = await rewritePart(
+      async (prompt) => {
+        asked.push(prompt);
+        return JSON.stringify({
+          headline: "Calls on your calendar",
+          book_url: "https://evil.example",
+        });
+      },
+      t,
+      start,
+      { part: partsOf(t, start)[0]?.key ?? "", ask: "shorter", facts: [], offer },
+    );
+    expect(asked[0]).toContain("shorter");
+    expect(g.result.headline).toBe("Calls on your calendar");
+    expect(g.result.book_url).toBe(start.book_url ?? "");
+    expect({ ...g.result, headline: start.headline }).toEqual(start);
+
+    const p = templateOf("page");
+    const page = checkContent(p, p.fill(offer, {}));
+    const list = sectionsOf(page).find((s) => s.type === "list");
+    const s = await rewritePart(
+      async () => JSON.stringify({ heading: "All of it", headline: "not this part's" }),
+      p,
+      page,
+      { part: `section:${list?.id}`, ask: "plainer", facts: [], offer: null },
+    );
+    const after = sectionsOf(s.result);
+    expect(after.find((x) => x.id === list?.id)?.heading).toBe("All of it");
+    expect(after[0]).toEqual(sectionsOf(page)[0]);
+    await expect(
+      rewritePart(async () => "{}", p, page, { part: "section:nope", ask: "x", facts: [], offer }),
+    ).rejects.toThrow("no part");
   });
 });

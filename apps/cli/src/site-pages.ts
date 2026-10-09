@@ -11,6 +11,7 @@ import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { pageApprovalId, sitesApi } from "@wren/sites/console";
 import { WREN_SITE } from "@wren/sites/model";
 import { type Found, landerPages, type RepoFile, sitemapUrls, unlisted } from "@wren/sites/scan";
+import { partsOf, templateOf } from "@wren/sites/templates";
 import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import { sql } from "drizzle-orm";
@@ -113,6 +114,12 @@ export function registerSitePages(
           live: d.live,
           waiting: d.waiting,
           draft: d.draft?.number ?? null,
+          parts:
+            d.template && d.draft
+              ? partsOf(templateOf(d.template.id), d.draft.content).map(
+                  (p) => `${p.key} (${p.label})`,
+                )
+              : [],
           preview: d.preview,
           repoPath: d.repoPath,
           kit: d.kit,
@@ -186,6 +193,19 @@ export function registerSitePages(
         await withMainDb((db) => api(db).save({ viewer: VIEWER, id, content, why: o.why ?? null })),
       );
     });
+
+  sites
+    .command("rewrite <id>")
+    .description("Claude rewrites one part of the draft to an ask, checked against the facts")
+    .requiredOption("--part <key>", "group:<name> or section:<id> (see `sites show`)")
+    .requiredOption("--ask <line>", "what to change")
+    .action(async (id: string, o: { part: string; ask: string }) =>
+      print(
+        await withMainDb((db) =>
+          api(db, true).rewrite({ viewer: VIEWER, id, part: o.part, ask: o.ask }),
+        ),
+      ),
+    );
 
   sites
     .command("ask <id>")

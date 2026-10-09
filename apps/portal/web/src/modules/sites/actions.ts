@@ -110,6 +110,13 @@ export const PAGE_ACTIONS: Action[] = [
   },
   { id: "sites.save", label: "Save", handler: "sites/save", inline: true, when: DATA },
   { id: "sites.draft", label: "Ask Claude", handler: "sites/draft", inline: true, when: DATA },
+  {
+    id: "sites.rewrite",
+    label: "Rewrite a part",
+    handler: "sites/rewrite",
+    inline: true,
+    when: DATA,
+  },
   { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
   { id: "sites.notes", label: "Save notes", handler: "sites/notes", inline: true },
   { id: "sites.retireAsk", label: "Retire", handler: "sites/retireAsk", inline: true },

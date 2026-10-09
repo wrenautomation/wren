@@ -5,8 +5,11 @@
 import type { Offer } from "@wren/offers";
 import type { FormSpec } from "../forms.js";
 
-/** A line, a paragraph, one item per line, an address, or a list of small groups. */
-export type FieldKind = "text" | "long" | "lines" | "url" | "items";
+/**
+ * A line, a paragraph, one item per line, an address, a list of small groups, or a list of
+ * sections from the library (`sections.ts`).
+ */
+export type FieldKind = "text" | "long" | "lines" | "url" | "items" | "sections";
 
 export interface CopyField {
   key: string;
@@ -23,7 +26,12 @@ export interface CopyField {
 }
 
 export type ItemValue = Record<string, string>;
-export type FieldValue = string | string[] | ItemValue[];
+/** One section of a Sections page: its id (kept across edits), its block, its fields. */
+export type SectionValue = { id: string; type: string } & Record<
+  string,
+  string | string[] | ItemValue[]
+>;
+export type FieldValue = string | string[] | ItemValue[] | SectionValue[];
 export type Content = Record<string, FieldValue>;
 
 /** What a page's render knows past its words. */

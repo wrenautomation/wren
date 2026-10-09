@@ -13,6 +13,10 @@ import {
   type CopyField,
   checkContent,
   type ItemValue,
+  partsOf,
+  SECTIONS,
+  type SectionValue,
+  sectionOf,
   templateOf,
 } from "@wren/sites/templates";
 import {
@@ -41,6 +45,8 @@ const HINT = "text-[12px] text-(--ui-ink-3)";
 const TH = "py-1.5 pr-3 font-normal";
 const TD = "py-1.5 pr-3 tabular-nums";
 
+const SELECT =
+  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 const usd = (n: number) => (n ? money(n, "USD") : "");
@@ -76,6 +82,124 @@ export function Said({ said }: { said: { text: string; bad: boolean } | null }) 
   );
 }
 
+/** A new section's id: short, lowercase, unique enough on one page. */
+const newSectionId = () => crypto.randomUUID().slice(0, 8);
+
+/**
+ * A Sections page's blocks, each framed with its name and its own fields: move it up or down,
+ * remove it, or add one from the library under it. One form per page; the library says so.
+ */
+function SectionsBox({
+  id,
+  f,
+  value,
+  onChange,
+}: {
+  id: string;
+  f: CopyField;
+  value: Content[string] | undefined;
+  onChange: (v: Content[string]) => void;
+}) {
+  const list = (Array.isArray(value) ? value : []) as SectionValue[];
+  const [adding, setAdding] = useState(SECTIONS[1]?.type ?? "text");
+  const hasForm = list.some((s) => s.type === "form");
+  const move = (i: number, by: -1 | 1) => {
+    const next = [...list];
+    const [s] = next.splice(i, 1);
+    if (s) next.splice(i + by, 0, s);
+    onChange(next);
+  };
+  const add = () => {
+    const block = sectionOf(adding);
+    if (!block) return;
+    onChange([...list, { id: newSectionId(), type: block.type, ...block.sample } as SectionValue]);
+  };
+  return (
+    <div className="grid min-w-0 gap-3">
+      {list.map((s, i) => {
+        const block = sectionOf(s.type);
+        return (
+          <section key={s.id} className={FRAME} aria-label={`Section ${i + 1}`}>
+            <div className={FRAME_HEAD}>
+              <span className={GROUP_LABEL}>
+                {i + 1}. {block?.name ?? s.type}
+              </span>
+              <span className="flex gap-1.5">
+                <Button size="sm" tone="quiet" disabled={i === 0} onClick={() => move(i, -1)}>
+                  Up
+                </Button>
+                <Button
+                  size="sm"
+                  tone="quiet"
+                  disabled={i === list.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  Down
+                </Button>
+                <Button
+                  size="sm"
+                  tone="quiet"
+                  disabled={list.length === 1}
+                  onClick={() => onChange(list.filter((_, j) => j !== i))}
+                >
+                  Remove
+                </Button>
+              </span>
+            </div>
+            <div className={`${FRAME_BODY} grid gap-3`}>
+              {block ? (
+                block.fields.map((sub) => (
+                  <FieldBox
+                    key={sub.key}
+                    id={`${id}-${s.id}-${sub.key}`}
+                    f={sub}
+                    value={s[sub.key]}
+                    onChange={(v) =>
+                      onChange(
+                        list.map((x, j) =>
+                          j === i ? ({ ...x, [sub.key]: v } as SectionValue) : x,
+                        ),
+                      )
+                    }
+                  />
+                ))
+              ) : (
+                <p className={HINT}>Not a block this editor knows. Remove it to save.</p>
+              )}
+            </div>
+          </section>
+        );
+      })}
+      {list.length < f.max ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor={`${id}-add`} className={LABEL}>
+            Add a section
+          </label>
+          <select
+            id={`${id}-add`}
+            className={SELECT}
+            value={adding}
+            onChange={(e) => setAdding(e.target.value)}
+          >
+            {SECTIONS.map((b) => (
+              <option key={b.type} value={b.type} disabled={b.type === "form" && hasForm}>
+                {b.name}
+                {b.type === "form" && hasForm ? " (one per page)" : ""}
+              </option>
+            ))}
+          </select>
+          <Button size="sm" disabled={adding === "form" && hasForm} onClick={add}>
+            Add
+          </Button>
+          <span className={HINT}>{sectionOf(adding)?.blurb}</span>
+        </div>
+      ) : (
+        <span className={HINT}>{f.max} sections is the most a page holds.</span>
+      )}
+    </div>
+  );
+}
+
 /** One copy field as a box: a line, a paragraph, one per line, or a list of small groups. */
 function FieldBox({
   id,
@@ -88,6 +212,7 @@ function FieldBox({
   value: Content[string] | undefined;
   onChange: (v: Content[string]) => void;
 }) {
+  if (f.kind === "sections") return <SectionsBox id={id} f={f} value={value} onChange={onChange} />;
   if (f.kind === "items") {
     const items = (Array.isArray(value) ? value : []) as ItemValue[];
     const set = (i: number, k: string, v: string) =>
@@ -229,10 +354,14 @@ function CopyEditor({
   const [content, setContent] = useState<Content>(() => ({ ...(draft?.content ?? {}) }));
   const [why, setWhy] = useState("");
   const [angle, setAngle] = useState("");
+  const [part, setPart] = useState("");
+  const [ask, setAsk] = useState("");
   const { said, busy, run } = useRun(act);
   useEffect(() => () => setTyping(id, null), [id]);
   if (!d.template || !draft) return null;
   const template = d.template;
+  const parts = partsOf(templateOf(template.id), draft.content ?? {});
+  const partKey = parts.some((p) => p.key === part) ? part : (parts[0]?.key ?? "");
   const edit = (next: Content) => {
     setContent(next);
     setTyping(id, JSON.stringify(next) === JSON.stringify(draft.content) ? null : next);
@@ -367,6 +496,51 @@ function CopyEditor({
             >
               Ask Claude
             </Button>
+          </div>
+          <div className="grid gap-1.5">
+            <label htmlFor="copy-part" className={LABEL}>
+              Or rewrite one part
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                id="copy-part"
+                className={SELECT}
+                value={partKey}
+                onChange={(e) => setPart(e.target.value)}
+              >
+                {parts.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <Input
+                id="copy-ask"
+                aria-label="What to change"
+                className="max-w-[420px]"
+                placeholder="What to change: shorter, warmer, lead with speed"
+                value={ask}
+                maxLength={500}
+                onChange={(e) => setAsk(e.target.value)}
+              />
+              <Button
+                disabled={changed || closed || !ask.trim() || !partKey}
+                busy={busy === "rewrite"}
+                onClick={() =>
+                  void run(
+                    "rewrite",
+                    "sites.rewrite",
+                    { id, part: partKey, ask: ask.trim() },
+                    "Claude saved a new version with that part rewritten. Read it before you ask.",
+                  )
+                }
+              >
+                Rewrite
+              </Button>
+            </div>
+            <span className={HINT}>
+              Only that part changes. Links stay. Checked against the facts.
+            </span>
           </div>
         </Fieldset>
       )}
