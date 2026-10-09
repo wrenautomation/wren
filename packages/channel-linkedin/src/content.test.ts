@@ -265,3 +265,63 @@ describe("linkedin content channel", () => {
     expect(missing?.gaps.find((g) => g.metric === "impressions")?.state).toBe("not_built");
   });
 });
+
+describe("linkedin company page", () => {
+  const ORG = "urn:li:organization:5";
+  const COMMENT = "urn:li:comment:(urn:li:share:1,77)";
+
+  it("posts, reads and answers as the page, and counts its followers", async () => {
+    const { sites, calls } = fakeSites({
+      "POST /rest/posts": (i) => {
+        expect(i).toMatchObject({ author: ORG });
+        return { id: "urn:li:share:1" };
+      },
+      "GET /rest/socialActions/urn:li:share:1/comments": () => ({
+        elements: [
+          { id: "77", commentUrn: COMMENT, actor: "urn:li:person:p1", message: { text: "Nice" } },
+          {
+            id: "78",
+            commentUrn: "urn:li:comment:(urn:li:share:1,78)",
+            actor: ORG,
+            parentComment: COMMENT,
+            message: { text: "Thanks" },
+          },
+        ],
+      }),
+      [`POST /rest/socialActions/${COMMENT}/comments`]: (i) => {
+        expect(i).toMatchObject({
+          actor: ORG,
+          object: "urn:li:share:1",
+          parentComment: COMMENT,
+          message: { text: "Thank you" },
+        });
+        return {};
+      },
+      [`GET /rest/networkSizes/${ORG}`]: (i) => {
+        expect(i).toEqual({ edgeType: "COMPANY_FOLLOWED_BY_MEMBER" });
+        return { firstDegreeSize: 412 };
+      },
+    });
+    const ch = linkedinContent(sites, { organization: ORG });
+    await ch.publish({ text: "hello" });
+    const rows = await ch.comments("urn:li:share:1");
+    expect(rows.map((r) => [r.id, r.parentId ?? null, r.mine ?? false])).toEqual([
+      [COMMENT, null, false],
+      ["urn:li:comment:(urn:li:share:1,78)", COMMENT, true],
+    ]);
+    await ch.reply?.(COMMENT, "Thank you");
+    expect((await ch.audience?.())?.followers).toBe(412);
+    expect(ch.activity).toBeUndefined();
+    expect(calls.some(([, p]) => p.includes("userinfo"))).toBe(false);
+  });
+
+  it("a connected profile has no browser reads", async () => {
+    const { sites, calls } = fakeSites({});
+    const ch = linkedinContent(sites, { author: "urn:li:person:abc", direct: true });
+    expect(ch.audience).toBeUndefined();
+    expect(ch.activity).toBeUndefined();
+    const i = await ch.insights?.({ id: "urn:li:share:1", published: new Date().toISOString() });
+    expect(i?.gaps[0]?.state).toBe("needs_william");
+    expect(calls).toHaveLength(0);
+  });
+});

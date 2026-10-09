@@ -179,6 +179,75 @@ describe("landCode", () => {
     expect(l.expiresAt?.toISOString()).toBe("2026-12-06T12:00:00.000Z");
   });
 
+  it("a LinkedIn company page: the first page the member admins, its year-long refresh", async () => {
+    const { fetch, asked } = fakeFetch((url) =>
+      url === SOCIAL.linkedin_page.token
+        ? Response.json({
+            access_token: "lp",
+            expires_in: 5_184_000,
+            refresh_token: "lr",
+            refresh_token_expires_in: 31_536_000,
+          })
+        : url.includes("/rest/organizationAcls")
+          ? Response.json({ elements: [{ organization: "urn:li:organization:5" }] })
+          : url.endsWith("/rest/organizations/5")
+            ? Response.json({ localizedName: "Acme Co", vanityName: "acme" })
+            : undefined,
+    );
+    const l = await landCode(fetch, "linkedin_page", APP, {
+      code: "c",
+      redirect: "r",
+      verifier: null,
+      now: NOW,
+    });
+    expect(l).toMatchObject({
+      externalId: "5",
+      name: "Acme Co",
+      handle: "acme",
+      stored: { kind: "refresh", refresh: "lr" },
+      extra: { orgUrn: "urn:li:organization:5" },
+    });
+    expect(l.expiresAt?.toISOString()).toBe("2027-10-07T12:00:00.000Z");
+    const h = asked[1]?.init?.headers as Record<string, string> | undefined;
+    expect(h?.["LinkedIn-Version"]).toBeTruthy();
+  });
+
+  it("a LinkedIn member who admins no page is told so", async () => {
+    const { fetch } = fakeFetch((url) =>
+      url === SOCIAL.linkedin_page.token
+        ? Response.json({ access_token: "lp", refresh_token: "lr" })
+        : url.includes("/rest/organizationAcls")
+          ? Response.json({ elements: [] })
+          : undefined,
+    );
+    await expect(
+      landCode(fetch, "linkedin_page", APP, { code: "c", redirect: "r", verifier: null, now: NOW }),
+    ).rejects.toThrow(/admin of a LinkedIn company page/);
+  });
+
+  it("a Business Profile lands on its account's first location", async () => {
+    const { fetch } = fakeFetch((url) =>
+      url === SOCIAL.google_business.token
+        ? Response.json({ access_token: "g", refresh_token: "gr", expires_in: 3600 })
+        : url.endsWith("/v1/accounts")
+          ? Response.json({ accounts: [{ name: "accounts/1", accountName: "Acme" }] })
+          : url.includes("/accounts/1/locations?")
+            ? Response.json({ locations: [{ name: "locations/2", title: "Acme Downtown" }] })
+            : undefined,
+    );
+    const l = await landCode(fetch, "google_business", APP, {
+      code: "c",
+      redirect: "r",
+      verifier: "v",
+      now: NOW,
+    });
+    expect(l).toMatchObject({
+      externalId: "accounts/1/locations/2",
+      name: "Acme Downtown",
+      extra: { location: "accounts/1/locations/2" },
+    });
+  });
+
   it("a refusal never carries the body", async () => {
     const { fetch } = fakeFetch(() =>
       Response.json(
@@ -459,6 +528,34 @@ describe("socialSites", () => {
     expect(
       (asked[0]?.init?.headers as Record<string, string> | undefined)?.["LinkedIn-Version"],
     ).toBeTruthy();
+  });
+
+  it("a Business Profile reaches only its own location", async () => {
+    const row = conn({
+      platform: "google_business",
+      externalId: "accounts/1/locations/2",
+      extra: { location: "accounts/1/locations/2" },
+    });
+    const { client, asked } = sites(row, (url) =>
+      url.startsWith("https://mybusiness.googleapis.com/")
+        ? Response.json({ reviews: [] })
+        : undefined,
+    );
+    await client.call(
+      "google_business",
+      "GET",
+      "/v4/accounts/1/locations/2/reviews",
+      { pageSize: 50 },
+      "social:7",
+    );
+    expect(asked[0]?.url).toBe(
+      "https://mybusiness.googleapis.com/v4/accounts/1/locations/2/reviews?pageSize=50",
+    );
+    const err = await client
+      .call("google_business", "GET", "/v4/accounts/1/locations/3/reviews", {}, "social:7")
+      .catch((e: unknown) => e);
+    expect((err as { status?: number }).status).toBe(404);
+    expect(asked).toHaveLength(1);
   });
 
   it("refuses a broken or unknown account before any call", async () => {

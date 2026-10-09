@@ -60,9 +60,14 @@ describe("instagram content channel", () => {
                 { name: "likes", values: [{ value: 4 }] },
               ],
             },
-      "GET /p1/comments": () => ({
-        data: [{ id: "c9", text: "nice", username: "bob", timestamp: "2026-09-22T11:00:00+0000" }],
-      }),
+      "GET /p1/comments": (i) => {
+        expect(i).toMatchObject({ fields: "id,text,username,timestamp" });
+        return {
+          data: [
+            { id: "c9", text: "nice", username: "bob", timestamp: "2026-09-22T11:00:00+0000" },
+          ],
+        };
+      },
       "POST /c9/replies": (i) => {
         expect(i).toEqual({ message: "ty" });
         return { id: "r1" };
@@ -243,8 +248,15 @@ describe("facebook Page comments", () => {
           {
             id: "111_1_c1",
             message: "how much?",
-            from: { name: "Sam Test" },
+            from: { id: "u9", name: "Sam Test" },
             created_time: "2026-09-22T11:00:00+0000",
+          },
+          {
+            id: "111_1_c2",
+            message: "Sent you a note",
+            from: { id: "111", name: "Acme" },
+            parent: { id: "111_1_c1" },
+            created_time: "2026-09-22T11:05:00+0000",
           },
         ],
       }),
@@ -257,6 +269,15 @@ describe("facebook Page comments", () => {
     expect(calls).toHaveLength(0);
     const ch = facebookContent(sites, { now, pageComments: true });
     expect(await ch.comments("111_1")).toEqual([
+      {
+        id: "111_1_c2",
+        postId: "111_1",
+        author: "Acme",
+        text: "Sent you a note",
+        at: "2026-09-22T11:05:00+0000",
+        parentId: "111_1_c1",
+        mine: true,
+      },
       {
         id: "111_1_c1",
         postId: "111_1",

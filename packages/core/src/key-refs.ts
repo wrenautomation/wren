@@ -27,7 +27,7 @@ export const MAIL_TOKEN_NAME = /^MAIL_(GOOGLE|MICROSOFT)_[0-9A-F]{16}$/;
 
 /** A connected social account's token (designs/2026-10-07-client-social.md): its id hashed. */
 export const SOCIAL_TOKEN_NAME =
-  /^SOCIAL_(FACEBOOK|INSTAGRAM|LINKEDIN|YOUTUBE|X|TIKTOK|GOOGLE_BUSINESS)_[0-9A-F]{16}$/;
+  /^SOCIAL_(FACEBOOK|INSTAGRAM|LINKEDIN|LINKEDIN_PAGE|YOUTUBE|X|TIKTOK|GOOGLE_BUSINESS)_[0-9A-F]{16}$/;
 
 /**
  * Names only Wren keeps, never pasted on a page: a mailbox's or a social account's token as JSON,
@@ -36,7 +36,7 @@ export const SOCIAL_TOKEN_NAME =
 function wrenShape(name: string): RegExp | undefined {
   if (MAIL_TOKEN_NAME.test(name) || SOCIAL_TOKEN_NAME.test(name)) return /^\{[\s\S]{8,4000}\}$/;
   if (/^MAIL_(GOOGLE|MICROSOFT)_CLIENT_(ID|SECRET)$/.test(name)) return /^\S{8,4096}$/;
-  if (/^SOCIAL_(META|LINKEDIN|GOOGLE|X|TIKTOK)_CLIENT_(ID|SECRET)$/.test(name))
+  if (/^SOCIAL_(META|LINKEDIN|LINKEDIN_PAGES|GOOGLE|X|TIKTOK)_CLIENT_(ID|SECRET)$/.test(name))
     return /^\S{4,4096}$/;
   return undefined;
 }

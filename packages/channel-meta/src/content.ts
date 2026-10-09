@@ -434,8 +434,9 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         filter: "stream",
         limit: Math.min(q.limit ?? 100, 100),
       });
-      // The Page's own answers come back in the stream: kept as ours, never in the Inbox.
-      const own = (await page()).id;
+      // The Page's own answers come back in the stream: kept as ours, never in the Inbox. A Page
+      // post's id starts with its Page's.
+      const own = o.pageId ?? id.split("_")[0];
       return pageOf(
         (r.data ?? []).map((c) => ({
           id: c.id,

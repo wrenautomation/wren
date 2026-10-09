@@ -114,7 +114,7 @@ export interface SocialWatchDeps {
 export interface SocialStats {
   posts: number;
   comments: number;
-  /** New reviews of a client's Business Profile. */
+  /** New reviews of a client's Business Profile: in `comments` too. */
   reviews: number;
   asked: number;
   activity: number;
