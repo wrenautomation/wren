@@ -32295,6 +32295,21 @@
         }
       },
       "indexes": {
+        "ix_deal_pipelines_client": {
+          "name": "ix_deal_pipelines_client",
+          "columns": [
+            {
+              "expression": "client",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "uq_deal_pipelines_name": {
           "name": "uq_deal_pipelines_name",
           "columns": [

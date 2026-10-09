@@ -55,6 +55,7 @@ ALTER TABLE "deal_pipelines" ADD CONSTRAINT "fk_deal_pipelines_client" FOREIGN K
 ALTER TABLE "deals" ADD CONSTRAINT "fk_deals_client" FOREIGN KEY ("client") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "deals" ADD CONSTRAINT "fk_deals_pipeline" FOREIGN KEY ("pipeline") REFERENCES "public"."deal_pipelines"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "ix_deal_moves_deal_at" ON "deal_moves" USING btree ("deal","at");--> statement-breakpoint
+CREATE INDEX "ix_deal_pipelines_client" ON "deal_pipelines" USING btree ("client");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_deal_pipelines_name" ON "deal_pipelines" USING btree (coalesce("client", ''),"name");--> statement-breakpoint
 CREATE INDEX "ix_deals_client_status" ON "deals" USING btree ("client","status");--> statement-breakpoint
 CREATE INDEX "ix_deals_pipeline_stage" ON "deals" USING btree ("pipeline","stage");--> statement-breakpoint

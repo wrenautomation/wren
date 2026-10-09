@@ -56,6 +56,8 @@ export const dealPipelines = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_deal_pipelines" }),
     uniqueIndex("uq_deal_pipelines_name").on(sql`coalesce(${t.client}, '')`, t.name),
+    // The expression above can't serve the foreign key; a client's delete cascades by this.
+    index("ix_deal_pipelines_client").on(t.client),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],
