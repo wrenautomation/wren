@@ -11,6 +11,7 @@ import type { ListPage, Module } from "../../module.js";
 import { CLIENT_PAGE_ACTIONS, FORM_ACTIONS, PAGE_ACTIONS, SPLIT_ACTIONS } from "./actions.js";
 import { clientPageExtras, pageExtras } from "./detail.js";
 import { formExtras } from "./forms.js";
+import { FunnelGraph } from "./funnel-graph.js";
 import { linkExtras, linkHead } from "./links.js";
 
 /** Tracked `/go/` links: Wren's and each client's, the same page in both workspaces. */
@@ -89,6 +90,8 @@ export const sites: Module = {
       empty: "No visits counted yet. Each page's tracker fills this.",
       columns: ["title", "channel", "offer", "views", "forms", "books", "formRate", "spend"],
     },
+    // The same rows drawn: sources, pages, forms, bookings.
+    { id: "funnel-map", label: "Funnel map", Page: FunnelGraph, wide: true },
     LINKS,
     {
       id: "forms",
