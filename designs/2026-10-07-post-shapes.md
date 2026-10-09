@@ -94,9 +94,9 @@ Unverified API projects post private only until Google's audit.
 | text | Body (self post) | 40000 chars | sent |
 | `url` | Link (makes it a link post) | | sent |
 | `sendReplies` | Replies to inbox (default on) | | build |
-| `flairId`, `flairText` | Flair (some subs require it) | text 64 | dev: the browser leg can't pick flair |
-| `nsfw`, `spoiler` | NSFW, Spoiler | | dev: not on old.reddit's form |
-| | Image post | | dev: media upload not public |
+| `flair` | Flair (some subs require it) | text 64 | sent 2026-10-09: picked by its text on the post right after it lands; a miss is a note |
+| `nsfw`, `spoiler` | NSFW, Spoiler | | sent 2026-10-09: the post page's own toggles, after it lands |
+| | Image post | | dev: old.reddit's form has no image upload |
 
 ### LinkedIn (`/rest/posts`)
 
@@ -105,7 +105,7 @@ Unverified API projects post private only until Google's audit.
 | text | Text, required | 3000 chars | sent |
 | `visibility` | PUBLIC or CONNECTIONS | | sent |
 | `noReshare` | Turn off reshares (`isReshareDisabledByAuthor`) | | build |
-| | Images, video, PDF document with title | doc title required | dev: needs the upload flow |
+| `attachment` | Image or PDF document (title = the text's first line) | 2 MB | sent 2026-10-09 through autobrowse `POST /upload`; video dev |
 
 ### Instagram Reel (`/{ig}/media`, `media_publish`)
 
@@ -144,7 +144,7 @@ An unaudited TikTok app posts SELF_ONLY whatever is picked.
 | media | One image or video | | sent |
 | `replyTo`, `quote` | Reply to, Quote (post ids) | | sent |
 | `replySettings` | Who can reply | following, mentionedUsers, subscribers, verified | build |
-| | Up to 4 media, threads, polls | | dev |
+| `images`, `poll`, `pollMinutes` | Up to 4 images with the post's file; a poll (2 to 4 choices, 5 min to 7 days) | poll or media, not both | sent 2026-10-09; threads built |
 
 ### Facebook Page (`/{page}/feed`, `/photos`, `/videos`)
 

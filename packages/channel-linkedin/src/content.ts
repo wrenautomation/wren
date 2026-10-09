@@ -214,6 +214,12 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
             title: post.media?.title ?? first ?? "Slides",
           },
         };
+      } else if (f.attachment) {
+        // A file on the post's own field: a PDF goes up as a document, titled by the text's first line.
+        const pdf = f.attachment.toLowerCase().endsWith(".pdf");
+        const id = await upload(pdf ? "document" : "image", f.attachment);
+        const head = post.text.split("\n")[0]?.trim().slice(0, 100);
+        body.content = { media: pdf ? { id, title: head || "Document" } : { id } };
       } else if (post.media) {
         // Video takes LinkedIn's multipart Videos API: not wired, said before anything sends.
         if (post.media.kind === "video" && !post.media.source.startsWith("urn:li:"))

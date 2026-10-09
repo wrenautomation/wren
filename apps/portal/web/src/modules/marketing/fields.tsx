@@ -105,6 +105,10 @@ function shown(f: FieldView): string {
   }
   if (f.input === "image" || f.input === "captions")
     return typeof f.value === "string" ? nameOf(f.value) : "None";
+  if (f.input === "files")
+    return Array.isArray(f.value) && f.value.length
+      ? f.value.map(String).map(nameOf).join(", ")
+      : "None";
   const t = textOf(f);
   return t || (f.default !== undefined ? `${String(f.default)} (default)` : "Not set");
 }
@@ -349,7 +353,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
   return (
     <div className="grid min-w-0 gap-1.5">
       <Head f={f} id={id} said={said} bad={bad} />
-      {f.input === "image" && link ? (
+      {f.input === "image" && link && !String(f.value).toLowerCase().endsWith(".pdf") ? (
         <img
           src={link}
           alt={f.label}
@@ -387,6 +391,85 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
           </Button>
         ) : null}
       </div>
+      {f.hint ? <span className={HINT}>{f.hint}</span> : null}
+    </div>
+  );
+}
+
+/** Several images on one field (X's): each shown with Remove, Add while under the cap. */
+function FilesField({ f, act, links }: FieldProps & { links: Record<string, string> }) {
+  const { said, bad, run, fail } = useSave(act);
+  const [busy, setBusy] = useState(false);
+  const pickRef = useRef<HTMLInputElement>(null);
+  const id = `field-${f.key}`;
+  const list = Array.isArray(f.value) ? f.value.map(String) : [];
+  const full = f.max !== undefined && list.length >= f.max;
+  const upload = async (file: File) => {
+    if (f.maxBytes && file.size > f.maxBytes) {
+      fail(`${f.label}: up to ${Math.round(f.maxBytes / 1024 / 1024)} MB each`);
+      return;
+    }
+    setBusy(true);
+    try {
+      await run(ATTACH, { field: f.key, name: file.name, data: await base64Of(file) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="grid min-w-0 gap-1.5">
+      <Head f={f} id={id} said={said} bad={bad} />
+      {list.length ? (
+        <ul className="flex flex-wrap gap-3">
+          {list.map((v, i) => (
+            <li key={v} className="grid w-28 gap-1">
+              {links[`${f.key}.${i}`] ? (
+                <img
+                  src={links[`${f.key}.${i}`]}
+                  alt={`${f.label} ${i + 1}`}
+                  className="aspect-square w-28 rounded-(--ui-radius) object-cover shadow-[0_0_0_1px_var(--ui-hair)]"
+                />
+              ) : (
+                <span className="truncate text-[13px]">{nameOf(v)}</span>
+              )}
+              <Button
+                size="dense"
+                tone="quiet"
+                onClick={() =>
+                  void run(FIELDS, { patch: { [f.key]: list.filter((_, j) => j !== i) } })
+                }
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="text-[14px]">None</span>
+      )}
+      <input
+        ref={pickRef}
+        id={id}
+        type="file"
+        className="sr-only"
+        accept={(f.accept ?? []).join(",")}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void upload(file);
+        }}
+      />
+      {full ? null : (
+        <Button
+          size="dense"
+          tone="secondary"
+          busy={busy}
+          className="w-fit"
+          onClick={() => pickRef.current?.click()}
+        >
+          Add
+        </Button>
+      )}
       {f.hint ? <span className={HINT}>{f.hint}</span> : null}
     </div>
   );
@@ -438,7 +521,7 @@ const BASICS = new Set([
 const MEDIA = new Set(["thumbOffset", "coverMs", "captionsLanguage"]);
 type Group = "basics" | "media" | "details";
 const groupOf = (f: FieldView): Group =>
-  f.input === "image" || f.input === "captions" || MEDIA.has(f.key)
+  f.input === "image" || f.input === "files" || f.input === "captions" || MEDIA.has(f.key)
     ? "media"
     : BASICS.has(f.key) || f.required
       ? "basics"
@@ -480,7 +563,11 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
     fields.map((f) => {
       const link = shape.links[f.key] ?? null;
       const wide =
-        f.input === "long" || f.input === "image" || f.input === "captions" || f.key === "title";
+        f.input === "long" ||
+        f.input === "image" ||
+        f.input === "files" ||
+        f.input === "captions" ||
+        f.key === "title";
       const props = { f, act, draftId: shape.draftId };
       const node =
         !shape.editable || f.status !== "sent" || f.readOnly ? (
@@ -491,6 +578,8 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
           <SwitchField {...props} />
         ) : f.input === "image" || f.input === "captions" ? (
           <FileField {...props} link={link} />
+        ) : f.input === "files" ? (
+          <FilesField {...props} links={shape.links} />
         ) : (
           <TextField {...props} />
         );

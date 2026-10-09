@@ -3,6 +3,7 @@ import { PLATFORMS } from "./index.js";
 import {
   fieldsOf,
   fieldViews,
+  mediaUnfit,
   missingFields,
   patchFields,
   SHAPES,
@@ -67,7 +68,7 @@ describe("post shapes", () => {
   });
 
   it("refuses a field in development, an unknown one and a read-only one", () => {
-    expect(() => patchFields("reddit", {}, { flair: "Discussion" })).toThrow("in development");
+    expect(() => patchFields("reddit", {}, { image: "s3://m/a.png" })).toThrow("in development");
     expect(() => patchFields("reddit", {}, { color: "red" })).toThrow("no field color");
     expect(() => patchFields("youtube", {}, { kind: "short" })).toThrow("set when");
   });
@@ -105,5 +106,19 @@ describe("post shapes", () => {
     expect(reel).not.toContain("slides");
     expect(carousel).toContain("slides");
     expect(carousel).not.toContain("cover");
+  });
+  it("X takes up to four images or a poll, and says which clash with the post's file", () => {
+    expect(fieldsOf("x", { images: ["s3://m/a.jpg"], pollMinutes: 30 }).images).toEqual([
+      "s3://m/a.jpg",
+    ]);
+    expect(() => fieldsOf("x", { poll: ["a", "b"], images: ["s3://m/a.jpg"] })).toThrow(
+      /poll or images/,
+    );
+    expect(() => fieldsOf("x", { poll: ["only one"] })).toThrow(/2 to 4/);
+    expect(() => fieldsOf("x", { pollMinutes: 2 })).toThrow(/5 minutes/);
+    expect(mediaUnfit("x", { images: ["/a.jpg"] }, { kind: "video" })).toMatch(/goes alone/);
+    expect(mediaUnfit("x", { poll: ["a", "b"] }, { kind: "image" })).toMatch(/poll or a file/);
+    expect(mediaUnfit("x", { images: ["/a", "/b", "/c"] }, { kind: "image" })).toBeNull();
+    expect(mediaUnfit("linkedin", { poll: ["a", "b"] }, { kind: "image" })).toBeNull();
   });
 });

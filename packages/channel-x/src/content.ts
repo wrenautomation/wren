@@ -1,6 +1,6 @@
 /**
  * X as a `ContentChannel`, over autobrowse's `x` site in API v2's shape.
- * Publish = an optional media upload (a local file the worker reads) then
+ * Publish = media uploads (the post's file, then up to four images; or a poll) then
  * `POST /2/tweets`; list = the account's own posts; metrics = the post's
  * `public_metrics`; comments = replies found by search (a paid tier on X's
  * side; an empty page when the tier refuses); reply = a post in reply.
@@ -34,7 +34,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
-import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { fieldsOf, mediaUnfit, ShapeError } from "@wren/core/content/shapes";
 import { threadPosts, threadUnfit } from "@wren/core/content/thread";
 
 export interface XContentOptions {
@@ -117,14 +117,22 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
     platform: "x",
     async publish(post: Post): Promise<Published> {
       const body: Record<string, unknown> = { text: post.text };
-      if (post.media) {
+      const f = fieldsOf("x", post.extra);
+      // Said before anything uploads: a poll with a file, a video with images, five images.
+      const clash = mediaUnfit("x", post.extra, post.media);
+      if (clash) throw new ShapeError(`x: ${clash}`);
+      // The post's own file first, then the field's images, in order; on a thread, the first post.
+      const sources = [...(post.media ? [post.media.source] : []), ...(f.images ?? [])];
+      const ids: string[] = [];
+      for (const source of sources) {
         const up = await sites.call<{ data?: { id?: string } }>("x", "POST", "/2/media/upload", {
-          file: await mediaFileOf(post.media.source, o.host, "x"),
+          file: await mediaFileOf(source, o.host, "x"),
         });
         if (!up.data?.id) throw new Error("x: the media upload answered no id");
-        body.media = { media_ids: [up.data.id] };
+        ids.push(up.data.id);
       }
-      const f = fieldsOf("x", post.extra);
+      if (ids.length) body.media = { media_ids: ids };
+      if (f.poll) body.poll = { options: f.poll, duration_minutes: f.pollMinutes ?? 1440 };
       const posts = f.kind === "thread" ? threadPosts(post.text) : [post.text];
       if (f.kind === "thread") {
         // The link is in the text by now: check the count as it goes out.

@@ -127,6 +127,22 @@ describe("linkedin content channel", () => {
     await ch.publish({ text: "x", media: { kind: "image", source: "s3://m/a.jpg" } });
   });
 
+  it("posts the field's PDF as a document, titled by the text's first line", async () => {
+    const host = { host: async (p: string) => `https://cdn.test/${p.split("/").pop()}` };
+    const { sites } = fakeSites({
+      "POST /upload": (i) => {
+        expect(i).toMatchObject({ kind: "document", file: "https://cdn.test/a.pdf" });
+        return { urn: "urn:li:document:4" };
+      },
+      "POST /rest/posts": (i) => {
+        expect(i?.content).toEqual({ media: { id: "urn:li:document:4", title: "The guide" } });
+        return { id: "urn:li:share:5" };
+      },
+    });
+    const ch = linkedinContent(sites, { author: "urn:li:person:abc", host });
+    await ch.publish({ text: "The guide\nmore", extra: { attachment: "s3://m/a.pdf" } });
+  });
+
   it("posts a carousel as a document: the drawn PDF, titled by its first slide", async () => {
     const host = { host: async (p: string) => `https://cdn.test/${p.split("/").pop()}` };
     const slides = Array.from({ length: 5 }, (_, i) => ({ title: `Slide ${i + 1}`, lines: [] }));

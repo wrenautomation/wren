@@ -128,6 +128,12 @@ export async function shapeView(
     if (f.input === "image" || f.input === "captions") {
       const url = await linkOf(f.value, signer);
       if (url) links[f.key] = url;
+    } else if (f.input === "files" && Array.isArray(f.value)) {
+      // Each file by place: `images.0`, `images.1`.
+      for (const [i, v] of f.value.entries()) {
+        const url = await linkOf(v, signer);
+        if (url) links[`${f.key}.${i}`] = url;
+      }
     }
   const media = await linkOf(d.media?.source, signer);
   if (media) links.media = media;

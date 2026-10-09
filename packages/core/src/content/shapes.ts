@@ -7,7 +7,7 @@
  * platform's API can't, said once.
  */
 import { z } from "zod";
-import type { Platform } from "./index.js";
+import type { Media, Platform } from "./index.js";
 import {
   SLIDE_LINE_MAX,
   SLIDE_LINES_MAX,
@@ -23,6 +23,7 @@ export type FieldInput =
   | "switch"
   | "list"
   | "image"
+  | "files"
   | "captions"
   | "number"
   | "slides";
@@ -131,6 +132,20 @@ const file = (
     ...ui,
   },
 });
+/** Several files on one field, in order: X's images. `max` is how many. */
+const files = (
+  label: string,
+  accept: readonly string[],
+  maxBytes: number,
+  max: number,
+  ui: Partial<FieldUi> = {},
+) => ({
+  zod: z
+    .array(z.string().regex(FILE, `${label}: upload a file`))
+    .max(max, `${label}: up to ${max}`)
+    .optional(),
+  ui: { label, input: "files" as const, status: "sent" as const, accept, maxBytes, max, ...ui },
+});
 /** Shown so the field is seen, never stored: the adapter can't send it yet. */
 const dev = (label: string, input: FieldInput, hint: string, ui: Partial<FieldUi> = {}) => ({
   zod: z.never().optional(),
@@ -211,10 +226,20 @@ export interface Shape<F extends Fields = Fields> {
   fields: readonly (FieldUi & { key: string })[];
 }
 
-function shape<F extends Fields>(fields: F): Shape<F> {
+/** `check` says why fields that each pass can't go together (an X poll with images), or null. */
+function shape<F extends Fields>(
+  fields: F,
+  check?: (v: Record<string, unknown>) => string | null,
+): Shape<F> {
   const zods = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.zod]));
+  const object = z.object(zods);
   return {
-    schema: z.object(zods) as unknown as SchemaOf<F>,
+    schema: (check
+      ? object.superRefine((v, ctx) => {
+          const why = check(v);
+          if (why) ctx.addIssue({ code: "custom", message: why });
+        })
+      : object) as unknown as SchemaOf<F>,
     fields: Object.entries(fields).map(([key, f]) => ({ key, ...f.ui })),
   };
 }
@@ -358,10 +383,10 @@ const reddit = shape({
   title: line("Title", 300, { required: true, column: "title" }),
   url: url("Link", { hint: "Set it to make a link post; the body is dropped" }),
   sendReplies: flag("Replies to inbox", { default: true }),
-  flair: dev("Flair", "line", "Reddit's form here can't pick a flair yet. Some subs need one."),
-  nsfw: dev("NSFW", "switch", "Not on the form the posting runs through yet."),
-  spoiler: dev("Spoiler", "switch", "Not on the form the posting runs through yet."),
-  image: dev("Image", "image", "Reddit's media upload isn't open to apps yet."),
+  flair: line("Flair", 64, { hint: "As the sub shows it. Set on the post right after it lands." }),
+  nsfw: flag("NSFW", { default: false }),
+  spoiler: flag("Spoiler", { default: false }),
+  image: dev("Image", "image", "Old Reddit's form, which posts go through, has no image upload."),
 });
 
 const linkedin = shape({
@@ -378,7 +403,10 @@ const linkedin = shape({
     { default: "PUBLIC" },
   ),
   noReshare: flag("Turn off reshares", { default: false }),
-  attachment: dev("Images, video or PDF", "image", "LinkedIn's upload flow isn't wired yet."),
+  attachment: file("Image or PDF", ["image/jpeg", "image/png", "application/pdf"], 2 * MB, {
+    // No `kinds`: a draft with no kind reads as "video" (`kindOf`). A carousel's own PDF wins.
+    hint: "JPEG, PNG or a PDF shown as a document, up to 2 MB. Video is in development.",
+  }),
   deck: deckId(["document"]),
   slides: slideSet(["document"]),
   rendered: slideFiles(["document"]),
@@ -447,28 +475,74 @@ const tiktok = shape({
 });
 
 const POST_ID = /^\d{1,19}$/;
-const x = shape({
-  kind: pick(
-    "Kind",
-    ["post", "thread"],
-    { post: "Post", thread: "Thread" },
-    { default: "post", readOnly: true, hint: "A thread's posts are split by a line of ---" },
-  ),
-  replySettings: pick(
-    "Who can reply",
-    ["following", "mentionedUsers", "subscribers", "verified"],
-    {
-      following: "People you follow",
-      mentionedUsers: "People you mention",
-      subscribers: "Subscribers",
-      verified: "Verified accounts",
+/** X: four images a post, a poll choice 25 characters. */
+export const X_IMAGES_MAX = 4;
+const X_POLL_OPTION_MAX = 25;
+const x = shape(
+  {
+    kind: pick(
+      "Kind",
+      ["post", "thread"],
+      { post: "Post", thread: "Thread" },
+      { default: "post", readOnly: true, hint: "A thread's posts are split by a line of ---" },
+    ),
+    replySettings: pick(
+      "Who can reply",
+      ["following", "mentionedUsers", "subscribers", "verified"],
+      {
+        following: "People you follow",
+        mentionedUsers: "People you mention",
+        subscribers: "Subscribers",
+        verified: "Verified accounts",
+      },
+      { hint: "Unset: everyone" },
+    ),
+    replyTo: line("Reply to", 19, { hint: "A post id" }, POST_ID),
+    quote: line("Quote", 19, { hint: "A post id" }, POST_ID),
+    images: files("Images", ["image/jpeg", "image/png"], 2 * MB, X_IMAGES_MAX, {
+      hint: `JPEG or PNG, up to ${X_IMAGES_MAX} with the post's own file, 2 MB each`,
+    }),
+    poll: {
+      zod: z
+        .array(
+          z
+            .string()
+            .trim()
+            .min(1)
+            .max(X_POLL_OPTION_MAX, `Poll: a choice is up to ${X_POLL_OPTION_MAX} characters`),
+        )
+        .min(2, "Poll: 2 to 4 choices")
+        .max(4, "Poll: 2 to 4 choices")
+        .optional(),
+      ui: {
+        label: "Poll",
+        input: "list" as const,
+        status: "sent" as const,
+        max: 4,
+        hint: `2 to 4 choices, ${X_POLL_OPTION_MAX} characters each. No images with a poll.`,
+      },
     },
-    { hint: "Unset: everyone" },
-  ),
-  replyTo: line("Reply to", 19, { hint: "A post id" }, POST_ID),
-  quote: line("Quote", 19, { hint: "A post id" }, POST_ID),
-  more: dev("More media, polls", "list", "One file per post for now."),
-});
+    pollMinutes: {
+      zod: z
+        .number({ error: "Poll length: minutes" })
+        .int("Poll length: whole minutes")
+        .min(5, "Poll length: 5 minutes to 7 days")
+        .max(10_080, "Poll length: 5 minutes to 7 days")
+        .optional(),
+      ui: {
+        label: "Poll length",
+        input: "number" as const,
+        status: "sent" as const,
+        default: 1440,
+        hint: "Minutes, 5 to 10080 (7 days)",
+      },
+    },
+  },
+  (v) =>
+    v.poll && Array.isArray(v.images) && v.images.length
+      ? "A post on X takes a poll or images, not both"
+      : null,
+);
 
 const facebook = shape({
   link: url("Link"),
@@ -574,6 +648,24 @@ export function patchFields(
   >;
   delete checked.title;
   return { extra: checked, ...(title !== undefined ? { title } : {}), changed };
+}
+
+/**
+ * Why the fields can't go with the post's own file, or null: on X a poll takes no file, a video
+ * goes alone, and images run to four with the file counted.
+ */
+export function mediaUnfit(
+  platform: Platform,
+  extra: Readonly<Record<string, unknown>> | null | undefined,
+  media: Pick<Media, "kind"> | null | undefined,
+): string | null {
+  if (platform !== "x") return null;
+  const images = Array.isArray(extra?.images) ? extra.images.length : 0;
+  if (media && Array.isArray(extra?.poll)) return "A post on X takes a poll or a file, not both";
+  if (media?.kind === "video" && images) return "A video on X goes alone, with no images";
+  if (images + (media ? 1 : 0) > X_IMAGES_MAX)
+    return `X takes up to ${X_IMAGES_MAX} images with the post's own file`;
+  return null;
 }
 
 /** The labels of required fields still unset; the title is the draft's column. */

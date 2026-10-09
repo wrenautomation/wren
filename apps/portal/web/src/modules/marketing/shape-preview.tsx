@@ -352,6 +352,7 @@ function TikTok({ s, text, fields }: Post) {
 function Reddit({ text, title, fields, device }: Post) {
   const sub = str(fieldValue(fields, "subreddit"))?.replace(/^r\//, "") ?? null;
   const link = str(fieldValue(fields, "url"));
+  const flair = str(fieldValue(fields, "flair"));
   const host = link ? link.replace(/^https?:\/\/(www\.)?/i, "").split("/")[0] : null;
   const phone = device === "phone";
   return (
@@ -365,6 +366,17 @@ function Reddit({ text, title, fields, device }: Post) {
         <p className={`${phone ? "text-[17px]" : "text-[18px]"} leading-snug font-semibold`}>
           {title || "No title"}
         </p>
+        {flair || on(fields, "nsfw") || on(fields, "spoiler") ? (
+          <p className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+            {on(fields, "nsfw") ? (
+              <span className="rounded-full bg-[#ff4500] px-2 py-0.5 text-white">NSFW</span>
+            ) : null}
+            {on(fields, "spoiler") ? (
+              <span className="rounded-full bg-[#1a1a1b] px-2 py-0.5 text-white">Spoiler</span>
+            ) : null}
+            {flair ? <span className="rounded-full bg-[#e9e9ee] px-2 py-0.5">{flair}</span> : null}
+          </p>
+        ) : null}
         {link ? (
           <p className="flex items-center justify-between gap-3 rounded-xl border border-[#d9d9de] px-3 py-2.5 text-[13px]">
             <span className="min-w-0 truncate">{host}</span>
@@ -444,10 +456,22 @@ const REPLIES: Record<string, string> = {
   verified: "Only verified accounts can reply",
 };
 
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
+/** X's poll clock: days, else hours, else minutes. */
+const pollLength = (m: number) =>
+  m >= 1440 && m % 1440 === 0
+    ? `${m / 1440} day${m === 1440 ? "" : "s"}`
+    : m >= 60 && m % 60 === 0
+      ? `${m / 60} hour${m === 60 ? "" : "s"}`
+      : `${m} minutes`;
+
 function X({ s, text, fields }: Post) {
   const replyTo = str(fieldValue(fields, "replyTo"));
   const quote = str(fieldValue(fields, "quote"));
   const replies = str(fieldValue(fields, "replySettings"));
+  const images = list(fieldValue(fields, "images"));
+  const poll = list(fieldValue(fields, "poll"));
+  const pollMinutes = fieldValue(fields, "pollMinutes");
   return (
     <DeviceFrame label="Timeline, phone" width={PHONE}>
       <div className="flex gap-3 p-4 text-[15px] leading-5">
@@ -466,6 +490,36 @@ function X({ s, text, fields }: Post) {
               ratio="aspect-video rounded-2xl border border-[#d9d9de]"
               empty={s.media.name}
             />
+          ) : null}
+          {images.length ? (
+            <div
+              className={`grid gap-0.5 overflow-hidden rounded-2xl border border-[#d9d9de] ${images.length > 1 ? "grid-cols-2" : ""}`}
+            >
+              {images.map((v, i) => (
+                <Art
+                  key={v}
+                  src={s.links[`images.${i}`] ?? null}
+                  video={null}
+                  ratio="aspect-square"
+                  empty={v.slice(v.lastIndexOf("/") + 1)}
+                />
+              ))}
+            </div>
+          ) : null}
+          {poll.length ? (
+            <div className="grid gap-1.5">
+              {poll.map((o) => (
+                <p
+                  key={o}
+                  className="rounded-full border border-[#0b84fe] px-4 py-1.5 text-center text-[14px] font-semibold text-[#0b84fe]"
+                >
+                  {o}
+                </p>
+              ))}
+              <p className={`text-[13px] ${GRAY}`}>
+                {pollLength(typeof pollMinutes === "number" ? pollMinutes : 1440)} left
+              </p>
+            </div>
           ) : null}
           {quote ? (
             <p className={`rounded-2xl border border-[#d9d9de] p-3 text-[14px] ${GRAY}`}>

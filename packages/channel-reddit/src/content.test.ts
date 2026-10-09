@@ -110,6 +110,25 @@ describe("reddit content channel", () => {
     expect(calls.at(-1)?.[2]).toMatchObject({ thing_id: "t1_c1", text: "thanks" });
   });
 
+  it("sends flair, NSFW and spoiler; a mark the page missed comes back as a note", async () => {
+    const { sites, calls } = fakeSites({
+      "POST /api/submit": () => ({
+        json: {
+          errors: [],
+          data: { name: "t3_f1", notes: ["Posted, but couldn't set NSFW: set it on the post."] },
+        },
+      }),
+    });
+    const ch = redditContent(sites, { now });
+    const out = await ch.publish({
+      text: "body",
+      extra: { subreddit: "sales", title: "t", flair: "Feedback", nsfw: true, spoiler: false },
+    });
+    expect(calls[0]?.[2]).toMatchObject({ flair_text: "Feedback", nsfw: true });
+    expect(calls[0]?.[2]).not.toHaveProperty("spoiler");
+    expect(out.notes).toEqual(["Posted, but couldn't set NSFW: set it on the post."]);
+  });
+
   it("a link post, and refusals: no subreddit, media, Reddit's own error", async () => {
     const { sites, calls } = fakeSites({
       "POST /api/submit": (i) =>

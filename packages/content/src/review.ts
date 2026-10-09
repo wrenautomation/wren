@@ -4,7 +4,7 @@
  * what goes out is always something a person approved as written.
  */
 import type { Platform } from "@wren/core/content";
-import { fieldsOf, missingFields, patchFields } from "@wren/core/content/shapes";
+import { fieldsOf, mediaUnfit, missingFields, patchFields } from "@wren/core/content/shapes";
 import { carouselUnfit, isCarousel } from "@wren/core/content/slides";
 import { isThread, threadPosts, threadUnfit } from "@wren/core/content/thread";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
@@ -168,6 +168,8 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     }
     const unfit = isCarousel(r) ? carouselUnfit(r) : null;
     if (unfit) return [`${r.id}: carousel: ${unfit}`];
+    const clash = mediaUnfit(r.platform, r.extra, r.media);
+    if (clash) return [`${r.id}: ${clash}`];
     const missing = missingFields(r.platform, r.extra, r.title);
     return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
   });

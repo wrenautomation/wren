@@ -1,6 +1,6 @@
 /**
  * A file on a post's field (designs/2026-10-07-post-shapes.md): YouTube's thumbnail and
- * subtitles, a Reel's cover. The portal sends the bytes in the call (2 MB at most, so no bucket
+ * subtitles, a Reel's cover, a LinkedIn image or PDF, X's images. The portal sends the bytes in the call (2 MB at most, so no bucket
  * CORS is needed); they go to the media store under their hash and the field takes the
  * `s3://` key, through `setFields` so the draft record keeps the change.
  */
@@ -17,6 +17,7 @@ const KINDS: Record<string, { ext: string; type: string; magic?: number[] }> = {
   ".jpg": { ext: ".jpg", type: "image/jpeg", magic: [0xff, 0xd8, 0xff] },
   ".jpeg": { ext: ".jpg", type: "image/jpeg", magic: [0xff, 0xd8, 0xff] },
   ".png": { ext: ".png", type: "image/png", magic: [0x89, 0x50, 0x4e, 0x47] },
+  ".pdf": { ext: ".pdf", type: "application/pdf", magic: [0x25, 0x50, 0x44, 0x46] },
   ".srt": { ext: ".srt", type: "application/x-subrip" },
   ".vtt": { ext: ".vtt", type: "text/vtt" },
 };
@@ -29,7 +30,11 @@ export function attachmentOf(
   bytes: Uint8Array,
 ): string {
   const f = SHAPES[platform].fields.find((x) => x.key === field);
-  if (!f || (f.input !== "image" && f.input !== "captions") || f.status !== "sent")
+  if (
+    !f ||
+    (f.input !== "image" && f.input !== "files" && f.input !== "captions") ||
+    f.status !== "sent"
+  )
     throw new Error(`${platform} takes no file on ${field}`);
   const dot = name.lastIndexOf(".");
   const kind = KINDS[dot < 0 ? "" : name.slice(dot).toLowerCase()];
@@ -56,5 +61,9 @@ export async function attachFile(
   const bytes = Buffer.from(req.data, "base64");
   const ext = attachmentOf(draft.platform, req.field, req.name, bytes);
   const source = await putMedia(bytes, ext, store);
-  return setFields(db, draft.id, { [req.field]: source }, who);
+  // A files field adds to the end; its cap is the shape's, checked by setFields.
+  const many = SHAPES[draft.platform].fields.find((x) => x.key === req.field)?.input === "files";
+  const had = draft.extra?.[req.field];
+  const value = many ? [...(Array.isArray(had) ? had : []), source] : source;
+  return setFields(db, draft.id, { [req.field]: value }, who);
 }

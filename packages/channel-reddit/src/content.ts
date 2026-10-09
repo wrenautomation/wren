@@ -116,7 +116,7 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
       if (post.media)
         throw new Error("reddit: media posts are not wired; put the link in extra.url");
       const link = f.url ?? null;
-      const data = answerOf<{ id?: string; name?: string; url?: string }>(
+      const data = answerOf<{ id?: string; name?: string; url?: string; notes?: string[] }>(
         "/api/submit",
         await call("POST", "/api/submit", {
           api_type: "json",
@@ -125,6 +125,9 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
           ...(link ? { kind: "link", url: link } : { kind: "self", text: post.text }),
           resubmit: true,
           sendreplies: f.sendReplies ?? true,
+          ...(f.flair ? { flair_text: f.flair } : {}),
+          ...(f.nsfw ? { nsfw: true } : {}),
+          ...(f.spoiler ? { spoiler: true } : {}),
         }),
       );
       const id = data.id ?? (data.name ? bareId(data.name) : null);
@@ -134,6 +137,7 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         url: data.url ?? `https://www.reddit.com/comments/${id}`,
         publishedAt: now().toISOString(),
         fetchedWith: await via("POST", "/api/submit"),
+        ...(data.notes?.length ? { notes: data.notes } : {}),
       };
     },
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {

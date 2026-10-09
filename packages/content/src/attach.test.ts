@@ -10,11 +10,16 @@ describe("a file on a post field", () => {
     expect(attachmentOf("youtube", "thumbnail", "t.png", PNG)).toBe(".png");
     expect(attachmentOf("youtube", "captions", "en.srt", SRT)).toBe(".srt");
     expect(attachmentOf("instagram", "cover", "c.jpg", JPEG)).toBe(".jpg");
+    expect(
+      attachmentOf("linkedin", "attachment", "a.pdf", new Uint8Array([37, 80, 68, 70, 45])),
+    ).toBe(".pdf");
+    expect(attachmentOf("linkedin", "attachment", "a.png", PNG)).toBe(".png");
   });
 
   it("refuses a field with no file, a wrong type, a renamed file and a big one", () => {
     expect(() => attachmentOf("youtube", "title", "t.png", PNG)).toThrow("takes no file");
     expect(() => attachmentOf("reddit", "image", "i.png", PNG)).toThrow("takes no file");
+    expect(() => attachmentOf("linkedin", "attachment", "a.pdf", PNG)).toThrow("isn't the PDF");
     expect(() => attachmentOf("instagram", "cover", "c.png", PNG)).toThrow("Cover");
     expect(() => attachmentOf("youtube", "thumbnail", "t.png", JPEG)).toThrow("isn't the PNG");
     const big = new Uint8Array(ATTACH_MAX_BYTES + 1);

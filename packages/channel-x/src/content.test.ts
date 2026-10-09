@@ -77,6 +77,48 @@ describe("x content channel", () => {
     ]);
   });
 
+  it("posts the file and the field's images in order, or a poll; refuses both before uploading", async () => {
+    let n = 0;
+    const { sites, calls } = fakeSites({
+      "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+      "POST /2/media/upload": () => ({ data: { id: `m${++n}` } }),
+      "POST /2/tweets": () => ({ data: { id: "t9" } }),
+    });
+    const ch = xContent(sites, { now });
+    await ch.publish({
+      text: "three",
+      media: { kind: "image", source: "/data/a.jpg" },
+      extra: { images: ["/data/b.jpg", "/data/c.png"] },
+    });
+    await ch.publish({ text: "pick", extra: { poll: ["Yes", "No"], pollMinutes: 60 } });
+    const tweets = calls.filter(([m, p]) => m === "POST" && p === "/2/tweets").map((c) => c[2]);
+    expect(tweets[0]).toEqual({ text: "three", media: { media_ids: ["m1", "m2", "m3"] } });
+    expect(tweets[1]).toEqual({
+      text: "pick",
+      poll: { options: ["Yes", "No"], duration_minutes: 60 },
+    });
+
+    const before = calls.length;
+    await expect(
+      ch.publish({
+        text: "x",
+        media: { kind: "image", source: "/data/a.jpg" },
+        extra: { poll: ["Yes", "No"] },
+      }),
+    ).rejects.toThrow(/poll or a file/);
+    await expect(
+      ch.publish({ text: "x", extra: { poll: ["Yes", "No"], images: ["/data/b.jpg"] } }),
+    ).rejects.toThrow(/poll or images/);
+    await expect(
+      ch.publish({
+        text: "x",
+        media: { kind: "image", source: "/data/a.jpg" },
+        extra: { images: ["/1.jpg", "/2.jpg", "/3.jpg", "/4.jpg"] },
+      }),
+    ).rejects.toThrow(/up to 4/);
+    expect(calls.length).toBe(before);
+  });
+
   it("posts a long single post whole, in one call", async () => {
     const { sites, calls } = fakeSites({
       "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
