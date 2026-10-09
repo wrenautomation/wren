@@ -67,7 +67,7 @@ function SourcesBody() {
   const total = kinds.reduce((n, k) => n + k.sources.length, 0);
   return (
     <div className="flex flex-col gap-8 pb-16">
-      <header className="flex flex-col gap-4">
+      <header className="flex flex-col gap-4 border-(--ui-hair) border-b pb-5">
         <div className="flex items-baseline gap-2.5">
           <h1 className={PAGE_TITLE}>Sources</h1>
           {load.data ? (
@@ -139,12 +139,12 @@ function Follow() {
         className="min-w-0 flex-1"
       />
       <div className="flex gap-2">
-        <label className="inline-flex h-9 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px]">
+        <label className="inline-flex h-9 items-center text-[13px]">
           <span className="sr-only">Alerts for everyone here</span>
           <select
             value={tell}
             onChange={(e) => setTell(e.target.value)}
-            className="h-full cursor-pointer bg-transparent px-2 outline-none"
+            className="h-full cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-(--ui-ink) outline-none focus:border-(--ui-accent)"
           >
             {TELLS.map(([id, label]) => (
               <option key={id} value={id}>
