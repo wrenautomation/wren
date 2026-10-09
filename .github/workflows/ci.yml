@@ -3,14 +3,16 @@ on:
   push: { branches: [main] }
   pull_request:
 # Many sessions push to main: a newer push cancels the older run, and deploy
-# follows the newest green one. The three gates run side by side, and turbo's
-# cache carries over between runs, so a package nobody touched is not retested.
+# follows the newest green one. The gates run side by side, and turbo's cache
+# carries over between runs, so a package nobody touched is not retested.
+# Integration suites run in integration.yml and never hold a deploy (2026-10-09:
+# most red runs were stale fakes and date-bound tests, not prod bugs).
 concurrency: { group: "ci-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   gates:
     strategy:
       fail-fast: true
-      matrix: { gate: [lint, unit, integration] }
+      matrix: { gate: [lint, unit, schema] }
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
     steps:

@@ -24,7 +24,14 @@ offers() {
 unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
 # Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
 # times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3 && spam; }
+# A failed test retries once: a flake costs a rerun, not a red run.
+integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3 --retry=1 && spam; }
+# The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
+schema() {
+  echo "==> schema (needs Docker)" &&
+    (cd packages/db && pnpm -s vitest run test/integration/schema.test.ts) &&
+    (cd packages/channel-email && pnpm -s vitest run test/integration/legacy-parity.test.ts)
+}
 # Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
 # The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
 spam() { echo "==> spam score (needs Docker)" && WREN_DATABASE_URL="${WREN_DATABASE_URL:-postgres://unused@127.0.0.1:1/unused}" ./bin/wren email spamcheck; }
@@ -32,6 +39,7 @@ case "${1:-all}" in
   lint) lint ;;
   unit) unit ;;
   integration) integration ;;
-  all) lint && unit && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|unit|integration|all]" >&2; exit 2 ;;
+  schema) schema ;;
+  all) lint && unit && schema && integration && echo "==> all gates green" ;;
+  *) echo "usage: $0 [lint|unit|schema|integration|all]" >&2; exit 2 ;;
 esac

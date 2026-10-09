@@ -164,7 +164,7 @@ so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lan
 
 ## Gates
 
-`./scripts/gates.sh` runs lint + typecheck, unit tests, integration tests (Docker). CI runs the same.
+`./scripts/gates.sh` runs lint + typecheck, unit tests, the schema checks and integration tests (Docker). CI deploys on lint, unit and schema; integration runs in its own workflow and only reports.
 
 ## Map
 

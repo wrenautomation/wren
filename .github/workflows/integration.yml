@@ -1,0 +1,24 @@
+name: integration
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+# Every package's integration suite (Docker Postgres per file) and the spam score.
+# Reports only: deploy follows ci.yml, so a red run here is fixed in the next batch.
+concurrency: { group: "integration-${{ github.ref }}", cancel-in-progress: true }
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-integration-${{ github.sha }}
+          restore-keys: turbo-integration-
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/gates.sh integration
+        env: { TESTCONTAINERS_RYUK_DISABLED: "true" }

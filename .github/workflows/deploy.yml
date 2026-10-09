@@ -1,7 +1,8 @@
 # Deploy main to production: migrate the database, restart the pool chain's worker on
 # the Postgres box (it registers itself), ship the worker and the sign-in to Lambda,
 # register the worker's new version with Restate (Cloud or the box), ship
-# the phone, sign-in, portal and LLM gateway Workers to Cloudflare. Runs after `ci` is green.
+# the phone, sign-in, portal and LLM gateway Workers to Cloudflare. Runs after `ci` is green
+# (lint, unit, schema; integration.yml reports on its own and never holds a deploy).
 # Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,
