@@ -21,4 +21,6 @@ jobs:
           restore-keys: turbo-integration-
       - run: pnpm install --frozen-lockfile
       - run: ./scripts/gates.sh integration
-        env: { TESTCONTAINERS_RYUK_DISABLED: "true" }
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          WREN_TEST_PG_IMAGE: public.ecr.aws/docker/library/postgres:17

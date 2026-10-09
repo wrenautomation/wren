@@ -28,10 +28,11 @@ export function selfRemoving<C extends Configurable<C>>(
     .withCommand(command);
 }
 
-/** Start Postgres 17 in Docker, run all migrations, return a handle. One per test file. */
+/** Start Postgres 17 in Docker, run all migrations, return a handle. One per test file. CI pulls
+ *  it from a mirror (`WREN_TEST_PG_IMAGE`): Docker Hub limits anonymous pulls per runner IP. */
 export async function startTestPostgres(): Promise<TestPostgres> {
   const container: StartedPostgreSqlContainer = await selfRemoving(
-    new PostgreSqlContainer("postgres:17"),
+    new PostgreSqlContainer(process.env.WREN_TEST_PG_IMAGE ?? "postgres:17"),
     ["docker-entrypoint.sh"],
     ["postgres"],
   ).start();
