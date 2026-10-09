@@ -201,3 +201,7 @@ Library > Sequences opens a sequence in this editor: a sequence is a cadence on 
   live, with the count ("1 client runs it live: uninstall it there first"), never the names.
   The row trigger audits it under who deleted, as a save. An install not live keeps its draft
   and words; it just can't be approved, since its template is gone.
+- 2026-10-09: search by person or firm built (0212). `spine_executions` gains `person` and
+  `firm`, resolved per subject kind (text, DM and email leads and replies, companies, mail); the
+  record lists neither but searches both, so "Acme" finds every walk of anyone there. Client
+  journeys still aren't on the main spine.

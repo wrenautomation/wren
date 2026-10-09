@@ -133,6 +133,7 @@ import {
   date,
   defineRecord,
   metaOf,
+  name,
   named,
   number,
   percent,
@@ -803,6 +804,9 @@ export const executionRecordOf = (labels: Readonly<Record<string, string>> = {})
     subtitle: "workflow",
     fields: {
       title: text("About"),
+      // Who it's about apart from the title, so search finds a person or their firm.
+      person: name("Person", { listed: false }),
+      firm: name("Firm", { listed: false }),
       subject: text("Key", { listed: false }),
       workflow: named("Workflow"),
       // The title says the kind ("Dana Lee: Text lead"), and its page when it entered: the list

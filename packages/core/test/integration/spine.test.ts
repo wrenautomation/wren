@@ -92,6 +92,29 @@ describe("pgSpineStore", () => {
     );
     expect(failed).toEqual({ state: "failed", error: "it broke" });
   });
+
+  it("names each execution's person and firm apart, so either finds it", async () => {
+    const [firm] = await pg.db.execute<{ id: number }>(
+      sql`insert into companies (name, domain) values ('Acme Advisors', 'acme.example') returning id`,
+    );
+    const [dm] = await pg.db.execute<{ id: number }>(sql`
+      insert into reach_contacts (platform, handle, url, found_in, name, company_id)
+      values ('linkedin', 'dana', 'https://www.linkedin.com/in/dana', 'search', 'Dana Lee', ${firm?.id})
+      returning id`);
+    const store = pgSpineStore(pg.db);
+    const at = (subject: string) => ({ ...a, workflow: "who", event: { ...a.event, subject } });
+    await store.claim(at(`lead:reach:${dm?.id}`), "inv1");
+    await store.claim(at(`company:${firm?.id}`), "inv1");
+    await store.claim(at("lead:sms:x1"), "inv1");
+    const rows = await pg.db.execute<{ subject: string; person: string; firm: string }>(
+      sql`select subject, person, firm from spine_executions where workflow = 'who' order by subject`,
+    );
+    expect(rows).toEqual([
+      { subject: `company:${firm?.id}`, person: null, firm: "Acme Advisors" },
+      { subject: `lead:reach:${dm?.id}`, person: "Dana Lee", firm: "Acme Advisors" },
+      { subject: "lead:sms:x1", person: null, firm: null },
+    ]);
+  });
 });
 
 describe("addHook", () => {

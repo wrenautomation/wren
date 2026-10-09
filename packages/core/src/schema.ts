@@ -346,7 +346,8 @@ export const spineEvents = pgView("spine_events", {
 /**
  * One subject's walk through one workflow (`console.execution`): when it entered, where it is now
  * (the failed node, else the waiting one, else the last it reached) and how many steps it took.
- * Its title names who and what: "Dana Lee: Re: pricing", not "mail:104".
+ * Its title names who and what: "Dana Lee: Re: pricing", not "mail:104". `person` and `firm` say
+ * who it's about apart, so its list searches by either (a firm's name never fits in the title).
  */
 export const spineExecutions = pgView("spine_executions", {
   id: text("id"),
@@ -362,6 +363,8 @@ export const spineExecutions = pgView("spine_executions", {
   error: text("error"),
   steps: integer("steps"),
   title: text("title"),
+  person: text("person"),
+  firm: text("firm"),
 }).as(sql`
   select x.*, coalesce(case
       when subject ~ '^mail:[0-9]{1,9}$' then (select coalesce(nullif(m.from_name, ''),
@@ -392,7 +395,7 @@ export const spineExecutions = pgView("spine_executions", {
         when 'email' then 'Email lead' else 'Text lead' end
       when 'reply' then case split_part(subject, ':', 2) when 'reach' then 'DM reply'
         when 'email' then 'Email reply' else 'Text reply' end
-    end || ' (gone)', subject) title
+    end || ' (gone)', subject) title, who.person, who.firm
   from (select workflow || '/' || subject id, workflow, subject, min(kind) kind,
     case when bool_or(error is not null) then 'failed'
       when bool_or(due is not null) then 'waiting' else 'done' end state,
@@ -400,7 +403,31 @@ export const spineExecutions = pgView("spine_executions", {
     min(at) entered, max(coalesce(sent_at, at)) last_at, min(due) due,
     (array_agg(until order by due nulls last) filter (where due is not null))[1] until,
     max(error) error, count(*)::int steps
-  from events group by workflow, subject) x`);
+  from events group by workflow, subject) x
+  left join lateral (
+    select nullif(s.name, '') person, c.name firm from sms_contacts s
+      left join companies c on c.id = s.company_id
+      where s.id = case when x.subject ~ '^(lead|reply):sms:[0-9]{1,9}$'
+        then split_part(x.subject, ':', 3)::int end
+    union all
+    select coalesce(nullif(r.name, ''), r.handle), c.name from reach_contacts r
+      left join companies c on c.id = r.company_id
+      where r.id = case when x.subject ~ '^(lead|reply):reach:[0-9]{1,9}$'
+        then split_part(x.subject, ':', 3)::int end
+    union all
+    select coalesce(nullif(p.full_name, ''), e.to_email), c.name from enrollments e
+      left join people p on p.id = e.person_id left join companies c on c.id = e.company_id
+      where e.id = case when x.subject ~ '^(lead|reply):email:[0-9]{1,9}$'
+        then split_part(x.subject, ':', 3)::int end
+    union all
+    select null, c.name from companies c
+      where c.id = case when x.subject ~ '^company:[0-9]{1,9}$'
+        then split_part(x.subject, ':', 2)::int end
+    union all
+    select coalesce(nullif(m.from_name, ''), m.from_address), null from watch.mail m
+      where m.id = case when x.subject ~ '^mail:[0-9]{1,9}$'
+        then split_part(x.subject, ':', 2)::int end
+  ) who on true`);
 
 /**
  * The door's hooks: `POST /hooks/<token>` on the phone Worker enters `workflow` at its input
