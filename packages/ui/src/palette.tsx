@@ -3,7 +3,7 @@
  * to any app or page. Its box takes dictation. Import it from `@wren/ui/palette` and load it on the first ⌘K: cmdk and
  * the dialog stay out of the first load.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Command,
@@ -39,6 +39,7 @@ export function CommandPalette({
   onOpenChange,
   ask,
   capture,
+  find,
 }: {
   items: PaletteItem[];
   onPick: (href: string) => void;
@@ -48,11 +49,15 @@ export function CommandPalette({
   ask?: ((question: string) => void) | undefined;
   /** What's typed goes into the viewer's notes ("note: call Sam back"). */
   capture?: ((words: string) => void) | undefined;
+  /** Records that match what's typed, asked after a pause: Learn's items, by their app. */
+  find?: ((q: string) => Promise<PaletteItem[]>) | undefined;
 }) {
   const scope = useScoped();
   const record = useOpened();
   const [q, setQ] = useState("");
   const box = useRef<HTMLInputElement>(null);
+  const found = useFound(find, q);
+  const foundGroups = [...new Set(found.map((i) => i.group))];
   const groups = [...new Set(items.map((i) => i.group))];
   const here = [...new Set(scope.items.map((i) => i.group))];
   const run = (i: Pick<ScopeItem, "run">) => () => {
@@ -88,7 +93,7 @@ export function CommandPalette({
           <CommandInput ref={box} placeholder="Do or go to…" value={q} onValueChange={setQ} />
         </DictateField>
         <CommandList>
-          {note ? null : <CommandEmpty>Nothing by that name.</CommandEmpty>}
+          {note || found.length ? null : <CommandEmpty>Nothing by that name.</CommandEmpty>}
           {scope.search && q.trim() ? (
             <CommandGroup heading="Search">
               <CommandItem
@@ -155,6 +160,28 @@ export function CommandPalette({
                 ))}
             </CommandGroup>
           ))}
+          {foundGroups.map((g) => (
+            // Forced: the server already matched them, by words cmdk's filter can't see.
+            <CommandGroup key={`found ${g}`} heading={`In ${g}`} forceMount>
+              {found
+                .filter((i) => i.group === g)
+                .map((i) => (
+                  <CommandItem
+                    key={i.href}
+                    value={`found ${i.href}`}
+                    forceMount
+                    onSelect={() => {
+                      onOpenChange(false);
+                      onPick(i.href);
+                    }}
+                  >
+                    {i.icon ? <Icon name={i.icon} /> : null}
+                    <span className="truncate">{i.label}</span>
+                    {i.hint ? <CommandShortcut>{i.hint}</CommandShortcut> : null}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          ))}
           {groups.map((g) => (
             <CommandGroup key={g} heading={g}>
               {items
@@ -180,4 +207,32 @@ export function CommandPalette({
       </Command>
     </CommandDialog>
   );
+}
+
+/** What `find` answers for the words typed, asked 250 ms after the last key; a late answer is dropped. */
+function useFound(
+  find: ((q: string) => Promise<PaletteItem[]>) | undefined,
+  q: string,
+): PaletteItem[] {
+  const [found, setFound] = useState<{ q: string; items: PaletteItem[] }>({ q: "", items: [] });
+  const words = q.trim();
+  // The latest `find`, so a parent's new function each render never asks again.
+  const latest = useRef(find);
+  latest.current = find;
+  const can = !!find;
+  useEffect(() => {
+    const ask = latest.current;
+    if (!can || !ask || words.length < 2) return;
+    let live = true;
+    const t = setTimeout(() => {
+      ask(words)
+        .then((items) => live && setFound({ q: words, items }))
+        .catch(() => live && setFound({ q: words, items: [] }));
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [can, words]);
+  return found.q === words ? found.items : [];
 }

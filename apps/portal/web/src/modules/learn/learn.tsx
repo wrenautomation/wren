@@ -28,7 +28,7 @@ interface Saved {
   unread: boolean;
 }
 
-const KINDS: Record<string, string> = {
+export const KINDS: Record<string, string> = {
   article: "Article",
   video: "Video",
   reel: "Reel",

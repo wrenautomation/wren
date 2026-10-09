@@ -152,6 +152,16 @@ export interface Module {
   action?: { page: string; label: string; icon: IconName };
   /** Tabs read from its data, beside its pages: Learn's places and collections. */
   nav?: ModuleNav;
+  /** ⌘K as you type: its records that match, in the workspace on screen, each with its page. */
+  find?: (q: string, client: string) => Promise<Found[]>;
+}
+
+/** One record ⌘K found: its name, what it is, and where it opens. */
+export interface Found {
+  label: string;
+  href: string;
+  /** A second line, faint: its kind and where it came from. */
+  hint?: string;
 }
 
 /** An app's tabs that come from its data, read again on every move and every `changed`. */

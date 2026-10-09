@@ -6,16 +6,29 @@
  * (its alerts go out on the main notifier, never into the Inbox) and a client's people's.
  */
 import { createElement, useEffect } from "react";
-import type { Module, PageProps } from "../../module.js";
+import { call } from "../../api.js";
+import { type Found, type Module, type PageProps, WREN } from "../../module.js";
 import { navigate, useRoute } from "../../route.js";
 import { ItemsPage } from "./drive.js";
 import { learnNav } from "./frame.js";
 import { HomePage } from "./home.js";
-import { AddPage, SearchPage } from "./learn.js";
+import { AddPage, KINDS, SearchPage } from "./learn.js";
 import { SourcesPage } from "./sources.js";
 import { TodayPage } from "./today.js";
 
 const TEAM = { audience: "team" } as const;
+
+/** ⌘K: items whose title or words match, in Wren's Learn or the client's on screen. */
+const find = async (q: string, client: string): Promise<Found[]> => {
+  const { items } = await call<{
+    items: Array<{ id: number; title: string; kind: string; source: string }>;
+  }>("learn/find", client === WREN.id ? { q } : { client, q });
+  return items.map((i) => ({
+    label: i.title,
+    href: `/learn/items/${i.id}`,
+    hint: `${KINDS[i.kind] ?? i.kind} · ${i.source}`,
+  }));
+};
 
 /** The old Saved list and its item pages: now a place in Items. */
 function SavedPage(_: PageProps) {
@@ -50,6 +63,7 @@ export const learn: Module = {
   requires: TEAM,
   action: { page: "add", label: "Save a link", icon: "pin" },
   nav: learnNav,
+  find,
   pages: [
     ...pages,
     {
@@ -73,5 +87,6 @@ export const clientLearn: Module = {
   requires: { audience: "client", needs: "read", at: { app: "learn" } },
   action: { page: "add", label: "Save a link", icon: "pin" },
   nav: learnNav,
+  find,
   pages: [...pages, ...hidden],
 };

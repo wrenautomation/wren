@@ -27,6 +27,8 @@ export const LEARN_CONSOLE_ROUTES = {
   readAgain: "act",
   toSop: "act",
   search: "read",
+  // ⌘K as you type: titles and words, no embedding.
+  find: "read",
   item: "read",
   unseen: "read",
   seen: "read",

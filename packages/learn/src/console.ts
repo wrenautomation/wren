@@ -61,7 +61,7 @@ import {
   unseen,
 } from "./drive.js";
 import { type FetchFn, follow, itemEvent, tellSources, unfollowSources } from "./feeds.js";
-import { saveLink, searchItems } from "./items.js";
+import { findItems, saveLink, searchItems } from "./items.js";
 import { cleanUrl } from "./links.js";
 import {
   ALERT_PICKS,
@@ -483,6 +483,9 @@ export function learnConsoleApi(
     search: async (req: SearchRequest) => ({
       hits: await searchItems(db, await reads(req), req.q ?? "", 40, embed),
     }),
+    find: async (req: SearchRequest) => ({
+      items: await findItems(db, await reads(req), req.q ?? ""),
+    }),
     item: async (req: ItemRequest) => {
       const got = await itemPage(db, await reads(req), idOf(req.id));
       if (!got) throw new PortalRefusal("no such item", 404);
@@ -684,6 +687,10 @@ export function makeLearnConsole(
       search: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, q: z.string().describe("Words to find") }) },
         (_: restate.Context, req: SearchRequest) => answer(() => api.search(req)),
+      ),
+      find: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, q: z.string().describe("Words to find") }) },
+        (_: restate.Context, req: SearchRequest) => answer(() => api.find(req)),
       ),
       item: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, id: z.string() }) },

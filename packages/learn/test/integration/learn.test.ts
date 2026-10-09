@@ -22,6 +22,7 @@ import { LEARN_FEEDS_FROM, LEARN_SAVED_FROM, learnConsoleApi } from "../../src/c
 import {
   embedMissing,
   type FetchFn,
+  findItems,
   itemEvent,
   items,
   judges,
@@ -280,6 +281,15 @@ describe("Learn", () => {
     expect(hits.map((h) => h.id)).toEqual([Number(first.id)]);
     expect(hits[0]?.snippet).toContain("«forty»");
     expect(await searchItems(pg.db, "wren", "nothing-like-this")).toEqual([]);
+    // ⌘K as you type: words are prefixes, the title's first; tsquery syntax never gets through.
+    const id = Number(first.id);
+    expect((await findItems(pg.db, "wren", "warm rul")).map((f) => f.id)).toEqual([id]);
+    expect((await findItems(pg.db, "wren", "fort inb")).map((f) => f.title)).toEqual([
+      "Three warmup rules",
+    ]);
+    expect(await findItems(pg.db, "wren", "warm & !(:*")).toHaveLength(1);
+    expect(await findItems(pg.db, "other", "warm")).toEqual([]);
+    expect(await findItems(pg.db, "wren", "  ")).toEqual([]);
 
     // By meaning: a fake embedder that knows "warmup" and "daily cap" are one idea.
     const embed: Embed = async (texts) =>

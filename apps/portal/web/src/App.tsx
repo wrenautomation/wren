@@ -387,6 +387,21 @@ export function App() {
   const noteAt =
     current && !sample && !viewingAs && apps.some((m) => m.id === "notes") ? current.id : null;
   const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
+  // ⌘K finds records as you type in each app here that can (Learn's items); never on a sample.
+  const finders = apps.filter((m) => m.find);
+  const finder =
+    current && !sample && finders.length
+      ? async (q: string): Promise<PaletteItem[]> =>
+          (
+            await Promise.all(
+              finders.map((m) =>
+                (m.find?.(q, current.id) ?? Promise.resolve([]))
+                  .then((rows) => rows.map((r) => ({ ...r, group: m.name, icon: m.icon })))
+                  .catch(() => []),
+              ),
+            )
+          ).flat()
+      : undefined;
   // The team's snippets, inserted in any draft it writes: Wren's, wherever it drafts.
   const snippets = useMemo(
     () => (team && onDemo === false ? snippetsFor(wren ? null : (current?.id ?? null)) : null),
@@ -639,6 +654,7 @@ export function App() {
             items={jumps(apps, launcher, keys)}
             onPick={(href) => navigate(href)}
             capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
+            find={finder}
             ask={
               me.data?.team?.wren.includes("run")
                 ? (q) => void askClaude(q, location.pathname + location.search)

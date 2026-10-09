@@ -6,7 +6,7 @@
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import type { Embed } from "@wren/llm";
-import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import { nearItems } from "./embed.js";
 import { cleanUrl, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
 import { type ItemKind, items, sopSources, sources, type Via } from "./schema.js";
@@ -148,6 +148,53 @@ export async function searchItems(
     .map((h) => ({ ...h, rank: fused.get(h.id) ?? 0 }))
     .sort((a, b) => b.rank - a.rank || b.id - a.id)
     .slice(0, cap);
+}
+
+/** One ⌘K line: enough to name an item and open it. */
+export interface Found {
+  id: number;
+  title: string;
+  kind: ItemKind;
+  source: string;
+}
+
+/**
+ * ⌘K as you type: each word a prefix ("warm sched" finds "warmup schedule"), titles first. No
+ * snippet and no embedding, so it answers on every pause. Only letters and digits reach the query.
+ */
+export async function findItems(
+  db: Queryable,
+  client: string,
+  q: string,
+  limit = 6,
+): Promise<Found[]> {
+  const words =
+    q
+      .toLowerCase()
+      .match(/[\p{L}\p{N}]+/gu)
+      ?.slice(0, 8) ?? [];
+  if (!words.length) return [];
+  const tsq = sql`to_tsquery('english', ${words.map((w) => `${w}:*`).join(" & ")})`;
+  const like = `%${words.join("%")}%`;
+  const inTitle = sql`${items.title} ilike ${like}`;
+  return db
+    .select({
+      id: items.id,
+      title: items.title,
+      kind: items.kind,
+      source: sql<string>`coalesce(${sources.name}, 'Saved')`,
+    })
+    .from(items)
+    .leftJoin(sources, eq(sources.id, items.sourceId))
+    .where(
+      and(
+        eq(items.client, client),
+        isNull(items.archivedAt),
+        sql`(${inTitle} or ${items.search} @@ ${tsq})`,
+      ),
+    )
+    .orderBy(sql`${inTitle} desc`, sql`ts_rank(${items.search}, ${tsq}) desc`, desc(items.id))
+    .limit(Math.min(Math.max(limit, 1), 20));
 }
 
 /** One item whole: its transcript, the SOPs it was asked into. Null for none. */
