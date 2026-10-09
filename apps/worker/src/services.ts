@@ -230,6 +230,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { setFieldStep } from "@wren/core/custom-fields";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
@@ -1843,6 +1844,8 @@ export async function buildServices(
         ),
         // Send webhook: any https URL past the SSRF guard (designs/2026-10-07-webhooks-out.md).
         "logic.webhook": webhookStep(),
+        // Set field: one custom field on the subject's record (designs/2026-10-09-custom-fields.md).
+        "logic.set_field": setFieldStep(db),
       },
       // What a client's own URLs hear: deliveries signed and tried on Webhooks' ladder.
       publish: webhooksPublish,

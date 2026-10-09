@@ -12,6 +12,8 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import { withCustomFields } from "@wren/core/custom-fields";
+import { type Edited, editRecord, undoChange } from "@wren/core/edits";
 import {
   answer,
   canAt,
@@ -22,7 +24,7 @@ import {
   portalService,
   type SignedViewer,
 } from "@wren/core/portal";
-import { metaOf } from "@wren/core/records";
+import { metaOf, type RecordType } from "@wren/core/records";
 import {
   type ExportAsk,
   fenceFor,
@@ -161,10 +163,10 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
   };
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
     const owner = await ownerFor(req, "read");
-    return snapshot(main, (tx) =>
+    return snapshot(main, async (tx) =>
       use(
         serveRecords(
-          [dealRecordFor(owner)],
+          await withCustomFields([dealRecordFor(owner)], tx),
           tx,
           undefined,
           fenceFor(req, owner ?? WREN),
@@ -183,11 +185,19 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
     return ids;
   };
 
+  /** The deal type with the owner's custom fields, for an edit of one of their deals. */
+  const editable = async (req: RecordEditRequest): Promise<{ t: RecordType; id: string }> => {
+    const owner = await ownerFor(req, "act");
+    const [t] = await withCustomFields([dealRecordFor(owner)], main);
+    if (!t?.edits || req.record !== t.id) throw new PortalRefusal("nothing to edit there", 404);
+    return { t, id: String(req.id ?? "") };
+  };
+
   return {
     recordsTypes: async (req: PortalRequest) => {
       const owner = await ownerFor(req, "read");
       const fence = fenceFor(req, owner ?? WREN);
-      return [dealRecordFor(owner)]
+      return (await withCustomFields([dealRecordFor(owner)], main))
         .filter((t) => !fence || opens(t, fence(t)))
         .map((t) => metaOf(t, false));
     },
@@ -195,6 +205,21 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
     recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
+    /** A patch to a deal's custom fields, compare-and-swapped on `expect`. */
+    recordsEdit: async (req: RecordEditRequest): Promise<Edited> => {
+      const { t, id } = await editable(req);
+      return editRecord(main, t, id, {
+        patch: req.patch,
+        expect: typeof req.expect === "string" ? req.expect : null,
+        by: who(req),
+      });
+    },
+    /** Put one change's before back. */
+    recordsUndo: async (req: RecordEditRequest): Promise<Edited> => {
+      const { t, id } = await editable(req);
+      if (!Number.isSafeInteger(req.change)) throw new PortalRefusal("say which change", 400);
+      return undoChange(main, t, id, req.change as number, who(req));
+    },
 
     /** The owner's pipelines (the default made on the first look) and one's deals. */
     board: async (req: BoardRequest): Promise<Board> => {
@@ -300,6 +325,23 @@ const FIELDS = {
   nextOn: z.string().nullish().describe("A day to follow up, as 2026-10-20"),
 };
 
+/** An edit or undo on one deal's fields in place. */
+export interface RecordEditRequest extends PortalRequest {
+  record?: unknown;
+  id?: unknown;
+  patch?: unknown;
+  expect?: unknown;
+  change?: unknown;
+}
+const EDIT_INPUT = z.looseObject({
+  ...PORTAL_FIELDS,
+  record: z.string().describe("The record type: deals.deal"),
+  id: z.string().describe("The deal's id"),
+  patch: z.record(z.string(), z.unknown()).nullish().describe("Custom fields to set, by x_<key>"),
+  expect: z.string().nullish().describe("The version the editor started from"),
+  change: z.number().int().nullish().describe("Undo: the change to put back"),
+});
+
 export function makeDealsConsole(deps: DealsConsoleDeps) {
   const api = dealsConsoleApi(deps);
   /** Each moved deal told to the spine, after the move is kept. */
@@ -336,6 +378,16 @@ export function makeDealsConsole(deps: DealsConsoleDeps) {
       ),
       recordsStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsAsk) =>
         answer(() => api.recordsStats(req)),
+      ),
+      recordsEdit: serviceHandler(
+        { input: EDIT_INPUT },
+        (ctx: restate.Context, req: RecordEditRequest) =>
+          answer(() => ctx.run("edit", () => answer(() => api.recordsEdit(req)))),
+      ),
+      recordsUndo: serviceHandler(
+        { input: EDIT_INPUT },
+        (ctx: restate.Context, req: RecordEditRequest) =>
+          answer(() => ctx.run("undo", () => answer(() => api.recordsUndo(req)))),
       ),
       board: serviceHandler(
         {

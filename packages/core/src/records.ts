@@ -521,6 +521,7 @@ export const EDITABLE: ReadonlySet<Kind> = new Set<Kind>([
   "text",
   "prose",
   "number",
+  "money",
   "status",
   "tags",
   "link",
@@ -585,7 +586,22 @@ export interface RecordDecl<F extends Record<string, Draft>> {
    * no other handler.
    */
   calls?: Readonly<Record<string, string>>;
+  /**
+   * It takes custom fields (designs/2026-10-09-custom-fields.md): the owner whose fields it
+   * shows, in the database its rows sit in. `keys` is filled per request (`withCustomFields`),
+   * each a field `x_<key>` on the type.
+   */
+  custom?: {
+    owner: string | null;
+    /** Is `id` a row of this type (the owner's)? A type without `edits` must say. */
+    exists?: (db: Queryable, id: string) => Promise<boolean>;
+    keys?: readonly string[];
+  };
 }
+/** The column, and field key, of a custom field on a record type. */
+export const customColumn = (key: string) => `x_${key}`;
+/** The currency column a custom money field reads. */
+export const CUSTOM_CURRENCY = "x__currency";
 /** A record type's channel: one, a field holding it, or none. */
 export type RecordChannel = string | { field: string } | null;
 export type RecordType = Omit<RecordDecl<Record<string, Draft>>, "fields"> & {
@@ -736,8 +752,12 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
   if (decl.edits) checkEdits(type, decl.edits);
   checkAttributes(type);
   DECLARED.set(type.id, { app: type.app, channel: type.channel });
+  if (decl.custom) CUSTOM_RECORDS.set(type.id, type.name);
   return type;
 }
+
+/** The record types that take custom fields, by id, with their names: Settings → Fields lists them. */
+export const CUSTOM_RECORDS = new Map<string, { one: string; many: string }>();
 
 /**
  * Every record type declared in this process, by id, with its app and channel: the inventory

@@ -12,6 +12,8 @@ export const DEALS_CONSOLE_ROUTES = {
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",
+  recordsEdit: "act",
+  recordsUndo: "act",
   board: "read",
   create: "act",
   edit: "act",
@@ -35,6 +37,8 @@ export const DEALS_CONSOLE_APPS = {
 export type DealsConsoleRoute = keyof typeof DEALS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const DEALS_CONSOLE_WRITES: readonly DealsConsoleRoute[] = [
+  "recordsEdit",
+  "recordsUndo",
   "create",
   "edit",
   "assign",

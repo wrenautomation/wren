@@ -76,6 +76,8 @@ import {
   STAGES,
 } from "./components.js";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
+import { customApi, customHandlers } from "./custom-console.js";
+import { withCustomFields } from "./custom-fields.js";
 import { leadOf } from "./door.js";
 import { type Door, doorsFor, ensureDoors, revealDoor, rotateDoor } from "./doors.js";
 import { type DryResult, dryStep, dryWalk, sampleEvent } from "./dry.js";
@@ -2222,7 +2224,8 @@ export function consoleApi({
           })
         : [];
     return [
-      ...mine,
+      // Wren's own types that take custom fields carry Wren's live ones.
+      ...(await withCustomFields(mine, main)),
       ...access,
       componentRecord(
         shown,
@@ -2468,6 +2471,7 @@ export function consoleApi({
   };
   return {
     ...accessApi({ main, typesFor, rowAt }),
+    ...customApi(main),
     adminFor,
     async view(req: ViewRequest): Promise<ViewAnswer> {
       team(req);
@@ -3462,6 +3466,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     unnamed: "wren",
     handlers: {
       ...accessHandlers(api),
+      ...customHandlers(api),
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
       recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),

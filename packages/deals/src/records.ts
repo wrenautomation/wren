@@ -16,7 +16,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { type DealPipeline, dealPipelines, deals } from "./schema.js";
-import { movesOf } from "./store.js";
+import { dealsById, movesOf } from "./store.js";
 
 export const DEAL_RECORD = "deals.deal";
 
@@ -172,6 +172,11 @@ export function dealRecordFor(owner: string | null): RecordType {
       { id: "lost", label: "Lost", where: { status: "lost" }, sort: "-closedAt", at: "closedAt" },
       { id: "all", label: "All", sort: "-createdAt", at: "createdAt" },
     ],
+    // The owner's custom fields; a value lands only on a deal of theirs.
+    custom: {
+      owner,
+      exists: async (db, id) => (await dealsById(db, [id])).some((d) => d.client === owner),
+    },
     actions: [
       "deals.create",
       "deals.won",

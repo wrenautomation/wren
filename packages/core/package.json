@@ -83,6 +83,8 @@
     "./templates": "./src/templates.ts",
     "./touches": "./src/touches.ts",
     "./touches-schema": "./src/touches-schema.ts",
+    "./custom-fields": "./src/custom-fields.ts",
+    "./custom-schema": "./src/custom-schema.ts",
     "./templates/records": "./src/template-records.ts",
     "./templates/edits": "./src/template-edits.ts",
     "./templates/defaults": "./src/template-defaults.ts",

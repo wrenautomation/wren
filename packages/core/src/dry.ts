@@ -176,6 +176,16 @@ export async function dryWalk(o: {
         would.set(`${at.node}|${e.subject}`, webhookWould(n.with ?? {}, e));
         return [{ port: "answered", event: e }];
       };
+    // Set field writes nothing in a test: it says what it would set, and the event goes on.
+    if (n.uses === "logic.set_field")
+      return async (_port, e, at) => {
+        const w = n.with ?? {};
+        would.set(
+          `${at.node}|${e.subject}`,
+          `Would set ${String(w.field ?? "")} to "${fillText(String(w.value ?? ""), e)}" on ${e.subject}`,
+        );
+        return [{ port: "out", event: e }];
+      };
     if (n.uses && logicOf(n.uses)) return logic[n.uses] ?? (async () => []);
     const part = n.uses ? o.parts.get(n.uses) : undefined;
     const outs = outsOf(n, o.parts, o.flows);

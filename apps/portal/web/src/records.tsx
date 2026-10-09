@@ -53,15 +53,20 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
       export: (a) => ask("recordsExport", { ...a }),
       stats: (a) => ask("recordsStats", { ...a }),
       keep: keepOf(client, scope),
-      // Edits are Wren's records' for now (`@wren/core/edits`): the console serves them.
-      // View as reads only: no edits.
+      // Edits (`@wren/core/edits`): the console serves Wren's records, Opportunities a deal's
+      // custom fields (no Ask Claude there). View as reads only: no edits.
       ...(product === "console" && !viewingAs
         ? {
             edit: (a) => ask("recordsEdit", { ...a }),
             undo: (a) => ask("recordsUndo", { ...a }),
             ask: (a) => ask("recordsAsk", { ...a }),
           }
-        : {}),
+        : product === "deals" && !viewingAs
+          ? {
+              edit: (a) => ask("recordsEdit", { ...a }),
+              undo: (a) => ask("recordsUndo", { ...a }),
+            }
+          : {}),
       access: accessOf(client, scope),
     };
     APIS.set(key, api);

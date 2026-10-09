@@ -21,8 +21,10 @@ import {
   BadAsk,
   type Cell,
   type Clause,
+  CUSTOM_CURRENCY,
   clausesOf,
   csvRow,
+  customColumn,
   type Field,
   KINDS,
   type Me,
@@ -426,6 +428,28 @@ const namesOf = (type: RecordType): string[] => [
 ];
 const columnsOf = (type: RecordType): SQL => sql.join(namesOf(type).map(ref), sql`, `);
 
+/** The columns a type's custom fields add: each `x_<key>`, and the currency their money reads. */
+const customColumns = (t: RecordType): string[] =>
+  t.custom?.keys?.length ? [...t.custom.keys.map(customColumn), CUSTOM_CURRENCY] : [];
+
+/**
+ * A type's rows with its custom fields joined (designs/2026-10-09-custom-fields.md): the live
+ * fields' values on each row, one text column each, cast by kind like any column.
+ */
+function withCustom(t: RecordType, rows: SQL): SQL {
+  const keys = t.custom?.keys ?? [];
+  if (!keys.length) return rows;
+  const owner = t.custom?.owner ?? null;
+  const cols = keys.map((k) => sql`cv.j ->> ${k} ${sql.identifier(customColumn(k))}`);
+  return sql`(select r.*, ${sql.join(cols, sql`, `)}, 'USD' ${sql.identifier(CUSTOM_CURRENCY)}
+    from ${rows} left join lateral (
+      select jsonb_object_agg(f.key, v.value) j
+      from custom_field_values v join custom_fields f on f.id = v.field
+      where f.record = ${t.id} and f.owner is not distinct from ${owner}
+        and f.archived_at is null and v.row = (${ref(t.key)})::text
+    ) cv on true) r`;
+}
+
 /** A cursor: the sort it was made under, whether the sort value was null, that value, the key. */
 type Cursor = [sort: string, isNull: boolean, value: string | null, key: string];
 const encode = (c: Cursor) => Buffer.from(JSON.stringify(c)).toString("base64url");
@@ -551,13 +575,18 @@ export function serveRecords(
     return sql`(select r.* from ${all} where ${inside}) r`;
   }
   async function unfenced(t: RecordType): Promise<SQL> {
+    return withCustom(t, await own(t));
+  }
+  /** The type's own rows, before its custom fields join. */
+  async function own(t: RecordType): Promise<SQL> {
     if (t.view) return sql`${viewSql(t.view)} r`;
     const rows = loaded.get(t.id) ?? t.rows?.(db, me) ?? Promise.resolve([]);
     loaded.set(t.id, rows);
     const pointedBy = types.flatMap((x) =>
       (x.related ?? []).filter((r) => r.record === t.id).map((r) => r.by),
     );
-    const columns = [...new Set([...namesOf(t), ...pointedBy])];
+    const extra = new Set(customColumns(t));
+    const columns = [...new Set([...namesOf(t), ...pointedBy])].filter((c) => !extra.has(c));
     return sql`jsonb_to_recordset(${JSON.stringify(await rows)}::jsonb) r(${sql.join(
       columns.map((c) => sql`${sql.identifier(c)} text`),
       sql`, `,

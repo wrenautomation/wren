@@ -467,6 +467,30 @@ export const LOGIC: readonly LogicPart[] = [
     },
   },
   {
+    id: "logic.set_field",
+    name: "Set field",
+    blurb:
+      "Sets one of your custom fields on the record the event is about, such as a deal. Others leave by skip.",
+    icon: "edit",
+    group: "action",
+    ready: true,
+    settings: [
+      { field: "field", label: "Field key", type: "text", hint: "roof_age" },
+      {
+        field: "value",
+        label: "Value (empty clears it)",
+        type: "text",
+        hint: "{{data.answers.roof_age}}",
+      },
+      KIND,
+    ],
+    ports: (w) => ({
+      in: [one("in", "in", kindOf(w))],
+      out: [one("out", "out", kindOf(w)), one("skip", "skip", kindOf(w))],
+    }),
+    says: (w) => (text(w.field) ? `Set ${text(w.field)}` : "Pick a field"),
+  },
+  {
     id: "trigger.hook",
     name: "Webhook",
     blurb: "Events posted to a door URL enter here.",
@@ -692,6 +716,8 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   if (l.id === "logic.split" && w.a !== undefined && shareOf(w.a) !== Number(w.a))
     out.push(`${at}: Split's share is 1 to 99`);
+  if (l.id === "logic.set_field" && !/^[a-z][a-z0-9_]{0,39}$/.test(text(w.field)))
+    out.push(`${at}: Set field names a field key, like roof_age`);
   if (l.id === "logic.code") out.push(...codeProblems(text(w.code)).map((p) => `${at}: ${p}`));
   if (l.id === "logic.webhook") {
     // Slots may fill the URL's path and query; its host must read as written.

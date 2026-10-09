@@ -1646,10 +1646,14 @@ export function RecordBody({
             await api.undo?.({ record: meta.id, id, change });
             acted([id]);
           },
-          ask: async (message) => {
-            await api.ask?.({ record: meta.id, id, message });
-            got.retry();
-          },
+          ...(api.ask
+            ? {
+                ask: async (message: string) => {
+                  await api.ask?.({ record: meta.id, id, message });
+                  got.retry();
+                },
+              }
+            : {}),
         }
       : null;
   const poll = more.poll ?? (thinking(state) ? ASK_POLL_MS : 0);
@@ -1667,10 +1671,10 @@ export function RecordBody({
           id,
           title: titleOf(meta, got.data.row),
           one: meta.name.one,
-          ask: editing
+          ask: editing?.ask
             ? async (q: string) => {
                 if (tab !== "details") place.go(place.link({ tab: null }), true);
-                await editing.ask(q);
+                await editing.ask?.(q);
                 dispatchEvent(new Event(ASK_FOCUS));
               }
             : undefined,
@@ -1966,7 +1970,7 @@ export function RecordBody({
                   ) : null
                 }
               />
-              <AskClaude meta={meta} turns={state.asks} editing={editing} />
+              {editing.ask ? <AskClaude meta={meta} turns={state.asks} editing={editing} /> : null}
             </>
           ) : null}
           {cited.map((f) => (

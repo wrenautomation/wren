@@ -24,7 +24,8 @@ export interface Editing {
   /** Save a patch over the values the page read; the change's id, null when nothing changed. */
   save(patch: Values, run?: string): Promise<number | null>;
   undo(change: number): Promise<void>;
-  ask(message: string): Promise<void>;
+  /** Ask Claude; absent where the records' server has none. */
+  ask?(message: string): Promise<void>;
 }
 
 const when = (at: string) =>
@@ -57,7 +58,7 @@ function inputOf(f: FieldMeta, v: unknown): string {
 }
 function typedValue(f: FieldMeta, typed: string): unknown {
   const t = f.kind === "prose" ? typed : typed.trim();
-  if (f.kind === "number") return t === "" ? null : Number(t);
+  if (f.kind === "number" || f.kind === "money") return t === "" ? null : Number(t);
   if (f.kind === "tags")
     return t
       .split(",")
@@ -182,7 +183,7 @@ export function EditField({
           onKeyDown={keys}
           aria-label={field.label}
           type={
-            field.kind === "number"
+            field.kind === "number" || field.kind === "money"
               ? "number"
               : field.kind === "date"
                 ? "datetime-local"
@@ -471,7 +472,7 @@ export function AskClaude({
     if (!said || asking) return;
     setAsking(true);
     try {
-      await editing.ask(said);
+      await editing.ask?.(said);
       setMessage("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));

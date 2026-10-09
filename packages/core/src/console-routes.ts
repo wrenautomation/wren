@@ -39,6 +39,12 @@ export const CONSOLE_ROUTES = {
   issueResolve: "read",
   accessAsk: "read",
   askDecide: "read",
+  // Custom fields and business facts where the viewer looks; changes check `manage` there.
+  customFields: "read",
+  customFieldSave: "read",
+  customFieldOrder: "read",
+  businessFacts: "read",
+  businessFactSave: "read",
   // The Library's snippets: the team reads them anywhere it drafts, changes them at Wren.
   snippets: "read",
   snippetAdd: "wren:run",
@@ -174,6 +180,9 @@ export const CONSOLE_APPS = {
 export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
+  "customFieldSave",
+  "customFieldOrder",
+  "businessFactSave",
   "roleSave",
   "roleCopy",
   "roleGrant",

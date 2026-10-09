@@ -7,6 +7,8 @@
  * Someone who asked to be texted (a form, a client's door) is also let go when they book (asked
  * before each text) or another channel's sequence holds them: one active sequence per lead.
  */
+
+import { customFacts } from "@wren/core/custom-fields";
 import { type FollowNote, followStart, isFollowTouch, type Outs, passed } from "@wren/core/follow";
 import { activeElsewhere } from "@wren/core/leads";
 import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
@@ -159,7 +161,14 @@ export async function followText(
   db: Db,
   contactId: number,
   at: Pick<StepAt, "workflow" | "node" | "template">,
-  o: { senderName: string; bookingLink: string | null; would: string | null; now: Date },
+  o: {
+    senderName: string;
+    bookingLink: string | null;
+    would: string | null;
+    now: Date;
+    /** The owner's `{biz.*}` and the subject's `{field.*}` (custom-fields.ts). */
+    facts?: Record<string, string>;
+  },
 ): Promise<Pick<FollowNote, "did" | "why">> {
   const [c] = await db.select().from(smsContacts).where(eq(smsContacts.id, contactId));
   if (!c) return { did: "skipped", why: `no text contact ${contactId}` };
@@ -172,7 +181,7 @@ export async function followText(
   if (o.would) return { did: "would_send", why: o.would };
   const text = render(
     live.template,
-    await fieldsFor(db, c, o.senderName, o.bookingLink),
+    { ...o.facts, ...(await fieldsFor(db, c, o.senderName, o.bookingLink)) },
     textSeed(c.id),
   );
   const ref = `${at.workflow}/${at.node}`.slice(0, 64);
@@ -209,6 +218,7 @@ async function followTouch(texts: TouchTexts, e: SpineEvent, at: StepAt): Promis
     bookingLink: texts.bookingLink ?? null,
     would: start.would,
     now: new Date(),
+    facts: await customFacts(texts.main, at.client, e.subject),
   });
   return passed(e, { ...start.note, ...got });
 }
