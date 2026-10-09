@@ -35,6 +35,7 @@ import { LIVE_PREFIX } from "@wren/notes/room";
 import { bookRoute } from "./book.js";
 import { connectorOAuthRoute } from "./connector-oauth.js";
 import { dictate } from "./dictate.js";
+import { docsRoute } from "./docs.js";
 import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
@@ -235,6 +236,9 @@ export default {
     const site = await siteOf(req, env, ctx);
     // Sites' pages, tracker and forms: on the apex, a client's host, or the app host (./sites.ts).
     if (pathname.startsWith("/o/")) {
+      // A document to sign (./docs.ts): its token is the key, on any host that owns it.
+      const doc = pathname.startsWith("/o/d/") ? await docsRoute(req, env, site) : null;
+      if (doc) return doc;
       const page = await sitesRoute(req, env, site, ctx);
       if (page) return page;
     }

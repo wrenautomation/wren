@@ -4,8 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./components": "./src/components.ts",
+    "./console": "./src/console.ts",
+    "./console-routes": "./src/console-routes.ts",
     "./lines": "./src/lines.ts",
-    "./schema": "./src/schema.ts"
+    "./pdf": "./src/pdf.ts",
+    "./records": "./src/records.ts",
+    "./render": "./src/render.ts",
+    "./schema": "./src/schema.ts",
+    "./service": "./src/service.ts",
+    "./store": "./src/store.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -19,6 +27,7 @@
     "@wren/db": "workspace:*",
     "@wren/payments": "workspace:*",
     "drizzle-orm": "0.45.2",
+    "pdf-lib": "1.17.1",
     "zod": "4.6.5"
   },
   "devDependencies": {

@@ -28,8 +28,9 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const DOC_KINDS = ["contract", "proposal", "estimate"] as const;
-export type DocKind = (typeof DOC_KINDS)[number];
+import { DOC_KINDS, type DocLine } from "./lines.js";
+
+export { DOC_KINDS, type DocKind, type DocLine } from "./lines.js";
 
 export const DOC_CHANNELS = ["email", "sms"] as const;
 export type DocChannel = (typeof DOC_CHANNELS)[number];
@@ -66,15 +67,6 @@ export const DOC_EVENTS = [
   "reminded",
 ] as const;
 export type DocEventType = (typeof DOC_EVENTS)[number];
-
-/** One line item. Cents and a tax percent the client types; totals are the server's. */
-export interface DocLine {
-  name: string;
-  detail?: string | null;
-  qty: number;
-  unit_cents: number;
-  tax_pct?: number | null;
-}
 
 export const docTemplates = pgTable(
   "doc_templates",

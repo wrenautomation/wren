@@ -16,6 +16,9 @@ export const WEBHOOK_EVENTS = {
   "deal.won": "A call or a deal was marked won",
   "deal.moved": "A deal moved stage, or was lost",
   "payment.received": "A pay link was paid",
+  "document.viewed": "A document you sent was opened",
+  "document.signed": "A document you sent was signed",
+  "document.declined": "A document you sent was declined",
   "app.changed": "A connected app added a contact, got an invoice paid or finished a job",
 } as const;
 export type WebhookEvent = keyof typeof WEBHOOK_EVENTS;
@@ -31,6 +34,7 @@ export function webhookEventOfFired(f: TriggerFacts): WebhookEvent | null {
   if (f.trigger === "trigger.booking")
     return f.change === "booked" ? "booking.made" : "booking.cancelled";
   if (f.trigger === "trigger.payment") return "payment.received";
+  if (f.trigger === "trigger.document") return `document.${f.change}`;
   if (f.trigger === "trigger.deal") return f.change === "won" ? "deal.won" : "deal.moved";
   if (f.trigger === "trigger.app") return "app.changed";
   return null;

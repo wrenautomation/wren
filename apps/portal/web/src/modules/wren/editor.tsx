@@ -398,6 +398,8 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires within the hour a client flag is raised or clears. Only in Wren's own workflows.",
   "trigger.payment":
     "Fires when Stripe says a pay link was paid. The amount and who paid come with it.",
+  "trigger.document":
+    "Fires when someone opens, signs or declines a document you sent from Payments → Documents. Who and the total come with it.",
   "logic.code":
     "Runs in a sandbox: no internet, one second, 32 MB. Test this node to run it on a sample event.",
   "trigger.app":

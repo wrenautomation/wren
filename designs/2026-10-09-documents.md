@@ -141,3 +141,16 @@ on its own rows:
   - The PDF is built on demand instead of stored: nothing to keep in sync, and the frozen row is
     the record.
   - Main database with `client`: one read at the edge, like `pay_links`.
+- 2026-10-09, as built:
+  - The table is `docs`: research already owns `documents`.
+  - Records `documents.document` and `documents.template`, served by `DocumentsConsole` (portal
+    service key `documents`, app Payments).
+  - Slots are `customFacts`' names: `{biz.<key>}`, `{field.<key>}`, plus `{contact.name}`,
+    `{contact.first_name}`, `{contact.email}`, `{biz.name}`, `{doc.number|total|deposit|expires}`.
+  - A reminder mints a new token, so the older link stops working.
+  - The deposit's pay link is made on first ask at `/o/d/<token>/pay`, not at signing: no
+    Stripe call for a signer who never pays online.
+  - A bot's fetch (a texting app's link preview) is served but never counts as an open.
+  - A client with no live domain links on the app host, which serves any client's documents.
+  - Totals and slots live in `lines.ts` with no imports, so the editor shows the server's math.
+  - The deposit percent is derived from the cents, not stored.

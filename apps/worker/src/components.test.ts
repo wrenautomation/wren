@@ -35,6 +35,7 @@ import type { Queryable } from "@wren/db";
 import { DEALS_RECORDS } from "@wren/deals/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { deliveryRecords } from "@wren/delivery/records";
+import { DOCUMENTS_RECORDS } from "@wren/documents/records";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
@@ -105,6 +106,7 @@ const RECORD_TYPES = [
   sopRecordFor(null),
   ...SITES_RECORDS,
   ...PAYMENTS_RECORDS,
+  ...DOCUMENTS_RECORDS,
   ...DEALS_RECORDS,
   ...CALENDAR_RECORDS,
   ...VOICE_RECORDS,

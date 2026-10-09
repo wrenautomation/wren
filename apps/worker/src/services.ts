@@ -276,6 +276,8 @@ import { s3Files } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
+import { makeDocumentsConsole } from "@wren/documents/console";
+import { makeDocuments } from "@wren/documents/service";
 import {
   askNoteSop,
   clientAskedOnRead,
@@ -1010,6 +1012,10 @@ export async function buildServices(
     // store yet, as for Accounts: connect says "in development" and nothing reaches Stripe.
     makePayments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makePaymentsConsole(payDeps),
+    // Contracts, proposals and estimates to sign; a deposit on the same Stripe key
+    // (designs/2026-10-09-documents.md).
+    makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
+    makeDocumentsConsole(payDeps),
     // Opportunities: deals on a board of stages; each move tells the spine
     // (designs/2026-10-09-opportunities.md).
     makeDealsConsole({ main: db, fire: fireAll }),

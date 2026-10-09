@@ -36,6 +36,7 @@ export const KINDS = [
   "item",
   "account",
   "deal",
+  "document",
 ] as const satisfies readonly EventKind[];
 
 /** One setting on a logic node: a line he types, a few lines, a number, or one of a few. */
@@ -177,8 +178,17 @@ export type TriggerFacts =
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
   | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
   | { trigger: "trigger.payment"; change: "paid" }
+  | { trigger: "trigger.document"; change: DocChange; kind: string }
   | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
   | { trigger: "trigger.app"; app: string; change: AppChange };
+
+/** What a sent document tells the spine (designs/2026-10-09-documents.md). */
+export const DOC_CHANGES = {
+  viewed: "Opened",
+  signed: "Signed",
+  declined: "Declined",
+} as const;
+export type DocChange = keyof typeof DOC_CHANGES;
 
 /** What a connected app tells the spine (designs/2026-10-09-connectors.md). */
 export const APP_CHANGES = {
@@ -203,6 +213,11 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     return on === "any" || on === f.channel;
   }
   if (f.trigger === "trigger.payment") return true;
+  if (f.trigger === "trigger.document") {
+    const kind = text(w.kind) || "any";
+    const on = text(w.on) || "signed";
+    return (kind === "any" || kind === f.kind) && (on === "any" || on === f.change);
+  }
   if (f.trigger === "trigger.app") {
     const app = text(w.app) || "any";
     const on = text(w.on) || "any";
@@ -260,6 +275,7 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
     ? "reply"
     : f.trigger === "trigger.flag" ||
         f.trigger === "trigger.payment" ||
+        f.trigger === "trigger.document" ||
         f.trigger === "trigger.deal" ||
         f.trigger === "trigger.app"
       ? null
@@ -622,6 +638,43 @@ export const LOGIC: readonly LogicPart[] = [
     "invoice",
     [],
     () => "A pay link paid",
+  ),
+  trigger(
+    "document",
+    "Document",
+    "Starts when someone opens, signs or declines a contract, proposal or estimate you sent.",
+    "note",
+    "document",
+    [
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["signed", "viewed", "declined", "any"],
+        labels: { ...DOC_CHANGES, any: "Any of these" },
+        start: "signed",
+      },
+      {
+        field: "kind",
+        label: "Kind",
+        type: "choice",
+        options: ["any", "contract", "proposal", "estimate"],
+        labels: {
+          any: "Any kind",
+          contract: "Contract",
+          proposal: "Proposal",
+          estimate: "Estimate",
+        },
+        start: "any",
+      },
+    ],
+    (w) => {
+      const on = text(w.on) || "signed";
+      const kind = text(w.kind) || "any";
+      const what = kind === "any" ? "A document" : `A ${kind}`.replace("A estimate", "An estimate");
+      if (on === "any") return `${what} opened, signed or declined`;
+      return `${what} ${(DOC_CHANGES[on as DocChange] ?? on).toLowerCase()}`;
+    },
   ),
   trigger(
     "app",

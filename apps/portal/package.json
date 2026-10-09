@@ -31,6 +31,7 @@
     "@wren/connectors": "workspace:*",
     "@wren/deals": "workspace:*",
     "@wren/delivery": "workspace:*",
+    "@wren/documents": "workspace:*",
     "@wren/learn": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/payments": "workspace:*",

@@ -68,6 +68,11 @@ import {
 } from "@wren/delivery/health/console-routes";
 import { DELIVERY_APPS, DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import {
+  DOCUMENTS_CONSOLE_APPS,
+  DOCUMENTS_CONSOLE_ROUTES,
+  DOCUMENTS_CONSOLE_WRITES,
+} from "@wren/documents/console-routes";
+import {
   LEARN_CONSOLE_APPS,
   LEARN_CONSOLE_ROUTES,
   LEARN_CONSOLE_WRITES,
@@ -187,6 +192,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     PAYMENTS_CONSOLE_ROUTES,
     PAYMENTS_CONSOLE_APPS,
     PAYMENTS_CONSOLE_WRITES,
+  ),
+  // Documents: contracts, proposals and estimates from templates, sent to sign, approved here.
+  documents: service(
+    "DocumentsConsole",
+    DOCUMENTS_CONSOLE_ROUTES,
+    DOCUMENTS_CONSOLE_APPS,
+    DOCUMENTS_CONSOLE_WRITES,
   ),
   // Opportunities: deals in pipelines of stages, for a client and for Wren.
   deals: service("DealsConsole", DEALS_CONSOLE_ROUTES, DEALS_CONSOLE_APPS, DEALS_CONSOLE_WRITES),

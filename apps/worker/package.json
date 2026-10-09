@@ -43,6 +43,7 @@
     "@wren/niches": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/outreach": "workspace:*",
+    "@wren/documents": "workspace:*",
     "@wren/payments": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",

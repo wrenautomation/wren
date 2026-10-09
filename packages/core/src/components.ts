@@ -168,6 +168,7 @@ export const EVENT_KINDS = {
   item: "a new item in a feed Wren follows",
   account: "an account an owner has: a number, a domain, an inbox, a login",
   deal: "a sale being worked, in a pipeline stage",
+  document: "a contract, proposal or estimate sent to sign",
 } as const;
 export type EventKind = keyof typeof EVENT_KINDS;
 
