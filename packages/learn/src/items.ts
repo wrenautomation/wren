@@ -5,7 +5,9 @@
  */
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import type { Embed } from "@wren/llm";
+import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
+import { nearItems } from "./embed.js";
 import { cleanUrl, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
 import { type ItemKind, items, sopSources, sources, type Via } from "./schema.js";
 
@@ -77,36 +79,75 @@ export interface Hit {
   rank: number;
 }
 
-/** Every item's transcript searched, best match first. Words, "a phrase", -not and or. */
+const RRF_K = 60;
+
+/**
+ * Every item's transcript searched, best match first. Words, "a phrase", -not and or. With an
+ * embedder, items near the query's meaning join the word matches, the two lists fused by rank
+ * (reciprocal rank fusion); a failed embed leaves the word matches alone.
+ */
 export async function searchItems(
   db: Queryable,
   client: string,
   q: string,
   limit = 40,
+  embed: Embed | null = null,
 ): Promise<Hit[]> {
   const words = q.trim();
   if (!words) return [];
+  const cap = Math.min(Math.max(limit, 1), 200);
   const tsq = sql`websearch_to_tsquery('english', ${words})`;
   const rank = sql<number>`ts_rank(${items.search}, ${tsq})`;
+  const columns = (snippet: SQL<string>) => ({
+    id: items.id,
+    title: items.title,
+    url: items.url,
+    kind: items.kind,
+    source: sql<string>`coalesce(${sources.name}, 'Saved')`,
+    score: items.score,
+    savedAt: items.savedAt,
+    at: sql<Date>`coalesce(${items.publishedAt}, ${items.createdAt})`,
+    snippet,
+  });
   const rows = await db
     .select({
-      id: items.id,
-      title: items.title,
-      url: items.url,
-      kind: items.kind,
-      source: sql<string>`coalesce(${sources.name}, 'Saved')`,
-      score: items.score,
-      savedAt: items.savedAt,
-      at: sql<Date>`coalesce(${items.publishedAt}, ${items.createdAt})`,
-      snippet: sql<string>`ts_headline('english', left(coalesce(${items.transcript}, ${items.text}, ''), 200000), ${tsq}, 'MaxWords=30, MinWords=10, MaxFragments=2, FragmentDelimiter=" … ", StartSel=«, StopSel=»')`,
+      ...columns(
+        sql<string>`ts_headline('english', left(coalesce(${items.transcript}, ${items.text}, ''), 200000), ${tsq}, 'MaxWords=30, MinWords=10, MaxFragments=2, FragmentDelimiter=" … ", StartSel=«, StopSel=»')`,
+      ),
       rank,
     })
     .from(items)
     .leftJoin(sources, eq(sources.id, items.sourceId))
     .where(and(eq(items.client, client), sql`${items.search} @@ ${tsq}`))
     .orderBy(sql`${rank} desc`, desc(items.id))
-    .limit(Math.min(Math.max(limit, 1), 200));
-  return rows.map((r) => ({ ...r, rank: Number(r.rank), at: new Date(r.at) }));
+    .limit(cap);
+  const byWords = rows.map((r) => ({ ...r, rank: Number(r.rank), at: new Date(r.at) }));
+  if (!embed) return byWords;
+  const near = await embed([words], "query")
+    .then(([v]) => (v ? nearItems(db, client, v, cap) : []))
+    .catch(() => []);
+  if (!near.length) return byWords;
+  const fused = new Map<number, number>();
+  for (const [i, h] of byWords.entries()) fused.set(h.id, 1 / (RRF_K + i + 1));
+  for (const [i, n] of near.entries())
+    fused.set(n.id, (fused.get(n.id) ?? 0) + 1 / (RRF_K + i + 1));
+  const known = new Set(byWords.map((h) => h.id));
+  const more = near.filter((n) => !known.has(n.id)).map((n) => n.id);
+  const extra = more.length
+    ? (
+        await db
+          .select({
+            ...columns(sql<string>`left(coalesce(${items.summary}, ${items.text}, ''), 240)`),
+          })
+          .from(items)
+          .leftJoin(sources, eq(sources.id, items.sourceId))
+          .where(and(eq(items.client, client), inArray(items.id, more)))
+      ).map((r) => ({ ...r, rank: 0, at: new Date(r.at) }))
+    : [];
+  return [...byWords, ...extra]
+    .map((h) => ({ ...h, rank: fused.get(h.id) ?? 0 }))
+    .sort((a, b) => b.rank - a.rank || b.id - a.id)
+    .slice(0, cap);
 }
 
 /** One item whole: its transcript, the SOPs it was asked into. Null for none. */

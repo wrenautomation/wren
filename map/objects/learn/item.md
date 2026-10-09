@@ -18,7 +18,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 ## Shape
 
 - `sources` (`schema.ts:92`): `client`, unique (client, url), `page` it was found from, `kind`, `tell` (every, top = score 8+, digest), `fetched_at` (hourly), `failure`, `stopped_at`
-- `items` (`schema.ts:152`): `client`, unique (client, cleaned url), optional FK to its source; `kind` (article, video, reel, episode), `text`, `transcript`, `file` (its name under an SOP's `sources/`), `needs_mac`, `read_at`, `read_failure`, `score`, `verdict`, `changes`, `saved_at`/`saved_via`, `told_at`, `done_at`; a generated `search` tsvector (GIN)
+- `items` (`schema.ts:152`): `client`, unique (client, cleaned url), optional FK to its source; `kind` (article, video, reel, episode), `text`, `transcript`, `file` (its name under an SOP's `sources/`), `needs_mac`, `read_at`, `read_failure`, `score`, `verdict`, `changes`, `saved_at`/`saved_via`, `told_at`, `done_at`; a generated `search` tsvector (GIN); `embedding` real[] (256, unit length, `embed.ts`), filled on the Monitor's pass
 - `sop_sources`: one row an item and SOP; `asked` → `added` (or `failed`), `points` once extracted
 - `digests`: one row a day, so the 09:00 digest goes once
 - `alert_picks`, `readers`, `alerts`, `settings` (`alerts.ts`): per person picks, the bell and Today, held alerts past 5 an hour, the digest mail flag (off by default)

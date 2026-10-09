@@ -14,6 +14,7 @@ import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
   askSop,
+  embedMissing,
   follow,
   itemPage,
   judges,
@@ -37,7 +38,14 @@ import {
   writeAsked,
   writeClientAsked,
 } from "@wren/learn";
-import { ClaudeCodeLlm, fleetKeys, type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
+import {
+  ClaudeCodeLlm,
+  fleetKeys,
+  gatewayEmbed,
+  type LlmClient,
+  loadLlmEnv,
+  makeLlm,
+} from "@wren/llm";
 import {
   addSource,
   audioSource,
@@ -289,21 +297,37 @@ export function registerLearn(
     );
 
   learn
+    .command("embed")
+    .description(
+      "embed read items that have none yet, for search by meaning (the Monitor does this each pass)",
+    )
+    .option("--limit <n>", "how many", (v) => Number.parseInt(v, 10), 200)
+    .action(async (o: { limit: number }) => {
+      const embed = gatewayEmbed(process.env);
+      if (!embed) throw new Error("needs WREN_LLM_GATEWAY_URL and WREN_LLM_GATEWAY_TOKEN");
+      json(await withDb((db) => embedMissing(db, embed, o.limit)));
+    });
+
+  learn
     .command("search <words...>")
-    .description('every transcript, best match first: words, "a phrase", -not')
+    .description(
+      'every transcript, best match first: words, "a phrase", -not; with the gateway set, by meaning too',
+    )
     .option("--limit <n>", "how many", (v) => Number.parseInt(v, 10), 20)
     .action(async (words: string[], o: { limit: number }) =>
       json(
-        (await inWorkspace((db, client) => searchItems(db, client, words.join(" "), o.limit))).map(
-          (h) => ({
-            id: h.id,
-            title: h.title,
-            source: h.source,
-            score: h.score,
-            url: h.url,
-            snippet: h.snippet,
-          }),
-        ),
+        (
+          await inWorkspace((db, client) =>
+            searchItems(db, client, words.join(" "), o.limit, gatewayEmbed(process.env)),
+          )
+        ).map((h) => ({
+          id: h.id,
+          title: h.title,
+          source: h.source,
+          score: h.score,
+          url: h.url,
+          snippet: h.snippet,
+        })),
       ),
     );
 

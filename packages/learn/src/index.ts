@@ -1,5 +1,6 @@
 export * from "./alerts.js";
 export * from "./drive.js";
+export * from "./embed.js";
 export * from "./feeds.js";
 export * from "./items.js";
 export * from "./links.js";

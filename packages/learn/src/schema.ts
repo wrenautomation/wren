@@ -17,6 +17,7 @@ import {
   jsonb,
   pgSchema,
   primaryKey,
+  real,
   serial,
   smallint,
   text,
@@ -193,6 +194,8 @@ export const items = learn.table(
     /** Reads of the model's answer; it stops asking after 3. */
     tries: smallint("tries").notNull().default(0),
     scoredAt: timestamp("scored_at", { withTimezone: true }),
+    /** Its meaning as a unit vector (`EMBED_DIMS`), for search by meaning; null until embedded. */
+    embedding: real("embedding").array(),
     /** William shared it in. */
     savedAt: timestamp("saved_at", { withTimezone: true }),
     savedBy: varchar("saved_by", { length: 320 }),

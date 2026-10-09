@@ -17,6 +17,7 @@ import type { Db } from "@wren/db";
 import {
   alertLearn,
   type DigestMail,
+  embedMissing,
   type FetchFn,
   itemEvent,
   mailLearnDigests,
@@ -25,6 +26,7 @@ import {
   tellLearn,
 } from "@wren/learn";
 import { LEARN_FEEDS_FROM, LEARN_FLOW } from "@wren/learn/console";
+import type { Embed } from "@wren/llm";
 import { type ReadStats, readMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 
@@ -56,6 +58,8 @@ export interface WatchDeps {
    * (designs/2026-10-06-mail-push.md). Absent: no push, the 15-minute poll.
    */
   watch?: (address: string) => Promise<number | null>;
+  /** Embeds Learn's read items for search by meaning; absent, search is by words alone. */
+  embed?: Embed | null;
 }
 
 /** `InboxPush` (channel-email) as far as the Monitor calls it. */
@@ -140,6 +144,8 @@ export function makeWatch(deps: WatchDeps) {
     const failed = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
     // Every workspace's bell; what the hour's limit holds back rolls into each person's Today.
     await ctx.run("alert learn", () => alertLearn(deps.db, now).catch(failed));
+    const embed = deps.embed;
+    if (embed) await ctx.run("embed learn", () => embedMissing(deps.db, embed).catch(failed));
     const send = deps.send;
     if (send)
       await ctx.run("mail learn digests", () =>

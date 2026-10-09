@@ -265,7 +265,7 @@ import {
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
-import { llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
+import { gatewayEmbed, llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   adLibraryFor,
   crawlHintsFor,
@@ -1237,10 +1237,11 @@ export async function buildServices(
       portal: settings.portalOrigin ?? null,
       // Each person's Learn digest, from portal@, only in a workspace that turned it on.
       send: bookerMailer?.("Wren") ?? null,
+      embed: gatewayEmbed(process.env),
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));
-  services.push(makeLearnConsole(db, fetch, clientDb));
+  services.push(makeLearnConsole(db, fetch, clientDb, gatewayEmbed(process.env)));
   // Health and flags: Wren's rating, an override, a flag taken, addressed or cleared.
   services.push(makeHealthConsole(db));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.

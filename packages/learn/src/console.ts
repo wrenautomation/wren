@@ -25,6 +25,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
+import type { Embed } from "@wren/llm";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -226,7 +227,12 @@ export async function mayManage(main: Db, req: PortalRequest, client: string): P
 }
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf) {
+export function learnConsoleApi(
+  db: Db,
+  fetchFn: FetchFn = fetch,
+  clientDb?: ClientDbOf,
+  embed: Embed | null = null,
+) {
   const reads = (req: PortalRequest) => learnPlace(db, req, "read");
   const acts = (req: PortalRequest) => learnPlace(db, req, "act");
   const write = async <T>(req: PortalRequest, fn: (tx: Tx, client: string) => Promise<T>) => {
@@ -475,7 +481,7 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: Cli
       return { done: out };
     },
     search: async (req: SearchRequest) => ({
-      hits: await searchItems(db, await reads(req), req.q ?? ""),
+      hits: await searchItems(db, await reads(req), req.q ?? "", 40, embed),
     }),
     item: async (req: ItemRequest) => {
       const got = await itemPage(db, await reads(req), idOf(req.id));
@@ -491,8 +497,13 @@ const TELL = z
   .nullish()
   .describe(`${TELLS.join(", ")}: every item, score 8 and up, or the daily digest`);
 
-export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf) {
-  const api = learnConsoleApi(db, fetchFn, clientDb);
+export function makeLearnConsole(
+  db: Db,
+  fetchFn: FetchFn = fetch,
+  clientDb?: ClientDbOf,
+  embed: Embed | null = null,
+) {
+  const api = learnConsoleApi(db, fetchFn, clientDb, embed);
   const read = (ctx: restate.Context, ids: string[]) => {
     if (ids.length)
       spineEmit(ctx, {

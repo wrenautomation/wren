@@ -1,0 +1,1 @@
+ALTER TABLE "learn"."items" ADD COLUMN "embedding" real[];

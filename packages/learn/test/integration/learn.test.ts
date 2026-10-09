@@ -13,12 +13,13 @@ import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";
 import { pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { FakeLlm } from "@wren/llm";
+import { type Embed, FakeLlm } from "@wren/llm";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LEARN_COMPONENTS, LEARN_WORKFLOWS } from "../../src/components.js";
 import { LEARN_FEEDS_FROM, LEARN_SAVED_FROM, learnConsoleApi } from "../../src/console.js";
 import {
+  embedMissing,
   type FetchFn,
   itemEvent,
   items,
@@ -276,6 +277,20 @@ describe("Learn", () => {
     expect(hits.map((h) => h.id)).toEqual([Number(first.id)]);
     expect(hits[0]?.snippet).toContain("«forty»");
     expect(await searchItems(pg.db, "wren", "nothing-like-this")).toEqual([]);
+
+    // By meaning: a fake embedder that knows "warmup" and "daily cap" are one idea.
+    const embed: Embed = async (texts) =>
+      texts.map((s) => (/warmup|daily caps|forty|ramp/i.test(s) ? [1, 0] : [0, 1]));
+    expect(await embedMissing(pg.db, embed)).toEqual({ embedded: 1 });
+    expect(await embedMissing(pg.db, embed)).toEqual({ embedded: 0 });
+    const near = await searchItems(pg.db, "wren", "inbox ramp", 40, embed);
+    expect(near.map((h) => h.id)).toEqual([Number(first.id)]);
+    expect(near[0]?.snippet).not.toContain("«");
+    const both = await searchItems(pg.db, "wren", "forty inbox", 40, embed);
+    expect(both.map((h) => h.id)).toEqual([Number(first.id)]);
+    expect(both[0]?.snippet).toContain("«forty»");
+    const failing: Embed = async () => Promise.reject(new Error("gateway down"));
+    expect((await searchItems(pg.db, "wren", "forty inbox", 40, failing)).length).toBe(1);
 
     // A saved item never alerts.
     const { n, sent } = notifier();
