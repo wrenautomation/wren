@@ -230,7 +230,11 @@ from our own SMTP prober, not MillionVerifier: it asks the address's MX
 `RCPT TO:` and hangs up before `DATA` — no mail is ever sent. Free, so the
 pool-feeder runs it as its last stage (`verifyMailboxes`, 192 leads a pass, 32 at once) and
 compose enrolls a role inbox only once it holds a `valid` or `catch_all` verdict.
-A `risky` verdict (greylist, tarpit) is tried again after two days.
+A `risky` verdict (greylist, tarpit) is tried again after its wait: a greylist
+1 hour, then 1 day, then 7 days; any other reason its own wait (blocked 7 days,
+else two days), doubled each time, up to 30 days. After 4 risky verdicts in a row
+(no valid or invalid between) the address rests 90 days and stays risky. Counted
+per address, leads and candidates alike (`verification/retry.ts`).
 
 The handshake itself is not wren's: it lives in **mailifier**
 (github.com/wrenautomation/mailifier, `npm i mailifier`), and wren plugs it into

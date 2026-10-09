@@ -13,7 +13,7 @@ One verdict on one address from one verifier. Table `verifications`; the verifie
 
 ## Why this shape
 
-A verdict is evidence, not status: `valid | invalid | risky | catch_all` (`VERIFICATION_RESULTS`, `:28`). Only an authoritative verifier's `valid` moves a lead (`verification/service.ts:65`); `risky` means the server, not the mailbox, answered and is retried later. Every row keeps `raw`, so a verdict can be re-read when the prober changes.
+A verdict is evidence, not status: `valid | invalid | risky | catch_all` (`VERIFICATION_RESULTS`, `:28`). Only an authoritative verifier's `valid` moves a lead (`verification/service.ts:65`); `risky` means the server, not the mailbox, answered and is retried later: the wait grows with the address's run of risky verdicts (greylisted 1 hour, 1 day, 7 days; others double up to 30 days) and rests it 90 days after 4 in a row (`riskyBackoff`, `verification/retry.ts`). Every row keeps `raw`, so a verdict can be re-read when the prober changes.
 
 Verdicts are public facts, so main keeps them for every client: a client's walk goes through `sharedVerdicts` (`packages/channel-email/src/verification/shared.ts`), which reuses main's `valid | invalid | catch_all` for the address under 30 days old and writes a fresh probe to main with only `email` set (`ck_verifications_attributed` allows it, migration 0081). The client's own row is still written in its database, `raw.shared` marking a reused one.
 

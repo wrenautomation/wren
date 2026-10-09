@@ -56,7 +56,7 @@ import {
 import { transitionCandidate } from "../state.js";
 import type { LocalCheckerLike } from "../verification/local.js";
 import { defaultLocalChecker } from "../verification/mailifier.js";
-import { riskyWait, waitingDomains } from "../verification/retry.js";
+import { riskyHolds, waitingDomains } from "../verification/retry.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export const DEFAULT_DOMAIN_BUDGET = 5;
@@ -799,7 +799,7 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
  * something: a queued address nobody verified for someone else, with no verdict of its
  * own still standing, for a person not yet resolved at any domain, that is scraped, or matches the
  * domain's proven pattern, or is a guess while the discovery budget lasts. A domain
- * whose server answered `risky` waits out that verdict (`riskyWait`) before any walk;
+ * whose server answered `risky` waits out that verdict's backoff (`riskyHolds`) before any walk;
  * a known catch-all never comes back.
  */
 export async function selectNewResolutionTargets(
@@ -808,7 +808,7 @@ export async function selectNewResolutionTargets(
 ): Promise<string[]> {
   const retryDays = opts.retryRiskyAfterDays ?? 2;
   const budget = opts.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
-  const wait = riskyWait(sql`v.raw`, sql`make_interval(days => ${retryDays})`);
+  const holds = riskyHolds("v", sql`make_interval(days => ${retryDays})`);
   const niche = opts.niche
     ? sql`AND EXISTS (SELECT 1 FROM people p JOIN companies co ON co.id = p.company_id
         WHERE p.id = c.person_id AND co.niche = ${opts.niche})`
@@ -834,7 +834,7 @@ export async function selectNewResolutionTargets(
       -- Its own risky verdicts, and any lead's that says the server turned us away.
       WHERE NOT EXISTS (
           SELECT 1 FROM contact_candidates x JOIN verifications v ON v.contact_candidate_id = x.id
-          WHERE x.domain = d.domain AND v.result = 'risky' AND v.checked_at > now() - ${wait})
+          WHERE x.domain = d.domain AND ${holds})
         AND d.domain NOT IN ${waitingDomains()}
         -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
         -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
@@ -849,7 +849,7 @@ export async function selectNewResolutionTargets(
         AND (c.evidence = 'scraped' OR c.pattern = f.proven OR (f.proven IS NULL AND f.spent < ${budget}))
         -- Its own verdict still stands (a stub's, or a risky one not yet due).
         AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.contact_candidate_id = c.id
-          AND (v.result <> 'risky' OR v.checked_at > now() - ${wait}))
+          AND (v.result <> 'risky' OR ${holds}))
         -- Same address verified for someone else: a person decides whose mailbox it is.
         AND NOT EXISTS (SELECT 1 FROM contact_candidates t
           WHERE t.domain = c.domain AND t.email = c.email AND t.state = 'verified')
@@ -863,26 +863,17 @@ export async function selectNewResolutionTargets(
   return rows.map((r) => String((r as { domain: string }).domain));
 }
 
-/** True while any `risky` verdict at the domain is inside its wait (`riskyWait`). */
+/** True while any `risky` verdict at the domain is inside its backoff (`riskyHolds`). */
 export async function riskyWaiting(
   db: Queryable,
   domain: string,
   retryDays: number,
 ): Promise<boolean> {
-  const wait = riskyWait(sql`${verifications.raw}`, sql`make_interval(days => ${retryDays})`);
-  const [hit] = await db
-    .select({ id: verifications.id })
-    .from(verifications)
-    .innerJoin(contactCandidates, eq(verifications.contactCandidateId, contactCandidates.id))
-    .where(
-      and(
-        eq(contactCandidates.domain, domain),
-        eq(verifications.result, "risky"),
-        sql`${verifications.checkedAt} > now() - ${wait}`,
-      ),
-    )
-    .limit(1);
-  return hit !== undefined;
+  const rows = await db.execute(sql`SELECT 1 FROM contact_candidates x
+    JOIN verifications v ON v.contact_candidate_id = x.id
+    WHERE x.domain = ${domain} AND ${riskyHolds("v", sql`make_interval(days => ${retryDays})`)}
+    LIMIT 1`);
+  return rows.length > 0;
 }
 
 export interface DomainUnitOptions {

@@ -5,9 +5,10 @@
  * Selection: leads with status=imported and (unless reverify) no verification rows
  * yet. With recheckOlderThan set, verified leads whose newest verification (ANY
  * result: spend control, not a freshness verdict) is older than that are selected too.
- * With retryRiskyOlderThan set, imported leads whose newest verdict is `risky` and
- * older than that are tried again (a greylist or an unreachable prober is not a
- * verdict on the address). With recheckReturning set, the proven addresses (verified,
+ * With retryRiskyOlderThan set, imported leads whose newest verdict is `risky` are
+ * tried again once its backoff ends (a greylist or an unreachable prober is not a
+ * verdict on the address): that age or the reason's own wait, growing with each risky
+ * verdict in a row, and 90 days after the 4th (`riskyBackoff`). With recheckReturning set, the proven addresses (verified,
  * or a newest valid/catch_all verdict) of companies that may come back for another
  * sequence (src/recontact.ts) are re-checked once their newest check is older than
  * that: a lead that rested 90 days is past the send horizon. `niche` narrows to leads
@@ -31,7 +32,7 @@ import { contactCandidates, type VerificationResult, verifications } from "../sc
 import { latestVerifications } from "../views.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
-import { riskyWait, SERVER_HOLD_REASONS, waitingDomains } from "./retry.js";
+import { riskyBackoff, SERVER_HOLD_REASONS, waitingDomains } from "./retry.js";
 import type { EmailVerifier } from "./verifier.js";
 
 /**
@@ -50,7 +51,7 @@ export interface VerificationOptions {
   reverify?: boolean;
   /** Milliseconds; verified leads whose newest verification is older are re-bought. */
   recheckOlderThanMs?: number;
-  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again (greylisted and blocked keep their own waits, `riskyWait`). */
+  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again. The base wait for reasons without their own; it grows with the address's run of risky verdicts (`riskyBackoff`). */
   retryRiskyOlderThanMs?: number;
   /** Proven addresses of companies that may come back, re-checked once older than this. */
   recheckReturning?: { policy: RecontactPolicy; olderThanMs: number };
@@ -103,15 +104,16 @@ export async function runVerification(
     );
   }
   if (opts.retryRiskyOlderThanMs !== undefined) {
-    const wait = riskyWait(
-      newest(sql`${latestVerifications.raw}`),
+    // The newest verdict is risky and its backoff (by reason and run length) is over.
+    const wait = riskyBackoff(
+      { email: sql`lv.email`, checkedAt: sql`lv.checked_at`, raw: sql`lv.raw` },
       sql`make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`,
     );
     eligible.push(
       and(
         eq(leads.status, "imported"),
-        eq(newest(sql`${latestVerifications.result}`), "risky"),
-        lt(lastChecked, sql`now() - ${wait}`),
+        sql`exists (select 1 from ${latestVerifications} lv where lv.email = lower(${leads.email})
+          and lv.result = 'risky' and lv.checked_at < now() - ${wait})`,
       ),
     );
   }

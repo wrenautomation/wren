@@ -538,6 +538,29 @@ describe("server holds", () => {
     expect(await targets()).toEqual([DOMAIN]);
   });
 
+  it("a greylist that never lifts backs off: an hour, a day, a week, then 90 days", async () => {
+    await prepare([["Jane", "Doe", {}]]);
+    const verifier = new RiskyVerifier("greylisted");
+    const walk = () => runResolution(db(), verifier, { checker: passChecker });
+    await walk();
+    // [age in hours, still held?] after each risky verdict in a row.
+    const steps: Array<[held: number, due: number]> = [
+      [0.5, 2],
+      [2, 25],
+      [25, 8 * 24],
+      [60 * 24, 91 * 24],
+    ];
+    for (const [i, [held, due]] of steps.entries()) {
+      await ageVerdictsAt(DOMAIN, held);
+      expect(await targets()).toEqual([]);
+      expect((await walk()).credits_spent).toBe(0);
+      await ageVerdictsAt(DOMAIN, due);
+      expect(await targets()).toEqual([DOMAIN]);
+      if (i < steps.length - 1) await walk();
+    }
+    expect(verifier.calls).toHaveLength(4);
+  });
+
   it("a block seen on a lead holds the domain's candidates too", async () => {
     await prepare([["Jane", "Doe", {}]]);
     const [batch] = await db()
