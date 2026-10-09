@@ -63,6 +63,8 @@ export interface ContentPlannerDeps {
   repos?: readonly string[];
   /** A client's database; absent, a client's key stops. */
   clientDb?: ((client: string) => Db) | null;
+  /** Slots under every key's own, replacing the platforms' defaults (tests: any weekday). */
+  slots?: Partial<Record<Platform, Slot[]>>;
 }
 
 export interface PlannerSettings {
@@ -134,7 +136,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
         PLATFORMS.includes(p),
       );
     }
-    const slots = slotsOf(settings.slots);
+    const slots = slotsOf({ ...deps.slots, ...settings.slots });
     const day = tomorrowOf(now, deps.zone);
     const drafted: Drafted[] = [];
     const skipped: string[] = [];

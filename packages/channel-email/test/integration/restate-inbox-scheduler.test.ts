@@ -60,7 +60,10 @@ import {
   SENDER,
   TABLES,
 } from "./compose-fixtures.js";
-import { DAY, FakeReader, hoursAgo, load, NOW, OUR_ID, THREAD } from "./inbox-fixtures.js";
+import { DAY, FakeReader, load, OUR_ID, THREAD } from "./inbox-fixtures.js";
+
+/** The scheduler reads back from the wall clock, so mail here is dated from it, not the fixtures' fixed NOW. */
+const agoMs = (ms: number) => new Date(Date.now() - ms);
 
 const POLICY = SendPolicy.fromSettings(
   loadSettings({ WREN_DATABASE_URL: "postgresql://x", WREN_SEND_TIMEZONE: "UTC" }),
@@ -233,9 +236,9 @@ async function enrollSent(domain: string, email: string): Promise<Enrollment> {
     .set({
       messageId: OUR_ID,
       state: transitionMessage(transitionMessage(opener.state, "sending"), "sent"),
-      attemptedAt: new Date(NOW.getTime() - DAY),
+      attemptedAt: agoMs(DAY),
       transport: "gmail",
-      sentAt: new Date(NOW.getTime() - DAY),
+      sentAt: agoMs(DAY),
       threadId: THREAD,
       gmailId: "g-sent",
     })
@@ -257,7 +260,10 @@ const runsFor = (command: string) => db().select().from(runs).where(eq(runs.comm
 describe("InboxScheduler", () => {
   it("a sync reads its own inbox, records a run, and hands replies to Disposition", async () => {
     const enrollment = await enrollSent("reply.example", "jordan@example.com");
-    reader.add(SENDER, "g-reply", load("human_reply"), { threadId: THREAD, when: hoursAgo(8) });
+    reader.add(SENDER, "g-reply", load("human_reply"), {
+      threadId: THREAD,
+      when: agoMs(8 * 3_600_000),
+    });
 
     const outcome = await inbox(SENDER).sync();
 

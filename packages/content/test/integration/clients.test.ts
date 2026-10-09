@@ -52,6 +52,8 @@ const channels: Record<string, Channels> = {
 const kappaIn = () => channels.kappa?.linkedin as ReturnType<typeof fakeContentChannel>;
 const lambdaReddit = () => channels.lambda?.reddit as ReturnType<typeof fakeContentChannel>;
 
+const EVERY_DAY = { linkedin: [{ hour: 9, minute: 0 }], reddit: [{ hour: 10, minute: 0 }] };
+
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 let kappa: Db;
@@ -112,7 +114,8 @@ beforeAll(async () => {
         zone: "UTC",
         clients: { clientDb: open, llm: clientLlm },
       }),
-      makeContentPlanner({ db: pg.db, zone: "UTC", clientDb: open }),
+      // Every day has slots: the default LinkedIn and Reddit slots skip weekends, so a Friday run planned none.
+      makeContentPlanner({ db: pg.db, zone: "UTC", clientDb: open, slots: EVERY_DAY }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000, clientDb: open }),
       makeContentMetrics({ db: pg.db, clientDb: open }),
       makeSocialWatch({
