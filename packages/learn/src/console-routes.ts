@@ -8,7 +8,8 @@ import type { Need, RouteApps } from "@wren/core/access";
 export const LEARN_CONSOLE_ROUTES = {
   save: "act",
   follow: "act",
-  tell: "act",
+  // The workspace's alerts per source (Discord's too): someone who manages it.
+  tell: "manage",
   unfollow: "act",
   browse: "read",
   rail: "read",

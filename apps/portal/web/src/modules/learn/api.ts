@@ -287,7 +287,12 @@ export const learn = {
       ]),
     ),
   item: (id: string) => call<ItemPage>("learn/item", { id }).then(withMedia((i) => [i.id])),
-  sources: () => call<{ kinds: { kind: SourceKind; sources: SourceRow[] }[] }>("learn/sources", {}),
+  /** `may`: this viewer manages the workspace, so sets each source's alerts for everyone. */
+  sources: () =>
+    call<{ may: boolean; kinds: { kind: SourceKind; sources: SourceRow[] }[] }>(
+      "learn/sources",
+      {},
+    ),
   mark: (ids: number[], mark: Mark) =>
     write<{ done: string[] }>("mark", { ids: ids.map(String), mark }),
   /** Opened: not new. Quiet: no reload, the page is already showing it. */

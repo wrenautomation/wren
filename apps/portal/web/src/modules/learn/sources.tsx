@@ -1,6 +1,8 @@
 /**
  * Learn's Sources, grouped by kind: follow a channel, podcast, newsletter or blog by its page or
- * feed, say how loud each is, stop one. Each opens to its items.
+ * feed, say how loud each is, stop one. Each opens to its items. Each card has your own alert
+ * pick; a manager also sets the workspace's under it (everyone without a pick, and on Wren's,
+ * the Discord push).
  */
 import {
   Alert,
@@ -25,7 +27,15 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { type AlertPick, inWorkspace, keyOf, learn, onChanged, type SourceRow } from "./api.js";
+import {
+  type AlertPick,
+  clientOf,
+  inWorkspace,
+  keyOf,
+  learn,
+  onChanged,
+  type SourceRow,
+} from "./api.js";
 import { LearnFrame } from "./frame.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
@@ -93,7 +103,7 @@ function SourcesBody() {
             </h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
               {k.sources.map((s) => (
-                <SourceCard key={s.id} s={s} />
+                <SourceCard key={s.id} s={s} may={load.data?.may ?? false} />
               ))}
             </div>
           </section>
@@ -168,7 +178,7 @@ function Follow() {
   );
 }
 
-function SourceCard({ s }: { s: SourceRow }) {
+function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
   const [stopping, setStopping] = useState(false);
   const facts = [
     s.fresh ? `${s.fresh} new` : null,
@@ -248,6 +258,22 @@ function SourceCard({ s }: { s: SourceRow }) {
           Open
         </a>
       </div>
+      {may && !s.stopped ? (
+        <label className="-mt-1 flex items-center gap-2 text-[12.5px] text-(--ui-ink-2)">
+          <span>{clientOf() === null ? "Everyone here and Discord" : "Everyone here"}</span>
+          <select
+            value={s.tell}
+            onChange={(e) => void act(learn.tell(s.id, e.target.value), "Saved for everyone")}
+            className="h-8 cursor-pointer border border-(--ui-hair) bg-transparent px-2 text-(--ui-ink) outline-none"
+          >
+            {TELLS.map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {stopping ? (
         <Dialog open onOpenChange={(o) => (o ? null : setStopping(false))}>
           <DialogContent className="gap-3 sm:max-w-sm">

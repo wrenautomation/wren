@@ -268,10 +268,13 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: Cli
         throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
       }
     },
-    tell: (req: TellRequest) => {
+    /** The workspace's alerts for a source: everyone without a pick of their own, and Discord. */
+    tell: async (req: TellRequest) => {
       const tell = tellOf(req.tell);
       if (!tell) throw new PortalRefusal("pick when to tell you", 400);
       const ids = idsOf(req);
+      if (!(await mayManage(db, req, await acts(req))))
+        throw new PortalRefusal("only someone who manages this workspace can change that", 403);
       return write(req, async (tx, client) => done(await tellSources(tx, client, ids, tell)));
     },
     unfollow: (req: IdsRequest) => {
@@ -307,14 +310,19 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: Cli
       urls: await mediaOf(db, idsOf(req), await reads(req)),
     }),
     home: async (req: PortalRequest) => home(db, await reads(req)),
-    /** Each source with this viewer's own alert pick on it. */
+    /**
+     * Each source with this viewer's own alert pick on it, and whether they may set the
+     * workspace's (`may`: they manage it).
+     */
     sources: async (req: PortalRequest) => {
       const client = await reads(req);
-      const [kinds, picks] = await Promise.all([
+      const [kinds, picks, may] = await Promise.all([
         sourcesByKind(db, client),
         picksOf(db, client, by(req)),
+        mayManage(db, req, client),
       ]);
       return {
+        may,
         kinds: kinds.map((k) => ({
           ...k,
           sources: k.sources.map((s) => ({ ...s, alert: picks.sources[s.id] ?? null })),

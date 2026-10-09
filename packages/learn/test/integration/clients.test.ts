@@ -266,6 +266,13 @@ describe("a client's login in its own Learn", () => {
     expect((await as(VAL, "mark", { ids: [String(a.item)], mark: "star" })).done).toEqual([
       String(a.item),
     ]);
+    // The workspace's alerts per source are a manager's: an act grant isn't enough.
+    expect((await as(VAL, "sources")).may).toBe(false);
+    await refused(as(VAL, "tell", { ids: [String(a.source)], tell: "every" }), 403);
+    expect((await as(AMY, "sources")).may).toBe(true);
+    expect((await as(AMY, "tell", { ids: [String(a.source)], tell: "every" })).done).toEqual([
+      String(a.source),
+    ]);
   });
 
   it("leaves Wren's team in Wren's own unless it names a client", async () => {
