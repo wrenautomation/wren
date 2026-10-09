@@ -17,7 +17,8 @@ import { type LlmClient, llmForKey } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { partyOf, threadChannelOf } from "../inbox/conversation.js";
+import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
+import { clientAccounts, clientRoute } from "../inbox/routes.js";
 import {
   accessChannel,
   askReply,
@@ -168,6 +169,17 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
     if (!g.ok) throw new Error(`models: ${g.why}`);
     return row.name;
   };
+  /**
+   * A client's DM or comment goes out on its own connected account only: none, a broken one, or a
+   * platform with no API for it refuses, before anything is kept or sent. Never Wren's accounts.
+   */
+  const routed = (client: string | null, option: ReplyOption) =>
+    terminal(async () => {
+      if (!client) return;
+      const accounts = await clientAccounts(deps.db, client);
+      const shut = clientRoute(option.channel, option.platform, accounts);
+      if (shut) throw new Error(shut.off);
+    });
   const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
     (deps.channels ?? restateChannels)(ctx, client, viewer);
   /** Who they are, and the client's sends and approver: what the gate reads. */
@@ -219,6 +231,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           await ctx.run("may", () =>
             mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
           );
+          await ctx.run("route", () => routed(client, option));
           const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
           if (gate.mode === "ask") {
             const asked = await ctx.run("ask", async () => {
@@ -257,6 +270,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           await ctx.run("may", () =>
             mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
           );
+          await ctx.run("route", () => routed(clientOf(req), option));
           const asked = await ctx.run("ask", () =>
             terminal(async () => {
               const p = await partyOf(db, req.thread);
@@ -288,6 +302,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           await ctx.run("may", () =>
             mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
           );
+          await ctx.run("route", () => routed(client, option));
           const gate = await ctx.run("gate", () => gateOf(req, option.channel, option.platform));
           if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
           const claimed = await ctx.run("claim", () => settleReply(db, req.id, "sent", me));

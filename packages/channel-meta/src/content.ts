@@ -45,6 +45,11 @@ export interface MetaContentOptions {
   pageId?: string;
   /** Between the container and its publish: the Graph API needs a moment for a video. */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * Read a Page's comments: its token holds `pages_read_user_content` (a client's connected
+   * Page). Off, a Page reads none.
+   */
+  pageComments?: boolean;
 }
 
 interface Page {
@@ -409,9 +414,29 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         fetchedWith: await via("GET", "/{objectId}"),
       };
     },
-    async comments(): Promise<CommentRow[]> {
-      // Page comments need `pages_read_user_content`, not in the app's scopes yet.
-      return [];
+    async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
+      // Page comments need `pages_read_user_content`: a connected Page's token has it.
+      if (!o.pageComments) return [];
+      const r = await sites.call<
+        Edge<{ id: string; message?: string; from?: { name?: string }; created_time?: string }>
+      >("meta", "GET", `/${id}/comments`, {
+        fields: "id,message,from,created_time",
+        filter: "stream",
+        limit: Math.min(q.limit ?? 100, 100),
+      });
+      return pageOf(
+        (r.data ?? []).map((c) => ({
+          id: c.id,
+          postId: id,
+          author: c.from?.name ?? "",
+          text: c.message ?? "",
+          at: c.created_time ?? now().toISOString(),
+        })),
+        q,
+      );
+    },
+    async reply(commentId: string, text: string): Promise<void> {
+      await sites.call("meta", "POST", `/${commentId}/comments`, { message: text });
     },
   };
 }

@@ -41,6 +41,8 @@ import {
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { z } from "zod";
+import type { ReplyOption } from "../inbox/conversation.js";
+import { clientAccounts, withRoutes } from "../inbox/routes.js";
 import {
   PROMO_PIECES,
   PROMO_PLATFORMS,
@@ -117,19 +119,26 @@ export function marketingConsoleApi({ db, open, records }: MarketingConsoleDeps)
       throw new PortalRefusal("Marketing numbers is not installed", 404);
     return client;
   };
-  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
-    const client = await installed(req);
-    return snapshot(open(client), (tx) =>
+  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
+    readAt(await installed(req), req, use);
+  const readAt = <T>(client: Client, req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
+    snapshot(open(client), (tx) =>
       use(serveRecords(records, tx, undefined, fenceFor(req, client.id), meOf(req))),
     );
-  };
   return {
     recordsTypes: async (req: PortalRequest) => {
       const fence = fenceFor(req, (await installed(req)).id);
       return records.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk) => read(req, (r) => r.list(req)),
-    recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
+    /** A row; an Inbox thread's reply options say which need the client's own account. */
+    recordsGet: async (req: PortalRequest & GetAsk) => {
+      const client = await installed(req);
+      const out = await readAt(client, req, (r) => r.get(req));
+      const c = (out.detail as { conversation?: { options?: ReplyOption[] } } | null)?.conversation;
+      if (c?.options) c.options = withRoutes(c.options, await clientAccounts(db, client.id));
+      return out;
+    },
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
     /**

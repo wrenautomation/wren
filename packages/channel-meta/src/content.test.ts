@@ -234,3 +234,41 @@ describe("facebook content channel", () => {
     });
   });
 });
+
+describe("facebook Page comments", () => {
+  it("reads none unless its token reads them; a connected Page reads and replies", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /111_1/comments": () => ({
+        data: [
+          {
+            id: "111_1_c1",
+            message: "how much?",
+            from: { name: "Sam Test" },
+            created_time: "2026-09-22T11:00:00+0000",
+          },
+        ],
+      }),
+      "POST /111_1_c1/comments": (i) => {
+        expect(i).toEqual({ message: "dm us" });
+        return { id: "r1" };
+      },
+    });
+    expect(await facebookContent(sites, { now }).comments("111_1")).toEqual([]);
+    expect(calls).toHaveLength(0);
+    const ch = facebookContent(sites, { now, pageComments: true });
+    expect(await ch.comments("111_1")).toEqual([
+      {
+        id: "111_1_c1",
+        postId: "111_1",
+        author: "Sam Test",
+        text: "how much?",
+        at: "2026-09-22T11:00:00+0000",
+      },
+    ]);
+    await ch.reply?.("111_1_c1", "dm us");
+    expect(calls.map((c) => `${c[0]} ${c[1]}`)).toEqual([
+      "GET /111_1/comments",
+      "POST /111_1_c1/comments",
+    ]);
+  });
+});

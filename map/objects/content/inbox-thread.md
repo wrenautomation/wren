@@ -51,4 +51,4 @@ GHL Conversations is the model (William, 2026-10-07: "steal all the stuff"). A r
 ## Limits
 
 - A client's login works its own threads only, through `MarketingConsole`, on its own database. `InboxDesk` checks `act` on the thread's channel, `effect` plus the approver to send.
-- A client's DMs and comments can't send yet: their desks are Wren's only.
+- A client's DMs and comments go out on its own connected account only (`SocialInbox`). `clientRoute` (`packages/content/src/inbox/routes.ts`) shuts the rest before anything is kept: no account or a broken one points at Account → Social, LinkedIn, Reddit and TikTok say Not available yet. `InboxDesk` checks it on reply, ask and approve; `MarketingConsole.recordsGet` marks the options.

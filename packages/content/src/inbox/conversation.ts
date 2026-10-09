@@ -450,6 +450,8 @@ export interface ReplyOption {
   own: boolean;
   /** Why it can't send there (opted out); null when it can. */
   off: string | null;
+  /** What fixes it: `social`, a client connects that platform's account on Account → Social. */
+  fix?: "social" | null;
 }
 
 const SITE: Record<string, string> = {

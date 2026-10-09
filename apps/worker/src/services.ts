@@ -2104,7 +2104,7 @@ function contentClientsFor(
         ...(yt ? { youtube: youtubeContent(yt, hosted) } : {}),
         ...(x ? { x: xContent(x, hosted) } : {}),
         ...(ig ? { instagram: instagramContent(ig, hosted) } : {}),
-        ...(fb ? { facebook: facebookContent(fb, hosted) } : {}),
+        ...(fb ? { facebook: facebookContent(fb, { ...hosted, pageComments: true }) } : {}),
         ...(tt ? { tiktok: tiktokContent(tt, hosted) } : {}),
         ...(li ? { linkedin: linkedinContent(li) } : {}),
         ...(!li && logins.linkedin && on.includes("linkedin")

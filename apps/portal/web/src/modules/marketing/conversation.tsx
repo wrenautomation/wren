@@ -7,6 +7,8 @@ import type { Permission } from "@wren/core/access";
 import type { Row } from "@wren/core/records/serve";
 import {
   Button,
+  ButtonLink,
+  Callout,
   exact,
   Icon,
   type IconName,
@@ -45,6 +47,8 @@ export type ReplyOption = {
   platform: string | null;
   own: boolean;
   off: string | null;
+  /** `social`: the client connects that platform's account on Account → Social. */
+  fix?: "social" | null;
 };
 export type Conversation = {
   thread: string;
@@ -181,6 +185,28 @@ export function Timeline({ entries }: { entries: Entry[] }) {
   );
 }
 
+/** Where a client connects its own accounts. */
+const SOCIAL_PAGE = "/account/social";
+
+/**
+ * The thread's own channel can't answer: why, and the way to fix it when connecting an account
+ * does. A client's DMs and comments go out on its own accounts, never Wren's.
+ */
+function Shut({ o }: { o: ReplyOption }) {
+  return (
+    <div className="grid justify-items-start gap-2">
+      <Callout tone={o.fix ? "warn" : undefined} className="mb-0">
+        {o.off}
+      </Callout>
+      {o.fix === "social" ? (
+        <ButtonLink href={SOCIAL_PAGE} size="dense" tone="secondary" arrow>
+          Connect it on Account → Social
+        </ButtonLink>
+      ) : null}
+    </div>
+  );
+}
+
 const SELECT =
   "h-8 min-w-0 max-w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink)";
 
@@ -252,8 +278,10 @@ function ReplyBox({
       setBusy(null);
     }
   };
+  const shut = options.find((o) => o.own && o.off) ?? null;
   return (
     <div className="grid gap-2">
+      {shut ? <Shut o={shut} /> : null}
       <label className="flex flex-wrap items-center gap-2 text-[13px] text-(--ui-ink-2)">
         Reply by
         <select

@@ -72,7 +72,6 @@ Wren's own threads (no client) skip the sends flag. The viewer's `effect` still 
   from the Inbox.
 - Activity rows (follows, likes) have no reply.
 - A person is the join. Rows with no person still show their own thread, without other channels.
-- A client's DMs and comments can't send yet: their desks are Wren's only. Text and email can.
 - The local preview has no Restate: the conversation and notes show, but Send, Suggest and the
   row actions need the worker.
 
@@ -90,6 +89,28 @@ A client's login works its own threads in Marketing -> Inbox, on its own databas
 - `@` and assign reach the client's people and Wren's team scoped to it. A client's Mentions in
   Notes lists its Inbox mentions.
 - Wren's own threads stay team-only: a client login on `InboxDesk` with no client is refused.
+
+### A client's DMs and comments
+
+They go out on the client's own connected account (designs/2026-10-07-client-social.md), never
+Wren's. `clientRoute` (`packages/content/src/inbox/routes.ts`) decides per option, before the gate:
+
+| Platform | DM | Comment |
+|---|---|---|
+| Facebook Page, Instagram | yes, within Meta's 24 hours | yes |
+| X | yes | yes (a reply post) |
+| YouTube | no DMs | yes |
+| LinkedIn | Not available yet: no messaging API | Not available yet: apps can't read profile comments |
+| Reddit | Not available yet: API apps need Reddit's approval | same |
+| TikTok | Not available yet: no API | same |
+
+- No connected account, or a broken one: the box says so and links to Account → Social. Reply,
+  Ask to send and Approve all refuse with the same words, so nothing waits that can't go.
+- `MarketingConsole.recordsGet` marks a client's thread options from its connections on main.
+- A Facebook Page's comments read and answer on a connected Page only (`pageComments`): Wren's own
+  Page token lacks `pages_read_user_content`.
+- The gate is unchanged: the approver decides Send or Ask. Each send writes a touch (`sentDm`,
+  `markAnswered`) and its rows go in the client's audit log. The 20:00 cutoff is texts only.
 
 ## Decisions
 

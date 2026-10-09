@@ -118,6 +118,7 @@ const KEPT = ["note_mentions", "inbox_notes", "inbox_threads", "inbox_replies"];
 beforeEach(async () => {
   for (const db of [pg.db, kappa, lambda])
     for (const t of KEPT) await db.execute(sql.raw(`delete from "${t}"`));
+  await pg.db.execute(sql`delete from client_accounts where site = 'social'`);
   await updateClient(pg.db, "kappa", { approver: "client", sends: ["follow_up"] });
   sent.length = 0;
   prompts.length = 0;
@@ -236,6 +237,107 @@ describe("a client's own threads", () => {
     await expect(
       svc().inboxStatus({ ...as(CY), thread: `reply:${k.replyId}`, status: "closed" }),
     ).rejects.toThrow();
+  });
+});
+
+/** Kappa's own YouTube channel, connected or broken: a synthetic row, no token. */
+async function connectYoutube(state: "connected" | "broken" = "connected") {
+  const [a] = (await pg.db.execute(sql`insert into client_accounts (client, site, ref, created_by)
+    values ('kappa', 'social', ${`youtube:UC-test-${state}`}, 'test') returning id`)) as unknown as {
+    id: number;
+  }[];
+  await pg.db.execute(sql`insert into social_connections (client, platform, account_id,
+      external_id, scopes, token_ref, state, by)
+    values ('kappa', 'youtube', ${a?.id}, ${`UC-test-${state}`}, 'youtube.force-ssl',
+      'ks_test', ${state}, 'test')`);
+}
+const comment = (s: InboxSeed) => ({
+  thread: `comment:${s.commentId}`,
+  channel: "comment" as const,
+  target: String(s.commentId),
+});
+const replyOf = async (thread: string, email = BO) => {
+  const out = await api().recordsGet({ ...as(email), record: "marketing.inbox", id: thread });
+  const c = (out.detail as { conversation: Awaited<ReturnType<typeof conversationOf>> })
+    .conversation;
+  return c?.options.find((o) => o.own);
+};
+
+describe("a client's DMs and comments, on its own accounts", () => {
+  beforeEach(async () => {
+    await updateClient(pg.db, "kappa", { sends: ["follow_up", "content.posting"] });
+  });
+
+  it("no connected account: the box says so and points at Account → Social; nothing goes", async () => {
+    expect(await replyOf(`comment:${k.commentId}`)).toMatchObject({
+      off: "No YouTube channel account connected. Replies go out on your own account.",
+      fix: "social",
+    });
+    await expect(
+      svc().inboxReply({ ...as(BO), ...comment(k), body: "Yes it does." }),
+    ).rejects.toThrow(/No YouTube channel account connected/);
+    await expect(
+      svc().inboxAsk({ ...as(AMY), ...comment(k), body: "Yes it does." }),
+    ).rejects.toThrow(/No YouTube channel account connected/);
+    expect(sent).toEqual([]);
+    expect(await askedReplyRecord.rows?.(kappa)).toEqual([]);
+  });
+
+  it("LinkedIn DMs: not available yet, with why", async () => {
+    expect(await replyOf(`dm:${k.reachId}`)).toMatchObject({
+      off: "Not available yet. LinkedIn has no messaging API.",
+      fix: null,
+    });
+    await expect(
+      svc().inboxReply({
+        ...as(BO),
+        thread: `dm:${k.reachId}`,
+        channel: "dm",
+        target: String(k.reachId),
+        body: "hi",
+      }),
+    ).rejects.toThrow(/LinkedIn has no messaging API/);
+    expect(sent).toEqual([]);
+  });
+
+  it("connected: sends when the client approves its own, asks when Wren approves", async () => {
+    await connectYoutube();
+    expect(await replyOf(`comment:${k.commentId}`)).toMatchObject({ off: null });
+    const out = await svc().inboxReply({ ...as(BO), ...comment(k), body: "Yes it does." });
+    expect(out).toEqual({ sent: true, asked: null, why: null });
+    expect(sent).toEqual([
+      { client: "kappa", channel: "comment", id: k.commentId, body: "Yes it does." },
+    ]);
+    sent.length = 0;
+    await updateClient(pg.db, "kappa", { approver: "wren" });
+    const asked = await svc().inboxReply({ ...as(BO), ...comment(k), body: "Two trucks is fine." });
+    expect(asked).toMatchObject({ sent: false, why: "Wren approves these sends." });
+    expect(sent).toEqual([]);
+    expect((await askedReplyRecord.rows?.(kappa))?.[0]).toMatchObject({ kind: "comment" });
+    await svc().inboxApprove({ ...as(ADMIN), id: asked.asked as number });
+    expect(sent).toEqual([
+      { client: "kappa", channel: "comment", id: k.commentId, body: "Two trucks is fine." },
+    ]);
+  });
+
+  it("an asked reply whose account broke since waits; Approve says why", async () => {
+    await connectYoutube();
+    const { asked } = await svc().inboxAsk({ ...as(AMY), ...comment(k), body: "Yes." });
+    await pg.db.execute(sql`update social_connections set state = 'broken'`);
+    expect(await replyOf(`comment:${k.commentId}`)).toMatchObject({
+      off: "Your YouTube channel account needs connecting again.",
+      fix: "social",
+    });
+    await expect(svc().inboxApprove({ ...as(BO), id: asked as number })).rejects.toThrow(
+      /needs connecting again/,
+    );
+    expect(sent).toEqual([]);
+    expect((await askedReplyRecord.rows?.(kappa))?.[0]).toMatchObject({ state: "waiting" });
+  });
+
+  it("Wren's own comment threads answer as before", async () => {
+    await desk().reply({ ...comment(w), body: "Thanks!", viewer: { email: ADMIN } });
+    expect(sent).toEqual([{ client: null, channel: "comment", id: w.commentId, body: "Thanks!" }]);
   });
 });
 
