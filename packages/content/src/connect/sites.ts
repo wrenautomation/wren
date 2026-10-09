@@ -155,6 +155,49 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
     }
   }
 
+  /**
+   * One image or document onto LinkedIn: `initializeUpload` for the owner, then the bytes PUT to
+   * its `uploadUrl`. Answers the URN a post names (channel-linkedin's `UPLOAD_PATH`).
+   */
+  async function linkedinUpload(
+    c: SocialConnectionRow,
+    input: Json,
+    auth: Record<string, string>,
+  ): Promise<{ urn: string }> {
+    const path = "/upload";
+    const kind = input.kind === "document" ? "documents" : input.kind === "image" ? "images" : null;
+    if (!kind || typeof input.owner !== "string")
+      throw new SiteCallError("linkedin", "POST", path, 422, "kind (image|document) and owner");
+    const m = await media("linkedin", path, input.file);
+    const headers = {
+      ...auth,
+      "LinkedIn-Version": LINKEDIN_VERSION,
+      "X-Restli-Protocol-Version": "2.0.0",
+    };
+    const init = (await http(
+      c,
+      "linkedin",
+      "POST",
+      path,
+      `${LINKEDIN_API}/rest/${kind}?action=initializeUpload`,
+      {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ initializeUploadRequest: { owner: input.owner } }),
+      },
+    ).then(body)) as { value?: { uploadUrl?: string; image?: string; document?: string } };
+    const v = init.value ?? {};
+    const urn = v.image ?? v.document;
+    if (!v.uploadUrl || !urn)
+      throw new SiteCallError("linkedin", "POST", path, 502, "initializeUpload gave no uploadUrl");
+    await http(c, "linkedin", "PUT", path, v.uploadUrl, {
+      method: "PUT",
+      headers: { ...auth, "content-type": m.type || "application/octet-stream" },
+      body: m.bytes,
+    });
+    return { urn };
+  }
+
   async function send(
     c: SocialConnectionRow,
     site: string,
@@ -197,6 +240,7 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
         return plain(GRAPH);
       }
       case "linkedin": {
+        if (method === "POST" && path === "/upload") return linkedinUpload(c, input, auth);
         if (!/^\/(rest|v2)\//.test(path))
           throw new SiteCallError(site, method, path, 404, "not on LinkedIn's API");
         const headers = {

@@ -549,6 +549,35 @@ describe("socialSites", () => {
     ).toBeTruthy();
   });
 
+  it("LinkedIn's /upload initializes, fetches the file and PUTs its bytes", async () => {
+    const row = conn({ platform: "linkedin" });
+    const { client, asked } = sites(row, (url) =>
+      url.includes("action=initializeUpload")
+        ? Response.json({
+            value: { uploadUrl: "https://up.example/x", document: "urn:li:document:9" },
+          })
+        : url === "https://files.example/a.pdf"
+          ? new Response("%PDF", { headers: { "content-type": "application/pdf" } })
+          : url === "https://up.example/x"
+            ? new Response(null, { status: 201 })
+            : undefined,
+    );
+    const out = await client.call<{ urn: string }>(
+      "linkedin",
+      "POST",
+      "/upload",
+      { kind: "document", owner: "urn:li:person:1", file: "https://files.example/a.pdf" },
+      "social:7",
+    );
+    expect(out.urn).toBe("urn:li:document:9");
+    expect(asked.map((a) => a.url)).toEqual([
+      "https://files.example/a.pdf",
+      "https://api.linkedin.com/rest/documents?action=initializeUpload",
+      "https://up.example/x",
+    ]);
+    expect(asked[2]?.init?.method).toBe("PUT");
+  });
+
   it("a Business Profile reaches only its own location", async () => {
     const row = conn({
       platform: "google_business",
