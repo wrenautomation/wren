@@ -179,6 +179,25 @@ describe("landCode", () => {
     expect(l.expiresAt?.toISOString()).toBe("2026-12-06T12:00:00.000Z");
   });
 
+  it("YouTube's @handle is stored bare", async () => {
+    const { fetch } = fakeFetch((url) =>
+      url === SOCIAL.youtube.token
+        ? Response.json({ access_token: "y", refresh_token: "yr", expires_in: 3600 })
+        : url.includes("/youtube/v3/channels")
+          ? Response.json({
+              items: [{ id: "UC1", snippet: { title: "Acme", customUrl: "@acme" } }],
+            })
+          : undefined,
+    );
+    const l = await landCode(fetch, "youtube", APP, {
+      code: "c",
+      redirect: "r",
+      verifier: null,
+      now: NOW,
+    });
+    expect(l).toMatchObject({ externalId: "UC1", name: "Acme", handle: "acme" });
+  });
+
   it("a LinkedIn company page: the first page the member admins, its year-long refresh", async () => {
     const { fetch, asked } = fakeFetch((url) =>
       url === SOCIAL.linkedin_page.token

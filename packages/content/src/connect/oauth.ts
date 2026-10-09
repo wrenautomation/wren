@@ -397,7 +397,12 @@ export async function whoAmI(
           false,
         );
       const sn = (ch.snippet as Json | undefined) ?? {};
-      return { externalId: String(ch.id), name: str(sn.title), handle: str(sn.customUrl) };
+      // customUrl comes as "@handle"; handles are kept bare, the page adds the "@".
+      return {
+        externalId: String(ch.id),
+        name: str(sn.title),
+        handle: str(sn.customUrl)?.replace(/^@/, "") ?? null,
+      };
     }
     case "x": {
       const b = await json(fetch, `${X_API}/2/users/me`, bearer(access));
