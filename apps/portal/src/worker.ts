@@ -33,6 +33,7 @@ import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
+import { AGENT_PATH, agentRoute } from "./agent.js";
 import { bookRoute } from "./book.js";
 import { connectorOAuthRoute } from "./connector-oauth.js";
 import { dictate } from "./dictate.js";
@@ -43,7 +44,6 @@ import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
 import { liveRoute, NoteRoom } from "./live.js";
 import { mailOAuthRoute } from "./mail-oauth.js";
-import { AGENT_PATH, agentRoute } from "./agent.js";
 import {
   grantFor,
   MEDIA_GRANT_PATH,
