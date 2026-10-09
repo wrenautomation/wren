@@ -216,5 +216,18 @@ describe("creatorOf", () => {
     expect(creatorOf("https://www.tiktok.com/@synthtok?lang=en")?.handle).toBe("synthtok");
     expect(creatorOf("https://www.tiktok.com/synthtok")).toBeNull();
     expect(creatorOf("https://example.com/someone")).toBeNull();
+    expect(creatorOf("https://www.instagram.com/synth.creator/reels/")?.handle).toBe(
+      "synth.creator",
+    );
+  });
+
+  it("never takes a post's address for a profile", () => {
+    expect(creatorOf("https://www.instagram.com/reel/DeOPXpGBXRq/?mdxt=x")).toBeNull();
+    expect(creatorOf("https://www.instagram.com/p/Cabc123/")).toBeNull();
+    expect(creatorOf("https://www.instagram.com/tv/Cabc123/")).toBeNull();
+    expect(creatorOf("https://www.instagram.com/synth.creator/reel/Cabc123/")).toBeNull();
+    expect(creatorOf("https://x.com/synthposter/status/123")).toBeNull();
+    expect(creatorOf("https://x.com/i/status/123")).toBeNull();
+    expect(creatorOf("https://www.tiktok.com/@synthtok/video/123")).toBeNull();
   });
 });

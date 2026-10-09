@@ -20,8 +20,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LEARN_COMPONENTS, LEARN_WORKFLOWS } from "../../src/components.js";
 import { LEARN_FEEDS_FROM, LEARN_SAVED_FROM, learnConsoleApi } from "../../src/console.js";
 import {
+  type CatalogReader,
+  type CreatorPost,
   embedMissing,
   type FetchFn,
+  FOLLOWED_BEFORE,
   findItems,
   itemEvent,
   items,
@@ -29,6 +32,7 @@ import {
   practiceOf,
   pullCreators,
   pullFeeds,
+  readCatalog,
   readItem,
   readStep,
   readVideo,
@@ -404,6 +408,86 @@ describe("Learn", () => {
     await api.follow({ ...viewer, url: "https://www.tiktok.com/@synthtok" });
     const none = await pullCreators(pg.db, sitesReader(sites), t0, { kinds: ["tiktok"] });
     expect(none).toEqual({ added: [], failed: [] });
+  });
+
+  it("reads a creator's back catalog on ask, a few reels a pass, older each time", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const followed = await api.follow({
+      ...viewer,
+      url: "https://www.instagram.com/synth.creator/",
+    });
+    const post = (id: string, kind: CreatorPost["kind"]): CreatorPost => ({
+      kind,
+      url: `https://www.instagram.com/reel/${id}/?igsh=x`,
+      title: id,
+      text: `${id} caption`,
+      publishedAt: null,
+      creator: "synth.creator",
+      enclosure: null,
+      thumbnail: null,
+      duration: null,
+    });
+    const profile = [
+      post("R0", "reel"),
+      post("R1", "reel"),
+      post("P0", "article"),
+      post("R2", "reel"),
+      post("R3", "reel"),
+      post("R4", "reel"),
+    ];
+    // R0 came in with the follow, kept as seen; R1 was read already.
+    await pg.db.insert(items).values([
+      {
+        client: "wren",
+        url: "https://instagram.com/reel/R0",
+        title: "R0",
+        kind: "reel",
+        why: FOLLOWED_BEFORE,
+        archivedAt: new Date(),
+      },
+      {
+        client: "wren",
+        url: "https://instagram.com/reel/R1",
+        title: "R1",
+        kind: "reel",
+        readAt: new Date(),
+      },
+    ]);
+    const asked: (string | null)[] = [];
+    const read: CatalogReader = (kind, _handle, { after, limit }) => {
+      if (kind !== "instagram") return null;
+      asked.push(after);
+      const at = Number(after ?? 0);
+      return Promise.resolve({
+        posts: profile.slice(at, at + limit),
+        next: at + limit < profile.length ? String(at + limit) : null,
+      });
+    };
+    const now = new Date("2026-10-09T12:00:00Z");
+    const url = "https://www.instagram.com/synth.creator";
+    const one = await readCatalog(pg.db, read, { client: "wren", url, want: 2, now, pageSize: 2 });
+    expect(one).toMatchObject({ creator: "@synth.creator", revived: [1], pages: 2, end: false });
+    expect(one.queued).toHaveLength(1);
+    expect(asked).toEqual([null, "2"]);
+    // The next pass walks past what it took, to older posts, and stops at the oldest.
+    const two = await readCatalog(pg.db, read, { client: "wren", url, want: 5, now, pageSize: 2 });
+    expect(two).toMatchObject({ revived: [], pages: 3, end: true });
+    expect(two.queued).toHaveLength(2);
+    const waiting = await waitingForMac(pg.db, { client: "wren" });
+    expect(waiting.map((w) => w.url).sort()).toEqual(
+      ["R0", "R2", "R3", "R4"].map((id) => `https://instagram.com/reel/${id}`),
+    );
+    const [r2] = await pg.db
+      .select()
+      .from(items)
+      .where(eq(items.url, "https://instagram.com/reel/R2"));
+    expect(r2).toMatchObject({ sourceId: Number(followed.id), type: "instagram", kind: "reel" });
+    await expect(
+      readCatalog(pg.db, read, { client: "wren", url: "https://x.com/synthposter", want: 1, now }),
+    ).rejects.toThrow(/can't be paged yet/);
+    await expect(
+      readCatalog(pg.db, read, { client: "wren", url: "https://example.com/blog", want: 1, now }),
+    ).rejects.toThrow(/not a creator's profile/);
   });
 
   it("keeps a failed read with why, and reads it again on ask", async () => {

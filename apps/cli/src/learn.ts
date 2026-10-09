@@ -4,8 +4,9 @@
  * Wren's own, or the client `--client` names; another's items are "no such item". `read` reads
  * videos and reels waiting for the Mac with the `sop add` readers (yt-dlp, the Gemini key fleet)
  * for every workspace (or the one named), a client's on its models allowance, scores them, then
- * writes items asked into an SOP: Wren's into its folder, a client's into its own Notes. Nothing
- * here signs in to any social account.
+ * writes items asked into an SOP: Wren's into its folder, a client's into its own Notes. `catalog`
+ * reads a creator's back catalog a few reels a pass (Instagram through the desk, TikTok by yt-dlp).
+ * Nothing here signs in to any social account.
  */
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
@@ -14,8 +15,11 @@ import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
   askSop,
+  type CatalogReader,
+  creatorOf,
   embedMissing,
   follow,
+  instagramPage,
   itemPage,
   judges,
   listItems,
@@ -25,6 +29,7 @@ import {
   type Practice,
   practiceOf,
   pullCreators,
+  readCatalog,
   readItem,
   readVideo,
   saveLink,
@@ -33,6 +38,7 @@ import {
   sourcesByKind,
   TELLS,
   type Tell,
+  tiktokPage,
   tiktokReader,
   unfollowSources,
   type VideoReader,
@@ -57,6 +63,7 @@ import {
 } from "@wren/research/sops";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
+import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -193,6 +200,42 @@ export function registerLearn(
     return { read: out, sops };
   };
 
+  /** Instagram profiles page through the desk (Graph discovery), TikTok's by yt-dlp here. */
+  const catalogReader = (): CatalogReader => {
+    const sites = ingressSites(settings, "wren:learn");
+    return (kind, handle, page) =>
+      kind === "instagram"
+        ? instagramPage(sites, handle, page)
+        : kind === "tiktok"
+          ? tiktokPage(settings.ytDlp, handle, page)
+          : null;
+  };
+  /** Queue a creator's next `reels` posts Learn has not taken, then read and score them here. */
+  const catalog = (
+    url: string,
+    o: { reels: number; allPosts?: boolean; read: boolean; model: string },
+  ) =>
+    inWorkspace(async (db, client) => {
+      const pass = await readCatalog(db, catalogReader(), {
+        client,
+        url,
+        want: o.reels,
+        now: new Date(),
+        reelsOnly: !o.allPosts,
+      });
+      if (!o.read) return pass;
+      const read = reader();
+      const judge = judgeFor(db, o.model);
+      const done: Array<{ id: number; read: string | null; verdict: string | null }> = [];
+      for (const id of [...pass.revived, ...pass.queued]) {
+        const r = await readVideo(db, read, id);
+        const verdict = r === "read" ? await scoreItem(db, judge, id) : null;
+        done.push({ id, read: r, verdict });
+        console.error(`${id} ${r}${verdict ? ` ${verdict}` : ""}`);
+      }
+      return { ...pass, read: done };
+    });
+
   const learn = program
     .command("learn")
     .description("Learn: saved links and followed sources, read, scored and searchable");
@@ -205,23 +248,40 @@ export function registerLearn(
     .option("--no-read", "only save it: the Mac's next `learn read` takes it")
     .action(async (url: string, o: { title?: string; model: string; read: boolean }) =>
       json(
-        await inWorkspace(async (db, client) => {
-          const saved = await saveLink(db, {
-            client,
-            url,
-            by: BY,
-            via: "cli",
-            title: o.title ?? null,
-          });
-          if (!saved.unread || !o.read) return saved;
-          const r = needsMac(saved.kind)
-            ? await readVideo(db, reader(), saved.id)
-            : await readItem(db, fetch, saved.id);
-          const verdict =
-            r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
-          return { ...saved, read: r, verdict };
-        }),
+        // A profile is its newest reels: the catalog's first pass.
+        creatorOf(url)
+          ? await catalog(url, { reels: 12, read: o.read, model: o.model })
+          : await inWorkspace(async (db, client) => {
+              const saved = await saveLink(db, {
+                client,
+                url,
+                by: BY,
+                via: "cli",
+                title: o.title ?? null,
+              });
+              if (!saved.unread || !o.read) return saved;
+              const r = needsMac(saved.kind)
+                ? await readVideo(db, reader(), saved.id)
+                : await readItem(db, fetch, saved.id);
+              const verdict =
+                r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
+              return { ...saved, read: r, verdict };
+            }),
       ),
+    );
+
+  learn
+    .command("catalog <profile>")
+    .description(
+      "a creator's back catalog (Instagram, TikTok): the next reels Learn hasn't taken, newest first, read and scored now; run it again for older ones",
+    )
+    .option("--reels <n>", "how many this pass", (v) => Number.parseInt(v, 10), 12)
+    .option("--all-posts", "photos too, read from their captions")
+    .option("--model <name>", "the scoring model", "cohere")
+    .option("--no-read", "only queue them: the Mac's next `learn read` takes them")
+    .action(
+      async (url: string, o: { reels: number; allPosts?: boolean; read: boolean; model: string }) =>
+        json(await catalog(url, o)),
     );
 
   learn

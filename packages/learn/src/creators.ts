@@ -21,6 +21,8 @@ export const CREATOR_KINDS = ["instagram", "x", "tiktok"] as const;
 export type CreatorKind = (typeof CREATOR_KINDS)[number];
 export const isCreatorKind = (k: string): k is CreatorKind =>
   (CREATOR_KINDS as readonly string[]).includes(k);
+/** What a creator's first read marks its posts with: kept as seen, never read. */
+export const FOLLOWED_BEFORE = "Posted before you followed.";
 /** A creator is read 4 times a day: the sites' caps are a day's. */
 export const CREATOR_EVERY_MS = 6 * 60 * 60_000;
 /** Posts kept a read; a creator posts a few a day at most. */
@@ -31,6 +33,35 @@ export interface CreatorPost extends FeedItem {
   kind: ItemKind;
 }
 
+/** A profile's own tabs: still the profile. */
+const PROFILE_TABS = new Set([
+  "reels",
+  "tagged",
+  "posts",
+  "videos",
+  "media",
+  "with_replies",
+  "highlights",
+]);
+/** First path parts that are a site's own pages, never a handle. */
+const NOT_HANDLES = new Set([
+  "p",
+  "reel",
+  "reels",
+  "tv",
+  "stories",
+  "explore",
+  "accounts",
+  "direct",
+  "i",
+  "home",
+  "search",
+  "settings",
+  "hashtag",
+  "intent",
+  "share",
+]);
+
 /** The creator a profile address names: its site, handle and page; null for anything else. */
 export function creatorOf(raw: string): { kind: CreatorKind; handle: string; page: string } | null {
   let u: URL;
@@ -40,7 +71,10 @@ export function creatorOf(raw: string): { kind: CreatorKind; handle: string; pag
     return null;
   }
   const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
-  const first = decodeURIComponent(u.pathname.split("/").filter(Boolean)[0] ?? "");
+  const [first = "", tab, ...rest] = u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  // A profile is its handle, or a tab of it: a post's address (`/reel/<id>`, `/<handle>/status/<id>`) is not.
+  if (rest.length || (tab !== undefined && !PROFILE_TABS.has(tab)) || NOT_HANDLES.has(first))
+    return null;
   if (host === "instagram.com" && /^[A-Za-z0-9._]{1,30}$/.test(first))
     return { kind: "instagram", handle: first, page: `https://instagram.com/${first}` };
   if ((host === "x.com" || host === "twitter.com") && /^[A-Za-z0-9_]{1,15}$/.test(first))
@@ -73,18 +107,38 @@ interface IgMedia {
   media_url?: string;
 }
 
-/** An Instagram creator's newest posts: a reel or video waits for the Mac, a photo is its caption. */
-export async function instagramPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
+/** One page of a creator's posts, newest first, and where the page after starts (null: no more). */
+export interface CreatorPage {
+  posts: CreatorPost[];
+  next: string | null;
+}
+
+/**
+ * A page of an Instagram creator's posts, newest first: a reel or video waits for the Mac, a photo
+ * is its caption. `after` is a previous page's `next` (Graph's cursor).
+ */
+export async function instagramPage(
+  sites: SiteClient,
+  handle: string,
+  page: { after?: string | null; limit?: number } = {},
+): Promise<CreatorPage> {
   const a = await sites.call<
-    | { found: true; profile: { name?: string; username?: string }; media?: IgMedia[] }
+    | {
+        found: true;
+        profile: { name?: string; username?: string };
+        media?: IgMedia[];
+        next?: string | null;
+      }
     | { found: false; reason: string }
-  >("meta", "GET", `/instagram/${handle}`);
+  >("meta", "GET", `/instagram/${handle}`, {
+    limit: page.limit ?? NEWEST,
+    ...(page.after ? { after: page.after } : {}),
+  });
   if (!a.found) throw new Error(`instagram @${handle}: ${a.reason}`);
   const by = a.profile.username ?? handle;
-  return (a.media ?? [])
+  const posts = (a.media ?? [])
     .filter((m) => m.permalink)
-    .slice(0, NEWEST)
-    .map((m) => {
+    .map((m): CreatorPost => {
       const video = m.media_type === "VIDEO" || m.media_product_type === "REELS";
       const text = m.caption?.trim() ?? "";
       return {
@@ -99,6 +153,12 @@ export async function instagramPosts(sites: SiteClient, handle: string): Promise
         duration: null,
       };
     });
+  return { posts, next: a.next ?? null };
+}
+
+/** An Instagram creator's newest posts. */
+export async function instagramPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
+  return (await instagramPage(sites, handle)).posts;
 }
 
 interface XPost {
@@ -147,14 +207,24 @@ interface YtDlpEntry {
   thumbnails?: { url?: string }[];
 }
 
-/** A TikTok creator's newest videos from yt-dlp's playlist view (no downloads). Mac only. */
-export async function tiktokPosts(ytDlp: string, handle: string): Promise<CreatorPost[]> {
+/**
+ * A page of a TikTok creator's videos from yt-dlp's playlist view (no downloads), newest first.
+ * `after` is how many come before the page (yt-dlp counts from the newest). Mac only.
+ */
+export async function tiktokPage(
+  ytDlp: string,
+  handle: string,
+  page: { after?: string | null; limit?: number } = {},
+): Promise<CreatorPage> {
+  const skip = Number(page.after ?? 0);
+  const limit = page.limit ?? NEWEST;
   const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
   const { stdout } = await run(
     cmd,
     [
       ...pre,
-      ...["-J", "--flat-playlist", "--no-warnings", "--playlist-end", String(NEWEST)],
+      ...["-J", "--flat-playlist", "--no-warnings"],
+      ...["--playlist-start", String(skip + 1), "--playlist-end", String(skip + limit)],
       `https://www.tiktok.com/@${handle}`,
     ],
     { maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
@@ -162,7 +232,7 @@ export async function tiktokPosts(ytDlp: string, handle: string): Promise<Creato
   const entries = ((JSON.parse(stdout) as { entries?: YtDlpEntry[] }).entries ?? []).filter(
     (e) => e.id,
   );
-  return entries.map((e) => {
+  const posts = entries.map((e) => {
     const text = (e.description ?? e.title ?? "").trim();
     return {
       kind: "reel" as const,
@@ -176,6 +246,12 @@ export async function tiktokPosts(ytDlp: string, handle: string): Promise<Creato
       duration: e.duration ? Math.round(e.duration) : null,
     };
   });
+  return { posts, next: entries.length >= limit ? String(skip + entries.length) : null };
+}
+
+/** A TikTok creator's newest videos. Mac only. */
+export async function tiktokPosts(ytDlp: string, handle: string): Promise<CreatorPost[]> {
+  return (await tiktokPage(ytDlp, handle)).posts;
 }
 
 /** One read of a creator's posts, by its kind. */
@@ -249,7 +325,7 @@ export async function pullCreators(
                 thumbnailUrl: p.thumbnail,
                 duration: p.duration,
                 ...(first
-                  ? { why: "Posted before you followed.", archivedAt: now }
+                  ? { why: FOLLOWED_BEFORE, archivedAt: now }
                   : opts.macReads && p.kind === "reel"
                     ? { needsMac: now }
                     : {}),

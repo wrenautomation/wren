@@ -1,4 +1,5 @@
 export * from "./alerts.js";
+export * from "./catalog.js";
 export * from "./creators.js";
 export * from "./drive.js";
 export * from "./embed.js";
