@@ -4,7 +4,18 @@
  * the links and the ID to paste. Connecting sends the person to Google or Microsoft to sign in.
  */
 import type { MailPageView } from "@wren/channel-email/access/console";
-import { Alert, Button, Empty, Facts, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  Callout,
+  Empty,
+  Facts,
+  Input,
+  Loading,
+  PageHeader,
+  Section,
+  Tag,
+} from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -288,7 +299,7 @@ export function Mail(props: PageProps) {
       ) : view ? (
         <>
           {!view.apps.google && !view.apps.microsoft ? (
-            <Alert>Needs setup: Wren's mail apps. Wren's team is on it.</Alert>
+            <Callout tone="warn">Needs setup: Wren's mail apps. Wren's team is on it.</Callout>
           ) : null}
           {view.orgs
             .filter((o) => o.readers > 0)

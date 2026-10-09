@@ -396,7 +396,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
 function Fixed({ f, link }: { f: FieldView; link?: string | null }) {
   const tag =
     f.status === "dev" ? (
-      <Tag tone="warn">In development</Tag>
+      <Tag tone="accent">In development</Tag>
     ) : f.status === "none" ? (
       <Tag>Not in the API</Tag>
     ) : null;

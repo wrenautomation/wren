@@ -8,7 +8,7 @@ import { applies, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, FieldCell } from "./fields.js";
-import { PAGE_TITLE } from "./layout.js";
+import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
   cap,
@@ -59,20 +59,23 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
         </p>
       ) : null}
       {sections.map((s) => (
-        <section key={s.key} className="grid gap-1">
+        // Each part framed under a banded head, its rows ruled inside: what belongs together reads so.
+        <section key={s.key} className={cn("grid", FRAME)}>
           {s.label ? (
-            <h2 className="flex items-center gap-2 text-[14px] font-semibold">
-              {s.cue ? <Cue state={s.cue} size={15} /> : null}
-              {s.label}
-            </h2>
+            <div className={FRAME_HEAD}>
+              <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>
+                {s.cue ? <Cue state={s.cue} size={15} /> : null}
+                {s.label}
+              </h2>
+            </div>
           ) : null}
-          <dl className="m-0 grid">
+          <dl className="m-0 grid [&>:last-child]:border-b-0">
             {s.rows.map((r) => {
               const here = actions.filter((a) => applies(a, r));
               return (
                 <div
                   key={String(r.id)}
-                  className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-0.5 border-b border-(--ui-hair) py-2.5 sm:grid-cols-[180px_minmax(0,1fr)_auto]"
+                  className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-0.5 border-b border-(--ui-hair) px-4 py-2.5 sm:grid-cols-[180px_minmax(0,1fr)_auto]"
                 >
                   <dt className="text-[13px] text-(--ui-ink-2)">{titleOf(meta, r)}</dt>
                   <dd className="m-0 text-[14px] break-words whitespace-pre-wrap">

@@ -43,9 +43,9 @@ import { PICKS } from "./today.js";
 
 /** What a new source rings for, for everyone here who hasn't picked their own. */
 const TELLS = [
-  ["top", "Alerts: high score"],
-  ["every", "Alerts: every post"],
-  ["digest", "Alerts: off"],
+  ["top", "High score"],
+  ["every", "Every post"],
+  ["digest", "Off"],
 ] as const;
 
 const hostOf = (url: string) => {
@@ -165,7 +165,7 @@ function Follow() {
           >
             {TELLS.map(([id, label]) => (
               <option key={id} value={id}>
-                {label}
+                Alerts: {label.toLowerCase()}
               </option>
             ))}
           </select>
@@ -223,57 +223,61 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
           Last read failed: {s.failure}
         </p>
       ) : null}
-      <div className="mt-auto flex items-center gap-2">
-        {s.stopped ? (
-          <span className="text-[12.5px] text-(--ui-ink-2)">Not followed. Its items stay.</span>
-        ) : (
-          <>
-            <label className="inline-flex h-8 items-center border border-(--ui-hair) text-[12.5px]">
-              <span className="sr-only">Your alerts from {s.name}</span>
-              <select
-                value={s.alert ?? "top"}
-                onChange={(e) => void act(learn.pick(s.id, e.target.value as AlertPick), "Saved")}
-                className="h-full cursor-pointer bg-transparent px-2 outline-none"
-              >
-                {PICKS.map(([id, label]) => (
-                  <option key={id} value={id}>
-                    Alerts: {label.toLowerCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => setStopping(true)}
-              className="ml-auto h-8 border-0 bg-transparent px-2 text-[12.5px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
-            >
-              Stop following
-            </button>
-          </>
-        )}
-        <a
-          href={`/learn/items?in=s${s.id}`}
-          className={cx("h-8 px-2 text-[12.5px] leading-8", s.stopped && "ml-auto")}
-        >
-          Open
-        </a>
-      </div>
-      {may && !s.stopped ? (
-        <label className="-mt-1 flex items-center gap-2 text-[12.5px] text-(--ui-ink-2)">
-          <span>{clientOf() === null ? "Everyone here and Discord" : "Everyone here"}</span>
+      {s.stopped ? null : (
+        // Who hears of a new post: you, then everyone here. Each a labelled row.
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-(--ui-hair) border-t pt-3 text-[12.5px]">
+          <label htmlFor={`alert-${s.id}`} className="text-(--ui-ink-2)">
+            Your alerts
+          </label>
           <select
-            value={s.tell}
-            onChange={(e) => void act(learn.tell(s.id, e.target.value), "Saved for everyone")}
+            id={`alert-${s.id}`}
+            value={s.alert ?? "top"}
+            onChange={(e) => void act(learn.pick(s.id, e.target.value as AlertPick), "Saved")}
             className="h-8 cursor-pointer border border-(--ui-hair) bg-transparent px-2 text-(--ui-ink) outline-none"
           >
-            {TELLS.map(([id, label]) => (
+            {PICKS.map(([id, label]) => (
               <option key={id} value={id}>
                 {label}
               </option>
             ))}
           </select>
-        </label>
-      ) : null}
+          {may ? (
+            <>
+              <label htmlFor={`tell-${s.id}`} className="text-(--ui-ink-2)">
+                {clientOf() === null ? "Everyone here and Discord" : "Everyone here"}
+              </label>
+              <select
+                id={`tell-${s.id}`}
+                value={s.tell}
+                onChange={(e) => void act(learn.tell(s.id, e.target.value), "Saved for everyone")}
+                className="h-8 cursor-pointer border border-(--ui-hair) bg-transparent px-2 text-(--ui-ink) outline-none"
+              >
+                {TELLS.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : null}
+        </div>
+      )}
+      <div className="mt-auto flex items-center gap-2">
+        {s.stopped ? (
+          <span className="text-[12.5px] text-(--ui-ink-2)">Not followed. Its items stay.</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStopping(true)}
+            className="-ml-2 h-8 border-0 bg-transparent px-2 text-[12.5px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+          >
+            Stop following
+          </button>
+        )}
+        <a href={`/learn/items?in=s${s.id}`} className="ml-auto h-8 px-2 text-[12.5px] leading-8">
+          Open
+        </a>
+      </div>
       {stopping ? (
         <Dialog open onOpenChange={(o) => (o ? null : setStopping(false))}>
           <DialogContent className="gap-3 sm:max-w-sm">

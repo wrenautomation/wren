@@ -779,6 +779,8 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   label: "Inbox",
   template: "list",
   record: "marketing.inbox",
+  // Their words preview under who; Kind, Where and Open sit on the thread itself.
+  columns: ["who", "platform", "type", "state", "postTitle", "assignee", "at"],
   empty: {
     waiting: "Nothing waits on you.",
     mine: "Nothing is assigned to you. Take a thread with T.",
@@ -998,6 +1000,17 @@ export const marketing: Module = {
       across: BY_PLATFORM,
       template: "list",
       record: "marketing.post",
+      // The rest of its numbers sit on the post, under How it did.
+      columns: [
+        "title",
+        "platform",
+        "published",
+        "format",
+        "stage",
+        "views",
+        "engagement",
+        "clicks",
+      ],
       empty: {
         leaderboard: "Posts with views show here, best first.",
         site: "Posts whose link brought a visitor show here.",
@@ -1013,6 +1026,8 @@ export const marketing: Module = {
       across: BY_PLATFORM,
       template: "list",
       record: "marketing.comment",
+      // Their words preview under who; Where, On and Open sit on the comment itself.
+      columns: ["who", "platform", "kind", "postTitle", "sort", "state", "at"],
       empty: {
         waiting: "No comment waits on you.",
         answered: "Comments you answered show here.",
@@ -1103,7 +1118,7 @@ export const marketing: Module = {
       group: "People",
       template: "list",
       record: "marketing.audience",
-      empty: "No follower count yet. SocialWatch reads one a day; LinkedIn's on Read now.",
+      empty: "No follower count yet. Counts are read once a day; LinkedIn's on Read now.",
       actions: AUDIENCE_ACTIONS,
     },
     {
@@ -1299,7 +1314,7 @@ export const marketing: Module = {
           record: "marketing.audience",
           href: "/marketing/followers",
           fields: ["followers", "week"],
-          empty: "No follower count yet. SocialWatch reads one a day.",
+          empty: "No follower count yet. Counts are read once a day.",
         },
         {
           label: "This week against goals",
@@ -1365,7 +1380,7 @@ export const marketing: Module = {
       group: "Numbers",
       template: "list",
       record: "marketing.site_day",
-      empty: "Site days show here once the lander export is read.",
+      empty: "Site visits show here a day after they happen.",
     },
     {
       id: "funnel",
@@ -1373,7 +1388,7 @@ export const marketing: Module = {
       group: "Numbers",
       template: "list",
       record: "marketing.funnel",
-      empty: "Funnels show here once the lander export is read.",
+      empty: "Funnels show here a day after the site's first visit.",
     },
     {
       id: "links",
@@ -1383,9 +1398,9 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.link_day",
       empty: {
-        month: "Link days show here once the lander export is read.",
+        month: "Clicks show here a day after they happen.",
         posts: "Visitors from a post's link show here.",
-        all: "Link days show here once the lander export is read.",
+        all: "Clicks show here a day after they happen.",
       },
     },
     {

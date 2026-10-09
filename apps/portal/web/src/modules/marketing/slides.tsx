@@ -15,7 +15,7 @@ import {
   slidesHtml,
   slidesUnfit,
 } from "@wren/core/content/slides";
-import { Button, DeviceFrame, Input, type RecordAct, Textarea } from "@wren/ui";
+import { Button, DeviceFrame, Input, type RecordAct, Tag, Textarea } from "@wren/ui";
 import { useState } from "react";
 
 export const SLIDES = "marketing.draftSlides";
@@ -329,9 +329,9 @@ function Files({ carousel, changed }: { carousel: CarouselShape; changed: boolea
         </p>
       )}
       <p className="text-(--ui-ink-2)">
-        <span className="mr-1.5 rounded-sm bg-(--ui-warn-tint) px-1.5 py-0.5 text-[11px] font-semibold text-(--ui-warn-ink)">
+        <Tag tone="accent" className="mr-1.5">
           In development
-        </span>
+        </Tag>
         {carousel.upload}
       </p>
     </div>

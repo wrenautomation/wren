@@ -922,7 +922,7 @@ function Promos({ promos }: { promos: Promo[] }) {
         {PROMO_LATER.map(([name, what]) => (
           <div key={name} className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-[14px]">{name}</span>
-            <Tag tone="warn">In development</Tag>
+            <Tag tone="accent">In development</Tag>
             <span className="text-[13px] text-(--ui-ink-3)">{what}</span>
           </div>
         ))}

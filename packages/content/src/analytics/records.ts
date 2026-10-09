@@ -263,7 +263,8 @@ const STATE_LABELS: Record<string, State> = {
   needs_william: { label: "Needs William", tone: "warn" },
   not_built: neutral("In development"),
   no_api: neutral("Not in the API"),
-  waiting: neutral("Waiting"),
+  // Built and reading: only the first number is missing, so it reads apart from the unbuilt.
+  waiting: neutral("Built, no number yet"),
   error: { label: "Refused", tone: "bad" },
 };
 const SURFACES = { long: neutral("Long-form"), short: neutral("Shorts"), post: neutral("Posts") };
@@ -286,7 +287,8 @@ export const metricRecord = defineRecord({
         group: e.group,
         state: s.state,
         says: stateLine(s.state, e.needs, s.why),
-        step: e.needs?.step ?? null,
+        // A live number needs no step; the column stays for the ones that do.
+        step: s.state === "live" ? null : (e.needs?.step ?? null),
         api: e.api,
         why: s.why,
         checked: s.checked,

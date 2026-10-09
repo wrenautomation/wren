@@ -100,7 +100,7 @@ const linkOf = (href: string, children: ReactNode) => (
   </a>
 );
 
-function Cells({ a, activity }: { a: Analytics; activity: string }) {
+function Cells({ a, activity, team }: { a: Analytics; activity: string; team: boolean }) {
   // The funnel and the conversation have their own sections; iteration lives on the Overview.
   // The curve, sources and terms draw as their own sections once they have points.
   const drawn = new Set([
@@ -155,7 +155,7 @@ function Cells({ a, activity }: { a: Analytics; activity: string }) {
                 ) : null}
               </>
             ) : (
-              <StateLine c={c} />
+              <StateLine c={c} team={team} />
             )}
           </li>
         );
@@ -164,9 +164,20 @@ function Cells({ a, activity }: { a: Analytics; activity: string }) {
   );
 }
 
-/** Where a number would sit when it isn't read: why, and the one step that would read it. */
-function StateLine({ c }: { c: Cell }) {
-  const line = c.state === "live" ? "No number yet" : c.says;
+/** A client reads the state, not Wren's to-do behind it. */
+const CLIENT_SAYS: Record<string, string> = {
+  waiting: "No number yet",
+  not_built: "In development",
+  no_api: "The platform doesn't share this",
+  needs_scope: "Waits on a setup step",
+  needs_william: "Waits on a setup step",
+  error: "The platform refused to share it",
+};
+
+/** Where a number would sit when it isn't read: why, and (for Wren's team) the step that would read it. */
+function StateLine({ c, team }: { c: Cell; team: boolean }) {
+  const line =
+    c.state === "live" ? "No number yet" : team ? c.says : (CLIENT_SAYS[c.state] ?? "Not read yet");
   return (
     <span className="grid gap-0.5 text-[13px]">
       <span
@@ -176,10 +187,10 @@ function StateLine({ c }: { c: Cell }) {
       >
         {line}
       </span>
-      {c.need && c.state !== "live" ? (
+      {team && c.need && c.state !== "live" ? (
         <span className={`text-[12px] ${QUIET}`}>{c.need.step}</span>
       ) : null}
-      {c.why && c.state !== "live" && !c.need ? (
+      {team && c.why && c.state !== "live" && !c.need ? (
         <span className={`text-[12px] ${QUIET}`}>{c.why}</span>
       ) : null}
     </span>
@@ -309,7 +320,7 @@ function Conversation({ a, comments }: { a: Analytics; comments: string }) {
 }
 
 /** The sections a post's numbers add, in the page's order. */
-export function analyticsSections(detail: unknown, row: Row): [string, ReactNode][] {
+export function analyticsSections(detail: unknown, row: Row, team = true): [string, ReactNode][] {
   const a = (detail as { analytics?: Analytics | null } | null)?.analytics;
   if (!a) return [];
   const id = String(row.id ?? "");
@@ -323,7 +334,7 @@ export function analyticsSections(detail: unknown, row: Row): [string, ReactNode
   const comments = `/marketing/comments?view=all&postTitle=${encodeURIComponent(title.slice(0, 60))}`;
   const activity = `/marketing/content?view=all&post=${encodeURIComponent(id)}&tab=activity`;
   const out: [string, ReactNode][] = [
-    ["How it did", <Cells key="did" a={a} activity={activity} />],
+    ["How it did", <Cells key="did" a={a} activity={activity} team={team} />],
   ];
   if (a.curve.length > 1) out.push(["Retention", <RetentionCurve key="curve" a={a} />]);
   if (a.sources.length)
@@ -363,7 +374,7 @@ export const withAnalytics =
   (extras: NonNullable<ListPage["extras"]>): NonNullable<ListPage["extras"]> =>
   (detail, at) => {
     const base: RecordExtras = extras(detail, at);
-    const more = analyticsSections(detail, at.row);
+    const more = analyticsSections(detail, at.row, at.team);
     if (!more.length) return base;
     return {
       ...base,

@@ -383,7 +383,7 @@ const LINK_FIELDS = {
   source: text("UTM source"),
   medium: text("UTM medium", { listed: false }),
   campaign: text("UTM campaign"),
-  content: text("Post or ad id"),
+  content: text("Post or ad id", { listed: false }),
   clicks: number("Clicks"),
   visits: number("Visits"),
   forms: number("Forms"),

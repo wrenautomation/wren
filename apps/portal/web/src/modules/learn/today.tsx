@@ -29,7 +29,6 @@ import type { PageProps } from "../../module.js";
 import {
   type AlertPick,
   type AlertSettings,
-  clientOf,
   inWorkspace,
   keyOf,
   learn,
@@ -250,7 +249,6 @@ function Alerts({ s }: { s: AlertSettings }) {
 
 function Mail({ s }: { s: AlertSettings }) {
   const [asking, setAsking] = useState(false);
-  const wren = clientOf() === null;
   const turn = async (on: boolean) => {
     if (await act(learn.digestMail(on), on ? "Digest mail on" : "Digest mail off"))
       setAsking(false);
@@ -280,9 +278,7 @@ function Mail({ s }: { s: AlertSettings }) {
     >
       <div id="mail" className="text-[13px] text-(--ui-ink-2)">
         {s.mail.may
-          ? wren
-            ? "For Wren's own workspace, turn it on only once William says yes."
-            : "Only people who manage this workspace can change this."
+          ? "Only people who manage this workspace can change this."
           : "Someone who manages this workspace can turn it on."}
       </div>
       {asking ? (

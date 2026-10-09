@@ -1,6 +1,6 @@
 /** Booking clicks by first touch, a bar a week for 8 weeks: the Overview's one chart. */
 import type { RecordsStat } from "@wren/core/records/serve";
-import { num } from "@wren/ui";
+import { num, Section } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 
@@ -68,12 +68,15 @@ export function WeeklyBookings() {
   );
   const top = Math.max(1, ...totals);
   return (
-    <section className="mx-auto mt-8 grid w-full max-w-[1200px] gap-4">
-      <h2 className="text-[15px] font-semibold">Booking clicks by first touch, a week a bar</h2>
+    <Section
+      title="Booking clicks by first touch"
+      note="A week a bar, the last 8 weeks."
+      className="mx-auto mt-8 w-full max-w-[1200px]"
+    >
       {ranked.length === 0 ? (
         <p className="text-[13px] text-(--ui-ink-2)">No booking clicks in the last 8 weeks.</p>
       ) : (
-        <>
+        <div className="grid gap-4">
           <div className="flex h-40 items-end gap-2">
             {totals.map((t, w) => (
               <div
@@ -111,9 +114,9 @@ export function WeeklyBookings() {
               </li>
             ))}
           </ul>
-        </>
+        </div>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -156,8 +159,11 @@ export function FormatBoard() {
   if (!all) return null;
   const top = Math.max(1, ...all.map((f) => f.score));
   return (
-    <section className="mx-auto mt-8 grid w-full max-w-[1200px] gap-3">
-      <h2 className="text-[15px] font-semibold">By format, last 30 days</h2>
+    <Section
+      title="By format"
+      note="Median engagement per 100 views, last 30 days."
+      className="mx-auto mt-8 w-full max-w-[1200px]"
+    >
       {all.length === 0 ? (
         <p className="text-[13px] text-(--ui-ink-2)">No post with views in the last 30 days.</p>
       ) : (
@@ -187,7 +193,7 @@ export function FormatBoard() {
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }
 

@@ -45,7 +45,7 @@ import {
   History,
   thinking,
 } from "./edits.js";
-import { Alert } from "./feedback.js";
+import { Alert, Empty } from "./feedback.js";
 import {
   actorParts,
   type CiteTo,
@@ -302,6 +302,8 @@ const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
   return f && t ? shownOf(f, t) : t;
 };
 export const titleOf = (meta: RecordMeta, row: Row) => wordsOf(meta, row, meta.title);
+/** A message's opening words on one line: its line breaks as spaces, its marks dropped. */
+const firstWords = (t: string) => stripMarks(t).replace(/\s+/g, " ").trim().slice(0, 200);
 export const subtitleOf = (meta: RecordMeta, row: Row) =>
   meta.subtitle ? wordsOf(meta, row, meta.subtitle) : "";
 /** The subtitle's cue when it names a platform or a kind (a draft's "LinkedIn"), else null. */
@@ -613,13 +615,19 @@ function SortHead({
   );
 }
 
+/** A page whose record isn't served here: its part isn't installed. Said once, not a skeleton forever. */
+export function NotHere() {
+  return <Empty>This page fills once its part is installed.</Empty>;
+}
+
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, J/K. */
 export function RecordList(props: RecordTemplateProps) {
   const { record, api, place, empty, columns, extras, acts, head, title } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
-  if (!meta || !types.data) return <ListSkeleton />;
+  if (!types.data) return <ListSkeleton />;
+  if (!meta) return <NotHere />;
   return (
     <List
       meta={meta}
@@ -827,7 +835,9 @@ function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
   const widths: Record<string, number | undefined> = {};
   for (const f of cols) widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows);
   const title = cols.find((f) => f.key === meta.title);
-  if (!title || !rows.length) return widths;
+  // A title with a message under it keeps the room: the message is what the row is.
+  const previews = meta.fields.some((f) => f.key === meta.subtitle && f.kind === "prose");
+  if (!title || !rows.length || previews) return widths;
   const cut = cols.filter(
     (f) => f !== title && rows.some((r) => pxOf(charsOf(f, r[f.key])) > maxOf(f)),
   );
@@ -918,6 +928,8 @@ function List({
     byHand: params.has("cols"),
     narrow,
   });
+  // A prose subtitle (a comment's words, a DM) previews under each row's title.
+  const preview = meta.fields.find((f) => f.key === meta.subtitle && f.kind === "prose");
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const [scroller, room] = useRoom();
@@ -1049,12 +1061,12 @@ function List({
       return n;
     });
 
+  const headed = head?.(meta, () => acted([]));
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className={PAGE_TITLE}>{title ?? cap(many)}</h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {head?.(meta, () => acted([]))}
           {actions.map((a) =>
             a.form && !a.each ? (
               <Button key={a.id} size="dense" onClick={() => run(a, [])}>
@@ -1071,7 +1083,7 @@ function List({
             aria-label="Export CSV"
             onClick={() => void exportAs("csv")}
           >
-            <span className="max-sm:hidden">Export CSV</span>
+            <span className="max-sm:hidden">Export </span>CSV
           </Button>
           {meta.drafts ? (
             <Button
@@ -1082,11 +1094,17 @@ function List({
               aria-label="Export JSONL"
               onClick={() => void exportAs("jsonl")}
             >
-              <span className="max-sm:hidden">Export JSONL</span>
+              <span className="max-sm:hidden">Export </span>JSONL
             </Button>
           ) : null}
         </div>
       </div>
+      {/* The page's own line (a note, a status, a quick form) under its title, not in its tools. */}
+      {headed ? (
+        <div className="-mt-1 flex flex-wrap items-center gap-x-3 gap-y-2 empty:hidden">
+          {headed}
+        </div>
+      ) : null}
 
       <div className="grid gap-3">
         <ViewTabs
@@ -1240,7 +1258,10 @@ function List({
                             className={cn(
                               "px-3",
                               // On a phone the title takes two lines before it cuts.
-                              narrow && f.key === meta.title ? "py-2" : "truncate",
+                              // A cut cell drops its break chances: Chrome breaks at <wbr> even
+                              // under nowrap, so "example.com" wrapped onto two lines.
+                              narrow && f.key === meta.title ? "py-2" : "truncate [&_wbr]:hidden",
+                              !narrow && f.key === meta.title && preview && "py-1.5",
                               f.column?.align === "end" ? "text-right" : "text-left",
                               f.key !== meta.title && "text-(--ui-ink-2)",
                             )}
@@ -1257,7 +1278,13 @@ function List({
                               >
                                 {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
                               </a>
-                            ) : (
+                            ) : null}
+                            {f.key === meta.title && preview ? (
+                              // A message's first words under who sent it, as a mail list shows.
+                              <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
+                                {firstWords(textOf(r[preview.key]))}
+                              </span>
+                            ) : f.key === meta.title ? null : (
                               <FieldCell field={f} cell={r[f.key]} />
                             )}
                           </td>

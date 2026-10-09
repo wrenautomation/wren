@@ -36,7 +36,7 @@ function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
   if (own.units)
     rows.push([
       managed.units ? "On their key" : "This month",
-      `${used(own, v.units)}${own.micros ? `, billed to them by ${v.name}` : ""}`,
+      `${used(own, v.units)}${own.micros ? ", paid on their key" : ""}`,
     ]);
   if (v.mode === "managed" && !wren) {
     // A vendor with no read limit stops on money alone: no share to set.

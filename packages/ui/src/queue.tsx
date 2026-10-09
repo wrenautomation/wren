@@ -26,6 +26,7 @@ import {
   KeyHints,
   keyed,
   ListSkeleton,
+  NotHere,
   RecordBody,
   type RecordTemplateProps,
   ROOT,
@@ -45,7 +46,8 @@ export function RecordQueue(props: RecordTemplateProps) {
   const types = useTypes(props.api);
   const meta = types.data?.find((t) => t.id === props.record);
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
-  if (!meta || !types.data) return <ListSkeleton />;
+  if (!types.data) return <ListSkeleton />;
+  if (!meta) return <NotHere />;
   return <Queue {...props} meta={meta} types={types.data} />;
 }
 

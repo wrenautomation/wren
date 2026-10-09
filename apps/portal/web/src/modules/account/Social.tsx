@@ -4,7 +4,7 @@
  * blocks it and the next step. Connecting sends the person to the platform to sign in.
  */
 import type { SocialPageView } from "@wren/content/connect";
-import { Alert, Button, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Alert, Button, Callout, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -154,7 +154,7 @@ export function Social(props: PageProps) {
       ) : view ? (
         <>
           {Object.values(view.apps).every((on) => !on) ? (
-            <Alert>Needs setup: Wren's social apps. Wren's team is on it.</Alert>
+            <Callout tone="warn">Needs setup: Wren's social apps. Wren's team is on it.</Callout>
           ) : null}
           <Section title="Accounts">
             <div className="grid gap-4">

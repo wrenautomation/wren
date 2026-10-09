@@ -317,10 +317,17 @@ export function graphOf(
 
 /**
  * A workflow's stages as a funnel, in the order it draws them: each with its number and its rate
- * from the stage before. Fewer than two counted stages make no funnel.
+ * from the stage before. Fewer than two distinct counted stages make no funnel.
  */
 export function funnelOf(w: Drawn, counts: ReadonlyMap<string, Count>): BarsRow[] {
-  const stages = insideOf(w, counts);
+  // Parallel parts that count the same thing ("clients won" twice) are no chain of stages.
+  const seen = new Set<string>();
+  const stages = insideOf(w, counts).filter((s) => {
+    const key = s.label.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (stages.length < 2) return [];
   return stages.map((s, i) => {
     const before = stages[i - 1];

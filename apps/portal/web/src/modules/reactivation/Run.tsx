@@ -58,7 +58,7 @@ const STEPS: RunStep[] = [
     id: "events",
     label: "Check company news",
     short: "News",
-    source: "Google, Exa",
+    source: "News search",
     found: "with news",
     after: ["movers"],
   },

@@ -11,7 +11,7 @@ import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
-import { Alert } from "./feedback.js";
+import { Alert, Empty } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
 import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
@@ -133,7 +133,9 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
   const types = useTypes(api);
   const keep = keepAs ? api.keep : undefined;
   const pref = usePref<TilesPref>(keep, keepAs ?? "tiles");
-  const tiles = arrangeTiles(all, pref.value).shown;
+  // A tile whose record isn't here (its part not installed) is left out, not a ghost forever.
+  const here = (t: { record: string }) => !types.data || types.data.some((m) => m.id === t.record);
+  const tiles = arrangeTiles(all, pref.value).shown.filter(here);
   // Each period tile's answer, for the chart under them: asked once, by the tile.
   const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
@@ -165,6 +167,9 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
           );
         })}
       </div>
+      {types.data && !tiles.length && !top.some(here) ? (
+        <Empty>These numbers show once the parts that count them are installed.</Empty>
+      ) : null}
       <Trends tiles={tiles} stats={stats} />
       {top.length ? (
         <div
@@ -348,7 +353,8 @@ function Trends({
   tiles: readonly OverviewTile[];
   stats: Readonly<Record<string, Shown>>;
 }) {
-  const shown = tiles.filter((t) => stats[t.label]);
+  // A flat line at zero says nothing a tile's 0 doesn't: only numbers that moved get a tab.
+  const shown = tiles.filter((t) => stats[t.label]?.stat.series.some((p) => (p.value ?? 0) !== 0));
   const [pick, setPick] = useState<string | null>(null);
   const on = shown.find((t) => t.label === pick) ?? shown[0];
   const got = on ? stats[on.label] : undefined;
@@ -466,32 +472,42 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
                   {line && r[line.key] ? (
-                    <span className="text-pretty text-(--ui-ink-2)">
+                    <span className="line-clamp-2 text-pretty text-(--ui-ink-2)">
                       <FieldCell field={line} cell={r[line.key]} />
                     </span>
                   ) : null}
                 </span>
-                {fields.map((f) => (
-                  <span
-                    key={f.key}
-                    className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
-                    title={f.label}
-                  >
-                    {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}
-                    {f.kind === "money" ? `${f.label}: ` : null}
-                    {f.kind === "money" && blank(r[f.key]) ? (
-                      "none"
-                    ) : (
-                      <FieldCell field={f} cell={r[f.key]} />
-                    )}
-                    {/* A bare count says nothing: "3" reads "3 members". */}
-                    {top.units?.[f.key]
-                      ? ` ${top.units[f.key]}`
-                      : f.kind === "number"
-                        ? ` ${f.label.toLowerCase()}`
-                        : null}
-                  </span>
-                ))}
+                {fields.length && fields.every((f) => blank(r[f.key])) ? (
+                  <span className="shrink-0 text-(--ui-ink-3)">No figure yet</span>
+                ) : null}
+                {/* A blank count with its unit reads "to reply" alone: left out instead. */}
+                {fields
+                  .filter(
+                    (f) =>
+                      !blank(r[f.key]) ||
+                      (f.kind === "money" && fields.some((g) => !blank(r[g.key]))),
+                  )
+                  .map((f) => (
+                    <span
+                      key={f.key}
+                      className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
+                      title={f.label}
+                    >
+                      {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}
+                      {f.kind === "money" ? `${f.label}: ` : null}
+                      {f.kind === "money" && blank(r[f.key]) ? (
+                        "none"
+                      ) : (
+                        <FieldCell field={f} cell={r[f.key]} />
+                      )}
+                      {/* A bare count says nothing: "3" reads "3 members". */}
+                      {top.units?.[f.key]
+                        ? ` ${top.units[f.key]}`
+                        : f.kind === "number"
+                          ? ` ${f.label.toLowerCase()}`
+                          : null}
+                    </span>
+                  ))}
               </a>
             </li>
           ))}
