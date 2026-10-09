@@ -5,6 +5,8 @@ import {
   defineWorkflow,
   effectsIn,
   flowsWith,
+  isMade,
+  madeIdOf,
   partsIn,
   type Wire,
 } from "./workflows.js";
@@ -153,5 +155,43 @@ describe("flowsWith", () => {
     expect(flowsWith([code], { f: { wires: [], steps: [] } }, [part("a")]).broken.f).toEqual([
       "f: out.replied gets nothing",
     ]);
+  });
+});
+
+describe("made workflows", () => {
+  const made = { name: "Form to text", blurb: "", for: "client" as const };
+  const id = "made.form_to_text_ab12";
+
+  it("names an id from the words, kept short", () => {
+    expect(madeIdOf("When a form comes in, text them!", "ab12")).toBe(
+      "made.when_a_form_comes_in_text_them_ab12",
+    );
+    expect(madeIdOf("", "ab12")).toBe("made.workflow_ab12");
+    expect(madeIdOf("x".repeat(90), "ab12").length).toBeLessThanOrEqual(64);
+    expect(isMade(id)).toBe(true);
+    expect(isMade("made.")).toBe(false);
+  });
+
+  it("joins the flows from its save alone, and runs nothing when it breaks", () => {
+    const steps = [
+      { id: "door", uses: "trigger.hook", with: { kind: "lead", subject: "email" } },
+      { id: "n", uses: "a" },
+    ];
+    const wires: Wire[] = [{ from: "door.out", to: "n.leads", via: "events" }];
+    const got = flowsWith([], { [id]: { wires, steps, made } }, [part("a")]);
+    expect(got.broken).toEqual({});
+    expect(got.flows.map((f) => [f.id, f.name, f.for, f.nodes.length])).toEqual([
+      [id, "Form to text", "client", 2],
+    ]);
+    const bad = flowsWith(
+      [],
+      { [id]: { wires: [{ from: "door.out", to: "gone.leads", via: "events" }], steps, made } },
+      [part("a")],
+    );
+    expect(bad.broken[id]?.length).toBeGreaterThan(0);
+    expect(bad.flows[0]?.nodes).toEqual([]);
+    // No name, or not a made id: nothing joins.
+    expect(flowsWith([], { [id]: { wires: [], steps: [] } }, []).flows).toEqual([]);
+    expect(flowsWith([], { other: { wires: [], steps: [], made } }, []).flows).toEqual([]);
   });
 });

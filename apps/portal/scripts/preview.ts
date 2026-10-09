@@ -58,6 +58,8 @@ import {
   TEMPLATES_CONSOLE_ROUTES,
 } from "@wren/core/templates/console-routes";
 import { cachedDb, clientDatabaseName, createDb } from "@wren/db";
+import { dealsConsoleApi } from "@wren/deals/console";
+import { DEALS_CONSOLE_APPS, DEALS_CONSOLE_ROUTES } from "@wren/deals/console-routes";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { healthConsoleApi } from "@wren/delivery/health/console";
@@ -334,6 +336,12 @@ const SERVICES: Record<
     routes: Object.keys(SMS_CONSOLE_ROUTES),
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
     api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
+  },
+  // Opportunities: a move fires nothing here, as there's no spine.
+  deals: {
+    routes: Object.keys(DEALS_CONSOLE_ROUTES),
+    guard: { needs: DEALS_CONSOLE_ROUTES, apps: DEALS_CONSOLE_APPS, unnamed: "wren" },
+    api: dealsConsoleApi({ main }),
   },
   // Payments: links and Stripe's status. No Stripe here: a key saves, and connecting stops at
   // Stripe's check.

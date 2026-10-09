@@ -54,6 +54,11 @@ export function workflowAskPrompt(o: {
     `Logic nodes you may add:\n${logic.join("\n")}`,
     `Parts you may add:\n${o.parts.map((c) => `- ${c.id} (${c.name}); in ${ports(c.in)}; out ${ports(c.out)}`).join("\n")}`,
     `Workflows you may add:\n${o.flows.map((f) => `- ${f.id} (${f.name}); in ${ports(f.in)}; out ${ports(f.out)}`).join("\n") || "none"}`,
+    ...(o.w.nodes.length
+      ? []
+      : [
+          "This workflow is new and empty. Start it with one trigger (a logic node whose id starts with trigger.), then wire the steps after it.",
+        ]),
     `His request: ${o.message}`,
   ].join("\n\n");
   return { question, system: SYSTEM };

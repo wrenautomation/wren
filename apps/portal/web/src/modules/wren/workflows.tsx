@@ -7,7 +7,7 @@
  */
 import { DOOR_TRIGGERS } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage, RecordsStat } from "@wren/core/records/serve";
-import type { Wire } from "@wren/core/workflows";
+import { isMade, type Wire } from "@wren/core/workflows";
 import {
   Alert,
   BarsChart,
@@ -64,6 +64,7 @@ import {
 } from "./editor.js";
 import { Executions } from "./executions.js";
 import { WREN_APPS } from "./index.js";
+import { MadeHere } from "./made.js";
 import { usePlay } from "./playback.js";
 import { TestPanel, TestStep } from "./tester.js";
 import {
@@ -369,6 +370,7 @@ function Canvas({
   onSaved: () => void;
 }) {
   const broken = d.broken ?? [];
+  const made = isMade(w.id);
   // Doors the last publish made, by node: their tokens, shown once.
   const [fresh, setFresh] = useState<Fresh>({});
   const palette = d.palette ?? NO_PALETTE;
@@ -385,6 +387,10 @@ function Canvas({
   const [choices, setChoices] = useState<Wire[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The builder's first ask (`?ask=`), waited on as the editor opens; cleared once answered.
+  const [pending, setPending] = useState<string | null>(params.get("ask"));
+  // A made workflow's name, saved with the draft.
+  const [name, setName] = useState(w.name);
   // Claude's answer on the graph: shown as a diff over the draft until he accepts or rejects it.
   const [proposal, setProposal] = useState<{ reply: string; patch: Draft | null } | null>(null);
   // Publishing a workflow that sends or spends asks its id typed back: the server names the effects.
@@ -453,6 +459,14 @@ function Canvas({
   });
   const open = params.get("component");
 
+  // `?edit=1` (a made workflow from the builder) opens on its draft, once.
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current || !team || params.get("edit") !== "1") return;
+    opened.current = true;
+    setDraftNow(stored);
+  }, [team, params, stored]);
+
   const back = () => {
     const last = undo.at(-1);
     if (!last) return;
@@ -510,6 +524,7 @@ function Canvas({
   };
 
   const answered = useCallback((reply: string, patch: Draft | null) => {
+    setPending(null);
     setSel(null);
     setPicked(null);
     setAdding(false);
@@ -523,7 +538,21 @@ function Canvas({
     steps: x.steps,
     ...(x.settings ? { settings: x.settings } : {}),
     ...(x.retry ? { retry: x.retry } : {}),
+    ...(made && name.trim() && name.trim() !== w.name ? { name: name.trim() } : {}),
   });
+  /** A made workflow gone; the server refuses while it's live. */
+  const drop = async () => {
+    if (!window.confirm(`Delete ${w.name}? Its drafts go too.`)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await call("console/workflowDelete", { workflow: w.id, ...(client ? { client } : {}) });
+      navigate(href(PAGE, { path: null, ask: null, edit: null }, params));
+    } catch (err) {
+      failed(err);
+    }
+    setBusy(false);
+  };
   const failed = (err: unknown) => {
     const m = err instanceof Error ? err.message : String(err);
     if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
@@ -640,7 +669,7 @@ function Canvas({
   );
 
   if (draft) {
-    const unsaved = changesOf(stored, draft) > 0;
+    const unsaved = changesOf(stored, draft) > 0 || (made && name.trim() !== w.name);
     const problems = [...problemsOf(draft), ...(unsaved ? [] : (d.draft?.problems ?? []))];
     const side = sel ? (
       <NodePanel
@@ -718,14 +747,30 @@ function Canvas({
               onSaved,
             }}
           />
-          {d.saved?.edits ? (
+          {d.saved?.edits && !made ? (
             <Button tone="quiet" size="dense" onClick={() => setDraft(code)} disabled={busy}>
               Back to built-in
             </Button>
           ) : null}
-          <Button tone="secondary" size="dense" onClick={discard} disabled={busy}>
-            Discard
-          </Button>
+          {made ? (
+            <>
+              <Input
+                aria-label="Workflow name"
+                className="w-[200px]"
+                value={name}
+                maxLength={60}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Button tone="quiet" size="dense" onClick={drop} disabled={busy}>
+                Delete
+              </Button>
+            </>
+          ) : null}
+          {made && !d.saved ? null : (
+            <Button tone="secondary" size="dense" onClick={discard} disabled={busy}>
+              Discard
+            </Button>
+          )}
           <Button tone="secondary" size="dense" busy={busy} onClick={keep} disabled={!unsaved}>
             Save draft
           </Button>
@@ -778,7 +823,13 @@ function Canvas({
           />
         ) : (
           <div className="mb-3 flex">
-            <AskGraph workflow={w.id} client={client} draft={draft} onAnswer={answered} />
+            <AskGraph
+              workflow={w.id}
+              client={client}
+              draft={draft}
+              onAnswer={answered}
+              pending={pending}
+            />
           </div>
         )}
         {choices.length ? (
@@ -852,6 +903,7 @@ function Canvas({
         {graphEl}
         {play.panel}
       </div>
+      {team && w.id === ROOT ? <MadeHere client={client} /> : null}
       {funnel.length ? (
         <Section title="Funnel" className="mt-8">
           <BarsChart rows={funnel} label={`${w.name} stages`} />

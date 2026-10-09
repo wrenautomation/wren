@@ -308,3 +308,84 @@ describe("workflow saves", () => {
     expect(await store.entered?.("legacy", "lead:p")).toBeNull();
   });
 });
+
+describe("made workflows (designs/2026-10-09-workflow-builder.md)", () => {
+  const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
+  const part = defineComponent({
+    id: "a",
+    name: "A",
+    blurb: "a",
+    icon: "mail",
+    for: "client",
+    stage: "reach",
+    ready: true,
+    hypothesis,
+    inside: null,
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [{ id: "replied", label: "replies", kind: "reply" }],
+  });
+  const operator = { viewer: { email: "op@example.test", operator: true } } as PortalRequest;
+  const api = () => consoleApi({ main: pg.db, views: [], components: [part], workflows: [] });
+  const steps = [
+    { id: "door", uses: "trigger.hook", with: { kind: "lead", subject: "email" } },
+    { id: "n", uses: "a" },
+  ];
+  const wires = [{ from: "door.out", to: "n.leads", via: "events" }];
+
+  it("starts blank, keeps its name on each save, goes live, and is listed", async () => {
+    const { workflow, ask } = await api().workflowBuild({ ...operator, name: "Leads in" });
+    expect(workflow).toMatch(/^made\.leads_in_[0-9a-f]{4}$/);
+    expect(ask).toBeNull();
+    expect(await api().workflowsMade(operator)).toMatchObject([
+      { id: workflow, made: { name: "Leads in", for: "wren" }, live: false, draft: true, nodes: 0 },
+    ]);
+    const saved = await api().workflowSave({
+      ...operator,
+      workflow,
+      wires,
+      steps,
+      name: "Hook in",
+    });
+    expect(saved.problems).toEqual([]);
+    await expect(api().workflowSave({ ...operator, workflow, reset: true })).rejects.toThrow(
+      /no built-in/,
+    );
+    await api().workflowPublish({ ...operator, workflow });
+    const live = await savedWorkflows(pg.db, null);
+    expect(live[workflow]?.edits).toMatchObject({ made: { name: "Hook in" } });
+    expect(await api().workflowsMade(operator)).toMatchObject([
+      { id: workflow, made: { name: "Hook in" }, live: true, draft: false, nodes: 2 },
+    ]);
+    await expect(api().workflowDelete({ ...operator, workflow })).rejects.toThrow(/it's live/);
+    await expect(api().workflowTemplateSave({ ...operator, workflow, name: "T" })).rejects.toThrow(
+      /in development/,
+    );
+  });
+
+  it("asks Claude to draw it from words, and deletes a draft", async () => {
+    const { workflow, ask } = await api().workflowBuild({
+      ...operator,
+      message: "When a lead posts in, send it to A. Then stop.",
+    });
+    expect(workflow).toMatch(/^made\.when_a_lead_posts_in_[0-9a-f]{4}$/);
+    const [run] = await pg.db.execute<{ argv: { question: string; id: string } }>(
+      sql`select argv from runs where id = ${ask}`,
+    );
+    expect(run?.argv.id).toBe(`:${workflow}`);
+    expect(run?.argv.question).toContain("This workflow is new and empty");
+    expect(await api().workflowDelete({ ...operator, workflow })).toEqual({ done: 1 });
+    await expect(api().workflowDelete({ ...operator, workflow })).rejects.toThrow(
+      /no such workflow/,
+    );
+    await expect(api().workflowDelete({ ...operator, workflow: "f" })).rejects.toThrow();
+  });
+
+  it("refuses the demo and a name too long", async () => {
+    await expect(
+      api().workflowBuild({ viewer: { email: "demo@example.test", demo: true } } as never),
+    ).rejects.toThrow();
+    await expect(api().workflowBuild({ ...operator, name: "x".repeat(61) })).rejects.toThrow(
+      /under 60/,
+    );
+  });
+});

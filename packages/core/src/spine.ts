@@ -39,7 +39,15 @@ import {
   webhookEventOfEmit,
   webhookEventOfFired,
 } from "./webhook-events.js";
-import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
+import {
+  flowsWith,
+  isMade,
+  MADE_PREFIX,
+  type Made,
+  type Workflow,
+  type WorkflowEdits,
+  type WorkflowNode,
+} from "./workflows.js";
 
 export interface SpineEvent {
   /** Who or what it is about, unique per thing: "lead:42". */
@@ -769,6 +777,84 @@ export async function savedVersion(
     .from(workflowSaves)
     .where(eq(workflowSaves.id, id));
   return r ?? null;
+}
+
+/** A made workflow as the Workflows page lists it: its newest save's name, live or a draft. */
+export interface MadeWorkflow {
+  id: string;
+  made: Made;
+  live: boolean;
+  draft: boolean;
+  nodes: number;
+  by: string;
+  at: string;
+}
+
+/** Each made workflow of `client` (null: Wren's), newest first. */
+export async function madeWorkflows(db: Queryable, client: string | null): Promise<MadeWorkflow[]> {
+  const rows = await db
+    .select({
+      workflow: workflowSaves.workflow,
+      edits: workflowSaves.edits,
+      live: workflowSaves.live,
+      by: workflowSaves.by,
+      at: workflowSaves.at,
+    })
+    .from(workflowSaves)
+    .where(
+      and(
+        client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client),
+        sql`${workflowSaves.workflow} LIKE ${`${MADE_PREFIX}%`}`,
+      ),
+    )
+    .orderBy(desc(workflowSaves.id));
+  const out = new Map<string, MadeWorkflow>();
+  for (const r of rows) {
+    const had = out.get(r.workflow);
+    if (had) {
+      had.live ||= r.live;
+      continue;
+    }
+    if (!r.edits?.made) continue;
+    out.set(r.workflow, {
+      id: r.workflow,
+      made: r.edits.made,
+      live: r.live,
+      draft: !r.live,
+      nodes: r.edits.steps.length,
+      by: r.by,
+      at: r.at.toISOString(),
+    });
+  }
+  return [...out.values()];
+}
+
+/** A made workflow gone: refused while a version is live, else its drafts dropped. */
+export async function dropMade(
+  db: Queryable,
+  client: string | null,
+  workflow: string,
+): Promise<{ done: number }> {
+  if (!isMade(workflow)) throw new Error("only a made workflow can be deleted");
+  const at = and(
+    client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client),
+    eq(workflowSaves.workflow, workflow),
+  );
+  const [live] = await db
+    .select({ id: workflowSaves.id })
+    .from(workflowSaves)
+    .where(and(at, eq(workflowSaves.live, true)))
+    .limit(1);
+  if (live) throw new MadeLive();
+  const gone = await db.delete(workflowSaves).where(at).returning({ id: workflowSaves.id });
+  return { done: gone.length };
+}
+
+/** Deleting a workflow that runs: publish it empty first, so nothing new enters it. */
+export class MadeLive extends Error {
+  constructor() {
+    super("it's live: publish it with no steps first, then delete it");
+  }
 }
 
 export const editsOf = (saved: Readonly<Record<string, SavedWorkflow>>) =>

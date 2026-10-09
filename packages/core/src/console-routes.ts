@@ -91,6 +91,10 @@ export const CONSOLE_ROUTES = {
   workflowTemplateDelete: "wren:manage",
   workflowAsk: "wren:manage",
   workflowAnswer: "wren:manage",
+  // A made workflow: built from a prompt or blank, listed, deleted while not live.
+  workflowBuild: "wren:manage",
+  workflowsMade: "wren:read",
+  workflowDelete: "wren:manage",
   // A dry test of a draft: nothing is claimed or sent, so running things is enough.
   workflowTest: "wren:run",
   // A workflow's doors: the team reads them masked; seeing a whole token or a new one is `manage`.
@@ -149,6 +153,9 @@ export const CONSOLE_APPS = {
   workflowTemplateDelete: "workflows",
   workflowAsk: "workflows",
   workflowAnswer: "workflows",
+  workflowBuild: "workflows",
+  workflowsMade: "workflows",
+  workflowDelete: "workflows",
   workflowTest: "workflows",
   workflowDoors: "workflows",
   doorReveal: "workflows",
@@ -214,6 +221,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "workflowTemplateSave",
   "workflowTemplateDelete",
   "workflowAsk",
+  "workflowBuild",
+  "workflowDelete",
   "doorReveal",
   "doorRotate",
   "retryEvent",

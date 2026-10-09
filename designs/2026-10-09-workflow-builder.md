@@ -22,8 +22,8 @@ start a workflow from nothing.
   whether it's live. `workflowFor` resolves a made id from it.
 - **Build.** `console/workflowBuild {client?, message}`: makes the id from the first words, saves
   an empty draft with `made`, and opens an Ask run on it (the same `Ask/edit` and
-  `workflowAnswer`). The prompt adds: a new workflow starts with one trigger; name it in
-  `made.name`. Returns `{workflow, ask}`. The canvas opens on it with that ask pending; the diff
+  `workflowAnswer`). The prompt adds: a new workflow starts with one trigger. The name is
+  his first words until he renames it. Returns `{workflow, ask}`. The canvas opens on it with that ask pending; the diff
   draws against nothing; Accept makes it the draft.
 - **Start blank**: the same call with no message: an empty draft, no ask.
 - **Publish** is the existing path: checks, the sends and spends yes typed back. Nothing runs
@@ -46,6 +46,12 @@ start a workflow from nothing.
   code workflow.
 - Claude never adds a custom step (the Ask rule stands).
 - Model: `claude-code:sonnet`, as Ask.
+
+## Shipped
+
+- 2026-10-09: made ids, `madeWorkflows`/`dropMade`, `workflowBuild`/`workflowsMade`/
+  `workflowDelete`, rename on save, "Made here" on the Workflows page, canvas opens on the draft.
+  Discard before the first publish is refused (delete instead).
 
 ## Decision log
 

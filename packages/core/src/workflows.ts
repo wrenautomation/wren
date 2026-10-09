@@ -285,6 +285,46 @@ export interface WorkflowEdits {
   settings?: Record<string, Record<string, string | number>>;
   /** Auto-retry: a failed step tries again on its own this many times, 0 (off) to 5. */
   retry?: number;
+  /** Set on a made workflow's saves: its name, as nothing in code names it. */
+  made?: Made;
+}
+
+/**
+ * A workflow made in the portal (designs/2026-10-09-workflow-builder.md): no code, its whole
+ * graph in its saves. Its id is `made.<slug>`.
+ */
+export interface Made {
+  name: string;
+  blurb: string;
+  for: Workflow["for"];
+}
+
+export const MADE_PREFIX = "made.";
+export const isMade = (id: string) => id.startsWith(MADE_PREFIX) && id.length > MADE_PREFIX.length;
+
+/** A made workflow before its saves: no ports, no nodes. */
+export const madeBase = (id: string, m: Made): Workflow =>
+  defineWorkflow({
+    id,
+    name: m.name,
+    blurb: m.blurb,
+    icon: "cycle",
+    for: m.for,
+    stage: "follow",
+    nodes: [],
+    wires: [],
+  });
+
+/** "When a form comes in, text them" as `made.when_a_form_comes_in_text_them_x7k2`. */
+export function madeIdOf(words: string, nonce: string): string {
+  const slug =
+    words
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40)
+      .replace(/_+$/, "") || "workflow";
+  return `${MADE_PREFIX}${slug}_${nonce}`;
 }
 
 export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
@@ -346,21 +386,28 @@ export function flowsWith(
   const flows = [...workflows];
   const broken: Record<string, string[]> = {};
   const parts = new Map(components.map((c) => [c.id, c]));
-  const byId = new Map(workflows.map((w) => [w.id, w]));
+  // A made workflow joins on its own save's name; one in code by its id wins.
+  for (const [id, e] of Object.entries(saves))
+    if (e?.made && isMade(id) && !flows.some((w) => w.id === id)) flows.push(madeBase(id, e.made));
+  const base = [...flows];
+  const byId = new Map(base.map((w) => [w.id, w]));
   for (const [id, e] of Object.entries(saves)) {
-    const i = workflows.findIndex((w) => w.id === id);
-    const w = workflows[i];
+    const i = base.findIndex((w) => w.id === id);
+    const w = base[i];
     if (!w || !e) continue;
     const next = withEdits(w, e);
     const lines = [
       ...editRules(w, e, parts, byId),
       ...checkWorkflows(
-        workflows.map((x) => (x === w ? next : x)),
+        base.map((x) => (x === w ? next : x)),
         components,
       ),
     ];
-    if (lines.length) broken[id] = lines;
-    else flows[i] = next;
+    if (lines.length) {
+      broken[id] = lines;
+      // A made workflow that doesn't check runs nothing: it has no code to fall back on.
+      if (isMade(id)) flows[i] = madeBase(id, e.made ?? { name: w.name, blurb: "", for: w.for });
+    } else flows[i] = next;
   }
   return { flows, broken };
 }

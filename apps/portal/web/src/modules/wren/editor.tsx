@@ -775,15 +775,18 @@ export function AskGraph({
   client,
   draft,
   onAnswer,
+  pending = null,
 }: {
   workflow: string;
   client: string | null;
   draft: Draft;
   onAnswer: (reply: string, patch: Draft | null) => void;
+  /** An ask already open (the builder's first): its answer is waited on at once. */
+  pending?: string | null;
 }) {
   const [message, setMessage] = useState("");
   const askBox = useRef<HTMLInputElement>(null);
-  const [run, setRun] = useState<string | null>(null);
+  const [run, setRun] = useState<string | null>(pending);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!run) return;

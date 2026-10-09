@@ -18,6 +18,7 @@
  * what a client can have for anyone else. `install`, `configure` and `uninstall` write a client's
  * `clients.products[id]`, operator only, each a runs row; `ask` is a client's "Ask for this".
  */
+import { randomUUID } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import {
   atomic,
@@ -172,9 +173,13 @@ import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import { pausedParts, pausedText } from "./setup-alerts.js";
 import {
   clocksOf,
+  dropMade,
   editsOf,
   failedOf,
   hookEvent,
+  MadeLive,
+  type MadeWorkflow,
+  madeWorkflows,
   REPLAY_MOST,
   type SavedWorkflow,
   SPINE,
@@ -220,6 +225,10 @@ import { deleteWorkflowTemplate, saveWorkflowTemplate } from "./workflow-templat
 import {
   effectsIn,
   flowsWith,
+  isMade,
+  type Made,
+  madeBase,
+  madeIdOf,
   partsIn,
   portsOf,
   type Workflow,
@@ -337,6 +346,8 @@ export interface WorkflowSaveRequest extends PortalRequest {
   /** Auto-retry tries, 0 (off) to 5 (`WorkflowEdits.retry`). */
   retry?: unknown;
   reset?: boolean;
+  /** A made workflow's new name, kept on its draft. */
+  name?: unknown;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
 }
@@ -441,6 +452,11 @@ const EDITS = z.object({
   /** Auto-retry: a failed step tries again on its own, 0 (off) to 5 times. */
   retry: z.number().int().min(0).max(5).optional(),
 });
+
+/** A made workflow's name, as the builder or the name field gives it. */
+const MADE_NAME = z.string().trim().min(1).max(60);
+/** What the builder is asked, at most. */
+const BUILD_MAX = 1000;
 
 /** A stored look stays small: inputs, not tokens. */
 const LOOK_MAX = 4000;
@@ -1540,7 +1556,13 @@ export const componentRecord = (
         ready: readyOf(c),
       })),
     workflows: flows
-      .filter((x) => x.id !== w.id && shownAs(x) === x && (w.for === "wren" || x.for === "client"))
+      .filter(
+        (x) =>
+          x.id !== w.id &&
+          !isMade(x.id) &&
+          shownAs(x) === x &&
+          (w.for === "wren" || x.for === "client"),
+      )
       .map((x) => ({
         id: x.id,
         name: x.name,
@@ -1737,8 +1759,9 @@ export const componentRecord = (
                 ...c.missing,
               ].join("; ") || null,
           })),
+        // A made workflow is listed on the Workflows page, never in the Shop.
         ...flows
-          .filter((w) => shownAs(w) === w && !soldAs.has(w.id))
+          .filter((w) => shownAs(w) === w && !soldAs.has(w.id) && !isMade(w.id))
           .map((w) => {
             const parts = partsIn(w.id, flows, all);
             const behind = parts.filter((c) => !c.ready);
@@ -2049,11 +2072,49 @@ export function consoleApi({
     if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
     // No client is Wren's own, as the catalog reads it.
     const client = req.client ? (await pickForWrite(main, req)).client.id : null;
-    const w = workflows.find((x) => x.id === req.workflow);
+    const w = await workflowOf(req.workflow, client);
     if (!w) throw new PortalRefusal("no such workflow", 404);
     if (client && w.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
     return { w, client, by: (req.viewer as SignedViewer).email };
   };
+  /**
+   * A workflow by id: the code's, else one made in the portal for this owner, as its newest save
+   * names it (designs/2026-10-09-workflow-builder.md).
+   */
+  const workflowOf = async (id: unknown, client: string | null) => {
+    if (typeof id !== "string") return undefined;
+    const w = workflows.find((x) => x.id === id);
+    if (w || !isMade(id)) return w;
+    const m = (await madeWorkflows(main, client)).find((x) => x.id === id);
+    return m ? madeBase(id, m.made) : undefined;
+  };
+  /**
+   * The run row holding an ask on `w`'s draft, for `Ask/edit` to answer with the next draft. A
+   * made workflow with nothing in it is asked to start from a trigger.
+   */
+  const askGraph = async (
+    w: Workflow,
+    client: string | null,
+    by: string,
+    draft: WorkflowEdits,
+    message: string,
+  ): Promise<string> => {
+    const flows = workflows.filter(
+      (x) => x.id !== w.id && (w.for === "wren" || x.for === "client"),
+    );
+    const prompt = workflowAskPrompt({
+      w: withEdits(w, draft),
+      draft,
+      parts: components.filter((c) => w.for === "wren" || c.for === "client"),
+      flows,
+      message,
+    });
+    const argv = { record: WORKFLOW_ASK, id: `${client ?? ""}:${w.id}`, by, message, ...prompt };
+    return (await openRun(main, { command: ASK_COMMAND, argv, model: "claude-code:sonnet" })).id;
+  };
+  /** A made workflow's name on its saves; nothing for the code's. */
+  const madeOf = (w: Workflow): { made?: Made } =>
+    isMade(w.id) ? { made: { name: w.name, blurb: w.blurb, for: w.for } } : {};
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
   };
@@ -2131,6 +2192,17 @@ export function consoleApi({
     const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
     const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
     const { flows, broken } = flowsWith(workflows, editsOf(saved), components);
+    // A made workflow not yet live draws from its name alone; the editor opens its draft.
+    const askedId = (req as { id?: unknown }).id;
+    if (
+      one &&
+      typeof askedId === "string" &&
+      isMade(askedId) &&
+      !flows.some((f) => f.id === askedId)
+    ) {
+      const m = (await madeWorkflows(main, client?.id ?? null)).find((x) => x.id === askedId);
+      if (m) flows.push(madeBase(askedId, m.made));
+    }
     // Roles, grants, issues and asks in this workspace, as this login reads them.
     const access =
       !isDemo(req.viewer) && (asked === undefined || isAccess(asked))
@@ -2866,6 +2938,8 @@ export function consoleApi({
      */
     async workflowSave(req: WorkflowSaveRequest): Promise<{ id: number; problems: string[] }> {
       const { w, client, by } = await workflowFor(req);
+      if (req.reset && isMade(w.id))
+        throw new PortalRefusal("a made workflow has no built-in", 400);
       let edits: WorkflowEdits | null = null;
       if (!req.reset) {
         const got = EDITS.safeParse({
@@ -2879,6 +2953,12 @@ export function consoleApi({
           throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
         }
         edits = got.data as WorkflowEdits;
+        if (isMade(w.id)) {
+          const named = req.name === undefined ? null : MADE_NAME.safeParse(req.name);
+          if (named && !named.success) throw new PortalRefusal("give it a name under 60", 400);
+          const m = madeOf(w).made as Made;
+          edits = { ...edits, made: named ? { ...m, name: named.data } : m };
+        }
       }
       const problems = edits
         ? (flowsWith(workflows, { [w.id]: edits }, components).broken[w.id] ?? [])
@@ -2943,9 +3023,9 @@ export function consoleApi({
     /** The doors into a workflow, for its node panel: masked, with their calls. */
     async workflowDoors(req: DoorRequest): Promise<Door[]> {
       team(req);
-      const w = workflows.find((x) => x.id === req.workflow);
-      if (!w) throw new PortalRefusal("no such workflow", 404);
       const client = req.client ? (await pickClient(main, req)).id : null;
+      const w = await workflowOf(req.workflow, client);
+      if (!w) throw new PortalRefusal("no such workflow", 404);
       return doorsFor(main, client, w.id);
     },
     /** A door's whole token: a teammate with `manage`, never the demo. */
@@ -2966,6 +3046,8 @@ export function consoleApi({
       req: WorkflowSaveRequest & { name?: unknown; blurb?: unknown },
     ): Promise<{ id: string; name: string; updated: boolean }> {
       const { w, client, by } = await workflowFor(req);
+      if (isMade(w.id))
+        throw new PortalRefusal("a made workflow can't be a template yet: in development", 409);
       return saveWorkflowTemplate(
         main,
         { client, workflow: w.id, name: req.name, blurb: req.blurb, by },
@@ -2981,6 +3063,8 @@ export function consoleApi({
     /** The draft dropped: the live wiring stays as it is. */
     async workflowDiscard(req: WorkflowSaveRequest): Promise<{ done: number }> {
       const { w, client } = await workflowFor(req);
+      if (isMade(w.id) && !(await savedWorkflows(main, client))[w.id])
+        throw new PortalRefusal("it was never published: delete it instead", 409);
       const gone = (await main.execute(sql`DELETE FROM workflow_saves WHERE NOT live
         AND workflow = ${w.id} AND client IS NOT DISTINCT FROM ${client}
         RETURNING id`)) as unknown as unknown[];
@@ -3002,18 +3086,59 @@ export function consoleApi({
         settings: req.settings,
       });
       const draft = got.success ? (got.data as WorkflowEdits) : { wires: [], steps: [] };
-      const flows = workflows.filter(
-        (x) => x.id !== w.id && (w.for === "wren" || x.for === "client"),
+      return askGraph(w, client, by, draft, message);
+    },
+    /**
+     * The builder (designs/2026-10-09-workflow-builder.md): a new made workflow, its empty draft
+     * saved, and, with a message, Claude asked to draw it. Nothing runs until Publish.
+     */
+    async workflowBuild(
+      req: PortalRequest & { message?: unknown; name?: unknown },
+    ): Promise<{ workflow: string; ask: string | null }> {
+      team(req);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const client = req.client ? (await pickForWrite(main, req)).client.id : null;
+      const by = (req.viewer as SignedViewer).email;
+      const message = typeof req.message === "string" ? req.message.trim() : "";
+      if (message.length > BUILD_MAX)
+        throw new PortalRefusal(`keep it under ${BUILD_MAX} characters`, 400);
+      const named = MADE_NAME.safeParse(
+        typeof req.name === "string" && req.name.trim()
+          ? req.name
+          : message
+            ? message.split(/[.;:,\n]/)[0]?.slice(0, 60)
+            : "New workflow",
       );
-      const prompt = workflowAskPrompt({
-        w: withEdits(w, draft),
-        draft,
-        parts: components.filter((c) => w.for === "wren" || c.for === "client"),
-        flows,
-        message,
-      });
-      const argv = { record: WORKFLOW_ASK, id: `${client ?? ""}:${w.id}`, by, message, ...prompt };
-      return (await openRun(main, { command: ASK_COMMAND, argv, model: "claude-code:sonnet" })).id;
+      if (!named.success) throw new PortalRefusal("give it a name under 60", 400);
+      const made: Made = {
+        name: named.data,
+        blurb: message.slice(0, 200),
+        for: client ? "client" : "wren",
+      };
+      const id = madeIdOf(named.data, randomUUID().slice(0, 4));
+      const draft: WorkflowEdits = { wires: [], steps: [], made };
+      await main
+        .insert(workflowSaves)
+        .values({ client, workflow: id, edits: draft, live: false, by });
+      const ask = message ? await askGraph(madeBase(id, made), client, by, draft, message) : null;
+      return { workflow: id, ask };
+    },
+    /** The made workflows here, newest first: Wren's, or the client's named. */
+    async workflowsMade(req: PortalRequest): Promise<MadeWorkflow[]> {
+      team(req);
+      const client = req.client ? (await pickClient(main, req)).id : null;
+      return madeWorkflows(main, client);
+    },
+    /** A made workflow deleted: refused while live. */
+    async workflowDelete(req: WorkflowSaveRequest): Promise<{ done: number }> {
+      const { w, client } = await workflowFor(req);
+      if (!isMade(w.id)) throw new PortalRefusal("only a made workflow can be deleted", 409);
+      try {
+        return await dropMade(main, client, w.id);
+      } catch (err) {
+        if (err instanceof MadeLive) throw new PortalRefusal(err.message, 409);
+        throw err;
+      }
     },
     /** Claude's answer on the graph, while the canvas waits: thinking, or its reply and draft. */
     async workflowAnswer(req: PortalRequest & { id?: unknown }) {
@@ -3047,7 +3172,10 @@ export function consoleApi({
      */
     async workflowTest(req: WorkflowTestRequest): Promise<DryResult & { entered?: SpineEvent }> {
       team(req);
-      const w = workflows.find((x) => x.id === req.workflow);
+      const w = await workflowOf(
+        req.workflow,
+        req.client ? (await pickClient(main, req)).id : null,
+      );
       if (!w) throw new PortalRefusal("no such workflow", 404);
       const got = EDITS.safeParse({
         wires: req.wires ?? [],
@@ -3057,7 +3185,7 @@ export function consoleApi({
       if (!got.success) throw new PortalRefusal("that draft doesn't read", 400);
       const { flows, broken } = flowsWith(
         workflows,
-        { [w.id]: got.data as WorkflowEdits },
+        { [w.id]: { ...(got.data as WorkflowEdits), ...madeOf(w) } },
         components,
       );
       if (broken[w.id]) throw new PortalRefusal(`it won't run: ${broken[w.id]?.join("; ")}`, 400);
@@ -3472,6 +3600,19 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         }),
       workflowAnswer: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(() => api.workflowAnswer(req)),
+      workflowBuild: (
+        ctx: restate.Context,
+        req: PortalRequest & { message?: unknown; name?: unknown },
+      ) =>
+        answer(async () => {
+          const got = await ctx.run("build", () => answer(() => api.workflowBuild(req)));
+          if (got.ask) ctx.serviceSendClient<AskService>(ASK).edit({ id: got.ask });
+          return got;
+        }),
+      workflowsMade: (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.workflowsMade(req)),
+      workflowDelete: (ctx: restate.Context, req: WorkflowSaveRequest) =>
+        answer(() => ctx.run("delete workflow", () => answer(() => api.workflowDelete(req)))),
       workflowTest: (_: restate.Context, req: WorkflowTestRequest) =>
         answer(() => api.workflowTest(req)),
       workflowDoors: (_: restate.Context, req: DoorRequest) => answer(() => api.workflowDoors(req)),
