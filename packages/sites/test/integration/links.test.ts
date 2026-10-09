@@ -132,6 +132,43 @@ describe("tracked links", () => {
     expect(list.rows.find((r) => r.id === plain.id)).toMatchObject({ clicks: 0, visits: 0 });
   });
 
+  it("shows pages, forms and submissions under the owner's name, its id kept", async () => {
+    const theirs = await livePage("speed", "acme");
+    const ours = await livePage("trust");
+    const form = await api().formCreate({ viewer: ADA, owner: "acme", name: "Quote" } as never);
+    for (const page of [theirs.id, ours.id])
+      await pg.db.execute(sql`
+        insert into site_forms (page, fields, touch, channel)
+        values (${page}, '{"name":"Sam Lee"}'::jsonb, '{}'::jsonb, 'direct')`);
+    await pg.db.execute(sql`
+      insert into site_forms (form, fields, touch, channel)
+      values (${form.id}, '{"name":"Lee Sam"}'::jsonb, '{}'::jsonb, 'direct')`);
+
+    const rows = async (record: string) =>
+      (await api().recordsList({ viewer: ADA, record } as never)).rows;
+    const pages = await rows("sites.page");
+    expect(pages.find((r) => r.id === theirs.id)).toMatchObject({
+      owner: "acme",
+      ownerName: "Acme Roofing",
+    });
+    const [wren] = await pg.db.execute(
+      sql`select owner, owner_name from site_page_records where id = ${ours.id}`,
+    );
+    expect(wren).toEqual({ owner: "wren", owner_name: "Wren" });
+    const [theirForm] = await pg.db.execute(
+      sql`select owner, owner_name from site_form_records where id = ${form.id}`,
+    );
+    expect(theirForm).toEqual({ owner: "acme", owner_name: "Acme Roofing" });
+    const entries = await pg.db.execute<{ who: string; owner: string; owner_name: string }>(
+      sql`select who, owner, owner_name from site_entry_records`,
+    );
+    expect(entries.map((r) => [r.who, r.owner, r.owner_name]).sort()).toEqual([
+      ["Lee Sam", "acme", "Acme Roofing"],
+      ["Sam Lee", "acme", "Acme Roofing"],
+      ["Sam Lee", "wren", "Wren"],
+    ]);
+  });
+
   it("puts Wren's links on the lander with its utm, and refuses another owner's page", async () => {
     const mine = await livePage("speed");
     const theirs = await livePage("theirs", "acme");

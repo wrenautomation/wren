@@ -11,7 +11,10 @@
  * - `site_link_records`: every tracked `/go/` link with its hits: clicks counted at a client's
  *   edge, or Wren's read off the lander's click log (`./hops.ts` `importLanderClicks`), and the
  *   visits, forms and booking clicks its page saw with the link's utm, on any arm of a split at
- *   its address. `owner_name` is the client's name ("Wren" for Wren's).
+ *   its address.
+
+Every view's `owner` is the client id ("wren" for Wren's) and `owner_name` the client's name
+("Wren" for Wren's), as people read it.
  *
  * An ad links to a page when its creative's link holds the page's address: a data page's
  * `/o/<slug>` (also as a `/go/...?to=/o/<slug>` short link), a code page's URL.
@@ -41,6 +44,7 @@ export const sitePageRecords = pgView("site_page_records", {
   kind: text("kind"),
   source: text("source"),
   owner: text("owner"),
+  ownerName: text("owner_name"),
   status: text("status"),
   waiting: integer("waiting"),
   offer: text("offer"),
@@ -75,7 +79,8 @@ export const sitePageRecords = pgView("site_page_records", {
       count(*) filter (where name = 'book')::int books
     from site_events group by page),
   ads as (${ADS})
-  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address from (
+  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address,
+    coalesce(c.name, 'Wren')::text owner_name from (
   select p.id::text id, p.title::text, ${DATA_URL} url, p.kind::text, p.source::text,
     coalesce(p.client, 'wren')::text owner, p.status::text, p.waiting_version waiting,
     p.offer::text, p.angle::text, p.audience::text, p.stage::text, p.template::text,
@@ -110,7 +115,8 @@ export const sitePageRecords = pgView("site_page_records", {
     'booking', 'derived', d.client_id, case when d.status = 'active' then 'live' else 'draft' end,
     null, null, null, null, 'convert', null, null, null, null, null, null, null, null, null, null,
     null, d.checked_at, d.added_by, null, null, null
-  from client_domains d) u`);
+  from client_domains d) u
+  left join clients c on c.id = u.owner`);
 
 export const siteFunnelRecords = pgView("site_funnel_records", {
   id: text("id"),
@@ -154,6 +160,7 @@ export const siteFormRecords = pgView("site_form_records", {
   name: text("name"),
   slug: text("slug"),
   owner: text("owner"),
+  ownerName: text("owner_name"),
   status: text("status"),
   url: text("url"),
   address: text("address"),
@@ -172,7 +179,8 @@ export const siteFormRecords = pgView("site_form_records", {
       count(*) filter (where name = 'form')::int submits,
       max(at) filter (where name = 'form') last
     from site_events where form is not null group by form)
-  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address from (
+  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address,
+    coalesce(c.name, 'Wren')::text owner_name from (
   select f.id::text id, f.name::text, f.slug::text, coalesce(f.client, 'wren')::text owner,
     f.status::text,
     case when f.client is null then 'https://${sql.raw(WREN_SITE)}/o/f/' || f.slug
@@ -182,7 +190,8 @@ export const siteFormRecords = pgView("site_form_records", {
     coalesce(ev.views, 0) views, coalesce(ev.starts, 0) starts, coalesce(ev.submits, 0) submits,
     case when coalesce(ev.views, 0) > 0 then coalesce(ev.submits, 0)::float8 / ev.views end conversion,
     ev.last, f.updated_at changed, f.updated_by changed_by
-  from site_form_defs f left join ev on ev.form = f.id) u`);
+  from site_form_defs f left join ev on ev.form = f.id) u
+  left join clients c on c.id = u.owner`);
 
 export const siteEntryRecords = pgView("site_entry_records", {
   id: text("id"),
@@ -191,6 +200,7 @@ export const siteEntryRecords = pgView("site_entry_records", {
   page: text("page"),
   pageTitle: text("page_title"),
   owner: text("owner"),
+  ownerName: text("owner_name"),
   at: timestamp("at", { withTimezone: true }),
   channel: text("channel"),
   source: text("source"),
@@ -208,7 +218,8 @@ export const siteEntryRecords = pgView("site_entry_records", {
   answers: text("answers"),
 }).as(sql`
   select e.id::text id, e.form::text form, f.name::text form_name, e.page::text page,
-    p.title::text page_title, coalesce(f.client, p.client, 'wren')::text owner, e.at,
+    p.title::text page_title, coalesce(f.client, p.client, 'wren')::text owner,
+    coalesce(c.name, 'Wren')::text owner_name, e.at,
     e.channel::text, e.touch ->> 'source' source, e.touch ->> 'campaign' campaign,
     coalesce(e.fields ->> 'name',
       nullif(concat_ws(' ', e.fields ->> 'first_name', e.fields ->> 'last_name'), '')) who,
@@ -219,7 +230,8 @@ export const siteEntryRecords = pgView("site_entry_records", {
     (select string_agg(k || ': ' || v, '; ' order by k) from jsonb_each_text(e.fields) x(k, v)) answers
   from site_forms e
   left join site_form_defs f on f.id = e.form
-  left join site_pages p on p.id = e.page`);
+  left join site_pages p on p.id = e.page
+  left join clients c on c.id = coalesce(f.client, p.client)`);
 
 export const siteLinkRecords = pgView("site_link_records", {
   id: text("id"),
