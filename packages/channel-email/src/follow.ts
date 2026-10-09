@@ -4,14 +4,25 @@
  * follow-up held. When the tick sends a step it leaves that step's node as `sent`, and the next
  * touch releases the next step at once: the tick's business-day math still picks its day.
  */
-import { followStart, isFollowTouch, passed } from "@wren/core/follow";
-import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
-import { emailRef } from "@wren/core/templates";
+import {
+  type FollowNote,
+  followPartOf,
+  followStart,
+  isFollowTouch,
+  NURTURE,
+  passed,
+} from "@wren/core/follow";
+import { MissingFactError, renderKind } from "@wren/core/slots";
+import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
+import { emailRef, refText } from "@wren/core/templates";
+import { liveOrDefault } from "@wren/core/templates/defaults";
 import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceId, cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { EMAIL_TOUCH } from "./components.js";
+import { activeSuppression } from "./guards.js";
+import { factsFor, factsForCompany } from "./outreach/facts.js";
 import type { Sequence } from "./outreach/sequences.js";
 import { enrollments, messages } from "./schema.js";
 
@@ -123,20 +134,75 @@ export async function release(
   return "released";
 }
 
-/** `email.touch` on the spine: the node's `step`, in the database of whoever's workflow it is. */
+/**
+ * Where a follow-up's email waits for a yes: To approve, as a reply asked in the Inbox
+ * (`askFollowEmail` in content). `by` names the node, so a second pass asks nothing.
+ */
+export type AskFollowEmail = (
+  client: string | null,
+  o: { subject: string; enrollmentId: number; body: string; by: string; why: string },
+) => Promise<{ asked: boolean; why: string | null }>;
+
+/**
+ * One follow-up email (designs/2026-10-07-follow-up-nurture.md): our next email in their thread,
+ * in the node's live words, drafted into To approve. It sends once a person says yes, in reply to
+ * the last one we sent (`Disposition.followUp`). A thread they opted out of, or a fact the copy
+ * needs and they lack, skips.
+ */
+export async function followEmail(
+  db: Db,
+  enrollmentId: number,
+  e: SpineEvent,
+  at: Pick<StepAt, "client" | "workflow" | "node" | "template" | "part">,
+  o: { would: string | null; ask: AskFollowEmail | null; main: Db },
+): Promise<Pick<FollowNote, "did" | "why">> {
+  const [en] = await db.select().from(enrollments).where(eq(enrollments.id, enrollmentId));
+  if (!en) return { did: "skipped", why: `no email thread ${enrollmentId}` };
+  if (!at.template) return { did: "skipped", why: "this step has no copy" };
+  const shared = at.client ? { main: o.main, client: at.client } : null;
+  if (await activeSuppression(db, en.toEmail, shared))
+    return { did: "skipped", why: "they opted out of email" };
+  const live = await liveOrDefault(db, at.template);
+  if (!live) return { did: "skipped", why: `${refText(at.template)} has no live words` };
+  if (o.would) return { did: "would_send", why: o.would };
+  if (!o.ask) return { did: "skipped", why: "To approve is not wired here" };
+  const facts = en.personId
+    ? await factsFor(db, en.personId, null)
+    : await factsForCompany(db, en.companyId, null);
+  let body: string;
+  try {
+    body = renderKind("email", live.template, facts.values, `follow:${en.id}:${at.node}`).body;
+  } catch (err) {
+    if (err instanceof MissingFactError)
+      return { did: "skipped", why: `the copy needs a fact they lack: ${err.message}` };
+    throw err;
+  }
+  const got = await o.ask(at.client, {
+    subject: e.subject,
+    enrollmentId,
+    body,
+    by: `workflow:${at.workflow}/${at.node}`.slice(0, 200),
+    why: `${followPartOf(at) === NURTURE ? "Nurture" : "Follow-up"}'s email: it sends once someone says yes.`,
+  });
+  return got.asked
+    ? { did: "asked", why: null }
+    : { did: "skipped", why: got.why ?? "already asked" };
+}
+
+/**
+ * `email.touch` on the spine: the node's `step`, in the database of whoever's workflow it is. A
+ * node with no `step` is a follow-up's email (`followEmail`).
+ */
 export const emailTouchStep =
-  (dbFor: (client: string | null) => Db): Step =>
+  (dbFor: (client: string | null) => Db, ask: AskFollowEmail | null = null): Step =>
   async (_port, e, at) => {
-    // A follow-up's Email step: only asks whether they answered, until email to a quiet lead
-    // is built (designs/2026-10-07-follow-up-nurture.md).
     if (isFollowTouch(at)) {
-      const start = await followStart(
-        { db: dbFor(at.client), main: dbFor(null), channel: "email", globalOff: null },
-        e,
-        at,
-      );
+      const db = dbFor(at.client);
+      const main = dbFor(null);
+      const start = await followStart({ db, main, channel: "email", globalOff: null }, e, at);
       if ("outs" in start) return start.outs;
-      return passed(e, { ...start.note, why: "email is in development" });
+      const got = await followEmail(db, start.thread, e, at, { would: start.would, ask, main });
+      return passed(e, { ...start.note, ...got });
     }
     const other = passOn(e, "email");
     if (other) return other;

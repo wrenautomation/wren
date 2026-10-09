@@ -15,6 +15,7 @@ import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
+import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
@@ -70,6 +71,8 @@ export interface InboxDeskDeps {
   facts?: () => Promise<readonly string[]>;
   /** Each channel's send path; absent, the channels' own desks over Restate. Tests pass a fake. */
   channels?: (ctx: restate.Context, client: string | null, viewer: Viewer) => ReplySender;
+  /** Mail for a teammate `@`ed in a note, with the portal's origin; absent, the app only. */
+  mentionMail?: { send: SendMention; portal: string } | null;
 }
 
 type Fn<I, O> = (ctx: unknown, req: I) => Promise<O>;
@@ -91,6 +94,7 @@ type Outcome = { ok: boolean; reason?: string | null };
 type Disposition = {
   approve: Fn<{ id: number; body: string }, Outcome>;
   reply: Fn<{ threadEventId: number; body: string }, Outcome>;
+  followUp: Fn<{ enrollmentId: number; body: string }, Outcome>;
 };
 
 /**
@@ -126,6 +130,7 @@ function restateChannels(ctx: restate.Context, client: string | null, viewer: Vi
     },
     invite: async (id, body) => ok(await disposition().approve({ id, body })),
     email: async (threadEventId, body) => ok(await disposition().reply({ threadEventId, body })),
+    thread: async (enrollmentId, body) => ok(await disposition().followUp({ enrollmentId, body })),
     mail: async (mailId, body) => {
       if (!client) throw new restate.TerminalError("Only a client's mailbox answers mail here.");
       await ctx
@@ -412,7 +417,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           const db = dbOf(client);
           await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
           const now = await nowOf(ctx);
-          return ctx.run("note", () =>
+          const out = await ctx.run("note", () =>
             terminal(async () => {
               const p = await partyOf(db, req.thread);
               if (!p) throw new Error("that thread is gone");
@@ -427,6 +432,15 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
               return { id: note.id, mentioned };
             }),
           );
+          const mail = deps.mentionMail;
+          if (out.mentioned.length && mail)
+            // Only this note's: a note-body mention waits for Notes, which checks who may open it.
+            await ctx.run("mail mentions", () =>
+              mailMentions(db, { ...mail, client, readerOf: async () => null }).catch(
+                (e: unknown) => console.warn(`mention mail: ${(e as Error).message}`),
+              ),
+            );
+          return out;
         },
       ),
       /** Give the thread to a teammate, or to nobody. */

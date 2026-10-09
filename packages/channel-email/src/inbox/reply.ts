@@ -117,11 +117,14 @@ export async function draftReply(
 /** The template name a reply William wrote himself is filed under. */
 export const BY_HAND = "by-hand/reply";
 
-/** William's own words as the thread's next step, a draft for `sendReply`. */
+/**
+ * William's own words as the thread's next step, a draft for `sendReply`. With no `event` it
+ * follows up a thread they never answered.
+ */
 export async function draftByHand(
   db: Queryable,
   enrollment: Enrollment,
-  event: ThreadEvent,
+  event: ThreadEvent | null,
   body: string,
 ): Promise<Message> {
   const [last] = await db
@@ -135,10 +138,10 @@ export async function draftByHand(
       step: (last?.step ?? -1) + 1,
       template: BY_HAND,
       templateVersion: "by-hand",
-      toEmail: event.fromAddress ?? enrollment.toEmail,
+      toEmail: event?.fromAddress ?? enrollment.toEmail,
       subject: null,
       body,
-      provenance: { by_hand: true, reply_to_event: event.id },
+      provenance: { by_hand: true, reply_to_event: event?.id ?? null },
       state: "draft",
     })
     .returning();
@@ -158,15 +161,15 @@ export type ReplyOutcome =
   | { sent: false; message: Message; reason: string };
 
 /**
- * Approve and send one drafted reply in its thread: In-Reply-To their email, the
- * thread's References, the inbox's own Gmail thread. `body` replaces the draft's
+ * Approve and send one drafted reply in its thread: In-Reply-To their email (with no `event`, the
+ * last one we sent), the thread's References, the inbox's own Gmail thread. `body` replaces the draft's
  * words with William's. The row is SENDING with our Message-ID before the bytes
  * leave, as every send is; a lost answer is UNKNOWN for reconcile, never re-sent.
  */
 export async function sendReply(
   db: Db,
   messageId: number,
-  event: ThreadEvent,
+  event: ThreadEvent | null,
   enrollment: Enrollment,
   opts: SendReplyOptions & { body?: string | null },
 ): Promise<ReplyOutcome> {
@@ -205,8 +208,8 @@ export async function sendReply(
     .orderBy(asc(messages.step));
   // The email they answered, else the last one we sent.
   const anchor =
-    thread.find((m) => m.id === event.inReplyToMessageId) ?? thread[thread.length - 1] ?? null;
-  const theirs = (event.headers as Record<string, string> | null)?.["Message-ID"] ?? null;
+    thread.find((m) => m.id === event?.inReplyToMessageId) ?? thread[thread.length - 1] ?? null;
+  const theirs = (event?.headers as Record<string, string> | null)?.["Message-ID"] ?? null;
   const html = opts.fleet.signatureHtml[sender];
   const outgoing: OutgoingEmail = {
     fromAddress: sender,
@@ -221,7 +224,7 @@ export async function sendReply(
       ...thread.flatMap((m) => (m.messageId ? [m.messageId] : [])),
       ...(theirs ? [theirs] : []),
     ],
-    threadId: event.gmailThreadId ?? anchor?.threadId ?? null,
+    threadId: event?.gmailThreadId ?? anchor?.threadId ?? null,
     signatureHtml:
       html === undefined ? null : fillPage(html, opts.fleet.pages[enrollment.niche] ?? ""),
     linkCode: sending.linkCode,

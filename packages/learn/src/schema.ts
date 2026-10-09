@@ -23,6 +23,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -271,7 +272,14 @@ export const sopSources = learn.table(
   "sop_sources",
   {
     id: serial("id"),
-    itemId: integer("item_id").notNull(),
+    /** The Learn item asked in; null for words from a note. */
+    itemId: integer("item_id"),
+    /** The note the words came from (Notes → Make an SOP), with the words themselves. */
+    noteId: uuid("note_id"),
+    /** Whose note: Wren's (`wren`) or a client's id; null for an item's (the item says). */
+    client: varchar("client", { length: 40 }),
+    title: text("title"),
+    text: text("text"),
     /** The SOP's folder name, as `wren sop ls` prints it. */
     sop: varchar("sop", { length: 64 }).notNull(),
     state: varchar("state", { length: 8, enum: SOP_STATES }).notNull().default("asked"),
@@ -294,6 +302,10 @@ export const sopSources = learn.table(
     unique("uq_learn_sop_sources_item_sop").on(t.itemId, t.sop),
     index("ix_learn_sop_sources_sop").on(t.sop),
     oneOf("ck_learn_sop_sources_state", t.state, SOP_STATES),
+    check(
+      "ck_learn_sop_sources_from",
+      sql`(${t.itemId} is not null) <> (${t.noteId} is not null and ${t.client} is not null and ${t.text} is not null)`,
+    ),
   ],
 );
 

@@ -29,6 +29,7 @@ export const KINDS: Readonly<Record<string, { label: string; tone: GraphTone }>>
   auto_reply: { label: "Auto reply", tone: "neutral" },
   // A Follow-up or Nurture touch: sends off, nothing to send on, they answered, or a wait.
   would_send: { label: "Would send", tone: "neutral" },
+  asked: { label: "Waiting on a yes", tone: "warn" },
   skipped: { label: "Skipped", tone: "neutral" },
   answered: { label: "Answered", tone: "good" },
   waiting: { label: "Waiting", tone: "neutral" },

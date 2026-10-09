@@ -37,6 +37,7 @@ import {
 } from "./doc.js";
 import { DriveRefusal, driveIdOf, type NoteDrive } from "./drive.js";
 import { inboxMentionsOf, unseenInboxMentions } from "./inbox.js";
+import { mailMentions, type SendMention } from "./mention-mail.js";
 import { type Note, type NoteComment, noteStars } from "./schema.js";
 import {
   addComment,
@@ -105,6 +106,29 @@ export interface NotesDeps {
   zone?: string;
   /** Google Drive, for import; left out, the import says it's off here. */
   drive?: NoteDrive | undefined;
+  /** Mail for a mention, with the portal's origin for its link; left out, mentions stay in the app. */
+  mail?: { send: SendMention; portal: string } | undefined;
+  /** Selected words made real elsewhere; each left out says it's off here. */
+  turns?: NoteTurns | undefined;
+}
+
+/** Where selected words go: Marketing's drafts, an SOP. The worker wires them; notes can't import them. */
+export interface NoteTurns {
+  /** Drafts from the words, into the workspace's To approve. Started, not awaited; refuses with why. */
+  draft(
+    ctx: restate.Context,
+    o: { client: string | null; text: string; by: string },
+  ): Promise<void>;
+  /** The words into an SOP: asked (Wren's, for the Mac) or added (a client's, into its Notes). */
+  sop(o: {
+    client: string;
+    db: Db;
+    noteId: string;
+    sop: string;
+    title: string;
+    text: string;
+    by: string;
+  }): Promise<{ sop: string; state: "asked" | "added"; note: string | null }>;
 }
 
 /** An image a note takes, by type. */
@@ -299,6 +323,32 @@ export function notesApi(deps: NotesDeps) {
     return out;
   };
 
+  /**
+   * Mail whoever a change just `@`ed, in the note's own workspace: Wren's when it lives there. A
+   * failed mail never fails the change; the mention waits for the next one.
+   */
+  const tell = async (home: string, place: Place) => {
+    if (!deps.mail) return;
+    const at: Place = home === WREN ? { ws: WREN, db: main, client: null } : place;
+    let people: Awaited<ReturnType<typeof peopleOf>> | null = null;
+    await mailMentions(at.db, {
+      send: deps.mail.send,
+      portal: deps.mail.portal,
+      client: at.client?.id ?? null,
+      readerOf: async (email) => {
+        people ??= await peopleOf(at);
+        const p = people.find((x) => x.email === email.toLowerCase());
+        if (!p) return null;
+        return {
+          email: p.email,
+          team: p.team,
+          inWorkspace: at.ws === WREN ? p.team : true,
+          client: at.client?.id ?? null,
+        };
+      },
+    }).catch((e: unknown) => console.warn(`mention mail: ${(e as Error).message}`));
+  };
+
   const sharesOut = async (db: Db, id: string) =>
     (await sharesOf(db, id)).map((s) => ({ who: s.who, role: s.role, by: s.by, at: iso(s.at) }));
 
@@ -368,7 +418,7 @@ export function notesApi(deps: NotesDeps) {
      * state vector; none answers the whole doc.
      */
     async sync(req: Req<{ id?: unknown; update?: unknown; sv?: unknown }>) {
-      const { db, note, role } = await locate(req, req.id, "view");
+      const { db, note, role, home, place } = await locate(req, req.id, "view");
       const upd = typeof req.update === "string" && req.update ? req.update : null;
       if (upd && upd.length > UPDATE_MAX) throw new PortalRefusal("that change is too big", 400);
       const update = upd ? fromB64(upd) : null;
@@ -392,6 +442,7 @@ export function notesApi(deps: NotesDeps) {
         if (err instanceof NotASuggestion) throw new PortalRefusal(err.message, 403);
         throw err;
       });
+      if (out.changed) await tell(home, place);
       return {
         update: toB64(out.missing),
         sv: toB64(out.sv),
@@ -631,7 +682,7 @@ export function notesApi(deps: NotesDeps) {
         quote?: unknown;
       }>,
     ) {
-      const { db, note, place, reader } = await locate(req, req.id, "comment");
+      const { db, note, place, reader, home } = await locate(req, req.id, "comment");
       const by = byOf(req);
       const body = str(req.body, COMMENT_MAX, "the comment").trim();
       if (!body) throw new PortalRefusal("write something", 400);
@@ -652,19 +703,22 @@ export function notesApi(deps: NotesDeps) {
         quote: typeof req.quote === "string" ? req.quote.slice(0, QUOTE_MAX) : "",
         mentions: await mentioned(place, body),
       });
+      await tell(home, place);
       return commentOut(c, reader.email);
     },
 
     /** Its author's new words. */
     async commentEdit(req: Req<{ id?: unknown; commentId?: unknown; body?: unknown }>) {
-      const { db, note, place, reader } = await locate(req, req.id, "comment");
+      const { db, note, place, reader, home } = await locate(req, req.id, "comment");
       const by = byOf(req);
       const c = await commentById(db, note.id, String(req.commentId ?? ""));
       if (!c) throw new PortalRefusal("no such comment", 404);
       if (c.by !== by) throw new PortalRefusal("only its author can change it", 403);
       const body = str(req.body, COMMENT_MAX, "the comment").trim();
       if (!body) throw new PortalRefusal("write something", 400);
-      return commentOut(await editComment(db, c, body, await mentioned(place, body)), reader.email);
+      const edited = await editComment(db, c, body, await mentioned(place, body));
+      await tell(home, place);
+      return commentOut(edited, reader.email);
     },
 
     /** Gone, with its replies when it starts a thread: its author's, or the note owner's call. */
@@ -722,7 +776,7 @@ export function notesApi(deps: NotesDeps) {
      * `from` names the file, and makes it an `import` version so the history says so.
      */
     async append(req: Req<{ id?: unknown; body?: unknown; from?: unknown }>) {
-      const { db, note } = await locate(req, req.id, "edit");
+      const { db, note, home, place } = await locate(req, req.id, "edit");
       const by = byOf(req);
       if (JSON.stringify(req.body ?? null).length > BODY_MAX)
         throw new PortalRefusal("that's too long for one note", 400);
@@ -736,6 +790,7 @@ export function notesApi(deps: NotesDeps) {
         (doc) => appendBody(doc, body),
         from ? { kind: "import", name: `From ${from}` } : {},
       );
+      await tell(home, place);
       return { version: c.version };
     },
 
@@ -782,8 +837,9 @@ export function notesApi(deps: NotesDeps) {
 
     /** Version `number` back as a new version; nothing is lost. */
     async restore(req: Req<{ id?: unknown; number?: unknown }>) {
-      const { db, note } = await locate(req, req.id, "edit");
+      const { db, note, home, place } = await locate(req, req.id, "edit");
       const c = await restoreVersion(db, note.id, numOf(req.number, "version"), byOf(req));
+      await tell(home, place);
       return { version: c.version };
     },
 
@@ -797,7 +853,7 @@ export function notesApi(deps: NotesDeps) {
 
     /** Share with a person, the team, or (from Wren) a client's people; a null role takes it back. */
     async share(req: Req<{ id?: unknown; who?: unknown; role?: unknown }>) {
-      const { db, note, home } = await locate(req, req.id, "owner");
+      const { db, note, home, place } = await locate(req, req.id, "owner");
       const by = byOf(req);
       const who = str(req.who, 200, "who").trim().toLowerCase();
       const role = req.role === null ? null : isShareRole(req.role) ? req.role : undefined;
@@ -814,16 +870,19 @@ export function notesApi(deps: NotesDeps) {
         throw new PortalRefusal("share with an email, the team, or a client", 400);
       if (who === note.owner.toLowerCase()) throw new PortalRefusal("they own it", 400);
       await share(db, note.id, who, role, by);
+      // A mention that waited for this share is mailed now.
+      if (role) await tell(home, place);
       return { shares: await sharesOut(db, note.id) };
     },
 
     /** Who else gets it: only those named, or everyone in the workspace with a role. */
     async general(req: Req<{ id?: unknown; general?: unknown; role?: unknown }>) {
-      const { db, note } = await locate(req, req.id, "owner");
+      const { db, note, home, place } = await locate(req, req.id, "owner");
       byOf(req);
       const general: General = req.general === "workspace" ? "workspace" : "private";
       const role = isShareRole(req.role) ? req.role : "view";
       await setGeneral(db, note.id, general, role);
+      if (general === "workspace") await tell(home, place);
       return { general, generalRole: role };
     },
 
@@ -868,6 +927,44 @@ export function notesApi(deps: NotesDeps) {
       byOf(req);
       await setTrain(db, note.id, req.on === true);
       return { train: req.on === true };
+    },
+
+    /**
+     * Words to draft from: the selection, else the whole note. Drafts go to the viewer's own
+     * workspace, never the note's home: a Wren note shared to a client drafts for that client.
+     */
+    async drafting(req: Req<{ id?: unknown; text?: unknown }>) {
+      const { note, place } = await locate(req, req.id, "view");
+      const by = byOf(req);
+      const text = (str(req.text ?? "", 20_000, "the words").trim() || note.text.trim()).slice(
+        0,
+        20_000,
+      );
+      if (!text) throw new PortalRefusal("the note is empty", 400);
+      return { client: place.client?.id ?? null, text, by };
+    },
+
+    /** Words into an SOP: the selection, else the whole note. */
+    async toSop(req: Req<{ id?: unknown; text?: unknown; sop?: unknown }>) {
+      const { note, place } = await locate(req, req.id, "view");
+      const by = byOf(req);
+      if (!deps.turns) throw new PortalRefusal("SOPs aren't set up here", 503);
+      const text = str(req.text ?? "", 200_000, "the words").trim() || note.text.trim();
+      if (!text) throw new PortalRefusal("the note is empty", 400);
+      try {
+        return await deps.turns.sop({
+          client: place.ws,
+          db: place.db,
+          noteId: note.id,
+          sop: str(req.sop, 64, "the SOP"),
+          title: nameOf(note.title, note.text),
+          text,
+          by,
+        });
+      } catch (e) {
+        if (e instanceof PortalRefusal) throw e;
+        throw new PortalRefusal((e as Error).message, 400);
+      }
     },
 
     /** Every note in this workspace in training exports, or only those opted in. */
@@ -1042,6 +1139,15 @@ const INPUTS = {
   train: { id: ID, on: ON },
   upload: { id: ID, name: z.string().max(200), type: z.string().max(100), size: z.number().int() },
   workspaceTrain: { on: ON },
+  toDraft: {
+    id: ID,
+    text: z.string().max(20_000).optional().describe("The selection; none is the note"),
+  },
+  toSop: {
+    id: ID,
+    text: z.string().max(200_000).optional().describe("The selection; none is the note"),
+    sop: z.string().max(64).describe("The SOP's name: lowercase letters, digits and dashes"),
+  },
 } as const satisfies Record<keyof typeof NOTES_CONSOLE_ROUTES, z.ZodRawShape>;
 const input = (route: keyof typeof INPUTS) => ({
   input: z.looseObject({ ...PORTAL_FIELDS, ...INPUTS[route] }),
@@ -1050,11 +1156,11 @@ const input = (route: keyof typeof INPUTS) => ({
 /** The Restate service. A write is journaled once, so a retry never writes twice. */
 export function makeNotesConsole(deps: NotesDeps) {
   const api = notesApi(deps);
-  const read = <K extends keyof typeof INPUTS>(route: K) =>
+  const read = <K extends keyof typeof INPUTS & keyof NotesApi>(route: K) =>
     serviceHandler(input(route), (_: restate.Context, req: Parameters<NotesApi[K]>[0]) =>
       answer(() => (api[route] as (r: typeof req) => Promise<unknown>)(req)),
     );
-  const write = <K extends keyof typeof INPUTS>(route: K, name: string) =>
+  const write = <K extends keyof typeof INPUTS & keyof NotesApi>(route: K, name: string) =>
     serviceHandler(input(route), (ctx: restate.Context, req: Parameters<NotesApi[K]>[0]) =>
       answer(() =>
         ctx.run(name, () => answer(() => (api[route] as (r: typeof req) => Promise<unknown>)(req))),
@@ -1103,6 +1209,18 @@ export function makeNotesConsole(deps: NotesDeps) {
       train: write("train", "train"),
       upload: write("upload", "upload"),
       workspaceTrain: write("workspaceTrain", "workspace train"),
+      toDraft: serviceHandler(
+        input("toDraft"),
+        (ctx: restate.Context, req: Parameters<NotesApi["drafting"]>[0]) =>
+          answer(async () => {
+            const turns = deps.turns;
+            if (!turns) throw new PortalRefusal("drafting isn't set up here", 503);
+            const go = await ctx.run("check", () => answer(() => api.drafting(req)));
+            await turns.draft(ctx, go);
+            return { started: true };
+          }),
+      ),
+      toSop: write("toSop", "to sop"),
     },
   });
 }

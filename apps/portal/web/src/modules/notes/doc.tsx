@@ -15,6 +15,7 @@ import {
   GROUP_LABEL,
   Icon,
   Loading,
+  ReadAloud,
   relative,
   say,
   Tag,
@@ -39,6 +40,7 @@ import { type Heading, type Mode, NoteEditor, outlineOf, wordsIn } from "./edito
 import { download, downloadDocx, fileName } from "./files.js";
 import { ShareDialog } from "./share.js";
 import { NoteSync, type SyncState } from "./sync.js";
+import { makeDrafts, SopDialog, selectedWords } from "./turn.js";
 import { VersionOpen, VersionsPanel } from "./versions.js";
 import "./notes.css";
 
@@ -205,6 +207,8 @@ function Doc({
   const [outline, setOutline] = useState(true);
   const [shown, setShown] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
+  /** The words going to an SOP; null while its dialog is shut. */
+  const [sopFor, setSopFor] = useState<string | null>(null);
   const [list, setList] = useState<NoteVersions | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [people, setPeople] = useState<NotePeople | null>(null);
@@ -419,6 +423,13 @@ function Doc({
               </svg>
             </button>
           ) : null}
+          <ReadAloud
+            label="Read aloud: the selection, else the note"
+            text={() =>
+              selectedWords(editor) ||
+              `${title}\n\n${editor?.state.doc.textBetween(0, editor.state.doc.content.size, "\n\n") ?? ""}`
+            }
+          />
           <Button
             tone="secondary"
             size="dense"
@@ -453,7 +464,17 @@ function Doc({
               { label: "Download Markdown", run: markdown },
               { label: "Download Word (.docx)", run: word },
               null,
-              { label: "Turn into a task, draft or SOP", soon: true },
+              // The selection, else the whole note.
+              ...(demo
+                ? []
+                : [
+                    {
+                      label: "Make drafts from it",
+                      run: () => makeDrafts(client, note.id, selectedWords(editor)),
+                    },
+                    { label: "Add to an SOP…", run: () => setSopFor(selectedWords(editor)) },
+                  ]),
+              { label: "Make a task", soon: true },
               null,
               ...(owner
                 ? [
@@ -622,6 +643,9 @@ function Doc({
           onOpenChange={setSharing}
           onChanged={reopen}
         />
+      ) : null}
+      {sopFor !== null ? (
+        <SopDialog client={client} id={note.id} text={sopFor} onClose={() => setSopFor(null)} />
       ) : null}
       {refused && !canEdit ? (
         <Alert onRetry={canSuggest ? () => location.reload() : reload}>{refused}</Alert>

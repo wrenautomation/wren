@@ -14,7 +14,13 @@ import { FakeLlm } from "@wren/llm";
 import { mentionRecord } from "@wren/notes/records";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { conversationOf, pickOption, type ReplySender, setThread } from "../../src/inbox/index.js";
+import {
+  askFollowEmail,
+  conversationOf,
+  pickOption,
+  type ReplySender,
+  setThread,
+} from "../../src/inbox/index.js";
 import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";
 import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
@@ -34,6 +40,7 @@ const fake = (ctx: Context): ReplySender => {
     comment: push("comment"),
     invite: push("invite"),
     email: push("email"),
+    thread: push("thread"),
     mail: push("mail"),
   };
 };
@@ -238,5 +245,54 @@ describe("InboxDesk", () => {
     expect((await rowOf(thread()))?.status).toBe("snoozed");
     await desk().status({ thread: thread(), status: "open", ...as(s.operator) });
     expect((await rowOf(thread()))?.status).toBe("open");
+  });
+});
+
+describe("a follow-up's email", () => {
+  /** Dana never wrote back by email, and the sequence is done. */
+  const quiet = async () => {
+    await pg.db.execute(sql`delete from call_bookings`);
+    await pg.db.execute(sql`delete from thread_events`);
+    await pg.db.execute(
+      sql`update enrollments set state = 'finished', stop_reason = null, stopped_at = null`,
+    );
+  };
+  const ask = (subject: string) =>
+    askFollowEmail(pg.db, {
+      subject,
+      enrollmentId: s.enrollmentId,
+      body: "Still worth a call?",
+      by: "workflow:follow_up.touches/email4",
+      why: "Follow-up's email: it sends once someone says yes.",
+    });
+
+  it("waits in To approve on their text thread, once; a yes sends it in our email thread", async () => {
+    await quiet();
+    expect(await ask(`lead:sms:${s.smsId}`)).toEqual({ asked: true, why: null });
+    expect(await ask(`lead:sms:${s.smsId}`)).toEqual({ asked: false, why: "already asked" });
+    const rows = ((await approvalRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "reply");
+    expect(rows).toEqual([
+      expect.objectContaining({
+        platform: "email",
+        body: "Still worth a call?",
+        url: `/inbox/waiting/${encodeURIComponent(`text:${s.smsId}`)}`,
+      }),
+    ]);
+    const id = Number(String(rows[0]?.id).slice("reply:".length));
+    await desk().approve({ id, ...as(s.admin) });
+    expect(sent).toEqual([{ channel: "thread", id: s.enrollmentId, body: "Still worth a call?" }]);
+  });
+
+  it("asks on our email thread when the lead has no other, and never while it still sends", async () => {
+    await quiet();
+    expect(await ask(`lead:email:${s.enrollmentId}`)).toEqual({ asked: true, why: null });
+    const [row] = ((await approvalRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "reply");
+    expect(row).toMatchObject({ who: "Dana Rivera", url: null });
+    await pg.db.execute(sql`delete from inbox_replies`);
+    await pg.db.execute(sql`update enrollments set state = 'active'`);
+    expect(await ask(`lead:email:${s.enrollmentId}`)).toEqual({
+      asked: false,
+      why: "Its sequence is still sending.",
+    });
   });
 });

@@ -12,8 +12,9 @@ import {
   WREN,
 } from "@wren/core/access";
 import { type Client, sendsOn } from "@wren/core/clients";
+import { threadOf } from "@wren/core/leads";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { type InboxChannel, type InboxReply, inboxReplies } from "../schema.js";
 import { optionsOf, partyOf, type ReplyOption } from "./conversation.js";
 
@@ -144,6 +145,8 @@ export interface ReplySender {
   invite(inviteId: number, body: string): Promise<void>;
   /** An email with no open invite: answer in its thread. */
   email(threadEventId: number, body: string): Promise<void>;
+  /** Our email thread they never answered: our next email in it. */
+  thread(enrollmentId: number, body: string): Promise<void>;
   /** Mail to a client's mailbox (`watch.mail`): answer in its thread, from that mailbox. */
   mail(mailId: number, body: string): Promise<void>;
 }
@@ -166,6 +169,7 @@ export async function sendOn(sender: ReplySender, option: ReplyOption, body: str
     case "email":
       if (t.startsWith("invite:")) return sender.invite(n(t.slice(7)), body);
       if (t.startsWith("mail:")) return sender.mail(n(t.slice(5)), body);
+      if (t.startsWith("thread:")) return sender.thread(n(t.slice(7)), body);
       return sender.email(n(t.slice(t.indexOf(":") + 1)), body);
   }
 }
@@ -239,4 +243,43 @@ export function waitingReplies(db: Queryable, limit = 500) {
 /** A claimed reply whose send was refused: failed, with why. */
 export async function failReply(db: Queryable, id: number, detail: string): Promise<void> {
   await db.update(inboxReplies).set({ state: "failed", detail }).where(eq(inboxReplies.id, id));
+}
+
+/**
+ * A Follow-up's or Nurture's email waiting on a yes (designs/2026-10-07-follow-up-nurture.md): on
+ * the lead's text or DM thread when it has our email thread too, else on that email thread
+ * (`outbound:<enrollment>`). Approve sends it as our next email there. One per node (`by`): a
+ * second pass asks nothing.
+ */
+export async function askFollowEmail(
+  db: Queryable,
+  o: { subject: string; enrollmentId: number; body: string; by: string; why: string },
+): Promise<{ asked: boolean; why: string | null }> {
+  const lead = threadOf(o.subject);
+  const own =
+    lead?.channel === "text" ? `text:${lead.id}` : lead?.channel === "dm" ? `dm:${lead.id}` : null;
+  for (const thread of [own, `outbound:${o.enrollmentId}`]) {
+    if (!thread) continue;
+    const p = await partyOf(db, thread);
+    const option = p
+      ? (await optionsOf(db, p)).find((x) => x.target.startsWith("thread:"))
+      : undefined;
+    if (!p || !option) continue;
+    if (option.off) return { asked: false, why: option.off };
+    const [had] = await db
+      .select({ id: inboxReplies.id })
+      .from(inboxReplies)
+      .where(
+        and(
+          eq(inboxReplies.target, option.target),
+          eq(inboxReplies.askedBy, o.by.toLowerCase()),
+          inArray(inboxReplies.state, ["waiting", "sent"]),
+        ),
+      )
+      .limit(1);
+    if (had) return { asked: false, why: "already asked" };
+    await askReply(db, { thread, option, body: o.body, who: p.who, by: o.by, why: o.why });
+    return { asked: true, why: null };
+  }
+  return { asked: false, why: "no email thread of ours with them" };
 }

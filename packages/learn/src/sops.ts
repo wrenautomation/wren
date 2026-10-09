@@ -13,7 +13,7 @@ import type { Db, Queryable } from "@wren/db";
 import { createNote } from "@wren/notes";
 import { fromMarkdown } from "@wren/notes/doc";
 import { notes } from "@wren/notes/schema";
-import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { fileOf } from "./read.js";
 import { items, sopSources } from "./schema.js";
 
@@ -66,12 +66,15 @@ export async function writeAsked(
   const asked = await db
     .select({ ask: sopSources, item: items })
     .from(sopSources)
-    .innerJoin(items, eq(items.id, sopSources.itemId))
+    .leftJoin(items, eq(items.id, sopSources.itemId))
     .where(
       and(
-        eq(items.client, WREN),
+        or(
+          and(eq(items.client, WREN), isNotNull(items.transcript)),
+          // Words from one of Wren's notes; never with `only.itemId`.
+          only?.itemId ? undefined : eq(sopSources.client, WREN),
+        ),
         eq(sopSources.state, "asked"),
-        isNotNull(items.transcript),
         only?.itemId ? eq(sopSources.itemId, only.itemId) : undefined,
         only?.sop ? eq(sopSources.sop, only.sop) : undefined,
       ),
@@ -79,11 +82,12 @@ export async function writeAsked(
     .orderBy(asc(sopSources.id));
   const out: Array<{ sop: string; file: string | null; error: string | null }> = [];
   for (const { ask, item } of asked) {
-    const name = item.file ?? fileOf(item.url);
+    const name = item ? (item.file ?? fileOf(item.url)) : noteFile(ask);
+    const md = item ? (item.transcript ?? "") : noteWords(ask);
     const dir = join(sopsDir, ask.sop);
     let written = false;
     try {
-      await writer.add(dir, { name, md: item.transcript ?? "" });
+      await writer.add(dir, { name, md });
       written = true;
       await db
         .update(sopSources)
@@ -103,6 +107,56 @@ export async function writeAsked(
     }
   }
   return out;
+}
+
+/** A note's words under an SOP's `sources/`: one file per ask. */
+const noteFile = (ask: { id: number; noteId: string | null }) =>
+  `note-${(ask.noteId ?? "").slice(0, 8)}-${ask.id}.md`;
+const noteWords = (ask: { title: string | null; text: string | null }) =>
+  [ask.title ? `# ${ask.title}` : "", ask.text ?? ""].filter(Boolean).join("\n\n");
+
+/**
+ * Words from a note (Notes → Make an SOP) asked into an SOP. Wren's wait for the Mac to write
+ * them into the folder, as items do; a client's go now into its own Notes, under the SOP's note.
+ * `notesDb` is the workspace's own database. What happened, in a few words.
+ */
+export async function askNoteSop(
+  db: Db,
+  notesDb: Db,
+  p: { client: string; noteId: string; sop: string; title: string; text: string; by: string },
+): Promise<{ sop: string; state: "asked" | "added"; note: string | null }> {
+  const sop = p.sop.trim().toLowerCase();
+  if (!SOP_NAME.test(sop)) throw new Error("An SOP name is lowercase letters, digits and dashes");
+  const text = p.text.trim();
+  if (!text) throw new Error("Select the words for the SOP");
+  const row = {
+    noteId: p.noteId,
+    client: p.client,
+    sop,
+    title: p.title.slice(0, 300),
+    text: text.slice(0, 200_000),
+    by: p.by,
+  };
+  if (p.client === WREN) {
+    await db.insert(sopSources).values(row);
+    return { sop, state: "asked", note: null };
+  }
+  const parent = await sopNote(notesDb, sop);
+  const note = await createNote(notesDb, {
+    owner: LEARN_AGENT,
+    by: p.by,
+    via: "agent",
+    title: row.title || sop,
+    body: fromMarkdown(row.text),
+    parentId: parent,
+  });
+  await db.insert(sopSources).values({
+    ...row,
+    state: "added",
+    file: `note:${note.id}`,
+    doneAt: new Date(),
+  });
+  return { sop, state: "added", note: note.id };
 }
 
 /** One row of the SOP library. */
@@ -145,10 +199,14 @@ export async function sopLibrary(
     : [];
   const pushed = new Map(pushes.map((p) => [p.sop, { ...p, at: new Date(p.at) }]));
   const links = await db
-    .select({ sop: sopSources.sop, state: sopSources.state, title: items.title })
+    .select({
+      sop: sopSources.sop,
+      state: sopSources.state,
+      title: sql<string>`coalesce(${items.title}, ${sopSources.title}, 'A note')`,
+    })
     .from(sopSources)
-    .innerJoin(items, eq(items.id, sopSources.itemId))
-    .where(eq(items.client, client))
+    .leftJoin(items, eq(items.id, sopSources.itemId))
+    .where(or(eq(items.client, client), eq(sopSources.client, client)))
     .orderBy(asc(sopSources.sop), asc(sopSources.id));
   const folders = wren && sopsDir ? await readFolders(sopsDir) : null;
   const names = new Set([...(folders?.keys() ?? []), ...pushed.keys(), ...links.map((l) => l.sop)]);

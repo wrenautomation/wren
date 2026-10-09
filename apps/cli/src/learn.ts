@@ -380,16 +380,17 @@ export function registerLearn(
     .action(async (id: string, sop: string, o: { sopModel: string; later?: boolean }) =>
       json(
         await inWorkspace(async (db, client) => {
-          const ask = await askSop(db, { client, itemId: Number(id), sop, by: BY });
+          const itemId = Number(id);
+          const ask = await askSop(db, { client, itemId, sop, by: BY });
           if (o.later) return ask;
           if (client !== WREN) {
-            const [done] = await notesFor(db, client, ask.itemId);
+            const [done] = await notesFor(db, client, itemId);
             return (
               done ?? { asked: ask.sop, note: "Not read yet: the next `learn read` writes it." }
             );
           }
           const done = await writeAsked(db, sopsDir, writer(o.sopModel), {
-            itemId: ask.itemId,
+            itemId,
             sop: ask.sop,
           });
           return done.length

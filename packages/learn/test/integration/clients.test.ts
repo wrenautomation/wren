@@ -18,14 +18,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { learnConsoleApi } from "../../src/console.js";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "../../src/console-routes.js";
 import {
+  askNoteSop,
   clientAskedOnRead,
   collections,
   items,
   judges,
   practiceOf,
   scoreItem,
+  sopLibrary,
   sources,
   tellLearn,
+  writeAsked,
 } from "../../src/index.js";
 
 const ADMIN = "ada@wren.example.test";
@@ -383,6 +386,52 @@ describe("a client's items are its own to score and keep", () => {
     });
     expect(sent.join("\n")).toContain("wren item 7");
     expect(sent.join("\n")).not.toContain("alpha");
+  });
+
+  it("a note's words into an SOP: a client's into its Notes now, Wren's asked for the Mac", async () => {
+    const ask = {
+      noteId: "00000000-0000-4000-8000-000000000001",
+      sop: "patient-recalls",
+      title: "Front desk",
+      text: "Call within two days.",
+      by: AMY,
+    };
+    await expect(
+      askNoteSop(pg.db, alphaDb, { ...ask, client: "alpha", sop: "Bad!" }),
+    ).rejects.toThrow(/lowercase/);
+    const out = await askNoteSop(pg.db, alphaDb, { ...ask, client: "alpha" });
+    expect(out).toMatchObject({ sop: "patient-recalls", state: "added" });
+    const inAlpha = await alphaDb.select().from(notes);
+    const parent = inAlpha.find((n) => n.parentId === null);
+    expect(parent?.title).toBe("patient-recalls");
+    expect(inAlpha.find((n) => n.id === out.note)).toMatchObject({
+      parentId: parent?.id,
+      title: "Front desk",
+      text: expect.stringContaining("two days"),
+    });
+    expect((await sopLibrary(pg.db, "alpha", null)).map((r) => [r.sop, r.fromItems])).toEqual([
+      ["patient-recalls", 1],
+    ]);
+    expect(await sopLibrary(pg.db, "beta", null)).toEqual([]);
+
+    const wren = await askNoteSop(pg.db, pg.db, { ...ask, client: "wren", sop: "email-infra" });
+    expect(wren).toEqual({ sop: "email-infra", state: "asked", note: null });
+    expect(await pg.db.select().from(notes)).toEqual([]);
+    const written: Array<{ name: string; md: string }> = [];
+    const out2 = await writeAsked(pg.db, "/sops", {
+      add: async (_d, s) => {
+        written.push(s);
+        return s.name;
+      },
+      extract: async () => {},
+    });
+    expect(out2).toEqual([
+      { sop: "email-infra", file: expect.stringMatching(/^note-00000000-\d+\.md$/), error: null },
+    ]);
+    expect(written[0]?.md).toBe("# Front desk\n\nCall within two days.");
+    expect(
+      await writeAsked(pg.db, "/sops", { add: async () => "", extract: async () => {} }),
+    ).toEqual([]);
   });
 
   it("writes a client's SOP into its own Notes, never Wren's or another's", async () => {

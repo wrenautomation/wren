@@ -320,6 +320,8 @@ export const noteMentions = pgTable(
     by: varchar("by", { length: 200 }).notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     seenAt: timestamp("seen_at", { withTimezone: true }),
+    /** When they were mailed it; unseen ones from the last day wait for this. */
+    mailedAt: timestamp("mailed_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_note_mentions" }),
@@ -342,6 +344,9 @@ export const noteMentions = pgTable(
     index("ix_note_mentions_note").on(t.noteId),
     index("ix_note_mentions_comment").on(t.commentId),
     index("ix_note_mentions_inbox_note").on(t.inboxNoteId),
+    index("ix_note_mentions_unmailed")
+      .on(t.at)
+      .where(sql`${t.mailedAt} is null and ${t.seenAt} is null`),
     check("ck_note_mentions_place", sql`num_nonnulls(${t.noteId}, ${t.inboxNoteId}) = 1`),
   ],
 );

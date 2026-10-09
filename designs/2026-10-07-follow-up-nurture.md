@@ -14,7 +14,8 @@ Both parts sit in `apps/worker/src/planned.ts` as "In development", wired into `
   Email step (`email.touch`) and Wait (`logic.wait`, until a reply or a booking).
 - Nothing sends unless the global gate and the client's sends flag for that part are both on.
   Off, each touch records "would send" and the lead moves on. Nothing sends in tests.
-- Calls, voicemail, and an email to a quiet lead stay "In development".
+- The last touch is an email in our own thread. It drafts into To approve; a person's yes sends
+  it. Calls and voicemail stay "In development".
 
 ## Inside
 
@@ -27,8 +28,13 @@ Both parts sit in `apps/worker/src/planned.ts` as "In development", wired into `
   `timeout` when time runs out) go to the next touch. The touch first checks whether they
   answered, so an answer leaves by `replied` at once. A Wait's out port carries a lead and the
   part's `replied` carries a reply, so the touch does the conversion.
-- The last step is the Email step. Until email to a quiet lead is built, it only checks for an
-  answer: `replied`, else `quiet`.
+- The last step is the Email step (built 10-09). It drafts the node's copy (`email:follow/
+  follow-up`, `email:follow/nurture`) as an asked reply in To approve, on the lead's text or DM
+  thread, else on our email thread (`outbound:<enrollment>`). Approve sends it in reply to the
+  last email we sent, from that thread's inbox (`Disposition.followUp`). Out `quiet` either way;
+  a reply later still ends the lead.
+- It skips a thread whose sequence still sends, one that bounced, was opted out or stopped by
+  hand, a suppressed address, and copy needing a fact they lack. Settings: `emails` (default on).
 - A touch node with no `step` setting is one follow-up touch. It reads its own copy
   (`node.template`, now on `StepAt`) and finds the lead's thread on its channel.
 - Each touch first asks: did this lead answer on any channel, or book? Then out `replied`. Is
@@ -81,9 +87,6 @@ What each touch did is kept on its output (`data.follow`): the part, channel, `q
 
 - Calls and voicemail: listed on both parts. They wait on voice; the vendor is William's
   call.
-- An email to a quiet lead. A finished email thread can't send again today, and in-thread
-  sends wait on a person's yes. In follow-up, the Email step only checks for an answer, then
-  passes the lead on as "in development".
 
 ## Decision log
 
@@ -94,5 +97,8 @@ What each touch did is kept on its output (`data.follow`): the part, channel, `q
   same lead. This also applies to waits in other workflows; it was the intent there too.
 - 2026-10-07: email to quiet leads deferred. It needs a send path for finished threads
   (approval, inbox choice, threading), which is its own build.
+- 2026-10-09: email to quiet leads built on the Inbox's asked replies, not a new queue. To
+  approve, Approve, Drop and the approver rules stay one path. The Inbox also offers "Email
+  <address>" on our thread when they never wrote back.
 - 2026-10-07: a step's kept output that runs past 32 KB still keeps `data.follow`, since the
   journey reads it.

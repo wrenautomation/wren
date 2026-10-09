@@ -23,6 +23,7 @@ import {
   writeTitle,
 } from "../../src/doc.js";
 import { googleDrive } from "../../src/drive.js";
+import type { MentionMail } from "../../src/mention-mail.js";
 import { mentionRecord } from "../../src/records.js";
 import { trainingNotes } from "../../src/store.js";
 import { SUGGEST_ADD } from "../../src/types.js";
@@ -372,6 +373,135 @@ describe("comments, suggestions and mentions", () => {
     m = await api().mentions({ viewer: OZ });
     expect(m.unseen).toBe(0);
     expect(m.mentions[0]?.seen).toBe(true);
+  });
+
+  it("mails a mention once, waits for the share, and links a client's note to its client", async () => {
+    const sent: MentionMail[] = [];
+    let down = false;
+    const mailing = () =>
+      notesApi({
+        main: pg.db,
+        open: () => acme.db,
+        mail: {
+          portal: "https://app.example.test/",
+          send: async (m) => {
+            if (down) throw new Error("mail is down");
+            sent.push(m);
+          },
+        },
+      });
+    const { id } = await mailing().create({ viewer: ADA, title: "Launch" });
+    await mailing().share({ viewer: ADA, id, who: "team", role: "comment" });
+    const t = await mailing().comment({
+      viewer: ADA,
+      id,
+      body: "@oz@example.test ok?",
+      anchor: ANCHOR,
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      to: "oz@example.test",
+      subject: "ada@example.test mentioned you in Launch",
+    });
+    expect(sent[0]?.text).toContain("@oz@example.test ok?");
+    expect(sent[0]?.text).toContain(`https://app.example.test/notes/doc/${id}?comment=${t.id}`);
+    // A reply without a new mention mails no one.
+    await mailing().comment({ viewer: OZ, id, body: "Yes.", parentId: t.id });
+    expect(sent).toHaveLength(1);
+
+    // Not shared with them: it waits, then goes with the share.
+    const { id: hidden } = await mailing().create({ viewer: ADA, title: "Hidden" });
+    await mailing().comment({
+      viewer: ADA,
+      id: hidden,
+      body: "hi @oz@example.test",
+      anchor: ANCHOR,
+    });
+    expect(sent).toHaveLength(1);
+    // A failed send gives it back for the next change.
+    down = true;
+    await mailing().share({ viewer: ADA, id: hidden, who: "oz@example.test", role: "view" });
+    expect(sent).toHaveLength(1);
+    down = false;
+    await mailing().comment({
+      viewer: ADA,
+      id: hidden,
+      body: "again @oz@example.test",
+      anchor: ANCHOR,
+    });
+    expect(sent.map((m) => m.text.split("\n")[2])).toEqual([
+      "@oz@example.test ok?",
+      "hi @oz@example.test",
+      "again @oz@example.test",
+    ]);
+
+    const { id: plan } = await mailing().create({ viewer: OWEN, client: "acme", title: "Plan" });
+    await mailing().share({
+      viewer: OWEN,
+      client: "acme",
+      id: plan,
+      who: "mia@acme.test",
+      role: "comment",
+    });
+    await mailing().comment({
+      viewer: OWEN,
+      client: "acme",
+      id: plan,
+      body: "@mia@acme.test",
+      anchor: ANCHOR,
+    });
+    expect(sent.at(-1)?.to).toBe("mia@acme.test");
+    expect(sent.at(-1)?.text).toMatch(
+      new RegExp(`/notes/doc/${plan}\\?comment=[0-9a-f-]+&client=acme$`),
+    );
+  });
+
+  it("selected words to drafts and SOPs: the selection, else the note, in the viewer's workspace", async () => {
+    const asked: unknown[] = [];
+    const turning = () =>
+      notesApi({
+        main: pg.db,
+        open: () => acme.db,
+        turns: {
+          draft: async () => {},
+          sop: async (o) => {
+            asked.push({ client: o.client, sop: o.sop, title: o.title, text: o.text });
+            return { sop: o.sop, state: "asked", note: null };
+          },
+        },
+      });
+    const { id } = await turning().create({
+      viewer: ADA,
+      title: "Ideas",
+      markdown: "First.\n\nSecond.",
+    });
+    expect(await turning().drafting({ viewer: ADA, id, text: "Second." })).toEqual({
+      client: null,
+      text: "Second.",
+      by: "ada@example.test",
+    });
+    expect((await turning().drafting({ viewer: ADA, id })).text).toContain("First.");
+    await turning().toSop({ viewer: ADA, id, sop: "email-infra" });
+    expect(asked).toEqual([
+      {
+        client: "wren",
+        sop: "email-infra",
+        title: "Ideas",
+        text: expect.stringContaining("Second."),
+      },
+    ]);
+    // Not open to them: no such note.
+    await refused(turning().drafting({ viewer: OZ, id }), 404);
+    const { id: plan } = await turning().create({
+      viewer: OWEN,
+      client: "acme",
+      title: "Plan",
+      markdown: "Go.",
+    });
+    expect(await turning().drafting({ viewer: OWEN, client: "acme", id: plan })).toMatchObject({
+      client: "acme",
+      text: "Go.",
+    });
   });
 
   it("a mention never shares: it shows once the note is shared", async () => {

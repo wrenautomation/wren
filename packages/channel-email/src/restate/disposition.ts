@@ -29,6 +29,7 @@ import {
   type ApproveOutcome,
   approveInvite,
   dropInvite,
+  followUpByHand,
   type InviteStats,
   replyByHand,
   runInvites,
@@ -221,6 +222,46 @@ export function makeDisposition(deps: DispositionDeps) {
             const owner = ctx.key === DISPOSITION_KEY ? null : clientOfKey(ctx.key);
             try {
               const out = await replyByHand(deps.dbOf(ctx.key), req.threadEventId, {
+                transport: send.transport,
+                fleet: send.fleet,
+                body: req.body,
+                now,
+                shared: owner ? { main: deps.dbOf(DISPOSITION_KEY), client: owner.client } : null,
+              });
+              return out.ok ? { ok: true, reason: null } : { ok: false, reason: out.reason };
+            } catch (err) {
+              throw new restate.TerminalError(errorText(err));
+            }
+          });
+        },
+      ),
+
+      /**
+       * Our next email in a thread they never answered: a Follow-up's draft once approved, or
+       * words typed in the Inbox (`followUpByHand`).
+       */
+      followUp: exclusiveHandler(
+        {
+          input: z.looseObject({
+            enrollmentId: z.number().describe("The email thread's id"),
+            body: z.string().describe("The words to send"),
+          }),
+          effect: "sends",
+        },
+        async (
+          ctx: restate.ObjectContext,
+          req: { enrollmentId: number; body: string },
+        ): Promise<{ ok: boolean; reason: string | null }> => {
+          if (!wired(ctx.key)) {
+            throw new restate.TerminalError("follow-ups are not wired on this worker");
+          }
+          const now = new Date(await ctx.date.now());
+          return ctx.run("follow up by hand", async () => {
+            const send = (await invitesFor(ctx.key))?.send;
+            if (!send) throw new restate.TerminalError("follow-ups are not on for this key");
+            const owner = ctx.key === DISPOSITION_KEY ? null : clientOfKey(ctx.key);
+            try {
+              const out = await followUpByHand(deps.dbOf(ctx.key), req.enrollmentId, {
                 transport: send.transport,
                 fleet: send.fleet,
                 body: req.body,

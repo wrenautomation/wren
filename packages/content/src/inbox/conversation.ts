@@ -71,7 +71,8 @@ async function handlePerson(db: Queryable, platform: unknown, handle: unknown) {
 export async function threadChannelOf(db: Queryable, thread: string): Promise<string | null> {
   const [type, rest] = typed(thread);
   if (type === "text") return "sms";
-  if (type === "email" || type === "reply" || type === "mail") return "email";
+  if (type === "email" || type === "reply" || type === "mail" || type === "outbound")
+    return "email";
   const n = Number(rest);
   if (!Number.isInteger(n)) return null;
   const table = type === "dm" ? sql`reach_contacts` : type === "comment" ? sql`comments` : null;
@@ -145,6 +146,21 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
     if (!i || !(await email(Number(i.thread_event_id)))) return null;
   } else if (type === "reply") {
     if (!(await email(n))) return null;
+  } else if (type === "outbound") {
+    // Our email thread they never answered: a Follow-up's email asks on it.
+    const [e] = await rowsOf(
+      db,
+      sql`select e.id, e.person_id, e.lead_id, e.to_email,
+          coalesce(nullif(concat_ws(' ', pe.first_name, pe.last_name), ''), pe.full_name,
+            e.to_email) who
+        from enrollments e left join people pe on pe.id = e.person_id where e.id = ${n}`,
+    );
+    if (!e) return null;
+    p.who = str(e.who);
+    p.personId = e.person_id == null ? null : Number(e.person_id);
+    p.leadId = e.lead_id == null ? null : Number(e.lead_id);
+    p.enrollmentIds.push(n);
+    p.emails.push(String(e.to_email).toLowerCase());
   } else if (type === "text") {
     const [c] = await rowsOf(
       db,
@@ -513,8 +529,9 @@ function touchWords(kind: string, ours: boolean): string {
 export interface ReplyOption {
   channel: InboxChannel;
   /**
-   * The path's own id: `<contact>` for DMs and texts, `<comment>`, `invite:<id>`, `reply:<id>` or
-   * `mail:<id>` (the newest of theirs in a mailbox thread).
+   * The path's own id: `<contact>` for DMs and texts, `<comment>`, `invite:<id>`, `reply:<id>`,
+   * `thread:<enrollment>` (ours, never answered) or `mail:<id>` (the newest of theirs in a mailbox
+   * thread).
    */
   target: string;
   label: string;
@@ -542,6 +559,9 @@ const SITE: Record<string, string> = {
   tiktok: "TikTok",
   google_business: "Business Profile",
 };
+
+/** How an email thread ended that no follow-up reopens (`followUpByHand` refuses the same). */
+const CLOSED_THREAD = new Set(["bounce", "opt_out", "complaint", "undeliverable", "manual"]);
 
 /**
  * Every channel a reply to this person can take, the thread's own first. Email answers in their
@@ -617,6 +637,29 @@ export async function optionsOf(db: Queryable, p: Party): Promise<ReplyOption[]>
         own: type === "email" || type === "reply",
         off: null,
       });
+    } else {
+      // They never wrote back: our next email in our newest thread that sent, once it's done.
+      const [t] = await rowsOf(
+        db,
+        sql`select e.id, e.to_email, e.state, e.stop_reason from enrollments e
+          where e.id in ${list(p.enrollmentIds)}
+            and exists (select 1 from messages m where m.enrollment_id = e.id and m.state = 'sent')
+          order by e.created_at desc, e.id desc limit 1`,
+      );
+      if (t)
+        out.push({
+          channel: "email",
+          target: `thread:${t.id}`,
+          label: `Email ${String(t.to_email)}`,
+          platform: null,
+          own: type === "outbound",
+          off:
+            t.state === "active"
+              ? "Its sequence is still sending."
+              : t.state === "stopped" && CLOSED_THREAD.has(String(t.stop_reason))
+                ? `That thread ended: ${String(t.stop_reason).replace("_", " ")}.`
+                : null,
+        });
     }
   }
   if (p.mail) {

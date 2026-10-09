@@ -24,6 +24,7 @@ export const followSettingsSchema = z
   .object({
     texts: z.boolean().default(true).describe("Send texts"),
     dms: z.boolean().default(true).describe("Send DMs"),
+    emails: z.boolean().default(true).describe("Draft emails (each waits for a yes)"),
   })
   .strict();
 export type FollowSettings = z.infer<typeof followSettingsSchema>;
@@ -31,6 +32,7 @@ export type FollowSettings = z.infer<typeof followSettingsSchema>;
 const CHANNEL_SETTING: Partial<Record<FollowChannel, keyof FollowSettings>> = {
   text: "texts",
   dm: "dms",
+  email: "emails",
 };
 
 const CHANNEL_WORD: Record<FollowChannel, string> = { text: "text", dm: "DM", email: "email" };
@@ -48,7 +50,8 @@ export interface FollowNote {
   part: FollowPart;
   node: string;
   channel: FollowChannel;
-  did: "queued" | "would_send" | "skipped" | "answered";
+  /** `asked`: an email drafted into To approve, sent once a person says yes. */
+  did: "queued" | "asked" | "would_send" | "skipped" | "answered";
   why: string | null;
 }
 
@@ -118,9 +121,6 @@ export async function followStart(
   if (!who) return { outs: passed(e, { ...note, why: "no lead on this event" }) };
   const how = await leadAnswered(o.db, who);
   if (how) return { outs: answered(e, { ...note, did: "answered", why: how }) };
-  // The Email step is where every follow-up ends, until email to a quiet lead is built.
-  if (o.channel === "email")
-    return { outs: passed(e, { ...note, why: "email is in development" }) };
   const busy = await activeSequence(o.db, who);
   if (busy) return { outs: passed(e, { ...note, why: busy }) };
   const settings = followSettingsSchema.safeParse(
@@ -166,6 +166,7 @@ const TOUCH: Record<FollowChannel, string> = {
 
 export const textCopy = (name: string): TemplateRef => ({ kind: "sms", system: "texts", name });
 export const dmCopy = (name: string): TemplateRef => ({ kind: "dm", system: "reach", name });
+export const emailCopy = (name: string): TemplateRef => ({ kind: "email", system: "follow", name });
 
 interface Beat {
   channel: FollowChannel;
@@ -219,30 +220,30 @@ function touches(id: string, name: string, blurb: string, beats: Beat[], first?:
   });
 }
 
-const EMAIL_NOTE = "Email. In development: checks for an answer, then passes the lead on.";
+const EMAIL_NOTE = "Email. In our thread, drafted into To approve; sends once someone says yes.";
 
 export const FOLLOW_UP_INSIDE = touches(
   `${FOLLOW_UP}.touches`,
   "Follow-up",
-  "A text, a DM, then a text, each waiting for an answer.",
+  "A text, a DM, a text, each waiting for an answer, then an email that waits for a yes.",
   [
     { channel: "text", copy: textCopy("follow-up#1"), note: "Text 1.", waitUpTo: "2 days" },
     { channel: "dm", copy: dmCopy("follow-up#1"), note: "DM 1.", waitUpTo: "3 days" },
     { channel: "text", copy: textCopy("follow-up#2"), note: "Text 2.", waitUpTo: "4 days" },
-    { channel: "email", copy: null, note: EMAIL_NOTE },
+    { channel: "email", copy: emailCopy("follow-up"), note: EMAIL_NOTE },
   ],
 );
 
 export const NURTURE_INSIDE = touches(
   `${NURTURE}.touches`,
   "Nurture",
-  "One touch a month for four months, until they answer.",
+  "One touch a month for four months, then an email that waits for a yes, until they answer.",
   [
     { channel: "text", copy: textCopy("nurture#1"), note: "Month 1.", waitUpTo: "30 days" },
     { channel: "dm", copy: dmCopy("nurture#1"), note: "Month 2.", waitUpTo: "30 days" },
     { channel: "text", copy: textCopy("nurture#2"), note: "Month 3.", waitUpTo: "30 days" },
     { channel: "dm", copy: dmCopy("nurture#2"), note: "Month 4.", waitUpTo: "30 days" },
-    { channel: "email", copy: null, note: EMAIL_NOTE },
+    { channel: "email", copy: emailCopy("nurture"), note: EMAIL_NOTE },
   ],
   "30 days",
 );
@@ -264,7 +265,8 @@ export const FOLLOW_COMPONENTS = [
     stage: "follow",
     channels: ["text", "dm", "email"],
     name: "Follow-up",
-    blurb: "Works a quiet lead through texts and DMs, waiting for an answer after each one.",
+    blurb:
+      "Works a quiet lead through texts, DMs and a last email, waiting for an answer after each one.",
     icon: "cycle",
     for: "client",
     ready: true,
@@ -286,6 +288,7 @@ export const FOLLOW_COMPONENTS = [
         { is: "change", says: "The copy of each touch.", built: "the follow-up templates" },
         { is: "change", says: "How long each wait is, and the order.", built: "inside" },
         { is: "change", says: "Which channels it may use.", built: "settings.texts" },
+        { is: "fixed", says: "Its email goes to To approve first: a person says yes." },
         {
           is: "needs",
           says: "A channel to send on: texts, DMs.",

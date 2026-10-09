@@ -1471,6 +1471,20 @@
       "when": 1791565329120,
       "tag": "0209_reach_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 210,
+      "version": "7",
+      "when": 1791567371317,
+      "tag": "0210_note_mention_mail",
+      "breakpoints": true
+    },
+    {
+      "idx": 211,
+      "version": "7",
+      "when": 1791567614824,
+      "tag": "0211_note_turns",
+      "breakpoints": true
     }
   ]
 }

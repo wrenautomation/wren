@@ -41,7 +41,15 @@ export type IdeaStatus = (typeof IDEA_STATUSES)[number];
  * Who wrote it: a person, the API, `AdsWatch`, the planner (a day's commits, a reader's question),
  * or a video's promo (`promo:<youtube draft>`).
  */
-export const IDEA_SOURCES = ["cli", "api", "ads", "build_log", "question", "promo"] as const;
+export const IDEA_SOURCES = [
+  "cli",
+  "api",
+  "ads",
+  "build_log",
+  "question",
+  "promo",
+  "note",
+] as const;
 export type IdeaSource = (typeof IDEA_SOURCES)[number];
 
 export const DRAFT_STATUSES = [

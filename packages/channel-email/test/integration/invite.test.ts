@@ -4,15 +4,19 @@
  * books and sends; anything else is one `needs_you` ping; a stale, operator
  * labelled, or cold reply is never touched.
  */
+
+import { suppressions } from "@wren/core";
 import { FakeCalendar } from "@wren/core/calendar";
 import type { Notifier } from "@wren/core/notify";
 import { parseTemplate } from "@wren/core/slots";
+import type { StepAt } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { approveInvite, dropInvite, runInvites } from "../../src/inbox/invite.js";
+import { type AskFollowEmail, emailTouchStep } from "../../src/follow.js";
+import { approveInvite, dropInvite, followUpByHand, runInvites } from "../../src/inbox/invite.js";
 import type { ReplyCopy } from "../../src/inbox/reply.js";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import {
@@ -386,5 +390,97 @@ describe("call invites", () => {
 
     expect(stats.selected).toBe(0);
     expect(await rows()).toEqual([]);
+  });
+});
+
+describe("a follow-up email to a quiet thread", () => {
+  const asked: Parameters<AskFollowEmail>[1][] = [];
+  const ask: AskFollowEmail = async (_client, o) => {
+    asked.push(o);
+    return { asked: true, why: null };
+  };
+  const at: StepAt = {
+    client: null,
+    workflow: "follow_up.touches",
+    node: "email4",
+    with: {},
+    template: { kind: "email", system: "follow", name: "follow-up" },
+    part: "follow_up",
+  };
+  const quietLead = async () => {
+    const enrollment = await offered();
+    await db()
+      .update(enrollments)
+      .set({ state: "finished" })
+      .where(eq(enrollments.id, enrollment.id));
+    return enrollment;
+  };
+  const lead = (id: number) => ({
+    subject: `lead:email:${id}`,
+    kind: "lead" as const,
+    data: { enrollmentId: id },
+  });
+
+  it("drafts the node's copy into To approve once; sends nothing itself", async () => {
+    asked.length = 0;
+    const e = await quietLead();
+    const [out] = await emailTouchStep(() => db(), ask)("lead", lead(e.id), at);
+    expect(out?.port).toBe("sent");
+    expect(out?.event.data.follow).toMatchObject({ channel: "email", did: "asked", why: null });
+    expect(asked).toEqual([
+      expect.objectContaining({
+        subject: `lead:email:${e.id}`,
+        enrollmentId: e.id,
+        by: "workflow:follow_up.touches/email4",
+        body: expect.stringMatching(/^Hi Jane,\n\nFollowing up on my last note\./),
+      }),
+    ]);
+    // Nothing new in the thread: the words wait in To approve.
+    const thread = await db().select().from(messages).where(eq(messages.enrollmentId, e.id));
+    expect(thread.filter((m) => m.template === "by-hand/reply")).toEqual([]);
+  });
+
+  it("skips an opted-out address, waits while the sequence sends, and passes on with no copy", async () => {
+    asked.length = 0;
+    const live = await offered("elm.example");
+    const [busy] = await emailTouchStep(() => db(), ask)("lead", lead(live.id), at);
+    expect(busy?.event.data.follow).toMatchObject({ did: "skipped" });
+    const e = await quietLead();
+    await db().insert(suppressions).values({ kind: "email", value: e.toEmail, reason: "opt_out" });
+    const [out] = await emailTouchStep(() => db(), ask)("lead", lead(e.id), at);
+    expect(out?.event.data.follow).toMatchObject({
+      did: "skipped",
+      why: "they opted out of email",
+    });
+    expect(asked).toEqual([]);
+  });
+
+  it("a yes sends it in our thread, in reply to the last one we sent", async () => {
+    const e = await offered();
+    const transport = quiet();
+    const opts = { transport, fleet: FLEET, now: NOW, body: "Still worth a call?" };
+    expect(await followUpByHand(db(), e.id, opts)).toEqual({
+      ok: false,
+      reason: "its sequence is still sending",
+    });
+    await db().update(enrollments).set({ state: "finished" }).where(eq(enrollments.id, e.id));
+    const out = await followUpByHand(db(), e.id, opts);
+    expect(out.ok).toBe(true);
+    const mail = [...transport.mailbox.values()].flat().map((m) => m.email);
+    expect(mail).toHaveLength(1);
+    expect(mail[0]).toMatchObject({
+      to: e.toEmail,
+      body: "Still worth a call?",
+      inReplyTo: "<oak.example@test>",
+      threadId: "t-oak.example",
+    });
+    await db()
+      .update(enrollments)
+      .set({ state: "stopped", stopReason: "bounce" })
+      .where(eq(enrollments.id, e.id));
+    expect(await followUpByHand(db(), e.id, opts)).toEqual({
+      ok: false,
+      reason: "that thread ended: bounce",
+    });
   });
 });

@@ -184,8 +184,13 @@ import {
   socialChecks,
   socialSites,
 } from "@wren/content/connect";
+import { askFollowEmail } from "@wren/content/inbox";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
+  type ContentDesk,
+  clientDrafting,
+  DESK_KEY,
+  DESK_UNIT,
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
@@ -232,6 +237,7 @@ import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox"
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
+import { PortalRefusal } from "@wren/core/portal";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
@@ -257,6 +263,7 @@ import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import {
+  askNoteSop,
   clientAskedOnRead,
   judges as learnJudges,
   readStep as learnRead,
@@ -279,7 +286,7 @@ import {
   SMS_SEQUENCES,
   youtubeSearchFor,
 } from "@wren/niches";
-import { makeNotesConsole, notesContext } from "@wren/notes/console";
+import { makeNotesConsole, type NoteTurns, notesContext } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import {
@@ -577,19 +584,6 @@ export async function buildServices(
   let driveToken: (() => Promise<string>) | null = null;
   const driveKeyOf = () =>
     (driveKey ??= loadServiceAccountKey(expandHome(settings.googleServiceAccount)));
-  const notesDeps = {
-    main: db,
-    open: openClient,
-    files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
-    zone: settings.sendTimezone,
-    drive: googleDrive({
-      token: () => {
-        driveToken ??= serviceAccountToken(driveKeyOf(), { scopes: [DRIVE_READ_SCOPE] });
-        return driveToken();
-      },
-      who: () => driveKeyOf().clientEmail,
-    }),
-  };
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
   const calcomSites = ingressSites(ingressOf(settings), {
     caller: "wren:calcom",
@@ -714,6 +708,46 @@ export async function buildServices(
             name,
           })
       : null;
+  const notesDeps = {
+    main: db,
+    open: openClient,
+    files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
+    zone: settings.sendTimezone,
+    // A mention in a note mailed from portal@, linking to the portal.
+    mail: bookerMailer
+      ? {
+          send: bookerMailer("Wren"),
+          portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
+        }
+      : undefined,
+    // Selected words to drafts (the workspace's ContentDesk) or into an SOP (Learn's asks).
+    turns: {
+      draft: async (
+        ctx: Context,
+        o: { client: string | null; text: string; by: string },
+      ): Promise<void> => {
+        const client = o.client;
+        if (client) {
+          const plan = await ctx.run("plan", () => clientDrafting(db, client));
+          if (!plan.ok) throw new PortalRefusal(plan.why, 409);
+        }
+        ctx
+          .objectSendClient<ContentDesk>(
+            { name: "ContentDesk" },
+            client ? clientKey(client, DESK_UNIT) : DESK_KEY,
+          )
+          .add({ text: o.text, source: "note" });
+      },
+      sop: (o: Parameters<NoteTurns["sop"]>[0]) => askNoteSop(db, o.db, o),
+    },
+    drive: googleDrive({
+      token: () => {
+        driveToken ??= serviceAccountToken(driveKeyOf(), { scopes: [DRIVE_READ_SCOPE] });
+        return driveToken();
+      },
+      who: () => driveKeyOf().clientEmail,
+    }),
+  };
   const calendarDeps: CalendarDeps = {
     db,
     calendar: "wren",
@@ -1163,6 +1197,7 @@ export async function buildServices(
       keys,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
+      mentionMail: notesDeps.mail ?? null,
     }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
@@ -1704,7 +1739,11 @@ export async function buildServices(
           const { deps: d } = await textsOf(client);
           return { db: d.db, bookings: d.bookings ?? null, dialer: null };
         }),
-        [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
+        // A follow-up's email waits in To approve as an Inbox reply asked on the lead.
+        [EMAIL_TOUCH]: emailTouchStep(
+          (client) => (client ? clientDb(client) : db),
+          (client, o) => askFollowEmail(client ? clientDb(client) : db, o),
+        ),
         // A booked call's brief: built now, pinged to the team before the call.
         [CALL_BRIEF]: briefStep({
           ...callBriefs,

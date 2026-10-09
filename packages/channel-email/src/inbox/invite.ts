@@ -609,6 +609,44 @@ export async function replyByHand(
   return reply.sent ? { ok: true, reply } : { ok: false, reason: `not sent: ${reply.reason}` };
 }
 
+/** How a thread ended that a follow-up must never reopen. */
+const CLOSED = new Set(["bounce", "opt_out", "complaint", "undeliverable", "manual"]);
+
+/**
+ * Our next email in a thread they never answered (designs/2026-10-07-follow-up-nurture.md): a
+ * Follow-up's draft once a person says yes, or words typed in the Inbox. In reply to the last one
+ * we sent, from its inbox. Refused while its sequence still sends, for a thread that bounced, was
+ * opted out or stopped by hand, a suppressed address, or one with nothing sent yet.
+ */
+export async function followUpByHand(
+  db: Db,
+  enrollmentId: number,
+  opts: SendReplyOptions & { body: string; shared?: SharedSuppressions | null },
+): Promise<{ ok: true; reply: ReplyOutcome } | { ok: false; reason: string }> {
+  const body = opts.body.trim();
+  if (!body) return { ok: false, reason: "the email is empty" };
+  const [enrollment] = await db.select().from(enrollments).where(eq(enrollments.id, enrollmentId));
+  if (!enrollment) return { ok: false, reason: `no email thread ${enrollmentId}` };
+  if (enrollment.state === "active") return { ok: false, reason: "its sequence is still sending" };
+  if (enrollment.state === "stopped" && CLOSED.has(enrollment.stopReason ?? ""))
+    return { ok: false, reason: `that thread ended: ${enrollment.stopReason}` };
+  const [sent] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(eq(messages.enrollmentId, enrollmentId), eq(messages.state, "sent")))
+    .limit(1);
+  if (!sent) return { ok: false, reason: "nothing was sent in that thread" };
+  if (await activeSuppression(db, enrollment.toEmail, opts.shared ?? null))
+    return { ok: false, reason: "they opted out of email" };
+  const draft = await draftByHand(db, enrollment, null, body);
+  const reply = await sendReply(db, draft.id, null, enrollment, {
+    transport: opts.transport,
+    fleet: opts.fleet,
+    now: opts.now ?? new Date(),
+  });
+  return reply.sent ? { ok: true, reply } : { ok: false, reason: `not sent: ${reply.reason}` };
+}
+
 /** William passes: nothing books, nothing sends, the draft is rejected. */
 export async function dropInvite(db: Db, id: number): Promise<CallInviteState> {
   return serializable(db, async (tx) => {

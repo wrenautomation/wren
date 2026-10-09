@@ -528,7 +528,7 @@ export const inboxRecord = defineRecord({
     if (type === "text")
       return { ...((await textThreadRecord.load?.(db, rest)) ?? {}), conversation };
     // An email's words and our drafted answer are the row's own.
-    if (["activity", "email", "reply", "mail"].includes(type)) return { conversation };
+    if (["activity", "email", "reply", "mail", "outbound"].includes(type)) return { conversation };
     const ask = {
       ask: await draftTurns(db, type, rest),
       record: await recordOfPage(db, type, rest),
@@ -582,7 +582,10 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           account: r.askedBy,
           at: r.askedAt,
           due: r.askedAt,
-          url: `/inbox/waiting/${encodeURIComponent(r.thread)}`,
+          // Our email thread they never answered has no Inbox row to open.
+          url: r.thread.startsWith("outbound:")
+            ? null
+            : `/inbox/waiting/${encodeURIComponent(r.thread)}`,
         })),
         ...ps.map((p) => ({
           id: `draft:${p.id}`,

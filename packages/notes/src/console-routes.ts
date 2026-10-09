@@ -43,11 +43,17 @@ export const NOTES_CONSOLE_ROUTES = {
   train: "act",
   upload: "act",
   workspaceTrain: "manage",
+  // Selected words made real: drafts in the workspace's Marketing, words in one of its SOPs. Each
+  // also needs the note open to them.
+  toDraft: "act",
+  toSop: "act",
 } as const satisfies Record<string, Need>;
 
-export const NOTES_CONSOLE_APPS = { "*": "notes" } as const satisfies RouteApps<
-  typeof NOTES_CONSOLE_ROUTES
->;
+export const NOTES_CONSOLE_APPS = {
+  "*": "notes",
+  toDraft: "marketing",
+  toSop: "learn",
+} as const satisfies RouteApps<typeof NOTES_CONSOLE_ROUTES>;
 
 /** Refused on the demo and under View as. */
 export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[] = [
@@ -73,4 +79,6 @@ export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[
   "train",
   "upload",
   "workspaceTrain",
+  "toDraft",
+  "toSop",
 ];
