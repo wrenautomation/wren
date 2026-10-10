@@ -72,7 +72,10 @@ production keys need a real QuickBooks Online company.
 - 10-09: one package, no vendor. The CRM import is the one way people land.
 - 10-10: first live connects from wren_test. HubSpot connected and read its 2 sample contacts.
   Jobber connected, then failed its first read: `JobFilterAttributes` has no `updatedAt`. Jobs now
-  page by `completedAt` (introspected on the test account); clients keep `updatedAt`. Both
+  page by `completedAt` (introspected on the test account); clients keep `updatedAt`; re-read
+  clean after deploy. QuickBooks: the pull ran locally against Intuit's sandbox company (dev keys,
+  playground token, host swapped): 29 customers, 11 paid invoices, a second run read nothing new.
+  No live QuickBooks connect until a real company signs in. Both
   unverified-app screens (HubSpot's typed "I accept the risk", Jobber's not-yet-approved note) stay
   until each marketplace review.
 - 10-09 built: package, 0221, App trigger, `app.changed` webhook event, Account → Connectors,
