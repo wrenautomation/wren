@@ -96,9 +96,7 @@ export async function proberCounts(
     WHERE checked_at >= ${since.toISOString()} AND raw ? 'prober'
     GROUP BY 1
   `)) as unknown as { host: string; checks: number; refused: number; held: number }[];
-  return new Map(
-    rows.map((r) => [r.host, { checks: r.checks, refused: r.refused, held: r.held }]),
-  );
+  return new Map(rows.map((r) => [r.host, { checks: r.checks, refused: r.refused, held: r.held }]));
 }
 
 export async function proberHealth(
