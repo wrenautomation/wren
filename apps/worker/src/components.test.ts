@@ -292,7 +292,7 @@ describe("workflows and hypotheses", () => {
     }
     expect(sold.find((x) => x.id === "reviews")?.spec.door).toEqual({
       input: "customers",
-      subject: "phone",
+      subject: "phone|email",
     });
   });
 
