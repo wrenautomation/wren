@@ -1569,6 +1569,13 @@
       "when": 1791580140646,
       "tag": "0223_client_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1791604183234,
+      "tag": "0224_chat_ip_document_events",
+      "breakpoints": true
     }
   ]
 }

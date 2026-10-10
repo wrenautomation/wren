@@ -42,6 +42,7 @@ import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
+import { publicLimit } from "./limit.js";
 import { liveRoute, NoteRoom } from "./live.js";
 import { mailOAuthRoute } from "./mail-oauth.js";
 import {
@@ -235,6 +236,8 @@ export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     const site = await siteOf(req, env, ctx);
+    const over = await publicLimit(req, env, pathname);
+    if (over) return over;
     // Sites' pages, tracker and forms: on the apex, a client's host, or the app host (./sites.ts).
     if (pathname.startsWith("/o/")) {
       // A document to sign (./docs.ts): its token is the key, on any host that owns it.

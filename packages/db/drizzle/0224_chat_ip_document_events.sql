@@ -1,0 +1,4 @@
+ALTER TABLE "events" DROP CONSTRAINT "ck_events_kind";--> statement-breakpoint
+ALTER TABLE "chat_threads" ADD COLUMN "ip_hash" varchar(64);--> statement-breakpoint
+CREATE INDEX "ix_chat_threads_ip" ON "chat_threads" USING btree ("ip_hash","created_at");--> statement-breakpoint
+ALTER TABLE "events" ADD CONSTRAINT "ck_events_kind" CHECK (("kind")::text = ANY ((ARRAY['firm'::character varying, 'person'::character varying, 'lead'::character varying, 'reply'::character varying, 'call'::character varying, 'form'::character varying, 'post'::character varying, 'video'::character varying, 'client'::character varying, 'invoice'::character varying, 'mail'::character varying, 'comment'::character varying, 'item'::character varying, 'account'::character varying, 'deal'::character varying, 'document'::character varying])::text[]));

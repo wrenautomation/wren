@@ -40,3 +40,9 @@ class_name = "NoteRoom"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["NoteRoom"]
+
+# One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts).
+[[ratelimits]]
+name = "PUBLIC_LIMIT"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }

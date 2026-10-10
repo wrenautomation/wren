@@ -4,7 +4,14 @@
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CHAT_PER_HOUR, ChatRefusal, readChat, replyChat, say } from "../../src/chat/store.js";
+import {
+  CHAT_PER_HOUR,
+  CHAT_THREADS_PER_IP,
+  ChatRefusal,
+  readChat,
+  replyChat,
+  say,
+} from "../../src/chat/store.js";
 import { optionsOf, partyOf, timelineOf } from "../../src/inbox/conversation.js";
 import { inboxRecord } from "../../src/social/records.js";
 
@@ -69,5 +76,13 @@ describe("site chat", () => {
     const { key } = await say(pg.db, { body: "hi" });
     for (let i = 1; i < CHAT_PER_HOUR; i++) await say(pg.db, { key, body: `m${i}` });
     await expect(say(pg.db, { key, body: "one more" })).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("caps new threads per visitor, so one script can't use up the owner's day", async () => {
+    const ip = "203.0.113.9";
+    for (let i = 0; i < CHAT_THREADS_PER_IP; i++) await say(pg.db, { body: `t${i}`, ip });
+    await expect(say(pg.db, { body: "again", ip })).rejects.toMatchObject({ status: 429 });
+    // Another visitor still gets in.
+    expect((await say(pg.db, { body: "hello", ip: "203.0.113.10" })).started).toBe(true);
   });
 });

@@ -21,6 +21,8 @@ interface Req {
   contact?: unknown;
   page?: unknown;
   after?: unknown;
+  /** The visitor's IP, from the Worker's cf-connecting-ip. */
+  ip?: unknown;
 }
 
 type Answer = { status: number; error: string } | { status: 200; key?: string; lines: ChatLine[] };

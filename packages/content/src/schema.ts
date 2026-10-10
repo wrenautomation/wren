@@ -863,6 +863,8 @@ export const chatThreads = pgTable(
     phone: varchar("phone", { length: 32 }),
     /** The page it started on. */
     page: text("page"),
+    /** SHA-256 of the IP that started it, for the per-visitor cap. Never the IP. */
+    ipHash: varchar("ip_hash", { length: 64 }),
     /** Their last message: the Inbox orders and opens on it. */
     lastInAt: timestamp("last_in_at", { withTimezone: true }).notNull().defaultNow(),
     /** When someone on our side last opened it. */
@@ -874,6 +876,7 @@ export const chatThreads = pgTable(
     unique("uq_chat_threads_key").on(t.keyHash),
     index("ix_chat_threads_last").on(t.lastInAt),
     index("ix_chat_threads_created").on(t.createdAt),
+    index("ix_chat_threads_ip").on(t.ipHash, t.createdAt),
   ],
 );
 export type ChatThread = typeof chatThreads.$inferSelect;

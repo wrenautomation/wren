@@ -22,3 +22,6 @@ senders_config.toml
 
 # Git worktrees other sessions make; each is its own checkout.
 .claude/worktrees/
+
+# The drift gate's scratch copy (scripts/gates.sh)
+packages/db/.drift.*

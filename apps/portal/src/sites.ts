@@ -167,6 +167,7 @@ async function chatRoute(
       contact: body.contact,
       page: body.page,
       after: body.after,
+      ip: req.headers.get("cf-connecting-ip"),
     });
     const out = (await res.json().catch(() => ({}))) as { status?: number; error?: string };
     if (!res.ok) return answer({ error: "That didn't send. Try again." }, 502);

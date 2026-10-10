@@ -18,7 +18,7 @@ One tag, served from the owner's own host, so the Worker names the owner without
 ## Shape
 
 - `chat_threads`: `key_hash` unique, name, email, phone, page, `last_in_at`, `read_at`. `chat_messages`: thread, direction in|out, body, `by`, at.
-- Store `packages/content/src/chat/store.ts`: `say` (no key starts a thread, 200 a day per owner; 30 messages an hour per thread; 2000 chars), `readChat`, `replyChat` (marks read).
+- Store `packages/content/src/chat/store.ts`: `say` (no key starts a thread, 5 a day per visitor IP, 200 a day per owner; 30 messages an hour per thread; 2000 chars), `readChat`, `replyChat` (marks read).
 - `Chat` service (`packages/content/src/restate/chat.ts`): `say`, `read`; a refusal comes back as `{status, error}`. Bound in `apps/worker/src/services.ts`.
 - Edge: `chatRoute` in `apps/portal/src/sites.ts`: `/o/__chat.js` (the bubble, `@wren/sites/chat-widget`), `/o/__chat` POST; bots refused, open CORS.
 - Inbox: `chatRows` in `inboxRecord`, view Site chat; `partyOf` joins their other chats by email and a texting contact by phone; reply `ReplySender.chat`, part `sites.chat`.

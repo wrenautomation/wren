@@ -27,4 +27,6 @@ export interface Env {
   DICTATE_KEY?: string;
   /** Live notes' rooms, one Durable Object per note (./live.ts). Unset = notes sync over HTTP. */
   NOTE_ROOM?: DurableObjectNamespace;
+  /** The cap on public posts per visitor (./limit.ts). Unset = no cap. */
+  PUBLIC_LIMIT?: RateLimit;
 }

@@ -12,6 +12,8 @@ import { type ChatMessage, type ChatThread, chatMessages, chatThreads } from "..
 export const CHAT_PER_HOUR = 30;
 /** New threads an owner takes in a day. */
 export const CHAT_THREADS_PER_DAY = 200;
+/** New threads one visitor (by IP) starts in a day, so one script can't use up the owner's. */
+export const CHAT_THREADS_PER_IP = 5;
 /** The most messages one read returns. */
 const READ_MAX = 200;
 
@@ -94,6 +96,8 @@ export async function say(
     contact?: unknown;
     page?: unknown;
     after?: unknown;
+    /** The visitor's IP, from the Worker: hashed before it's kept. */
+    ip?: unknown;
   },
   now = new Date(),
 ): Promise<{ key: string; lines: ChatLine[]; started: boolean }> {
@@ -104,17 +108,33 @@ export async function say(
   let thread: ChatThread;
   const started = key === null;
   if (key === null) {
-    const [today] = await db
-      .select({ n: count() })
-      .from(chatThreads)
-      .where(gte(chatThreads.createdAt, new Date(now.getTime() - 86_400_000)));
+    const day = gte(chatThreads.createdAt, new Date(now.getTime() - 86_400_000));
+    const ipHash = typeof input.ip === "string" && input.ip ? keyHash(input.ip) : null;
+    if (ipHash) {
+      const [mine] = await db
+        .select({ n: count() })
+        .from(chatThreads)
+        .where(and(eq(chatThreads.ipHash, ipHash), day));
+      if ((mine?.n ?? 0) >= CHAT_THREADS_PER_IP)
+        throw new ChatRefusal("You've started a few chats today. Keep going in the last one.", 429);
+    }
+    const [today] = await db.select({ n: count() }).from(chatThreads).where(day);
     if ((today?.n ?? 0) >= CHAT_THREADS_PER_DAY)
       throw new ChatRefusal("Chat is busy right now. Try again later.", 429);
     key = newKey();
     const page = typeof input.page === "string" ? input.page.slice(0, 500) : null;
     const [made] = await db
       .insert(chatThreads)
-      .values({ keyHash: keyHash(key), name, email, phone, page, lastInAt: now, createdAt: now })
+      .values({
+        keyHash: keyHash(key),
+        name,
+        email,
+        phone,
+        page,
+        ipHash,
+        lastInAt: now,
+        createdAt: now,
+      })
       .returning();
     thread = made as ChatThread;
   } else {
