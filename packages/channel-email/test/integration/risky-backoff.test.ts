@@ -90,6 +90,23 @@ describe("riskyBackoff", () => {
     expect(await waitSecs()).toBe(HOUR);
   });
 
+  it("a held answer (no server asked) waits like a block but never counts toward the run", async () => {
+    for (let i = 6; i >= 1; i--)
+      await db()
+        .insert(verifications)
+        .values({
+          email: EMAIL,
+          verifier: "probe",
+          result: "risky",
+          raw: {
+            reason: "blocked",
+            transcript: [{ code: 0, reply: "held: ppe-hosted.com lists our IP" }],
+          },
+          checkedAt: sql`now() - make_interval(hours => ${i})`,
+        });
+    expect(await waitSecs()).toBe(7 * DAY);
+  });
+
   it("catch_all between risky verdicts neither counts nor resets", async () => {
     await history([
       ["risky", "greylisted", 3],

@@ -9,7 +9,8 @@
  *
  * The wait grows with the address's run of risky verdicts (`riskyBackoff`): some
  * servers greylist a probe forever, and every refused probe costs the prober IPs
- * standing.
+ * standing. An answer the prober held back ("held: <fleet> lists our IP") asked no
+ * server, so it waits like a block but never counts toward the run.
  */
 import { type SQL, sql } from "drizzle-orm";
 import { verifications } from "../schema.js";
@@ -54,7 +55,8 @@ export function riskyBackoff(row: { email: SQL; checkedAt: SQL; raw: SQL }, fall
   const run = sql`(SELECT greatest(count(*), 1) AS n FROM ${verifications} rb_r
     WHERE rb_r.email = ${email} AND rb_r.result = 'risky'
       AND rb_r.checked_at > ${since} AND rb_r.checked_at <= ${at}
-      AND rb_r.checked_at > coalesce(${lastVerdict}, '-infinity'))`;
+      AND rb_r.checked_at > coalesce(${lastVerdict}, '-infinity')
+      AND coalesce(rb_r.raw->'transcript'->-1->>'reply', '') NOT LIKE 'held:%')`;
   const greylist = sql.join(
     GREYLIST_WAITS.map((w) => sql.raw(`'${w}'`)),
     sql`, `,
