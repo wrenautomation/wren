@@ -102,7 +102,9 @@ up() { # name changed -- docker run args
   echo "started $name"
 }
 
-up wren-restate "$restate_cfg" -- --memory 1g --stop-timeout 60 \
+# 2g: past 1g, recovery replay after a restart was OOM-killed every ~20 s (2026-10-10);
+# it settles near 1g once caught up.
+up wren-restate "$restate_cfg" -- --memory 2g --memory-swap 3g --stop-timeout 60 \
   -e AWS_REGION="$region" -v "$D":/restate \
   docker.restate.dev/restatedev/restate:1.7 --config-file /restate/config.toml
 up wren-caddy "$caddy_cfg" -- --memory 128m --env-file "$D/caddy.env" \
