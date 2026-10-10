@@ -138,8 +138,11 @@ WREN_DATABASE_URL="$(cd deploy/terraform && tofu output -raw database_url)" pnpm
 
 Push to `main` → `ci` green → `deploy.yml`: migrations against prod, build
 zip, publish a new Lambda version, register it with Restate. Old versions keep
-serving in-flight invocations; new invocations go to the new version. When
-`restate invocations list` shows none on the old deployment, remove it.
+serving in-flight invocations; new invocations go to the new version. Old deployments go on
+their own: `deploy/scripts/restate-prune.py` runs before each register and hourly on the box
+(`/var/log/wren-restate-prune.log`), keeping each service's current one, any a live invocation
+is pinned to, and the newest three. Restate holds them all in one 30.4 MiB entry; past it,
+registering fails and the server OOMs on restart (2026-10-10).
 
 GitHub environment `production` secrets: `AWS_DEPLOY_ROLE_ARN`,
 `AWS_INVOKE_ROLE_ARN`, `LAMBDA_NAME`, `WREN_DATABASE_URL`, `RESTATE_HOST`,

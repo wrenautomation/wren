@@ -29,7 +29,7 @@ Citations: `apps/worker/src/services.ts:110`
 ## Connected to
 
 - **owns:** every [[platform/loop-object]]
-- **joins:** [[platform/worker]] (serves them), [[platform/settings]] (decides what binds), Restate registration (`.github/workflows/deploy.yml:47`)
+- **joins:** [[platform/worker]] (serves them), [[platform/settings]] (decides what binds), Restate registration (`.github/workflows/deploy.yml:47`); old deployments pruned before each register and hourly (`deploy/scripts/restate-prune.py`, 30.4 MiB metadata cap)
 
 ## If you change this
 

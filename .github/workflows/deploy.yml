@@ -111,8 +111,15 @@ jobs:
               # The box's own role invokes the Lambda; its admin API answers on loopback only.
               # Discovery invokes the new version, which may still be pending: retry while it warms.
               # (No `aws lambda wait`: the CI role has no GetFunctionConfiguration.)
+              # First, drop deployments nothing uses: Restate caps them all at 30.4 MiB.
               body="$(jq -nc --arg arn "$ARN" '{arn: $arn}')"
-              jq -n --arg b "$body" '{commands: ["for i in 1 2 3 4 5 6 7 8 9 10; do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 10; done; exit 1"]}' \
+              prune="$(base64 -w0 deploy/scripts/restate-prune.py)"
+              jq -n --arg b "$body" --arg p "$prune" '{commands: [
+                "echo \($p) | base64 -d > /usr/local/bin/wren-restate-prune",
+                "chmod 755 /usr/local/bin/wren-restate-prune",
+                "echo \"17 * * * * root /usr/local/bin/wren-restate-prune >> /var/log/wren-restate-prune.log 2>&1\" > /etc/cron.d/wren-restate-prune",
+                "/usr/local/bin/wren-restate-prune || true",
+                "for i in 1 2 3 4 5 6 7 8 9 10; do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 10; done; exit 1"]}' \
                 > "$RUNNER_TEMP/register.json"
               id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
                 --comment "register $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/register.json" \
