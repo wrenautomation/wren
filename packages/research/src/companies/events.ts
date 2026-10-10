@@ -8,7 +8,7 @@
  */
 import type { SiteClient } from "@wren/core/content";
 import { FetchError, type Fetcher } from "../fetch/fetcher.js";
-import type { CompanyFindingDraft } from "../findings.js";
+import type { CompanyFindingDraft, DocumentDraft } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, searchStopped } from "../pacing.js";
 import { bareCompanyName, type Firm, plain } from "../people/names.js";
 import { firmSite } from "./profile.js";
@@ -69,6 +69,15 @@ const KIND_WORDS: Record<EventKind, { google: string[]; exa: string }> = {
   expansion: { google: ["expands", "expansion"], exa: "expansion" },
 };
 
+/** The first of `kinds` a hit's words read as, in KINDS order; null when none. Pure. */
+export const eventKindOf = (
+  text: string,
+  kinds: readonly EventKind[] = NEWS_KINDS,
+): EventKind | null => KINDS.find(([k, re]) => kinds.includes(k) && re.test(text))?.[0] ?? null;
+
+/** The words a Google search for `kind` asks for ("acquired", "acquisition"). */
+export const googleWords = (kind: EventKind): readonly string[] => KIND_WORDS[kind].google;
+
 export interface CompanyEvent {
   kind: EventKind;
   /** YYYY-MM-DD. */
@@ -128,7 +137,6 @@ export function readEvents(
   now: Date,
   kinds: readonly EventKind[] = EVENT_KINDS,
 ): CompanyEvent[] {
-  const read = KINDS.filter(([k]) => kinds.includes(k));
   const since = new Date(now);
   since.setUTCMonth(since.getUTCMonth() - EVENT_MONTHS);
   const from = since.toISOString().slice(0, 10);
@@ -139,7 +147,7 @@ export function readEvents(
     if (!date || date < from || date > to || out.some((e) => e.url === h.url)) continue;
     if (!aboutFirm(h, firm)) continue;
     const text = `${h.title} ${h.snippet ?? ""}`;
-    const kind = read.find(([, re]) => re.test(text))?.[0];
+    const kind = eventKindOf(text, kinds);
     if (!kind) continue;
     const raw = h.raw ?? h;
     out.push({ kind, date, title: h.title, snippet: h.snippet ?? null, url: h.url, source, raw });
@@ -235,6 +243,15 @@ export interface EventsResult {
   googleStopped: boolean;
 }
 
+/** An event's hit as the source returned it: its finding's document. */
+export const eventDocument = (e: CompanyEvent): DocumentDraft => ({
+  url: e.url,
+  kind: "snippet",
+  title: e.title,
+  text: JSON.stringify(e.raw) ?? "null",
+  fetchTier: e.source,
+});
+
 /** A kept event as a dated `news` finding; its raw hit is the document. */
 export const eventFinding = (
   companyId: number,
@@ -247,13 +264,7 @@ export const eventFinding = (
   confidence: EVENT_CONFIDENCE,
   via: e.source,
   sourceUrl: e.url,
-  document: {
-    url: e.url,
-    kind: "snippet",
-    title: e.title,
-    text: JSON.stringify(e.raw) ?? "null",
-    fetchTier: e.source,
-  },
+  document: eventDocument(e),
   signalAt: new Date(`${e.date}T00:00:00Z`),
   dated: "published",
 });

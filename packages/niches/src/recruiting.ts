@@ -61,6 +61,7 @@ export const recruiting = defineNiche({
     "executive search firm in {city}",
   ],
   exaCities: US_METROS,
+  triggerWords: ["staffing agency", "staffing firm", "recruiting firm", "executive search firm"],
   templatesDir: templatesDir("recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
   // switching it back on is one plan line. Each arm's `reply` copy is drafted for

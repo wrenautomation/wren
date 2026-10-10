@@ -94,6 +94,7 @@ export const STAGES = [
   "adLibrary",
   "exaSearch",
   "youtubeSearch",
+  "triggers",
   "fbGroups",
   "discover",
   "verify",
@@ -118,6 +119,7 @@ const WIRED = [
   "adLibrary",
   "exaSearch",
   "youtubeSearch",
+  "triggers",
   "fbGroups",
   "youtube",
   "instagram",
@@ -137,6 +139,8 @@ export interface StageLimits {
   exaSearch: number;
   /** YouTube channel searches this pass; free, 101 units each, paced by its bucket. */
   youtubeSearch: number;
+  /** Trigger words searched in the news this pass; free (RSS and a model call), paced by its bucket. */
+  triggers: number;
   discover: number;
   verify: number;
   crawl: number;
@@ -165,6 +169,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   fbGroups: 10,
   exaSearch: 3,
   youtubeSearch: 2,
+  triggers: 3,
   discover: 10,
   verify: 10,
   crawl: 10,
@@ -276,6 +281,8 @@ export interface PoolSchedulerDeps {
   exaSearch?: boolean;
   /** The YouTube reader is wired (Enrichment's `youtubeSearch`): the stage runs on Wren's niches. */
   youtubeSearch?: boolean;
+  /** The fetcher and model are wired (Enrichment's `triggers`): the stage runs on Wren's niches. */
+  triggers?: boolean;
   /** Between passes that found work. */
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
@@ -388,6 +395,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   // A search read is an import, which leaves the selection for 30 days.
   exaSearch: (s) => s.read ?? 0,
   youtubeSearch: (s) => s.read ?? 0,
+  // A word read is an import, which leaves the selection for a week.
+  triggers: (s) => s.read ?? 0,
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
   // A subject with a written answer leaves the selection for the collector's `everyDays`; a cap does not.
@@ -475,6 +484,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       fbGroups: wren && (deps.fbGroups ?? false),
       exaSearch: wren && (deps.exaSearch ?? false),
       youtubeSearch: wren && (deps.youtubeSearch ?? false),
+      triggers: wren && (deps.triggers ?? false),
       signals: (wren || signals) && deps.signals !== undefined && anyCollectorBuilt(),
     });
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
@@ -491,6 +501,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       fbGroups: () => enrichment.fbGroups({ limit: limits.fbGroups }),
       exaSearch: () => enrichment.exaSearch({ limit: limits.exaSearch }),
       youtubeSearch: () => enrichment.youtubeSearch({ limit: limits.youtubeSearch }),
+      triggers: () => enrichment.triggers({ limit: limits.triggers }),
       discover: () => discovery.discover({ limit: limits.discover, ...words }),
       verify: () => discovery.verify({ limit: limits.verify, ...words }),
       crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
@@ -608,6 +619,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           fb_groups: deps.fbGroups ?? false,
           exa_search: deps.exaSearch ?? false,
           youtube_search: deps.youtubeSearch ?? false,
+          triggers: deps.triggers ?? false,
           signals: deps.signals !== undefined,
           stages: [...runnable],
           limits,

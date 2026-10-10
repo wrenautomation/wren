@@ -9,6 +9,7 @@ export * from "./exa-search.js";
 export * from "./extraction.js";
 export * from "./fb-groups.js";
 export * from "./instagram.js";
+export * from "./news-triggers.js";
 export * from "./opener.js";
 export * from "./profiles.js";
 export * from "./readings.js";

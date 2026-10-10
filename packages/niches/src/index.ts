@@ -71,6 +71,12 @@ export function exaSearchFor(niche: string) {
   };
 }
 
+/** What the `triggers` stage needs from a niche: its trigger words and its screen. */
+export function triggersFor(niche: string) {
+  const n = nicheFor(niche);
+  return { words: n.triggerWords, screen: n.screen };
+}
+
 /** What the `youtubeSearch` stage needs from a niche: its searches, its platform hosts, its screen. */
 export function youtubeSearchFor(niche: string) {
   const n = nicheFor(niche);

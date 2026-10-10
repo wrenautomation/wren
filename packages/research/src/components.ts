@@ -52,6 +52,7 @@ export const socialSettingsSchema = z
 export type SocialSettings = z.infer<typeof socialSettingsSchema>;
 export const SOCIAL = "research.social";
 export const DOSSIER = "research.dossier";
+export const TRIGGERS_COMPONENT = "signals.triggers";
 
 const LEADS: Port = {
   id: "leads",
@@ -317,6 +318,36 @@ export const RESEARCH_COMPONENTS = [
           built: "settings: each collector's block",
         },
         { is: "fixed", says: "Free sources only; every signal has a date, a link and its raw." },
+      ],
+    },
+  }),
+  defineComponent({
+    // The id the workflows wired while it was planned.
+    id: TRIGGERS_COMPONENT,
+    stage: "find",
+    channels: ["web"],
+    name: "Triggers",
+    blurb:
+      "Reads the news for firms in a niche that just bought, merged, raised, opened an office or named a leader, and adds each as a lead with its reason.",
+    icon: "flag",
+    for: "client",
+    ready: false,
+    missing: ["Runs on Wren's niches; a client's own trigger words are in development"],
+    out: [{ id: "leads", label: "leads with a reason", kind: "lead" }],
+    hypothesis: {
+      from: "designs/2026-10-10-triggers.md, 2026-10",
+      guesses: [
+        {
+          is: "change",
+          says: "What a niche's firms are called in the news.",
+          built: "niche.triggerWords",
+        },
+        {
+          is: "change",
+          says: "Sources: news first; job boards, Reddit and X next.",
+          built: "Google News RSS",
+        },
+        { is: "fixed", says: "Every lead carries the dated, linked news that made it." },
       ],
     },
   }),

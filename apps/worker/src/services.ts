@@ -305,6 +305,7 @@ import {
   LANDERS_BY_NICHE,
   NICHES,
   SMS_SEQUENCES,
+  triggersFor,
   youtubeSearchFor,
 } from "@wren/niches";
 import { makeNotesConsole, type NoteTurns, notesContext } from "@wren/notes/console";
@@ -878,6 +879,7 @@ export async function buildServices(
       }),
       exaFor: exaSearchFor,
       youtubeSearchFor,
+      triggersFor,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -1084,6 +1086,8 @@ export async function buildServices(
       fbGroups: true,
       exaSearch: true,
       youtubeSearch: true,
+      // Needs the fetcher (RSS) and a model; Enrichment refuses without the fetcher.
+      triggers: ua !== null,
       recheck: {
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,

@@ -122,7 +122,10 @@ export async function closeDiscoveryBatch(
   await db.update(imports).set({ stats }).where(eq(imports.id, batchId));
 }
 
-/** Companies with no domain, oldest first; `niche` scopes, null sees every niche. */
+/**
+ * Companies with no domain, oldest first, a news trigger's firms (`nt:`) before the rest: their
+ * reason to write goes stale. `niche` scopes, null sees every niche.
+ */
 export async function selectDiscoveryTargets(
   db: Queryable,
   opts: { limit?: number; niche?: string | null; retryAfterDays?: number },
@@ -133,7 +136,11 @@ export async function selectDiscoveryTargets(
     niche === null
       ? and(isNull(companies.domain), inPlay, fresh)
       : and(isNull(companies.domain), eq(companies.niche, niche), inPlay, fresh);
-  const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
+  const q = db
+    .select()
+    .from(companies)
+    .where(where)
+    .orderBy(sql`${companies.sourceKey} like 'nt:%' desc nulls last`, asc(companies.id));
   return opts.limit === undefined ? q : q.limit(opts.limit);
 }
 

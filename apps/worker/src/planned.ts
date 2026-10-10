@@ -94,30 +94,4 @@ export const PLANNED_COMPONENTS = [
       ],
     },
   }),
-  defineComponent({
-    ...planned,
-    id: "signals.triggers",
-    stage: "find",
-    channels: ["social", "web"],
-    name: "Triggers",
-    blurb:
-      "Job changes, hiring, funding and recent posts, each turned into a lead with its reason.",
-    icon: "flag",
-    for: "client",
-    missing: ["Job changes and company news are read for reactivation, not yet as new leads"],
-    out: [{ id: "leads", label: "leads with a reason", kind: "lead" }],
-    effects: ["spends"],
-    hypothesis: {
-      from,
-      guesses: [
-        { is: "change", says: "Which triggers matter, per niche.", built: null },
-        {
-          is: "change",
-          says: "Sources: LinkedIn, Instagram, news, job boards.",
-          built: "reactivation's movers (job changes) and the company-events check (news)",
-        },
-        { is: "fixed", says: "Every lead carries the trigger that made it." },
-      ],
-    },
-  }),
 ];

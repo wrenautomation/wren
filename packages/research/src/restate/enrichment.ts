@@ -115,6 +115,15 @@ import {
   instagramWork,
 } from "../enrichment/instagram.js";
 import {
+  countTriggerUnit,
+  emptyTriggersStats,
+  TRIGGERS_COMMAND,
+  type TriggersStats,
+  triggersDue,
+  triggersRoom,
+  triggerUnit,
+} from "../enrichment/news-triggers.js";
+import {
   countOpener,
   emptyOpenerStats,
   OPENER_VERSION,
@@ -276,6 +285,11 @@ export interface EnrichmentDeps {
     queries: readonly string[];
     cities: readonly string[];
     platforms: Iterable<string>;
+    screen: CompanyScreen | null;
+  } | null;
+  /** A niche's trigger words ("staffing agency") and its screen: the `triggers` stage's news searches. */
+  triggersFor?: (niche: string) => {
+    words: readonly string[];
     screen: CompanyScreen | null;
   } | null;
   /** A niche's YouTube channel searches, its platform hosts and its screen; read with `youtube`. */
@@ -502,6 +516,7 @@ const HELD = {
   instagram: "research.instagram",
   ads: "research.ads",
   exa: "research.exa-search",
+  triggers: "research.triggers",
   youtubeSearch: "research.youtube-search",
   groups: "research.fb-groups",
 } as const;
@@ -1384,6 +1399,60 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             await ctx.run("screen", async () => {
               await runScreen(db, niche, screen);
             });
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+      /** News that makes a lead (designs/2026-10-10-triggers.md): each word's last two weeks. */
+      triggers: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<TriggersStats> => {
+          // The firms land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("trigger searches run on Wren's niches only");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("trigger searches need a niche key");
+          const t = deps.triggersFor?.(niche) ?? null;
+          const limit = input?.limit ?? 3;
+          const runId = await open(ctx, TRIGGERS_COMMAND, { limit, niche });
+          const now = new Date(await ctx.date.now());
+          const plan = await ctx.run("select", async () => {
+            const { room, nextInMs } = await triggersRoom(db, now);
+            if (room === 0)
+              return {
+                why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            return {
+              why: null,
+              work: await triggersDue(db, t?.words ?? [], { now, limit: Math.min(limit, room) }),
+            };
+          });
+          const stats = emptyTriggersStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          const llm = llmOf(ctx, "triggers", runId);
+          const holds = await stageHolds(ctx, db, HELD.triggers);
+          for (const word of notHeld(holds, plan.work)) {
+            const r = await unit(
+              ctx,
+              `triggers ${word}`,
+              () => triggerUnit(db, { fetcher: fetcher(), llm }, { word, niche, now }),
+              { holds, id: word },
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            countTriggerUnit(stats, r.value);
+          }
+          // New firms get the niche's screen (chains, foreign, its own rule) before any stage reads them.
+          if (stats.created > 0 && t?.screen) {
+            const screen = t.screen;
+            await ctx.run("screen", async () => {
+              await runScreen(db, niche, screen);
+            });
+          }
           await close(ctx, runId, stats);
           return stats;
         },

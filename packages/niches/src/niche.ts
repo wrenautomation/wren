@@ -79,6 +79,8 @@ export interface Niche {
   readonly exaCities: readonly string[];
   /** YouTube channel searches whose channels become this niche's firms (the `youtubeSearch` stage). */
   readonly youtubeQueries: readonly string[];
+  /** What the niche's firms are called in the news ("staffing agency"): the `triggers` stage's searches. */
+  readonly triggerWords: readonly string[];
 }
 
 /** The 25 largest US metro areas, by principal city, as a search names them. */
@@ -145,6 +147,8 @@ export interface NicheSpec {
   /** Default: `adKeywords`; the words that find a niche's advertisers find its channels. */
   readonly youtubeQueries?: readonly string[];
   readonly exaCities?: readonly string[];
+  /** What the niche's firms are called in the news; none = no trigger searches. */
+  readonly triggerWords?: readonly string[];
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -287,6 +291,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     exaQueries: spec.exaQueries ?? [],
     youtubeQueries: spec.youtubeQueries ?? spec.adKeywords ?? [],
     exaCities: spec.exaCities ?? [],
+    triggerWords: spec.triggerWords ?? [],
   };
 }
 
