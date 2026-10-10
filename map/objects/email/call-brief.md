@@ -17,8 +17,9 @@ A rep must trust every line, so code gathers every fact and cites its source and
 
 ## Shape
 
-- `call_booking_id` (PK and FK to [[email/call-booking]], cascade), `brief` jsonb (`CallBrief`: call, top, cameIn, thread, facts, posts, signals, questions, built, model), `built_at`, `start` (the call time it was built for), `sent_at`, `model` (`schema.ts:692`)
+- `call_booking_id` (PK and FK to [[email/call-booking]], cascade), `brief` jsonb (`CallBrief`: call, top, cameIn, thread, facts, posts, signals, site, touches, questions, built, model), `built_at`, `start` (the call time it was built for), `sent_at`, `model` (`schema.ts:692`)
 - built from: the enrollment and first email, the email link, texts, our calendar's booking source, replies' own words, the dossier (facts, `recentPosts`), `research_signals` of the last 90 days. A dated finding shows once, under Signals
+- `site` ("On the site", Wren's own calls only): `landerVisits` (`calls/site.ts`) reads the lander's `/api/export` live: the visitors who applied with the booking's email, their pages seen most and newest recorded sessions. No visitor id is kept
 - spine: `calls.brief` is the `brief.calls` node's step in `close`; it builds, keeps, and queues `CallBriefs/send` `leadMinutes` before the start (`calls/restate.ts:83`)
 - service `CallBriefs{build, send}` (`calls/restate.ts:133`): `send` skips a cancelled or moved call, rebuilds, pings the team's lane ("Call in N min: brief ready" with a link), marks `sent_at`; `build` is the page's Rebuild (through `EmailConsole.callBrief`), never pings
 - settings `calls.brief`: `leadMinutes` (60), `questions` (true), `ping` (true); `{}` is valid (`calls/settings.ts`)

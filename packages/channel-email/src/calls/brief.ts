@@ -47,6 +47,8 @@ export interface CallBrief {
   facts: Cited[];
   posts: Cited[];
   signals: Cited[];
+  /** Their visits to Wren's site: pages seen most, then recorded sessions; absent on older briefs. */
+  site?: Cited[];
   /** Our social touches with them, newest first (designs/2026-10-07-touches.md); absent on older briefs. */
   touches?: Cited[];
   questions: Question[];
@@ -409,6 +411,8 @@ export interface BuildOptions {
   now: Date;
   /** The worker's model, for questions; null or off, code's alone. */
   llm?: LlmClient | null;
+  /** Their site visits by email (`landerVisits`, Wren's own calls); absent, none. */
+  site?: ((email: string) => Promise<Cited[]>) | null;
 }
 
 /** Build one call's brief from its database; null when there's no such call. Writes nothing. */
@@ -475,6 +479,7 @@ export async function buildBrief(
     facts,
     posts,
     signals,
+    site: o.site && str(call.email) ? kept(await o.site(String(str(call.email)))) : [],
     touches: kept(
       g.touched.map((t) =>
         cited(sentence(touchText(t, o.now)), platformLabel(t.platform), t.url, t.at),

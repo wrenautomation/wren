@@ -83,7 +83,13 @@ import {
 } from "@wren/channel-email/access/access";
 import { makeMailAccess, makeMailCallback } from "@wren/channel-email/access/console";
 import { mailChecks } from "@wren/channel-email/access/setups";
-import { briefSettingsOf, briefStep, CALL_BRIEF, makeCallBriefs } from "@wren/channel-email/calls";
+import {
+  briefSettingsOf,
+  briefStep,
+  CALL_BRIEF,
+  landerVisits,
+  makeCallBriefs,
+} from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
 import { emailRecords } from "@wren/channel-email/records";
 import {
@@ -1591,8 +1597,13 @@ export async function buildServices(
   // DeliveryWatch mails clients from portal@ and pings us when one could feel forgotten.
   const portal = settings.portalOrigin ?? null;
   // A booked call's brief: Wren's or the client's database, its settings, the worker's model.
+  // Wren's calls read the lander's export for the lead's visits; a client's have no lander.
+  const landerSite = settings.siteExportToken
+    ? landerVisits({ baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken })
+    : null;
   const callBriefs = {
     dbFor: (client: string | null) => (client ? clientDb(client) : db),
+    siteFor: (client: string | null) => (client ? null : landerSite),
     settingsFor: async (client: string | null) =>
       briefSettingsOf((await settingsFor(db, client))[CALL_BRIEF]),
     llm,

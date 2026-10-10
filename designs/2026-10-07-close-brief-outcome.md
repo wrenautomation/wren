@@ -116,6 +116,7 @@ The same component is used on Inbox > Calls, Calendar > Calls and the Schedule's
 - 2026-10-07: Won queues onboarding and never sends; no-show has no rebook path yet.
 - 2026-10-07 (built): A dated finding shows once, under Signals, in the dossier's words. A post shows under Recent posts. Facts read as words, never raw JSON.
 - 2026-10-07 (built): Rebuild is on Inbox and client Calls pages. Calendar pages show the brief without it. The reasons list is in settings but not yet offered as picks in the Not yet box.
+- 2026-10-10 (built): "On the site" on Wren's own briefs. The lander export takes `visitor=`; `calls/site.ts` finds the visitors who applied with the booking's email, then lists the pages they saw most and their newest recorded sessions. Only the lines are kept, never a visitor id. A client's calls have no lander, so none.
 
 ## Open (William's call)
 
@@ -123,4 +124,3 @@ The same component is used on Inbox > Calls, Calendar > Calls and the Schedule's
 - **Client reps' ping.** A client's rep sees the brief in their Calls app, but the ping goes to Wren's lane. Mailing it to the rep is William's call.
 - **Lead time.** 60 minutes by default; settable per client.
 - **Not-yet reasons.** The default list.
-- **Lander visitor signals** (pages seen, replays) are not in the brief yet.

@@ -127,7 +127,14 @@ export interface SiteTables {
 /** Every row of one lander table after id `since` (all of them by default), paged forward by id. */
 export async function siteExport<T extends keyof SiteTables>(
   table: T,
-  opts: { baseUrl: string; exportToken: string; fetch?: FetchLike; since?: number },
+  opts: {
+    baseUrl: string;
+    exportToken: string;
+    fetch?: FetchLike;
+    since?: number;
+    /** One visitor's rows only (every table but clicks). */
+    visitor?: string;
+  },
 ): Promise<SiteTables[T][]> {
   const fetchImpl = opts.fetch ?? globalThis.fetch;
   const out: SiteTables[T][] = [];
@@ -137,6 +144,7 @@ export async function siteExport<T extends keyof SiteTables>(
     url.searchParams.set("table", table);
     url.searchParams.set("since", String(since));
     url.searchParams.set("limit", String(SITE_PAGE));
+    if (opts.visitor) url.searchParams.set("visitor", opts.visitor);
     let response: Response;
     try {
       response = await fetchImpl(url.toString(), {

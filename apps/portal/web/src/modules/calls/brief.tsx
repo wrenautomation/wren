@@ -181,6 +181,11 @@ export function BriefBody({
           <Part title="Their words">
             <Lines lines={b.thread} quote none="No reply or text from them yet." />
           </Part>
+          {b.site?.length ? (
+            <Part title="On the site">
+              <Lines lines={b.site} none="" />
+            </Part>
+          ) : null}
           {b.touches?.length ? (
             <Part title="Earlier touches">
               <Lines lines={b.touches} none="" />

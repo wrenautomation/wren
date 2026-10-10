@@ -15,7 +15,7 @@ import type { LlmClient } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { callBookings } from "../schema.js";
-import { buildBrief, markSent, saveBrief } from "./brief.js";
+import { buildBrief, type Cited, markSent, saveBrief } from "./brief.js";
 import { callSubject, outcomeEmits, setCallOutcome } from "./outcome.js";
 import type { BriefSettings } from "./settings.js";
 
@@ -107,6 +107,8 @@ export interface BriefDeps {
   llm: LlmClient | null;
   /** A client's model: its own key or Wren's, metered on its share. Unset: `llm`. */
   llmFor?: ((client: string) => LlmClient) | null;
+  /** Site visits for this database's calls (Wren's lander); null when it has no site to read. */
+  siteFor?: ((client: string | null) => ((email: string) => Promise<Cited[]>) | null) | null;
 }
 
 /** The model a brief's questions run on: the client's own, else Wren's; null when off. */
@@ -140,6 +142,7 @@ export const briefStep =
     const brief = await buildBrief(db, id, {
       now,
       llm: modelOf(deps, at.client, settings.questions),
+      site: deps.siteFor?.(at.client) ?? null,
     });
     if (!brief) return [];
     await saveBrief(db, brief);
@@ -189,6 +192,7 @@ export function makeCallBriefs(deps: CallBriefsDeps) {
         const b = await buildBrief(db, id, {
           now,
           llm: modelOf(deps, client, settings.questions),
+          site: deps.siteFor?.(client) ?? null,
         });
         if (b) await saveBrief(db, b);
         return b ? { lines: b.facts.length + b.signals.length + b.thread.length } : null;
