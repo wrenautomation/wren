@@ -3,6 +3,7 @@ import { env } from "node:process";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { addClient, addMember } from "../../src/clients/index.js";
 import { events, webhookSubscriptions } from "../../src/schema.js";
 import { failedOf, failedRuns } from "../../src/spine.js";
 import {
@@ -19,6 +20,7 @@ import {
   rotateSubscription,
   secretsOf,
   subscriptionsOf,
+  turnedOffTeller,
 } from "../../src/webhooks.js";
 
 let pg: TestPostgres;
@@ -201,6 +203,49 @@ describe("failing", () => {
     view = await editSubscription(pg.db, null, s.id, { active: false });
     expect(view).toMatchObject({ active: false, disabledAt: null });
     expect(view.failingSince).not.toBeNull();
+  });
+
+  it("tells a client's owners and its adder once, when Wren turns it off", async () => {
+    await addClient(pg.db, pg.url, { id: "hookco", name: "Hook Co" });
+    await addMember(pg.db, "hookco", "own@hook.example", { role: "owner" });
+    await addMember(pg.db, "hookco", "staff@hook.example", { role: "member" });
+    const { subscription: s } = await addSubscription(
+      pg.db,
+      "hookco",
+      { name: "CRM", url: "https://crm.example.com/in", events: ["lead.created"] },
+      "Staff@hook.example",
+    );
+    const queue = async (n: string) =>
+      (
+        await queueDeliveries(
+          pg.db,
+          { client: "hookco", event: "lead.created", id: n, payload },
+          s.id,
+        )
+      )[0] as string;
+    const t0 = new Date("2026-10-01T00:00:00Z");
+    const first = await attemptDelivery(pg.db, await queue("msg_co1"), true, { ...local, now: t0 });
+    expect(first.off).toBeUndefined();
+    const late = new Date(t0.getTime() + DISABLE_AFTER_MS + 1);
+    const { off } = await attemptDelivery(pg.db, await queue("msg_co2"), true, {
+      ...local,
+      now: late,
+    });
+    expect(off).toMatchObject({ client: "hookco", name: "CRM", url: "https://crm.example.com/in" });
+    // Already off: no second word.
+    const again = await attemptDelivery(pg.db, await queue("msg_co3"), true, {
+      ...local,
+      now: late,
+    });
+    expect(again.off).toBeUndefined();
+
+    const sent: { to: string; subject: string; text: string }[] = [];
+    if (!off) throw new Error("not turned off");
+    await turnedOffTeller(pg.db, async (m) => void sent.push(m), "https://portal.example")(off);
+    expect(sent.map((m) => m.to).sort()).toEqual(["own@hook.example", "staff@hook.example"]);
+    expect(sent[0]?.subject).toBe('Your webhook "CRM" is off');
+    expect(sent[0]?.text).toContain("https://portal.example/account/webhooks");
+    expect(sent[0]?.text).toContain("Nothing landed in 5 days");
   });
 });
 

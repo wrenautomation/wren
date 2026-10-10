@@ -10,6 +10,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
+import { listMembers, normalEmail } from "./clients/index.js";
 import { openToken, sealToken } from "./doors.js";
 import { PortalRefusal } from "./portal.js";
 import { serviceHandler } from "./restate/form.js";
@@ -564,7 +565,7 @@ export async function attemptDelivery(
   id: string,
   last: boolean,
   o: PostOptions & { now?: Date; key?: string } = {},
-): Promise<{ done: boolean; answer: Answer | null }> {
+): Promise<{ done: boolean; answer: Answer | null; off?: TurnedOff }> {
   const [row] = await db
     .select({ d: webhookDeliveries, s: webhookSubscriptions })
     .from(webhookDeliveries)
@@ -617,8 +618,20 @@ export async function attemptDelivery(
       nextAt: done ? null : new Date(now.getTime() + (DELIVERY_LADDER_MS[n - 1] ?? 0)),
     })
     .where(eq(webhookDeliveries.id, id));
-  if (!test) await tally(db, row.s.id, ok, now, answer.error ?? `answered ${answer.status}`);
-  return { done, answer };
+  const off = test
+    ? null
+    : await tally(db, row.s, ok, now, answer.error ?? `answered ${answer.status}`);
+  return { done, answer, ...(off ? { off } : {}) };
+}
+
+/** A client's subscription Wren just turned off: who to tell, and why. */
+export interface TurnedOff {
+  client: string;
+  name: string;
+  url: string;
+  why: string;
+  /** Who added it. */
+  by: string;
 }
 
 /**
@@ -626,13 +639,20 @@ export async function attemptDelivery(
  * it, and past `DISABLE_AFTER_MS` of nothing landing turns the subscription off with why. Its
  * pending deliveries then stop on their next try ("the webhook is off").
  */
-async function tally(db: Queryable, sub: string, ok: boolean, now: Date, error: string) {
+async function tally(
+  db: Queryable,
+  hook: typeof webhookSubscriptions.$inferSelect,
+  ok: boolean,
+  now: Date,
+  error: string,
+): Promise<TurnedOff | null> {
+  const sub = hook.id;
   if (ok) {
     await db
       .update(webhookSubscriptions)
       .set({ failingSince: null })
       .where(and(eq(webhookSubscriptions.id, sub), isNotNull(webhookSubscriptions.failingSince)));
-    return;
+    return null;
   }
   const [s] = await db
     .update(webhookSubscriptions)
@@ -641,15 +661,30 @@ async function tally(db: Queryable, sub: string, ok: boolean, now: Date, error: 
     })
     .where(eq(webhookSubscriptions.id, sub))
     .returning({ since: webhookSubscriptions.failingSince, active: webhookSubscriptions.active });
-  if (!s?.active || !s.since || now.getTime() - s.since.getTime() < DISABLE_AFTER_MS) return;
-  await db
+  if (!s?.active || !s.since || now.getTime() - s.since.getTime() < DISABLE_AFTER_MS) return null;
+  const why = `Nothing landed in ${DISABLE_AFTER_DAYS} days. Last try: ${error}`.slice(0, 500);
+  const turned = await db
     .update(webhookSubscriptions)
-    .set({
-      active: false,
-      disabledAt: now,
-      disabledWhy: `Nothing landed in ${DISABLE_AFTER_DAYS} days. Last try: ${error}`.slice(0, 500),
-    })
-    .where(and(eq(webhookSubscriptions.id, sub), eq(webhookSubscriptions.active, true)));
+    .set({ active: false, disabledAt: now, disabledWhy: why })
+    .where(and(eq(webhookSubscriptions.id, sub), eq(webhookSubscriptions.active, true)))
+    .returning({ id: webhookSubscriptions.id });
+  // Wren's own show in its Account; only a client's owners are mailed.
+  return turned.length && hook.client
+    ? { client: hook.client, name: hook.name, url: hook.url, why, by: hook.by }
+    : null;
+}
+
+/** The mail a client's owners get when Wren turns their URL off. */
+export function turnedOffMail(off: TurnedOff, portal: string): { subject: string; text: string } {
+  return {
+    subject: `Your webhook "${off.name}" is off`,
+    text: [
+      `We turned off your webhook "${off.name}" (${off.url}).`,
+      off.why,
+      "Events stopped going to it. Fix the URL, then turn it back on here:",
+      `${portal}/account/webhooks`,
+    ].join("\n\n"),
+  };
 }
 
 // ---- The service ----
@@ -684,7 +719,27 @@ export function webhooksPublish(
 
 const TRY = { maxRetryAttempts: 5 };
 
-export function makeWebhooks(d: { main: Db }) {
+/** `tell` for `makeWebhooks`: the client's owners and whoever added the URL, one mail each. */
+export function turnedOffTeller(
+  main: Queryable,
+  send: (m: { to: string; subject: string; text: string }) => Promise<void>,
+  portal = "https://app.wrenautomation.com",
+): (off: TurnedOff) => Promise<void> {
+  return async (off) => {
+    const owners = (await listMembers(main, off.client))
+      .filter((m) => m.role === "owner")
+      .map((m) => m.email);
+    const by = off.by.includes("@") ? [normalEmail(off.by)] : [];
+    const mail = turnedOffMail(off, portal);
+    for (const to of new Set([...owners, ...by])) await send({ to, ...mail });
+  };
+}
+
+export function makeWebhooks(d: {
+  main: Db;
+  /** Tells a client's owners Wren turned their URL off; absent, the Account page still shows it. */
+  tell?: (off: TurnedOff) => Promise<void>;
+}) {
   return restate.service({
     name: WEBHOOKS.name,
     handlers: {
@@ -714,10 +769,20 @@ export function makeWebhooks(d: { main: Db }) {
               `try ${n}`,
               async () => {
                 const got = await attemptDelivery(d.main, req.id, n === DELIVERY_TRIES);
-                return { done: got.done, ok: !!got.answer && delivered(got.answer) };
+                return {
+                  done: got.done,
+                  ok: !!got.answer && delivered(got.answer),
+                  off: got.off ?? null,
+                };
               },
               TRY,
             );
+            const { off } = r;
+            if (off && d.tell) {
+              const tell = d.tell;
+              // A mail that won't go never fails the delivery: the Account page shows it either way.
+              await ctx.run("tell", () => tell(off), TRY).catch(() => undefined);
+            }
             if (r.done) return { state: r.ok ? "delivered" : "stopped" };
             await ctx.sleep(DELIVERY_LADDER_MS[n - 1] ?? 0);
           }

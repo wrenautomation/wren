@@ -58,6 +58,7 @@ An event's id is the Restate call plus the event name and subject, so a retried 
 
 - One flag per client and workflow: source `workflows`, cause `workflow:<id>`, reminded daily. It clears itself once nothing has failed. The 09:00 flags digest carries it, and Wren's own failed runs go as lines in that same message.
 - Who reads it: Wren's team. The Workflows app is the team's, so clients get no failure mail.
+- A client's URL Wren turns off mails the client's owners and whoever added it, once, from portal@ (`turnedOffTeller`). Wren's own show only in its Account.
 
 ## Surfaces
 
@@ -66,10 +67,10 @@ An event's id is the Restate call plus the event name and subject, so a retried 
 
 ## Not built
 
-- No email to the client when Wren turns a URL off. The portal and `wren webhooks list` show it.
 - The Zapier app (on hold). Its triggers would be REST hooks onto these subscriptions.
 
 ## Decision log
 
 - 2026-10-07: Built. Standard Webhooks over a homemade header, so receivers verify with a library. A service with a sleep loop over a virtual object per delivery: the state flip (`failed|delivered` to `pending`) guards a double redeliver. Wren never adds subscriptions on prod; a client's URL is their config.
 - 2026-10-09: A URL that fails for 5 days turns off, and turning it on starts clean. A failed row shows when it retries (`next_at`). The clock counts from the first failed try, not from the delivery, so a URL that fails once a day still turns off. Migration 0202.
+- 2026-10-10: A client hears when Wren turns their URL off: one mail per owner and the adder, from portal@, linking Account → Webhooks. A mail that won't go never fails the delivery.

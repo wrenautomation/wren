@@ -272,7 +272,7 @@ import { templateRecords } from "@wren/core/templates/records";
 import { makeTokens } from "@wren/core/tokens";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
-import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
+import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { makeDealsConsole } from "@wren/deals/console";
 import { dealRecordFor } from "@wren/deals/records";
@@ -1966,7 +1966,13 @@ export async function buildServices(
     }),
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.
     makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
-    makeWebhooks({ main: db }),
+    makeWebhooks({
+      main: db,
+      // A URL Wren turned off: its client's owners and whoever added it hear from portal@.
+      ...(bookerMailer
+        ? { tell: turnedOffTeller(db, bookerMailer("Wren"), settings.portalOrigin ?? undefined) }
+        : {}),
+    }),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({
       main: db,

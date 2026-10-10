@@ -28,6 +28,7 @@ import { liveFrom, SOCIAL } from "../../src/connect/platforms.js";
 import { socialSites } from "../../src/connect/sites.js";
 import { clientRoute } from "../../src/inbox/routes.js";
 import { addIdea, contentDrafts } from "../../src/index.js";
+import { makeAutoReply } from "../../src/restate/auto-reply.js";
 import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
 import { makeSocialInbox } from "../../src/restate/social-inbox.js";
 
@@ -140,6 +141,8 @@ beforeAll(async () => {
       // Wren runs no channel of its own: a connected account doesn't wait on that.
       makeSocialWatch({ db: pg.db, platforms: [], zone: "UTC", clientDb: open }),
       makeSocialInbox({ main: pg.db, clientDb: open, access: api, sites: () => sitesOf() }),
+      // Reviews just read go to AutoReply; with no model it drafts nothing.
+      makeAutoReply({ db: pg.db, clientDb: open, llm: null, senderName: "Wren" }),
     ],
     disableRetries: true,
   });
