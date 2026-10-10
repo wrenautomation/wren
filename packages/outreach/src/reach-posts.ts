@@ -1310,6 +1310,23 @@ export async function planPostComment(db: Queryable, id: number): Promise<ReachP
   return p;
 }
 
+/**
+ * A like or follow on its own, without a comment: any post not skipped. One already done is
+ * refused, so a second click never sends twice.
+ */
+export async function planPostAct(
+  db: Queryable,
+  id: number,
+  act: "like" | "follow",
+): Promise<ReachPost> {
+  const [p] = await db.select().from(reachPosts).where(eq(reachPosts.id, id));
+  if (!p) throw new ReachRefusal(`no post ${id}`);
+  if (p.state === "skipped") throw new ReachRefusal("that post was skipped");
+  if (act === "like" ? p.likedAt : p.followedAt)
+    throw new ReachRefusal(act === "like" ? "already liked" : "already following");
+  return p;
+}
+
 /** Commented: the words kept, his changes kept as an edit, the training record's `sent`. */
 export async function markPostCommented(
   db: Queryable,

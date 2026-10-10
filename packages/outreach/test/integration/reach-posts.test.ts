@@ -861,4 +861,24 @@ describe("his Comment, with a like and a follow", () => {
     await expect(desk().commentPost({ id: p.id })).rejects.toThrow(/no instagram account/);
     expect(calls).toEqual([]);
   });
+
+  it("likes or follows alone: no comment, still in To approve, once each, a touch", async () => {
+    // Settings leave follow off; a click on Follow only is the yes all the same.
+    await settings({ account: "x@wren" }, "x");
+    const p = await queuedOn("x", "557", "foundertwo");
+    await desk().actOnPost({ id: p.id, act: "follow" });
+    await desk().actOnPost({ id: p.id, act: "like" });
+    await expect(desk().actOnPost({ id: p.id, act: "like" })).rejects.toThrow(/already liked/);
+    expect(replies).toEqual([]);
+    expect(calls.map((c) => [c.path, c.input, c.account])).toEqual([
+      ["/2/users/me/following", { username: "foundertwo" }, "x@wren"],
+      ["/2/users/me/likes", { id: "557" }, "x@wren"],
+    ]);
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
+    expect(after?.state).toBe("queued");
+    expect(await touchRefs()).toEqual([
+      [`rp:${p.id}:follow`, "follow", "x@wren", "foundertwo"],
+      [`rp:${p.id}:like`, "like", "x@wren", "foundertwo"],
+    ]);
+  });
 });

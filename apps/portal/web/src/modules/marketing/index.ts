@@ -496,6 +496,20 @@ const ONPOST_ACTIONS: Action[] = [
     done: said("Commented"),
   },
   {
+    id: "marketing.onpostLike",
+    label: "Like only",
+    handler: "marketing/onpostLike",
+    confirm: "Like their post without commenting?",
+    done: said("Liked"),
+  },
+  {
+    id: "marketing.onpostFollow",
+    label: "Follow only",
+    handler: "marketing/onpostFollow",
+    confirm: "Follow them without commenting?",
+    done: said("Following"),
+  },
+  {
     id: "marketing.onpostSkip",
     label: "Skip",
     handler: "marketing/onpostSkip",

@@ -957,6 +957,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "marketing.connectApprove",
       "marketing.connectSkip",
       "marketing.onpostComment",
+      "marketing.onpostLike",
+      "marketing.onpostFollow",
       "marketing.onpostSkip",
       "marketing.draftSet",
       "marketing.draftAsk",

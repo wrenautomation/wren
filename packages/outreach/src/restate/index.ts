@@ -145,6 +145,7 @@ import {
   markPostActed,
   markPostCommented,
   type PostsStats,
+  planPostAct,
   planPostComment,
   postActs,
   postReader,
@@ -886,6 +887,10 @@ const POST = z.looseObject({
   id: z.number().int(),
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
+const POST_ACT = z.looseObject({
+  id: z.number().int(),
+  act: z.enum(["like", "follow"]).describe("Like the post, or follow its author"),
+});
 const POST_IDS = z.looseObject({ ids: z.array(z.number().int()).min(1).max(100) });
 const POSTS_LIST = z
   .looseObject({ state: z.string().nullish(), limit: z.number().nullish() })
@@ -1384,6 +1389,43 @@ export function makeReachDesk(deps: ReachDeps) {
             }
           }
           return { commented: post.id };
+        },
+      ),
+      /**
+       * A like on the post or a follow of its author on its own, as the comments settings'
+       * account: the click is the yes. A touch like the one that goes with a comment.
+       */
+      actOnPost: serviceHandler(
+        { input: POST_ACT, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: number; act: "like" | "follow" },
+        ): Promise<{ id: number; act: "like" | "follow" }> => {
+          const now = await nowOf(ctx);
+          const post = await ctx.run("plan", () =>
+            terminal(() => planPostAct(deps.db, req.id, req.act)),
+          );
+          const settings = await ctx.run("settings", () =>
+            commentsSettings(deps.db, post.platform),
+          );
+          if (!settings.account)
+            throw new restate.TerminalError(`no ${post.platform} account is set for comments`, {
+              errorCode: 409,
+            });
+          const acts = postActs(
+            post,
+            { like: req.act === "like", follow: req.act === "follow" },
+            "",
+          );
+          const act = acts[req.act];
+          if (!act)
+            throw new restate.TerminalError("that post's author has no handle to follow", {
+              errorCode: 409,
+            });
+          const [site, method, path, input] = act;
+          await deps.sitesFor(ctx).call(site, method, path, input, settings.account);
+          await ctx.run(req.act, () => markPostActed(deps.db, post.id, req.act, now));
+          return { id: post.id, act: req.act };
         },
       ),
       /** His no on posts to comment on. */

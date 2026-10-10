@@ -579,6 +579,15 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .action(async (id: string, o: { body?: string }) =>
       json(await desk().commentPost({ id: Number(id), ...(o.body ? { body: o.body } : {}) })),
     );
+  for (const act of ["like", "follow"] as const)
+    posts
+      .command(`${act} <id>`)
+      .description(
+        act === "like"
+          ? "Like their post without commenting, as the comments account"
+          : "Follow the post's author without commenting, as the comments account",
+      )
+      .action(async (id: string) => json(await desk().actOnPost({ id: Number(id), act })));
   posts
     .command("skip <ids...>")
     .description("Your no; --reason and --note are kept with the draft in the training record")
