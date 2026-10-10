@@ -16,6 +16,7 @@ import { setWrenSettings } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { siteCallErrorFrom } from "@wren/core/content/restate";
 import type { PassOutcome } from "@wren/core/restate";
+import { companies, people } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -879,6 +880,46 @@ describe("his Comment, with a like and a follow", () => {
     expect(await touchRefs()).toEqual([
       [`rp:${p.id}:follow`, "follow", "x@wren", "foundertwo"],
       [`rp:${p.id}:like`, "like", "x@wren", "foundertwo"],
+    ]);
+  });
+
+  it("Follow from People: the site's follow as its comments account, once, a touch", async () => {
+    await settings({ account: "x@wren" }, "x");
+    await settings({ account: "linkedin@wren" }, "linkedin");
+    const [co] = await db()
+      .insert(companies)
+      .values({ domain: "firm-one.example", name: "Firm One", niche: "recruiting" })
+      .returning();
+    const [pe] = await db()
+      .insert(people)
+      .values({
+        companyId: (co as { id: number }).id,
+        fullName: "Pat One",
+        isCompliance: false,
+        origin: "website",
+        originRef: "test",
+        raw: {},
+        linkedinUrl: "https://www.linkedin.com/in/Pat-One/",
+      })
+      .returning();
+    await desk().followPerson({ id: `li:${(pe as { id: number }).id}` });
+    await desk().followPerson({ id: "x:@founderthree" });
+    await expect(desk().followPerson({ id: "x:founderthree" })).rejects.toThrow(
+      /already following/,
+    );
+    await expect(desk().followPerson({ id: "reddit:someone" })).rejects.toThrow(
+      /LinkedIn, X and Instagram only/,
+    );
+    await expect(desk().followPerson({ id: "instagram:founder.one" })).rejects.toThrow(
+      /no instagram account/,
+    );
+    expect(calls.map((c) => [c.path, c.input, c.account])).toEqual([
+      ["/in/pat-one/follow", { vanity: "pat-one" }, "linkedin@wren"],
+      ["/2/users/me/following", { username: "founderthree" }, "x@wren"],
+    ]);
+    expect(await touchRefs()).toEqual([
+      ["follow:linkedin:pat-one", "follow", "linkedin@wren", "pat-one"],
+      ["follow:x:founderthree", "follow", "x@wren", "founderthree"],
     ]);
   });
 });

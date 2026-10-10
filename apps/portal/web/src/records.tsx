@@ -375,6 +375,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("ReachDesk", "messagePerson", { id, ...words(body) }, { confirm: "messagePerson" }),
   "marketing/personInvite": (id) =>
     handlerCall("ReachDesk", "invitePerson", { id }, { confirm: "invitePerson" }),
+  "marketing/personFollow": (id) =>
+    handlerCall("ReachDesk", "followPerson", { id }, { confirm: "followPerson" }),
   ...drafting("inbox", null),
   ...drafting("post", "draft"),
   ...drafting("comment", "comment"),

@@ -111,7 +111,7 @@ import {
 } from "../drafts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
-import { messageAccount, personContact } from "../from-people.js";
+import { markFollowed, messageAccount, personContact, personFollow } from "../from-people.js";
 import {
   draftInviteNote,
   invitesToNote,
@@ -141,6 +141,7 @@ import {
   COMMENT_MAX,
   type CommentsSettings,
   commentsSettings,
+  followAct,
   listPosts,
   markPostActed,
   markPostCommented,
@@ -910,7 +911,7 @@ const ANSWER = COMMENT.extend({
 });
 const DM = COMMENT.extend({ body: z.string() });
 const PERSON = z.looseObject({
-  id: z.string().describe("A People id: li:<people.id> or reddit:<handle>"),
+  id: z.string().describe("A People id: li:<people.id>, reddit:<handle> or <platform>:<handle>"),
 });
 const PERSON_MESSAGE = PERSON.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
@@ -1573,6 +1574,27 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           nudge(ctx);
           return r;
+        },
+      ),
+      /** Follow a person from People (LinkedIn, X, Instagram) as that site's comments account. */
+      followPerson: serviceHandler(
+        { input: PERSON, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: string },
+        ): Promise<{ platform: string; handle: string }> => {
+          const now = await nowOf(ctx);
+          const who = await ctx.run("plan", () => terminal(() => personFollow(deps.db, req.id)));
+          const settings = await ctx.run("settings", () => commentsSettings(deps.db, who.platform));
+          if (!settings.account)
+            throw new restate.TerminalError(`no ${who.platform} account is set for comments`, {
+              errorCode: 409,
+            });
+          const account = settings.account;
+          const [site, method, path, input] = followAct(who.platform, { handle: who.handle });
+          await deps.sitesFor(ctx).call(site, method, path, input, account);
+          await ctx.run("follow", () => markFollowed(deps.db, who, { account, at: now }));
+          return { platform: who.platform, handle: who.handle };
         },
       ),
       /** Invite a person from People on LinkedIn now: `linkedin-invite`, under the ramp. */

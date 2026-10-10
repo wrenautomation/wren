@@ -1362,6 +1362,24 @@ export async function markPostCommented(
 /** A site call: site, method, path, body. */
 export type SiteAct = readonly [string, "POST", string, Record<string, unknown>];
 
+/** Follow a person (or, on LinkedIn, a company page): the one site call, from a post or People. */
+export function followAct(
+  platform: ReachPostPlatform,
+  who: { handle: string } | { company: string },
+): SiteAct {
+  if ("company" in who)
+    return ["linkedin", "POST", `/company/${who.company}/follow`, { company: who.company }];
+  const h = who.handle;
+  switch (platform) {
+    case "linkedin":
+      return ["linkedin", "POST", `/in/${h}/follow`, { vanity: h }];
+    case "x":
+      return ["x", "POST", "/2/users/me/following", { username: h }];
+    case "instagram":
+      return ["instagram", "POST", `/web/${h}/follow`, { username: h }];
+  }
+}
+
 /**
  * What goes with his Comment: the comment itself where it is a site call (Instagram; LinkedIn and
  * X reply through the content channel), a like on the post, a follow of its author. Each runs as
@@ -1384,21 +1402,19 @@ export function postActs(
         like: like ? ["linkedin", "POST", `/feed/update/${ref}/like`, { urn: p.ref }] : null,
         follow: !follow
           ? null
-          : company
-            ? ["linkedin", "POST", `/company/${company}/follow`, { company }]
-            : ["linkedin", "POST", `/in/${h}/follow`, { vanity: h }],
+          : followAct("linkedin", company ? { company } : { handle: h as string }),
       };
     case "x":
       return {
         comment: null,
         like: like ? ["x", "POST", "/2/users/me/likes", { id: p.ref }] : null,
-        follow: follow ? ["x", "POST", "/2/users/me/following", { username: h }] : null,
+        follow: follow && h ? followAct("x", { handle: h }) : null,
       };
     case "instagram":
       return {
         comment: ["instagram", "POST", `/web/p/${ref}/comments`, { shortcode: p.ref, text: body }],
         like: like ? ["instagram", "POST", `/web/p/${ref}/like`, { shortcode: p.ref }] : null,
-        follow: follow ? ["instagram", "POST", `/web/${h}/follow`, { username: h }] : null,
+        follow: follow && h ? followAct("instagram", { handle: h }) : null,
       };
   }
 }

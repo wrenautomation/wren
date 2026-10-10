@@ -727,5 +727,10 @@ export const personRecord = defineRecord({
     label: "Touches",
     empty: "Follows, invites, comments, replies and DMs with them, on every site, show here.",
   },
-  actions: ["marketing.personDraft", "marketing.personMessage", "marketing.personInvite"],
+  actions: [
+    "marketing.personDraft",
+    "marketing.personMessage",
+    "marketing.personInvite",
+    "marketing.personFollow",
+  ],
 });

@@ -13,7 +13,7 @@ One social touch with a person, ours or theirs: a follow, invite, comment, reply
 
 ## Why this shape
 
-Each touch already lives in its source table (`reach_messages`, `comments`, `reddit_threads`, `reach_posts`, `social_activity`), keyed by a handle and rarely by a person. A touch is the per-person line over them, keyed by its source row (`ref`: `rm:`, `c:`, `ca:`, `rt:`, `rp:` (and `rp:<id>:like`, `rp:<id>:follow`), `sa:`), so a live writer and the backfill never double it. Core owns it so compose and the call brief read it without importing outreach (designs/2026-10-07-touches.md).
+Each touch already lives in its source table (`reach_messages`, `comments`, `reddit_threads`, `reach_posts`, `social_activity`), keyed by a handle and rarely by a person. A touch is the per-person line over them, keyed by its source row (`ref`: `rm:`, `c:`, `ca:`, `rt:`, `rp:` (and `rp:<id>:like`, `rp:<id>:follow`), `follow:<platform>:<handle>` (Follow on a People row), `sa:`), so a live writer and the backfill never double it. Core owns it so compose and the call brief read it without importing outreach (designs/2026-10-07-touches.md).
 
 ## Shape
 

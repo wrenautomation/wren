@@ -940,6 +940,15 @@ const PERSON_ACTIONS: Action[] = [
     when: { can: ["invite"] },
     done: said("Queued. It leaves under the day's invite cap."),
   },
+  {
+    id: "marketing.personFollow",
+    label: "Follow",
+    handler: "marketing/personFollow",
+    confirm: "Follow them from Wren's account?",
+    key: "f",
+    when: { platform: ["linkedin", "x", "instagram"] },
+    done: said("Followed."),
+  },
 ];
 
 // Texts and DM slots edit in place (the record's `edits`): History, Undo, Ask Claude. A keyword
