@@ -9,7 +9,7 @@ entity: packages/learn/src/schema.ts:152
 
 # item (Learn)
 
-One thing to learn from (`learn.items`), in one workspace (`client`: a client's id, or `wren`): a link someone saved (portal box, phone Shortcut, `wren learn add`) or a post from a source he follows (`learn.sources`). It keeps the transcript whole, a 0-10 score on how much it should change how Wren works, and which SOPs it was added to (`learn.sop_sources`).
+One thing to learn from (`learn.items`), in one workspace (`client`: a client's id, or `wren`): a link someone saved (portal box, phone Shortcut, `wren learn add`) or a post from a source he follows (`learn.sources`). It keeps the transcript whole, a 0-10 score on how much its workspace can use it (Wren's: against what Wren builds and runs, `WREN_FOCUS` in `score.ts`, and its SOPs; a client's: its SOPs alone), and which SOPs it was added to (`learn.sop_sources`).
 
 ## Why this shape
 
@@ -32,7 +32,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 
 ## If you change this
 
-- **Hits:** the score prompt and verdict cut (`verdictOf`), the Learn app, LearnConsole, `wren learn` (`catalog`, `add`), the catalog's reader (`apps/cli/src/learn.ts:204`), the SOP folders under `WREN_SOPS_DIR`
+- **Hits:** the score prompt and verdict cut (`verdictOf`), `wren learn rescore`, the Learn app, LearnConsole, `wren learn` (`catalog`, `add`), the catalog's reader (`apps/cli/src/learn.ts:204`), the SOP folders under `WREN_SOPS_DIR`
 - **Does not hit:** mail triage
 
 ## Surfaces

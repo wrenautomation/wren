@@ -38,6 +38,8 @@ import {
   readVideo,
   scoreItem,
   scoreStep,
+  unscore,
+  WREN_FOCUS,
   searchItems,
   sitesReader,
   sopLibrary,
@@ -782,6 +784,45 @@ describe("Learn", () => {
       duration: 640,
       moments: [{ t: 125, label: "The warmup rule" }],
     });
+  });
+  it("scores Wren's items against what it runs, and scores again after unscore", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const s = await api.save({ ...viewer, url: "https://youtu.be/synthVid04" });
+    const md = `---\nsource: "youtube:synthVid04"\ntitle: "Synthetic dashboard"\nchannel: "Synthetic Channel"\npriority: 5\n---\n\n# Synthetic dashboard\n\nA portal for a roofer.\n`;
+    expect(
+      await readVideo(pg.db, async () => ({ file: "youtube-synthVid04.md", md }), Number(s.id)),
+    ).toBe("read");
+    let asked = "";
+    let score = 4;
+    let garbled = 0;
+    const llm = new FakeLlm({
+      respond: (p) => {
+        asked = p;
+        if (garbled > 0) {
+          garbled--;
+          return "not json";
+        }
+        return JSON.stringify({ score, summary: "A portal.", changes: [], why: "Copy it." });
+      },
+    });
+    expect(await scoreItem(pg.db, judge(llm), Number(s.id))).toBe("hold");
+    expect(asked).toContain("What Wren builds and runs:");
+    expect(asked).toContain(WREN_FOCUS[0]);
+    expect(asked).toContain("Use the whole scale");
+
+    score = 8;
+    garbled = 1;
+    // Scored stays scored until unscored; another workspace's ids are left alone.
+    expect(await scoreItem(pg.db, judge(llm), Number(s.id))).toBe("hold");
+    expect(await unscore(pg.db, "someone-else", [Number(s.id)])).toEqual([]);
+    expect(await unscore(pg.db, "wren", [Number(s.id)])).toEqual([Number(s.id)]);
+    expect(await scoreItem(pg.db, judge(llm), Number(s.id))).toBe("show");
+    const [row] = await pg.db
+      .select()
+      .from(items)
+      .where(eq(items.id, Number(s.id)));
+    // The garbled answer was asked again at once.
+    expect(row).toMatchObject({ score: 8, verdict: "show", why: "Copy it.", tries: 2 });
   });
   it("counts what sources brought since this viewer last looked", async () => {
     const api = learnConsoleApi(pg.db, web({ entries: [] }));

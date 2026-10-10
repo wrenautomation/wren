@@ -25,6 +25,7 @@ import {
   judges,
   practiceOf,
   scoreItem,
+  WREN_FOCUS,
   sopLibrary,
   sources,
   tellLearn,
@@ -341,6 +342,7 @@ describe("a client's items are its own to score and keep", () => {
     expect(p).toContain("Alpha Dental");
     expect(p).toContain("patient-recalls");
     expect(p).not.toMatch(/Wren|wren-secret-playbook/);
+    expect(p).not.toContain(WREN_FOCUS[0]);
     const used = await pg.db.execute(
       sql`select client, vendor, part, units from vendor_usage order by id`,
     );

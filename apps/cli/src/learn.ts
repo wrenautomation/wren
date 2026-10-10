@@ -34,6 +34,7 @@ import {
   readVideo,
   saveLink,
   scoreItem,
+  unscore,
   searchItems,
   sourcesByKind,
   TELLS,
@@ -345,6 +346,22 @@ export function registerLearn(
         await inWorkspace(async (db, client) => ({
           done: await mark(db, client, idsOf(ids), "archive"),
         })),
+      ),
+    );
+
+  learn
+    .command("rescore <ids...>")
+    .description("score read items again, under today's rubric")
+    .option("--model <name>", "the scoring model", "cohere")
+    .action(async (ids: string[], o: { model: string }) =>
+      json(
+        await inWorkspace(async (db, client) => {
+          const judge = judgeFor(db, o.model);
+          const out: { id: number; verdict: string | null }[] = [];
+          for (const id of await unscore(db, client, idsOf(ids)))
+            out.push({ id, verdict: await scoreItem(db, judge, id) });
+          return out;
+        }),
       ),
     );
 

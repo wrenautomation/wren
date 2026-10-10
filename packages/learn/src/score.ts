@@ -13,7 +13,7 @@ import type { Step } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, llmForKey } from "@wren/llm";
-import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { secondsOf } from "./feeds.js";
 import { items, type Moment, sopSources, sources, type Verdict } from "./schema.js";
@@ -76,7 +76,21 @@ export function chaptersOf(transcript: string | null): Moment[] {
 export const verdictOf = (score: number): Verdict =>
   score >= 7 ? "show" : score >= 4 ? "hold" : "drop";
 
-const SYSTEM = `You read the news for Wren, a small AI automation agency. Wren finds leads, writes cold email and DMs, builds landing pages, posts content and runs it all on browser automation and AI models. You judge one item at a time against how Wren works today. Most items change nothing; say so. Answer with JSON only.`;
+const SYSTEM = `You read the news for Wren, a small AI automation agency. You judge one item at a time by how much Wren can use it. Use the whole scale. Answer with JSON only.`;
+
+/**
+ * What Wren builds and runs: the scorer's yardstick beside its SOPs. SOPs alone left nearly every
+ * item "worth knowing, no SOP changes" (all 4s, 2026-10-09): few areas have an SOP yet.
+ */
+export const WREN_FOCUS: readonly string[] = [
+  "a done-for-you stack for local service businesses (roofers, home services): CRM, client portal, texts, reviews, booking, AI agents and dashboards",
+  "finding leads; cold email, DMs and texts",
+  "organic content and audience growth: YouTube, Instagram reels, TikTok, X, LinkedIn",
+  "paid ads (Meta)",
+  "landing pages and search",
+  "video editing with AI",
+  "browser automation and AI agents, and what the models cost",
+];
 
 /** What a client's items are scored against: the SOP names its own items fed. */
 export async function clientPractices(db: Queryable, client: string): Promise<Practice[]> {
@@ -91,7 +105,7 @@ export async function clientPractices(db: Queryable, client: string): Promise<Pr
 
 /** A client's: its name only, nothing of Wren's. */
 const clientSystem = (name: string) =>
-  `You read the news for ${name}. You judge one item at a time against how ${name} works today. Most items change nothing; say so. Answer with JSON only.`;
+  `You read the news for ${name}. You judge one item at a time by how much ${name} can use it. Use the whole scale. Answer with JSON only.`;
 
 /**
  * Who an item is scored for: Wren's own, or a client by its name, with that workspace's model and
@@ -102,6 +116,8 @@ export interface Judge {
   wren: boolean;
   llm: LlmClient | null;
   practices: readonly Practice[];
+  /** What it builds and runs, one area a line ([] for a client: its SOPs alone). */
+  focus?: readonly string[];
   wait?: string | null;
 }
 export type JudgeFor = (client: string) => Promise<Judge>;
@@ -121,7 +137,13 @@ export function judges(o: {
   const now = o.now ?? (() => new Date());
   return async (client) => {
     if (client === WREN)
-      return { name: "Wren", wren: true, llm: o.llm, practices: await o.wrenPractices() };
+      return {
+        name: "Wren",
+        wren: true,
+        llm: o.llm,
+        practices: await o.wrenPractices(),
+        focus: WREN_FOCUS,
+      };
     const row = await findClient(o.db, client);
     const name = row?.name ?? client;
     const practices = await clientPractices(o.db, client);
@@ -155,11 +177,12 @@ export interface ScoredItem {
   timed?: boolean;
 }
 
-/** The prompt, for `name` (Wren, or a client): its SOPs one a line, then the item. */
+/** The prompt, for `name` (Wren, or a client): what it runs, its SOPs one a line, then the item. */
 export function scorePrompt(
   item: ScoredItem,
   practices: readonly Practice[],
   name = "Wren",
+  focus: readonly string[] = [],
 ): string {
   const sops = practices
     .map(
@@ -167,14 +190,18 @@ export function scorePrompt(
         `- ${p.name}${p.about ? `: ${p.about}` : ""}${p.headings.length ? ` Covers: ${p.headings.join("; ")}.` : ""}`,
     )
     .join("\n");
-  return `How ${name} works today, one SOP a line:
+  const runs = focus.length
+    ? `What ${name} builds and runs:\n${focus.map((f) => `- ${f}`).join("\n")}\n\n`
+    : "";
+  return `${runs}${name}'s SOPs, one a line:
 ${sops || "- (no SOPs yet)"}
 
-Score how much this item should change what ${name} does, 0 to 10:
-0-3: nothing ${name} can use, or news with no action in it.
-4-6: worth knowing; no SOP changes.
-7-8: a concrete better way to do a step an SOP covers, or a tool that replaces one.
-9-10: urgent: a platform rule, ban, price or deliverability change that breaks what ${name} runs now.
+Score how useful this item is to ${name}, 0 to 10. Use the whole scale:
+0-2: nothing ${name} can use: off topic, pep talk, or news with no action in it.
+3-4: on topic but generic: advice ${name} already follows, or too thin to act on.
+5-6: a specific idea, tool or example in what ${name} runs, worth a look later.
+7-8: worth acting on now: a tool, model, feature, tactic or offer ${name} should try, build or copy, or a better way to do a step an SOP covers.
+9-10: urgent: a platform rule, ban, price or deliverability change that breaks what ${name} runs now, or a large saving on something it pays for.
 
 Answer {"score": n, "summary": "two plain sentences on what the item says", "changes": ["the SOP names it would change, from the list above"], "why": "one sentence: what ${name} would do differently, or why nothing"${item.timed ? ', "moments": [{"at": "m:ss from the [m:ss] marks", "label": "what happens there, under 8 words"}] (up to 6, only the ones worth jumping to)' : ""}}.
 
@@ -187,7 +214,7 @@ ${item.text.slice(0, PROMPT_TEXT)}`;
 /**
  * Score one read item through its workspace's judge. Null when there's no such row, it isn't read
  * yet, the client's models gate is shut, or the model's answer didn't read three times (it waits,
- * unscored). A provider failure throws, so the step retries.
+ * unscored; each asked at once). A provider failure throws, so the step retries.
  */
 export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise<Verdict | null> {
   const [row] = await db
@@ -226,23 +253,31 @@ export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise
     from: row.from ?? (judge.wren ? "saved by William" : "saved"),
     timed: timed(text),
   };
-  const out = await completeAndParse(llm, scorePrompt(scored, practices, judge.name), scoreSchema, {
-    maxTokens: 900,
-    system: judge.wren ? SYSTEM : clientSystem(judge.name),
-    name: "learn.score",
-  }).catch(async (err: unknown) => {
-    // The client's allowance ran out between the gate and the call: it waits, as a shut gate.
-    if (!isVendorStop(err)) throw err;
-    await waits(`models: ${err.why}`);
-    return null;
-  });
-  if (!out) return null;
-  const v = out.parsed;
+  // An answer that doesn't read is asked again now: nothing comes back for a read item later.
+  let tries = item.tries;
+  let v: z.infer<typeof scoreSchema> | null = null;
+  while (!v && tries < MAX_TRIES) {
+    const out = await completeAndParse(
+      llm,
+      scorePrompt(scored, practices, judge.name, judge.focus),
+      scoreSchema,
+      {
+        maxTokens: 900,
+        system: judge.wren ? SYSTEM : clientSystem(judge.name),
+        name: "learn.score",
+      },
+    ).catch(async (err: unknown) => {
+      // The client's allowance ran out between the gate and the call: it waits, as a shut gate.
+      if (!isVendorStop(err)) throw err;
+      await waits(`models: ${err.why}`);
+      return null;
+    });
+    if (!out) return null;
+    tries++;
+    v = out.parsed ?? null;
+  }
   if (!v) {
-    await db
-      .update(items)
-      .set({ tries: item.tries + 1 })
-      .where(eq(items.id, id));
+    await db.update(items).set({ tries }).where(eq(items.id, id));
     return null;
   }
   const names = new Set(practices.map((p) => p.name));
@@ -256,11 +291,34 @@ export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise
       changes: v.changes.filter((c) => names.has(c)),
       why: v.why,
       moments: scored.timed ? momentsOf(v.moments) : [],
-      tries: item.tries + 1,
+      tries,
       scoredAt: new Date(),
     })
     .where(and(eq(items.id, id), isNull(items.verdict)));
   return verdict;
+}
+
+/**
+ * Take a workspace's read items' scores back, so the next `scoreItem` judges them afresh (a new
+ * rubric). An item already told stays told. Returns the ids cleared.
+ */
+export async function unscore(db: Db, client: string, ids: readonly number[]): Promise<number[]> {
+  if (!ids.length) return [];
+  const rows = await db
+    .update(items)
+    .set({
+      score: null,
+      verdict: null,
+      summary: null,
+      changes: [],
+      why: null,
+      moments: [],
+      tries: 0,
+      scoredAt: null,
+    })
+    .where(and(eq(items.client, client), inArray(items.id, [...ids]), isNotNull(items.readAt)))
+    .returning({ id: items.id });
+  return rows.map((r) => r.id).sort((a, b) => a - b);
 }
 
 /** The item id an event carries; throws on one that carries none. */
