@@ -4,7 +4,7 @@
  * consent check. Every call goes through `FetchLike`, so tests never reach the network. Tokens
  * are returned to the caller, never logged; errors carry the provider's code, never a token.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { claimsOf, type OAuthError, pkceChallenge, tokenPost } from "@wren/core/oauth";
 import type { FetchLike } from "../fetch-like.js";
 import type { MailAccess, MailProvider } from "./schema.js";
 
@@ -46,11 +46,6 @@ export const graphScopes = (scope: string) =>
     .split(/\s+/)
     .filter(Boolean)
     .map((s) => (/^Mail\.(Read|Send)$/i.test(s) ? `https://graph.microsoft.com/${s}` : s));
-
-export const randomState = () => randomBytes(24).toString("base64url");
-export const pkceVerifier = () => randomBytes(48).toString("base64url");
-export const pkceChallenge = (verifier: string) =>
-  createHash("sha256").update(verifier).digest("base64url");
 
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
@@ -123,55 +118,6 @@ export const CONSUMER_GOOGLE = new Set(["gmail.com", "googlemail.com"]);
 /** Personal Microsoft accounts: no tenant, no admin consent. Not supported yet. */
 export const CONSUMER_MICROSOFT = new Set(["outlook.com", "hotmail.com", "live.com", "msn.com"]);
 
-/** A refusal from a token endpoint. `revoked`: the grant is gone; connect again. */
-export class OAuthError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-    readonly revoked: boolean,
-  ) {
-    super(message);
-    this.name = "OAuthError";
-  }
-}
-
-const REVOKED = new Set(["invalid_grant", "unauthorized_client", "interaction_required"]);
-
-async function tokenCall(
-  fetch: FetchLike,
-  url: string,
-  form: Record<string, string>,
-): Promise<Record<string, unknown>> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(form).toString(),
-  });
-  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok || typeof body.error === "string") {
-    const code = typeof body.error === "string" ? body.error : `http_${res.status}`;
-    // Microsoft's description starts "AADSTS70000: ..."; keep its first line, never more.
-    const said =
-      String(body.error_description ?? "")
-        .split(/\r?\n/)[0]
-        ?.slice(0, 200) ?? "";
-    throw new OAuthError(code, said ? `${code}: ${said}` : code, REVOKED.has(code));
-  }
-  return body;
-}
-
-/** A JWT's claims, unverified: an id token straight from the token endpoint over TLS (OIDC 3.1.3.7). */
-export function claimsOf(jwt: unknown): Record<string, unknown> {
-  if (typeof jwt !== "string") return {};
-  const part = jwt.split(".")[1];
-  if (!part) return {};
-  try {
-    return JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
 export interface Tokens {
   access: string;
   /** Seconds the access token lives. */
@@ -209,7 +155,7 @@ export async function exchange(
   app: MailApp,
   o: { code: string; redirect: string; verifier: string; tenant?: string | null },
 ): Promise<Tokens> {
-  const b = await tokenCall(fetch, tokenUrl(provider, o.tenant), {
+  const b = await tokenPost(fetch, tokenUrl(provider, o.tenant), {
     grant_type: "authorization_code",
     code: o.code,
     redirect_uri: o.redirect,
@@ -227,7 +173,7 @@ export async function refresh(
   app: MailApp,
   o: { refresh: string; tenant?: string | null },
 ): Promise<Tokens> {
-  const b = await tokenCall(fetch, tokenUrl(provider, o.tenant), {
+  const b = await tokenPost(fetch, tokenUrl(provider, o.tenant), {
     grant_type: "refresh_token",
     refresh_token: o.refresh,
     client_id: app.id,
@@ -246,7 +192,7 @@ export async function appInTenant(
   tenant: string,
 ): Promise<{ ok: boolean; why: string }> {
   try {
-    await tokenCall(fetch, tokenUrl("microsoft", tenant), {
+    await tokenPost(fetch, tokenUrl("microsoft", tenant), {
       grant_type: "client_credentials",
       client_id: app.id,
       client_secret: app.secret,

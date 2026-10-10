@@ -3,8 +3,8 @@
  * exchange, a refresh, and a who-am-I read. Every call goes through `FetchLike`, so tests never
  * reach the network. Tokens go back to the caller only, never into an error or a log line.
  */
-import { createHash, randomBytes } from "node:crypto";
 import type { FetchLike } from "@wren/core";
+import { OAuthError, pkceChallenge, revokedCode } from "@wren/core/oauth";
 import { SOCIAL, type SocialPlatform } from "./platforms.js";
 import type { SocialExtra } from "./schema.js";
 
@@ -13,10 +13,6 @@ export interface SocialAppKeys {
   id: string;
   secret: string;
 }
-
-export const randomState = () => randomBytes(24).toString("base64url");
-export const pkceVerifier = () => randomBytes(48).toString("base64url");
-const challenge = (v: string) => createHash("sha256").update(v).digest("base64url");
 
 export const GRAPH = "https://graph.facebook.com/v23.0";
 export const LINKEDIN_API = "https://api.linkedin.com";
@@ -29,20 +25,6 @@ export const GBP_API = "https://mybusiness.googleapis.com";
 export const LINKEDIN_VERSION = "202508";
 export const X_API = "https://api.x.com";
 export const TIKTOK_API = "https://open.tiktokapis.com";
-
-/** A refusal from a sign-in or a token endpoint. `revoked`: the grant is gone; connect again. */
-export class SocialAuthError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-    readonly revoked: boolean,
-  ) {
-    super(message);
-    this.name = "SocialAuthError";
-  }
-}
-
-const REVOKED = new Set(["invalid_grant", "invalid_token", "unauthorized_client", "expired"]);
 
 /** The secret a connection keeps in the key store, as JSON. */
 export type StoredToken =
@@ -85,7 +67,7 @@ export function connectUrl(
     q.set("scope", s.scopes.join(s.app === "meta" ? "," : " "));
   }
   if (s.pkce && o.verifier) {
-    q.set("code_challenge", challenge(o.verifier));
+    q.set("code_challenge", pkceChallenge(o.verifier));
     q.set("code_challenge_method", "S256");
   }
   if (s.app === "google") {
@@ -100,7 +82,7 @@ export function connectUrl(
 type Json = Record<string, unknown>;
 
 /** The platform's error code and first line, never the body: a success holds a token. */
-function failure(status: number, b: Json): SocialAuthError {
+function failure(status: number, b: Json): OAuthError {
   const e = b.error;
   const meta = e && typeof e === "object" ? (e as Json) : null;
   const code = meta
@@ -115,10 +97,10 @@ function failure(status: number, b: Json): SocialAuthError {
   )
     .split(/\r?\n/)[0]
     ?.slice(0, 160);
-  return new SocialAuthError(
+  return new OAuthError(
     code,
     said ? `${code}: ${said}` : code,
-    REVOKED.has(code) || status === 401,
+    revokedCode(code) || status === 401,
   );
 }
 
@@ -216,7 +198,7 @@ export async function landCode(
           );
   const refresh = str(t.refresh_token);
   if (!refresh)
-    throw new SocialAuthError("no_refresh", "No lasting sign-in came back. Try again.", false);
+    throw new OAuthError("no_refresh", "No lasting sign-in came back. Try again.", false);
   const access = String(t.access_token ?? "");
   const who = await whoAmI(fetch, platform, access, {});
   // TikTok says `refresh_expires_in`, LinkedIn's company pages `refresh_token_expires_in`.
@@ -278,7 +260,7 @@ async function landMeta(
   const list = (pages.data as Json[] | undefined) ?? [];
   const page = platform === "instagram" ? list.find((p) => p.instagram_business_account) : list[0];
   if (!page)
-    throw new SocialAuthError(
+    throw new OAuthError(
       "no_page",
       platform === "instagram"
         ? "No Page with a linked Instagram professional account was shared. Link it, then try again."
@@ -326,8 +308,7 @@ export async function refreshToken(
   if (kept.kind === "page") return { access: kept.page, expiresIn: 86_400, stored: null };
   if (kept.kind === "access") {
     const left = new Date(kept.expiresAt).getTime() - now.getTime();
-    if (left <= 0)
-      throw new SocialAuthError("expired", "Its 60 days ran out. Connect it again.", true);
+    if (left <= 0) throw new OAuthError("expired", "Its 60 days ran out. Connect it again.", true);
     return { access: kept.access, expiresIn: Math.floor(left / 1000), stored: null };
   }
   const s = SOCIAL[platform];
@@ -391,7 +372,7 @@ export async function whoAmI(
       );
       const ch = ((b.items as Json[] | undefined) ?? [])[0];
       if (!ch)
-        throw new SocialAuthError(
+        throw new OAuthError(
           "no_channel",
           "This Google account has no YouTube channel. Sign in with the one that owns it.",
           false,
@@ -433,7 +414,7 @@ export async function whoAmI(
         const first = ((acl.elements as Json[] | undefined) ?? [])[0];
         org = str(first?.organization) ?? str(first?.organizationalTarget) ?? undefined;
         if (!org)
-          throw new SocialAuthError(
+          throw new OAuthError(
             "no_page",
             "You aren't an admin of a LinkedIn company page. Sign in as one.",
             false,
@@ -457,8 +438,7 @@ export async function whoAmI(
       }
       const b = await json(fetch, GBP_ACCOUNTS, bearer(access));
       const a = ((b.accounts as Json[] | undefined) ?? [])[0];
-      if (!a)
-        throw new SocialAuthError("no_profile", "This Google account manages no Profile.", false);
+      if (!a) throw new OAuthError("no_profile", "This Google account manages no Profile.", false);
       const l = await json(
         fetch,
         `${GBP_INFO}/${String(a.name)}/locations?${fields}&pageSize=100`,
@@ -466,7 +446,7 @@ export async function whoAmI(
       );
       const loc = ((l.locations as Json[] | undefined) ?? [])[0];
       if (!loc)
-        throw new SocialAuthError(
+        throw new OAuthError(
           "no_profile",
           "This Google account manages no business location.",
           false,

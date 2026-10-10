@@ -7,17 +7,11 @@ import { createHash } from "node:crypto";
 import type { FetchLike } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
+import { OAuthError, randomState } from "@wren/core/oauth";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { APPS, appKeyName, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
-import {
-  type AppKeys,
-  ConnectorAuthError,
-  connectUrl,
-  exchange,
-  randomState,
-  refresh,
-} from "./oauth.js";
+import { type AppKeys, connectUrl, exchange, refresh } from "./oauth.js";
 import { whoHubspot } from "./pull/hubspot.js";
 import { whoJobber } from "./pull/jobber.js";
 import { whoQuickbooks } from "./pull/quickbooks.js";
@@ -190,7 +184,7 @@ export function connectorAccess(deps: ConnectorDeps) {
     try {
       t = await refresh(deps.fetch, l.app, await keysOf(l.app), kept.refresh);
     } catch (err) {
-      if (err instanceof ConnectorAuthError && err.revoked) {
+      if (err instanceof OAuthError && err.revoked) {
         await broke(l.id, "Access was taken back or ran out. Connect it again.");
         throw new ConnectorRefusal("Access was taken back or ran out. Connect it again.");
       }
@@ -362,7 +356,7 @@ export function connectorAccess(deps: ConnectorDeps) {
       } catch (err) {
         if (err instanceof ConnectorRefusal) return { ok: false, said: err.message, link: null };
         const said =
-          err instanceof ConnectorAuthError && !err.code.startsWith("http_")
+          err instanceof OAuthError && !err.code.startsWith("http_")
             ? `${label} said ${err.code}. Try again.`
             : "The sign-in didn't finish. Try again.";
         return { ok: false, said, link: null };

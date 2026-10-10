@@ -104,7 +104,8 @@
     "./webhook-events": "./src/webhook-events.ts",
     "./workflows": "./src/workflows.ts",
     "./html": "./src/html.ts",
-    "./http": "./src/http.ts"
+    "./http": "./src/http.ts",
+    "./oauth": "./src/oauth.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

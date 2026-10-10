@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import type { FetchLike } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
+import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
 import { addAccount } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
@@ -15,11 +16,8 @@ import {
   connectUrl,
   type Landed,
   landCode,
-  pkceVerifier,
-  randomState,
   refreshToken,
   type SocialAppKeys,
-  SocialAuthError,
   type StoredToken,
   whoAmI,
 } from "./oauth.js";
@@ -234,7 +232,7 @@ export function socialAccess(deps: SocialDeps) {
     try {
       t = await refreshToken(deps.fetch, c.platform, await appFor(c.platform), kept, now());
     } catch (err) {
-      if (err instanceof SocialAuthError && err.revoked) {
+      if (err instanceof OAuthError && err.revoked) {
         const why =
           err.code === "expired"
             ? "Its sign-in ran out. Connect it again."
@@ -394,7 +392,7 @@ export function socialAccess(deps: SocialDeps) {
         });
       } catch (err) {
         const said =
-          err instanceof SocialAuthError && !err.code.startsWith("http_") && !err.revoked
+          err instanceof OAuthError && !err.code.startsWith("http_") && !err.revoked
             ? err.message.replace(/^[a-z_0-9]+: /, "")
             : "The sign-in didn't finish. Try again.";
         return {
@@ -425,7 +423,7 @@ export function socialAccess(deps: SocialDeps) {
           .set({ checkedAt: now(), name: who.name ?? c.name, handle: who.handle ?? c.handle })
           .where(eq(socialConnections.id, c.id));
       } catch (err) {
-        if (err instanceof SocialAuthError && err.revoked)
+        if (err instanceof OAuthError && err.revoked)
           await broke(c.id, "Access was taken back. Connect it again.");
         return {
           ok: false,

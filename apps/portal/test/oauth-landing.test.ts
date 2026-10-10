@@ -1,6 +1,6 @@
 /**
- * The mail callbacks (designs/2026-10-07-mail-access.md): only the known query names reach
- * `MailCallback/land`, the page shows the service's sentence escaped, and the demo has none.
+ * The OAuth landings (./src/oauth-landing.ts): only each kind's known query names reach its
+ * `…Callback/land`, the page shows the service's sentence escaped, and the demo has none.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env.js";
@@ -30,7 +30,7 @@ afterEach(() => vi.unstubAllGlobals());
 const get = (path: string, host = "app.test") =>
   worker.fetch(new Request(`https://${host}${path}`), env());
 
-describe("mail callbacks", () => {
+describe("OAuth landings", () => {
   it("passes the known names on and shows the answer", async () => {
     const res = await get("/oauth/mail/google?state=s1&code=c1&scope=x&evil=1&viewer=x");
     expect(res.status).toBe(200);
@@ -76,8 +76,27 @@ describe("mail callbacks", () => {
     expect(await res.text()).not.toContain("boom");
   });
 
+  it("social and connector landings go to their own services, with their own names", async () => {
+    await get("/oauth/social/linkedin?state=s5&code=c&realmId=9");
+    await get("/oauth/connector/quickbooks?state=s6&code=c&realmId=9&tenant=x");
+    expect(sent).toEqual([
+      {
+        url: "https://restate.test:8080/SocialCallback/land",
+        body: { platform: "linkedin", state: "s5", code: "c" },
+      },
+      {
+        url: "https://restate.test:8080/ConnectorCallback/land",
+        body: { app: "quickbooks", state: "s6", code: "c", realmId: "9" },
+      },
+    ]);
+    const html = await (await get("/oauth/connector/jobber?code=c")).text();
+    expect(html).toContain("Start again from Account → Connectors.");
+  });
+
   it("other paths and the demo host aren't callbacks", async () => {
     expect(await (await get("/oauth/mail/yahoo?state=s")).text()).toBe("app");
+    expect(await (await get("/oauth/social/myspace?state=s")).text()).toBe("app");
+    expect(await (await get("/oauth/nope/google?state=s")).text()).toBe("app");
     expect(await (await get("/oauth/mail/google?state=s", "demo.test")).text()).toBe("app");
     expect(sent).toEqual([]);
   });

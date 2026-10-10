@@ -1,9 +1,10 @@
 // Client social access, pure parts: the platform table, each sign-in with a fake platform, the
 // states the page shows and the calls a connected account makes. Synthetic ids; no network.
 
+import { OAuthError } from "@wren/core/oauth";
 import { describe, expect, it } from "vitest";
 import { connectionIdOf, loginOf, platformStates, socialAppsFrom, tokenName } from "./access.js";
-import { connectUrl, landCode, refreshToken, SocialAuthError, whoAmI } from "./oauth.js";
+import { connectUrl, landCode, refreshToken, whoAmI } from "./oauth.js";
 import { liveFrom, SOCIAL, SOCIAL_PLATFORMS } from "./platforms.js";
 import type { SocialConnectionRow } from "./schema.js";
 import { socialSites, X_CHUNK } from "./sites.js";
@@ -280,8 +281,8 @@ describe("landCode", () => {
       verifier: "v",
       now: NOW,
     }).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(SocialAuthError);
-    expect((err as SocialAuthError).revoked).toBe(true);
+    expect(err).toBeInstanceOf(OAuthError);
+    expect((err as OAuthError).revoked).toBe(true);
     expect((err as Error).message).toBe("invalid_grant: bad code");
     expect(String((err as Error).message)).not.toContain(SECRET);
   });

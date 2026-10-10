@@ -17,8 +17,8 @@
  *   demo. The service's guard decides who may call each route.
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
- * - `/oauth/mail/<provider>`: a mailbox's sign-in or an admin's consent lands (./mail-oauth.ts).
- * - `/oauth/social/<platform>`: a client's social account's sign-in lands (./social-oauth.ts).
+ * - `/oauth/<mail|social|connector>/<name>`: a mailbox, social account or connected app's
+ *   sign-in lands (./oauth-landing.ts).
  * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public; `/go/*` on a client's
  *   host, its tracked links.
  * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
@@ -35,7 +35,6 @@ import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
 import { AGENT_PATH, agentRoute } from "./agent.js";
 import { bookRoute } from "./book.js";
-import { connectorOAuthRoute } from "./connector-oauth.js";
 import { dictate } from "./dictate.js";
 import { docsRoute } from "./docs.js";
 import { forward, json } from "./edge.js";
@@ -44,7 +43,6 @@ import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
 import { publicLimit } from "./limit.js";
 import { liveRoute, NoteRoom } from "./live.js";
-import { mailOAuthRoute } from "./mail-oauth.js";
 import {
   grantFor,
   MEDIA_GRANT_PATH,
@@ -53,10 +51,10 @@ import {
   mediaProxy,
   urlGrantsFor,
 } from "./media.js";
+import { oauthLanding } from "./oauth-landing.js";
 import { payRoute } from "./pay.js";
 import { SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
-import { socialOAuthRoute } from "./social-oauth.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
 export { NoteRoom };
@@ -263,19 +261,9 @@ export default {
       const auth = await authRoute(req, env);
       if (auth) return auth;
     }
-    // A mailbox's sign-in and an admin's consent come back here; never on the demo.
-    if (pathname.startsWith("/oauth/mail/") && site.kind !== "demo") {
-      const landed = await mailOAuthRoute(req, env);
-      if (landed) return landed;
-    }
-    // A client's social account's sign-in comes back here; never on the demo.
-    if (pathname.startsWith("/oauth/social/") && site.kind !== "demo") {
-      const landed = await socialOAuthRoute(req, env);
-      if (landed) return landed;
-    }
-    // A client's connected app (HubSpot, QuickBooks, Jobber) comes back here; never on the demo.
-    if (pathname.startsWith("/oauth/connector/") && site.kind !== "demo") {
-      const landed = await connectorOAuthRoute(req, env);
+    // A mailbox, social account or connected app comes back here (./oauth-landing.ts); never on the demo.
+    if (pathname.startsWith("/oauth/") && site.kind !== "demo") {
+      const landed = await oauthLanding(req, env);
       if (landed) return landed;
     }
     if (pathname === "/api/dictate")

@@ -26,7 +26,7 @@ Per-mailbox 3-legged OAuth on a trusted app, never domain-wide delegation: Wren 
 - Replies (`mailbox.ts`): `gmailReply` (`:207`, MIME with In-Reply-To and References, Gmail's `threadId`) and `graphReply` (`:253`, Graph's own `/reply`); `senderOf` (`access.ts:706`) hands core's `MailSender` for a connected mailbox, else "Needs setup"; a 401/403 breaks it ("Sending was refused"). `MailReply` (content) calls it from the Inbox
 - States (`mailboxStates`, `access.ts:143`): not_set_up, waiting_admin, send_only, read_send, broken; personal Gmail sends only, personal Outlook refused
 - Setups (`setups.ts`): `setup.google_mail` (app, trust), `setup.microsoft_mail` (app, consent), `setup.mailbox` (connected); checks `mailChecks` (`:110`): `mail.google_app`, `mail.microsoft_app`, `google.mail_trust` (a real read), `microsoft.admin_consent`, `mailbox.token`
-- Services: `MailAccess` (`console.ts:234`; routes `console-routes.ts:8`) and `MailCallback/land` (`console.ts:310`, private; the portal Worker's `/oauth/mail/<provider>` forwards to it, `apps/portal/src/mail-oauth.ts`)
+- Services: `MailAccess` (`console.ts:234`; routes `console-routes.ts:8`) and `MailCallback/land` (`console.ts:310`, private; the portal Worker's `/oauth/mail/<provider>` forwards to it, `apps/portal/src/oauth-landing.ts`)
 
 Citations: `packages/channel-email/src/access/schema.ts:37`, `:71`, `:111`; `packages/channel-email/src/access/access.ts:86`, `:143`, `:265`; `apps/worker/src/services.ts:1337`
 

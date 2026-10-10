@@ -21,7 +21,7 @@ No Nango or Composio: three apps, one OAuth shape, one thin package. The social 
 | A sync: pull, import, fire, keep the cursor | `packages/connectors/src/sync.ts` |
 | Into the CRM (a product, so passed in by the worker) | `packages/reactivation/src/crm/landing.ts` |
 | `Connectors` (portal), `ConnectorCallback/land`, `ConnectorSync/<link>` (hourly) | `packages/connectors/src/restate.ts` |
-| `/oauth/connector/<app>` | `apps/portal/src/connector-oauth.ts` |
+| `/oauth/connector/<app>` | `apps/portal/src/oauth-landing.ts` |
 | Account → Connectors | `apps/portal/web/src/modules/account/Connectors.tsx` |
 | App trigger | `packages/core/src/logic.ts` `trigger.app` |
 

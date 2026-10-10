@@ -25,7 +25,7 @@ Three apps, one OAuth shape, so a thin package and no vendor (Nango, Composio). 
 - Services `src/restate.ts`: `Connectors` (portal: connectors, connect, syncNow, disconnect; `act` on Account), `ConnectorCallback/land`, `ConnectorSync/<link>` (exclusive, reschedules itself hourly, 5 minutes when cut at the cap; a Read now starts a new chain and the old one stops).
 - Wren's developer apps: env `WREN_CONNECTOR_<APP>_ID|SECRET` or the key store under Wren. Missing: "In development" on the page.
 
-Citations: `packages/connectors/src/sync.ts:1`, `packages/connectors/src/restate.ts:1`, `apps/portal/src/connector-oauth.ts:1`, `packages/core/src/logic.ts` (`trigger.app`)
+Citations: `packages/connectors/src/sync.ts:1`, `packages/connectors/src/restate.ts:1`, `apps/portal/src/oauth-landing.ts:1`, `packages/core/src/logic.ts` (`trigger.app`)
 
 ## Connected to
 

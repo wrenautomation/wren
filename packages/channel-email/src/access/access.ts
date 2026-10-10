@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
+import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
 import { type AccountView, accountsOf, addAccount } from "@wren/core/setup";
 import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
@@ -31,9 +32,6 @@ import {
   exchange,
   type MailApp,
   type MailApps,
-  OAuthError,
-  pkceVerifier,
-  randomState,
   refresh,
 } from "./oauth.js";
 import {

@@ -1,9 +1,9 @@
 // Wren's mail apps' OAuth, against fake token endpoints: scopes, URLs, refusals, the consent check.
+import { claimsOf, OAuthError, pkceChallenge } from "@wren/core/oauth";
 import { describe, expect, it } from "vitest";
 import {
   accessOf,
   appInTenant,
-  claimsOf,
   connectUrl,
   consentUrl,
   exchange,
@@ -12,8 +12,6 @@ import {
   GRAPH_READ,
   GRAPH_SEND,
   graphScopes,
-  OAuthError,
-  pkceChallenge,
   refresh,
   scopesFor,
 } from "./oauth.js";

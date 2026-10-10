@@ -64,7 +64,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
   - `mailbox.token`: a token refresh that still returns the scopes the mailbox needs.
 - OAuth (`access/oauth.ts`): authorization code with PKCE and a one-time `state` (a `mail_grants` row that expires in 30 minutes; 7 days for consent links). Google asks for `access_type=offline`, `prompt=consent` and `hd` for Workspace. Microsoft uses the tenant in the path and the v2 `adminconsent` endpoint with explicit scopes.
 - Scopes: send asks `gmail.send` or `Mail.Send`. Read adds `gmail.readonly` or `Mail.Read`. All requests include `openid email`; Microsoft also gets `offline_access`. Wren skips `gmail.modify` because Done is kept in Wren, not as a Gmail label.
-- Callback: `/oauth/mail/google` and `/oauth/mail/microsoft` on the portal Worker (`apps/portal/src/mail-oauth.ts`). It forwards the known query names to `MailCallback/land` and shows a plain Connected or Not connected page. It sends no-store, no-referrer and a strict CSP.
+- Callback: `/oauth/mail/google` and `/oauth/mail/microsoft` on the portal Worker (`apps/portal/src/oauth-landing.ts`). It forwards the known query names to `MailCallback/land` and shows a plain Connected or Not connected page. It sends no-store, no-referrer and a strict CSP.
 - Tokens:
   - `{refresh, address}` JSON in the key store (`designs/2026-10-07-key-store.md`), under the mailbox's client as `MAIL_<PROVIDER>_<16 hex of sha256(address)>`. `mail_connections.token_name` holds its ref. Every read is an event with who and why.
   - Access tokens live only in memory. Microsoft's rotated refresh token is written back.

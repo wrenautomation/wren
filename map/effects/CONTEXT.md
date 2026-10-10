@@ -25,7 +25,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
-| a client's connected mailboxes, Google trust, Microsoft consent | [[email/mail-access]] | [[platform/account-setup]], [[watch/mail]] (the client reader), Account → Mail, `apps/portal/src/mail-oauth.ts` |
+| a client's connected mailboxes, Google trust, Microsoft consent | [[email/mail-access]] | [[platform/account-setup]], [[watch/mail]] (the client reader), Account → Mail, `apps/portal/src/oauth-landing.ts` |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]], [[content/draft-event]] |
 | a post's funnel stage, target or link; promo drafts; comment examples | [[content/funnel]] | [[content/draft]], [[content/video-edit]], [[content/comment]], [[content/draft-event]], `lander/src/data/links.json`, `designs/2026-10-07-content-funnel.md` |
