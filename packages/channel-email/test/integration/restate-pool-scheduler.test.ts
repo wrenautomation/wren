@@ -151,6 +151,7 @@ describe("PoolScheduler", () => {
       ["adLibrary", true],
       ["exaSearch", true],
       ["youtubeSearch", true],
+      ["triggers", true],
       ["fbGroups", true],
       ["discover", false],
       ["verify", false],
