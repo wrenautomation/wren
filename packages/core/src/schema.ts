@@ -443,7 +443,7 @@ export const hooks = pgTable(
     client: varchar("client", { length: 40 }),
     workflow: varchar("workflow", { length: 64 }).notNull(),
     input: varchar("input", { length: 64 }).notNull(),
-    /** The payload field that says who it is about, dotted ("data.email"). */
+    /** The payload field that says who it is about, dotted ("data.email"); `a|b` takes the first set. */
     subject: varchar("subject", { length: 200 }).notNull(),
     /** Where a lead's facts sit in the payload (`FieldMap`, ./door.ts); `{}` reads common names. */
     fields: jsonb("fields").$type<FieldMap>().default({}).notNull(),

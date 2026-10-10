@@ -407,6 +407,21 @@ describe("hookEvent", () => {
     });
   });
 
+  it("takes the first of `a|b` the payload fills", () => {
+    const either = { ...h, subject: "phone|email" };
+    const of = (p: unknown) => hookEvent(either, flows, p);
+    expect(of({ phone: "+14165550100", email: "a@x.example" })).toMatchObject({
+      event: { subject: "lead:+14165550100" },
+    });
+    expect(of({ phone: " ", email: "a@x.example" })).toMatchObject({
+      event: { subject: "lead:a@x.example" },
+    });
+    expect(of({ name: "Pat" })).toEqual({
+      status: 422,
+      error: "the payload has no phone or email",
+    });
+  });
+
   it("answers why when it can't", () => {
     expect(hookEvent({ ...h, input: "gone" }, flows, {})).toMatchObject({ status: 410 });
     expect(hookEvent(h, flows, { contact: {} })).toMatchObject({ status: 422 });

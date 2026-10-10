@@ -676,9 +676,12 @@ export function hookEvent(
   if (!port) return { status: 410, error: `${h.workflow} has no input ${h.input} now` };
   if (JSON.stringify(payload ?? null).length > PAYLOAD_MAX)
     return { status: 413, error: `keep it under ${PAYLOAD_MAX} bytes` };
-  const who = dig(payload, h.subject);
-  if ((typeof who !== "string" && typeof who !== "number") || String(who).trim() === "")
-    return { status: 422, error: `the payload has no ${h.subject}` };
+  // `phone|email`: the first path the payload fills.
+  const paths = h.subject.split("|");
+  const who = paths
+    .map((p) => dig(payload, p.trim()))
+    .find((v) => (typeof v === "string" || typeof v === "number") && String(v).trim() !== "");
+  if (who === undefined) return { status: 422, error: `the payload has no ${paths.join(" or ")}` };
   const data =
     payload && typeof payload === "object" && !Array.isArray(payload)
       ? (payload as Record<string, unknown>)

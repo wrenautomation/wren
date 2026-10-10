@@ -57,7 +57,7 @@ export interface TemplateSpec {
   parts: Record<string, Record<string, unknown>>;
   /** Copy refs or prefixes (`sms:texts/speed-to-lead#1`) beyond the parts' own `provides.templates`. */
   copy?: string[];
-  /** Where leads come in from outside: a hook on this input, keyed by `subject` in the payload. */
+  /** Where leads come in from outside: a hook on this input, keyed by `subject` (`a|b`: first set). */
   door?: { input: string; subject: string };
 }
 

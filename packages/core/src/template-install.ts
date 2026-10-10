@@ -646,7 +646,9 @@ export async function installTemplate(
       });
       hook = made.id;
       token = made.token;
-    }
+    } else if (t.spec.door && hook)
+      // An update may say who a payload is about differently (`phone` to `phone|email`).
+      await tx.update(hooks).set({ subject: t.spec.door.subject }).where(eq(hooks.id, hook));
     // Back after uninstall, or new: a draft. An update to a live one asks again, so its new parts
     // start only on a person's yes; the live wiring keeps running meanwhile.
     const state: InstallState =

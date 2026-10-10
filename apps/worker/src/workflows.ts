@@ -170,7 +170,8 @@ const FUNNELS = [
     ],
     template: {
       parts: { "sms.texts": {}, "reviews.ask": {}, reviews: {} },
-      door: { input: "customers", subject: "phone" },
+      // A customer with only an email is asked by email (reviews.ts `customerOf`).
+      door: { input: "customers", subject: "phone|email" },
     },
   }),
   defineWorkflow({

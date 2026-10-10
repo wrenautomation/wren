@@ -122,6 +122,7 @@ Email defaults are in `packages/templates/defaults/email/reviews/` (`review-ask`
 ## Not built
 
 - Reviews gained: needs Google Business Profile API approval.
-- Email-only customers through the door: the door's subject is `phone`, so a customer with
-  only an email is refused there. Call outcomes and the by-hand form take an email.
+- ~~Email-only customers through the door.~~ Done 10-10: a hook's subject takes `a|b`, the
+  first the payload fills; the reviews door is `phone|email`, and an update moves an installed
+  door to it.
 - A per-client sender for review emails. They go from portal@ under the client's name.
