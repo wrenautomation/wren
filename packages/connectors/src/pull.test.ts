@@ -197,6 +197,44 @@ describe("Jobber", () => {
     expect(done.people[0]?.email).toBe("sam2@example.test");
   });
 
+  it("reads jobs by completion: filter, cursor and job_done all use completedAt", async () => {
+    const f = fake((c) =>
+      String(c.init.body).includes("Clients")
+        ? { data: { clients: { nodes: [] } } }
+        : {
+            data: {
+              jobs: {
+                nodes: [
+                  {
+                    id: "j1",
+                    jobNumber: 7,
+                    title: "Deep clean",
+                    completedAt: "2026-10-05T00:00:00Z",
+                    updatedAt: "2026-10-09T00:00:00Z",
+                    total: 120,
+                    client: { id: "c1" },
+                  },
+                ],
+              },
+            },
+          },
+    );
+    const out = await pullJobber({
+      fetch: f.fetch,
+      token: "t",
+      extra: {},
+      cursor: { jobs: "2026-10-01T00:00:00Z" },
+      cap: 10,
+    });
+    const asked = body(f.calls[1] as Call);
+    expect(String(asked.query)).toContain("completedAt: { after: $since }");
+    expect(asked.variables).toMatchObject({ since: "2026-10-01T00:00:00Z" });
+    expect(out.cursor.jobs).toBe("2026-10-05T00:00:00Z");
+    expect(out.changes).toEqual([
+      expect.objectContaining({ key: "job:j1", change: "job_done", person: "c1" }),
+    ]);
+  });
+
   it("says a GraphQL error", async () => {
     const f = fake(() => ({ errors: [{ message: "Field 'nope' doesn't exist" }] }));
     await expect(

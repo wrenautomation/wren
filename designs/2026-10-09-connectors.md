@@ -62,12 +62,19 @@ No Nango or Composio: three apps, one OAuth shape, one thin package. The social 
 
 Each app needs a developer app with Wren's callback, its id and secret kept as
 `CONNECTOR_<APP>_ID` and `CONNECTOR_<APP>_SECRET` in the key store under Wren. Until then the
-page says Needs setup. The Jobber GraphQL version header and the field names get checked on the
-first real connect.
+page says Needs setup. Done 10-09: HubSpot project app, Intuit production keys, Jobber app (draft);
+keys in `/wren/prod/env-2` as `WREN_CONNECTOR_*`. Test accounts: HubSpot developer test account
+343773626, a Jobber developer testing account (90 days). QuickBooks has no live connect yet: its
+production keys need a real QuickBooks Online company.
 
 ## Log
 
 - 10-09: one package, no vendor. The CRM import is the one way people land.
+- 10-10: first live connects from wren_test. HubSpot connected and read its 2 sample contacts.
+  Jobber connected, then failed its first read: `JobFilterAttributes` has no `updatedAt`. Jobs now
+  page by `completedAt` (introspected on the test account); clients keep `updatedAt`. Both
+  unverified-app screens (HubSpot's typed "I accept the risk", Jobber's not-yet-approved note) stay
+  until each marketplace review.
 - 10-09 built: package, 0221, App trigger, `app.changed` webhook event, Account → Connectors,
   `/oauth/connector/<app>`. The connectors package can't import reactivation (layers), so the
   worker passes `crmLanding`. Unbuilt app keys show "In development".

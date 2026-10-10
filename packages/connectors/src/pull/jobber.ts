@@ -1,7 +1,8 @@
 /**
- * Jobber: clients, then jobs, each changed since its cursor, through its GraphQL API. A job with
- * `completedAt` is done. The schema's names here are from Jobber's docs and get checked on the
- * first real connect (designs/2026-10-09-connectors.md); its version header is pinned below.
+ * Jobber: clients changed since their cursor, then jobs completed since theirs, through its
+ * GraphQL API. Checked against a live test account 2026-10-10: `JobFilterAttributes` has no
+ * `updatedAt`, so jobs page by `completedAt` (designs/2026-10-09-connectors.md). Its version
+ * header is pinned below.
  */
 import {
   jsonOf,
@@ -31,7 +32,7 @@ const CLIENTS = `query Clients($first: Int!, $after: String, $since: ISO8601Date
 }`;
 
 const JOBS = `query Jobs($first: Int!, $after: String, $since: ISO8601DateTime) {
-  jobs(first: $first, after: $after, filter: { updatedAt: { after: $since } }) {
+  jobs(first: $first, after: $after, filter: { completedAt: { after: $since } }) {
     nodes { id jobNumber title completedAt updatedAt total client { id } }
     pageInfo { hasNextPage endCursor }
   }
@@ -112,7 +113,8 @@ export const pullJobber: Puller = async (i) => {
       const conn = (data[what] ?? {}) as { nodes?: Row[]; pageInfo?: Row };
       const nodes = Array.isArray(conn.nodes) ? conn.nodes : [];
       for (const n of nodes) {
-        top = later(top, str(n.updatedAt));
+        // Clients move their cursor by change, jobs by completion: what each filter reads.
+        top = later(top, str(what === "clients" ? n.updatedAt : n.completedAt));
         if (what === "clients") {
           const p = person(n);
           if (!p) continue;

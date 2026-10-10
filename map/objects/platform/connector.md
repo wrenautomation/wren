@@ -20,7 +20,7 @@ Three apps, one OAuth shape, so a thin package and no vendor (Nango, Composio). 
 - `connector_links`: client, app, `external_id` (hub, realm, account), name, `token_ref` (key store, never the token), `extra` (QuickBooks realm), state connected|broken, why, `cursor` jsonb (newest change per read), counts, `synced_at`, `connected_at`. Unique (client, app, external_id).
 - `connector_grants`: one sign-in's `state`, spent once, 30 minutes. `connector_fired`: (link, key) told to the spine once.
 - Apps `packages/connectors/src/apps.ts` (no imports: the portal Worker reads it). OAuth `oauth.ts`: QuickBooks takes the app's keys as basic auth; QuickBooks and Jobber rotate the refresh token, kept at once (`connectors.ts` `tokenOf`).
-- Reads `src/pull/{hubspot,quickbooks,jobber}.ts`: 100 a page, 2000 a run. Jobber's GraphQL names and version header (`JOBBER_VERSION`) are unverified until the first real connect.
+- Reads `src/pull/{hubspot,quickbooks,jobber}.ts`: 100 a page, 2000 a run. Jobber's names checked live 10-10 (jobs filter by `completedAt`; `JOBBER_VERSION` pinned).
 - Sync `src/sync.ts` `syncLink`: pull, land (`CrmLanding`, the worker passes reactivation's `crmLanding`), fire `trigger.app` for changes after `connected_at`, once each. Token refused: broken. Other failures: `why` on the page, next hour.
 - Services `src/restate.ts`: `Connectors` (portal: connectors, connect, syncNow, disconnect; `act` on Account), `ConnectorCallback/land`, `ConnectorSync/<link>` (exclusive, reschedules itself hourly, 5 minutes when cut at the cap; a Read now starts a new chain and the old one stops).
 - Wren's developer apps: env `WREN_CONNECTOR_<APP>_ID|SECRET` or the key store under Wren. Missing: "In development" on the page.
