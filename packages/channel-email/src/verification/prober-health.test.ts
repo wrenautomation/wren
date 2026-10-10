@@ -29,6 +29,7 @@ const healthy: ProberHealth = {
   listed: [],
   checks: 500,
   refused: 10,
+  held: 0,
 };
 
 describe("isListing", () => {
