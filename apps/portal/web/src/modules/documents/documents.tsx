@@ -19,7 +19,7 @@ import {
   totalsOf,
 } from "@wren/documents/lines";
 import type { Action, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, cx, Input, Section, Tag, Textarea } from "@wren/ui";
+import { Button, CopyButton, cx, Input, Section, Tag, Textarea } from "@wren/ui";
 import { type FormEvent, type ReactNode, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -610,22 +610,10 @@ function DocForm({
 
 /** What a send did; a link that went out now can be copied once. */
 function SentLine({ sent }: { sent: Sent }) {
-  const [copied, setCopied] = useState(false);
   return (
     <p className="flex flex-wrap items-center gap-2 text-[13.5px]">
       <Tag tone={sent.status === "failed" ? "warn" : "neutral"}>{sentLine(sent)}</Tag>
-      {sent.url ? (
-        <Button
-          type="button"
-          size="dense"
-          tone="quiet"
-          onClick={() =>
-            void navigator.clipboard.writeText(sent.url as string).then(() => setCopied(true))
-          }
-        >
-          {copied ? "Copied" : "Copy signing link"}
-        </Button>
-      ) : null}
+      {sent.url ? <CopyButton text={sent.url} label="Copy signing link" size="dense" /> : null}
     </p>
   );
 }

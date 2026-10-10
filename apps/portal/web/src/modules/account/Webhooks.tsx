@@ -4,7 +4,18 @@
  * finished delivery goes again on Redeliver. A failed try waiting on the next shows when that
  * runs, and a URL that fails for 5 days is turned off until someone turns it back on.
  */
-import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import {
+  Button,
+  CopyButton,
+  cx,
+  Empty,
+  Input,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  Tag,
+} from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -116,7 +127,6 @@ export function Secret({
   onClose: () => void;
   what?: string;
 }) {
-  const [copied, setCopied] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   // It shows once: bring it into view from wherever Add or New secret was pressed.
   useEffect(() => box.current?.scrollIntoView({ block: "center" }), []);
@@ -129,12 +139,7 @@ export function Secret({
       <p className="m-0 font-medium">Copy this {what} now. It won't show again.</p>
       <code className="break-all text-[13px]">{secret}</code>
       <div className={TOOLS}>
-        <Button
-          size="sm"
-          onClick={() => void navigator.clipboard.writeText(secret).then(() => setCopied(true))}
-        >
-          {copied ? "Copied" : "Copy"}
-        </Button>
+        <CopyButton text={secret} tone="primary" />
         <Button size="sm" tone="quiet" onClick={onClose}>
           Done
         </Button>

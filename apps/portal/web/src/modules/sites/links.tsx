@@ -5,7 +5,7 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import { qrMatrix, qrPath } from "@wren/sites/qr";
-import { Button, Input, num, type RecordExtras, Section } from "@wren/ui";
+import { Button, CopyButton, Input, num, type RecordExtras, Section } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
@@ -89,25 +89,13 @@ function savePng(text: string, name: string) {
 
 /** The link, Copy, the QR code and Save PNG. */
 function LinkOut({ url, name }: { url: string; name: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
       <div className="grid min-w-0 gap-2">
         <span className={LABEL}>Your link</span>
         <code className="block bg-(--ui-fill) p-2 text-[13px] break-all">{url}</code>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            tone="primary"
-            onClick={() =>
-              void navigator.clipboard?.writeText(url).then(
-                () => setCopied(true),
-                () => setCopied(false),
-              )
-            }
-          >
-            {copied ? "Copied" : "Copy link"}
-          </Button>
+          <CopyButton text={url} label="Copy link" tone="primary" />
           <Button size="sm" tone="secondary" onClick={() => savePng(url, name)}>
             Save QR as PNG
           </Button>

@@ -28,6 +28,7 @@ import {
   Tag,
   type TagTone,
   Textarea,
+  useCopy,
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -416,18 +417,13 @@ function Open({
 
 /** The ref Claude Code and the CLI take, once, small, with a copy button. */
 function RefLine({ refText }: { refText: string }) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy();
   return (
     <p className="flex min-w-0 items-center gap-2 text-[12px] text-(--ui-ink-3)">
       <code className="min-w-0 truncate font-mono">{refText}</code>
       <button
         type="button"
-        onClick={() =>
-          void navigator.clipboard?.writeText(refText).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          })
-        }
+        onClick={() => copy(refText)}
         className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-(--ui-ink-2) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:text-(--ui-ink)"
       >
         {copied ? "Copied" : "Copy"}

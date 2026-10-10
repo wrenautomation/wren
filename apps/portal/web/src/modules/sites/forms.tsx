@@ -23,6 +23,7 @@ import {
 } from "@wren/sites/forms";
 import {
   Button,
+  CodeBlock,
   DeviceFrame,
   Input,
   num,
@@ -738,32 +739,6 @@ function Editor({
   );
 }
 
-function Snippet({ label, code }: { label: string; code: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="grid gap-1">
-      <div className="flex items-center justify-between gap-2">
-        <span className={LABEL}>{label}</span>
-        <Button
-          size="sm"
-          tone="quiet"
-          onClick={() =>
-            void navigator.clipboard?.writeText(code).then(
-              () => setCopied(true),
-              () => setCopied(false),
-            )
-          }
-        >
-          {copied ? "Copied" : "Copy"}
-        </Button>
-      </div>
-      <code className="block bg-(--ui-fill) p-2 text-[12.5px] break-all whitespace-pre-wrap">
-        {code}
-      </code>
-    </div>
-  );
-}
-
 function Share({ d }: { d: FormDetail }) {
   return (
     <div className="grid gap-3 text-[14px]">
@@ -774,8 +749,8 @@ function Share({ d }: { d: FormDetail }) {
         </a>
         {d.status !== "live" ? <span className={HINT}>Works once it's published.</span> : null}
       </div>
-      <Snippet label="Embed with a frame" code={d.embed.iframe} />
-      <Snippet label="Or with one script tag, sized to fit" code={d.embed.script} />
+      <CodeBlock label="Embed with a frame" code={d.embed.iframe} />
+      <CodeBlock label="Or with one script tag, sized to fit" code={d.embed.script} />
       <p className={HINT}>
         On a Sites page, put its slug in the page's Hosted form field to use it as the page's form.
       </p>

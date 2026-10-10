@@ -7,6 +7,7 @@ import type { MailPageView } from "@wren/channel-email/access/console";
 import {
   Button,
   Callout,
+  Copyable,
   Empty,
   Facts,
   Input,
@@ -48,27 +49,6 @@ function useMailAct(client: string, reload: () => void) {
   return { busy, error, run };
 }
 type Act = ReturnType<typeof useMailAct>;
-
-function Copyable({ text }: { text: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <span className="flex flex-wrap items-center gap-2">
-      <code className="break-all text-[13.5px]">{text}</code>
-      <Button
-        size="sm"
-        tone="quiet"
-        onClick={() =>
-          void navigator.clipboard.writeText(text).then(() => {
-            setDone(true);
-            setTimeout(() => setDone(false), 1500);
-          })
-        }
-      >
-        {done ? "Copied" : "Copy"}
-      </Button>
-    </span>
-  );
-}
 
 /** Off to Google or Microsoft to sign in as the mailbox. */
 async function connect(act: Act, account: number, want: "send" | "read") {

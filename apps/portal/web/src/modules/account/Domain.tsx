@@ -4,6 +4,7 @@
  */
 import {
   Button,
+  Copyable,
   Empty,
   Facts,
   Input,
@@ -41,27 +42,6 @@ interface Domains {
 
 /** While a domain waits on DNS, look again this often. */
 const POLL_MS = 15_000;
-
-function Copyable({ text }: { text: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <span className="flex flex-wrap items-center gap-2">
-      <code className="break-all text-[13.5px]">{text}</code>
-      <Button
-        size="sm"
-        tone="quiet"
-        onClick={() =>
-          void navigator.clipboard.writeText(text).then(() => {
-            setDone(true);
-            setTimeout(() => setDone(false), 1500);
-          })
-        }
-      >
-        {done ? "Copied" : "Copy"}
-      </Button>
-    </span>
-  );
-}
 
 /** The chat bubble for their website: one tag, served from their live domain. */
 function SiteChat({ live }: { live: string | null }) {

@@ -24,6 +24,7 @@ export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.j
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
+export { COPIED_MS, CodeBlock, Copyable, CopyButton, useCopy } from "./copy.js";
 export {
   moved,
   type PinLine,
