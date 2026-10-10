@@ -113,11 +113,15 @@ jobs:
               # (No `aws lambda wait`: the CI role has no GetFunctionConfiguration.)
               # First, drop deployments nothing uses: Restate caps them all at 30.4 MiB.
               body="$(jq -nc --arg arn "$ARN" '{arn: $arn}')"
+              # The watch pings Discord when Restate itself is down, which nothing inside it can.
               prune="$(base64 -w0 deploy/scripts/restate-prune.py)"
-              jq -n --arg b "$body" --arg p "$prune" '{commands: [
+              watch="$(base64 -w0 deploy/scripts/restate-watch.py)"
+              jq -n --arg b "$body" --arg p "$prune" --arg w "$watch" '{commands: [
                 "echo \($p) | base64 -d > /usr/local/bin/wren-restate-prune",
-                "chmod 755 /usr/local/bin/wren-restate-prune",
+                "echo \($w) | base64 -d > /usr/local/bin/wren-restate-watch",
+                "chmod 755 /usr/local/bin/wren-restate-prune /usr/local/bin/wren-restate-watch",
                 "echo \"17 * * * * root /usr/local/bin/wren-restate-prune >> /var/log/wren-restate-prune.log 2>&1\" > /etc/cron.d/wren-restate-prune",
+                "echo \"*/5 * * * * root /usr/local/bin/wren-restate-watch >> /var/log/wren-restate-watch.log 2>&1\" > /etc/cron.d/wren-restate-watch",
                 "/usr/local/bin/wren-restate-prune || true",
                 "for i in 1 2 3 4 5 6 7 8 9 10; do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 10; done; exit 1"]}' \
                 > "$RUNNER_TEMP/register.json"

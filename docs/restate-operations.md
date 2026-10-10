@@ -142,7 +142,8 @@ serving in-flight invocations; new invocations go to the new version. Old deploy
 their own: `deploy/scripts/restate-prune.py` runs before each register and hourly on the box
 (`/var/log/wren-restate-prune.log`), keeping each service's current one, any a live invocation
 is pinned to, and the newest three. Restate holds them all in one 30.4 MiB entry; past it,
-registering fails and the server OOMs on restart (2026-10-10).
+registering fails and the server OOMs on restart (2026-10-10). `deploy/scripts/restate-watch.py` runs every 5 minutes
+there and pings Discord when Restate is down or restart-looping; nothing inside Restate can.
 
 GitHub environment `production` secrets: `AWS_DEPLOY_ROLE_ARN`,
 `AWS_INVOKE_ROLE_ARN`, `LAMBDA_NAME`, `WREN_DATABASE_URL`, `RESTATE_HOST`,
