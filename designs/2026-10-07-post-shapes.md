@@ -80,7 +80,7 @@ Status: **sent** before this build, **build** added now, **dev** shown as "In de
 | `defaultAudioLanguage` | Audio language | | build |
 | `notifySubscribers` | Notify subscribers (query param, default on) | | build |
 | `syntheticMedia` | Made with AI (`containsSyntheticMedia`) | | build |
-| | Short custom thumbnail | | no API (picked in the app) |
+| | Short custom thumbnail | | browser: autobrowse `POST /studio/thumbnail` (10-09, dry tested) |
 | | `embeddable`, `license`, `publicStatsViewable`, `recordingDate`, localizations | | not shown; defaults |
 
 Unverified API projects post private only until Google's audit.
@@ -96,7 +96,7 @@ Unverified API projects post private only until Google's audit.
 | `sendReplies` | Replies to inbox (default on) | | build |
 | `flair` | Flair (some subs require it) | text 64 | sent 2026-10-09: picked by its text on the post right after it lands; a miss is a note |
 | `nsfw`, `spoiler` | NSFW, Spoiler | | sent 2026-10-09: the post page's own toggles, after it lands |
-| | Image post | | dev: old.reddit's form has no image upload |
+| | Image post | | browser: www composer, `kind: "image"` (10-09, dry tested) |
 
 ### LinkedIn (`/rest/posts`)
 
