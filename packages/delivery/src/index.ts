@@ -7,6 +7,7 @@
  */
 import { usageLines } from "@wren/books/schema";
 import { CHANNELS, type Channel, clients } from "@wren/core/clients";
+import { PortalRefusal } from "@wren/core/refusal";
 import { VENDORS } from "@wren/core/vendors";
 import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
@@ -60,14 +61,7 @@ export * from "./schema.js";
 export * from "./source.js";
 
 /** Bad input (400), nothing of this client's by that id (404), or a clash with what's there (409). */
-export class DeliveryRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 409,
-  ) {
-    super(message);
-  }
-}
+export class DeliveryRefusal extends PortalRefusal {}
 const bad = (message: string) => new DeliveryRefusal(message, 400);
 const missing = (what: string) => new DeliveryRefusal(`no such ${what}`, 404);
 

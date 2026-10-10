@@ -15,6 +15,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { SmsDeskService } from "@wren/channel-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import type { KeyStore } from "@wren/core/keys";
+import { setUp } from "@wren/core/refusal";
 import { serviceHandler } from "@wren/core/restate";
 import type { Fired, FireTriggers } from "@wren/core/spine";
 import { vendorModes } from "@wren/core/vendor-schema";
@@ -75,7 +76,7 @@ export async function stripeKeyOf(
   client: string,
   why: string,
 ) {
-  if (!d.keys) throw new PayRefusal("The key store isn't set up here", 503);
+  setUp(d.keys, "the key store");
   const [m] = await d.main
     .select({ keyName: vendorModes.keyName, mode: vendorModes.mode })
     .from(vendorModes)

@@ -7,6 +7,7 @@ import type { Db, Queryable } from "@wren/db";
 import { and, asc, eq } from "drizzle-orm";
 import { getDomain, parse } from "tldts";
 import { z } from "zod";
+import { PortalRefusal } from "../refusal.js";
 import {
   type ClientDomain,
   clientDomains,
@@ -16,14 +17,7 @@ import {
 } from "./schema.js";
 
 /** A host a client can't have, and why: the page shows it. */
-export class DomainRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 409 | 503 = 400,
-  ) {
-    super(message);
-  }
-}
+export class DomainRefusal extends PortalRefusal {}
 
 /** One custom host per client, for now. */
 export const DOMAINS_PER_CLIENT = 1;

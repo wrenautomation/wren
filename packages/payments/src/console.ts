@@ -19,7 +19,6 @@ import { smsContacts } from "@wren/channel-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { keyRef, noRawKeys } from "@wren/core/key-refs";
-import { KeyRefusal } from "@wren/core/keys";
 import {
   accessOf,
   answer,
@@ -45,6 +44,7 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
+import { setUp } from "@wren/core/refusal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
@@ -69,7 +69,6 @@ import {
   createLink,
   declineLinks,
   linkIdOf,
-  PayRefusal,
   payAccountOf,
   savePayAccount,
   UUID,
@@ -111,14 +110,9 @@ export interface ConnectRequest extends PortalRequest {
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
 
-function refusal(err: unknown): never {
-  if (err instanceof PayRefusal) throw new PortalRefusal(err.message, err.status);
-  throw err;
-}
 /** A key store refusal with its status; any other trouble saving a key, a 400. */
 function keyRefusal(err: unknown): never {
   if (err instanceof PortalRefusal) throw err;
-  if (err instanceof KeyRefusal) throw new PortalRefusal(err.message, err.status);
   throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
 }
 const quantityOf = (q: unknown) => {
@@ -223,18 +217,12 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         email,
         name,
         description: String(req.description ?? ""),
-        cents: (() => {
-          try {
-            return centsOf(req.amount);
-          } catch (e) {
-            return refusal(e);
-          }
-        })(),
+        cents: centsOf(req.amount),
         quantity: quantityOf(req.quantity),
         by: viewer.email,
         approved: await approves(req, client),
         now,
-      }).catch(refusal);
+      });
       return { links: [link] };
     },
 
@@ -245,12 +233,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         .map(Number)
         .filter((n) => Number.isSafeInteger(n) && n > 0);
       if (!ids.length || ids.length > 50) throw new PortalRefusal("pick a thread (up to 50)", 400);
-      let cents: number;
-      try {
-        cents = centsOf(req.amount);
-      } catch (e) {
-        return refusal(e);
-      }
+      const cents = centsOf(req.amount);
       const quantity = quantityOf(req.quantity);
       const threads = await open(client)
         .select({ id: smsContacts.id, name: smsContacts.name, email: smsContacts.email })
@@ -273,7 +256,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
             by: viewer.email,
             approved,
             now,
-          }).catch(refusal),
+          }),
         );
       return { links };
     },
@@ -297,7 +280,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
       const { client, viewer } = await pickForWrite(main, req);
       if (!(await approves(req, client)))
         throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
-      if (!deps.keys) throw new PortalRefusal("The key store isn't set up here", 503);
+      setUp(deps.keys, "the key store");
       const keys = deps.keys;
       const ref = (v: unknown) => (typeof v === "string" ? v.trim() : "");
       const keyAt = ref(req.keyRef);

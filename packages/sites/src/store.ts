@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
+import { PortalRefusal } from "@wren/core/refusal";
 import { hooks } from "@wren/core/schema";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -37,14 +38,7 @@ import { ContentProblem, checkContent, templateOf } from "./templates/index.js";
 import type { Content } from "./templates/types.js";
 
 /** A write the store refused: the words say why, the status what the portal answers. */
-export class SitesRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 409,
-  ) {
-    super(message);
-  }
-}
+export class SitesRefusal extends PortalRefusal {}
 
 export const newPreviewToken = () => randomBytes(32).toString("base64url");
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -555,7 +549,7 @@ export async function draftToPreview(
   token: string,
 ): Promise<{ page: SitePage; content: Content; number: number } | null> {
   const page = await pageById(db, id);
-  if (!page || page.source !== "data" || !page.draftVersion) return null;
+  if (page?.source !== "data" || !page.draftVersion) return null;
   const a = Buffer.from(page.previewToken);
   const b = Buffer.from(token);
   if (a.length !== b.length || !a.equals(b)) return null;

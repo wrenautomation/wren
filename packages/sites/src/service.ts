@@ -78,8 +78,7 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
    */
   async function keepHosted(req: FormRequest): Promise<Kept | Answer> {
     const form = await formById(main, String(req.form ?? ""));
-    if (!form || form.status !== "live")
-      return { status: 404, error: "This form isn't taking answers." };
+    if (form?.status !== "live") return { status: 404, error: "This form isn't taking answers." };
     const raw = (req.fields && typeof req.fields === "object" ? req.fields : {}) as Record<
       string,
       unknown
@@ -316,8 +315,7 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
     async keep(req: FormRequest): Promise<Kept | Answer> {
       if (req.form) return keepHosted(req);
       const page = await pageById(main, String(req.page ?? ""));
-      if (!page || page.status !== "live")
-        return { status: 404, error: "This page isn't taking forms." };
+      if (page?.status !== "live") return { status: 404, error: "This page isn't taking forms." };
       const raw = (req.fields && typeof req.fields === "object" ? req.fields : {}) as Record<
         string,
         unknown

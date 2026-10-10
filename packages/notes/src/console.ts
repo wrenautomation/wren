@@ -35,7 +35,7 @@ import {
   nameOf,
   toB64,
 } from "./doc.js";
-import { DriveRefusal, driveIdOf, type NoteDrive } from "./drive.js";
+import { driveIdOf, type NoteDrive } from "./drive.js";
 import { inboxMentionsOf, unseenInboxMentions } from "./inbox.js";
 import { mailMentions, type SendMention } from "./mention-mail.js";
 import { type Note, type NoteComment, noteStars } from "./schema.js";
@@ -803,13 +803,8 @@ export function notesApi(deps: NotesDeps) {
       if (!deps.drive) throw new PortalRefusal("Google Drive isn't set up here", 503);
       const id = driveIdOf(str(req.link, 2000, "the link"));
       if (!id) throw new PortalRefusal("Paste a Google Docs or Drive link.", 400);
-      try {
-        const file = await deps.drive.get(id);
-        return { name: file.name, data: toB64(file.bytes) };
-      } catch (e) {
-        if (e instanceof DriveRefusal) throw new PortalRefusal(e.message, e.status);
-        throw e;
-      }
+      const file = await deps.drive.get(id);
+      return { name: file.name, data: toB64(file.bytes) };
     },
 
     /** Quick capture: a timestamped line at the end of the person's Dump note, or a new note. */

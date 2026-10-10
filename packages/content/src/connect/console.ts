@@ -23,7 +23,7 @@ import { accountsOf, checkNow, type Setup, type SetupEmit, startSetup } from "@w
 import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
-import { type SocialAccessApi, SocialRefusal } from "./access.js";
+import type { SocialAccessApi } from "./access.js";
 import { SOCIAL_ACCESS_APPS, SOCIAL_ACCESS_ROUTES } from "./console-routes.js";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "./platforms.js";
 import { SOCIAL_SETUP } from "./setups.js";
@@ -37,13 +37,6 @@ export interface SocialConsoleDeps {
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
-
-const refusal = (err: unknown): never => {
-  if (err instanceof PortalRefusal) throw err;
-  if (err instanceof SocialRefusal)
-    throw new PortalRefusal(err.message, err.status === 404 ? 404 : 409);
-  throw err;
-};
 
 /** The handlers as plain calls; moves answer the events to emit. */
 export function socialConsoleApi(deps: SocialConsoleDeps) {
@@ -76,7 +69,7 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
       if (req.client === WREN)
         return { owner: { id: null, name: "Wren" }, wren: true as const, mayAct: false };
       const c = await owner(req);
-      const v = await access.view(c.id).catch(refusal);
+      const v = await access.view(c.id);
       return {
         owner: { id: c.id, name: c.name },
         wren: false as const,
@@ -88,9 +81,7 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
     /** Where the person signs in as the account. */
     async connect(req: PortalRequest & { platform: SocialPlatform }): Promise<{ url: string }> {
       const c = await writer(req);
-      const url = await access
-        .connect({ client: c.id, platform: req.platform, by: by(req) })
-        .catch(refusal);
+      const url = await access.connect({ client: c.id, platform: req.platform, by: by(req) });
       return { url };
     },
 
@@ -114,7 +105,7 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
       const c = await writer(req);
       await mine(c.id, req.id);
       return {
-        ok: await access.disconnect({ client: c.id, id: req.id, by: by(req) }).catch(refusal),
+        ok: await access.disconnect({ client: c.id, id: req.id, by: by(req) }),
       };
     },
   };

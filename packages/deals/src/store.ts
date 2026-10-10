@@ -2,6 +2,8 @@
  * Deals' reads and writes (designs/2026-10-09-opportunities.md). An owner is a client id, or null
  * for Wren. Every stage change goes through `moveDeals`, which keeps the move and says what fired.
  */
+
+import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
@@ -26,15 +28,7 @@ import {
 } from "./stages.js";
 
 /** A refusal the person asking can act on, with its HTTP status. */
-export class DealRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 403 | 404 | 409 = 400,
-  ) {
-    super(message);
-    this.name = "DealRefusal";
-  }
-}
+export class DealRefusal extends PortalRefusal {}
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

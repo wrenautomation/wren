@@ -64,7 +64,6 @@ import {
   answerAsk,
   boughtBy,
   type DeliveryHome,
-  DeliveryRefusal,
   decideDeliverable,
   deliveryHome,
   type Engagement,
@@ -183,15 +182,10 @@ async function write<T>(
   if (who === "team" && !viewer.operator) throw new PortalRefusal("that's for Wren's team", 403);
   if (who === "owner" && !viewer.operator && !(await isOwner(deps.main, client.id, viewer.email)))
     throw new PortalRefusal("only an owner of this account can do that", 403);
-  try {
-    return await serializable(deps.main, async (tx) => {
-      await setAuditActor(tx, viewer.email);
-      return change(tx, client, viewer);
-    });
-  } catch (err) {
-    if (err instanceof DeliveryRefusal) throw new PortalRefusal(err.message, err.status);
-    throw err;
-  }
+  return serializable(deps.main, async (tx) => {
+    await setAuditActor(tx, viewer.email);
+    return change(tx, client, viewer);
+  });
 }
 
 /** A project always keeps an owner: someone has to be able to invite. */

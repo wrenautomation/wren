@@ -176,19 +176,34 @@ const mailRows = async (db: Queryable) => {
     sql`select has_table_privilege(current_user, 'watch.mail', 'SELECT') ok`,
   );
   if (!can?.ok) return [];
+  // One row per thread: its newest mail, waiting while any mail in it waits.
   return rowsOf(
     db,
-    sql`select m.id, coalesce(nullif(m.from_name, ''), m.from_address) who, m.mailbox,
-        m.subject, coalesce(m.summary, m.subject) words, m.verdict, m.done_at, m.at, r.open
-      from watch.mail m join watch.mail_records r on r.id = m.id
-      where m.reader = 'mail'
-      order by m.at desc limit ${ACTIVITY_ROWS}`,
+    sql`select * from (
+        select m.id, coalesce(nullif(m.from_name, ''), m.from_address) who, m.mailbox,
+          m.subject, coalesce(m.summary, m.subject) words, m.verdict, m.done_at, m.at, r.open,
+          row_number() over t rn, count(*) over t mails,
+          bool_or(m.done_at is null and (m.verdict is null or m.verdict = 'show')) over t waits
+        from watch.mail m join watch.mail_records r on r.id = m.id
+        where m.reader = 'mail'
+        window t as (partition by m.mailbox, m.thread_id order by m.at desc, m.id desc
+          rows between unbounded preceding and unbounded following)
+      ) x where rn = 1
+      order by at desc limit ${ACTIVITY_ROWS}`,
   );
 };
 
-/** A client's email by its verdict: shown and not done waits on them. */
+/** A client's thread by its verdicts: one shown mail not done makes it wait on them. */
 const mailState = (m: Record<string, unknown>) =>
-  m.done_at ? "read" : m.verdict === "drop" ? "dropped" : m.verdict === "hold" ? "seen" : "waiting";
+  m.waits
+    ? "waiting"
+    : m.done_at
+      ? "read"
+      : m.verdict === "drop"
+        ? "dropped"
+        : m.verdict === "hold"
+          ? "seen"
+          : "read";
 
 /** Post drafts waiting on a yes, with the slot each holds. */
 const draftRows = (db: Queryable) =>
@@ -390,7 +405,7 @@ export const inboxRecord = defineRecord({
       ...ms.map((m) => ({
         id: `mail:${m.id}`,
         type: "mail",
-        who: m.who,
+        who: Number(m.mails) > 1 ? `${m.who} (${m.mails})` : m.who,
         platform: null,
         kind: "mail",
         channel: null,

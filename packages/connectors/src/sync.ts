@@ -4,11 +4,12 @@
  * before the link was made is news, and each change is told once (`connector_fired`).
  */
 import type { FetchLike } from "@wren/core";
+import { PortalRefusal } from "@wren/core/refusal";
 import type { Fired } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import type { ConnectorApp } from "./apps.js";
-import { type ConnectorAccess, ConnectorRefusal } from "./connectors.js";
+import type { ConnectorAccess } from "./connectors.js";
 import { pullHubspot } from "./pull/hubspot.js";
 import { pullJobber } from "./pull/jobber.js";
 import { pullQuickbooks } from "./pull/quickbooks.js";
@@ -157,7 +158,7 @@ export async function syncLink(deps: SyncDeps, id: number): Promise<SyncResult> 
   try {
     token = await deps.access.tokenOf(l);
   } catch (err) {
-    if (err instanceof ConnectorRefusal) return none("broken", err.message);
+    if (err instanceof PortalRefusal) return none("broken", err.message);
     throw err;
   }
   const pull = deps.pullers?.[l.app] ?? PULLERS[l.app];

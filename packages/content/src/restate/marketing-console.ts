@@ -46,7 +46,6 @@ import {
   deleteReport,
   type ReportDeps,
   type ReportInput,
-  ReportRefusal,
   reportsOf,
   runReport,
   saveReport,
@@ -156,10 +155,6 @@ export function marketingConsoleApi({
   zone,
 }: MarketingConsoleDeps) {
   const reportDeps: ReportDeps = { main: db, open, records, mail: reportMail };
-  const reportRefusal = (err: unknown): never => {
-    if (err instanceof ReportRefusal) throw new PortalRefusal(err.message, err.status);
-    throw err;
-  };
   /** The client a report change is on: never the demo, Marketing installed. */
   const reporting = async (req: PortalRequest): Promise<Client> => {
     const { client } = await pickForWrite(db, req);
@@ -242,12 +237,12 @@ export function marketingConsoleApi({
         input: { name, tiles, every, zone: z, recipients, on },
         by: byOf(req),
         now: new Date(),
-      }).catch(reportRefusal);
+      });
       return { id: r.id };
     },
     reportDelete: async (req: PortalRequest & { id: number }) => {
       const client = await reporting(req);
-      await deleteReport(db, client.id, req.id).catch(reportRefusal);
+      await deleteReport(db, client.id, req.id);
       return { ok: true };
     },
     /** The period so far, kept on the page, mailed to nobody. */

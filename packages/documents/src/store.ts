@@ -5,6 +5,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { clients } from "@wren/core/clients";
+import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
@@ -34,15 +35,7 @@ import {
 export * from "./lines.js";
 
 /** A refusal the person asking can act on, with its HTTP status. */
-export class DocRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 403 | 404 | 409 | 410 | 503 = 400,
-  ) {
-    super(message);
-    this.name = "DocRefusal";
-  }
-}
+export class DocRefusal extends PortalRefusal {}
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

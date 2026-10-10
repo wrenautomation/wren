@@ -41,4 +41,26 @@ describe("client mail in the Inbox", () => {
       /^https:\/\/mail\.google\.com\//,
     );
   });
+
+  it("folds a thread into one row: its newest mail, waiting while any mail waits", async () => {
+    await pg.db.execute(sql`delete from watch.mail`);
+    await pg.db.execute(sql`insert into watch.mail
+      (mailbox, message_id, thread_id, from_name, from_address, subject, summary, verdict, at, reader, done_at)
+      values
+      ('ann@acme.example', 'a1', 'ta', 'Lee', 'lee@patient.example', 'Quote?', 'First ask', 'show',
+        now() - interval '2 hours', 'mail', null),
+      ('ann@acme.example', 'a2', 'ta', 'Lee', 'lee@patient.example', 'Re: Quote?', 'Any news?', 'hold',
+        now() - interval '1 hour', 'mail', null),
+      ('ann@acme.example', 'a3', 'ta', 'Lee', 'lee@patient.example', 'Re: Quote?', 'Thanks', 'show',
+        now(), 'mail', now()),
+      ('bob@acme.example', 'a4', 'ta', 'Kim', 'kim@x.example', 'Other box', null, 'show', now(), 'mail', null)`);
+    const rows = ((await inboxRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "mail");
+    expect(rows.map((r) => [r.who, r.state, r.account, r.body])).toEqual(
+      expect.arrayContaining([
+        ["Lee (3)", "waiting", "ann@acme.example", "Thanks"],
+        ["Kim", "waiting", "bob@acme.example", "Other box"],
+      ]),
+    );
+    expect(rows).toHaveLength(2);
+  });
 });

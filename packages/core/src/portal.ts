@@ -25,6 +25,7 @@ import { normalEmail, touchMember } from "./clients/index.js";
 import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
 import { evaluateFlags, subjectOf } from "./flags.js";
 import { grantsFor } from "./grants.js";
+import { PortalRefusal } from "./refusal.js";
 import { handlerForm, serviceHandler } from "./restate/form.js";
 import { flags } from "./schema.js";
 
@@ -54,15 +55,7 @@ export interface PortalRequest {
   viewAs?: string;
 }
 
-/** A refusal the Worker passes on with its status. */
-export class PortalRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 403 | 404 | 409 | 503,
-  ) {
-    super(message);
-  }
-}
+export { PortalRefusal, type RefusalStatus } from "./refusal.js";
 
 export const isDemo = (v: Viewer): v is { demo: true } => "demo" in v;
 export const isOperator = (v: Viewer): boolean => !isDemo(v) && v.operator === true;

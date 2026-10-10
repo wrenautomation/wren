@@ -23,7 +23,7 @@ import type { FireTriggers } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
-import { type ConnectorAccess, ConnectorRefusal } from "./connectors.js";
+import type { ConnectorAccess } from "./connectors.js";
 import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "./console-routes.js";
 import { type SyncDeps, syncLink } from "./sync.js";
 
@@ -37,13 +37,6 @@ export interface ConnectorsDeps {
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
-
-const refusal = (err: unknown): never => {
-  if (err instanceof PortalRefusal) throw err;
-  if (err instanceof ConnectorRefusal)
-    throw new PortalRefusal(err.message, err.status === 404 ? 404 : 409);
-  throw err;
-};
 
 type ConnectorSyncObject = ReturnType<typeof makeConnectorSync>;
 const SYNC = { name: "ConnectorSync" } as unknown as ConnectorSyncObject;
@@ -88,7 +81,7 @@ export function connectorsConsoleApi(deps: ConnectorsDeps) {
     async connect(req: PortalRequest & { app: ConnectorApp }): Promise<{ url: string }> {
       const c = await writer(req);
       return {
-        url: await access.connect({ client: c.id, app: req.app, by: by(req) }).catch(refusal),
+        url: await access.connect({ client: c.id, app: req.app, by: by(req) }),
       };
     },
     /** The link to read now, checked as the viewer's. */
@@ -102,7 +95,7 @@ export function connectorsConsoleApi(deps: ConnectorsDeps) {
       const c = await writer(req);
       await mine(c.id, req.id);
       return {
-        ok: await access.disconnect({ client: c.id, id: req.id, by: by(req) }).catch(refusal),
+        ok: await access.disconnect({ client: c.id, id: req.id, by: by(req) }),
       };
     },
   };

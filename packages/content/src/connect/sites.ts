@@ -7,7 +7,8 @@
  */
 import type { FetchLike } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
-import { connectionIdOf, SocialRefusal } from "./access.js";
+import { PortalRefusal } from "@wren/core/refusal";
+import { connectionIdOf } from "./access.js";
 import {
   GBP_API,
   GOOGLE_API,
@@ -615,7 +616,7 @@ export function socialSites(deps: SocialSitesDeps): SiteClient {
       try {
         return (await send(c, site, method, path, input)) as T;
       } catch (err) {
-        if (err instanceof SocialRefusal)
+        if (err instanceof PortalRefusal)
           throw new SiteCallError(site, method, path, 409, err.message);
         throw err;
       }

@@ -37,7 +37,6 @@ import {
   saveDraft,
   TemplateConflict,
   type TemplateRef,
-  TemplateRefusal,
   type TemplateState,
   templateState,
   type VersionHead,
@@ -81,9 +80,8 @@ export function parseApprovalId(id: string): { templateId: number; number: numbe
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 
-/** A store refusal as the Worker passes it on; anything else is a bug and retries. */
+/** A slot the author got wrong as a refusal; a store refusal passes as is, anything else retries. */
 function refusal(err: unknown): never {
-  if (err instanceof TemplateRefusal) throw new PortalRefusal(err.message, 409);
   if (err instanceof AuthoringError) throw new PortalRefusal(err.message, 400);
   throw err;
 }

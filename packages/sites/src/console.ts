@@ -91,7 +91,6 @@ import {
   pageById,
   registerCodePage,
   retirePages,
-  SitesRefusal,
   saveVersion,
   UUID,
   versionOf,
@@ -100,13 +99,6 @@ import { ContentProblem, TEMPLATE_IDS, templateOf } from "./templates/index.js";
 import type { Content } from "./templates/types.js";
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
-
-/** A store refusal as the Worker passes it on; anything else is a bug and retries. */
-function refusal(err: unknown): never {
-  if (err instanceof SitesRefusal) throw new PortalRefusal(err.message, err.status);
-  throw err;
-}
-const refused = <T>(p: Promise<T>) => p.catch(refusal);
 
 /** The To approve item for a page's ask: `page:<id>:<version>`. */
 export const pageApprovalId = (id: string, number: number) => `page:${id}:${number}`;
@@ -249,7 +241,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
   };
   const formSplitEnd = async (req: IdRequest, how: "stopped" | "shipped") => {
     await formSplitFor(req);
-    const s = await refused(endFormSplit(db, { id: String(req.id), how, by: who(req) }));
+    const s = await endFormSplit(db, { id: String(req.id), how, by: who(req) });
     return { id: s.id, state: s.state };
   };
   const formsTo = async (req: IdsRequest, status: "live" | "draft" | "retired") => {
@@ -388,21 +380,19 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const title =
         req.title?.trim() ||
         `${offer.name}${angle ? `: ${angle}` : ""}${t.id === "listicle" ? " (list)" : ""}`;
-      const page = await refused(
-        createDataPage(db, {
-          client: owner,
-          title,
-          slug: req.slug ?? null,
-          template: t.id,
-          offer: offer.id,
-          angle,
-          audience,
-          content,
-          origin,
-          why: origin === "ai" ? "Claude's draft from the offer" : "the offer's own words",
-          by: name,
-        }),
-      );
+      const page = await createDataPage(db, {
+        client: owner,
+        title,
+        slug: req.slug ?? null,
+        template: t.id,
+        offer: offer.id,
+        angle,
+        audience,
+        content,
+        origin,
+        why: origin === "ai" ? "Claude's draft from the offer" : "the offer's own words",
+        by: name,
+      });
       return { id: page.id, slug: page.slug, origin, guard };
     },
 
@@ -410,15 +400,13 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async save(req: SaveRequest) {
       const name = who(req);
       await pageFor(req, "act");
-      const page = await refused(
-        saveVersion(db, String(req.id), {
-          content: req.content,
-          origin: "edit",
-          by: name,
-          why: req.why ?? null,
-          expect: req.expect ?? null,
-        }),
-      );
+      const page = await saveVersion(db, String(req.id), {
+        content: req.content,
+        origin: "edit",
+        by: name,
+        why: req.why ?? null,
+        expect: req.expect ?? null,
+      });
       return { id: page.id, draft: page.draftVersion };
     },
 
@@ -441,15 +429,13 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       });
       const flags = [...g.flags, ...g.still].map((f) => f.text);
       if (g.text === null) return { saved: null, outcome: g.outcome, flags };
-      const out = await refused(
-        saveVersion(db, page.id, {
-          content: g.result,
-          origin: "ai",
-          by: name,
-          why: angle ? `Claude's draft, angle: ${angle}` : "Claude's draft",
-          expect: page.draftVersion,
-        }),
-      );
+      const out = await saveVersion(db, page.id, {
+        content: g.result,
+        origin: "ai",
+        by: name,
+        why: angle ? `Claude's draft, angle: ${angle}` : "Claude's draft",
+        expect: page.draftVersion,
+      });
       return { saved: out.draftVersion, outcome: g.outcome, flags };
     },
 
@@ -480,15 +466,13 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       });
       const flags = [...g.flags, ...g.still].map((f) => f.text);
       if (g.text === null) return { saved: null, outcome: g.outcome, flags };
-      const out = await refused(
-        saveVersion(db, page.id, {
-          content: g.result,
-          origin: "ai",
-          by: name,
-          why: ask.slice(0, 500),
-          expect: page.draftVersion,
-        }),
-      );
+      const out = await saveVersion(db, page.id, {
+        content: g.result,
+        origin: "ai",
+        by: name,
+        why: ask.slice(0, 500),
+        expect: page.draftVersion,
+      });
       return { saved: out.draftVersion, outcome: g.outcome, flags };
     },
 
@@ -515,9 +499,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async ask(req: AskRequest) {
       const name = who(req);
       await pageFor(req, "act");
-      const page = await refused(
-        askPublish(db, String(req.id), { by: name, number: req.number ?? null }),
-      );
+      const page = await askPublish(db, String(req.id), { by: name, number: req.number ?? null });
       return { id: page.id, waiting: page.waitingVersion };
     },
 
@@ -531,9 +513,9 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const done: string[] = [];
       for (const a of asks) {
         await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
-        const p = await refused(
-          a.number === null ? approveRetire(db, a.id, name) : approvePage(db, a.id, a.number, name),
-        );
+        const p = await (a.number === null
+          ? approveRetire(db, a.id, name)
+          : approvePage(db, a.id, a.number, name));
         done.push(p.id);
       }
       return { approved: done.length };
@@ -580,7 +562,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async retireAsk(req: IdRequest) {
       const name = who(req);
       await pageFor(req, "act");
-      const page = await refused(askRetire(db, String(req.id), name));
+      const page = await askRetire(db, String(req.id), name);
       return { id: page.id, asked: !!page.retireAt };
     },
 
@@ -609,17 +591,15 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const name = who(req);
       const owner = ownerOf(req);
       await may(req, owner, "act");
-      const l = await refused(
-        createLink(db, {
-          client: owner,
-          page: String(req.page ?? ""),
-          link: String(req.link ?? ""),
-          campaign: req.campaign ?? null,
-          content: req.content ?? null,
-          name: req.name ?? null,
-          by: name,
-        }),
-      );
+      const l = await createLink(db, {
+        client: owner,
+        page: String(req.page ?? ""),
+        link: String(req.link ?? ""),
+        campaign: req.campaign ?? null,
+        content: req.content ?? null,
+        name: req.name ?? null,
+        by: name,
+      });
       return { id: l.id, url: l.url, link: l.link, campaign: l.campaign, content: l.content };
     },
 
@@ -629,14 +609,12 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const pages = await actable(req);
       const made: { id: string; slug: string }[] = [];
       for (const p of pages) {
-        const v = await refused(
-          duplicatePage(db, p.id, {
-            by: name,
-            title: pages.length === 1 ? (req.title ?? null) : null,
-            angle: req.angle ?? null,
-            audience: req.audience ?? null,
-          }),
-        );
+        const v = await duplicatePage(db, p.id, {
+          by: name,
+          title: pages.length === 1 ? (req.title ?? null) : null,
+          angle: req.angle ?? null,
+          audience: req.audience ?? null,
+        });
         made.push({ id: v.id, slug: v.slug });
       }
       return { made };
@@ -652,17 +630,15 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
         req.kind && (PAGE_KINDS as readonly string[]).includes(req.kind)
           ? (req.kind as PageKind)
           : undefined;
-      const got = await refused(
-        registerCodePage(db, {
-          client: owner,
-          url: String(req.url ?? ""),
-          ...(req.repoPath !== undefined ? { repoPath: req.repoPath } : {}),
-          ...(req.title !== undefined ? { title: req.title } : {}),
-          ...(req.offer !== undefined ? { offer: req.offer } : {}),
-          ...(kind ? { kind } : {}),
-          by: name,
-        }),
-      );
+      const got = await registerCodePage(db, {
+        client: owner,
+        url: String(req.url ?? ""),
+        ...(req.repoPath !== undefined ? { repoPath: req.repoPath } : {}),
+        ...(req.title !== undefined ? { title: req.title } : {}),
+        ...(req.offer !== undefined ? { offer: req.offer } : {}),
+        ...(kind ? { kind } : {}),
+        by: name,
+      });
       return { id: got.page.id, added: got.added };
     },
 
@@ -671,16 +647,14 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const name = who(req);
       const owner = formOwnerOf(req);
       await may(req, owner, "act");
-      const form = await refused(
-        createForm(db, {
-          client: owner,
-          name: String(req.name ?? ""),
-          slug: req.slug ?? null,
-          spec: req.spec ?? null,
-          business: await businessOf(owner),
-          by: name,
-        }),
-      );
+      const form = await createForm(db, {
+        client: owner,
+        name: String(req.name ?? ""),
+        slug: req.slug ?? null,
+        spec: req.spec ?? null,
+        business: await businessOf(owner),
+        by: name,
+      });
       return { id: form.id, slug: form.slug };
     },
 
@@ -696,9 +670,12 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async formSave(req: IdRequest & { spec?: unknown; name?: string | null }) {
       const name = who(req);
       await formFor(req, "act");
-      const form = await refused(
-        saveForm(db, { id: String(req.id), spec: req.spec, name: req.name ?? null, by: name }),
-      );
+      const form = await saveForm(db, {
+        id: String(req.id),
+        spec: req.spec,
+        name: req.name ?? null,
+        by: name,
+      });
       return { id: form.id, status: form.status };
     },
 
@@ -712,23 +689,19 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     /** A/B on a form: B starts as A's copy, at the share given (half when none). */
     async formSplitStart(req: IdRequest & { weight?: number | null }) {
       const form = await formFor(req, "act");
-      const s = await refused(
-        startFormSplit(db, { form, weight: req.weight ?? null, by: who(req) }),
-      );
+      const s = await startFormSplit(db, { form, weight: req.weight ?? null, by: who(req) });
       return { id: s.id };
     },
 
     /** B's fields or B's share, on a running split. */
     async formSplitSave(req: IdRequest & { spec?: unknown; weight?: number | null }) {
       await formSplitFor(req);
-      const s = await refused(
-        saveFormSplit(db, {
-          id: String(req.id),
-          spec: req.spec ?? null,
-          weight: req.weight ?? null,
-          by: who(req),
-        }),
-      );
+      const s = await saveFormSplit(db, {
+        id: String(req.id),
+        spec: req.spec ?? null,
+        weight: req.weight ?? null,
+        by: who(req),
+      });
       return { id: s.id };
     },
 
@@ -766,15 +739,13 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const goal = req.goal ?? "forms";
       if (!(SPLIT_GOALS as readonly string[]).includes(goal))
         throw new PortalRefusal("no such goal", 400);
-      const s = await refused(
-        startSplit(db, {
-          page: String(req.id),
-          arms,
-          weights: req.weights ?? null,
-          goal: goal as SplitGoal,
-          by: name,
-        }),
-      );
+      const s = await startSplit(db, {
+        page: String(req.id),
+        arms,
+        weights: req.weights ?? null,
+        goal: goal as SplitGoal,
+        by: name,
+      });
       return { split: s.id, arms: s.arms.map((a) => ({ label: a.label, weight: a.weight })) };
     },
 
@@ -782,7 +753,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async splitWeights(req: SplitWeightsRequest) {
       who(req);
       const s = await splitOn(req, "act");
-      const out = await refused(setSplitWeights(db, s.id, req.weights ?? []));
+      const out = await setSplitWeights(db, s.id, req.weights ?? []);
       return { split: out.id, arms: out.arms.map((a) => ({ label: a.label, weight: a.weight })) };
     },
 
@@ -799,9 +770,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       const s = await splitOn(req, "act");
       const r = await splitResult(db, s);
       const at = s.arms.findIndex((a) => a.label === req.label);
-      const out = await refused(
-        shipSplit(db, s.id, String(req.label ?? ""), name, r.call.sure[at]),
-      );
+      const out = await shipSplit(db, s.id, String(req.label ?? ""), name, r.call.sure[at]);
       return { id: out.page.id, waiting: out.number };
     },
 

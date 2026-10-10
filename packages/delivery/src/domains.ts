@@ -9,7 +9,6 @@ import {
   type ClientDomain,
   checkDomain,
   clientOfHost,
-  DomainRefusal,
   type DomainsDeps,
   HOST_LOOKUP,
   isLive,
@@ -52,11 +51,6 @@ const viewOf = (d: ClientDomain): DomainView => ({
   checkedAt: d.checkedAt.toISOString(),
 });
 
-const refusal = (err: unknown): never => {
-  if (err instanceof DomainRefusal) throw new PortalRefusal(err.message, err.status);
-  throw err;
-};
-
 export function domainsApi(deps: DomainsDeps) {
   /** An owner of this client, or Wren's team with `manage` there. */
   const manager = async (req: PortalRequest) => {
@@ -93,12 +87,12 @@ export function domainsApi(deps: DomainsDeps) {
     },
     addDomain: async (req: PortalRequest & { hostname: string }) => {
       const { client, viewer } = await manager(req);
-      const row = await addDomain(deps, client.id, req.hostname, viewer.email).catch(refusal);
+      const row = await addDomain(deps, client.id, req.hostname, viewer.email);
       return viewOf(row);
     },
     removeDomain: async (req: PortalRequest & { hostname: string }) => {
       const { client } = await manager(req);
-      if (!(await removeDomain(deps, client.id, req.hostname).catch(refusal)))
+      if (!(await removeDomain(deps, client.id, req.hostname)))
         throw new PortalRefusal("no such domain on this account", 404);
       return { removed: String(req.hostname).trim().toLowerCase() };
     },

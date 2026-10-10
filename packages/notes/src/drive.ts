@@ -4,6 +4,7 @@
  * and a file shared as "Anyone with the link" is read like a browser would. The browser turns the
  * bytes into a note.
  */
+import { PortalRefusal } from "@wren/core/refusal";
 
 export const DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 export const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -23,15 +24,7 @@ export interface NoteDrive {
 }
 
 /** Said to the person: why the file didn't come in. */
-export class DriveRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 503 = 400,
-  ) {
-    super(message);
-    this.name = "DriveRefusal";
-  }
-}
+export class DriveRefusal extends PortalRefusal {}
 
 const ID = /^[\w-]{20,200}$/;
 

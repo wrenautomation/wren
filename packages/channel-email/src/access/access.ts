@@ -9,6 +9,7 @@ import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
 import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
+import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import { type AccountView, accountsOf, addAccount } from "@wren/core/setup";
 import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
@@ -75,13 +76,9 @@ export const callbackUrl = (origin: string, provider: MailProvider) =>
   `${origin.replace(/\/+$/, "")}/oauth/mail/${provider}`;
 
 /** A refusal said to a person: the page shows it as is. */
-export class MailRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status = 409,
-  ) {
-    super(message);
-    this.name = "MailRefusal";
+export class MailRefusal extends PortalRefusal {
+  constructor(message: string, status: RefusalStatus = 409) {
+    super(message, status);
   }
 }
 
@@ -330,7 +327,7 @@ export function mailAccess(deps: MailDeps) {
     const hit = cache.get(c.accountId);
     const at = now().getTime();
     if (hit && hit.until > at + 60_000) return hit.token;
-    if (!deps.keys) throw new MailRefusal("The key store isn't set up here");
+    setUp(deps.keys, "the key store");
     const client = (await account(c.accountId))?.client;
     if (!client) throw new MailRefusal("This mailbox has no client");
     const stored = await deps.keys.get({
@@ -449,9 +446,9 @@ export function mailAccess(deps: MailDeps) {
     /** Where to sign in as the mailbox; the link is good for half an hour, once. */
     async connect(o: { accountId: number; want: MailAccess; by: string }): Promise<string> {
       const a = await account(o.accountId);
-      if (!a || a.site !== "mailbox" || !a.client) throw new MailRefusal("no such mailbox", 404);
-      if (!deps.keys) throw new MailRefusal("In development: Wren's key store isn't set up yet");
-      if (!deps.origin) throw new MailRefusal("In development: the portal's address isn't set");
+      if (a?.site !== "mailbox" || !a.client) throw new MailRefusal("no such mailbox", 404);
+      setUp(deps.keys, "the key store");
+      setUp(deps.origin, "the portal's address");
       const provider = await providerOf(a);
       if (o.want === "read" && CONSUMER_GOOGLE.has(domainOf(a.ref)))
         throw new MailRefusal(
@@ -487,8 +484,8 @@ export function mailAccess(deps: MailDeps) {
     /** The Microsoft 365 admin's consent link for the org: good for a week, once. */
     async consent(o: { accountId: number; by: string }): Promise<string> {
       const org = await account(o.accountId);
-      if (!org || org.site !== "microsoft_365") throw new MailRefusal("no such org", 404);
-      if (!deps.origin) throw new MailRefusal("In development: the portal's address isn't set");
+      if (org?.site !== "microsoft_365") throw new MailRefusal("no such org", 404);
+      setUp(deps.origin, "the portal's address");
       const app = await appFor("microsoft");
       const state = randomState();
       await grant({

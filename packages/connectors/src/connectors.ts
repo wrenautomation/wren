@@ -8,6 +8,7 @@ import type { FetchLike } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import { OAuthError, randomState } from "@wren/core/oauth";
+import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { APPS, appKeyName, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
@@ -61,13 +62,9 @@ interface StoredToken {
 }
 
 /** A refusal said to a person: the page shows it as is. */
-export class ConnectorRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status = 409,
-  ) {
-    super(message);
-    this.name = "ConnectorRefusal";
+export class ConnectorRefusal extends PortalRefusal {
+  constructor(message: string, status: RefusalStatus = 409) {
+    super(message, status);
   }
 }
 
@@ -138,7 +135,7 @@ export function connectorAccess(deps: ConnectorDeps) {
     return k;
   };
   const store = () => {
-    if (!deps.keys) throw new ConnectorRefusal("The key store isn't set up here");
+    setUp(deps.keys, "the key store");
     return deps.keys;
   };
   const link = async (id: number) => {
@@ -267,7 +264,7 @@ export function connectorAccess(deps: ConnectorDeps) {
       if (o.client === WREN) throw new ConnectorRefusal("Connect apps for a client");
       const keys = await keysOf(o.app);
       store();
-      if (!deps.origin) throw new ConnectorRefusal("The portal's address isn't set here");
+      setUp(deps.origin, "the portal's address");
       const state = randomState();
       await main.insert(connectorGrants).values({
         state,
@@ -354,7 +351,7 @@ export function connectorAccess(deps: ConnectorDeps) {
           link: row.id,
         };
       } catch (err) {
-        if (err instanceof ConnectorRefusal) return { ok: false, said: err.message, link: null };
+        if (err instanceof PortalRefusal) return { ok: false, said: err.message, link: null };
         const said =
           err instanceof OAuthError && !err.code.startsWith("http_")
             ? `${label} said ${err.code}. Try again.`

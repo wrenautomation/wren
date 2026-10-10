@@ -7,6 +7,7 @@ import { type Client, clients, listMembers } from "@wren/core/clients";
 import { whoIs } from "@wren/core/portal";
 import type { RecordType } from "@wren/core/records";
 import { type Fence, type Period, serveRecords, statWindows } from "@wren/core/records/serve";
+import { PortalRefusal } from "@wren/core/refusal";
 import { canonicalZone, wallClock, zonedInstant } from "@wren/core/time";
 import { type Db, snapshot } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -28,14 +29,7 @@ import {
   shown,
 } from "./tiles.js";
 
-export class ReportRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 409 = 400,
-  ) {
-    super(message);
-  }
-}
+export class ReportRefusal extends PortalRefusal {}
 
 /** One plain message from portal@. */
 export interface ReportMail {

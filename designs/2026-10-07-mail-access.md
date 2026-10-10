@@ -96,7 +96,7 @@ A client sees only its own mailboxes. Wren's team can open any client. In team v
 - Done for you: an autobrowse `do` walk for both admin consoles. It needs a real test Workspace and tenant to build against.
 - Start `MailReader/all` and `SetupWatch/all` on prod after the apps exist. Sell `mail.triage` per client.
 - Google push (Pub/Sub watch) and Graph subscriptions, if 15 minutes is too slow. Both cost setup, not money.
-- One Inbox row per mail: a thread with three mails shows three rows, each with the whole thread. Fold them into one row per thread.
+- ~~One Inbox row per mail.~~ Done 10-10: one row per thread (its newest mail, "Name (3)"), waiting while any mail in it waits; Done clears the whole thread in that mailbox.
 
 ## Open questions
 

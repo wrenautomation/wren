@@ -3,6 +3,7 @@
  * holds, their messages and ours, and the Inbox's rows. All in the owner's database.
  */
 import { createHash, randomBytes } from "node:crypto";
+import { PortalRefusal } from "@wren/core/refusal";
 import type { Queryable } from "@wren/db";
 import { CHAT_MAX } from "@wren/sites/chat-widget";
 import { and, asc, count, eq, gt, gte, sql } from "drizzle-orm";
@@ -18,15 +19,7 @@ export const CHAT_THREADS_PER_IP = 5;
 const READ_MAX = 200;
 
 /** Why a chat call was refused, with the status the Worker answers. */
-export class ChatRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-    this.name = "ChatRefusal";
-  }
-}
+export class ChatRefusal extends PortalRefusal {}
 
 const KEY = /^[A-Za-z0-9_-]{32,64}$/;
 export const keyHash = (key: string) => createHash("sha256").update(key).digest("hex");

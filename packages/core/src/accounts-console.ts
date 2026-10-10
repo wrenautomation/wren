@@ -13,7 +13,7 @@ import { WREN } from "./access.js";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "./accounts-console-routes.js";
 import { clients, SETUP_MODES, type SetupMode } from "./clients/schema.js";
 import { keyRef, noRawKeys } from "./key-refs.js";
-import { KeyRefusal, type KeyStore } from "./keys.js";
+import type { KeyStore } from "./keys.js";
 import {
   answer,
   canAt,
@@ -273,8 +273,6 @@ export function accountsApi(deps: AccountsDeps) {
   };
   const fail = (err: unknown): never => {
     if (err instanceof PortalRefusal) throw err;
-    // A key store refusal keeps its status: 403 someone else's key, 404 waited too long.
-    if (err instanceof KeyRefusal) throw new PortalRefusal(err.message, err.status);
     throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
   };
 

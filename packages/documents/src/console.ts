@@ -62,7 +62,6 @@ import {
   approveDocs,
   archiveTemplates,
   askSend,
-  DocRefusal,
   declineDocs,
   docEventsOf,
   docIdOf,
@@ -120,11 +119,6 @@ export interface TemplateRequest extends PortalRequest {
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
 
-function refusal(err: unknown): never {
-  if (err instanceof DocRefusal)
-    throw new PortalRefusal(err.message, err.status === 410 ? 409 : err.status);
-  throw err;
-}
 const given = <T>(v: T | undefined) => (v === undefined ? undefined : v);
 
 /** The facts a client's documents may quote: its business facts and its name. */
@@ -248,7 +242,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
         facts: await factsOf(main, client),
         by: viewer.email,
         now,
-      }).catch(refusal);
+      });
       return { doc: brief(doc) };
     },
 
@@ -275,7 +269,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
           channel: req.channel ?? undefined,
         },
         now,
-      ).catch(refusal);
+      );
       return { doc: brief(doc) };
     },
 
@@ -287,7 +281,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
         by: viewer.email,
         approved: await approves(req, client),
         now,
-      }).catch(refusal);
+      });
       return { docs: [doc] };
     },
 
@@ -310,7 +304,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
     /** A reminder may go: checked here, sent by `Documents/send`. */
     remind: async (req: IdRequest, now: Date) => {
       const { client } = await pickForWrite(main, req);
-      const d = await docOf(main, client.id, String(req.id)).catch(refusal);
+      const d = await docOf(main, client.id, String(req.id));
       const no = remindable(d, now);
       if (no) throw new PortalRefusal(no, 409);
       return { id: d.id };
@@ -319,16 +313,14 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
     duplicate: async (req: IdRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
       return {
-        doc: brief(
-          await duplicateDoc(main, client.id, String(req.id), viewer.email, now).catch(refusal),
-        ),
+        doc: brief(await duplicateDoc(main, client.id, String(req.id), viewer.email, now)),
       };
     },
 
     /** The document as a PDF: the signed copy once signed. */
     pdf: async (req: IdRequest) => {
       const client = await pickClient(main, req);
-      const d = await docOf(main, client.id, String(req.id)).catch(refusal);
+      const d = await docOf(main, client.id, String(req.id));
       const bytes = await docPdf(d, await docEventsOf(main, d.id), client.name);
       return {
         name: `${d.number}${d.status === "signed" ? "-signed" : ""}.pdf`,
@@ -338,7 +330,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
 
     templateSave: async (req: TemplateRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
-      const t = await saveTemplate(main, client.id, req, viewer.email, now).catch(refusal);
+      const t = await saveTemplate(main, client.id, req, viewer.email, now);
       return { template: { id: t.id, name: t.name, kind: t.kind } };
     },
     templateArchive: async (req: IdsRequest, now: Date) => {

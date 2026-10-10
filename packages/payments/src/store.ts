@@ -4,6 +4,7 @@
  */
 import { smsContacts } from "@wren/channel-sms/schema";
 import { clients } from "@wren/core/clients";
+import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import {
@@ -17,15 +18,7 @@ import {
 import { type PaidFacts, STRIPE_EVENTS } from "./stripe.js";
 
 /** A refusal the person asking can act on, with its HTTP status. */
-export class PayRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 403 | 404 | 409 | 503 = 400,
-  ) {
-    super(message);
-    this.name = "PayRefusal";
-  }
-}
+export class PayRefusal extends PortalRefusal {}
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Stripe's least and most for one USD charge. */

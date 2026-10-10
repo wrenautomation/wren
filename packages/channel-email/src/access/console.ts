@@ -24,7 +24,7 @@ import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { domainOf, type MailAccessApi, MailRefusal, wantOf } from "./access.js";
+import { domainOf, type MailAccessApi, wantOf } from "./access.js";
 import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "./console-routes.js";
 import { MAIL_ACCESS, MAIL_PROVIDERS, type MailAccess, type MailProvider } from "./schema.js";
 import {
@@ -45,16 +45,6 @@ export interface MailConsoleDeps {
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
-
-const refusal = (err: unknown): never => {
-  if (err instanceof PortalRefusal) throw err;
-  if (err instanceof MailRefusal)
-    throw new PortalRefusal(
-      err.message,
-      err.status === 400 || err.status === 404 ? err.status : 409,
-    );
-  throw err;
-};
 
 const SETUP_OF: Record<string, Setup> = {
   google_workspace: GOOGLE_MAIL_SETUP,
@@ -108,7 +98,7 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
           orgs: [],
         };
       const c = await owner(req);
-      const v = await access.view(c.id).catch(refusal);
+      const v = await access.view(c.id);
       const accounts = await accountsOf(main, c.id);
       const mayAct =
         !isDemo(req.viewer) &&
@@ -154,15 +144,13 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
       req: PortalRequest & { address: string; provider: MailProvider; want: MailAccess },
     ): Promise<{ id: number; emits: SetupEmit[] }> {
       const c = await writer(req);
-      const { mailbox, org } = await access
-        .addMailbox({
-          client: c.id,
-          address: String(req.address ?? ""),
-          provider: req.provider,
-          want: req.want,
-          by: by(req),
-        })
-        .catch(refusal);
+      const { mailbox, org } = await access.addMailbox({
+        client: c.id,
+        address: String(req.address ?? ""),
+        provider: req.provider,
+        want: req.want,
+        by: by(req),
+      });
       const emits = await start(mailbox.id, "mailbox", by(req));
       if (org && req.want === "read") {
         const a = await mine(c.id, org.id);
@@ -178,9 +166,7 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
       const c = await writer(req);
       const a = await mine(c.id, req.account);
       if (a.site !== "mailbox") throw new PortalRefusal("no such mailbox", 404);
-      const url = await access
-        .connect({ accountId: a.id, want: req.want, by: by(req) })
-        .catch(refusal);
+      const url = await access.connect({ accountId: a.id, want: req.want, by: by(req) });
       const emits: SetupEmit[] = [];
       // Asking to read now says the mailbox wants it, so its org's admin step starts too.
       if (req.want === "read" && wantOf(a) !== "read") {
@@ -199,7 +185,7 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
     async consent(req: PortalRequest & { account: number }) {
       const c = await writer(req);
       const a = await mine(c.id, req.account);
-      const url = await access.consent({ accountId: a.id, by: by(req) }).catch(refusal);
+      const url = await access.consent({ accountId: a.id, by: by(req) });
       return { url };
     },
 
@@ -216,14 +202,18 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
       return { emits: emit ? [emit] : [] };
     },
 
-    /** An email it read, dealt with: it leaves "Waiting on you". */
+    /** A thread it read, dealt with: every mail in it leaves "Waiting on you". */
     async done(req: PortalRequest & { id: number }) {
       if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
       const c = await owner(req);
       // The Monitor's table, in the client's own database: only mail its mailboxes brought in.
-      const rows = await deps.clientDb(c.id).execute(sql`update watch.mail
+      const rows = await deps.clientDb(c.id).execute(sql`update watch.mail m
         set done_at = ${now().toISOString()}::timestamptz
-        where id = ${Number(req.id)} and reader = 'mail' and done_at is null returning id`);
+        from watch.mail o
+        where o.id = ${Number(req.id)} and o.reader = 'mail'
+          and m.mailbox = o.mailbox and m.thread_id = o.thread_id
+          and m.reader = 'mail' and m.done_at is null
+        returning m.id`);
       return { ok: rows.length > 0 };
     },
   };

@@ -26,6 +26,7 @@ import {
   clientSecrets,
   type SecretOp,
 } from "./keys-schema.js";
+import { PortalRefusal } from "./refusal.js";
 
 // ---- keys and sealing ----
 
@@ -180,14 +181,7 @@ export const STAGED_FOR_MS = 60 * 60_000;
 const aadOf = (client: string, name: string) => `wren-key|${client}|${name}`;
 const newRef = () => `ks_${randomBytes(16).toString("hex")}`;
 
-export class KeyRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 403 | 404 | 409 | 503 = 400,
-  ) {
-    super(message);
-  }
-}
+export class KeyRefusal extends PortalRefusal {}
 
 /** A kept key as a page may see it: never the value. */
 export interface KeyInfo {

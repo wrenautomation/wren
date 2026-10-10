@@ -442,3 +442,26 @@ describe("old grants", () => {
     );
   });
 });
+
+describe("Done", () => {
+  it("clears the whole thread in that mailbox, and nothing else", async () => {
+    await pg.db.execute(sql`insert into watch.mail
+      (mailbox, message_id, thread_id, from_name, from_address, subject, verdict, at, reader)
+      values
+      ('ann@acme.example', 'd1', 'td', '', 'lee@x.example', 'Quote?', 'show', now(), 'mail'),
+      ('ann@acme.example', 'd2', 'td', '', 'lee@x.example', 'Re: Quote?', 'show', now(), 'mail'),
+      ('val@acme.example', 'd3', 'td', '', 'lee@x.example', 'Other box', 'show', now(), 'mail'),
+      ('ann@acme.example', 'd4', 'td', '', 'lee@x.example', 'Monitor', 'show', now(), 'monitor')`);
+    const ids = await pg.db.execute<{ id: number; message_id: string }>(
+      sql`select id, message_id from watch.mail where message_id like 'd_'`,
+    );
+    const id = (m: string) => Number(ids.find((r) => r.message_id === m)?.id);
+    expect(await api().done({ viewer: AMY, client: "acme", id: id("d2") })).toEqual({ ok: true });
+    const left = await pg.db.execute<{ message_id: string }>(
+      sql`select message_id from watch.mail where message_id like 'd_' and done_at is null
+        order by message_id`,
+    );
+    expect(left.map((r) => r.message_id)).toEqual(["d3", "d4"]);
+    expect(await api().done({ viewer: AMY, client: "acme", id: id("d4") })).toEqual({ ok: false });
+  });
+});

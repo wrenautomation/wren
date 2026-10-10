@@ -8,6 +8,7 @@ import type { FetchLike } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
+import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import { addAccount } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
@@ -68,13 +69,9 @@ export const connectionIdOf = (login: string | null | undefined): number | null 
 };
 
 /** A refusal said to a person: the page shows it as is. */
-export class SocialRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status = 409,
-  ) {
-    super(message);
-    this.name = "SocialRefusal";
+export class SocialRefusal extends PortalRefusal {
+  constructor(message: string, status: RefusalStatus = 409) {
+    super(message, status);
   }
 }
 
@@ -207,7 +204,7 @@ export function socialAccess(deps: SocialDeps) {
   };
 
   const stored = async (c: SocialConnectionRow): Promise<StoredToken> => {
-    if (!deps.keys) throw new SocialRefusal("The key store isn't set up here");
+    setUp(deps.keys, "the key store");
     const v = await deps.keys.get({
       ref: c.tokenRef,
       client: c.client,
@@ -272,7 +269,7 @@ export function socialAccess(deps: SocialDeps) {
 
   /** Keep what landed: its account, its token in the key store, its connection. */
   const keep = async (client: string, platform: SocialPlatform, l: Landed, by: string) => {
-    if (!deps.keys) throw new SocialRefusal("The key store isn't set up here");
+    setUp(deps.keys, "the key store");
     const account = await addAccount(main, {
       client,
       site: "social",
@@ -327,8 +324,8 @@ export function socialAccess(deps: SocialDeps) {
     /** Where to sign in to connect one account; the link is good for half an hour, once. */
     async connect(o: { client: string; platform: SocialPlatform; by: string }): Promise<string> {
       if (o.client === WREN) throw new SocialRefusal("Wren's own accounts aren't connected here");
-      if (!deps.keys) throw new SocialRefusal("In development: Wren's key store isn't set up yet");
-      if (!deps.origin) throw new SocialRefusal("In development: the portal's address isn't set");
+      setUp(deps.keys, "the key store");
+      setUp(deps.origin, "the portal's address");
       const s = SOCIAL[o.platform];
       if (!deps.live.has(o.platform) && s.before === null)
         throw new SocialRefusal(`Waiting on review: ${s.review}`);
@@ -397,7 +394,7 @@ export function socialAccess(deps: SocialDeps) {
             : "The sign-in didn't finish. Try again.";
         return {
           ok: false,
-          said: err instanceof SocialRefusal ? err.message : said,
+          said: err instanceof PortalRefusal ? err.message : said,
           client,
           check: [],
         };

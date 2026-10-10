@@ -58,6 +58,7 @@
     "./marketing/console-routes": "./src/marketing-console-routes.ts",
     "./people": "./src/people/index.ts",
     "./portal": "./src/portal.ts",
+    "./refusal": "./src/refusal.ts",
     "./buckets": "./src/buckets.ts",
     "./checks": "./src/checks.ts",
     "./setup": "./src/setup.ts",

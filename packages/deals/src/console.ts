@@ -46,7 +46,6 @@ import type { DealPipeline, StageKind } from "./schema.js";
 import {
   createDeal,
   type DealFields,
-  DealRefusal,
   dealsById,
   deleteDeals,
   dropPipeline,
@@ -102,11 +101,6 @@ export interface Board {
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
-
-function refusal(err: unknown): never {
-  if (err instanceof DealRefusal) throw new PortalRefusal(err.message, err.status);
-  throw err;
-}
 
 /** A move as a Deal trigger hears it: about the deal, its contact's email riding along. */
 export function dealFired(m: Moved): Fired {
@@ -236,9 +230,7 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
 
     create: async (req: DealRequest): Promise<Moved> => {
       const owner = await ownerFor(req, "act");
-      return createDeal(main, { ...req, owner_: owner, source: "manual", by: who(req) }).catch(
-        refusal,
-      );
+      return createDeal(main, { ...req, owner_: owner, source: "manual", by: who(req) });
     },
     /** One deal's fields, or (with `ids`) the same fields on each picked. */
     edit: async (req: EditRequest) => {
@@ -246,15 +238,13 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
       const ids = await picked({ ...req, ids: req.ids ?? (req.id ? [req.id] : []) }, owner);
       const { id: _id, ids: _ids, ...fields } = req;
       const out = [];
-      for (const id of ids)
-        out.push(await saveDeal(main, { ...pick(fields), id, by: who(req) }).catch(refusal));
+      for (const id of ids) out.push(await saveDeal(main, { ...pick(fields), id, by: who(req) }));
       return { done: out.map((d) => d.id) };
     },
     assign: async (req: AssignRequest) => {
       const owner = await ownerFor(req, "act");
       const ids = await picked(req, owner);
-      for (const id of ids)
-        await saveDeal(main, { id, owner: req.owner ?? null, by: who(req) }).catch(refusal);
+      for (const id of ids) await saveDeal(main, { id, owner: req.owner ?? null, by: who(req) });
       return { done: ids };
     },
     remove: async (req: IdsRequest) => {
@@ -264,14 +254,12 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
     move: async (req: MoveRequest): Promise<Moved[]> => {
       const owner = await ownerFor(req, "act");
       const ids = await picked(req, owner);
-      return moveDeals(main, { ids, to: { stage: String(req.stage ?? "") }, by: who(req) }).catch(
-        refusal,
-      );
+      return moveDeals(main, { ids, to: { stage: String(req.stage ?? "") }, by: who(req) });
     },
     close: async (req: IdsRequest, kind: Exclude<StageKind, "open">): Promise<Moved[]> => {
       const owner = await ownerFor(req, "act");
       const ids = await picked(req, owner);
-      return moveDeals(main, { ids, to: { kind }, by: who(req) }).catch(refusal);
+      return moveDeals(main, { ids, to: { kind }, by: who(req) });
     },
 
     pipelineSave: async (req: PipelineRequest) => {
@@ -286,13 +274,13 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
         name: req.name,
         stages: req.stages,
         by: who(req),
-      }).catch(refusal);
+      });
       return { id: p.id, name: p.name, stages: p.stages };
     },
     pipelineDrop: async (req: PipelineDropRequest) => {
       const owner = await ownerFor(req, "act");
       who(req);
-      await dropPipeline(main, owner, String(req.id ?? "")).catch(refusal);
+      await dropPipeline(main, owner, String(req.id ?? ""));
       return { dropped: req.id };
     },
   };

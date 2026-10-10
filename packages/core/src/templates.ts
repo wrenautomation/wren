@@ -10,6 +10,7 @@
  */
 import { atomic, type Queryable, setAuditActor } from "@wren/db";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { PortalRefusal, type RefusalStatus } from "./refusal.js";
 import { type TemplateOrigin, templates, templateVersions } from "./schema.js";
 import {
   checkSource,
@@ -113,8 +114,10 @@ export class TemplateConflict extends Error {
 }
 
 /** What a save, publish or approval is refused for, said to the person. */
-export class TemplateRefusal extends Error {
-  override name = "TemplateRefusal";
+export class TemplateRefusal extends PortalRefusal {
+  constructor(message: string, status: RefusalStatus = 409) {
+    super(message, status);
+  }
 }
 
 const ref3 = (ref: TemplateRef) =>
