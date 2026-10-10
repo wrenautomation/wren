@@ -234,7 +234,7 @@ function useRun(client: string, team: boolean) {
 
 export function Run({ client, team, demo }: PageProps) {
   const { first, live, error } = useRun(client, team);
-  // Shared with the launcher card, so it's read once.
+  // Shared with the service card on Today, so it's read once.
   const o = useCall(`overview:${client}`, () =>
     call<Overview>("reactivation/overview", { client }),
   );

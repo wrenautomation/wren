@@ -1,4 +1,4 @@
-/** The project's launcher card: how far along it is, what's delivered, and what waits on the client. */
+/** The project's service card on Today: how far along it is, what's delivered, and what waits on the client. */
 import { AppGlance, num, Tag } from "@wren/ui";
 import type { PageProps } from "../../module.js";
 import { useWork } from "./bits.js";

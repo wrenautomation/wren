@@ -57,7 +57,7 @@ const hidden: Module["pages"] = [
 export const learn: Module = {
   id: "learn",
   name: "Learn",
-  icon: "note",
+  icon: "book",
   blurb:
     "Saved links and followed sources, read, scored against Wren's SOPs, and kept like a drive.",
   requires: TEAM,
@@ -82,7 +82,7 @@ export const learn: Module = {
 export const clientLearn: Module = {
   id: "learn",
   name: "Learn",
-  icon: "note",
+  icon: "book",
   blurb: "Links you save and sources you follow, read, scored and kept like a drive.",
   requires: { audience: "client", needs: "read", at: { app: "learn" } },
   action: { page: "add", label: "Save a link", icon: "pin" },

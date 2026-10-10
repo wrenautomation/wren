@@ -18,7 +18,7 @@ export const calendar: Module = {
   id: "calendar",
   name: "Calendar",
   component: "calendar.booking",
-  icon: "clock",
+  icon: "calendar",
   blurb: "Calls booked on your page, a brief before each, and how each went.",
   requires: { audience: "team" },
   pages: [

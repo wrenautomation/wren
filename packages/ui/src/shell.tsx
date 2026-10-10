@@ -1,9 +1,8 @@
 /**
  * The app frame: a slim bar on the gray canvas (whose workspace, and the viewer's own buttons)
- * over one white window. Outside any app the window holds the launcher, a card per app. Inside
- * one, a sidebar on the canvas links back to all apps, names this one and lists its pages. Apps
- * can keep coming without the frame growing. On a phone the sidebar becomes the window's head,
- * its pages tabs that scroll sideways, so nothing hides behind a menu.
+ * over one white window. A sidebar on the canvas holds home, the pins and every app under its
+ * area; the open app unfolds there into its pages. On a phone the sidebar becomes the window's
+ * head, the open app's pages tabs that scroll sideways, and home lists the apps.
  */
 import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
@@ -34,6 +33,8 @@ export interface NavDrop {
 
 /** The app on screen. */
 export interface OpenApp {
+  /** Its row in `areas`, unfolded. */
+  id?: string | undefined;
   name: string;
   icon: IconName;
   /** Its first page. */
@@ -43,6 +44,32 @@ export interface OpenApp {
   current: string;
   /** Its one button, at the head's right. */
   action?: ReactNode;
+}
+
+/** An app in the sidebar, under its area. */
+export interface NavApp {
+  id: string;
+  name: string;
+  icon: IconName;
+  href: string;
+  /** What waits in it, all its pages. */
+  count?: number | undefined;
+  /** Shown to the team, not installed for this client: dimmed. */
+  off?: boolean | undefined;
+}
+
+/** The apps of one job: Inbox, Leads, Marketing. */
+export interface NavArea {
+  id: string;
+  label: string;
+  apps: NavApp[];
+}
+
+/** The sidebar's first link: Today. */
+export interface NavHome {
+  label: string;
+  href: string;
+  count?: number | undefined;
 }
 
 /** His pinned pages, on the rail of every app, and the button that pins the one on screen. */
@@ -87,6 +114,8 @@ export function AppShell({
   brand,
   workspace,
   launcher,
+  home,
+  areas,
   app,
   pins,
   actions,
@@ -99,9 +128,13 @@ export function AppShell({
 }: {
   brand: Brand;
   workspace: Workspace;
-  /** Where "All apps" goes. Left out when there's only one app to go to. */
+  /** Home, from an app's head on a phone. Left out when there's only one app to go to. */
   launcher?: string | undefined;
-  /** Null on the launcher. */
+  /** The sidebar's first link; left out with one app. */
+  home?: NavHome | undefined;
+  /** Every app by area. Left out (the demo), the sidebar holds the open app alone. */
+  areas?: NavArea[] | undefined;
+  /** Null at home. */
   app: OpenApp | null;
   /** His pins; left out where nothing is kept (the demo). */
   pins?: RailPins | undefined;
@@ -169,15 +202,17 @@ export function AppShell({
       </header>
 
       <div className="flex min-h-0 flex-1 max-[900px]:block">
-        {app ? <AppSide app={app} launcher={launcher} pins={pins} /> : null}
+        {app || areas?.length ? <SideNav app={app} home={home} areas={areas} pins={pins} /> : null}
         <div
           className={cx(
             "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius) bg-(--ui-paper) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
-            app ? "mr-(--ui-frame) mb-(--ui-frame)" : "mx-(--ui-frame) mb-(--ui-frame)",
+            app || areas?.length
+              ? "mr-(--ui-frame) mb-(--ui-frame)"
+              : "mx-(--ui-frame) mb-(--ui-frame)",
           )}
           ref={scroller}
         >
-          {app ? <AppHead app={app} launcher={launcher} pins={pins} /> : null}
+          {app ? <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} /> : null}
           <main
             className={cx(
               "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
@@ -289,22 +324,84 @@ const total = (tabs: NavItem[]) =>
     ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
     : undefined;
 
-/** The open app beside the window: back to all apps, its name, its pages, its one button. */
-function AppSide({
+/** An app's row in the sidebar: its mark, its name, what waits in it. */
+const APP_ROW = cx(
+  HOVER,
+  "flex h-9 w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink)",
+);
+
+/** The open app's pages, under its row: grouped, a group of one page standing alone. */
+function AppTabs({ app }: { app: OpenApp }) {
+  return (
+    <nav aria-label={`${app.name} pages`}>
+      <ul className="flex list-none flex-col gap-0.5 pt-0.5 pb-1.5 pl-3">
+        {runs(app.tabs).flatMap((r, i, all) => [
+          ...(headed(r)
+            ? [
+                // The first group sits right under the app's row: no rule above it.
+                <li
+                  key={`g:${r.group}`}
+                  className={cx(GROUP, i === 0 && "mt-0 border-t-0 pt-1")}
+                  aria-hidden="true"
+                >
+                  {r.group}
+                </li>,
+              ]
+            : []),
+          ...r.tabs.map((t, j) => (
+            // A page after a group stands apart, so it doesn't read as that group's last.
+            <li
+              key={t.id}
+              className={
+                j === 0 && !headed(r) && headed(all[i - 1])
+                  ? "mt-2.5 border-t border-(--ui-hair) pt-2.5"
+                  : undefined
+              }
+            >
+              <SideTab t={t} on={t.id === app.current} />
+            </li>
+          )),
+        ])}
+      </ul>
+      {app.action ? <div className="px-2.5 pb-1.5 pl-5.5">{app.action}</div> : null}
+    </nav>
+  );
+}
+
+/**
+ * Beside the window: home, the pins, then every app under its area, the open one unfolded into
+ * its pages. An area of one app needs no heading. Without areas, the open app alone.
+ */
+function SideNav({
   app,
-  launcher,
+  home,
+  areas,
   pins,
 }: {
-  app: OpenApp;
-  launcher: string | undefined;
+  app: OpenApp | null;
+  home: NavHome | undefined;
+  areas: NavArea[] | undefined;
   pins: RailPins | undefined;
 }) {
+  const shown: NavArea[] = areas?.length
+    ? areas
+    : app
+      ? [
+          {
+            id: "",
+            label: "",
+            apps: [{ id: app.id ?? "", name: app.name, icon: app.icon, href: app.href }],
+          },
+        ]
+      : [];
+  const openId = app ? (app.id ?? "") : null;
   return (
-    <aside className="flex w-[236px] flex-none flex-col gap-3.5 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden">
-      {launcher ? (
-        <a className={cx(BACK, "self-start px-2.5")} href={launcher}>
-          <Icon name="apps" />
-          <span>All apps</span>
+    <aside className="flex w-[248px] flex-none flex-col gap-3 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden">
+      {home ? (
+        <a className={APP_ROW} href={home.href} aria-current={app ? undefined : "true"}>
+          <Icon name="home" />
+          <span className="min-w-0 truncate">{home.label}</span>
+          {home.count ? <span className={COUNT}>{num(home.count)}</span> : null}
         </a>
       ) : null}
       {pins ? (
@@ -316,40 +413,33 @@ function AppSide({
           onClear={pins.onClear}
         />
       ) : null}
-      <a className={cx(APPNAME, "px-2.5 pt-0.5 pb-1")} href={app.href}>
-        <span className={APPMARK} aria-hidden="true">
-          <Icon name={app.icon} />
-        </span>
-        {app.name}
-      </a>
-      <nav aria-label={`${app.name} pages`}>
-        <ul className="flex list-none flex-col gap-0.5">
-          {runs(app.tabs).flatMap((r, i, all) => [
-            ...(headed(r)
-              ? [
-                  <li key={`g:${r.group}`} className={GROUP} aria-hidden="true">
-                    {r.group}
-                  </li>,
-                ]
-              : []),
-            ...r.tabs.map((t, j) => (
-              // A page after a group stands apart, so it doesn't read as that group's last.
-              <li
-                key={t.id}
-                className={
-                  j === 0 && !headed(r) && headed(all[i - 1])
-                    ? "mt-2.5 border-t border-(--ui-hair) pt-2.5"
-                    : undefined
-                }
-              >
-                <SideTab t={t} on={t.id === app.current} />
-              </li>
-            )),
-          ])}
-        </ul>
+      <nav aria-label="Apps" className="flex flex-col gap-1">
+        {shown.map((area) => (
+          <section key={area.id} className="flex flex-col gap-0.5">
+            {area.apps.length > 1 ? (
+              <h2 className={cx(GROUP, "mt-1 border-t-0 pt-1")}>{area.label}</h2>
+            ) : null}
+            {area.apps.map((a) => {
+              const open = a.id === openId && app;
+              return (
+                <div key={a.id || a.name}>
+                  <a
+                    className={cx(APP_ROW, a.off && "opacity-55")}
+                    href={a.href}
+                    aria-current={open ? "true" : undefined}
+                  >
+                    <Icon name={a.icon} className={open ? "text-(--ui-accent)" : ""} />
+                    <span className="min-w-0 truncate">{a.name}</span>
+                    {a.count && !open ? <span className={COUNT}>{num(a.count)}</span> : null}
+                  </a>
+                  {open ? <AppTabs app={app} /> : null}
+                </div>
+              );
+            })}
+          </section>
+        ))}
       </nav>
-      {app.action ? <div className="px-2.5">{app.action}</div> : null}
-      {pins ? (
+      {pins && app ? (
         <div className="mt-auto">
           <PinButton pinned={pins.here} onToggle={pins.onToggle} />
         </div>
@@ -409,10 +499,12 @@ function PhoneTabs({
 function AppHead({
   app,
   launcher,
+  home = "Home",
   pins,
 }: {
   app: OpenApp;
   launcher: string | undefined;
+  home?: string | undefined;
   pins: RailPins | undefined;
 }) {
   const groups = runs(app.tabs);
@@ -422,8 +514,8 @@ function AppHead({
       <div className="mx-auto flex min-h-[52px] items-center gap-1.5 px-4 pt-1.5">
         {launcher ? (
           <>
-            <a className={cx(BACK, "-ml-2 px-2")} href={launcher} aria-label="All apps">
-              <Icon name="apps" />
+            <a className={cx(BACK, "-ml-2 px-2")} href={launcher} aria-label={home}>
+              <Icon name="home" />
             </a>
             <span className={SLASH} aria-hidden="true">
               /

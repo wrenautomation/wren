@@ -16,7 +16,7 @@ export const voice: Module = {
   id: "voice",
   name: "Voice",
   component: "voice.agent",
-  icon: "phone",
+  icon: "mic",
   blurb: "An AI agent that answers the phone, books calls and takes messages.",
   requires: { audience: "team" },
   action: { page: "test", label: "Test call", icon: "phone" },

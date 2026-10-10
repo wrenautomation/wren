@@ -43,7 +43,7 @@ Citations: `packages/delivery/src/health/schema.ts:30`, `packages/delivery/src/h
 | Surface | Role |
 |---|---|
 | Clients app: Health list and detail, Overview tiles, each client's Health section (`apps/portal/web/src/modules/wren/health.tsx`, `index.ts`) | reads; rate, set by hand, back to the model |
-| Wren's home, "Client health" (`HealthNow`, `apps/portal/web/src/App.tsx`) | at-risk clients and urgent risks |
+| Wren's Today, "Client health" (`HealthNow`, `apps/portal/web/src/today.tsx`) | at-risk clients and urgent risks |
 | `wren health sync|show|history|rate|override|clear-override` (`apps/cli/src/health.ts`) | reads and writes from the terminal |
 
 ## See

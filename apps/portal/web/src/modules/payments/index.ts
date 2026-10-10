@@ -87,7 +87,7 @@ export const payments: Module = {
   id: "payments",
   name: "Payments",
   component: "payments.links",
-  icon: "money",
+  icon: "card",
   blurb: "Send a pay link by text or email. See who paid.",
   pages: [
     {

@@ -12,7 +12,7 @@ import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
-import { CONVERSATION_TOP, INBOX_PAGE } from "../marketing/index.js";
+import { APPROVAL_PAGE, CONVERSATION_TOP, INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
@@ -376,7 +376,7 @@ export const inbox: Module = {
   id: "inbox",
   name: "Inbox",
   component: "email.replies",
-  icon: "reply",
+  icon: "inbox",
   blurb: "Every lead's answer, by email, text or DM, and the mail that needs you.",
   requires: TEAM,
   pages: [
@@ -392,7 +392,7 @@ export const inbox: Module = {
         {
           label: "To approve",
           record: "marketing.approval",
-          href: "/marketing/approve?view=waiting",
+          href: "/inbox/approve?view=waiting",
           needs: true,
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
@@ -441,9 +441,10 @@ export const inbox: Module = {
         CONVERSATION_TOP,
       ],
     },
-    // What came in, Marketing → Inbox's page; "waiting" keeps old links landing. What we'd send
-    // waits in Marketing → To approve.
+    // What came in, Marketing → Inbox's page ("waiting" keeps old links landing), then what we'd
+    // send, waiting on a yes. Marketing keeps both addresses for old links.
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
+    APPROVAL_PAGE,
     ...inboxPages(),
     {
       id: "mentions",
@@ -499,7 +500,7 @@ export const inbox: Module = {
 export const loops: Module = {
   id: "loops",
   name: "Loops",
-  icon: "clock",
+  icon: "cycle",
   blurb: "Every scheduled job, which ones fail, and Wren's own settings.",
   requires: TEAM,
   pages: [
@@ -859,7 +860,7 @@ export const pipeline: Module = {
 /** The same sheet in a client's workspace, read from its own database (O1). */
 export const leads: Module = {
   id: "leads",
-  name: "Lead sheet",
+  name: "Pipeline",
   component: "research.lead_sheet",
   icon: "pulse",
   blurb: "Companies from found to verified lead, and where they stall.",
@@ -1154,7 +1155,7 @@ const HOLD_ACTIONS: Action[] = [
 export const workflows: Module = {
   id: "workflows",
   name: "Workflows",
-  icon: "link",
+  icon: "bolt",
   blurb: "How Wren wins clients and runs, drawn with live numbers.",
   requires: TEAM,
   pages: [
@@ -1207,7 +1208,7 @@ export const workflows: Module = {
 export const ask: Module = {
   id: "ask",
   name: "Ask",
-  icon: "search",
+  icon: "sparkle",
   blurb: "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
   requires: { ...TEAM, needs: "run" },
   pages: [{ id: "questions", label: "Questions", Page: Ask }],

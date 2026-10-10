@@ -166,7 +166,7 @@ export const texts: Module = {
   id: "texts",
   name: "Texts",
   component: "sms.texts",
-  icon: "reply",
+  icon: "chat",
   blurb: "Texts to leads and their replies, sorted.",
   pages: [
     {

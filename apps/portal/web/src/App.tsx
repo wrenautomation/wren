@@ -1,16 +1,13 @@
 /**
- * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is the launcher, a
- * card per app. An open app lists its pages (/<app>/<page>) in a sidebar, as tabs on a phone. A
- * viewer with one app (the demo) skips the launcher and lands in it. Wren's team starts in Wren's
- * own workspace, its apps on Wren's records; the switcher moves to the demo or a client.
+ * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is Today: what waits
+ * across every app. The sidebar holds every app under its area (areas.ts); the open one unfolds
+ * into its pages (/<app>/<page>), tabs on a phone. A viewer with one app (the demo) skips Today
+ * and lands in it. Wren's team starts in Wren's own workspace, its apps on Wren's records; the
+ * switcher moves to the demo or a client.
  */
 
 import type { Permission, Who } from "@wren/core/access";
-import { inHouseOfApp, insteadLine } from "@wren/core/in-house";
 import {
-  Alert,
-  AppCard,
-  AppGrid,
   AppShell,
   Button,
   ButtonLink,
@@ -20,11 +17,10 @@ import {
   LoadFailed,
   Loading,
   moved,
+  type NavArea,
   type NavItem,
-  PageHeader,
   type PaletteItem,
   type PinLine,
-  PinnedRow,
   RAIL_PREF,
   type RailPins,
   type RailPref,
@@ -32,32 +28,31 @@ import {
   ShowRawErrors,
   SnippetsProvider,
   type SnippetsSource,
-  Tag,
   type Theme,
   Toasts,
   togglePin,
   usePref,
   type Viewer,
 } from "@wren/ui";
-import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
+import { areasOf } from "./areas.js";
+import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
-import { useAccount } from "./modules/account/load.js";
-import { SetupNow } from "./modules/account/Now.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
-import { AddOn } from "./modules/marketplace/AddOn.js";
 import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
-import { HealthNow } from "./modules/wren/health.js";
 import { keepOf, TemplatePage } from "./records.js";
 import { href, navigate, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
+import { ClientToday, WrenToday } from "./today.js";
+import { appTotal, useWaiting } from "./waiting.js";
 
 const STAMP = "/wren-icon.png";
 const WORKSPACE_KEY = "wren.portal.workspace";
@@ -71,60 +66,18 @@ const tabOf = (m: Module, from: ModulePage, to: ModulePage, params: URLSearchPar
   if (!field || to.across?.field !== field) return pathOf(m, to);
   return href(pathOf(m, to), { [field]: params.get(field) });
 };
-const firstOf = (m: Module) => (m.pages[0] ? pathOf(m, m.pages[0]) : "/");
+/** An app's first tab: its first page that isn't reached by link only. */
+const firstPage = (m: Module) => m.pages.find((p) => !p.hidden) ?? m.pages[0];
+const firstOf = (m: Module) => {
+  const p = firstPage(m);
+  return p ? pathOf(m, p) : "/";
+};
 const teamOnly = (m: Module) => m.requires?.audience === "team";
 
 /** ⌘K. Loaded on the first press, so cmdk stays out of the first load. */
 const CommandPalette = lazy(() =>
   import("@wren/ui/palette").then((m) => ({ default: m.CommandPalette })),
 );
-
-/** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */
-/**
- * Each open page's waiting count, for its tab: pages with a `count`, in Wren's workspace, and
- * pages with a `badge` in any.
- */
-function useNavCounts(
-  module: Module | undefined,
-  page: string | undefined,
-  on: boolean,
-  client: string | undefined,
-  team: boolean,
-): Record<string, number> {
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  // `module` is rebuilt every render, so its id keys the read: depending on the object looped
-  // forever (React #185) wherever a page draws a map.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a tab change reads the counts again.
-  useEffect(() => {
-    const pages = on ? (module?.pages ?? []).filter((p) => "count" in p && p.count) : [];
-    const badged = client ? (module?.pages ?? []).filter((p) => p.badge) : [];
-    if (!pages.length && !badged.length)
-      return void setCounts((c) => (Object.keys(c).length ? {} : c));
-    let live = true;
-    void Promise.all([
-      ...pages.map((p) =>
-        call<{ total: number }>("console/recordsList", {
-          record: (p as { record: string }).record,
-          where: (p as { count: unknown }).count,
-          limit: 1,
-        }).then(
-          (r) => [p.id, r.total] as const,
-          () => [p.id, 0] as const,
-        ),
-      ),
-      ...badged.map((p) =>
-        (p.badge as NonNullable<typeof p.badge>)(client as string, team).then(
-          (n) => [p.id, n] as const,
-          () => [p.id, 0] as const,
-        ),
-      ),
-    ]).then((all) => live && setCounts(Object.fromEntries(all)));
-    return () => {
-      live = false;
-    };
-  }, [module?.id, page, on, client, team]);
-  return counts;
-}
 
 /**
  * The open app's tabs read from its data (Learn's places and collections), in the workspace on
@@ -157,6 +110,7 @@ function useModuleNav(
   return items.key === key ? items.items : [];
 }
 
+/** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */
 function usePaletteKey() {
   const [open, setOpen] = useState<boolean | null>(null);
   useEffect(() => {
@@ -210,7 +164,7 @@ function useGoKeys(keys: Map<string, string>) {
   }, [keys]);
 }
 
-/** ⌘K's list: home, then every page this viewer may open, by app, with its G key if it has one. */
+/** ⌘K's list: Today, then every page this viewer may open, by app, with its G key if it has one. */
 const jumps = (
   apps: Module[],
   launcher: string | undefined,
@@ -218,9 +172,7 @@ const jumps = (
 ): PaletteItem[] => {
   const keyOf = new Map([...keys].map(([k, href]) => [href, `G ${k.toUpperCase()}`]));
   return [
-    ...(launcher
-      ? [{ label: "All apps", group: "Wren", href: launcher, icon: "apps" as const }]
-      : []),
+    ...(launcher ? [{ label: "Today", group: "Wren", href: launcher, icon: "home" as const }] : []),
     ...apps.flatMap((m) =>
       m.pages
         .filter((p) => !p.hidden)
@@ -254,12 +206,12 @@ export function pinLines(pins: readonly string[], apps: Module[]): PinLine[] {
   return pins.flatMap((href) => {
     const at = place(href.split("/").filter(Boolean), apps, true);
     if (at.kind !== "page") return [];
-    const first = at.module.pages[0]?.id === at.page.id;
+    const first = firstPage(at.module)?.id === at.page.id;
     return [{ href, label: first ? at.module.name : at.page.label, icon: at.module.icon }];
   });
 }
 
-/** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
+/** Where an address goes: an app's page, Today (`launcher`), or elsewhere (`to`) once the viewer is known. */
 type Place =
   | { kind: "page"; module: Module; page: ModulePage }
   | { kind: "launcher" }
@@ -369,10 +321,10 @@ export function App() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pages` names what `here` gives.
   const keys = useMemo(() => goKeys(here), [here?.id, pages]);
   useGoKeys(keys);
-  // Menu apps (the account) are reached from the client's name, not a card.
+  // Menu apps (the account) are reached from the client's name, not the sidebar.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
-  // One app needs no launcher: its first page is home.
+  // One app needs no Today: its first page is home.
   const launcher = cards.length > 1 ? "/" : undefined;
   const home = launcher ?? (only ? firstOf(only) : "/");
   const account = apps.find((m) => m.menu);
@@ -439,12 +391,13 @@ export function App() {
   }, [named]);
 
   const theme = useLook(route.params, clients.find((c) => c.id === current?.id)?.look);
-  const counts = useNavCounts(
-    at.kind === "page" ? at.module : undefined,
-    at.kind === "page" ? at.page.id : undefined,
-    wren,
+  const waiting = useWaiting(
+    cards,
     current?.id,
+    wren,
     team,
+    at.kind === "page" ? at.module.id : undefined,
+    at.kind === "page" ? at.page.id : "",
   );
   const extra = useModuleNav(
     at.kind === "page" ? at.module : undefined,
@@ -452,7 +405,7 @@ export function App() {
     team,
     `${route.path.join("/")}?${route.params}`,
   );
-  const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
+  const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Today" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
   }, [label, current]);
@@ -481,7 +434,7 @@ export function App() {
   const pick = (id: string) => {
     setClient(id);
     keep(WORKSPACE_KEY, id);
-    // Wren's apps and a client's never share an address: the other kind starts at its launcher.
+    // Wren's apps and a client's never share an address: the other kind starts at its Today.
     if ((id === WREN.id) !== wren) navigate("/");
   };
   const demo = onDemo ?? false;
@@ -507,6 +460,22 @@ export function App() {
       ? open.module.component
       : null;
   const action = open?.module.action;
+  const counts = open ? (waiting[open.module.id] ?? {}) : {};
+  // Every app by area, what waits in each beside it; none with one app (the demo).
+  const areas: NavArea[] | undefined = launcher
+    ? areasOf(cards).map(({ area, apps }) => ({
+        id: area.id,
+        label: area.label,
+        apps: apps.map((m) => ({
+          id: m.id,
+          name: m.name,
+          icon: m.icon,
+          href: firstOf(m),
+          count: appTotal(waiting[m.id]),
+          off: !wren && !!m.component && !installed.has(m.component),
+        })),
+      }))
+    : undefined;
 
   return (
     <SnippetsProvider source={snippets}>
@@ -523,11 +492,22 @@ export function App() {
             onPick: pick,
           }}
           launcher={launcher}
+          home={
+            launcher
+              ? {
+                  label: "Today",
+                  href: launcher,
+                  count: cards.reduce((n, m) => n + appTotal(waiting[m.id]), 0),
+                }
+              : undefined
+          }
+          areas={areas}
           bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
           pins={railPins}
           app={
             open
               ? {
+                  id: open.module.id,
                   name: open.module.name,
                   icon: open.module.icon,
                   href: firstOf(open.module),
@@ -622,18 +602,13 @@ export function App() {
               </Suspense>
             </Contained>
           ) : wren ? (
-            <>
-              <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
-              {team ? <SetupNow client={WREN.id} team /> : null}
-              {team ? <HealthNow /> : null}
-              <PinnedRow pins={pins} />
-              <AppGrid>{cards.map((m) => card(m))}</AppGrid>
-            </>
+            <WrenToday apps={cards} waiting={waiting} pins={pins} props={props(current.id)} />
           ) : (
-            <Launcher
+            <ClientToday
               key={current.id}
               name={current.name}
               apps={cards}
+              waiting={waiting}
               installed={installed}
               props={props(current.id)}
               pins={pins}
@@ -707,101 +682,4 @@ function snippetsFor(client: string | null): SnippetsSource {
     SNIPPETS.set(key, source);
   }
   return source;
-}
-
-/** The quiet line under an app's name: the SaaS it stands in for, when it's live. */
-const noteOf = (m: Module) => {
-  const t = inHouseOfApp(m.id);
-  return t ? insteadLine(t) : null;
-};
-
-/** `off`: the team sees an app whose component this client hasn't installed, marked. */
-const card = (m: Module, props?: PageProps, off = false) => (
-  <AppCard
-    key={m.id}
-    name={m.name}
-    icon={m.icon}
-    href={firstOf(m)}
-    blurb={m.blurb}
-    note={noteOf(m)}
-  >
-    {off ? (
-      <Tag>Not installed</Tag>
-    ) : m.Glance && props ? (
-      <Contained quiet>
-        <m.Glance {...props} />
-      </Contained>
-    ) : null}
-  </AppCard>
-);
-
-/** A client's "/": the app each service they bought runs in (its plan and paperwork inside), then the rest. */
-function Launcher({
-  name,
-  apps,
-  installed,
-  props,
-  pins,
-}: {
-  name: string;
-  apps: Module[];
-  installed: ReadonlySet<string>;
-  props: PageProps;
-  pins: PinLine[];
-}) {
-  const account = useAccount(props);
-  if (!account.data && !account.error) return <Loading lines={8} heading />;
-  const under = (app: string) => apps.filter((m) => m.id === app);
-  // One heading per offer with its app here, newest first; a finished one stays, it still has its paperwork.
-  const bought = [
-    ...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values(),
-  ].filter((b) => under(b.app).length);
-  const shown = (m: Module) =>
-    card(m, props, m.component !== undefined && !installed.has(m.component));
-  const placed = new Set(bought.map((b) => b.app));
-  const rest = apps.filter((m) => !m.fallback && !placed.has(m.id));
-  return (
-    <>
-      <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
-      {props.demo ? null : <SetupNow client={props.client} team={props.team} />}
-      <PinnedRow pins={pins} />
-      {/* Installing needs `manage`: a viewer or member never sees the offer. */}
-      {props.team || props.demo || !props.can?.includes("manage") ? null : (
-        <AddOn
-          offered={(account.data?.bought ?? []).map((b) => b.addOn)}
-          installed={installed}
-          props={props}
-        />
-      )}
-      {bought.map((b) => (
-        <AppGrid key={b.offerId} label={b.offer}>
-          {under(b.app).map(shown)}
-        </AppGrid>
-      ))}
-      {rest.length ? (
-        <AppGrid label={bought.length ? "More from Wren" : undefined}>{rest.map(shown)}</AppGrid>
-      ) : null}
-    </>
-  );
-}
-
-/** A page that throws breaks itself, never the shell around it. A card's glance just goes blank. */
-class Contained extends Component<{ quiet?: boolean; children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  // The console keeps what broke, so a report can name it.
-  override componentDidCatch(error: unknown) {
-    console.error(error);
-  }
-  override render() {
-    if (!this.state.failed) return this.props.children;
-    if (this.props.quiet) return null;
-    return (
-      <Alert onRetry={() => this.setState({ failed: false })}>
-        This page hit a problem. Try again, or open another app.
-      </Alert>
-    );
-  }
 }

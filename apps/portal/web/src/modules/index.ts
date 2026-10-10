@@ -1,5 +1,5 @@
 /**
- * The portal's apps, in launcher order: a client's work first, then each product, the
+ * The portal's apps, in this order within each sidebar area (areas.ts): a client's work first, then each product, the
  * Marketplace, then Wren's own (Wren's workspace only). Account is a menu app, never a card.
  */
 import type { Module } from "../module.js";

@@ -85,7 +85,7 @@ export const clientDeals: Module = {
   id: "deals",
   name: "Opportunities",
   component: "deals.board",
-  icon: "board",
+  icon: "target",
   blurb: "Every deal by stage, with its value and who works it. Drag one on when it moves.",
   pages: [
     { id: "board", label: "Board", Page: DealBoard, wide: true },

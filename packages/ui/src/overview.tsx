@@ -69,6 +69,7 @@ export interface OverviewTop {
 }
 
 export interface OverviewProps {
+  /** Empty: no heading, as a block inside another page (Today). */
   title: string;
   api: RecordsApi;
   tiles: OverviewTile[];
@@ -145,12 +146,14 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
     setStats((s) => (s[label]?.stat === shown.stat ? s : { ...s, [label]: shown }));
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className={PAGE_TITLE}>{title}</h1>
-        {keep && all.length > 1 ? (
-          <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />
-        ) : null}
-      </div>
+      {title || (keep && all.length > 1) ? (
+        <div className="flex items-center justify-between gap-3">
+          {title ? <h1 className={PAGE_TITLE}>{title}</h1> : <span />}
+          {keep && all.length > 1 ? (
+            <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-px p-px lg:grid-cols-12">
         {tiles.map((t, i) => {
           const meta = metaOf(t.record);

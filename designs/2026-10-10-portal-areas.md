@@ -5,8 +5,9 @@ with". Then: "Just build it", and write the design for the record.
 
 ## Problem
 
-"/" was a grid of equal app cards, about 19 in Wren's workspace, in the order they were built. No
-card carried a number (no app had a `Glance`), so the home said nothing about the day. Inside an
+"/" was a grid of equal app cards, about 19 in Wren's workspace, in the order they were built.
+Only Reactivation and Your project carried numbers (`Glance`), so Wren's home said nothing about
+the day. Inside an
 app, the only way out was "All apps" back to the grid. Things waiting on him sat in three apps
 (Inbox, Marketing → To approve, Marketing → Inbox).
 
@@ -18,7 +19,7 @@ app, the only way out was "All apps" back to the grid. Things waiting on him sat
      workspace, its `badge` in any), its app, the number, a link;
    - Wren's workspace: the numbers that say how the day goes (replies, booked, upcoming calls,
      calls to mark) and the next calls with their brief one click away;
-   - a client's: the services they bought, each with its app, then the add-on offer;
+   - a client's: a card per service they bought, with its app's `Glance`, and the add-on offer;
    - pins.
 2. **One sidebar everywhere**, Today included. Today at the top, then pins, then the apps under
    five areas. The open app expands in place to its pages. Each app shows what waits in it.
@@ -58,4 +59,7 @@ to Today's list.
 
 - 2026-10-10: Areas group apps; pages don't move between apps. Moving pages would break links in
   pings and mail, and a page's record is served by its product either way.
-- 2026-10-10: Glance cards were dropped. No app had one, so the cards only showed blurbs.
+- 2026-10-10: App cards left Wren's home; they only showed blurbs. A client's bought services
+  keep theirs, with the glance.
+- 2026-10-10: Marketing's ~45 tabs regrouped: Content, Reach, Ads & Site, Numbers.
+- 2026-10-10: Apps got distinct icons; four shared "board" and five "note".

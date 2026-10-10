@@ -6,7 +6,7 @@ import { KEYWORDS } from "@wren/channel-sms/templates";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
-import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
+import type { DayPage, ListPage, Module, ModulePage, PageAcross } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
@@ -878,7 +878,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
 };
 
 /** What we'd send, waiting on William's yes (`marketing.approval`): Marketing → To approve. */
-const APPROVAL_PAGE: ListPage = {
+export const APPROVAL_PAGE: ListPage = {
   id: "approve",
   label: "To approve",
   template: "list",
@@ -1058,7 +1058,7 @@ export const CONVERSATION_TOP = {
 const REVIEWS_PAGE: ListPage = {
   id: "reviews",
   label: "Reviews",
-  group: "People",
+  group: "Reach",
   template: "list",
   record: "marketing.review",
   columns: ["who", "stars", "words", "reply", "platform", "at"],
@@ -1069,18 +1069,27 @@ const REVIEWS_PAGE: ListPage = {
   },
 };
 
+/** Wren's Marketing tabs, by group in this order; a page with none goes first. */
+const GROUPS = ["Content", "Reach", "Ads & Site", "Numbers"];
+const byGroup = (pages: ModulePage[]): ModulePage[] =>
+  pages
+    .map((p, i) => [GROUPS.indexOf(p.group ?? "") + 1, i, p] as const)
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+    .map(([, , p]) => p);
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
   component: "marketing.stats",
-  icon: "board",
+  icon: "megaphone",
   blurb: "Every platform in one place: what came in, what to approve, people and the numbers.",
   requires: { audience: "team" },
-  pages: [
-    { id: "inbox", ...INBOX_PAGE },
-    { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
+  pages: byGroup([
+    // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
+    { id: "inbox", ...INBOX_PAGE, hidden: true },
+    { ...APPROVAL_PAGE, hidden: true },
+    { id: "auto-reply", label: "Auto-reply", group: "Reach", Page: AutoReplyPage },
     REVIEWS_PAGE,
-    APPROVAL_PAGE,
     TODAY,
     {
       id: "drafts",
@@ -1167,7 +1176,7 @@ export const marketing: Module = {
     {
       id: "people",
       label: "People",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.person",
       empty: {
@@ -1180,7 +1189,7 @@ export const marketing: Module = {
     {
       id: "dms",
       label: "DMs",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.dm",
       empty: {
@@ -1197,7 +1206,7 @@ export const marketing: Module = {
     {
       id: "invites",
       label: "Invites",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.invite",
       empty: {
@@ -1219,7 +1228,7 @@ export const marketing: Module = {
     {
       id: "followers",
       label: "Followers",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.audience",
       empty: "No follower count yet. Counts are read once a day; LinkedIn's on Read now.",
@@ -1228,7 +1237,7 @@ export const marketing: Module = {
     {
       id: "subscribers",
       label: "Subscribers",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.subscriber",
       empty: {
@@ -1242,7 +1251,7 @@ export const marketing: Module = {
     {
       id: "dm-copy",
       label: "DM copy",
-      group: "People",
+      group: "Reach",
       template: "list",
       record: "marketing.dm_copy",
       empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
@@ -1251,7 +1260,7 @@ export const marketing: Module = {
     {
       id: "threads",
       label: "Threads",
-      group: "Discover",
+      group: "Reach",
       template: "list",
       record: "marketing.thread",
       empty: {
@@ -1265,7 +1274,7 @@ export const marketing: Module = {
     {
       id: "places",
       label: "Places",
-      group: "Discover",
+      group: "Reach",
       template: "list",
       record: "marketing.place",
       empty: {
@@ -1278,7 +1287,7 @@ export const marketing: Module = {
     {
       id: "texts",
       label: "Texts",
-      group: "Texts",
+      group: "Reach",
       template: "list",
       record: "marketing.text_contact",
       empty: {
@@ -1292,7 +1301,7 @@ export const marketing: Module = {
     {
       id: "text-copy",
       label: "Text copy",
-      group: "Texts",
+      group: "Reach",
       template: "list",
       record: "marketing.text_copy",
       empty: { empty: "Every text has words.", all: "No sequence has texts." },
@@ -1378,7 +1387,7 @@ export const marketing: Module = {
         {
           label: "To approve",
           record: "marketing.approval",
-          href: "/marketing/approve?view=waiting",
+          href: "/inbox/approve?view=waiting",
           needs: true,
         },
         {
@@ -1471,7 +1480,7 @@ export const marketing: Module = {
     {
       id: "ads",
       label: "Ads",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.ad_day",
       empty: "Ad days show here once an ad runs.",
@@ -1481,7 +1490,7 @@ export const marketing: Module = {
     {
       id: "site",
       label: "Site",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.site_day",
       empty: "Site visits show here a day after they happen.",
@@ -1497,7 +1506,7 @@ export const marketing: Module = {
     {
       id: "links",
       label: "Links",
-      group: "Numbers",
+      group: "Ads & Site",
       hidden: true,
       template: "list",
       record: "marketing.link_day",
@@ -1553,7 +1562,7 @@ export const marketing: Module = {
     {
       id: "sessions",
       label: "Sessions",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.session",
       empty: {
@@ -1565,7 +1574,7 @@ export const marketing: Module = {
     {
       id: "heatmaps",
       label: "Heatmaps",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.heat",
       empty: "Heatmaps show here a day after visitors click on the site.",
@@ -1574,7 +1583,7 @@ export const marketing: Module = {
     {
       id: "experiments",
       label: "Experiments",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.experiment",
       empty: {
@@ -1586,7 +1595,7 @@ export const marketing: Module = {
     {
       id: "surveys",
       label: "Surveys",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.survey",
       empty: {
@@ -1598,7 +1607,7 @@ export const marketing: Module = {
     {
       id: "survey-answers",
       label: "Survey answers",
-      group: "Numbers",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.survey_answer",
       empty: "Site answers show here once a live survey is answered.",
@@ -1606,7 +1615,7 @@ export const marketing: Module = {
     {
       id: "search-days",
       label: "Search days",
-      group: "Numbers",
+      group: "Ads & Site",
       hidden: true,
       template: "list",
       record: "marketing.search_day",
@@ -1615,7 +1624,7 @@ export const marketing: Module = {
     {
       id: "search",
       label: "Search",
-      group: "Search",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.search_page",
       empty: { not_indexed: "Every checked page is indexed.", all: "No page checked yet." },
@@ -1623,7 +1632,7 @@ export const marketing: Module = {
     {
       id: "keywords",
       label: "Keywords",
-      group: "Search",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.keyword",
       empty: "Keywords show here once search runs.",
@@ -1631,7 +1640,7 @@ export const marketing: Module = {
     {
       id: "answers",
       label: "AI answers",
-      group: "Search",
+      group: "Ads & Site",
       template: "list",
       record: "marketing.answer",
       empty: {
@@ -1640,7 +1649,7 @@ export const marketing: Module = {
         all: "AI answers show here once a keyword is asked.",
       },
     },
-  ],
+  ]),
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);

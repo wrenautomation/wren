@@ -1,4 +1,4 @@
-/** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
+/** An app in the portal: a row in the sidebar under its area, its pages as tabs at /<app>/<page>. */
 
 import type { Permission, Who } from "@wren/core/access";
 import type { RecordMeta } from "@wren/core/records";
@@ -129,7 +129,7 @@ export interface Module {
   id: string;
   name: string;
   icon: IconName;
-  /** One sentence on its launcher card: what it does for the client. */
+  /** One sentence on its service card (a client's Today): what it does for the client. */
   blurb: string;
   /** Its card's numbers, and what waits on the viewer. */
   Glance?: ComponentType<PageProps>;
@@ -139,11 +139,11 @@ export interface Module {
    * `{ audience: "client" }` a signed-in client's own, never on the demo (products alone).
    */
   requires?: Access;
-  /** Reached from the client's name at top left, never a launcher card. */
+  /** Reached from the client's name at top left, never the sidebar. */
   menu?: true;
   /**
-   * The app for offers with none of their own: a card only under those. Any other app's card
-   * sits under each bought offer that names it (the offer's `app`).
+   * The app for offers with none of their own. A bought offer's card on Today opens the app it
+   * names (the offer's `app`), this one for the rest.
    */
   fallback?: true;
   /** The component it belongs to (`@wren/core/components`); none for the platform's own. */

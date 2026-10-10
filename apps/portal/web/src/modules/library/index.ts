@@ -15,7 +15,7 @@ import { Templates } from "./templates.js";
 export const library: Module = {
   id: "library",
   name: "Library",
-  icon: "board",
+  icon: "stack",
   blurb: "Every template, sequence, snippet, video and SOP, with its numbers and where it's used.",
   requires: { audience: "team" },
   pages: [

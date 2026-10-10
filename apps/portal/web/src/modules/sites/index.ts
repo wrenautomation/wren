@@ -92,7 +92,7 @@ const SUBMISSIONS: ListPage = {
 export const sites: Module = {
   id: "sites",
   name: "Sites",
-  icon: "link",
+  icon: "globe",
   blurb:
     "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
   requires: { audience: "team" },
@@ -155,7 +155,7 @@ export const sites: Module = {
 export const clientSites: Module = {
   id: "sites",
   name: "Sites",
-  icon: "link",
+  icon: "globe",
   blurb: "Your landing pages, their copy, tracked links, visits, forms, bookings and ads.",
   component: "sites.pages",
   pages: [

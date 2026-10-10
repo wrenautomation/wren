@@ -1,4 +1,4 @@
-/** Reactivation's launcher card: the list, who moved, the briefs, and drafts waiting on an OK. */
+/** Reactivation's service card on Today: the list, who moved, the briefs, and drafts waiting on an OK. */
 import { AppGlance, num, Tag } from "@wren/ui";
 import { call, type Overview } from "../../api.js";
 import { useCall } from "../../load.js";

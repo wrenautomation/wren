@@ -16,7 +16,7 @@ export const documents: Module = {
   id: "documents",
   name: "Documents",
   component: "documents.docs",
-  icon: "note",
+  icon: "doc",
   blurb: "Send an estimate or a contract to sign. See who signed and who paid the deposit.",
   pages: [
     {
