@@ -4,7 +4,8 @@
  * (`packages/templates/defaults`): `sync` writes each changed file into every database, `install`
  * gives a client the templates its parts need.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { getClient } from "@wren/core/clients";
 import { lineDiff, unified } from "@wren/core/line-diff";
 import { TEMPLATE_KINDS, type TemplateKind } from "@wren/core/slots";
@@ -25,7 +26,12 @@ import {
   type VersionHead,
   versionsOf,
 } from "@wren/core/templates";
-import { installDefaults, loadDefaults, syncDefaults } from "@wren/core/templates/defaults";
+import {
+  installDefaults,
+  loadDefaults,
+  syncDefaults,
+  writeDefaultFile,
+} from "@wren/core/templates/defaults";
 import { LIBRARY_EDITS } from "@wren/core/templates/edits";
 import { clientDatabases, type Db } from "@wren/db";
 import { COMPONENTS } from "@wren/worker/components";
@@ -275,6 +281,42 @@ export function registerTemplates(program: Command, dbs: TemplateDbs) {
     });
 
   cmd
+    .command("promote <ref>")
+    .description(
+      "A client's live words as Wren's default file in the repo tree; commit it after reading the diff",
+    )
+    .option("--version <n>", "this version's words instead of live")
+    .action(async (text: string, o: { version?: string }) => {
+      const id = dbs.client();
+      if (!id)
+        throw new Error("promote needs --client <id>: Wren's own words are the files already");
+      const ref = parseRef(text);
+      const [state, versions, client] = await withDb(async (db) => [
+        await templateState(db, ref),
+        await versionsOf(db, ref),
+        await withMainDb((main) => getClient(main, id)),
+      ]);
+      if (!state) throw new Error(`no template ${text}`);
+      const shown =
+        o.version !== undefined
+          ? versions.find((v) => v.number === numberOf(o.version as string))
+          : state.live;
+      if (!shown)
+        throw new Error(`${text} has no ${o.version ? `version ${o.version}` : "live words"}`);
+      // The repo is public: words that name the client stay theirs.
+      const words = shown.source.toLowerCase();
+      const named = [id, client?.name].filter(
+        (w): w is string => !!w && words.includes(w.toLowerCase()),
+      );
+      if (named.length)
+        throw new Error(`the words name the client (${named.join(", ")}): take it out first`);
+      const path = writeDefaultFile(repoDefaults(), ref, shown.source);
+      console.log(
+        `${path}\nwritten from ${id} version ${shown.number}; read git diff, then commit`,
+      );
+    });
+
+  cmd
     .command("reset <ref>")
     .description("Follow the default again: the newest default goes live, later ones follow")
     .requiredOption("--why <text>", "one line: why")
@@ -283,6 +325,15 @@ export function registerTemplates(program: Command, dbs: TemplateDbs) {
       const state = await withDb((db) => reset(db, ref, { by: BY, why: o.why }));
       console.log(said(state));
     });
+}
+
+/** The repo's defaults tree, found up from here: never a bundle's copy. */
+function repoDefaults(): string {
+  for (let dir = process.cwd(); ; dir = dirname(dir)) {
+    const tree = join(dir, "packages/templates/defaults");
+    if (existsSync(tree)) return tree;
+    if (dirname(dir) === dir) throw new Error("run promote inside the wren repo");
+  }
 }
 
 /** Who the store records for a CLI write: an agent or a person at the terminal, never an approval. */

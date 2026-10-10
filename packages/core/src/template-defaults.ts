@@ -9,8 +9,8 @@
  * (`out/defaults`), and the portal's pages import modules that import this one.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -92,6 +92,22 @@ export function loadDefaults(dir: string = defaultsDir()): DefaultFile[] {
     }
   }
   return out;
+}
+
+/** Where a ref's file sits in a tree: `<kind>/<system>/<name><ext>`, the name's folders as dirs. */
+export const defaultPath = (dir: string, ref: TemplateRef): string =>
+  join(dir, ref.kind, ref.system, ...ref.name.split("/")) + DEFAULT_EXT[ref.kind];
+
+/**
+ * A client's words as a Wren default (`wren templates promote`): parsed first, then written with
+ * one trailing newline. The file is only on disk; a person reads the diff before it's committed.
+ */
+export function writeDefaultFile(dir: string, ref: TemplateRef, source: string): string {
+  parseKind(ref.kind, ref.name, source);
+  const path = defaultPath(dir, ref);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${source}\n`);
+  return path;
 }
 
 let cached: { dir: string; byRef: Map<string, DefaultFile> } | null = null;

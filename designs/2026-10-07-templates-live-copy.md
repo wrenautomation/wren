@@ -154,7 +154,8 @@ the counts match, then drops both tables. Code that still reads them moves to `r
 
 ## Left out
 
-- Promoting a client's copy to a Wren default from the UI. Claude Code edits the file.
+- Promoting a client's copy to a Wren default from the UI. `wren --client <id> templates promote
+  <ref>` writes it into the tree (10-10); a person reads the diff and commits.
 - Per-user (rather than per-client) copies inside one client.
 - Template marketplace or sharing between clients.
 
@@ -258,3 +259,6 @@ the counts match, then drops both tables. Code that still reads them moves to `r
   reads «AI: topic of this video» (its prompt's first clause), never its `ai.<hash>` key.
 - 2026-10-07, step 5 review: preview device frames keep the device's width, so lines break where
   they would, and shrink to fit a narrower column instead of clipping or scrolling sideways.
+- 2026-10-10: `templates promote` writes a client's live words (or `--version n`) to the repo's
+  defaults file. It refuses words that name the client (id or name), since the repo is public.
+  Nothing commits it: the diff is read first, then `sync` on deploy carries it everywhere.
