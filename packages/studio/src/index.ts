@@ -97,6 +97,14 @@ export {
 export { cutSize, cutTracks, FPS, portrait, preview, proxy360, scaleFilter } from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
+  type PromoProps,
+  type PromoScene,
+  type PromoScript,
+  promoProps,
+  promoScript,
+  secondsOf,
+} from "./promo.js";
+export {
   type BehindWord,
   BIG,
   bigText,
@@ -116,7 +124,14 @@ export {
   verticalProps,
   verticalWindow,
 } from "./props.js";
-export { openStudio, type RenderJob, renderAll, renderStill, renderStills } from "./remotion.js";
+export {
+  openStudio,
+  type RenderJob,
+  renderAll,
+  renderPromo,
+  renderStill,
+  renderStills,
+} from "./remotion.js";
 export {
   addMask,
   covered,

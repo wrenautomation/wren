@@ -1,5 +1,5 @@
 /**
- * `wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find`: the video
+ * `wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find|promo`: the video
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
@@ -46,11 +46,14 @@ import {
   onCut,
   openStudio,
   preview,
+  promoProps,
+  promoScript,
   proposeStress,
   proxy360,
   type RenderJob,
   redoSilence,
   renderAll,
+  renderPromo,
   renderStill,
   renderStills,
   reviewCuts,
@@ -77,6 +80,7 @@ import {
   withFallback,
   wordAt,
 } from "@wren/studio";
+import { capturePage } from "@wren/video";
 import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
@@ -630,6 +634,41 @@ export function registerStudio(
       `video ${e.id}: ${o.upload ? "uploaded from out/" : "rendered"} in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
     );
   }
+
+  video
+    .command("promo <script>")
+    .description(
+      "a product promo from a JSON script (text, toasts, screen, stat, end; designs/2026-10-11-promo-video.md) to <its folder>/out/promo.mp4; a screen's url is captured first",
+    )
+    .option("--still <s>", "render one frame at this second to a png instead", Number)
+    .option("--recapture", "capture every screen url again")
+    .action(async (file: string, o: { still?: number; recapture?: boolean }) => {
+      const path = resolve(file);
+      const dir = dirname(path);
+      const script = promoScript.parse(JSON.parse(await readFile(path, "utf8")));
+      for (const [i, s] of script.scenes.entries()) {
+        if (s.kind !== "screen" || !s.url) continue;
+        const name = `shot-${i + 1}.png`;
+        if (o.recapture || !existsSync(join(dir, name))) {
+          console.log(`capturing ${s.url}`);
+          await capturePage(s.url, join(dir, name));
+        }
+        s.image = name;
+      }
+      const sizes: Record<string, [number, number]> = {};
+      for (const s of script.scenes)
+        if (s.kind === "screen" && s.image) {
+          const head = await readFile(join(dir, s.image)).then((b) => b.subarray(0, 24));
+          // A png's header holds its width and height at bytes 16 and 20.
+          if (head.toString("latin1", 1, 4) === "PNG")
+            sizes[s.image] = [head.readUInt32BE(16), head.readUInt32BE(20)];
+        }
+      const props = promoProps(script, sizes);
+      console.log(await renderPromo(studioDir, dir, props, o.still));
+      console.log(
+        `${(props.durationInFrames / props.fps).toFixed(1)}s, ${props.scenes.length} scenes`,
+      );
+    });
 
   video
     .command("watch")

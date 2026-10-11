@@ -16,6 +16,7 @@ import {
   AbsoluteFill,
   Audio,
   Composition,
+  Img,
   OffthreadVideo,
   registerRoot,
   Sequence,
@@ -26,6 +27,18 @@ import {
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
+import type { PromoProps, TimedScene } from "../src/promo.js";
+import {
+  cameraAt,
+  clamp,
+  countAt,
+  easeOut,
+  entered,
+  fitBox,
+  framing,
+  toastAt,
+  wordsIn,
+} from "../src/promo-clock.ts";
 import type {
   BehindWord,
   Face,
@@ -606,6 +619,331 @@ export const Thumbnail: FC<ThumbnailProps> = ({ main, face, frame, text, variant
   );
 };
 
+/** A promo scene of one kind, on the clock (`../src/promo.ts`). */
+type Scene<K extends TimedScene["kind"]> = Extract<TimedScene, { kind: K }>;
+
+/** A scene's frame size, the short side: type scales with it so wide and tall read the same. */
+const useUnit = () => {
+  const { width, height } = useVideoConfig();
+  return Math.min(width, height) / 1080;
+};
+
+/** Every scene comes in rising and fades out over its last frames. */
+const Enter: FC<{ frames: number; children: ReactNode }> = ({ frames, children }) => {
+  const f = useCurrentFrame();
+  const inP = entered(f);
+  const out = clamp((frames - f) / 6, 0, 1);
+  return (
+    <AbsoluteFill
+      style={{ opacity: Math.min(inP, out), transform: `translateY(${(1 - inP) * 40}px)` }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
+  const f = useCurrentFrame();
+  const u = useUnit();
+  const all = s.lines
+    .flatMap((l, li) => l.split(/\s+/).map((w) => ({ w, li })))
+    .map((x, at) => ({ ...x, at }));
+  const shown = wordsIn(f, all.length);
+  const accent = new Set(s.accent.map((a) => a.toLowerCase()));
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", padding: `0 ${110 * u}px` }}>
+      {s.lines.map((line, li) => (
+        <div
+          key={line}
+          style={{
+            fontSize: 92 * u,
+            lineHeight: 1.08,
+            letterSpacing: "-0.03em",
+            fontWeight: 650,
+            color: look.foreground,
+          }}
+        >
+          {all
+            .filter((x) => x.li === li)
+            .map((x) => {
+              const i = x.at;
+              const p = easeOut((f - (i * 4 + 2)) / 6);
+              const hit = accent.has(x.w.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, ""));
+              return (
+                <span
+                  key={x.at}
+                  style={{
+                    display: "inline-block",
+                    marginRight: "0.24em",
+                    opacity: i < shown ? p : 0,
+                    transform: `translateY(${(1 - p) * 0.35}em)`,
+                    color: hit ? look.accent : undefined,
+                  }}
+                >
+                  {x.w}
+                </span>
+              );
+            })}
+        </div>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+const PromoToasts: FC<{ s: Scene<"toasts">; look: Look }> = ({ s, look }) => {
+  const f = useCurrentFrame();
+  const u = useUnit();
+  return (
+    <AbsoluteFill
+      style={{ justifyContent: "center", alignItems: "center", gap: 18 * u, padding: 60 * u }}
+    >
+      {s.title ? (
+        <div
+          style={{
+            fontSize: 54 * u,
+            fontWeight: 650,
+            letterSpacing: "-0.02em",
+            color: look.foreground,
+            marginBottom: 18 * u,
+            textAlign: "center",
+          }}
+        >
+          {s.title}
+        </div>
+      ) : null}
+      {s.items.map((t, i) => {
+        const p = easeOut((f - toastAt(i, !!s.title)) / 10);
+        return (
+          <div
+            key={`${t.title}|${t.body ?? ""}`}
+            style={{
+              width: 760 * u,
+              display: "flex",
+              gap: 20 * u,
+              alignItems: "center",
+              padding: `${20 * u}px ${26 * u}px`,
+              borderRadius: 22 * u,
+              background: "rgba(255,255,255,.86)",
+              border: "1px solid rgba(0,0,0,.08)",
+              boxShadow: "0 18px 50px rgba(0,0,0,.12)",
+              opacity: p,
+              transform: `translateY(${(1 - p) * -30}px) scale(${0.94 + 0.06 * p})`,
+            }}
+          >
+            <div
+              style={{
+                width: 54 * u,
+                height: 54 * u,
+                borderRadius: 14 * u,
+                background: look.accent,
+                flex: "none",
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 30 * u, fontWeight: 600, color: look.foreground }}>
+                {t.title}
+              </div>
+              {t.body ? (
+                <div style={{ fontSize: 26 * u, color: look.muted, marginTop: 4 * u }}>
+                  {t.body}
+                </div>
+              ) : null}
+            </div>
+            <div style={{ fontSize: 22 * u, color: look.muted, alignSelf: "flex-start" }}>
+              {t.when}
+            </div>
+          </div>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
+const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
+  const f = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  const u = useUnit();
+  const p = f / Math.max(1, s.frames - 1);
+  const cam = cameraAt(s.moves, p);
+  const pad = 70 * u;
+  const capH = s.caption ? 120 * u : 0;
+  const { w, h } = fitBox(s.size, width - pad * 2, height - pad * 2 - capH);
+  const { scale, tx, ty } = framing(cam, w, h);
+  const hl = s.highlight;
+  const hp = hl ? easeOut((p - hl.from) / 0.08) : 0;
+  return (
+    <AbsoluteFill
+      style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
+    >
+      <div
+        style={{
+          position: "relative",
+          flex: "none",
+          width: w,
+          height: h,
+          overflow: "hidden",
+          borderRadius: 24 * u,
+          boxShadow: "0 30px 80px rgba(0,0,0,.18)",
+          background: "#fff",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            transformOrigin: "0 0",
+            transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+          }}
+        >
+          <Img
+            src={staticFile(s.image ?? "")}
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+          />
+          {hl ? (
+            <div
+              style={{
+                position: "absolute",
+                left: `${hl.x * 100}%`,
+                top: `${hl.y * 100}%`,
+                width: `${hl.w * 100}%`,
+                height: `${hl.h * 100}%`,
+                borderRadius: 12,
+                border: `${4 / scale}px solid ${look.accent}`,
+                boxShadow: `0 0 0 ${9999}px rgba(0,0,0,${0.28 * hp})`,
+                opacity: hp,
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+      {s.caption ? (
+        <div
+          style={{
+            width: w,
+            height: capH - 24 * u,
+            display: "flex",
+            alignItems: "center",
+            fontSize: 44 * u,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            color: look.foreground,
+          }}
+        >
+          {s.caption}
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+const PromoStat: FC<{ s: Scene<"stat">; look: Look }> = ({ s, look }) => {
+  const f = useCurrentFrame();
+  const u = useUnit();
+  const { width, height } = useVideoConfig();
+  const tall = height > width;
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", padding: `0 ${100 * u}px`, gap: 50 * u }}>
+      {s.title ? (
+        <div style={{ fontSize: 50 * u, fontWeight: 600, color: look.muted }}>{s.title}</div>
+      ) : null}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: tall ? "column" : "row",
+          gap: 60 * u,
+          flexWrap: "wrap",
+        }}
+      >
+        {s.items.map((it, i) => (
+          <div key={it.label} style={{ minWidth: 260 * u }}>
+            <div
+              style={{
+                fontSize: 120 * u,
+                fontWeight: 650,
+                letterSpacing: "-0.04em",
+                color: look.foreground,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {countAt(it, (f - 4 - i * 5) / 36)}
+            </div>
+            <div style={{ fontSize: 34 * u, color: look.muted }}>{it.label}</div>
+          </div>
+        ))}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const PromoEnd: FC<{ s: Scene<"end">; look: Look }> = ({ s, look }) => {
+  const u = useUnit();
+  return (
+    <AbsoluteFill
+      style={{ justifyContent: "center", alignItems: "center", textAlign: "center", gap: 24 * u }}
+    >
+      <div style={{ fontSize: 110 * u, fontWeight: 650, letterSpacing: "-0.03em" }}>{s.title}</div>
+      {s.sub ? <div style={{ fontSize: 40 * u, color: look.muted }}>{s.sub}</div> : null}
+      {s.url ? (
+        <div
+          style={{
+            marginTop: 20 * u,
+            padding: `${16 * u}px ${30 * u}px`,
+            background: look.foreground,
+            color: look.background,
+            fontSize: 34 * u,
+            fontWeight: 600,
+          }}
+        >
+          {s.url}
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
+  switch (s.kind) {
+    case "text":
+      return <PromoText s={s} look={look} />;
+    case "toasts":
+      return <PromoToasts s={s} look={look} />;
+    case "screen":
+      return <PromoScreen s={s} look={look} />;
+    case "stat":
+      return <PromoStat s={s} look={look} />;
+    case "end":
+      return <PromoEnd s={s} look={look} />;
+  }
+};
+
+/** A product promo from a script (`promoProps`): scenes back to back on Wren's canvas. */
+const Promo: FC<PromoProps> = ({ scenes, look, music }) => (
+  <AbsoluteFill
+    style={{ background: look.background, color: look.foreground, fontFamily: look.font }}
+  >
+    {music ? <Audio src={staticFile(music)} /> : null}
+    {scenes.map((s) => (
+      <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
+        <Enter frames={s.frames}>
+          <PromoScene s={s} look={look} />
+        </Enter>
+      </Sequence>
+    ))}
+  </AbsoluteFill>
+);
+
+const PROMO_PLACEHOLDER: PromoProps = {
+  fps: 30,
+  durationInFrames: 90,
+  width: 1920,
+  height: 1080,
+  look: DEFAULT_LOOK,
+  music: null,
+  scenes: [
+    { kind: "text", lines: ["A promo", "from a script"], accent: ["script"], from: 0, frames: 90 },
+  ],
+};
+
 const PLACEHOLDER: LongProps = {
   main: "cut-main.mp4",
   cam: null,
@@ -680,6 +1018,21 @@ const Root: FC = () => (
         variant: 1 as const,
         look: PLACEHOLDER.look,
       }}
+    />
+    <Composition
+      id="Promo"
+      component={Promo}
+      width={1920}
+      height={1080}
+      fps={30}
+      durationInFrames={90}
+      defaultProps={PROMO_PLACEHOLDER}
+      calculateMetadata={({ props }) => ({
+        durationInFrames: props.durationInFrames,
+        fps: props.fps,
+        width: props.width,
+        height: props.height,
+      })}
     />
   </>
 );

@@ -4,6 +4,7 @@
  * poster. Knows nothing of leads, clients or products; a product writes the
  * walk.
  */
+export { type CaptureOptions, capturePage } from "./capture.js";
 export { type Encoded, type EncodeOptions, encode, encodeArgs } from "./encode.js";
 export { type Card, DEFAULT_LOOK, type Look } from "./overlay.js";
 export { openRecorder, Recorder, type RecorderOptions, type ZoomOptions } from "./recorder.js";

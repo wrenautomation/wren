@@ -68,8 +68,9 @@ Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0122_video_e
 | `wren video approve <id> [--short n\|--vertical]`, `ContentDesk.approveVideo` (Videos and Inbox Approve) | write a YouTube draft (and a Short's Reel draft, waiting), state → approved |
 | `ContentDesk.pickThumbnail` (Videos → Pick thumbnail) | write `files.thumbnailPick` |
 | `marketing.video`, `marketing.approval` (`video:<id>`) | read |
+| `wren video promo <script.json> [--still s] [--recapture]` | not an edit: a product promo from a script, no recording (`packages/studio/src/promo.ts`, composition `Promo`); writes `shot-<n>.png` and `out/promo.mp4` beside the script, no DB |
 
 ## See
 
 - Source: `packages/studio/`, `apps/cli/src/studio.ts`, `packages/content/src/video.ts`, `packages/content/src/video-ask.ts`, `packages/content/src/restate/video-desk.ts`
-- Design: `designs/2026-10-06-video-editor.md`
+- Design: `designs/2026-10-06-video-editor.md`, promos `designs/2026-10-11-promo-video.md`

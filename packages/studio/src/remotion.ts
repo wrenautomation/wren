@@ -9,6 +9,7 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { normalizeLoudness } from "./loudness.js";
+import type { PromoProps } from "./promo.js";
 import type { LongProps, ShortProps, ThumbnailProps, VerticalProps } from "./props.js";
 
 const ENTRY = "remotion/index.tsx";
@@ -176,4 +177,36 @@ export async function renderAll(
     }
   });
   return { files, seconds };
+}
+
+/**
+ * A promo (`./promo.ts`) to `<dir>/out/promo.mp4`, or one frame of it to `still-promo-<s>.png`
+ * when `stillS` is set. `dir` is the script's folder: images and music are named inside it.
+ */
+export async function renderPromo(
+  pkgDir: string,
+  dir: string,
+  props: PromoProps,
+  stillS?: number,
+): Promise<string> {
+  const out = join(dir, "out");
+  await mkdir(out, { recursive: true });
+  const file = await propsFile(dir, "promo", props);
+  return withBundle(pkgDir, dir, async (bundle) => {
+    if (stillS !== undefined) {
+      const png = join(out, `still-promo-${stillS}.png`);
+      const frame = Math.max(
+        0,
+        Math.min(props.durationInFrames - 1, Math.round(stillS * props.fps)),
+      );
+      await remotion(pkgDir, ["still", bundle, "Promo", png, `--frame=${frame}`, "--props", file]);
+      return png;
+    }
+    const mp4 = join(out, "promo.mp4");
+    await remotion(pkgDir, [
+      ...["render", bundle, "Promo", mp4, "--props", file],
+      ...["--codec=h264", "--hardware-acceleration=if-possible", "--video-bitrate=10M"],
+    ]);
+    return mp4;
+  });
 }
