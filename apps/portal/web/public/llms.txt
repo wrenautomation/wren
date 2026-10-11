@@ -1,0 +1,26 @@
+# Wren portal
+
+> The workspace where a business and Wren's team run leads, outreach, content, calls, money and
+> documents. Everything past sign-in is private and needs the person's own session or token.
+
+## Use the API, not the screen
+
+- Agent API: `POST /api/agent/<tool>` with `Authorization: Bearer <token>`. `GET /api/agent` lists the tools: types, list, get, handlers, describe, call.
+- A person makes a token in Account → AI tools. It acts as them, and can be capped to read only or to some apps.
+- CLI and skill: [/agent/SKILL.md](/agent/SKILL.md) and [/agent/wren.mjs](/agent/wren.mjs) (Node 18+, prints JSON).
+- Start with `types`, then take record type ids, field names and view ids from it. Don't guess them.
+
+## If you drive the browser
+
+- Sign in as the person. Never share or reuse another person's session.
+- The address is the state: `/<app>/<page>`, with filters and the open record in it too (`/reactivation/people?filter=moved&person=12`). Go to the address instead of clicking through, and share it to show someone the same screen.
+- Settings → Guide (`/settings/guide`) lists every app, its pages and the keys.
+- Buttons, links, tabs and form fields have accessible names. Select them by role and name, not by CSS class.
+- ⌘K opens a search over pages, records and actions. `?` lists the keys.
+- A page that fails shows "This page couldn't load." with Try again. Retry once, then report it.
+- Do only what the person asked. Sending, spending and publishing are theirs to approve.
+
+## Limits
+
+- Calls are rate limited per address and per person. On a 429, wait and retry with backoff.
+- The demo host (demo.wrenautomation.com) is read only and uses made-up data.

@@ -1,0 +1,7 @@
+# Wren's portal: a private workspace behind sign-in, so nothing here is for a search index.
+# Published pages (/o/) may be crawled. An agent working for a signed-in person: read /llms.txt.
+User-agent: *
+Allow: /o/
+Allow: /llms.txt
+Allow: /agent/
+Disallow: /
