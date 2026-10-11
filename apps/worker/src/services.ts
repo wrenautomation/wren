@@ -233,6 +233,7 @@ import { resolve as dohResolve } from "@wren/core";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
+import { cacheFrom } from "@wren/core/cache";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import {
   CustomHostnames,
@@ -484,6 +485,8 @@ export async function buildServices(
     ...(opts.dbPoolMax ? { max: opts.dbPoolMax } : {}),
   });
   const db = handle.db;
+  // Valkey on the box when WREN_CACHE_URL is set: one Lambda's read serves the rest.
+  const cache = cacheFrom(settings.cacheUrl);
 
   // Key fleets and provider keys live in llm.env (or the host's env); never logged.
   loadLlmEnv(settings.llmEnvPath, rootDir);
@@ -2163,7 +2166,7 @@ export async function buildServices(
         ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
       adminGet: settings.restateAdminUrl
-        ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken)
+        ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken, cache)
         : undefined,
       // Ask Claude reads the asker's own notes that match.
       askContext: (req, q) => notesContext(notesDeps, req, q),

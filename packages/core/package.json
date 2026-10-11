@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./access": "./src/access.ts",
     "./audit": "./src/audit.ts",
+    "./cache": "./src/cache.ts",
     "./calendar": "./src/calendar.ts",
     "./calls": "./src/calls.ts",
     "./clients": "./src/clients/index.ts",

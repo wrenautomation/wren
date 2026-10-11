@@ -72,6 +72,19 @@ resource "aws_ssm_parameter" "restate" {
   }
 }
 
+# The box's Valkey cache (deploy/scripts/box-valkey.sh), as JSON {password}. Set by hand; the
+# worker's WREN_CACHE_URL (env-2) carries the same password and the cert's fingerprint.
+resource "aws_ssm_parameter" "cache" {
+  name        = "${local.ssm_root}/cache"
+  description = "JSON for the box's Valkey cache: password"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -88,6 +101,13 @@ resource "aws_security_group" "pg" {
     description = "pgbouncer, transaction mode (TLS required)"
     from_port   = 6432
     to_port     = 6432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "valkey cache (TLS, password, client pins the cert)"
+    from_port   = 6380
+    to_port     = 6380
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -218,7 +238,7 @@ data "aws_iam_policy_document" "pg" {
       # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
       [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.keystore.arn],
       [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
-      [aws_ssm_parameter.restate.arn],
+      [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn],
     )
   }
   statement {

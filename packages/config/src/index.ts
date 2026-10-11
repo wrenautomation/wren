@@ -38,6 +38,14 @@ export const settingsSchema = z.object({
   restateAuthToken: z.string().min(1).optional(),
   /** Restate's admin API (port 9070): the console reads loop state here. Unset, the Loops read refuses. */
   restateAdminUrl: z.string().url().optional(),
+  /**
+   * The shared cache: Valkey on the box, `rediss://default:<pw>@<host>:6380/?fp=<sha256>`
+   * (`@wren/core/cache`). Unset, each process keeps its own in memory.
+   */
+  cacheUrl: z
+    .string()
+    .regex(/^rediss?:\/\//)
+    .optional(),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
@@ -506,6 +514,7 @@ export const ENV_KEYS = {
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
   restateAuthToken: "RESTATE_AUTH_TOKEN",
   restateAdminUrl: "WREN_RESTATE_ADMIN_URL",
+  cacheUrl: "WREN_CACHE_URL",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
   robotsMode: "WREN_ROBOTS_MODE",

@@ -18,6 +18,7 @@
  * what a client can have for anyone else. `install`, `configure` and `uninstall` write a client's
  * `clients.products[id]`, operator only, each a runs row; `ask` is a client's "Ask for this".
  */
+
 import { randomUUID } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import {
@@ -45,6 +46,7 @@ import {
 import { accessApi, accessHandlers } from "./access-console.js";
 import { ACCESS_TYPES, accessRecords } from "./access-records.js";
 import { ASK, type AskContext, type AskService, ask, type QuestionRequest } from "./ask.js";
+import { type Cache, memoryCache, readThrough } from "./cache.js";
 import { release } from "./checks.js";
 import {
   addClient,
@@ -519,30 +521,27 @@ export type RestateAdminGet = (path: string) => Promise<unknown>;
 
 const ADMIN_CACHE_MS = 5 * 60_000;
 
-/** GETs on the admin API, each path kept 5 minutes: the list changes only on a deploy. */
+/**
+ * GETs on the admin API, each path kept 5 minutes: the list changes only on a deploy. With the
+ * shared cache, one Lambda's read serves the rest.
+ */
 export const restateAdminGet = (
   url: string,
   token?: string,
-  now: () => number = Date.now,
+  cache: Cache = memoryCache(),
 ): RestateAdminGet => {
-  const cache = new Map<string, { at: number; value: Promise<unknown> }>();
-  return (path) => {
-    const hit = cache.get(path);
-    if (hit && now() - hit.at < ADMIN_CACHE_MS) return hit.value;
-    const value = fetch(`${url.replace(/\/$/, "")}${path}`, {
-      headers: {
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        accept: "application/json",
-      },
-    }).then(async (res) => {
+  const base = url.replace(/\/$/, "");
+  return (path) =>
+    readThrough(cache, `restate-admin:${base}${path}`, ADMIN_CACHE_MS, async () => {
+      const res = await fetch(`${base}${path}`, {
+        headers: {
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+          accept: "application/json",
+        },
+      });
       if (!res.ok) throw new Error(`restate admin GET ${path}: ${res.status} ${await res.text()}`);
-      return res.json();
+      return (await res.json()) as unknown;
     });
-    // A failed read is not kept: the next ask tries again.
-    value.catch(() => cache.delete(path));
-    cache.set(path, { at: now(), value });
-    return value;
-  };
 };
 
 export const restateAdmin =

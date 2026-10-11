@@ -4,6 +4,7 @@ import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { memoryCache } from "./cache.js";
 import { operators } from "./clients/index.js";
 import { defineComponent } from "./components.js";
 import {
@@ -454,7 +455,11 @@ describe("restateAdminGet", () => {
       .mockResolvedValueOnce(new Response("down", { status: 503 }))
       .mockResolvedValue(new Response("{}"));
     vi.stubGlobal("fetch", fetch);
-    const get = restateAdminGet("https://admin.example.test/", "tok", () => t);
+    const get = restateAdminGet(
+      "https://admin.example.test/",
+      "tok",
+      memoryCache(() => t),
+    );
     await expect(get("/services")).rejects.toThrow("503");
     await get("/services");
     await get("/services");
