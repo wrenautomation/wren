@@ -19,6 +19,7 @@ import {
   makeConsolePortal,
   nowAtLabels,
   restateAdminGet,
+  SHOWCASE_LOOKS,
   settingShown,
   toCsv,
 } from "./console.js";
@@ -653,5 +654,16 @@ describe("nowAtLabels", () => {
     expect(got["follow.email4"]).toBe("Follow-up: Email");
     expect(got["nurture.wait0"]).toBe("Nurture: starting");
     expect(got.follow).toBeUndefined();
+  });
+});
+
+describe("SHOWCASE_LOOKS", () => {
+  it("names the same looks as @wren/ui's SHOWCASE", async () => {
+    const { readFileSync } = await import("node:fs");
+    const ui = readFileSync(new URL("../../ui/src/theme.tsx", import.meta.url), "utf8");
+    const start = ui.indexOf("export const SHOWCASE = {");
+    const block = ui.slice(start, ui.indexOf("} satisfies", start));
+    const names = [...block.matchAll(/^ {2}([a-z]+): \{/gm)].map((m) => m[1]);
+    expect(names).toEqual([...SHOWCASE_LOOKS]);
   });
 });

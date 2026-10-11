@@ -2,16 +2,17 @@
 import type { Module } from "../../module.js";
 import { Display } from "./Display.js";
 import { Guide } from "./Guide.js";
-import { MyLook } from "./Look.js";
+import { MyLook, Themes } from "./Look.js";
 
 export const settings: Module = {
   id: "settings",
   name: "Settings",
   icon: "sliders",
-  blurb: "Your layout, your colors, and a guide to every app and key.",
+  blurb: "Your layout, your themes and colors, and a guide to every app and key.",
   requires: { audience: "team" },
   pages: [
     { id: "layout", label: "Layout", Page: Display },
+    { id: "themes", label: "Themes", Page: Themes },
     { id: "look", label: "Look", Page: MyLook },
     { id: "guide", label: "Guide", Page: Guide },
   ],

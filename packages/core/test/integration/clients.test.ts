@@ -228,6 +228,15 @@ describe("setLook", () => {
     expect(await lookOf("acme")).toBeNull();
   });
 
+  it("a showcase look never lands on a client, not even from an operator", async () => {
+    const operator = { email: "ops@wren.example", operator: true };
+    for (const bad of ["aurora", { preset: "brutal" }, { backdrop: "none" }, { grain: "0.1" }])
+      await expect(
+        api().setLook({ viewer: operator, client: "acme", look: bad }),
+      ).rejects.toMatchObject({ status: 400 });
+    expect(await lookOf("acme")).toBeNull();
+  });
+
   it("an owner can't set another client's look; a member can't set their own", async () => {
     const owner = { email: "owner@acme.example" };
     await expect(api().setLook({ viewer: owner, client: "other", look })).rejects.toMatchObject({

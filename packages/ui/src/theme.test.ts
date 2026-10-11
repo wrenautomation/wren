@@ -1,7 +1,17 @@
 /// <reference types="node" />
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { applyTheme, PRESETS, type PresetName, readTheme, TOKENS, themeVars } from "./theme.js";
+import {
+  applyTheme,
+  BASE,
+  isShowcase,
+  PRESETS,
+  type PresetName,
+  readTheme,
+  SHOWCASE,
+  TOKENS,
+  themeVars,
+} from "./theme.js";
 
 const PRESET_NAMES = Object.keys(PRESETS) as PresetName[];
 
@@ -440,10 +450,34 @@ describe("TOKENS match tailwind.css", () => {
     expect(`${css}\n${classes}`).toMatch(new RegExp(`(var\\(\\s*|\\()--ui-${token}(?![a-z0-9-])`));
   });
 
+  it("BASE is the first :root as declared", () => {
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
+    for (const [token, value] of Object.entries(BASE)) {
+      const m = new RegExp(`--ui-${token}:\\s*([^;]+);`).exec(root);
+      expect([token, m?.[1]?.trim()]).toEqual([token, value]);
+    }
+  });
+
   it("every --ui-* property tailwind.css declares is in TOKENS", () => {
     const declared = new Set([...css.matchAll(/--ui-([a-z0-9-]+):/g)].map((m) => m[1]));
     expect(declared.size).toBeGreaterThan(0);
     const known = new Set<string>(TOKENS);
     expect([...declared].filter((d) => d === undefined || !known.has(d))).toEqual([]);
+  });
+});
+
+describe("showcase looks", () => {
+  it("read whole, gradients and grain kept", () => {
+    for (const name of Object.keys(SHOWCASE)) {
+      expect(isShowcase(name)).toBe(true);
+      expect(readTheme(name)).toEqual(SHOWCASE[name as keyof typeof SHOWCASE]);
+    }
+    expect(readTheme("aurora").backdrop).toContain("radial-gradient(");
+  });
+
+  it("never take a fetch in a backdrop", () => {
+    expect(readTheme({ backdrop: "url(https://x.test/a.png)" }).backdrop).toBeUndefined();
+    expect(readTheme({ backdrop: "image-set('a.png' 1x)" }).backdrop).toBeUndefined();
+    expect(isShowcase("night")).toBe(false);
   });
 });

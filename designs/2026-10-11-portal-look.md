@@ -21,3 +21,12 @@
 
 - Collapsing the sidebar to icons. With twenty custom app names, icons alone don't say which app is which.
 - New fonts. Figtree stays; General Sans (the lander's) is Fontshare-licensed, and its files can't go in a public repo.
+
+## Showcase themes
+
+2026-10-11. William: "some built in theme exploration using our crazy design aesthetic design kits for wren dashboard (want my personal dashboard to be extravagant, but obviously clients get a pragmatic looking one no fluff)".
+
+- **Settings → Themes** shows every look on the kit's own parts. Wear puts one on Wren's workspace at once; Look tunes it.
+- **Six showcase looks**, Wren's only: aurora, synthwave, terminal, gilded, riso, brutal. Each uses fonts a Mac already has, so nothing is fetched.
+- **Three tokens they add:** `backdrop` is gradient layers behind the window (no `url()`); `grain` is film-grain opacity, drawn from noise inlined in tailwind.css; `lift` is the window's glow or hard shadow.
+- **Clients stay plain.** `setLook` refuses a showcase name and any `backdrop` or `grain`, even from an operator. A client's Look picker lists only the four everyday looks.

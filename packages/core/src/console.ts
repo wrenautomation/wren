@@ -486,6 +486,28 @@ const BUILD_MAX = 1000;
 
 /** A stored look stays small: inputs, not tokens. */
 const LOOK_MAX = 4000;
+/**
+ * Wren's loud looks (`SHOWCASE` in @wren/ui's theme.tsx; a test keeps the names the same) and
+ * the tokens only they use. A client's portal stays plain: none of these on a client.
+ */
+export const SHOWCASE_LOOKS: readonly string[] = [
+  "aurora",
+  "synthwave",
+  "terminal",
+  "gilded",
+  "riso",
+  "brutal",
+];
+export const showcaseIn = (look: unknown): boolean => {
+  if (typeof look === "string") return SHOWCASE_LOOKS.includes(look);
+  if (!look || typeof look !== "object") return false;
+  const l = look as Record<string, unknown>;
+  return (
+    (typeof l.preset === "string" && SHOWCASE_LOOKS.includes(l.preset)) ||
+    "backdrop" in l ||
+    "grain" in l
+  );
+};
 
 /** One record of Wren's that declares edits. */
 interface RecordRequest extends PortalRequest {
@@ -2857,6 +2879,8 @@ export function consoleApi({
       const shape = look === null || typeof look === "string" || typeof look === "object";
       if (!shape || Array.isArray(look) || JSON.stringify(look).length > LOOK_MAX)
         throw new PortalRefusal("a look is a preset's name or an object of tokens", 400);
+      if (showcaseIn(look))
+        throw new PortalRefusal("showcase looks are Wren's own; a client's stays plain", 400);
       // An operator may pick any client; anyone else only their own.
       const client = await pickClient(main, req);
       if (!viewer.operator && !(await isOwner(main, client.id, viewer.email)))

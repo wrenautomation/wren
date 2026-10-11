@@ -159,7 +159,7 @@ export {
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";
-export { type Look, LookEditor, lookOf } from "./look.js";
+export { type Look, LookEditor, lookOf, ThemeGallery } from "./look.js";
 export { hostMark, markName, PlatformMark, TintSwatch, tintColor, tintWash } from "./marks.js";
 export {
   type OverviewProps,
@@ -279,9 +279,14 @@ export {
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export {
   applyTheme,
+  BASE,
+  isShowcase,
+  LOOK_NOTES,
   PRESETS,
   type PresetName,
   readTheme,
+  SHOWCASE,
+  type ShowcaseName,
   type Theme,
   TOKENS,
   type Token,

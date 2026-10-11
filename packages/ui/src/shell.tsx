@@ -339,7 +339,7 @@ export function AppShell({
       ) : null}
       <div
         className={cx(
-          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
           nav
             ? "[grid-area:window] my-(--ui-frame) mr-(--ui-frame)"
             : "mx-(--ui-frame) mb-(--ui-frame)",

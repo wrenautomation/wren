@@ -18,7 +18,18 @@ import {
   readBrand,
   VARIANTS,
 } from "./palette-brand.js";
-import { PRESETS, type PresetName, readTheme, type Token, themeVars } from "./theme.js";
+import {
+  BASE,
+  isShowcase,
+  LOOK_NOTES,
+  PRESETS,
+  type PresetName,
+  readTheme,
+  SHOWCASE,
+  type ShowcaseName,
+  type Token,
+  themeVars,
+} from "./theme.js";
 
 /** What `readTheme` reads: a preset's name, an object of tokens, or null for Wren's. */
 export type Look = string | Record<string, unknown> | null;
@@ -78,8 +89,10 @@ export function lookOf(raw: unknown): Look {
 
 const modeOf = (l: Look): Mode =>
   l === null || typeof l === "string" ? "preset" : l.brand ? "brand" : "manual";
-const baseOf = (l: Look): PresetName | undefined => {
+type Named = PresetName | ShowcaseName;
+const baseOf = (l: Look): Named | undefined => {
   const p = typeof l === "string" ? l : l?.preset;
+  if (isShowcase(p)) return p;
   return typeof p === "string" && Object.hasOwn(PRESETS, p) ? (p as PresetName) : undefined;
 };
 /** `#abc` and `#aabbcc` as the color box takes them; anything else isn't one. */
@@ -117,11 +130,18 @@ async function colorsOfImage(file: File): Promise<string[]> {
 export function LookEditor({
   look,
   onSave,
+  showcase,
 }: {
   look: unknown;
   /** Stores it; a throw shows its message. Null is Wren's look. */
   onSave: (look: Look) => Promise<unknown>;
+  /** Wren's own dashboard: the loud looks too. A client's look never offers them. */
+  showcase?: boolean;
 }) {
+  const names = [
+    ...(Object.keys(PRESETS) as PresetName[]),
+    ...(showcase ? (Object.keys(SHOWCASE) as ShowcaseName[]) : []),
+  ];
   const [saved, setSaved] = useState(() => lookOf(look));
   const [draft, setDraft] = useState<Look>(saved);
   /** Which button's save is running: the new look, or the reset (null). */
@@ -140,7 +160,7 @@ export function LookEditor({
   const changed = JSON.stringify(draft) !== JSON.stringify(saved);
 
   const obj = () => (draft && typeof draft === "object" ? draft : {});
-  const withBase = (p: PresetName | undefined) => (p && p !== "wren" ? { preset: p } : {});
+  const withBase = (p: Named | undefined) => (p && p !== "wren" ? { preset: p } : {});
   const toMode = (m: Mode) => {
     if (m === mode) return;
     if (m === "preset") return setDraft(base && base !== "wren" ? base : null);
@@ -152,7 +172,7 @@ export function LookEditor({
       });
     setDraft({ ...withBase(base), brand: { color: hex6(color("accent")) ?? "#7969a3" } });
   };
-  const setBase = (p: PresetName) => {
+  const setBase = (p: Named) => {
     const { preset: _, ...rest } = obj();
     setDraft({ ...withBase(p), ...rest });
   };
@@ -204,7 +224,7 @@ export function LookEditor({
 
           {mode === "preset" ? (
             <div className={ROW}>
-              {(Object.keys(PRESETS) as PresetName[]).map((p) => (
+              {names.map((p) => (
                 <Button
                   key={p}
                   size="dense"
@@ -222,9 +242,9 @@ export function LookEditor({
               <select
                 className={SELECT}
                 value={base ?? "wren"}
-                onChange={(e) => setBase(e.target.value as PresetName)}
+                onChange={(e) => setBase(e.target.value as Named)}
               >
-                {(Object.keys(PRESETS) as PresetName[]).map((p) => (
+                {names.map((p) => (
                   <option key={p} value={p}>
                     {words(p)}
                   </option>
@@ -438,9 +458,13 @@ function Preview({ vars }: { vars: Record<string, string> }) {
     <div
       data-ui-theme=""
       style={vars}
-      className="bg-(--ui-canvas) p-3 font-(family-name:--ui-font) text-[14px] text-(--ui-ink) [color-scheme:var(--ui-scheme)]"
+      className="relative isolate bg-(--ui-canvas) p-3 font-(family-name:--ui-font) text-[14px] text-(--ui-ink) [background-image:var(--ui-backdrop)] [color-scheme:var(--ui-scheme)]"
     >
-      <div className="grid gap-4 rounded-(--ui-radius) bg-(--ui-paper) p-4 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-10 opacity-(--ui-grain) mix-blend-overlay [background-image:var(--grain-noise)]"
+      />
+      <div className="grid gap-4 rounded-(--ui-radius) bg-(--ui-paper) p-4 shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-lift)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-heading text-[18px] font-(--ui-display-weight)">
             Your workspace
@@ -505,6 +529,77 @@ function Preview({ vars }: { vars: Record<string, string> }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Every look as a card on the kit's own parts, each from a clean start (`BASE`), not from the
+ * look the page wears. A press wears it at once; `current` is the one worn now.
+ */
+export function ThemeGallery({
+  current,
+  onPick,
+  showcase,
+}: {
+  current: unknown;
+  onPick: (look: Look) => Promise<unknown>;
+  showcase?: boolean;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const worn = baseOf(lookOf(current)) ?? (lookOf(current) === null ? "wren" : undefined);
+  const groups: [string, Named[]][] = [
+    ["Everyday", Object.keys(PRESETS) as PresetName[]],
+    ...(showcase
+      ? [["Showcase", Object.keys(SHOWCASE) as ShowcaseName[]] as [string, Named[]]]
+      : []),
+  ];
+  const wear = async (name: Named) => {
+    setBusy(name);
+    try {
+      await onPick(name === "wren" ? null : name);
+      toast.success(`Wearing ${words(name)}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="grid gap-8">
+      {groups.map(([title, list]) => (
+        <section key={title} className="grid gap-3">
+          <h2 className="text-[13px] font-semibold text-(--ui-ink-2)">{title}</h2>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+            {list.map((name) => (
+              <div key={name} className="grid content-start gap-2">
+                <div className="pointer-events-none overflow-hidden rounded-(--ui-radius) shadow-[0_0_0_1px_var(--ui-hair)] select-none">
+                  <Preview vars={themeVars({ ...BASE, ...readTheme(name) })} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-medium">{words(name)}</span>
+                    <span className="block text-[13px] text-(--ui-ink-2)">{LOOK_NOTES[name]}</span>
+                  </span>
+                  {worn === name ? (
+                    <Tag tone="accent">Wearing</Tag>
+                  ) : (
+                    <Button
+                      size="dense"
+                      tone="secondary"
+                      busy={busy === name}
+                      disabled={!!busy}
+                      onClick={() => void wear(name)}
+                    >
+                      Wear
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

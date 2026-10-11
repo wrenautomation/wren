@@ -35,6 +35,10 @@ export const TOKENS = [
   "frame",
   "main-width",
   "ease",
+  // Showcase only: image layers behind the window (gradients, never a fetch) and film grain.
+  "backdrop",
+  "grain",
+  "lift",
   // Made from the ones above by default.
   "tile",
   "wash",
@@ -77,6 +81,43 @@ const DERIVED = TOKENS.slice(TOKENS.indexOf("tile"));
 
 /** Lengths the kit does math on: a bare 0 there breaks calc(), so it becomes 0px. */
 const LENGTHS: ReadonlySet<string> = new Set(["radius", "frame", "main-width"]);
+
+/**
+ * The set tokens as tailwind.css ships them (its first `:root`), so a preview can start clean
+ * instead of from whatever look the page wears. A test keeps the two the same.
+ */
+export const BASE: Theme = {
+  scheme: "light",
+  canvas: "#f3f1ec",
+  paper: "#fff",
+  ink: "#0e0e0e",
+  "ink-2": "#56564f",
+  "ink-3": "#9c9c96",
+  accent: "#7969a3",
+  "on-accent": "#faf7f2",
+  good: "#17803d",
+  "good-ink": "#136b33",
+  bad: "#d2281e",
+  warn: "#b7791f",
+  "warn-ink": "#8a5a12",
+  shade: "#0e0e0e",
+  font: '"Figtree Variable", ui-sans-serif, system-ui, sans-serif',
+  "font-display": "var(--ui-font)",
+  "display-weight": "500",
+  "display-squeeze": "1",
+  "label-case": "uppercase",
+  "label-tracking": "0.09em",
+  "button-case": "uppercase",
+  "button-tracking": "0.08em",
+  "button-weight": "600",
+  radius: "0px",
+  frame: "10px",
+  "main-width": "1240px",
+  ease: "cubic-bezier(0.16, 1, 0.3, 1)",
+  backdrop: "none",
+  grain: "0",
+  lift: "0 0 #0000",
+};
 
 /** Ready-made looks. `wren` is the kit as it ships. */
 export const PRESETS = {
@@ -133,12 +174,197 @@ export const PRESETS = {
   },
 } satisfies Record<string, Theme>;
 
+/**
+ * Wren's own dashboard, never a client's (Settings → Themes): loud on purpose. Fonts are ones a
+ * Mac has, each with a plain fallback, so nothing is fetched.
+ */
+export const SHOWCASE = {
+  aurora: {
+    scheme: "dark",
+    canvas: "#07080f",
+    paper: "#0f111f",
+    tile: "rgb(255 255 255 / 0.045)",
+    ink: "#eef0ff",
+    "ink-2": "#a3a8c7",
+    "ink-3": "#5d6285",
+    accent: "#7cf5c8",
+    "on-accent": "#04140e",
+    good: "#5be38f",
+    "good-ink": "#7eeaa8",
+    bad: "#ff6b8b",
+    warn: "#ffc46b",
+    "warn-ink": "#ffd391",
+    shade: "#000",
+    scrim: "rgb(0 0 0 / 0.55)",
+    font: '"Avenir Next", "Figtree Variable", system-ui, sans-serif',
+    "display-weight": "600",
+    "label-case": "none",
+    "label-tracking": "0.02em",
+    radius: "14px",
+    frame: "14px",
+    backdrop:
+      "radial-gradient(55% 60% at 4% 4%, rgb(124 245 200 / 0.42), transparent 70%), radial-gradient(50% 65% at 96% 10%, rgb(155 107 255 / 0.5), transparent 70%), radial-gradient(70% 60% at 50% 115%, rgb(64 120 255 / 0.45), transparent 70%)",
+    grain: "0.08",
+    lift: "0 0 0 1px rgb(255 255 255 / 0.06), 0 30px 90px -20px rgb(124 245 200 / 0.35)",
+  },
+  synthwave: {
+    scheme: "dark",
+    canvas: "#120726",
+    paper: "#1a0b34",
+    tile: "rgb(255 47 214 / 0.06)",
+    ink: "#fbeaff",
+    "ink-2": "#c9a8e2",
+    "ink-3": "#6f4f8f",
+    accent: "#ff2fd6",
+    "on-accent": "#1a0326",
+    good: "#2ef2c2",
+    "good-ink": "#6ff6d6",
+    bad: "#ff4d6d",
+    warn: "#ffb84d",
+    "warn-ink": "#ffcc7a",
+    shade: "#000",
+    scrim: "rgb(8 0 20 / 0.6)",
+    font: '"Avenir Next", "Figtree Variable", system-ui, sans-serif',
+    "font-display": 'Futura, "Century Gothic", "Figtree Variable", sans-serif',
+    "display-weight": "700",
+    "button-tracking": "0.16em",
+    radius: "4px",
+    frame: "14px",
+    backdrop:
+      "radial-gradient(45% 38% at 50% 100%, rgb(255 140 60 / 0.38), transparent 70%), linear-gradient(180deg, transparent 50%, rgb(255 47 214 / 0.2)), repeating-linear-gradient(90deg, rgb(46 242 194 / 0.07) 0 1px, transparent 1px 56px)",
+    grain: "0.06",
+    lift: "0 0 0 1px rgb(255 47 214 / 0.5), 0 0 70px -8px rgb(255 47 214 / 0.55)",
+  },
+  terminal: {
+    scheme: "dark",
+    canvas: "#020603",
+    paper: "#050d07",
+    tile: "#08140b",
+    ink: "#b6ffc4",
+    "ink-2": "#6fcf86",
+    "ink-3": "#2f6b3c",
+    accent: "#39ff6a",
+    "on-accent": "#021006",
+    good: "#39ff6a",
+    "good-ink": "#7dff9c",
+    bad: "#ff5f56",
+    warn: "#ffd75f",
+    "warn-ink": "#ffe28a",
+    shade: "#000",
+    scrim: "rgb(0 0 0 / 0.6)",
+    font: '"SF Mono", Menlo, ui-monospace, monospace',
+    "font-display": '"SF Mono", Menlo, ui-monospace, monospace',
+    "display-weight": "600",
+    "display-squeeze": "0",
+    "label-tracking": "0.14em",
+    radius: "0px",
+    backdrop:
+      "repeating-linear-gradient(0deg, rgb(57 255 106 / 0.04) 0 1px, transparent 1px 3px), radial-gradient(80% 70% at 50% 40%, rgb(57 255 106 / 0.08), transparent 75%)",
+    grain: "0.05",
+    lift: "0 0 0 1px rgb(57 255 106 / 0.35), 0 0 40px -6px rgb(57 255 106 / 0.35)",
+    frame: "14px",
+  },
+  gilded: {
+    scheme: "dark",
+    canvas: "#0b0a08",
+    paper: "#131210",
+    tile: "#1b1916",
+    ink: "#f3ead7",
+    "ink-2": "#b5a98f",
+    "ink-3": "#6d6553",
+    accent: "#d4af37",
+    "on-accent": "#1a1405",
+    good: "#8fbf7a",
+    "good-ink": "#a9d394",
+    bad: "#e0705a",
+    warn: "#e3b25a",
+    "warn-ink": "#ecc57e",
+    shade: "#000",
+    scrim: "rgb(0 0 0 / 0.55)",
+    "font-display": 'Didot, "Bodoni 72", "Iowan Old Style", Georgia, serif',
+    "display-weight": "400",
+    "display-squeeze": "0.1",
+    "label-tracking": "0.22em",
+    "button-tracking": "0.18em",
+    backdrop:
+      "radial-gradient(80% 60% at 50% -10%, rgb(212 175 55 / 0.16), transparent 70%), radial-gradient(40% 40% at 100% 100%, rgb(212 175 55 / 0.07), transparent 70%)",
+    grain: "0.06",
+    lift: "0 0 0 1px rgb(212 175 55 / 0.45), 0 24px 70px -30px rgb(212 175 55 / 0.4)",
+    frame: "16px",
+  },
+  riso: {
+    canvas: "#f1ece1",
+    paper: "#fbf8f1",
+    tile: "#f3eee3",
+    ink: "#1f1a3a",
+    "ink-2": "#4c4670",
+    "ink-3": "#a49fbb",
+    accent: "#e8399b",
+    "on-accent": "#fff8fb",
+    good: "#00804f",
+    bad: "#d8302a",
+    shade: "#1f1a3a",
+    "font-display": 'Futura, "Century Gothic", "Figtree Variable", sans-serif',
+    "display-weight": "700",
+    "display-squeeze": "0.4",
+    backdrop:
+      "radial-gradient(circle at 92% 0%, rgb(232 57 155 / 0.2), transparent 42%), radial-gradient(circle at 0% 100%, rgb(0 120 191 / 0.2), transparent 46%)",
+    grain: "0.16",
+    lift: "10px 10px 0 rgb(0 120 191 / 0.55)",
+    frame: "18px",
+  },
+  brutal: {
+    canvas: "#ffe94d",
+    paper: "#fff",
+    tile: "#fff7c2",
+    ink: "#000",
+    "ink-2": "#262626",
+    "ink-3": "#6b6b6b",
+    accent: "#0038ff",
+    "on-accent": "#fff",
+    hair: "#000",
+    edge: "#000",
+    shade: "#000",
+    shadow: "6px 6px 0 #000",
+    font: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    "font-display": '"Arial Black", "Helvetica Neue", Arial, sans-serif',
+    "display-weight": "900",
+    "display-squeeze": "0.6",
+    radius: "0px",
+    frame: "18px",
+    backdrop: "repeating-linear-gradient(45deg, rgb(0 0 0 / 0.07) 0 2px, transparent 2px 14px)",
+    lift: "0 0 0 2px #000, 10px 10px 0 #000",
+  },
+} satisfies Record<string, Theme>;
+
+/** One line each, for the gallery. */
+export const LOOK_NOTES: Readonly<Record<PresetName | ShowcaseName, string>> = {
+  wren: "Square, warm paper, lavender.",
+  night: "Wren after dark.",
+  soft: "Rounded and blue.",
+  editorial: "A serif and a deep green.",
+  aurora: "Glass over a slow northern glow.",
+  synthwave: "Neon on a grid at dusk.",
+  terminal: "Phosphor green and scanlines.",
+  gilded: "Black, gold leaf and a Didot.",
+  riso: "Two-ink print, grain and all.",
+  brutal: "Hard edges, yellow, no apologies.",
+};
+
 export type PresetName = keyof typeof PRESETS;
+export type ShowcaseName = keyof typeof SHOWCASE;
+export const isShowcase = (name: unknown): name is ShowcaseName =>
+  typeof name === "string" && Object.hasOwn(SHOWCASE, name);
 
 /** Characters a token never needs, so stored data can't reach past its own value. */
 const UNSAFE = /[;{}<>!\\]|@import/i;
 /** The only CSS calls a token may make. None fetches anything: no url(), image-set(), src(). */
 const CALLS: ReadonlySet<string> = new Set([
+  "linear-gradient",
+  "radial-gradient",
+  "conic-gradient",
+  "repeating-linear-gradient",
+  "repeating-radial-gradient",
   "rgb",
   "rgba",
   "hsl",
@@ -185,12 +411,14 @@ export function readTheme(raw: unknown): Theme {
     const v = typeof value === "number" && Number.isFinite(value) ? String(value) : value;
     if (typeof v !== "string") continue;
     const clean = v.trim();
-    if (clean && clean.length <= 300 && safe(clean)) theme[key as Token] = clean;
+    if (clean && clean.length <= (key === "backdrop" ? 800 : 300) && safe(clean))
+      theme[key as Token] = clean;
   }
   return theme;
 }
 
 function preset(name: unknown): Theme {
+  if (isShowcase(name)) return { ...SHOWCASE[name] };
   return typeof name === "string" && Object.hasOwn(PRESETS, name)
     ? { ...PRESETS[name as PresetName] }
     : {};
@@ -230,12 +458,16 @@ export function usePageTheme(theme: Theme | undefined) {
     if (!Object.keys(t).length) return;
     const root = document.documentElement;
     const undo = applyTheme(t, root);
+    // Grain is a fixed layer over the page: drawn only when a look asks for it.
+    const grain = Number(t.grain) > 0;
+    if (grain) root.dataset.grain = "";
     const bar = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const was = bar?.content;
     const canvas = getComputedStyle(root).getPropertyValue("--ui-canvas").trim();
     if (bar && canvas) bar.content = canvas;
     return () => {
       undo();
+      if (grain) delete root.dataset.grain;
       if (bar && was !== undefined) bar.content = was;
     };
   }, [key]);
