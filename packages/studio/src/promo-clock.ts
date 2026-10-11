@@ -76,3 +76,54 @@ export function fitBox(size: readonly [number, number] | undefined, w: number, h
   const k = Math.min(w / size[0], h / size[1]);
   return { w: Math.round(size[0] * k), h: Math.round(size[1] * k) };
 }
+
+/**
+ * How a scene comes in. `rise`: up from below. `pull-back`: the camera starts close and pulls
+ * back to the whole frame. `wipe`: a circle grows from the middle over the scene before it, a
+ * track matte.
+ */
+export const ENTRANCES = ["rise", "pull-back", "wipe"] as const;
+export type Entrance = (typeof ENTRANCES)[number];
+
+/** A scene's opacity, transform and clip `frame` frames into its `frames`; out over the last 6. */
+export function entranceAt(
+  kind: Entrance,
+  frame: number,
+  frames: number,
+): { opacity: number; transform: string; clipPath: string } {
+  const out = clamp((frames - frame) / 6, 0, 1);
+  if (kind === "pull-back") {
+    const p = easeOut(frame / 18);
+    return {
+      opacity: Math.min(clamp(frame / 4, 0, 1), out),
+      transform: `scale(${(1.35 - 0.35 * p).toFixed(4)})`,
+      clipPath: "none",
+    };
+  }
+  if (kind === "wipe") {
+    // 72% of the circle's reference covers the corners of any frame.
+    const p = easeInOut(frame / 14);
+    return {
+      opacity: out,
+      transform: "none",
+      clipPath: `circle(${(p * 72).toFixed(2)}% at 50% 50%)`,
+    };
+  }
+  const p = entered(frame);
+  return {
+    opacity: Math.min(p, out),
+    transform: `translateY(${((1 - p) * 40).toFixed(2)}px)`,
+    clipPath: "none",
+  };
+}
+
+/**
+ * Where word `i` of `n` sits in a scattered layout, as shares of the frame (its left edge and
+ * middle): down the frame in order, across it by the golden ratio, so no two land on one spot and
+ * the same script always lands the same way.
+ */
+export function scatterAt(i: number, n: number): { x: number; y: number } {
+  const x = 0.07 + ((i * 0.618034) % 1) * 0.6;
+  const y = n > 1 ? 0.14 + (i / (n - 1)) * 0.72 : 0.5;
+  return { x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000 };
+}

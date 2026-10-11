@@ -30,12 +30,13 @@ import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
 import type { PromoProps, TimedScene } from "../src/promo.js";
 import {
   cameraAt,
-  clamp,
   countAt,
+  type Entrance,
   easeOut,
-  entered,
+  entranceAt,
   fitBox,
   framing,
+  scatterAt,
   toastAt,
   wordsIn,
 } from "../src/promo-clock.ts";
@@ -628,16 +629,60 @@ const useUnit = () => {
   return Math.min(width, height) / 1080;
 };
 
-/** Every scene comes in rising and fades out over its last frames. */
-const Enter: FC<{ frames: number; children: ReactNode }> = ({ frames, children }) => {
+/** Every scene comes in its way (`entranceAt`) and fades out over its last frames; a wiped one sits on the accent, so the matte shows. */
+const Enter: FC<{ kind: Entrance; frames: number; look: Look; children: ReactNode }> = ({
+  kind,
+  frames,
+  look,
+  children,
+}) => {
   const f = useCurrentFrame();
-  const inP = entered(f);
-  const out = clamp((frames - f) / 6, 0, 1);
   return (
     <AbsoluteFill
-      style={{ opacity: Math.min(inP, out), transform: `translateY(${(1 - inP) * 40}px)` }}
+      style={{
+        ...entranceAt(kind, f, frames),
+        background: kind === "wipe" ? look.accent : undefined,
+      }}
     >
       {children}
+    </AbsoluteFill>
+  );
+};
+
+/** A text scene's words spread over a quiet frame, one at a time (`scatterAt`). */
+const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
+  const f = useCurrentFrame();
+  const u = useUnit();
+  const words = s.lines.flatMap((l) => l.split(/\s+/));
+  const accent = new Set(s.accent.map((a) => a.toLowerCase()));
+  // Fewer words read bigger; a line of eight still fits the frame.
+  const size = (words.length > 8 ? 54 : 72) * u;
+  return (
+    <AbsoluteFill>
+      {words.map((w, i) => {
+        const at = scatterAt(i, words.length);
+        const p = easeOut((f - (i * 6 + 2)) / 5);
+        const hit = accent.has(w.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, ""));
+        return (
+          <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: a word's place is its index
+            key={i}
+            style={{
+              position: "absolute",
+              left: `${at.x * 100}%`,
+              top: `${at.y * 100}%`,
+              fontSize: size,
+              fontWeight: 500,
+              letterSpacing: "-0.02em",
+              color: hit ? look.accent : look.foreground,
+              opacity: p,
+              transform: `translateY(calc(-50% + ${(1 - p) * 0.25}em))`,
+            }}
+          >
+            {w}
+          </span>
+        );
+      })}
     </AbsoluteFill>
   );
 };
@@ -904,7 +949,11 @@ const PromoEnd: FC<{ s: Scene<"end">; look: Look }> = ({ s, look }) => {
 const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
   switch (s.kind) {
     case "text":
-      return <PromoText s={s} look={look} />;
+      return s.layout === "scatter" ? (
+        <Scattered s={s} look={look} />
+      ) : (
+        <PromoText s={s} look={look} />
+      );
     case "toasts":
       return <PromoToasts s={s} look={look} />;
     case "screen":
@@ -924,7 +973,7 @@ const Promo: FC<PromoProps> = ({ scenes, look, music }) => (
     {music ? <Audio src={staticFile(music)} /> : null}
     {scenes.map((s) => (
       <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
-        <Enter frames={s.frames}>
+        <Enter kind={s.enter} frames={s.frames} look={look}>
           <PromoScene s={s} look={look} />
         </Enter>
       </Sequence>
@@ -940,7 +989,15 @@ const PROMO_PLACEHOLDER: PromoProps = {
   look: DEFAULT_LOOK,
   music: null,
   scenes: [
-    { kind: "text", lines: ["A promo", "from a script"], accent: ["script"], from: 0, frames: 90 },
+    {
+      kind: "text",
+      lines: ["A promo", "from a script"],
+      accent: ["script"],
+      layout: "stack",
+      enter: "rise",
+      from: 0,
+      frames: 90,
+    },
   ],
 };
 

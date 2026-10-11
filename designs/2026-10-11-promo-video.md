@@ -36,6 +36,19 @@ renders one frame to check a layout.
 - Positions are shares of the image (0 to 1), so a script survives a new capture size.
 - The screen box takes the image's shape, so marks land where the script says.
 
+## Entrances and scattered type (2026-10-11, temp_notes design reels)
+
+Taken from three motion-design reels:
+
+- Every scene takes `enter`:
+  - `rise` is the default.
+  - `pull-back` starts at 1.35× and settles to the whole frame over 18 frames. It's the camera pull-back.
+  - `wipe` grows a circle from the middle over 14 frames, on the accent color. It's a track matte.
+- A text scene takes `layout: "scatter"`. Its words land one at a time, down the frame, spread across it by the golden ratio, on a quiet frame. This is the static-poster type look.
+- Both are pure functions in `promo-clock.ts` (`entranceAt`, `scatterAt`) and are tested.
+
+Skipped: the cinematic archival-footage montage. It needs stock footage rights, which is William's call.
+
 ## Why not
 
 - **Hand-edited in an editor:** not repeatable per client or per feature.

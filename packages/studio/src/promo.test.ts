@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   cameraAt,
   countAt,
+  entranceAt,
   fitBox,
   framing,
   PROMO_FPS,
   promoProps,
   promoScript,
+  scatterAt,
   secondsOf,
   wordsIn,
 } from "./promo.js";
@@ -31,8 +33,9 @@ describe("promo script", () => {
   });
 
   it("gives text time by its words, within 2 to 6 seconds", () => {
-    expect(secondsOf({ kind: "text", lines: ["Hi"], accent: [] })).toBe(2);
-    const long = { kind: "text" as const, lines: [Array(30).fill("word").join(" ")], accent: [] };
+    const plain = { accent: [] as string[], layout: "stack" as const, enter: "rise" as const };
+    expect(secondsOf({ kind: "text", lines: ["Hi"], ...plain })).toBe(2);
+    const long = { kind: "text" as const, lines: [Array(30).fill("word").join(" ")], ...plain };
     expect(secondsOf(long)).toBe(6);
   });
 
@@ -65,6 +68,28 @@ describe("promo script", () => {
 });
 
 describe("promo clock", () => {
+  it("rises by default, and reads a pull-back and a wipe", () => {
+    expect(script.scenes[0]).toMatchObject({ layout: "stack", enter: "rise" });
+    expect(entranceAt("rise", 0, 90)).toMatchObject({ opacity: 0, clipPath: "none" });
+    expect(entranceAt("pull-back", 0, 90).transform).toBe("scale(1.3500)");
+    expect(entranceAt("pull-back", 18, 90).transform).toBe("scale(1.0000)");
+    expect(entranceAt("wipe", 0, 90)).toMatchObject({
+      opacity: 1,
+      clipPath: "circle(0.00% at 50% 50%)",
+    });
+    expect(entranceAt("wipe", 14, 90).clipPath).toBe("circle(72.00% at 50% 50%)");
+    expect(entranceAt("wipe", 90, 90).opacity).toBe(0);
+  });
+
+  it("scatters words down the frame in order, never on one spot", () => {
+    const at = Array.from({ length: 6 }, (_, i) => scatterAt(i, 6));
+    expect(at[0]).toEqual({ x: 0.07, y: 0.14 });
+    expect(at.at(-1)?.y).toBe(0.86);
+    expect(new Set(at.map((p) => p.x)).size).toBe(6);
+    expect(at.every((p) => p.x >= 0.07 && p.x <= 0.67)).toBe(true);
+    expect(scatterAt(0, 1)).toEqual({ x: 0.07, y: 0.5 });
+  });
+
   it("shows words one every 4 frames", () => {
     expect(wordsIn(0, 5)).toBe(0);
     expect(wordsIn(2, 5)).toBe(1);

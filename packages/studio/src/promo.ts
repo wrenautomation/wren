@@ -7,7 +7,7 @@
  */
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
-import { clamp } from "./promo-clock.js";
+import { clamp, ENTRANCES } from "./promo-clock.js";
 
 export * from "./promo-clock.js";
 
@@ -22,6 +22,8 @@ const seconds = z
   .max(30)
   .optional()
   .describe("How long it holds; set by length when left out");
+/** How it comes in (`entranceAt`): rise, a camera pull-back, or a matte wipe. */
+const enter = z.enum(ENTRANCES).default("rise");
 
 const TEXT = z.object({
   kind: z.literal("text"),
@@ -29,7 +31,10 @@ const TEXT = z.object({
   lines: z.array(z.string().min(1).max(80)).min(1).max(3),
   /** Words drawn in the accent color, as written. */
   accent: z.array(z.string()).max(6).default([]),
+  /** `stack`: lines under each other. `scatter`: words spread over a quiet frame (`scatterAt`). */
+  layout: z.enum(["stack", "scatter"]).default("stack"),
   seconds,
+  enter,
 });
 const TOASTS = z.object({
   kind: z.literal("toasts"),
@@ -46,6 +51,7 @@ const TOASTS = z.object({
     .min(1)
     .max(6),
   seconds,
+  enter,
 });
 const SCREEN = z
   .object({
@@ -65,6 +71,7 @@ const SCREEN = z
     /** A box drawn around one thing, as shares of the image, from `from` on. */
     highlight: z.object({ x: unit, y: unit, w: unit, h: unit, from: unit.default(0.3) }).optional(),
     seconds,
+    enter,
   })
   .refine((s) => !!s.image !== !!s.url, "a screen takes an image or a url, one of them");
 const STAT = z.object({
@@ -83,6 +90,7 @@ const STAT = z.object({
     .min(1)
     .max(4),
   seconds,
+  enter,
 });
 const END = z.object({
   kind: z.literal("end"),
@@ -90,6 +98,7 @@ const END = z.object({
   sub: z.string().max(90).optional(),
   url: z.string().max(60).optional(),
   seconds,
+  enter,
 });
 
 export const promoScene = z.discriminatedUnion("kind", [TEXT, TOASTS, SCREEN, STAT, END]);
