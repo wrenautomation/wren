@@ -2,7 +2,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
-import { DESK, journaledSites, makeContent, restateSites, SITES } from "./restate.js";
+import { DESK, isRefusal, journaledSites, makeContent, restateSites, SITES } from "./restate.js";
 
 /** A stand-in Context whose `sites` client answers from a script and keeps every call. */
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
@@ -367,5 +367,17 @@ describe("Content service", () => {
       name: "TerminalError",
       message: /no youtube channel/,
     });
+  });
+});
+
+describe("isRefusal", () => {
+  const e = (status: number, msg = "no") => new SiteCallError("x", "GET", "/s", status, msg);
+  it("a used daily cap is final; a short 429 and a 408 retry", () => {
+    expect(isRefusal(e(429, "x search cap is used (50/50 today); retry after 9910s"))).toBe(true);
+    expect(isRefusal(e(429, "slow down; retry after 30s"))).toBe(false);
+    expect(isRefusal(e(429))).toBe(false);
+    expect(isRefusal(e(408))).toBe(false);
+    expect(isRefusal(e(403))).toBe(true);
+    expect(isRefusal(e(503))).toBe(false);
   });
 });

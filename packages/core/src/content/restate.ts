@@ -140,13 +140,26 @@ export function restateSites(
   };
 }
 
-/** A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408/429 can. */
+/** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
+const LONG_WAIT_S = 15 * 60;
+
+/** The wait a 429 names ("retry after 9910s"), or null. */
+const waitOf = (message: string) => {
+  const m = /retry after (\d+)s/.exec(message);
+  return m ? Number(m[1]) : null;
+};
+
+/**
+ * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
+ * a short 429 can; a 429 whose wait is hours (a used daily cap) cannot, and retrying it would
+ * pause the caller's loop until someone resumes it.
+ */
 export const isRefusal = (err: unknown): err is SiteCallError =>
   err instanceof SiteCallError &&
   err.status >= 400 &&
   err.status < 500 &&
   err.status !== 408 &&
-  err.status !== 429;
+  (err.status !== 429 || (waitOf(err.message) ?? 0) > LONG_WAIT_S);
 
 /**
  * A direct API client (no `sites` hop) made durable: each call is one
