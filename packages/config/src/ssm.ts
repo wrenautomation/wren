@@ -61,18 +61,17 @@ export async function loadSsmEnv(
   const names = paramNames(list);
   if (!names.length) return [];
   const ssm = o.ssm ?? new SSMClient({});
+  // Read at once (each is a round trip at cold start), applied in order: the first wins.
+  const read = await Promise.allSettled(names.map((name) => readParameter(name, ssm)));
   const applied: string[] = [];
-  for (const [i, name] of names.entries()) {
-    let json: string;
-    try {
-      json = await readParameter(name, ssm);
-    } catch (err) {
-      const why = skippable(err);
-      if (i === 0 || !why) throw err;
-      (o.log ?? console.warn)(`ssm env: ${name} ${why}, skipped`);
+  for (const [i, r] of read.entries()) {
+    if (r.status === "rejected") {
+      const why = skippable(r.reason);
+      if (i === 0 || !why) throw r.reason;
+      (o.log ?? console.warn)(`ssm env: ${names[i]} ${why}, skipped`);
       continue;
     }
-    applied.push(...applyEnv(json, o.env));
+    applied.push(...applyEnv(r.value, o.env));
   }
   return applied;
 }
