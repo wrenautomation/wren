@@ -1,0 +1,2 @@
+ALTER TABLE "comments" DROP CONSTRAINT "ck_comments_sort";--> statement-breakpoint
+ALTER TABLE "comments" ADD CONSTRAINT "ck_comments_sort" CHECK (("sort")::text = ANY ((ARRAY['asked'::character varying, 'question'::character varying, 'chat'::character varying, 'hostile'::character varying, 'ours'::character varying, 'noise'::character varying])::text[]));

@@ -46,6 +46,34 @@ const ASKED =
 
 export const askedInWords = (text: string) => ASKED.test(text);
 
+/** Selling at us or asking for follows: never a reader. */
+const SPAM =
+  /\b(check (out )?my (page|profile|bio|channel|account)|follow (me|back|for follow)|sub(scribe)? (to me|back)|(dm|message) (me )?for (promo|promotion|collab|shoutout)|promot(e|ion) (your|ur) (page|account|post)|telegram|whats ?app|crypto|forex|bitcoin|onlyfans|cash ?app|giveaway)\b/i;
+/** Short praise or a nod, the whole comment: nothing a reply would add to. */
+const NOD =
+  /^(nice|great|cool|wow|amazing|awesome|love (it|this|that)|so true|true|facts|fire|this|first|w|based|agreed|same|well said|saved|following|lol|lmao|ha(ha)+|yes+|yep|100|thanks?( (you|so much|for sharing|for this))?|thank you( so much| for sharing)?|great (post|video|content|stuff|share|tip|point|read)|nice (post|video|one|work)|good (stuff|point|one|video|post)|so (good|helpful|useful))$/i;
+
+/**
+ * Why a comment is plainly nothing to answer, or null: spam (even dressed as an ask), else
+ * emoji or punctuation only, someone tagging a friend, or a short nod. A question mark or an ask
+ * keeps it; a review is never noise (an owner answers every review).
+ */
+export function noiseInWords(text: string, kind?: string): string | null {
+  if (kind === "review") return null;
+  if (SPAM.test(text)) return "Spam or a follow ask.";
+  if (text.includes("?") || askedInWords(text)) return null;
+  const tagged = /(^|\s)@[\w.]+/.test(text);
+  const words = text
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/(^|\s)@[\w.]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s']/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!words) return tagged ? "Only tags someone." : "Emoji or punctuation only.";
+  if (NOD.test(words)) return "A short nod: nothing to answer.";
+  return null;
+}
+
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /**
@@ -167,6 +195,15 @@ export async function sortComment(
   const [c] = await db.select().from(comments).where(eq(comments.id, id));
   if (!c) return null;
   if (c.sort || c.state !== "new") return c.sort;
+  // Plain noise is kept, closed and never sent to the model.
+  const noise = noiseInWords(c.body, c.kind);
+  if (noise) {
+    await db
+      .update(comments)
+      .set({ sort: "noise", why: noise, state: "dropped" })
+      .where(and(eq(comments.id, id), eq(comments.state, "new")));
+    return "noise";
+  }
   let sort: CommentSort | null = askedInWords(c.body) ? "asked" : null;
   let why = sort ? "Asked in words" : "No model is set, so it waits unsorted.";
   let draft: string | null = null;
@@ -237,7 +274,10 @@ export async function sortComment(
   return sort;
 }
 
-/** `comments.sort` on the spine: the comment leaves by its sort's port; unsorted, by `chat`. */
+/**
+ * `comments.sort` on the spine: the comment leaves by its sort's port; unsorted, by `chat`; ours
+ * and noise leave by none.
+ */
 export const sortStep =
   (
     db: Db,
@@ -260,7 +300,7 @@ export const sortStep =
         ? { ...(await forClient(at.client)), facts: [] as readonly string[] }
         : { db, llm, guide, facts: facts ? await facts() : [] };
     const sort = await sortComment(on.db, on.llm, id, on.guide, on.facts);
-    return sort === "ours" ? [] : [{ port: sort ?? "chat", event: e }];
+    return sort === "ours" || sort === "noise" ? [] : [{ port: sort ?? "chat", event: e }];
   };
 
 export async function commentById(db: Queryable, id: number): Promise<Comment> {

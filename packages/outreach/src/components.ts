@@ -125,7 +125,7 @@ export const OUTREACH_COMPONENTS = [
     channels: ["dm"],
     name: "Comment sort",
     blurb:
-      "Reads each comment as asked, question, chat or hostile, and drafts an answer to the first two.",
+      "Drops plain noise in words (emoji, tags, short nods, spam), reads the rest as asked, question, chat or hostile, and drafts an answer to the first two.",
     icon: "people",
     for: "client",
     ready: true,

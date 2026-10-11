@@ -112,19 +112,21 @@ describe("comments", () => {
 
   it("sorts by words for $0, else by the model, which drafts for asked and question", async () => {
     const a = await account("reddit@wren", "WrenAutomation", 10, 5);
-    const [asked, q, chat] = await keepComments(
+    const [asked, q, chat, noise] = await keepComments(
       db(),
       a,
       [
-        comment(3, { text: "Would love the template, dm me" }),
-        comment(2, { text: "Does this work with QuickBooks?" }),
-        comment(1, { text: "Cool" }),
+        comment(4, { text: "Would love the template, dm me" }),
+        comment(3, { text: "Does this work with QuickBooks?" }),
+        comment(2, { text: "We did this by hand for years" }),
+        comment(1, { text: "Cool 🔥" }),
       ],
       [],
     );
+    let asks = 0;
     const llm = new FakeLlm({
       respond: (prompt) =>
-        prompt.includes("QuickBooks")
+        ++asks && prompt.includes("QuickBooks")
           ? '{"sort":"question","why":"asks about a tool","answer":"Yes, it reads QuickBooks."}'
           : prompt.includes("dm me")
             ? '{"sort":"chat","why":"x","answer":"Sending it over in a DM."}'
@@ -133,6 +135,14 @@ describe("comments", () => {
     expect(await sortComment(db(), llm, asked?.id ?? 0)).toBe("asked");
     expect(await sortComment(db(), llm, q?.id ?? 0)).toBe("question");
     expect(await sortComment(db(), llm, chat?.id ?? 0)).toBe("chat");
+    // Noise never reaches the model: kept, closed, with why.
+    const before = asks;
+    expect(await sortComment(db(), llm, noise?.id ?? 0)).toBe("noise");
+    expect(asks).toBe(before);
+    expect(await commentById(db(), noise?.id ?? 0)).toMatchObject({
+      state: "dropped",
+      why: "A short nod: nothing to answer.",
+    });
     expect(await commentById(db(), asked?.id ?? 0)).toMatchObject({
       state: "waiting",
       why: "Asked in words",

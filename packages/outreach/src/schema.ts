@@ -280,8 +280,11 @@ export const reachMessages = pgTable(
 export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention", "review"] as const;
 export type CommentKind = (typeof COMMENT_KINDS)[number];
 
-/** What the sort read a comment as; `ours` = written by one of our accounts. */
-export const COMMENT_SORTS = ["asked", "question", "chat", "hostile", "ours"] as const;
+/**
+ * What the sort read a comment as; `ours` = written by one of our accounts; `noise` = nothing to
+ * answer, settled in words (`noiseInWords`) and dropped without a model call.
+ */
+export const COMMENT_SORTS = ["asked", "question", "chat", "hostile", "ours", "noise"] as const;
 export type CommentSort = (typeof COMMENT_SORTS)[number];
 /** `new` until sorted; `waiting` on William; `answered` in the thread; `dropped` by him or the sort. */
 export const COMMENT_STATES = ["new", "waiting", "answered", "dropped"] as const;

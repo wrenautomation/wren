@@ -224,6 +224,7 @@ export const commentRecord = defineRecord({
         chat: neutral("Chat"),
         hostile: { label: "Hostile", tone: "bad" },
         ours: neutral("Ours"),
+        noise: neutral("Noise"),
       },
       "Read as",
     ),
@@ -249,6 +250,8 @@ export const commentRecord = defineRecord({
       at: "at",
     },
     { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
+    // Dropped in words before any model: here to check the filter never eats a real one.
+    { id: "noise", label: "Filtered", where: { sort: "noise" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   activity: { view: "draft_activity", by: "comment", seq: "seq" },
