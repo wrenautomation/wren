@@ -230,7 +230,7 @@ describe("transport, ramp and dkim", () => {
   });
 
   it.each([
-    ["transport = 'sendgrid'", /'transport' must be "gmail" or "smtp"/],
+    ["transport = 'sendgrid'", /'transport' must be "gmail", "smtp" or "instantly"/],
     ["transport = 'smtp'", /bo@example.com sends over smtp but has no mailboxes-file row/],
     ["dkim = 'not a selector'", /'dkim' must be a selector/],
     ["ramp = 5", /ramp/],

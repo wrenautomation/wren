@@ -176,6 +176,8 @@ export const settingsSchema = z.object({
     .transform((v) => v === "true" || v === "1"),
   /** The pixel host's /export bearer, shared with the worker. A secret: never logged, never in argv. */
   pixelExportToken: z.string().min(1).optional(),
+  /** Instantly's API key: reads the inboxes the roster marks `transport = "instantly"`. A secret: never logged. */
+  instantlyApiKey: z.string().min(1).optional(),
   /** The lander, where email sign-off links point; `wren email clicks` reads its /api/export. */
   siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
   /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
@@ -561,6 +563,7 @@ export const ENV_KEYS = {
   pixelBaseUrl: "WREN_PIXEL_BASE_URL",
   openTracking: "WREN_OPEN_TRACKING",
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
+  instantlyApiKey: "WREN_INSTANTLY_API_KEY",
   siteBaseUrl: "WREN_SITE_BASE_URL",
   siteExportToken: "WREN_SITE_EXPORT_TOKEN",
   siteEdgeToken: "WREN_SITE_EDGE_TOKEN",

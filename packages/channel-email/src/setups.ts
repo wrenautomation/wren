@@ -112,7 +112,7 @@ export interface Warmup {
 const DAY_MS = 86_400_000;
 
 /** How an inbox signed in: Gmail as its address, or its own login over IMAP. */
-export type SignedIn = "gmail" | "imap";
+export type SignedIn = "gmail" | "imap" | "instantly";
 
 /** A refused login, said apart from a host that didn't answer. */
 const REFUSED =
@@ -142,7 +142,12 @@ export function emailChecks(o: {
       if (!via) return { ok: false, why: "Not on Wren's sending roster yet" };
       return {
         ok: true,
-        why: via === "imap" ? "It signs in over IMAP" : "Gmail reads it",
+        why:
+          via === "imap"
+            ? "It signs in over IMAP"
+            : via === "instantly"
+              ? "Instantly reads it"
+              : "Gmail reads it",
         seen: { via },
       };
     },

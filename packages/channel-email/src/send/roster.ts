@@ -55,7 +55,7 @@ export interface Sender {
   readonly displayName: string | null;
   /** The sign-off every message from this inbox carries, or null to sign nothing. */
   readonly signature: Signature | null;
-  /** How it sends and is read: Gmail delegation, or SMTP/IMAP with a mailboxes-file login. */
+  /** How it sends and is read: Gmail delegation, SMTP/IMAP with a mailboxes-file login, or read-only through Instantly. */
   readonly transport: SenderTransport;
   /** Its own ramp, replacing the fleet's; null = the fleet ramp. */
   readonly ramp: Ramp | null;
@@ -63,7 +63,7 @@ export interface Sender {
   readonly dkim: string | null;
 }
 
-export type SenderTransport = "gmail" | "smtp";
+export type SenderTransport = "gmail" | "smtp" | "instantly";
 
 export function senderDomain(sender: Pick<Sender, "address">): string {
   return sender.address.slice(sender.address.lastIndexOf("@") + 1);
@@ -286,8 +286,8 @@ export function parseRoster(
       throw new RosterError(`${at}: 'display_name' must be a non-blank string`);
     }
     const transport = entry.transport ?? "gmail";
-    if (transport !== "gmail" && transport !== "smtp") {
-      throw new RosterError(`${at}: 'transport' must be "gmail" or "smtp"`);
+    if (transport !== "gmail" && transport !== "smtp" && transport !== "instantly") {
+      throw new RosterError(`${at}: 'transport' must be "gmail", "smtp" or "instantly"`);
     }
     if (transport === "smtp" && mailboxes && !mailboxes.has(address)) {
       throw new RosterError(`${at}: ${address} sends over smtp but has no mailboxes-file row`);

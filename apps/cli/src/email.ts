@@ -461,7 +461,15 @@ export function registerEmail(
       const transport = new RoutedTransport(new GmailTransport(client), smtp);
       let failures = 0;
       const minted: string[] = [];
+      const readOnly = new Set(
+        senders.filter((s) => s.transport === "instantly").map((s) => s.address),
+      );
       for (const address of active) {
+        if (readOnly.has(address)) {
+          // Read through Instantly; wren does not send from it.
+          console.log(`read only  ${address}`);
+          continue;
+        }
         if (smtp.has(address)) {
           // Its own login, no token to mint: --send proves it.
           minted.push(address);

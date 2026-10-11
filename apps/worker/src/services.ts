@@ -48,6 +48,8 @@ import {
   gmailPushTopic,
   ImapReader,
   type InboxReader,
+  InstantlyReader,
+  InstantlyTransport,
   imapClient,
   loadMailboxes,
   loadRoster,
@@ -674,11 +676,24 @@ export async function buildServices(
     const mailbox = s.transport === "smtp" ? mailboxes.get(s.address) : undefined;
     return mailbox ? [[s.address, mailbox] as const] : [];
   });
+  // Inboxes only Instantly holds are read through its API and never sent from.
+  const instantlyInboxes = settings.instantlyApiKey
+    ? roster.filter((s) => s.transport === "instantly").map((s) => s.address)
+    : [];
+  if (!settings.instantlyApiKey && roster.some((s) => s.transport === "instantly"))
+    log.info("WREN_INSTANTLY_API_KEY unset: the roster's instantly inboxes are not read");
+  const instantlyReader = settings.instantlyApiKey
+    ? new InstantlyReader({ apiKey: settings.instantlyApiKey })
+    : null;
+  const readOnly = new InstantlyTransport();
   const transport: Transport =
     settings.sendTransport === "gmail"
       ? new RoutedTransport(
           new GmailTransport(gmail),
-          new Map(smtpInboxes.map(([address, m]) => [address, new SmtpTransport(m)])),
+          new Map<string, Transport>([
+            ...smtpInboxes.map(([address, m]) => [address, new SmtpTransport(m)] as const),
+            ...instantlyInboxes.map((address) => [address, readOnly] as const),
+          ]),
         )
       : new ConsoleTransport();
 
@@ -686,7 +701,12 @@ export async function buildServices(
   // bounces and unsubscribes to the Python fleet's sends are still ours to act on.
   const reader: InboxReader = new RoutedReader(
     gmail,
-    new Map(smtpInboxes.map(([address, m]) => [address, new ImapReader(m)])),
+    new Map<string, InboxReader>([
+      ...smtpInboxes.map(([address, m]) => [address, new ImapReader(m)] as const),
+      ...(instantlyReader
+        ? instantlyInboxes.map((address) => [address, instantlyReader] as const)
+        : []),
+    ]),
   );
   // Reply disposition only pays for a real model; the fake would label nothing useful.
   const classify = settings.llm !== "fake";
@@ -694,11 +714,11 @@ export async function buildServices(
   const syncMs = settings.daemonSyncSeconds * 1000;
   const tickMs = settings.daemonTickSeconds * 1000;
   // Gmail push for the inboxes Gmail reads (prod only: a local run must not move prod's watches).
-  const imap = new Set(smtpInboxes.map(([address]) => address));
+  const noPush = new Set([...smtpInboxes.map(([address]) => address), ...instantlyInboxes]);
   const watch =
     settings.sendTransport === "gmail"
       ? async (sender: string) =>
-          imap.has(sender)
+          noPush.has(sender)
             ? null
             : gmail.watch(sender, gmailPushTopic(loadServiceAccountKey(keyPath).clientEmail))
       : undefined;
@@ -1705,10 +1725,15 @@ export async function buildServices(
             }
           : null;
       },
-      // Signs in and out, reading nothing: IMAP for an inbox on its own login, else one Gmail list.
+      // Signs in and out, reading nothing: IMAP for an inbox on its own login, Instantly's
+      // list for one it holds, else one Gmail list.
       signIn: async (address) => {
         if (!roster.some((x) => x.address === address)) return null;
-        const m = imap.has(address) ? mailboxes.get(address) : undefined;
+        if (instantlyReader && instantlyInboxes.includes(address)) {
+          await instantlyReader.listMessages(address, `after:${Math.floor(Date.now() / 1000)}`);
+          return "instantly";
+        }
+        const m = noPush.has(address) ? mailboxes.get(address) : undefined;
         if (m) {
           await withImap(imapClient(m.imap), async () => {});
           return "imap";
