@@ -1,8 +1,10 @@
 /**
  * AI tools (designs/2026-10-09-ai-tools.md): a person's access tokens for the `wren` CLI and its
  * skill, which Claude Code and other agents run. A token shows once and acts as its person, nothing more. Made in a client's Account,
- * it is pinned to that client; made on the team's page, it reaches what its operator does.
+ * it is pinned to that client; made on the team's page, it reaches what its operator does. Its
+ * access and apps cap it lower: read only by default.
  */
+import { APPS } from "@wren/core/access";
 import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { type FormEvent, useState } from "react";
 import { ApiError, call } from "../../api.js";
@@ -16,6 +18,8 @@ interface Token {
   name: string;
   prefix: string;
   client: string | null;
+  verbs: string[] | null;
+  apps: string[] | null;
   createdAt: string;
   lastUsedAt: string | null;
   expiresAt: string | null;
@@ -27,6 +31,16 @@ const LASTS = [
   { days: 365, label: "1 year" },
   { days: 0, label: "Until removed" },
 ] as const;
+/** What a token may do. Read only is the default: an agent that only answers questions needs no more. */
+const ACCESS = [
+  { id: "read", label: "Read only", verbs: ["read"] },
+  { id: "work", label: "Read and work", verbs: ["read", "comment", "act", "run"] },
+  { id: "all", label: "Everything you can", verbs: null },
+] as const;
+const accessOf = (verbs: string[] | null) =>
+  verbs === null
+    ? "Everything you can"
+    : (ACCESS.find((a) => a.verbs?.join() === [...verbs].sort().join())?.label ?? verbs.join(", "));
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const PRE =
@@ -61,9 +75,13 @@ export function AiTools(props: PageProps) {
     const form = e.currentTarget;
     const f = new FormData(form);
     const days = Number(f.get("days"));
+    const access = ACCESS.find((a) => a.id === f.get("access")) ?? ACCESS[0];
+    const apps = f.getAll("apps").map(String);
     const got = await run<{ token: string }>("tokenMake", {
       name: String(f.get("name") ?? "").trim(),
       days: days || null,
+      verbs: access.verbs ? [...access.verbs].sort() : null,
+      apps: apps.length ? apps : null,
     });
     if (got) {
       setMade(got.token);
@@ -84,7 +102,7 @@ export function AiTools(props: PageProps) {
     <>
       <PageHeader
         title="AI tools"
-        lede="Let Claude Code or another agent read your Wren. A token can see and do only what you can. It stops working as soon as you remove it."
+        lede="Let Claude Code, another agent or your own script use your Wren. A token reads only unless you say more, never does more than you can, and stops the moment you remove it."
       />
       {made ? <Secret key={made} secret={made} what="token" onClose={() => setMade(null)} /> : null}
       <Section title="Your tokens">
@@ -106,7 +124,13 @@ export function AiTools(props: PageProps) {
                     <b>{t.name}</b>
                     <code className={cx("text-[12px]", QUIET)}>{t.prefix}…</code>
                     {t.client ? <Tag tone="neutral">{t.client}</Tag> : null}
+                    <Tag tone="neutral">{accessOf(t.verbs)}</Tag>
                   </span>
+                  {t.apps ? (
+                    <span className={cx("text-[13px]", QUIET)}>
+                      Only {t.apps.map((a) => APPS[a] ?? a).join(", ")}
+                    </span>
+                  ) : null}
                   <span className={cx("text-[13px]", QUIET)}>
                     Made {day(t.createdAt)}
                     {t.lastUsedAt ? `, last used ${day(t.lastUsedAt)}` : ", never used"}
@@ -156,7 +180,34 @@ export function AiTools(props: PageProps) {
                 ))}
               </select>
             </label>
+            <label className={`${FIELD} basis-[200px]`}>
+              <span>Can</span>
+              <select
+                name="access"
+                defaultValue="read"
+                className="h-9 cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none"
+              >
+                {ACCESS.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+          <details>
+            <summary className={cx("cursor-pointer text-[13px]", QUIET)}>
+              Only some apps (every app you can open when none are ticked)
+            </summary>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[13.5px]">
+              {Object.entries(APPS).map(([id, name]) => (
+                <label key={id} className="flex items-center gap-1.5">
+                  <input type="checkbox" name="apps" value={id} />
+                  {name}
+                </label>
+              ))}
+            </div>
+          </details>
           <div className={TOOLS}>
             <Button type="submit" size="dense" busy={busy}>
               Make token
@@ -178,10 +229,15 @@ export function AiTools(props: PageProps) {
             3. Ask Claude Code about your Wren, for example "which leads replied this week". Other
             agents that run commands can use the same folder. Point them at SKILL.md.
           </p>
+          <p className="m-0">Or call it from any script, as an API key:</p>
+          <pre className={PRE}>
+            {`curl -X POST ${host}/api/agent/types \\
+  -H "Authorization: Bearer wren_…"`}
+          </pre>
           <p className={cx("m-0", QUIET)}>
-            It reads your records. Wren's team can also run handlers with it. A handler that sends,
-            spends or posts runs only when the agent confirms it by name, and the skill tells the
-            agent to ask you first.
+            It reads your records. A token that can work also acts on them, and Wren's team can run
+            handlers with it. A handler that sends, spends or posts runs only when the agent
+            confirms it by name, and the skill tells the agent to ask you first.
           </p>
         </div>
       </Section>

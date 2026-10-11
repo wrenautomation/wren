@@ -44,5 +44,7 @@ wren call Service/handler --input @in.json --confirm handler
 - A handler with an effect (it sends, spends, posts or changes data) runs only with
   `--confirm <handler>`. Ask the user before every such call, and say what it will do.
 - A client login can read but not call handlers. To approve something, the user clicks it in Wren.
+- A token can be capped below its person: read only, or some apps. A refusal that names the token
+  means that cap; the user makes a wider token in Account > AI tools if they want one.
 
 `--pretty` indents the JSON. `--host https://...` points at another Wren (a client's own address).

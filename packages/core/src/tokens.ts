@@ -2,13 +2,15 @@
  * Access tokens for AI tools, the `wren` CLI and its skill (designs/2026-10-09-ai-tools.md). A token is `wren_` and 32
  * random bytes; main keeps its SHA-256, never the token. It acts as its email: the Worker reads
  * it here, then every call passes the portal's guards as that viewer, so it never holds more than
- * its person does now. A pin keeps it to one client the person belongs to.
+ * its person does now. A pin keeps it to one client the person belongs to; a cap (`Cap`) keeps it
+ * to some verbs and apps.
  */
 import { createHash, randomBytes } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
+import { APPS, type Cap, PERMISSIONS, type Permission } from "./access.js";
 import { accessTokens, clientMembers, operators } from "./clients/schema.js";
 import { PortalRefusal } from "./portal.js";
 import { serviceHandler } from "./restate/form.js";
@@ -28,6 +30,10 @@ export interface TokenRow {
   name: string;
   prefix: string;
   client: string | null;
+  /** What it may do; null: what its person may. */
+  verbs: string[] | null;
+  /** Where; null: every app its person reaches. */
+  apps: string[] | null;
   createdAt: Date;
   lastUsedAt: Date | null;
   expiresAt: Date | null;
@@ -38,6 +44,8 @@ const COLUMNS = {
   name: accessTokens.name,
   prefix: accessTokens.prefix,
   client: accessTokens.client,
+  verbs: accessTokens.verbs,
+  apps: accessTokens.apps,
   createdAt: accessTokens.createdAt,
   lastUsedAt: accessTokens.lastUsedAt,
   expiresAt: accessTokens.expiresAt,
@@ -65,11 +73,30 @@ async function mayPin(main: Queryable, email: string, client: string): Promise<b
   return !!m;
 }
 
+/** A cap's list as asked: known values, each once, sorted; null when none was asked. */
+function capList<T extends string>(
+  asked: readonly string[] | null | undefined,
+  known: readonly T[],
+  what: string,
+): T[] | null {
+  if (asked === null || asked === undefined) return null;
+  const bad = asked.filter((v) => !(known as readonly string[]).includes(v));
+  if (bad.length) throw new PortalRefusal(`No such ${what}: ${bad.join(", ")}.`, 400);
+  if (!asked.length) throw new PortalRefusal(`Pick at least one ${what}, or leave it open.`, 400);
+  return [...new Set(asked as T[])].sort();
+}
+
 /** A new token for this person. The token comes back once; only its hash is kept. */
 export async function makeToken(
   main: Queryable,
   email: string,
-  ask: { name: string; client?: string | null; days?: number | null },
+  ask: {
+    name: string;
+    client?: string | null;
+    days?: number | null;
+    verbs?: readonly string[] | null;
+    apps?: readonly string[] | null;
+  },
 ): Promise<TokenRow & { token: string }> {
   const name = ask.name.trim().slice(0, 80);
   if (!name) throw new PortalRefusal("Name the token, so you know which tool holds it.", 400);
@@ -79,6 +106,10 @@ export async function makeToken(
   const days = ask.days ?? null;
   if (days !== null && (!Number.isInteger(days) || days < 1 || days > 365))
     throw new PortalRefusal("A token lasts 1 to 365 days, or until removed.", 400);
+  const verbs = capList(ask.verbs, PERMISSIONS, "permission");
+  if (verbs && !verbs.includes("read"))
+    throw new PortalRefusal("A token reads at least: it can't act on what it can't see.", 400);
+  const apps = capList(ask.apps, Object.keys(APPS), "app");
   if ((await listTokens(main, email)).length >= TOKENS_MAX)
     throw new PortalRefusal(`You have ${TOKENS_MAX} tokens. Remove one first.`, 409);
   const token = `${TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`;
@@ -90,6 +121,8 @@ export async function makeToken(
       hash: tokenHash(token),
       prefix: token.slice(0, 9),
       client,
+      verbs,
+      apps,
       expiresAt: days === null ? null : sql`now() + make_interval(days => ${days})`,
     })
     .returning(COLUMNS);
@@ -114,6 +147,8 @@ export interface TokenViewer {
   operator: boolean;
   /** The client it's pinned to, if any. */
   client: string | null;
+  /** Its limit below its person, if any. */
+  cap: Cap | null;
 }
 
 /** Who a token acts as, or null: unknown, removed or expired. Marks it used. */
@@ -124,6 +159,8 @@ export async function checkToken(main: Queryable, token: string): Promise<TokenV
       id: accessTokens.id,
       email: accessTokens.email,
       client: accessTokens.client,
+      verbs: accessTokens.verbs,
+      apps: accessTokens.apps,
       lastUsedAt: accessTokens.lastUsedAt,
       // Qualified by hand: drizzle prints a bare "email" here, which reads as the operator's own.
       operator: sql<boolean>`exists (select 1 from operators o
@@ -143,7 +180,15 @@ export async function checkToken(main: Queryable, token: string): Promise<TokenV
       .update(accessTokens)
       .set({ lastUsedAt: sql`now()` })
       .where(eq(accessTokens.id, row.id));
-  return { email: row.email, operator: row.operator, client: row.client };
+  // Apps alone still caps: every verb, those apps.
+  const cap: Cap | null =
+    row.verbs || row.apps
+      ? {
+          verbs: (row.verbs ?? PERMISSIONS) as Permission[],
+          ...(row.apps ? { apps: row.apps } : {}),
+        }
+      : null;
+  return { email: row.email, operator: row.operator, client: row.client, cap };
 }
 
 /**

@@ -200,9 +200,18 @@ export interface Target {
  */
 export type Who =
   | { demo: true }
-  | { team: RoleId; clients: readonly string[] | null; grants?: readonly Grant[] }
-  | { member: RoleId; client: string; grants?: readonly Grant[] }
+  | { team: RoleId; clients: readonly string[] | null; grants?: readonly Grant[]; cap?: Cap }
+  | { member: RoleId; client: string; grants?: readonly Grant[]; cap?: Cap }
   | null;
+
+/**
+ * An access token's limit (designs/2026-10-09-ai-tools.md): the verbs it may use and the apps it
+ * may reach. It only narrows: a token never holds what its person doesn't. Left out, the person's own.
+ */
+export interface Cap {
+  verbs: readonly Permission[];
+  apps?: readonly string[];
+}
 
 /** Does this scope reach that target? Left out on either side matches; `null` needs no limit. */
 export function covers(scope: Scope, at: Target): boolean {
@@ -254,6 +263,9 @@ export function why(who: Who, p: Permission, at?: string | Target, now = new Dat
   if (!who) return [];
   const t = targetOf(at);
   if ("demo" in who) return p === "read" ? [{ verbs: ["read"], scope: {}, role: "demo" }] : [];
+  // A token's cap: an app left out of the target ("anywhere") passes, so the guard's first ask works.
+  const cap = who.cap;
+  if (cap && (!cap.verbs.includes(p) || !covers(cap.apps ? { apps: cap.apps } : {}, t))) return [];
   if ("team" in who) {
     const fenced = who.team !== "admin" && who.clients !== null && t.client !== undefined;
     if (fenced && !who.clients?.includes(t.client as string)) return [];

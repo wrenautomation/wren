@@ -346,7 +346,8 @@ export const operators = pgTable(
 /**
  * A person's access tokens for AI tools (designs/2026-10-09-ai-tools.md). A token acts as its
  * email and nothing more: every call passes the portal's own guards as that viewer. Only the
- * SHA-256 is kept; `prefix` tells two apart. `client` pins it to one workspace.
+ * SHA-256 is kept; `prefix` tells two apart. `client` pins it to one workspace. `verbs` and
+ * `apps` cap it below its person (`Cap`); null is the person's own.
  */
 export const accessTokens = pgTable(
   "access_tokens",
@@ -357,6 +358,8 @@ export const accessTokens = pgTable(
     hash: varchar("hash", { length: 64 }).notNull(),
     prefix: varchar("prefix", { length: 16 }).notNull(),
     client: varchar("client", { length: 40 }),
+    verbs: text("verbs").array(),
+    apps: text("apps").array(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),

@@ -329,3 +329,27 @@ describe("mayApprove", () => {
     expect(mayApprove(null, "acme", "either")).toBe(false);
   });
 });
+
+describe("a token's cap", () => {
+  const admin: Who = { team: "admin", clients: null };
+  const owner: Who = { member: "owner", client: "acme" };
+  it("reads only: every other verb is no, even an admin's", () => {
+    const t: Who = { ...admin, cap: { verbs: ["read"] } };
+    expect(can(t, "read", { client: "acme", app: "leads" })).toBe(true);
+    expect(granted(t, "acme")).toEqual(["read"]);
+    expect(whole(t, "read", "acme")).toBe(true);
+  });
+  it("some apps: those, never the rest, never wholly", () => {
+    const t: Who = { ...owner, cap: { verbs: ["read", "act"], apps: ["inbox"] } };
+    expect(can(t, "act", { client: "acme", app: "inbox" })).toBe(true);
+    expect(can(t, "read", { client: "acme", app: "leads" })).toBe(false);
+    // The guard's first ask names no app yet: the cap lets it through to the handler's own check.
+    expect(can(t, "read", "acme")).toBe(true);
+    expect(whole(t, "read", "acme")).toBe(false);
+  });
+  it("never widens: a cap past the person's role still holds only the role", () => {
+    const viewer: Who = { member: "viewer", client: "acme", cap: { verbs: [...PERMISSIONS] } };
+    expect(can(viewer, "act", { client: "acme", app: "inbox" })).toBe(false);
+    expect(can(viewer, "read", { client: "beta" })).toBe(false);
+  });
+});

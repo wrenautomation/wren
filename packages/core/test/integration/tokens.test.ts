@@ -8,7 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { accessTokens, addMember, addOperator, clients } from "../../src/clients/index.js";
 import { consoleApi } from "../../src/console.js";
-import type { PortalRefusal } from "../../src/portal.js";
+import { guard, type PortalRefusal, type PortalRequest } from "../../src/portal.js";
 import { checkToken, makeToken, TOKENS_MAX, tokenHash } from "../../src/tokens.js";
 
 let pg: TestPostgres;
@@ -46,6 +46,7 @@ describe("tokens", () => {
       email: "ada@example.test",
       operator: true,
       client: null,
+      cap: null,
     });
     const [used] = await pg.db.select().from(accessTokens).where(eq(accessTokens.id, made.id));
     expect(used?.lastUsedAt).not.toBeNull();
@@ -89,6 +90,35 @@ describe("tokens", () => {
       sql`update access_tokens set expires_at = now() - interval '1 minute' where id = ${b.id}`,
     );
     expect(await checkToken(pg.db, b.token)).toBeNull();
+  });
+
+  it("a cap keeps a token below its person, and a capped token can't mint a wider one", async () => {
+    const made = (await api().tokenMake({
+      viewer: OWEN,
+      client: "acme",
+      asClient: true,
+      name: "Reader",
+      verbs: ["read"],
+      apps: ["inbox", "inbox"],
+    } as never)) as { token: string; verbs: string[]; apps: string[] };
+    expect([made.verbs, made.apps]).toEqual([["read"], ["inbox"]]);
+    const t = await checkToken(pg.db, made.token);
+    expect(t?.cap).toEqual({ verbs: ["read"], apps: ["inbox"] });
+    // As the Worker sends it: the guard reads Owen fresh, then holds him to the cap.
+    const viewer = { email: OWEN.email, cap: t?.cap ?? undefined };
+    const asked = (need: string, app: string) =>
+      guard(pg.db, need as never, { viewer, client: "acme" } as PortalRequest, "first", { app });
+    await asked("read", "inbox");
+    await refused(asked("read", "leads"), 403);
+    await refused(asked("act", "inbox"), 403);
+    await refused(api().tokenMake({ viewer, name: "wider", verbs: ["read", "act"] } as never), 403);
+    await refused(api().tokenMake({ viewer, name: "elsewhere", apps: ["leads"] } as never), 403);
+    const child = (await api().tokenMake({ viewer, name: "same" } as never)) as { verbs: string[] };
+    expect(child.verbs).toEqual(["read"]);
+
+    await refused(api().tokenMake({ viewer: OWEN, name: "x", verbs: ["fly"] } as never), 400);
+    await refused(api().tokenMake({ viewer: OWEN, name: "x", verbs: ["act"] } as never), 400);
+    await refused(api().tokenMake({ viewer: OWEN, name: "x", apps: [] } as never), 400);
   });
 
   it("caps a person's live tokens", async () => {

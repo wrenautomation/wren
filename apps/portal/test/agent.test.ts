@@ -103,6 +103,15 @@ describe("agent", () => {
     expect(get.status).toBe(405);
   });
 
+  it("a capped token carries its cap to the guard; a read-only one never calls", async () => {
+    token = { email: "amy@wren.example", operator: true, client: null, cap: { verbs: ["read"] } };
+    await call("types");
+    expect(sent[1]?.body).toMatchObject({ viewer: { cap: { verbs: ["read"] } } });
+    const res = await call("call", { service: "X", handler: "y" });
+    expect(res.status).toBe(403);
+    expect(sent.filter((s) => s.url.endsWith("/ConsolePortal/call"))).toHaveLength(0);
+  });
+
   it("unknown tools and bodies that aren't one object are refused", async () => {
     expect((await call("nope")).status).toBe(404);
     expect((await call("types", [1])).status).toBe(400);

@@ -2728,12 +2728,40 @@ export function consoleApi({
      * A new token, shown once. Pinned to the request's client (a client's own host, or the
      * workspace picked), else to `pin` if given, else as wide as its person.
      */
-    tokenMake: async (req: PortalRequest & { name?: unknown; pin?: unknown; days?: unknown }) => {
+    tokenMake: async (
+      req: PortalRequest & {
+        name?: unknown;
+        pin?: unknown;
+        days?: unknown;
+        verbs?: unknown;
+        apps?: unknown;
+      },
+    ) => {
       if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
       if (typeof req.name !== "string") throw new PortalRefusal("name the token", 400);
       const client = req.client || (typeof req.pin === "string" && req.pin ? req.pin : null);
       const days = req.days === undefined || req.days === null ? null : Number(req.days);
-      return makeToken(main, (req.viewer as SignedViewer).email, { name: req.name, client, days });
+      const list = (v: unknown, what: string) => {
+        if (v === undefined || v === null) return null;
+        if (!Array.isArray(v) || !v.every((x) => typeof x === "string"))
+          throw new PortalRefusal(`${what}: a list of names`, 400);
+        return v as string[];
+      };
+      // A token made by a token is held to the maker's cap: it can't widen itself.
+      const cap = (req.viewer as SignedViewer).cap;
+      const verbs = list(req.verbs, "verbs") ?? (cap ? [...cap.verbs] : null);
+      const apps = list(req.apps, "apps") ?? (cap?.apps ? [...cap.apps] : null);
+      if (cap && verbs?.some((v) => !cap.verbs.includes(v as Permission)))
+        throw new PortalRefusal("This token can't make one that does more.", 403);
+      if (cap?.apps && apps?.some((a) => !cap.apps?.includes(a)))
+        throw new PortalRefusal("This token can't make one that reaches more.", 403);
+      return makeToken(main, (req.viewer as SignedViewer).email, {
+        name: req.name,
+        client,
+        days,
+        verbs,
+        apps,
+      });
     },
     tokenRevoke: async (req: PortalRequest & { id?: unknown }) => {
       if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);

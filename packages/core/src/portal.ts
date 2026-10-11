@@ -7,6 +7,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
+  type Cap,
   can,
   channelsIn,
   type Grant,
@@ -39,9 +40,10 @@ export interface TeamSeat {
  * An email our sign-in vouched for, or anyone on the demo host. `operator` comes from the token;
  * the access guard overwrites it, and sets `team` and `access`, from a fresh read before any
  * handler runs. `access` is the whole answer, grants and all, that `canAt` checks targets with.
+ * `cap` is an access token's limit, set by the Worker; it stays on through View as.
  */
 export type Viewer =
-  | { email: string; operator?: boolean; team?: TeamSeat; access?: Who }
+  | { email: string; operator?: boolean; team?: TeamSeat; access?: Who; cap?: Cap }
   | { demo: true };
 export type SignedViewer = Exclude<Viewer, { demo: true }>;
 
@@ -78,9 +80,14 @@ export async function teamSeat(main: Db, email: string): Promise<TeamSeat | null
  */
 export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<Who> {
   if (isDemo(viewer)) return { demo: true };
-  const seat = await teamSeat(main, viewer.email);
+  const who = await personOf(main, viewer.email, client);
+  return who && viewer.cap ? { ...who, cap: viewer.cap } : who;
+}
+
+async function personOf(main: Db, email: string, client?: string): Promise<Who> {
+  const seat = await teamSeat(main, email);
   if (seat) {
-    const grants = await grantsFor(main, viewer.email, seat.role);
+    const grants = await grantsFor(main, email, seat.role);
     return { team: seat.role, clients: seat.clients, ...(grants.length ? { grants } : {}) };
   }
   const [row] = await main
@@ -90,14 +97,14 @@ export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<
     .where(
       and(
         eq(clients.demo, false),
-        eq(clientMembers.email, normalEmail(viewer.email)),
+        eq(clientMembers.email, normalEmail(email)),
         client === undefined ? undefined : eq(clientMembers.clientId, client),
       ),
     )
     .orderBy(asc(clients.id))
     .limit(1);
   if (!row) return null;
-  const grants = await grantsFor(main, viewer.email, row.role, row.client);
+  const grants = await grantsFor(main, email, row.role, row.client);
   return { member: row.role, client: row.client, ...(grants.length ? { grants } : {}) };
 }
 
@@ -129,7 +136,7 @@ export async function guard<R extends PortalRequest>(
   const viewer =
     asked === undefined || asked === null || asked === ""
       ? req.viewer
-      : await viewAsOf(main, req.viewer, asked, permission);
+      : capOf(req.viewer, await viewAsOf(main, req.viewer, asked, permission));
   const who = await whoIs(main, viewer, wren ? undefined : named);
   // `wren` is for the team: a client's people naming no client stay on their own.
   const team = who !== null && "team" in who;
@@ -163,10 +170,19 @@ export async function guard<R extends PortalRequest>(
           operator: true,
           team: { role: who.team, clients: who.clients },
           access: who,
+          ...(viewer.cap ? { cap: viewer.cap } : {}),
         }
-      : { email: viewer.email, ...(who ? { access: who } : {}) };
+      : {
+          email: viewer.email,
+          ...(who ? { access: who } : {}),
+          ...(viewer.cap ? { cap: viewer.cap } : {}),
+        };
   return { ...req, viewer: fresh };
 }
+
+/** `as` with `real`'s token cap: looking as someone never widens a token. */
+const capOf = (real: Viewer, as: SignedViewer): SignedViewer =>
+  !isDemo(real) && real.cap ? { ...as, cap: real.cap } : as;
 
 /**
  * View as (designs/2026-10-06-scoped-access.md): the person `as`, for a route that only reads.

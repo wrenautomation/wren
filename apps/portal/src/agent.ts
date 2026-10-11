@@ -15,7 +15,9 @@ export const AGENT_PATH = "/api/agent";
 const MAX_BODY = 64 * 1024;
 const LIST_MAX = 50;
 
-type Viewer = { email: string; operator?: true };
+/** A token's limit below its person (`Cap` in `@wren/core/access`); the guard holds every call to it. */
+type Cap = { verbs: string[]; apps?: string[] };
+type Viewer = { email: string; operator?: true; cap?: Cap };
 type Who = { viewer: Viewer; pin: { client?: string; asClient?: true }; origin: object };
 type Args = Record<string, unknown>;
 
@@ -106,9 +108,14 @@ async function whoOf(req: Request, env: Env, site: Site): Promise<Who | Response
     email?: string;
     operator?: boolean;
     client?: string | null;
+    cap?: Cap | null;
   } | null;
   if (!t?.email) return unauthorized("This token is unknown, removed or expired.");
-  const viewer: Viewer = t.operator ? { email: t.email, operator: true } : { email: t.email };
+  const viewer: Viewer = {
+    email: t.email,
+    ...(t.operator ? { operator: true as const } : {}),
+    ...(t.cap ? { cap: t.cap } : {}),
+  };
   let client = t.client ?? undefined;
   if (site.kind === "client") {
     if (client && client !== site.client)
@@ -163,6 +170,8 @@ function runTool(env: Env, who: Who, name: string, a: Args): Promise<Response> |
     case "describe":
       return team() ?? consoleCall(env, who, "recordsGet", { record: "console.handler", id: a.id });
     case "call":
+      if (who.viewer.cap && !who.viewer.cap.verbs.some((v) => v === "run" || v === "effect"))
+        return json({ error: "This token only reads. Make one that can run handlers." }, 403);
       return consoleCall(
         env,
         who,
