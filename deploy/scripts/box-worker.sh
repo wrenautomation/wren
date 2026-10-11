@@ -7,14 +7,22 @@ set -euo pipefail
 bucket="$1" key="$2"
 dir=/opt/wren-worker
 
-# Headroom beside Postgres and the browser on a 2 GB box: a swap file, made once, on the
-# data volume (the 8 GB root has no room for it).
-SWAP=/var/lib/wren-pg/swapfile
+# Headroom beside Postgres, Restate and the browser on a 4 GB box: a 2 GB swap file on the
+# data volume (the 8 GB root has no room for it). Swap is the crash buffer, not memory to
+# scale on: swappiness 10 keeps Postgres' pages in RAM until a spike, and a box that lives
+# in swap gets a bigger instance. The Lambda has no swap; it scales by memory size.
+SWAP=/var/lib/wren-pg/swapfile SWAP_MB=2048
+if [ -f "$SWAP" ] && [ "$(stat -c %s "$SWAP")" -ne $((SWAP_MB * 1048576)) ]; then
+  swapoff "$SWAP" 2>/dev/null || true
+  rm -f "$SWAP"
+fi
 if ! swapon --show | grep -q "$SWAP"; then
-  [ -f "$SWAP" ] || { dd if=/dev/zero of="$SWAP" bs=1M count=1024 status=none; chmod 600 "$SWAP"; mkswap "$SWAP" >/dev/null; }
+  [ -f "$SWAP" ] || { dd if=/dev/zero of="$SWAP" bs=1M count="$SWAP_MB" status=none; chmod 600 "$SWAP"; mkswap "$SWAP" >/dev/null; }
   swapon "$SWAP"
   grep -q "$SWAP" /etc/fstab || echo "$SWAP swap swap defaults,nofail 0 0" >> /etc/fstab
 fi
+echo "vm.swappiness = 10" > /etc/sysctl.d/90-wren-swap.conf
+sysctl -q -p /etc/sysctl.d/90-wren-swap.conf
 
 aws s3 cp --only-show-errors "s3://$bucket/$key" /tmp/wren-worker.zip
 rm -rf "$dir.new" && mkdir -p "$dir.new"
