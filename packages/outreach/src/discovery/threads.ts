@@ -11,6 +11,7 @@ import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { AccountHealth } from "@wren/core/outreach";
+import { whereSent } from "@wren/core/sent-url";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
@@ -443,7 +444,7 @@ export async function markCommented(
   id: string,
   r: { body: string; ref: string | null; accountId: string; now: Date; by?: string },
 ): Promise<void> {
-  await db
+  const [t] = await db
     .update(redditThreads)
     .set({
       state: "commented",
@@ -452,7 +453,8 @@ export async function markCommented(
       answeredAt: r.now,
       accountId: r.accountId,
     })
-    .where(eq(redditThreads.id, id));
+    .where(eq(redditThreads.id, id))
+    .returning({ url: redditThreads.url });
   await keepTouch(`rt:${id}`, () => touchFromThread(db, id));
   await recordDraft(db, {
     item: `thread:${id}`,
@@ -463,6 +465,7 @@ export async function markCommented(
     by: r.by ?? null,
     text: r.body,
     externalId: r.ref,
+    url: whereSent("reddit", t?.url ?? null, r.ref),
     ref: `sent:thread:${id}`,
   });
 }

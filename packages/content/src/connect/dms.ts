@@ -387,6 +387,7 @@ export async function sentDm(
     by: o.by,
     text: plan.body,
     externalId: o.ref,
+    url: contact.url,
     ref: `sent:dm:${plan.messageId}`,
   });
 }

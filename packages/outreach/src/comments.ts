@@ -13,6 +13,7 @@ import { factsBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
+import { whereSent } from "@wren/core/sent-url";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
@@ -368,7 +369,7 @@ export async function markAnswered(
     .update(comments)
     .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
     .where(eq(comments.id, id))
-    .returning({ platform: comments.platform });
+    .returning({ platform: comments.platform, url: comments.url });
   await keepTouch(`ca:${id}`, () => touchFromAnswer(db, id));
   if (c)
     await recordDraft(db, {
@@ -380,6 +381,7 @@ export async function markAnswered(
       by: r.by ?? null,
       text: r.body,
       externalId: r.ref,
+      url: whereSent(c.platform, c.url, r.ref),
       ref: `sent:comment:${id}`,
     });
 }
@@ -523,14 +525,15 @@ export async function planPrivateReply(db: Queryable, id: number, now: Date): Pr
 export async function privateReplied(
   db: Queryable,
   c: Comment,
-  o: { body: string; ref: string | null; now: Date },
+  o: { body: string; ref: string | null; now: Date; by?: string | null },
 ): Promise<{ contactId: number; messageId: number }> {
+  const url = c.platform === "instagram" ? `https://www.instagram.com/${c.author}/` : c.url;
   const [contact] = await db
     .insert(reachContacts)
     .values({
       platform: c.platform as "instagram" | "facebook",
       handle: c.author,
-      url: c.platform === "instagram" ? `https://www.instagram.com/${c.author}/` : c.url,
+      url,
       name: null,
       headline: null,
       foundIn: `comment on ${c.postTitle?.slice(0, 120) ?? "our post"}`,
@@ -557,6 +560,19 @@ export async function privateReplied(
   if (!msg) throw new Error("dm: the message didn't save");
   await db.update(comments).set({ contactId: contact.id }).where(eq(comments.id, c.id));
   await keepTouch(`rm:${msg.id}`, () => touchFromMessage(db, msg.id));
+  await recordDraft(db, {
+    item: `dm:${contact.id}`,
+    kind: "dm",
+    platform: c.platform,
+    event: "sent",
+    via: "person",
+    by: o.by ?? null,
+    text: o.body,
+    externalId: o.ref,
+    url,
+    meta: { message: msg.id, comment: c.id },
+    ref: `sent:dm:${msg.id}`,
+  });
   return { contactId: contact.id, messageId: msg.id };
 }
 

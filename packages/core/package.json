@@ -17,6 +17,7 @@
     "./console-routes": "./src/console-routes.ts",
     "./door": "./src/door.ts",
     "./draft-record": "./src/draft-record.ts",
+    "./sent-url": "./src/sent-url.ts",
     "./facts": "./src/facts.ts",
     "./facts-list": "./src/facts-list.ts",
     "./grounded": "./src/grounded.ts",

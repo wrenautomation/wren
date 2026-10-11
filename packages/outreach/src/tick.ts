@@ -435,6 +435,7 @@ export async function recordSent(
       event: "sent",
       via: "wren",
       text: c.row.body,
+      url: c.contact.url,
       meta: { message: c.row.id },
     });
   stats.sent++;

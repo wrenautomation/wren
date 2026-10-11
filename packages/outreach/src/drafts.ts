@@ -275,6 +275,7 @@ export async function queueDraft(
     via: "person",
     by,
     text: words,
+    url: contact.url,
     meta: { message: msg.id },
   });
   return msg;

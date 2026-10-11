@@ -3,6 +3,7 @@
  * our own Instagram post takes one DM within 7 days, refused after, twice, or when they opted out;
  * once sent it holds their contact, the message and the touch.
  */
+import { draftEvents } from "@wren/core/schema";
 import { lookupTouches } from "@wren/core/touches";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -58,6 +59,14 @@ describe("dm door", () => {
     expect((await commentById(db(), id)).contactId).toBe(r.contactId);
     const seen = await lookupTouches(db(), "instagram:reader1");
     expect(seen?.touches.map((t) => [t.kind, t.direction])).toEqual([["dm", "ours"]]);
+    // Its sent step links to the person, so Inbox → Done opens where it went.
+    const steps = await db()
+      .select()
+      .from(draftEvents)
+      .where(eq(draftEvents.item, `dm:${r.contactId}`));
+    expect(steps).toMatchObject([
+      { event: "sent", kind: "dm", url: "https://www.instagram.com/reader1/" },
+    ]);
     await expect(planPrivateReply(db(), id, NOW)).rejects.toThrow("has a DM from us");
   });
 

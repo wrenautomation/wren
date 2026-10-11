@@ -1255,7 +1255,9 @@ export function makeReachDesk(deps: ReachDeps) {
             const sent = await ctx
               .serviceClient<ContentReply>({ name: "Content" })
               .privateReply({ platform: c.platform, commentId: c.ref, text: body });
-            return ctx.run("sent", () => privateReplied(deps.db, c, { body, ref: sent.ref, now }));
+            return ctx.run("sent", () =>
+              privateReplied(deps.db, c, { body, ref: sent.ref, now, by: byOf(req) }),
+            );
           }
           const r = await ctx.run("queue", () =>
             terminal(() => dmCommenter(deps.db, { id: req.id, body: req.body, now })),
