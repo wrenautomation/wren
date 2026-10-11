@@ -5,20 +5,35 @@
  * a query. Learning from it (feeding winners back into ideas) is still a
  * person's job — see the design's "where to attack".
  */
-import type { Metrics } from "@wren/core/content";
+import type { Metrics, Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, gte, inArray, isNotNull, notExists } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, notExists, sql } from "drizzle-orm";
 import { type ContentDraft, type ContentMetric, contentDrafts, contentMetrics } from "./schema.js";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 /** Posts older than this are done moving; stop looking. */
 export const DEFAULT_WATCH_DAYS = 30;
-/** One look per post per day. */
-export const DEFAULT_LOOK_EVERY_MS = 20 * 60 * 60 * 1000;
+/** One look per post per day, once it is past its first week. */
+export const DEFAULT_LOOK_EVERY_MS = 20 * HOUR_MS;
+/**
+ * A young post's numbers move by the hour, so a daily look showed them a day behind the
+ * platform. Looked at hourly for two days, every 6 hours to a week, then daily.
+ */
+export const LOOK_TIERS: readonly { youngerThanMs: number; everyMs: number }[] = [
+  { youngerThanMs: 2 * DAY_MS, everyMs: HOUR_MS },
+  { youngerThanMs: 7 * DAY_MS, everyMs: 6 * HOUR_MS },
+];
+/**
+ * Platforms whose reads are free API calls. The rest stay daily: X bills each read, and
+ * LinkedIn and Reddit read through a signed-in browser, where every look is a visit.
+ */
+export const FAST_LOOKS: readonly Platform[] = ["youtube", "instagram", "facebook", "tiktok"];
 
 /**
  * Published drafts (with the platform's id) published within `watchDays`
- * whose last snapshot is older than `lookEveryMs` or missing. Oldest look first.
+ * whose last snapshot is older than its tier (`LOOK_TIERS`; `lookEveryMs` for every post
+ * when given) or missing. Oldest look first.
  */
 export async function metricsDue(
   db: Queryable,
@@ -26,12 +41,31 @@ export async function metricsDue(
   o: { watchDays?: number; lookEveryMs?: number; limit?: number } = {},
 ): Promise<ContentDraft[]> {
   const since = new Date(now.getTime() - (o.watchDays ?? DEFAULT_WATCH_DAYS) * DAY_MS);
-  const stale = new Date(now.getTime() - (o.lookEveryMs ?? DEFAULT_LOOK_EVERY_MS));
-  // A Date in raw `sql\`…\`` is not a postgres-js parameter; keep every comparison typed.
+  // A Date in raw `sql\`…\`` is not a postgres-js parameter: ISO text, cast.
+  const ago = (ms: number) => sql`${new Date(now.getTime() - ms).toISOString()}::timestamptz`;
+  const daily = ago(o.lookEveryMs ?? DEFAULT_LOOK_EVERY_MS);
+  const fresh =
+    o.lookEveryMs !== undefined
+      ? daily
+      : sql`CASE WHEN ${contentDrafts.platform} NOT IN (${sql.join(
+          FAST_LOOKS.map((p) => sql`${p}`),
+          sql`, `,
+        )}) THEN ${daily} ${sql.join(
+          LOOK_TIERS.map(
+            (t) =>
+              sql`WHEN ${contentDrafts.publishedAt} > ${ago(t.youngerThanMs)} THEN ${ago(t.everyMs)}`,
+          ),
+          sql` `,
+        )} ELSE ${daily} END`;
   const lookedRecently = db
     .select({ id: contentMetrics.id })
     .from(contentMetrics)
-    .where(and(eq(contentMetrics.draftId, contentDrafts.id), gte(contentMetrics.createdAt, stale)));
+    .where(
+      and(
+        eq(contentMetrics.draftId, contentDrafts.id),
+        sql`${contentMetrics.createdAt} >= ${fresh}`,
+      ),
+    );
   return db
     .select()
     .from(contentDrafts)

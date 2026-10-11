@@ -3,17 +3,17 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 3781504 (+ follows)
+verified: 2026-10-11 @ ec72a24a (+ look tiers)
 entity: packages/content/src/schema.ts:127
 ---
 
 # content-metric
 
-One daily look at what a published draft did. Table `content_metrics`.
+One look at what a published draft did. Table `content_metrics`.
 
 ## Why this shape
 
-One snapshot per post per day for its first 30 days (`metrics.ts:15`, `:17`), so "what worked" is a query over rows, and the lesson feeds the next draft's prompt (`lessons.ts:1`). Learning beyond that is still a person's job.
+Snapshots for a post's first 30 days (`metrics.ts:16`), so "what worked" is a query over rows, and the lesson feeds the next draft's prompt (`lessons.ts:1`). Learning beyond that is still a person's job. A daily look showed a new post a day behind the platform (temp note, 2026-10-11), so on free API reads (`FAST_LOOKS`, `metrics.ts:31`) a post is looked at hourly for 2 days, every 6 h to a week, then daily (`LOOK_TIERS`, `:23`). X bills each read and LinkedIn and Reddit read through a browser: daily. The loop runs hourly (`restate/metrics.ts:49`).
 
 ## Shape
 
@@ -29,7 +29,7 @@ Citations: `packages/content/src/schema.ts:127`
 
 ## If you change this
 
-- **Hits:** `metrics.ts:50`, `:97`; `restate/metrics.ts`; `lessons.ts`; `wren content results`
+- **Hits:** `metricsDue` (`metrics.ts:38`), `recordMetrics` (`:84`); `restate/metrics.ts`; `lessons.ts`; `wren content results`
 
 ## Surfaces
 

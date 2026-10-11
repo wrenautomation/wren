@@ -44,8 +44,9 @@ export async function lessonsFor(db: Queryable, platform: Platform): Promise<Les
     if (notes.length === MAX_NOTES) break;
   }
 
+  // The latest look per post: a young post is looked at hourly, so a row cap would be its alone.
   const snaps = await db
-    .select({
+    .selectDistinctOn([contentMetrics.draftId], {
       draftId: contentMetrics.draftId,
       text: contentDrafts.text,
       views: contentMetrics.views,
@@ -57,11 +58,8 @@ export async function lessonsFor(db: Queryable, platform: Platform): Promise<Les
     .from(contentMetrics)
     .innerJoin(contentDrafts, eq(contentDrafts.id, contentMetrics.draftId))
     .where(and(eq(contentDrafts.platform, platform), eq(contentDrafts.status, "published")))
-    .orderBy(desc(contentMetrics.createdAt))
-    .limit(500);
-  const latest = new Map<string, (typeof snaps)[number]>();
-  for (const s of snaps) if (!latest.has(s.draftId)) latest.set(s.draftId, s);
-  const winners = [...latest.values()]
+    .orderBy(contentMetrics.draftId, desc(contentMetrics.createdAt));
+  const winners = snaps
     .filter((s) => s.views >= MIN_VIEWS)
     .map((s) => ({ text: s.text.slice(0, WINNER_CHARS), views: s.views, score: scoreOf(s) }))
     .sort((a, b) => b.score - a.score || b.views - a.views)

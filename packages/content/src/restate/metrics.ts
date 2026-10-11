@@ -45,7 +45,8 @@ const ACCOUNTS = "accounts";
 const REPORTS = "reports.";
 /** The week whose digest was last kept. */
 const DIGESTED = "digested";
-const DEFAULT_EVERY_MS = 6 * 60 * 60 * 1000;
+/** Hourly: a post in its first two days is due every hour (`LOOK_TIERS`); the rest skip. */
+const DEFAULT_EVERY_MS = 60 * 60 * 1000;
 const REPORT_DAYS = 7;
 const MONDAY = 1;
 
