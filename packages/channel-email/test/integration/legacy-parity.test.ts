@@ -73,6 +73,10 @@ const ADDED = {
     "template_versions.why",
     "template_versions.opened_from",
     "template_versions.default_hash",
+    // 2026-10-11 firm firsts: when each firm was first crawled, named and a lead.
+    "companies.crawled_at",
+    "companies.named_at",
+    "companies.lead_at",
   ]),
   constraints: new Set([
     "uq_messages_link_code",
