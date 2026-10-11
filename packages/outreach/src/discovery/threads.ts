@@ -13,7 +13,7 @@ import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { ReachRefusal } from "../refusal.js";
@@ -119,6 +119,22 @@ const RANKED = z.object({
 });
 
 export const RANK_BATCH = 10;
+/** Unranked threads one pass ranks per place, oldest first. */
+const RANK_PER_PLACE = 30;
+
+/**
+ * A place's threads still waiting on a rank: this pass's and any an earlier rank left out (the
+ * model skipped it, or its answer didn't parse), so none sits unranked for good.
+ */
+export async function unrankedThreads(db: Queryable, sub: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: redditThreads.id })
+    .from(redditThreads)
+    .where(and(eq(redditThreads.subreddit, sub), eq(redditThreads.state, "new")))
+    .orderBy(asc(redditThreads.postedAt))
+    .limit(RANK_PER_PLACE);
+  return rows.map((r) => r.id);
+}
 
 /** Rank up to RANK_BATCH new threads in one model call. Answers how many it ranked. */
 export async function rankThreads(
@@ -198,7 +214,7 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
     .where(
       and(
         eq(redditThreads.subreddit, sub),
-        eq(redditThreads.state, "queued"),
+        inArray(redditThreads.state, ["new", "queued"]),
         lt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
       ),
     );

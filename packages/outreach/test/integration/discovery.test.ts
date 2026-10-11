@@ -25,6 +25,7 @@ import {
   queueThreads,
   rankThreads,
   skipPlace,
+  unrankedThreads,
   WREN_AUDIENCE,
   watchPlace,
 } from "../../src/index.js";
@@ -144,12 +145,23 @@ describe("reddit discovery", () => {
     const fresh = await keepThreads(db(), "agency", posts, o);
     expect(fresh.sort()).toEqual(["t3_p1", "t3_p2", "t3_p3", "t3_p4", "t3_p5"]);
     expect(await keepThreads(db(), "agency", posts, o)).toEqual([]);
-    const ranker = new FakeLlm({
-      default: JSON.stringify({
-        threads: fresh.map((id, i) => ({ id, kind: "help", fit: 9 - i, angle: "How we chase" })),
-      }),
-    });
-    expect(await rankThreads(db(), ranker, fresh, WREN_AUDIENCE)).toBe(5);
+    const rank = (ids: string[]) =>
+      new FakeLlm({
+        default: JSON.stringify({
+          threads: ids.map((id) => ({
+            id,
+            kind: "help",
+            fit: 9 - Number(id.slice(4)) + 1,
+            angle: "How we chase",
+          })),
+        }),
+      });
+    // The model leaves one out: the next pass ranks it, with nothing new read.
+    expect(await rankThreads(db(), rank(fresh.slice(1)), fresh, WREN_AUDIENCE)).toBe(4);
+    const left = await unrankedThreads(db(), "agency");
+    expect(left).toEqual([fresh[0]]);
+    expect(await rankThreads(db(), rank(left), left, WREN_AUDIENCE)).toBe(1);
+    expect(await unrankedThreads(db(), "agency")).toEqual([]);
     const queued = await queueThreads(db(), "agency", NOW);
     expect(queued).toHaveLength(3);
     expect(await queueThreads(db(), "agency", NOW)).toEqual([]);

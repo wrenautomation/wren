@@ -57,6 +57,7 @@ import {
   skipThread,
   threadsToDraft,
   threadsToScore,
+  unrankedThreads,
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
 import { reachAccounts } from "../schema.js";
@@ -255,9 +256,12 @@ async function readsPass(
       });
       s.kept += fresh.length;
       const llm = d.llm;
+      const unranked = llm
+        ? await step(`unranked r/${p.subreddit}`, () => unrankedThreads(db, p.subreddit))
+        : [];
       if (llm)
-        for (let i = 0; i < fresh.length; i += RANK_BATCH) {
-          const batch = fresh.slice(i, i + RANK_BATCH);
+        for (let i = 0; i < unranked.length; i += RANK_BATCH) {
+          const batch = unranked.slice(i, i + RANK_BATCH);
           s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
             rankThreads(db, llm, batch, audience),
           );

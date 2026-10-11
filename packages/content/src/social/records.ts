@@ -914,7 +914,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
       { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
       { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
-      { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
+      { id: "threads", label: "Thread replies", where: { type: "thread" }, sort: "-at", at: "at" },
       { id: "comments", label: "Comments", where: { type: "onpost" }, sort: "due", at: "due" },
       {
         id: "invites",

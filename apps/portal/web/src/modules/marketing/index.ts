@@ -393,7 +393,7 @@ const AUDIENCE_ACTIONS: Action[] = [
 const DISCOVERY_READ = readNow(
   "marketing.discoveryRead",
   "marketing/discoveryRead",
-  () => "Reading. Places and Threads fill in over a few minutes.",
+  () => "Reading. Places and Thread replies fill in over a few minutes.",
 );
 
 const PLACE_ACTIONS: Action[] = [
@@ -1259,7 +1259,7 @@ export const marketing: Module = {
     },
     {
       id: "threads",
-      label: "Threads",
+      label: "Thread replies",
       group: "Reach",
       template: "list",
       record: "marketing.thread",
