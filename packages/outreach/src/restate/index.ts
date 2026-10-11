@@ -40,6 +40,10 @@ type ContentReply = {
     ctx: restate.Context,
     req: { platform: ContentPlatform; commentId: string; text: string },
   ) => Promise<void>;
+  privateReply: (
+    ctx: restate.Context,
+    req: { platform: ContentPlatform; commentId: string; text: string },
+  ) => Promise<{ ref: string | null }>;
 };
 
 import type { KeyStore } from "@wren/core/keys";
@@ -86,12 +90,15 @@ import {
   COMMENTS_FLOW,
   COMMENTS_FROM,
   checkThread,
+  commentById,
   commentEvent,
   dmCommenter,
   dropComment,
   keepComments,
   markAnswered,
   planAnswer,
+  planPrivateReply,
+  privateReplied,
 } from "../comments.js";
 import {
   type AddStats,
@@ -1228,7 +1235,11 @@ export function makeReachDesk(deps: ReachDeps) {
           return { ref: sent.ref };
         },
       ),
-      /** One DM to the comment's author, queued for the sender (its window and caps). */
+      /**
+       * One DM to the comment's author through its door (`dmDoorOf`): on our own Instagram or
+       * Facebook post, Meta's private reply now; on a reach inbox, queued for the sender (its
+       * window and caps); anywhere else refused with what to do instead.
+       */
       dmComment: serviceHandler(
         { input: DM, effect: "sends" },
         async (
@@ -1236,6 +1247,16 @@ export function makeReachDesk(deps: ReachDeps) {
           req: { id: number; body: string },
         ): Promise<{ contactId: number; messageId: number }> => {
           const now = await nowOf(ctx);
+          const body = req.body.trim();
+          if (!body) throw new restate.TerminalError("the message is empty");
+          const c = await ctx.run("comment", () => terminal(() => commentById(deps.db, req.id)));
+          if (!c.accountId) {
+            await ctx.run("plan", () => terminal(() => planPrivateReply(deps.db, req.id, now)));
+            const sent = await ctx
+              .serviceClient<ContentReply>({ name: "Content" })
+              .privateReply({ platform: c.platform, commentId: c.ref, text: body });
+            return ctx.run("sent", () => privateReplied(deps.db, c, { body, ref: sent.ref, now }));
+          }
           const r = await ctx.run("queue", () =>
             terminal(() => dmCommenter(deps.db, { id: req.id, body: req.body, now })),
           );

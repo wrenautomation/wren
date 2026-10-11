@@ -34,7 +34,7 @@ import {
   reachMessages,
 } from "./schema.js";
 import { queueManual } from "./tick.js";
-import { keepTouch, touchFromAnswer, touchFromComment } from "./touches.js";
+import { keepTouch, touchFromAnswer, touchFromComment, touchFromMessage } from "./touches.js";
 
 /** The workflow, and the node the reader is in it. */
 export const COMMENTS_FLOW = "reach.comments";
@@ -460,6 +460,103 @@ export async function dmCommenter(
     now: req.now,
   });
   await db.update(comments).set({ contactId: contact.id }).where(eq(comments.id, c.id));
+  return { contactId: contact.id, messageId: msg.id };
+}
+
+/**
+ * The way into a commenter's DMs (designs/2026-10-11-dm-door.md). `reach`: the reach account
+ * that read it DMs them; `private_reply`: Meta's one DM from the comment, through our Page; null:
+ * no door, and `how` says what to do instead.
+ */
+export type DmDoor = { door: "reach" | "private_reply" | null; how: string };
+const NO_DOOR: Record<string, string> = {
+  x: "X DMs need their DMs open to us: answer in public and ask them to DM us.",
+  linkedin:
+    "LinkedIn has no DM from a comment: answer in public; a connect with a note is the way in.",
+  youtube: "YouTube has no DMs: answer in public with the link.",
+  tiktok: "TikTok has no DM API: answer in public with the link.",
+  reddit: "A Reddit DM goes from a reach account; this one was read on our own post.",
+};
+/** Meta takes a DM from a comment only this long after it. */
+export const PRIVATE_REPLY_MS = 7 * 86_400_000;
+
+export function dmDoorOf(c: Pick<Comment, "platform" | "accountId">): DmDoor {
+  if (c.accountId) return { door: "reach", how: "A DM from the reach account that read it." };
+  if (c.platform === "instagram" || c.platform === "facebook")
+    return {
+      door: "private_reply",
+      how: "One DM as a reply to their comment, within 7 days of it.",
+    };
+  return {
+    door: null,
+    how: NO_DOOR[c.platform] ?? `No DM door on ${c.platform}: answer in public.`,
+  };
+}
+
+/** Everything that refuses a DM from a comment on our own post, before Meta is asked. */
+export async function planPrivateReply(db: Queryable, id: number, now: Date): Promise<Comment> {
+  const c = await commentById(db, id);
+  if (c.sort === "ours") throw new ReachRefusal("that one is ours");
+  const d = dmDoorOf(c);
+  if (d.door !== "private_reply") throw new ReachRefusal(d.how);
+  if (c.contactId) throw new ReachRefusal(`${c.author} has a DM from us; answer in their thread`);
+  if (now.getTime() - c.at.getTime() > PRIVATE_REPLY_MS)
+    throw new ReachRefusal("Meta takes a DM from a comment only within 7 days of it");
+  const [contact] = await db
+    .select({ state: reachContacts.state })
+    .from(reachContacts)
+    .where(
+      and(
+        eq(reachContacts.platform, c.platform as "instagram" | "facebook"),
+        eq(reachContacts.handle, c.author),
+      ),
+    );
+  if (contact && ["opted_out", "blocked"].includes(contact.state))
+    throw new ReachRefusal(`${c.author} asked us to stop`);
+  return c;
+}
+
+/**
+ * Sent by Meta: their contact (their reply lands on it), the message as sent, the comment tied
+ * to it, the touch.
+ */
+export async function privateReplied(
+  db: Queryable,
+  c: Comment,
+  o: { body: string; ref: string | null; now: Date },
+): Promise<{ contactId: number; messageId: number }> {
+  const [contact] = await db
+    .insert(reachContacts)
+    .values({
+      platform: c.platform as "instagram" | "facebook",
+      handle: c.author,
+      url: c.platform === "instagram" ? `https://www.instagram.com/${c.author}/` : c.url,
+      name: null,
+      headline: null,
+      foundIn: `comment on ${c.postTitle?.slice(0, 120) ?? "our post"}`,
+    })
+    .onConflictDoUpdate({
+      target: [reachContacts.platform, reachContacts.handle],
+      set: { handle: c.author },
+    })
+    .returning({ id: reachContacts.id });
+  if (!contact) throw new Error("dm: the contact didn't save");
+  const [msg] = await db
+    .insert(reachMessages)
+    .values({
+      contactId: contact.id,
+      direction: "out",
+      kind: "manual",
+      body: o.body,
+      state: "sent",
+      dueAt: o.now,
+      sentAt: o.now,
+      ref: o.ref,
+    })
+    .returning({ id: reachMessages.id });
+  if (!msg) throw new Error("dm: the message didn't save");
+  await db.update(comments).set({ contactId: contact.id }).where(eq(comments.id, c.id));
+  await keepTouch(`rm:${msg.id}`, () => touchFromMessage(db, msg.id));
   return { contactId: contact.id, messageId: msg.id };
 }
 

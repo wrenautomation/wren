@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { noiseInWords } from "./comments.js";
+import { dmDoorOf, noiseInWords } from "./comments.js";
 
 describe("noiseInWords", () => {
   it.each([
@@ -28,5 +28,19 @@ describe("noiseInWords", () => {
   ])("%s is kept", (text) => {
     // "great" alone is a nod, but a review is never noise.
     expect(noiseInWords(text, text === "great" ? "review" : "post_reply")).toBeNull();
+  });
+});
+
+describe("dmDoorOf", () => {
+  it.each([
+    ["reddit", "acct", "reach"],
+    ["instagram", null, "private_reply"],
+    ["facebook", null, "private_reply"],
+    ["x", null, null],
+    ["youtube", null, null],
+    ["linkedin", null, null],
+    ["reddit", null, null],
+  ] as const)("%s (account %s) -> %s", (platform, accountId, door) => {
+    expect(dmDoorOf({ platform, accountId }).door).toBe(door);
   });
 });

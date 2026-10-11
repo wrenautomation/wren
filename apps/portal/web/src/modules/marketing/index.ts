@@ -250,8 +250,8 @@ const COMMENT_ACTIONS: Action[] = [
     handler: "marketing/commentDm",
     ask: { field: "body", label: "Your DM" },
     key: "m",
-    when: { state: ["new", "waiting", "answered"], channel: ["reach"] },
-    done: said("Queued. It leaves on the next tick."),
+    when: { state: ["new", "waiting", "answered"], door: ["reach", "private_reply"] },
+    done: said("Sent, or queued for the reach account's next tick."),
   },
   {
     id: "marketing.commentDrop",

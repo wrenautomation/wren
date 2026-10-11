@@ -189,6 +189,11 @@ export interface ContentChannel {
   /** Absent when the platform gives no way to answer (LinkedIn without the partner API). */
   reply?(commentId: string, text: string): Promise<void>;
   /**
+   * One DM to a comment's author, sent as a reply to their comment (Meta's Private Replies: once
+   * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.
+   */
+  privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>;
+  /**
    * What people said about the account itself, not on a post (Business Profile reviews), newest
    * first, as comments: `postId` is the account's place. `reply` answers one. Absent = none.
    */
@@ -257,6 +262,8 @@ export function fakeContentChannel(
   posts: Array<Published & { post: Post }>;
   /** Every swap asked of a live post, in order. */
   updates: Array<{ id: string; patch: PostPatch }>;
+  /** Every DM sent as a reply to a comment, in order. */
+  privateReplies: Array<{ commentId: string; text: string }>;
   count(id: string, m: Partial<Omit<Metrics, "id" | "asOf" | "fetchedWith">>): void;
   receive(c: Omit<CommentRow, "repliedWith">): void;
   happen(a: ActivityRow): void;
@@ -279,10 +286,12 @@ export function fakeContentChannel(
   let account: Omit<AccountInsights, "asOf"> = { days: [], gaps: [] };
   let reported: Omit<ReportDays, "asOf"> = { rows: [], gaps: [], cursor: null };
   const updates: Array<{ id: string; patch: PostPatch }> = [];
+  const privateReplies: Array<{ commentId: string; text: string }> = [];
   return {
     platform,
     posts,
     updates,
+    privateReplies,
     async update(id, patch) {
       updates.push({ id, patch: { ...patch } });
     },
@@ -378,6 +387,12 @@ export function fakeContentChannel(
       const c = comments.find((x) => x.id === commentId);
       if (!c) throw new Error(`no comment ${commentId}`);
       c.repliedWith = `reply-${++n}:${previewOf(text, 20)}`;
+    },
+    async privateReply(commentId, text) {
+      const c = comments.find((x) => x.id === commentId);
+      if (!c) throw new Error(`no comment ${commentId}`);
+      privateReplies.push({ commentId, text });
+      return { ref: `dm-${++n}` };
     },
   };
 }

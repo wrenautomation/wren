@@ -190,7 +190,10 @@ export const commentRecord = defineRecord({
       (await db.execute(sql`
       select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post_title, c.body,
         c.sort, c.why, c.draft, c.state, c.answer, c.at, c.url, coalesce(a.handle, 'Wren') account,
-        c.contact_id, p.read p_read, p.fit p_fit, p.site p_site
+        c.contact_id, p.read p_read, p.fit p_fit, p.site p_site,
+        -- The way into their DMs (dmDoorOf): the button shows only where there is one.
+        case when c.account_id is not null then 'reach'
+          when c.platform in ('instagram', 'facebook') then 'private_reply' end door
       from comments c left join reach_accounts a on a.id = c.account_id
       left join reddit_people p on c.platform = 'reddit' and p.handle = lower(c.author)
       order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
@@ -214,6 +217,10 @@ export const commentRecord = defineRecord({
       "Where",
     ),
     kind: status(cued(COMMENT_KIND_LABELS), "Kind"),
+    door: status(
+      { reach: neutral("From the reach account"), private_reply: neutral("Reply to the comment") },
+      "DM door",
+    ),
     place: text("Place"),
     postTitle: text("Post"),
     body: prose("Their words"),

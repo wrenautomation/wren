@@ -344,6 +344,22 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           await refusalsFinal(ch.reply(req.commentId, req.text));
         },
       ),
+      /** One DM to a comment's author, as a reply to it; 501 where the platform has no such door. */
+      privateReply: serviceHandler(
+        { input: REPLY, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; commentId: string; text: string } & ForClient,
+        ): Promise<{ ref: string | null }> => {
+          await sending(ctx, req.client);
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          if (!ch.privateReply)
+            throw new restate.TerminalError(`${req.platform} has no DM from a comment`, {
+              errorCode: 501,
+            });
+          return refusalsFinal(ch.privateReply(req.commentId, req.text));
+        },
+      ),
       /**
        * A swap on a live post (title, thumbnail, hook): a publish, so only after his yes in To
        * approve. 501 where a post can't change once up.

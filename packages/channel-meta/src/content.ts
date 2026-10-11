@@ -81,6 +81,24 @@ function pageOf_(sites: SiteClient, o: MetaContentOptions) {
   };
 }
 
+/**
+ * One DM to a comment's author through the Page (Private Replies, Instagram and Facebook alike):
+ * Meta allows one per comment, within 7 days of it.
+ */
+async function privateReply(
+  sites: SiteClient,
+  page: () => Promise<Page>,
+  commentId: string,
+  text: string,
+): Promise<{ ref: string | null }> {
+  const { id } = await page();
+  const r = await sites.call<{ message_id?: string }>("meta", "POST", `/${id}/messages`, {
+    recipient: { comment_id: commentId },
+    message: { text },
+  });
+  return { ref: r.message_id ?? null };
+}
+
 const IG_FIELDS = "id,caption,media_type,permalink,timestamp,like_count,comments_count";
 /** The tags edge comes as a field expansion on the IG user, so no route beyond `/{objectId}`. */
 const IG_INBOX_FIELDS = "followers_count,tags.limit(25){id,caption,permalink,timestamp,username}";
@@ -287,6 +305,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("meta", "POST", `/${commentId}/replies`, { message: text });
     },
+    privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
     async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
       const r = await inbox();
       const rows = (r.tags?.data ?? []).map((m) => ({
@@ -487,5 +506,6 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("meta", "POST", `/${commentId}/comments`, { message: text });
     },
+    privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
   };
 }
