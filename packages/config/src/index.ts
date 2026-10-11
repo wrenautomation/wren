@@ -243,6 +243,8 @@ export const settingsSchema = z.object({
   /** The client portal (`https://app.<domain>`); unset = no DeliveryWatch. */
   portalOrigin: z.string().url().optional(),
   /** Client mail comes from this address, sent through `portalMailbox`; either unset = pings only. */
+  /** The postal address every marketing email carries (CAN-SPAM, CASL). Unset = no newsletter. */
+  marketingPostal: z.string().min(1).optional(),
   portalFrom: z.string().email().optional(),
   /** A mailbox the service account may impersonate that can send as `portalFrom`. */
   portalMailbox: z.string().email().optional(),
@@ -597,6 +599,7 @@ export const ENV_KEYS = {
   filesBucket: "WREN_FILES_BUCKET",
   pagesBucket: "WREN_PAGES_BUCKET",
   portalOrigin: "WREN_PORTAL_ORIGIN",
+  marketingPostal: "WREN_MARKETING_POSTAL",
   portalFrom: "WREN_PORTAL_FROM",
   portalMailbox: "WREN_PORTAL_MAILBOX",
   clientReportsMail: "WREN_CLIENT_REPORTS_MAIL",

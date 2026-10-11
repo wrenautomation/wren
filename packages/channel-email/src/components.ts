@@ -268,10 +268,10 @@ export const EMAIL_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["Not built per client yet: Wren's own lists only, and no marketing sender"],
+    missing: ["Not built per client yet: Wren's own lists only"],
     requires: { components: [] },
     provides: {
-      services: ["Marketing"],
+      services: ["Marketing", "Newsletter"],
       records: ["marketing.subscriber", "marketing.topic"],
     },
     effects: ["sends"],
@@ -283,7 +283,7 @@ export const EMAIL_COMPONENTS = [
         {
           is: "needs",
           says: "A postal address in every mail and a sender for marketing.",
-          built: null,
+          built: "the Newsletter object, postal from WREN_MARKETING_POSTAL",
         },
         { is: "fixed", says: "One rule decides who may get mail, and a signup keeps its proof." },
       ],

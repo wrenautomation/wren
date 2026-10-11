@@ -107,6 +107,7 @@ import {
   makeEvolution,
   makeInboxScheduler,
   makeMarketing,
+  makeNewsletter,
   makeOpensScheduler,
   makePlacementScheduler,
   makePoolScheduler,
@@ -676,6 +677,15 @@ export async function buildServices(
   );
   const keyPath = expandHome(settings.googleServiceAccount);
   const gmail = new GmailClient({ keyPath });
+  // Transactional and marketing mail from portal@ (confirm links, newsletter issues); null without it.
+  const portalMail =
+    settings.portalFrom && settings.portalMailbox
+      ? plainMailer(gmail, {
+          mailbox: settings.portalMailbox,
+          from: settings.portalFrom,
+          name: "Wren",
+        })
+      : null;
   // Inboxes on their own login send over SMTP and are read over IMAP; the rest go through Gmail.
   const smtpInboxes = roster.flatMap((s) => {
     const mailbox = s.transport === "smtp" ? mailboxes.get(s.address) : undefined;
@@ -1019,14 +1029,16 @@ export async function buildServices(
       db,
       shared: settings.siteExportToken ?? null,
       site: settings.siteBaseUrl.replace(/\/+$/, ""),
-      send:
-        settings.portalFrom && settings.portalMailbox
-          ? plainMailer(gmail, {
-              mailbox: settings.portalMailbox,
-              from: settings.portalFrom,
-              name: "Wren",
-            })
-          : null,
+      send: portalMail,
+    }),
+    // A blog post mailed to its confirmed subscribers, once each (designs/2026-10-11-newsletter.md).
+    makeNewsletter({
+      db,
+      shared: settings.siteExportToken ?? null,
+      site: settings.siteBaseUrl.replace(/\/+$/, ""),
+      from: settings.portalFrom ?? null,
+      postal: settings.marketingPostal ?? null,
+      send: portalMail,
     }),
     // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
     makeCalendar(calendarDeps),

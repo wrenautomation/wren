@@ -6,10 +6,14 @@ import {
   askConsent,
   confirmConsent,
   giveConsent,
+  issueAudience,
+  issueSends,
+  issueSentTo,
   mayMarket,
   pauseMarketing,
   preferencesOf,
   recordMarketingSend,
+  saveTopic,
   setFrequency,
   undoUnsubscribeEverything,
   unsubscribeEverything,
@@ -297,5 +301,45 @@ describe("the console's views", () => {
       net_week: 0,
       shown: "shown",
     });
+  });
+});
+
+describe("newsletter issues", () => {
+  it("go to confirmed consents only, and once per issue", async () => {
+    await signUp();
+    const { consent } = await signUp();
+    expect(await issueAudience(pg.db, "weekly-breakdown")).toEqual([]);
+    await confirm(at(1));
+    const audience = await issueAudience(pg.db, "weekly-breakdown");
+    expect(audience).toEqual([{ consentId: consent.id, address: "ana@firm.example" }]);
+    const issue = "weekly-breakdown:first-post";
+    expect(await issueSentTo(pg.db, consent.id, issue)).toBe(false);
+    await recordMarketingSend(pg.db, {
+      consentId: consent.id,
+      by: "newsletter",
+      evidence: { issue },
+    });
+    expect(await issueSentTo(pg.db, consent.id, issue)).toBe(true);
+    expect(await issueSentTo(pg.db, consent.id, "weekly-breakdown:second-post")).toBe(false);
+    expect(await issueSends(pg.db, issue)).toBe(1);
+  });
+
+  it("saveTopic makes, then rewords, but never moves a topic to another channel", async () => {
+    const t = {
+      name: "newsletter",
+      channel: "email" as const,
+      publicName: "New posts",
+      line: "One per post",
+      cadence: "When I post",
+      public: true,
+    };
+    expect(await saveTopic(pg.db, t)).toMatchObject({
+      name: "newsletter",
+      publicName: "New posts",
+    });
+    expect(await saveTopic(pg.db, { ...t, publicName: "Posts" })).toMatchObject({
+      publicName: "Posts",
+    });
+    await expect(saveTopic(pg.db, { ...t, name: "texts" })).rejects.toThrow(/another channel/);
   });
 });

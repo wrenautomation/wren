@@ -7,6 +7,7 @@ export * from "./disposition.js";
 export * from "./evolution.js";
 export * from "./inbox-scheduler.js";
 export * from "./marketing.js";
+export * from "./newsletter.js";
 export * from "./opens-scheduler.js";
 export * from "./placement-scheduler.js";
 export * from "./pool-scheduler.js";

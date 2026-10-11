@@ -36,7 +36,8 @@ Two one-step sources confirm without a click (`giveConsent`), and neither lifts 
 ## If you change this
 
 - **Hits:** the `Marketing` Restate service (`packages/channel-email/src/restate/marketing.ts:135`) behind the phone Worker's `/marketing/<handler>` and the lander's `/api/subscribe` and `/prefs/`; signed preference links (`signLink`, `marketing.ts:520`, keyed from `WREN_SITE_EXPORT_TOKEN`: rotating it breaks old links); `marketingEnvelope` (`:546`), the headers and footer every marketing email must carry; the console records `marketing.subscriber` and `marketing.topic` (`packages/core/src/marketing-records.ts:12`, `:72`) over the views in `marketing-views.ts`
-- **Does not hit:** compose, resolution and the send ticks of cold outreach; no marketing sender exists yet
+- **Does not hit:** compose, resolution and the send ticks of cold outreach
+- **Sends:** the `Newsletter` object (`packages/channel-email/src/restate/newsletter.ts:1`), one per `<topic>:<slug>`: a blog post to every confirmed consent (`issueAudience`), each passing `mayMarket` at its own send; a `sent` event whose evidence names the issue makes a rerun skip it (`issueSentTo`). Needs `WREN_MARKETING_POSTAL`. CLI `wren newsletter topic|send|status`
 
 ## Surfaces
 
@@ -44,9 +45,10 @@ Two one-step sources confirm without a click (`giveConsent`), and neither lifts 
 |---|---|
 | `Marketing{signUp,confirm,prefs,set}` | writes |
 | `Ads.leadConsents`, an SMS keyword through `SmsEvents.ingest` | writes |
+| `Newsletter{send}`, `wren newsletter` | sends, writes `sent` |
 | console records `marketing.subscriber`, `marketing.topic` | read |
 
 ## See
 
-- Design: `designs/2026-10-04-borrowed-ui.md` (Opt-in marketing)
+- Design: `designs/2026-10-04-borrowed-ui.md` (Opt-in marketing), `designs/2026-10-11-newsletter.md`
 - Source: `packages/core/src/marketing.ts`

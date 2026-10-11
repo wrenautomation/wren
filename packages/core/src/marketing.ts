@@ -8,7 +8,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
-import { and, count, desc, eq, gt, inArray, max } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
 import {
   type Consent,
   type ConsentEventKind,
@@ -496,6 +496,72 @@ export async function preferencesOf(db: Queryable, channel: MarketingChannel, ad
       on: by.get(t.id)?.state === "confirmed",
     })),
   };
+}
+
+/** A list someone can sign up for, made or reworded by its name. Its channel never changes. */
+export async function saveTopic(
+  db: Queryable,
+  t: {
+    name: string;
+    channel: MarketingChannel;
+    publicName: string;
+    line: string;
+    cadence: string;
+    public: boolean;
+  },
+) {
+  const [row] = await db
+    .insert(topics)
+    .values(t)
+    .onConflictDoUpdate({
+      target: topics.name,
+      set: { publicName: t.publicName, line: t.line, cadence: t.cadence, public: t.public },
+      setWhere: eq(topics.channel, t.channel),
+    })
+    .returning();
+  if (!row) throw new Error(`topic ${t.name} is on another channel`);
+  return row;
+}
+
+/**
+ * Who an issue goes to: every confirmed consent on the topic, oldest first. Each one still passes
+ * `mayMarket` at its own send, since a pause, a cap or an unsubscribe can land mid-run.
+ */
+export async function issueAudience(db: Queryable, topic: string) {
+  return db
+    .select({ consentId: consents.id, address: consents.address })
+    .from(consents)
+    .where(
+      and(eq(consents.topicId, await topicId(db, topic, "email")), eq(consents.state, "confirmed")),
+    )
+    .orderBy(asc(consents.id));
+}
+
+/** Whether this issue already went to this consent: a send's evidence names its issue. */
+export async function issueSentTo(db: Queryable, consentId: number, issue: string) {
+  const [hit] = await db
+    .select({ id: consentEvents.id })
+    .from(consentEvents)
+    .where(
+      and(
+        eq(consentEvents.consentId, consentId),
+        eq(consentEvents.kind, "sent"),
+        sql`${consentEvents.evidence}->>'issue' = ${issue}`,
+      ),
+    )
+    .limit(1);
+  return !!hit;
+}
+
+/** How many got an issue, per topic: the sends whose evidence names it. */
+export async function issueSends(db: Queryable, issue: string) {
+  const [row] = await db
+    .select({ n: count() })
+    .from(consentEvents)
+    .where(
+      and(eq(consentEvents.kind, "sent"), sql`${consentEvents.evidence}->>'issue' = ${issue}`),
+    );
+  return row?.n ?? 0;
 }
 
 /** Consent ids → their events, oldest first, for a subscriber's activity. */
