@@ -100,9 +100,9 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
     ),
   );
   return (
-    <Section title="Needs you" plain>
+    <Section title="Needs you">
       {lines.length ? (
-        <ul className="list-none border-y border-(--ui-hair)">
+        <ul className="-my-4 list-none border-y border-(--ui-hair)">
           {lines.map(({ m, p, n }) => (
             <Row key={`${m.id}/${p.id}`} href={pathOf(m, p.id)} icon={m.icon} count={n}>
               {p.label} <span className={MUTED}>· {m.name}</span>
@@ -110,7 +110,10 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
           ))}
         </ul>
       ) : (
-        <p className="text-[14.5px] text-(--ui-ink-2)">Nothing waits on you.</p>
+        <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
+          <Icon name="check" className="text-(--ui-good)" />
+          Nothing waits on you.
+        </p>
       )}
     </Section>
   );

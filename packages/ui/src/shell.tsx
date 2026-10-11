@@ -1,8 +1,9 @@
 /**
- * The app frame: a slim bar on the gray canvas (whose workspace, and the viewer's own buttons)
- * over one white window. A sidebar on the canvas holds home, the pins and every app under its
- * area; the open app unfolds there into its pages. On a phone the sidebar becomes the window's
- * head, the open app's pages tabs that scroll sideways, and home lists the apps.
+ * The app frame: one white window on the gray canvas. The sidebar on the canvas holds whose
+ * workspace this is, home, the pins, every app under its area and, at its foot, the viewer's own
+ * buttons. The open app's pages run down the window's left edge, so the sidebar never changes
+ * shape (designs/2026-10-11-portal-look.md). On a phone the sidebar becomes a bar, the open app's
+ * pages tabs that scroll sideways, and home lists the apps.
  */
 import {
   type DragEvent,
@@ -15,7 +16,7 @@ import {
 } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
-import { cx, initials, num } from "./format.js";
+import { cx, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { useHoverMenu } from "./safe-triangle.js";
 import { type Theme, usePageTheme } from "./theme.js";
@@ -171,72 +172,114 @@ export function AppShell({
     scrollTo(0, 0);
   }, [page]);
 
+  // Every app by area: the sidebar, which on a computer also holds whose workspace this is and
+  // the viewer's own buttons. Without areas (the demo), a slim bar over the window holds those.
+  const nav = !!areas?.length;
   return (
-    <div className={cx("flex h-dvh flex-col max-[900px]:block max-[900px]:h-auto", className)}>
+    <div
+      className={cx(
+        nav
+          ? "grid h-dvh grid-cols-[224px_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
+          : "flex h-dvh flex-col",
+        "max-[900px]:block max-[900px]:h-auto",
+        className,
+      )}
+    >
       <a
         className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline focus:translate-y-0"
         href="#main"
       >
         Skip to content
       </a>
-      {bar}
+      {bar ? <div className="[grid-area:bar]">{bar}</div> : null}
 
-      <header className="flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[52px] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2">
-        <a
+      <header
+        className={cx(
+          "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[52px] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2",
+          nav && "min-[901px]:contents",
+        )}
+      >
+        <div
           className={cx(
-            HOVER,
-            "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
+            "flex min-w-0 items-center gap-1.5",
+            nav &&
+              "[grid-area:top] min-[901px]:mt-(--ui-frame) min-[901px]:mb-2 min-[901px]:h-[52px] min-[901px]:pr-2.5 min-[901px]:pl-(--ui-frame)",
           )}
-          href={brand.href}
         >
-          <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
-          <span className="max-[900px]:hidden">{brand.name}</span>
-        </a>
-        <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
-          /
-        </span>
-        <WorkspacePick workspace={workspace} />
-        {workspace.chip ? (
           <a
             className={cx(
-              EASE,
-              "flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
+              HOVER,
+              "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
+              nav && "min-[901px]:pr-1",
             )}
-            href={workspace.chip.href}
+            href={brand.href}
+            aria-label={nav ? brand.name : undefined}
           >
-            {workspace.chip.label}
+            <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
+            {nav ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
           </a>
-        ) : null}
+          {nav ? null : (
+            <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
+              /
+            </span>
+          )}
+          <WorkspacePick workspace={workspace} />
+          {workspace.chip ? (
+            <a
+              className={cx(
+                EASE,
+                "flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
+              )}
+              href={workspace.chip.href}
+            >
+              {workspace.chip.label}
+            </a>
+          ) : null}
+        </div>
         {actions ? (
-          <div className="ml-auto flex flex-none items-center gap-1.5">{actions}</div>
+          <div
+            className={cx(
+              "ml-auto flex flex-none items-center gap-1.5",
+              nav &&
+                "[grid-area:me] min-[901px]:mr-2.5 min-[901px]:ml-(--ui-frame) min-[901px]:flex-wrap min-[901px]:border-t min-[901px]:border-(--ui-hair) min-[901px]:py-2.5",
+            )}
+          >
+            {actions}
+          </div>
         ) : null}
       </header>
 
-      <div className="flex min-h-0 flex-1 max-[900px]:block">
-        {app || areas?.length ? <SideNav app={app} home={home} areas={areas} pins={pins} /> : null}
-        <div
-          className={cx(
-            "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius) bg-(--ui-paper) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
-            app || areas?.length
-              ? "mr-(--ui-frame) mb-(--ui-frame)"
-              : "mx-(--ui-frame) mb-(--ui-frame)",
-          )}
-          ref={scroller}
-        >
-          {app ? <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} /> : null}
-          <main
-            className={cx(
-              "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
-              // A new page, or its data after the loader, fades in. Opacity only, so a fixed
-              // panel inside keeps the window as its frame.
-              "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
-              wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
-            )}
-            id="main"
-            tabIndex={-1}
+      {nav ? <SideNav app={app} home={home} areas={areas} pins={pins} /> : null}
+      <div
+        className={cx(
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          nav
+            ? "[grid-area:window] my-(--ui-frame) mr-(--ui-frame)"
+            : "mx-(--ui-frame) mb-(--ui-frame)",
+        )}
+      >
+        {app ? <AppBar app={app} pins={pins} /> : null}
+        <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
+          {app ? <AppColumn app={app} /> : null}
+          <div
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
+            ref={scroller}
           >
-            {children}
-          </main>
+            {app ? <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} /> : null}
+            <main
+              className={cx(
+                "mx-auto px-10 pt-9 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+                // A new page, or its data after the loader, fades in. Opacity only, so a fixed
+                // panel inside keeps the window as its frame.
+                "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
+                wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
+              )}
+              id="main"
+              tabIndex={-1}
+            >
+              {children}
+            </main>
+          </div>
         </div>
       </div>
     </div>
@@ -257,9 +300,9 @@ const COUNT =
 /** A group's heading, ruled off from the pages above it. */
 const GROUP =
   "mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
-/** The page on screen: paper with a hair frame, bolder, and an accent bar on its left edge. */
+/** The page on screen: a lavender wash, bolder, and an accent bar on its left edge. */
 const TAB_ON =
-  "aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]";
+  "aria-[current=page]:bg-(--ui-accent-wash) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_3px_0_0_var(--ui-accent)]";
 
 /** A sidebar tab's indent by its depth. */
 const DEPTH = ["pl-2.5", "pl-6", "pl-9", "pl-12"];
@@ -272,7 +315,7 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const [over, setOver] = useState(false);
   const className = cx(
     HOVER,
-    "flex h-[38px] w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    "flex h-[34px] w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
     DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
     TAB_ON,
     over && TAB_OVER,
@@ -338,14 +381,14 @@ const total = (tabs: NavItem[]) =>
 /** An app's row in the sidebar: its mark, its name, what waits in it. */
 const APP_ROW = cx(
   HOVER,
-  "flex h-9 w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink)",
+  "flex h-8 w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]",
 );
 
 /** The open app's pages, under its row: grouped, a group of one page standing alone. */
 function AppTabs({ app }: { app: OpenApp }) {
   return (
     <nav aria-label={`${app.name} pages`}>
-      <ul className="flex list-none flex-col gap-0.5 pt-0.5 pb-1.5 pl-3">
+      <ul className="flex list-none flex-col gap-0.5">
         {runs(app.tabs).flatMap((r, i, all) => [
           ...(headed(r)
             ? [
@@ -374,8 +417,58 @@ function AppTabs({ app }: { app: OpenApp }) {
           )),
         ])}
       </ul>
-      {app.action ? <div className="px-2.5 pb-1.5 pl-5.5">{app.action}</div> : null}
     </nav>
+  );
+}
+
+/**
+ * The open app on a computer, across the window's top: its name, the page on screen, its one
+ * button and the pin. Its pages run down the left edge under it (`AppColumn`).
+ */
+function AppBar({ app, pins }: { app: OpenApp; pins: RailPins | undefined }) {
+  const page = app.tabs.find((t) => t.id === app.current);
+  return (
+    <div className="flex h-[52px] flex-none items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) pr-3 pl-3 max-[900px]:hidden">
+      <a
+        className={cx(
+          APPNAME,
+          HOVER,
+          "h-9 rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold",
+        )}
+        href={app.href}
+      >
+        <span className={APPMARK} aria-hidden="true">
+          <Icon name={app.icon} />
+        </span>
+        <span className="min-w-0 truncate">{app.name}</span>
+      </a>
+      {page && page.href !== app.href ? (
+        <>
+          <span className={SLASH} aria-hidden="true">
+            /
+          </span>
+          <span className="min-w-0 truncate px-1 text-[15px] font-medium text-(--ui-ink-2)">
+            {page.label}
+          </span>
+        </>
+      ) : null}
+      {app.action || pins ? (
+        <div className="ml-auto flex flex-none items-center gap-1.5">
+          {app.action}
+          {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The open app's pages on a computer, down the window's left edge, under its bar. */
+function AppColumn({ app }: { app: OpenApp }) {
+  if (app.tabs.length < 2) return null;
+  return (
+    <div className="w-[208px] flex-none overflow-y-auto border-r border-(--ui-hair) px-2 py-3 [scrollbar-width:thin] max-[900px]:hidden">
+      <AppTabs app={app} />
+    </div>
   );
 }
 
@@ -383,8 +476,8 @@ function AppTabs({ app }: { app: OpenApp }) {
 const FINE_POINTER = "(hover: hover) and (pointer: fine)";
 
 /**
- * Beside the window: home, the pins, then every app under its area, the open one unfolded into
- * its pages. An area of one app needs no heading. Without areas, the open app alone.
+ * Beside the window: home, the pins, then every app under its area, the open one marked. An area
+ * of one app needs no heading. A closed app's pages show beside its row on hover.
  */
 function SideNav({
   app,
@@ -431,7 +524,7 @@ function SideNav({
   return (
     <aside
       ref={aside}
-      className="flex w-[248px] flex-none flex-col gap-3 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden"
+      className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-2.5 pb-3 pl-(--ui-frame) [grid-area:nav] [scrollbar-width:none] max-[900px]:hidden"
     >
       {home ? (
         <a className={APP_ROW} href={home.href} aria-current={app ? undefined : "true"}>
@@ -449,11 +542,11 @@ function SideNav({
           onClear={pins.onClear}
         />
       ) : null}
-      <nav aria-label="Apps" className="flex flex-col gap-1">
+      <nav aria-label="Apps" className="flex flex-col gap-2">
         {shown.map((area) => (
           <section key={area.id} className="flex flex-col gap-0.5">
             {area.apps.length > 1 ? (
-              <h2 className={cx(GROUP, "mt-1 border-t-0 pt-1")}>{area.label}</h2>
+              <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2")}>{area.label}</h2>
             ) : null}
             {area.apps.map((a) => {
               const open = a.id === openId && app;
@@ -480,28 +573,22 @@ function SideNav({
                   >
                     <Icon name={a.icon} className={open ? "text-(--ui-accent)" : ""} />
                     <span className="min-w-0 truncate">{a.name}</span>
-                    {a.count && !open ? <span className={COUNT}>{num(a.count)}</span> : null}
+                    {a.count ? <span className={COUNT}>{num(a.count)}</span> : null}
                   </a>
-                  {open ? <AppTabs app={app} /> : null}
                 </div>
               );
             })}
           </section>
         ))}
       </nav>
-      {pins && app ? (
-        <div className="mt-auto">
-          <PinButton pinned={pins.here} onToggle={pins.onToggle} />
-        </div>
-      ) : null}
       {hovered?.pages && menu.open ? (
         // A closed app's pages beside its row; the triangle keeps it open on the way over.
         <div
           ref={menu.flyoutRef}
-          className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) py-1.5 pr-1.5 shadow-(--ui-shadow)"
+          className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) p-1.5 shadow-(--ui-shadow)"
           style={{
             top: flyTop ?? rowTop ?? 8,
-            left: (aside.current?.getBoundingClientRect().right ?? 248) - 2,
+            left: (aside.current?.getBoundingClientRect().right ?? 224) - 2,
             maxHeight: "calc(100vh - 16px)",
             visibility: flyTop === null ? "hidden" : "visible",
           }}
@@ -628,10 +715,8 @@ function AppHead({
   );
 }
 
-const WS = "relative flex h-9 min-w-0 items-center gap-[9px] rounded-(--ui-radius) pr-2.5 pl-[5px]";
+const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
 const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-accent)`;
-const WS_MARK =
-  "grid size-[26px] flex-none place-items-center rounded-(--ui-radius) text-[10.5px] font-semibold tracking-[0.04em]";
 
 /** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
 function WorkspacePick({ workspace }: { workspace: Workspace }) {
@@ -639,18 +724,10 @@ function WorkspacePick({ workspace }: { workspace: Workspace }) {
   if (!current)
     return (
       <span className={WS} aria-busy="true">
-        <Skeleton className={cx(WS_MARK, "bg-(--ui-fill)")} />
         <Skeleton className="h-3 w-[110px]" />
       </span>
     );
-  const face = (
-    <>
-      <span className={cx(WS_MARK, "bg-(--ui-ink) text-(--ui-on-ink)")} aria-hidden="true">
-        {initials(current.name)}
-      </span>
-      <span className="truncate text-[14px] font-semibold">{current.name}</span>
-    </>
-  );
+  const face = <span className="truncate text-[14px] font-semibold">{current.name}</span>;
   if (options.length < 2)
     return href ? (
       <a className={WS_PICK} href={href} title={label}>

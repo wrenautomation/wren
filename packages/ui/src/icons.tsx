@@ -1,60 +1,107 @@
-/** Line icons on a 16px grid, drawn like the lander's: 1.4 stroke, round ends, no fill. */
+/**
+ * The kit's named icons: Lucide's (ISC), the one icon vendor (designs/2026-10-11-design-kits.md).
+ * Apps name an icon here, or import one from `@wren/ui/lib/lucide`; never lucide itself.
+ */
+import {
+  Activity,
+  ArrowRight,
+  Banknote,
+  BookOpen,
+  Briefcase,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CreditCard,
+  Download,
+  ExternalLink,
+  FileText,
+  Flag,
+  Globe,
+  House,
+  Inbox,
+  Layers,
+  LayoutGrid,
+  Link,
+  type LucideIcon,
+  Mail,
+  Megaphone,
+  Menu,
+  MessageSquare,
+  Mic,
+  Pause,
+  Phone,
+  Pin,
+  Play,
+  Presentation,
+  RefreshCw,
+  Reply,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  SquareKanban,
+  Star,
+  StickyNote,
+  Target,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 import { cx } from "./format.js";
 
-const PATHS = {
-  home: "M2.5 7 8 2.5 13.5 7v6.5h-4v-4h-3v4h-4z",
-  people:
-    "M6 7.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM1.75 13.25c.35-2.1 2-3.5 4.25-3.5s3.9 1.4 4.25 3.5M10.75 2.9a2.25 2.25 0 0 1 0 4.2M12.1 9.9c1.2.45 2 1.6 2.15 3.35",
-  mail: "M2 3.5h12v9H2zM2 4.5l6 4.5 6-4.5",
-  shield:
-    "M8 1.75 13.25 3.75v3.9c0 3-2.2 5.4-5.25 6.6-3.05-1.2-5.25-3.6-5.25-6.6v-3.9zM5.75 8l1.6 1.6 3-3.1",
-  money: "M2 4.5h12v7H2zM8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
-  reply: "M6.5 4 2.5 8l4 4M2.5 8h7a4 4 0 0 1 4 4v1",
-  link: "M6.75 9.25l2.5-2.5M7.25 4.75l1.1-1.1a2.83 2.83 0 0 1 4 4l-1.1 1.1M8.75 11.25l-1.1 1.1a2.83 2.83 0 0 1-4-4l1.1-1.1",
-  pulse: "M1.5 8.5h3l1.75-4.5 3.5 8 1.75-3.5h3",
-  sliders: "M2.5 4.5h11M2.5 11.5h11M5.5 3v3M10.5 10v3",
-  play: "M5 3.25v9.5L12.75 8z",
-  pause: "M5.5 3.5v9M10.5 3.5v9",
-  arrow: "M2.5 8h11M9.5 4l4 4-4 4",
-  down: "M4 6.25l4 4 4-4",
-  left: "M9.75 4 5.75 8l4 4",
-  right: "M6.25 4l4 4-4 4",
-  close: "M4 4l8 8M12 4l-8 8",
-  check: "M3.5 8.5l3 3 6-7",
-  star: "M8 2.25l1.75 3.6 3.95.55-2.85 2.75.7 3.9L8 11.2l-3.55 1.85.7-3.9L2.3 6.4l3.95-.55z",
-  clock: "M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM8 4.75V8l2.25 1.5",
-  phone:
-    "M4.5 2.5h2l1 3-1.5 1a7 7 0 0 0 3.5 3.5l1-1.5 3 1v2a1.5 1.5 0 0 1-1.5 1.5A10 10 0 0 1 3 4a1.5 1.5 0 0 1 1.5-1.5Z",
-  menu: "M2.5 4.5h11M2.5 8h11M2.5 11.5h11",
-  external: "M9.5 2.5h4v4M13.5 2.5l-6 6M11.5 9.5v4h-9v-9h4",
-  search: "M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM10.25 10.25 13.5 13.5",
-  download: "M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11",
-  pin: "M9.5 2.25l4.25 4.25M10.6 3.35 7.4 6.55l-3.1.4 4.75 4.75.4-3.1 3.2-3.2M6.7 9.3 2.5 13.5",
+const ICONS = {
+  home: House,
+  people: Users,
+  mail: Mail,
+  shield: ShieldCheck,
+  money: Banknote,
+  reply: Reply,
+  link: Link,
+  pulse: Activity,
+  sliders: SlidersHorizontal,
+  play: Play,
+  pause: Pause,
+  arrow: ArrowRight,
+  down: ChevronDown,
+  left: ChevronLeft,
+  right: ChevronRight,
+  close: X,
+  check: Check,
+  star: Star,
+  clock: Clock,
+  phone: Phone,
+  menu: Menu,
+  external: ExternalLink,
+  search: Search,
+  download: Download,
+  pin: Pin,
   // Apps: the launcher, and each app's mark.
-  apps: "M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z",
-  cycle: "M12.9 6A5 5 0 0 0 3.4 5.2M3 2.75V5.5h2.75M3.1 10a5 5 0 0 0 9.5.8M13 13.25V10.5h-2.75",
-  flag: "M3.5 14V2.5M3.5 3h8.5l-2 3 2 3H3.5",
-  board: "M2.5 2.5h11v11h-11zM2.5 6.5h11M6.5 6.5v7",
-  note: "M3.5 1.75h6l3 3v9.5h-9zM9.5 1.75v3h3M5.5 8h5M5.5 10.75h5",
-  inbox: "M2 9.5 4 3h8l2 6.5v4H2zM2 9.5h3.5l1 1.5h3l1-1.5H14",
-  target: "M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 8.01V8",
-  megaphone: "M2.5 6.5v3h2l5 3v-9l-5 3zM4.5 9.5l1 3.5M12 6a2.5 2.5 0 0 1 0 4",
-  billboard: "M2 2.5h12v7.5H2zM5 10v3.5M11 10v3.5M5 6.25h6",
-  bolt: "M9 1.75 3.5 9h4L7 14.25 12.5 7h-4z",
-  briefcase: "M2 5h12v8H2zM5.5 5V3h5v2M2 8.5h12",
-  calendar: "M2.5 3.5h11v10h-11zM2.5 6.5h11M5.5 2v3M10.5 2v3",
-  doc: "M4 1.75h5l3 3v9.5H4zM9 1.75v3h3M6 8h4M6 10.5h4",
-  globe:
-    "M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM2 8h12M8 2c1.7 1.7 2.5 3.7 2.5 6S9.7 12.3 8 14M8 2C6.3 3.7 5.5 5.7 5.5 8s.8 4.3 2.5 6",
-  book: "M8 4C6.5 3 4.5 2.75 2.5 3v9.5c2-.25 4 0 5.5 1 1.5-1 3.5-1.25 5.5-1V3c-2-.25-4 0-5.5 1ZM8 4v9.5",
-  chat: "M2.5 3h11v7.5H7l-3 2.5v-2.5H2.5z",
-  sparkle: "M8 2l1.3 3.7L13 7l-3.7 1.3L8 12l-1.3-3.7L3 7l3.7-1.3z",
-  stack: "M8 2 14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3",
-  mic: "M8 1.75a2 2 0 0 0-2 2v4a2 2 0 0 0 4 0v-4a2 2 0 0 0-2-2ZM4 7.5a4 4 0 0 0 8 0M8 11.5v2.75",
-  card: "M1.75 3.75h12.5v8.5H1.75zM1.75 6.5h12.5M4 10h2.5",
-} as const;
+  apps: LayoutGrid,
+  cycle: RefreshCw,
+  flag: Flag,
+  board: SquareKanban,
+  note: StickyNote,
+  inbox: Inbox,
+  target: Target,
+  megaphone: Megaphone,
+  billboard: Presentation,
+  bolt: Zap,
+  briefcase: Briefcase,
+  calendar: Calendar,
+  doc: FileText,
+  globe: Globe,
+  book: BookOpen,
+  chat: MessageSquare,
+  sparkle: Sparkles,
+  stack: Layers,
+  mic: Mic,
+  card: CreditCard,
+} satisfies Record<string, LucideIcon>;
 
-export type IconName = keyof typeof PATHS;
+export type IconName = keyof typeof ICONS;
 
 export function Icon({
   name,
@@ -65,20 +112,13 @@ export function Icon({
   size?: number;
   className?: string;
 }) {
+  const Drawn = ICONS[name];
   return (
-    <svg
+    <Drawn
       className={cx("flex-none", className)}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      width={size}
-      height={size}
+      size={size}
+      strokeWidth={1.75}
       aria-hidden="true"
-    >
-      <path d={PATHS[name]} />
-    </svg>
+    />
   );
 }

@@ -8,7 +8,7 @@ import { cx } from "./format.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
-  "font-(family-name:--ui-font-display) text-[24px] leading-8 font-semibold tracking-[calc(-0.015em*var(--ui-display-squeeze))] text-balance max-[900px]:text-[22px] max-[900px]:leading-7";
+  "font-(family-name:--ui-font-display) text-[28px] leading-[34px] font-semibold tracking-[calc(-0.022em*var(--ui-display-squeeze))] text-balance max-[900px]:text-[22px] max-[900px]:leading-7";
 export const SECTION_TITLE = "text-[16px] leading-[22px] font-semibold";
 export const GROUP_LABEL =
   "text-[12px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";

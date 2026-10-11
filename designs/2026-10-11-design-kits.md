@@ -10,7 +10,7 @@ One short list of kits per job, each with its license checked, so an agent makin
 |---|---|---|---|
 | Portal UI | shadcn on Base UI, Tailwind, `@wren/ui` | MIT | in use |
 | Diagrams, charts | React Flow, ELK, Recharts | MIT | in use |
-| Icons | Lucide | ISC | in use |
+| Icons | Lucide, through `@wren/ui` (`Icon`, `lib/lucide`) | ISC | in use; the only set since 10-11 |
 | Lander motion | GSAP | free, incl. commercial | in use |
 | Video | Remotion (`packages/studio`) | free up to 3 people | in use; a company license past that |
 | Line figures | hairline (`@lucasmarkes/hairline`, skill `hairline-create`) | MIT, no dependencies | adopt from 10-22 |
@@ -20,6 +20,7 @@ One short list of kits per job, each with its license checked, so an agent makin
 
 ## Why
 
+- **One door.** Apps get shadcn parts, Base UI and Lucide through `@wren/ui`, never directly. Parts nothing uses are deleted (10-11: card, tabs, sidebar, separator, tooltip).
 - **No second UI library.** The portal already has its primitives. A second one doubles the ways to draw a button. A registry component is copied in and restyled to our tokens.
 - **hairline:** the reel's library. Figures answer the pointer and play on their own when asked. They stop under reduced motion, which keeps the lander's one-motion-at-a-time rule. For the lander and blog, never the portal (real-event motion only). Its npm package is 10 days old (0.5.0, 10-08), so it waits until 0.5.0 is two weeks old.
 - **Stock footage:** Pexels covers the montage look we skipped on 10-11 for rights (promo `enter: pull-back | wipe`).

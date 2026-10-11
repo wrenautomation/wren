@@ -11,8 +11,7 @@
     "./tailwind.css": "./src/tailwind.css",
     "./palette": "./src/palette.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
-    "./lib/*": "./src/lib/*.ts",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
