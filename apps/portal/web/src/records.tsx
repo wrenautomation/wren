@@ -607,7 +607,9 @@ export function TemplatePage({
     return (
       <>
         <RecordOverview
-          title={page.id === "overview" ? app : page.label}
+          // No app: a block inside another page (Today), under its own section heading.
+          title={app && page.id === "overview" ? app : page.label}
+          as={app ? undefined : "section"}
           api={apiOf(product, client, scope)}
           tiles={page.tiles}
           top={page.top}

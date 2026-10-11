@@ -31,7 +31,7 @@ const CALLS = "email.call";
 /** Wren's day in numbers, and the next calls with their briefs one click away. */
 const DAY: OverviewPage = {
   id: "overview",
-  label: "Today",
+  label: "Calls and replies",
   template: "overview",
   tiles: [
     { label: "Replies today", record: "email.reply", href: "/inbox/replies?view=all", period: 1 },
@@ -161,7 +161,7 @@ export function WrenToday({
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
       <NeedsYou apps={apps} waiting={waiting} />
-      <div className="mt-10">
+      <div className="mt-6">
         <TemplatePage {...props} app="" page={DAY} path="/today" id={undefined} />
       </div>
       <AppsByArea apps={apps} waiting={waiting} />

@@ -69,8 +69,9 @@ export interface OverviewTop {
 }
 
 export interface OverviewProps {
-  /** Empty: no heading, as a block inside another page (Today). */
   title: string;
+  /** "section": a block inside another page (Today), its title a section's, not the page's. */
+  as?: "section" | undefined;
   api: RecordsApi;
   tiles: OverviewTile[];
   top?: OverviewTop[] | undefined;
@@ -130,7 +131,7 @@ export function perRow(n: number): number[] {
 }
 const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-span-3"];
 
-export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: OverviewProps) {
+export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }: OverviewProps) {
   const types = useTypes(api);
   const keep = keepAs ? api.keep : undefined;
   const pref = usePref<TilesPref>(keep, keepAs ?? "tiles");
@@ -148,7 +149,13 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       {title || (keep && all.length > 1) ? (
         <div className="flex items-center justify-between gap-3">
-          {title ? <h1 className={PAGE_TITLE}>{title}</h1> : <span />}
+          {!title ? (
+            <span />
+          ) : as === "section" ? (
+            <h2 className={SECTION_TITLE}>{title}</h2>
+          ) : (
+            <h1 className={PAGE_TITLE}>{title}</h1>
+          )}
           {keep && all.length > 1 ? (
             <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />
           ) : null}
