@@ -300,3 +300,29 @@ describe("youtube content channel", () => {
     });
   });
 });
+
+describe("youtube comments", () => {
+  it("a video with comments off has none", async () => {
+    const ch = youtubeContent(
+      fakeSites({
+        "GET /youtube/v3/commentThreads": () => {
+          throw new Error(
+            "403 The video identified by the videoId parameter has disabled comments.",
+          );
+        },
+      }).sites,
+    );
+    expect(await ch.comments("v1")).toEqual([]);
+  });
+
+  it("any other failure still throws", async () => {
+    const ch = youtubeContent(
+      fakeSites({
+        "GET /youtube/v3/commentThreads": () => {
+          throw new Error("403 quotaExceeded");
+        },
+      }).sites,
+    );
+    await expect(ch.comments("v1")).rejects.toThrow("quotaExceeded");
+  });
+});

@@ -357,11 +357,18 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
       };
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
-      const r = await read<{ items?: CommentThread[] }>("commentThreads", {
-        part: "snippet",
-        videoId: id,
-        maxResults: Math.min(q.limit ?? 100, 100),
-        order: "time",
+      const r: { items?: CommentThread[] } = await read<{ items?: CommentThread[] }>(
+        "commentThreads",
+        {
+          part: "snippet",
+          videoId: id,
+          maxResults: Math.min(q.limit ?? 100, 100),
+          order: "time",
+        },
+      ).catch((err: unknown) => {
+        // Comments off on the video (or it's private): nothing to read, not a failure.
+        if (err instanceof Error && /has disabled comments/.test(err.message)) return {};
+        throw err;
       });
       const rows = (r.items ?? []).flatMap((t) => {
         const c = t.snippet?.topLevelComment;
