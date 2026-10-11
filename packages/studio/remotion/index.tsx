@@ -11,7 +11,14 @@
  * Props come from `longProps`, `shortProps`, `verticalProps` and `thumbnailProps` through
  * `--props`; the cut files are served from the edit's folder.
  */
-import { type CSSProperties, type FC, type ReactNode, useMemo } from "react";
+import {
+  type CSSProperties,
+  createContext,
+  type FC,
+  type ReactNode,
+  useContext,
+  useMemo,
+} from "react";
 import {
   AbsoluteFill,
   Audio,
@@ -629,18 +636,86 @@ const useUnit = () => {
   return Math.min(width, height) / 1080;
 };
 
-/** Every scene comes in its way (`entranceAt`) and fades out over its last frames; a wiped one sits on the accent, so the matte shows. */
-const Enter: FC<{ kind: Entrance; frames: number; look: Look; children: ReactNode }> = ({
-  kind,
-  frames,
-  look,
-  children,
-}) => {
+/** The script's `finish.glow`: accent words and the highlight bloom. */
+const Glow = createContext(false);
+/** An accent word's bloom when the promo glows: a tight halo, then a wide one. */
+const useGlow = (color: string) =>
+  useContext(Glow) ? `0 0 0.12em ${color}, 0 0 0.5em ${color}aa` : undefined;
+
+/** A 4x4 Bayer matrix: each cell's threshold, in the order an ordered dither visits them. */
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+/** Tones a channel keeps under the dither. */
+const DITHER_TONES = 4;
+
+/**
+ * The script's `finish.dither`: an SVG filter that adds a tiled Bayer threshold to each pixel,
+ * then rounds every channel to a few tones. `cell` is one threshold's size in px.
+ */
+const DitherFilter: FC<{ cell: number }> = ({ cell }) => {
+  const tile = cell * 4;
+  const rects = BAYER.map((v, i) => {
+    const g = Math.round(((v + 0.5) / 16) * 255);
+    return `<rect x='${(i % 4) * cell}' y='${Math.floor(i / 4) * cell}' width='${cell}' height='${cell}' fill='rgb(${g},${g},${g})'/>`;
+  }).join("");
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${tile}' height='${tile}' shape-rendering='crispEdges'>${rects}</svg>`;
+  const n = DITHER_TONES;
+  const table = Array.from({ length: n }, (_, k) => (k / (n - 1)).toFixed(3)).join(" ");
+  return (
+    <svg width={0} height={0} style={{ position: "absolute" }} aria-hidden>
+      <filter
+        id="promo-dither"
+        x="0"
+        y="0"
+        width="100%"
+        height="100%"
+        colorInterpolationFilters="sRGB"
+      >
+        <feImage
+          href={`data:image/svg+xml,${encodeURIComponent(svg)}`}
+          x={0}
+          y={0}
+          width={tile}
+          height={tile}
+          preserveAspectRatio="none"
+          result="cell"
+        />
+        <feTile in="cell" result="bayer" />
+        <feComposite
+          in="SourceGraphic"
+          in2="bayer"
+          operator="arithmetic"
+          k1={0}
+          k2={1}
+          k3={1 / n}
+          k4={-0.5 / n}
+          result="biased"
+        />
+        <feComponentTransfer in="biased">
+          <feFuncR type="discrete" tableValues={table} />
+          <feFuncG type="discrete" tableValues={table} />
+          <feFuncB type="discrete" tableValues={table} />
+        </feComponentTransfer>
+      </filter>
+    </svg>
+  );
+};
+
+/**
+ * Every scene comes in its way (`entranceAt`) and fades out over its last frames, or rushes into
+ * a flow cut when the next comes in by one; a wiped one sits on the accent, so the matte shows.
+ */
+const Enter: FC<{
+  kind: Entrance;
+  next: Entrance | undefined;
+  frames: number;
+  look: Look;
+  children: ReactNode;
+}> = ({ kind, next, frames, look, children }) => {
   const f = useCurrentFrame();
   return (
     <AbsoluteFill
       style={{
-        ...entranceAt(kind, f, frames),
+        ...entranceAt(kind, f, frames, next),
         background: kind === "wipe" ? look.accent : undefined,
       }}
     >
@@ -657,11 +732,13 @@ const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
   const accent = new Set(s.accent.map((a) => a.toLowerCase()));
   // Fewer words read bigger; a line of eight still fits the frame.
   const size = (words.length > 8 ? 54 : 72) * u;
+  const glow = useGlow(look.accent);
   return (
     <AbsoluteFill>
       {words.map((w, i) => {
         const at = scatterAt(i, words.length);
-        const p = easeOut((f - (i * 6 + 2)) / 5);
+        // Out of a flow cut the words are all there: the rush is how they arrive.
+        const p = s.enter === "flow" ? 1 : easeOut((f - (i * 6 + 2)) / 5);
         const hit = accent.has(w.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, ""));
         return (
           <span
@@ -675,6 +752,7 @@ const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
               fontWeight: 500,
               letterSpacing: "-0.02em",
               color: hit ? look.accent : look.foreground,
+              textShadow: hit ? glow : undefined,
               opacity: p,
               transform: `translateY(calc(-50% + ${(1 - p) * 0.25}em))`,
             }}
@@ -693,8 +771,11 @@ const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
   const all = s.lines
     .flatMap((l, li) => l.split(/\s+/).map((w) => ({ w, li })))
     .map((x, at) => ({ ...x, at }));
-  const shown = wordsIn(f, all.length);
+  // Out of a flow cut the words are all there: the rush is how they arrive.
+  const whole = s.enter === "flow";
+  const shown = whole ? all.length : wordsIn(f, all.length);
   const accent = new Set(s.accent.map((a) => a.toLowerCase()));
+  const glow = useGlow(look.accent);
   return (
     <AbsoluteFill style={{ justifyContent: "center", padding: `0 ${110 * u}px` }}>
       {s.lines.map((line, li) => (
@@ -712,7 +793,7 @@ const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
             .filter((x) => x.li === li)
             .map((x) => {
               const i = x.at;
-              const p = easeOut((f - (i * 4 + 2)) / 6);
+              const p = whole ? 1 : easeOut((f - (i * 4 + 2)) / 6);
               const hit = accent.has(x.w.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, ""));
               return (
                 <span
@@ -723,6 +804,7 @@ const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
                     opacity: i < shown ? p : 0,
                     transform: `translateY(${(1 - p) * 0.35}em)`,
                     color: hit ? look.accent : undefined,
+                    textShadow: hit ? glow : undefined,
                   }}
                 >
                   {x.w}
@@ -816,6 +898,7 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
   const { scale, tx, ty } = framing(cam, w, h);
   const hl = s.highlight;
   const hp = hl ? easeOut((p - hl.from) / 0.08) : 0;
+  const glow = useContext(Glow);
   return (
     <AbsoluteFill
       style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
@@ -854,7 +937,12 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
                 height: `${hl.h * 100}%`,
                 borderRadius: 12,
                 border: `${4 / scale}px solid ${look.accent}`,
-                boxShadow: `0 0 0 ${9999}px rgba(0,0,0,${0.28 * hp})`,
+                boxShadow: [
+                  glow ? `0 0 ${24 / scale}px ${look.accent}` : null,
+                  `0 0 0 ${9999}px rgba(0,0,0,${0.28 * hp})`,
+                ]
+                  .filter(Boolean)
+                  .join(", "),
                 opacity: hp,
               }}
             />
@@ -966,20 +1054,32 @@ const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
 };
 
 /** A product promo from a script (`promoProps`): scenes back to back on Wren's canvas. */
-const Promo: FC<PromoProps> = ({ scenes, look, music }) => (
-  <AbsoluteFill
-    style={{ background: look.background, color: look.foreground, fontFamily: look.font }}
-  >
-    {music ? <Audio src={staticFile(music)} /> : null}
-    {scenes.map((s) => (
-      <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
-        <Enter kind={s.enter} frames={s.frames} look={look}>
-          <PromoScene s={s} look={look} />
-        </Enter>
-      </Sequence>
-    ))}
-  </AbsoluteFill>
-);
+const Promo: FC<PromoProps> = ({ scenes, look, music, finish }) => {
+  const u = useUnit();
+  return (
+    <Glow.Provider value={finish.glow}>
+      {/* Beside the frame, not in it: the filter the frame uses. */}
+      {finish.dither ? <DitherFilter cell={Math.max(2, Math.round(3 * u))} /> : null}
+      <AbsoluteFill
+        style={{
+          background: look.background,
+          color: look.foreground,
+          fontFamily: look.font,
+          filter: finish.dither ? "url(#promo-dither)" : undefined,
+        }}
+      >
+        {music ? <Audio src={staticFile(music)} /> : null}
+        {scenes.map((s) => (
+          <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
+            <Enter kind={s.enter} next={s.next} frames={s.frames} look={look}>
+              <PromoScene s={s} look={look} />
+            </Enter>
+          </Sequence>
+        ))}
+      </AbsoluteFill>
+    </Glow.Provider>
+  );
+};
 
 const PROMO_PLACEHOLDER: PromoProps = {
   fps: 30,
@@ -988,6 +1088,7 @@ const PROMO_PLACEHOLDER: PromoProps = {
   height: 1080,
   look: DEFAULT_LOOK,
   music: null,
+  finish: { glow: false, dither: false },
   scenes: [
     {
       kind: "text",

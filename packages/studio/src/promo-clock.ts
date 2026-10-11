@@ -15,6 +15,17 @@ export const easeInOut = (p: number) => {
   return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
 };
 
+/** Ease out, exponential: almost all of it at once, then a long settle. A speed ramp. */
+export const rampOut = (p: number) => {
+  const x = clamp(p, 0, 1);
+  return x === 1 ? 1 : 1 - 2 ** (-10 * x);
+};
+/** Ease in, exponential: still, then all of it at the end. */
+export const rampIn = (p: number) => {
+  const x = clamp(p, 0, 1);
+  return x === 0 ? 0 : 2 ** (10 * x - 10);
+};
+
 /** How far a scene has come in, 0 to 1, over its first `ENTER_FRAMES`. */
 export const entered = (frame: number) => easeOut(frame / ENTER_FRAMES);
 
@@ -80,18 +91,54 @@ export function fitBox(size: readonly [number, number] | undefined, w: number, h
 /**
  * How a scene comes in. `rise`: up from below. `pull-back`: the camera starts close and pulls
  * back to the whole frame. `wipe`: a circle grows from the middle over the scene before it, a
- * track matte.
+ * track matte. `flow`: a flow edit's cut. The scene before rushes in and blurs, and this one
+ * lands out of the same rush. The motion carries over the cut.
  */
-export const ENTRANCES = ["rise", "pull-back", "wipe"] as const;
+export const ENTRANCES = ["rise", "pull-back", "wipe", "flow"] as const;
 export type Entrance = (typeof ENTRANCES)[number];
 
-/** A scene's opacity, transform and clip `frame` frames into its `frames`; out over the last 6. */
+/** A flow cut's frames on each side, and how far and how blurred it rushes at the cut. */
+export const FLOW_FRAMES = 8;
+const FLOW_SCALE = 0.6;
+const FLOW_BLUR = 18;
+
+/**
+ * A scene's opacity, transform, clip and filter `frame` frames into its `frames`. It goes out
+ * over the last 6 frames, or, when the next scene comes in by `flow`, rushes into the cut.
+ */
 export function entranceAt(
   kind: Entrance,
   frame: number,
   frames: number,
+  next?: Entrance,
+): { opacity: number; transform: string; clipPath: string; filter: string } {
+  if (next === "flow" && frame >= frames - FLOW_FRAMES) {
+    const p = rampIn((frame - (frames - FLOW_FRAMES) + 1) / FLOW_FRAMES);
+    return {
+      opacity: 1,
+      transform: `scale(${(1 + FLOW_SCALE * p).toFixed(4)})`,
+      clipPath: "none",
+      filter: `blur(${(FLOW_BLUR * p).toFixed(2)}px)`,
+    };
+  }
+  const out = next === "flow" ? 1 : clamp((frames - frame) / 6, 0, 1);
+  if (kind === "flow") {
+    const p = rampOut(frame / FLOW_FRAMES);
+    return {
+      opacity: out,
+      transform: `scale(${(1 + FLOW_SCALE * (1 - p)).toFixed(4)})`,
+      clipPath: "none",
+      filter: p >= 0.999 ? "none" : `blur(${(FLOW_BLUR * (1 - p)).toFixed(2)}px)`,
+    };
+  }
+  return { ...entrance(kind, frame, out), filter: "none" };
+}
+
+function entrance(
+  kind: Exclude<Entrance, "flow">,
+  frame: number,
+  out: number,
 ): { opacity: number; transform: string; clipPath: string } {
-  const out = clamp((frames - frame) / 6, 0, 1);
   if (kind === "pull-back") {
     const p = easeOut(frame / 18);
     return {

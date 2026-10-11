@@ -49,6 +49,21 @@ Taken from three motion-design reels:
 
 Skipped: the cinematic archival-footage montage. It needs stock footage rights, which is William's call.
 
+## Flow cut and finish (2026-10-11, temp_notes keyframe reel)
+
+From a flow-edit reel (After Effects: speed ramps, a dither, glow, shape morphs):
+
+- `enter: "flow"`: the cut carries motion. The scene before rushes in over its last 8 frames
+  (an exponential ramp, to 1.6× and an 18px blur, no fade). This scene starts at that same
+  frame and settles out of it, most of the way within 2 frames. A text scene entered this way is
+  whole from its first frame, so the rush has something to carry.
+- `finish.glow`: accent words and the highlight box bloom in the accent color.
+- `finish.dither`: the whole frame through an ordered (Bayer 4x4) dither, 4 tones a channel, 3px
+  cells at 1080p. An SVG filter, so it renders in Remotion's Chromium with no package.
+- Both read best on a dark `look`. On Wren's light default the dither only shows at edges.
+
+Skipped: shape morphs (Reshape). Our scenes are type and screenshots, with no vector shapes to morph.
+
 ## Why not
 
 - **Hand-edited in an editor:** not repeatable per client or per feature.

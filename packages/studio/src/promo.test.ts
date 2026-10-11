@@ -81,6 +81,32 @@ describe("promo clock", () => {
     expect(entranceAt("wipe", 90, 90).opacity).toBe(0);
   });
 
+  it("carries a flow cut's rush over the cut: one scene's last frame is the next one's first", () => {
+    const flowed = promoProps(
+      promoScript.parse({
+        finish: { dither: true },
+        scenes: [
+          { kind: "text", lines: ["One"], seconds: 2 },
+          { kind: "text", lines: ["Two"], seconds: 2, enter: "flow" },
+        ],
+      }),
+    );
+    const [a, b] = flowed.scenes;
+    expect([a?.next, b?.next]).toEqual(["flow", undefined]);
+    expect(flowed.finish).toEqual({ glow: false, dither: true });
+    const last = entranceAt("rise", 59, 60, "flow");
+    const first = entranceAt("flow", 0, 60);
+    expect(last).toEqual({ ...first, opacity: 1 });
+    expect(first).toMatchObject({ transform: "scale(1.6000)", filter: "blur(18.00px)" });
+    // Still until the cut is near, no fade: the rush is the exit.
+    expect(entranceAt("rise", 40, 60, "flow")).toMatchObject({ opacity: 1, filter: "none" });
+    expect(entranceAt("flow", 8, 60)).toMatchObject({ transform: "scale(1.0000)", filter: "none" });
+    // A speed ramp: most of the settle in the first few frames.
+    const k = (f: number) =>
+      Number(/scale\(([\d.]+)\)/.exec(entranceAt("flow", f, 60).transform)?.[1]);
+    expect(k(2) - 1).toBeLessThan((k(0) - 1) / 3);
+  });
+
   it("scatters words down the frame in order, never on one spot", () => {
     const at = Array.from({ length: 6 }, (_, i) => scatterAt(i, 6));
     expect(at[0]).toEqual({ x: 0.07, y: 0.14 });

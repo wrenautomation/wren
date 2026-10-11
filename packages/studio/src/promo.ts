@@ -7,7 +7,7 @@
  */
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
-import { clamp, ENTRANCES } from "./promo-clock.js";
+import { clamp, ENTRANCES, type Entrance } from "./promo-clock.js";
 
 export * from "./promo-clock.js";
 
@@ -22,7 +22,7 @@ const seconds = z
   .max(30)
   .optional()
   .describe("How long it holds; set by length when left out");
-/** How it comes in (`entranceAt`): rise, a camera pull-back, or a matte wipe. */
+/** How it comes in (`entranceAt`): rise, a camera pull-back, a matte wipe, or a flow cut. */
 const enter = z.enum(ENTRANCES).default("rise");
 
 const TEXT = z.object({
@@ -120,6 +120,13 @@ export const promoScript = z
       .default({}),
     /** A music file beside the script, his own; none: silent. */
     music: z.string().optional(),
+    /**
+     * A flow edit's finish. `glow`: accent words and the highlight bloom. `dither`: the whole
+     * frame in an ordered dither, a few tones a channel, like an old screen.
+     */
+    finish: z
+      .object({ glow: z.boolean().default(false), dither: z.boolean().default(false) })
+      .default({ glow: false, dither: false }),
     scenes: z.array(promoScene).min(1).max(30),
   })
   .strict();
@@ -147,8 +154,14 @@ export function secondsOf(s: PromoScene): number {
 /**
  * A scene on the timeline: its first frame and how many. A screen's `image` is set by now, with
  * its pixel `size` when known (the box takes its shape, so marks land where the script says).
+ * `next`: how the scene after it comes in, so a flow cut starts in this one.
  */
-export type TimedScene = PromoScene & { from: number; frames: number; size?: [number, number] };
+export type TimedScene = PromoScene & {
+  from: number;
+  frames: number;
+  size?: [number, number];
+  next?: Entrance;
+};
 
 export type PromoProps = {
   fps: number;
@@ -157,6 +170,7 @@ export type PromoProps = {
   height: number;
   look: Look;
   music: string | null;
+  finish: { glow: boolean; dither: boolean };
   scenes: TimedScene[];
 };
 
@@ -174,7 +188,14 @@ export function promoProps(
     if (s.kind === "screen" && !s.image) throw new Error(`scene ${i + 1}: no image yet`);
     const frames = Math.round(secondsOf(s) * PROMO_FPS);
     const size = s.kind === "screen" && s.image ? sizes[s.image] : undefined;
-    const t: TimedScene = size ? { ...s, from, frames, size } : { ...s, from, frames };
+    const next = script.scenes[i + 1]?.enter;
+    const t: TimedScene = {
+      ...s,
+      from,
+      frames,
+      ...(size ? { size } : {}),
+      ...(next ? { next } : {}),
+    };
     from += frames;
     return t;
   });
@@ -188,6 +209,7 @@ export function promoProps(
       ...Object.fromEntries(Object.entries(script.look).filter(([, v]) => v !== undefined)),
     },
     music: script.music ?? null,
+    finish: script.finish,
     scenes,
   };
 }
