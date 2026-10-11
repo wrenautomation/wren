@@ -446,8 +446,17 @@ const TIER2 = /\b(vp|vice president|head of|director|general manager)\b/i;
 const SELLER =
   /\b(?:i|we) help\b|\bhelping\b|\b(?:expert|consultant|coach|strategist|architect|advisor|adviser|fractional|freelancer?)\b/i;
 
-const vanityOf = (url: string | null | undefined) =>
-  url ? (/linkedin\.com\/(?:in|company)\/([^/?#]+)/i.exec(url)?.[1]?.toLowerCase() ?? null) : null;
+/** Decoded like touches keys it: a non-Latin slug percent-encoded outgrows the column (2026-10-11). */
+export const vanityOf = (url: string | null | undefined) => {
+  const slug = url ? /linkedin\.com\/(?:in|company)\/([^/?#]+)/i.exec(url)?.[1] : undefined;
+  if (!slug) return null;
+  let v = slug;
+  try {
+    v = decodeURIComponent(slug);
+  } catch {}
+  v = v.toLowerCase();
+  return v.length <= 120 ? v : null;
+};
 
 const words = (s: string) =>
   s

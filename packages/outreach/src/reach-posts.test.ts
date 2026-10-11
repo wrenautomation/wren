@@ -17,6 +17,7 @@ import {
   proposeTopics,
   REST_AFTER,
   rankPost,
+  vanityOf,
 } from "./reach-posts.js";
 
 const NOW = new Date("2026-10-07T15:00:00Z");
@@ -221,5 +222,21 @@ describe("proposeTopics", () => {
   it("an unreadable answer is no new words", async () => {
     const llm = new FakeLlm({ default: "not json" });
     expect(await proposeTopics(llm, { about: "x", n: 3, yields: [], known: [] })).toEqual([]);
+  });
+});
+
+describe("vanityOf", () => {
+  it("decodes a non-Latin slug so it fits the handle column", () => {
+    const slug = encodeURIComponent("مصطفى-عبد-الحميد-محمد-62b041209");
+    expect(slug.length).toBeGreaterThan(120);
+    expect(vanityOf(`https://www.linkedin.com/in/${slug}/`)).toBe(
+      "مصطفى-عبد-الحميد-محمد-62b041209",
+    );
+  });
+  it("lowercases, keeps a bad escape as is, drops one past 120", () => {
+    expect(vanityOf("https://www.linkedin.com/in/Sam-Example?x=1")).toBe("sam-example");
+    expect(vanityOf("https://www.linkedin.com/in/50%-off")).toBe("50%-off");
+    expect(vanityOf(`https://www.linkedin.com/in/${"a".repeat(121)}`)).toBeNull();
+    expect(vanityOf(null)).toBeNull();
   });
 });
