@@ -39,6 +39,7 @@ Citations: `packages/core/src/restate/loop.ts:179`
 | `wren content|ads|sms|social ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
 | Restate (box) | schedules |
 | `ConsolePortal/loops` (admin SQL over `state` + `sys_invocation`; needs `WREN_RESTATE_ADMIN_URL`), `/setLoop` (`stop`, or `start` with no body so stored settings stay) | reads, drives |
+| `ConsolePortal/agents` + portal `/loops/agents` (each part that runs for Wren as a card by stage; state read off these loops, `agent-model.ts`; designs/2026-10-11-agents.md) | reads |
 | `console.loop` record (`packages/core/src/console.ts:209`): the same rows as records, id `Service/key`, views all/failing/stopped, actions `console.startLoop`/`console.stopLoop` → `setLoop` | reads, drives |
 | Loops app, Infra (`apps/portal/web/src/modules/wren/infra.tsx`, pure `hosts.ts`): every host on the graph kit, team only; worker, box and desk health from these rows (failing count, last pass) | reads |
 

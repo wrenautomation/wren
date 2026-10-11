@@ -189,6 +189,53 @@ describe("ConsolePortal loops", () => {
   });
 });
 
+describe("ConsolePortal agents", () => {
+  const part = (id: string, o: Partial<Parameters<typeof defineComponent>[0]>) =>
+    defineComponent({
+      id,
+      name: id,
+      blurb: "b",
+      icon: "flag",
+      for: "wren",
+      stage: "run",
+      ready: false,
+      hypothesis: { from: "f", guesses: [] },
+      ...o,
+    });
+  const agents = consoleApi({
+    main,
+    views: [],
+    components: [
+      part("x.digest", {
+        provides: { loops: ["Digest"] },
+        out: [
+          {
+            id: "sent",
+            label: "digests",
+            kind: "item",
+            count: { record: "x.digest", view: "all" },
+          },
+          { id: "skip", label: "skipped", kind: "item" },
+        ],
+      }),
+      part("x.finder", { stage: "find" }),
+      part("x.later", { planned: true }),
+      part("x.client", { for: "client", ready: true }),
+    ],
+  });
+
+  it("lists what runs for Wren in the stages' order, with its loops and counted ports", async () => {
+    await refused(agents.agents({ viewer: { email: "amy@acme.test" } }), 403);
+    const got = await agents.agents({ viewer: operator });
+    expect(got.map((a) => a.id)).toEqual(["x.finder", "x.digest"]);
+    expect(got[1]).toMatchObject({
+      department: "Run Wren",
+      loops: ["Digest"],
+      counts: [{ port: "sent", label: "digests", record: "x.digest", view: "all" }],
+    });
+  });
+});
+
 describe("ConsolePortal records", () => {
   const recs = consoleApi({ main, views: [], admin: async () => ADMIN_ROWS });
   const record = "console.loop";

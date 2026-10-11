@@ -76,6 +76,7 @@ import {
   type LoopKey,
   type Port,
   STAGES,
+  type Stage,
 } from "./components.js";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
 import { customApi, customHandlers } from "./custom-console.js";
@@ -288,6 +289,24 @@ export interface LoopRow {
   /** When the next `loop` call is due; null when none is queued. */
   nextAt: string | null;
 }
+/**
+ * One part that runs for Wren, as the Agents page draws it: its loops (their state is `loops`)
+ * and each out port that counts itself (its number is `recordsStats` on that view).
+ */
+export interface AgentLine {
+  id: string;
+  name: string;
+  blurb: string;
+  icon: string;
+  stage: Stage;
+  /** The stage as said: "Find leads". The page groups by it, in the stages' order. */
+  department: string;
+  /** False: built for Wren but not yet per client; still runs here. */
+  ready: boolean;
+  loops: string[];
+  counts: { port: string; label: string; record: string; view: string }[];
+}
+
 export interface SetLoopRequest extends PortalRequest {
   service: string;
   key: string;
@@ -2495,6 +2514,30 @@ export function consoleApi({
 
     loops: async (req: PortalRequest): Promise<LoopRow[]> =>
       loopsOf(await adminFor(req)(LOOPS_SQL)),
+    /**
+     * Every built part that runs for Wren (its own, or a client part on Wren's settings), in the
+     * stages' order.
+     */
+    agents: async (req: PortalRequest): Promise<AgentLine[]> => {
+      team(req);
+      const order = Object.keys(STAGES);
+      return components
+        .filter((c) => !c.planned && (c.for === "wren" || c.wrenSettings))
+        .sort((a, b) => order.indexOf(a.stage) - order.indexOf(b.stage))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          blurb: c.blurb,
+          icon: c.icon,
+          stage: c.stage,
+          department: STAGES[c.stage],
+          ready: c.ready,
+          loops: c.provides.loops,
+          counts: c.out.flatMap((p) =>
+            p.count ? [{ port: p.id, label: p.label, ...p.count }] : [],
+          ),
+        }));
+    },
 
     recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
       const fence = fenceOf(req);
@@ -3468,6 +3511,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       ...customHandlers(api),
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
+      agents: (_: restate.Context, req: PortalRequest) => answer(() => api.agents(req)),
       recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),
       recordsList: (_: restate.Context, req: PortalRequest & ListAsk) =>
         answer(() => api.recordsList(req)),

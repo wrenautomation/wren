@@ -14,6 +14,7 @@ import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
 import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
+import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
@@ -522,6 +523,7 @@ export const loops: Module = {
         },
       ],
     },
+    { id: "agents", label: "Agents", Page: Agents, wide: true },
     {
       id: "all",
       label: "Loops",
