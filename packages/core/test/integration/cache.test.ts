@@ -35,12 +35,13 @@ beforeAll(() => {
     "-out",
     join(dir, "server.crt"),
   ]);
+  // mkdtemp makes the dir 0700: on Linux the container's valkey user could not open it.
+  execFileSync("chmod", ["755", dir]);
   execFileSync("chmod", ["644", join(dir, "server.key")]);
   fp = new X509Certificate(readFileSync(join(dir, "server.crt"))).fingerprint256;
   id = execFileSync("docker", [
     "run",
     "-d",
-    "--rm",
     "-p",
     "127.0.0.1::6380",
     "-v",
@@ -72,7 +73,13 @@ beforeAll(() => {
   ])
     .toString()
     .trim();
-  const out = execFileSync("docker", ["port", id, "6380"]).toString();
+  let out: string;
+  try {
+    out = execFileSync("docker", ["port", id, "6380"]).toString();
+  } catch {
+    // Exited at start: say why, not "no public port".
+    throw new Error(`valkey did not start: ${execFileSync("docker", ["logs", id]).toString()}`);
+  }
   port = Number(out.trim().split(":").pop());
 }, 120_000);
 
