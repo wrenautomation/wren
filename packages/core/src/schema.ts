@@ -1151,6 +1151,13 @@ export const companies = pgTable(
     timezone: varchar("timezone", { length: 64 }),
     /** Why the niche's screen says this firm is no buyer (chain, public_body, ...); NULL = in play. */
     declineReason: varchar("decline_reason", { length: 32 }),
+    /**
+     * When the firm first passed each pipeline stage: its first document, person, verified named
+     * lead. Kept exact by triggers on those tables (0226), so firm reads never aggregate them.
+     */
+    crawledAt: timestamp("crawled_at", { withTimezone: true }),
+    namedAt: timestamp("named_at", { withTimezone: true }),
+    leadAt: timestamp("lead_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_companies" }),
@@ -1159,7 +1166,17 @@ export const companies = pgTable(
     // Firms no niche has claimed: the assignment and render selectors read only these.
     index("ix_companies_unassigned").on(t.id).where(sql`niche IS NULL`),
     index("ix_companies_firm_records")
-      .on(t.id, t.niche, t.declineReason, t.domain, t.createdAt, t.name)
+      .on(
+        t.id,
+        t.niche,
+        t.declineReason,
+        t.domain,
+        t.createdAt,
+        t.name,
+        t.crawledAt,
+        t.namedAt,
+        t.leadAt,
+      )
       .where(sql`niche is not null`),
     foreignKey({
       columns: [t.importId],

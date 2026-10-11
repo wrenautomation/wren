@@ -17,6 +17,7 @@
     "gates": "./scripts/gates.sh",
     "db:generate": "pnpm --filter @wren/db generate",
     "db:migrate": "pnpm --filter @wren/db migrate",
+    "loadtest": "node scripts/loadtest.mjs",
     "worker": "pnpm --filter @wren/worker dev",
     "register": "./scripts/register-worker.sh",
     "wren": "./bin/wren",

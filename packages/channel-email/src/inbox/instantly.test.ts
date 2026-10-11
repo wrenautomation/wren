@@ -38,14 +38,14 @@ describe("InstantlyReader", () => {
     ]);
     const reader = new InstantlyReader({ apiKey: "k", fetch: f });
     const after = Date.parse("2026-10-05T00:00:00Z") / 1000;
-    const [ids, next] = await reader.listMessages(inbox, `after:${after}`, {});
+    const [ids, next] = await reader.listMessages(inbox, `after:${after}`);
     expect(ids).toEqual(["instantly:a", "instantly:b"]);
     expect(next).toBeNull();
     expect(asked[0]).toContain("mode=emode_all");
     expect(asked[0]).toContain(`eaccount=${encodeURIComponent(inbox)}`);
     expect(asked[1]).toContain("starting_after=s");
 
-    const meta = await reader.getMetadata(inbox, "instantly:a", []);
+    const meta = await reader.getMetadata(inbox, "instantly:a");
     expect(meta.internalDate).toBe(String(Date.parse("2026-10-10T12:00:00Z")));
     expect(meta.payload).toMatchObject({
       headers: expect.arrayContaining([

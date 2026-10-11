@@ -101,7 +101,8 @@ export const emailReplyThread = pgView("email_reply_thread", {
 
 /**
  * Each firm in a campaign, with when it passed each pipeline stage. The stages read as
- * `pipeline_funnel` counts them, so a funnel number opens the firms behind it.
+ * `pipeline_funnel` counts them, so a funnel number opens the firms behind it. The stage times
+ * are the trigger-kept firsts on `companies` (0226), not aggregates: 66k firms read in ms.
  */
 export const emailFirmRecords = pgView("email_firm_records", {
   id: integer("id"),
@@ -117,20 +118,12 @@ export const emailFirmRecords = pgView("email_firm_records", {
 }).as(sql`
   select c.id, coalesce(c.name, c.domain, '?')::text "name", c.domain::text domain,
     c.niche::text niche,
-    case when c.decline_reason is not null then 'declined' when l.first is not null then 'lead'
-      when p.first is not null then 'named' when d.first is not null then 'crawled'
+    case when c.decline_reason is not null then 'declined' when c.lead_at is not null then 'lead'
+      when c.named_at is not null then 'named' when c.crawled_at is not null then 'crawled'
       when c.domain is not null then 'domain' else 'found' end stage,
-    c.decline_reason::text declined, c.created_at added, d.first crawled, p.first named,
-    l.first lead
+    c.decline_reason::text declined, c.created_at added, c.crawled_at crawled, c.named_at named,
+    c.lead_at lead
   from companies c
-  left join (select company_id, min(fetched_at) first from documents group by company_id) d
-    on d.company_id = c.id
-  left join (select company_id, min(created_at) first from people group by company_id) p
-    on p.company_id = c.id
-  left join (
-    select company_id, min(created_at) first from leads
-    where status = 'verified' and first_name is not null group by company_id) l
-    on l.company_id = c.id
   where c.niche is not null`);
 
 /** Model calls and tokens per month, kind and model, aged against this month. */

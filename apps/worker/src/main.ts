@@ -7,7 +7,8 @@ import { buildServices } from "./services.js";
 
 const PORT = Number(process.env.WREN_WORKER_PORT ?? 9080);
 
-const rootDir = loadEnvFile();
+// `none`: the env as given and nothing from .env (scripts/loadtest.mjs runs it so).
+const rootDir = process.env.WREN_ENV_FILE === "none" ? process.cwd() : loadEnvFile();
 const settings = loadSettings(process.env, { rootDir });
 const log = pino({ level: settings.logLevel });
 const built = await buildServices(settings, log, { rootDir });
