@@ -12,7 +12,7 @@ import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
-import { APPROVAL_PAGE, CONVERSATION_TOP, INBOX_PAGE } from "../marketing/index.js";
+import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
@@ -445,6 +445,7 @@ export const inbox: Module = {
     // send, waiting on a yes. Marketing keeps both addresses for old links.
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     APPROVAL_PAGE,
+    DONE_PAGE,
     ...inboxPages(),
     {
       id: "mentions",

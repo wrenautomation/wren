@@ -4,6 +4,7 @@
  * replies and text threads in their states; `marketing.approval` holds what we'd send, the Inbox
  * never does. Synthetic rows only.
  */
+import { recordDraft } from "@wren/core/draft-record";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -11,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
+import { doneRecord } from "../../src/social/done-record.js";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";
 
 let pg: TestPostgres;
@@ -259,5 +261,43 @@ describe("marketing.approval: what we'd send", () => {
       ask: [],
       record: null,
     });
+  });
+});
+
+describe("marketing.done", () => {
+  it("keeps a person's steps and what followed, not the model's drafts; Today is today", async () => {
+    const step = (
+      item: string,
+      event: "generated" | "approved" | "rejected" | "sent",
+      via: "model" | "person" | "wren",
+      at?: Date,
+    ) =>
+      recordDraft(pg.db, {
+        item,
+        kind: item.startsWith("comment") ? "comment" : "post",
+        platform: "linkedin",
+        event,
+        via,
+        by: via === "person" ? "william" : null,
+        text: `Synthetic words for ${item}`,
+        ...(at ? { at } : {}),
+      });
+    await step("draft:901", "generated", "model");
+    await step("draft:901", "approved", "person");
+    await step("draft:901", "sent", "wren");
+    await step("comment:902", "rejected", "person", new Date(Date.now() - 3 * 86_400_000));
+    const api = serveRecords([doneRecord], pg.db);
+    const all = await api.list({ record: "marketing.done", view: "all", limit: 50 });
+    const mine = all.rows.filter((r) =>
+      ["draft:901", "comment:902"].some((i) => String(r.open).endsWith(i.split(":")[1] ?? "")),
+    );
+    expect(mine.map((r) => r.event).sort()).toEqual(["approved", "rejected", "sent"]);
+    expect(mine.find((r) => r.event === "approved")?.open).toBe("/marketing/drafts/901");
+    const today = await api.list({ record: "marketing.done", view: "today", limit: 50 });
+    expect(
+      today.rows.some((r) => r.event === "rejected" && r.open === "/marketing/comments/902"),
+    ).toBe(false);
+    const week = await api.list({ record: "marketing.done", view: "week", limit: 50 });
+    expect(week.rows.some((r) => r.open === "/marketing/comments/902")).toBe(true);
   });
 });

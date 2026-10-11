@@ -877,6 +877,26 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   count: { status: ["open"] },
 };
 
+/**
+ * What was done (`marketing.done`, designs/2026-10-11-done.md): every approve, reject, edit and
+ * send, today first. Inbox → Done, beside To approve.
+ */
+export const DONE_PAGE: ListPage = {
+  id: "done",
+  label: "Done",
+  template: "list",
+  record: "marketing.done",
+  columns: ["what", "event", "kind", "platform", "via", "at", "open"],
+  empty: {
+    today: "Nothing done yet today. Approve, reject or edit something and it lands here.",
+    week: "Nothing done this week.",
+    approved: "Nothing approved yet.",
+    rejected: "Nothing rejected yet.",
+    sent: "Nothing sent yet.",
+    all: "Every approve, reject, edit and send shows here.",
+  },
+};
+
 /** What we'd send, waiting on William's yes (`marketing.approval`): Marketing → To approve. */
 export const APPROVAL_PAGE: ListPage = {
   id: "approve",

@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 979997e3 (+ training record batch 2)
+verified: 2026-10-11 @ 85dbc0b6 (+ Inbox → Done)
 entity: packages/core/src/schema.ts:650
 ---
 
@@ -31,7 +31,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 ## If you change this
 
-- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,reach-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
+- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people`, `done_records` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,reach-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
 - **Does not hit:** `changes` (the records layer's field edits) or `runs` (still written as before)
 
 ## Surfaces
@@ -44,6 +44,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 | `ContentDesk.approve/reject`, `MarketingConsole.rejectDraft`, `wren content reject --reason --note`, drop and skip | write decisions |
 | `ContentScheduler`, `markAnswered`, `markCommented`, `queueDraft` | write `sent` / `failed` |
 | every draft page: Versions section (`draftRecordOf` in each `load`) and Activity tab (`draft_activity`) | read |
+| Inbox → Done (`marketing.done`, view `done_records`: a person's and Claude's steps plus scheduled/sent/failed; Today by New York's day) | read |
 | `wren train export`, `wren train pairs`, Export JSONL on draft lists (records `drafts`) | read: `wren.draft/1`, `wren.pair/1`, people out by default |
 | `wren train backfill [--dry-run]` | write history from `content_drafts`, `runs`, `audit_events`, `comments`, `reddit_threads`, `reach_messages`, `video_edits`; skips items with live steps |
 

@@ -677,6 +677,44 @@ export const draftActivity = pgView("draft_activity", {
   left join content_drafts d on l.item like 'draft:%' and d.id::text = split_part(l.item, ':', 2)`);
 
 /**
+ * Inbox → Done (designs/2026-10-11-done.md): every step a person took on a draft (approved,
+ * rejected, edited, Claude's rewrite at their ask) and what followed (scheduled, sent, failed),
+ * newest first. The model's first words and Wren's own drops stay on each draft's Activity.
+ * `day` buckets by New York's day, so Today means William's today.
+ */
+export const doneRecords = pgView("done_records", {
+  id: integer("id"),
+  item: text("item"),
+  kind: text("kind"),
+  platform: text("platform"),
+  event: text("event"),
+  via: text("via"),
+  by: text("by"),
+  what: text("what"),
+  words: text("words"),
+  note: text("note"),
+  url: text("url"),
+  /** The item's page in the portal (Marketing's list for its kind); null when it has none. */
+  open: text("open"),
+  at: timestamp("at", { withTimezone: true }),
+  day: text("day"),
+}).as(sql`
+  select e.id, e.item, e.kind, e.platform, e.event, e.via, e.by,
+    coalesce(nullif(e.title, ''), left(regexp_replace(e.text, '[[:space:]]+', ' ', 'g'), 140), e.item) what,
+    e.text words, e.note, e.url,
+    case split_part(e.item, ':', 1)
+      when 'draft' then '/marketing/drafts/' when 'comment' then '/marketing/comments/'
+      when 'thread' then '/marketing/threads/' when 'video' then '/marketing/videos/'
+      when 'dm' then '/marketing/dms/' when 'invite' then '/marketing/dms/'
+      when 'note' then '/marketing/dms/' end || split_part(e.item, ':', 2) as open,
+    e.at,
+    case when e.at >= (date_trunc('day', now() at time zone 'America/New_York')
+        at time zone 'America/New_York') then 'today'
+      when e.at >= now() - interval '7 days' then 'week' else 'older' end as day
+  from draft_events e
+  where e.via in ('person', 'claude') or e.event in ('scheduled', 'sent', 'failed')`);
+
+/**
  * What each sent draft got (designs/2026-10-07-training-record.md, Outcomes), read by `wren train`:
  * a post's newest metrics snapshot and the replies under it (follows from its insights days when
  * the snapshot has none: YouTube's subscribers gained); an answered comment's or thread's replies
