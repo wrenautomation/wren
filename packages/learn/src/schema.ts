@@ -84,6 +84,13 @@ export const TOP_SCORE = 8;
 
 /** article: text. video: YouTube. reel: a short off YouTube (Instagram, TikTok, X). episode: a podcast's. */
 export const ITEM_KINDS = ["article", "video", "reel", "episode"] as const;
+
+/** A post's public numbers; each only when its platform gives it (Instagram: no views). */
+export interface PostStats {
+  likes?: number;
+  comments?: number;
+  views?: number;
+}
 export type ItemKind = (typeof ITEM_KINDS)[number];
 
 /** How a saved item came in. */
@@ -188,6 +195,9 @@ export const items = learn.table(
     mediaUrl: text("media_url"),
     /** Moments worth jumping to, from the scorer. */
     moments: jsonb("moments").$type<Moment[]>().notNull().default([]),
+    /** A followed post's numbers as its platform last gave them (`statsAt`); null when it gives none. */
+    stats: jsonb("stats").$type<PostStats>(),
+    statsAt: timestamp("stats_at", { withTimezone: true }),
     score: smallint("score"),
     /** Null until scored. */
     verdict: varchar("verdict", { length: 8, enum: VERDICTS }),
@@ -253,6 +263,81 @@ export const items = learn.table(
     oneOf("ck_learn_items_type", t.type, TYPES),
     oneOf("ck_learn_items_verdict", t.verdict, VERDICTS),
     oneOf("ck_learn_items_saved_via", t.savedVia, VIAS),
+  ],
+);
+
+/**
+ * How a reel or video is made (`breakdown.ts`): its hook style from a fixed set, the hook line,
+ * the beats, the call to action. One row an item, written once its transcript is read.
+ */
+export const HOOK_STYLES = [
+  "contrarian",
+  "demo-first",
+  "result-first",
+  "identity-call",
+  "list-tease",
+  "question",
+  "story",
+  "warning",
+  "news",
+  "how-to",
+  "pattern-break",
+  "other",
+] as const;
+export type HookStyle = (typeof HOOK_STYLES)[number];
+export const CTA_KINDS = [
+  "comment-word",
+  "follow",
+  "link",
+  "dm",
+  "save-share",
+  "none",
+  "other",
+] as const;
+export type CtaKind = (typeof CTA_KINDS)[number];
+export const POST_FORMATS = [
+  "talking-head",
+  "screen-demo",
+  "voiceover",
+  "text-on-screen",
+  "mixed",
+] as const;
+export type PostFormat = (typeof POST_FORMATS)[number];
+
+/** One beat of a script: when it starts (seconds, when the transcript is timed) and what it does. */
+export interface Beat {
+  t: number | null;
+  beat: string;
+}
+
+export const breakdowns = learn.table(
+  "breakdowns",
+  {
+    itemId: integer("item_id").notNull(),
+    hookStyle: varchar("hook_style", { length: 16, enum: HOOK_STYLES }).notNull(),
+    /** The opening line, as said or shown. */
+    hook: text("hook").notNull(),
+    /** Why the hook works, one sentence. */
+    hookWhy: text("hook_why").notNull(),
+    topic: text("topic").notNull(),
+    format: varchar("format", { length: 16, enum: POST_FORMATS }).notNull(),
+    beats: jsonb("beats").$type<Beat[]>().notNull().default([]),
+    ctaKind: varchar("cta_kind", { length: 12, enum: CTA_KINDS }).notNull(),
+    /** The ask, as said; null with `none`. */
+    cta: text("cta"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId], name: "pk_breakdowns" }),
+    foreignKey({
+      columns: [t.itemId],
+      foreignColumns: [items.id],
+      name: "fk_breakdowns_item_id_items",
+    }).onDelete("cascade"),
+    index("ix_learn_breakdowns_hook_style").on(t.hookStyle),
+    oneOf("ck_learn_breakdowns_hook_style", t.hookStyle, HOOK_STYLES),
+    oneOf("ck_learn_breakdowns_format", t.format, POST_FORMATS),
+    oneOf("ck_learn_breakdowns_cta_kind", t.ctaKind, CTA_KINDS),
   ],
 );
 
@@ -536,3 +621,76 @@ export const sourceRecords = learn
     from learn.sources s left join learn.items i on i.source_id = s.id
     where s.client = 'wren'
     group by s.id`);
+
+/**
+ * Each broken-down reel or video, Wren's own, with its numbers: the Competitors pages. `reach` is
+ * views when the platform gives them, else likes plus comments, so rows from both rank together.
+ */
+export const breakdownRecords = learn
+  .view("breakdown_records", {
+    id: integer("id"),
+    title: text("title"),
+    creator: text("creator"),
+    source: text("source"),
+    sourceId: integer("source_id"),
+    followed: text("followed"),
+    type: text("type"),
+    kind: text("kind"),
+    hookStyle: text("hook_style"),
+    hook: text("hook"),
+    hookWhy: text("hook_why"),
+    topic: text("topic"),
+    format: text("format"),
+    beats: text("beats"),
+    ctaKind: text("cta_kind"),
+    cta: text("cta"),
+    likes: integer("likes"),
+    comments: integer("comments"),
+    views: integer("views"),
+    reach: integer("reach"),
+    score: integer("score"),
+    at: timestamp("at", { withTimezone: true }),
+    statsAt: timestamp("stats_at", { withTimezone: true }),
+    open: text("open"),
+  })
+  .as(sql`
+    select i.id, i.title, coalesce(i.creator, s.name) creator, coalesce(s.name, 'Saved') source,
+      i.source_id, case when i.source_id is null then 'saved' else 'followed' end followed,
+      i.type::text type, i.kind::text kind, b.hook_style::text hook_style, b.hook, b.hook_why,
+      b.topic, b.format::text format,
+      (select string_agg(case when x.value->>'t' is null then '' else
+          '[' || ((x.value->>'t')::int / 60) || ':' || lpad(((x.value->>'t')::int % 60)::text, 2, '0') || '] ' end
+          || (x.value->>'beat'), chr(10) order by x.ordinality)
+        from jsonb_array_elements(b.beats) with ordinality x) beats,
+      b.cta_kind::text cta_kind, b.cta,
+      (i.stats->>'likes')::int likes, (i.stats->>'comments')::int comments,
+      (i.stats->>'views')::int views,
+      coalesce((i.stats->>'views')::int,
+        nullif(coalesce((i.stats->>'likes')::int, 0) + coalesce((i.stats->>'comments')::int, 0), 0)) reach,
+      i.score::int score, coalesce(i.published_at, i.created_at) at, i.stats_at, i.url open
+    from learn.breakdowns b join learn.items i on i.id = b.item_id
+      left join learn.sources s on s.id = i.source_id
+    where i.client = 'wren'`);
+
+/** Each hook style across Wren's broken-down reels: how often, by whom, and how far it reached. */
+export const hookRecords = learn
+  .view("hook_records", {
+    id: text("id"),
+    style: text("style"),
+    reels: integer("reels"),
+    creators: integer("creators"),
+    medianReach: integer("median_reach"),
+    topReach: integer("top_reach"),
+    top: text("top"),
+    topCreator: text("top_creator"),
+    lastAt: timestamp("last_at", { withTimezone: true }),
+  })
+  .as(sql`
+    select r.hook_style id, r.hook_style style, count(*)::int reels, count(distinct r.creator)::int creators,
+      (percentile_cont(0.5) within group (order by r.reach))::int median_reach,
+      max(r.reach)::int top_reach,
+      (array_agg(r.title order by r.reach desc nulls last))[1] top,
+      (array_agg(r.creator order by r.reach desc nulls last))[1] top_creator,
+      max(r.at) last_at
+    from learn.breakdown_records r
+    group by r.hook_style`);

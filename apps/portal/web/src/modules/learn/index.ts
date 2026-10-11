@@ -66,6 +66,66 @@ export const learn: Module = {
   find,
   pages: [
     ...pages,
+    // How competitors' reels are made (designs/2026-10-11-competitor-breakdowns.md).
+    {
+      id: "competitors",
+      label: "Competitors",
+      group: "Competitors",
+      template: "overview",
+      tiles: [
+        { label: "Broken down", record: "learn.breakdown", href: "/learn/reels?view=all" },
+        { label: "Followed", record: "learn.breakdown", href: "/learn/reels?view=followed" },
+        { label: "New", record: "learn.breakdown", href: "/learn/reels?view=new", period: 7 },
+        {
+          label: "Median reach",
+          record: "learn.breakdown",
+          href: "/learn/reels?view=new",
+          period: 30,
+          median: "reach",
+        },
+        {
+          label: "Comment a word",
+          record: "learn.breakdown",
+          href: "/learn/reels?view=comment-word",
+        },
+      ],
+      top: [
+        {
+          label: "Hooks that reach",
+          record: "learn.hook",
+          href: "/learn/hooks",
+          fields: ["reels", "medianReach"],
+          line: "top",
+          units: { reels: "reels", medianReach: "median reach" },
+          empty: "No reels broken down yet.",
+        },
+        {
+          label: "Best reach",
+          record: "learn.breakdown",
+          href: "/learn/reels",
+          fields: ["creator", "hookStyle", "reach"],
+          line: "hook",
+          empty: "No reels broken down yet.",
+        },
+      ],
+    },
+    {
+      id: "reels",
+      label: "Reels",
+      group: "Competitors",
+      template: "list",
+      record: "learn.breakdown",
+      empty:
+        "Each reel or video a followed creator posts shows here once read: its hook, beats and ask.",
+    },
+    {
+      id: "hooks",
+      label: "Hooks",
+      group: "Competitors",
+      template: "list",
+      record: "learn.hook",
+      empty: "Hook styles rank here once reels are broken down.",
+    },
     {
       id: "sops",
       label: "SOPs",

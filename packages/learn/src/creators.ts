@@ -10,10 +10,10 @@ import { promisify } from "node:util";
 import type { SiteClient } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, asc, eq, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { FeedItem, PullStats } from "./feeds.js";
 import { cleanUrl, typeOf } from "./links.js";
-import { type ItemKind, items, type SourceKind, sources } from "./schema.js";
+import { type ItemKind, items, type PostStats, type SourceKind, sources } from "./schema.js";
 
 const run = promisify(execFile);
 
@@ -31,6 +31,22 @@ const NEWEST = 12;
 /** A post, with the kind its media says. */
 export interface CreatorPost extends FeedItem {
   kind: ItemKind;
+  /** Its likes, comments and views as the platform gives them now. */
+  stats?: PostStats | null;
+}
+
+/** Only the numbers a platform gave; null when it gave none. */
+export function statsOf(n: {
+  likes?: number | null | undefined;
+  comments?: number | null | undefined;
+  views?: number | null | undefined;
+}): PostStats | null {
+  const out: PostStats = {};
+  for (const k of ["likes", "comments", "views"] as const) {
+    const v = n[k];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[k] = Math.round(v);
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 /** A profile's own tabs: still the profile. */
@@ -105,6 +121,8 @@ interface IgMedia {
   timestamp?: string;
   thumbnail_url?: string;
   media_url?: string;
+  like_count?: number;
+  comments_count?: number;
 }
 
 /** One page of a creator's posts, newest first, and where the page after starts (null: no more). */
@@ -151,6 +169,7 @@ export async function instagramPage(
         enclosure: null,
         thumbnail: m.thumbnail_url ?? (video ? null : (m.media_url ?? null)),
         duration: null,
+        stats: statsOf({ likes: m.like_count, comments: m.comments_count }),
       };
     });
   return { posts, next: a.next ?? null };
@@ -205,6 +224,9 @@ interface YtDlpEntry {
   duration?: number;
   uploader?: string;
   thumbnails?: { url?: string }[];
+  view_count?: number;
+  like_count?: number;
+  comment_count?: number;
 }
 
 /**
@@ -244,6 +266,7 @@ export async function tiktokPage(
       enclosure: null,
       thumbnail: e.thumbnails?.at(-1)?.url ?? null,
       duration: e.duration ? Math.round(e.duration) : null,
+      stats: statsOf({ likes: e.like_count, comments: e.comment_count, views: e.view_count }),
     };
   });
   return { posts, next: entries.length >= limit ? String(skip + entries.length) : null };
@@ -324,6 +347,8 @@ export async function pullCreators(
                 publishedAt: p.publishedAt,
                 thumbnailUrl: p.thumbnail,
                 duration: p.duration,
+                stats: p.stats ?? null,
+                statsAt: p.stats ? now : null,
                 ...(first
                   ? { why: FOLLOWED_BEFORE, archivedAt: now }
                   : opts.macReads && p.kind === "reel"
@@ -332,9 +357,17 @@ export async function pullCreators(
               };
             }),
           )
-          .onConflictDoNothing({ target: [items.client, items.url] })
-          .returning({ id: items.id });
-        if (!first) stats.added.push(...rows.map((r) => r.id));
+          // A post seen before keeps everything but its numbers, which move.
+          .onConflictDoUpdate({
+            target: [items.client, items.url],
+            set: {
+              stats: sql`coalesce(excluded.stats, ${items.stats})`,
+              statsAt: sql`coalesce(excluded.stats_at, ${items.statsAt})`,
+            },
+          })
+          // xmax is 0 on a row this statement inserted, so only new posts count as added.
+          .returning({ id: items.id, fresh: sql<boolean>`(xmax = 0)` });
+        if (!first) stats.added.push(...rows.filter((r) => r.fresh).map((r) => r.id));
       }
       await db.update(sources).set({ fetchedAt: now, failure: null }).where(eq(sources.id, s.id));
     } catch (err) {

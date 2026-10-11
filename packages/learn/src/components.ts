@@ -58,14 +58,16 @@ export const LEARN_COMPONENTS = [
     channels: ["web"],
     name: "Learn scoring",
     blurb:
-      "Scores each read item 0 to 10 on how much it should change how Wren works, against its SOPs.",
+      "Scores each read item 0 to 10 on how much it should change how Wren works, against its SOPs, and breaks each reel or video down: hook style, beats, call to action.",
     icon: "search",
     for: "wren",
     ready: false,
     missing: [OWN],
     requires: { components: ["learn.read"] },
     effects: ["spends"],
-    provides: { records: ["learn.item", "learn.source", "learn.sop"] },
+    provides: {
+      records: ["learn.item", "learn.source", "learn.sop", "learn.breakdown", "learn.hook"],
+    },
     in: [{ id: "item", label: "read items", kind: "item" }],
     out: [
       { id: "show", label: "worth reading", kind: "item" },

@@ -15,12 +15,15 @@ import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
   askSop,
+  breakdownItem,
+  breakdowns,
   type CatalogReader,
   creatorOf,
   embedMissing,
   follow,
   instagramPage,
   itemPage,
+  items,
   judges,
   listItems,
   mark,
@@ -63,7 +66,7 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import type { Command } from "commander";
-import { desc } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -361,6 +364,42 @@ export function registerLearn(
           for (const id of await unscore(db, client, idsOf(ids)))
             out.push({ id, verdict: await scoreItem(db, judge, id) });
           return out;
+        }),
+      ),
+    );
+
+  learn
+    .command("breakdown [ids...]")
+    .description(
+      "break read reels and videos down (hook style, beats, call to action); no ids: every one not done yet",
+    )
+    .option("--model <name>", "the model", "cohere")
+    .option("--limit <n>", "at most this many", Number, 50)
+    .action(async (ids: string[], o: { model: string; limit: number }) =>
+      json(
+        await inWorkspace(async (db, client) => {
+          const judge = judgeFor(db, o.model);
+          const todo = ids.length
+            ? idsOf(ids)
+            : (
+                await db
+                  .select({ id: items.id })
+                  .from(items)
+                  .leftJoin(breakdowns, eq(breakdowns.itemId, items.id))
+                  .where(
+                    and(
+                      eq(items.client, client),
+                      inArray(items.kind, ["reel", "video"]),
+                      isNotNull(items.transcript),
+                      isNull(breakdowns.itemId),
+                    ),
+                  )
+                  .orderBy(desc(items.id))
+                  .limit(o.limit)
+              ).map((r) => r.id);
+          const done: number[] = [];
+          for (const id of todo) if (await breakdownItem(db, judge, id)) done.push(id);
+          return { tried: todo.length, done };
         }),
       ),
     );

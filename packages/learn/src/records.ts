@@ -239,4 +239,130 @@ export const sopRecordFor = (sopsDir: string | null) =>
     views: [{ id: "all", label: "All", sort: "sop", at: "built" }],
   });
 
-export const LEARN_RECORDS = [itemRecord, savedRecord, sourceRecord];
+const HOOK = status(
+  {
+    contrarian: { label: "Contrarian", tone: "neutral" },
+    "demo-first": { label: "Demo first", tone: "neutral" },
+    "result-first": { label: "Result first", tone: "neutral" },
+    "identity-call": { label: "Identity call", tone: "neutral" },
+    "list-tease": { label: "List tease", tone: "neutral" },
+    question: { label: "Question", tone: "neutral" },
+    story: { label: "Story", tone: "neutral" },
+    warning: { label: "Warning", tone: "neutral" },
+    news: { label: "News", tone: "neutral" },
+    "how-to": { label: "How to", tone: "neutral" },
+    "pattern-break": { label: "Pattern break", tone: "neutral" },
+    other: { label: "Other", tone: "neutral" },
+  },
+  "Hook style",
+);
+
+/** Each broken-down reel or video, best reach first: who, the hook, the beats, the ask, the numbers. */
+export const breakdownRecord = defineRecord({
+  id: "learn.breakdown",
+  app: "learn",
+  channel: null,
+  needs: "team",
+  name: { one: "breakdown", many: "breakdowns" },
+  view: "learn.breakdown_records",
+  key: "id",
+  title: "title",
+  subtitle: "creator",
+  fields: {
+    title: text(),
+    creator: name("By"),
+    hookStyle: HOOK,
+    hook: text("Hook"),
+    hookWhy: text("Why it works"),
+    topic: text("Topic"),
+    format: status(
+      {
+        "talking-head": { label: "Talking head", tone: "neutral" },
+        "screen-demo": { label: "Screen demo", tone: "neutral" },
+        voiceover: { label: "Voiceover", tone: "neutral" },
+        "text-on-screen": { label: "Text on screen", tone: "neutral" },
+        mixed: { label: "Mixed", tone: "neutral" },
+      },
+      "Format",
+    ),
+    beats: text("Beats"),
+    ctaKind: status(
+      {
+        "comment-word": { label: "Comment a word", tone: "neutral" },
+        follow: { label: "Follow", tone: "neutral" },
+        link: { label: "Link", tone: "neutral" },
+        dm: { label: "DM", tone: "neutral" },
+        "save-share": { label: "Save or share", tone: "neutral" },
+        none: { label: "None", tone: "neutral" },
+        other: { label: "Other", tone: "neutral" },
+      },
+      "Call to action",
+    ),
+    cta: text("The ask"),
+    reach: number("Reach"),
+    views: number("Views"),
+    likes: number("Likes"),
+    comments: number("Comments"),
+    score: score("Score", { max: 10 }),
+    followed: status(
+      {
+        followed: { label: "Followed", tone: "neutral" },
+        saved: { label: "Saved", tone: "neutral" },
+      },
+      "From",
+    ),
+    source: name("Source"),
+    at: date("Published"),
+    statsAt: date("Numbers from"),
+    open: link("Open"),
+  },
+  views: [
+    { id: "all", label: "Best reach", sort: "-reach", at: "at" },
+    { id: "new", label: "Newest", sort: "-at", at: "at" },
+    {
+      id: "followed",
+      label: "Followed",
+      where: { followed: "followed" },
+      sort: "-reach",
+      at: "at",
+    },
+    {
+      id: "comment-word",
+      label: "Comment a word",
+      where: { ctaKind: "comment-word" },
+      sort: "-reach",
+      at: "at",
+    },
+  ],
+  related: [{ record: "learn.item", by: "id" }],
+});
+
+/** Each hook style: how many reels, by how many creators, and how far it reaches. */
+export const hookRecord = defineRecord({
+  id: "learn.hook",
+  app: "learn",
+  channel: null,
+  needs: "team",
+  name: { one: "hook style", many: "hook styles" },
+  view: "learn.hook_records",
+  key: "id",
+  title: "style",
+  subtitle: "top",
+  fields: {
+    style: HOOK,
+    reels: number("Reels"),
+    creators: number("Creators"),
+    medianReach: number("Median reach"),
+    topReach: number("Best reach"),
+    top: text("Best reel"),
+    topCreator: name("Best by"),
+    lastAt: date("Last seen"),
+  },
+  views: [
+    { id: "all", label: "By median reach", sort: "-medianReach", at: "lastAt" },
+    { id: "used", label: "Most used", sort: "-reels", at: "lastAt" },
+  ],
+  related: [{ record: "learn.breakdown", by: "hook_style" }],
+});
+
+export const LEARN_RECORDS = [itemRecord, savedRecord, sourceRecord, breakdownRecord, hookRecord];

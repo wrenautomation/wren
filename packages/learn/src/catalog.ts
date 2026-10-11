@@ -141,6 +141,8 @@ export async function readCatalog(
           publishedAt: p.publishedAt,
           thumbnailUrl: p.thumbnail,
           duration: p.duration,
+          stats: p.stats ?? null,
+          statsAt: p.stats ? o.now : null,
           ...(p.kind === "reel" ? { needsMac: o.now } : {}),
         })
         .onConflictDoNothing({ target: [items.client, items.url] })

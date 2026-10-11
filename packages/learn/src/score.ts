@@ -15,6 +15,7 @@ import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, llmForKey } from "@wren/llm";
 import { and, asc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
+import { breakdownItem } from "./breakdown.js";
 import { secondsOf } from "./feeds.js";
 import { items, type Moment, sopSources, sources, type Verdict } from "./schema.js";
 
@@ -212,7 +213,8 @@ ${item.text.slice(0, PROMPT_TEXT)}`;
 }
 
 /**
- * Score one read item through its workspace's judge. Null when there's no such row, it isn't read
+ * Score one read item through its workspace's judge, then break a reel or video down
+ * (`breakdownItem`). Null when there's no such row, it isn't read
  * yet, the client's models gate is shut, or the model's answer didn't read three times (it waits,
  * unscored; each asked at once). A provider failure throws, so the step retries.
  */
@@ -224,7 +226,11 @@ export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise
     .where(eq(items.id, id));
   if (!row) return null;
   const { item } = row;
-  if (item.verdict) return item.verdict;
+  // Scored on an earlier try whose breakdown threw: the retry does the breakdown alone.
+  if (item.verdict) {
+    await breakdownItem(db, judgeFor, id);
+    return item.verdict;
+  }
   if (!item.readAt || item.tries >= MAX_TRIES) return null;
   const judge = await judgeFor(item.client);
   const { llm, practices } = judge;
@@ -295,6 +301,7 @@ export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise
       scoredAt: new Date(),
     })
     .where(and(eq(items.id, id), isNull(items.verdict)));
+  await breakdownItem(db, judgeFor, id);
   return verdict;
 }
 

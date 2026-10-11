@@ -761,6 +761,7 @@ describe("Learn", () => {
     let asked = "";
     const llm = new FakeLlm({
       respond: (p) => {
+        if (p.startsWith("Break down")) return "{}";
         asked = p;
         return JSON.stringify({
           score: 5,
@@ -797,6 +798,8 @@ describe("Learn", () => {
     let garbled = 0;
     const llm = new FakeLlm({
       respond: (p) => {
+        // A video is broken down after its score: this test reads the score's prompt.
+        if (p.startsWith("Break down")) return "{}";
         asked = p;
         if (garbled > 0) {
           garbled--;
