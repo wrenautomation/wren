@@ -9,29 +9,39 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
+  ChartColumn,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
   Clock,
+  Code,
   CreditCard,
   Download,
   ExternalLink,
   FileText,
   Flag,
   Globe,
+  Hourglass,
   House,
   Inbox,
+  Keyboard,
   Layers,
   LayoutGrid,
   Link,
+  List,
   type LucideIcon,
   Mail,
   Megaphone,
   Menu,
+  Merge,
   MessageSquare,
   Mic,
+  PanelLeft,
   Pause,
+  Pencil,
+  PenLine,
   Phone,
   Pin,
   Play,
@@ -39,9 +49,11 @@ import {
   RefreshCw,
   Reply,
   Search,
+  Shapes,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Split,
   SquareKanban,
   Star,
   StickyNote,
@@ -99,9 +111,29 @@ const ICONS = {
   stack: Layers,
   mic: Mic,
   card: CreditCard,
+  // Steps and parts: what a run did, a workflow's blocks, a component's mark.
+  chart: ChartColumn,
+  code: Code,
+  edit: Pencil,
+  list: List,
+  merge: Merge,
+  page: FileText,
+  split: Split,
+  wait: Hourglass,
+  write: PenLine,
+  // The frame: the panels, help, keys.
+  panel: PanelLeft,
+  help: CircleHelp,
+  keys: Keyboard,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
+
+/** Is `name` one of the kit's? Names that come from data (a component's mark) are only strings. */
+export const isIconName = (name: string): name is IconName => Object.hasOwn(ICONS, name);
+
+/** What a name the kit lacks draws, so a part's unknown mark never breaks its page. */
+const UNKNOWN = Shapes;
 
 export function Icon({
   name,
@@ -112,7 +144,7 @@ export function Icon({
   size?: number;
   className?: string;
 }) {
-  const Drawn = ICONS[name];
+  const Drawn = isIconName(name) ? ICONS[name] : UNKNOWN;
   return (
     <Drawn
       className={cx("flex-none", className)}

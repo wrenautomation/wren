@@ -78,6 +78,30 @@ export const slidesText = (slides: readonly Slide[]): string =>
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/**
+ * The slides' one stylesheet. Each title's size is a class, never a style attribute, so the
+ * portal's preview can allow this block by its hash (apps/portal/web/public/_headers).
+ */
+export const SLIDES_CSS = `
+@page{size:${SLIDE_PX}px ${SLIDE_PX}px;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:${SLIDE_LOOK.background}}
+body{font-family:${SLIDE_LOOK.font};color:${SLIDE_LOOK.foreground};-webkit-font-smoothing:antialiased}
+.slide{position:relative;width:${SLIDE_PX}px;height:${SLIDE_PX}px;padding:96px 104px;display:flex;flex-direction:column;background:${SLIDE_LOOK.background};overflow:hidden;break-after:page;page-break-after:always}
+.slide:last-child{break-after:auto;page-break-after:auto}
+.eyebrow{font-size:24px;letter-spacing:.14em;text-transform:uppercase;color:${SLIDE_LOOK.accent};font-weight:600}
+.body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px}
+h1{line-height:1.04;letter-spacing:-.02em;font-weight:650;max-width:16ch;text-wrap:balance}
+.cover h1{max-width:14ch}
+${[104, 88, 84, 72, 60].map((px) => `.t${px}{font-size:${px}px}`).join("\n")}
+.lines{display:flex;flex-direction:column;gap:22px;border-left:8px solid ${SLIDE_LOOK.accent};padding-left:36px}
+.line{font-size:36px;line-height:1.32;color:${SLIDE_LOOK.muted};max-width:32ch}
+footer{display:flex;align-items:center;gap:24px;font-size:24px;color:${SLIDE_LOOK.muted}}
+.bar{width:72px;height:8px;background:${SLIDE_LOOK.accent}}
+.swipe{margin-left:auto;font-weight:600;color:${SLIDE_LOOK.foreground}}
+.swipe::after{content:" \\2192"}
+`;
+
 /** A title's size: big when short, smaller as it grows. */
 const titlePx = (title: string, cover: boolean) => {
   const n = title.length;
@@ -90,7 +114,7 @@ function slideSection(s: Slide, i: number, total: number, by: string): string {
   const lines = s.lines.map((l) => `<p class="line">${esc(l)}</p>`).join("");
   return `<section class="slide${cover ? " cover" : ""}" data-n="${i + 1}">
 <p class="eyebrow">${esc(by)}</p>
-<div class="body"><h1 style="font-size:${titlePx(s.title, cover)}px">${esc(s.title)}</h1>${lines ? `<div class="lines">${lines}</div>` : ""}</div>
+<div class="body"><h1 class="t${titlePx(s.title, cover)}">${esc(s.title)}</h1>${lines ? `<div class="lines">${lines}</div>` : ""}</div>
 <footer><span class="bar"></span><span class="n">${i + 1} / ${total}</span>${cover && total > 1 ? '<span class="swipe">Swipe</span>' : ""}</footer>
 </section>`;
 }
@@ -103,30 +127,12 @@ export function slidesHtml(
   slides: readonly Slide[],
   o: { only?: number; by?: string } = {},
 ): string {
-  const L = SLIDE_LOOK;
   const by = o.by ?? "Wren Automation";
   const picked =
     o.only === undefined
       ? slides.map((s, i) => slideSection(s, i, slides.length, by))
       : [slideSection(slides[o.only] ?? { title: "", lines: [] }, o.only, slides.length, by)];
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-@page{size:${SLIDE_PX}px ${SLIDE_PX}px;margin:0}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:${L.background}}
-body{font-family:${L.font};color:${L.foreground};-webkit-font-smoothing:antialiased}
-.slide{position:relative;width:${SLIDE_PX}px;height:${SLIDE_PX}px;padding:96px 104px;display:flex;flex-direction:column;background:${L.background};overflow:hidden;break-after:page;page-break-after:always}
-.slide:last-child{break-after:auto;page-break-after:auto}
-.eyebrow{font-size:24px;letter-spacing:.14em;text-transform:uppercase;color:${L.accent};font-weight:600}
-.body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px}
-h1{line-height:1.04;letter-spacing:-.02em;font-weight:650;max-width:16ch;text-wrap:balance}
-.cover h1{max-width:14ch}
-.lines{display:flex;flex-direction:column;gap:22px;border-left:8px solid ${L.accent};padding-left:36px}
-.line{font-size:36px;line-height:1.32;color:${L.muted};max-width:32ch}
-footer{display:flex;align-items:center;gap:24px;font-size:24px;color:${L.muted}}
-.bar{width:72px;height:8px;background:${L.accent}}
-.swipe{margin-left:auto;font-weight:600;color:${L.foreground}}
-.swipe::after{content:" \\2192"}
-</style></head><body>${picked.join("\n")}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${SLIDES_CSS}</style></head><body>${picked.join("\n")}</body></html>`;
 }
 
 /** True of a draft whose post is a slide set: an Instagram carousel or a LinkedIn PDF. */

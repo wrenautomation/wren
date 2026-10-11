@@ -121,7 +121,7 @@ export {
   wireLines,
 } from "./graph/index.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
-export { Icon, type IconName } from "./icons.js";
+export { Icon, type IconName, isIconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export {
   Fieldset,

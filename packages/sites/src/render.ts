@@ -19,7 +19,7 @@ export const PAGE_CSP =
 /** A hosted form's: a page's, but any site may frame it (the embed). */
 export const FORM_CSP = PAGE_CSP.replace("frame-ancestors 'self'", "frame-ancestors *");
 
-const CSS = `
+export const PAGE_CSS = `
 :root{--ink:#16181d;--muted:#5b6170;--paper:#fbfaf7;--line:#e4e1d8;--accent:#24594b;--accent-ink:#fff;--card:#fff}
 @media (prefers-color-scheme:dark){:root{--ink:#eceae4;--muted:#a3a7b0;--paper:#121417;--line:#2a2e35;--accent:#7cc3a8;--accent-ink:#0d1512;--card:#191c20}}
 *{box-sizing:border-box}
@@ -93,7 +93,7 @@ export function renderPage(t: Template, c: Content, ctx: RenderContext): string 
 <meta name="description" content="${esc(description)}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<style>${CSS}</style>
+<style>${PAGE_CSS}</style>
 ${ctx.track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-page="${esc(ctx.page)}"${ctx.split ? ` data-split="${esc(ctx.split)}"` : ""} defer></script>` : ""}
 </head>
 <body${ctx.track ? "" : ' class="preview"'}>
@@ -123,7 +123,7 @@ export function renderFormPage(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(spec.title)}</title>
 <meta name="robots" content="noindex">
-<style>${CSS}</style>
+<style>${PAGE_CSS}</style>
 ${track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-form="${esc(ctx.form)}"${ctx.embed ? " data-framed" : ""} defer></script>` : ""}
 </head>
 <body class="form-page${ctx.embed ? " embed" : ""}${track ? "" : " preview"}">
@@ -140,5 +140,5 @@ ${formHtml(spec, { form: ctx.form, base: ctx.base, split: ctx.split ?? null })}
 /** A page that isn't there, or isn't anymore. */
 export function goneHtml(status: 404 | 410): string {
   const words = status === 410 ? "This page has been taken down." : "There's no page here.";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${status === 410 ? "Gone" : "Not found"}</title><style>${CSS}</style></head><body><main><header class="hero"><h1>${words}</h1></header></main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${status === 410 ? "Gone" : "Not found"}</title><style>${PAGE_CSS}</style></head><body><main><header class="hero"><h1>${words}</h1></header></main></body></html>`;
 }
