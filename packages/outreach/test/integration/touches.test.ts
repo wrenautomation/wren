@@ -33,7 +33,8 @@ const TABLES = [
   "people",
   "companies",
 ];
-const NOW = new Date("2026-10-07T15:00:00Z");
+// The real clock: the touch lines view reads now() (" · No answer" after 14 days).
+const NOW = new Date();
 const ago = (days: number) => new Date(NOW.getTime() - days * 86_400_000);
 
 let pg: TestPostgres;
@@ -225,7 +226,7 @@ describe("touches", () => {
     const { prompt, mine } = await dmContext(db(), c.id, NOW);
     expect(prompt).toContain("Earlier touches with them, newest first:");
     expect(prompt).toContain(
-      '2026-09-27 LinkedIn: we commented on their post: "Three in a week is quick."',
+      `${ago(10).toISOString().slice(0, 10)} LinkedIn: we commented on their post: "Three in a week is quick."`,
     );
     // The invite is the thread's own; it isn't repeated as an earlier touch.
     expect(prompt).not.toContain("we sent a connection invite");
