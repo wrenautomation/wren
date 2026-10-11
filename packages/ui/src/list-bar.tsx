@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   CircleDot,
   Hash,
+  Layers,
   ListFilter,
   MoreHorizontal,
   Search,
@@ -103,8 +104,15 @@ export function quickFilters(meta: RecordMeta): FieldMeta[] {
   return [...(site ? [site] : []), ...picks].slice(0, QUICK);
 }
 
+/** The field holding a row's platform, when the list mixes them: what Group by Site groups on. */
+export function siteField(meta: RecordMeta): FieldMeta | null {
+  if (typeof meta.channel !== "object" || !meta.channel) return null;
+  const key = meta.channel.field;
+  return meta.fields.find((f) => f.key === key && f.states) ?? null;
+}
+
 /** The address keys a list's state rides in. */
-const STATE = ["view", "q", "sort", "cols"];
+const STATE = ["view", "q", "sort", "group", "cols"];
 const keysOf = (meta: RecordMeta) => [...STATE, ...filtersOf(meta).map((f) => f.key)];
 
 /** What a saved view keeps of the address, keys in order so two read the same. */
@@ -975,6 +983,20 @@ export function ListBar({
   ) : null;
   const save =
     keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null;
+  // One platform's rows together, under its mark: the list stays sorted inside each.
+  const site = siteField(meta);
+  const grouping = !!site && params.get("group") === site.key;
+  const group = site ? (
+    <button
+      type="button"
+      aria-pressed={grouping}
+      className={cn(CHIP, grouping && "border-(--ui-edge) bg-(--ui-fill) text-(--ui-ink)")}
+      onClick={() => place.go(place.link({ group: grouping ? null : site.key, after: null }), true)}
+    >
+      <Layers className="size-3.5" />
+      Group by {site.label.toLowerCase()}
+    </button>
+  ) : null;
   const tail = end ? <span className="ml-auto text-[13px] text-(--ui-ink-2)">{end}</span> : null;
   const search = searchable ? <SearchBox place={place} label={many} /> : null;
 
@@ -986,6 +1008,7 @@ export function ListBar({
         {pills}
         {quicks}
         {clear}
+        {group}
         {save}
         {tail}
       </div>
@@ -995,6 +1018,7 @@ export function ListBar({
       {search}
       <div className="flex flex-wrap items-center gap-2">
         {filter}
+        {group}
         {save}
         {clear}
         {tail}

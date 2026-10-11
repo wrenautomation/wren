@@ -47,6 +47,8 @@ export interface ListAsk {
   where?: unknown;
   /** A sortable field, "-" for descending; absent, the view's. */
   sort?: string;
+  /** A status or choice field: rows come by its value first, then by `sort` within each. */
+  group?: string;
   q?: string;
   /** `next` from the page before. */
   cursor?: string;
@@ -450,8 +452,11 @@ function withCustom(t: RecordType, rows: SQL): SQL {
     ) cv on true) r`;
 }
 
-/** A cursor: the sort it was made under, whether the sort value was null, that value, the key. */
-type Cursor = [sort: string, isNull: boolean, value: string | null, key: string];
+/**
+ * A cursor: the sort it was made under, whether the sort value was null, that value, the key, and
+ * the group's value when grouped.
+ */
+type Cursor = [sort: string, isNull: boolean, value: string | null, key: string, group: string];
 const encode = (c: Cursor) => Buffer.from(JSON.stringify(c)).toString("base64url");
 function decode(s: unknown, sort: string): Cursor {
   if (typeof s !== "string" || s.length > MAX_CURSOR || !/^[\w-]+$/.test(s))
@@ -464,12 +469,14 @@ function decode(s: unknown, sort: string): Cursor {
   }
   if (
     !Array.isArray(c) ||
-    c.length !== 4 ||
+    c.length !== 5 ||
     typeof c[0] !== "string" ||
     typeof c[1] !== "boolean" ||
     !(c[2] === null || (typeof c[2] === "string" && c[2].length <= MAX_CURSOR)) ||
     typeof c[3] !== "string" ||
-    c[3].length > MAX_CURSOR
+    c[3].length > MAX_CURSOR ||
+    typeof c[4] !== "string" ||
+    c[4].length > MAX_CURSOR
   )
     throw new BadAsk("that page marker is broken");
   if (c[0] !== sort) throw new BadAsk("that page marker is from another sort");
@@ -646,9 +653,22 @@ export function serveRecords(
       sort = null; // a view's own sort the demo can't carry in a page marker: key order
     }
     const by = sort ? { ...sortSql(t.fields[sort.field] as Field), desc: sort.desc } : null;
-    const order = by
-      ? sql`(${by.expr}) is null, ${by.expr} ${by.desc ? sql`desc` : sql`asc`}, ${keyText(t)}`
-      : keyText(t);
+    let group: SQL | null = null;
+    if (ask.group !== undefined) {
+      const g =
+        typeof ask.group === "string" && Object.hasOwn(t.fields, ask.group)
+          ? t.fields[ask.group]
+          : undefined;
+      if (!g || (g.kind !== "status" && g.kind !== "choice"))
+        throw new BadAsk(`${t.name.many} don't group that way`);
+      // Text, never null, so a page marker compares it like any value: no value groups first.
+      group = sql`coalesce((${valueSql(g)})::text, '')`;
+    }
+    const order = sql`${group ? sql`${group}, ` : sql``}${
+      by
+        ? sql`(${by.expr}) is null, ${by.expr} ${by.desc ? sql`desc` : sql`asc`}, ${keyText(t)}`
+        : keyText(t)
+    }`;
     const inView = view ? savedSql(t, view) : sql`true`;
     /** Every filter but one field's: what that field's facet counts under. */
     const but = (field: string | null) =>
@@ -660,8 +680,9 @@ export function serveRecords(
       but,
       inView,
       by,
+      group,
       order,
-      sortKey: sort ? (sortName ?? "") : "",
+      sortKey: `${group ? `${ask.group}|` : ""}${sort ? (sortName ?? "") : ""}`,
     };
   }
 
@@ -711,7 +732,7 @@ export function serveRecords(
         }
         let after = sql`true`;
         if (ask.cursor !== undefined) {
-          const [, isNull, v, k] = decode(ask.cursor, p.sortKey);
+          const [, isNull, v, k, g] = decode(ask.cursor, p.sortKey);
           const key = keyText(p.t);
           if (!p.by) after = sql`${key} > ${k}`;
           else if (isNull) after = sql`(${p.by.expr} is null and ${key} > ${k})`;
@@ -721,10 +742,12 @@ export function serveRecords(
             after = sql`(${p.by.expr} is null or ${p.by.expr} ${cmp} ${at}
               or (${p.by.expr} = ${at} and ${key} > ${k}))`;
           }
+          if (p.group) after = sql`(${p.group} > ${g} or (${p.group} = ${g} and ${after}))`;
         }
         const raw = await db.execute<Raw>(sql`
           select ${columnsOf(p.t)}, ${keyText(p.t)} "__key",
-            ${p.by ? sql`(${p.by.expr})::text` : sql`null`} "__sort"
+            ${p.by ? sql`(${p.by.expr})::text` : sql`null`} "__sort",
+            ${p.group ?? sql`''`} "__group"
           from ${await source(p.t)}
           where ${p.base} and ${p.inView} and ${after}
           order by ${p.order}
@@ -759,6 +782,7 @@ export function serveRecords(
                 last.__sort === null,
                 (last.__sort as string | null) ?? null,
                 String(last.__key),
+                String(last.__group ?? ""),
               ])
             : null,
         };

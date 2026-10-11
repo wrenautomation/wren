@@ -30,7 +30,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
 import { type Action, applies, blockedOf, type Call, runs, sayBlocked, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -544,6 +544,22 @@ function ColumnPicker({
   );
 }
 
+/** A group's first row: its mark and label across the table, as a band. */
+function GroupHead({ field, value, span }: { field: FieldMeta; value: string; span: number }) {
+  const state = field.states?.[value];
+  const cue = cueOf(field, value);
+  return (
+    <tr className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
+      <td colSpan={span} className="px-3 text-[12px] font-semibold text-(--ui-ink-2)">
+        <span className="inline-flex items-center gap-1.5">
+          {cue ? <Cue state={cue} /> : null}
+          {state?.label ?? (value || `No ${field.label.toLowerCase()}`)}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
 /** The ask a list's address makes. */
 export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   const view = params.get("view") ?? meta.views[0]?.id;
@@ -557,6 +573,8 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   if (Object.keys(where).length) ask.where = where;
   const sort = params.get("sort");
   if (sort) ask.sort = sort;
+  const group = params.get("group");
+  if (group && meta.fields.some((f) => f.key === group && f.states)) ask.group = group;
   const q = params.get("q")?.trim();
   if (q) ask.q = q;
   const after = params.get("after");
@@ -924,6 +942,8 @@ function List({
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
+  /** The field rows are grouped by, each group under its band. */
+  const grouped = ask.group ? (meta.fields.find((f) => f.key === ask.group) ?? null) : null;
   const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
   const rows = page.data?.rows ?? [];
   const narrow = useNarrow();
@@ -978,7 +998,7 @@ function List({
         const next = Math.max(0, Math.min(k.rows.length - 1, at + (e.key === "j" ? 1 : -1)));
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
-        body.current?.children[next]?.scrollIntoView({ block: "nearest" });
+        body.current?.querySelector(`[data-row="${next}"]`)?.scrollIntoView({ block: "nearest" });
       } else if (e.key === "Enter" && k.openIndex < 0 && at >= 0) k.openAt(at);
       else if (e.key === "Escape" && k.openIndex >= 0)
         k.place.go(k.place.link({ [k.one]: null, tab: null }), true);
@@ -1224,86 +1244,94 @@ function List({
                 : rows.map((r, i) => {
                     const id = String(r.id);
                     const open = id === openId;
+                    const g = grouped ? String(r[grouped.key] ?? "") : null;
+                    const head =
+                      grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
+                        <GroupHead field={grouped} value={g ?? ""} span={cols.length + 2} />
+                      ) : null;
                     return (
-                      <tr
-                        key={id}
-                        onClick={(e) => {
-                          // Its checkbox, links and buttons do their own thing.
-                          if ((e.target as Element).closest("input, a, button")) return;
-                          setCursor(i);
-                          openAt(i);
-                        }}
-                        onAnimationEnd={(e) => {
-                          if (e.animationName === "ui-changed") setChanged(new Set());
-                        }}
-                        className={cn(
-                          "group h-10 cursor-pointer border-b border-(--ui-hair)",
-                          open
-                            ? "bg-(--ui-fill)"
-                            : i === cursor
-                              ? "bg-(--ui-hover)"
-                              : "hover:bg-(--ui-hover)",
-                          changed.has(id) && !page.loading && "animate-ui-changed",
-                        )}
-                      >
-                        <td className="pl-2.5">
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${titleOf(meta, r)}`}
-                            checked={picked.has(id)}
-                            onChange={() => pick(id)}
-                            className="size-3.5 align-middle accent-(--ui-ink)"
-                          />
-                        </td>
-                        {cols.map((f) => (
-                          <td
-                            key={f.key}
-                            className={cn(
-                              "px-3",
-                              // On a phone the title takes two lines before it cuts.
-                              // A cut cell drops its break chances: Chrome breaks at <wbr> even
-                              // under nowrap, so "example.com" wrapped onto two lines.
-                              narrow && f.key === meta.title ? "py-2" : "truncate [&_wbr]:hidden",
-                              !narrow && f.key === meta.title && preview && "py-1.5",
-                              f.column?.align === "end" ? "text-right" : "text-left",
-                              f.key !== meta.title && "text-(--ui-ink-2)",
-                            )}
-                          >
-                            {f.key === meta.title ? (
-                              <a
-                                href={place.link({ [meta.name.one]: id, tab: null })}
-                                className={cn(
-                                  "font-medium text-(--ui-ink) no-underline",
-                                  // Cut inside the link, so focusing it never scrolls the cell sideways.
-                                  // A phone breaks a long word (an address) rather than clip it.
-                                  narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
-                                )}
-                              >
-                                {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
-                              </a>
-                            ) : null}
-                            {f.key === meta.title && preview ? (
-                              // A message's first words under who sent it, as a mail list shows.
-                              <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
-                                {firstWords(textOf(r[preview.key]))}
-                              </span>
-                            ) : f.key === meta.title ? null : (
-                              <FieldCell field={f} cell={r[f.key]} />
-                            )}
+                      <Fragment key={id}>
+                        {head}
+                        <tr
+                          data-row={i}
+                          onClick={(e) => {
+                            // Its checkbox, links and buttons do their own thing.
+                            if ((e.target as Element).closest("input, a, button")) return;
+                            setCursor(i);
+                            openAt(i);
+                          }}
+                          onAnimationEnd={(e) => {
+                            if (e.animationName === "ui-changed") setChanged(new Set());
+                          }}
+                          className={cn(
+                            "group h-10 cursor-pointer border-b border-(--ui-hair)",
+                            open
+                              ? "bg-(--ui-fill)"
+                              : i === cursor
+                                ? "bg-(--ui-hover)"
+                                : "hover:bg-(--ui-hover)",
+                            changed.has(id) && !page.loading && "animate-ui-changed",
+                          )}
+                        >
+                          <td className="pl-2.5">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${titleOf(meta, r)}`}
+                              checked={picked.has(id)}
+                              onChange={() => pick(id)}
+                              className="size-3.5 align-middle accent-(--ui-ink)"
+                            />
                           </td>
-                        ))}
-                        <td className="pr-2 text-right">
-                          <a
-                            href={place.page(id)}
-                            aria-label={`Open ${titleOf(meta, r)}'s page`}
-                            title="Open as a page"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
-                          >
-                            <Maximize2 className="size-3.5" />
-                          </a>
-                        </td>
-                      </tr>
+                          {cols.map((f) => (
+                            <td
+                              key={f.key}
+                              className={cn(
+                                "px-3",
+                                // On a phone the title takes two lines before it cuts.
+                                // A cut cell drops its break chances: Chrome breaks at <wbr> even
+                                // under nowrap, so "example.com" wrapped onto two lines.
+                                narrow && f.key === meta.title ? "py-2" : "truncate [&_wbr]:hidden",
+                                !narrow && f.key === meta.title && preview && "py-1.5",
+                                f.column?.align === "end" ? "text-right" : "text-left",
+                                f.key !== meta.title && "text-(--ui-ink-2)",
+                              )}
+                            >
+                              {f.key === meta.title ? (
+                                <a
+                                  href={place.link({ [meta.name.one]: id, tab: null })}
+                                  className={cn(
+                                    "font-medium text-(--ui-ink) no-underline",
+                                    // Cut inside the link, so focusing it never scrolls the cell sideways.
+                                    // A phone breaks a long word (an address) rather than clip it.
+                                    narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
+                                  )}
+                                >
+                                  {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
+                                </a>
+                              ) : null}
+                              {f.key === meta.title && preview ? (
+                                // A message's first words under who sent it, as a mail list shows.
+                                <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
+                                  {firstWords(textOf(r[preview.key]))}
+                                </span>
+                              ) : f.key === meta.title ? null : (
+                                <FieldCell field={f} cell={r[f.key]} />
+                              )}
+                            </td>
+                          ))}
+                          <td className="pr-2 text-right">
+                            <a
+                              href={place.page(id)}
+                              aria-label={`Open ${titleOf(meta, r)}'s page`}
+                              title="Open as a page"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
+                            >
+                              <Maximize2 className="size-3.5" />
+                            </a>
+                          </td>
+                        </tr>
+                      </Fragment>
                     );
                   })}
             </tbody>

@@ -152,6 +152,22 @@ describe("paging", () => {
       expect(ids.slice(0, 200)).toEqual(one.rows.map((r) => r.id));
     });
 
+  for (const sort of [undefined, "-n", "seen"])
+    it(`grouped by state, then ${sort ?? "key"}: every row once, groups together`, async () => {
+      const ask = { record: "test.item", group: "state", ...(sort ? { sort } : {}) };
+      const { ids } = await walk(api, ask);
+      expect(new Set(ids).size).toBe(N);
+      const one = await api.list({ ...ask, limit: 200 });
+      expect(ids.slice(0, 200)).toEqual(one.rows.map((r) => r.id));
+      const states = one.rows.map((r) => r.state as string);
+      expect(states).toEqual([...states].sort());
+    });
+
+  it("groups only by a status or choice", async () => {
+    await refused(api.list({ record: "test.item", group: "n" }));
+    await refused(api.list({ record: "test.item", group: "nope" }));
+  });
+
   it("text sorts its digits by value: 2 before 11", async () => {
     const { rows } = await api.list({ record: "test.item", sort: "nm", limit: 200 });
     const names = rows.map((r) => r.nm);
@@ -266,7 +282,7 @@ describe("hostile input", () => {
     ["a cursor", { record: "test.item", cursor: evil }],
     [
       "a forged cursor",
-      { record: "test.item", sort: "n", cursor: forged(["n", false, evil, "1"]) },
+      { record: "test.item", sort: "n", cursor: forged(["n", false, evil, "1", ""]) },
     ],
     ["a related record not declared", { record: "test.item", of: { record: "test.kid", id: 1 } }],
     ["a long search", { record: "test.item", q: "x".repeat(101) }],
