@@ -886,7 +886,7 @@ export const DONE_PAGE: ListPage = {
   label: "Done",
   template: "list",
   record: "marketing.done",
-  columns: ["what", "event", "kind", "platform", "via", "at", "open"],
+  columns: ["what", "event", "kind", "platform", "via", "at", "url", "open"],
   empty: {
     today: "Nothing done yet today. Approve, reject or edit something and it lands here.",
     week: "Nothing done this week.",
