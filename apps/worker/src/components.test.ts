@@ -5,9 +5,9 @@
  * beside the modules (`apps/portal/web/src/modules/components.test.ts`).
  */
 
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { CALENDAR_RECORDS } from "@wren/calendar/records";
 import { emailRecords } from "@wren/channel-email/records";
@@ -28,6 +28,7 @@ import {
 } from "@wren/core/console";
 import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { handlerForm } from "@wren/core/restate";
 import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
@@ -61,7 +62,7 @@ afterAll(async () => {
 });
 
 /** Every service and its handlers, from an env that turns on all but Postmaster (no database reached). */
-async function bound() {
+async function boundHandlers(): Promise<Map<string, Record<string, unknown>>> {
   const rootDir = mkdtempSync(join(tmpdir(), "wren-components-"));
   const settings = loadSettings(
     {
@@ -89,12 +90,17 @@ async function bound() {
     (
       built.services as unknown as {
         name: string;
-        service?: object;
-        object?: object;
-        workflow?: object;
+        service?: Record<string, unknown>;
+        object?: Record<string, unknown>;
+        workflow?: Record<string, unknown>;
       }[]
-    ).map((d) => [d.name, Object.keys(d.service ?? d.object ?? d.workflow ?? {})]),
+    ).map((d) => [d.name, d.service ?? d.object ?? d.workflow ?? {}]),
   );
+}
+
+/** Every service and its handlers' names. */
+async function bound(): Promise<Map<string, string[]>> {
+  return new Map([...(await boundHandlers())].map(([s, h]) => [s, Object.keys(h)]));
 }
 
 /** Every record type the worker serves, built without a database. */
@@ -183,6 +189,48 @@ describe("the component inventory", () => {
     expect(wrong).toEqual([]);
     const unserved = [...by.keys()].filter((r) => !RECORDS.includes(r));
     expect(unserved).toEqual([]);
+  });
+
+  it("a handler that sends, spends or posts is in a part that says so", async () => {
+    // A part's effects gate its install (typed confirm) and its dry runs, so they can't undersell it.
+    const owner = new Map(COMPONENTS.flatMap((c) => c.provides.services.map((s) => [s, c])));
+    const unsaid: string[] = [];
+    for (const [s, handlers] of await boundHandlers()) {
+      const c = owner.get(s);
+      if (!c) continue; // platform: always on, never installed
+      for (const [h, fn] of Object.entries(handlers)) {
+        const e = handlerForm(fn)?.effect;
+        if (e && !c.effects.includes(e)) unsaid.push(`${c.id}: ${s}.${h} ${e}`);
+      }
+    }
+    expect(unsaid).toEqual([]);
+  });
+
+  it("foundations know the shapes, never a part's package", () => {
+    const FOUNDATIONS = ["db", "config", "core", "ui", "llm"];
+    const leaks = FOUNDATIONS.flatMap((p) => {
+      const pkg = JSON.parse(
+        readFileSync(resolve(__dirname, `../../../packages/${p}/package.json`), "utf8"),
+      ) as { dependencies?: Record<string, string> };
+      return Object.keys(pkg.dependencies ?? {})
+        .filter((d) => d.startsWith("@wren/") && !FOUNDATIONS.includes(d.slice(6)))
+        .map((d) => `${p} -> ${d}`);
+    });
+    expect(leaks).toEqual([]);
+  });
+
+  it("requires never loops back on itself", () => {
+    const req = new Map(COMPONENTS.map((c) => [c.id, c.requires.components]));
+    const loops: string[] = [];
+    const done = new Set<string>();
+    const walk = (id: string, path: string[]) => {
+      if (path.includes(id)) return void loops.push([...path, id].join(" > "));
+      if (done.has(id)) return;
+      for (const r of req.get(id) ?? []) walk(r, [...path, id]);
+      done.add(id);
+    };
+    for (const id of req.keys()) walk(id, []);
+    expect(loops).toEqual([]);
   });
 
   it("every requires names a real component or account site", () => {

@@ -57,7 +57,7 @@ export const CONTENT_COMPONENTS = [
       { service: "ContentMetrics", key: clientKey(client, POSTS_UNIT) },
     ],
     liveSwitch: true,
-    effects: ["posts"],
+    effects: ["posts", "sends"],
     in: [{ id: "drafts", label: "drafts", kind: "post" }],
     out: [{ id: "posts", label: "posts", kind: "post" }],
     hypothesis: {
@@ -126,6 +126,8 @@ export const CONTENT_COMPONENTS = [
         "marketing.review",
       ],
     },
+    // Replies and keyword DMs, once approved or on a keyword.
+    effects: ["sends"],
     out: [{ id: "comment", label: "new comments", kind: "comment" }],
     hypothesis: {
       from: "designs/2026-10-06-social-inbox.md",

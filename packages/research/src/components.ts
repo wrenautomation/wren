@@ -186,6 +186,8 @@ export const RESEARCH_COMPONENTS = [
     missing: [],
     requires: { components: ["research.people"] },
     provides: { services: ["Resolution"] },
+    // A paid verifier when the free probes can't tell.
+    effects: ["spends"],
     in: [{ id: "people", label: "people", kind: "person" }],
     out: [LEADS],
     hypothesis: {
