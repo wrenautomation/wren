@@ -153,7 +153,8 @@ describe("triggerUnit", () => {
     expect(
       await triggersDue(db(), ["staffing agency", "recruiting firm"], { now: NOW, limit: 5 }),
     ).toEqual(["recruiting firm"]);
-    const later = new Date(NOW.getTime() + 8 * 86_400_000);
+    // The import is stamped by the database clock, not NOW: a week past whichever is later.
+    const later = new Date(Math.max(NOW.getTime(), Date.now()) + 8 * 86_400_000);
     expect(await triggersDue(db(), ["staffing agency"], { now: later, limit: 5 })).toEqual([
       "staffing agency",
     ]);
