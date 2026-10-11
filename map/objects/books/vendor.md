@@ -13,7 +13,7 @@ Who bills us: one `books.vendors` row each, seeded from `VENDORS` in code, which
 
 ## Why this shape
 
-Capture asks Gmail only for known billing senders, so the personal inbox is never scanned wholesale; a new vendor is one entry in `VENDORS`. The row carries what a bill may not print: the expense account, the usual cycle, and whether its GST can be claimed back (`gst_claimable`: false on the simplified regime, null when unknown). What only code needs (bare-"$" currency, `plansOnly`: every bill on the vendor's cycle) stays on `VendorSpec` (`packages/books/src/chart.ts:43`).
+Capture asks Gmail only for known billing senders, so the personal inbox is never scanned wholesale; a new vendor is one entry in `VENDORS`. The row carries what a bill may not print: the expense account, the usual cycle, and whether its GST can be claimed back (`gst_claimable`: false on the simplified regime, null when unknown). What only code needs (bare-"$" currency, `plansOnly`: every bill on the vendor's cycle) stays on `VendorSpec` (`packages/books/src/chart.ts:43`), with the words its charges carry on the card statement (`card`, sorting [[books/card-line]]).
 
 ## Shape
 

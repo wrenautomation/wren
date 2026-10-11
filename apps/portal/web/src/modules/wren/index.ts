@@ -682,6 +682,18 @@ export const money: Module = {
       empty: "Subscriptions show here once the books find them.",
     },
     {
+      id: "card",
+      label: "Card",
+      template: "list",
+      record: "books.card",
+      empty: {
+        business: "Card charges show here once a statement is in or a purchase alert arrives.",
+        to_sort: "Nothing to sort.",
+        personal: "Nothing marked personal.",
+        all: "Card charges show here once a statement is in or a purchase alert arrives.",
+      },
+    },
+    {
       id: "in-house",
       label: "In-house",
       template: "list",

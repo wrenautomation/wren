@@ -9,6 +9,15 @@ import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { bookConditions, type Condition, settleAlerts } from "./alerts.js";
 import { type Captured, capture } from "./capture.js";
+import {
+  type AlertsRead,
+  CARD_ALERT_SPEC,
+  type CardMatch,
+  matchCard,
+  readCardAlerts,
+  sortCard,
+  unsortedCard,
+} from "./card.js";
 import { seedBooks } from "./chart.js";
 import { shiftDay, today } from "./day.js";
 import type { Mailbox } from "./mailbox.js";
@@ -38,6 +47,8 @@ export interface BooksDay {
   /** Mailboxes that could not be searched this pass, with why. */
   unreachable: Array<{ mailbox: string; error: string }>;
   read: ReadReport;
+  /** The card: purchase alerts read, lines sorted, charges matched to bills. */
+  card: AlertsRead & CardMatch & { sorted: number };
   posted: Posted;
   aws: UsageIngest | null;
   /** Managed usage's draft lines for this month and last, rewritten. */
@@ -61,15 +72,33 @@ export async function booksDay(
       captured.push(
         await capture(db, m, { since: deps.since, store: deps.store, runId, ...opt(log) }),
       );
+      // The bank's purchase alerts, kept beside the bills and read below.
+      await capture(db, m, {
+        since: deps.since,
+        store: deps.store,
+        runId,
+        vendorSpecs: [CARD_ALERT_SPEC],
+        ...opt(log),
+      });
     } catch (err) {
       unreachable.push({ mailbox: m.address, error: errorText(err) });
     }
   }
   const read = await readDocuments(db, deps.llm, { runId, ...opt(log) });
+  const alerts = await readCardAlerts(db, deps.llm, { runId });
+  const sorted = await sortCard(db);
+  const card = { ...alerts, sorted, ...(await matchCard(db, on, runId)) };
   const posted = await post(db, { feed: deps.rates, runId, ...opt(log) });
 
-  const kinds: AlertKind[] = ["held", "unread", "new_subscription", "renewal", "lapsed"];
+  const kinds: AlertKind[] = ["held", "unread", "new_subscription", "renewal", "lapsed", "card"];
   const open: Condition[] = await bookConditions(db, on);
+  const unsorted = await unsortedCard(db);
+  if (unsorted.length)
+    open.push({
+      key: "card:unsorted",
+      kind: "card",
+      message: `${unsorted.length} card descriptors to sort (whose, or personal): wren books card sort`,
+    });
   // A mailbox's alert clears only when a pass reaches it again.
   kinds.push("capture");
   for (const u of unreachable)
@@ -103,6 +132,7 @@ export async function booksDay(
     captured,
     unreachable,
     read,
+    card,
     posted,
     aws,
     usageLines,

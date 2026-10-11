@@ -4,7 +4,7 @@ cluster: books
 universe: live
 status: verified
 verified: 2026-09-30 @ 06fccc8
-entity: packages/books/src/schema.ts:171
+entity: packages/books/src/schema.ts:187
 ---
 
 # bill
@@ -17,17 +17,19 @@ Every figure must be printed on a document we keep, so a bill is the vendor's re
 
 ## Shape
 
-- `bills` (`schema.ts:171`): number, kind (invoice | receipt | credit_note), issued, due, period, currency, subtotal, tax, total, `charged_cad_cents`, plan, cycle, payment method, billed-to, vendor tax number, account, review and reasons, the document read
-- `bill_lines` (`:240`), `bill_taxes` (`:268`, `claimable` per tax), `bill_payments` (`:301`, one row per reference or day and amount, linked by invoice number; none printed = on account, left for statements to place), `bill_documents` (`:345`)
-- Views: `bill_costs` (`:468`, CAD from the live entry), `subscriptions` (`:503`, per vendor and plan, a plan-less yearly bill alone; renews a cycle after the last bill that cost something; leaves out personal and void); `subscription_records` adds "Billed for", the last bill's charged lines (the edition a one-plan vendor hides: Anthropic "Max plan - 20x"). A vendor `plan` holds monthly and yearly bills only, so one-off credits keep their own name
+- `bills` (`schema.ts:187`): number, kind (invoice | receipt | credit_note), issued, due, period, currency, subtotal, tax, total, `charged_cad_cents`, plan, cycle, payment method, billed-to, vendor tax number, account, review and reasons, the document read
+- `bill_lines` (`:259`), `bill_taxes` (`:287`, `claimable` per tax), `bill_payments` (`:320`, one row per reference or day and amount, linked by invoice number; none printed = on account, left for statements to place), `bill_documents` (`:365`)
+- Views: `bill_costs` (`:594`, CAD from the live entry), `subscriptions` (`:630`, per vendor and plan, a plan-less yearly bill alone; renews a cycle after the last bill that cost something; leaves out personal and void, and one ended in `subscription_ends` (`:474`, `wren books end`) until it bills again); `subscription_records` adds "Billed for", the last bill's charged lines (the edition a one-plan vendor hides: Anthropic "Max plan - 20x"). A vendor `plan` holds monthly and yearly bills only, so one-off credits keep their own name
 
-Citations: `packages/books/src/schema.ts:171`, `:240`, `:268`, `:301`, `:345`, `:468`, `:503`, `packages/books/src/read.ts:388`
+Citations: `packages/books/src/schema.ts:187`, `:259`, `:287`, `:320`, `:365`, `:474`, `:594`, `:630`, `packages/books/src/read.ts:388`
+
+A bill numbered `card:<line id>` was made from a card charge no mail billed ([[books/card-line]]); the vendor's own bill, when it comes, voids it.
 
 ## Connected to
 
 - **owned-by:** [[books/vendor]]
 - **owns:** its lines, taxes, payments
-- **joins:** [[books/document]] (`document_id`, `bill_documents`), [[books/entry]] (`entries.bill_id`), [[ledger/run]]
+- **joins:** [[books/document]] (`document_id`, `bill_documents`), [[books/entry]] (`entries.bill_id`), [[books/card-line]] (`card_lines.bill_id`), [[ledger/run]]
 - **looks-like-but-is-not:** reactivation's `billOf` (what a client owes us, `packages/reactivation/src/handoff.ts:157`); `bill_lines` vs the journal's `lines`
 
 ## If you change this

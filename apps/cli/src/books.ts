@@ -4,9 +4,9 @@
  * into a bill with its lines, taxes and payments, and posts the journal. The
  * rest read the books back, or settle what the checks held for a look.
  */
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join, resolve } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
 import {
   ALERT_KINDS,
@@ -17,25 +17,32 @@ import {
   capture,
   type DocumentStore,
   delegatedMailbox,
+  descriptorOfLine,
   dirStore,
   dismissDocuments,
+  endSubscription,
   formatCents,
   formatMoney,
   getDocument,
+  importStatement,
   listBills,
   listPayments,
   listSpend,
   listSubscriptions,
   type Mailbox,
+  matchCard,
   openAlerts,
   post,
   readDocuments,
   reviewQueue,
+  ruleCard,
   s3Store,
   seedBooks,
   setReview,
   siteMailbox,
+  sortCard,
   today,
+  unsortedCard,
   usageMonth,
 } from "@wren/books";
 import { BOOKS_KEY, type Books } from "@wren/books/restate";
@@ -435,6 +442,86 @@ export function registerBooks(
         );
       const monthly = rows.reduce((sum, s) => sum + (s.monthlyCadCents ?? 0), 0);
       console.log(`${formatMoney(monthly, "CAD")} a month`);
+    });
+
+  books
+    .command("end <vendor>")
+    .description("A subscription cancelled: off the list until it bills again")
+    .option("--plan <plan>", "which plan, when the vendor has more than one")
+    .option("--on <day>", "the day it ended (default today)", dayOf)
+    .action(async (vendor: string, opts: { plan?: string; on?: string }) => {
+      const on = opts.on ?? today();
+      await withDb((db) => endSubscription(db, vendor, on, opts.plan));
+      console.log(`${vendor}${opts.plan ? ` ${opts.plan}` : ""} ended ${on}`);
+    });
+
+  const card = books
+    .command("card")
+    .description("The card's lines: statements and purchase alerts, sorted and matched to bills");
+  const matching = (db: Db, runId: string) =>
+    sortCard(db)
+      .then(() => matchCard(db, today(), runId))
+      .then((m) => {
+        console.log(
+          `matched ${m.matched} (${m.charged} got the CAD charged), made ${m.made} bills`,
+        );
+        return posting(db, runId);
+      });
+
+  card
+    .command("import <file>")
+    .description("Add a statement file (OFX/QFX or CSV) from the bank, then match and post")
+    .option("--card <last4>", "the card's last four, when the file doesn't say")
+    .action(async (file: string, opts: { card?: string }) => {
+      const bytes = new Uint8Array(await readFile(file));
+      await withDb((db) =>
+        recordedRun(
+          db,
+          { command: "books card import", argv: { file: basename(file) } },
+          async (r) => {
+            const got = await importStatement(
+              db,
+              store(),
+              { bytes, filename: basename(file), ...(opts.card ? { card: opts.card } : {}) },
+              r.id,
+            );
+            console.log(
+              `${got.lines} lines: ${got.added} new, ${got.confirmed} confirmed alerts, ${got.known} known`,
+            );
+            return { got, posted: await matching(db, r.id) };
+          },
+        ),
+      );
+      const left = await withDb((db) => unsortedCard(db));
+      if (left.length) console.log(`${left.length} descriptors to sort: wren books card sort`);
+    });
+
+  card
+    .command("sort [descriptor] [whose]")
+    .description(
+      "Whose a descriptor's charges are (a vendor key, or personal); none = list what's left",
+    )
+    .action(async (descriptor?: string, whose?: string) => {
+      if (!descriptor) {
+        const rows = await withDb((db) => unsortedCard(db));
+        for (const r of rows)
+          console.log(`${r.last}  ${String(r.lines).padStart(3)}x  ${r.descriptor}`);
+        if (!rows.length) console.log("nothing to sort");
+        return;
+      }
+      if (!whose) throw new Error("say whose: a vendor key, or personal");
+      // A line's id stands for its descriptor.
+      const d = /^\d+$/.test(descriptor)
+        ? await withDb((db) => descriptorOfLine(db, Number(descriptor)))
+        : descriptor.toUpperCase();
+      if (!d) throw new Error(`no card line ${descriptor}`);
+      const n = await withDb((db) =>
+        ruleCard(db, d, whose === "personal" ? "personal" : { vendor: whose }),
+      );
+      console.log(`${n} lines of ${d}: ${whose}`);
+      await withDb((db) =>
+        recordedRun(db, { command: "books card sort", argv: { whose } }, (r) => matching(db, r.id)),
+      );
     });
 
   books

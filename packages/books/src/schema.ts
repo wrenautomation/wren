@@ -384,6 +384,111 @@ export const billDocuments = books.table(
   ],
 );
 
+export const CARD_SOURCES = ["statement", "alert"] as const;
+export type CardSource = (typeof CARD_SOURCES)[number];
+
+/**
+ * One charge or credit on the card, from a statement file or the bank's alert
+ * mail; a statement line takes over the alert it repeats. `vendor_id` and
+ * `personal` come from `card_rules` or the vendor's card words; `bill_id` is
+ * the bill it paid: a mailed one it matched, or one made from it when no mail
+ * ever came (Inbox Insiders bills only on the card).
+ */
+export const cardLines = books.table(
+  "card_lines",
+  {
+    id: serial("id").notNull(),
+    /** The card's last four, as printed. */
+    card: varchar("card", { length: 4 }).notNull(),
+    /** The day of the purchase (the statement's transaction date). */
+    on: date("on").notNull(),
+    /** As printed: "DYNADOT LLC SAN MATEO CA". */
+    description: text("description").notNull(),
+    /** `description` cleaned for rules: upper case, no numbers or punctuation. */
+    descriptor: text("descriptor").notNull(),
+    /** In the card's currency (CAD); a charge is positive, a refund or payment negative. */
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    currency: char("currency", { length: 3 }).notNull(),
+    source: varchar("source", { length: 16, enum: CARD_SOURCES }).notNull(),
+    /** The bank's id (OFX FITID) or a hash of the line, so an import twice is one row. */
+    fingerprint: text("fingerprint").notNull(),
+    /** The statement file or alert email it was read from. */
+    documentId: integer("document_id").notNull(),
+    vendorId: integer("vendor_id"),
+    personal: boolean("personal").default(false).notNull(),
+    billId: integer("bill_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_card_lines" }),
+    unique("uq_card_lines_fingerprint").on(t.fingerprint),
+    index("ix_card_lines_document_id").on(t.documentId),
+    index("ix_card_lines_vendor_id").on(t.vendorId),
+    index("ix_card_lines_bill_id").on(t.billId),
+    index("ix_card_lines_on").on(t.on),
+    oneOf("ck_card_lines_source", t.source, CARD_SOURCES),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_card_lines_document_id_documents",
+    }),
+    foreignKey({
+      columns: [t.vendorId],
+      foreignColumns: [vendors.id],
+      name: "fk_card_lines_vendor_id_vendors",
+    }),
+    foreignKey({
+      columns: [t.billId],
+      foreignColumns: [bills.id],
+      name: "fk_card_lines_bill_id_bills",
+    }),
+  ],
+);
+export type CardLine = typeof cardLines.$inferSelect;
+
+/** William's call on a descriptor: whose charge it is, or personal. Every line with it follows, now and later. */
+export const cardRules = books.table(
+  "card_rules",
+  {
+    descriptor: text("descriptor").notNull(),
+    vendorId: integer("vendor_id"),
+    personal: boolean("personal").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.descriptor], name: "pk_card_rules" }),
+    index("ix_card_rules_vendor_id").on(t.vendorId),
+    foreignKey({
+      columns: [t.vendorId],
+      foreignColumns: [vendors.id],
+      name: "fk_card_rules_vendor_id_vendors",
+    }),
+  ],
+);
+
+/**
+ * A subscription cancelled: it leaves `subscriptions` once its last bill is on
+ * or before `ended_on`. A later bill brings it back. `plan` '' = the vendor's
+ * plan-less subscription.
+ */
+export const subscriptionEnds = books.table(
+  "subscription_ends",
+  {
+    vendorId: integer("vendor_id").notNull(),
+    plan: text("plan").default("").notNull(),
+    endedOn: date("ended_on").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.vendorId, t.plan], name: "pk_subscription_ends" }),
+    foreignKey({
+      columns: [t.vendorId],
+      foreignColumns: [vendors.id],
+      name: "fk_subscription_ends_vendor_id_vendors",
+    }),
+  ],
+);
+
 export const RATE_SOURCES = ["same", "boc", "stated", "card"] as const;
 export type RateSource = (typeof RATE_SOURCES)[number];
 
@@ -519,7 +624,8 @@ export const billCosts = books
  * plan stands alone: a registrar's emails that name no domain are still one
  * renewal each. `renews_on` is a cycle after that bill (the
  * printed period misleads: Google bills the month just past, registrars renew
- * early); `monthly_cad_cents` spreads a yearly bill over 12.
+ * early); `monthly_cad_cents` spreads a yearly bill over 12. One cancelled
+ * (`subscription_ends`) is gone until it bills again.
  */
 export const subscriptions = books
   .view("subscriptions", {
@@ -538,7 +644,7 @@ export const subscriptions = books
     bills: integer("bills"),
   })
   .as(
-    sql`SELECT DISTINCT ON (c.vendor_id, (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN c.bill_id::text ELSE lower(COALESCE(c.plan, ''::text)) END)) c.vendor_id, c.vendor, c.vendor_name, c.plan, c.cycle, c.currency, c.total_cents AS last_total_cents, c.cad_cents AS last_cad_cents, c.issued_on AS last_billed_on, (c.issued_on + CASE WHEN c.cycle::text = 'yearly'::text THEN '1 year'::interval ELSE '1 mon'::interval END)::date AS renews_on, CASE WHEN c.cycle::text = 'yearly'::text THEN round(c.cad_cents::numeric / 12.0)::bigint ELSE c.cad_cents END AS monthly_cad_cents, (SELECT min(b2.issued_on) FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN b2.id = c.bill_id ELSE lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) END) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS since, (SELECT count(*)::integer FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN b2.id = c.bill_id ELSE lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) END) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS bills FROM books.bill_costs c WHERE (c.cycle::text = ANY (ARRAY['monthly'::character varying, 'yearly'::character varying]::text[])) AND (c.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[])) AND c.total_cents > 0 ORDER BY c.vendor_id, (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN c.bill_id::text ELSE lower(COALESCE(c.plan, ''::text)) END), c.issued_on DESC, c.bill_id DESC`,
+    sql`SELECT s.* FROM (SELECT DISTINCT ON (c.vendor_id, (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN c.bill_id::text ELSE lower(COALESCE(c.plan, ''::text)) END)) c.vendor_id, c.vendor, c.vendor_name, c.plan, c.cycle, c.currency, c.total_cents AS last_total_cents, c.cad_cents AS last_cad_cents, c.issued_on AS last_billed_on, (c.issued_on + CASE WHEN c.cycle::text = 'yearly'::text THEN '1 year'::interval ELSE '1 mon'::interval END)::date AS renews_on, CASE WHEN c.cycle::text = 'yearly'::text THEN round(c.cad_cents::numeric / 12.0)::bigint ELSE c.cad_cents END AS monthly_cad_cents, (SELECT min(b2.issued_on) FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN b2.id = c.bill_id ELSE lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) END) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS since, (SELECT count(*)::integer FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN b2.id = c.bill_id ELSE lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) END) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS bills FROM books.bill_costs c WHERE (c.cycle::text = ANY (ARRAY['monthly'::character varying, 'yearly'::character varying]::text[])) AND (c.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[])) AND c.total_cents > 0 ORDER BY c.vendor_id, (CASE WHEN c.plan IS NULL AND c.cycle::text = 'yearly'::text THEN c.bill_id::text ELSE lower(COALESCE(c.plan, ''::text)) END), c.issued_on DESC, c.bill_id DESC) s WHERE NOT EXISTS (SELECT 1 FROM books.subscription_ends e WHERE e.vendor_id = s.vendor_id AND e.plan = lower(COALESCE(s.plan, ''::text)) AND e.ended_on >= s.last_billed_on)`,
   );
 
 /**
@@ -693,6 +799,33 @@ export const subscriptionRecords = books
           order by b.id desc limit 1)) billed_for
     from books.subscriptions s`);
 
+/** The card's lines as console records: whose they are and the bill each paid. */
+export const cardRecords = books
+  .view("card_records", {
+    id: integer("id"),
+    on: date("on"),
+    description: text("description"),
+    descriptor: text("descriptor"),
+    amount: numeric("amount", { mode: "number" }),
+    currency: text("currency"),
+    card: text("card"),
+    vendor: text("vendor"),
+    state: text("state"),
+    bill: text("bill"),
+    source: text("source"),
+  })
+  .as(sql`
+    select l.id, l."on", l.description, l.descriptor, l.amount_cents / 100.0 amount,
+      l.currency::text currency, l.card::text card, v.name vendor,
+      case when l.personal then 'personal' when l.amount_cents < 0 then 'credit'
+        when l.vendor_id is null then 'to_sort'
+        when b.number like 'card:%' then 'card_only' when b.id is not null then 'billed'
+        else 'waiting' end state,
+      b.number bill, l.source::text source
+    from books.card_lines l
+    left join books.vendors v on v.id = l.vendor_id
+    left join books.bills b on b.id = l.bill_id`);
+
 /** What the console may read by name (`ConsolePortal/view`): totals only. */
 export const BOOKS_CONSOLE_VIEWS = [
   "books.spend",
@@ -708,6 +841,7 @@ export const ALERT_KINDS = [
   "renewal",
   "lapsed",
   "spike",
+  "card",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 

@@ -118,6 +118,8 @@ export interface VendorSpec {
   plan?: string;
   /** Whether its GST/HST is claimable; false for the simplified regime. Absent = unknown. */
   gstClaimable?: boolean;
+  /** Words its card charges carry on the statement ("DYNADOT"), matched whole on the cleaned descriptor. */
+  card?: readonly string[];
 }
 
 /**
@@ -134,6 +136,7 @@ export const VENDORS: readonly VendorSpec[] = [
     // An upgrade (5x to 20x) bills the new edition and credits the old: still one subscription.
     plan: "Max plan",
     gstClaimable: false,
+    card: ["ANTHROPIC", "CLAUDE AI"],
   },
   {
     key: "cloudflare",
@@ -142,6 +145,7 @@ export const VENDORS: readonly VendorSpec[] = [
     mail: { from: ["notify.cloudflare.com"], subject: ["invoice"] },
     currency: "USD",
     cycle: "yearly",
+    card: ["CLOUDFLARE"],
   },
   {
     key: "github",
@@ -150,17 +154,20 @@ export const VENDORS: readonly VendorSpec[] = [
     mail: { from: ["noreply@github.com"], subject: ["payment receipt"] },
     currency: "USD",
     cycle: "monthly",
+    card: ["GITHUB"],
   },
   {
     key: "google-workspace",
     name: "Google Workspace",
     account: "email",
-    mail: { from: ["payments-noreply@google.com"] },
+    // The same sender bills Google Cloud; the subject tells them apart.
+    mail: { from: ["payments-noreply@google.com"], subject: ["Google Workspace"] },
     currency: "CAD",
     cycle: "monthly",
     plansOnly: true,
     plan: "Workspace",
     gstClaimable: false,
+    card: ["GOOGLE WORKSPACE", "GOOGLE GSUITE", "GSUITE"],
   },
   {
     key: "instantly",
@@ -169,6 +176,7 @@ export const VENDORS: readonly VendorSpec[] = [
     mail: { from: ["stripe.com"], subject: ["instantly"] },
     currency: "USD",
     cycle: "monthly",
+    card: ["INSTANTLY"],
   },
   {
     key: "racknerd",
@@ -176,6 +184,7 @@ export const VENDORS: readonly VendorSpec[] = [
     account: "hosting",
     mail: { from: ["support@racknerd.com"], subject: ["invoice", "payment", "order"] },
     currency: "USD",
+    card: ["RACKNERD"],
   },
   {
     key: "telnyx",
@@ -184,6 +193,7 @@ export const VENDORS: readonly VendorSpec[] = [
     mail: { from: ["portal@telnyx.com"], subject: ["payment success"] },
     currency: "USD",
     cycle: "usage",
+    card: ["TELNYX"],
   },
   {
     key: "aws",
@@ -195,6 +205,52 @@ export const VENDORS: readonly VendorSpec[] = [
     },
     currency: "USD",
     cycle: "usage",
+    card: ["AWS", "AMAZON WEB SERVICES"],
+  },
+  {
+    key: "google-cloud",
+    name: "Google Cloud",
+    account: "hosting",
+    mail: { from: ["payments-noreply@google.com"], subject: ["Google Cloud"] },
+    currency: "CAD",
+    cycle: "usage",
+    card: ["GOOGLE CLOUD"],
+  },
+  {
+    key: "inbox-insiders",
+    name: "Inbox Insiders",
+    account: "email",
+    // Lead Gen Jay's shop; its mail confirms orders, the card has the charge.
+    mail: { from: ["updates.leadgenjay.com"], subject: ["order", "receipt", "invoice", "payment"] },
+    currency: "USD",
+    cycle: "monthly",
+    card: ["LEADGENJAY", "LEAD GEN JAY", "INBOX INSIDERS", "INBOXINSIDERS"],
+  },
+  {
+    key: "dynadot",
+    name: "Dynadot",
+    account: "domains",
+    mail: { from: ["orders@dynadot.com"], subject: ["order finished"] },
+    currency: "USD",
+    cycle: "yearly",
+    card: ["DYNADOT"],
+  },
+  {
+    key: "godaddy",
+    name: "GoDaddy",
+    account: "domains",
+    mail: { from: ["godaddy.com"], subject: ["receipt", "order confirmation"] },
+    cycle: "yearly",
+    card: ["GODADDY", "GO DADDY"],
+  },
+  {
+    key: "x",
+    name: "X",
+    account: "software",
+    mail: { from: ["invoice+statements+acct_1Ika5JA3KZ32dPo1@stripe.com"] },
+    currency: "USD",
+    cycle: "monthly",
+    card: ["X CORP", "TWITTER", "X PREMIUM"],
   },
 ];
 

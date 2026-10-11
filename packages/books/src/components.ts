@@ -17,6 +17,7 @@ export const BOOKS_COMPONENTS = [
       records: [
         "books.spend",
         "books.subscription",
+        "books.card",
         "books.month",
         "books.channel",
         "books.cohort",

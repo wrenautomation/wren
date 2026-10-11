@@ -91,6 +91,52 @@ export const subscriptionRecord = defineRecord({
   ],
 });
 
+/** The card's lines (`books.card_records`): whose each is and the bill it paid. */
+export const cardRecord = defineRecord({
+  id: "books.card",
+  app: "money",
+  channel: null,
+  needs: "money",
+  name: { one: "card line", many: "card lines" },
+  view: "books.card_records",
+  key: "id",
+  title: "description",
+  subtitle: "vendor",
+  fields: {
+    description: text(),
+    vendor: text(),
+    amount: money("Amount"),
+    on: date("Day"),
+    state: status({
+      to_sort: { label: "To sort", tone: "warn" },
+      waiting: { label: "Waiting for its bill", tone: "neutral" },
+      billed: { label: "Billed", tone: "good" },
+      card_only: { label: "Card only", tone: "neutral" },
+      personal: { label: "Personal", tone: "neutral" },
+      credit: { label: "Credit", tone: "neutral" },
+    }),
+    bill: text("Bill"),
+    descriptor: text(),
+    card: text(),
+    source: status({
+      statement: { label: "Statement", tone: "neutral" },
+      alert: { label: "Alert", tone: "neutral" },
+    }),
+  },
+  views: [
+    {
+      id: "business",
+      label: "Business",
+      where: { state: ["waiting", "billed", "card_only"] },
+      sort: "-on",
+      at: "on",
+    },
+    { id: "to_sort", label: "To sort", where: { state: "to_sort" }, sort: "-on" },
+    { id: "personal", label: "Personal", where: { state: "personal" }, sort: "-on" },
+    { id: "all", label: "All", sort: "-on", at: "on" },
+  ],
+});
+
 const CHANNEL_STATES = cued({
   email: { label: "Email", tone: "neutral" },
   sms: { label: "SMS", tone: "neutral" },
@@ -297,6 +343,7 @@ export const inHouseRecord = defineRecord({
 export const BOOKS_RECORDS = [
   spendRecord,
   subscriptionRecord,
+  cardRecord,
   monthRecord,
   channelRecord,
   cohortRecord,
