@@ -555,6 +555,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   fields: F;
   /** Tabs, the first opened by default. */
   views: readonly SavedView[];
+  /**
+   * The filters always on the bar, one click each (`quickFilters` in @wren/ui). Absent: the
+   * platform field first, then a few short pick lists.
+   */
+  quick?: readonly string[];
   /** Records that point at this one: `by` is their view's column holding this key. */
   related?: readonly { record: string; by: string }[];
   /**
@@ -835,6 +840,8 @@ export interface RecordMeta {
   edits?: readonly string[] | null;
   /** What editing needs, when it isn't `run`. */
   editNeeds?: "manage";
+  /** The filters always on the bar; absent = picked by the web. */
+  quick?: readonly string[];
   /** Where its rows sit, for access checks on the web: the app, and the channel or its field. */
   app: string;
   channel: RecordChannel;
@@ -892,6 +899,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
       };
     }),
     views: type.views,
+    ...(type.quick ? { quick: type.quick } : {}),
     related: (type.related ?? []).map((r) => ({ record: r.record })),
     actions: type.actions ?? [],
     activity: !!type.activity,

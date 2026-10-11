@@ -1,7 +1,7 @@
 /**
  * What sits over a list (designs/2026-10-06-library-and-views.md): its views as tabs, the ones
  * the viewer saved after the built-in ones; search; Filter, as a popover or at phone width one
- * sheet; a pill per filter in plain words ("Campaign is SEC RIA"); and Save view. A list opens on the viewer's last-used
+ * sheet; up to three quick filters always on the bar (`quickFilters`); a pill per filter in plain words ("Campaign is SEC RIA"); and Save view. A list opens on the viewer's last-used
  * view, and the columns he picks stay picked (`list:<record>` in his prefs).
  */
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
@@ -11,6 +11,7 @@ import {
   Bookmark,
   Building2,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   CircleDot,
   Hash,
@@ -79,6 +80,28 @@ export function useNarrow() {
 /** The fields a list filters by: every one with a filter shape, so every list has Filter. */
 export const filtersOf = (meta: RecordMeta): FieldMeta[] =>
   meta.fields.filter((f) => filterShape(f) && f.key !== "id");
+
+/** How many filters sit on the bar unasked. */
+const QUICK = 3;
+/** A pick list this short reads at a glance; a longer one is Filter's to search. */
+const QUICK_STATES = 12;
+
+/**
+ * The filters always on the bar, one click to a choice: the record's `quick`, else the field
+ * holding its platform (Site) first, then its short pick lists in order, three at most.
+ */
+export function quickFilters(meta: RecordMeta): FieldMeta[] {
+  const filters = filtersOf(meta);
+  const byKey = new Map(filters.map((f) => [f.key, f]));
+  if (meta.quick) return meta.quick.flatMap((k) => byKey.get(k) ?? []);
+  const site =
+    typeof meta.channel === "object" && meta.channel ? byKey.get(meta.channel.field) : undefined;
+  const picks = filters.filter((f) => {
+    const n = Object.keys(f.states ?? {}).length;
+    return f !== site && filterShape(f) === "states" && n >= 2 && n <= QUICK_STATES;
+  });
+  return [...(site ? [site] : []), ...picks].slice(0, QUICK);
+}
 
 /** The address keys a list's state rides in. */
 const STATE = ["view", "q", "sort", "cols"];
@@ -789,6 +812,40 @@ function FilterPill({
   );
 }
 
+/** A quick filter not yet set: its name and a caret; a click opens its choices. */
+function QuickPill({
+  field,
+  onOpen,
+  panel,
+}: {
+  field: FieldMeta;
+  onOpen?: (() => void) | undefined;
+  panel: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const face = (
+    <>
+      {field.label}
+      <ChevronDown className="size-3.5" />
+    </>
+  );
+  const cls = cn(CHIP, "border-dashed");
+  if (onOpen)
+    return (
+      <button type="button" className={cls} onClick={onOpen}>
+        {face}
+      </button>
+    );
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className={cls}>{face}</PopoverTrigger>
+      <PopoverContent align="start" className={POP}>
+        {panel(() => setOpen(false))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** "Filter", with how many are on. */
 function FilterFace({ on }: { on: number }) {
   return (
@@ -830,6 +887,7 @@ export function ListBar({
   const searchable = meta.fields.some((f) => f.searchable);
   const many = meta.name.many;
   const on = filters.filter((f) => params.get(f.key));
+  const quick = quickFilters(meta).filter((f) => !params.get(f.key));
   const narrowed = !!params.get("q") || on.length > 0;
   const [picker, setPicker] = useState(false);
   const [sheet, setSheet] = useState<{ open: boolean; start: FieldMeta | null; n: number }>({
@@ -895,6 +953,14 @@ export function ListBar({
       panel={(close) => panel(f, close)}
     />
   ));
+  const quicks = quick.map((f) => (
+    <QuickPill
+      key={f.key}
+      field={f}
+      onOpen={narrow ? () => openSheet(f) : undefined}
+      panel={(close) => panel(f, close)}
+    />
+  ));
   const clear = narrowed ? (
     <a
       href={place.link({
@@ -918,6 +984,7 @@ export function ListBar({
         {search}
         {filter}
         {pills}
+        {quicks}
         {clear}
         {save}
         {tail}
@@ -932,7 +999,12 @@ export function ListBar({
         {clear}
         {tail}
       </div>
-      {pills.length ? <div className="flex flex-wrap gap-2">{pills}</div> : null}
+      {pills.length || quicks.length ? (
+        <div className="flex flex-wrap gap-2">
+          {pills}
+          {quicks}
+        </div>
+      ) : null}
       <Sheet open={sheet.open} onOpenChange={(o) => (o ? null : shut())}>
         <SheetContent
           // A phone opens it to tap, not type: no keyboard springs up.
