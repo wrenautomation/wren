@@ -215,7 +215,13 @@ export class TelnyxProvider implements SmsProvider {
     }
     const data = (json as { data?: { id?: string; parts?: number; cost?: unknown } }).data;
     if (!data?.id) throw new Error(`telnyx: HTTP ${status} with no message id`);
-    return { ok: true, providerId: data.id, parts: data.parts ?? null, costUsd: money(data.cost) };
+    return {
+      ok: true,
+      providerId: data.id,
+      parts: data.parts ?? null,
+      costUsd: money(data.cost),
+      service: "sms",
+    };
   }
 
   async lookup(e164: string): Promise<LookupResult> {
@@ -410,6 +416,7 @@ export function parseTelnyxEvent(body: unknown): SmsEvent {
       to: String(p.to?.[0]?.phone_number ?? ""),
       text: String(p.text ?? ""),
       at: new Date(p.received_at ?? occurred),
+      service: "sms",
     };
   }
   if ((type === "message.sent" || type === "message.finalized") && p.id) {
@@ -427,6 +434,7 @@ export function parseTelnyxEvent(body: unknown): SmsEvent {
         detail: e ? `${e.title ?? ""}${e.detail ? `: ${e.detail}` : ""}` : null,
         parts: p.parts ?? null,
         costUsd: money(p.cost),
+        service: "sms",
       };
     }
   }

@@ -441,6 +441,7 @@ describe("enroll → send → receipts → reply", () => {
       detail: null,
       parts: 1,
       costUsd: 0.004,
+      service: "imessage",
     });
     await event({
       kind: "status",
@@ -488,6 +489,7 @@ describe("enroll → send → receipts → reply", () => {
       to: ours,
       text: "sure, what's the price?",
       at: OPEN,
+      service: "imessage",
     });
     expect(r.outcome).toMatch(/^reply/);
     expect(r.replied).toBe((await contact(to))?.id);
@@ -506,6 +508,8 @@ describe("enroll → send → receipts → reply", () => {
     });
     const thread = await getThread(db(), threads[0]?.contactId as number, { now: OPEN, cap: 4 });
     expect(thread?.messages.map((m) => m.direction)).toEqual(["out", "in"]);
+    // Blue both ways: the receipt and the reply say iMessage.
+    expect(thread?.messages.map((m) => m.service)).toEqual(["imessage", "imessage"]);
     expect(thread?.month).toEqual({ sent: 1, cap: 4 });
   });
 

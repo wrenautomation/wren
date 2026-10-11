@@ -17,6 +17,8 @@
  *   (`SmsEvents/signer`). A client on its own Telnyx account is checked against its saved
  *   public key and lands only in its database; Wren's numbers and clients on Wren's account
  *   against `TELNYX_PUBLIC_KEY`. A path naming someone other than the number's owner is 401.
+ * - `/webhooks/linq`: Linq's (iMessage), Standard Webhooks signature against
+ *   `LINQ_WEBHOOK_SECRET`, then `SmsEvents/ingest/send` keyed by the event id.
  * - `/webhooks/gmail`: Gmail's push through Pub/Sub, `?token=` checked against
  *   `GMAIL_PUSH_TOKEN`, then `InboxPush/<address>/notify/send` keyed by Pub/Sub's message
  *   id: the mailbox's inbox loop runs a pass now.
@@ -47,8 +49,12 @@ import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
 import {
   ourNumber,
   SIGNATURE_HEADER,
+  STANDARD_ID_HEADER,
+  STANDARD_SIGNATURE_HEADER,
+  STANDARD_TIMESTAMP_HEADER,
   signedFresh,
   TIMESTAMP_HEADER,
+  verifyStandardWebhook,
   verifyTelnyx,
 } from "@wren/channel-sms/webhook";
 import { readBody } from "@wren/core/http";
@@ -194,6 +200,38 @@ async function telnyxWebhook(req: Request, env: Env, path: string | null): Promi
       method: "POST",
       headers: restateHeaders(env, { "idempotency-key": `telnyx-${id}` }),
       body: forwarded(raw, client),
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  return json({ ok: true });
+}
+
+/**
+ * A Linq webhook (iMessage, RCS, SMS on Wren's Linq line): Standard Webhooks signature against
+ * `LINQ_WEBHOOK_SECRET`, then `SmsEvents/ingest/send` keyed by Linq's event id. Wren's only:
+ * no client is on Linq yet.
+ */
+async function linqWebhook(req: Request, env: Env): Promise<Response> {
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  if (!env.LINQ_WEBHOOK_SECRET) return json({ error: "webhooks off: no LINQ_WEBHOOK_SECRET" }, 503);
+  const id = req.headers.get(STANDARD_ID_HEADER);
+  const verdict = await verifyStandardWebhook({
+    secret: env.LINQ_WEBHOOK_SECRET,
+    id,
+    signature: req.headers.get(STANDARD_SIGNATURE_HEADER),
+    timestamp: req.headers.get(STANDARD_TIMESTAMP_HEADER),
+    rawBody: raw,
+  });
+  if (!verdict.ok) return json({ error: verdict.reason }, 401);
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, "SmsEvents/ingest/send"), {
+      method: "POST",
+      headers: restateHeaders(env, { "idempotency-key": `linq-${id}` }),
+      body: raw,
     });
   } catch {
     return json({ error: "restate unreachable" }, 502);
@@ -617,6 +655,9 @@ export default {
       const client = wren ? null : clientIn(pathname, site);
       if (!wren && !client) continue;
       return req.method === "POST" ? hook(req, env, client) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/linq") {
+      return req.method === "POST" ? linqWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname === "/webhooks/gmail") {
       return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);

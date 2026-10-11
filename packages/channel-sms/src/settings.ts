@@ -1,6 +1,7 @@
 /** Settings → the channel's policy objects and provider: one place, shared by the worker and the CLI. */
 import type { Settings } from "@wren/config";
 import { DEFAULT_HEALTH, type HealthPolicy } from "./health.js";
+import { LinqProvider } from "./linq.js";
 import { parseClock, type SmsPolicy } from "./policy.js";
 import { FakeProvider, NoProvider, type SmsProvider } from "./provider.js";
 import { type Pusher, WebPusher } from "./push.js";
@@ -47,6 +48,10 @@ export function providerFrom(s: Settings): SmsProvider {
     const fake = new FakeProvider();
     fake.numbers = [{ e164: "+12015550100", providerId: "fake-1" }];
     return fake;
+  }
+  if (s.smsProvider === "linq") {
+    if (!s.linqApiKey) throw new Error("WREN_SMS_PROVIDER=linq needs WREN_LINQ_API_KEY");
+    return new LinqProvider({ apiKey: s.linqApiKey });
   }
   if (!s.telnyxApiKey) throw new Error("WREN_SMS_PROVIDER=telnyx needs WREN_TELNYX_API_KEY");
   return new TelnyxProvider({

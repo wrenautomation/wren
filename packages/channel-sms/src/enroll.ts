@@ -160,6 +160,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
             lineType,
             carrier: found.carrier,
             lookup: found.raw as object,
+            ...(found.imessage !== undefined ? { imessage: found.imessage } : {}),
             lookedUpAt: opts.now,
           })
           .where(eq(smsContacts.id, c.id));

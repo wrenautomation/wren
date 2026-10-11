@@ -11,7 +11,7 @@
  * went out; the caller marks the message `unknown` and never resends it.
  */
 import { SmsRefusal } from "./refusal.js";
-import type { LineType } from "./schema.js";
+import type { LineType, Service } from "./schema.js";
 import type { Keyword } from "./templates.js";
 
 export interface SendRequest {
@@ -21,7 +21,14 @@ export interface SendRequest {
 }
 
 export type SendResult =
-  | { ok: true; providerId: string; parts: number | null; costUsd: number | null }
+  | {
+      ok: true;
+      providerId: string;
+      parts: number | null;
+      costUsd: number | null;
+      /** What carried it, when the provider knows at send. */
+      service?: Service | null;
+    }
   | {
       ok: false;
       retry: false;
@@ -37,6 +44,8 @@ export interface LookupResult {
   lineType: LineType;
   carrier: string | null;
   raw: unknown;
+  /** Reachable on iMessage; absent when the provider can't tell. */
+  imessage?: boolean;
 }
 
 export interface ProviderNumber {
@@ -59,6 +68,7 @@ export type SmsEvent =
       detail: string | null;
       parts: number | null;
       costUsd: number | null;
+      service?: Service | null;
     }
   | {
       kind: "inbound";
@@ -69,6 +79,7 @@ export type SmsEvent =
       to: string;
       text: string;
       at: Date;
+      service?: Service | null;
     }
   | {
       /**

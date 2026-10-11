@@ -62,7 +62,18 @@ const SPEED_ACTIONS: Action[] = [
   },
 ];
 
-type Message = { id: number; at: string; direction: "in" | "out"; body: string; state: string };
+type Message = {
+  id: number;
+  at: string;
+  direction: "in" | "out";
+  body: string;
+  state: string;
+  service: "imessage" | "rcs" | "sms" | null;
+};
+
+const SERVICE = { imessage: "iMessage", rcs: "RCS", sms: "SMS" } as const;
+/** Apple's own: blue iMessage, green RCS and SMS. */
+const SERVICE_COLOR = { imessage: "#0a84ff", rcs: "#30d158", sms: "#30d158" } as const;
 
 const when = (at: string) =>
   new Date(at).toLocaleString("en-US", {
@@ -145,9 +156,15 @@ export const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
         messages.length ? (
           <ul key="texts" className="grid gap-3 text-[14px]">
             {messages.map((m) => (
-              <li key={m.id} className="grid gap-0.5">
+              <li
+                key={m.id}
+                className="grid gap-0.5 border-l-2 pl-3"
+                style={{ borderColor: m.service ? SERVICE_COLOR[m.service] : "transparent" }}
+              >
                 <span className="text-[13px] text-(--ui-ink-2)">
-                  {m.direction === "in" ? "They wrote" : `We sent (${m.state})`} ·{" "}
+                  {m.direction === "in" ? "They wrote" : "We sent"}
+                  {m.service ? ` by ${SERVICE[m.service]}` : ""}
+                  {m.direction === "in" ? "" : ` (${m.state})`} ·{" "}
                   {m.at.slice(0, 16).replace("T", " ")}
                 </span>
                 <span className="whitespace-pre-wrap">{m.body}</span>

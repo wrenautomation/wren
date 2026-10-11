@@ -35,6 +35,7 @@ describe("TelnyxProvider.send", () => {
       providerId: "m1",
       parts: 1,
       costUsd: 0.004,
+      service: "sms",
     });
     expect(seen[0]?.url).toBe("https://api.telnyx.com/v2/messages");
     expect(JSON.parse(String(seen[0]?.init?.body))).toMatchObject({

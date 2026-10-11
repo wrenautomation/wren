@@ -7,6 +7,9 @@
   --accent: #b4532a;
   --out: #1a1a1a;
   --out-ink: #fbfaf7;
+  /* Apple's own: blue iMessage, green SMS and RCS. */
+  --imessage: #0a84ff;
+  --sms: #30d158;
   --in: #efece5;
   --bad: #a3321f;
   --ok: #2f6b3a;
@@ -233,6 +236,15 @@ main {
   align-self: flex-start;
   background: var(--in);
   border-bottom-left-radius: 4px;
+}
+.bubble.out.imessage {
+  background: var(--imessage);
+  color: #fff;
+}
+.bubble.out.rcs,
+.bubble.out.sms {
+  background: var(--sms);
+  color: #fff;
 }
 .bubble-meta {
   font-size: 11px;

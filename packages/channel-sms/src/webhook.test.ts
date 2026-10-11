@@ -1,6 +1,6 @@
-import type { webcrypto } from "node:crypto";
+import { createHmac, type webcrypto } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { verifyTelnyx } from "./webhook.js";
+import { verifyStandardWebhook, verifyTelnyx } from "./webhook.js";
 
 const b64 = (bytes: ArrayBuffer | Uint8Array) =>
   Buffer.from(bytes as Uint8Array).toString("base64");
@@ -45,5 +45,33 @@ describe("verifyTelnyx", () => {
     expect((await verifyTelnyx({ ...base, nowSeconds: 2000 })).ok).toBe(false);
     expect((await verifyTelnyx({ ...base, signature: null })).ok).toBe(false);
     expect((await verifyTelnyx({ ...base, publicKey: "AAAA" })).ok).toBe(false);
+  });
+});
+
+describe("verifyStandardWebhook", () => {
+  const secret = `whsec_${Buffer.from("synthetic-secret-32-bytes-long!!").toString("base64")}`;
+  const sign = (id: string, ts: string, body: string) =>
+    `v1,${createHmac("sha256", Buffer.from(secret.slice(6), "base64"))
+      .update(`${id}.${ts}.${body}`)
+      .digest("base64")}`;
+  const body = '{"event_type":"message.received","event_id":"e1"}';
+  const base = { secret, id: "msg_1", timestamp: "1000", rawBody: body, nowSeconds: 1010 };
+
+  it("accepts any one matching v1 entry", async () => {
+    const good = sign("msg_1", "1000", body);
+    expect(await verifyStandardWebhook({ ...base, signature: good })).toEqual({ ok: true });
+    expect(await verifyStandardWebhook({ ...base, signature: `v1,AAAA ${good}` })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("refuses a changed body, another id, a stale time, no id", async () => {
+    const good = sign("msg_1", "1000", body);
+    const no = (v: { ok: boolean }) => expect(v.ok).toBe(false);
+    no(await verifyStandardWebhook({ ...base, signature: good, rawBody: `${body} ` }));
+    no(await verifyStandardWebhook({ ...base, signature: good, id: "msg_2" }));
+    no(await verifyStandardWebhook({ ...base, signature: good, nowSeconds: 2000 }));
+    no(await verifyStandardWebhook({ ...base, signature: good, id: null }));
+    no(await verifyStandardWebhook({ ...base, signature: "v2,abc" }));
   });
 });

@@ -114,6 +114,7 @@ export interface Thread {
     | "detail"
     | "disposition"
     | "dispositionSource"
+    | "service"
   > & { at: string })[];
   /** Texts that left for this phone in the last 31 days, against the monthly cap. */
   month: { sent: number; cap: number };
@@ -165,6 +166,7 @@ export async function getThread(
       detail: m.detail,
       disposition: m.disposition,
       dispositionSource: m.dispositionSource,
+      service: m.service,
       at: (m.receivedAt ?? m.sentAt ?? m.dueAt ?? m.createdAt).toISOString(),
     })),
     month: { sent: await textedThisMonth(db, row.contact.e164, opts.now), cap: opts.cap },

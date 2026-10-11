@@ -320,7 +320,9 @@ export const settingsSchema = z.object({
    * messaging profile. Nothing leaves Telnyx until WREN_SMS_LIVE is true: set it
    * only once the 10DLC campaign is approved as registered.
    */
-  smsProvider: z.enum(["none", "fake", "telnyx"]).default("none"),
+  smsProvider: z.enum(["none", "fake", "telnyx", "linq"]).default("none"),
+  /** Linq (iMessage, then RCS, then SMS from our own line): `WREN_SMS_PROVIDER=linq`. */
+  linqApiKey: z.string().min(1).optional(),
   telnyxApiKey: z.string().min(1).optional(),
   telnyxMessagingProfileId: z.string().min(1).optional(),
   /** The 10DLC campaign US numbers go on; SmsWatch attaches them once carriers approve it. */
@@ -617,6 +619,7 @@ export const ENV_KEYS = {
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   smsProvider: "WREN_SMS_PROVIDER",
+  linqApiKey: "WREN_LINQ_API_KEY",
   telnyxApiKey: "WREN_TELNYX_API_KEY",
   telnyxMessagingProfileId: "WREN_TELNYX_MESSAGING_PROFILE_ID",
   telnyxCampaignId: "WREN_TELNYX_CAMPAIGN_ID",

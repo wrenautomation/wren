@@ -122,6 +122,7 @@ async function applyStatus(
       ...(e.costUsd !== null ? { costUsd: e.costUsd } : {}),
       ...(e.code ? { errorCode: e.code } : {}),
       ...(e.detail ? { detail: e.detail } : {}),
+      ...(e.service ? { service: e.service } : {}),
     })
     .where(eq(smsMessages.id, msg.id));
   if (target === "failed" && msg.kind === "sequence") {
@@ -215,6 +216,7 @@ async function applyInbound(
       body: e.text,
       state: "received",
       providerId: e.messageId,
+      service: e.service ?? null,
       receivedAt: e.at,
       ...(cls.disposition
         ? { disposition: cls.disposition, dispositionSource: "rule" as const }

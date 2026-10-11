@@ -90,3 +90,45 @@ export async function verifyTelnyx(input: {
   }
   return valid ? { ok: true } : { ok: false, reason: "bad signature" };
 }
+
+/** Standard Webhooks headers (Linq): the id, Unix seconds, and `v1,<base64>` signatures. */
+export const STANDARD_ID_HEADER = "webhook-id";
+export const STANDARD_TIMESTAMP_HEADER = "webhook-timestamp";
+export const STANDARD_SIGNATURE_HEADER = "webhook-signature";
+
+/**
+ * A Standard Webhooks signature (Linq's): HMAC-SHA256 of `${id}.${timestamp}.${rawBody}` under
+ * the base64 secret (a `whsec_` prefix is dropped). Any one `v1,` entry that matches passes;
+ * `crypto.subtle.verify` compares in constant time.
+ */
+export async function verifyStandardWebhook(input: {
+  secret: string;
+  id: string | null;
+  signature: string | null;
+  timestamp: string | null;
+  rawBody: string;
+  nowSeconds?: number;
+}): Promise<Verdict> {
+  const fresh = signedFresh(input);
+  if (!fresh.ok) return fresh;
+  if (!input.id) return { ok: false, reason: "missing webhook-id" };
+  const enc = new TextEncoder();
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      fromBase64(input.secret.replace(/^whsec_/, "")),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    const signed = enc.encode(`${input.id}.${input.timestamp}.${input.rawBody}`);
+    for (const entry of (input.signature ?? "").split(/\s+/)) {
+      const [version, value] = entry.split(",");
+      if (version !== "v1" || !value) continue;
+      if (await crypto.subtle.verify("HMAC", key, fromBase64(value), signed)) return { ok: true };
+    }
+  } catch {
+    return { ok: false, reason: "bad signature" };
+  }
+  return { ok: false, reason: "bad signature" };
+}

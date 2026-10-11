@@ -361,6 +361,59 @@ describe("cal.com webhook", () => {
   });
 });
 
+describe("linq webhook", () => {
+  // Synthetic: a made-up secret in Linq's `whsec_` form.
+  const SECRET = `whsec_${btoa("synthetic-linq-secret-32-bytes!!")}`;
+  const body = JSON.stringify({ event_type: "message.received", event_id: "ev-1", data: {} });
+  const send = async (raw: string, o: { secret?: string; at?: number; id?: string } = {}) => {
+    const at = String(o.at ?? Math.floor(Date.now() / 1000));
+    const id = o.id ?? "msg_1";
+    const key = await crypto.subtle.importKey(
+      "raw",
+      Uint8Array.from(atob((o.secret ?? SECRET).slice(6)), (c) => c.charCodeAt(0)),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(`${id}.${at}.${raw}`),
+    );
+    return call("/webhooks/linq", {
+      method: "POST",
+      headers: {
+        "webhook-id": id,
+        "webhook-timestamp": at,
+        "webhook-signature": `v1,${b64(mac)}`,
+      },
+      body: raw,
+    });
+  };
+
+  it("is off without its secret", async () => {
+    expect((await send(body)).status).toBe(503);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("forwards a signed event to SmsEvents/ingest, keyed by its webhook id", async () => {
+    env.LINQ_WEBHOOK_SECRET = SECRET;
+    expect((await send(body)).status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingest/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("linq-msg_1");
+    expect(restateCalls[0]?.body).toBe(body);
+  });
+
+  it("refuses another secret, a stale time, and a GET", async () => {
+    env.LINQ_WEBHOOK_SECRET = SECRET;
+    const other = `whsec_${btoa("another-synthetic-secret-32bytes")}`;
+    expect((await send(body, { secret: other })).status).toBe(401);
+    expect((await send(body, { at: Math.floor(Date.now() / 1000) - 3600 })).status).toBe(401);
+    expect((await call("/webhooks/linq")).status).toBe(405);
+    expect(restateCalls).toHaveLength(0);
+  });
+});
+
 describe("gmail push", () => {
   const push = (data: unknown, id = "pm-1") => ({
     message: { data: btoa(JSON.stringify(data)), messageId: id },

@@ -417,6 +417,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           sentAt: now,
           parts: result.parts ?? segments(body).parts,
           costUsd: result.costUsd,
+          service: result.service ?? null,
         })
         .where(eq(smsMessages.id, msg.id));
       await stepped(db, msg, contact, opts, stats);

@@ -9,7 +9,7 @@ entity: packages/channel-sms/src/provider.ts:74
 
 # sms-provider
 
-The carrier port: `SmsProvider`, with `telnyx.ts` as the one file that names a vendor, `FakeProvider` for tests and dry runs, `NoProvider` for a deploy before a carrier exists.
+The carrier port: `SmsProvider`, with `telnyx.ts` and `linq.ts` (iMessage, then RCS, then SMS from our own line; `WREN_SMS_PROVIDER=linq`, designs/2026-10-11-imessage.md) the files that name a vendor, `FakeProvider` for tests and dry runs, `NoProvider` for a deploy before a carrier exists.
 
 ## Why this shape
 
@@ -17,7 +17,7 @@ The carrier port: `SmsProvider`, with `telnyx.ts` as the one file that names a v
 
 ## Shape
 
-- `SmsProvider` (`provider.ts:74`); `telnyx.ts`; `webhook.ts` (signature, WebCrypto so it runs in the Cloudflare Worker too)
+- `SmsProvider` (`provider.ts:74`); `telnyx.ts`; `linq.ts` (no 10DLC, no keyword replies; lookup is its iMessage/RCS check; a Telnyx body still parses as Telnyx, so calls stay there); `webhook.ts` (Telnyx Ed25519 and Standard Webhooks HMAC, WebCrypto so they run in the Cloudflare Worker too)
 
 Citations: `packages/channel-sms/src/provider.ts:74`
 

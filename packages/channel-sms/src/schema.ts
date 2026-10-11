@@ -54,6 +54,10 @@ export const PHONE_COUNTRIES = ["US", "CA"] as const;
 export type PhoneCountry = (typeof PHONE_COUNTRIES)[number];
 
 export const LINE_TYPES = ["mobile", "landline", "voip", "toll_free", "unknown"] as const;
+
+/** What carried one text: blue (iMessage) or green (RCS, SMS). Null before 2026-10-11. */
+export const SERVICES = ["imessage", "rcs", "sms"] as const;
+export type Service = (typeof SERVICES)[number];
 export type LineType = (typeof LINE_TYPES)[number];
 
 /**
@@ -218,6 +222,8 @@ export const smsContacts = pgTable(
     carrier: varchar("carrier", { length: 128 }),
     lookedUpAt: timestamp("looked_up_at", { withTimezone: true }),
     lookup: jsonb("lookup"),
+    /** Reachable on iMessage, by the provider's check at lookup; null when never asked (Telnyx). */
+    imessage: boolean("imessage"),
     /** The sticky sender: every text to this contact goes out from this number. */
     numberId: uuid("number_id"),
     state: varchar("state", { length: 16, enum: CONTACT_STATES }).notNull().default("new"),
@@ -301,6 +307,8 @@ export const smsMessages = pgTable(
     body: text("body").notNull(),
     state: varchar("state", { length: 16, enum: MESSAGE_STATES }).notNull(),
     providerId: varchar("provider_id", { length: 64 }),
+    /** What carried it, as the provider said; null when it didn't (queued, before 2026-10-11). */
+    service: varchar("service", { length: 8, enum: SERVICES }),
     parts: smallint("parts"),
     costUsd: doublePrecision("cost_usd"),
     errorCode: varchar("error_code", { length: 32 }),
@@ -356,6 +364,7 @@ export const smsMessages = pgTable(
     oneOf("ck_sms_messages_messagestate", t.state, MESSAGE_STATES),
     oneOf("ck_sms_messages_disposition", t.disposition, DISPOSITIONS),
     oneOf("ck_sms_messages_dispositionsource", t.dispositionSource, DISPOSITION_SOURCES),
+    oneOf("ck_sms_messages_service", t.service, SERVICES),
     check(
       "ck_sms_messages_step_iff_sequence",
       sql`(step IS NOT NULL) = ((kind)::text = 'sequence'::text)`,

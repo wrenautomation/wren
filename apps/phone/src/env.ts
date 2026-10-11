@@ -9,6 +9,8 @@ export interface Env {
   AUTH_ORIGIN?: string;
   /** Wren's Telnyx account public key (base64). Unset = webhooks on Wren's account refused; clients on their own account sign with their saved key. */
   TELNYX_PUBLIC_KEY?: string;
+  /** The secret Linq's webhook subscription signs with (`whsec_…`). Unset = every Linq webhook refused. */
+  LINQ_WEBHOOK_SECRET?: string;
   /** The secret Wren's cal.com webhook signs with. Unset = every booking webhook refused. */
   CALCOM_WEBHOOK_SECRET?: string;
   /** Each client's cal.com webhook secret, as JSON `{"<client>": "<secret>"}`. Unset = every client's refused. */

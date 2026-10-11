@@ -16,6 +16,7 @@ const DISPOSITIONS = [
   "other",
 ];
 const POLL_MS = 20_000;
+const SERVICE = { imessage: "iMessage", rcs: "RCS", sms: "SMS" };
 let poll = null;
 let filter = "all";
 
@@ -239,6 +240,7 @@ async function thread(id) {
     "div",
     { class: "meta" },
     `${c.display} · ${words(c.state)}`,
+    c.imessage ? " · on iMessage" : "",
     c.fromNumber ? ` · from ${us(c.fromNumber)}` : "",
     h("br"),
     c.name || c.email ? [[c.name, c.email].filter(Boolean).join(" · "), h("br")] : "",
@@ -256,8 +258,10 @@ async function thread(id) {
   const bubbles = h("div", { class: "bubbles" });
   for (const m of t.messages) {
     const side = m.direction === "in" ? "in" : "out";
-    bubbles.append(h("div", { class: `bubble ${side}` }, m.body));
+    // Blue for iMessage, green for RCS and SMS, as on an iPhone; gray until the provider says.
+    bubbles.append(h("div", { class: `bubble ${side} ${m.service || ""}`.trim() }, m.body));
     const bits = [when(m.at)];
+    if (m.service) bits.push(SERVICE[m.service]);
     if (side === "out") bits.push(m.state);
     const metaEl = h("div", { class: `bubble-meta ${side}` }, bits.join(" · "));
     if (m.state === "failed" || m.state === "unknown") metaEl.classList.add("bad");

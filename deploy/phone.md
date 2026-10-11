@@ -32,6 +32,9 @@ from `apps/phone/`:
     export CLOUDFLARE_ACCOUNT_ID="$WREN_CLOUDFLARE_ACCOUNT_ID"
     # Telnyx portal → Account → Public Key. Until set, every webhook gets 503.
     printf %s "$TELNYX_PUBLIC_KEY" | npx wrangler secret put TELNYX_PUBLIC_KEY
+    # Linq's webhook subscription secret (whsec_…), only with WREN_SMS_PROVIDER=linq. Subscribe
+    # https://phone.wrenautomation.com/webhooks/linq?version=2026-02-03. Until set, it gets 503.
+    printf %s "$LINQ_WEBHOOK_SECRET" | npx wrangler secret put LINQ_WEBHOOK_SECRET
     # The secret Wren's cal.com webhook signs with. Until set, /webhooks/calcom gets 503.
     printf %s "$CALCOM_WEBHOOK_SECRET" | npx wrangler secret put CALCOM_WEBHOOK_SECRET
     # Clients' cal.com secrets, one JSON object {"<client>": "<secret>"}. A client not in it gets 404.
