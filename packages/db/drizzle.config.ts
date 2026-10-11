@@ -10,6 +10,7 @@ export default defineConfig({
     "../core/src/marketing-views.ts",
     "../core/src/clients/schema.ts",
     "../core/src/setup-schema.ts",
+    "../core/src/dead-letter-schema.ts",
     "../core/src/vendor-schema.ts",
     "../core/src/keys-schema.ts",
     "../core/src/touches-schema.ts",

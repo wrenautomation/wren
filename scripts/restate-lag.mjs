@@ -16,8 +16,9 @@ const hook = process.env.WREN_DISCORD_WEBHOOK_URL;
 // `scheduled_at` rides along: without it Restate leaves `scheduled_start_at` out (console.ts).
 const SQL = `SELECT target_service_name, target_service_key, scheduled_at, scheduled_start_at
 FROM sys_invocation WHERE target_handler_name = 'loop' AND status = 'scheduled'`;
+// Paused calls are the DeadLetters loop's (`wren dlq`): told there once, not here hourly.
 const STUCK = `SELECT id, target, status, modified_at FROM sys_invocation
-WHERE status IN ('ready', 'running', 'backing-off', 'paused')`;
+WHERE status IN ('ready', 'running', 'backing-off')`;
 
 async function say(text) {
   console.log(text);

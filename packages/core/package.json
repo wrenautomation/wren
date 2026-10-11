@@ -67,6 +67,8 @@
     "./setup-schema": "./src/setup-schema.ts",
     "./setups": "./src/setups.ts",
     "./setup-watch": "./src/setup-watch.ts",
+    "./dead-letters": "./src/dead-letters.ts",
+    "./dead-letter-schema": "./src/dead-letter-schema.ts",
     "./vendors": "./src/vendors.ts",
     "./metered": "./src/metered.ts",
     "./vendor-keys": "./src/vendor-keys.ts",

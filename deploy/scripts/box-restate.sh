@@ -41,9 +41,10 @@ advertised-ingress-endpoint = "https://$HOST/"
 destination = "s3://$bucket/restate/snapshots"
 EOF
 
-# The bearer opens the ingress and two admin reads the console needs (SQL over state,
-# the service list). Every other admin call stays loopback-only: CI and the desk
-# register over SSM.
+# The bearer opens the ingress, two admin reads the console needs (SQL over state,
+# the service list) and the dead-letter queue's two writes (resume or kill a paused call:
+# the bearer already reaches every handler). Every other admin call stays loopback-only:
+# CI and the desk register over SSM.
 cat > "$D/Caddyfile.new" <<EOF
 $HOST {
 	@authed header Authorization "Bearer {\$RESTATE_AUTH_TOKEN}"
@@ -55,12 +56,20 @@ $HOST {
 		method GET
 		path /admin/services /admin/services/*
 	}
+	@letters {
+		method PATCH
+		path_regexp ^/admin/invocations/inv_\w+/(resume|kill)$
+	}
 	handle @authed {
 		handle @query {
 			uri strip_prefix /admin
 			reverse_proxy 127.0.0.1:9070
 		}
 		handle @services {
+			uri strip_prefix /admin
+			reverse_proxy 127.0.0.1:9070
+		}
+		handle @letters {
 			uri strip_prefix /admin
 			reverse_proxy 127.0.0.1:9070
 		}

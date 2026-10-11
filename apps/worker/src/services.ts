@@ -255,6 +255,7 @@ import {
   restateSites,
 } from "@wren/core/content/restate";
 import { setFieldStep } from "@wren/core/custom-fields";
+import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
@@ -2009,6 +2010,17 @@ export async function buildServices(
         ? { tell: turnedOffTeller(db, bookerMailer("Wren"), settings.portalOrigin ?? undefined) }
         : {}),
     }),
+    // Files every invocation Restate paused after its retries as a dead letter; Discord hears once.
+    ...(settings.restateAdminUrl
+      ? [
+          makeDeadLetters({
+            main: db,
+            admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
+            patch: restateAdminPatch(settings.restateAdminUrl, settings.restateAuthToken),
+            ...notify,
+          }),
+        ]
+      : []),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({
       main: db,
