@@ -14,6 +14,7 @@ import { contentPlaybooks } from "@wren/content/schema";
 import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
+  addCollection,
   askSop,
   breakdownItem,
   breakdowns,
@@ -326,6 +327,22 @@ export function registerLearn(
           if (!got) throw new Error(`No item ${id}`);
           return got;
         }),
+      ),
+    );
+
+  learn
+    .command("collection <name>")
+    .description("a new collection to move items into")
+    .option("--in <collection>", "inside this collection's id")
+    .action(async (name: string, o: { in?: string }) =>
+      json(
+        await inWorkspace((db, client) =>
+          addCollection(db, client, {
+            name,
+            parentId: o.in ? (idsOf([o.in])[0] ?? null) : null,
+            by: BY,
+          }),
+        ),
       ),
     );
 
