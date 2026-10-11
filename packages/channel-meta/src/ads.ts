@@ -43,6 +43,8 @@ export interface LaunchSpec {
   targeting: Targeting;
   /** LINK_CLICKS, LANDING_PAGE_VIEWS, LEAD_GENERATION, REACH … (default LINK_CLICKS). */
   optimizationGoal?: string;
+  /** The ad format it's made in (`ad_formats.slug`): its numbers add up under Ads → Formats. */
+  format?: string;
   creative: {
     /** The primary text. */
     message: string;

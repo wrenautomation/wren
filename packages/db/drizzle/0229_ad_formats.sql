@@ -1,0 +1,77 @@
+CREATE TABLE "ad_formats" (
+	"slug" varchar(48) NOT NULL,
+	"name" text NOT NULL,
+	"family" varchar(16) NOT NULL,
+	"what" text NOT NULL,
+	"use" text NOT NULL,
+	"state" varchar(16) DEFAULT 'idea' NOT NULL,
+	"notes" text,
+	"source" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_by" text,
+	CONSTRAINT "pk_ad_formats" PRIMARY KEY("slug"),
+	CONSTRAINT "ck_ad_formats_state" CHECK (("state")::text = ANY ((ARRAY['idea'::character varying, 'testing'::character varying, 'proven'::character varying, 'retired'::character varying])::text[])),
+	CONSTRAINT "ck_ad_formats_family" CHECK (("family")::text = ANY ((ARRAY['offer'::character varying, 'proof'::character varying, 'contrast'::character varying, 'story'::character varying, 'native'::character varying, 'alarm'::character varying, 'lesson'::character varying, 'humor'::character varying])::text[]))
+);
+--> statement-breakpoint
+CREATE VIEW "public"."ad_format_records" AS (
+  select f.slug as id, f.name, f.family, f.what, f.use, f.state, f.notes, f.source,
+    count(distinct l.id)::int as launches,
+    coalesce(sum(d.spend), 0)::float as spend,
+    coalesce(max(d.currency), 'USD')::text as currency,
+    coalesce(sum(d.impressions), 0)::int as impressions,
+    coalesce(sum(d.clicks), 0)::int as clicks,
+    coalesce(sum(d.leads), 0)::int as leads,
+    round((sum(d.clicks)::numeric / nullif(sum(d.impressions), 0)) * 100, 2)::float as ctr,
+    round((sum(d.spend) / nullif(sum(d.leads), 0))::numeric, 2)::float as cost_per_lead,
+    f.updated_at, f.updated_by
+  from ad_formats f
+  left join ad_launches l on l.spec->>'format' = f.slug
+  left join ad_days d on d.adset_id = l.adset_id
+  group by f.slug);--> statement-breakpoint
+-- The 42 formats to start from (AD_FORMAT_SEED); ours to edit after.
+INSERT INTO "ad_formats" ("slug", "name", "family", "what", "use", "source") VALUES
+  ('breaking-news', 'Breaking news', 'alarm', 'A news banner announcing the offer or a change.', 'A launch, a new service, a price change.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('trustpilot-reviews', 'Review stars', 'proof', 'Real review cards with stars around one claim.', 'Once there are reviews to show; warm and retargeting.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('offer', 'Offer', 'offer', 'The offer and its terms, big, nothing else.', 'Retargeting people who already know us.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('script', 'Script', 'lesson', 'The exact words to say in a situation, on screen.', 'Owners who write or call their own customers.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('whiteboard', 'Whiteboard', 'lesson', 'A hand drawing the problem and the fix on a board.', 'Explaining how the system works, cold.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('us-vs-them', 'Us vs them', 'contrast', 'Two columns: us against the usual choice.', 'When the usual choice is an agency or a hire.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('ai-podcast', 'AI podcast', 'story', 'Two voices talking through the problem like a podcast clip.', 'Cold, for an idea that needs a minute.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('doodle', 'Doodle', 'lesson', 'Simple drawings telling the before and after.', 'Cold, a light way into a dry topic.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('low-stock-alert', 'Low stock', 'alarm', 'Few left: slots, seats or days.', 'Real limits only: onboarding slots this month.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('myth-vs-fact', 'Myth vs fact', 'contrast', 'A belief people hold, then what''s true.', 'Cold, against a wrong idea about the work.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('iphone-notes', 'Phone notes', 'native', 'A list typed in the Notes app.', 'A checklist or steps; looks like a person wrote it.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('transformation', 'Transformation', 'proof', 'Before and after, side by side.', 'A client''s numbers or pipeline, before and after.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('zero-stars', 'Zero stars', 'humor', 'A fake bad review that is praise: ''ruined my weekends, too many calls''.', 'Cold; needs a clear joke.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('google-search', 'Google search', 'native', 'A search box with the question the buyer types.', 'When buyers search the problem by name.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('bundle', 'Bundle', 'offer', 'What''s included, stacked, with the price.', 'Packages with several parts.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('dont-be-an-idiot', 'Don''t be an idiot', 'humor', 'A blunt mistake list, said with a grin.', 'Cold, to owners who know the mistake.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('reddit-style', 'Reddit post', 'native', 'A forum post with replies talking about the result.', 'Cold; reads as a peer, not an ad.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('side-effects', 'Side effects', 'humor', 'Side effects of using it: ''more calls, less admin''.', 'Cold or warm; benefits as a joke list.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('were-sorry', 'We''re sorry', 'story', 'An apology: sold out, late, too good.', 'Warm; after a full month or a fix.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('tier-list', 'Tier list', 'lesson', 'Options ranked S to D.', 'Cold, comparing tools or channels the buyer knows.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('instagram-story', 'Story', 'native', 'Looks like a plain Instagram story, sticker and all.', 'Placements in Stories and Reels.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('x-signs', 'X signs', 'lesson', '''3 signs your follow-up is losing leads''.', 'Cold, self-diagnosis.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('problem-vs-solution', 'Problem vs solution', 'contrast', 'The problem in one line, the fix in the next.', 'Cold, one sharp pain.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('warning', 'Warning', 'alarm', 'A warning sign around a costly mistake.', 'Cold, a mistake with a cost.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('claymation', 'Claymation', 'story', 'Clay or 3D figures acting it out.', 'Cold, to stop the scroll; costly to make.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('you-can-avoid', 'You can avoid', 'lesson', 'A pain they don''t have to keep.', 'Cold, one avoidable chore.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('reasons-why', 'Reasons why', 'lesson', 'A numbered list of reasons to act.', 'Warm, closing reasons.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('email-screenshot', 'Email screenshot', 'native', 'A screenshot of an email: a reply, a booking.', 'Proof that the outreach gets answers.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('text-message', 'Text message', 'native', 'A text thread, someone telling a friend.', 'Word of mouth; a client telling another owner.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('crossed-out-problems', 'Crossed-out problems', 'contrast', 'A list of problems, each struck through.', 'Cold, several small pains at once.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('native', 'Native', 'native', 'The product in an everyday scene, no ad look.', 'Feeds where polish reads as an ad.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('hack-101', 'Hack 101', 'lesson', 'One tip they can use today.', 'Cold; gives first, asks later.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('emergency', 'Emergency', 'alarm', '''In case of emergency, break glass.''', 'Seasonal rushes, a slow month.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('testimonial', 'Testimonial', 'proof', 'A client''s words and face.', 'Warm and cold once there are clients to quote.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('greenscreen', 'Greenscreen', 'story', 'A person talking in front of a screenshot or headline.', 'Reacting to news, a post, a result.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('dont-buy-this', 'Don''t buy this', 'humor', '''Don''t buy this unless you want…''', 'Cold, a reverse pitch.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('stat-headline', 'Stat headline', 'proof', 'One sourced number, big.', 'Cold, when the stat is sharp and sourced.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('meme', 'Meme', 'humor', 'A known meme reworded for the buyer.', 'Cold, young or online owners.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('new-vs-old', 'New vs old', 'contrast', 'The old way beside the new way.', 'Cold, against the way they do it now.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('text-on-skin', 'Text on skin', 'story', 'Words written on a hand or arm.', 'Cold; odd enough to stop a scroll.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('us-vs-us', 'Us vs us', 'contrast', 'Our old version against our new one.', 'Warm, a new release or price.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)'),
+  ('venn', 'Venn', 'lesson', 'Two circles; we sit where they meet.', 'Cold, positioning in one picture.', 'instagram.com/reel/Db8pB-BIkH6 (42 ad formats)')
+ON CONFLICT DO NOTHING;

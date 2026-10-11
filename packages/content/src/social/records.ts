@@ -40,6 +40,7 @@ import { waitingReplies } from "../inbox/send.js";
 import { statusOf, threadStates, typed } from "../inbox/threads.js";
 import { shapeView } from "../shape-view.js";
 import type { VideoSigner } from "../video.js";
+import { adFormatRecord } from "./ad-formats.js";
 import { doneRecord } from "./done-record.js";
 import { PLATFORM_NAMES } from "./store.js";
 
@@ -1146,6 +1147,7 @@ export const socialRecords = (signer?: VideoSigner) => [
   inboxRecord,
   approvalRecordOf(signer),
   doneRecord,
+  adFormatRecord,
   activityRecord,
   audienceRecord,
 ];

@@ -5,6 +5,7 @@
  * never does. Synthetic rows only.
  */
 import { recordDraft } from "@wren/core/draft-record";
+import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -12,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
+import { AD_FORMAT_SEED, adFormatRecord } from "../../src/social/ad-formats.js";
 import { doneRecord } from "../../src/social/done-record.js";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";
 
@@ -299,5 +301,41 @@ describe("marketing.done", () => {
     ).toBe(false);
     const week = await api.list({ record: "marketing.done", view: "week", limit: 50 });
     expect(week.rows.some((r) => r.open === "/marketing/comments/902")).toBe(true);
+  });
+});
+
+describe("ads.format", () => {
+  it("starts from the 42, adds up its launches' days, and saves edits as changes", async () => {
+    const api = serveRecords([adFormatRecord], pg.db);
+    const all = await api.list({ record: "ads.format", view: "ideas", limit: 100 });
+    expect(all.rows).toHaveLength(AD_FORMAT_SEED.length);
+    await pg.db.execute(sql`
+      insert into ad_launches (name, ad_account_id, campaign_id, adset_id, creative_id, ad_id, spec, daily_budget_usd)
+      values ('synthetic', 'act_1', 'c1', 's1', 'cr1', 'a1', '{"format":"testimonial"}', 5)`);
+    await pg.db.execute(sql`
+      insert into ad_days (day, adset_id, campaign_id, campaign_name, adset_name, currency, spend, impressions, reach, clicks, leads, results)
+      values (current_date, 's1', 'c1', 'c', 's', 'USD', 10, 1000, 900, 20, 4, 4),
+        (current_date - 1, 's1', 'c1', 'c', 's', 'USD', 10, 1000, 900, 30, 1, 1)`);
+    const by = "william";
+    await editRecord(pg.db, adFormatRecord, "testimonial", { patch: { state: "testing" }, by });
+    await expect(
+      editRecord(pg.db, adFormatRecord, "testimonial", { patch: { family: "vibes" }, by }),
+    ).rejects.toThrow();
+    const testing = await api.list({ record: "ads.format", view: "testing", limit: 10 });
+    expect(testing.rows).toHaveLength(1);
+    expect(testing.rows[0]).toMatchObject({
+      id: "testimonial",
+      launches: 1,
+      spend: { amount: 20, currency: "USD" },
+      clicks: 50,
+      leads: 5,
+      ctr: 2.5,
+      costPerLead: { amount: 4, currency: "USD" },
+      updatedBy: by,
+    });
+    const [change] = await pg.db.execute(
+      sql`select record, after from changes where record_id = 'testimonial'`,
+    );
+    expect(change).toMatchObject({ record: "ads.format", after: { state: "testing" } });
   });
 });

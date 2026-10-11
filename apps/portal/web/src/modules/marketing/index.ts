@@ -1116,7 +1116,16 @@ export const ads: Module = {
   component: "marketing.stats",
   blurb: "Every ad set by day: spend, reach, leads and what each one cost.",
   requires: { audience: "team" },
-  pages: [{ ...AD_DAYS, id: "sets", label: "Ad sets" }],
+  pages: [
+    { ...AD_DAYS, id: "sets", label: "Ad sets" },
+    {
+      id: "formats",
+      label: "Formats",
+      template: "list",
+      record: "ads.format",
+      empty: "No formats yet.",
+    },
+  ],
 };
 
 /** The site's visitors and search: Wren's Sites app, under Visitors and Search. */

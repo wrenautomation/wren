@@ -10,10 +10,11 @@ import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
 import { formatLaunches, listLaunches, META_OBJECTIVES, specFromPost } from "@wren/channel-meta";
 import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/channel-meta/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { getDraft, uploadMedia } from "@wren/content";
+import { adFormats, getDraft, uploadMedia } from "@wren/content";
 import { isStoredMedia, isUrl } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
+import { eq } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -42,6 +43,7 @@ function parseSpec(raw: string): LaunchSpec {
     targeting,
     creative,
     ...(j.optimizationGoal ? { optimizationGoal: j.optimizationGoal } : {}),
+    ...(j.format ? { format: j.format } : {}),
     status: "PAUSED",
   };
 }
@@ -96,6 +98,13 @@ export function registerAds(program: Command, withDb: WithDb, settings: Settings
     )
     .action(async (file: string) => {
       const spec = parseSpec(await readFile(file, "utf8"));
+      const format = spec.format;
+      if (format) {
+        const [known] = await withDb((db) =>
+          db.select().from(adFormats).where(eq(adFormats.slug, format)),
+        );
+        if (!known) throw new Error(`no ad format "${format}" (Ads → Formats lists them)`);
+      }
       const media = spec.creative.media;
       if (media && !isUrl(media.source) && !isStoredMedia(media.source)) {
         if (!settings.mediaBucket)

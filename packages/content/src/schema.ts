@@ -968,3 +968,89 @@ export const autoReplies = pgTable(
     oneOf("ck_auto_replies_mode", t.mode, AUTO_REPLY_MODES),
   ],
 );
+
+/** An ad format's standing: an idea, being tested, proven by its numbers, or retired. */
+export const AD_FORMAT_STATES = ["idea", "testing", "proven", "retired"] as const;
+export type AdFormatState = (typeof AD_FORMAT_STATES)[number];
+/** What a format leans on: the offer, someone's proof, a contrast, a story, a native look, an alarm, a lesson, a joke. */
+export const AD_FORMAT_FAMILIES = [
+  "offer",
+  "proof",
+  "contrast",
+  "story",
+  "native",
+  "alarm",
+  "lesson",
+  "humor",
+] as const;
+export type AdFormatFamily = (typeof AD_FORMAT_FAMILIES)[number];
+
+/**
+ * Ads → Formats (designs/2026-10-11-ad-formats.md): the creative shapes we make ads in, each
+ * with what it looks like and when it fits. A launch names one (`spec.format`), so each format's
+ * numbers add up from its launches. Edited through the records layer: every change in `changes`.
+ */
+export const adFormats = pgTable(
+  "ad_formats",
+  {
+    slug: varchar("slug", { length: 48 }).notNull(),
+    name: text("name").notNull(),
+    family: varchar("family", { length: 16 }).$type<AdFormatFamily>().notNull(),
+    /** What the ad looks like, one or two lines. */
+    what: text("what").notNull(),
+    /** When it fits: the offer, the audience, the stage. */
+    use: text("use").notNull(),
+    state: varchar("state", { length: 16 }).$type<AdFormatState>().notNull().default("idea"),
+    /** What we learned making and running it. */
+    notes: text("notes"),
+    /** Where we found it. */
+    source: text("source"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.slug], name: "pk_ad_formats" }),
+    oneOf("ck_ad_formats_state", t.state, AD_FORMAT_STATES),
+    oneOf("ck_ad_formats_family", t.family, AD_FORMAT_FAMILIES),
+  ],
+);
+
+/**
+ * Each format with its launches' numbers: the ad sets Wren launched naming it (`spec.format`),
+ * every day Meta reported for them.
+ */
+export const adFormatRecords = pgView("ad_format_records", {
+  id: text("id"),
+  name: text("name"),
+  family: text("family"),
+  what: text("what"),
+  use: text("use"),
+  state: text("state"),
+  notes: text("notes"),
+  source: text("source"),
+  launches: integer("launches"),
+  spend: doublePrecision("spend"),
+  currency: text("currency"),
+  impressions: integer("impressions"),
+  clicks: integer("clicks"),
+  leads: integer("leads"),
+  ctr: doublePrecision("ctr"),
+  costPerLead: doublePrecision("cost_per_lead"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
+  updatedBy: text("updated_by"),
+}).as(sql`
+  select f.slug as id, f.name, f.family, f.what, f.use, f.state, f.notes, f.source,
+    count(distinct l.id)::int as launches,
+    coalesce(sum(d.spend), 0)::float as spend,
+    coalesce(max(d.currency), 'USD')::text as currency,
+    coalesce(sum(d.impressions), 0)::int as impressions,
+    coalesce(sum(d.clicks), 0)::int as clicks,
+    coalesce(sum(d.leads), 0)::int as leads,
+    round((sum(d.clicks)::numeric / nullif(sum(d.impressions), 0)) * 100, 2)::float as ctr,
+    round((sum(d.spend) / nullif(sum(d.leads), 0))::numeric, 2)::float as cost_per_lead,
+    f.updated_at, f.updated_by
+  from ad_formats f
+  left join ad_launches l on l.spec->>'format' = f.slug
+  left join ad_days d on d.adset_id = l.adset_id
+  group by f.slug`);
