@@ -4,11 +4,20 @@
  * area; the open app unfolds there into its pages. On a phone the sidebar becomes the window's
  * head, the open app's pages tabs that scroll sideways, and home lists the apps.
  */
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type DragEvent,
+  type PointerEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { useHoverMenu } from "./safe-triangle.js";
 import { type Theme, usePageTheme } from "./theme.js";
 
 /** One of an app's pages, as a tab. */
@@ -56,6 +65,8 @@ export interface NavApp {
   count?: number | undefined;
   /** Shown to the team, not installed for this client: dimmed. */
   off?: boolean | undefined;
+  /** Its pages, shown beside its row on hover while it's closed. */
+  pages?: NavItem[] | undefined;
 }
 
 /** The apps of one job: Inbox, Leads, Marketing. */
@@ -368,6 +379,9 @@ function AppTabs({ app }: { app: OpenApp }) {
   );
 }
 
+/** A mouse or trackpad: hover flyouts. Touch never gets them. */
+const FINE_POINTER = "(hover: hover) and (pointer: fine)";
+
 /**
  * Beside the window: home, the pins, then every app under its area, the open one unfolded into
  * its pages. An area of one app needs no heading. Without areas, the open app alone.
@@ -395,8 +409,30 @@ function SideNav({
         ]
       : [];
   const openId = app ? (app.id ?? "") : null;
+  const menu = useHoverMenu();
+  const aside = useRef<HTMLElement>(null);
+  const [hovers] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.(FINE_POINTER).matches,
+  );
+  const flies = (a: NavApp) => hovers && a.id !== openId && (a.pages?.length ?? 0) > 1;
+  const hovered = shown.flatMap((s) => s.apps).find((a) => a.id === menu.open?.id && flies(a));
+  // Beside its row, moved up as far as it must to fit; hidden until measured.
+  const [flyTop, setFlyTop] = useState<number | null>(null);
+  const rowTop = menu.open ? menu.open.top - 6 : null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new app's pages measure again.
+  useLayoutEffect(() => {
+    const el = menu.flyoutRef.current;
+    setFlyTop(
+      rowTop === null || !el
+        ? null
+        : Math.max(8, Math.min(rowTop, window.innerHeight - 8 - el.offsetHeight)),
+    );
+  }, [rowTop, hovered?.id]);
   return (
-    <aside className="flex w-[248px] flex-none flex-col gap-3 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden">
+    <aside
+      ref={aside}
+      className="flex w-[248px] flex-none flex-col gap-3 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden"
+    >
       {home ? (
         <a className={APP_ROW} href={home.href} aria-current={app ? undefined : "true"}>
           <Icon name="home" />
@@ -422,9 +458,23 @@ function SideNav({
             {area.apps.map((a) => {
               const open = a.id === openId && app;
               return (
-                <div key={a.id || a.name}>
+                <div
+                  key={a.id || a.name}
+                  {...(flies(a)
+                    ? {
+                        "data-hover-row": a.id,
+                        onPointerEnter: (e: PointerEvent<HTMLDivElement>) =>
+                          menu.enter(a.id, e.currentTarget),
+                        onPointerLeave: (e: PointerEvent<HTMLDivElement>) => menu.leave(a.id, e),
+                      }
+                    : {})}
+                >
                   <a
-                    className={cx(APP_ROW, a.off && "opacity-55")}
+                    className={cx(
+                      APP_ROW,
+                      a.off && "opacity-55",
+                      hovered?.id === a.id && "bg-(--ui-hover)",
+                    )}
                     href={a.href}
                     aria-current={open ? "true" : undefined}
                   >
@@ -442,6 +492,31 @@ function SideNav({
       {pins && app ? (
         <div className="mt-auto">
           <PinButton pinned={pins.here} onToggle={pins.onToggle} />
+        </div>
+      ) : null}
+      {hovered?.pages && menu.open ? (
+        // A closed app's pages beside its row; the triangle keeps it open on the way over.
+        <div
+          ref={menu.flyoutRef}
+          className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) py-1.5 pr-1.5 shadow-(--ui-shadow)"
+          style={{
+            top: flyTop ?? rowTop ?? 8,
+            left: (aside.current?.getBoundingClientRect().right ?? 248) - 2,
+            maxHeight: "calc(100vh - 16px)",
+            visibility: flyTop === null ? "hidden" : "visible",
+          }}
+          onPointerEnter={menu.enterFlyout}
+          onPointerLeave={(e) => menu.leaveFlyout(e)}
+        >
+          <AppTabs
+            app={{
+              name: hovered.name,
+              icon: hovered.icon,
+              href: hovered.href,
+              tabs: hovered.pages,
+              current: "",
+            }}
+          />
         </div>
       ) : null}
     </aside>

@@ -473,6 +473,15 @@ export function App() {
           href: firstOf(m),
           count: appTotal(waiting[m.id]),
           off: !wren && !!m.component && !installed.has(m.component),
+          pages: m.pages
+            .filter((p) => !p.hidden && p.id !== m.action?.page)
+            .map((p) => ({
+              id: p.id,
+              label: p.label,
+              href: pathOf(m, p),
+              ...(p.group ? { group: p.group } : {}),
+              ...(waiting[m.id]?.[p.id] ? { count: waiting[m.id]?.[p.id] } : {}),
+            })),
         })),
       }))
     : undefined;
