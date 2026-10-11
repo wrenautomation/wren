@@ -75,6 +75,18 @@ export const TOOLS = [
   },
 ] as const;
 
+const bearer = (req: Request) =>
+  /^Bearer\s+(wren_[A-Za-z0-9_-]{43})$/.exec(req.headers.get("authorization") ?? "")?.[1] ?? null;
+
+/** Is this call an operator's own token? Then the per-address cap doesn't hold it (./limit.ts). */
+export async function operatorToken(req: Request, env: Env): Promise<boolean> {
+  const token = bearer(req);
+  if (!token) return false;
+  const res = await forward(env, "Tokens/check", JSON.stringify({ token }));
+  const t = res.ok ? ((await res.json().catch(() => null)) as { operator?: boolean } | null) : null;
+  return t?.operator === true;
+}
+
 /** Who the bearer token acts as, or the 401 that sends the agent back for a token. */
 async function whoOf(req: Request, env: Env, site: Site): Promise<Who | Response> {
   const unauthorized = (why: string) =>
@@ -86,9 +98,9 @@ async function whoOf(req: Request, env: Env, site: Site): Promise<Who | Response
         "www-authenticate": `Bearer realm="wren", error="invalid_token"`,
       },
     });
-  const m = /^Bearer\s+(wren_[A-Za-z0-9_-]{43})$/.exec(req.headers.get("authorization") ?? "");
-  if (!m) return unauthorized("Send a Wren access token: Authorization: Bearer wren_…");
-  const res = await forward(env, "Tokens/check", JSON.stringify({ token: m[1] }));
+  const token = bearer(req);
+  if (!token) return unauthorized("Send a Wren access token: Authorization: Bearer wren_…");
+  const res = await forward(env, "Tokens/check", JSON.stringify({ token }));
   if (!res.ok) return json({ error: "Couldn't check the token." }, 502);
   const t = (await res.json().catch(() => null)) as {
     email?: string;

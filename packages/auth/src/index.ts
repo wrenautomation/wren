@@ -39,6 +39,12 @@ export interface AuthOptions {
   allowed(email: string): Promise<boolean>;
   /** Extra token claims for this email, e.g. `{ operator: true }`. Read fresh for every token. */
   claims?(email: string): Promise<Record<string, unknown>>;
+  /**
+   * Signed in as this email, reading the session or a token has no cap: Wren's operators, whose
+   * tabs and tools share one address. The proof is the session cookie (HttpOnly, never in a page),
+   * so there is nothing to copy. Unset: everyone is capped.
+   */
+  uncapped?(email: string): Promise<boolean>;
   send(mail: AuthMail): Promise<void>;
   /** The header the edge writes the caller's address to; anything else is ignored. */
   ipHeader?: string;
@@ -102,10 +108,16 @@ export const HANDOFF_MINUTES = 1;
 
 export function makeAuth(o: AuthOptions) {
   const gate = async (email: string) => o.allowed(email.trim().toLowerCase());
+  // The session's own reads, uncapped for `uncapped` people; anyone else keeps the rule.
+  const sessionRead = async (req: Request, rule: { window: number; max: number }) => {
+    const email = o.uncapped ? await signedIn(req.headers) : null;
+    return email && (await o.uncapped?.(email)) ? false : rule;
+  };
   // The handoff mints through Better Auth's own endpoint, on the instance made below.
   let mint = async (_: Headers): Promise<string> => {
     throw new Error("auth is not made yet");
   };
+  let signedIn = async (_: Headers): Promise<string | null> => null;
   const auth = betterAuth({
     appName: "Wren",
     baseURL: o.baseURL,
@@ -146,6 +158,10 @@ export function makeAuth(o: AuthOptions) {
       window: 60,
       max: 60,
       customRules: {
+        "/token": sessionRead,
+        "/get-session": sessionRead,
+        // Public keys, read by every app's Worker from Cloudflare's few shared addresses.
+        "/jwks": { window: 60, max: 600 },
         "/email-otp/send-verification-otp": { window: 600, max: 5 },
         "/sign-in/email-otp": { window: 600, max: 10 },
         "/sign-in/email": { window: 600, max: 10 },
@@ -195,6 +211,12 @@ export function makeAuth(o: AuthOptions) {
     ],
   });
   mint = async (headers) => (await auth.api.generateOneTimeToken({ headers })).token;
+  signedIn = async (headers) => {
+    const s = await auth.api
+      .getSession({ headers, query: { disableRefresh: true } })
+      .catch(() => null);
+    return s?.user.email.toLowerCase() ?? null;
+  };
   return auth;
 }
 

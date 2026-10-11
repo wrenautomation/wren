@@ -33,7 +33,7 @@ import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
-import { AGENT_PATH, agentRoute } from "./agent.js";
+import { AGENT_PATH, agentRoute, operatorToken } from "./agent.js";
 import { bookRoute } from "./book.js";
 import { dictate } from "./dictate.js";
 import { docsRoute } from "./docs.js";
@@ -234,7 +234,9 @@ export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     const site = await siteOf(req, env, ctx);
-    const over = await publicLimit(req, env, pathname);
+    const over = await publicLimit(req, env, pathname, (r) =>
+      pathname.startsWith(`${AGENT_PATH}/`) ? operatorToken(r, env) : Promise.resolve(false),
+    );
     if (over) return over;
     // Sites' pages, tracker and forms: on the apex, a client's host, or the app host (./sites.ts).
     if (pathname.startsWith("/o/")) {

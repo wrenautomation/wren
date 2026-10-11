@@ -27,10 +27,10 @@ Sign-in is invite-only. Our sign-in (Better Auth at auth.wrenautomation.com) ask
 - `clientsFor` (`packages/core/src/portal.ts:191`) lists a scoped operator's clients only
 - Every portal route declares a need (`packages/core/src/access.ts:75`); `guard` (`packages/core/src/portal.ts:107`) checks it before the handler runs, at the route's place (`RouteApps` passed to `portalService` as `apps`: its app, and channel when the service is one) and on every channel the input names, and hands the handler the fresh role as `viewer.team` and its grants as `viewer.access`. `teamCan` (`:181`) checks a second need inside a handler (an effect handler, a Money record, a client's invoices, who manages People)
 - `portalMe` (`packages/core/src/portal.ts:258`) sends each client's `can`, `role` and `grants`, and `team.wren` and `team.grants` for Wren's apps. The web builds the same `Who` (`whoAt`, `apps/portal/web/src/access.ts`) as `PageProps.who`, and `canAt(viewer, verb, target)` in `@wren/ui` checks a row's target the way the guard does. The web hides what a login lacks: an app or page's `requires.needs`, and each action's need, taken from its route by `permissionOf` (`apps/portal/src/services.ts:42`)
-- The sign-in: `makeAuth` (`packages/auth/src/index.ts:91`), schema `auth` in the main database; the Lambda (`apps/auth/lambda/index.ts`) behind the auth Worker (`apps/auth/src/worker.ts`)
+- The sign-in: `makeAuth` (`packages/auth/src/index.ts:109`), schema `auth` in the main database; caps per address (60 a minute, tighter on codes and passwords), but an operator's session reads its session and tokens uncapped (`uncapped`, 2026-10-11: his tabs and tools share one address); the Lambda (`apps/auth/lambda/index.ts`) behind the auth Worker (`apps/auth/src/worker.ts`)
 - Apps check the token with `verifyToken` (`packages/auth/src/verify.ts:86`): EdDSA, iss, aud `wren`, exp
 
-Citations: `packages/core/src/clients/schema.ts:62`, `packages/core/src/clients/index.ts:214`, `packages/core/src/access.ts:55`, `packages/core/src/portal.ts:74`, `packages/auth/src/index.ts:91`, `packages/auth/src/verify.ts:86`
+Citations: `packages/core/src/clients/schema.ts:62`, `packages/core/src/clients/index.ts:214`, `packages/core/src/access.ts:55`, `packages/core/src/portal.ts:74`, `packages/auth/src/index.ts:109`, `packages/auth/src/verify.ts:86`
 
 ## Connected to
 

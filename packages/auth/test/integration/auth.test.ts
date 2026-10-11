@@ -17,13 +17,13 @@ let auth: Auth;
 const mail: AuthMail[] = [];
 const operators = new Set<string>();
 
-const call = async (path: string, body?: unknown, cookie?: string) =>
+const call = async (path: string, body?: unknown, cookie?: string, ip = "1.2.3.4") =>
   auth.handler(
     new Request(`${ORIGIN}/api/auth/${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: {
         origin: ORIGIN,
-        "x-wren-ip": "1.2.3.4",
+        "x-wren-ip": ip,
         ...(body === undefined ? {} : { "content-type": "application/json" }),
         ...(cookie ? { cookie } : {}),
       },
@@ -36,10 +36,10 @@ const cookieOf = (res: Response) =>
     .getSetCookie()
     .map((c) => c.split(";")[0])
     .join("; ");
-const signIn = async (email: string) => {
+const signIn = async (email: string, ip?: string) => {
   mail.length = 0;
-  await call("email-otp/send-verification-otp", { email, type: "sign-in" });
-  return call("sign-in/email-otp", { email, otp: codeIn(mail[0]) });
+  await call("email-otp/send-verification-otp", { email, type: "sign-in" }, undefined, ip);
+  return call("sign-in/email-otp", { email, otp: codeIn(mail[0]) }, undefined, ip);
 };
 const userCount = async () =>
   (
@@ -57,6 +57,7 @@ beforeAll(async () => {
     trustedOrigins: ["https://app.test"],
     allowed: async (email) => email === MEMBER || operators.has(email),
     claims: async (email) => ({ operator: operators.has(email) }),
+    uncapped: async (email) => operators.has(email),
     send: async (m) => void mail.push(m),
     ipHeader: "x-wren-ip",
     handoff: async (host, email) => host === CLIENT_HOST && email === MEMBER,
@@ -124,6 +125,21 @@ describe("the token an app checks", () => {
 
   it("no session, no token", async () => {
     expect((await call("token")).status).toBe(401);
+  });
+
+  it("caps a member's tokens per address; an operator's session has no cap", async () => {
+    // An address of its own: the tests above spent the shared one's sign-in tries.
+    const ip = "5.6.7.8";
+    const cookie = cookieOf(await signIn(MEMBER, ip));
+    const burst = async () => {
+      const codes = [];
+      for (let i = 0; i < 70; i++) codes.push((await call("token", undefined, cookie, ip)).status);
+      return codes;
+    };
+    expect(await burst()).toContain(429);
+    operators.add(MEMBER);
+    expect(new Set(await burst())).toEqual(new Set([200]));
+    operators.delete(MEMBER);
   });
 });
 

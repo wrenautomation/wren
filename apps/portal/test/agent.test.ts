@@ -108,3 +108,42 @@ describe("agent", () => {
     expect((await call("types", [1])).status).toBe(400);
   });
 });
+
+describe("the per-address cap", () => {
+  /** Over the address's cap; the check's own cap open or spent too. */
+  const over = (checkOpen: boolean): Env => {
+    let n = 0;
+    const limit = async () => ({ success: checkOpen && n++ === 1 });
+    return { ...env(), PUBLIC_LIMIT: { limit } as unknown as RateLimit };
+  };
+  const capped = (e: Env, auth = `Bearer ${TOKEN}`) =>
+    worker.fetch(
+      new Request("https://app.test/api/agent/types", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: auth,
+          "cf-connecting-ip": "1.2.3.4",
+        },
+        body: "{}",
+      }),
+      e,
+    );
+  const checks = () => sent.filter((s) => s.url.endsWith("/Tokens/check")).length;
+
+  it("lets an operator's token through", async () => {
+    expect((await capped(over(true))).status).toBe(200);
+  });
+
+  it("holds a member's token and a malformed one", async () => {
+    token = { email: "bo@acme.example", operator: false, client: "acme" };
+    expect((await capped(over(true))).status).toBe(429);
+    expect((await capped(over(true), "Bearer nope")).status).toBe(429);
+    expect(checks()).toBe(1);
+  });
+
+  it("checks no token once the check's own cap is spent", async () => {
+    expect((await capped(over(false))).status).toBe(429);
+    expect(checks()).toBe(0);
+  });
+});

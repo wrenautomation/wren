@@ -55,6 +55,7 @@ const auth = makeAuth({
   ...(microsoft ? { microsoft } : {}),
   allowed: (email) => mayHaveAccount(db, email),
   claims: async (email) => ({ operator: await isOperator(db, email) }),
+  uncapped: (email) => isOperator(db, email),
   send: plainMailer(gmail, { mailbox: MAILBOX, from: FROM, name: "Wren" }),
   ipHeader: IP_HEADER,
   // Sign-in carried to a client's own host (designs/2026-10-06-custom-domains.md).
