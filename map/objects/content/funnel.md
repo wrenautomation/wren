@@ -43,7 +43,7 @@ Citations: `designs/2026-10-07-content-funnel.md`
 ## Connected to
 
 - **joins:** [[content/draft]] (the columns), [[content/video-edit]] (the video a promo points at), [[content/comment]], [[content/reddit-thread]], [[content/linkedin-invite]], [[content/draft-event]] (examples read it)
-- **looks-like-but-is-not:** `marketing.funnel` (the lander's visit funnel, Marketing → Site)
+- **looks-like-but-is-not:** `marketing.funnel` (the lander's visit funnel; the site's visits are Sites → Visits)
 
 ## If you change this
 

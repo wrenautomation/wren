@@ -39,7 +39,7 @@ Citations: `packages/channel-search/src/site-days.ts:43`
 |---|---|
 | `SearchWatch` daily pass | writes |
 | Marketing app (`/marketing/site`, `/marketing/funnel`, Overview) | reads |
-| Marketing app (`/marketing/sessions`) | reads the lander live, plays replays |
+| Sites app (`/sites/sessions`, Visitors) | reads the lander live, plays replays |
 
 ## See
 

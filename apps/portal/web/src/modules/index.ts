@@ -10,7 +10,7 @@ import { clientDeals, deals } from "./deals/index.js";
 import { documents } from "./documents/index.js";
 import { clientLearn, learn } from "./learn/index.js";
 import { library } from "./library/index.js";
-import { clientMarketing, marketing } from "./marketing/index.js";
+import { ads, clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
 import { payments } from "./payments/index.js";
@@ -36,6 +36,7 @@ export const MODULES: Module[] = [
   // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
   clientMarketing,
   marketing,
+  ads,
   ...WREN_APPS,
   // One address, two apps, as Marketing.
   clientLearn,

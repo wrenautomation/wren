@@ -57,7 +57,7 @@ export function landerVisits(site: Site): (email: string) => Promise<Cited[]> {
           sessions.push({
             text: `Recorded visit to ${r.page}, ${mins(secs)}`,
             source: "Sessions",
-            href: `/marketing/sessions/${encodeURIComponent(r.view)}`,
+            href: `/sites/sessions/${encodeURIComponent(r.view)}`,
             at: day(r.started),
           });
         }

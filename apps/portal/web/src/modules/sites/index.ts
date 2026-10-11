@@ -8,6 +8,7 @@
  * for export. Links makes tracked `/go/` links with their QR codes and counts what each brought.
  */
 import type { ListPage, Module } from "../../module.js";
+import { SITE_PAGES } from "../marketing/index.js";
 import { CLIENT_PAGE_ACTIONS, FORM_ACTIONS, PAGE_ACTIONS, SPLIT_ACTIONS } from "./actions.js";
 import { clientPageExtras, pageExtras } from "./detail.js";
 import { formExtras } from "./forms.js";
@@ -143,6 +144,8 @@ export const sites: Module = {
     LINKS,
     FORMS,
     SUBMISSIONS,
+    // Who came and what they did, then how they found us; Marketing's until 2026-10-11.
+    ...SITE_PAGES,
   ],
 };
 

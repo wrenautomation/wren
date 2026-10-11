@@ -39,6 +39,7 @@ const PATHS = {
   inbox: "M2 9.5 4 3h8l2 6.5v4H2zM2 9.5h3.5l1 1.5h3l1-1.5H14",
   target: "M8 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 8.01V8",
   megaphone: "M2.5 6.5v3h2l5 3v-9l-5 3zM4.5 9.5l1 3.5M12 6a2.5 2.5 0 0 1 0 4",
+  billboard: "M2 2.5h12v7.5H2zM5 10v3.5M11 10v3.5M5 6.25h6",
   bolt: "M9 1.75 3.5 9h4L7 14.25 12.5 7h-4z",
   briefcase: "M2 5h12v8H2zM5.5 5V3h5v2M2 8.5h12",
   calendar: "M2.5 3.5h11v10h-11zM2.5 6.5h11M5.5 2v3M10.5 2v3",

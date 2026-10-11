@@ -1,6 +1,6 @@
 /**
- * The session player, framed by Marketing → Sessions (`modules/marketing/sessions.tsx`), and
- * the heatmap, framed by Marketing → Heatmaps (`modules/marketing/heat.tsx`). Its own page
+ * The session player, framed by Sites → Sessions (`modules/marketing/sessions.tsx`), and
+ * the heatmap, framed by Sites → Heatmaps (`modules/marketing/heat.tsx`). Its own page
  * because rrweb rebuilds the recorded page with inline styles and the lander's images and
  * fonts, which only this page's CSP allows (`src/worker.ts`). The frame calls `replay(urls)` or
  * `heat(data)`.

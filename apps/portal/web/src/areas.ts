@@ -18,7 +18,7 @@ export const AREAS: readonly Area[] = [
     label: "Leads",
     apps: ["pipeline", "leads", "outbound", "deals", "calls", "reactivation"],
   },
-  { id: "marketing", label: "Marketing", apps: ["marketing", "sites", "learn"] },
+  { id: "marketing", label: "Marketing", apps: ["marketing", "ads", "sites", "learn"] },
   {
     id: "automations",
     label: "Automations",

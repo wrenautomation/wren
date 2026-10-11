@@ -62,4 +62,5 @@ to Today's list.
 - 2026-10-10: App cards left Wren's home; they only showed blurbs. A client's bought services
   keep theirs, with the glance.
 - 2026-10-10: Marketing's ~45 tabs regrouped: Content, Reach, Ads & Site, Numbers.
+- 2026-10-11: Ads & Site left Marketing: Ads is its own app, the site's visitors and search sit in Sites (`designs/2026-10-11-split-marketing.md`).
 - 2026-10-10: Apps got distinct icons; four shared "board" and five "note".

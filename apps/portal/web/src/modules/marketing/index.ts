@@ -1090,19 +1090,143 @@ const REVIEWS_PAGE: ListPage = {
 };
 
 /** Wren's Marketing tabs, by group in this order; a page with none goes first. */
-const GROUPS = ["Content", "Reach", "Ads & Site", "Numbers"];
+const GROUPS = ["Content", "Reach", "Numbers"];
 const byGroup = (pages: ModulePage[]): ModulePage[] =>
   pages
     .map((p, i) => [GROUPS.indexOf(p.group ?? "") + 1, i, p] as const)
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])
     .map(([, , p]) => p);
 
+/** Ad set days (`marketing.ad_day`): Wren's Ads app, and a client's Marketing → Ads. */
+const AD_DAYS: ListPage = {
+  id: "ads",
+  label: "Ads",
+  template: "list",
+  record: "marketing.ad_day",
+  empty: "Ad days show here once an ad runs.",
+  actions: AD_ACTIONS,
+  extras: postExtras,
+};
+
+/** Wren's Ads app: apart from Marketing, since ads carry spend, variants and their own numbers. */
+export const ads: Module = {
+  id: "ads",
+  name: "Ads",
+  icon: "billboard",
+  component: "marketing.stats",
+  blurb: "Every ad set by day: spend, reach, leads and what each one cost.",
+  requires: { audience: "team" },
+  pages: [{ ...AD_DAYS, id: "sets", label: "Ad sets" }],
+};
+
+/** The site's visitors and search: Wren's Sites app, under Visitors and Search. */
+export const SITE_PAGES: ListPage[] = [
+  {
+    id: "visits",
+    label: "Visits",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.site_day",
+    empty: "Site visits show here a day after they happen.",
+  },
+  {
+    id: "sessions",
+    label: "Sessions",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.session",
+    empty: {
+      applied: "No recorded visitor applied yet.",
+      recent: "Replays show here once a visitor says yes to cookies.",
+    },
+    extras: sessionExtras,
+  },
+  {
+    id: "heatmaps",
+    label: "Heatmaps",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.heat",
+    empty: "Heatmaps show here a day after visitors click on the site.",
+    extras: heatExtras,
+  },
+  {
+    id: "experiments",
+    label: "Experiments",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.experiment",
+    empty: {
+      all: "No experiments yet. New experiment tests a site flag's variants.",
+      running: "Nothing running.",
+    },
+    actions: EXPERIMENT_ACTIONS,
+  },
+  {
+    id: "surveys",
+    label: "Surveys",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.survey",
+    empty: {
+      all: "No surveys yet. New survey asks site visitors or client logins one question.",
+      live: "Nothing live.",
+    },
+    actions: SURVEY_ACTIONS,
+  },
+  {
+    id: "survey-answers",
+    label: "Survey answers",
+    group: "Visitors",
+    template: "list",
+    record: "marketing.survey_answer",
+    empty: "Site answers show here once a live survey is answered.",
+  },
+  {
+    id: "search-days",
+    label: "Search days",
+    group: "Search",
+    hidden: true,
+    template: "list",
+    record: "marketing.search_day",
+    empty: "Search days show here once Search Console is read.",
+  },
+  {
+    id: "search",
+    label: "Search",
+    group: "Search",
+    template: "list",
+    record: "marketing.search_page",
+    empty: { not_indexed: "Every checked page is indexed.", all: "No page checked yet." },
+  },
+  {
+    id: "keywords",
+    label: "Keywords",
+    group: "Search",
+    template: "list",
+    record: "marketing.keyword",
+    empty: "Keywords show here once search runs.",
+  },
+  {
+    id: "answers",
+    label: "AI answers",
+    group: "Search",
+    template: "list",
+    record: "marketing.answer",
+    empty: {
+      latest: "AI answers show here once a keyword is asked.",
+      cited: "No AI answer names Wren yet.",
+      all: "AI answers show here once a keyword is asked.",
+    },
+  },
+];
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
   component: "marketing.stats",
   icon: "megaphone",
-  blurb: "Every platform in one place: what came in, what to approve, people and the numbers.",
+  blurb: "Every platform's posts, comments, DMs and their numbers in one place.",
   requires: { audience: "team" },
   pages: byGroup([
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
@@ -1351,35 +1475,35 @@ export const marketing: Module = {
         {
           label: "Ad impressions",
           record: "marketing.ad_day",
-          href: "/marketing/ads?view=campaign",
+          href: "/ads/sets?view=campaign",
           period: "month",
           sum: "impressions",
         },
         {
           label: "Search impressions",
           record: "marketing.search_day",
-          href: "/marketing/search-days?view=all",
+          href: "/sites/search-days?view=all",
           period: "month",
           sum: "impressions",
         },
         {
           label: "Site visits",
           record: "marketing.site_day",
-          href: "/marketing/site?view=channel",
+          href: "/sites/visits?view=channel",
           period: "month",
           sum: "visits",
         },
         {
           label: "Forms",
           record: "marketing.site_day",
-          href: "/marketing/site?view=channel",
+          href: "/sites/visits?view=channel",
           period: "month",
           sum: "forms",
         },
         {
           label: "Booking clicks",
           record: "marketing.site_day",
-          href: "/marketing/site?view=channel",
+          href: "/sites/visits?view=channel",
           period: "month",
           sum: "bookings",
         },
@@ -1400,7 +1524,7 @@ export const marketing: Module = {
         {
           label: "Ad spend",
           record: "marketing.ad_day",
-          href: "/marketing/ads?view=campaign",
+          href: "/ads/sets?view=campaign",
           period: "month",
           sum: "spend",
         },
@@ -1490,30 +1614,12 @@ export const marketing: Module = {
         {
           label: "Top keywords",
           record: "marketing.keyword",
-          href: "/marketing/keywords?view=active",
+          href: "/sites/keywords?view=active",
           fields: ["clicks", "impressions"],
           empty: "No keyword has impressions yet.",
         },
       ],
       below: NumbersBelow,
-    },
-    {
-      id: "ads",
-      label: "Ads",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.ad_day",
-      empty: "Ad days show here once an ad runs.",
-      actions: AD_ACTIONS,
-      extras: postExtras,
-    },
-    {
-      id: "site",
-      label: "Site",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.site_day",
-      empty: "Site visits show here a day after they happen.",
     },
     {
       id: "funnel",
@@ -1579,103 +1685,20 @@ export const marketing: Module = {
       Page: ReportsPage,
       requires: { needs: "manage" },
     },
-    {
-      id: "sessions",
-      label: "Sessions",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.session",
-      empty: {
-        applied: "No recorded visitor applied yet.",
-        recent: "Replays show here once a visitor says yes to cookies.",
-      },
-      extras: sessionExtras,
-    },
-    {
-      id: "heatmaps",
-      label: "Heatmaps",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.heat",
-      empty: "Heatmaps show here a day after visitors click on the site.",
-      extras: heatExtras,
-    },
-    {
-      id: "experiments",
-      label: "Experiments",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.experiment",
-      empty: {
-        all: "No experiments yet. New experiment tests a site flag's variants.",
-        running: "Nothing running.",
-      },
-      actions: EXPERIMENT_ACTIONS,
-    },
-    {
-      id: "surveys",
-      label: "Surveys",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.survey",
-      empty: {
-        all: "No surveys yet. New survey asks site visitors or client logins one question.",
-        live: "Nothing live.",
-      },
-      actions: SURVEY_ACTIONS,
-    },
-    {
-      id: "survey-answers",
-      label: "Survey answers",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.survey_answer",
-      empty: "Site answers show here once a live survey is answered.",
-    },
-    {
-      id: "search-days",
-      label: "Search days",
-      group: "Ads & Site",
-      hidden: true,
-      template: "list",
-      record: "marketing.search_day",
-      empty: "Search days show here once Search Console is read.",
-    },
-    {
-      id: "search",
-      label: "Search",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.search_page",
-      empty: { not_indexed: "Every checked page is indexed.", all: "No page checked yet." },
-    },
-    {
-      id: "keywords",
-      label: "Keywords",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.keyword",
-      empty: "Keywords show here once search runs.",
-    },
-    {
-      id: "answers",
-      label: "AI answers",
-      group: "Ads & Site",
-      template: "list",
-      record: "marketing.answer",
-      empty: {
-        latest: "AI answers show here once a keyword is asked.",
-        cited: "No AI answer names Wren yet.",
-        all: "AI answers show here once a keyword is asked.",
-      },
-    },
+    // Ads and the site's numbers moved to Ads and Sites; these keep old links landing.
+    { ...AD_DAYS, hidden: true },
+    ...SITE_PAGES.map((p) => ({
+      ...p,
+      id: p.id === "visits" ? "site" : p.id,
+      hidden: true as const,
+    })),
   ]),
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
 const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
-  const page = marketing.pages.find((p) => p.id === id) as ListPage;
+  const page = [AD_DAYS, ...SITE_PAGES, ...marketing.pages].find((p) => p.id === id) as ListPage;
   const { actions: _a, extras: _e, ...rest } = page;
   return { ...rest, ...more };
 };

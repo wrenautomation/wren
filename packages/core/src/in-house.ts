@@ -46,7 +46,7 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "site-analytics",
     name: "Site analytics: events, funnels, session replay",
     parts: ["marketing.stats"],
-    apps: ["marketing"],
+    apps: ["sites"],
     instead: [
       {
         vendor: "PostHog",
