@@ -221,6 +221,7 @@ import {
   makeContentScheduler,
   makeDraftAsk,
   makeInboxDesk,
+  makeKeywordDm,
   makeMailReply,
   makeMarketingConsole,
   makeSocialDesk,
@@ -1315,6 +1316,8 @@ export async function buildServices(
       facts: () => wrenFacts(db),
     }),
   );
+  // A comment's keyword sends its DM (designs/2026-10-11-comment-keywords.md).
+  services.push(makeKeywordDm({ db, clientDb }));
   // The site chat bubble's calls, through the portal Worker (designs/2026-10-09-site-chat.md).
   services.push(makeChat({ db, clientDb }));
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).

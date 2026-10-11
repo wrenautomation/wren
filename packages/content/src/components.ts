@@ -113,11 +113,14 @@ export const CONTENT_COMPONENTS = [
     // Comments on its posts, its activity and followers, on its own logins, into its database.
     clientLoops: (client) => [{ service: "SocialWatch", key: clientKey(client, SOCIAL_UNIT) }],
     provides: {
-      services: ["SocialWatch", "SocialDesk", "InboxDesk", "AutoReply"],
+      services: ["SocialWatch", "SocialDesk", "InboxDesk", "AutoReply", "KeywordDm"],
       loops: ["SocialWatch"],
       records: [
         "marketing.inbox",
         "marketing.approval",
+        "marketing.done",
+        "marketing.comment_keyword",
+        "marketing.keyword_hit",
         "marketing.activity",
         "marketing.audience",
         "marketing.review",
@@ -178,6 +181,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.draft",
         "marketing.post",
         "marketing.ad_day",
+        "ads.format",
         "marketing.search_page",
         "marketing.keyword",
         "marketing.search_day",

@@ -55,6 +55,7 @@ import {
   recentPosts,
 } from "../social/store.js";
 import { autoReplyReviews } from "./auto-reply.js";
+import { catchKeywordDms } from "./keyword-dm.js";
 import { nextRunAt } from "./planner.js";
 
 export const SOCIAL_KEY = "wren";
@@ -134,6 +135,8 @@ export interface SocialStats {
   activity: number;
   /** New DMs a client's connected accounts brought in. */
   dms: number;
+  /** Comments that said a keyword, each sent its DM. */
+  keywordDms: number;
   /** Platforms whose follower count was kept this pass. */
   audience: Platform[];
   /** Follower counts that failed this pass, said here, not a failed pass: the next pass asks again. */
@@ -185,6 +188,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       asked: 0,
       activity: 0,
       dms: 0,
+      keywordDms: 0,
       audience: [],
       missed: [],
       errors: [],
@@ -214,6 +218,17 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     }
     // Posts past the window drop out of state.
     ctx.set(READS, reads);
+    // A comment that says a keyword gets its DM (designs/2026-10-11-comment-keywords.md).
+    try {
+      stats.keywordDms = await catchKeywordDms(
+        ctx,
+        db,
+        client,
+        kept.map((k) => k.id),
+      );
+    } catch (err) {
+      stats.errors.push(`keywords: ${errorText(err)}`);
+    }
     // Reviews of the account itself, since the newest kept.
     const reviewsBefore = kept.length;
     for (const platform of reviewed)

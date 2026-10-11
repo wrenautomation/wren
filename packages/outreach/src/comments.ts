@@ -363,7 +363,7 @@ export function checkThread(authors: readonly string[], others: readonly string[
 export async function markAnswered(
   db: Queryable,
   id: number,
-  r: { body: string; ref: string | null; now: Date; by?: string },
+  r: { body: string; ref: string | null; now: Date; by?: string; via?: "person" | "wren" },
 ) {
   const [c] = await db
     .update(comments)
@@ -377,7 +377,7 @@ export async function markAnswered(
       kind: "comment",
       platform: c.platform,
       event: "sent",
-      via: "person",
+      via: r.via ?? "person",
       by: r.by ?? null,
       text: r.body,
       externalId: r.ref,
@@ -525,7 +525,7 @@ export async function planPrivateReply(db: Queryable, id: number, now: Date): Pr
 export async function privateReplied(
   db: Queryable,
   c: Comment,
-  o: { body: string; ref: string | null; now: Date; by?: string | null },
+  o: { body: string; ref: string | null; now: Date; by?: string | null; via?: "person" | "wren" },
 ): Promise<{ contactId: number; messageId: number }> {
   const url = c.platform === "instagram" ? `https://www.instagram.com/${c.author}/` : c.url;
   const [contact] = await db
@@ -565,7 +565,7 @@ export async function privateReplied(
     kind: "dm",
     platform: c.platform,
     event: "sent",
-    via: "person",
+    via: o.via ?? "person",
     by: o.by ?? null,
     text: o.body,
     externalId: o.ref,

@@ -42,6 +42,7 @@ import { shapeView } from "../shape-view.js";
 import type { VideoSigner } from "../video.js";
 import { adFormatRecord } from "./ad-formats.js";
 import { doneRecord } from "./done-record.js";
+import { keywordHitRecord, keywordRecord } from "./keywords.js";
 import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
@@ -1148,6 +1149,8 @@ export const socialRecords = (signer?: VideoSigner) => [
   approvalRecordOf(signer),
   doneRecord,
   adFormatRecord,
+  keywordRecord,
+  keywordHitRecord,
   activityRecord,
   audienceRecord,
 ];

@@ -390,6 +390,43 @@ const AUDIENCE_ACTIONS: Action[] = [
     (a) => `LinkedIn: ${(a as { followers?: number } | null)?.followers ?? "no"} followers`,
   ),
 ];
+/** Comment keywords: a new one, and delete; state, DM and public reply edit in place. */
+const KEYWORD_ACTIONS: Action[] = [
+  {
+    id: "marketing.keywordAdd",
+    label: "New keyword",
+    handler: "marketing/keywordAdd",
+    form: [
+      { field: "keyword", label: "Keyword", hint: "The word people comment: LINK, GUIDE." },
+      { field: "dm", label: "DM", type: "long", hint: "What they get, link and all." },
+      {
+        field: "reply",
+        label: "Public reply",
+        optional: true,
+        hint: 'Under their comment too: "Sent, check your DMs."',
+      },
+      {
+        field: "platform",
+        label: "Site",
+        type: "select",
+        options: ["instagram", "facebook"],
+        optional: true,
+        hint: "Both when empty.",
+      },
+      { field: "post", label: "Post id", optional: true, hint: "Every post when empty." },
+    ],
+    done: (made) => `Added ${(made as { keyword?: string }).keyword ?? "the keyword"}`,
+  },
+  {
+    id: "marketing.keywordRemove",
+    label: "Delete",
+    handler: "marketing/keywordRemove",
+    confirm: "Delete this keyword? Its DM log goes with it.",
+    bulk: true,
+    done: () => "Deleted",
+  },
+];
+
 const DISCOVERY_READ = readNow(
   "marketing.discoveryRead",
   "marketing/discoveryRead",
@@ -1242,6 +1279,23 @@ export const marketing: Module = {
     { id: "inbox", ...INBOX_PAGE, hidden: true },
     { ...APPROVAL_PAGE, hidden: true },
     { id: "auto-reply", label: "Auto-reply", group: "Reach", Page: AutoReplyPage },
+    {
+      id: "keywords",
+      label: "Comment keywords",
+      group: "Reach",
+      template: "list",
+      record: "marketing.comment_keyword",
+      actions: KEYWORD_ACTIONS,
+      empty: "No keywords yet. Add one: a comment that says it gets your DM.",
+    },
+    {
+      id: "keyword-dms",
+      label: "Keyword DMs",
+      group: "Reach",
+      template: "list",
+      record: "marketing.keyword_hit",
+      empty: "No comment has said a keyword yet.",
+    },
     REVIEWS_PAGE,
     TODAY,
     {

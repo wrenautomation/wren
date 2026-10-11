@@ -1054,3 +1054,124 @@ export const adFormatRecords = pgView("ad_format_records", {
   left join ad_launches l on l.spec->>'format' = f.slug
   left join ad_days d on d.adset_id = l.adset_id
   group by f.slug`);
+
+/** Where a comment keyword sends its DM from: Meta's private reply, so Instagram and Facebook. */
+export const KEYWORD_PLATFORMS = ["instagram", "facebook"] as const;
+export type KeywordPlatform = (typeof KEYWORD_PLATFORMS)[number];
+
+/**
+ * Comment keywords (designs/2026-10-11-comment-keywords.md): someone comments the word on our
+ * post and gets the DM a minute later, through Meta's one private reply to a comment. `platform`
+ * and `post` narrow it; null is every one.
+ */
+export const commentKeywords = pgTable(
+  "comment_keywords",
+  {
+    id: serial("id").notNull(),
+    /** Lower case; matched as whole words, any case, anywhere in the comment. */
+    keyword: varchar("keyword", { length: 40 }).notNull(),
+    platform: varchar("platform", { length: 16 }).$type<KeywordPlatform>(),
+    /** One post's id on its platform; null: every post. */
+    post: varchar("post", { length: 200 }),
+    /** The DM, as written. */
+    dm: text("dm").notNull(),
+    /** A public answer under the comment too ("sent, check your DMs"); null: none. */
+    reply: text("reply"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comment_keywords" }),
+    uniqueIndex("uq_comment_keywords_scope").on(
+      t.keyword,
+      sql`coalesce(${t.platform}, '')`,
+      sql`coalesce(${t.post}, '')`,
+    ),
+  ],
+);
+
+export const KEYWORD_HIT_STATES = ["queued", "sent", "failed"] as const;
+export type KeywordHitState = (typeof KEYWORD_HIT_STATES)[number];
+
+/**
+ * Each comment a keyword caught, and what came of its DM: the DM log. One per comment, and one
+ * per person per keyword, so a second comment doesn't DM twice.
+ */
+export const keywordHits = pgTable(
+  "keyword_hits",
+  {
+    id: serial("id").notNull(),
+    keywordId: integer("keyword_id").notNull(),
+    /** `comments.id`; no key, so the log outlives a pruned comment. */
+    commentId: integer("comment_id").notNull(),
+    platform: varchar("platform", { length: 16 }).$type<KeywordPlatform>().notNull(),
+    author: varchar("author", { length: 120 }).notNull(),
+    state: varchar("state", { length: 16 }).$type<KeywordHitState>().notNull().default("queued"),
+    /** Why it failed, as Meta or a check said. */
+    why: text("why"),
+    /** Meta's message id. */
+    ref: varchar("ref", { length: 200 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_keyword_hits" }),
+    foreignKey({
+      columns: [t.keywordId],
+      foreignColumns: [commentKeywords.id],
+      name: "fk_keyword_hits_keyword_id",
+    }).onDelete("cascade"),
+    unique("uq_keyword_hits_comment_id").on(t.commentId),
+    unique("uq_keyword_hits_person").on(t.keywordId, t.platform, t.author),
+    oneOf("ck_keyword_hits_state", t.state, KEYWORD_HIT_STATES),
+  ],
+);
+
+/** Each keyword with what it caught: comments matched, DMs sent and failed, the last one. */
+export const commentKeywordRecords = pgView("comment_keyword_records", {
+  id: text("id"),
+  keyword: text("keyword"),
+  platform: text("platform"),
+  post: text("post"),
+  dm: text("dm"),
+  reply: text("reply"),
+  state: text("state"),
+  caught: integer("caught"),
+  sent: integer("sent"),
+  failed: integer("failed"),
+  lastAt: timestamp("last_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
+  updatedBy: text("updated_by"),
+}).as(sql`
+  select k.id::text as id, k.keyword, coalesce(k.platform, 'any') as platform,
+    coalesce(k.post, 'every post') as post, k.dm, k.reply,
+    case when k.active then 'on' else 'off' end as state,
+    count(h.id)::int as caught,
+    count(h.id) filter (where h.state = 'sent')::int as sent,
+    count(h.id) filter (where h.state = 'failed')::int as failed,
+    max(h.at) as last_at, k.updated_at, k.updated_by
+  from comment_keywords k
+  left join keyword_hits h on h.keyword_id = k.id
+  group by k.id`);
+
+/** The DM log: each comment caught, its words, the keyword, what Meta said. */
+export const keywordHitRecords = pgView("keyword_hit_records", {
+  id: text("id"),
+  keyword: text("keyword"),
+  platform: text("platform"),
+  author: text("author"),
+  comment: text("comment"),
+  post: text("post"),
+  url: text("url"),
+  state: text("state"),
+  why: text("why"),
+  at: timestamp("at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+}).as(sql`
+  select h.id::text as id, k.keyword, h.platform, h.author, c.body as comment,
+    c.post_title as post, c.url, h.state, h.why, h.at, h.sent_at
+  from keyword_hits h
+  join comment_keywords k on k.id = h.keyword_id
+  left join comments c on c.id = h.comment_id`);

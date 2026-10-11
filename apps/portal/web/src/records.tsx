@@ -154,6 +154,7 @@ const loop = (id: string, run: boolean): [string, Input] => {
  * with what. A loop's id is "<service>/<key>"; an inbox's, its address.
  */
 const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
+  "marketing/keywordRemove": (id) => handlerCall("KeywordDm", "remove", { ids: [Number(id)] }),
   "console/startLoop": (id) => loop(id, true),
   "console/stopLoop": (id) => loop(id, false),
   "console/retryEvent": (id) => ["console/retryEvent", { id }],
@@ -519,6 +520,11 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
     { draftId: draftOf(id), pieces: piecesOf(pieces) },
   ],
 };
+/** Head actions whose form is a service's input, through the console's `call` (Wren's own). */
+const FORM: Record<string, (input: Input) => [string, Input]> = {
+  "marketing/keywordAdd": ({ keyword, dm, reply, platform, post }) =>
+    handlerCall("KeywordDm", "add", { keyword, dm, reply, platform, post }),
+};
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {
   "delivery/note": ["delivery/post", { internal: true }],
@@ -568,6 +574,8 @@ const callOf =
     const sent = await uploaded(client, input);
     const one = (client && CLIENT_ONE[handler]) || ONE[handler];
     if (one) return eachOf(one, sent, client);
+    const form = FORM[handler];
+    if (form) return call(...form(sent));
     const [to, add] = AS[handler] ?? [handler, {}];
     return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });
   };
@@ -632,7 +640,8 @@ export function TemplatePage({
   // press is hidden.
   // View as reads only: no actions.
   const actions = (viewingAs ? [] : (page.actions ?? [])).map((a) => {
-    const needs = a.requires?.needs ?? permissionOf(AS[a.handler]?.[0] ?? a.handler);
+    const to = AS[a.handler]?.[0] ?? (FORM[a.handler] ? "console/call" : a.handler);
+    const needs = a.requires?.needs ?? permissionOf(to);
     return needs ? { ...a, requires: { ...a.requires, needs } } : a;
   });
   const viewer = {

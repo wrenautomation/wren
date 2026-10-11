@@ -3,6 +3,7 @@ export * from "./chat.js";
 export * from "./desk.js";
 export * from "./draft-ask.js";
 export * from "./inbox-desk.js";
+export * from "./keyword-dm.js";
 export * from "./mail-reply.js";
 export * from "./marketing-console.js";
 export * from "./metrics.js";
