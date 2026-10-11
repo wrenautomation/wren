@@ -130,17 +130,20 @@ export function makeNewsletter(deps: {
               });
               if (!v.send) return v.why;
               await send(issueMail({ issue, to: c.address, ...envelope(c.address) }));
-              await recordMarketingSend(db, {
-                consentId: c.consentId,
-                by: "newsletter",
-                evidence: { issue: ctx.key, url: issue.url },
-              });
               return "sent";
             });
             if (done !== "sent") {
               run.skipped[done] = (run.skipped[done] ?? 0) + 1;
               continue;
             }
+            // Its own step: a failed write retries alone and never mails the address again.
+            await ctx.run(`sent ${c.consentId}`, () =>
+              recordMarketingSend(db, {
+                consentId: c.consentId,
+                by: "newsletter",
+                evidence: { issue: ctx.key, url: issue.url },
+              }),
+            );
             run.sent += 1;
             ctx.set("run", run);
             await ctx.sleep(run.sent % ISSUE_DAILY === 0 ? DAY_MS : GAP_MS);
