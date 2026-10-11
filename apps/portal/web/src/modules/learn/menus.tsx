@@ -2,7 +2,7 @@
  * Learn's dialogs and menus: move to a collection, tag, add to an SOP, name a collection, the
  * keys. Each writes through ./api.ts, which tells every list on screen to load again.
  */
-import { Button, cx, Input, say } from "@wren/ui";
+import { Button, cx, Input, type KeySection, say } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -566,44 +566,18 @@ export function CollectionMenu({
   );
 }
 
-export const KEYS: [string, string][] = [
-  ["j / k", "Next or previous item"],
-  ["Enter", "Open it"],
-  ["x", "Select it"],
-  ["s", "Star"],
-  ["e", "Archive"],
-  ["l", "Watch later"],
-  ["m", "Move to a collection"],
-  ["t", "Tag"],
-  ["/", "Search"],
-  ["Esc", "Clear the selection"],
-  ["?", "These keys"],
-];
-
-/** The keyboard, on ?. */
-export function KeysDialog({ onClose }: { onClose: () => void }) {
-  return (
-    <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
-      <DialogContent className="gap-3 sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Keys</DialogTitle>
-          <DialogDescription>
-            On any list of items. They act on the selection, or the item in focus.
-          </DialogDescription>
-        </DialogHeader>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[13.5px]">
-          {KEYS.map(([k, what]) => (
-            <div key={k} className="contents">
-              <dt>
-                <kbd className="inline-flex h-6 min-w-6 items-center justify-center border border-(--ui-hair) bg-(--ui-tile) px-1.5 font-mono text-[12px] text-(--ui-ink)">
-                  {k}
-                </kbd>
-              </dt>
-              <dd className="m-0 self-center text-(--ui-ink-2)">{what}</dd>
-            </div>
-          ))}
-        </dl>
-      </DialogContent>
-    </Dialog>
-  );
-}
+/** Learn's keys, in the keys sheet (?) while a list or an item is on screen. */
+export const LEARN_KEYS: KeySection = {
+  title: "Learn",
+  keys: [
+    ["↑  ↓", "Next or previous item (J and K too)"],
+    ["Enter", "Open it"],
+    ["x", "Select it"],
+    ["s", "Star"],
+    ["e", "Archive"],
+    ["l", "Watch later"],
+    ["m", "Move to a collection"],
+    ["t", "Tag"],
+    ["Esc", "Clear the selection"],
+  ],
+};

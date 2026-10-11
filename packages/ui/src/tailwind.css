@@ -45,9 +45,22 @@
   --ui-radius: 0px; /* every corner: Wren is square */
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
+  /* The frame as the viewer sets it (display.ts): panel widths, text size, row heights. */
+  --layout-side: 224px;
+  --layout-pages: 208px;
+  --layout-zoom: 1;
+  --layout-row: 40px; /* a list's row */
+  --layout-nav-row: 32px; /* an app in the sidebar */
+  --layout-tab-row: 34px; /* a page in the app's column */
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
   color-scheme: var(--ui-scheme);
   scrollbar-color: var(--ui-ink-3) transparent;
+}
+/* Snug rows: lists, the sidebar and the app's pages sit tighter. Unlayered, as :root's are. */
+:root[data-density="snug"] {
+  --layout-row: 32px;
+  --layout-nav-row: 28px;
+  --layout-tab-row: 30px;
 }
 /* Made from the tokens above, so they follow a theme. A theme can set any of these too.
    `data-ui-theme` makes them again under an element given its own tokens: a look's preview. */
@@ -268,7 +281,8 @@
     display: block;
   }
   /* Reduced motion drops movement, not feedback: fades and color changes stay, since they
-     show what changed. Popups lose their slide and zoom; a moving transition loses its move. */
+     show what changed. Popups lose their slide and zoom; a moving transition loses its move.
+     "Less" motion under Layout does the same on any device. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -289,6 +303,25 @@
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
       --tw-exit-scale: 1 !important;
     }
+  }
+  [data-motion="less"] *,
+  [data-motion="less"] *::before,
+  [data-motion="less"] *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    transition-property:
+      opacity, color, background-color, border-color, text-decoration-color, fill, stroke !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-enter-translate-x: 0 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-enter-translate-y: 0 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-enter-scale: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-exit-translate-x: 0 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-exit-translate-y: 0 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+    --tw-exit-scale: 1 !important;
   }
   /* Preflight for the shadcn parts only: each one carries data-slot. */
   [data-slot],

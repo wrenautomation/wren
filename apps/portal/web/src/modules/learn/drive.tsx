@@ -14,6 +14,8 @@ import {
   Loading,
   PAGE_TITLE,
   relative,
+  showKeys,
+  usePageKeys,
   usePref,
 } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
@@ -80,7 +82,7 @@ import { SaveBox } from "./learn.js";
 import {
   act,
   CollectionMenu,
-  KeysDialog,
+  LEARN_KEYS,
   MoveDialog,
   many,
   markItems,
@@ -106,7 +108,7 @@ const SORTS = [
 const PAGE = 60;
 const MAX = 200;
 
-type Dialog = { kind: "move" | "tag" | "sop" | "keys" | "collection"; ids: number[] } | null;
+type Dialog = { kind: "move" | "tag" | "sop" | "collection"; ids: number[] } | null;
 
 /** Pieces of a comma list in the address. */
 const listOf = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
@@ -164,6 +166,7 @@ function Browse({ params }: { params: URLSearchParams }) {
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [focus, setFocus] = useState(-1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  usePageKeys(LEARN_KEYS);
   const anchor = useRef<number | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -233,6 +236,13 @@ function Browse({ params }: { params: URLSearchParams }) {
         case "ArrowUp":
           if (e.key === "ArrowUp" && view === "cards") return;
           return one(() => show(Math.max(0, focus - 1)));
+        // Cards sit in rows: ← and → step through them there.
+        case "ArrowRight":
+          if (view !== "cards") return;
+          return one(() => show(Math.min(items.length - 1, focus + 1)));
+        case "ArrowLeft":
+          if (view !== "cards") return;
+          return one(() => show(Math.max(0, focus - 1)));
         case "Enter":
         case "o":
           if (c) one(() => navigate(itemHref(c.id, params)));
@@ -261,8 +271,6 @@ function Browse({ params }: { params: URLSearchParams }) {
           return;
         case "/":
           return one(() => searchRef.current?.focus());
-        case "?":
-          return one(() => setDialog({ kind: "keys", ids: [] }));
         case "Escape":
           if (sel.size) one(() => setSel(new Set()));
           return;
@@ -382,7 +390,7 @@ function Browse({ params }: { params: URLSearchParams }) {
           </button>
           <button
             type="button"
-            onClick={() => setDialog({ kind: "keys", ids: [] })}
+            onClick={showKeys}
             className="hidden h-8 items-center gap-1.5 border-0 bg-transparent px-2 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) min-[901px]:inline-flex"
             title="Keys"
           >
@@ -522,8 +530,6 @@ function Browse({ params }: { params: URLSearchParams }) {
             if (done) setSel(new Set());
           }}
         />
-      ) : dialog?.kind === "keys" ? (
-        <KeysDialog onClose={() => setDialog(null)} />
       ) : dialog?.kind === "collection" ? (
         <NameDialog
           title="New collection"

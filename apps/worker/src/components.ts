@@ -89,6 +89,7 @@ export const PLATFORM = {
     workflows: "every workflow, drawn with live numbers",
     ask: "questions to Claude Code about the system, read only",
     review: "the Friday review of parked ideas",
+    settings: "your layout and look, and a guide to every app and key",
     library: "every template, prompt and sequence, with their numbers",
     notes: "docs for Wren's team and each client's people, with versions and sharing",
     learn: "saved links and followed sources, read and kept like a drive, in every workspace",

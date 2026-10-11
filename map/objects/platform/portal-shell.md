@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-11 @ f9706793 (+ app bar and column)
+verified: 2026-10-11 @ 7eb4dac5 (+ layout, keys)
 entity: apps/portal/web/src/areas.ts:14
 ---
 
@@ -19,11 +19,15 @@ Areas group apps by job; pages never move between apps, so every link in a ping,
 
 - `AREAS` (`apps/portal/web/src/areas.ts:14`): Inbox, Leads, Marketing (Marketing, Ads, Sites, Learn), Automations, Business, Tools, by app id; `areasOf` (`:39`) skips ids a workspace lacks, drops empty areas, puts unnamed apps under Tools
 - `useWaiting` (`apps/portal/web/src/waiting.ts:48`): per app, per page, rows waiting: a page's `count` in Wren's workspace (`console/recordsList`), its `badge` in any; hidden pages skipped (`readApp`, `:18`); all apps on load and each minute, the open app on each move
-- `AppShell` (`packages/ui/src/shell.tsx:125`) takes `home` (Today, its total) and `areas` (`NavArea[]`); with areas, a grid puts whose workspace at the sidebar's head and `actions` at its foot; `SideNav` (`:482`) draws the apps, the open one marked, an area of one app with no heading
-- The open app on a computer: `AppBar` (`:428`, mark, name, page on screen, its action, the pin) over `AppColumn` (`:466`, its pages grouped, nested, with counts and drop targets; none with one page); `AppHead` (`:661`) is the phone's head, a home icon back to Today
+- `AppShell` (`packages/ui/src/shell.tsx:138`) takes `home` (Today, its total) and `areas` (`NavArea[]`); with areas, a grid puts whose workspace at the sidebar's head and `actions` at its foot; `SideNav` (`:691`) draws the apps, the open one marked, an area of one app with no heading
+- The open app on a computer: `AppBar` (`:568`, mark, name, page on screen, its action, the pin) over `AppColumn` (`:649`, its pages grouped, nested, with counts and drop targets; none with one page); `AppHead` (`:908`) is the phone's head, a home icon back to Today
 - Hover flyouts (2026-10-11): a closed app's `pages` (`NavApp.pages`, built in `App.tsx` beside `areas`) open beside its row on a fine pointer; `useHoverMenu` (`packages/ui/src/safe-triangle.ts`) holds it through the invisible triangle from where the pointer left to the flyout (`graceArea`, `inPolygon`), 350 ms at most; touch never gets them
 - `WrenToday` and `ClientToday` (`apps/portal/web/src/today.tsx:149`, `:176`): setup and health alerts, pins, Needs you (every page with rows waiting), Wren's day (`DAY`, `:32`: calls and replies tiles, next calls) or a client's service cards with each app's `Glance`; on a phone, the apps by area
-- App wiring (`apps/portal/web/src/App.tsx:465`): areas built from the viewer's apps (`appsIn`, `apps/portal/web/src/modules/index.ts:60`); with one app (the demo) no Today and no areas
+- App wiring (`apps/portal/web/src/App.tsx:479`): areas built from the viewer's apps (`appsIn`, `apps/portal/web/src/modules/index.ts:64`); with one app (the demo) no Today and no areas
+- Layout (2026-10-11, `designs/2026-10-11-portal-polish.md`): `Display` (`packages/ui/src/display.ts:63`, `readDisplay`) is sidebar and pages widths, either folded, rows, text size, frame, counts, motion, kept as pref `display` (`useDisplay`, `packages/ui/src/frame.tsx:72`; mirrored in localStorage `wren.display` for the first paint). Wren's team keeps one at Wren for every workspace; a client one per workspace. The shell sets `--layout-*` vars on its root and `data-density`/`data-counts`/`data-motion` on `<html>`; text size zooms `main` only
+- Panels: `Resizer` (`frame.tsx:241`) on the sidebar's and the pages column's edges (drag, ←/→, Enter folds, double-click resets; past the fold line it folds); a folded sidebar is icons, every app's name and pages in its flyout, the viewer's buttons behind `more`; the app bar's panel button hides the pages and the page name then opens them
+- Keys: `useFrameKeys` (`shell.tsx:388`): `[` sidebar, `]` pages, `?` the sheet (`KeysSheet`, `frame.tsx:213`), ⌥↑/⌥↓ the app's page above or below; a page adds its own with `usePageKeys` (`:138`; Learn does). Lists and queues walk with ↑/↓ (J/K too) through `walkKey` (`packages/ui/src/records.tsx:340`), which leaves arrows to menus, listboxes, dialogs and sliders
+- Wren's Settings app (`apps/portal/web/src/modules/settings/index.ts`): Layout (`DisplayPanel`, `frame.tsx:391`), Look (his own look in Wren's workspace, pref `look`, read by `useLook` through `myLook` in `App.tsx`), Guide (every app by area with its pages, from `MODULES`, and the keys); a client's Layout sits in Account → Your settings
 - Wren's Inbox holds To approve (`APPROVAL_PAGE`, `apps/portal/web/src/modules/marketing/index.ts:901`) and Done (`DONE_PAGE`, `:884`); Marketing keeps `/marketing/inbox` and `/marketing/approve` as hidden pages for old links; its tabs sort by group (`byGroup`, `:1094`)
 - Ads (`ads`, `:1112`) and the site's visitors and search (`SITE_PAGES`, `:1123`, in Sites under Visitors and Search) left Marketing on 2026-10-11 (`designs/2026-10-11-split-marketing.md`); Marketing keeps each as a hidden page for old links; record `app` ids stay `marketing`, so grants are unchanged
 
@@ -45,8 +49,9 @@ Areas group apps by job; pages never move between apps, so every link in a ping,
 |---|---|
 | portal "/" | Today |
 | portal sidebar | every app, what waits in each |
+| portal /settings | Wren's Layout, Look, Guide |
 
 ## See
 
-- Source: `apps/portal/web/src/areas.ts`, `apps/portal/web/src/waiting.ts`, `apps/portal/web/src/today.tsx`, `packages/ui/src/shell.tsx`
-- Design: `designs/2026-10-10-portal-areas.md`
+- Source: `apps/portal/web/src/areas.ts`, `apps/portal/web/src/waiting.ts`, `apps/portal/web/src/today.tsx`, `packages/ui/src/shell.tsx`, `packages/ui/src/frame.tsx`, `packages/ui/src/display.ts`
+- Design: `designs/2026-10-10-portal-areas.md`, `designs/2026-10-11-portal-polish.md`

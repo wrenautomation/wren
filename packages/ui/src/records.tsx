@@ -329,6 +329,22 @@ export const typing = (e: KeyboardEvent) =>
   e.altKey ||
   (e.target instanceof HTMLElement && (SKIP.has(e.target.tagName) || e.target.isContentEditable));
 
+/** Parts that move their own focus with the arrows: a list's walk leaves those keys to them. */
+const OWN_ARROWS =
+  '[role="menu"],[role="listbox"],[role="dialog"],[role="tablist"],[role="radiogroup"],[role="grid"],[role="slider"],[role="separator"]';
+
+/**
+ * A step through a list from a key: ↓ or J one down, ↑ or K one up, else 0. Arrows first; J and K
+ * stay for hands on the letters. An arrow inside a part that moves its own focus is that part's.
+ */
+export function walkKey(e: KeyboardEvent): 1 | -1 | 0 {
+  if (e.key === "j" || e.key === "k") return e.key === "j" ? 1 : -1;
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return 0;
+  if (e.defaultPrevented || e.shiftKey) return 0;
+  if (e.target instanceof Element && e.target.closest(OWN_ARROWS)) return 0;
+  return e.key === "ArrowDown" ? 1 : -1;
+}
+
 /** What an empty list says in this view. */
 export const emptyOf = (
   empty: RecordTemplateProps["empty"],
@@ -641,7 +657,7 @@ export function NotHere() {
   return <Empty>This page fills once its part is installed.</Empty>;
 }
 
-/** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, J/K. */
+/** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
 export function RecordList(props: RecordTemplateProps) {
   const { record, api, place, empty, columns, extras, acts, head, title } = props;
   const types = useTypes(api);
@@ -986,7 +1002,7 @@ function List({
   };
   const openIndex = openId === null ? -1 : rows.findIndex((r) => String(r.id) === openId);
 
-  // J/K walk the rows (or the open records), Enter opens, Escape closes, an action's key runs it.
+  // ↑/↓ (or J/K) walk the rows (or the open records), Enter opens, Escape closes, an action's key runs it.
   const keys = useRef({ cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run });
   keys.current = { cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run };
   useEffect(() => {
@@ -994,8 +1010,10 @@ function List({
       if (typing(e)) return;
       const k = keys.current;
       const at = k.openIndex >= 0 ? k.openIndex : k.cursor;
-      if (e.key === "j" || e.key === "k") {
-        const next = Math.max(0, Math.min(k.rows.length - 1, at + (e.key === "j" ? 1 : -1)));
+      const step = walkKey(e);
+      if (step) {
+        e.preventDefault();
+        const next = Math.max(0, Math.min(k.rows.length - 1, at + step));
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
         body.current?.querySelector(`[data-row="${next}"]`)?.scrollIntoView({ block: "nearest" });
@@ -1235,7 +1253,7 @@ function List({
               {!page.data
                 ? Array.from({ length: 10 }, (_, i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                    <tr key={i} className="h-10 border-b border-(--ui-hair)">
+                    <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
                       <td colSpan={cols.length + 2} className="px-3">
                         <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
                       </td>
@@ -1264,7 +1282,7 @@ function List({
                             if (e.animationName === "ui-changed") setChanged(new Set());
                           }}
                           className={cn(
-                            "group h-10 cursor-pointer border-b border-(--ui-hair)",
+                            "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair)",
                             open
                               ? "bg-(--ui-fill)"
                               : i === cursor
@@ -1380,7 +1398,7 @@ function List({
       <div className="flex items-center justify-between gap-3 text-[13px] text-(--ui-ink-2)">
         {rows.length ? (
           <span className="max-sm:hidden">
-            <Kbd>J</Kbd> <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
+            <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd>Enter</Kbd> to open
             <KeyHints
               actions={actions}
               row={rows[openIndex >= 0 ? openIndex : cursor]}
@@ -2222,7 +2240,7 @@ function Related({
       </thead>
       <tbody>
         {page.data.rows.map((r) => (
-          <tr key={String(r.id)} className="h-10 border-b border-(--ui-hair)">
+          <tr key={String(r.id)} className="h-(--layout-row) border-b border-(--ui-hair)">
             {cols.map((f, i) => (
               <td
                 key={f.key}

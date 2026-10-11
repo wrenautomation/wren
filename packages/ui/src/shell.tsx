@@ -6,17 +6,30 @@
  * pages tabs that scroll sideways, and home lists the apps.
  */
 import {
+  type CSSProperties,
   type DragEvent,
   type PointerEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
+import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
 import { cx, num } from "./format.js";
+import {
+  DisplayButton,
+  type DisplayControl,
+  FrameProvider,
+  KeysSheet,
+  Resizer,
+  typingAt,
+  useShowKeys,
+} from "./frame.js";
 import { Icon, type IconName } from "./icons.js";
 import { useHoverMenu } from "./safe-triangle.js";
 import { type Theme, usePageTheme } from "./theme.js";
@@ -135,6 +148,9 @@ export function AppShell({
   page,
   theme,
   wide = false,
+  display,
+  customize,
+  onGo,
   className,
   children,
 }: {
@@ -160,11 +176,29 @@ export function AppShell({
   theme?: Theme | undefined;
   /** The page takes the window's full width (a list of records). */
   wide?: boolean | undefined;
+  /** How he set the frame; left out, the defaults and no Layout button. */
+  display?: DisplayControl | undefined;
+  /** Under the Layout settings: a link to his own look. */
+  customize?: ReactNode;
+  /** Opens a page in the app, for ⌥↑ and ⌥↓. */
+  onGo?: ((href: string) => void) | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
   usePageTheme(theme);
   const scroller = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const d = display?.display ?? DISPLAY;
+  const [keys, setKeys] = useState(false);
+  useFrameKeys(display, app, onGo, () => setKeys((o) => !o));
+  useShowKeys(useCallback(() => setKeys(true), []));
+  // Rows, counts and motion reach the popups too, which sit outside the frame.
+  useLayoutEffect(() => {
+    const h = document.documentElement.dataset;
+    h.density = d.density;
+    h.counts = d.counts ? "on" : "off";
+    h.motion = d.motion;
+  }, [d.density, d.counts, d.motion]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page starts at its top.
   useEffect(() => {
@@ -175,11 +209,20 @@ export function AppShell({
   // Every app by area: the sidebar, which on a computer also holds whose workspace this is and
   // the viewer's own buttons. Without areas (the demo), a slim bar over the window holds those.
   const nav = !!areas?.length;
+  const folded = nav && d.sideShut;
+  const host = () => root.current;
+  const custom = display ? (
+    <DisplayButton control={display} more={customize} onKeys={() => setKeys(true)} compact />
+  ) : null;
   return (
     <div
+      ref={root}
+      style={displayVars(d) as CSSProperties}
+      data-side={folded ? "icons" : "full"}
       className={cx(
+        "relative",
         nav
-          ? "grid h-dvh grid-cols-[224px_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
+          ? "grid h-dvh grid-cols-[var(--layout-side)_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
           : "flex h-dvh flex-col",
         "max-[900px]:block max-[900px]:h-auto",
         className,
@@ -204,6 +247,7 @@ export function AppShell({
             "flex min-w-0 items-center gap-1.5",
             nav &&
               "[grid-area:top] min-[901px]:mt-(--ui-frame) min-[901px]:mb-2 min-[901px]:h-[52px] min-[901px]:pr-2.5 min-[901px]:pl-(--ui-frame)",
+            folded && "min-[901px]:justify-center min-[901px]:pr-0",
           )}
         >
           <a
@@ -214,6 +258,7 @@ export function AppShell({
             )}
             href={brand.href}
             aria-label={nav ? brand.name : undefined}
+            title={folded ? workspace.current?.name : undefined}
           >
             <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
             {nav ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
@@ -223,11 +268,14 @@ export function AppShell({
               /
             </span>
           )}
-          <WorkspacePick workspace={workspace} />
+          <div className={cx("flex min-w-0 items-center gap-1.5", folded && "min-[901px]:hidden")}>
+            <WorkspacePick workspace={workspace} />
+          </div>
           {workspace.chip ? (
             <a
               className={cx(
                 EASE,
+                folded && "min-[901px]:hidden",
                 "flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
               )}
               href={workspace.chip.href}
@@ -236,20 +284,59 @@ export function AppShell({
             </a>
           ) : null}
         </div>
-        {actions ? (
+        {actions || custom ? (
           <div
             className={cx(
               "ml-auto flex flex-none items-center gap-1.5",
               nav &&
                 "[grid-area:me] min-[901px]:mr-2.5 min-[901px]:ml-(--ui-frame) min-[901px]:flex-wrap min-[901px]:border-t min-[901px]:border-(--ui-hair) min-[901px]:py-2.5",
+              folded && "min-[901px]:hidden",
             )}
           >
+            {custom ? <span className="contents max-[900px]:hidden">{custom}</span> : null}
             {actions}
+          </div>
+        ) : null}
+        {folded ? (
+          // Folded, his buttons wait behind one: the sidebar is only as wide as an icon.
+          <div className="hidden flex-col items-center gap-1 border-t border-(--ui-hair) py-2.5 pl-(--ui-frame) [grid-area:me] min-[901px]:flex">
+            {custom}
+            {actions ? (
+              <Popover>
+                <PopoverTrigger className={ICON_BUTTON} aria-label="You" title="You">
+                  <Icon name="more" />
+                </PopoverTrigger>
+                <PopoverContent
+                  side="right"
+                  align="end"
+                  sideOffset={10}
+                  className="w-auto min-w-48 items-stretch gap-1 p-1.5 [&>*]:justify-start"
+                >
+                  {actions}
+                </PopoverContent>
+              </Popover>
+            ) : null}
           </div>
         ) : null}
       </header>
 
-      {nav ? <SideNav app={app} home={home} areas={areas} pins={pins} /> : null}
+      {nav ? <SideNav app={app} home={home} areas={areas} pins={pins} folded={folded} /> : null}
+      {nav && display ? (
+        <Resizer
+          label="Sidebar"
+          width={d.side}
+          shut={d.sideShut}
+          shutPx={SIDE.shut}
+          range={SIDE}
+          host={host}
+          cssVar="--layout-side"
+          style={{ left: "calc(var(--layout-side) - 5px)" }}
+          onDone={(n) =>
+            display.set(n.shut ? { sideShut: true } : { side: n.width, sideShut: false })
+          }
+          onReset={() => display.set({ side: DISPLAY.side, sideShut: false })}
+        />
+      ) : null}
       <div
         className={cx(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
@@ -258,9 +345,9 @@ export function AppShell({
             : "mx-(--ui-frame) mb-(--ui-frame)",
         )}
       >
-        {app ? <AppBar app={app} pins={pins} /> : null}
+        {app ? <AppBar app={app} pins={pins} display={display} /> : null}
         <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
-          {app ? <AppColumn app={app} /> : null}
+          {app && !d.pagesShut ? <AppColumn app={app} display={display} host={host} /> : null}
           <div
             className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
             ref={scroller}
@@ -268,6 +355,8 @@ export function AppShell({
             {app ? <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} /> : null}
             <main
               className={cx(
+                // His text size: the page alone, so the frame's controls stay put.
+                "[zoom:var(--layout-zoom)]",
                 "mx-auto px-10 pt-9 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
                 // A new page, or its data after the loader, fades in. Opacity only, so a fixed
                 // panel inside keeps the window as its frame.
@@ -277,18 +366,65 @@ export function AppShell({
               id="main"
               tabIndex={-1}
             >
-              {children}
+              <FrameProvider value={display ?? null}>{children}</FrameProvider>
             </main>
           </div>
         </div>
       </div>
+      {display ? <KeysSheet open={keys} onClose={() => setKeys(false)} /> : null}
     </div>
   );
+}
+
+/** Whether a key press is the page's to take: a dialog or a field keeps its own keys. */
+const forFrame = (e: KeyboardEvent) =>
+  !e.defaultPrevented &&
+  !e.metaKey &&
+  !e.ctrlKey &&
+  !typingAt(e) &&
+  !(e.target instanceof Element && e.target.closest("[role=dialog],[role=menu],[role=listbox]"));
+
+/** [ folds the sidebar, ] hides the pages, ? lists every key, ⌥↑ and ⌥↓ step through the app's pages. */
+function useFrameKeys(
+  display: DisplayControl | undefined,
+  app: OpenApp | null,
+  onGo: ((href: string) => void) | undefined,
+  onKeys: () => void,
+) {
+  const now = useRef({ display, app, onGo, onKeys });
+  now.current = { display, app, onGo, onKeys };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const { display, app, onGo, onKeys } = now.current;
+      if (!display || !forFrame(e)) return;
+      const d: Display = display.display;
+      if (e.altKey) {
+        if (!app || !onGo || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+        const at = app.tabs.findIndex((t) => t.id === app.current);
+        const to = app.tabs[at + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!to) return;
+        e.preventDefault();
+        onGo(to.href);
+      } else if (e.key === "[") {
+        e.preventDefault();
+        display.set({ sideShut: !d.sideShut });
+      } else if (e.key === "]") {
+        e.preventDefault();
+        display.set({ pagesShut: !d.pagesShut });
+      } else if (e.key === "?") {
+        e.preventDefault();
+        onKeys();
+      }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, []);
 }
 
 const EASE = "transition-colors duration-150 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
+const ICON_BUTTON = `${HOVER} inline-grid size-8 border-0 bg-transparent p-0 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover) data-[popup-open]:text-(--ui-ink)`;
 const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
 const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
@@ -296,7 +432,7 @@ const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)";
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
-  "ml-auto min-w-5 bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-5 in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
 /** A group's heading, ruled off from the pages above it. */
 const GROUP =
   "mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
@@ -315,7 +451,7 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const [over, setOver] = useState(false);
   const className = cx(
     HOVER,
-    "flex h-[34px] w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    "flex h-(--layout-tab-row) w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
     DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
     TAB_ON,
     over && TAB_OVER,
@@ -378,10 +514,14 @@ const total = (tabs: NavItem[]) =>
     ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
     : undefined;
 
+/** Folded: the icon alone, centered; what waits is a dot on its corner. */
+const FOLDED_ROW = "relative justify-center px-0";
+const DOT = "absolute top-1.5 right-1.5 size-1.5 bg-(--ui-warn-ink) in-data-[counts=off]:hidden";
+
 /** An app's row in the sidebar: its mark, its name, what waits in it. */
 const APP_ROW = cx(
   HOVER,
-  "flex h-8 w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]",
+  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]",
 );
 
 /** The open app's pages, under its row: grouped, a group of one page standing alone. */
@@ -425,10 +565,32 @@ function AppTabs({ app }: { app: OpenApp }) {
  * The open app on a computer, across the window's top: its name, the page on screen, its one
  * button and the pin. Its pages run down the left edge under it (`AppColumn`).
  */
-function AppBar({ app, pins }: { app: OpenApp; pins: RailPins | undefined }) {
+function AppBar({
+  app,
+  pins,
+  display,
+}: {
+  app: OpenApp;
+  pins: RailPins | undefined;
+  display: DisplayControl | undefined;
+}) {
   const page = app.tabs.find((t) => t.id === app.current);
+  const paged = app.tabs.length > 1;
+  const hidden = !!display?.display.pagesShut && paged;
   return (
     <div className="flex h-[52px] flex-none items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) pr-3 pl-3 max-[900px]:hidden">
+      {display && paged ? (
+        <button
+          type="button"
+          className={ICON_BUTTON}
+          aria-pressed={!hidden}
+          aria-label={hidden ? "Show pages" : "Hide pages"}
+          title={hidden ? "Show pages  ]" : "Hide pages  ]"}
+          onClick={() => display.set({ pagesShut: !hidden })}
+        >
+          <Icon name="panel" />
+        </button>
+      ) : null}
       <a
         className={cx(
           APPNAME,
@@ -442,7 +604,28 @@ function AppBar({ app, pins }: { app: OpenApp; pins: RailPins | undefined }) {
         </span>
         <span className="min-w-0 truncate">{app.name}</span>
       </a>
-      {page && page.href !== app.href ? (
+      {hidden ? (
+        // The pages hidden, the page's name opens them.
+        <>
+          <span className={SLASH} aria-hidden="true">
+            /
+          </span>
+          <Popover>
+            <PopoverTrigger
+              className={cx(
+                HOVER,
+                "inline-flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) border-0 bg-transparent px-2 text-[15px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)",
+              )}
+            >
+              <span className="min-w-0 truncate">{page?.label ?? app.name}</span>
+              <Icon name="down" className="flex-none" />
+            </PopoverTrigger>
+            <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
+              <AppTabs app={app} />
+            </PopoverContent>
+          </Popover>
+        </>
+      ) : page && page.href !== app.href ? (
         <>
           <span className={SLASH} aria-hidden="true">
             /
@@ -463,11 +646,37 @@ function AppBar({ app, pins }: { app: OpenApp; pins: RailPins | undefined }) {
 }
 
 /** The open app's pages on a computer, down the window's left edge, under its bar. */
-function AppColumn({ app }: { app: OpenApp }) {
+function AppColumn({
+  app,
+  display,
+  host,
+}: {
+  app: OpenApp;
+  display: DisplayControl | undefined;
+  host: () => HTMLElement | null;
+}) {
   if (app.tabs.length < 2) return null;
   return (
-    <div className="w-[208px] flex-none overflow-y-auto border-r border-(--ui-hair) px-2 py-3 [scrollbar-width:thin] max-[900px]:hidden">
-      <AppTabs app={app} />
+    <div className="relative flex min-h-0 flex-none max-[900px]:hidden">
+      <div className="w-(--layout-pages) overflow-y-auto border-r border-(--ui-hair) px-2 py-3 [scrollbar-width:thin]">
+        <AppTabs app={app} />
+      </div>
+      {display ? (
+        <Resizer
+          label="Pages"
+          width={display.display.pages}
+          shut={false}
+          shutPx={0}
+          range={PAGES}
+          host={host}
+          cssVar="--layout-pages"
+          className="-right-[5px]"
+          onDone={(n) =>
+            display.set(n.shut ? { pagesShut: true } : { pages: n.width, pagesShut: false })
+          }
+          onReset={() => display.set({ pages: DISPLAY.pages })}
+        />
+      ) : null}
     </div>
   );
 }
@@ -484,11 +693,14 @@ function SideNav({
   home,
   areas,
   pins,
+  folded,
 }: {
   app: OpenApp | null;
   home: NavHome | undefined;
   areas: NavArea[] | undefined;
   pins: RailPins | undefined;
+  /** Icons alone: every app's name and pages show beside it on hover. */
+  folded: boolean;
 }) {
   const shown: NavArea[] = areas?.length
     ? areas
@@ -507,7 +719,8 @@ function SideNav({
   const [hovers] = useState(
     () => typeof window !== "undefined" && !!window.matchMedia?.(FINE_POINTER).matches,
   );
-  const flies = (a: NavApp) => hovers && a.id !== openId && (a.pages?.length ?? 0) > 1;
+  const flies = (a: NavApp) =>
+    hovers && (folded || (a.id !== openId && (a.pages?.length ?? 0) > 1));
   const hovered = shown.flatMap((s) => s.apps).find((a) => a.id === menu.open?.id && flies(a));
   // Beside its row, moved up as far as it must to fit; hidden until measured.
   const [flyTop, setFlyTop] = useState<number | null>(null);
@@ -527,13 +740,20 @@ function SideNav({
       className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-2.5 pb-3 pl-(--ui-frame) [grid-area:nav] [scrollbar-width:none] max-[900px]:hidden"
     >
       {home ? (
-        <a className={APP_ROW} href={home.href} aria-current={app ? undefined : "true"}>
+        <a
+          className={cx(APP_ROW, folded && FOLDED_ROW)}
+          href={home.href}
+          aria-current={app ? undefined : "true"}
+          title={folded ? home.label : undefined}
+        >
           <Icon name="home" />
-          <span className="min-w-0 truncate">{home.label}</span>
-          {home.count ? <span className={COUNT}>{num(home.count)}</span> : null}
+          <span className={folded ? "sr-only" : "min-w-0 truncate"}>{home.label}</span>
+          {home.count ? (
+            <span className={folded ? DOT : COUNT}>{folded ? null : num(home.count)}</span>
+          ) : null}
         </a>
       ) : null}
-      {pins ? (
+      {pins && !folded ? (
         <PinnedRail
           pins={pins.pins}
           current={pins.current}
@@ -546,7 +766,15 @@ function SideNav({
         {shown.map((area) => (
           <section key={area.id} className="flex flex-col gap-0.5">
             {area.apps.length > 1 ? (
-              <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2")}>{area.label}</h2>
+              <h2
+                className={
+                  folded
+                    ? "mx-1.5 my-1 h-0 overflow-hidden border-t border-(--ui-hair) text-[0px]"
+                    : cx(GROUP, "mt-0 border-t-0 pt-2")
+                }
+              >
+                {area.label}
+              </h2>
             ) : null}
             {area.apps.map((a) => {
               const open = a.id === openId && app;
@@ -565,15 +793,19 @@ function SideNav({
                   <a
                     className={cx(
                       APP_ROW,
+                      folded && FOLDED_ROW,
                       a.off && "opacity-55",
                       hovered?.id === a.id && "bg-(--ui-hover)",
                     )}
                     href={a.href}
                     aria-current={open ? "true" : undefined}
+                    title={folded && !hovers ? a.name : undefined}
                   >
                     <Icon name={a.icon} className={open ? "text-(--ui-accent)" : ""} />
-                    <span className="min-w-0 truncate">{a.name}</span>
-                    {a.count ? <span className={COUNT}>{num(a.count)}</span> : null}
+                    <span className={folded ? "sr-only" : "min-w-0 truncate"}>{a.name}</span>
+                    {a.count ? (
+                      <span className={folded ? DOT : COUNT}>{folded ? null : num(a.count)}</span>
+                    ) : null}
                   </a>
                 </div>
               );
@@ -595,15 +827,30 @@ function SideNav({
           onPointerEnter={menu.enterFlyout}
           onPointerLeave={(e) => menu.leaveFlyout(e)}
         >
-          <AppTabs
-            app={{
-              name: hovered.name,
-              icon: hovered.icon,
-              href: hovered.href,
-              tabs: hovered.pages,
-              current: "",
-            }}
-          />
+          {folded ? (
+            <a
+              className={cx(
+                HOVER,
+                "flex h-8 items-center gap-2 rounded-(--ui-radius) px-2.5 text-[13.5px] font-semibold no-underline",
+                (hovered.pages?.length ?? 0) > 1 && "mb-1 border-b border-(--ui-hair) pb-1",
+              )}
+              href={hovered.href}
+            >
+              {hovered.name}
+              {hovered.count ? <span className={COUNT}>{num(hovered.count)}</span> : null}
+            </a>
+          ) : null}
+          {(hovered.pages?.length ?? 0) > 1 ? (
+            <AppTabs
+              app={{
+                name: hovered.name,
+                icon: hovered.icon,
+                href: hovered.href,
+                tabs: hovered.pages ?? [],
+                current: hovered.id === openId ? (app?.current ?? "") : "",
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </aside>

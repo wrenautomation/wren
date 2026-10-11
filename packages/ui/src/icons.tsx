@@ -19,6 +19,7 @@ import {
   Code,
   CreditCard,
   Download,
+  Ellipsis,
   ExternalLink,
   FileText,
   Flag,
@@ -125,6 +126,7 @@ const ICONS = {
   panel: PanelLeft,
   help: CircleHelp,
   keys: Keyboard,
+  more: Ellipsis,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

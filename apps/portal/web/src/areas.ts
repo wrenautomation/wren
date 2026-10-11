@@ -29,7 +29,7 @@ export const AREAS: readonly Area[] = [
     label: "Business",
     apps: ["work", "clients", "money", "payments", "documents", "team"],
   },
-  { id: "tools", label: "Tools", apps: ["notes", "calendar", "ask", "review"] },
+  { id: "tools", label: "Tools", apps: ["notes", "calendar", "ask", "review", "settings"] },
 ];
 
 /** The last area, where an app no area names goes, so a new app always shows. */

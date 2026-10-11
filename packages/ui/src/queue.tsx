@@ -1,7 +1,7 @@
 /**
  * The Queue template, for anything waiting on a person: items on the left, the open one on the
  * right with its context and an action bar on keys. "3 of 6"; the next item opens after each
- * action. J and K move.
+ * action. ↑ and ↓ (or J and K) move.
  */
 
 import type { RecordMeta } from "@wren/core/records";
@@ -37,6 +37,7 @@ import {
   typing,
   useLoad,
   useTypes,
+  walkKey,
 } from "./records.js";
 
 const NAV =
@@ -112,8 +113,10 @@ function Queue({
     const press = (e: KeyboardEvent) => {
       if (typing(e)) return;
       const k = keys.current;
-      if (e.key === "j" || e.key === "k") {
-        const to = Math.max(0, Math.min(k.n - 1, k.at + (e.key === "j" ? 1 : -1)));
+      const step = walkKey(e);
+      if (step) {
+        e.preventDefault();
+        const to = Math.max(0, Math.min(k.n - 1, k.at + step));
         k.open(to);
         list.current?.children[to]?.scrollIntoView({ block: "nearest" });
         return;
@@ -255,7 +258,7 @@ function Queue({
               })}
             </ul>
             <p className="text-[12px] text-(--ui-ink-2) max-sm:hidden">
-              <Kbd>J</Kbd> <Kbd>K</Kbd> to move
+              <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move
               <KeyHints actions={actions} row={row} />
             </p>
           </div>

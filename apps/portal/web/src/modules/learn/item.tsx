@@ -14,6 +14,7 @@ import {
   PAGE_TITLE,
   relative,
   StateMark,
+  usePageKeys,
 } from "@wren/ui";
 import {
   Archive,
@@ -48,7 +49,7 @@ import {
   TypeMark,
   useGrant,
 } from "./kinds.js";
-import { act, KeysDialog, MoveDialog, markItems, SopDialog, TagDialog } from "./menus.js";
+import { act, LEARN_KEYS, MoveDialog, markItems, SopDialog, TagDialog } from "./menus.js";
 
 /** A player both the moments and the transcript can drive. */
 interface Player {
@@ -651,7 +652,8 @@ export function ItemView({ id, back }: { id: string; back: string }) {
   const { rail } = useRail();
   const item = load.data;
   const [now, setNow] = useState(0);
-  const [dialog, setDialog] = useState<"move" | "tag" | "sop" | "keys" | null>(null);
+  const [dialog, setDialog] = useState<"move" | "tag" | "sop" | null>(null);
+  usePageKeys(LEARN_KEYS);
   const player = useRef<Player | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -706,7 +708,6 @@ export function ItemView({ id, back }: { id: string; back: string }) {
         });
       else if (k === "m") run(() => setDialog("move"));
       else if (k === "t") run(() => setDialog("tag"));
-      else if (k === "?") run(() => setDialog("keys"));
       else if (k === "Escape" || k === "u") run(() => navigate(back));
     };
     addEventListener("keydown", onKey);
@@ -962,8 +963,6 @@ export function ItemView({ id, back }: { id: string; back: string }) {
         />
       ) : dialog === "sop" ? (
         <SopDialog ids={[item.id]} onClose={() => setDialog(null)} />
-      ) : dialog === "keys" ? (
-        <KeysDialog onClose={() => setDialog(null)} />
       ) : null}
     </article>
   );

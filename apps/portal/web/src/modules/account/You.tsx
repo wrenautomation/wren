@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
+import { DisplaySection } from "../settings/Display.js";
 import { BODY, ERROR, QUIET, TOOLS, useAct } from "../work/bits.js";
 import { Dictation } from "./dictation.js";
 import { usePeople, useRecap } from "./load.js";
@@ -111,6 +112,7 @@ export function You(props: PageProps) {
           </div>
         ) : null}
       </Section>
+      <DisplaySection />
     </>
   );
 }

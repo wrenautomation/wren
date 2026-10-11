@@ -14,6 +14,7 @@ import {
   can,
   Empty,
   Gate,
+  LOOK_PREF,
   LoadFailed,
   Loading,
   moved,
@@ -31,6 +32,7 @@ import {
   type Theme,
   Toasts,
   togglePin,
+  useDisplay,
   usePref,
   type Viewer,
 } from "@wren/ui";
@@ -42,6 +44,7 @@ import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
+import { LookProvider } from "./look-pref.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
@@ -58,6 +61,9 @@ const STAMP = "/wren-icon.png";
 const WORKSPACE_KEY = "wren.portal.workspace";
 const THEME_KEY = "wren.portal.theme";
 const AS_CLIENT_KEY = "wren.portal.asClient";
+/** A link under the Layout settings. */
+const MORE_LINK =
+  "text-(--ui-ink-2) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:text-(--ui-ink)";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
 /** A tab's link: a filter across both pages (Content's platform) goes along. */
@@ -335,6 +341,11 @@ export function App() {
   const keeper =
     current && !sample ? keepOf(wren ? null : current.id, { app: "", asClient: !team }) : undefined;
   const rail = usePref<RailPref>(keeper, RAIL_PREF);
+  // Wren's team keeps one layout and one look of his own at Wren, in every workspace; a client
+  // keeps a layout per workspace. A sample keeps it in the browser.
+  const mine = operator ? keepOf(null, { app: "", asClient: false }) : keeper;
+  const display = useDisplay(mine);
+  const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
   // Quick capture (N, ⌘K "Note: …") where this login has Notes, never on a sample or under View as.
   const noteAt =
     current && !sample && !viewingAs && apps.some((m) => m.id === "notes") ? current.id : null;
@@ -390,7 +401,10 @@ export function App() {
     keep(WORKSPACE_KEY, named);
   }, [named]);
 
-  const theme = useLook(route.params, clients.find((c) => c.id === current?.id)?.look);
+  const theme = useLook(
+    route.params,
+    wren ? myLook.value : clients.find((c) => c.id === current?.id)?.look,
+  );
   const waiting = useWaiting(
     cards,
     current?.id,
@@ -577,6 +591,15 @@ export function App() {
           }
           page={open ? pathOf(open.module, open.page) : "/"}
           theme={theme}
+          display={display}
+          customize={
+            wren ? (
+              <a className={MORE_LINK} href="/settings/look">
+                Colors and type
+              </a>
+            ) : null
+          }
+          onGo={navigate}
           wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
         >
           {!current ? (
@@ -596,19 +619,21 @@ export function App() {
             </Empty>
           ) : open ? (
             <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
-              <Suspense fallback={<Loading lines={8} heading />}>
-                {"Page" in open.page ? (
-                  <open.page.Page {...props(current.id)} />
-                ) : (
-                  <TemplatePage
-                    {...props(current.id)}
-                    app={open.module.name}
-                    page={open.page}
-                    path={pathOf(open.module, open.page)}
-                    id={route.path[2]}
-                  />
-                )}
-              </Suspense>
+              <LookProvider value={wren ? myLook : null}>
+                <Suspense fallback={<Loading lines={8} heading />}>
+                  {"Page" in open.page ? (
+                    <open.page.Page {...props(current.id)} />
+                  ) : (
+                    <TemplatePage
+                      {...props(current.id)}
+                      app={open.module.name}
+                      page={open.page}
+                      path={pathOf(open.module, open.page)}
+                      id={route.path[2]}
+                    />
+                  )}
+                </Suspense>
+              </LookProvider>
             </Contained>
           ) : wren ? (
             <WrenToday apps={cards} waiting={waiting} pins={pins} props={props(current.id)} />

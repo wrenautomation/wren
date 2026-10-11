@@ -2,6 +2,7 @@
  * The portal's apps, in this order within each sidebar area (areas.ts): a client's work first, then each product, the
  * Marketplace, then Wren's own (Wren's workspace only). Account is a menu app, never a card.
  */
+
 import type { Module } from "../module.js";
 import { account } from "./account/index.js";
 import { calendar, clientCalendar } from "./calendar/index.js";
@@ -15,6 +16,7 @@ import { marketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
 import { payments } from "./payments/index.js";
 import { reactivation } from "./reactivation/index.js";
+import { settings } from "./settings/index.js";
 import { clientSites, sites } from "./sites/index.js";
 import { texts } from "./texts/index.js";
 import { voice } from "./voice/index.js";
@@ -51,6 +53,7 @@ export const MODULES: Module[] = [
   clientCalendar,
   calendar,
   voice,
+  settings,
   account,
 ];
 

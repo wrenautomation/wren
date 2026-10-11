@@ -29,6 +29,7 @@ export {
   moved,
   type PinLine,
   PinnedRow,
+  type Pref,
   RAIL_PREF,
   type RailPref,
   togglePin,
@@ -50,6 +51,13 @@ export {
 } from "./dictate.js";
 export { joinDictated } from "./dictate-text.js";
 export { Diff, pairsOf } from "./diff.js";
+export {
+  DISPLAY,
+  DISPLAY_PREF,
+  type Display,
+  LOOK_PREF,
+  readDisplay,
+} from "./display.js";
 export {
   type DraftEditor,
   type DraftEditorProps,
@@ -99,6 +107,21 @@ export {
 export { type FlowEdit, FlowMap, type MapBox } from "./flow-map.js";
 export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
+export {
+  type DisplayControl,
+  DisplayPanel,
+  FRAME_KEYS,
+  Key,
+  type KeyLine,
+  KeyList,
+  type KeySection,
+  KeysSheet,
+  LIST_KEYS,
+  showKeys,
+  useDisplay,
+  useFrame,
+  usePageKeys,
+} from "./frame.js";
 export {
   edgeId,
   GRAPH_DROP,
