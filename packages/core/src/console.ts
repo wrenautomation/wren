@@ -103,7 +103,7 @@ import {
   stopExperiments,
 } from "./experiment-store.js";
 import { addFlag, type EdgePush, type FlagInput, flagRecord, removeFlags } from "./flag-store.js";
-import { roleFits, spendGrant } from "./grants.js";
+import { roleFits, roleRefusal, spendGrant } from "./grants.js";
 import { inHouseOfPart } from "./in-house.js";
 import { accountsLacking, blockOf, has, installCheck, lacking } from "./installs.js";
 import {
@@ -130,6 +130,7 @@ import {
   type SignedViewer,
   seesInternal,
   teamCan,
+  teamSeat,
   whoIs,
 } from "./portal.js";
 import {
@@ -2390,6 +2391,33 @@ export function consoleApi({
     if (unknown.length) throw new PortalRefusal(`no such client: ${unknown.join(", ")}`, 400);
     return list;
   };
+  /**
+   * A seat change by a teammate below admin (a manager holding `team`): the role given and the
+   * one it replaces must both be ones they could hand out, and the clients only ones they see.
+   */
+  const seatFits = async (
+    tx: Queryable,
+    req: PortalRequest,
+    email: string,
+    role: string | undefined,
+    list: string[] | null | undefined,
+  ) => {
+    const by = await whoIs(main, req.viewer);
+    if (by && "team" in by && by.team === "admin") return;
+    const was = await teamSeat(main, email);
+    for (const r of [role ?? (was ? undefined : "operator"), was?.role]) {
+      const no = r ? await roleRefusal(tx, by, r, WREN) : null;
+      if (no) throw new PortalRefusal(no, 403);
+    }
+    const mine = by && "team" in by ? by.clients : [];
+    const given = list === undefined && !was ? null : list;
+    if (
+      mine !== null &&
+      given !== undefined &&
+      (given === null || given.some((c) => !mine.includes(c)))
+    )
+      throw new PortalRefusal("you can only give clients you see yourself", 403);
+  };
   const componentOf = (req: ComponentRequest): Component => {
     const c = components.find((x) => x.id === req.component);
     if (!c) throw new PortalRefusal("no such component", 404);
@@ -2807,6 +2835,7 @@ export function consoleApi({
         if (role !== undefined && (typeof role !== "string" || !(await roleFits(tx, role, WREN))))
           throw new PortalRefusal(`role: one of ${TEAM_ROLES.join(", ")}, or one of Wren's`, 400);
         const list = await clientsOf(tx, req.clients);
+        await seatFits(tx, req, email, role, list);
         return setTeamSeat(tx, email, {
           ...(role ? { role } : {}),
           ...(list === undefined ? {} : { clients: list }),
@@ -2814,6 +2843,7 @@ export function consoleApi({
       }),
     teamRemove: (req: TeamSeatRequest) =>
       teamWrite(req, async (tx, email) => {
+        await seatFits(tx, req, email, undefined, undefined);
         if (!(await removeTeamSeat(tx, email)))
           throw new PortalRefusal("they aren't on the team", 404);
         return { removed: email };

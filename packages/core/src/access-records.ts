@@ -226,6 +226,7 @@ function managed(o: AccessReader): RecordType[] {
     views: [{ id: "all", label: "All" }],
     actions: [
       "access.roleNew",
+      "access.roleManager",
       "access.roleCopy",
       "access.roleGrant",
       "access.roleGive",

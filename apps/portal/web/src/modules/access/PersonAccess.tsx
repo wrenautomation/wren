@@ -21,7 +21,13 @@ const VERBS: [Permission, string][] = [
   ["comment", "Raise issues"],
   ["act", "Act"],
   ["run", "Run"],
+  ["manage", "Manage access"],
 ];
+/** Each side's own: Wren's team page, a client's money. Never more than the granter holds. */
+const SIDE_VERBS: Record<"wren" | "client", [Permission, string][]> = {
+  wren: [["team", "Manage the team"]],
+  client: [["money", "Money"]],
+};
 
 /** The days a grant can last, from today. */
 const LONG: [string, string][] = [
@@ -163,12 +169,14 @@ export function PersonAccess({
             <fieldset className={`${FIELD} basis-full`}>
               <legend className="mb-1.5">They can</legend>
               <div className="flex flex-wrap gap-3 text-[14px] text-(--ui-ink)">
-                {VERBS.map(([v, label]) => (
-                  <label key={v} className="flex items-center gap-1.5">
-                    <input type="checkbox" name="verbs" value={v} defaultChecked={v === "act"} />
-                    {label}
-                  </label>
-                ))}
+                {[...VERBS, ...SIDE_VERBS[client === WREN.id ? "wren" : "client"]].map(
+                  ([v, label]) => (
+                    <label key={v} className="flex items-center gap-1.5">
+                      <input type="checkbox" name="verbs" value={v} defaultChecked={v === "act"} />
+                      {label}
+                    </label>
+                  ),
+                )}
               </div>
             </fieldset>
             <label className={FIELD}>

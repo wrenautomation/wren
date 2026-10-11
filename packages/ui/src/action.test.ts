@@ -129,6 +129,14 @@ describe("typedOf: a form's text as the input it sends", () => {
     expect(() => typedOf(FORM, { extra: "{" })).toThrow("Extra: not JSON");
   });
 
+  it("sends a pick as a list, and none picked as nothing", () => {
+    const form: FormField[] = [
+      { field: "verbs", label: "They can", type: "pick", options: ["read", "act"] },
+      { field: "apps", label: "In apps", type: "pick", optional: true, options: ["work"] },
+    ];
+    expect(typedOf(form, { verbs: "read,act", apps: "" })).toEqual({ verbs: ["read", "act"] });
+  });
+
   it("sends a text form as typed", () => {
     const form: FormField[] = [
       { field: "name", label: "Name" },

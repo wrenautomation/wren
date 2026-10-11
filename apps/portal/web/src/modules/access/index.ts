@@ -4,7 +4,8 @@
  * The console serves the four types for either; each action names its console handler, and
  * `ONE` in ../../records.tsx turns a row's id into its call.
  */
-import type { Action } from "@wren/ui";
+import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/core/access";
+import type { Action, FormField } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 
 const said = (word: string) => () => word;
@@ -12,15 +13,51 @@ const said = (word: string) => () => word;
 const MANAGE = { needs: "manage", at: {} } as const;
 const ANYONE = { needs: "read", at: {} } as const;
 
-const VERBS_HINT = "Any of: read, comment, act, run. Split by commas.";
-const APPS_HINT = "App ids split by commas, such as marketing. Blank is every app.";
-const CHANNELS_HINT = "Such as youtube or linkedin. Blank is every channel.";
+/** What each side may hand out: money and sends stay with Wren's admins; `team` is Wren's only. */
+const VERBS = {
+  wren: ["read", "comment", "act", "run", "manage", "team"],
+  client: ["read", "comment", "act", "money", "manage"],
+} as const satisfies Record<string, readonly Permission[]>;
+const VERB_LABELS: Readonly<Record<string, string>> = {
+  read: "See",
+  comment: "Comment",
+  act: "Act",
+  run: "Run",
+  manage: "Manage access",
+  team: "Manage the team",
+  money: "Money",
+};
+/** A semi-admin: people and access, never money or sends. */
+const MANAGER = { wren: "read,comment,act,run,manage,team", client: "read,comment,act,manage" };
 
-const grantForm = [
-  { field: "verbs", label: "They can", hint: VERBS_HINT },
-  { field: "apps", label: "In apps", optional: true, hint: APPS_HINT },
-  { field: "channels", label: "On channels", optional: true, hint: CHANNELS_HINT },
-] as const;
+const grantForm = (wren: boolean): FormField[] => [
+  {
+    field: "verbs",
+    label: "They can",
+    type: "pick",
+    options: VERBS[wren ? "wren" : "client"],
+    labels: VERB_LABELS,
+    hint: "Only what you hold yourself.",
+  },
+  {
+    field: "apps",
+    label: "In apps",
+    type: "pick",
+    optional: true,
+    options: Object.keys(APPS),
+    labels: APPS,
+    hint: "None picked is every app.",
+  },
+  {
+    field: "channels",
+    label: "On channels",
+    type: "pick",
+    optional: true,
+    options: ACCESS_CHANNELS,
+    labels: CHANNEL_NAMES,
+    hint: "None picked is every channel.",
+  },
+];
 
 /** The role actions; giving a role is the team's seat at Wren, a membership at a client. */
 export function roleActions(wren: boolean): Action[] {
@@ -32,10 +69,34 @@ export function roleActions(wren: boolean): Action[] {
       requires: MANAGE,
       form: [
         { field: "name", label: "Name" },
-        ...grantForm,
+        ...grantForm(wren),
         { field: "about", label: "About", optional: true, type: "long" },
       ],
       done: said("Role made"),
+    },
+    {
+      // A manager to pass access on to: people and access, no money or sends.
+      id: "access.roleManager",
+      label: "New manager role",
+      handler: "console/roleSave",
+      requires: MANAGE,
+      form: [
+        { field: "name", label: "Name", from: () => "Manager" },
+        ...grantForm(wren).map((f) =>
+          f.field === "verbs" ? { ...f, from: () => MANAGER[wren ? "wren" : "client"] } : f,
+        ),
+        {
+          field: "about",
+          label: "About",
+          optional: true,
+          type: "long",
+          from: () =>
+            wren
+              ? "Runs the team and access. No money or sends."
+              : "Runs people and access. No money.",
+        },
+      ],
+      done: said("Manager role made"),
     },
     {
       id: "access.roleCopy",
@@ -55,7 +116,7 @@ export function roleActions(wren: boolean): Action[] {
       requires: MANAGE,
       each: true,
       when: { kind: ["custom"] },
-      form: [...grantForm],
+      form: grantForm(wren),
       done: said("Added"),
     },
     {
@@ -87,7 +148,7 @@ export function roleActions(wren: boolean): Action[] {
   ];
 }
 
-export const GRANT_ACTIONS: Action[] = [
+export const grantActions = (wren: boolean): Action[] => [
   {
     id: "access.grantAdd",
     label: "Add grant",
@@ -95,7 +156,7 @@ export const GRANT_ACTIONS: Action[] = [
     requires: MANAGE,
     form: [
       { field: "email", label: "Their email" },
-      ...grantForm,
+      ...grantForm(wren),
       {
         field: "record",
         label: "One record",
@@ -177,7 +238,7 @@ export function managePages(wren: boolean): ListPage[] {
         all: "Grants show here once someone gets one.",
       },
       columns: ["email", "what", "state", "until", "by"],
-      actions: GRANT_ACTIONS,
+      actions: grantActions(wren),
     },
     {
       id: "review",

@@ -73,7 +73,8 @@ function stateOf(d: DomainView): string {
   return `Not live yet (${d.status}, certificate ${d.sslStatus}).`;
 }
 
-export function Domain(props: PageProps) {
+/** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
+export function Domain(props: PageProps & { bare?: boolean }) {
   const [nonce, setNonce] = useState(0);
   const load = useCall(`domains:${props.client}:${props.team}:${nonce}`, () =>
     call<Domains>("delivery/domains", { client: props.client, asClient: !props.team }),
@@ -90,10 +91,12 @@ export function Domain(props: PageProps) {
 
   return (
     <>
-      <PageHeader
-        title="Domain"
-        lede="Open this portal at your own address, like portal.yourfirm.com. You add one DNS record and we handle the certificate."
-      />
+      {props.bare ? null : (
+        <PageHeader
+          title="Domain"
+          lede="Open this portal at your own address, like portal.yourfirm.com. You add one DNS record and we handle the certificate."
+        />
+      )}
       <Section>
         {load.error && !data ? (
           <LoadFailed error={load.error} onRetry={load.retry} />

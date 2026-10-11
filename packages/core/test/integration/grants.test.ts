@@ -23,6 +23,7 @@ import {
   grantsFor,
   removeRole,
   roleFits,
+  roleRefusal,
   rolesIn,
   saveRole,
   spendGrant,
@@ -199,5 +200,32 @@ describe("handing out", () => {
       sql`select until <= now() ended from grants where id = ${id}`,
     );
     expect(row?.ended).toBe(true);
+  });
+});
+
+describe("a manager passes on no more than they hold", () => {
+  it("gives member and viewer, never owner (money) or a wider custom role", async () => {
+    const { id: manager } = await pg.db.transaction(async (tx) =>
+      saveRole(tx, await admin(), ADMIN, {
+        client: "acme",
+        name: "Manager",
+        grants: [{ verbs: ["read", "act", "comment", "manage"] }],
+      }),
+    );
+    await addMember(pg.db, "acme", "mia@acme.test", { role: manager });
+    const mia = await whoIs(pg.db, { email: "mia@acme.test" }, "acme");
+    expect(can(mia, "manage", { client: "acme" })).toBe(true);
+    expect(await roleRefusal(pg.db, mia, "member", "acme")).toBeNull();
+    expect(await roleRefusal(pg.db, mia, manager, "acme")).toBeNull();
+    expect(await roleRefusal(pg.db, mia, "owner", "acme")).toBe("you can't money there yourself");
+    expect(await roleRefusal(pg.db, mia, "owner", "beta")).toBe("you don't manage that");
+  });
+
+  it("at Wren, only an admin gives admin", async () => {
+    await setTeamSeat(pg.db, "tia@example.test", { role: "operator" });
+    const tia = await whoIs(pg.db, { email: "tia@example.test" });
+    expect(await roleRefusal(pg.db, tia, "admin", WREN)).toBe("only an admin gives that");
+    expect(await roleRefusal(pg.db, await admin(), "admin", WREN)).toBeNull();
+    expect(await roleRefusal(pg.db, tia, "viewer", WREN)).toBe("you don't manage that");
   });
 });

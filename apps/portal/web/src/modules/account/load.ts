@@ -15,5 +15,11 @@ export const useRecap = (p: PageProps) =>
 
 export const usePeople = (p: PageProps, nonce: number) =>
   useCall(`people:${p.client}:${p.team}:${nonce}`, () =>
-    ask<{ people: MemberView[]; canManage: boolean; mail: MailLevel | null }>("people", p),
+    ask<{
+      people: MemberView[];
+      canManage: boolean;
+      /** The roles an invite picks from; older workers send none. */
+      roles?: { id: string; name: string }[];
+      mail: MailLevel | null;
+    }>("people", p),
   );

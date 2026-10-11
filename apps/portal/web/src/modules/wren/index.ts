@@ -9,7 +9,9 @@ import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
+import { Domain } from "../account/Domain.js";
 import { ClientLook } from "../account/Look.js";
+import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
 import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marketing/index.js";
@@ -945,16 +947,24 @@ export const clients: Module = {
       record: "console.client",
       empty: "Clients show here once you add one.",
       actions: CLIENT_ACTIONS,
-      // Its portal look: the demo's too, so the demo can show one.
-      extras: (_, { row }) => ({
-        sections: [
-          ["Health", createElement(ClientHealth, { client: String(row.id) })],
-          ["Templates", createElement(ClientTemplates, { client: String(row.id) })],
-          ["Components", createElement(ClientComponents, { client: String(row.id) })],
-          ["Accounts", createElement(ClientAccounts, { client: String(row.id) })],
-          ["Look", createElement(ClientLook, { client: String(row.id) })],
-        ],
-      }),
+      // The subaccount, set up from here: its people and roles, apps, look and domain. Its
+      // portal look shows on the demo too, so the demo can show one.
+      extras: (_, { row }) => {
+        const client = String(row.id);
+        const as = { client, demo: false, team: true, params: new URLSearchParams(), bare: true };
+        const real = row.kind === "client";
+        return {
+          sections: [
+            ["Health", createElement(ClientHealth, { client })],
+            ["People", real ? createElement(People, as) : "A demo has no people."],
+            ["Templates", createElement(ClientTemplates, { client })],
+            ["Components", createElement(ClientComponents, { client })],
+            ["Accounts", createElement(ClientAccounts, { client })],
+            ["Look", createElement(ClientLook, { client })],
+            ["Domain", real ? createElement(Domain, as) : "A demo keeps Wren's address."],
+          ],
+        };
+      },
     },
     {
       id: "health",
@@ -1010,6 +1020,7 @@ export const clients: Module = {
 const ROLES = ["operator", "viewer", "admin"] as const;
 const CLIENTS_HINT =
   'Client ids split by commas, and "wren" for Wren\'s own apps. Blank is every client.';
+const ROLE_HINT = "A custom role, like a manager: Roles, then Give to.";
 const TEAM_ACTS: Action[] = [
   {
     id: "console.teamInvite",
@@ -1017,7 +1028,7 @@ const TEAM_ACTS: Action[] = [
     handler: "console/teamSet",
     form: [
       { field: "email", label: "Their work email", hint: "They sign in with it." },
-      { field: "role", label: "Role", options: ROLES },
+      { field: "role", label: "Role", type: "select", options: ROLES, hint: ROLE_HINT },
       { field: "clients", label: "Clients", optional: true, hint: CLIENTS_HINT },
     ],
     done: () => "Invited",
@@ -1027,7 +1038,7 @@ const TEAM_ACTS: Action[] = [
     label: "Change role",
     handler: "console/teamRole",
     each: true,
-    form: [{ field: "role", label: "Role", options: ROLES }],
+    form: [{ field: "role", label: "Role", type: "select", options: ROLES, hint: ROLE_HINT }],
     done: said("Role changed"),
   },
   {

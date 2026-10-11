@@ -4,6 +4,7 @@
  * or hidden update, and no id of one client's reaches another's.
  */
 import { addMember, clients } from "@wren/core/clients";
+import { saveRole } from "@wren/core/grants";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -453,6 +454,30 @@ describe("people", () => {
     expect((await api.people({ viewer: AMY })).canManage).toBe(true);
   });
 
+  it("a manager invites and removes within their own grants, never an owner", async () => {
+    const { id: manager } = await saveRole(pg.db, { team: "admin", clients: null }, OPS.email, {
+      client: "acme",
+      name: "Manager",
+      grants: [{ verbs: ["read", "act", "comment", "manage"] }],
+    });
+    await api.invite({ viewer: AMY, email: "max@acme.example", role: manager });
+    const MAX: Viewer = { email: "max@acme.example" };
+    const seen = await api.people({ viewer: MAX });
+    expect(seen.canManage).toBe(true);
+    expect(seen.roles.map((r) => r.id)).toContain(manager);
+    expect(await api.invite({ viewer: MAX, email: "eve@acme.example" })).toMatchObject({
+      role: "member",
+    });
+    expect(
+      await refused(api.invite({ viewer: MAX, email: "eve@acme.example", role: "owner" })),
+    ).toBe(403);
+    expect(await refused(api.remove({ viewer: MAX, email: "amy@acme.example" }))).toBe(403);
+    expect(await api.remove({ viewer: MAX, email: "eve@acme.example" })).toEqual({
+      removed: "eve@acme.example",
+    });
+    await api.remove({ viewer: AMY, email: "max@acme.example" });
+  });
+
   it("keeps the last owner, refuses bad emails and other clients' owners", async () => {
     expect(await refused(api.remove({ viewer: AMY, email: "amy@acme.example" }))).toBe(409);
     expect(
@@ -668,6 +693,7 @@ describe("the demo", () => {
     expect(await api.people({ viewer: DEMO })).toEqual({
       people: [],
       canManage: false,
+      roles: [],
       mail: null,
     });
   });

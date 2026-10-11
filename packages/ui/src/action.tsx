@@ -27,7 +27,7 @@ export interface FormField {
   label: string;
   /**
    * Left out: a line of text. A file is sent as the `File`; the `Call` puts it up. `lines` and
-   * `numbers` are one item per line, `json` any JSON value.
+   * `numbers` are one item per line, `json` any JSON value, `pick` any of `options` as a list.
    */
   type?:
     | "long"
@@ -39,9 +39,10 @@ export interface FormField {
     | "select"
     | "lines"
     | "numbers"
+    | "pick"
     | "json";
   optional?: true;
-  /** A select's choices. */
+  /** A select's or a pick's choices. */
   options?: readonly string[];
   /** A choice as people read it, by value; the value itself when absent. */
   labels?: Readonly<Record<string, string>>;
@@ -222,6 +223,8 @@ function sentOf(f: FormField, text: string): unknown {
         Number.isFinite(Number(l)) ? Number(l) : bad(`${l} is not a number`),
       );
     }
+    case "pick":
+      return text.split(",").filter(Boolean);
     case "json":
       try {
         return JSON.parse(text);
@@ -304,6 +307,8 @@ export function FormBox({
           </option>
         ))}
       </select>
+    ) : f.type === "pick" ? (
+      <PickBox id={id} f={f} value={value} onText={onText} />
     ) : f.type === "long" || f.type === "lines" || f.type === "numbers" || f.type === "json" ? (
       <DictateField target={longBox} off={f.type !== "long"}>
         <Textarea
@@ -353,6 +358,45 @@ export function FormBox({
       )}
       {hint ? <p className="text-(--ui-ink-2)">{hint}</p> : null}
     </div>
+  );
+}
+
+const PICK =
+  "h-7 rounded-(--ui-radius) border border-(--ui-line) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:border-(--ui-accent) aria-pressed:bg-(--ui-accent)/10 aria-pressed:font-medium aria-pressed:text-(--ui-ink)";
+
+/** Any of a few choices, as toggles; kept as their values split by commas, in `options` order. */
+function PickBox({
+  id,
+  f,
+  value,
+  onText,
+}: {
+  id: string;
+  f: FormField;
+  value: string;
+  onText: (text: string) => void;
+}) {
+  const on = new Set(value.split(",").filter(Boolean));
+  const flip = (o: string) => {
+    const next = new Set(on);
+    if (next.has(o)) next.delete(o);
+    else next.add(o);
+    onText((f.options ?? []).filter((x) => next.has(x)).join(","));
+  };
+  return (
+    <fieldset id={id} className="m-0 flex min-w-0 flex-wrap gap-1.5 border-0 p-0">
+      {(f.options ?? []).map((o) => (
+        <button
+          key={o}
+          type="button"
+          aria-pressed={on.has(o)}
+          className={PICK}
+          onClick={() => flip(o)}
+        >
+          {f.labels?.[o] ?? o}
+        </button>
+      ))}
+    </fieldset>
   );
 }
 

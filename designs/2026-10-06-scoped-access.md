@@ -163,3 +163,10 @@ LinkedIn this week, and may publish one post once.
   read off `can` across every channel, apps with the same line grouped, the biggest group as
   "Every other app", plus their grants ending this week. Its tab counts those. The local preview
   runs the guard per call with `--as`, so custom roles answer there as they do live.
+- 2026-10-11: managers. William: "semi admin managers", "passing on permissions" in the UI.
+  "New manager role" on Roles (Wren: read, comment, act, run, manage, team; a client: read,
+  comment, act, manage). Anyone holding `manage` at a client invites and removes there, not only
+  owners. Giving, changing or removing a role runs `roleRefusal`: every grant in it must be one
+  the giver could hand out, so a manager can't make an owner (money) and only an admin makes or
+  unmakes an admin. At Wren a manager also gives only clients their own seat sees. Grant forms
+  pick verbs, apps and channels from lists. Clients → a client shows its People and Domain.

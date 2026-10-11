@@ -346,6 +346,28 @@ export async function roleFits(db: Queryable, role: string, client: string): Pro
   return r?.client === client;
 }
 
+/**
+ * Why `by` may not give `role` at `client` (or change or remove someone who holds it), or null
+ * when they may: each of its grants must be one they could hand out, so a manager passes on
+ * no more than they hold. Only an admin makes or unmakes an admin.
+ */
+export async function roleRefusal(
+  db: Queryable,
+  by: Who,
+  role: string,
+  client: string,
+): Promise<string | null> {
+  if (role === "admin")
+    return by && "team" in by && by.team === "admin" ? null : "only an admin gives that";
+  const r = (await rolesIn(db, client)).find((x) => x.id === role);
+  if (!r) return "no such role here";
+  for (const g of r.grants) {
+    const no = refusal(by, { verbs: g.verbs, scope: { ...g.scope, client } });
+    if (no) return no;
+  }
+  return null;
+}
+
 const slug = (s: string) =>
   s
     .toLowerCase()

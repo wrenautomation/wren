@@ -5,7 +5,7 @@
  * Wren's team. The demo reads its sample and writes nothing.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import type { Permission, RoleId } from "@wren/core/access";
+import { can, type Permission, type RoleId } from "@wren/core/access";
 import {
   addMember,
   type Client,
@@ -18,7 +18,7 @@ import {
   normalEmail,
   removeMember,
 } from "@wren/core/clients";
-import { roleFits } from "@wren/core/grants";
+import { roleFits, roleRefusal, rolesIn } from "@wren/core/grants";
 import {
   answer,
   canAt,
@@ -35,6 +35,7 @@ import {
   type SignedViewer,
   seesInternal,
   teamCan,
+  whoIs,
 } from "@wren/core/portal";
 import { metaOf, type RecordMeta } from "@wren/core/records";
 import {
@@ -175,17 +176,40 @@ const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) 
 async function write<T>(
   deps: DeliveryDeps,
   req: PortalRequest,
-  who: "client" | "owner" | "team",
+  who: "client" | "owner" | "people" | "team",
   change: (db: Queryable, client: Client, viewer: SignedViewer) => Promise<T>,
 ): Promise<T> {
   const { client, viewer } = await pickForWrite(deps.main, req);
   if (who === "team" && !viewer.operator) throw new PortalRefusal("that's for Wren's team", 403);
   if (who === "owner" && !viewer.operator && !(await isOwner(deps.main, client.id, viewer.email)))
     throw new PortalRefusal("only an owner of this account can do that", 403);
+  // People: an owner, or anyone handed `manage` here (a manager).
+  if (
+    who === "people" &&
+    !viewer.operator &&
+    !can(await whoIs(deps.main, viewer, client.id), "manage", { client: client.id })
+  )
+    throw new PortalRefusal("you don't manage people here", 403);
   return serializable(deps.main, async (tx) => {
     await setAuditActor(tx, viewer.email);
     return change(tx, client, viewer);
   });
+}
+
+/** A manager gives, changes or removes only roles they could hand out; Wren's team any. */
+async function mayGive(
+  db: Queryable,
+  deps: DeliveryDeps,
+  v: SignedViewer,
+  client: string,
+  roles: readonly (string | undefined)[],
+) {
+  if (v.operator) return;
+  const by = await whoIs(deps.main, v, client);
+  for (const r of roles) {
+    const no = r ? await roleRefusal(db, by, r, client) : null;
+    if (no) throw new PortalRefusal(no, 403);
+  }
 }
 
 /** A project always keeps an owner: someone has to be able to invite. */
@@ -562,9 +586,14 @@ export function deliveryApi(deps: DeliveryDeps) {
     /** Who sees this client. The demo lists nobody: its members are real people. */
     people: async (
       req: PortalRequest,
-    ): Promise<{ people: MemberView[]; canManage: boolean; mail: MailLevel | null }> => {
+    ): Promise<{
+      people: MemberView[];
+      canManage: boolean;
+      roles: { id: string; name: string }[];
+      mail: MailLevel | null;
+    }> => {
       const client = await pickClient(deps.main, req);
-      if (isDemo(req.viewer)) return { people: [], canManage: false, mail: null };
+      if (isDemo(req.viewer)) return { people: [], canManage: false, roles: [], mail: null };
       const rows = await listMembers(deps.main, client.id);
       const me = normalEmail(req.viewer.email);
       return {
@@ -577,7 +606,9 @@ export function deliveryApi(deps: DeliveryDeps) {
         })),
         canManage: seesInternal(req)
           ? teamCan(req, "manage", client.id)
-          : rows.some((m) => m.email === me && m.role === "owner"),
+          : can(await whoIs(deps.main, req.viewer, client.id), "manage", { client: client.id }),
+        // The roles an invite picks from: the built-ins, then this client's own (a manager, say).
+        roles: (await rolesIn(deps.main, client.id)).map((r) => ({ id: r.id, name: r.name })),
         mail: rows.some((m) => m.email === me) ? await mailLevelOf(deps.main, client.id, me) : null,
       };
     },
@@ -592,11 +623,12 @@ export function deliveryApi(deps: DeliveryDeps) {
     },
     /** Let an email sign in and see this client; again changes their role. */
     invite: (req: PortalRequest & { email: string; role?: RoleId }) =>
-      write(deps, req, "owner", async (db, c, v) => {
+      write(deps, req, "people", async (db, c, v) => {
         const email = emailOf(req.email);
         const role = await roleOf(db, c.id, req.role);
         if (role !== "owner") await keepAnOwner(db, c.id, email);
         const was = (await listMembers(db, c.id)).find((m) => m.email === email)?.role;
+        await mayGive(db, deps, v, c.id, [role, was]);
         const m = await addMember(db, c.id, email, { role, invitedBy: v.email });
         // Demoted, or moved to or from a custom role: signed out, so the next token is fresh.
         const rank = (r: string) => MEMBER_ROLES.indexOf(r as MemberRole);
@@ -605,8 +637,10 @@ export function deliveryApi(deps: DeliveryDeps) {
         return { email: m.email, role: m.role };
       }),
     remove: (req: PortalRequest & { email: string }) =>
-      write(deps, req, "owner", async (db, c) => {
+      write(deps, req, "people", async (db, c, v) => {
         const email = emailOf(req.email);
+        const was = (await listMembers(db, c.id)).find((m) => m.email === email)?.role;
+        await mayGive(db, deps, v, c.id, [was]);
         await keepAnOwner(db, c.id, email);
         if (!(await removeMember(db, c.id, email)))
           throw new PortalRefusal("they don't see this project", 404);

@@ -1,4 +1,4 @@
-/** People: who sees this account's projects. An owner invites and removes. */
+/** People: who sees this account's projects. An owner or a manager invites and removes. */
 import { Button, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
@@ -20,20 +20,32 @@ import { usePeople } from "./load.js";
 
 const BUILT_IN: Record<string, string> = { owner: "Owner", viewer: "Viewer" };
 
-export function People(props: PageProps) {
+/** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
+export function People(props: PageProps & { bare?: boolean }) {
   const [nonce, setNonce] = useState(0);
   const people = usePeople(props, nonce);
   const act = useAct(props, () => setNonce((n) => n + 1));
   const manage = people.data?.canManage ?? false;
+  // Built-ins first, then the account's own roles; a role's name by its id for the tags.
+  const roles = people.data?.roles?.length
+    ? people.data.roles
+    : [
+        { id: "member", name: "Member" },
+        { id: "viewer", name: "Viewer" },
+        { id: "owner", name: "Owner" },
+      ];
+  const roleName = (id: string) => roles.find((r) => r.id === id)?.name ?? BUILT_IN[id] ?? id;
   // Whose access is open below their row.
   const [open, setOpen] = useState<string | null>(null);
 
   return (
     <>
-      <PageHeader
-        title="People"
-        lede="Everyone here sees your projects with Wren. Wren's team does too."
-      />
+      {props.bare ? null : (
+        <PageHeader
+          title="People"
+          lede="Everyone here sees your projects with Wren. Wren's team does too."
+        />
+      )}
       <Section>
         {people.error && !people.data ? (
           <LoadFailed error={people.error} onRetry={people.retry} />
@@ -47,9 +59,7 @@ export function People(props: PageProps) {
               <li key={m.email} className={`${SPLIT} flex-wrap`}>
                 <span>
                   <b>{m.email}</b>{" "}
-                  {m.role === "member" ? null : (
-                    <Tag tone="neutral">{BUILT_IN[m.role] ?? m.role}</Tag>
-                  )}
+                  {m.role === "member" ? null : <Tag tone="neutral">{roleName(m.role)}</Tag>}
                   <span className={`${QUIET} ${BLOCK}`}>
                     {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
                     {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
@@ -92,7 +102,7 @@ export function People(props: PageProps) {
       {manage ? (
         <Section
           title="Invite someone"
-          note="They sign in with this email. Owners invite others and see billing. Viewers only read."
+          note="They sign in with this email. Owners see billing. Viewers only read. A manager role (under Roles) invites and sets access without billing."
         >
           <Form
             label="Invite someone"
@@ -109,15 +119,17 @@ export function People(props: PageProps) {
             <label className={FIELD}>
               <span>Role</span>
               <select className={SELECT} name="role" defaultValue="member">
-                <option value="member">Member</option>
-                <option value="viewer">Viewer</option>
-                <option value="owner">Owner</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
             </label>
           </Form>
         </Section>
       ) : people.data ? (
-        <p className={QUIET}>Ask an owner to invite a teammate.</p>
+        <p className={QUIET}>Ask an owner or a manager to invite a teammate.</p>
       ) : null}
     </>
   );
