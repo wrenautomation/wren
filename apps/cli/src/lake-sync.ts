@@ -273,12 +273,16 @@ async function evolve(c: DuckDBConnection, target: string, probe: string) {
 
 export type DatabaseSync = { owner: string | null; tables: TableResult[]; ms: number };
 
-/** Every table of one database into the lake. A table that fails is reported; the rest go on. */
+/**
+ * Every table of one database into the lake. A table that fails is reported; the rest go on.
+ * `onTable` hears each table as it lands, with its time.
+ */
 export async function syncDatabase(
   lake: Lake,
   databaseUrl: string,
   owner: string | null,
   only?: (t: PgTable) => boolean,
+  onTable?: (r: TableResult, ms: number) => void,
 ): Promise<DatabaseSync> {
   const { c } = lake;
   const started = Date.now();
@@ -311,6 +315,7 @@ export async function syncDatabase(
     for (const t of tables) {
       const schema = lakeSchema(owner, t.schema);
       const name = `${schema}.${t.name}`;
+      const began = Date.now();
       try {
         const { fp, ...r } = await syncTable(c, alias, schema, t, fps.get(name), have.has(name));
         if (fp !== fps.get(name)) moved.set(name, fp);
@@ -325,6 +330,12 @@ export async function syncDatabase(
           removed: 0,
           error: err instanceof Error ? (err.message.split("\n")[0] ?? "") : String(err),
         });
+      }
+      onTable?.(out[out.length - 1] as TableResult, Date.now() - began);
+      // Saved as it goes: a run cut short doesn't diff the same tables again.
+      if (moved.size >= 50) {
+        await saveFingerprints(c, moved);
+        moved.clear();
       }
     }
     await saveFingerprints(c, moved);

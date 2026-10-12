@@ -90,8 +90,17 @@ export function registerLake(program: Command, withMainDb: WithDb, settings: Set
       const only = o.table ? (t: { name: string }) => t.name === o.table : undefined;
       const results = await withLake(settings, {}, async (lake) => {
         const out = [];
-        for (const t of targets) out.push(await syncDatabase(lake, t.url, t.owner, only));
+        for (const [i, t] of targets.entries()) {
+          const db = t.owner === null ? "wren" : o.public ? `client ${i}` : `client ${t.owner}`;
+          let n = 0;
+          // Progress on stderr, so --json stays clean. Public logs get no table names.
+          const progress = (r: { table: string; result: string }, ms: number) =>
+            console.error(`  ${db} ${++n}: ${o.public ? "" : `${r.table} `}${r.result}, ${ms} ms`);
+          out.push(await syncDatabase(lake, t.url, t.owner, only, progress));
+        }
+        const began = Date.now();
         await compact(lake);
+        console.error(`  compacted, ${Date.now() - began} ms`);
         return out;
       });
       if (o.json) return console.log(JSON.stringify(results, null, 2));

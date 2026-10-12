@@ -43,6 +43,8 @@ data "aws_iam_policy_document" "ci_assume" {
 resource "aws_iam_role" "ci" {
   name               = "${local.prefix}-ci"
   assume_role_policy = data.aws_iam_policy_document.ci_assume.json
+  # The lake's first sync of a new database outlasts an hour (lake.yml asks for 4).
+  max_session_duration = 14400
 }
 
 data "aws_iam_policy_document" "ci" {
