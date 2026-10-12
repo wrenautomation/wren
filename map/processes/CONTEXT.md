@@ -15,3 +15,4 @@ One card per movement that actually runs in prod or by a person's command. Each 
 | `delivery-watch` | hourly: client mail (welcome, needs you, Friday digest) → health scores and the flags list |
 | `deploy` | push to main → migrate → Lambda version → Restate register → phone Worker |
 | `migrate` | a schema edit → a SQL file → prod on the next deploy |
+| `lake-sync` | nightly: every database's changed rows → the lake (DuckLake, S3) → warehouse models |

@@ -44,6 +44,7 @@ import { registerFetch } from "./fetch.js";
 import { registerHealth } from "./health.js";
 import { registerHooks } from "./hooks.js";
 import { registerKeys } from "./keys.js";
+import { registerLake } from "./lake.js";
 import { registerLearn } from "./learn.js";
 import { registerNewsletter } from "./newsletter.js";
 import { registerNotes } from "./notes.js";
@@ -119,6 +120,7 @@ const CLIENT_SCOPED = new Set([
   "delivery",
   "sms",
   "hooks",
+  "lake",
   "learn",
   "notes",
   "sites",
@@ -126,7 +128,15 @@ const CLIENT_SCOPED = new Set([
   "workflows",
 ]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
-const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms", "templates sync"]);
+const NOT_PER_CLIENT = new Set([
+  "audit sealer",
+  "sms numbers",
+  "sms forms",
+  "templates sync",
+  "lake build",
+  "lake sql",
+  "lake status",
+]);
 
 const program = new Command("wren")
   .description("Wren automation ops")
@@ -251,6 +261,7 @@ registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerHooks(program, withMainDb);
 registerDlq(program, withMainDb, settings);
+registerLake(program, withMainDb, settings);
 registerNewsletter(program, withMainDb, settings);
 registerWebhooks(program, withMainDb, settings);
 registerKeys(program, withMainDb);

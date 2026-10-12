@@ -1,0 +1,45 @@
+# Nightly: every database's changes into the lake, then the warehouse's models
+# (designs/2026-10-11-lake.md). Logs are public, so `sync --public` names no client.
+# Secrets (production environment): WREN_DATABASE_URL, WREN_LAKE_PATH, AWS_DEPLOY_ROLE_ARN,
+# WREN_DISCORD_WEBHOOK_URL.
+name: lake
+on:
+  schedule: [{ cron: "40 7 * * *" }]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency: { group: lake, cancel-in-progress: false }
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: sync
+        run: pnpm -s wren lake sync --public
+        env:
+          WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
+          WREN_LAKE_PATH: ${{ secrets.WREN_LAKE_PATH }}
+      - name: build
+        run: pnpm -s wren lake build
+        env:
+          WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
+          WREN_LAKE_PATH: ${{ secrets.WREN_LAKE_PATH }}
+      - name: tell Discord
+        if: failure()
+        run: |
+          jq -n --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{content: ("The lake sync failed: " + $url)}' \
+            | curl -fsS -H 'content-type: application/json' -d @- "$WREN_DISCORD_WEBHOOK_URL"
+        env:
+          WREN_DISCORD_WEBHOOK_URL: ${{ secrets.WREN_DISCORD_WEBHOOK_URL }}

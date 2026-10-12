@@ -46,6 +46,13 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^rediss?:\/\//)
     .optional(),
+  /**
+   * The lake's data: Parquet files under `s3://<bucket>/` or a local dir (`wren lake`,
+   * designs/2026-10-11-lake.md). Unset, `wren lake` refuses.
+   */
+  lakePath: z.string().min(1).optional(),
+  /** The lake's catalog: a Postgres URL or a local `.ducklake` file. Unset: `wren_lake` beside main. */
+  lakeCatalogUrl: z.string().min(1).optional(),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
@@ -519,6 +526,8 @@ export const ENV_KEYS = {
   restateAuthToken: "RESTATE_AUTH_TOKEN",
   restateAdminUrl: "WREN_RESTATE_ADMIN_URL",
   cacheUrl: "WREN_CACHE_URL",
+  lakePath: "WREN_LAKE_PATH",
+  lakeCatalogUrl: "WREN_LAKE_CATALOG_URL",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
   robotsMode: "WREN_ROBOTS_MODE",

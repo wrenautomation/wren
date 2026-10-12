@@ -32,6 +32,8 @@ const OPTIONAL = [
   "WREN_LLM_GATEWAY_URL",
   "WREN_LLM_GATEWAY_TOKEN",
   "WREN_POOL_LINKEDIN",
+  // The lake: its bucket (designs/2026-10-11-lake.md); the catalog is wren_lake beside the database.
+  "WREN_LAKE_PATH",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 // `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in
