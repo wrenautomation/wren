@@ -34,6 +34,9 @@ const OPTIONAL = [
   "WREN_POOL_LINKEDIN",
   // The lake: its bucket (designs/2026-10-11-lake.md); the catalog is wren_lake beside the database.
   "WREN_LAKE_PATH",
+  // Our Page and Instagram account: `social push meta` subscribes them.
+  "WREN_META_PAGE_ID",
+  "WREN_META_IG_ID",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 // `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in
