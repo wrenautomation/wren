@@ -85,3 +85,4 @@ export async function migrate(db: Db): Promise<void> {
 export * from "./audit/index.js";
 export * from "./clients.js";
 export * from "./isolation.js";
+export * from "./listen.js";

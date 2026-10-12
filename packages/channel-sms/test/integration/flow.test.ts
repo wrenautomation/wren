@@ -8,6 +8,7 @@ import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { operators } from "@wren/core/clients";
 import { mayMarket } from "@wren/core/marketing";
 import { consentEvents, topics } from "@wren/core/schema";
+import { listen } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { archivePages, memoryPageStore } from "@wren/research/pages";
@@ -294,6 +295,24 @@ describe("US and Canada", () => {
     expect(await watch(later)).toMatchObject({ skipped: "no US number waits", campaign: null });
     expect(await tickAt(later)).toMatchObject({ sent: 1, unreachable: 0 });
     expect(provider.sent.at(-1)).toMatchObject({ from: US, to: "+12125550187" });
+  });
+
+  it("a queued text wakes the sender at commit; a tick names the next one due", async () => {
+    const heard: string[] = [];
+    const listening = await listen(pg.url, "wren_wake", (p) => heard.push(p));
+    try {
+      await enrollAt(OPEN);
+      for (let i = 0; i < 60 && heard.length === 0; i++)
+        await new Promise((r) => setTimeout(r, 50));
+      expect(heard.length).toBeGreaterThan(0);
+      expect(new Set(heard)).toEqual(new Set(["SmsSender/fleet"]));
+      // The first tick sends step 1; the spine queues step 2 days on.
+      expect((await tickAt(OPEN)).nextDue).toBeNull();
+      const next = (await tickAt(OPEN)).nextDue;
+      expect(next && Date.parse(next)).toBeGreaterThan(OPEN.getTime());
+    } finally {
+      await listening.close();
+    }
   });
 
   it("a rejected campaign or another campaign's number never registers", async () => {

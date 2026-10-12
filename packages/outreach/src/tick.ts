@@ -26,7 +26,7 @@ import { SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
-import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { healthOf } from "./accounts.js";
 import { contactsById, fieldsFor, setContactState } from "./contacts.js";
 import { FLEET_ZONE, fleetDay, inWindow, type ReachPolicy, standingOf } from "./policy.js";
@@ -543,6 +543,21 @@ export async function tick(
     await stepStats(`sent ${c.row.id}`, (s) => recordSent(db, c, sent, o, s));
   }
   return stats;
+}
+
+/** The soonest outbound row queued after `now`, ISO, or null: the sender sleeps until then. */
+export async function nextDue(db: Queryable, now: Date): Promise<string | null> {
+  const [row] = await db
+    .select({ at: sql<Date | string | null>`min(${reachMessages.dueAt})` })
+    .from(reachMessages)
+    .where(
+      and(
+        eq(reachMessages.state, "queued"),
+        eq(reachMessages.direction, "out"),
+        gt(reachMessages.dueAt, now),
+      ),
+    );
+  return row?.at ? new Date(row.at).toISOString() : null;
 }
 
 function merge(into: TickStats, from: TickStats) {

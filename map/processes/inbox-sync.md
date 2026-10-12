@@ -14,7 +14,7 @@ Read every fleet mailbox from its cursor, attach what belongs to us, act on it, 
 
 One sender's mailbox and cursor. `InboxScheduler/{sender}` runs `syncInbox`: classify each message (bounce, receipt, auto-reply, unsubscribe, reply), write one `thread_events` row per Gmail id, apply the stop and suppression that follow, advance the cursor. A pass that found replies sends `Disposition/fleet` a `classify`, which proposes a label and a verbatim quote, gated before it is applied.
 
-Gmail push: on prod each pass keeps the mailbox's `users.watch` alive (renewed under a day left, `keepWatch`). Gmail posts each inbox change to Pub/Sub, the phone Worker's `/webhooks/gmail`, then `InboxPush/{address}/notify`, which sends the watching key (its `claim`) a `sync`. While the watch lives the loop polls every 30 min as a net; a refused watch keeps the 2 min poll. IMAP inboxes have no push.
+Gmail push: on prod each pass keeps the mailbox's `users.watch` alive (renewed under a day left, `keepWatch`). Gmail posts each inbox change to Pub/Sub, the phone Worker's `/webhooks/gmail`, then `InboxPush/{address}/notify`, which sends the watching key (its `claim`) a `sync`. While the watch lives the loop polls every 30 min as a net; a refused watch keeps the 2 min poll. IMAP inboxes have no push. Instantly-held inboxes never send, so nothing waits on them: `quiet`, polled at the net's pace (`designs/2026-10-11-push-not-poll.md`).
 
 ## Why this shape
 

@@ -20,7 +20,7 @@
  */
 import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
-import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import { ASKED, inWindow, policyFor, type SmsPolicy } from "./policy.js";
 import { cannotReach, numberReady, poolToday } from "./pool.js";
@@ -81,6 +81,8 @@ export interface TickStats {
   activeNumbers: number;
   /** Sequence steps sent this tick, each leaving its cadence node on the spine. */
   stepped: Array<{ contactId: number; sequence: string; step: number }>;
+  /** The soonest text still queued for later (ISO), or null: the loop sleeps until then. */
+  nextDue: string | null;
 }
 
 /** `sending` rows past the stale mark → `unknown`. Never resent. */
@@ -241,6 +243,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     remainingToday: 0,
     activeNumbers: 0,
     stepped: [],
+    nextDue: null,
   };
   const pool = await poolToday(db, policy, now);
   stats.activeNumbers = pool.numbers.filter((n) => n.number.state === "active").length;
@@ -453,7 +456,23 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     }
   }
   stats.remainingToday = remaining;
+  stats.nextDue = await nextDue(db, now);
   return stats;
+}
+
+/** The soonest outbound text queued after `now`, ISO, or null. */
+async function nextDue(db: Queryable, now: Date): Promise<string | null> {
+  const [row] = await db
+    .select({ at: sql<Date | string | null>`min(${smsMessages.dueAt})` })
+    .from(smsMessages)
+    .where(
+      and(
+        eq(smsMessages.state, "queued"),
+        eq(smsMessages.direction, "out"),
+        gt(smsMessages.dueAt, now),
+      ),
+    );
+  return row?.at ? new Date(row.at).toISOString() : null;
 }
 
 /** Queue an operator's text on a contact's thread, from its sticky number. Sent by the next tick. */

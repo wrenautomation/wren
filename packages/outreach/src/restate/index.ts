@@ -190,12 +190,31 @@ import {
   type ThreadFilter,
   type ThreadSummary,
 } from "../threads.js";
-import { type TickStats, tick } from "../tick.js";
+import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
-const IDLE_MS = 5 * 60 * 1000;
+/** Due rows held (window, caps, warming): asked again this soon. */
+const HELD_MS = 5 * 60 * 1000;
+/**
+ * Nothing due: the net under the push. A queued row wakes the sender at commit (`wren_wake`,
+ * the box's listener), so this only covers a wake lost while the box restarts.
+ */
+const NET_MS = 15 * 60 * 1000;
+
+/** The wait after a tick: the gap while sending, a short wait while due rows are held, else until the next. */
+export function reachDelayMs(
+  s: TickStats,
+  next: string | null,
+  gapSeconds: number,
+  now: Date,
+): number {
+  if (s.sent > 0) return gapSeconds * 1000;
+  if (Object.values(s.held).some((n) => n > 0)) return HELD_MS;
+  const wait = next ? Date.parse(next) - now.getTime() : NET_MS;
+  return Math.min(Math.max(wait, 1000), NET_MS);
+}
 /** The soonest the watch comes back, whatever is due. */
 const WATCH_FLOOR_MS = 60 * 1000;
 /** Restate state on `ReachWatch/daily`: each account's last read, epoch ms by account id. */
@@ -397,7 +416,8 @@ async function senderPass(
   if (stats && stats.sent > 0) wakeWatch(ctx, scope.client);
   const previous = await lastPass<PassOutcome<TickStats>>(ctx);
   const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
-  const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
+  const next = stats ? await ctx.run("next due", () => nextDue(deps.db, now)) : null;
+  const delayMs = stats ? reachDelayMs(stats, next, deps.policy.gapSeconds, now) : HELD_MS;
   const outcome: PassOutcome<TickStats> = {
     stats,
     error,

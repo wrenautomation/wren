@@ -970,6 +970,9 @@ export async function buildServices(
       tickMs,
       classify,
       ...(watch ? { watch } : {}),
+      // Instantly's inboxes never send from here, so no reply waits on them, and Instantly
+      // pushes only its own campaigns' replies (designs/2026-10-11-push-not-poll.md).
+      quiet: (sender) => instantlyInboxes.includes(sender),
       ...emailNotify,
       fire: fireAll,
     }),

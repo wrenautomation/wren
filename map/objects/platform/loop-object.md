@@ -13,7 +13,7 @@ The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject`
 
 ## Why this shape
 
-Restate owns the timer, so a worker dying or a laptop closing loses nothing; the delayed `loop` fires when the deployment is back (`packages/channel-email/src/restate/send-scheduler.ts:1`). Each pass is one journaled step that opens a run row; a stage failure is recorded on the row and in `last`, never thrown at the loop (`loop.ts:1`). A failure notice names the root cause and the table (`errorText`, `loop.ts:88`), never the SQL or its params, so one failure is one notice. `docs/restate-operations.md:363` still names the old path.
+Restate owns the timer, so a worker dying or a laptop closing loses nothing; the delayed `loop` fires when the deployment is back (`packages/channel-email/src/restate/send-scheduler.ts:1`). Each pass is one journaled step that opens a run row; a stage failure is recorded on the row and in `last`, never thrown at the loop (`loop.ts:1`). A loop with an event source is woken (`wake`) and polls only as a net: Gmail push, or a row queued in its table (`wren_wake`, migration 0235); the pattern per new loop is `designs/2026-10-11-push-not-poll.md`. A failure notice names the root cause and the table (`errorText`, `loop.ts:88`), never the SQL or its params, so one failure is one notice. `docs/restate-operations.md:363` still names the old path.
 
 ## Shape
 

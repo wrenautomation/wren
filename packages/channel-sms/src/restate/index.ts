@@ -89,14 +89,26 @@ import type { CallHooks } from "./answers.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
-const IDLE_MS = 5 * 60 * 1000;
+/** Due texts held back (quiet hours, caps, a number's gap): asked again this soon. */
+const HELD_MS = 5 * 60 * 1000;
+/**
+ * Nothing due: the net under the push. A queued text wakes the loop at commit (`wren_wake`,
+ * the box's listener), so this only covers a wake lost while the box restarts.
+ */
+const NET_MS = 15 * 60 * 1000;
 /** No active number: nothing can send, so the loop sleeps long. A new or resumed number wakes it. */
 const NO_NUMBER_MS = 6 * 60 * 60 * 1000;
 
-/** The wait after a send pass: the gap while sending, 6 h with no number to send from, else idle. */
-export function senderDelayMs(s: TickStats, gapSeconds: number): number {
+/**
+ * The wait after a send pass: the gap while sending, 6 h with no number to send from, a short
+ * wait while due texts are held, else until the next queued text (the net at most).
+ */
+export function senderDelayMs(s: TickStats, gapSeconds: number, now: Date): number {
   if (s.sent > 0 || s.retried > 0) return gapSeconds * 1000;
-  return s.activeNumbers === 0 ? NO_NUMBER_MS : IDLE_MS;
+  if (s.activeNumbers === 0) return NO_NUMBER_MS;
+  if (s.due > 0) return HELD_MS;
+  const next = s.nextDue ? Date.parse(s.nextDue) - now.getTime() : NET_MS;
+  return Math.min(Math.max(next, 1000), NET_MS);
 }
 const RETRY_MS = 15 * 60 * 1000;
 const WATCH_EVERY_MS = 30 * 60 * 1000;
@@ -208,7 +220,7 @@ export function makeSmsSender(wren: SmsDeps) {
           now,
           runId,
         }),
-      delayAfter: (s) => senderDelayMs(s, deps.policy.gapSeconds),
+      delayAfter: (s) => senderDelayMs(s, deps.policy.gapSeconds, now),
       retryMs: RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });

@@ -74,6 +74,8 @@ const NET_MS = 60_000;
 /** Gmail push: `WATCHED` takes a 7-day watch, `REFUSED` is refused, the rest have none (IMAP). */
 const WATCHED = "watched@example.com";
 const REFUSED = "refused@example.com";
+/** No push and nothing waits on it (an Instantly-only inbox): polled at the net's pace. */
+const QUIET = "quiet@example.com";
 const watchCalls: string[] = [];
 const watch = async (sender: string) => {
   watchCalls.push(sender);
@@ -162,6 +164,7 @@ beforeAll(async () => {
         classify: true,
         watch,
         netMs: NET_MS,
+        quiet: (sender) => sender === QUIET,
       }),
       inboxPush,
       listener,
@@ -341,6 +344,10 @@ describe("InboxScheduler", () => {
     expect(outcome.delayMs).toBe(SYNC_MS);
     await inbox(REFUSED).sync();
     expect(watchCalls).toEqual([REFUSED, REFUSED]);
+  });
+
+  it("a quiet inbox polls at the net's pace", async () => {
+    expect((await inbox(QUIET).sync()).delayMs).toBe(NET_MS);
   });
 
   it("start loops until stop", async () => {

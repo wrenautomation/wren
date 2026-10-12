@@ -66,6 +66,11 @@ export interface InboxSchedulerDeps {
   watch?: (sender: string) => Promise<number | null>;
   /** Between passes while the watch is live: the net under the push (default 30 min). */
   netMs?: number;
+  /**
+   * A mailbox with no push that nothing waits on (it never sends, so no reply is due): polled at
+   * the net's pace, not `syncMs`.
+   */
+  quiet?: (sender: string) => boolean;
   /** Each person's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
   fire?: FireTriggers;
 }
@@ -98,7 +103,7 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
           firstSyncLookbackMs: lookbackMs,
           shared: scope.shared ?? null,
         }),
-      delayAfter: () => (watched ? netMs : syncMs),
+      delayAfter: () => (watched || deps.quiet?.(sender) ? netMs : syncMs),
       retryMs: tickMs,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });

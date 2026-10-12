@@ -10,10 +10,11 @@
 import http2 from "node:http2";
 import * as restate from "@restatedev/restate-sdk";
 import { connectTunnel } from "@restatedev/restate-sdk-tunnel";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
 import pino from "pino";
 import { buildServices, servicesFor } from "./services.js";
+import { startWakes } from "./wake.js";
 
 const ROOT = process.env.WREN_BUNDLE_ROOT ?? process.cwd();
 
@@ -36,6 +37,16 @@ const log = pino({ level: settings.logLevel });
 // A mailbox walk opens its own pool (PROBE_WIDTH + 1); this one serves everything else.
 const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 6 });
 const services = servicesFor(built.services, "box");
+// Rows that wake loops (designs/2026-10-11-push-not-poll.md): this box holds the LISTENs, on
+// its own connections straight to Postgres, never through PgBouncer.
+if (process.env.WREN_DATABASE_URL) {
+  const { url, headers } = ingressOf(settings);
+  await startWakes({
+    databaseUrl: process.env.WREN_DATABASE_URL,
+    ingress: { url, ...(headers ? { headers } : {}) },
+    log,
+  });
+}
 
 const need = (name: string) => {
   const v = process.env[name];

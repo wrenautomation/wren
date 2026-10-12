@@ -1646,6 +1646,13 @@
       "when": 1791745130420,
       "tag": "0234_card_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 235,
+      "version": "7",
+      "when": 1791775100584,
+      "tag": "0235_wake_on_row",
+      "breakpoints": true
     }
   ]
 }
