@@ -44,6 +44,7 @@ import {
 } from "../../src/index.js";
 import type { SocialStats } from "../../src/restate/social.js";
 import { makeSocialDesk, makeSocialWatch, SOCIAL_KEY } from "../../src/restate/social.js";
+import { makeSocialPush, socialPushed } from "../../src/restate/social-push.js";
 import {
   activityRecord,
   approvalRecord,
@@ -66,6 +67,29 @@ const fakeSpine = restate.service({
     },
   },
 });
+/** ReachWatch stands in: a DM push wakes it. */
+const reachWakes: number[] = [];
+const fakeReachWatch = restate.object({
+  name: "ReachWatch",
+  handlers: {
+    wake: async () => {
+      reachWakes.push(Date.now());
+    },
+  },
+});
+/** `reach` is ingress private: ask it the way ReachWatch does, from a handler. */
+const askReach = restate.service({
+  name: "AskReach",
+  handlers: {
+    reach: async (ctx: restate.Context) =>
+      ctx
+        .objectClient<{ reach: (c: restate.ObjectContext) => Promise<unknown> }>(
+          { name: "SocialPushed" },
+          SOCIAL_KEY,
+        )
+        .reach(),
+  },
+});
 const pings: string[] = [];
 const texts: string[] = [];
 const sink = (into: string[]): Notifier => ({
@@ -84,6 +108,10 @@ beforeAll(async () => {
     services: [
       fakeSpine,
       makeContent(() => channels),
+      socialPushed,
+      fakeReachWatch,
+      askReach,
+      makeSocialPush({ db: pg.db, ours: {} }),
       makeSocialWatch({
         db: pg.db,
         platforms: ["linkedin", "youtube"],
@@ -433,5 +461,23 @@ describe("comment guide", () => {
       text: "Answer in kind.",
     });
     expect(again.changed).toBe(false);
+  });
+});
+
+// Last in the file: a watcher's activity push wakes a SocialWatch pass.
+describe("SocialPushed for ReachWatch", () => {
+  type Reach = { pushed: string[]; watched: string[] };
+  const push = () =>
+    ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPush" });
+  const reach = () =>
+    ingress().serviceClient<{ reach: () => Promise<Reach> }>({ name: "AskReach" }).reach();
+
+  it("a watcher's rise reads its DMs now; its beat reads it cold; the pushed set empties", async () => {
+    await push().watch({ owner: SOCIAL_KEY, platform: "linkedin", kind: "alive" });
+    expect(await reach()).toEqual({ pushed: [], watched: ["linkedin"] });
+    await push().watch({ owner: SOCIAL_KEY, platform: "linkedin", kind: "activity" });
+    expect(await reach()).toEqual({ pushed: ["linkedin"], watched: ["linkedin"] });
+    expect(await reach()).toEqual({ pushed: [], watched: ["linkedin"] });
+    await expect.poll(() => reachWakes.length).toBeGreaterThan(0);
   });
 });

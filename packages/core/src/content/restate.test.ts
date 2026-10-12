@@ -2,16 +2,32 @@ import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
-import { DESK, isRefusal, journaledSites, makeContent, restateSites, SITES } from "./restate.js";
+import {
+  ArmedStop,
+  DESK,
+  isRefusal,
+  journaledSites,
+  makeContent,
+  restateSites,
+  SITES,
+} from "./restate.js";
 
 /** A stand-in Context whose `sites` client answers from a script and keeps every call. */
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
   const calls: { handler: string; req: unknown }[] = [];
   const services: unknown[] = [];
+  const sent: { handler: string; req: unknown }[] = [];
   const ctx = {
     run: async (name: string, fn: () => Promise<unknown>) => {
       calls.push({ handler: `run ${name}`, req: null });
       return fn();
+    },
+    serviceSendClient: (service: unknown) => {
+      services.push(service);
+      return new Proxy(
+        {},
+        { get: (_t, handler: string) => (req: unknown) => void sent.push({ handler, req }) },
+      );
     },
     serviceClient: (service: unknown) => {
       services.push(service);
@@ -28,7 +44,7 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
       );
     },
   };
-  return { ctx: ctx as unknown as restate.Context, calls, services };
+  return { ctx: ctx as unknown as restate.Context, calls, services, sent };
 }
 
 describe("restateSites", () => {
@@ -128,6 +144,55 @@ describe("restateSites", () => {
     await expect(
       restateSites(ctx, { caller: "test" }).call("youtube", "GET", "/youtube/v3/videos"),
     ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 501);
+  });
+});
+
+describe("restateSites arming", () => {
+  it("reads run; the first write is sent to `arm` instead and stops the channel", async () => {
+    const { ctx, calls, sent } = ctxOf(() => ({ sub: "me" }));
+    const sites = restateSites(ctx, { caller: "wren:content", service: DESK, arm: true });
+    await sites.call("linkedin", "GET", "/rest/me");
+    await expect(
+      sites.call("linkedin", "POST", "/rest/socialActions/urn/comments", { text: "hi" }),
+    ).rejects.toBeInstanceOf(ArmedStop);
+    expect(calls.map((c) => c.handler)).toEqual(["call"]);
+    expect(sent).toEqual([
+      {
+        handler: "arm",
+        req: {
+          site: "linkedin",
+          method: "POST",
+          path: "/rest/socialActions/urn/comments",
+          input: { text: "hi" },
+          caller: "wren:content",
+        },
+      },
+    ]);
+  });
+
+  it("Content.arm: armed only when a write reached `arm`; never for a client", async () => {
+    const seen: (boolean | undefined)[] = [];
+    const reply = (stop: boolean) => async () => {
+      if (stop) throw new ArmedStop();
+      throw new Error("not found");
+    };
+    let stop = true;
+    const x = { ...fakeContentChannel("x"), reply: () => reply(stop)() };
+    const h = (
+      makeContent((_ctx, o) => {
+        seen.push(o?.arm);
+        return { x: x as never };
+      }) as unknown as {
+        service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+      }
+    ).service;
+    const req = { platform: "x", commentId: "c1", text: "thanks" };
+    expect(await h.arm?.({}, req)).toEqual({ armed: true });
+    expect(seen).toEqual([true]);
+    stop = false;
+    expect(await h.arm?.({}, req)).toEqual({ armed: false });
+    expect(await h.arm?.({}, { ...req, client: "acme" })).toEqual({ armed: false });
+    expect(seen).toHaveLength(2);
   });
 });
 

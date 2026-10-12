@@ -31,6 +31,7 @@ import { addIdea, contentDrafts } from "../../src/index.js";
 import { makeAutoReply } from "../../src/restate/auto-reply.js";
 import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
 import { makeSocialInbox } from "../../src/restate/social-inbox.js";
+import { socialPushed } from "../../src/restate/social-push.js";
 
 const ORG = "urn:li:organization:5";
 const LOC = "accounts/1/locations/2";
@@ -139,6 +140,7 @@ beforeAll(async () => {
         },
       }),
       // Wren runs no channel of its own: a connected account doesn't wait on that.
+      socialPushed,
       makeSocialWatch({ db: pg.db, platforms: [], zone: "UTC", clientDb: open }),
       makeSocialInbox({ main: pg.db, clientDb: open, access: api, sites: () => sitesOf() }),
       // Reviews just read go to AutoReply; with no model it drafts nothing.

@@ -67,13 +67,6 @@ function Queue({
   const one = meta.name.one;
   const ask = askOf(meta, params);
   const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
-  const rows = page.data?.rows ?? [];
-  const asked = params.get(one);
-  const at = Math.max(
-    0,
-    rows.findIndex((r) => String(r.id) === asked),
-  );
-  const row = rows[at];
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [rev, setRev] = useState(0);
   const actions = actsOf(meta, acts);
@@ -95,11 +88,19 @@ function Queue({
     setRev((n) => n + 1);
     setPicked(new Set());
   };
-  const { run, busy, running, dialog } = useRun(
+  const { run, busy, running, dialog, gone } = useRun(
     acts?.call ?? (() => Promise.reject()),
     acted,
     meta.name,
   );
+  // An optimistic action's items leave at once; a refusal brings them back.
+  const rows = (page.data?.rows ?? []).filter((r) => !gone.has(String(r.id)));
+  const asked = params.get(one);
+  const at = Math.max(
+    0,
+    rows.findIndex((r) => String(r.id) === asked),
+  );
+  const row = rows[at];
   const act = (a: Action) => {
     if (!row || sayBlocked(a, row)) return;
     const after = rows[at + 1] ?? rows[at - 1];

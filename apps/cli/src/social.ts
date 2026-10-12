@@ -6,8 +6,17 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { SOCIAL_KEY, type SocialDesk, type SocialWatch } from "@wren/content/restate";
 import type { Command } from "commander";
+import { ingressSites } from "./sites.js";
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
+
+/** Meta's webhooks land on the phone Worker (designs/2026-10-12-push-everywhere.md). */
+export const META_CALLBACK = "https://phone.wrenautomation.com/webhooks/meta";
+/** The fields each Meta object pushes: a Page's comments and DMs; Instagram's DMs, comments, mentions. */
+export const META_FIELDS = {
+  page: "feed,messages",
+  instagram: "messages,comments,mentions",
+} as const;
 
 export function registerSocial(program: Command, settings: Settings): void {
   const loop = () =>
@@ -29,6 +38,33 @@ export function registerSocial(program: Command, settings: Settings): void {
     .command("sync")
     .description("One pass now")
     .action(async () => json(await loop().sync()));
+  const push = social.command("push").description("Webhooks into SocialWatch instead of the clock");
+  push
+    .command("meta")
+    .description(
+      "Point the app's page + instagram webhooks at the phone Worker, then subscribe our Page (idempotent)",
+    )
+    .option("--check", "Show the subscriptions, change nothing")
+    .action(async (o: { check?: boolean }) => {
+      const sites = ingressSites(settings, "wren:social-push");
+      const pageId = settings.metaPageId;
+      if (!pageId) throw new Error("WREN_META_PAGE_ID is unset");
+      if (!o.check)
+        for (const [object, fields] of Object.entries(META_FIELDS))
+          await sites.call("meta", "POST", "/app/subscriptions", {
+            object,
+            callback_url: META_CALLBACK,
+            fields,
+          });
+      if (!o.check)
+        await sites.call("meta", "POST", `/${pageId}/subscribed_apps`, {
+          subscribed_fields: META_FIELDS.page,
+        });
+      json({
+        app: await sites.call("meta", "GET", "/app/subscriptions", {}),
+        page: await sites.call("meta", "GET", `/${pageId}/subscribed_apps`, {}),
+      });
+    });
   social
     .command("audience <platform>")
     .description("Read the follower count once now, as today's (LinkedIn's is only read this way)")

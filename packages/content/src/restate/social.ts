@@ -9,6 +9,10 @@
  * `client`, reads through its vendor gate) into its own database; its comments go on the spine
  * with its id. No ping: its Inbox is its own.
  *
+ * Each Wren pass also renews autobrowse's tab watchers on our logins (`watched`): a rise in a
+ * tab's unread count pushes a pass at once (designs/2026-10-12-push-everywhere.md). The lease runs
+ * past the next pass, so a loop that stops leaves no tab open.
+ *
  * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
  * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
  */
@@ -23,6 +27,7 @@ import {
   type Platform,
   type SiteClient,
 } from "@wren/core/content";
+import { DESK } from "@wren/core/content/restate";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -57,6 +62,7 @@ import {
 import { autoReplyReviews } from "./auto-reply.js";
 import { catchKeywordDms } from "./keyword-dm.js";
 import { nextRunAt } from "./planner.js";
+import type { Pushed, SocialPushed } from "./social-push.js";
 
 export const SOCIAL_KEY = "wren";
 export const SOCIAL_EVERY_MS = 30 * 60 * 1000;
@@ -124,7 +130,25 @@ export interface SocialWatchDeps {
     placeId: (client: string) => Promise<string | null>;
     sites: (ctx: restate.Context) => SiteClient;
   };
+  /** Our logins autobrowse's desk keeps a tab watcher on (`linkedin` → `linkedin@wren`). */
+  watched?: Partial<Record<Platform, string>>;
 }
+
+/** autobrowse's `desk/watch`, as it serves it; no import from that repo. */
+type DeskWatch = {
+  watch: (
+    ctx: restate.Context,
+    lease: {
+      site: string;
+      account: string;
+      sink: { path: string; body: Record<string, unknown> };
+      until: string;
+    },
+  ) => Promise<unknown>;
+};
+
+/** A watcher's lease outlives the next pass by this much. */
+const LEASE_SLACK_MS = 45 * 60_000;
 
 export interface SocialStats {
   posts: number;
@@ -156,6 +180,9 @@ const dayOf = (now: Date, zone: string) => {
   return `${w.year}-${String(w.month).padStart(2, "0")}-${String(w.day).padStart(2, "0")}`;
 };
 
+/** A Facebook post id without its Page prefix (`<page>_<post>`): ours may be kept either way. */
+const postTail = (id: string) => id.slice(id.indexOf("_") + 1);
+
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function makeSocialWatch(deps: SocialWatchDeps) {
@@ -181,6 +208,29 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       reviewed = plan.reviews.filter((p) => platforms.includes(p));
     }
     const mine = client ? { client } : {};
+    if (!client && deps.watched) {
+      const until = new Date(nextPassAt(now, deps.zone).getTime() + LEASE_SLACK_MS).toISOString();
+      const desk = ctx.serviceSendClient<DeskWatch>(DESK);
+      for (const p of platforms) {
+        const account = deps.watched[p];
+        if (!account) continue;
+        const body = { owner: SOCIAL_KEY, platform: p };
+        desk.watch({ site: p, account, sink: { path: "/SocialPush/watch/send", body }, until });
+      }
+    }
+    // What was pushed since the last pass (designs/2026-10-12-push-everywhere.md): read now, due or not.
+    const pushed: Pushed[] = await ctx
+      .objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY)
+      .take()
+      .catch(() => []);
+    const pushedPosts = new Set(
+      pushed.flatMap((p) =>
+        p.post ? [`${p.platform}:${p.post}`, `${p.platform}:${postTail(p.post)}`] : [],
+      ),
+    );
+    const pushedActivity = new Set(
+      pushed.filter((p) => p.kind !== "comment").map((p) => p.platform),
+    );
     const stats: SocialStats = {
       posts: 0,
       comments: 0,
@@ -205,7 +255,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       const key = `${p.platform}:${p.id}`;
       const last = before[key];
       if (last !== undefined) reads[key] = last;
-      if (!isDue(p, last, now)) continue;
+      const wasPushed = pushedPosts.has(key) || pushedPosts.has(`${p.platform}:${postTail(p.id)}`);
+      if (!wasPushed && !isDue(p, last, now)) continue;
       reads[key] = now.getTime();
       stats.posts += 1;
       try {
@@ -293,7 +344,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
     for (const platform of platforms) {
       const every = ACTIVITY_EVERY_MS[platform] ?? 0;
-      const due = now.getTime() - (lastActivity[platform] ?? 0) >= every;
+      const due =
+        pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
       if (due) lastActivity[platform] = now.getTime();
       // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
       if (due)

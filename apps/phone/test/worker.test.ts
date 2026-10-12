@@ -779,3 +779,93 @@ describe("body cap", () => {
     expect(res.status).toBe(413);
   });
 });
+
+describe("meta webhooks", () => {
+  const hmac = async (secret: string, body: string) => {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
+    return `sha256=${[...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  };
+  const body = JSON.stringify({
+    object: "page",
+    entry: [{ id: "111", time: 1, changes: [{ field: "feed", value: { item: "comment" } }] }],
+  });
+  const send = async (raw: string, sig: string | null) =>
+    call("/webhooks/meta", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(sig ? { "x-hub-signature-256": sig } : {}),
+      },
+      body: raw,
+    });
+  beforeEach(() => {
+    env.META_WEBHOOK_TOKEN = "vt";
+    env.META_APP_SECRET = "app-secret";
+    env.INSTAGRAM_APP_SECRET = "ig-secret";
+  });
+
+  it("answers the handshake only with the verify token", async () => {
+    const ok = await call("/webhooks/meta?hub.mode=subscribe&hub.verify_token=vt&hub.challenge=c9");
+    expect(ok.status).toBe(200);
+    expect(await ok.text()).toBe("c9");
+    const bad = await call(
+      "/webhooks/meta?hub.mode=subscribe&hub.verify_token=no&hub.challenge=c9",
+    );
+    expect(bad.status).toBe(401);
+  });
+
+  it("forwards a body signed by either app secret, keyed by its digest", async () => {
+    expect((await send(body, await hmac("app-secret", body))).status).toBe(200);
+    expect((await send(body, await hmac("ig-secret", body))).status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPush/meta/send");
+    expect(restateCalls[0]?.body).toBe(body);
+    const key = restateCalls[0]?.headers.get("idempotency-key") ?? "";
+    expect(key).toMatch(/^meta-[0-9a-f]{64}$/);
+    expect(restateCalls[1]?.headers.get("idempotency-key")).toBe(key);
+  });
+
+  it("refuses an unsigned or wrongly signed body; 503 with no token; 502 when Restate fails", async () => {
+    expect((await send(body, null)).status).toBe(401);
+    expect((await send(body, await hmac("other", body))).status).toBe(401);
+    expect(restateCalls).toHaveLength(0);
+    restateStatus = 500;
+    expect((await send(body, await hmac("app-secret", body))).status).toBe(502);
+    delete env.META_WEBHOOK_TOKEN;
+    expect((await send(body, await hmac("app-secret", body))).status).toBe(503);
+  });
+});
+
+describe("business profile push", () => {
+  const push = (data: unknown, id = "pm-9") => ({
+    message: { data: btoa(JSON.stringify(data)), messageId: id },
+  });
+  const note = {
+    type: "NEW_REVIEW",
+    location: "locations/1",
+    review: "accounts/1/locations/1/reviews/r",
+  };
+  beforeEach(() => {
+    env.GBP_PUSH_TOKEN = "gt";
+  });
+
+  it("sends the decoded notice keyed by Pub/Sub's message id", async () => {
+    expect((await post("/webhooks/gbp?token=gt", push(note))).status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPush/gbp/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("gbp-pm-9");
+    expect(JSON.parse(restateCalls[0]?.body ?? "{}")).toEqual(note);
+  });
+
+  it("refuses a wrong token or a body that is not a push", async () => {
+    expect((await post("/webhooks/gbp?token=no", push(note))).status).toBe(401);
+    expect((await post("/webhooks/gbp?token=gt", { message: { data: "!!" } })).status).toBe(400);
+    expect(restateCalls).toHaveLength(0);
+  });
+});

@@ -97,6 +97,9 @@ type SocialInboxDesk = {
   send: Fn<{ client: string; contactId: number; body: string; by?: string | null }, unknown>;
   answer: Fn<{ client: string; id: number; body: string; by?: string | null }, unknown>;
 };
+/** `ReachDesk.armComment`: warm an answer that waits on a yes. */
+type ReachArm = { armComment: Fn<{ id: number; body: string }, { armed: boolean }> };
+
 /** A client's connected mailboxes (`makeMailReply`). */
 type MailReplyDesk = {
   send: Fn<{ client: string; mailId: number; body: string; by?: string | null }, unknown>;
@@ -398,6 +401,11 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
               return row.id;
             }),
           );
+          // Wren's comment answers: warm the browser now, so the yes sends at once.
+          if (!clientOf(req) && option.channel === "comment" && !option.copy)
+            ctx
+              .serviceSendClient<ReachArm>({ name: "ReachDesk" })
+              .armComment({ id: Number(option.target), body });
           return { asked };
         },
       ),

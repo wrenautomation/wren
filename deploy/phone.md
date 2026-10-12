@@ -61,6 +61,27 @@ repo root, the value never printed:
 
 Rotate: run it again. Until set, `POST /links` gets 503.
 
+## Meta and Business Profile webhooks
+
+`/webhooks/meta` (designs/2026-10-12-push-everywhere.md): Meta's handshake answers when
+`hub.verify_token` is `META_WEBHOOK_TOKEN`; each POST must carry `X-Hub-Signature-256` from the
+Meta app's secret (`META_APP_SECRET`) or the Instagram app's (`INSTAGRAM_APP_SECRET`). Set
+2026-10-12 from the repo root, values never printed. The Cloudflare token in the prod env has no
+Workers scope, so wrangler uses its own login:
+
+    node scripts/secrets.mjs run deploy/prod.env -- node scripts/secrets.mjs run ../autobrowse/.env -- sh -c '
+      T=${META_WEBHOOK_TOKEN:-$(openssl rand -hex 32)}
+      [ -n "$META_WEBHOOK_TOKEN" ] || printf %s "$T" | (cd ../autobrowse && env -i HOME="$HOME" PATH="$PATH" pnpm -s autobrowse env set META_WEBHOOK_TOKEN)
+      cd apps/phone; put() { env -u CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID=$WREN_CLOUDFLARE_ACCOUNT_ID npx wrangler secret put "$1"; }
+      printf %s "$T" | put META_WEBHOOK_TOKEN
+      printf %s "$META_CLIENT_SECRET" | put META_APP_SECRET
+      printf %s "$INSTAGRAM_CLIENT_SECRET" | put INSTAGRAM_APP_SECRET'
+
+Then `wren social push meta` points the app at it and subscribes our Page. Until set, Meta gets 503.
+
+`/webhooks/gbp?token=`: Business Profile's Pub/Sub push, `GBP_PUSH_TOKEN`. Not set: it waits on
+Business Profile API access.
+
 ## Add a device
 
 Open `https://phone.wrenautomation.com` on the device and tap "Sign in": Wren's

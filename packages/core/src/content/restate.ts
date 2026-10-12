@@ -63,7 +63,30 @@ export type SitesService = {
     ctx: restate.Context,
     req: { site: string; step: string },
   ) => Promise<{ made: readonly string[] }>;
+  /** `call`'s browser leg up to its last safe step, nothing sent (autobrowse designs/2026-10-12-watchers-and-arming.md). */
+  arm: (
+    ctx: restate.Context,
+    req: {
+      site: string;
+      method: SiteMethod;
+      path: string;
+      input?: Record<string, unknown>;
+      account?: string;
+      caller?: string;
+    },
+  ) => Promise<unknown>;
 };
+
+/**
+ * Thrown by an arming client (`restateSites` with `arm`) at the first write: the write went to
+ * `sites/arm` instead, and the channel stops there.
+ */
+export class ArmedStop extends Error {
+  constructor() {
+    super("armed");
+    this.name = "ArmedStop";
+  }
+}
 
 /** A terminal error from `sites` carries the site's own status code; surface it as a SiteCallError. */
 export function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
@@ -79,6 +102,11 @@ export function siteCallErrorFrom(err: unknown, site: string, method: string, pa
 export interface SitesHost {
   service: { name: string };
   wake?: Wake | undefined;
+  /**
+   * Arm instead of write: the first non-GET call is sent to `sites/arm` (one way) and throws
+   * `ArmedStop`. Reads still run, so a channel builds the same write it would send.
+   */
+  arm?: boolean;
 }
 
 /**
@@ -100,7 +128,7 @@ export function restateSites(
   ctx: restate.Context,
   o: { caller: string } & Partial<SitesHost>,
 ): SiteClient {
-  const { caller, wake, service = SITES } = o;
+  const { caller, wake, service = SITES, arm = false } = o;
   const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
   let woken: Promise<unknown> | null = null;
@@ -111,6 +139,17 @@ export function restateSites(
   };
   return {
     async call(site, method, path, input = {}, account) {
+      if (arm && method !== "GET") {
+        ctx.serviceSendClient<SitesService>(service).arm({
+          site,
+          method,
+          path,
+          input,
+          ...(account ? { account } : {}),
+          caller,
+        });
+        throw new ArmedStop();
+      }
       await awake();
       try {
         return (await client.call({
@@ -203,8 +242,11 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
   }
 }
 
-/** Build the channels for one invocation from its context (the `sites` calls need it). */
-export type ChannelsFor = (ctx: restate.Context) => Channels;
+/**
+ * Build the channels for one invocation from its context (the `sites` calls need it). `arm`:
+ * channels whose writes arm the browser instead of sending (`SitesHost.arm`).
+ */
+export type ChannelsFor = (ctx: restate.Context, o?: { arm?: boolean }) => Channels;
 
 /** What a client's part is doing on its channels: posting, or reading (`content.social`). */
 export type ContentPart = "content.posting" | "content.social";
@@ -355,6 +397,26 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               errorCode: 501,
             });
           await refusalsFinal(ch.reply(req.commentId, req.text));
+        },
+      ),
+      /**
+       * Warm a reply that waits on a yes: its browser leg runs to the reply box, nothing typed, so
+       * the yes sends at once. Wren's own channels only; never fails (`armed: false` instead).
+       */
+      arm: serviceHandler(
+        { input: REPLY },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; commentId: string; text: string } & ForClient,
+        ): Promise<{ armed: boolean }> => {
+          const ch = req.client ? null : channelsFor(ctx, { arm: true })[req.platform];
+          if (!ch?.reply) return { armed: false };
+          try {
+            await ch.reply(req.commentId, req.text);
+          } catch (err) {
+            return { armed: err instanceof ArmedStop };
+          }
+          return { armed: false };
         },
       ),
       /** One DM to a comment's author, as a reply to it; 501 where the platform has no such door. */

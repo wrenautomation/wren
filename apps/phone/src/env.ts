@@ -17,6 +17,14 @@ export interface Env {
   CALCOM_WEBHOOK_SECRETS?: string;
   /** The token in the Pub/Sub push subscription's URL (`?token=`). Unset = Gmail's push refused. */
   GMAIL_PUSH_TOKEN?: string;
+  /** Meta's webhook handshake token (`hub.verify_token`). Unset = Meta's webhooks refused. */
+  META_WEBHOOK_TOKEN?: string;
+  /** The Meta app's secret: Meta signs each webhook with it. */
+  META_APP_SECRET?: string;
+  /** The Instagram app's secret (Instagram Login): its webhooks sign with it. */
+  INSTAGRAM_APP_SECRET?: string;
+  /** The token in Business Profile's Pub/Sub push URL (`?token=`). Unset = refused. */
+  GBP_PUSH_TOKEN?: string;
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;

@@ -6,7 +6,12 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
+import type {
+  Context,
+  ObjectContext,
+  ServiceDefinition,
+  VirtualObjectDefinition,
+} from "@restatedev/restate-sdk";
 import {
   awsCostExplorer,
   BOOKS_CONSOLE_VIEWS,
@@ -227,8 +232,12 @@ import {
   makeMarketingConsole,
   makeSocialDesk,
   makeSocialInbox,
+  makeSocialPush,
   makeSocialWatch,
   makeVideoDesk,
+  SOCIAL_KEY,
+  type SocialPushed,
+  socialPushed,
 } from "@wren/content/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
@@ -1299,8 +1308,16 @@ export async function buildServices(
         placeId: (client) => placeIdOf(db, client),
         sites: (ctx) => restateSites(ctx, { caller: "wren:reviews", service: DESK }),
       },
+      // Tab watchers on the desk: LinkedIn and X push us nothing (designs/2026-10-12-push-everywhere.md).
+      watched: { linkedin: "linkedin@wren", x: "x@wren" },
     }),
     makeSocialDesk({ db, zone: SOCIAL_ZONE }),
+    // Webhooks and tab watchers wake the social loops (designs/2026-10-12-push-everywhere.md).
+    makeSocialPush({
+      db,
+      ours: { pageId: settings.metaPageId ?? null, igId: settings.metaIgId ?? null },
+    }),
+    socialPushed,
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
     makeDraftAsk(db),
     makeVideoDesk(db),
@@ -1559,6 +1576,9 @@ export async function buildServices(
     senderName: settings.smsSenderName,
     heldNiches: settings.reachHeldNiches,
     sitesFor: (ctx: Context) => restateSites(ctx, { caller: "wren:reach", service: DESK }),
+    // Pushes and tab watchers on our logins (designs/2026-10-12-push-everywhere.md).
+    pushes: (ctx: ObjectContext) =>
+      ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).reach(),
     postedAt: async (p: "reddit" | "linkedin") => {
       const [r] = await db
         .select({ at: max(contentDrafts.publishedAt) })
@@ -2339,8 +2359,9 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   };
   // Reddit: its API with wren's own token, or the Mac's desk worker, whatever the sites host.
   const reddit = redditFrom(settings, on, log);
-  return (ctx) => {
-    const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt });
+  return (ctx, o) => {
+    const arm = o?.arm ? { arm: true } : {};
+    const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt, ...arm });
     return {
       // Wren's own login (William, 10-06): bare `linkedin` is his personal account, never used here.
       ...(on.includes("linkedin")
@@ -2350,7 +2371,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
         ? {
             reddit: redditContent(
               reddit === "desk"
-                ? restateSites(ctx, { caller: "wren:content", service: DESK })
+                ? restateSites(ctx, { caller: "wren:content", service: DESK, ...arm })
                 : journaledSites(ctx, reddit),
             ),
           }

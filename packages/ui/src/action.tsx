@@ -88,6 +88,11 @@ export interface Action {
   /** The toast after it worked, from the handler's answer. */
   done?: (answer: unknown) => string;
   /**
+   * Said the moment it's sent ("Sent"): the records leave the list at once and the next one
+   * opens while the call runs. A refusal brings them back with its words.
+   */
+  optimistic?: string;
+  /**
    * The rest is for a record's action, called as `{ids}`; an answer's `done` ids are the ones
    * it changed. Its shortcut in a list or a queue: "a".
    */
@@ -418,6 +423,8 @@ export function useRun(
   busy: boolean;
   running: { action: string; ids: (string | number)[] } | null;
   dialog: ReactNode;
+  /** Records an optimistic action took out of the list while its call runs. */
+  gone: ReadonlySet<string>;
 } {
   const [asked, setAsked] = useState<{
     action: Action;
@@ -429,13 +436,35 @@ export function useRun(
   const [files, setFiles] = useState<Record<string, File>>({});
   const [running, setRunning] = useState<{ action: string; ids: (string | number)[] } | null>(null);
   const [shown, setShown] = useState<MessageKind | null>(null);
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const opened = useRef(0);
   const busy = running !== null;
   const textId = useId();
   const textBox = useRef<HTMLTextAreaElement>(null);
 
+  /** Out of the list now, the toast now; back with the refusal's words if it fails. */
+  const goAhead = async (
+    action: Action,
+    ids: (string | number)[],
+    input: Record<string, unknown>,
+  ) => {
+    const keys = ids.map(String);
+    setAsked(null);
+    setGone((g) => new Set([...g, ...keys]));
+    toast.success(action.optimistic);
+    after([]);
+    try {
+      await call(action.handler, input);
+      after(ids);
+    } catch (err) {
+      setGone((g) => new Set([...g].filter((k) => !keys.includes(k))));
+      toast.error(`${action.label} failed: ${err instanceof Error ? err.message : String(err)}`);
+      after([]);
+    }
+  };
   // A form stays open until it works, so a refusal doesn't lose what was typed.
   const go = async (action: Action, ids: (string | number)[], input: Record<string, unknown>) => {
+    if (action.optimistic && !action.form && !action.undo) return goAhead(action, ids, input);
     if (!action.form) setAsked(null);
     setRunning({ action: action.id, ids });
     let changed: (string | number)[] = [];
@@ -583,7 +612,7 @@ export function useRun(
       </DialogContent>
     </Dialog>
   );
-  return { run, busy, running, dialog };
+  return { run, busy, running, dialog, gone };
 }
 
 /** The one place toasts show; an app mounts it once. */

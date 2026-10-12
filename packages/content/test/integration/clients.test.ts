@@ -27,6 +27,7 @@ import { type MetricsStats, makeContentMetrics } from "../../src/restate/metrics
 import { makeContentPlanner, type PlannerStats } from "../../src/restate/planner.js";
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
+import { socialPushed } from "../../src/restate/social-push.js";
 
 const prompts: string[] = [];
 /** The clients' model: a Reddit post has a title; each reply says only what its idea says (the facts guard). Wren's model is never asked for a client. */
@@ -118,6 +119,7 @@ beforeAll(async () => {
       makeContentPlanner({ db: pg.db, zone: "UTC", clientDb: open, slots: EVERY_DAY }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000, clientDb: open }),
       makeContentMetrics({ db: pg.db, clientDb: open }),
+      socialPushed,
       makeSocialWatch({
         db: pg.db,
         platforms: ["linkedin", "reddit"],

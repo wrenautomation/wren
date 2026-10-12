@@ -12,4 +12,5 @@ export * from "./reports.js";
 export * from "./scheduler.js";
 export * from "./social.js";
 export * from "./social-inbox.js";
+export * from "./social-push.js";
 export * from "./video-desk.js";

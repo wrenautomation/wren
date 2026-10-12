@@ -44,6 +44,10 @@ type ContentReply = {
     ctx: restate.Context,
     req: { platform: ContentPlatform; commentId: string; text: string },
   ) => Promise<{ ref: string | null }>;
+  arm: (
+    ctx: restate.Context,
+    req: { platform: ContentPlatform; commentId: string; text: string },
+  ) => Promise<{ armed: boolean }>;
 };
 
 import type { KeyStore } from "@wren/core/keys";
@@ -232,6 +236,11 @@ const POSTS_EVERY_MS = 24 * 60 * 60 * 1000;
 
 export interface ReachDeps {
   db: Db;
+  /**
+   * What was pushed for our own logins (content's `SocialPushed/wren.reach`): DMs to read now,
+   * and platforms a tab watcher is on, read cold. Unset: none.
+   */
+  pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>;
   /** Each lead's DM reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
   fire?: FireTriggers;
   policy: ReachPolicy;
@@ -660,6 +669,9 @@ export function makeReachWatch(deps: ReachDeps) {
   });
 }
 
+/** What content's `SocialPushed/wren.reach` answers. */
+export type ReachView = { pushed: string[]; watched: string[] };
+
 async function watchPass(
   deps: ReachDeps,
   ctx: restate.ObjectContext,
@@ -686,13 +698,21 @@ async function watchPass(
   });
   const reads = (await ctx.get<Record<string, number>>(READS)) ?? {};
   const checked = (await ctx.get<Record<string, number>>(HEALTH)) ?? {};
+  // Our own logins: a pushed DM reads now; a platform a tab watcher is on reads cold, since the
+  // tab says when something comes in (content's `SocialPushed`, designs/2026-10-12-push-everywhere.md).
+  const view: ReachView =
+    scope.client || !deps.pushes
+      ? { pushed: [], watched: [] }
+      : await deps.pushes(ctx).catch(() => ({ pushed: [], watched: [] }));
   const everyOf = new Map(
     live.map((a) => {
-      const t = touches[a.id];
+      const t = view.watched.includes(a.platform) ? null : touches[a.id];
       return [a.id, warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random())];
     }),
   );
-  const isDue = (a: ReachAccount) => now.getTime() - (reads[a.id] ?? 0) >= (everyOf.get(a.id) ?? 0);
+  const isDue = (a: ReachAccount) =>
+    view.pushed.includes(a.platform) ||
+    now.getTime() - (reads[a.id] ?? 0) >= (everyOf.get(a.id) ?? 0);
   // Platform reads happen inside these helpers; each account's result is applied in its own step.
   const replies: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
   const health: HealthStats = { checked: 0, frozen: [], errors: [] };
@@ -1253,6 +1273,28 @@ export function makeReachDesk(deps: ReachDeps) {
           await answered(sent.ref);
           wakeWatch(ctx);
           return { ref: sent.ref };
+        },
+      ),
+      /**
+       * Warm `answerComment` while it waits on a yes: on our own post, `Content.arm` runs its
+       * browser leg to the reply box. A reach account's answer is not armed. Never fails.
+       */
+      armComment: serviceHandler(
+        { input: ANSWER },
+        async (
+          ctx: restate.Context,
+          req: { id: number; body?: string | null },
+        ): Promise<{ armed: boolean }> => {
+          const now = await nowOf(ctx);
+          // A comment that can't be answered now arms nothing; the yes says why.
+          const plan = await ctx.run("plan", () =>
+            planAnswer(deps.db, req.id, now).catch(() => null),
+          );
+          const text = (req.body ?? plan?.comment.draft ?? "").trim();
+          if (!plan || plan.account || !text) return { armed: false };
+          return ctx
+            .serviceClient<ContentReply>({ name: "Content" })
+            .arm({ platform: plan.comment.platform, commentId: plan.comment.ref, text });
         },
       ),
       /**

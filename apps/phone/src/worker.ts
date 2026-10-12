@@ -22,6 +22,11 @@
  * - `/webhooks/gmail`: Gmail's push through Pub/Sub, `?token=` checked against
  *   `GMAIL_PUSH_TOKEN`, then `InboxPush/<address>/notify/send` keyed by Pub/Sub's message
  *   id: the mailbox's inbox loop runs a pass now.
+ * - `/webhooks/meta`: Meta's webhooks (Page feed and messages, Instagram). GET answers the
+ *   handshake against `META_WEBHOOK_TOKEN`; POST is checked against the app secret, then
+ *   `SocialPush/meta/send` keyed by the body's digest (designs/2026-10-12-push-everywhere.md).
+ * - `/webhooks/gbp`: Business Profile's review notices through Pub/Sub, `?token=` checked against
+ *   `GBP_PUSH_TOKEN`, then `SocialPush/gbp/send` keyed by Pub/Sub's message id.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
@@ -351,6 +356,82 @@ async function gmailWebhook(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+/** Hex SHA-256: a body's idempotency key when the vendor sends no event id. */
+async function digest(raw: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Meta's webhooks (designs/2026-10-12-push-everywhere.md). GET is the subscription's handshake:
+ * `hub.challenge` back when `hub.verify_token` matches. POST is signed with the app secret, or the
+ * Instagram app's for Instagram Login; the body goes whole to `SocialPush/meta`, keyed by its
+ * digest (Meta sends no event id and batches entries).
+ */
+async function metaWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.META_WEBHOOK_TOKEN) return json({ error: "webhooks off: no META_WEBHOOK_TOKEN" }, 503);
+  if (req.method === "GET") {
+    const q = new URL(req.url).searchParams;
+    const ok =
+      q.get("hub.mode") === "subscribe" &&
+      (await sameSecret(q.get("hub.verify_token") ?? "", env.META_WEBHOOK_TOKEN));
+    if (!ok) return json({ error: "bad token" }, 401);
+    return new Response(q.get("hub.challenge") ?? "", {
+      headers: { "content-type": "text/plain" },
+    });
+  }
+  if (req.method !== "POST") return json({ error: "GET or POST" }, 405);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  const sig = req.headers.get("x-hub-signature-256")?.replace(/^sha256=/, "") ?? null;
+  const secrets = [env.META_APP_SECRET, env.INSTAGRAM_APP_SECRET].filter((s): s is string => !!s);
+  if (!secrets.length) return json({ error: "webhooks off: no META_APP_SECRET" }, 503);
+  let signed = false;
+  for (const s of secrets) if (await hmacSigned(s, raw, sig)) signed = true;
+  if (!signed) return json({ error: "bad signature" }, 401);
+  return toRestate(env, "SocialPush/meta/send", `meta-${await digest(raw)}`, raw);
+}
+
+/**
+ * Business Profile's Pub/Sub push: `?token=` checked against `GBP_PUSH_TOKEN`, then the decoded
+ * notification (`{type, review?, location}`) to `SocialPush/gbp`, keyed by Pub/Sub's message id.
+ */
+async function gbpWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.GBP_PUSH_TOKEN) return json({ error: "webhooks off: no GBP_PUSH_TOKEN" }, 503);
+  const token = new URL(req.url).searchParams.get("token") ?? "";
+  if (!(await sameSecret(token, env.GBP_PUSH_TOKEN))) return json({ error: "bad token" }, 401);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  let id: unknown;
+  let note: unknown;
+  try {
+    const { message } = JSON.parse(raw) as { message?: { data?: string; messageId?: unknown } };
+    id = message?.messageId;
+    note = JSON.parse(atob(message?.data ?? ""));
+  } catch {
+    return json({ error: "not a Pub/Sub push" }, 400);
+  }
+  if (typeof id !== "string" || id === "" || !note || typeof note !== "object")
+    return json({ error: "not a Pub/Sub push" }, 400);
+  return toRestate(env, "SocialPush/gbp/send", `gbp-${id}`, JSON.stringify(note));
+}
+
+/** One send into Restate; 502 when it fails, so the vendor retries. */
+async function toRestate(env: Env, path: string, key: string, body: string): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, path), {
+      method: "POST",
+      headers: restateHeaders(env, { "idempotency-key": key }),
+      body,
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  return json({ ok: true });
+}
+
 /** The signed-in operator, or the refusal. */
 async function operator(req: Request, env: Env): Promise<Signed | Response> {
   if (!env.AUTH_ORIGIN) return json({ error: "sign-in is not set up" }, 503);
@@ -661,6 +742,10 @@ export default {
     }
     if (pathname === "/webhooks/gmail") {
       return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/meta") return metaWebhook(req, env);
+    if (pathname === "/webhooks/gbp") {
+      return req.method === "POST" ? gbpWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname.startsWith("/hooks/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

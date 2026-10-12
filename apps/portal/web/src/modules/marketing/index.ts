@@ -793,6 +793,8 @@ const ASKED_REPLY_ACTIONS: Action[] = [
     confirm: "Send this reply on its channel now?",
     key: "a",
     done: said("Sent"),
+    // Armed when asked (designs/2026-10-12-push-everywhere.md): it goes out in seconds.
+    optimistic: "Sending",
   },
   {
     id: "inbox.replyDrop",

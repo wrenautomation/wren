@@ -305,6 +305,11 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^[0-9]+$/)
     .optional(),
+  /** Our Instagram account's id: a Meta webhook naming it wakes our own loops. */
+  metaIgId: z
+    .string()
+    .regex(/^[0-9]+$/)
+    .optional(),
   /** The ad account `wren ads` works in (`act_…` or bare id); the first account on the token when unset. */
   metaAdAccountId: z
     .string()
@@ -628,6 +633,7 @@ export const ENV_KEYS = {
   booksSince: "WREN_BOOKS_SINCE",
   booksAwsUsage: "WREN_BOOKS_AWS_USAGE",
   metaPageId: "WREN_META_PAGE_ID",
+  metaIgId: "WREN_META_IG_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   smsProvider: "WREN_SMS_PROVIDER",
