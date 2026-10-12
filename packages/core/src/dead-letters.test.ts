@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { failureOf, letterLine, pausedOf } from "./dead-letters.js";
+import {
+  deskUnreachable,
+  failureOf,
+  letterLine,
+  pausedFailureOf,
+  pausedOf,
+} from "./dead-letters.js";
 
 describe("dead letters", () => {
   it("reads Restate's paused rows, skipping a row with no id", () => {
@@ -37,5 +43,36 @@ describe("dead letters", () => {
     const line = letterLine({ id: 3, target: "A/b", key: "k", error: `x\n${"y".repeat(300)}` });
     expect(line.startsWith("#3 A/b (k): x y")).toBe(true);
     expect(line.length).toBeLessThan(150);
+  });
+
+  it("reads the failure off a Paused event", () => {
+    expect(
+      pausedFailureOf(
+        '{"ty":"Paused","last_failure":{"error_code":500,"error_message":"error when calling \'http://127.0.0.1:9082/\': h2 pool connection error: connection reset"}}',
+      ),
+    ).toBe(
+      "[500] error when calling 'http://127.0.0.1:9082/': h2 pool connection error: connection reset",
+    );
+    expect(pausedFailureOf('{"ty":"Paused"}')).toBeNull();
+    expect(pausedFailureOf("not json")).toBeNull();
+  });
+
+  it("only Restate's transport errors on a desk call count as the Mac asleep", () => {
+    const reset =
+      "[500] error when calling 'http://127.0.0.1:9082/': h2 pool connection error: connection reset";
+    expect(deskUnreachable({ target: "desk/call", error: reset })).toBe(true);
+    expect(
+      deskUnreachable({
+        target: "desk/call",
+        error: "[500] error when calling 'http://127.0.0.1:9082/': connection refused",
+      }),
+    ).toBe(true);
+    // Same transport error on a wren service: wren is down, that pings.
+    expect(deskUnreachable({ target: "Content/comments", error: reset })).toBe(false);
+    // The desk answered with its own error: a real failure.
+    expect(
+      deskUnreachable({ target: "desk/call", error: "[500] gmail: connection reset by peer" }),
+    ).toBe(false);
+    expect(deskUnreachable({ target: "desk/call", error: null })).toBe(false);
   });
 });

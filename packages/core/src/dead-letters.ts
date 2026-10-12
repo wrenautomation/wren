@@ -77,12 +77,48 @@ export function failureOf(entryJson: unknown): string | null {
 /** The journal's id: Restate's `inv_` ids are word characters only. */
 const safeId = (id: string) => id.replace(/[^\w]/g, "");
 
-/** The last failure the invocation's journal holds: Restate often keeps none on the row. */
+/** The failure a `Paused` journal event carries, or null. */
+export function pausedFailureOf(eventJson: unknown): string | null {
+  if (typeof eventJson !== "string") return null;
+  try {
+    const f = (
+      JSON.parse(eventJson) as { last_failure?: { error_code?: number; error_message?: string } }
+    ).last_failure;
+    return f?.error_message ? `[${f.error_code ?? "?"}] ${f.error_message}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The last failure the invocation's journal holds: Restate often keeps none on the row. A call
+ * that never reached its handler (the deployment unreachable) has no failed entry, only the
+ * `Paused` event's last failure.
+ */
 async function journalFailure(admin: RestateAdmin, id: string): Promise<string | null> {
   const rows = await admin(
     `SELECT entry_json FROM sys_journal WHERE id = '${safeId(id)}' AND entry_json LIKE '%"Failure"%' ORDER BY index DESC LIMIT 1`,
   );
-  return failureOf(rows[0]?.entry_json);
+  const found = failureOf(rows[0]?.entry_json);
+  if (found) return found;
+  const events = await admin(
+    `SELECT event_json FROM sys_journal_events WHERE id = '${safeId(id)}' AND event_type = 'Paused' ORDER BY appended_at DESC LIMIT 1`,
+  );
+  return pausedFailureOf(events[0]?.event_json);
+}
+
+/**
+ * A desk call Restate could not deliver: the Mac worker was off the network (asleep, lid shut,
+ * tunnel down). Only Restate's own transport errors match; a desk handler that answered with
+ * an error, or a letter with no error, stays a loud letter.
+ */
+export function deskUnreachable(l: Pick<DeadLetterRow, "target" | "error">): boolean {
+  return (
+    l.target.startsWith("desk/") &&
+    /error when calling '[^']*': .*(connection (reset|refused|closed|error)|connect(ion)? timed? ?out|network is unreachable|tcp connect error)/i.test(
+      l.error ?? "",
+    )
+  );
 }
 
 /** Every entry of an invocation's journal: type, name, and a failure when one is there. */
@@ -162,32 +198,53 @@ export async function deadLetterPass(deps: DeadLetterDeps, now: Date): Promise<D
     .from(deadLetters)
     .where(and(isNull(deadLetters.endedAt), isNull(deadLetters.toldAt)))
     .orderBy(asc(deadLetters.id));
-  let told = 0;
-  if (untold.length && deps.notifier) {
+  // Desk calls lost to the Mac sleeping are posted silent; everything else pings.
+  const asleep = untold.filter(deskUnreachable);
+  const loud = untold.filter((l) => !deskUnreachable(l));
+  const tell = async (
+    letters: DeadLetterRow[],
+    title: string,
+    footer: string,
+    level: "info" | "warning",
+  ): Promise<number> => {
+    if (!letters.length || !deps.notifier) return 0;
     const sent = await deps.notifier.notify(
-      `${untold.length} dead letter${untold.length === 1 ? "" : "s"}: Restate gave up on ${untold.length === 1 ? "a call" : "calls"}`,
+      title,
       [
-        ...untold.slice(0, 10).map(letterLine),
-        untold.length > 10 ? `…and ${untold.length - 10} more` : null,
-        "`wren dlq show <id>`, then `retry`, `kill` or `drop`.",
+        ...letters.slice(0, 10).map(letterLine),
+        letters.length > 10 ? `…and ${letters.length - 10} more` : null,
+        footer,
       ]
         .filter(Boolean)
         .join("\n"),
-      "warning",
+      level,
     );
-    if (sent) {
-      await deps.main
-        .update(deadLetters)
-        .set({ toldAt: now })
-        .where(
-          inArray(
-            deadLetters.id,
-            untold.map((l) => l.id),
-          ),
-        );
-      told = untold.length;
-    }
-  }
+    if (!sent) return 0;
+    await deps.main
+      .update(deadLetters)
+      .set({ toldAt: now })
+      .where(
+        inArray(
+          deadLetters.id,
+          letters.map((l) => l.id),
+        ),
+      );
+    return letters.length;
+  };
+  const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+  const told =
+    (await tell(
+      loud,
+      `${n(loud.length, "dead letter", "dead letters")}: Restate gave up on ${loud.length === 1 ? "a call" : "calls"}`,
+      "`wren dlq show <id>`, then `retry`, `kill` or `drop`.",
+      "warning",
+    )) +
+    (await tell(
+      asleep,
+      `${n(asleep.length, "desk call", "desk calls")} parked: the Mac worker was unreachable (likely asleep or offline)`,
+      "Loops read again on their next pass. Clear with `wren dlq kill <id>` once the Mac is back.",
+      "info",
+    ));
   return { paused: paused.length, filed: filed.length, cleared: cleared.length, told };
 }
 

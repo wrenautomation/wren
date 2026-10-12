@@ -18,16 +18,16 @@ A paused call holds its object's lock and moves only when someone acts, so it mu
 ## Shape
 
 - Table `dead_letters` (`dead-letter-schema.ts:26`): `invocation_id` unique, `target`, `key`, `error`, `invoked_by`, `paused_at`, `told_at`, `ended_at`, `end` (`retried`, `killed`, `dropped`, `cleared`), `ended_by`. Main only. Migration 0225
-- Sweep `deadLetterPass` (`dead-letters.ts:126`): SQL over `sys_invocation` where `status = 'paused'` (`:37`); the error from the journal when the row has none; a retried letter that paused again reopens (same id); open rows no longer paused close as `cleared`; one Discord warning per batch of new letters
-- `endDeadLetter` (`dead-letters.ts:223`): `retry` = admin `PATCH /invocations/<id>/resume`, `kill` = `/kill`, `drop` = the row only
-- Loop `DeadLetters/all` (`dead-letters.ts:248`), every 10 minutes; wired only when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services.ts:2016`)
+- Sweep `deadLetterPass` (`dead-letters.ts:162`): SQL over `sys_invocation` where `status = 'paused'` (`:37`); the error from the journal when the row has none, else the `Paused` event's last failure; a retried letter that paused again reopens (same id); open rows no longer paused close as `cleared`; one Discord warning per batch of new letters, except desk calls Restate could not deliver (`deskUnreachable`, `:115`: the Mac asleep), posted silent
+- `endDeadLetter` (`dead-letters.ts:280`): `retry` = admin `PATCH /invocations/<id>/resume`, `kill` = `/kill`, `drop` = the row only
+- Loop `DeadLetters/all` (`dead-letters.ts:305`), every 10 minutes; wired only when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services.ts:2016`)
 - Caddy passes exactly those two PATCH routes with the ingress bearer (`deploy/scripts/box-restate.sh:59`)
 
 Citations: `packages/core/src/dead-letter-schema.ts:26`
 
 ## Connected to
 
-- **joins:** Restate's `sys_invocation` and `sys_journal` by invocation id
+- **joins:** Restate's `sys_invocation`, `sys_journal` and `sys_journal_events` by invocation id
 - **looks-like-but-is-not:** a spine step's error (`events.error`, Replay); a loop's failed pass (`runs`, `last`, [[platform/loop-object]]); `scripts/restate-lag.mjs` (late timers and calls stuck ready, running or backing off; no longer paused ones)
 
 ## If you change this
