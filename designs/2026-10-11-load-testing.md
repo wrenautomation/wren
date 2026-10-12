@@ -23,6 +23,27 @@ it after a run, `--down` clears either. `--vus` sets the peak, `--firms` the see
 
 Why k6: thresholds as code, exit code as verdict, tags per request kind, one binary. Ours stays
 the part k6 lacks: a stack that matches prod's code and data shape and says where time went.
+Looked at and passed over: Locust and Artillery (slower load generators, no better verdict),
+Gatling (JVM), JMeter (XML). k6 is good, so we build on it rather than design our own agents.
+
+## Stress: where it breaks
+
+`pnpm loadtest <scenario> --stress` (2026-10-11 temp note: "k7 and stress tests?"). The same
+scenario and thresholds climb a staircase of users, doubling from `--from` (10) to `--max`
+(1280), 30 s a stair. k6 stops once a whole-run threshold breaks. The harness then reads every
+sample, scores each stair's held seconds (not its 5 s climb) against the scenario's thresholds,
+and prints the last stair that held:
+
+```
+held      5 users    28 req/s  list 171  facets 207  search 360  failed 0
+held     10 users    29 req/s  list 392  facets 411  search 541  failed 0
+broke    20 users    23 req/s  !list 705  facets 636  !search 841  failed 0
+breaking point: 20 users; held at 10 (29 req/s)
+```
+
+Read it as: requests a second stay flat while latency climbs, so 29 req/s is the ceiling and
+Postgres (4+ cores) is what holds it. A fix counts when the breaking point moves. Scenarios share
+the shape through `loadtest/lib.js`, so every new scenario gets stress for free.
 
 ## The loop
 
@@ -55,3 +76,5 @@ Still failing. Next levers, in order:
    ORDER BY can use.
 
 Prod has fewer cores than this Mac, so a pass here is the floor, not the proof.
+
+Breaking point today (stress, 2026-10-11): holds 10 users, breaks at 20.

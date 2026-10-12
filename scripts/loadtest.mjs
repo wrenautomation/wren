@@ -5,17 +5,27 @@
  * gets no .env (WREN_ENV_FILE=none), no AWS credentials, no webhooks.
  *
  *   node scripts/loadtest.mjs <scenario> [--vus 100] [--firms 66000] [--keep | --up]
+ *   node scripts/loadtest.mjs <scenario> --stress [--from 10] [--max 1280]
  *
  * Scenarios are `loadtest/scenarios/<name>.js` (k6, with thresholds = the success criteria)
  * and an optional `loadtest/seeds/<name>.sql`. The summary lands in `loadtest/results/`;
  * exit 0 = every threshold held. `--keep` leaves the stack up after k6 and prints how to reach
  * it; `--up` brings it up seeded and skips k6 (to EXPLAIN or try a fix by hand); `--down`
- * takes a kept stack away.
+ * takes a kept stack away. `--stress` climbs a staircase of users (doubling from `--from` to
+ * `--max`, 30 s a stair) until a threshold breaks, then names the last stair that held.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { connect } from "node:net";
 import { dirname, join, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,6 +44,11 @@ if (name && !existsSync(scenario)) throw new Error(`no scenario ${scenario}`);
 const seed = join(repo, "loadtest/seeds", `${name}.sql`);
 const up = args.includes("--up");
 const keep = up || args.includes("--keep");
+const stress = args.includes("--stress");
+const STEP_S = 30;
+const RAMP_S = 5; // as loadtest/lib.js: the stair's first seconds climb, the rest hold
+const stairs = [];
+for (let v = Number(flag("from", "10")); v <= Number(flag("max", "1280")); v *= 2) stairs.push(v);
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 const out = join(repo, "loadtest/results");
 mkdirSync(out, { recursive: true });
@@ -254,7 +269,12 @@ try {
   }
 
   const summary = join(out, `${stamp}-${name}.json`);
-  console.log(`k6: ${name}, peak ${flag("vus", "100")} users`);
+  const samples = join(out, `${stamp}-${name}.samples.csv`);
+  console.log(
+    stress
+      ? `k6: ${name}, stairs ${stairs.join(", ")} users, ${STEP_S} s each`
+      : `k6: ${name}, peak ${flag("vus", "100")} users`,
+  );
   const k6 = spawn(
     "k6",
     [
@@ -262,6 +282,9 @@ try {
       "--quiet",
       "--summary-export",
       summary,
+      ...(stress ? ["--out", `csv=${samples}`, "-e", `STAIRS=${stairs.join(",")}`] : []),
+      "-e",
+      `STEP_S=${STEP_S}`,
       "-e",
       `INGRESS=${ingress}`,
       "-e",
@@ -278,6 +301,7 @@ try {
     `${JSON.stringify(profile, null, 2)}\n`,
   );
   verdict(summary, code, profile);
+  if (stress) await breakingPoint(summary, samples, join(out, `${stamp}-${name}.stress.json`));
   if (keep) {
     console.log(`kept: ingress ${ingress}, admin ${admin}, db ${dbUrl}; worker pid ${worker.pid}`);
     console.log("stop: node scripts/loadtest.mjs --down");
@@ -317,4 +341,103 @@ function verdict(path, code, profile) {
     );
   console.log(code === 0 ? "verdict: PASS" : `verdict: FAIL (k6 exit ${code})`);
   console.log(`summary: ${path}`);
+}
+
+/**
+ * The stress run's answer: each stair's numbers against the scenario's own thresholds, held
+ * seconds only, and the last stair that kept them all. Reads k6's samples (one row per metric
+ * per request) and the thresholds from its summary.
+ */
+async function breakingPoint(summaryPath, samplesPath, outPath) {
+  if (!existsSync(summaryPath) || !existsSync(samplesPath)) return console.log("no samples");
+  const rules = [];
+  for (const [key, v] of Object.entries(
+    JSON.parse(readFileSync(summaryPath, "utf8")).metrics ?? {},
+  ))
+    for (const expr of Object.keys(v.thresholds ?? {})) {
+      const [, metric, tag] = /^([\w]+)(?:\{(\w+:[^}]+)\})?$/.exec(key) ?? [];
+      const [, agg, op, limit] =
+        /^(p\(\d+(?:\.\d+)?\)|rate|avg|max|med)\s*(<=?)\s*([\d.]+)$/.exec(expr) ?? [];
+      if (metric && agg)
+        rules.push({
+          key,
+          metric,
+          tag: tag ? tag.replace(":", "=") : null,
+          expr,
+          agg,
+          op,
+          limit: Number(limit),
+        });
+    }
+  const wanted = new Set(rules.map((r) => r.metric).concat("http_reqs"));
+  const per = stairs.map(() => new Map()); // stair → metric key → values
+  const seconds = stairs.map(() => new Set()); // stair → held seconds seen (a stopped stair is short)
+  let t0 = null;
+  const lines = createInterface({ input: createReadStream(samplesPath) });
+  for await (const line of lines) {
+    const c = line.split(",");
+    if (!wanted.has(c[0])) continue;
+    const t = Number(c[1]);
+    t0 ??= t;
+    const i = Math.floor((t - t0) / STEP_S);
+    if (i >= stairs.length || (t - t0) % STEP_S < RAMP_S) continue;
+    seconds[i].add(t);
+    const tags = c[17] ?? "";
+    const keys = [c[0]];
+    for (const r of rules)
+      if (r.metric === c[0] && r.tag && tags.split("&").includes(r.tag)) keys.push(r.key);
+    for (const k of keys) {
+      const m = per[i];
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(Number(c[2]));
+    }
+  }
+  const of = (xs, agg) => {
+    if (!xs?.length) return null;
+    if (agg === "rate" || agg === "avg") return xs.reduce((a, b) => a + b, 0) / xs.length;
+    if (agg === "max") return Math.max(...xs);
+    const q = agg === "med" ? 50 : Number(agg.slice(2, -1));
+    const sorted = [...xs].sort((a, b) => a - b);
+    return sorted[Math.min(sorted.length - 1, Math.ceil((q / 100) * sorted.length) - 1)];
+  };
+  const rows = [];
+  for (const [i, users] of stairs.entries()) {
+    const m = per[i];
+    if (!m.size) break;
+    const checks = rules.map((r) => {
+      const v = of(m.get(r.key), r.agg);
+      const ok = v === null || (r.op === "<" ? v < r.limit : v <= r.limit);
+      return {
+        key: r.key,
+        expr: r.expr,
+        value: v === null ? null : Number(v.toFixed(r.agg === "rate" ? 4 : 0)),
+        ok,
+      };
+    });
+    const reqs = m.get("http_reqs")?.length ?? 0;
+    rows.push({
+      users,
+      rps: Math.round(reqs / Math.max(seconds[i].size, 1)),
+      held: checks.every((c) => c.ok),
+      checks,
+    });
+  }
+  const broke = rows.find((r) => !r.held);
+  const held = rows.filter((r) => r.held && (!broke || r.users < broke.users)).at(-1);
+  console.log("\nstairs (held seconds only):");
+  for (const r of rows)
+    console.log(
+      `${r.held ? "held " : "broke"} ${String(r.users).padStart(5)} users ${String(r.rps).padStart(5)} req/s  ${r.checks
+        .map((c) => `${c.ok ? "" : "!"}${c.key} ${c.value ?? "-"}`)
+        .join("  ")}`,
+    );
+  console.log(
+    broke
+      ? `breaking point: ${broke.users} users${held ? `; held at ${held.users} (${held.rps} req/s)` : "; held at none"}`
+      : `breaking point: not reached by ${rows.at(-1)?.users ?? 0} users`,
+  );
+  writeFileSync(
+    outPath,
+    `${JSON.stringify({ stairs: rows, broke: broke?.users ?? null, held: held?.users ?? null }, null, 2)}\n`,
+  );
 }

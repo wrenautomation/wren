@@ -3,31 +3,19 @@
 // bounds at the peak. Run by scripts/loadtest.mjs, which sets INGRESS.
 import { check } from "k6";
 import http from "k6/http";
+import { shape } from "../lib.js";
 
 const INGRESS = __ENV.INGRESS;
-const PEAK = Number(__ENV.VUS ?? 100);
 const viewer = { email: "load@example.test", operator: true };
 const headers = { "content-type": "application/json" };
 
-export const options = {
-  scenarios: {
-    ramp: {
-      executor: "ramping-vus",
-      stages: [
-        { duration: "20s", target: PEAK },
-        { duration: "40s", target: PEAK },
-        { duration: "10s", target: 0 },
-      ],
-    },
-  },
-  // The success criteria. A miss fails the run (k6 exits 99).
-  thresholds: {
-    http_req_failed: ["rate<0.01"],
-    "http_req_duration{ask:list}": ["p(95)<500"],
-    "http_req_duration{ask:search}": ["p(95)<800"],
-    "http_req_duration{ask:facets}": ["p(95)<1500"],
-  },
-};
+// The success criteria. A miss fails the run (k6 exits 99).
+export const options = shape({
+  http_req_failed: ["rate<0.01"],
+  "http_req_duration{ask:list}": ["p(95)<500"],
+  "http_req_duration{ask:search}": ["p(95)<800"],
+  "http_req_duration{ask:facets}": ["p(95)<1500"],
+});
 
 const list = (body, ask) =>
   http.post(
