@@ -35,6 +35,9 @@
  *   with `CRED_LINK_SECRET`; it lives in KV until its TTL. The key is only in the link's
  *   fragment. An open link needs no sign-in, for someone outside Wren.
  *   `/c/<id>` is the reveal page and consumes nothing; an operator's `take` returns it once.
+ * - `/drops`, `/api/drops/<id>[/fill]`, `/drops/<id>/take`, `/u/<id>`: drops, the other way
+ *   (autobrowse designs/2026-10-12-papers.md). The Mac mints an empty one; the phone page seals a photo
+ *   under the fragment's key and posts ciphertext; the Mac takes it once, signed.
  * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
  *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
  *   preference change its signed link, both checked by the service.
@@ -48,7 +51,7 @@
  *   form goes to `Reviews/feedback`. Never a gate: the review link is in every ask.
  * - everything else: the static app in public/.
  *
- * The Worker holds no data but a credential link's ciphertext: the inbox is Postgres, read through Restate.
+ * The Worker holds no data but a link's or a drop's ciphertext: the inbox is Postgres, read through Restate.
  */
 import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
 import {
@@ -607,6 +610,113 @@ async function link(req: Request, env: Env, rest: string): Promise<Response> {
 }
 
 /**
+ * A drop: a credential link the other way (autobrowse designs/2026-10-12-papers.md). The Mac mints one
+ * (`autobrowse papers ask`); the page at `/u/<id>` seals a photo in the phone's browser under
+ * the key in the link's fragment and posts only ciphertext; the Mac takes it once and opens it.
+ * KV `drop:<id>` holds `{label, open, until}`, then `{iv, data}` once filled.
+ */
+const DROP_MAX = 18 * 1024 * 1024; // a 12 MB document, base64, in JSON
+type Drop = { label: string; open: boolean; until: number; iv?: string; data?: string };
+
+/** Fresh and HMAC signed by the Mac with `CRED_LINK_SECRET`, like a link's mint; else a refusal. */
+async function fromMac(req: Request, env: Env): Promise<Record<string, unknown> | Response> {
+  if (!env.CRED_LINK_SECRET) return json({ error: "links off: no CRED_LINK_SECRET" }, 503);
+  const raw = await readBody(req, 16 * 1024);
+  if (raw === null) return json({ error: "too large" }, 413);
+  if (!(await hmacSigned(env.CRED_LINK_SECRET, raw, req.headers.get(LINK_SIGNATURE)))) {
+    return json({ error: "bad signature" }, 401);
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  if (typeof body.at !== "number" || Math.abs(Date.now() - body.at) > 5 * 60_000) {
+    return json({ error: "stale" }, 401);
+  }
+  return body;
+}
+
+/** `POST /drops {label, at, open?, ttl?}` from the Mac: an empty drop, `{id}`. */
+async function mintDrop(req: Request, env: Env): Promise<Response> {
+  const body = await fromMac(req, env);
+  if (body instanceof Response) return body;
+  const { label, open = false, ttl = LINK_TTL_S } = body;
+  if (
+    typeof label !== "string" ||
+    !/^[\w .,@+:-]{1,100}$/.test(label) ||
+    typeof open !== "boolean" ||
+    !Number.isInteger(ttl) ||
+    (ttl as number) < 60 ||
+    (ttl as number) > LINK_TTL_MAX_S
+  ) {
+    return json({ error: "want {label, at, open?, ttl? (60s to 7d)}" }, 400);
+  }
+  const id = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  const drop: Drop = { label, open, until: Math.floor(Date.now() / 1000) + (ttl as number) };
+  await env.CRED_LINKS.put(`drop:${id}`, JSON.stringify(drop), { expirationTtl: ttl as number });
+  return json({ id });
+}
+
+/**
+ * The page's calls: `/api/drops/<id>` names it (`{label, open, filled}`), `/api/drops/<id>/fill`
+ * with `{iv, data}` fills it once. An open drop answers anyone holding its id; any other needs
+ * an operator, and a caller without one gets 401 whether or not it exists.
+ */
+async function drop(req: Request, env: Env, rest: string): Promise<Response> {
+  const [id, fill, ...more] = rest.split("/");
+  if (!id || !LINK_ID.test(id) || more.length || (fill !== undefined && fill !== "fill")) {
+    return json({ error: "not found" }, 404);
+  }
+  const raw = await env.CRED_LINKS.get(`drop:${id}`);
+  const held = raw ? (JSON.parse(raw) as Drop) : null;
+  if (!held?.open) {
+    const who = await operator(req, env);
+    if (who instanceof Response) return who;
+  }
+  if (!held) return json({ error: "This link is used or expired." }, 404);
+  const filled = held.data !== undefined;
+  if (!fill) return json({ label: held.label, open: held.open, filled });
+  if (filled) return json({ error: "Already sent. Ask for a new link to send another." }, 409);
+  const body = await readBody(req, DROP_MAX);
+  if (body === null) return json({ error: "too large: 12 MB at most" }, 413);
+  let sealed: { iv?: unknown; data?: unknown };
+  try {
+    sealed = JSON.parse(body) as typeof sealed;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const { iv, data } = sealed;
+  if (typeof iv !== "string" || !B64.test(iv) || typeof data !== "string" || !B64.test(data)) {
+    return json({ error: "want {iv, data}" }, 400);
+  }
+  const left = Math.max(60, held.until - Math.floor(Date.now() / 1000));
+  await env.CRED_LINKS.put(`drop:${id}`, JSON.stringify({ ...held, iv, data }), {
+    expirationTtl: left,
+  });
+  return json({ ok: true });
+}
+
+/** `POST /drops/<id>/take {at}` from the Mac: `{iv, data}` once, `{waiting: true}` before. */
+async function takeDrop(req: Request, env: Env, id: string): Promise<Response> {
+  const body = await fromMac(req, env);
+  if (body instanceof Response) return body;
+  const raw = await env.CRED_LINKS.get(`drop:${id}`);
+  if (!raw) return json({ error: "used or expired" }, 404);
+  const held = JSON.parse(raw) as Drop;
+  if (held.data === undefined) return json({ waiting: true });
+  // ponytail: get-then-delete is not atomic, as with links; only the Mac takes, one at a time.
+  await env.CRED_LINKS.delete(`drop:${id}`);
+  return new Response(JSON.stringify({ iv: held.iv, data: held.data }), {
+    headers: { "content-type": "application/json", "cache-control": "no-store" },
+  });
+}
+
+/**
  * The door (designs/2026-10-05-workflows.md): any webhook into a workflow's input, by a token
  * `wren hooks add` made. JSON or a form; the Spine checks the token and answers the status.
  */
@@ -756,6 +866,19 @@ export default {
     if (pathname === "/links") {
       return req.method === "POST" ? mintLink(req, env) : json({ error: "POST only" }, 405);
     }
+    if (pathname === "/drops") {
+      return req.method === "POST" ? mintDrop(req, env) : json({ error: "POST only" }, 405);
+    }
+    const take = /^\/drops\/([A-Za-z0-9_-]{22})\/take$/.exec(pathname);
+    if (take?.[1]) {
+      return req.method === "POST"
+        ? takeDrop(req, env, take[1])
+        : json({ error: "POST only" }, 405);
+    }
+    // The drop page: static, for any id, like the reveal page.
+    if (pathname.startsWith("/u/") && LINK_ID.test(pathname.slice(3))) {
+      return env.ASSETS.fetch(new Request(new URL("/u", req.url), req));
+    }
     // The reveal page: static, for any id. A GET never touches KV, so a link preview burns nothing.
     if (pathname.startsWith("/c/") && LINK_ID.test(pathname.slice(3))) {
       return env.ASSETS.fetch(new Request(new URL("/c", req.url), req));
@@ -771,6 +894,7 @@ export default {
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
       if (pathname.startsWith("/api/links/")) return link(req, env, pathname.slice(11));
+      if (pathname.startsWith("/api/drops/")) return drop(req, env, pathname.slice(11));
       return desk(req, env, pathname.slice("/api/".length));
     }
     return env.ASSETS.fetch(req);

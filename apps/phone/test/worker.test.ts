@@ -739,6 +739,86 @@ describe("credential links", () => {
   });
 });
 
+describe("drops", () => {
+  async function signed(path: string, body: unknown, secret = "link-secret") {
+    const raw = JSON.stringify(body);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)),
+    );
+    const hex = [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
+    return call(path, { method: "POST", headers: { [LINK_SIGNATURE]: hex }, body: raw });
+  }
+  const mint = async (o: object = {}) =>
+    (
+      (await (await signed("/drops", { label: "licence front", at: Date.now(), ...o })).json()) as {
+        id: string;
+      }
+    ).id;
+  const sealed = { iv: "AAAAAAAAAAAAAAAA", data: "c2VhbGVk" };
+
+  it("the Mac mints an empty drop; a bad signature, a stale body or a bad label mints none", async () => {
+    const id = await mint();
+    expect(id).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(JSON.parse(kv.get(`drop:${id}`)?.value ?? "{}")).toMatchObject({
+      label: "licence front",
+      open: false,
+    });
+    expect(kv.get(`drop:${id}`)?.ttl).toBe(600);
+    expect((await signed("/drops", { label: "x", at: Date.now() }, "wrong")).status).toBe(401);
+    expect((await signed("/drops", { label: "x", at: Date.now() - 600_000 })).status).toBe(401);
+    expect((await signed("/drops", { label: "a/b", at: Date.now() })).status).toBe(400);
+    expect(kv.size).toBe(1);
+  });
+
+  it("an operator fills it once; the Mac takes it once", async () => {
+    const id = await mint();
+    expect((await post(`/api/drops/${id}/fill`, sealed)).status).toBe(401);
+    expect(
+      (await post(`/api/drops/${id}/fill`, sealed, await as({ operator: false }))).status,
+    ).toBe(403);
+    expect(await (await signed(`/drops/${id}/take`, { at: Date.now() })).json()).toEqual({
+      waiting: true,
+    });
+    expect(await (await post(`/api/drops/${id}`, {}, await as())).json()).toEqual({
+      label: "licence front",
+      open: false,
+      filled: false,
+    });
+    expect((await post(`/api/drops/${id}/fill`, { iv: "x", data: "<b>" }, await as())).status).toBe(
+      400,
+    );
+    expect((await post(`/api/drops/${id}/fill`, sealed, await as())).status).toBe(200);
+    expect((await post(`/api/drops/${id}/fill`, sealed, await as())).status).toBe(409);
+    expect((await signed(`/drops/${id}/take`, { at: Date.now() }, "wrong")).status).toBe(401);
+    const take = await signed(`/drops/${id}/take`, { at: Date.now() });
+    expect(await take.json()).toEqual(sealed);
+    expect(kv.has(`drop:${id}`)).toBe(false);
+    expect((await signed(`/drops/${id}/take`, { at: Date.now() })).status).toBe(404);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("an open drop takes a fill from anyone holding it; the page loads for any id", async () => {
+    const id = await mint({ open: true, ttl: 3600 });
+    expect((await post(`/api/drops/${id}/fill`, sealed)).status).toBe(200);
+    let served = "";
+    env.ASSETS = {
+      fetch: async (r: Request) => {
+        served = new URL(r.url).pathname;
+        return new Response("<html>drop</html>");
+      },
+    } as unknown as Fetcher;
+    expect(await (await call(`/u/${id}`)).text()).toContain("drop");
+    expect(served).toBe("/u");
+  });
+});
+
 describe("body cap", () => {
   /** A body streamed 1 KB at a time, counting what the Worker pulled. */
   function stream(total: number) {

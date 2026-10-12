@@ -64,3 +64,7 @@ second could both read it. Move to a Durable Object if that ever matters.
   default 10 minutes, open 24 hours. The page clears after 5 minutes (was 2). The agent mints an
   open link only when William asks for one to send out, and prints it for him to send. Wire field
   `site` renamed `label`.
+- 2026-10-12: William asked for an encrypted way to get ID photos (a driver's licence) to the
+  Mac. Built drops, a link the other way (autobrowse `designs/2026-10-12-papers.md`): the Mac
+  mints `/u/<id>#<key>`, the phone page seals the file in the browser under the fragment's key
+  and posts ciphertext once, the Mac takes it once. Same KV, secret, TTLs and `--open`.
