@@ -465,7 +465,8 @@ Lander leads always @mention him (`DISCORD_PING_USER_ID` Pages secret).
 - **Restate invoker.** The box's instance role invokes the Lambda. The Cloud invoker role
   `wren-prod-restate-invoker` was destroyed on 2026-10-06 so a revived Cloud env can't replay
   loops into the Lambda. Back to Cloud: restore its trust policy in `terraform.tfvars`.
-- **AWS account.** IAM user + MFA + budget done. Use the IAM user for the CLI
+- **AWS account.** IAM user + MFA done. Budgets (console only, not Terraform): `Monthly cost 15 USD`
+  mails at 100% actual and forecast; `My Monthly Cost Budget` ($30) at 85% and 100%. Use the IAM user for the CLI
   (`aws login` as that user, or an access key + `aws configure`), keep root
   for billing only.
 - **Terraform state is local** (`deploy/terraform/terraform.tfstate`,
