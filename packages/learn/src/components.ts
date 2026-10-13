@@ -17,7 +17,7 @@ export const LEARN_COMPONENTS = [
     for: "wren",
     ready: false,
     missing: [OWN],
-    provides: { services: ["LearnConsole"], records: ["learn.saved"], apps: [] },
+    provides: { services: ["LearnConsole", "LearnPictures"], records: ["learn.saved"], apps: [] },
     out: [{ id: "item", label: "saved items", kind: "item" }],
     hypothesis: {
       from,

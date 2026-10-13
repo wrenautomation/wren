@@ -264,6 +264,8 @@ export type ViewAnswer = ViewTable | { view: string; csv: string };
 
 // ponytail: a hard cap, no paging. Allowed views are aggregates; page when one isn't.
 const MAX_ROWS = 5000;
+/** Lists one `recordsCounts` read totals. */
+const COUNTS_MAX = 40;
 /** Postgres int8 and numeric arrive as strings; counts and rates read as numbers. */
 const NUMERIC_TYPES = new Set([20, 1700]);
 
@@ -2595,6 +2597,24 @@ export function consoleApi({
     },
     recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
       read(req, (r) => r.list(req)),
+    /** Many lists' totals in one read: the sidebar's counts each minute. One it can't read is 0. */
+    recordsCounts: async (
+      req: PortalRequest & { asks?: unknown },
+    ): Promise<{ totals: number[] }> => {
+      const asks = (Array.isArray(req.asks) ? req.asks : [])
+        .slice(0, COUNTS_MAX)
+        .filter((a): a is ListAsk => !!a && typeof (a as ListAsk).record === "string");
+      const totals = await Promise.all(
+        asks.map((a) => {
+          const ask = { ...req, record: a.record, where: a.where, limit: 1 };
+          return read(ask, (r) => r.list(ask)).then(
+            (p) => p.total,
+            () => 0,
+          );
+        }),
+      );
+      return { totals };
+    },
     recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
       read(req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsFile> =>
@@ -3597,6 +3617,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),
       recordsList: (_: restate.Context, req: PortalRequest & ListAsk) =>
         answer(() => api.recordsList(req)),
+      recordsCounts: (_: restate.Context, req: PortalRequest & { asks?: unknown }) =>
+        answer(() => api.recordsCounts(req)),
       recordsGet: (_: restate.Context, req: PortalRequest & GetAsk) =>
         answer(() => api.recordsGet(req)),
       recordsExport: (_: restate.Context, req: PortalRequest & ExportAsk) =>

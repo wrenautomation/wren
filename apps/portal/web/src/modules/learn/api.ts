@@ -249,6 +249,26 @@ export function onChanged(fn: () => void): () => void {
   return () => removeEventListener(CHANGED, fn);
 }
 
+/**
+ * One answer for every caller within a few seconds, per workspace: a move's sidebar and its page
+ * ask once. A change drops it, so what loads next is fresh.
+ */
+const SHARE_MS = 3_000;
+function shared<T>(ask: (client: string) => Promise<T>) {
+  const kept = new Map<string, { at: number; p: Promise<T> }>();
+  const drop = () => kept.clear();
+  globalThis.addEventListener?.(CHANGED, drop);
+  const get = (client = workspace) => {
+    const hit = kept.get(client);
+    if (hit && Date.now() - hit.at < SHARE_MS) return hit.p;
+    const p = ask(client);
+    kept.set(client, { at: Date.now(), p });
+    p.catch(() => kept.delete(client));
+    return p;
+  };
+  return Object.assign(get, { drop });
+}
+
 const write = async <T>(route: string, body: Record<string, unknown>): Promise<T> => {
   const out = await call<T>(`learn/${route}`, body);
   changed();
@@ -261,13 +281,17 @@ let seeing: Promise<unknown> = Promise.resolve();
 /** You looked at Items: the badge counts from now. */
 export function markSeen() {
   seeing = call("learn/seen", {}).catch(() => undefined);
+  unseenOf.drop();
 }
 
 /** Learn's badge: new from sources since you last looked at Items, in `client`'s workspace. */
-export async function unseenCount(client: string): Promise<number> {
+const unseenOf = shared(async (client) => {
   await seeing;
   return (await post<{ n: number }>("learn/unseen", client === WREN.id ? {} : { client })).n;
-}
+});
+export const unseenCount = (client: string): Promise<number> => unseenOf(client);
+
+const railOf = shared(() => call<Rail>("learn/rail", {}));
 
 export const learn = {
   browse: (a: BrowseAsk) =>
@@ -280,7 +304,7 @@ export const learn = {
       sort: a.sort,
       limit: a.limit,
     }).then(withMedia((b) => b.items.map((c) => c.id))),
-  rail: () => call<Rail>("learn/rail", {}),
+  rail: () => railOf(),
   home: () =>
     call<Home>("learn/home", {}).then(
       withMedia((h) => [

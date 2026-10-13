@@ -60,6 +60,7 @@ import {
   tagItems,
   unseen,
 } from "./drive.js";
+import { keepQueries } from "./embed.js";
 import { type FetchFn, follow, itemEvent, tellSources, unfollowSources } from "./feeds.js";
 import { findItems, saveLink, searchItems } from "./items.js";
 import { cleanUrl } from "./links.js";
@@ -506,7 +507,7 @@ export function makeLearnConsole(
   clientDb?: ClientDbOf,
   embed: Embed | null = null,
 ) {
-  const api = learnConsoleApi(db, fetchFn, clientDb, embed);
+  const api = learnConsoleApi(db, fetchFn, clientDb, embed && keepQueries(embed));
   const read = (ctx: restate.Context, ids: string[]) => {
     if (ids.length)
       spineEmit(ctx, {

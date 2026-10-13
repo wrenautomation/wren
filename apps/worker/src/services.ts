@@ -195,6 +195,7 @@ import {
   DEFAULT_VOICE,
   dmGuide,
   githubRepo,
+  putMedia,
   s3MediaHost,
   slidePainter,
 } from "@wren/content";
@@ -312,6 +313,8 @@ import {
   clientAskedOnRead,
   judges as learnJudges,
   readStep as learnRead,
+  makeLearnPictures,
+  type PictureStore,
   type Practice,
   practiceOf,
   scoreStep,
@@ -1418,9 +1421,19 @@ export async function buildServices(
           return Number(r.expiration);
         }
       : undefined;
+  // Learn's thumbnails and avatars, kept in the media bucket by the Monitor's pass.
+  const mediaBucket = settings.mediaBucket;
+  const pictures: PictureStore | null = mediaBucket
+    ? {
+        put: (bytes, ext) => putMedia(bytes, ext, { bucket: mediaBucket }),
+        sign: s3MediaHost({ bucket: mediaBucket }).host,
+      }
+    : null;
+  services.push(makeLearnPictures(db, pictures));
   services.push(
     makeWatch({
       db,
+      pictures,
       mailboxes: watchBoxes.map(mailboxOf("wren:watch")),
       ...(watchPush ? { watch: watchPush } : {}),
       // Learn's alerts and its 09:00 digest ride the Monitor's pass, on the main lane.

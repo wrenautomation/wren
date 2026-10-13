@@ -281,7 +281,17 @@ export default {
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
     if (pathname === MEDIA_PATH) {
       const key = site.kind === "demo" ? null : await keyOf(env);
-      return key ? mediaProxy(req, key) : new Response(null, { status: 404 });
+      if (!key) return new Response(null, { status: 404 });
+      return mediaProxy(req, key, fetch, {
+        sign: async (ref) => {
+          const r = await forward(env, "LearnPictures/sign", JSON.stringify({ ref }));
+          if (r.status !== 200) return null;
+          const { url } = (await r.json()) as { url?: unknown };
+          return typeof url === "string" ? url : null;
+        },
+        cache: typeof caches === "undefined" ? null : caches.default,
+        ...(ctx ? { wait: (p: Promise<unknown>) => ctx.waitUntil(p) } : {}),
+      });
     }
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);

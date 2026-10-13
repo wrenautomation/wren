@@ -72,3 +72,23 @@ export async function nearItems(
     .sort((a, b) => b.near - a.near)
     .slice(0, limit);
 }
+
+/** Search words embedded once per warm instance: the same search again asks the model nothing. */
+export function keepQueries(embed: Embed, max = 500): Embed {
+  const kept = new Map<string, Promise<number[][]>>();
+  return (texts, task) => {
+    if (task !== "query" || texts.length !== 1) return embed(texts, task);
+    const key = texts[0] ?? "";
+    const hit = kept.get(key);
+    if (hit) {
+      kept.delete(key);
+      kept.set(key, hit);
+      return hit;
+    }
+    const p = embed(texts, task);
+    kept.set(key, p);
+    p.catch(() => kept.delete(key));
+    if (kept.size > max) kept.delete(kept.keys().next().value as string);
+    return p;
+  };
+}

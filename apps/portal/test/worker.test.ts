@@ -335,6 +335,8 @@ describe("the demo cache", () => {
   });
 });
 
+const KEPT = `s3://media-bucket/media/${"a".repeat(32)}.jpg`;
+
 describe("Learn's media", () => {
   let upstream: { url: string; range: string | null }[];
   let asked: Record<string, unknown>[];
@@ -356,8 +358,16 @@ describe("Learn's media", () => {
           urls: body.ids.includes("7") ? ["https://img.example/a.jpg"] : [],
         });
       }
+      // Learn's kept pictures: one signed address for a ref a row names.
+      if (url.endsWith("/LearnPictures/sign")) {
+        const { ref } = JSON.parse(String(init?.body)) as { ref: string };
+        asked.push({ sign: ref });
+        return Response.json({ url: ref === KEPT ? "https://store.example/k.jpg?sig=1" : null });
+      }
       const range = new Headers(init?.headers).get("range");
       upstream.push({ url, range });
+      if (url === "https://store.example/k.jpg?sig=1")
+        return new Response("kept", { headers: { "content-type": "image/jpeg" } });
       if (url === "https://img.example/a.jpg")
         return new Response("jpg", { headers: { "content-type": "image/jpeg" } });
       if (url === "https://cdn.example/1.mp3")
@@ -450,5 +460,31 @@ describe("Learn's media", () => {
     ).toBe(403);
     expect((await media("https://img.example/a.jpg", "1.abc")).status).toBe(403);
     expect(upstream.length).toBe(before);
+  });
+
+  it("serves a kept picture from the edge, signing it once", async () => {
+    const edge = new Map<string, Response>();
+    vi.stubGlobal("caches", {
+      default: {
+        match: async (r: Request) => edge.get(r.url)?.clone(),
+        put: async (r: Request, res: Response) => void edge.set(r.url, res),
+      },
+    });
+    const { grant: g } = (await (
+      await grant({ email: "ops@wren.example", operator: true })
+    ).json()) as { grant: string };
+    for (let n = 0; n < 2; n++) {
+      const res = await media(KEPT, g);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("kept");
+      expect(res.headers.get("content-security-policy")).toContain("sandbox");
+      expect(res.headers.get("cache-control")).toContain("immutable");
+    }
+    expect(asked.filter((a) => "sign" in a)).toHaveLength(1);
+    expect(upstream.filter((u) => u.url.startsWith("https://store.example"))).toHaveLength(1);
+    // A ref no row names, or not one of ours, loads nothing.
+    expect((await media(`s3://media-bucket/media/${"b".repeat(32)}.jpg`, g)).status).toBe(404);
+    expect((await media("s3://media-bucket/other/x.jpg", g)).status).toBe(400);
+    vi.unstubAllGlobals();
   });
 });

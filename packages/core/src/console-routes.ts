@@ -13,6 +13,7 @@ export const CONSOLE_ROUTES = {
   // The team's records at Wren; a client's catalog (console.component) at that client.
   recordsTypes: "read",
   recordsList: "read",
+  recordsCounts: "read",
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",

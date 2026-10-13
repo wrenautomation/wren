@@ -7,6 +7,7 @@ export * from "./embed.js";
 export * from "./feeds.js";
 export * from "./items.js";
 export * from "./links.js";
+export * from "./pictures.js";
 export * from "./read.js";
 export * from "./schema.js";
 export * from "./score.js";

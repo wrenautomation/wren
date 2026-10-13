@@ -10,6 +10,9 @@
  * - `GET /media?u=<https address>&g=<grant>`: that picture or audio file. Range passes through,
  *   so a long episode seeks. Only images and audio pass; every answer is sandboxed, so an SVG
  *   can't run as the app.
+ * - `GET /media?u=s3://<bucket>/media/<hash>.<ext>&g=<grant>`: a picture Learn's ingest kept in
+ *   our store. It never changes, so the edge keeps it a year; a miss asks Learn for a signed
+ *   address once. Opening Learn reads no platform.
  *
  * The grant is an HMAC of its expiry under a key derived from a secret the Worker already holds:
  * no new secret, and nothing to store. Web APIs only, so the preview runs the same code.
@@ -107,17 +110,82 @@ export function mediaTarget(raw: string | null): URL | null {
 
 const KEEP = ["content-length", "content-range", "accept-ranges", "etag", "last-modified"] as const;
 
+/** A picture Learn kept: content-addressed, so it never changes under its name. */
+const STORED = /^s3:\/\/[a-z0-9.-]+\/media\/[0-9a-f]{32}\.(jpg|png|webp|gif|avif)$/;
+const YEAR_S = 365 * DAY_S;
+
+/** Where a stored picture comes from: its signed address, and the edge's cache. */
+export interface StoredMedia {
+  sign: (ref: string) => Promise<string | null>;
+  cache?: {
+    match(req: Request): Promise<Response | undefined>;
+    put(req: Request, res: Response): Promise<void>;
+  } | null;
+  /** Keeps the cache write alive past the answer (the Worker's `waitUntil`). */
+  wait?: (p: Promise<unknown>) => void;
+}
+
+const safeHeaders = (type: string, cache: string) =>
+  new Headers({
+    "content-type": type,
+    "cache-control": cache,
+    "x-content-type-options": "nosniff",
+    "content-security-policy": "default-src 'none'; sandbox",
+    "cross-origin-resource-policy": "same-origin",
+    "referrer-policy": "no-referrer",
+  });
+
+/** A stored picture: the edge's copy, or the store's once, then kept a year. */
+async function storedPicture(
+  req: Request,
+  ref: string,
+  stored: StoredMedia | undefined,
+  fetchFn: typeof fetch,
+): Promise<Response> {
+  if (!stored) return new Response(null, { status: 404 });
+  const cacheKey = new Request(`https://media.cache/${encodeURIComponent(ref)}`);
+  let kept = (await stored.cache?.match(cacheKey).catch(() => undefined)) ?? null;
+  if (!kept) {
+    const url = await stored.sign(ref).catch(() => null);
+    if (!url) return new Response(null, { status: 404 });
+    let up: Response;
+    try {
+      up = await fetchFn(url);
+    } catch {
+      return new Response(null, { status: 502 });
+    }
+    if (!up.ok) return new Response(null, { status: up.status === 404 ? 404 : 502 });
+    const type = (up.headers.get("content-type") ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
+    if (!type.startsWith("image/")) return new Response(null, { status: 415 });
+    kept = new Response(await up.arrayBuffer(), {
+      headers: { "content-type": type, "cache-control": `public, max-age=${YEAR_S}, immutable` },
+    });
+    const put = stored.cache?.put(cacheKey, kept.clone());
+    if (put) stored.wait ? stored.wait(put.catch(() => {})) : await put.catch(() => {});
+  }
+  const type = kept.headers.get("content-type") ?? "image/jpeg";
+  return new Response(req.method === "HEAD" ? null : kept.body, {
+    headers: safeHeaders(type, `private, max-age=${YEAR_S}, immutable`),
+  });
+}
+
 /** `GET /media`: the picture or audio file a grant asks for. */
 export async function mediaProxy(
   req: Request,
   key: MediaKey,
   fetchFn: typeof fetch = fetch,
+  stored?: StoredMedia,
 ): Promise<Response> {
   if (req.method !== "GET" && req.method !== "HEAD")
     return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
   const q = new URL(req.url).searchParams;
   if (!(await grantOk(key, q.get("g") ?? "", q.get("u"))))
     return new Response(null, { status: 403 });
+  const ref = q.get("u") ?? "";
+  if (ref.startsWith("s3://"))
+    return STORED.test(ref)
+      ? storedPicture(req, ref, stored, fetchFn)
+      : new Response(null, { status: 400 });
   const target = mediaTarget(q.get("u"));
   if (!target) return new Response(null, { status: 400 });
   const range = req.headers.get("range");
@@ -142,14 +210,7 @@ export async function mediaProxy(
   if (/^(application|binary)\/octet-stream$/.test(type) && AUDIO_PATH.test(target.pathname))
     type = "audio/mpeg";
   if (!/^(image|audio)\//.test(type)) return new Response(null, { status: 415 });
-  const headers = new Headers({
-    "content-type": type,
-    "cache-control": "private, max-age=86400",
-    "x-content-type-options": "nosniff",
-    "content-security-policy": "default-src 'none'; sandbox",
-    "cross-origin-resource-policy": "same-origin",
-    "referrer-policy": "no-referrer",
-  });
+  const headers = safeHeaders(type, "private, max-age=86400");
   for (const h of KEEP) {
     const v = up.headers.get(h);
     if (v) headers.set(h, v);

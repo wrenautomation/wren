@@ -21,7 +21,9 @@ import {
   embedMissing,
   type FetchFn,
   itemEvent,
+  keepPictures,
   mailLearnDigests,
+  type PictureStore,
   type PullStats,
   pullCreators,
   pullFeeds,
@@ -65,6 +67,8 @@ export interface WatchDeps {
   embed?: Embed | null;
   /** Reads Learn's Instagram and X creators (autobrowse on the desk); absent, they wait. */
   sites?: SiteClient | null;
+  /** Keeps Learn's thumbnails and avatars in our store; absent, the portal reads them at their host. */
+  pictures?: PictureStore | null;
 }
 
 /** `InboxPush` (channel-email) as far as the Monitor calls it. */
@@ -164,6 +168,12 @@ export function makeWatch(deps: WatchDeps) {
     await ctx.run("alert learn", () => alertLearn(deps.db, now).catch(failed));
     const embed = deps.embed;
     if (embed) await ctx.run("embed learn", () => embedMissing(deps.db, embed).catch(failed));
+    // Pictures copied here, so opening Learn never asks Instagram or YouTube for one.
+    const pictures = deps.pictures;
+    if (pictures)
+      await ctx.run("keep learn pictures", () =>
+        keepPictures(deps.db, pictures, deps.fetch ?? fetch).catch(failed),
+      );
     const send = deps.send;
     if (send)
       await ctx.run("mail learn digests", () =>
