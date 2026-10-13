@@ -41,6 +41,7 @@ Citations: `packages/content/src/schema.ts:76`
 | Surface | Role |
 |---|---|
 | `ContentDesk.draft/redraft` | writes |
+| `ContentDesk.write` (Marketing → Write, `apps/portal/web/src/modules/marketing/write.tsx`) | writes his own words, one post or a batch split on `---`, a draft per platform with `prompt_version` `own` (`packages/content/src/own.ts`; the fit rules in `write.ts`, which the composer previews with); `adapt` drafts each platform by model instead; `go` `slot` or `now` approves after. `ContentDesk.waiting` reads the waiting drafts by idea for its board; `approve` takes `now` for the next pass |
 | `ContentDesk.approveVideo`, `wren video approve` ([[content/video-edit]]) | write an approved, private YouTube draft of a rendered video |
 | `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes; reject takes an optional `reason` and `note`, kept in [[content/draft-event]] |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`). Marketing → Content → Today (a Day page, `apps/portal/web/src/modules/marketing/index.ts`) shows scheduled drafts by `scheduled`, posts by `published`, waiting drafts by `created` (carried onto today) with Approve; every Content page has the platform switch |

@@ -29,6 +29,7 @@ import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 import { threadEditorOf } from "./thread.js";
 import { videoExtras } from "./videos.js";
+import { WritePage } from "./write.js";
 
 const said = (line: string) => () => line;
 
@@ -1300,6 +1301,7 @@ export const marketing: Module = {
     },
     REVIEWS_PAGE,
     TODAY,
+    { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
     {
       id: "drafts",
       label: "Drafts",

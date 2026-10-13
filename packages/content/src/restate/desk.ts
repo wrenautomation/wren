@@ -17,7 +17,7 @@ import { SHAPES } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
-import { clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
+import { clientOfKey, exclusiveHandler, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
@@ -36,6 +36,7 @@ import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } 
 import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
+import { splitPosts, waitingIdeas, writeOwn } from "../own.js";
 import {
   draftCarousel,
   draftPromo,
@@ -123,6 +124,29 @@ export interface DraftRequest {
 
 export type DraftReport = { ideaId: string; results: DraftResult[]; runId: string };
 
+/** One platform's line in Write's answer: its draft, or why not; after a yes, when it posts. */
+export interface WriteResult {
+  platform: Platform;
+  draftId: string | null;
+  text: string | null;
+  title: string | null;
+  reason: string | null;
+  /** Its slot after a yes; null on the next pass. */
+  at?: string | null;
+  /** Why the yes didn't take: it waits as a draft. */
+  held?: string;
+}
+const written = (r: DraftResult): WriteResult =>
+  r.ok
+    ? {
+        platform: r.platform,
+        draftId: r.draft.id,
+        text: r.draft.text,
+        title: r.draft.title,
+        reason: null,
+      }
+    : { platform: r.platform, draftId: null, text: null, title: null, reason: r.reason };
+
 const PLATFORMS_FIELD = z
   .array(z.string())
   .nullish()
@@ -137,6 +161,19 @@ const ADD = z.looseObject({
   platforms: PLATFORMS_FIELD,
   source: z.enum(IDEA_SOURCES).nullish().describe("Who wrote it; cli unless said"),
 });
+const WRITE_GO = ["draft", "slot", "now"] as const;
+type WriteGo = (typeof WRITE_GO)[number];
+const WRITE = z.looseObject({
+  text: z.string().min(1).describe("One post, or several with a line of --- between them"),
+  title: z.string().nullish().describe("Reddit's title; else the first line"),
+  platforms: z.array(z.enum(PLATFORMS)).min(1).describe("Where each post goes"),
+  adapt: z.boolean().nullish().describe("The model writes each platform's version from the words"),
+  go: z
+    .enum(WRITE_GO)
+    .nullish()
+    .describe("draft: wait for a yes (default); slot: post at each next slot; now: next pass"),
+});
+const NONE = z.looseObject({});
 const DRAFT = z.looseObject({
   ideaId: z.string(),
   platforms: PLATFORMS_FIELD,
@@ -166,6 +203,9 @@ const THUMBNAIL = z.looseObject({
 const IDS = z.looseObject({
   ids: z.array(z.string()).describe("Draft ids"),
   viewer: PORTAL_FIELDS.viewer,
+});
+const APPROVE = IDS.extend({
+  now: z.boolean().nullish().describe("On the next pass instead of the next slot"),
 });
 const SWAP = z.looseObject({
   draftId: z.string().describe("A published post's draft id"),
@@ -329,7 +369,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
    * Who this call is for. A client's drafts need its About and its `models` gate open (asked once
    * a call); a verdict needs only its database.
    */
-  const scopeOf = async (ctx: restate.ObjectContext, drafts = false): Promise<Scope> => {
+  const scopeOf = async (ctx: restate.ObjectSharedContext, drafts = false): Promise<Scope> => {
     const owner = clientOfKey(ctx.key);
     if (!owner) return wren;
     const clients = deps.clients;
@@ -418,26 +458,100 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           return { ideaId: idea.id, results: [result], runId };
         },
       ),
+      /** Write's board: the drafts that wait on a yes, grouped by idea. Read only. */
+      waiting: sharedHandler({ input: NONE }, async (ctx: restate.ObjectSharedContext) => {
+        const { db } = await scopeOf(ctx);
+        return { ideas: await ctx.run("read", () => waitingIdeas(db)) };
+      }),
+      /**
+       * Posts in the person's words (Marketing → Write), one or a batch, on each platform picked:
+       * as written, or each platform's version from the model. Then a draft each, or a yes.
+       */
+      write: exclusiveHandler(
+        { input: WRITE },
+        async (
+          ctx: restate.ObjectContext,
+          req: {
+            text: string;
+            title?: string | null;
+            platforms: Platform[];
+            adapt?: boolean | null;
+            go?: WriteGo | null;
+            viewer?: unknown;
+          },
+        ) => {
+          const s = await scopeOf(ctx);
+          const by = byOf(req);
+          const posts = splitPosts(req.text);
+          if (posts.length === 0)
+            throw new restate.TerminalError("Nothing to post.", { errorCode: 400 });
+          if (posts.length > 1 && req.title)
+            throw new restate.TerminalError("A title fits one post, not a batch.", {
+              errorCode: 400,
+            });
+          const out: { ideaId: string; results: WriteResult[] }[] = [];
+          for (const [n, text] of posts.entries()) {
+            const made = req.adapt
+              ? await (async () => {
+                  const idea = await ctx.run(`idea ${n}`, () => addIdea(s.db, text, "cli"));
+                  const r = await draft(ctx, { ideaId: idea.id, platforms: req.platforms });
+                  return { ideaId: idea.id, results: r.results };
+                })()
+              : await ctx.run(`write ${n}`, async () => {
+                  const r = await writeOwn(s.db, {
+                    text,
+                    title: req.title ?? null,
+                    platforms: req.platforms,
+                    by,
+                  });
+                  return { ideaId: r.idea.id, results: r.results };
+                });
+            out.push({ ideaId: made.ideaId, results: made.results.map(written) });
+          }
+          const go = req.go ?? "draft";
+          if (go === "draft") return { posts: out };
+          const slots = go === "slot" ? await slotsHere(ctx) : undefined;
+          // One at a time: a draft that can't go yet (Reddit with no subreddit) stays a draft.
+          for (const post of out)
+            for (const r of post.results) {
+              if (!r.draftId) continue;
+              const id = r.draftId;
+              const why = await ctx.run(`approve ${id}`, async () => {
+                try {
+                  const [row] = await approveDrafts(s.db, [id], {
+                    now: new Date(),
+                    zone: deps.zone,
+                    asap: go === "now",
+                    ...(slots ? { slots } : {}),
+                    by,
+                  });
+                  return { at: row?.scheduledFor?.toISOString() ?? null, error: null };
+                } catch (err) {
+                  return { at: null, error: err instanceof Error ? err.message : String(err) };
+                }
+              });
+              if (why.error) r.held = why.error;
+              else r.at = why.at;
+            }
+          return { posts: out };
+        },
+      ),
       /** A person's yes from the console: each draft posts at its platform's next slot. */
       approve: exclusiveHandler(
-        { input: IDS },
-        async (ctx: restate.ObjectContext, req: { ids: string[]; viewer?: unknown }) => {
+        { input: APPROVE },
+        async (
+          ctx: restate.ObjectContext,
+          req: { ids: string[]; now?: boolean | null; viewer?: unknown },
+        ) => {
           const { db } = await scopeOf(ctx);
-          // Wren's posts land on the planner's slots; a client's on the defaults.
-          const planned = clientOfKey(ctx.key)
-            ? null
-            : (
-                await ctx
-                  .objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY)
-                  .status()
-              ).settings;
-          const slots = slotsOf((planned as PlannerSettings | null)?.slots);
+          const slots = await slotsHere(ctx);
           return ctx.run("approve", () =>
             verdict(() =>
               approveDrafts(db, req.ids, {
                 now: new Date(),
                 zone: deps.zone,
                 slots,
+                asap: req.now === true,
                 by: byOf(req),
               }),
             ),
@@ -769,6 +883,15 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       ),
     },
   });
+
+  /** Wren's posts land on the planner's slots; a client's on the defaults. */
+  async function slotsHere(ctx: restate.ObjectContext) {
+    const planned = clientOfKey(ctx.key)
+      ? null
+      : (await ctx.objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY).status())
+          .settings;
+    return slotsOf((planned as PlannerSettings | null)?.slots);
+  }
 
   async function draft(ctx: restate.ObjectContext, req: DraftRequest): Promise<DraftReport> {
     for (const p of req.platforms ?? [])

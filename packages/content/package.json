@@ -14,7 +14,8 @@
     "./inbox": "./src/inbox/index.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./write": "./src/write.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
