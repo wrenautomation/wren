@@ -52,9 +52,6 @@ const ADDED = {
     "documents.html_key",
     "documents.tel_hrefs",
     "companies.linkedin_url",
-    // 2026-10-04: copy experiments; a genome's lineage.
-    "template_versions.parent_version",
-    "template_versions.experiment_id",
     // 2026-10-05: email on the spine, follow-ups held for their touch.
     "messages.held",
     "messages.released_at",
@@ -80,7 +77,6 @@ const ADDED = {
   ]),
   constraints: new Set([
     "uq_messages_link_code",
-    "fk_template_versions_experiment_id_experiments",
     // 2026-10-06 db design.
     "fk_enrollments_lead_id_leads",
     "fk_enrollments_candidate_id_contact_candidates",
@@ -120,7 +116,6 @@ const ADDED = {
     "ix_documents_company_fetched",
     "ix_leads_company_verified",
     "ix_people_company_created",
-    "ix_template_versions_experiment_id",
     "ix_template_versions_opened_from",
     // 2026-10-07: a restore repeats a hash, so (niche, template, version) is an index, not unique.
     "ix_template_versions_niche",

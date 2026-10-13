@@ -152,8 +152,6 @@ export interface VersionOpts {
   why?: string | null;
   /** The version row the editor had open. */
   openedFrom?: number | null;
-  parent?: string | null;
-  experimentId?: number | null;
   /** A default's file hash. */
   defaultHash?: string | null;
   /** When it was written, for copy kept before this table (default now). */
@@ -187,12 +185,10 @@ export async function addVersion(
         version,
         number,
         source: opts.source,
-        origin: opts.origin ?? (opts.experimentId != null ? "ai" : "edit"),
+        origin: opts.origin ?? "edit",
         why: opts.why ?? null,
         openedFrom: opts.openedFrom ?? null,
         defaultHash: opts.defaultHash ?? null,
-        parentVersion: opts.parent ?? null,
-        experimentId: opts.experimentId ?? null,
         createdBy: opts.by ?? null,
         ...(opts.at ? { createdAt: opts.at } : {}),
       })

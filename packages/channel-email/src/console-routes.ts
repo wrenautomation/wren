@@ -26,14 +26,6 @@ export const EMAIL_CONSOLE_ROUTES = {
   killSwitchOff: "effect",
   stopOpeners: "effect",
   resumeOpeners: "effect",
-  // Copy experiments and the candidates the model writes for them.
-  startExperiment: "run",
-  pauseExperiment: "run",
-  resumeExperiment: "run",
-  stopExperiment: "run",
-  switchExperiment: "run",
-  approveCandidate: "act",
-  rejectCandidate: "act",
   // A booked call: how it went, and its brief rebuilt (Wren's, or a client's with calls.outcome).
   callWon: "act",
   callNotYet: "act",

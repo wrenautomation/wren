@@ -13,13 +13,7 @@
  *   would ship it unsigned.
  */
 
-import {
-  type Allocation,
-  MissingFactError,
-  render,
-  type Template,
-  toSource,
-} from "@wren/core/slots";
+import { MissingFactError, render, type Template, toSource } from "@wren/core/slots";
 import { emailRef, recordVersion } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
@@ -33,8 +27,6 @@ import { livePages, pageFacts, pageSlugs } from "./pages.js";
 export interface RefreshOptions {
   readonly niche: string;
   readonly templates: ReadonlyMap<string, Template>;
-  /** Per template under an experiment: the shares its loci are drawn by. */
-  readonly allocations?: ReadonlyMap<string, Allocation>;
   readonly factsView: string | null;
   /** Each offer's `offer.*` facts, by offer id. */
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
@@ -180,7 +172,6 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
                   ...pageFacts(pages, e.offer, linkCode),
                 },
                 e.personId !== null ? `person:${e.personId}` : `company:${e.companyId}`,
-                opts.allocations?.get(tpl.name),
               )
             : null;
       } catch (err) {

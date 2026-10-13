@@ -1,6 +1,6 @@
 /**
  * A niche's emails as the template store has them live (`@wren/core/templates`, kind email,
- * system the niche). Compose, refresh, replies and experiments read here; the `.email` files
+ * system the niche). Compose, refresh and replies read here; the `.email` files
  * are defaults (`packages/templates/defaults/email/<niche>`), synced in by `wren templates sync`.
  */
 import type { Template } from "@wren/core/slots";

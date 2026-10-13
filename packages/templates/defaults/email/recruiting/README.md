@@ -9,7 +9,7 @@ rainmaker) and less busywork for the team.
 Facts: bare keys from `person_facts` (first_name, company_name, title;
 `company_short` is the name a person says: "Grove" for "Grove Technical
 Resources", "SRS" for "Superior Resource Specialists") and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
-`offer.page`, `offer.goal`). `half` is the firm's A/B half. `link.*`
+`offer.page`, `offer.goal`). `link.*`
 are this email's own tracked links: `{link.book}` (Cal.com via
 /book), `{link.page}` (the pitch page), `{link.watch}` (the firm's demo,
 else the offer's video). An email that quotes a link the firm can't
@@ -28,9 +28,8 @@ week" if the calendar can't answer.
 ## Replies (William approves every one)
 
 Code never answers a lead alone (William, 10-02). A warm reply that
-takes an offered time, or any warm reply to the demo arm, gets a
-proposal: the time (book-first) and the arm's `reply.email` drafted in
-the thread. William is pinged with their words and the draft. Anything
+takes an offered time gets a proposal: the time and `book-first/reply.email`
+drafted in the thread. William is pinged with their words and the draft. Anything
 else ("this time works better", "skip the demo, call me") pings him
 with their words and no draft. Pings go to Discord and, when
 `WREN_OPERATOR_PHONE` is set, a text to his phone. The inbox syncs every 2 minutes
@@ -43,12 +42,11 @@ with their words and no draft. Pings go to Discord and, when
 - `wren email answers drop <id>`: nothing goes out.
 
 `reply.email` facts: the opener's, plus `{call.booked}` (the time
-approve books, book-first) and `{link.watch}` (the demo, watch-first).
+approve books) and `{link.watch}` (the demo).
 
-## Arms
+## The sequence
 
-Every firm gets `book-first/` for now (William, 10-02), sequence
-`book-first-days-0-5`:
+Every firm gets `book-first/`, sequence `book-first-days-0-5`:
 
 - Opener subject: the first name plus a curiosity line or a compliment
   ("Dana, about your clients", "Dana, love your work", "Dana, cool
@@ -59,15 +57,9 @@ Every firm gets `book-first/` for now (William, 10-02), sequence
   new subject as a fresh thread (outbound-copy SOP).
 - Skimmable (William, 10-05): at most two sentences a paragraph, so it
   scans on a phone. Cut technical detail first; keep the personalization
-  and the hook. Length is a knob tuned per variant, not a rule.
+  and the hook.
 
-`watch-first/` (demo ask, no call) is defined but off, sequence
-`watch-first-days-0-5`: the same opener and follow-up, ending "If you're
-curious, I can send you a quick demo." Turning it
-back on is one plan line in `src/recruiting.ts`.
-
-Each email's clicks and bookings carry its link code, so results split
-by arm.
+Each email's clicks and bookings carry its link code.
 
 - The pain family: BD hangs on one or two people, recruiters' weeks go
   to intake and scheduling, job orders come in waves. The example: past

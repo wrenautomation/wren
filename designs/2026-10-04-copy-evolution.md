@@ -1,5 +1,7 @@
 # Copy evolution
 
+Retired 2026-10-13 (William): the variants system and the recruiting A/B arms are deleted, migration `0236_drop_copy_experiments`. Its rows stay in the lake. Kept here for history.
+
 Living doc. Started 2026-10-04. William moved it from Later to now on 10-04: build the whole harness before the volume is there. It borrows the useful parts of his older project swarm_rag (typed genomes with lineage, strategy registries picked by name, seeding, convergence checks, three LLM tiers over a deterministic checker, a journal fed back to the writer) and leaves out what email copy doesn't need.
 
 ## Why

@@ -1545,10 +1545,6 @@ export const templateVersions = pgTable(
     openedFrom: integer("opened_from"),
     /** A default's file hash (sha256 of its bytes): sync writes a new one only when it moved. */
     defaultHash: varchar("default_hash", { length: 64 }),
-    /** The genome this one was made from; null for a file's version. */
-    parentVersion: varchar("parent_version", { length: 12 }),
-    /** The email experiment that made it (`experiments.id`). */
-    experimentId: integer("experiment_id"),
     /** An operator's address, or a machine as `<what>:<which>` (`import:files`, `pipeline:compose`). */
     createdBy: varchar("created_by", { length: 200 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -1574,9 +1570,6 @@ export const templateVersions = pgTable(
       foreignColumns: [templates.id],
       name: "fk_template_versions_template_id_templates",
     }),
-    index("ix_template_versions_experiment_id")
-      .using("btree", t.experimentId.asc().nullsLast().op("int4_ops"))
-      .where(sql`(experiment_id IS NOT NULL)`),
   ],
 );
 

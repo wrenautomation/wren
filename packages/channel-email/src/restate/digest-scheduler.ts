@@ -10,6 +10,7 @@
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { pruneRuns } from "@wren/core";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -50,6 +51,8 @@ export interface DigestStats {
   domains: number;
   lines: string[];
   sent: boolean;
+  /** Old inbox-sync and send-tick runs nothing references, deleted (see `pruneRuns`). */
+  pruned: number;
 }
 
 interface DomainDay {
@@ -167,7 +170,9 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
         if (trouble.length > 0)
           await deps.notifier.notify("email health", trouble.join("\n"), "warning");
         const sent = await deps.notifier.notify(`email digest for ${yesterday}`, lines.join("\n"));
-        return { day: yesterday, domains, lines, sent };
+        // Housekeeping on the fleet's one daily pass; the ledger is core's, so any loop could host it.
+        const pruned = await pruneRuns(deps.db, now);
+        return { day: yesterday, domains, lines, sent, pruned };
       },
       delayAfter: () => delay,
       retryMs: delay,

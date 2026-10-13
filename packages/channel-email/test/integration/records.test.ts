@@ -250,11 +250,6 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([{ model: "test-model", calls: 1, inputTokens: 10 }]);
   });
 
-  it("variants: the opener sent, with its campaign and step", async () => {
-    const page = await serve().list({ record: "email.variant", view: "all" });
-    expect(page.rows).toMatchObject([{ campaign: "sec_ria", step: "Opener", sent: 1 }]);
-  });
-
   it("stalls: one row per campaign, with threads whose follow-up waits on its touch", async () => {
     const page = await serve().list({ record: "email.stall", view: "all" });
     // The opener went just now: its touch has the hour to land.

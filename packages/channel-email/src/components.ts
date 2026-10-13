@@ -226,40 +226,6 @@ export const EMAIL_COMPONENTS = [
     },
   }),
   defineComponent({
-    id: "email.experiments",
-    stage: "reach",
-    channels: ["email"],
-    name: "Copy experiments",
-    blurb: "Tries new copy against the old and keeps what gets replies.",
-    icon: "cycle",
-    for: "client",
-    ready: false,
-    missing: ["Not built per client yet: waits on each client's own copy templates"],
-    requires: { components: ["email.sequences"] },
-    provides: {
-      services: ["Evolution"],
-      loops: ["Evolution"],
-      records: ["email.variant", "email.experiment", "email.allele", "email.candidate"],
-    },
-    effects: ["spends"],
-    hypothesis: {
-      from: "Wren's opener tests, 2026-09",
-      guesses: [
-        {
-          is: "change",
-          says: "Which parts of the copy get tested: subject, opener, ask.",
-          built: null,
-        },
-        {
-          is: "change",
-          says: "How sure it must be before keeping a variant, by volume.",
-          built: null,
-        },
-        { is: "fixed", says: "A variant wins on replies, never on opens." },
-      ],
-    },
-  }),
-  defineComponent({
     id: "email.marketing",
     stage: "follow",
     channels: ["email"],

@@ -1,16 +1,3 @@
-/**
- * Fact assembly for rendering.
- *
- * The person_facts row contributes bare keys (first_name, title, company_name, ...); the
- * niche's facts-view row is namespaced as company.<column> so view columns can never shadow
- * person facts. `half` is the company's side of a 50/50 test (`halfOf`). `factsFor` is the
- * merge, in exactly one place; compose and preview both call it, so what you preview IS what
- * composes. `post.*` is the firm's newest public post (`postFacts`), for every niche.
- * `touch.*` is our earlier social touches with the person (`touchFacts`,
- * designs/2026-10-07-touches.md): `{touch.line}` names the best one to cite, `{touch.context}`
- * feeds a `<<prompt>>` slot. No touches, no keys, so a `(( ))` group naming one drops.
- */
-import { createHash } from "node:crypto";
 import { touchFactsFor } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -87,16 +74,6 @@ export function sentenceReady(facts: Readonly<FactRow>): Facts {
   return { values: out, refused, filed: stored };
 }
 
-/**
- * Which half of a 50/50 test a company is in, "a" or "b". Fixed by its id, so every run
- * and every preview puts it in the same half; hashed, so the halves don't follow import order.
- * A plan splits on it with `where: { half: "a" }`.
- */
-export function halfOf(companyId: unknown): "a" | "b" {
-  const first = createHash("sha256").update(String(companyId)).digest()[0] as number;
-  return first % 2 === 0 ? "a" : "b";
-}
-
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export async function personFacts(db: Queryable, personId: number): Promise<FactRow> {
@@ -168,7 +145,7 @@ export async function factsFor(
   const company = await companyFacts(db, factsView, companyId);
   const post = await postFacts(db, companyId);
   const touch = await touchFactsFor(db, personId);
-  return sentenceReady({ ...facts, ...company, ...post, ...touch, half: halfOf(facts.company_id) });
+  return sentenceReady({ ...facts, ...company, ...post, ...touch });
 }
 
 /**
@@ -189,5 +166,5 @@ export async function factsForCompany(
   if (row === undefined) throw new Error(`no company ${companyId}`);
   const company = await companyFacts(db, factsView, companyId);
   const post = await postFacts(db, companyId);
-  return sentenceReady({ ...row, ...company, ...post, half: halfOf(companyId) });
+  return sentenceReady({ ...row, ...company, ...post });
 }

@@ -6,8 +6,6 @@
  */
 
 import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
-import { formOf } from "@wren/core/console";
-import { modelLabel } from "@wren/core/models/labels";
 import {
   actor,
   choice,
@@ -19,28 +17,17 @@ import {
   name,
   named,
   number,
-  percent,
-  prose,
   type RecordType,
   rate,
-  score,
   status,
   text,
 } from "@wren/core/records";
 // A niche or arm as people read it: "sec_ria" is its niche's label, "SEC RIA".
 import { labelOf, namedParts } from "@wren/core/templates/labels";
 import type { Queryable } from "@wren/db";
-import { parseSettings, settingsSchema } from "@wren/experiments";
-import { asc, eq, sql } from "drizzle-orm";
-import { z } from "zod";
+import { sql } from "drizzle-orm";
 import { briefOf } from "./calls/brief.js";
-import { mapPoints, points, versionTemplate } from "./evolve/genome.js";
-import { parseOption } from "./evolve/tiers.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
-import { parseTemplate } from "./outreach/authoring.js";
-import { placeholderFacts } from "./outreach/preview.js";
-import { type Allocation, alleleKey, render, type Template } from "./outreach/templates.js";
-import { experimentAlleles, experiments, templateVersions } from "./schema.js";
 import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
 import { todaysSends } from "./send/deliver.js";
 import type { SendPolicy } from "./send/policy.js";
@@ -415,73 +402,6 @@ export const modelRecord = defineRecord({
   ],
 });
 
-/** One email from a template, «placeholder» facts in: its length and shape, not a recipient's words. */
-function sampleEmail(tpl: Template, shares?: Allocation["shares"]) {
-  try {
-    const r = render(tpl, placeholderFacts(tpl), "preview", shares && { snapshot: 0, shares });
-    return { subject: r.subject, body: r.body };
-  } catch {
-    return null;
-  }
-}
-
-/** A copy version's sample email. Its id is `template@version`. */
-async function variantEmail(db: Queryable, id: string) {
-  const at = id.lastIndexOf("@");
-  const [row] = await db
-    .select({ source: templateVersions.source })
-    .from(templateVersions)
-    .where(
-      sql`${templateVersions.template} = ${id.slice(0, at)} and ${templateVersions.version} = ${id.slice(at + 1)}`,
-    )
-    .limit(1);
-  return { email: row ? sampleEmail(parseTemplate(id.slice(0, at), row.source)) : null };
-}
-
-/** One copy version of one step, with sends and its text: `reply_by_arm_step`, versions never sent left out. */
-export const variantRecord = defineRecord({
-  id: "email.variant",
-  app: "outbound",
-  channel: "email",
-  name: { one: "variant", many: "variants" },
-  rows: async (db) =>
-    (
-      await db.execute<Record<string, unknown>>(sql`
-        select r.*, v.source copy, v.created_at written from reply_by_arm_step r
-        left join template_versions v on v.niche = r.niche and v.template = r.template
-          and v.version = r.template_version
-        where r.sent > 0`)
-    ).map((r) => {
-      const step = Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`;
-      // A version is a hash: it reads as the day its copy was written, "Book first: Opener, Sep 16".
-      const day = r.written
-        ? `, ${new Date(String(r.written)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
-        : "";
-      return {
-        ...r,
-        id: `${r.template}@${r.template_version}`,
-        arm: `${r.arm ? labelOf(String(r.arm)) : "Copy"}: ${step}${day}`,
-        step,
-      };
-    }),
-  key: "id",
-  title: "arm",
-  subtitle: "campaign",
-  fields: {
-    arm: text("Variant"),
-    campaign: campaign(),
-    step: text(),
-    written: date("Copy written"),
-    sent: number("Sent"),
-    replyRate: rate("sent", "Reply rate", { from: "replies" }),
-    interested: number(),
-    bounces: rate("sent", "Hard bounces", { from: "hard_bounces" }),
-    copy: prose("Copy"),
-  },
-  views: [{ id: "all", label: "All", sort: "-sent" }],
-  load: variantEmail,
-});
-
 /**
  * Per campaign, the named people and firms stuck before a send (`pipeline_leaks`), and threads
  * stuck between sends: a follow-up still held an hour after the step before it went (its touch
@@ -523,313 +443,6 @@ export const stallRecord = defineRecord({
   views: [{ id: "all", label: "All", sort: "-queuedFirms" }],
 });
 
-const EXPERIMENT_STATES = {
-  running: { label: "Running", tone: "good" },
-  paused: { label: "Paused", tone: "warn" },
-  settled: { label: "Settled", tone: "neutral" },
-  stopped: { label: "Stopped", tone: "neutral" },
-} as const;
-const ALLELE_STATES = {
-  candidate: { label: "Waiting on you", tone: "warn" },
-  live: { label: "Live", tone: "good" },
-  retired: { label: "Retired", tone: "neutral" },
-  rejected: { label: "Rejected", tone: "neutral" },
-} as const;
-const ORIGINS = {
-  seed: { label: "Model seed", tone: "neutral" },
-  mutation: { label: "Model", tone: "neutral" },
-  template: { label: "Template", tone: "neutral" },
-  import: { label: "File edit", tone: "neutral" },
-} as const;
-
-/** One version of a genome: what it added and retired against its parent. */
-export interface LineageNode {
-  version: string;
-  parent: string | null;
-  at: string;
-  live: boolean;
-  added: { locus: string; text: string }[];
-  retired: { locus: string; text: string }[];
-}
-
-/** An experiment's versions, oldest first, each diffed against its parent by allele key. */
-export async function experimentLineage(db: Queryable, id: number): Promise<LineageNode[]> {
-  const [exp] = await db.select().from(experiments).where(eq(experiments.id, id));
-  if (!exp) return [];
-  const rows = await db
-    .select({
-      version: templateVersions.version,
-      parent: templateVersions.parentVersion,
-      at: templateVersions.createdAt,
-    })
-    .from(templateVersions)
-    .where(eq(templateVersions.experimentId, id))
-    .orderBy(asc(templateVersions.id));
-  const texts = new Map(
-    (
-      await db
-        .select({
-          locus: experimentAlleles.locus,
-          allele: experimentAlleles.allele,
-          text: experimentAlleles.text,
-        })
-        .from(experimentAlleles)
-        .where(eq(experimentAlleles.experimentId, id))
-    ).map((a) => [`${a.locus}/${a.allele}`, a.text]),
-  );
-  const keysOf = async (version: string | null) => {
-    const tpl = version ? await versionTemplate(db, exp.niche, exp.template, version) : null;
-    const out = new Map<string, { locus: string; text: string }>();
-    for (const p of tpl ? points(tpl) : [])
-      for (const o of p.options) {
-        const k = `${p.name}/${alleleKey(o)}`;
-        out.set(k, { locus: p.name, text: texts.get(k) ?? k });
-      }
-    return out;
-  };
-  // A parent outside the experiment (the file it started from) is the first version's root.
-  const mine = new Set(rows.map((r) => r.version));
-  const nodes: LineageNode[] = [];
-  for (const r of rows) {
-    const [now, before] = await Promise.all([
-      keysOf(r.version),
-      keysOf(r.parent !== null && mine.has(r.parent) ? r.parent : null),
-    ]);
-    const first = nodes.length === 0;
-    nodes.push({
-      version: r.version,
-      parent: r.parent !== null && mine.has(r.parent) ? r.parent : null,
-      at: r.at.toISOString(),
-      live: r.version === exp.liveVersion,
-      added: first ? [] : [...now].filter(([k]) => !before.has(k)).map(([, v]) => v),
-      retired: first ? [] : [...before].filter(([k]) => !now.has(k)).map(([, v]) => v),
-    });
-  }
-  return nodes;
-}
-
-/** The settings as form boxes, all optional: only what's typed changes. Seeding is start only. */
-const SETTINGS_FORM = (formOf(z.toJSONSchema(settingsSchema, { io: "input" })) ?? []).filter(
-  (f) => f.field !== "seeding",
-);
-
-/** Plain names where the schema's path reads badly ("Weights.Replies"). */
-const SETTING_LABELS: Record<string, string> = {
-  fitness: "Counts as a win",
-  fitnessByLocus: "Counts as a win, per point",
-  "weights.replies": "Weight of a reply",
-  "weights.interested": "Weight of an interested reply",
-  "weights.booked": "Weight of a booked call",
-  "guards.negativeRatio": "Negative ratio guard",
-  "models.strategist": "Strategist model",
-  "models.writer": "Writer model",
-  "models.judge": "Judge model",
-};
-
-/** The settings form, each box saying what it's set to now. */
-export function settingsForm(raw: unknown) {
-  const now = parseSettings(raw);
-  return SETTINGS_FORM.map((f) => {
-    const value = f.field
-      .split(".")
-      .reduce<unknown>((at, k) => (at as Record<string, unknown> | undefined)?.[k], now);
-    // A model by its label, its id after it: the id is what the box takes.
-    const said =
-      typeof value === "string"
-        ? f.field.startsWith("models.")
-          ? `${modelLabel(value)} (${value})`
-          : value.replaceAll("_", " ")
-        : value && typeof value === "object" && !Object.keys(value).length
-          ? "not set"
-          : JSON.stringify(value);
-    return {
-      ...f,
-      label: SETTING_LABELS[f.field] ?? f.label,
-      hint: `Now ${said}.${f.hint ? ` ${f.hint}.` : ""}`,
-    };
-  });
-}
-
-export const experimentRecord = defineRecord({
-  id: "email.experiment",
-  app: "outbound",
-  channel: "email",
-  name: { one: "experiment", many: "experiments" },
-  view: "email_experiment_records",
-  key: "id",
-  title: "template",
-  subtitle: "campaign",
-  fields: {
-    template: named("Experiment"),
-    campaign: campaign(),
-    state: status(EXPERIMENT_STATES),
-    waiting: number("Waiting on you"),
-    generation: number(),
-    loci: number("Points"),
-    live: number("Live options"),
-    retired: number("Retired"),
-    selection: text(),
-    fitness: text("Counts as a win"),
-    stopReason: text("Stopped because"),
-    lastTick: date("Last tick"),
-    started: date(),
-  },
-  views: [
-    { id: "running", label: "Running", where: { state: ["running", "paused"] }, sort: "-started" },
-    { id: "all", label: "All", sort: "-started", at: "started" },
-  ],
-  related: [
-    { record: "email.allele", by: "experiment_id" },
-    { record: "email.candidate", by: "experiment_id" },
-  ],
-  activity: { view: "email_experiment_journal", by: "experiment_id" },
-  actions: [
-    "email.startExperiment",
-    "email.pauseExperiment",
-    "email.resumeExperiment",
-    "email.stopExperiment",
-  ],
-  load: async (db, id) => {
-    const [exp] = await db
-      .select()
-      .from(experiments)
-      .where(eq(experiments.id, Number(id)));
-    return exp
-      ? { lineage: await experimentLineage(db, exp.id), settings: settingsForm(exp.settings) }
-      : null;
-  },
-});
-
-export const alleleRecord = defineRecord({
-  id: "email.allele",
-  app: "outbound",
-  channel: "email",
-  name: { one: "option", many: "options" },
-  view: "email_allele_records",
-  key: "id",
-  title: "text",
-  subtitle: "locus",
-  fields: {
-    text: text("Copy"),
-    locus: text("Point"),
-    state: status(ALLELE_STATES),
-    share: percent("Share"),
-    pBest: percent("Chance it's best"),
-    replyRate: rate("exposures", "Reply rate", { from: "replies" }),
-    interestedRate: rate("exposures", "Interested rate", { from: "interested" }),
-    exposures: number("Recipients"),
-    origin: status(ORIGINS, "From"),
-    angle: text(),
-    judgeScore: score("Judge score", { max: 10 }),
-    retiredReason: text("Retired because"),
-    experiment: text("Experiment"),
-    campaign: campaign(),
-    created: date("Added"),
-  },
-  views: [
-    { id: "live", label: "Live", where: { state: "live" }, sort: "locus" },
-    { id: "all", label: "All", sort: "locus" },
-  ],
-});
-
-/** A candidate's context: the live options at its point, best first, and the email around it. */
-async function winnersOf(db: Queryable, id: string) {
-  const rows = await db.execute<Record<string, unknown>>(sql`
-    select w.text, w.share, w.p_best, w.exposures, w.replies, w.interested
-    from email_allele_records c
-    join email_allele_records w on w.experiment_id = c.experiment_id and w.locus = c.locus
-      and w.state = 'live'
-    where c.id = ${Number(id)} order by w.p_best desc nulls last, w.id`);
-  return { winners: [...rows], frame: await candidateFrame(db, Number(id)) };
-}
-
-/** Marks the candidate's point in its frame; the page puts the words in, the model's or an edit. */
-const SLOT = "WRENSLOT";
-
-/** The live genome with `SLOT` at the candidate's point and the likeliest best live option at every other. */
-async function candidateFrame(db: Queryable, id: number) {
-  const [c] = await db.select().from(experimentAlleles).where(eq(experimentAlleles.id, id));
-  const [exp] = c
-    ? await db.select().from(experiments).where(eq(experiments.id, c.experimentId))
-    : [];
-  const genome = exp && (await versionTemplate(db, exp.niche, exp.template, exp.liveVersion));
-  if (!c || !genome) return null;
-  const best = new Map<string, string>();
-  for (const a of await db.execute<{ locus: string; allele: string }>(sql`
-    select locus, allele from email_allele_records where experiment_id = ${c.experimentId}
-      and state = 'live' order by p_best desc nulls last, id`))
-    if (!best.has(a.locus)) best.set(a.locus, a.allele);
-  const slot = parseOption(SLOT);
-  const tpl = mapPoints(genome, (p) =>
-    p.name === c.locus ? { ...p, options: [...p.options, slot] } : p,
-  );
-  const shares = Object.fromEntries(
-    points(tpl).map((p) => {
-      const pick =
-        p.name === c.locus
-          ? p.options.length - 1
-          : Math.max(
-              0,
-              p.options.findIndex((o) => alleleKey(o) === best.get(p.name)),
-            );
-      return [p.name, p.options.map((_, i) => (i === pick ? 1 : 0))];
-    }),
-  );
-  const email = sampleEmail(tpl, shares);
-  return email && { ...email, slot: SLOT };
-}
-
-export const candidateRecord = defineRecord({
-  id: "email.candidate",
-  app: "outbound",
-  channel: "email",
-  name: { one: "copy candidate", many: "copy candidates" },
-  view: "email_candidate_records",
-  key: "id",
-  title: "text",
-  subtitle: "experiment",
-  fields: {
-    text: text("Copy"),
-    experiment: text("Experiment"),
-    campaign: campaign(),
-    locus: text("Point"),
-    state: status(ALLELE_STATES),
-    judgeScore: score("Judge score", { max: 10 }),
-    angle: text(),
-    reason: text("Why the model wrote it"),
-    origin: status(ORIGINS, "From"),
-    decidedBy: actor("Decided by"),
-    decided: date(),
-    created: date("Written"),
-  },
-  views: [
-    {
-      id: "waiting",
-      label: "Waiting on you",
-      where: { state: "candidate" },
-      sort: "-created",
-      at: "created",
-    },
-    {
-      id: "approved",
-      label: "Approved",
-      where: { state: ["live", "retired"] },
-      sort: "-decided",
-      at: "decided",
-    },
-    {
-      id: "rejected",
-      label: "Rejected",
-      where: { state: "rejected" },
-      sort: "-decided",
-      at: "decided",
-    },
-    { id: "all", label: "All", sort: "-created", at: "created" },
-  ],
-  actions: ["email.approveCandidate", "email.editCandidate", "email.rejectCandidate"],
-  load: winnersOf,
-});
-
 /** Every email record type; the worker passes them to `makeConsolePortal`. */
 export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): RecordType[] => [
   campaignRecord(policy),
@@ -838,9 +451,5 @@ export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): Rec
   callRecord,
   firmRecord,
   modelRecord,
-  variantRecord,
   stallRecord,
-  experimentRecord,
-  alleleRecord,
-  candidateRecord,
 ];

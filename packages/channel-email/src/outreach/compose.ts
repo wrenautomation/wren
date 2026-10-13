@@ -20,14 +20,7 @@
 import { randomBytes } from "node:crypto";
 import { activeElsewhere } from "@wren/core/leads";
 import type { FactValues } from "@wren/core/slots";
-import {
-  type Allocation,
-  MissingFactError,
-  type Rendered,
-  render,
-  type Template,
-  toSource,
-} from "@wren/core/slots";
+import { MissingFactError, type Rendered, render, type Template, toSource } from "@wren/core/slots";
 import { emailRef, recordVersion } from "@wren/core/templates";
 import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
@@ -67,8 +60,6 @@ export interface ComposeOptions {
   /** The site's origin ("https://wrenautomation.com"). With it every draft gets `link.*` facts (`linkFacts`). */
   readonly site?: string | null;
   readonly templates: ReadonlyMap<string, Template>;
-  /** Per template under an experiment: the shares its loci are drawn by. */
-  readonly allocations?: ReadonlyMap<string, Allocation>;
   /** A person whose only VALID check has aged past this is treated as having no address. */
   readonly verificationHorizonDays: number;
   /** The niche's ACTIVE roster addresses in roster order. */
@@ -431,7 +422,6 @@ interface Shared {
   readonly offerFacts: Readonly<Record<string, string>>;
   readonly site: string | null;
   readonly templates: ReadonlyMap<string, Template>;
-  readonly allocations: ReadonlyMap<string, Allocation>;
   readonly factsView: string | null;
   readonly senders: readonly string[];
   readonly signatures: Readonly<Record<string, string>>;
@@ -477,7 +467,6 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     offerFacts: opts.offerFacts ?? {},
     site: opts.site ?? null,
     templates: opts.templates,
-    allocations: opts.allocations ?? new Map(),
     factsView: opts.factsView ?? null,
     senders: opts.senders,
     signatures: opts.signatures ?? {},
@@ -721,7 +710,6 @@ function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
           ...pageFacts(shared.pages, shared.offer, linkCodes[i] as string),
         },
         seed,
-        shared.allocations.get(step.template),
       ),
     );
     return { rendered, linkCodes };

@@ -63,13 +63,9 @@ export const recruiting = defineNiche({
   exaCities: US_METROS,
   triggerWords: ["staffing agency", "staffing firm", "recruiting firm", "executive search firm"],
   templatesDir: templatesDir("recruiting"),
-  // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
-  // switching it back on is one plan line. Each arm's `reply` copy is drafted for
-  // William's approval when a warm reply lands; it is in no sequence.
-  sequences: [
-    twoEmailSequence("book-first/opener", "book-first/followup"),
-    twoEmailSequence("watch-first/opener", "watch-first/followup"),
-  ],
+  // One sequence; `book-first/reply` is drafted for William's approval when a warm reply
+  // lands and is in no sequence.
+  sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],
   // Two texts, three days apart. The words are William's, in the template store (sms, texts,
   // recruiting-sms#1 and #2):
   // nothing enrolls until both are filled. Only contacts whose basis the registered campaign
@@ -84,7 +80,7 @@ export const recruiting = defineNiche({
       ],
     },
   ],
-  offers: { "book-first": "reactivation", "watch-first": "reactivation" },
+  offers: { "book-first": "reactivation" },
   plan: [{ sequence: "book-first-days-0-5" }],
   // Real named people only (William, 10-02): an info@ is not a person.
   mailsRoleInboxes: false,

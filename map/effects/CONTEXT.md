@@ -13,14 +13,13 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | what counts as suppressed | [[leads/suppression]] | [[processes/inbox-sync]], [[processes/sms-tick]], `packages/channel-email/src/guards.ts` |
 | a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[research/lead-check]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
 | an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]] |
-| a copy experiment, its settings or the bandit | [[email/experiment]] | [[processes/evolution]], [[processes/compose]], [[email/template]], `packages/experiments` |
 | a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |
 | seed placement checks (plain + real, auth, verdict) | [[email/placement-check]] | [[email/roster]] (ramps), [[email/transport]], [[email/sender-pause]], the digest |
 | spam score | [[email/spam-score]] | [[email/template]], the gates |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
-| a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts`, `evolve/stats.ts` |
+| a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts` |
 | how a call went, or its pre-call brief | [[email/call-booking]], [[email/call-brief]] | [[calendar/booking]] (mirror and view), [[platform/spine]] (`close`, `onboarding`), `packages/core/src/calls.ts`, `apps/portal/web/src/modules/calls` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |

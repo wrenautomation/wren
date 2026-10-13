@@ -4,8 +4,7 @@
  *
  * The model is the beta-binomial: each arm's rate starts flat, Beta(1, 1), and after `n` visits
  * with `s` goals it is Beta(1 + s, 1 + n - s). "Sure" is the chance that arm has the highest
- * rate, P(best), from the experiments engine's grid integration (`@wren/experiments` `pBest`),
- * the same math the email experiments use.
+ * rate, P(best), from the experiments engine's grid integration (`@wren/experiments` `pBest`).
  */
 import { type Beta, pBest } from "@wren/experiments";
 

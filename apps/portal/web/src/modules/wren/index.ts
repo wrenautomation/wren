@@ -20,13 +20,6 @@ import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
-import {
-  CANDIDATE_ACTIONS,
-  candidateExtras,
-  EXPERIMENT_ACTIONS,
-  experimentExtras,
-  variantExtras,
-} from "./experiments.js";
 import { FLAG_ACTIONS } from "./flags.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
@@ -162,7 +155,7 @@ export const outbound: Module = {
   name: "Outbound",
   component: "email.sequences",
   icon: "mail",
-  blurb: "Campaigns, the inboxes that send them, and the copy experiments.",
+  blurb: "Campaigns and the inboxes that send them.",
   requires: TEAM,
   pages: [
     {
@@ -186,17 +179,6 @@ export const outbound: Module = {
           record: "email.campaign",
           href: "/outbound/campaigns?view=opening",
         },
-        {
-          label: "Copy waiting on you",
-          record: "email.candidate",
-          href: "/outbound/candidates?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Experiments running",
-          record: "email.experiment",
-          href: "/outbound/experiments?view=running",
-        },
       ],
       top: [
         {
@@ -212,13 +194,6 @@ export const outbound: Module = {
           href: "/outbound/inboxes?view=paused",
           fields: ["reason", "pausedAt"],
           empty: "Every inbox is sending.",
-        },
-        {
-          label: "Variants",
-          record: "email.variant",
-          href: "/outbound/variants",
-          fields: ["replyRate"],
-          empty: "No variant has sent yet.",
         },
       ],
     },
@@ -244,40 +219,6 @@ export const outbound: Module = {
       template: "list",
       record: "research.signal",
       empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
-    },
-    {
-      id: "variants",
-      label: "Variants",
-      template: "list",
-      record: "email.variant",
-      empty: "Variants show here once they send.",
-      extras: variantExtras,
-    },
-    {
-      id: "experiments",
-      label: "Experiments",
-      template: "list",
-      record: "email.experiment",
-      empty: {
-        running: "No experiment is running. Start one on a template.",
-        all: "Experiments show here once one starts.",
-      },
-      actions: EXPERIMENT_ACTIONS,
-      extras: experimentExtras,
-    },
-    {
-      id: "candidates",
-      label: "Copy candidates",
-      template: "queue",
-      record: "email.candidate",
-      empty: {
-        waiting: "Nothing to review. The model writes new copy every few ticks.",
-        approved: "Copy you approve shows here.",
-        rejected: "Copy you turn down shows here.",
-        all: "Model copy shows here once an experiment writes some.",
-      },
-      actions: CANDIDATE_ACTIONS,
-      extras: candidateExtras,
     },
   ],
 };

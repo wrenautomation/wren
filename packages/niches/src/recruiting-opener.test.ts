@@ -21,10 +21,9 @@ const body = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7"
 describe("recruiting book-first opener", () => {
   it("never prints a free-form company line: personalization is templated", () => {
     const line = "A line about the firm from research.";
-    for (const name of ["book-first/opener", "watch-first/opener"])
-      expect(
-        render(named(name), { ...base, "company.opener": line }, "person:7").body,
-      ).not.toContain(line);
+    expect(
+      render(named("book-first/opener"), { ...base, "company.opener": line }, "person:7").body,
+    ).not.toContain(line);
   });
 
   it("opens on the cold read, names the problem, then says who William is", () => {
@@ -146,29 +145,6 @@ const named = (name: string) => {
   return t;
 };
 
-describe("recruiting watch-first", () => {
-  it("the opener and follow-up offer the demo", () => {
-    for (const name of ["watch-first/opener", "watch-first/followup"]) {
-      const b = render(named(name), base, "person:7").body;
-      expect(b).toMatch(/send you a quick demo\./);
-      expect(b).not.toContain("curious how I'll pull that off");
-    }
-    expect(render(named("watch-first/opener"), base, "person:7").body).toContain(
-      "If you're curious, I can send you a quick demo.",
-    );
-    expect(render(named("watch-first/followup"), base, "person:7").body).toMatch(
-      /^Dana, just checking in on the email I sent a few days ago\./,
-    );
-  });
-
-  it("both arms send a follow-up", () => {
-    expect(recruiting.sequences.get("watch-first-days-0-5")?.steps.map((s) => s.template)).toEqual([
-      "watch-first/opener",
-      "watch-first/followup",
-    ]);
-  });
-});
-
 describe("recruiting replies (drafted for William's approval)", () => {
   it("book-first names the booked time and rides the thread", () => {
     const r = render(
@@ -183,15 +159,5 @@ describe("recruiting replies (drafted for William's approval)", () => {
     expect(r.body).toContain(
       "Looking forward to chatting more about how I can help your business.",
     );
-  });
-
-  it("watch-first carries the demo link", () => {
-    const r = render(
-      named("watch-first/reply"),
-      { ...base, "link.watch": "https://x.test/w" },
-      "person:7",
-    );
-    expect(r.subject).toBeNull();
-    expect(r.body).toContain("https://x.test/w");
   });
 });

@@ -6,7 +6,6 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { compose, nextToEnroll } from "../../src/outreach/compose.js";
-import { halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep, twoEmailSequence } from "../../src/outreach/sequences.js";
 import { templateVersions } from "../../src/schema.js";
 import {
@@ -227,25 +226,19 @@ describe("compose", () => {
     expect((await one(allEnrollments(db()))).companyId).toBe(marketing.id);
   });
 
-  it("each draft's links carry that draft's own code, and half splits companies", async () => {
+  it("each draft's links carry that draft's own code", async () => {
     const company = await makeCompany(db());
     await makePerson(db(), company, { email: "jane@oakbridge.example" });
     const linked = new Map([
       ["opener", parseTemplate("opener", "Hi {first_name},\n\nBook: {link.book}")],
       ["followup", parseTemplate("followup", "Read: {link.page}\n\n(({link.watch}))")],
     ]);
-    const half = halfOf(company.id);
-    const other = half === "a" ? "b" : "a";
     const opts = {
       templates: linked,
       site: "https://site.example",
       offerFacts: { "offer.page": "/recruiting/x" },
     };
-    expect(await runCompose(db(), { ...opts, where: { half: other } })).toMatchObject({
-      enrolled: 0,
-      skipped_where: 1,
-    });
-    expect((await runCompose(db(), { ...opts, where: { half } })).enrolled).toBe(1);
+    expect((await runCompose(db(), opts)).enrolled).toBe(1);
     const [opener, followup] = await messagesOf(db(), await one(allEnrollments(db())));
     expect(opener?.body).toBe(
       `Hi Jane,\n\nBook: https://site.example/book/test-offer?r=${opener?.linkCode}`,

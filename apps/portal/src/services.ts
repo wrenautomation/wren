@@ -135,7 +135,7 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_APPS, PORTAL_WRITES),
   // Views by name, records, the loops, any public handler by its form, a client's components.
   console: service("ConsolePortal", CONSOLE_ROUTES, CONSOLE_APPS, CONSOLE_WRITES),
-  // Warm replies, inboxes, campaigns and copy experiments; a client's lead sheet.
+  // Warm replies, inboxes and campaigns; a client's lead sheet.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_WRITES),
   // A client's texting threads (O4); replies are Wren's team only.
   sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_APPS, SMS_CONSOLE_WRITES),
