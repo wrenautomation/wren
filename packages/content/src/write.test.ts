@@ -28,8 +28,19 @@ describe("own words", () => {
     });
   });
 
+  it("posts YouTube words as a community post, with no title", () => {
+    expect(ownDraftOf("youtube", "Line one\nline two", "ignored")).toEqual({
+      text: "Line one\nline two",
+      title: null,
+      extra: { kind: "community" },
+    });
+  });
+
   it("refuses what a platform can't post", () => {
-    expect(ownDraftOf("youtube", "text")).toEqual({ reason: "YouTube needs a video" });
+    expect(ownDraftOf("instagram", "text")).toEqual({ reason: "Instagram needs a video" });
+    expect(ownDraftOf("youtube", "x".repeat(5001))).toMatchObject({
+      reason: expect.stringMatching(/over 5000/),
+    });
     expect(ownDraftOf("linkedin", "x".repeat(3001))).toMatchObject({
       reason: expect.stringMatching(/over 3000/),
     });

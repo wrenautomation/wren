@@ -5,6 +5,7 @@
  * stored choice: null follows the platform's rule. Every link of Wren's goes through the lander's
  * `/go/`, a video's too (`?v=`), so each click is counted against its post.
  */
+import { kindOf } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
@@ -89,6 +90,9 @@ export interface FunnelView {
 
 const isShort = (d: Pick<ContentDraft, "platform" | "extra">) =>
   d.platform === "youtube" && d.extra?.kind === "short";
+/** A YouTube upload with links in its description: not a Short, not a community post. */
+const isLong = (d: Pick<ContentDraft, "platform" | "extra">) =>
+  d.platform === "youtube" && kindOf(d.extra) === "video";
 
 /** A YouTube video's id from its URL (`watch?v=`, `youtu.be/`, `shorts/`), or null. */
 export function youtubeId(url: string): string | null {
@@ -322,8 +326,7 @@ export async function setFunnel(
       .from(contentDrafts)
       .where(eq(contentDrafts.id, patch.video))
       .limit(1);
-    if (v?.platform !== "youtube" || isShort(v))
-      throw new Error(`${patch.video} isn't a YouTube video`);
+    if (!v || !isLong(v)) throw new Error(`${patch.video} isn't a YouTube video`);
   }
   if (patch.page && !(await pageOf(db, patch.page)))
     throw new Error(`${patch.page} isn't one of Wren's Sites pages`);

@@ -1,7 +1,8 @@
 /**
  * YouTube as a `ContentChannel`, over autobrowse's site API in the Data
  * API v3's shape. Publish = a resumable upload of a file the worker can
- * read (a path on the worker or a URL); list = the channel's uploads
+ * read (a path on the worker or a URL), or a community post through autobrowse's browser route
+ * (no API; kind "community"); list = the channel's uploads
  * playlist (cheap in quota); metrics = `videos?part=statistics`;
  * activity = recent public subscribers; audience = the subscriber count.
  * insights = YouTube Analytics (`yt-analytics.readonly`) reports: totals, the retention curve,
@@ -50,6 +51,9 @@ export interface YouTubeContentOptions {
 }
 
 const videoUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+/** A community post has no API: autobrowse posts it in the browser (`google` profile). */
+const COMMUNITY_PATH = "/studio/communityPosts";
+const COMMUNITY_URL = "https://www.youtube.com/my_community";
 
 interface Video {
   id: string;
@@ -225,11 +229,29 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
   return {
     platform: "youtube",
     async publish(post: Post): Promise<Published> {
+      const f = fieldsOf("youtube", post.extra);
+      if (f.kind === "community") {
+        const image = f.image;
+        const r = await sites.call<{ url?: string | null }>("youtube", "POST", COMMUNITY_PATH, {
+          text: post.text,
+          ...(image ? { image: await mediaFileOf(image, o.host, "youtube") } : {}),
+        });
+        // The flow answers the new post's link when the list shows it; posted either way.
+        const id = r.url ? /\/post\/([^/?#]+)/.exec(r.url)?.[1] : undefined;
+        return {
+          id: id ?? `community-${now().getTime()}`,
+          url: r.url ?? COMMUNITY_URL,
+          publishedAt: now().toISOString(),
+          fetchedWith: await via("POST", COMMUNITY_PATH),
+          ...(r.url
+            ? {}
+            : { notes: ["YouTube didn't show the post's link: find it on the Posts tab"] }),
+        };
+      }
       if (post.media?.kind !== "video")
         throw new Error(
           "youtube: a post is a video (media.kind = video, media.source = path or URL)",
         );
-      const f = fieldsOf("youtube", post.extra);
       const title = f.title ?? post.media.title;
       if (!title) throw new Error("youtube: a title is needed (media.title or extra.title)");
       const v = await sites.call<Video>("youtube", "POST", "/upload/youtube/v3/videos", {

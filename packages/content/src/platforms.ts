@@ -27,6 +27,8 @@ export interface PlatformSpec {
   readonly title?: { readonly maxChars: number };
   /** The platform cannot post text alone. */
   readonly needsMedia?: "video" | "image-or-video";
+  /** Words alone go out as this kind instead (YouTube: a community post). */
+  readonly words?: { readonly kind: string; readonly name: string };
   /** What the model is told to write, one line. */
   readonly shape: string;
   /**
@@ -75,6 +77,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 5000,
     title: { maxChars: 100 },
     needsMedia: "video",
+    words: { kind: "community", name: "YouTube post" },
     shape:
       "a YouTube title (under 70 characters, plain, says what the viewer gets) and a description: two short paragraphs of what the video shows and why it matters, no hashtags, no timestamps",
     name: "YouTube",

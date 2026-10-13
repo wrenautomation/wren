@@ -22,8 +22,16 @@ export function ownDraftOf(
   platform: Platform,
   text: string,
   title?: string | null,
-): { text: string; title: string | null } | { reason: string } {
+): { text: string; title: string | null; extra?: Record<string, unknown> } | { reason: string } {
   const spec = PLATFORM_SPECS[platform];
+  if (spec.words) {
+    const body = text.trim();
+    if (!body) return { reason: "empty text" };
+    const unfit = wordsUnfit({ platform }, body);
+    return unfit
+      ? { reason: unfit }
+      : { text: body, title: null, extra: { kind: spec.words.kind } };
+  }
   if (spec.needsMedia)
     return { reason: `${spec.name} needs ${spec.needsMedia === "video" ? "a video" : "a file"}` };
   let body = text.trim();

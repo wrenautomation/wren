@@ -703,7 +703,7 @@ export function entriesFor(platform: Platform, surface: Surface): CatalogEntry[]
 
 /** A draft's surface from its platform and shape kind. */
 export const surfaceOf = (platform: string, kind: string | null | undefined): Surface =>
-  platform === "youtube" ? (kind === "short" ? "short" : "long") : "post";
+  platform === "youtube" && kind !== "community" ? (kind === "short" ? "short" : "long") : "post";
 
 /** What a state says on a page, where the number would sit. */
 export function stateLine(state: string, needs?: Need, why?: string | null): string {
@@ -737,7 +737,7 @@ export function formatOf(
   kind: string | null | undefined,
   media?: string | null,
 ): Format {
-  if (platform === "youtube") return kind === "short" ? "short" : "long";
+  if (platform === "youtube" && kind !== "community") return kind === "short" ? "short" : "long";
   if (platform === "tiktok") return "video";
   if (platform === "instagram" && kind === "video") return "reel";
   if (
@@ -838,7 +838,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
     pace: "1 a day",
     how: "Quotes, diagrams or poll teasers",
     starts: "words",
-    counts: null,
+    counts: ["post"],
   },
   {
     id: "instagram-reel",

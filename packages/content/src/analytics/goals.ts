@@ -41,8 +41,16 @@ export const goalsSchema = z
     "two goals share an id",
   );
 
-/** The saved plan, or the default when none is saved or it no longer reads. */
+/**
+ * The saved plan, or the default when none is saved or it no longer reads. A saved "can't post
+ * yet" (counts null) is a fact about the code, not his choice: once Wren posts there, the
+ * default's counts win.
+ */
 export async function cadenceGoals(db: Queryable): Promise<readonly CadenceGoal[]> {
   const got = goalsSchema.safeParse((await settingsFor(db, null))[GOALS_COMPONENT]);
-  return got.success ? (got.data.goals as CadenceGoal[]) : CADENCE_GOALS;
+  if (!got.success) return CADENCE_GOALS;
+  return (got.data.goals as CadenceGoal[]).map((g) => {
+    const counts = g.counts ?? CADENCE_GOALS.find((d) => d.id === g.id)?.counts ?? null;
+    return counts === g.counts ? g : { ...g, counts };
+  });
 }

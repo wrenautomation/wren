@@ -434,7 +434,8 @@ export type ContentPlaybook = typeof contentPlaybooks.$inferSelect;
  */
 /** A draft's format (`formatOf` in analytics/catalog.ts) over `content_drafts d`. */
 export const formatSql = `case
-      when d.platform = 'youtube' then case when d.extra->>'kind' = 'short' then 'short' else 'long' end
+      when d.platform = 'youtube' then case d.extra->>'kind' when 'short' then 'short'
+        when 'community' then 'post' else 'long' end
       when d.platform = 'tiktok' then 'video'
       when d.platform = 'instagram' and d.extra->>'kind' = 'video' then 'reel'
       when (d.platform = 'instagram' and d.extra->>'kind' = 'carousel')

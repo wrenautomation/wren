@@ -405,6 +405,33 @@ function Reddit({ text, title, fields, device }: Post) {
   );
 }
 
+/** A community post on the channel's Posts tab: words and one image. */
+function YouTubeCommunity({ s, text, device }: Post) {
+  const image = s.links.image ?? null;
+  return (
+    <DeviceFrame label={`Posts tab, ${device}`} width={device === "phone" ? PHONE : 600}>
+      <div className="flex gap-3 p-4 text-[14px] leading-5">
+        <Avatar size={40} />
+        <div className="grid min-w-0 flex-1 gap-2">
+          <p className="text-[13px]">
+            <span className="font-semibold">Wren Automation</span>{" "}
+            <span className={GRAY}>Just now</span>
+          </p>
+          <p className="whitespace-pre-wrap break-words">{text.trim() || "No text"}</p>
+          {image ? (
+            <img src={image} alt="" className="max-h-[420px] w-full rounded-xl object-cover" />
+          ) : null}
+          <p className={`flex gap-6 text-[13px] ${GRAY}`}>
+            <span>Like</span>
+            <span>Dislike</span>
+            <span>Comment</span>
+          </p>
+        </div>
+      </div>
+    </DeviceFrame>
+  );
+}
+
 function LinkedIn({ text, fields, device, feed }: Post & { feed: number | null }) {
   const [open, setOpen] = useState(false);
   const who = pickLabel(fields, "visibility") ?? "Anyone";
@@ -590,8 +617,9 @@ export function PlatformPreview({
   const own = OWN[shape.platform];
   const post: Post = { s: shape, text, title, fields, device };
   const short = shape.platform === "youtube" && shape.kind === "short";
+  const community = shape.platform === "youtube" && shape.kind === "community";
   const who =
-    shape.platform === "youtube"
+    shape.platform === "youtube" && !community
       ? pickLabel(fields, "privacyStatus")
       : shape.platform === "tiktok"
         ? pickLabel(fields, "privacy")
@@ -604,7 +632,7 @@ export function PlatformPreview({
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-[13px] font-medium text-(--ui-ink-2)">
           On {shape.site}
-          {short ? " Shorts" : ""}
+          {short ? " Shorts" : community ? ", as a community post" : ""}
           {thread
             ? ", as a thread"
             : carousel
@@ -633,6 +661,8 @@ export function PlatformPreview({
       ) : shape.platform === "youtube" ? (
         short ? (
           <YouTubeShort {...post} />
+        ) : community ? (
+          <YouTubeCommunity {...post} />
         ) : (
           <YouTubeVideo {...post} />
         )

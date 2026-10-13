@@ -251,6 +251,30 @@ describe("youtube content channel", () => {
     expect(calls).toEqual([]);
   });
 
+  it("a community post goes through the browser route, its image made reachable", async () => {
+    const { sites, calls } = fakeSites({
+      "POST /studio/communityPosts": (i) => ({
+        url: i?.image ? "https://www.youtube.com/post/UgkxTest1" : null,
+      }),
+    });
+    const ch = youtubeContent(sites, {
+      host: { host: async (s) => `https://files.test/${s.split("/").pop()}` },
+    });
+    const p = await ch.publish({
+      text: "Words",
+      extra: { kind: "community", image: "/mac/chart.png" },
+    });
+    expect(calls).toEqual([
+      ["POST", "/studio/communityPosts", { text: "Words", image: "https://files.test/chart.png" }],
+    ]);
+    expect(p).toMatchObject({ id: "UgkxTest1", url: "https://www.youtube.com/post/UgkxTest1" });
+    expect(p.notes).toBeUndefined();
+    // The list didn't show it: posted all the same, never retried.
+    const bare = await ch.publish({ text: "Words", extra: { kind: "community" } });
+    expect(bare.id).toMatch(/^community-\d+$/);
+    expect(bare.notes?.[0]).toMatch(/Posts tab/);
+  });
+
   it("a post without a video or a title is refused before any call", async () => {
     const { sites, calls } = fakeSites({});
     const ch = youtubeContent(sites);

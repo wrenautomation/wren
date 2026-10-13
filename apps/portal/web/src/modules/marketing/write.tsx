@@ -26,9 +26,11 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 
-/** The platforms that post words alone; video and images go through Videos. */
-const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia);
+/** The platforms that post words alone (YouTube as a community post); videos go through Videos. */
+const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_SPECS[p].words);
 const nameOf = (p: Platform) => PLATFORM_SPECS[p].name;
+/** What Write makes there: "YouTube post" for YouTube. */
+const targetOf = (p: Platform) => PLATFORM_SPECS[p].words?.name ?? nameOf(p);
 /** The platform chip on top (`?platform=`), when it's one Wren posts to. */
 const chosen = (params: URLSearchParams): Platform | null => {
   const p = params.get("platform");
@@ -80,12 +82,12 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
         : go === "now"
           ? `${made.length} posting on the next pass, within a few minutes.`
           : `${made.length} scheduled: ${made
-              .map((r) => `${nameOf(r.platform)} ${r.at ? when(r.at) : "next pass"}`)
+              .map((r) => `${targetOf(r.platform)} ${r.at ? when(r.at) : "next pass"}`)
               .join(", ")}.`,
   ];
   for (const r of all) {
-    if (r.reason) lines.push(`${nameOf(r.platform)}: ${r.reason}.`);
-    else if (r.held) lines.push(`${nameOf(r.platform)} waits as a draft: ${r.held}`);
+    if (r.reason) lines.push(`${targetOf(r.platform)}: ${r.reason}.`);
+    else if (r.held) lines.push(`${targetOf(r.platform)} waits as a draft: ${r.held}`);
   }
   return lines;
 }
@@ -109,7 +111,7 @@ export function WritePage(props: PageProps) {
 
   const posts = splitPosts(text);
   const batch = posts.length > 1;
-  const titled = picked.some((p) => PLATFORM_SPECS[p].title);
+  const titled = picked.some((p) => PLATFORM_SPECS[p].title && !PLATFORM_SPECS[p].words);
   const versions = posts.map((p) =>
     picked.map((platform) => ({
       platform,
@@ -188,7 +190,7 @@ export function WritePage(props: PageProps) {
                     setPicked((now) => (on ? now.filter((x) => x !== p) : [...now, p]))
                   }
                 >
-                  {nameOf(p)}
+                  {targetOf(p)}
                 </Button>
               );
             })}
@@ -278,7 +280,7 @@ function Version({ platform, v }: { platform: Platform; v: ReturnType<typeof own
   return (
     <div className="grid content-start gap-2 rounded-(--ui-radius) bg-(--ui-paper) p-3 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
       <div className="flex items-center justify-between gap-2">
-        <Tag>{nameOf(platform)}</Tag>
+        <Tag>{targetOf(platform)}</Tag>
         {"reason" in v ? null : (
           <span className={cx("text-[12px] [font-variant-numeric:tabular-nums]", QUIET)}>
             {v.text.length} / {max}

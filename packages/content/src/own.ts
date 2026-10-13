@@ -31,7 +31,14 @@ export async function writeOwn(
     }
     const [draft] = await db
       .insert(contentDrafts)
-      .values({ ideaId: idea.id, platform, text: v.text, title: v.title, promptVersion: OWN_WORDS })
+      .values({
+        ideaId: idea.id,
+        platform,
+        text: v.text,
+        title: v.title,
+        ...(v.extra ? { extra: v.extra } : {}),
+        promptVersion: OWN_WORDS,
+      })
       .returning();
     if (!draft) throw new Error("insert returned no row");
     await recordDraft(db, {

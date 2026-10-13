@@ -307,25 +307,33 @@ export const YOUTUBE_TAGS_MAX = 500;
 export const tagsLength = (tags: readonly string[]): number =>
   tags.reduce((n, t) => n + t.length + (/\s/.test(t) ? 2 : 0), 0) + Math.max(0, tags.length - 1);
 
+/** A YouTube upload's own fields; a community post has none of them. */
+const VIDEOS = ["video", "short"] as const;
 const youtube = shape({
   kind: pick(
     "Kind",
-    ["video", "short"],
-    { video: "Video", short: "Short" },
+    ["video", "short", "community"],
+    { video: "Video", short: "Short", community: "Community post" },
     {
       default: "video",
       readOnly: true,
     },
   ),
-  title: line("Title", 100, { required: true, column: "title" }),
+  title: line("Title", 100, { required: true, column: "title", kinds: VIDEOS }),
   privacyStatus: pick(
     "Who sees it",
     YOUTUBE_PRIVACY,
     { private: "Private", unlisted: "Unlisted", public: "Public" },
-    { required: true, default: "private", hint: "Scheduled uploads stay private until their time" },
+    {
+      required: true,
+      default: "private",
+      hint: "Scheduled uploads stay private until their time",
+      kinds: VIDEOS,
+    },
   ),
   madeForKids: flag("Made for kids", {
     required: true,
+    kinds: VIDEOS,
     default: false,
     hint: "YouTube asks every upload",
   }),
@@ -356,10 +364,16 @@ const youtube = shape({
       input: "list" as const,
       status: "sent" as const,
       maxTotal: YOUTUBE_TAGS_MAX,
+      kinds: VIDEOS,
     },
   },
-  categoryId: pick("Category", CATEGORY_IDS, CATEGORIES, { default: "22" }),
-  playlistId: line("Playlist", 64, { hint: "A playlist id, PL…" }, /^[A-Za-z0-9_-]{10,64}$/),
+  categoryId: pick("Category", CATEGORY_IDS, CATEGORIES, { default: "22", kinds: VIDEOS }),
+  playlistId: line(
+    "Playlist",
+    64,
+    { hint: "A playlist id, PL…", kinds: VIDEOS },
+    /^[A-Za-z0-9_-]{10,64}$/,
+  ),
   captions: {
     zod: z
       .string()
@@ -375,15 +389,24 @@ const youtube = shape({
       accept: ["application/x-subrip", "text/vtt"],
       maxBytes: 2 * MB,
       hint: ".srt or .vtt",
+      kinds: VIDEOS,
     },
   },
-  captionsLanguage: pick("Subtitles language", LANGUAGES, LANGUAGE_NAMES, { default: "en" }),
-  defaultLanguage: pick("Title language", LANGUAGES, LANGUAGE_NAMES),
-  defaultAudioLanguage: pick("Audio language", LANGUAGES, LANGUAGE_NAMES),
-  notifySubscribers: flag("Notify subscribers", { default: true }),
+  captionsLanguage: pick("Subtitles language", LANGUAGES, LANGUAGE_NAMES, {
+    default: "en",
+    kinds: VIDEOS,
+  }),
+  defaultLanguage: pick("Title language", LANGUAGES, LANGUAGE_NAMES, { kinds: VIDEOS }),
+  defaultAudioLanguage: pick("Audio language", LANGUAGES, LANGUAGE_NAMES, { kinds: VIDEOS }),
+  notifySubscribers: flag("Notify subscribers", { default: true, kinds: VIDEOS }),
   syntheticMedia: flag("Made with AI", {
     default: false,
     hint: "Realistic altered or synthetic content",
+    kinds: VIDEOS,
+  }),
+  image: file("Image", ["image/jpeg", "image/png", "image/gif"], 16 * MB, {
+    kinds: ["community"],
+    hint: "One image, up to 16 MB",
   }),
 });
 
