@@ -795,7 +795,7 @@ function SideNav({
               <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2 pr-1")}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-1.5 bg-transparent p-0 text-left font-[inherit] text-inherit [letter-spacing:inherit] [text-transform:inherit] hover:text-(--ui-ink)"
+                  className="flex w-full items-center gap-1.5 rounded-none border-0 bg-transparent p-0 text-left font-[inherit] text-inherit [letter-spacing:inherit] [text-transform:inherit] hover:text-(--ui-ink)"
                   aria-expanded={!isShut(area)}
                   onClick={() => toggle(area)}
                 >
