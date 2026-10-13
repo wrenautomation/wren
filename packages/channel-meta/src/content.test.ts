@@ -296,7 +296,7 @@ describe("facebook Page comments", () => {
         ],
       }),
       "POST /111_1_c1/comments": (i) => {
-        expect(i).toEqual({ message: "dm us" });
+        expect(i).toEqual({ pageId: "111", message: "dm us" });
         return { id: "r1" };
       },
     });

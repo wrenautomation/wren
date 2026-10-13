@@ -504,7 +504,9 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       );
     },
     async reply(commentId: string, text: string): Promise<void> {
-      await sites.call("meta", "POST", `/${commentId}/comments`, { message: text });
+      // The Page answers by its own token, so the call names it: a Page post's ids start with its.
+      const pageId = o.pageId ?? commentId.split("_")[0];
+      await sites.call("meta", "POST", `/${commentId}/comments`, { pageId, message: text });
     },
     privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
   };
