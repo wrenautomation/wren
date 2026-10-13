@@ -197,7 +197,8 @@ const linkedin: Finder = async (sites, q, accounts) => {
 };
 
 interface XUser {
-  id: string;
+  /** The API's numeric id; the page leg has none. */
+  id?: string;
   username: string;
   name: string;
   description?: string;
@@ -215,6 +216,7 @@ const xHit = (u: XUser): CreatorHit => ({
   avatar: u.profile_image_url ?? null,
 });
 const USER_FIELDS = "description,public_metrics,profile_image_url";
+type XReach = { impression_count?: number };
 
 const x: Finder = async (sites, q, accounts) => {
   if (!accounts.x) throw new Error("no X account is set (Shop → X comments)");
@@ -232,21 +234,34 @@ const x: Finder = async (sites, q, accounts) => {
       .catch(() => ({ data: undefined }));
     if (one.data) out.push(xHit(one.data));
   }
-  const r = await sites.call<{ includes?: { users?: XUser[] } }>(
+  const r = await sites.call<{
+    data?: { author_id?: string; author_username?: string; public_metrics?: XReach }[];
+    includes?: { users?: XUser[] };
+  }>(
     "x",
     "GET",
     "/2/tweets/search/recent",
     {
       query: `${q} -is:retweet -is:reply lang:en`,
       max_results: 25,
+      "tweet.fields": "author_id,public_metrics",
       expansions: "author_id",
       "user.fields": USER_FIELDS,
     },
     accounts.x,
   );
-  const users = [...(r.includes?.users ?? [])].sort(
-    (a, b) => (b.public_metrics?.followers_count ?? 0) - (a.public_metrics?.followers_count ?? 0),
-  );
+  // Followers when the API gives them; else how many saw their posts here (the page leg).
+  const seen = new Map<string, number>();
+  for (const t of r.data ?? []) {
+    const who = (t.author_id ?? t.author_username ?? "").toLowerCase();
+    seen.set(who, (seen.get(who) ?? 0) + (t.public_metrics?.impression_count ?? 0));
+  }
+  const reach = (u: XUser) =>
+    u.public_metrics?.followers_count ??
+    seen.get((u.id ?? u.username).toLowerCase()) ??
+    seen.get(u.username.toLowerCase()) ??
+    0;
+  const users = [...(r.includes?.users ?? [])].sort((a, b) => reach(b) - reach(a));
   for (const u of users)
     if (!out.some((h) => h.handle.toLowerCase() === `@${u.username.toLowerCase()}`))
       out.push(xHit(u));

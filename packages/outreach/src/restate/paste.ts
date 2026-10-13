@@ -68,7 +68,11 @@ export function pasteHandlers(deps: ReachDeps) {
         const settings = await ctx.run("settings", () => allCommentsSettings(deps.db));
         const found = await findCreators(deps.sitesFor(ctx), req.q, {
           ...(req.only ? { only: req.only } : {}),
-          accounts: { linkedin: settings.linkedin.account || null, x: settings.x.account || null },
+          // A search only reads, so it goes as Wren's own login when no comments account is set.
+          accounts: {
+            linkedin: settings.linkedin.account || "linkedin@wren",
+            x: settings.x.account || "x@wren",
+          },
         });
         const follows = await ctx.run("follows", async () =>
           (

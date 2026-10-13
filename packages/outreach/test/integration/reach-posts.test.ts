@@ -999,10 +999,8 @@ describe("find creators (Marketing → Feed)", () => {
       ["youtube", "One", false],
       ["youtube", "Two", true],
     ]);
-    expect(out.failed).toContainEqual({
-      site: "x",
-      why: "no X account is set (Shop → X comments)",
-    });
+    // No X comments account: the search reads as Wren's own login.
+    expect(calls.find((c) => c.path === "/2/tweets/search/recent")?.account).toBe("x@wren");
     expect(calls.find((c) => c.path === "/search/results/people")?.account).toBe("linkedin@wren");
   });
 });

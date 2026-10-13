@@ -100,6 +100,29 @@ describe("creator search", () => {
     expect(calls).toEqual([]);
   });
 
+  it("X from the page leg: no follower counts, so authors rank by their posts' views", async () => {
+    const { sites } = sitesOf({
+      "x /2/tweets/search/recent": () => ({
+        data: [
+          { author_username: "small", public_metrics: { impression_count: 40 } },
+          { author_username: "Big", public_metrics: { impression_count: 900 } },
+          { author_username: "small", public_metrics: { impression_count: 30 } },
+        ],
+        includes: {
+          users: [
+            { username: "small", name: "Small" },
+            { username: "Big", name: "Big One" },
+          ],
+        },
+      }),
+    });
+    const out = await findCreators(sites, "words", { only: ["x"], accounts: { x: "x@wren" } });
+    expect(out.hits.map((h) => [h.handle, h.followers])).toEqual([
+      ["@Big", null],
+      ["@small", null],
+    ]);
+  });
+
   it("marks what's followed: Learn's addresses, LinkedIn's comment pages", () => {
     const hit = {
       name: "n",
