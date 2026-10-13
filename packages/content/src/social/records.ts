@@ -284,6 +284,77 @@ const STATES = status({
   left: neutral("Left"),
 });
 
+type Row = Record<string, unknown>;
+/** A Reddit thread queued for our comment. */
+const threadItem = (t: Row) => ({
+  id: `thread:${t.id}`,
+  type: "thread",
+  who: t.author,
+  platform: "reddit",
+  kind: "thread",
+  state: "waiting",
+  body: t.body || t.title,
+  post_title: t.title,
+  why: t.angle ?? null,
+  draft: t.draft,
+  account: t.account,
+  at: t.posted_at,
+  due: t.posted_at,
+  url: t.url,
+});
+/** Someone else's post with our comment drafted. */
+const onPostItem = (l: Row) => ({
+  id: `onpost:${l.id}`,
+  type: "onpost",
+  who: l.author,
+  platform: l.platform,
+  kind: "onpost",
+  state: "waiting",
+  body: l.text,
+  post_title: null,
+  why: l.why,
+  draft: l.draft,
+  account: l.account,
+  at: l.at,
+  due: l.queued_at ?? l.at,
+  url: l.url,
+});
+/** A comment on our post or under our comment. */
+const commentItem = (c: Row) => ({
+  id: `comment:${c.id}`,
+  type: "comment",
+  who: c.who,
+  platform: c.platform,
+  kind: c.kind,
+  channel: c.channel,
+  state: c.state,
+  body: c.body,
+  post_title: c.post_title,
+  draft: c.draft,
+  account: c.account,
+  at: c.at,
+  due: c.at,
+  url: c.url,
+});
+/** A DM thread; waiting when theirs is the last word. */
+const dmItem = (d: Row) => ({
+  id: `dm:${d.id}`,
+  type: "dm",
+  who: d.who,
+  platform: d.platform,
+  kind: "dm",
+  // Reddit and LinkedIn DMs are reach's; the rest come through a connected account.
+  channel: d.platform === "reddit" || d.platform === "linkedin" ? "reach" : "social",
+  state: d.waiting === "waiting" ? "waiting" : "read",
+  body: d.last_body,
+  post_title: null,
+  draft: d.draft,
+  account: d.account,
+  at: d.last_at,
+  due: d.last_at,
+  url: null,
+});
+
 /**
  * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
  * (a call invite), `reply:6` (a reply with none), `text:8`, `chat:3`, `activity:9`); each action reads the
@@ -315,39 +386,8 @@ export const inboxRecord = defineRecord({
       };
     };
     const all: Record<string, unknown>[] = [
-      ...cs.map((c) => ({
-        id: `comment:${c.id}`,
-        type: "comment",
-        who: c.who,
-        platform: c.platform,
-        kind: c.kind,
-        channel: c.channel,
-        state: c.state,
-        body: c.body,
-        post_title: c.post_title,
-        draft: c.draft,
-        account: c.account,
-        at: c.at,
-        due: c.at,
-        url: c.url,
-      })),
-      ...ds.map((d) => ({
-        id: `dm:${d.id}`,
-        type: "dm",
-        who: d.who,
-        platform: d.platform,
-        kind: "dm",
-        // Reddit and LinkedIn DMs are reach's; the rest come through a connected account.
-        channel: d.platform === "reddit" || d.platform === "linkedin" ? "reach" : "social",
-        state: d.waiting === "waiting" ? "waiting" : "read",
-        body: d.last_body,
-        post_title: null,
-        draft: d.draft,
-        account: d.account,
-        at: d.last_at,
-        due: d.last_at,
-        url: null,
-      })),
+      ...cs.map(commentItem),
+      ...ds.map(dmItem),
       // A reply with a call invite is answered here or on its replies page, by the invite's id;
       // one with no invite has nothing to answer with and shows unlinked.
       ...es.map((e) => ({
@@ -677,21 +717,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: v.at,
           url: `/marketing/videos/${v.id}`,
         })),
-        ...ts.map((t) => ({
-          id: `thread:${t.id}`,
-          type: "thread",
-          who: t.author,
-          platform: "reddit",
-          kind: "thread",
-          state: "waiting",
-          body: t.body || t.title,
-          post_title: t.title,
-          draft: t.draft,
-          account: t.account,
-          at: t.posted_at,
-          due: t.posted_at,
-          url: t.url,
-        })),
+        ...ts.map(threadItem),
         ...is.map((i) => ({
           id: `invite:${i.id}`,
           type: "invite",
@@ -707,22 +733,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: i.at,
           url: i.url,
         })),
-        ...ls.map((l) => ({
-          id: `onpost:${l.id}`,
-          type: "onpost",
-          who: l.author,
-          platform: l.platform,
-          kind: "onpost",
-          state: "waiting",
-          body: l.text,
-          post_title: null,
-          why: l.why,
-          draft: l.draft,
-          account: l.account,
-          at: l.at,
-          due: l.queued_at ?? l.at,
-          url: l.url,
-        })),
+        ...ls.map(onPostItem),
         ...cs.map((c) => ({
           id: `connect:${c.id}`,
           type: "connect",
@@ -1025,6 +1036,87 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
   });
 export const approvalRecord = approvalRecordOf();
 
+/**
+ * Marketing → Engage: every reply he might write, in one queue. Reddit threads and others' posts
+ * with our comment drafted (as To approve has them), comments on ours and DMs (as the Inbox has
+ * them). Each row keeps its own page's actions; links he pastes land here too (`ReachDesk.paste`).
+ */
+export const engageRecord = defineRecord({
+  id: "marketing.engage",
+  app: "marketing",
+  channel: { field: "platform" },
+  name: { one: "reply", many: "replies" },
+  rows: async (db) => {
+    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
+    const ls = await onPostRows(db);
+    const cs = (await commentRecord.rows?.(db)) ?? [];
+    const ds = (await dmRecord.rows?.(db)) ?? [];
+    return [
+      ...ts.map(threadItem),
+      ...ls.map(onPostItem),
+      ...cs.map(commentItem),
+      ...ds.map(dmItem),
+    ];
+  },
+  key: "id",
+  title: "who",
+  subtitle: "body",
+  fields: {
+    who: name("Who"),
+    type: status(
+      cued({
+        thread: neutral("Reddit thread"),
+        onpost: neutral("Their post"),
+        comment: neutral("On our post"),
+        dm: neutral("DM"),
+      }),
+      "Type",
+    ),
+    platform: status(PLATFORM_LABELS, "Site"),
+    state: STATES,
+    body: prose("Their words"),
+    postTitle: text("Post"),
+    why: text("Picked for"),
+    draft: prose("Our draft"),
+    account: text("On"),
+    at: date("When"),
+    due: date("Due"),
+    url: link("Open"),
+  },
+  views: [
+    { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+    { id: "threads", label: "Reddit", where: { type: "thread" }, sort: "-at", at: "at" },
+    { id: "posts", label: "Their posts", where: { type: "onpost" }, sort: "due", at: "due" },
+    { id: "ours", label: "On our posts", where: { type: "comment" }, sort: "-at", at: "at" },
+    { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  activity: { view: "draft_activity", by: "item", seq: "seq" },
+  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
+  actions: [
+    "marketing.threadComment",
+    "marketing.threadSkip",
+    "marketing.onpostComment",
+    "marketing.onpostLike",
+    "marketing.onpostFollow",
+    "marketing.onpostSkip",
+    "marketing.commentAnswer",
+    "marketing.commentDm",
+    "marketing.commentDrop",
+    "marketing.dmReply",
+    "marketing.dmRead",
+    "marketing.draftSet",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  /** Comments and DMs as the Inbox opens them; threads and posts as To approve does. */
+  load: async (db, id) => {
+    const [type] = typed(id);
+    const from = type === "comment" || type === "dm" ? inboxRecord : approvalRecord;
+    return (await from.load?.(db, id)) ?? null;
+  },
+});
+
 /** An asked reply's access channel: texts are `sms`, email `email`; a DM's or comment's, none here. */
 const askedVia = (channel: string) =>
   channel === "text" ? "sms" : channel === "email" ? "email" : null;
@@ -1147,6 +1239,7 @@ export const audienceRecord = defineRecord({
 export const socialRecords = (signer?: VideoSigner) => [
   inboxRecord,
   approvalRecordOf(signer),
+  engageRecord,
   doneRecord,
   adFormatRecord,
   keywordRecord,

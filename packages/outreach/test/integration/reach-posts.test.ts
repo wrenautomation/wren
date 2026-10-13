@@ -345,9 +345,10 @@ describe("the daily pass", () => {
     const out = statsOf(await sync());
     expect(out?.posts[0]).toMatchObject({ reads: 2, kept: 4, dropped: 3, queued: 2, errors: [] });
     const reads = calls.filter((c) => c.method === "GET");
+    // The pages he follows are read first.
     expect(reads.map((c) => [c.path, c.account])).toEqual([
-      ["/search/results/content", "linkedin@wren"],
       ["/company/acme-staffing/posts", "linkedin@wren"],
+      ["/search/results/content", "linkedin@wren"],
     ]);
     expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
     expect(replies).toEqual([]);
@@ -357,12 +358,13 @@ describe("the daily pass", () => {
     expect(by(2)?.stateReason).toBe("older than 72 hours");
     expect(by(3)?.stateReason).toBe("ours");
     expect(by(4)?.stateReason).toBe("too short to answer");
-    // The best two, one per author: the founder, then the VP; the founder's second post waits.
+    // The page he follows ranks like key people: its two posts take the day's two; the search's wait.
     expect(got.filter((r) => r.state === "queued").map((r) => r.ref)).toEqual([
-      post(1).ref,
       post(6).ref,
+      post(7).ref,
     ]);
-    expect(by(1)).toMatchObject({ draft: GOOD, account: "linkedin@wren" });
+    expect(by(6)).toMatchObject({ draft: GOOD, account: "linkedin@wren" });
+    expect(by(1)?.state).toBe("found");
     // The prompt carries his facts.
     expect(asked[0]).toContain("- I built an interview reminder tool for recruiters.");
     expect(by(5)?.state).toBe("found");
@@ -721,8 +723,8 @@ describe("X and Instagram", () => {
     ]);
     const got = await rows();
     expect(got.map((r) => [r.platform, r.ref, r.handle, r.url, r.state])).toEqual([
-      ["x", "101", "founderone", "https://x.com/FounderOne/status/101", "queued"],
       ["x", "102", "acmestaffing", "https://x.com/AcmeStaffing/status/102", "queued"],
+      ["x", "101", "founderone", "https://x.com/FounderOne/status/101", "queued"],
     ]);
     expect(asked[0]).toContain("one X comment");
     expect(asked[0]).toContain("under 250 characters");
@@ -770,8 +772,8 @@ describe("X and Instagram", () => {
     expect(calls.find((c) => c.path === "/web/search")?.account).toBe("instagram@wren");
     const got = await rows();
     expect(got.map((r) => [r.platform, r.ref, r.handle, r.headline])).toEqual([
-      ["instagram", "AAA111", "founder.one", null],
       ["instagram", "BBB222", "acmestaffing", "Founder, Acme Staffing"],
+      ["instagram", "AAA111", "founder.one", null],
     ]);
   });
 });
@@ -921,5 +923,61 @@ describe("his Comment, with a like and a follow", () => {
       ["follow:linkedin:pat-one", "follow", "linkedin@wren", "pat-one"],
       ["follow:x:founderthree", "follow", "x@wren", "founderthree"],
     ]);
+  });
+});
+
+describe("paste (Marketing → Engage)", () => {
+  it("a post is read once and drafted now, past the fit and audience filters", async () => {
+    await settings({ account: "linkedin@wren", people: false });
+    routes[`/rest/posts/${encodeURIComponent("urn:li:activity:7090")}`] = () => ({
+      id: "urn:li:activity:7090",
+      author: "https://www.linkedin.com/in/pat-one/",
+      commentary: "Off the audience's words entirely, but he wants to answer this one anyway.",
+      lifecycleState: "PUBLISHED",
+      authorName: "Pat One",
+      authorUrl: "https://www.linkedin.com/in/pat-one/",
+      reactions: 3,
+      comments: 1,
+      url: "https://www.linkedin.com/feed/update/urn:li:activity:7090/",
+    });
+    const out = await desk().paste({
+      url: "https://www.linkedin.com/posts/pat-one_x-activity-7090-AbCd",
+    });
+    expect(out).toMatchObject({ did: "drafted", said: "Drafted a reply to Pat One." });
+    const [r] = await rows();
+    expect(r).toMatchObject({
+      ref: "urn:li:activity:7090",
+      foundBy: "pasted",
+      handle: "pat-one",
+      state: "queued",
+      draft: GOOD,
+      fit: 100,
+    });
+    expect(out.item).toBe(`onpost:${r?.id}`);
+    // Pasted again while it waits: nothing more.
+    expect(
+      await desk().paste({ url: "https://www.linkedin.com/feed/update/urn:li:activity:7090/" }),
+    ).toMatchObject({ did: "waiting" });
+    expect(asked).toHaveLength(1);
+  });
+
+  it("an account joins the follows, read first and ranked as key; a link it can't use says why", async () => {
+    await settings({ account: "x@wren", pages: ["other"] }, "x");
+    expect(await desk().paste({ url: "https://x.com/AcmeStaffing" })).toMatchObject({
+      did: "following",
+    });
+    expect(await desk().paste({ url: "x.com/acmestaffing" })).toMatchObject({
+      said: "Already following acmestaffing.",
+    });
+    const [s] = (await db().execute(
+      sql`select settings from wren_settings where component = 'x.comments'`,
+    )) as unknown as { settings: { pages: string[]; account: string } }[];
+    expect(s?.settings).toMatchObject({ account: "x@wren", pages: ["acmestaffing", "other"] });
+    await expect(desk().paste({ url: "https://example.com/a" })).rejects.toThrow(
+      /paste a Reddit, LinkedIn, X or Instagram link/,
+    );
+    await expect(desk().paste({ url: "https://www.instagram.com/p/AAA111/" })).rejects.toThrow(
+      /no instagram account is set/,
+    );
   });
 });

@@ -196,6 +196,7 @@ import {
 } from "../threads.js";
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
+import { pasteHandlers } from "./paste.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -1718,6 +1719,7 @@ export function makeReachDesk(deps: ReachDeps) {
         },
       ),
       ...discoveryHandlers(deps),
+      ...pasteHandlers(deps),
       stats: serviceHandler(
         { input: STATS },
         async (

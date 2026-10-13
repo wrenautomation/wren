@@ -126,6 +126,7 @@ export const CONTENT_COMPONENTS = [
       records: [
         "marketing.inbox",
         "marketing.approval",
+        "marketing.engage",
         "marketing.done",
         "marketing.comment_keyword",
         "marketing.keyword_hit",

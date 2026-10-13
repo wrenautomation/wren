@@ -6,6 +6,7 @@ import { KEYWORDS } from "@wren/channel-sms/templates";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
+import { createElement } from "react";
 import type { DayPage, ListPage, Module, ModulePage, PageAcross } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
@@ -16,6 +17,7 @@ import { AutoReplyPage } from "./auto-reply.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
+import { EngageHead } from "./engage.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { FactsPage, factsDropped } from "./facts.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
@@ -887,6 +889,53 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   connect: NOTE_DRAFT,
 };
 
+/** Engage's row type picks its box, as on each kind's own page. */
+const ENGAGE_DRAFT: Record<string, DraftOf> = {
+  thread: THREAD_DRAFT,
+  onpost: ONPOST_DRAFT,
+  comment: COMMENT_DRAFT,
+  dm: DM_DRAFT,
+};
+/** Each reply's own page's actions, on its rows only; the typed-id box, as To approve's. */
+const ENGAGE_ACTIONS: Action[] = [
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
+  ...COMMENT_ACTIONS.filter(own).map((a) => only("comment", a)),
+  ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
+  ...draftActions("inbox", {
+    type: ["thread", "onpost", "comment", "dm"],
+    state: ["new", "waiting", "read"],
+  }),
+];
+/**
+ * Marketing → Engage (`marketing.engage`): every reply he might write in one queue, and the
+ * paste box that adds to it. Invites go on their own; only their count shows.
+ */
+const ENGAGE_PAGE: ListPage = {
+  id: "engage",
+  label: "Engage",
+  group: "Content",
+  template: "list",
+  record: "marketing.engage",
+  columns: ["who", "platform", "type", "state", "at"],
+  empty: {
+    waiting: "Nothing waits on a reply. Paste a link above to add one.",
+    threads: "No Reddit thread waits. Paste a subreddit to watch it, or a thread to answer it.",
+    posts: "No one else's post waits. Paste one, or an account to follow.",
+    ours: "Comments on our posts show here.",
+    dms: "DMs show here once someone writes back.",
+    all: "Reddit threads, others' posts, comments on ours and DMs show here.",
+  },
+  actions: ENGAGE_ACTIONS,
+  extras: withDraft(
+    (row) => ENGAGE_DRAFT[String(row.type)] ?? null,
+    (detail, at) =>
+      (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+  ),
+  head: (_meta, reload, at) => createElement(EngageHead, { reload, demo: !!at.demo }),
+  count: { state: ["new", "waiting"] },
+};
+
 /**
  * What other people sent us (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting
  * on you" are this page, each under its own id.
@@ -1302,6 +1351,7 @@ export const marketing: Module = {
     REVIEWS_PAGE,
     TODAY,
     { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
+    ENGAGE_PAGE,
     {
       id: "drafts",
       label: "Drafts",

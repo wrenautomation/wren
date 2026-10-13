@@ -15,7 +15,7 @@ import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
 import { AD_FORMAT_SEED, adFormatRecord } from "../../src/social/ad-formats.js";
 import { doneRecord } from "../../src/social/done-record.js";
-import { approvalRecord, inboxRecord } from "../../src/social/records.js";
+import { approvalRecord, engageRecord, inboxRecord } from "../../src/social/records.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -263,6 +263,34 @@ describe("marketing.approval: what we'd send", () => {
       ask: [],
       record: null,
     });
+  });
+});
+
+describe("marketing.engage: every reply in one queue", () => {
+  it("holds others' posts with our comment drafted; a post draft waits elsewhere", async () => {
+    const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
+        found_by, account, fit, why, state, draft, queued_at, raw)
+      values ('linkedin', 'urn:li:activity:9901', 'Synthetic Author', 'their synthetic post',
+        'https://www.linkedin.com/feed/update/urn:li:activity:9901/', 'pasted', 'linkedin@wren',
+        100, 'you pasted it', 'queued', 'our synthetic comment', now(), '{}')
+      returning id`)) as unknown as { id: number }[];
+    const api = serveRecords([engageRecord], pg.db);
+    for (const v of engageRecord.views)
+      await api.list({ record: engageRecord.id, view: v.id, limit: 50 });
+    const waiting = (await api.list({ record: engageRecord.id, view: "waiting", limit: 50 })).rows;
+    expect(waiting).toContainEqual(
+      expect.objectContaining({
+        id: `onpost:${p!.id}`,
+        type: "onpost",
+        state: "waiting",
+        why: "you pasted it",
+        draft: "our synthetic comment",
+      }),
+    );
+    expect(
+      waiting.every((r) => ["thread", "onpost", "comment", "dm"].includes(String(r.type))),
+    ).toBe(true);
+    expect(await engageRecord.load?.(pg.db, `onpost:${p!.id}`)).toMatchObject({ ask: [] });
   });
 });
 

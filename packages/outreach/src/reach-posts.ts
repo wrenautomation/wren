@@ -120,7 +120,10 @@ export function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
       perDay: z.number().int().min(0).max(20).default(10),
       /** Words to search posts for ("recruiting agency"); one read each. */
       topics: z.array(z.string().trim().min(1)).default([]),
-      /** Pages whose recent posts are read: LinkedIn company handles, X or Instagram usernames. */
+      /**
+       * Accounts he follows, read first each pass and ranked as key people: LinkedIn company
+       * handles or `in/<vanity>` for a person, X or Instagram usernames.
+       */
       pages: z.array(z.string().trim().min(1)).default([]),
       /** Also read posts by people we know: accepted invites, people who engaged with us. */
       people: z.boolean().default(true),
@@ -205,6 +208,8 @@ export interface PostReader {
   page(handle: string): Promise<FeedPost[]>;
   /** What a key person wrote lately. */
   person(k: KeyPerson, since: Since): Promise<FeedPost[]>;
+  /** One post by its ref, pasted; null when it is gone. */
+  one(ref: string): Promise<FeedPost | null>;
 }
 
 const SINCE_DAYS: Readonly<Record<Since, number>> = {
@@ -246,6 +251,39 @@ interface IgMedia {
   like_count?: number;
   comments_count?: number;
 }
+
+/** autobrowse's `GET /rest/posts/{urn}`: the API's post, or its page in that shape until granted. */
+interface RestPost {
+  id: string;
+  commentary?: string;
+  publishedAt?: number;
+  authorName?: string;
+  authorUrl?: string | null;
+  headline?: string;
+  reactions?: number;
+  comments?: number;
+  url?: string;
+}
+
+const fromRestPost = (p: RestPost): FeedPost => ({
+  ref: p.id,
+  author: p.authorName ?? "",
+  authorUrl: p.authorUrl ?? null,
+  handle: vanityOf(p.authorUrl),
+  ...(p.headline ? { headline: p.headline } : {}),
+  text: p.commentary ?? "",
+  ...(p.publishedAt ? { at: new Date(p.publishedAt).toISOString() } : {}),
+  reactions: p.reactions ?? 0,
+  comments: p.comments ?? 0,
+  url: p.url ?? `https://www.linkedin.com/feed/update/${p.id}/`,
+});
+
+/** A name to search from a LinkedIn link: "jane-doe-4b1a2" reads "jane doe". */
+export const nameOfVanity = (vanity: string) =>
+  vanity
+    .split("-")
+    .filter((w) => !/\d/.test(w))
+    .join(" ");
 
 const fromLinkedin = (p: LinkedinFeedPost): FeedPost => {
   const { urn, ...rest } = p;
@@ -299,6 +337,21 @@ export function postReader(
 ): PostReader {
   if (platform === "linkedin") {
     type Out = { posts?: LinkedinFeedPost[] };
+    // Their name as a search; only what they wrote is kept.
+    const person = async (k: KeyPerson, since: Since) =>
+      (
+        (
+          await sites.call<Out>(
+            "linkedin",
+            "GET",
+            "/search/results/content",
+            { keywords: k.name, max: 20, since },
+            account,
+          )
+        ).posts ?? []
+      )
+        .map(fromLinkedin)
+        .filter((p) => p.handle === k.handle);
     const search = async (keywords: string, since: Since) =>
       (
         (
@@ -313,33 +366,32 @@ export function postReader(
       ).map(fromLinkedin);
     return {
       search,
+      // A person he follows (`in/<vanity>`) is read like a key person, by the name in their link.
       page: async (handle) =>
-        (
-          (
-            await sites.call<Out>(
-              "linkedin",
-              "GET",
-              `/company/${encodeURIComponent(handle)}/posts`,
-              { company: handle, max: 20 },
-              account,
-            )
-          ).posts ?? []
-        ).map(fromLinkedin),
-      // Their name as a search; only what they wrote is kept.
-      person: async (k, since) =>
-        (
-          (
-            await sites.call<Out>(
-              "linkedin",
-              "GET",
-              "/search/results/content",
-              { keywords: k.name, max: 20, since },
-              account,
-            )
-          ).posts ?? []
-        )
-          .map(fromLinkedin)
-          .filter((p) => p.handle === k.handle),
+        handle.startsWith("in/")
+          ? person({ handle: handle.slice(3), name: nameOfVanity(handle.slice(3)) }, "past-week")
+          : (
+              (
+                await sites.call<Out>(
+                  "linkedin",
+                  "GET",
+                  `/company/${encodeURIComponent(handle)}/posts`,
+                  { company: handle, max: 20 },
+                  account,
+                )
+              ).posts ?? []
+            ).map(fromLinkedin),
+      person,
+      one: async (urn) => {
+        const p = await sites.call<RestPost | { found: false }>(
+          "linkedin",
+          "GET",
+          `/rest/posts/${encodeURIComponent(urn)}`,
+          { urn },
+          account,
+        );
+        return "found" in p ? null : fromRestPost(p);
+      },
     };
   }
   if (platform === "x") {
@@ -379,6 +431,16 @@ export function postReader(
       },
       page,
       person: (k) => page(k.handle),
+      one: async (id) => {
+        const r = await sites.call<{ data?: XTweet }>(
+          "x",
+          "GET",
+          `/2/tweets/${encodeURIComponent(id)}`,
+          { id },
+          account,
+        );
+        return r.data ? xPostOf(r.data) : null;
+      },
     };
   }
   type Found = { found?: boolean; profile?: { biography?: string }; media?: IgMedia[] };
@@ -435,6 +497,16 @@ export function postReader(
     },
     page,
     person: (k) => page(k.handle),
+    one: async (code) => {
+      const p = await sites.call<IgPost & { found?: false }>(
+        "instagram",
+        "GET",
+        `/web/p/${encodeURIComponent(code)}`,
+        { shortcode: code },
+        account,
+      );
+      return p.found === false ? null : igPostOf(p);
+    },
   };
 }
 
@@ -1245,14 +1317,16 @@ export async function postsPass(
         key: true,
         run: () => o.read.person(k, since),
       });
-  // Key people always get their reads; searches and pages share the rest.
+  // Key people always get their reads; the pages he follows come next, ranked like key people,
+  // and searches share the rest.
   const reads: Read[] = [
     ...[
-      ...plan.topics.map((t) => ({ foundBy: `topic: ${t}`, run: () => o.read.search(t, since) })),
       ...s.pages.map((c) => ({
-        foundBy: `${platform === "linkedin" ? "company" : "account"}: ${c}`,
+        foundBy: `${platform !== "linkedin" ? "account" : c.startsWith("in/") ? "person" : "company"}: ${c}`,
+        key: true,
         run: () => o.read.page(c),
       })),
+      ...plan.topics.map((t) => ({ foundBy: `topic: ${t}`, run: () => o.read.search(t, since) })),
     ].slice(0, Math.max(0, READS_PER_PASS[platform] - people.length)),
     ...people,
   ];
