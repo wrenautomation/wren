@@ -1,12 +1,12 @@
 /**
  * Scheduled comments on Postgres: drafted, queued comments on others' posts take spaced slots on
  * their platform's lane, never two inside the gap, under the day's cap, and a slot taken off the
- * schedule is no longer due.
+ * schedule is no longer due. A failed slot is slotted again once, then skipped.
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
-import { POST_PACE, schedulePosts, stillDue, unschedule } from "../../src/scheduled.js";
+import { POST_PACE, schedulePosts, sendFailed, stillDue, unschedule } from "../../src/scheduled.js";
 import { reachPosts } from "../../src/schema.js";
 
 let pg: TestPostgres;
@@ -75,5 +75,17 @@ describe("schedulePosts", () => {
     expect(await stillDue(db(), "post", s.id, s.at)).toBe(true);
     await unschedule(db(), { posts: [Number(s.id)] });
     expect(await stillDue(db(), "post", s.id, s.at)).toBe(false);
+  });
+
+  it("a failed slot is slotted again once, then skipped", async () => {
+    const [p] = await db().insert(reachPosts).values(row(1)).returning({ id: reachPosts.id });
+    const id = p?.id ?? 0;
+    const read = async () => (await db().select().from(reachPosts)).find((r) => r.id === id);
+    await schedulePosts(db(), "linkedin", settings, { now, rand: () => 0 });
+    expect(await sendFailed(db(), "post", String(id), "HTTP 426")).toBe("retry");
+    expect(await read()).toMatchObject({ state: "queued", sendAt: null });
+    expect(await schedulePosts(db(), "linkedin", settings, { now, rand: () => 0 })).toHaveLength(1);
+    expect(await sendFailed(db(), "post", String(id), "HTTP 426")).toBe("skipped");
+    expect(await read()).toMatchObject({ state: "skipped", stateReason: "send failed: HTTP 426" });
   });
 });

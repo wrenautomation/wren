@@ -61,7 +61,7 @@ import {
   unrankedThreads,
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
-import { scheduleThreads, stillDue } from "../scheduled.js";
+import { scheduleThreads, sendFailed, stillDue } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
 import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
 import { fireSlots } from "./schedule.js";
@@ -439,7 +439,15 @@ export function discoveryHandlers(deps: ReachDeps) {
           authors.some((a) => a.toLowerCase() === o.toLowerCase()),
         );
         if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
-        const sent = await ch.comment(plan.thread.target ?? plan.thread.id, body);
+        const sent = await ch
+          .comment(plan.thread.target ?? plan.thread.id, body)
+          .catch(async (err) => {
+            if (at && err instanceof restate.TerminalError)
+              await ctx.run("send failed", () =>
+                sendFailed(deps.db, "thread", req.id, err.message),
+              );
+            throw err;
+          });
         await ctx.run("commented", async () => {
           // Words that differ from the draft are his edit.
           await keepSentEdit(deps.db, {

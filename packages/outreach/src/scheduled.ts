@@ -191,6 +191,39 @@ export async function unschedule(
       .where(inArray(redditThreads.id, [...o.threads]));
 }
 
+/** What a failed slot writes on a post, so a second failure can tell it is the second. */
+const SEND_FAILED = "send failed: ";
+
+/**
+ * A slot's send failed for good. The row leaves the schedule so the next pass slots it again;
+ * a post failing its second slot is skipped. A thread retries until it goes stale.
+ */
+export async function sendFailed(
+  db: Queryable,
+  kind: "post" | "thread",
+  id: string,
+  why: string,
+): Promise<"retry" | "skipped"> {
+  if (kind === "thread") {
+    await db.update(redditThreads).set({ sendAt: null }).where(eq(redditThreads.id, id));
+    return "retry";
+  }
+  const [r] = await db
+    .select({ reason: reachPosts.stateReason })
+    .from(reachPosts)
+    .where(eq(reachPosts.id, Number(id)));
+  const again = r?.reason?.startsWith(SEND_FAILED) ?? false;
+  await db
+    .update(reachPosts)
+    .set({
+      sendAt: null,
+      stateReason: `${SEND_FAILED}${why}`.slice(0, 500),
+      ...(again ? { state: "skipped" as const } : {}),
+    })
+    .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
+  return again ? "skipped" : "retry";
+}
+
 /** At send: is this still the slot? A cleared or moved `send_at` means his change of mind. */
 export async function stillDue(
   db: Queryable,

@@ -181,6 +181,7 @@ import {
   type Slotted,
   schedulePosts,
   scheduleThreads,
+  sendFailed,
   stillDue,
   unschedule,
 } from "../scheduled.js";
@@ -1535,15 +1536,24 @@ export function makeReachDesk(deps: ReachDeps) {
           const account = settings.account || null;
           const acts = postActs(post, settings, body);
           const sites = deps.sitesFor(ctx);
-          if (acts.comment) {
-            if (!account)
-              throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
-            const [site, method, path, input] = acts.comment;
-            await sites.call(site, method, path, input, account);
-          } else
-            await ctx
-              .serviceClient<ContentReply>({ name: "Content" })
-              .reply({ platform: post.platform, commentId: post.ref, text: body });
+          try {
+            if (acts.comment) {
+              if (!account)
+                throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
+              const [site, method, path, input] = acts.comment;
+              await sites.call(site, method, path, input, account);
+            } else
+              await ctx
+                .serviceClient<ContentReply>({ name: "Content" })
+                .reply({ platform: post.platform, commentId: post.ref, text: body });
+          } catch (err) {
+            // A slot that fails for good leaves the schedule, or it would sit queued forever.
+            if (at && err instanceof restate.TerminalError)
+              await ctx.run("send failed", () =>
+                sendFailed(deps.db, "post", String(req.id), err.message),
+              );
+            throw err;
+          }
           await ctx.run("commented", () =>
             markPostCommented(deps.db, post, { body, by: byOf(req), now }),
           );
