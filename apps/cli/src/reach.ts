@@ -9,7 +9,7 @@
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { setWrenSettings } from "@wren/core/clients";
+import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
@@ -19,6 +19,7 @@ import {
   CONTACT_STATES,
   type ContactState,
   commentsSettings,
+  discoverySettingsSchema,
   INVITES_COMPONENT,
   inviteSettings,
   invitesSettingsSchema,
@@ -497,6 +498,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--audience <list>", "comma separated word starts a post must have (recruit,staffing)")
     .option("--about <text>", "who the buyers are; the model writes new search words from it")
     .option("--new-topics <n>", "search words the model adds a pass (0 = only --topics)")
+    .option("--auto-send <on|off>", "each pass's drafts take spaced send slots without your yes")
     .action(
       async (o: {
         platform?: string;
@@ -513,6 +515,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         audience?: string;
         about?: string;
         newTopics?: string;
+        autoSend?: string;
       }) => {
         const list = (v: string) =>
           v
@@ -520,7 +523,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
             .map((x) => x.trim())
             .filter(Boolean);
         const platform = postPlatformOf(o.platform);
-        for (const v of [o.people, o.like, o.follow])
+        for (const v of [o.people, o.like, o.follow, o.autoSend])
           if (v !== undefined && !["on", "off"].includes(v)) throw new Error(`on or off, not ${v}`);
         const change = {
           ...(o.account !== undefined && { account: o.account }),
@@ -536,6 +539,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.audience !== undefined && { audience: list(o.audience) }),
           ...(o.about !== undefined && { about: o.about }),
           ...(o.newTopics !== undefined && { newTopics: Number(o.newTopics) }),
+          ...(o.autoSend !== undefined && { autoSend: o.autoSend === "on" }),
         };
         json(
           await withDb(async (db) => {
@@ -635,11 +639,52 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   d.command("status").action(async () => json(await reads().status()));
   d.command("start").action(async () => json(await reads().start()));
   d.command("stop").action(async () => json(await reads().stop()));
+  d.command("set")
+    .description("Wren's discovery settings; a field left out keeps its value")
+    .option("--auto-send <on|off>", "each pass's drafts take spaced send slots without your yes")
+    .action(async (o: { autoSend?: string }) => {
+      if (o.autoSend !== undefined && !["on", "off"].includes(o.autoSend))
+        throw new Error(`on or off, not ${o.autoSend}`);
+      json(
+        await withDb(async (db) => {
+          const next = discoverySettingsSchema.parse({
+            ...((await settingsFor(db, null))["reddit.discovery"] ?? {}),
+            ...(o.autoSend !== undefined && { autoSend: o.autoSend === "on" }),
+          });
+          await atomic(db, async (tx) => {
+            await setAuditActor(tx, "cli");
+            await setWrenSettings(tx, "reddit.discovery", next, "cli");
+          });
+          return next;
+        }),
+      );
+    });
   d.command("sync")
     .alias("run")
     .description("One pass now; the loop stays as it is")
     .action(async () => json(await reads().sync()));
 
+  cmd
+    .command("schedule")
+    .description("Give every drafted comment (others' posts, Reddit threads) a spaced send slot")
+    .option("--posts <on|off>", "others' posts", "on")
+    .option("--threads <on|off>", "Reddit threads", "on")
+    .action(async (o: { posts: string; threads: string }) =>
+      json(await desk().schedule({ posts: o.posts === "on", threads: o.threads === "on" })),
+    );
+  cmd
+    .command("unschedule")
+    .description("Take comments off the schedule; they wait on your yes again")
+    .option("--posts <ids>", "reach post ids, comma separated")
+    .option("--threads <ids>", "Reddit thread ids, comma separated")
+    .action(async (o: { posts?: string; threads?: string }) =>
+      json(
+        await desk().unschedule({
+          posts: (o.posts ?? "").split(",").filter(Boolean).map(Number),
+          threads: (o.threads ?? "").split(",").filter(Boolean),
+        }),
+      ),
+    );
   cmd
     .command("threads")
     .description("Conversations, newest first")

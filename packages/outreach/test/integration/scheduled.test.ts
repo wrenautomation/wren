@@ -54,7 +54,7 @@ describe("schedulePosts", () => {
     expect(slots).toHaveLength(5);
     const at = slots.map((s) => new Date(s.at).getTime()).sort((a, b) => a - b);
     for (let i = 1; i < at.length; i++)
-      expect(at[i] - at[i - 1]).toBeGreaterThanOrEqual(POST_PACE.gapMinutes * 60_000);
+      expect((at[i] ?? 0) - (at[i - 1] ?? 0)).toBeGreaterThanOrEqual(POST_PACE.gapMinutes * 60_000);
     const day = (t: number) =>
       new Intl.DateTimeFormat("en-CA", { timeZone: POST_PACE.zone }).format(new Date(t));
     expect(at.filter((t) => day(t) === day(at[0] ?? 0))).toHaveLength(3);
