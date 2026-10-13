@@ -47,7 +47,14 @@ export const CONTENT_COMPONENTS = [
     requires: { anyAccount: [...CHANNEL_ACCOUNTS] },
     soon: [...SOON_ACCOUNTS],
     provides: {
-      services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
+      services: [
+        "Content",
+        "ContentDesk",
+        "ContentScheduler",
+        "ContentMetrics",
+        "DraftAsk",
+        "Blog",
+      ],
       loops: ["ContentScheduler", "ContentMetrics"],
       templates: ["prompt:content/draft-ask"],
     },
