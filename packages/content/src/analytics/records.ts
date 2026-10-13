@@ -206,7 +206,8 @@ export const cadenceRecord = defineRecord({
         name: g.name,
         platform: g.platform,
         goal: g.goal,
-        upTo: g.upTo ?? null,
+        // Rows are read by snake_case column.
+        up_to: g.upTo ?? null,
         pace: g.pace,
         how: g.how,
         starts: g.starts,

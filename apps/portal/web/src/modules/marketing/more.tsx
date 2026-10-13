@@ -14,9 +14,9 @@ export function MorePage({ groups }: { groups: readonly MoreGroup[] }) {
   return (
     <>
       <PageHeader title="More" lede="Every other Marketing page, by what it's for." />
-      <div className="grid gap-x-8 sm:grid-cols-2">
+      <div className="grid items-start gap-x-8 gap-y-6 sm:grid-cols-2">
         {groups.map((g) => (
-          <Section key={g.title} title={g.title}>
+          <Section key={g.title} title={g.title} className="mt-0!">
             <ul className="m-0 grid list-none gap-1 p-0">
               {g.pages.map((p) => (
                 <li key={p.href}>
