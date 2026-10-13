@@ -23,6 +23,7 @@ import {
   cleanComment,
   type OurPost,
   ourPostsBlock,
+  plainComment,
   postsFor,
 } from "@wren/core/our-posts";
 import type { RejectReason } from "@wren/core/reject-reasons";
@@ -880,14 +881,15 @@ async function guardedComment(
   const ours = postsFor(`${p.text} ${p.headline ?? ""}`, o.ours ?? []);
   const system = systemFor(p.platform, o.guide ?? "", o.voice ?? "", edits, facts, ours);
   const g = await guardDraft(
-    async (fix) => {
-      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
-        maxTokens: 400,
-        system,
-        name: `${p.platform}.comment_draft`,
-      });
-      return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
-    },
+    (fix) =>
+      plainComment(async (note) => {
+        const out = await completeAndParse(llm, note ? `${prompt}\n\n${note}` : prompt, DRAFT, {
+          maxTokens: 400,
+          system,
+          name: `${p.platform}.comment_draft`,
+        });
+        return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
+      }, fix),
     { facts, sources: [p.text, p.headline ?? "", ...ours.map((x) => x.text)] },
   );
   await recordGuard(db, `${p.platform}.comment_draft`, `onpost:${p.id}`, g);

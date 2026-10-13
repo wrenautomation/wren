@@ -26,6 +26,38 @@ export const cleanComment = (text: string): string =>
     .replace(/\s+--\s+/g, ", ")
     .trim();
 
+/** Stock moves a comment must not make; each match names what to cut. */
+const STOCK: Array<[RegExp, string]> = [
+  [/^\s*(you'?re|you are) (so |absolutely |spot on|right)/i, 'opening with "You\'re right"'],
+  [/^\s*(great|good|love this|totally|100%|couldn'?t agree)/i, "opening with praise or agreement"],
+  [/^[^.!?]{0,60}'s (point|take) (on|about)/i, "opening by naming their point"],
+  [/\bit'?s not (just |only |about )?[^.;]{1,60}[,;] it'?s\b/i, "\"it's not X, it's Y\""],
+  [/\bnot just about\b/i, '"not just about"'],
+  [
+    /\b(what'?s the one|what'?s one|how do you|curious how|what do you think)\b[^?]*\?\s*$/i,
+    "a closing question to them",
+  ],
+];
+
+/** What reads as stock in a comment; empty when it's plain. */
+export const stockPhrases = (text: string): string[] =>
+  STOCK.filter(([re]) => re.test(text)).map(([, what]) => what);
+
+/**
+ * One more ask when a comment reads stock: the model gets the moves to cut. The second answer
+ * stands either way (the grounding guard still checks it).
+ */
+export async function plainComment<T>(
+  ask: (fix: string | null) => Promise<{ text: string; result: T }>,
+  fix: string | null,
+): Promise<{ text: string; result: T }> {
+  const a = await ask(fix);
+  const stock = stockPhrases(a.text);
+  if (!stock.length) return a;
+  const note = `Rewrite it plainly. Cut: ${stock.join("; ")}. Start with your own point.`;
+  return ask(fix ? `${fix}\n${note}` : note);
+}
+
 const bag = (s: string) => new Set(s.toLowerCase().match(/[a-z]{5,}/g) ?? []);
 
 /** Up to `n` of our posts closest to `words`; none close, the newest two (posts come newest first). */

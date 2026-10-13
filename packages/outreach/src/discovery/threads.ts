@@ -15,6 +15,7 @@ import {
   cleanComment,
   type OurPost,
   ourPostsBlock,
+  plainComment,
   postsFor,
 } from "@wren/core/our-posts";
 import type { AccountHealth } from "@wren/core/outreach";
@@ -371,14 +372,15 @@ export async function draftThread(
     : DRAFT_SYSTEM(o.voice, truths);
   // Numbers may come from the thread or our notes; a first-person claim only from the truths.
   const g = await guardDraft(
-    async (fix) => {
-      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
-        maxTokens: 400,
-        system,
-        name: "reddit.draft",
-      });
-      return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
-    },
+    (fix) =>
+      plainComment(async (note) => {
+        const out = await completeAndParse(llm, note ? `${prompt}\n\n${note}` : prompt, DRAFT, {
+          maxTokens: 400,
+          system,
+          name: "reddit.draft",
+        });
+        return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
+      }, fix),
     { facts: truths, sources: [prompt] },
   );
   await recordGuard(db, "reddit.draft", `thread:${id}`, g);
