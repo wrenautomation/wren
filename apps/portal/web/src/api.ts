@@ -6,6 +6,7 @@
  * need none.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
+import { tellAutotrack } from "./autotrack.js";
 
 export type {
   AccessView,
@@ -191,6 +192,7 @@ export async function call<T>(
   retried = false,
 ): Promise<T> {
   const t = await token();
+  const began = performance.now();
   let res: Response;
   try {
     res = await fetch(`/api/${path}`, {
@@ -202,8 +204,10 @@ export async function call<T>(
       body: JSON.stringify(viewingAs ? { ...body, viewAs: viewingAs } : body),
     });
   } catch {
+    tellAutotrack(path, body, 0, Math.round(performance.now() - began));
     throw new ApiError("You're offline, or the portal is.", 0);
   }
+  tellAutotrack(path, body, res.status, Math.round(performance.now() - began));
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401 && TOKEN_URL) {
     held = null;
