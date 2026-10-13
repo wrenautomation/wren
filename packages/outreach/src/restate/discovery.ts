@@ -311,7 +311,7 @@ async function readsPass(
   // Wren's own pass with autoSend: drafted threads onto each account's spaced slots.
   if (audience.autoSend && !clientOfKey(ctx.key)) {
     const slots = await step("schedule", () => scheduleThreads(db, { now, rand: Math.random }));
-    fireSlots(ctx, slots, now);
+    await fireSlots(ctx, slots);
     s.scheduled = slots.length;
   }
 

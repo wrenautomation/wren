@@ -593,7 +593,7 @@ async function postsFor(
   const slots = await ctx.run(`schedule ${platform}`, () =>
     schedulePosts(deps.db, platform, settings, { now, rand: Math.random }),
   );
-  fireSlots(ctx, slots, now);
+  await fireSlots(ctx, slots);
   return { ...stats, scheduled: slots.length };
 }
 
@@ -1872,7 +1872,7 @@ export function makeReachDesk(deps: ReachDeps) {
                 scheduleThreads(deps.db, { now, rand: Math.random }),
               )),
             );
-          fireSlots(ctx, slots, now);
+          await fireSlots(ctx, slots);
           return { slots };
         },
       ),

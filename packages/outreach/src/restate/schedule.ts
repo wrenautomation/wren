@@ -15,13 +15,17 @@ type Desk = {
   commentThread: (ctx: restate.Context, req: Sent) => Promise<unknown>;
 };
 
-/** One delayed ReachDesk call a slot; the journal keeps them, so a retry fires none twice. */
-export function fireSlots(ctx: restate.Context, slots: readonly Slotted[], now: Date): void {
+/**
+ * One delayed ReachDesk call a slot; the journal keeps them, so a retry fires none twice. Each
+ * delay runs from the journaled time of the send, not the pass's start, so a slot lands on time.
+ */
+export async function fireSlots(ctx: restate.Context, slots: readonly Slotted[]): Promise<void> {
+  const now = await ctx.date.now();
   const desk = ctx.serviceSendClient<Desk>({ name: "ReachDesk" });
   const viewer = { email: SCHEDULER };
   for (const s of slots) {
     const opts = restate.rpc.sendOpts<Sent>({
-      delay: Math.max(0, new Date(s.at).getTime() - now.getTime()),
+      delay: Math.max(0, new Date(s.at).getTime() - now),
     });
     if (s.kind === "post") desk.commentPost({ id: Number(s.id), at: s.at, viewer }, opts);
     else desk.commentThread({ id: s.id, at: s.at, viewer }, opts);
