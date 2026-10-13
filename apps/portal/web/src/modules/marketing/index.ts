@@ -1180,12 +1180,30 @@ const REVIEWS_PAGE: ListPage = {
 };
 
 /** Wren's Marketing tabs, by group in this order; a page with none goes first. */
-const GROUPS = ["Content", "Reach", "Numbers"];
-const byGroup = (pages: ModulePage[]): ModulePage[] =>
-  pages
-    .map((p, i) => [GROUPS.indexOf(p.group ?? "") + 1, i, p] as const)
+/**
+ * Marketing's sidebar: five pages for the daily work (write, answer, read, see what went out, its
+ * numbers), every other page under More. Ids stay, so old links and pings keep landing.
+ */
+const FIVE: Readonly<Record<string, string>> = {
+  write: "Write",
+  engage: "Engage",
+  feed: "Feed",
+  content: "Posted",
+  overview: "Numbers",
+};
+const fivePlusMore = (pages: ModulePage[]): ModulePage[] => {
+  const order = Object.keys(FIVE);
+  const rank = (p: ModulePage) => (order.includes(p.id) ? order.indexOf(p.id) : order.length);
+  return pages
+    .map((p, i) => [rank(p), i, p] as const)
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])
-    .map(([, , p]) => p);
+    .map(([, , p]): ModulePage => {
+      const label = FIVE[p.id];
+      if (!label) return { ...p, group: "More" };
+      const { group: _, ...rest } = p;
+      return { ...rest, label };
+    });
+};
 
 /** Ad set days (`marketing.ad_day`): Wren's Ads app, and a client's Marketing → Ads. */
 const AD_DAYS: ListPage = {
@@ -1327,7 +1345,7 @@ export const marketing: Module = {
   icon: "megaphone",
   blurb: "Every platform's posts, comments, DMs and their numbers in one place.",
   requires: { audience: "team" },
-  pages: byGroup([
+  pages: fivePlusMore([
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
     { id: "inbox", ...INBOX_PAGE, hidden: true },
     { ...APPROVAL_PAGE, hidden: true },
@@ -1354,10 +1372,11 @@ export const marketing: Module = {
     { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
     ENGAGE_PAGE,
     { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
+    // Write lists what waits; this keeps draft links landing.
     {
       id: "drafts",
       label: "Drafts",
-      group: "Content",
+      hidden: true,
       across: BY_PLATFORM,
       template: "list",
       record: "marketing.draft",
