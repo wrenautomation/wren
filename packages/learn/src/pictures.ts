@@ -5,8 +5,10 @@
  * expires, stops mattering once it is kept. Episode audio stays at its host: it is large and seeks.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import type { FetchFn } from "./feeds.js";
 import { items, sources } from "./schema.js";
 
@@ -137,12 +139,12 @@ export function makeLearnPictures(db: Db, store: PictureStore | null) {
   return restate.service({
     name: "LearnPictures",
     handlers: {
-      sign: async (
-        _: restate.Context,
-        req: { ref?: unknown },
-      ): Promise<{ url: string | null }> => ({
-        url: store && typeof req?.ref === "string" ? await signPicture(db, store, req.ref) : null,
-      }),
+      sign: serviceHandler(
+        { input: z.looseObject({ ref: z.string().max(300).describe("A kept picture: s3://…") }) },
+        async (_: restate.Context, req: { ref: string }): Promise<{ url: string | null }> => ({
+          url: store ? await signPicture(db, store, req.ref) : null,
+        }),
+      ),
     },
   });
 }
