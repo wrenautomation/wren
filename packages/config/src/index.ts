@@ -237,7 +237,18 @@ export const settingsSchema = z.object({
         .filter(Boolean),
     )
     .pipe(
-      z.array(z.enum(["linkedin", "reddit", "youtube", "x", "instagram", "facebook", "tiktok"])),
+      z.array(
+        z.enum([
+          "linkedin",
+          "reddit",
+          "youtube",
+          "x",
+          "instagram",
+          "threads",
+          "facebook",
+          "tiktok",
+        ]),
+      ),
     ),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),

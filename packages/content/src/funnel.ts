@@ -168,6 +168,10 @@ export function linkRule(
       return promo
         ? { allowed: true, on: true, why: null }
         : { allowed: true, on: false, why: "A link costs reach on X: only promos carry one" };
+    case "threads":
+      return promo
+        ? { allowed: true, on: true, why: null }
+        : { allowed: true, on: false, why: "Threads posts stay conversation: only promos link" };
     case "reddit":
       if (!place)
         return {

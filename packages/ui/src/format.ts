@@ -86,6 +86,8 @@ const SITES: Readonly<Record<string, string>> = {
   "twitter.com": "X",
   "facebook.com": "Facebook",
   "instagram.com": "Instagram",
+  "threads.net": "Threads",
+  "threads.com": "Threads",
   "youtube.com": "YouTube",
   "tiktok.com": "TikTok",
   "reddit.com": "Reddit",

@@ -597,6 +597,21 @@ const facebook = shape({
   link: url("Link", { kinds: ["video"] }),
 });
 
+/** Threads: who may reply, and a link shown as a card under a text post. */
+const threads = shape({
+  replyControl: pick(
+    "Who can reply",
+    ["everyone", "accounts_you_follow", "mentioned_only"],
+    {
+      everyone: "Everyone",
+      accounts_you_follow: "Profiles you follow",
+      mentioned_only: "Profiles you mention",
+    },
+    { hint: "Unset: everyone" },
+  ),
+  linkCard: url("Link card", { hint: "https://… shown under a post with no photo or video" }),
+});
+
 /** A Business Profile post's button: what it says and where it goes. */
 const googleBusiness = shape({
   action: pick(
@@ -620,6 +635,7 @@ export const SHAPES = {
   reddit,
   linkedin,
   instagram,
+  threads,
   tiktok,
   x,
   facebook,

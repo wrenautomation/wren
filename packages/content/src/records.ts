@@ -35,6 +35,7 @@ const NAMES: Record<Platform, string> = {
   youtube: "YouTube",
   x: "X",
   instagram: "Instagram",
+  threads: "Threads",
   facebook: "Facebook",
   tiktok: "TikTok",
   google_business: "Business Profile",

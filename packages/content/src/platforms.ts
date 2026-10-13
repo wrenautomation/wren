@@ -94,6 +94,16 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     goCode: "ig",
     feed: { laptop: 2, phone: 2 },
   },
+  // Text up to 500, a photo or a video riding along (graph.threads.net through autobrowse).
+  threads: {
+    platform: "threads",
+    maxChars: 500,
+    shape:
+      "a Threads post: one plain point in conversational words, a line or two, no hashtags, under 400 characters",
+    name: "Threads",
+    goCode: "th",
+    feed: { laptop: null, phone: null },
+  },
   tiktok: {
     platform: "tiktok",
     maxChars: 2200,

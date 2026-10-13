@@ -762,7 +762,7 @@ export function formatOf(
 }
 
 /** Where a goal posts: a platform, or one Wren doesn't post to yet. */
-export type GoalPlace = Platform | "threads" | "newsletter";
+export type GoalPlace = Platform | "newsletter";
 
 export interface CadenceGoal {
   id: string;
@@ -992,7 +992,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
     pace: "4 a day",
     how: "Posted again from X and Instagram",
     starts: "words",
-    counts: null,
+    counts: "any",
   },
   {
     id: "reddit",

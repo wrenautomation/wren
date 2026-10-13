@@ -70,6 +70,7 @@ const FORMAT_WORD: Record<Format, string> = {
 const PLATFORM_WORD: Record<Platform, string> = {
   youtube: "YouTube",
   instagram: "Instagram",
+  threads: "Threads",
   tiktok: "TikTok",
   linkedin: "LinkedIn",
   x: "X",

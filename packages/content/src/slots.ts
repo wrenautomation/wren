@@ -34,6 +34,13 @@ export const DEFAULT_SLOTS: Slots = {
   x: [{ hour: 12, minute: 0, days: WEEKDAYS }],
   facebook: [{ hour: 13, minute: 0 }],
   instagram: [{ hour: 18, minute: 0 }],
+  // Four a day on Plan: spread over the waking day.
+  threads: [
+    { hour: 9, minute: 0 },
+    { hour: 12, minute: 0 },
+    { hour: 16, minute: 0 },
+    { hour: 20, minute: 0 },
+  ],
   tiktok: [{ hour: 19, minute: 0 }],
   youtube: [{ hour: 15, minute: 0 }],
   google_business: [{ hour: 10, minute: 0, days: [2, 4] }],

@@ -129,6 +129,7 @@ import {
   instagramContent,
   instagramWebContent,
   metaChecks,
+  threadsContent,
 } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
@@ -2374,6 +2375,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
           }
         : {}),
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
+      ...(on.includes("threads") ? { threads: threadsContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
     };
   };

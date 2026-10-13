@@ -391,7 +391,8 @@ describe("digest, cadence and metric records", () => {
     expect(goal("youtube-short")).toMatchObject({ done: 1, goal: 21, write: 20, state: "behind" });
     expect(goal("x-video")).toMatchObject({ done: 0, queued: 1, write: 20 });
     expect(goal("x")).toMatchObject({ queued: 0, write: 28, state: "none" });
-    expect(goal("threads")).toMatchObject({ done: null, write: null, state: "unbuilt" });
+    expect(goal("threads")).toMatchObject({ done: 0, write: 28, state: "none" });
+    expect(goal("newsletter")).toMatchObject({ done: null, write: null, state: "unbuilt" });
 
     // His plan is a setting: a goal edits in place, the rest stay the default.
     await editRecord(pg.db, cadenceRecord, "youtube-short", {

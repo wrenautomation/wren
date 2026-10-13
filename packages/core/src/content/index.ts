@@ -18,6 +18,7 @@ export type Platform =
   | "youtube"
   | "x"
   | "instagram"
+  | "threads"
   | "facebook"
   | "tiktok"
   | "google_business";
@@ -27,6 +28,7 @@ export const PLATFORMS: readonly Platform[] = [
   "youtube",
   "x",
   "instagram",
+  "threads",
   "facebook",
   "tiktok",
   "google_business",
