@@ -440,6 +440,8 @@ export const formatSql = `case
       when (d.platform = 'instagram' and d.extra->>'kind' = 'carousel')
         or (d.platform = 'linkedin' and d.extra->>'kind' = 'document') then 'carousel'
       when d.platform = 'x' and d.extra->>'kind' = 'thread' then 'thread'
+      when d.platform = 'facebook' and d.media->>'kind' = 'video' then 'reel'
+      when d.platform in ('x', 'linkedin') and d.media->>'kind' = 'video' then 'video'
       else 'post' end`;
 
 /**

@@ -45,7 +45,7 @@ describe("weekly digest", () => {
     );
     expect(yt.filter((l) => l.kind === "cadence").map((l) => l.text)).toEqual([
       "YouTube long videos: 1 of 2 this week.",
-      "YouTube Shorts: 1 of 5 this week.",
+      "YouTube Shorts: 1 of 21 this week.",
     ]);
     expect(d.get("reddit")?.find((l) => l.text.startsWith("Reddit comments"))?.text).toBe(
       "Reddit comments: 12 of 35 this week.",
@@ -58,7 +58,7 @@ describe("weekly digest", () => {
     const d = buildDigest({ now: NOW, posts: [] });
     expect(d.get("instagram")?.map((l) => l.text)).toEqual([
       "Nothing published this week.",
-      "Instagram Reels: 0 of 7 this week.",
+      "Instagram Reels: 0 of 21 this week.",
     ]);
   });
 });

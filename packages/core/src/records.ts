@@ -58,6 +58,7 @@ const MARK_ALIASES: Readonly<Record<string, Mark>> = {
   google_business: "google",
   linkedin_page: "linkedin",
   mail: "email",
+  newsletter: "email",
   sms: "text",
   texts: "text",
   phone: "call",

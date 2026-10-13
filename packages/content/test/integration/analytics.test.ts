@@ -371,12 +371,26 @@ describe("digest, cadence and metric records", () => {
     expect(worked.rows.length).toBeGreaterThan(0);
     expect(worked.rows.every((r) => r.platform === "all")).toBe(true);
 
-    const cadence = await api.list({ record: cadenceRecord.id, view: "week", limit: 20 });
-    expect(cadence.rows.find((r) => r.id === "youtube-short")).toMatchObject({
-      done: 1,
-      goal: 5,
-      state: "behind",
+    // An X video approved for tomorrow is queued against X's video goal, not its text one.
+    const [idea] = await pg.db
+      .insert(contentIdeas)
+      .values({ text: "synthetic clip idea", source: "cli" })
+      .returning();
+    await pg.db.insert(contentDrafts).values({
+      ideaId: idea!.id,
+      platform: "x",
+      text: "A synthetic clip",
+      status: "approved",
+      promptVersion: "t",
+      media: { kind: "video", source: "s3://synthetic/clip.mp4" },
+      scheduledFor: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     });
+    const cadence = await api.list({ record: cadenceRecord.id, view: "week", limit: 30 });
+    const goal = (id: string) => cadence.rows.find((r) => r.id === id);
+    expect(goal("youtube-short")).toMatchObject({ done: 1, goal: 21, write: 20, state: "behind" });
+    expect(goal("x-video")).toMatchObject({ done: 0, queued: 1, write: 20 });
+    expect(goal("x")).toMatchObject({ queued: 0, write: 28, state: "none" });
+    expect(goal("threads")).toMatchObject({ done: null, write: null, state: "unbuilt" });
 
     const gaps = await api.list({ record: metricRecord.id, view: "scope", limit: 100 });
     expect(gaps.rows.some((r) => r.says === "Needs scope: YouTube Analytics")).toBe(true);

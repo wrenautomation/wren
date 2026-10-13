@@ -728,8 +728,15 @@ export function stateLine(state: string, needs?: Need, why?: string | null): str
 export const FORMATS = ["long", "short", "reel", "video", "carousel", "thread", "post"] as const;
 export type Format = (typeof FORMATS)[number];
 
-/** A draft's format from its platform and shape kind; `formatSql` in the schema is the same. */
-export function formatOf(platform: string, kind: string | null | undefined): Format {
+/**
+ * A draft's format from its platform, shape kind and file; `formatSql` in the schema is the same.
+ * A video on X or LinkedIn is a video post, on Facebook a Reel.
+ */
+export function formatOf(
+  platform: string,
+  kind: string | null | undefined,
+  media?: string | null,
+): Format {
   if (platform === "youtube") return kind === "short" ? "short" : "long";
   if (platform === "tiktok") return "video";
   if (platform === "instagram" && kind === "video") return "reel";
@@ -739,35 +746,254 @@ export function formatOf(platform: string, kind: string | null | undefined): For
   )
     return "carousel";
   if (platform === "x" && kind === "thread") return "thread";
+  if (platform === "facebook" && media === "video") return "reel";
+  if ((platform === "x" || platform === "linkedin") && media === "video") return "video";
   return "post";
 }
 
-/** Goals per week (designs/2026-10-07-content-funnel.md): what cadence is measured against. */
-export const CADENCE_GOALS: ReadonlyArray<{
+/** Where a goal posts: a platform, or one Wren doesn't post to yet. */
+export type GoalPlace = Platform | "threads" | "newsletter";
+
+export interface CadenceGoal {
   id: string;
-  platform: Platform;
+  platform: GoalPlace;
+  /** The format, under its platform: "Shorts". */
   label: string;
-  /** Per week. */
+  /** With its platform, for a line that stands alone: "YouTube Shorts". */
+  name: string;
+  /** Per week, the low end of a range. */
   goal: number;
-  /** What counts: a published post of this format, any post, or a thread comment we posted. */
-  counts: Format | "any" | "thread_comment";
-}> = [
+  /** A range's top: 3 for "2 to 3". */
+  upTo?: number;
+  /** Per posting day, for today's count; null when it's a few days a week. */
+  daily: number | null;
+  /** How often, as he says it. */
+  pace: string;
+  /** How it's made. */
+  how: string;
+  /** Where the next one starts: his words (Write), a video (Videos), a thread (Engage). */
+  starts: "words" | "video" | "thread";
+  /**
+   * What counts: a published post in one of these formats, any post, or a thread comment we
+   * posted. Null: Wren can't post it yet, so nothing is counted.
+   */
+  counts: readonly Format[] | "any" | "thread_comment" | null;
+}
+
+/**
+ * William's posting plan, per week (10-13): what cadence is measured against, in his order by
+ * platform. Formats Wren can't post yet stay on it, uncounted, so the gap shows.
+ */
+export const CADENCE_GOALS: readonly CadenceGoal[] = [
   {
     id: "youtube-long",
     platform: "youtube",
-    label: "YouTube long videos",
+    label: "Long videos",
+    name: "YouTube long videos",
     goal: 2,
-    counts: "long",
+    upTo: 3,
+    daily: null,
+    pace: "2 to 3 days a week",
+    how: "The main authority piece",
+    starts: "video",
+    counts: ["long"],
   },
-  { id: "youtube-short", platform: "youtube", label: "YouTube Shorts", goal: 5, counts: "short" },
-  { id: "instagram", platform: "instagram", label: "Instagram Reels", goal: 7, counts: "reel" },
-  { id: "linkedin", platform: "linkedin", label: "LinkedIn posts", goal: 7, counts: "any" },
-  { id: "reddit", platform: "reddit", label: "Reddit posts", goal: 1, counts: "any" },
+  {
+    id: "youtube-short",
+    platform: "youtube",
+    label: "Shorts",
+    name: "YouTube Shorts",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "Spaced 5 to 6 hours apart",
+    starts: "video",
+    counts: ["short"],
+  },
+  {
+    id: "youtube-community",
+    platform: "youtube",
+    label: "Community posts",
+    name: "YouTube Community posts",
+    goal: 7,
+    daily: 1,
+    pace: "1 a day",
+    how: "Quotes, diagrams or poll teasers",
+    starts: "words",
+    counts: null,
+  },
+  {
+    id: "instagram-reel",
+    platform: "instagram",
+    label: "Reels",
+    name: "Instagram Reels",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "Native 9:16 vertical video",
+    starts: "video",
+    counts: ["reel"],
+  },
+  {
+    id: "instagram-story",
+    platform: "instagram",
+    label: "Stories",
+    name: "Instagram Stories",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "2 clip shares and 1 behind the scenes or poll",
+    starts: "video",
+    counts: null,
+  },
+  {
+    id: "tiktok",
+    platform: "tiktok",
+    label: "Videos",
+    name: "TikTok videos",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "Native upload, trend audio optional",
+    starts: "video",
+    counts: ["video"],
+  },
+  {
+    id: "facebook-reel",
+    platform: "facebook",
+    label: "Reels",
+    name: "Facebook Reels",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "The Instagram Reels, posted again",
+    starts: "video",
+    counts: ["reel"],
+  },
+  {
+    id: "facebook-post",
+    platform: "facebook",
+    label: "Page posts",
+    name: "Facebook Page posts",
+    goal: 14,
+    daily: 2,
+    pace: "2 a day",
+    how: "Cross-posted from LinkedIn and X",
+    starts: "words",
+    counts: ["post"],
+  },
+  {
+    id: "facebook-story",
+    platform: "facebook",
+    label: "Stories",
+    name: "Facebook Stories",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "Mirrored from Instagram Stories",
+    starts: "video",
+    counts: null,
+  },
+  {
+    id: "linkedin-video",
+    platform: "linkedin",
+    label: "Vertical videos",
+    name: "LinkedIn vertical videos",
+    goal: 7,
+    upTo: 14,
+    daily: 1,
+    pace: "1 to 2 a day",
+    how: "The day's best 1 or 2 clips",
+    starts: "video",
+    counts: ["video"],
+  },
+  {
+    id: "linkedin",
+    platform: "linkedin",
+    label: "Text posts and carousels",
+    name: "LinkedIn text posts and carousels",
+    goal: 7,
+    daily: 1,
+    pace: "1 a day",
+    how: "Text posts and PDF carousels",
+    starts: "words",
+    counts: ["post", "carousel"],
+  },
+  {
+    id: "x-video",
+    platform: "x",
+    label: "Video posts",
+    name: "X video posts",
+    goal: 21,
+    daily: 3,
+    pace: "3 a day",
+    how: "The vertical clips, uploaded natively",
+    starts: "video",
+    counts: ["video"],
+  },
+  {
+    id: "x",
+    platform: "x",
+    label: "Text posts and threads",
+    name: "X text posts and threads",
+    goal: 28,
+    daily: 4,
+    pace: "4 a day",
+    how: "3 standalone takes and 1 thread",
+    starts: "words",
+    counts: ["post", "thread"],
+  },
+  {
+    id: "threads",
+    platform: "threads",
+    label: "Text and clips",
+    name: "Threads posts",
+    goal: 28,
+    daily: 4,
+    pace: "4 a day",
+    how: "Posted again from X and Instagram",
+    starts: "words",
+    counts: null,
+  },
+  {
+    id: "reddit",
+    platform: "reddit",
+    label: "Breakdowns and case studies",
+    name: "Reddit posts",
+    goal: 2,
+    daily: null,
+    pace: "2 days a week",
+    how: "Value first, in the subreddits that fit",
+    starts: "words",
+    counts: "any",
+  },
   {
     id: "reddit-comments",
     platform: "reddit",
-    label: "Reddit comments",
+    label: "Thread comments",
+    name: "Reddit comments",
     goal: 35,
+    daily: 5,
+    pace: "5 a day",
+    how: "Answers in threads that fit",
+    starts: "thread",
     counts: "thread_comment",
   },
+  {
+    id: "newsletter",
+    platform: "newsletter",
+    label: "TLDRs and deep posts",
+    name: "Newsletter and Substack",
+    goal: 3,
+    daily: null,
+    pace: "3 days a week",
+    how: "Built from the long videos and the LinkedIn and X posts",
+    starts: "words",
+    counts: null,
+  },
 ];
+
+/** Whether a published post of this format counts toward the goal. */
+export const countsFor = (g: CadenceGoal, platform: string, format: Format): boolean =>
+  g.platform === platform &&
+  (g.counts === "any" || (Array.isArray(g.counts) && g.counts.includes(format)));

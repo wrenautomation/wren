@@ -20,18 +20,24 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { formatSql } from "../schema.js";
 import { PLATFORM_NAMES } from "../social/store.js";
 import {
   ANALYTICS_CATALOG,
   CADENCE_GOALS,
   type CatalogEntry,
   type CatalogState,
+  countsFor,
   entriesFor,
+  type Format,
   type Need,
   stateLine,
   surfaceOf,
 } from "./catalog.js";
 import { type VariantWindow, variantWindows } from "./variants.js";
+
+/** Wren's clock for "today": William's. */
+const ZONE = "America/Toronto";
 
 const neutral = (label: string): State => ({ label, tone: "neutral" });
 const rowsOf = async <T = Record<string, unknown>>(db: Queryable, q: ReturnType<typeof sql>) =>
@@ -142,7 +148,17 @@ export const digestRecord = defineRecord({
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** This week's posts and thread comments against each goal: the last 7 days, as the digest. */
+/** Where a goal posts: every platform, and the two Wren doesn't post to yet. */
+export const GOAL_PLACES = cued({
+  ...Object.fromEntries(PLATFORMS.map((p) => [p, neutral(PLATFORM_NAMES[p] ?? p)])),
+  threads: neutral("Threads"),
+  newsletter: neutral("Newsletter"),
+});
+
+/**
+ * William's plan (`CADENCE_GOALS`) against what went out: the last 7 days, today on his clock,
+ * and what's approved to go in the next 7. "To write" is what the week still lacks after those.
+ */
 export const cadenceRecord = defineRecord({
   id: "marketing.cadence",
   app: "marketing",
@@ -150,56 +166,97 @@ export const cadenceRecord = defineRecord({
   name: { one: "goal", many: "goals" },
   rows: async (db) => {
     const since = new Date(Date.now() - 7 * DAY_MS).toISOString();
-    const posts = await rowsOf<{ platform: Platform; format: string; n: number }>(
+    const posts = await rowsOf<{
+      platform: Platform;
+      format: Format;
+      week: number;
+      today: number;
+      queued: number;
+    }>(
       db,
-      sql`select platform, format, count(*)::int n from marketing_post_records
-        where published >= ${since}::timestamptz group by platform, format`,
+      sql`select d.platform, ${sql.raw(formatSql)} format,
+          count(*) filter (where d.published_at >= ${since}::timestamptz)::int week,
+          count(*) filter (where d.published_at >= date_trunc('day', now() at time zone ${ZONE})
+            at time zone ${ZONE})::int today,
+          count(*) filter (where d.status = 'approved' and d.published_at is null
+            and coalesce(d.scheduled_for, now()) < now() + interval '7 days')::int queued
+        from content_drafts d
+        where d.published_at >= ${since}::timestamptz or d.status = 'approved'
+        group by 1, 2`,
     );
-    const [threads] = await rowsOf<{ n: number }>(
+    const [threads] = await rowsOf<{ week: number; today: number }>(
       db,
-      sql`select count(*)::int n from reddit_threads
+      sql`select count(*)::int week,
+          count(*) filter (where answered_at >= date_trunc('day', now() at time zone ${ZONE})
+            at time zone ${ZONE})::int today
+        from reddit_threads
         where answer_ref is not null and answered_at >= ${since}::timestamptz`,
     );
-    return CADENCE_GOALS.map((g) => {
-      const done =
-        g.counts === "thread_comment"
-          ? (threads?.n ?? 0)
-          : posts
-              .filter(
-                (p) => p.platform === g.platform && (g.counts === "any" || p.format === g.counts),
-              )
-              .reduce((a, p) => a + p.n, 0);
+    return CADENCE_GOALS.map((g, n) => {
+      const mine = posts.filter((p) => countsFor(g, p.platform, p.format));
+      const sum = (k: "week" | "today" | "queued") => mine.reduce((a, p) => a + p[k], 0);
+      const counted = g.counts !== null;
+      const comments = g.counts === "thread_comment";
+      const done = comments ? (threads?.week ?? 0) : sum("week");
+      const queued = comments ? 0 : sum("queued");
       return {
         id: g.id,
+        n,
         label: g.label,
+        name: g.name,
         platform: g.platform,
         goal: g.goal,
-        done,
-        short: Math.max(0, g.goal - done),
-        state: done >= g.goal ? "met" : done === 0 ? "none" : "behind",
+        upTo: g.upTo ?? null,
+        pace: g.pace,
+        how: g.how,
+        starts: g.starts,
+        daily: g.daily,
+        done: counted ? done : null,
+        today: counted ? (comments ? (threads?.today ?? 0) : sum("today")) : null,
+        queued: counted ? queued : null,
+        write: counted ? Math.max(0, g.goal - done - queued) : null,
+        state: !counted
+          ? "unbuilt"
+          : done >= g.goal
+            ? "met"
+            : done + queued >= g.goal
+              ? "queued"
+              : done === 0
+                ? "none"
+                : "behind",
       };
     });
   },
   key: "id",
-  title: "label",
-  subtitle: "platform",
+  title: "name",
+  subtitle: "pace",
   fields: {
-    label: text("Goal"),
-    platform: status(PLATFORM_ALL_STATES, "Platform"),
-    done: number("Done"),
+    name: text("Goal"),
+    label: text("Format", { listed: false }),
+    platform: status(GOAL_PLACES, "Platform"),
+    done: number("Last 7 days"),
     goal: number("A week"),
-    pace: rate("goal", "Of the goal", { from: "done" }),
-    short: number("Still to go"),
+    upTo: number("Up to", { listed: false }),
+    pace: text("How often"),
+    today: number("Today"),
+    daily: number("A day", { listed: false }),
+    queued: number("Queued"),
+    write: number("To write"),
+    how: text("How", { listed: false }),
+    starts: text("Starts from", { listed: false }),
+    n: number("Order", { listed: false }),
     state: status(
       {
         met: { label: "Met", tone: "good" },
+        queued: { label: "Queued", tone: "good" },
         behind: { label: "Behind", tone: "warn" },
         none: { label: "None yet", tone: "bad" },
+        unbuilt: { label: "Can't post yet", tone: "neutral" },
       },
       "State",
     ),
   },
-  views: [{ id: "week", label: "This week", sort: "label" }],
+  views: [{ id: "week", label: "This week", sort: "n" }],
 });
 
 export interface SourceRow {

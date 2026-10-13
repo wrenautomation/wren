@@ -24,6 +24,8 @@ import { FeedPage, FeedTabs } from "./feed.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
+import { type MoreGroup, MorePage } from "./more.js";
+import { PlanPage } from "./plan.js";
 import { postExtras, postLooks } from "./posts.js";
 import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
@@ -890,6 +892,18 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   connect: NOTE_DRAFT,
 };
 
+/** Content's platform switch: what waits on him on each platform, kept from page to page. */
+const BY_PLATFORM: PageAcross = {
+  field: "platform",
+  label: "Platform",
+  waits: [
+    { record: "marketing.draft", view: "waiting" },
+    { record: "marketing.comment", view: "waiting" },
+    { record: "marketing.dm", view: "waiting" },
+    { record: "marketing.video", view: "waiting" },
+  ],
+};
+
 /** Engage's row type picks its box, as on each kind's own page. */
 const ENGAGE_DRAFT: Record<string, DraftOf> = {
   thread: THREAD_DRAFT,
@@ -916,6 +930,7 @@ const ENGAGE_PAGE: ListPage = {
   id: "engage",
   label: "Engage",
   group: "Content",
+  across: BY_PLATFORM,
   template: "list",
   record: "marketing.engage",
   columns: ["who", "platform", "type", "state", "at"],
@@ -1136,18 +1151,6 @@ const TEXT_COPY_ACTIONS: Action[] = [
   },
 ];
 
-/** Content's platform switch: what waits on him on each platform, kept from page to page. */
-const BY_PLATFORM: PageAcross = {
-  field: "platform",
-  label: "Platform",
-  waits: [
-    { record: "marketing.draft", view: "waiting" },
-    { record: "marketing.comment", view: "waiting" },
-    { record: "marketing.dm", view: "waiting" },
-    { record: "marketing.video", view: "waiting" },
-  ],
-};
-
 /**
  * Content's day, by platform: what posts and posted, and what waits on him. Waiting work dated
  * before today (a draft by when it was drafted, a comment or DM by when it came, a video by its
@@ -1240,30 +1243,57 @@ const REVIEWS_PAGE: ListPage = {
   },
 };
 
-/** Wren's Marketing tabs, by group in this order; a page with none goes first. */
 /**
- * Marketing's sidebar: five pages for the daily work (write, answer, read, see what went out, its
- * numbers), every other page under More. Ids stay, so old links and pings keep landing.
+ * Marketing's sidebar: the daily work by platform (plan, write, make videos, answer, read, see what
+ * went out, its numbers), and More, a page that lists the rest by what each is for. Ids stay, so
+ * old links and pings keep landing; a page past the main ones lights More.
  */
-const FIVE: Readonly<Record<string, string>> = {
+const MAIN: Readonly<Record<string, string>> = {
+  plan: "Plan",
   write: "Write",
+  videos: "Videos",
   engage: "Engage",
   feed: "Feed",
   content: "Posted",
   overview: "Numbers",
 };
-const fivePlusMore = (pages: ModulePage[]): ModulePage[] => {
-  const order = Object.keys(FIVE);
-  const rank = (p: ModulePage) => (order.includes(p.id) ? order.indexOf(p.id) : order.length);
-  return pages
-    .map((p, i) => [rank(p), i, p] as const)
-    .sort((a, b) => a[0] - b[0] || a[1] - b[1])
-    .map(([, , p]): ModulePage => {
-      const label = FIVE[p.id];
-      if (!label) return { ...p, group: "More" };
-      const { group: _, ...rest } = p;
-      return { ...rest, label };
+/** More's headings for the old sidebar groups. */
+const MORE_GROUPS: Readonly<Record<string, string>> = {
+  Content: "Content",
+  Reach: "People and replies",
+  Numbers: "Numbers",
+  "Ads & Site": "Ads and site",
+};
+const mainPlusMore = (pages: ModulePage[]): ModulePage[] => {
+  const order = Object.keys(MAIN);
+  const rest = pages.filter((p) => !MAIN[p.id] && !p.hidden);
+  const groups: MoreGroup[] = Object.entries(MORE_GROUPS)
+    .map(([from, title]) => ({
+      title,
+      pages: rest
+        .filter((p) => (p.group ?? "Content") === from)
+        .map((p) => ({ label: p.label, href: `/marketing/${p.id}` })),
+    }))
+    .filter((g) => g.pages.length);
+  const more: ModulePage = {
+    id: "more",
+    label: "More",
+    Page: () => createElement(MorePage, { groups }),
+  };
+  const main = order
+    .map((id) => pages.find((p) => p.id === id))
+    .filter((p): p is ModulePage => !!p)
+    .map((p): ModulePage => {
+      const { group: _, ...bare } = p;
+      return { ...bare, label: MAIN[p.id] ?? p.label };
     });
+  const tail = pages
+    .filter((p) => !MAIN[p.id])
+    .map((p): ModulePage => {
+      const { group: _, ...bare } = p;
+      return p.hidden ? bare : { ...bare, hidden: true, lights: "more" };
+    });
+  return [...main, more, ...tail];
 };
 
 /** Ad set days (`marketing.ad_day`): Wren's Ads app, and a client's Marketing → Ads. */
@@ -1406,7 +1436,7 @@ export const marketing: Module = {
   icon: "megaphone",
   blurb: "Every platform's posts, comments, DMs and their numbers in one place.",
   requires: { audience: "team" },
-  pages: fivePlusMore([
+  pages: mainPlusMore([
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
     { id: "inbox", ...INBOX_PAGE, hidden: true },
     { ...APPROVAL_PAGE, hidden: true },
@@ -1430,7 +1460,20 @@ export const marketing: Module = {
     },
     REVIEWS_PAGE,
     TODAY,
-    { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
+    {
+      id: "plan",
+      label: "Plan",
+      Page: PlanPage,
+      across: { ...BY_PLATFORM, record: "marketing.cadence" },
+    },
+    {
+      id: "write",
+      label: "Write",
+      group: "Content",
+      Page: WritePage,
+      wide: true,
+      across: BY_PLATFORM,
+    },
     ENGAGE_PAGE,
     { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
     EXPLORE_PAGE,

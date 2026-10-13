@@ -8,7 +8,7 @@ import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
 import { type ContentDraft, contentDigests, type DigestLine, formatSql } from "../schema.js";
-import { CADENCE_GOALS, type Format, formatOf } from "./catalog.js";
+import { CADENCE_GOALS, countsFor, type Format, formatOf } from "./catalog.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How far back "what to make next" looks. */
@@ -181,14 +181,14 @@ function linesFor(
     });
   }
 
+  // A format Wren can't post yet has nothing to count: the Plan page shows it.
   for (const g of goals) {
+    if (!g.counts) continue;
     const done =
       g.counts === "thread_comment"
-        ? (threadComments[g.platform] ?? 0)
-        : week.filter(
-            (p) => p.platform === g.platform && (g.counts === "any" || p.format === g.counts),
-          ).length;
-    lines.push({ kind: "cadence", text: `${g.label}: ${done} of ${g.goal} this week.` });
+        ? ((threadComments as Partial<Record<string, number>>)[g.platform] ?? 0)
+        : week.filter((p) => countsFor(g, p.platform, p.format)).length;
+    lines.push({ kind: "cadence", text: `${g.name}: ${done} of ${g.goal} this week.` });
   }
   return lines;
 }
@@ -288,5 +288,5 @@ export async function latestDigest(
 }
 
 /** A draft's format, for callers holding the row. */
-export const draftFormat = (d: Pick<ContentDraft, "platform" | "extra">): Format =>
-  formatOf(d.platform, typeof d.extra?.kind === "string" ? d.extra.kind : null);
+export const draftFormat = (d: Pick<ContentDraft, "platform" | "extra" | "media">): Format =>
+  formatOf(d.platform, typeof d.extra?.kind === "string" ? d.extra.kind : null, d.media?.kind);

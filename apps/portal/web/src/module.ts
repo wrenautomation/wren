@@ -63,6 +63,8 @@ export interface PageAcross {
   /** What it's called, read aloud: "Platform". */
   label: string;
   waits: readonly SwitchWait[];
+  /** A hand-drawn page's own type, whose states are chips too: Plan's goals add Threads. */
+  record?: string;
 }
 
 /** A page drawn by hand. */

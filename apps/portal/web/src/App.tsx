@@ -51,7 +51,7 @@ import { LearnBell } from "./modules/learn/bell.js";
 import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
-import { keepOf, TemplatePage } from "./records.js";
+import { HandSwitch, keepOf, TemplatePage } from "./records.js";
 import { href, navigate, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
 import { ClientToday, WrenToday } from "./today.js";
@@ -624,7 +624,17 @@ export function App() {
               <LookProvider value={wren ? myLook : null}>
                 <Suspense fallback={<Loading lines={8} heading />}>
                   {"Page" in open.page ? (
-                    <open.page.Page {...props(current.id)} />
+                    open.page.across ? (
+                      <HandSwitch
+                        {...props(current.id)}
+                        across={open.page.across}
+                        path={pathOf(open.module, open.page)}
+                      >
+                        <open.page.Page {...props(current.id)} />
+                      </HandSwitch>
+                    ) : (
+                      <open.page.Page {...props(current.id)} />
+                    )
                   ) : (
                     <TemplatePage
                       {...props(current.id)}

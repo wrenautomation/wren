@@ -35,7 +35,7 @@ Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics
 
 ## If you change this
 
-- **Hits:** `restate/metrics.ts:152` (the look writes insights after counts, passing the draft's media kind: X reads a video's plays and playback quartiles only on a video post; LinkedIn reads the post's analytics page as `linkedin@wren` on days 1, 3, 7, 14, 28), `restate/metrics.ts:184` (report days every pass, cursor per platform); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0188_content_analytics`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
+- **Hits:** `restate/metrics.ts:152` (the look writes insights after counts, passing the draft's media kind: X reads a video's plays and playback quartiles only on a video post; LinkedIn reads the post's analytics page as `linkedin@wren` on days 1, 3, 7, 14, 28), `restate/metrics.ts:184` (report days every pass, cursor per platform); `analytics/records.ts` (`postAnalytics`, the conversation, digest, cadence and metric records and their views in `0188_content_analytics`); cadence is William's plan (`CADENCE_GOALS`, `catalog.ts`: per platform and format a week, a day, where the next starts; a format Wren can't post is listed uncounted) against `content_drafts` (last 7 days, today in Toronto, approved in the next 7 as queued), drawn by Marketing → Plan (`marketing/plan.tsx`); a video on X or LinkedIn is format `video`, on Facebook `reel` (`formatOf`, `formatSql`, view in `0237_post_video_formats`); the portal's `marketing/analytics.tsx`; the drafting prompt via `latestDigest` (`digest.ts:276`)
 - **Does not hit:** `content_metrics` or `wren content results`
 
 ## Surfaces

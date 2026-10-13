@@ -63,6 +63,10 @@ describe("analytics catalog", () => {
     expect(formatOf("instagram", "video")).toBe("reel");
     expect(formatOf("linkedin", "document")).toBe("carousel");
     expect(formatOf("x", "thread")).toBe("thread");
+    expect(formatOf("x", "post", "video")).toBe("video");
+    expect(formatOf("linkedin", "post", "video")).toBe("video");
+    expect(formatOf("facebook", null, "video")).toBe("reel");
+    expect(formatOf("facebook", null, "image")).toBe("post");
     expect(stateLine("needs_scope", { name: "YouTube Analytics", step: "x" })).toBe(
       "Needs scope: YouTube Analytics",
     );

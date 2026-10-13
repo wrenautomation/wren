@@ -20,7 +20,7 @@ import {
   Tag,
   Textarea,
 } from "@wren/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -29,6 +29,11 @@ import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 /** The platforms that post words alone; video and images go through Videos. */
 const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia);
 const nameOf = (p: Platform) => PLATFORM_SPECS[p].name;
+/** The platform chip on top (`?platform=`), when it's one Wren posts to. */
+const chosen = (params: URLSearchParams): Platform | null => {
+  const p = params.get("platform");
+  return PLATFORMS.find((x) => x === p) ?? null;
+};
 
 type Go = "draft" | "slot" | "now";
 interface WriteResult {
@@ -89,7 +94,12 @@ export function WritePage(props: PageProps) {
   // Feed's Use as idea opens here with the post it came from.
   const [text, setText] = useState(() => props.params.get("idea") ?? "");
   const [title, setTitle] = useState("");
+  // A platform chip on top picks it alone; a video platform's posts start in Videos.
+  const only = chosen(props.params);
   const [picked, setPicked] = useState<Platform[]>(["linkedin", "x"]);
+  useEffect(() => {
+    setPicked(only && TEXT.includes(only) ? [only] : ["linkedin", "x"]);
+  }, [only]);
   const [adapt, setAdapt] = useState(false);
   const [busy, setBusy] = useState<Go | null>(null);
   const [sure, setSure] = useState(false);
@@ -145,6 +155,12 @@ export function WritePage(props: PageProps) {
         title="Write"
         lede="Write it once and pick where it goes. For several posts, put a line of --- between them."
       />
+      {only && !TEXT.includes(only) ? (
+        <p className={cx("m-0 text-[13.5px]", QUIET)}>
+          {nameOf(only)} posts start from a video.{" "}
+          <a href={`/marketing/videos?platform=${only}`}>Open Videos</a>
+        </p>
+      ) : null}
       <Section>
         <div className="grid gap-3">
           <Textarea
@@ -290,7 +306,10 @@ function WaitingBoard(props: PageProps & { nonce: number }) {
     desk<{ ideas: Waiting[] }>("waiting", {}),
   );
   const reload = () => setAgain((n) => n + 1);
-  const ideas = load.data?.ideas;
+  const only = chosen(props.params);
+  const ideas = load.data?.ideas
+    .map((i) => ({ ...i, drafts: i.drafts.filter((d) => !only || d.platform === only) }))
+    .filter((i) => i.drafts.length);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ids = ideas?.flatMap((i) => i.drafts.map((d) => d.id)) ?? [];
@@ -330,7 +349,7 @@ function WaitingBoard(props: PageProps & { nonce: number }) {
       ) : !ideas ? (
         <Loading lines={4} />
       ) : ideas.length === 0 ? (
-        <Empty>No draft waits on you.</Empty>
+        <Empty>{only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}</Empty>
       ) : (
         <ul className="m-0 grid list-none gap-6 p-0">
           {ideas.map((idea) => (

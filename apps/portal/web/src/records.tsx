@@ -27,7 +27,14 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
-import { type DayPage, type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
+import {
+  type DayPage,
+  type ListPage,
+  type OverviewPage,
+  type PageAcross,
+  type PageProps,
+  WREN,
+} from "./module.js";
 import { notesSection } from "./modules/notes/backlinks.js";
 import { href, navigate } from "./route.js";
 
@@ -582,6 +589,41 @@ const callOf =
     const [to, add] = AS[handler] ?? [handler, {}];
     return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });
   };
+
+/** Wren's own records, for a hand-drawn page that reads one (Marketing's Plan). */
+export const wrenRecords = (app: string): RecordsApi =>
+  apiOf("console", null, { app, asClient: false });
+
+/** A hand-drawn page's filter across its top, the same bar a list page has: Write's platforms. */
+export function HandSwitch({
+  across,
+  path,
+  children,
+  ...props
+}: PageProps & { across: PageAcross; path: string; children: ReactNode }) {
+  const wren = props.client === WREN.id;
+  const product = wren ? "console" : (across.waits[0]?.record.split(".")[0] ?? "");
+  const scope = { app: path.split("/")[1] ?? "", asClient: !props.team };
+  const place: Place = {
+    params: props.params,
+    link: (change) => href(path, change, props.params),
+    page: (rid) => `${path}/${encodeURIComponent(String(rid))}`,
+    list: path,
+    go: navigate,
+  };
+  return (
+    <RecordSwitch
+      api={apiOf(product, wren ? null : props.client, scope)}
+      place={place}
+      field={across.field}
+      label={across.label}
+      waits={across.waits}
+      record={across.record}
+    >
+      {children}
+    </RecordSwitch>
+  );
+}
 
 export function TemplatePage({
   page,
