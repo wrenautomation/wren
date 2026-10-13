@@ -85,7 +85,8 @@ export function reader(sites: SiteClient): Reader {
     async searchPlaces(topic) {
       const l = await call<Listing>("/subreddits/search", { q: topic, limit: 10 });
       return itemsOf<SubredditAbout>(l).flatMap((s) =>
-        s.display_name && s.subreddit_type === "public" && !s.over18
+        // Signed out, Reddit's RSS twin leaves type and over18 off (2026-10-13): absent is unknown.
+        s.display_name && (s.subreddit_type ?? "public") === "public" && !s.over18
           ? [{ name: s.display_name, subscribers: s.subscribers ?? 0 }]
           : [],
       );
@@ -101,8 +102,12 @@ export function reader(sites: SiteClient): Reader {
       return subredditsIn((r.hits ?? []).map((h) => h.url));
     },
     async place(sub) {
-      const about = dataOf(await call<{ data?: SubredditAbout }>(`/r/${sub}/about`));
-      const rules = await call<unknown>(`/r/${sub}/about/rules`);
+      // Signed out, about and rules answer 403 since 2026-10-13 (no RSS twin): read as unknown.
+      const about = await call<{ data?: SubredditAbout }>(`/r/${sub}/about`).then(
+        (a) => dataOf(a),
+        (): SubredditAbout => ({ display_name: sub }),
+      );
+      const rules = await call<unknown>(`/r/${sub}/about/rules`).catch(() => null);
       const top = itemsOf<Post>(await call<Listing>(`/r/${sub}/top`, { t: "week", limit: 25 }));
       const latest = itemsOf<Post>(await call<Listing>(`/r/${sub}/new`, { limit: 25 }));
       return { about, rules, top, latest };

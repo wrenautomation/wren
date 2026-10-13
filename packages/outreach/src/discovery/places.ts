@@ -168,9 +168,10 @@ export async function judgePlace(
 ): Promise<PlaceJudged | null> {
   const a = read.about;
   const pace = paceOf(read.latest);
+  // Unknown members (signed-out reads lost the count) is not small; the posting pace still counts.
   const small =
-    (a.subscribers ?? 0) < audience.minMembers
-      ? `${a.subscribers ?? 0} members`
+    a.subscribers != null && a.subscribers < audience.minMembers
+      ? `${a.subscribers} members`
       : pace.postsADay < audience.minPostsADay
         ? `${pace.postsADay} posts a day`
         : null;
