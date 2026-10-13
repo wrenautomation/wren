@@ -91,7 +91,7 @@ export function PlanPage(props: PageProps) {
   const left = shown
     .map((p) => ({ name: p.name, n: toMake(p.goals) }))
     .filter((p) => p.n > 0)
-    .map((p) => `${p.n} ${p.name.toLowerCase()}`);
+    .map((p) => `${p.name.toLowerCase()} ${p.n}`);
 
   return (
     <>
