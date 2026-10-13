@@ -1709,6 +1709,13 @@
       "when": 1791925605111,
       "tag": "0243_send_at",
       "breakpoints": true
+    },
+    {
+      "idx": 244,
+      "version": "7",
+      "when": 1791926039771,
+      "tag": "0244_video_rejected",
+      "breakpoints": true
     }
   ]
 }

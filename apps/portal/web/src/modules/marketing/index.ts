@@ -376,6 +376,34 @@ const VIDEO_ACTIONS: Action[] = [
     done: PROMOTE_DONE,
   },
   {
+    id: "marketing.videoSchedule",
+    label: "Schedule",
+    handler: "marketing/videoSchedule",
+    confirm: "Upload it now, private, and make it public then?",
+    form: [
+      { field: "day", label: "Day", type: "date" },
+      { field: "time", label: "Time", hint: "Your time, like 15:00. Blank: 9:00.", optional: true },
+    ],
+    when: { state: ["rendered"] },
+    done: said("Scheduled. It uploads private on the next pass and goes public then."),
+  },
+  {
+    id: "marketing.videoReject",
+    label: "Reject",
+    handler: "marketing/videoReject",
+    form: [{ field: "note", label: "Why", type: "long", optional: true }],
+    when: { state: ["added", "edited", "rendered"] },
+    done: said("Rejected. Its files stay; Bring back undoes it."),
+  },
+  {
+    id: "marketing.videoRestore",
+    label: "Bring back",
+    handler: "marketing/videoRestore",
+    form: [],
+    when: { state: ["rejected"] },
+    done: said("Back. It waits on you again."),
+  },
+  {
     id: "marketing.videoRender",
     label: "Render",
     handler: "marketing/videoRender",
@@ -393,6 +421,7 @@ const VIDEO_ACTIONS: Action[] = [
       ["videoAsk", "Ask Claude"],
       ["videoUndo", "Undo"],
       ["videoWords", "Fix word"],
+      ["videoAgent", "Ask for changes"],
     ] as const
   ).map(([id, label]) => ({
     id: `marketing.${id}`,
@@ -1268,7 +1297,8 @@ const REVIEWS_PAGE: ListPage = {
 
 /**
  * Marketing's pages (designs/2026-10-13-primitives-first.md): Today (what to make, what waits, what
- * went out), Pieces (each thing made, with everywhere it went), Write, Engage, Numbers, and More,
+ * went out), Pieces (each thing made, with everywhere it went), Write, Videos (the editing agent's
+ * work, designs/2026-10-13-video-review.md), Engage, Numbers, and More,
  * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
  * past the main ones lights More.
  */
@@ -1276,6 +1306,7 @@ const MAIN: Readonly<Record<string, string>> = {
   plan: "Today",
   pieces: "Pieces",
   write: "Write",
+  videos: "Videos",
   engage: "Engage",
   overview: "Numbers",
 };

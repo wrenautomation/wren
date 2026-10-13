@@ -7,7 +7,8 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { Settings } from "@wren/config";
+import * as clients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
 import {
   AWS_LOGIN_HINT,
   approveVideo,
@@ -711,6 +712,20 @@ export function registerStudio(
             log: (l) => console.log(l),
           });
           console.log(`${input}: added as video ${e.id}`);
+          // The editing agent's first pass (designs/2026-10-13-video-review.md): it arrives edited.
+          await clients
+            .connect(ingressOf(settings))
+            .serviceSendClient<{ edit: (ctx: unknown, req: { id: number }) => Promise<unknown> }>({
+              name: "VideoDesk",
+            })
+            .edit({ id: e.id })
+            .then(
+              () => console.log(`video ${e.id}: the agent is editing it`),
+              (err: unknown) =>
+                console.error(
+                  `video ${e.id}: the agent didn't start (${err instanceof Error ? err.message : err}); run it from the page`,
+                ),
+            );
         }).catch((err: unknown) =>
           console.error(`${input}: ${err instanceof Error ? err.message : err}`),
         );

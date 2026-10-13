@@ -216,6 +216,10 @@ const VIDEO = z.looseObject({
     .describe("A Short, 1 for the first; none: the long video"),
   vertical: z.boolean().nullish().describe("The whole cut, 9:16, instead of the long video"),
   privacy: z.enum(VIDEO_PRIVACY).nullish().describe("Who sees the upload; none: private"),
+  publishAt: z
+    .string()
+    .nullish()
+    .describe("When YouTube makes it public (ISO); it uploads now, private until then"),
 });
 const THUMBNAIL = z.looseObject({
   id: z.number().int().positive(),
@@ -650,13 +654,18 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             short?: number | null;
             vertical?: boolean | null;
             privacy?: VideoPrivacy | null;
+            publishAt?: string | null;
           },
         ) => {
           const { db } = await scopeOf(ctx);
+          const at = req.publishAt ? new Date(req.publishAt) : null;
+          if (at && Number.isNaN(at.getTime()))
+            throw new restate.TerminalError("publishAt: not a time", { errorCode: 400 });
           return ctx.run("approve video", () =>
             verdict(async () => [
               await approveVideo(db, req.id, {
                 source: "api",
+                ...(at ? { publishAt: at } : {}),
                 ...(req.short ? { short: req.short } : {}),
                 ...(req.vertical ? { vertical: true } : {}),
                 ...(req.privacy ? { privacy: req.privacy } : {}),

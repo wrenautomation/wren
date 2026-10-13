@@ -7,7 +7,15 @@ import { oneOf } from "@wren/db/columns";
 import { jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import type { Captions } from "./caption-styles.js";
 
-export const EDIT_STATES = ["added", "edited", "rendered", "approved", "uploaded"] as const;
+/** `rejected`: he said no on the page (designs/2026-10-13-video-review.md); its files stay. */
+export const EDIT_STATES = [
+  "added",
+  "edited",
+  "rendered",
+  "approved",
+  "uploaded",
+  "rejected",
+] as const;
 export type EditState = (typeof EDIT_STATES)[number];
 
 /** silence: the silence pass. filler, retake: proposed by code or Claude. manual: his. */

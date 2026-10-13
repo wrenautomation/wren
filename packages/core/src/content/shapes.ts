@@ -331,6 +331,14 @@ const youtube = shape({
       kinds: VIDEOS,
     },
   ),
+  // His Schedule on a video (designs/2026-10-13-video-review.md): it uploads private now and
+  // YouTube makes it public at this time.
+  publishAt: line(
+    "Goes public at",
+    30,
+    { hint: "A time like 2026-10-20T15:00:00Z", kinds: VIDEOS },
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/,
+  ),
   madeForKids: flag("Made for kids", {
     required: true,
     kinds: VIDEOS,

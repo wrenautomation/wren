@@ -1,0 +1,2 @@
+ALTER TABLE "video_edits" DROP CONSTRAINT "ck_video_edits_state";--> statement-breakpoint
+ALTER TABLE "video_edits" ADD CONSTRAINT "ck_video_edits_state" CHECK (("state")::text = ANY ((ARRAY['added'::character varying, 'edited'::character varying, 'rendered'::character varying, 'approved'::character varying, 'uploaded'::character varying, 'rejected'::character varying])::text[]));

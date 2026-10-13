@@ -17,6 +17,7 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoTurns } from "./video-ask.js";
+import { renderTimes, videoChecks, videoSteps } from "./video-edit.js";
 
 /** The idea's ref: one draft per video, per Short and per vertical cut, ever. */
 export const videoRef = (id: number, short?: number | "vertical") =>
@@ -157,6 +158,8 @@ export interface ApproveVideo {
   vertical?: boolean;
   /** Private unless he says otherwise: then he publishes or schedules it on YouTube. */
   privacy?: VideoPrivacy;
+  /** When YouTube makes it public: it uploads now, private, until then (designs/2026-10-13-video-review.md). */
+  publishAt?: Date;
   /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
   replace?: boolean;
   source: IdeaSource;
@@ -190,6 +193,8 @@ export async function approveVideo(
   id: number,
   o: ApproveVideo,
 ): Promise<ApprovedVideo> {
+  if (o.publishAt && o.publishAt.getTime() <= (o.now ?? new Date()).getTime() + 15 * 60_000)
+    throw new Error("pick a time at least 15 minutes from now");
   const footers = await videoFooters(db);
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
@@ -272,7 +277,8 @@ export async function approveVideo(
           // Its shape (designs/2026-10-07-post-shapes.md): YouTube can't take a Short's thumbnail.
           extra: fieldsOf("youtube", {
             kind,
-            privacyStatus: o.privacy ?? "private",
+            privacyStatus: o.publishAt ? "private" : (o.privacy ?? "private"),
+            ...(o.publishAt ? { publishAt: o.publishAt.toISOString() } : {}),
             madeForKids: false,
             ...(e.tags.length ? { tags: e.tags } : {}),
             ...(thumbnail && kind === "video" ? { thumbnail } : {}),
@@ -433,6 +439,7 @@ export const VIDEO_STATES: Record<string, State> = {
   approved: { label: "Approved", tone: "good" },
   uploaded: { label: "On YouTube", tone: "good" },
   failed: { label: "Upload failed", tone: "bad" },
+  rejected: { label: "Rejected", tone: "neutral" },
 };
 
 /** A render asked for from the page, on its way; none once done. */
@@ -539,6 +546,13 @@ export const videoRecord = (signer?: VideoSigner) => {
         at: "updated",
       },
       { id: "all", label: "All", sort: "-updated", at: "updated" },
+      {
+        id: "rejected",
+        label: "Rejected",
+        where: { state: "rejected" },
+        sort: "-updated",
+        at: "updated",
+      },
     ],
     activity: { view: "draft_activity", by: "video", seq: "seq" },
     drafts: (id) => [`video:${id}`],
@@ -549,12 +563,16 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoApproveVertical",
       "marketing.videoThumbnail",
       "marketing.videoPromote",
+      "marketing.videoSchedule",
+      "marketing.videoReject",
+      "marketing.videoRestore",
       // The page's own editor: fields, cuts, Ask Claude, Undo.
       "marketing.videoSet",
       "marketing.videoCut",
       "marketing.videoAsk",
       "marketing.videoUndo",
       "marketing.videoWords",
+      "marketing.videoAgent",
     ],
     calls: {
       "ContentDesk/approveVideo": "id",
@@ -566,6 +584,9 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/undo": "id",
       "VideoDesk/words": "id",
       "VideoDesk/render": "id",
+      "VideoDesk/edit": "id",
+      "VideoDesk/reject": "id",
+      "VideoDesk/restore": "id",
     },
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
     load: async (db, id) => {
@@ -586,6 +607,11 @@ export const videoRecord = (signer?: VideoSigner) => {
         .where(like(contentIdeas.ref, `video:${e.id}/%`));
       // Its promos (designs/2026-10-07-content-funnel.md): one draft per platform, pointing at it.
       const upload = await videoDraftOf(db, e.id).catch(() => null);
+      // What the agent and he did, and what to look at before Approve (designs/2026-10-13-video-review.md).
+      const steps = await videoSteps(db, e.id);
+      const chaptersShown = chapterLines(e)
+        .split("\n")
+        .filter((l) => l.trim()).length;
       return {
         video: {
           title: e.title,
@@ -614,6 +640,8 @@ export const videoRecord = (signer?: VideoSigner) => {
           render: e.render,
           state: e.state,
           turns: await videoTurns(db, e.id),
+          steps,
+          checks: videoChecks(e, { chaptersShown, ...renderTimes(steps) }),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,

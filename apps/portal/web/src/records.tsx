@@ -284,6 +284,14 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("VideoDesk", "ask", { id: num(id), message }),
   "marketing/videoUndo": (id) => handlerCall("VideoDesk", "undo", { id: num(id) }),
   "marketing/videoRender": (id) => handlerCall("VideoDesk", "render", { id: num(id) }),
+  // The editing agent and his verdicts (designs/2026-10-13-video-review.md).
+  "marketing/videoAgent": (id, { note }) =>
+    handlerCall("VideoDesk", "edit", { id: num(id), note: note || null }),
+  "marketing/videoReject": (id, { note }) =>
+    handlerCall("VideoDesk", "reject", { id: num(id), note: note || null }),
+  "marketing/videoRestore": (id) => handlerCall("VideoDesk", "restore", { id: num(id) }),
+  "marketing/videoSchedule": (id, { day, time }) =>
+    desk("approveVideo", { id: num(id), publishAt: localTime(day, time) }),
   // A reply sends: the console asks for the handler's name. An untouched draft is the desk's.
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: num(id), ...words(body) }, { confirm: "reply" }),
@@ -431,6 +439,14 @@ function snoozeUntil(pick: unknown, now = new Date()): string {
     at.setDate(at.getDate() + days);
     at.setHours(9, 0, 0, 0);
   }
+  return at.toISOString();
+}
+/** A day and "15:00" from the form, in his browser's time zone, as ISO. */
+function localTime(day: unknown, time: unknown): string {
+  const hm =
+    typeof time === "string" && /^\d{1,2}:\d{2}$/.test(time.trim()) ? time.trim() : "09:00";
+  const at = new Date(`${String(day)}T${hm.padStart(5, "0")}`);
+  if (Number.isNaN(at.getTime())) throw new Error("Pick a day, and a time like 15:00.");
   return at.toISOString();
 }
 /** A template's new words. The box leaves out unchanged text, and an empty body clears it. */

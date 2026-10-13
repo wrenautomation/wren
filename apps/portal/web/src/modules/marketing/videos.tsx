@@ -73,7 +73,24 @@ type Video = {
   render: { state: string; why?: string } | null;
   state: string;
   turns: Turn[];
+  /** Every video run on it, oldest first (content `videoSteps`). */
+  steps?: Step[];
+  /** What to look at before Approve (content `videoChecks`). */
+  checks?: Check[];
 };
+type Step = {
+  id: string;
+  command: string;
+  by: string | null;
+  at: string;
+  state: "running" | "failed" | "done";
+  what: string;
+  error: string | null;
+  reply: string | null;
+  notes: string[] | null;
+  note: string | null;
+};
+type Check = { tone: "good" | "warn" | "bad" | "neutral"; say: string };
 type Promo = {
   id: string;
   platform: string;
@@ -87,6 +104,7 @@ const SET = "marketing.videoSet";
 const CUT = "marketing.videoCut";
 const ASK = "marketing.videoAsk";
 const UNDO = "marketing.videoUndo";
+const AGENT = "marketing.videoAgent";
 const WORDS = "marketing.videoWords";
 const POLL_MS = 4000;
 const RENDER_POLL_MS = 15_000;
@@ -737,6 +755,176 @@ function FixEvery({ act }: { act: RecordAct }) {
   );
 }
 
+const at = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+const CHECK_TONE: Record<Check["tone"], "green" | "warn" | "neutral"> = {
+  good: "green",
+  warn: "warn",
+  bad: "warn",
+  neutral: "neutral",
+};
+const CHECK_WORD: Record<Check["tone"], string> = {
+  good: "Good",
+  warn: "Look",
+  bad: "Fix",
+  neutral: "Note",
+};
+
+/** What to look at before Approve: each a sentence with a tag. */
+const Checks = ({ checks }: { checks: Check[] }) => (
+  <ul className="grid list-none gap-1.5 p-0 text-[14px]">
+    {checks.map((c) => (
+      <li key={c.say} className="flex min-w-0 items-baseline gap-2">
+        <Tag tone={CHECK_TONE[c.tone]} className="shrink-0">
+          {CHECK_WORD[c.tone]}
+        </Tag>
+        <span className={cx("min-w-0 break-words", c.tone === "bad" && "text-(--ui-bad)")}>
+          {c.say}
+        </span>
+      </li>
+    ))}
+  </ul>
+);
+
+/** One agent pass: his note, what it did, its notes to him. */
+function Pass({ p }: { p: Step }) {
+  return (
+    <li className="grid min-w-0 gap-1">
+      <span className="text-[13px] text-(--ui-ink-2)">
+        {p.note ? `${p.by ?? "Someone"} asked for changes` : "The agent's pass"} · {at(p.at)}
+      </span>
+      {p.note ? <span className="whitespace-pre-wrap break-words">{p.note}</span> : null}
+      {p.state === "running" ? (
+        <span className="animate-pulse text-(--ui-ink-3) motion-reduce:animate-none">
+          The agent is working on it…
+        </span>
+      ) : null}
+      {p.state === "done" ? <span className="text-(--ui-ink-2)">{p.what}.</span> : null}
+      {p.reply ? (
+        <span className="whitespace-pre-wrap break-words text-(--ui-ink-2)">{p.reply}</span>
+      ) : null}
+      {p.notes?.length ? (
+        <ul className="grid list-disc gap-0.5 pl-5">
+          {p.notes.map((n) => (
+            <li key={n} className="break-words">
+              {n}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {p.error ? <span className="text-(--ui-bad)">{p.error}</span> : null}
+    </li>
+  );
+}
+
+/**
+ * The editing agent (designs/2026-10-13-video-review.md): its passes and notes, the checks, and a
+ * note it acts on. A pass that changes something renders again on the Mac.
+ */
+function Agent({
+  steps,
+  checks,
+  edit,
+  act,
+}: {
+  steps: Step[];
+  checks: Check[];
+  edit: boolean;
+  act: RecordAct;
+}) {
+  const [note, setNote] = useState("");
+  const box = useRef<HTMLTextAreaElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const passes = steps.filter((s) => s.command === "video-edit");
+  const running = passes.some((p) => p.state === "running");
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await act(AGENT, { note: note.trim() });
+      setNote("");
+    } catch (err) {
+      setError(errorOf(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="grid min-w-0 gap-4">
+      {checks.length ? <Checks checks={checks} /> : null}
+      {passes.length ? (
+        <ol className="grid list-none gap-4 p-0 text-[14px]">
+          {passes.slice(-5).map((p) => (
+            <Pass key={p.id} p={p} />
+          ))}
+        </ol>
+      ) : (
+        <p className="text-[14px] text-(--ui-ink-2)">The agent hasn't worked on this one yet.</p>
+      )}
+      {edit ? (
+        <div className="grid min-w-0 gap-2">
+          <DictateField target={box} label="Dictate changes">
+            <Textarea
+              ref={box}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              disabled={busy || running}
+              rows={3}
+              maxLength={2000}
+              placeholder="What to change: a better title, fix a word, cut the slow part at 4:10"
+              aria-label="Ask for changes"
+            />
+          </DictateField>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="dense" busy={busy} disabled={running} onClick={() => void send()}>
+              {note.trim()
+                ? "Ask for changes"
+                : passes.length
+                  ? "Run the agent again"
+                  : "Run the agent"}
+            </Button>
+            <span className="text-[13px] text-(--ui-ink-3)">
+              It fixes words, writes the title and chapters, then renders again.
+            </span>
+          </div>
+          {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Every run on the video, newest first, folded: the agent's, his and the terminal's. */
+const Steps = ({ steps }: { steps: Step[] }) => (
+  <details className="text-[14px]">
+    <summary className="cursor-pointer text-(--ui-ink-2)">
+      {steps.length} step{steps.length === 1 ? "" : "s"}
+    </summary>
+    <ol className="mt-2 grid list-none gap-1 p-0">
+      {[...steps].reverse().map((s) => (
+        <li key={s.id} className="flex min-w-0 flex-wrap gap-x-2">
+          <span className="shrink-0 text-(--ui-ink-3) tabular-nums">{at(s.at)}</span>
+          <span className="min-w-0 break-words">
+            {s.what}
+            {s.by ? ` · ${s.by}` : ""}
+          </span>
+          {s.state === "failed" ? (
+            <span className="min-w-0 break-words text-(--ui-bad)">{s.error}</span>
+          ) : s.state === "running" ? (
+            <span className="text-(--ui-ink-3)">running</span>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  </details>
+);
+
 /** Ask Claude on the video: his words go with the edit; Wren writes what Claude answers. */
 function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
   const [message, setMessage] = useState("");
@@ -935,7 +1123,14 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
-  const sections: [string, ReactNode][] = [["Preview", <Player key="p" src={v.preview} />]];
+  const steps = v.steps ?? [];
+  const sections: [string, ReactNode][] = [
+    ["Preview", <Player key="p" src={v.preview} />],
+    [
+      "Editing agent",
+      <Agent key="ag" steps={steps} checks={v.checks ?? []} edit={edit} act={act} />,
+    ],
+  ];
   if (v.vertical)
     sections.push([
       "Vertical",
@@ -979,11 +1174,13 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
   if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
+  if (steps.length) sections.push(["Steps", <Steps key="st" steps={steps} />]);
   const out: RecordExtras = { sections };
   if (v.render?.state === "failed" && v.render.why)
     out.facts = [["Why the render failed", v.render.why]];
   // While Claude works, read again soon; while the Mac renders (or is off), now and then.
-  if (v.turns.some((t) => t.state === "thinking")) out.poll = POLL_MS;
+  if (v.turns.some((t) => t.state === "thinking") || steps.some((t) => t.state === "running"))
+    out.poll = POLL_MS;
   else if (v.render && v.render.state !== "failed") out.poll = RENDER_POLL_MS;
   return out;
 };

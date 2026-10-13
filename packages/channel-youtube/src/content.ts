@@ -264,8 +264,13 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
           ...(f.defaultAudioLanguage ? { defaultAudioLanguage: f.defaultAudioLanguage } : {}),
         },
         status: {
-          privacyStatus: f.privacyStatus ?? o.privacy ?? "private",
-          ...(post.scheduledFor ? { publishAt: post.scheduledFor } : {}),
+          // A set time: private until YouTube makes it public then.
+          privacyStatus: f.publishAt ? "private" : (f.privacyStatus ?? o.privacy ?? "private"),
+          ...(f.publishAt
+            ? { publishAt: f.publishAt }
+            : post.scheduledFor
+              ? { publishAt: post.scheduledFor }
+              : {}),
           selfDeclaredMadeForKids: f.madeForKids ?? false,
           ...(f.syntheticMedia !== undefined ? { containsSyntheticMedia: f.syntheticMedia } : {}),
         },

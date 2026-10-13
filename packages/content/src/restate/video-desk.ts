@@ -4,7 +4,9 @@
  * newest change: each one studio's `setEdit` (or `setWords`), a `runs` row with what it replaced. `ask` hands his words and the edit to the
  * desk's read-only `claude`; Wren checks the patch it answers and writes it. `render` queues the
  * Mac's `studio.render` (`wren video render <id> --cut` there); while the Mac is off it waits in
- * Restate. Nothing renders here and nothing uploads.
+ * Restate. Nothing renders here and nothing uploads. `edit` is the editing agent's whole pass
+ * (designs/2026-10-13-video-review.md): word fixes, fields, cuts, notes, then a render when it
+ * changed something; `reject` and `restore` are his no and its undo.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -25,6 +27,18 @@ import {
   videoAnswerOf,
   videoPrompt,
 } from "../video-ask.js";
+import {
+  applyPass,
+  editPrompt,
+  markRendering,
+  passOf,
+  rejectVideo,
+  renderRefusal,
+  restoreVideo,
+  VIDEO_EDIT,
+  VIDEO_EDIT_REF,
+  VIDEO_NOTE_MAX,
+} from "../video-edit.js";
 
 export const VIDEO_DESK = { name: "VideoDesk" } as const;
 /** The Mac's render, as autobrowse's desk serves it; no import from that repo. */
@@ -32,16 +46,14 @@ export const STUDIO = { name: "studio" } as const;
 export type StudioService = {
   render: (ctx: restate.Context, req: { id: number }) => Promise<{ ms: number }>;
 };
-/** A render that said "rendering" this long ago died with its Mac; another may start. */
-const STALE_MS = 3 * 3600_000;
-/** Renders from the page: never one approved (its upload points at the file). */
-const RENDERABLE = ["added", "edited", "rendered"];
 
 const ID = { id: z.number().int().positive(), viewer: PORTAL_FIELDS.viewer };
 type One = { id: number; viewer?: unknown };
 type Asked = { id: number; by: string; message: string };
+type Passed = { id: number; by: string; note: string | null };
 type Self = {
   answer: (ctx: restate.Context, req: { run: string }) => Promise<void>;
+  editing: (ctx: restate.Context, req: { run: string }) => Promise<void>;
   rendering: (ctx: restate.Context, req: { id: number }) => Promise<void>;
 };
 
@@ -166,12 +178,8 @@ export function makeVideoDesk(db: Db) {
             told(
               (async () => {
                 const e = await getEdit(db, req.id);
-                if (!RENDERABLE.includes(e.state))
-                  throw new Error(`it is ${e.state}; an approved video keeps its render`);
-                const r = e.render;
-                if (r?.state === "waiting") throw new Error("it is waiting for the Mac already");
-                if (r?.state === "rendering" && Date.now() - Date.parse(r.at) < STALE_MS)
-                  throw new Error("it is rendering now");
+                const no = renderRefusal(e);
+                if (no) throw new Error(no);
                 await setRender(db, e.id, {
                   state: "waiting",
                   at: new Date().toISOString(),
@@ -183,6 +191,57 @@ export function makeVideoDesk(db: Db) {
           ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({ id: req.id });
           return { queued: true };
         },
+      ),
+
+      /**
+       * The editing agent's pass: on a new recording (the Mac's `wren video watch`), on his click,
+       * or with his note when he asks for changes. Its row is the page's; `editing` does the work.
+       */
+      edit: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            note: z.string().nullish().describe("What to change; blank: the agent's own pass"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { note?: string | null }) => {
+          const note = typeof req.note === "string" ? req.note.trim() : "";
+          if (note.length > VIDEO_NOTE_MAX)
+            throw new restate.TerminalError(`keep it under ${VIDEO_NOTE_MAX} characters`, {
+              errorCode: 400,
+            });
+          const run = await ctx.run("open run", async () => {
+            const e = await told(getEdit(db, req.id));
+            if (e.state === "rejected" || e.state === "approved" || e.state === "uploaded")
+              throw refuse(new Error(`it is ${e.state}; the agent edits a video before Approve`));
+            const argv: Passed = { id: req.id, by: byOf(req), note: note || null };
+            return (await openRun(db, { command: VIDEO_EDIT, argv, model: "claude-code:sonnet" }))
+              .id;
+          });
+          ctx.serviceSendClient<Self>(VIDEO_DESK).editing({ run });
+          return { run };
+        },
+      ),
+
+      /** His no: out of Waiting on you, files kept. */
+      reject: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            note: z.string().nullish().describe("Why, for the record"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { note?: string | null }) =>
+          ctx.run("reject", () =>
+            told(rejectVideo(db, req.id, { by: byOf(req), note: req.note ?? null })),
+          ),
+      ),
+
+      /** A rejected video back where it was. */
+      restore: serviceHandler(
+        { input: z.looseObject(ID) },
+        async (ctx: restate.Context, req: One) =>
+          ctx.run("restore", () => told(restoreVideo(db, req.id, { by: byOf(req) }))),
       ),
 
       // Only `render` sends it: waits on the Mac, and says why when the render fails.
@@ -201,6 +260,56 @@ export function makeVideoDesk(db: Db) {
                 await setRender(db, req.id, { state: "failed", at: new Date().toISOString(), why });
             });
           }
+        },
+      ),
+
+      // Only `edit` sends it: ask, write what came back, render when it changed something.
+      editing: restate.handlers.handler(
+        { ingressPrivate: true },
+        async (ctx: restate.Context, req: { run: string }) => {
+          const asked = await ctx.run("read", async () => {
+            const [row] = await db
+              .select({ argv: runs.argv, finishedAt: runs.finishedAt })
+              .from(runs)
+              .where(and(eq(runs.id, req.run), eq(runs.command, VIDEO_EDIT)));
+            if (!row || row.finishedAt) return null;
+            const a = row.argv as Passed;
+            const e = await getEdit(db, a.id).catch(() => null);
+            const live = await livePrompt(db, VIDEO_EDIT_REF);
+            return { ...a, prompt: e ? editPrompt(e, a, live) : null, version: live.version };
+          });
+          if (!asked) return;
+          const fail = (error: string) =>
+            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 500) }));
+          if (!asked.prompt) return void (await fail("the video is gone"));
+          let out: Awaited<ReturnType<ClaudeService["ask"]>>;
+          try {
+            out = await ctx.serviceClient<ClaudeService>(CLAUDE).ask({
+              ...asked.prompt,
+              dir: "wren",
+              also: [],
+            });
+          } catch (err) {
+            if (!(err instanceof restate.TerminalError)) throw err;
+            return void (await fail(err.message));
+          }
+          const pass = passOf(out.answer);
+          const render = await ctx.run("save", async () => {
+            const e = await getEdit(db, asked.id);
+            const meta = { ms: out.ms, model: out.model, prompt: asked.version };
+            const done = await applyPass(db, e, pass, { run: req.run, stats: meta });
+            if (!done.changed) return false;
+            const now = await getEdit(db, asked.id);
+            if (renderRefusal(now)) return false;
+            await setRender(db, now.id, {
+              state: "waiting",
+              at: new Date().toISOString(),
+              by: "agent",
+            });
+            await markRendering(db, req.run);
+            return true;
+          });
+          if (render) ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({ id: asked.id });
         },
       ),
 

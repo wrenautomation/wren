@@ -256,6 +256,7 @@ export const CONTENT_COMPONENTS = [
       records: ["marketing.video"],
       templates: [
         "prompt:content/video-ask",
+        "prompt:content/video-edit",
         "post:youtube/footer",
         "post:youtube/shorts-footer",
         "post:instagram/reel-footer",

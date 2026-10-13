@@ -2,7 +2,9 @@
  * A video edited from its page (`VideoDesk`) against Postgres and a Restate test environment,
  * over a fake desk `claude` and a fake Mac `studio`: fields saved with what they replaced, a bad
  * patch refused in words, a proposal cut and a span of words cut, Undo, Ask Claude's patch checked
- * and written by Wren, and a render queued, then done or failed with why. Synthetic rows only.
+ * and written by Wren, and a render queued, then done or failed with why. The editing agent's pass
+ * (designs/2026-10-13-video-review.md): word fixes, fields and notes written, then a render; Reject
+ * and Bring back. Synthetic rows only.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -17,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { makeVideoDesk } from "../../src/restate/video-desk.js";
 import { videoRecord } from "../../src/video.js";
 import { videoTurns } from "../../src/video-ask.js";
+import { videoSteps } from "../../src/video-edit.js";
 
 const answers: string[] = [];
 const asked: { question: string; system: string; commands: string[] }[] = [];
@@ -191,5 +194,50 @@ describe("VideoDesk", () => {
       .set({ render: { state: "waiting", at: new Date().toISOString() } })
       .where(eq(videoEdits.id, id));
     await expect(desk().render({ id })).rejects.toThrow(/waiting for the Mac/);
+  });
+
+  it("runs the agent's pass: fixes words, writes fields and notes, then renders", async () => {
+    const id = await video();
+    renders = ["ok"];
+    answers.push(
+      JSON.stringify({
+        reply: "Fixed a word and titled it.",
+        notes: ["Check the claim at 0:03."],
+        words: [
+          { wrong: "works", right: "worked" },
+          { wrong: "nowhere", right: "x" },
+        ],
+        patch: { title: "It worked" },
+      }),
+    );
+    const { run } = await desk().edit({ id, note: "Better title" });
+    let steps = await videoSteps(pg.db, id);
+    for (let i = 0; i < 100 && steps.some((s) => s.state === "running"); i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      steps = await videoSteps(pg.db, id);
+    }
+    expect(asked.at(-1)?.question).toMatch(/asks for changes: Better title/);
+    const pass = steps.find((s) => s.id === run);
+    expect(pass).toMatchObject({
+      command: "video-edit",
+      state: "done",
+      note: "Better title",
+      reply: "Fixed a word and titled it.",
+      notes: ["Check the claim at 0:03."],
+      what: "Agent pass: fixed 1 word; changed title; queued a render",
+    });
+    expect(steps.some((s) => s.command === "video words" && s.by === "agent")).toBe(true);
+    for (let i = 0; i < 50 && (await getEdit(pg.db, id)).render; i++)
+      await new Promise((r) => setTimeout(r, 200));
+    const e = await getEdit(pg.db, id);
+    expect(e).toMatchObject({ title: "It worked", state: "rendered", render: null });
+    expect(e.words.map((w) => w.w)).toContain("worked");
+
+    await desk().reject({ id, note: "Not this one" });
+    expect((await getEdit(pg.db, id)).state).toBe("rejected");
+    await expect(desk().edit({ id })).rejects.toThrow(/rejected/);
+    await expect(desk().render({ id })).rejects.toThrow(/rejected/);
+    await desk().restore({ id });
+    expect((await getEdit(pg.db, id)).state).toBe("rendered");
   });
 });
