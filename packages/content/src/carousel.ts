@@ -7,6 +7,7 @@
  * `@wren/core/content/slides` and stores the images and the PDF. Publishing uploads them: the
  * LinkedIn adapter the PDF as a document, the Instagram one each image as a carousel child.
  */
+import { randomUUID } from "node:crypto";
 import { fieldsOf } from "@wren/core/content/shapes";
 import {
   cleanSlides,
@@ -14,13 +15,18 @@ import {
   type Slide,
   slidesHtml,
   slidesKey,
+  slidesText,
   slidesUnfit,
 } from "@wren/core/content/slides";
 import { type DraftVia, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import type { DraftResult } from "./draft.js";
+import { addIdea } from "./ideas.js";
 import { type MediaStoreOptions, putMedia } from "./media.js";
-import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
+import { PLATFORM_SPECS } from "./platforms.js";
+import { type ContentDraft, contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
+import { OWN_WORDS } from "./write.js";
 
 /** A slide set drawn: one JPEG per slide, square, and the same slides as one PDF. */
 export interface SlidePaint {
@@ -177,4 +183,65 @@ export async function renderSlides(
   const files = await paintSlides(slides, html, paint, store);
   await keepSlideFiles(db, id, files);
   return files;
+}
+
+/** Where a carousel he makes goes: Instagram's swipe, LinkedIn's document post. */
+export const CAROUSEL_PLATFORMS = ["instagram", "linkedin"] as const;
+export type CarouselPlatform = (typeof CAROUSEL_PLATFORMS)[number];
+
+/**
+ * A carousel in his own words (Marketing → Write): an idea, and a draft per platform that shares
+ * one slide set, the caption as each draft's words. Checked first; drawn after, by the caller.
+ */
+export async function writeCarousel(
+  db: Queryable,
+  o: {
+    slides: unknown;
+    text: string;
+    platforms: readonly CarouselPlatform[];
+    by: string | null;
+  },
+): Promise<{ ideaId: string; results: DraftResult[] }> {
+  const slides = cleanSlides(o.slides);
+  const bad = slidesUnfit(slides);
+  if (bad) throw new Error(bad);
+  const text = o.text.trim();
+  if (!text) throw new Error("A carousel needs a caption");
+  const idea = await addIdea(db, [text, slidesText(slides)].join("\n\n"), "cli");
+  const deck = randomUUID();
+  const results: DraftResult[] = [];
+  for (const platform of o.platforms) {
+    const max = PLATFORM_SPECS[platform].maxChars;
+    if (text.length > max) {
+      results.push({ platform, ok: false, reason: `the caption is over ${max} characters` });
+      continue;
+    }
+    const kind = platform === "linkedin" ? "document" : "carousel";
+    const [draft] = await db
+      .insert(contentDrafts)
+      .values({
+        ideaId: idea.id,
+        platform,
+        text,
+        extra: fieldsOf(platform, { kind, deck, slides }),
+        promptVersion: OWN_WORDS,
+      })
+      .returning();
+    if (!draft) throw new Error("insert returned no row");
+    await recordDraft(db, {
+      item: `draft:${draft.id}`,
+      kind: "post",
+      platform,
+      event: "edited",
+      via: "person",
+      by: o.by,
+      text: draft.text,
+      title: draft.title,
+      meta: { slides },
+    });
+    results.push({ platform, ok: true, draft });
+  }
+  if (results.some((r) => r.ok))
+    await db.update(contentIdeas).set({ status: "drafted" }).where(eq(contentIdeas.id, idea.id));
+  return { ideaId: idea.id, results };
 }

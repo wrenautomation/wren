@@ -1,5 +1,6 @@
 /** Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`). */
 import type { Platform } from "@wren/core/content";
+import { isCarousel } from "@wren/core/content/slides";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { desc, eq, inArray } from "drizzle-orm";
@@ -73,6 +74,8 @@ export interface WaitingIdea {
     own: boolean;
     /** A story: media only, no words to edit. */
     story: boolean;
+    /** A carousel: its slides edit on the draft's page. */
+    carousel: boolean;
   }[];
 }
 
@@ -98,6 +101,7 @@ export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingI
       edited: d.edited,
       own: d.promptVersion === OWN_WORDS,
       story: d.extra?.kind === "story",
+      carousel: isCarousel(d),
     });
     out.set(d.ideaId, at);
   }

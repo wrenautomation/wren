@@ -25,11 +25,14 @@ import { z } from "zod";
 import { askSwap, planSwap, skipSwaps, startSwap } from "../analytics/variants.js";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
 import {
+  CAROUSEL_PLATFORMS,
+  type CarouselPlatform,
   keepSlideFiles,
   paintSlides,
   type SlidePainter,
   saveSlides,
   slidesToDraw,
+  writeCarousel,
 } from "../carousel.js";
 import { clientContent, clientPlan } from "../clients.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
@@ -181,6 +184,15 @@ const STORY = z.looseObject({
     .nullish()
     .describe("A JPG or PNG as base64, up to 2 MB"),
   clip: z.string().nullish().describe("A Reel draft's id: its stored video"),
+  go: z.enum(WRITE_GO).nullish().describe("draft (default), slot or now"),
+});
+const CAROUSEL = z.looseObject({
+  slides: z
+    .array(z.looseObject({ title: z.string(), lines: z.array(z.string()) }))
+    .min(1)
+    .describe("5 to 10 slides, a title and a few short lines each"),
+  text: z.string().min(1).describe("The caption: Instagram's, and LinkedIn's post words"),
+  platforms: z.array(z.enum(CAROUSEL_PLATFORMS)).min(1).describe("Where the carousel goes"),
   go: z.enum(WRITE_GO).nullish().describe("draft (default), slot or now"),
 });
 const NONE = z.looseObject({});
@@ -547,6 +559,57 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           );
           const out = [{ ideaId: made.ideaId, results: made.results.map(written) }];
           await goOn(ctx, s.db, out, req.go ?? "draft", byOf(req));
+          return { posts: out };
+        },
+      ),
+      /**
+       * A carousel he wrote (Marketing → Write): the slide set on a draft per platform, drawn
+       * where a browser is wired (a miss leaves Draw in the slide editor), then Write's draft,
+       * slot or now. An undrawn carousel can't be approved, so it waits as a draft.
+       */
+      carousel: exclusiveHandler(
+        { input: CAROUSEL },
+        async (
+          ctx: restate.ObjectContext,
+          req: {
+            slides: { title: string; lines: string[] }[];
+            text: string;
+            platforms: CarouselPlatform[];
+            go?: WriteGo | null;
+            viewer?: unknown;
+          },
+        ) => {
+          const s = await scopeOf(ctx);
+          const by = byOf(req);
+          const made = await ctx.run("carousel", () =>
+            verdictOf(() =>
+              writeCarousel(s.db, {
+                slides: req.slides,
+                text: req.text,
+                platforms: req.platforms,
+                by,
+              }),
+            ),
+          );
+          const first = made.results.find((r) => r.ok);
+          const paint = deps.slides;
+          const media = deps.media;
+          if (first?.ok && paint && media)
+            await ctx.run("draw slides", async () => {
+              try {
+                const { slides, html } = await slidesToDraw(s.db, first.draft.id, byLine(s));
+                await keepSlideFiles(
+                  s.db,
+                  first.draft.id,
+                  await paintSlides(slides, html, paint, media),
+                );
+                return true;
+              } catch {
+                return false;
+              }
+            });
+          const out = [{ ideaId: made.ideaId, results: made.results.map(written) }];
+          await goOn(ctx, s.db, out, req.go ?? "draft", by);
           return { posts: out };
         },
       ),

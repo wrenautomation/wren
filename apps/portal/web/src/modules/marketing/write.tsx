@@ -26,6 +26,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 import { BlogBox } from "./blog-box.js";
+import { CarouselBox } from "./carousel-box.js";
 import { StoryBox } from "./story-box.js";
 
 /** The platforms that post words alone (YouTube as a community post); videos go through Videos. */
@@ -38,6 +39,107 @@ const chosen = (params: URLSearchParams): Platform | null => {
   const p = params.get("platform");
   return PLATFORMS.find((x) => x === p) ?? null;
 };
+
+type Make = "post" | "carousel" | "story" | "blog" | "video";
+interface MakeKind {
+  id: Make;
+  name: string;
+  /** Where it goes, in a few words. */
+  where: string;
+  /** Whether it goes to this platform. */
+  on: (p: Platform) => boolean;
+}
+/** What Write makes, in the order he reaches for them. A video starts in Videos. */
+const MAKES: readonly MakeKind[] = [
+  {
+    id: "post",
+    name: "Post",
+    where: TEXT.map(targetOf).join(", "),
+    on: (p) => TEXT.includes(p),
+  },
+  {
+    id: "carousel",
+    name: "Carousel",
+    where: "Instagram, LinkedIn",
+    on: (p) => p === "instagram" || p === "linkedin",
+  },
+  {
+    id: "story",
+    name: "Story",
+    where: "Instagram, Facebook",
+    on: (p) => p === "instagram" || p === "facebook",
+  },
+  { id: "blog", name: "Blog post", where: "The site, then email", on: () => false },
+  {
+    id: "video",
+    name: "Video",
+    where: "YouTube, Shorts, Reels, TikTok",
+    on: (p) => !!PLATFORM_SPECS[p].needsMedia,
+  },
+];
+const offeredFor = (only: Platform | null) => MAKES.filter((m) => !only || m.on(only));
+const makeOf = (params: URLSearchParams): Make | null => {
+  const m = params.get("make");
+  if (MAKES.some((k) => k.id === m)) return m as Make;
+  if (params.has("blog")) return "blog";
+  if (params.has("story")) return "story";
+  return null;
+};
+/** The asked kind when it's offered, else the first offered that's made here. */
+const pick = (asked: Make | null, offered: readonly MakeKind[]): Make =>
+  offered.find((m) => m.id === asked && m.id !== "video")?.id ??
+  offered.find((m) => m.id !== "video")?.id ??
+  "video";
+
+/** What he's making: a card each, the one picked outlined. Video opens Videos. */
+function MakePicker({
+  offered,
+  make,
+  pick: choose,
+}: {
+  offered: readonly MakeKind[];
+  make: Make;
+  pick: (m: Make) => void;
+}) {
+  const card =
+    "grid min-w-0 content-start gap-0.5 rounded-(--ui-radius) border bg-(--ui-bg) px-3.5 py-2.5 text-left no-underline transition-colors duration-150 hover:bg-(--ui-hover)";
+  return (
+    <nav
+      aria-label="What you're making"
+      className="mb-5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(168px,1fr))]"
+    >
+      {offered.map((m) => {
+        const inner = (
+          <>
+            <span className="font-semibold text-[14.5px] text-(--ui-ink)">{m.name}</span>
+            <span className={cx("text-[12.5px] leading-snug", QUIET)}>{m.where}</span>
+          </>
+        );
+        return m.id === "video" ? (
+          <a key={m.id} href="/marketing/videos" className={cx(card, "border-(--ui-hair)")}>
+            {inner}
+          </a>
+        ) : (
+          <button
+            key={m.id}
+            type="button"
+            aria-pressed={make === m.id}
+            onClick={() => choose(m.id)}
+            className={cx(
+              card,
+              "cursor-pointer",
+              make === m.id
+                ? "border-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)]"
+                : "border-(--ui-hair)",
+            )}
+          >
+            {inner}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
 
 type Go = "draft" | "slot" | "now";
 interface WriteResult {
@@ -60,6 +162,7 @@ interface Waiting {
     edited: boolean;
     own: boolean;
     story?: boolean;
+    carousel?: boolean;
   }[];
 }
 
@@ -112,15 +215,14 @@ export function WritePage(props: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
-  // Plan's blog goal opens here with ?blog=1: the Blog box alone.
-  const blogOnly = props.params.has("blog");
-  // Plan's story goals open here with ?story=1; a video-only platform has nothing else to write.
-  const storyOnly = !!only && !TEXT.includes(only);
-  const storyFirst = storyOnly || props.params.has("story");
-  const stories =
-    !only || only === "instagram" || only === "facebook" ? (
-      <StoryBox demo={props.demo} only={only} made={() => setNonce((n) => n + 1)} />
-    ) : null;
+  // What he's making: the picker on top, or Plan's links (?make=, ?blog=1, ?story=1).
+  const offered = offeredFor(only);
+  const asked = makeOf(props.params);
+  const [make, setMake] = useState<Make>(() => pick(asked, offered));
+  useEffect(() => {
+    setMake(pick(asked, offeredFor(only)));
+  }, [asked, only]);
+  const made = () => setNonce((n) => n + 1);
 
   const posts = splitPosts(text);
   const batch = posts.length > 1;
@@ -168,17 +270,21 @@ export function WritePage(props: PageProps) {
     <>
       <PageHeader
         title="Write"
-        lede="Write it once and pick where it goes. For several posts, put a line of --- between them."
+        lede="Pick what you're making, write it once, and choose where it goes."
       />
-      {storyOnly ? (
+      <MakePicker offered={offered} make={make} pick={setMake} />
+      {make === "carousel" ? (
+        <CarouselBox demo={props.demo} only={only} made={made} />
+      ) : make === "story" ? (
+        <StoryBox demo={props.demo} only={only} made={made} />
+      ) : make === "blog" ? (
+        <BlogBox demo={props.demo} />
+      ) : make === "video" ? (
         <p className={cx("m-0 text-[13.5px]", QUIET)}>
-          {nameOf(only)} posts start from a video.{" "}
-          <a href={`/marketing/videos?platform=${only}`}>Open Videos</a>
+          {only ? nameOf(only) : "Video"} posts start from a recording.{" "}
+          <a href={`/marketing/videos${only ? `?platform=${only}` : ""}`}>Open Videos</a>
         </p>
-      ) : null}
-      {blogOnly ? <BlogBox demo={props.demo} /> : null}
-      {storyFirst ? stories : null}
-      {storyOnly || blogOnly ? null : (
+      ) : (
         <>
           <Section>
             <div className="grid gap-3">
@@ -186,7 +292,7 @@ export function WritePage(props: PageProps) {
                 aria-label="Your post"
                 rows={batch ? 14 : 8}
                 value={text}
-                placeholder="What do you want to say?"
+                placeholder="What do you want to say? For several posts, put a line of --- between them."
                 disabled={props.demo}
                 onChange={(e) => {
                   setText(e.target.value);
@@ -291,9 +397,6 @@ export function WritePage(props: PageProps) {
           </Section>
         </>
       )}
-      {storyFirst || blogOnly ? null : stories}
-      {blogOnly || only ? null : <BlogBox demo={props.demo} />}
-
       <WaitingBoard {...props} nonce={nonce} />
     </>
   );
@@ -443,6 +546,8 @@ function DraftCard({
           {d.state === "failed" ? <Tag tone="warn">Failed</Tag> : null}
           {d.story ? (
             <Tag tone="accent">Story</Tag>
+          ) : d.carousel ? (
+            <Tag tone="accent">Carousel</Tag>
           ) : d.own ? (
             <Tag tone="accent">Yours</Tag>
           ) : d.edited ? (
@@ -474,6 +579,11 @@ function DraftCard({
           onChange={(e) => setText(e.target.value)}
         />
       )}
+      {d.carousel ? (
+        <a className="text-[13px]" href={`/marketing/drafts/${d.id}`}>
+          See and edit the slides
+        </a>
+      ) : null}
       {d.error ? <p className={ERROR}>{d.error}</p> : null}
       {note !== null ? (
         <div className="grid gap-2">
@@ -519,7 +629,7 @@ function DraftCard({
           >
             {busy === "now" ? "Posting…" : "Post now"}
           </Button>
-          {d.story ? null : (
+          {d.story || d.carousel ? null : (
             <Button size="dense" tone="quiet" disabled={!!busy || demo} onClick={() => setNote("")}>
               Rewrite with AI
             </Button>

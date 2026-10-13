@@ -3,6 +3,7 @@ import {
   cleanSlides,
   isCarousel,
   type Slide,
+  slidesFromText,
   slidesHtml,
   slidesText,
   slidesUnfit,
@@ -40,5 +41,15 @@ describe("slides", () => {
     expect(isCarousel({ platform: "instagram", extra: { kind: "carousel" } })).toBe(true);
     expect(isCarousel({ platform: "linkedin", extra: { kind: "document" } })).toBe(true);
     expect(isCarousel({ platform: "linkedin", extra: {} })).toBe(false);
+  });
+
+  it("reads slides typed as text, a blank line between them", () => {
+    expect(slidesFromText(slidesText(five))).toEqual(five);
+    expect(slidesFromText("Hook\r\n\r\n\n  Why it works  \n one\n\ntwo\n  \n")).toEqual([
+      { title: "Hook", lines: [] },
+      { title: "Why it works", lines: ["one"] },
+      { title: "two", lines: [] },
+    ]);
+    expect(slidesFromText("  \n")).toEqual([]);
   });
 });

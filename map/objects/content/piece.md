@@ -37,7 +37,7 @@ Citations: `packages/content/src/pieces.ts:1`, `packages/content/src/restate/pie
 
 | Surface | Role |
 |---|---|
-| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves |
+| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves; finds by words, what (`WHATS`: a carousel or thread by its branch format, inside a long video too), where, state, sort; picks live in the address |
 | Marketing → Today (`apps/portal/web/src/modules/marketing/plan.tsx`) | reads, approves |
 | Home Today (`apps/portal/web/src/today.tsx`) | reads, approves |
 

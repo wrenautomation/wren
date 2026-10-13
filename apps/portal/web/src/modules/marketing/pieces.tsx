@@ -11,6 +11,7 @@ import {
   cx,
   Empty,
   Icon,
+  Input,
   LoadFailed,
   Loading,
   PageHeader,
@@ -26,6 +27,7 @@ import { useState } from "react";
 import { call } from "../../api.js";
 import { type Load, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 
 export type { Branch, Piece };
@@ -295,54 +297,161 @@ function childLine(children: Piece[]): string {
   return `${parts.join(", ")} from it${waiting ? `, ${waiting} waiting on you` : ""}`;
 }
 
-const KIND_ORDER: PieceKind[] = ["long", "vertical", "written", "story", "blog"];
 type Show = "all" | "waiting" | "queued" | "live";
 const SHOWS: Record<Show, string> = {
-  all: "All",
+  all: "Any state",
   waiting: "Waiting on you",
   queued: "Queued",
   live: "Live",
 };
+const branchesIn = (p: Piece): Branch[] => [...p.branches, ...p.children.flatMap(branchesIn)];
 const shows = (p: Piece, s: Show): boolean =>
   s === "all" ||
-  [...p.branches, ...p.children.flatMap((c) => c.branches)].some((b) =>
+  branchesIn(p).some((b) =>
     s === "waiting"
       ? b.state === "draft" || b.state === "failed"
       : s === "queued"
         ? b.state === "queued"
         : b.state === "live",
   );
-const placesOf = (ps: Piece[]) =>
-  [
-    ...new Set(
-      ps
-        .flatMap((p) => [...p.branches, ...p.children.flatMap((c) => c.branches)])
-        .map((b) => b.platform),
-    ),
-  ]
-    .filter((p) => p !== "editor")
-    .sort();
 const onPlatform = (p: Piece, place: string): boolean =>
-  p.branches.some((b) => b.platform === place) || p.children.some((c) => onPlatform(c, place));
+  branchesIn(p).some((b) => b.platform === place);
+
+/**
+ * What a piece is, as he looks for it: a carousel or a thread is a format on a post's branch,
+ * so it's found by its branches; the rest by the piece's kind.
+ */
+type What = "long" | "clip" | "post" | "thread" | "carousel" | "story" | "blog";
+const WHATS: { id: What; name: string; is: (p: Piece) => boolean }[] = [
+  { id: "long", name: "Long videos", is: (p) => p.kind === "long" },
+  { id: "clip", name: "Clips", is: (p) => p.kind === "vertical" },
+  {
+    id: "post",
+    name: "Posts",
+    is: (p) => p.kind === "written" && p.branches.some((b) => b.format === "post"),
+  },
+  { id: "thread", name: "Threads", is: (p) => p.branches.some((b) => b.format === "thread") },
+  { id: "carousel", name: "Carousels", is: (p) => p.branches.some((b) => b.format === "carousel") },
+  {
+    id: "story",
+    name: "Stories",
+    is: (p) => p.kind === "story" || p.branches.some((b) => b.format === "story"),
+  },
+  { id: "blog", name: "Blog posts", is: (p) => p.kind === "blog" },
+];
+/** Every piece, a long video's clips and promos beside it: a carousel made from a video counts. */
+const everyPiece = (ps: Piece[]): Piece[] => ps.flatMap((p) => [p, ...everyPiece(p.children)]);
+
+type Sort = "new" | "waiting" | "views";
+const SORTS: Record<Sort, string> = {
+  new: "Newest first",
+  waiting: "Waiting on you first",
+  views: "Most views first",
+};
+const viewsOf = (p: Piece) => branchesIn(p).reduce((n, b) => n + (b.views ?? 0), 0);
+const sorted = (ps: Piece[], by: Sort): Piece[] =>
+  by === "new"
+    ? ps
+    : [...ps].sort((a, b) =>
+        by === "views"
+          ? viewsOf(b) - viewsOf(a)
+          : allWaiting(b).length - allWaiting(a).length || b.at.localeCompare(a.at),
+      );
+const found = (p: Piece, q: string): boolean =>
+  !q || `${p.title}\n${p.text}`.toLowerCase().includes(q) || p.children.some((c) => found(c, q));
 
 const CHIP =
-  "h-8 rounded-(--ui-radius) border border-(--ui-hair) bg-transparent px-3 text-[13px] text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-hover)";
+  "inline-flex h-8 items-center gap-1.5 rounded-(--ui-radius) border border-(--ui-hair) bg-transparent px-3 text-[13px] text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-hover)";
 const CHIP_ON = "border-(--ui-ink) text-(--ui-ink) font-semibold";
+const COUNT = "text-[12px] tabular-nums text-(--ui-ink-3)";
+const ROW_LABEL = "w-14 shrink-0 text-[12.5px] font-medium text-(--ui-ink-3)";
 
-/** Marketing → Pieces: every piece, newest first, narrowed by kind, state or platform. */
+/** A row of chips under a label: one picked, a count beside each. */
+function Chips<T extends string>({
+  label,
+  options,
+  value,
+  set,
+}: {
+  label: string;
+  options: { id: T; name: string; n?: number; mark?: string }[];
+  value: T;
+  set: (v: T) => void;
+}) {
+  return (
+    <fieldset className="m-0 flex min-w-0 items-start gap-2 border-0 p-0">
+      <legend className="sr-only">{label}</legend>
+      <span className={cx(ROW_LABEL, "pt-1.5")} aria-hidden>
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={value === o.id}
+            className={cx(CHIP, value === o.id && CHIP_ON)}
+            onClick={() => set(o.id)}
+          >
+            {o.mark ? <PlatformMark mark={o.mark} size={13} /> : null}
+            {o.name}
+            {o.n !== undefined ? <span className={COUNT}>{o.n}</span> : null}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * Marketing → Pieces: every piece, found by words, what it is, where it went and its state, in
+ * the order he picks. The picks live in the address, so a link or a reload keeps them.
+ */
 export function PiecesPage(props: PageProps) {
   const load = usePieces();
-  const [kind, setKind] = useState<PieceKind | "all">(
-    (props.params.get("kind") as PieceKind) ?? "all",
-  );
-  const [show, setShow] = useState<Show>((props.params.get("show") as Show) ?? "all");
-  const [place, setPlace] = useState(props.params.get("platform") ?? "");
+  const what = (WHATS.find((w) => w.id === props.params.get("what"))?.id ?? "all") as What | "all";
+  const show = (
+    (props.params.get("show") as Show) in SHOWS ? props.params.get("show") : "all"
+  ) as Show;
+  const place = props.params.get("platform") ?? "";
+  const sort = (
+    (props.params.get("sort") as Sort) in SORTS ? props.params.get("sort") : "new"
+  ) as Sort;
+  const [q, setQ] = useState(props.params.get("q") ?? "");
+  const set = (k: string, v: string) =>
+    navigate(
+      href("/marketing/pieces", { [k]: v === "all" || v === "new" ? "" : v }, props.params),
+      true,
+    );
+
   const all = load.data?.pieces ?? [];
-  const kinds = KIND_ORDER.filter((k) => all.some((p) => p.kind === k));
-  const shown = all.filter(
-    (p) =>
-      (kind === "all" || p.kind === kind) && shows(p, show) && (!place || onPlatform(p, place)),
+  const every = everyPiece(all);
+  const words = q.trim().toLowerCase();
+  // A kind inside a long video (a carousel, a thread) lists on its own; the rest list as made.
+  const pool = what === "all" || what === "long" ? all : every;
+  const fits = (p: Piece, skip?: "what" | "show" | "place") =>
+    (skip === "what" || what === "all" || (WHATS.find((w) => w.id === what)?.is(p) ?? true)) &&
+    (skip === "show" || shows(p, show)) &&
+    (skip === "place" || !place || onPlatform(p, place)) &&
+    found(p, words);
+  const shown = sorted(
+    pool.filter((p) => fits(p)),
+    sort,
   );
+  const whats = WHATS.map((w) => ({
+    id: w.id,
+    name: w.name,
+    n: (w.id === "long" ? all : every).filter((p) => w.is(p) && fits(p, "what")).length,
+  })).filter((w) => w.n > 0 || w.id === what);
+  const places = [...new Set(every.flatMap((p) => p.branches.map((b) => b.platform)))]
+    .filter((p) => p !== "editor")
+    .sort()
+    .map((p) => ({
+      id: p,
+      name: branchName({ platform: p, format: "" }),
+      mark: markOf(p),
+      n: pool.filter((x) => onPlatform(x, p) && fits(x, "place")).length,
+    }));
   const waiting = all.flatMap(allWaiting).length;
   return (
     <>
@@ -353,49 +462,85 @@ export function PiecesPage(props: PageProps) {
             ? `${all.length} pieces in the last 120 days${waiting ? `, ${waiting} drafts waiting on you` : ""}. Each shows everywhere it went.`
             : "Everything you made, each with everywhere it went."
         }
+        actions={
+          <a href="/marketing/write" className="text-[13.5px]">
+            Make something
+          </a>
+        }
       />
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {(["all", ...kinds] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            className={cx(CHIP, kind === k && CHIP_ON)}
-            onClick={() => setKind(k)}
+      <div className="mb-5 grid gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            aria-label="Find a piece"
+            type="search"
+            value={q}
+            placeholder="Find by its words"
+            className="h-8 min-w-0 flex-1 basis-60 text-[13.5px]"
+            onChange={(e) => {
+              setQ(e.target.value);
+              set("q", e.target.value.trim());
+            }}
+          />
+          <select
+            aria-label="Sort"
+            className="h-8 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-bg) px-2 text-[13px]"
+            value={sort}
+            onChange={(e) => set("sort", e.target.value)}
           >
-            {k === "all" ? "Every kind" : KIND_MANY[k]}
-          </button>
-        ))}
-        <span className="mx-1 h-5 w-px bg-(--ui-hair)" aria-hidden />
-        {(Object.keys(SHOWS) as Show[]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={cx(CHIP, show === s && CHIP_ON)}
-            onClick={() => setShow(s)}
-          >
-            {SHOWS[s]}
-          </button>
-        ))}
-        <select
-          aria-label="Platform"
-          className="ml-auto h-8 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-bg) px-2 text-[13px]"
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-        >
-          <option value="">Every platform</option>
-          {placesOf(all).map((p) => (
-            <option key={p} value={p}>
-              {branchName({ platform: p, format: "" })}
-            </option>
-          ))}
-        </select>
+            {(Object.keys(SORTS) as Sort[]).map((s) => (
+              <option key={s} value={s}>
+                {SORTS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Chips
+          label="What"
+          value={what}
+          set={(v) => set("what", v)}
+          options={[
+            { id: "all", name: "Everything", n: all.filter((p) => fits(p, "what")).length },
+            ...whats,
+          ]}
+        />
+        {places.length > 1 ? (
+          <Chips
+            label="Where"
+            value={place || "all"}
+            set={(v) => set("platform", v)}
+            options={[{ id: "all", name: "Anywhere" }, ...places]}
+          />
+        ) : null}
+        <Chips
+          label="State"
+          value={show}
+          set={(v) => set("show", v)}
+          options={(Object.keys(SHOWS) as Show[]).map((s) => ({
+            id: s,
+            name: SHOWS[s],
+            ...(s === "all"
+              ? {}
+              : { n: pool.filter((p) => shows(p, s) && fits(p, "show")).length }),
+          }))}
+        />
       </div>
       {load.error && !load.data ? (
         <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !load.data ? (
         <Loading lines={8} />
       ) : !shown.length ? (
-        <Empty>{all.length ? "No piece fits these." : "Pieces show here once you make one."}</Empty>
+        <Empty>
+          {all.length ? (
+            <>
+              Nothing fits these.{" "}
+              {what === "carousel" ? (
+                <a href="/marketing/write?make=carousel">Make a carousel</a>
+              ) : null}
+            </>
+          ) : (
+            "Pieces show here once you make one."
+          )}
+        </Empty>
       ) : (
         <div className="grid gap-3">
           {shown.map((p) => (

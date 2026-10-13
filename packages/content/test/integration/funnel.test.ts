@@ -10,7 +10,7 @@ import { FakeLlm } from "@wren/llm";
 import { videoEdits } from "@wren/studio/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { renderSlides, saveSlides } from "../../src/carousel.js";
+import { renderSlides, saveSlides, writeCarousel } from "../../src/carousel.js";
 import { redraft } from "../../src/draft.js";
 import { readFunnel, setFunnel } from "../../src/funnel.js";
 import { postOf } from "../../src/platforms.js";
@@ -338,6 +338,37 @@ describe("funnel", () => {
 
     const kinds = (await promosOf(pg.db, long.id)).map((p) => `${p.platform}/${p.kind}`).sort();
     expect(kinds).toEqual(["instagram/carousel", "linkedin/carousel", "x/thread"]);
+  });
+
+  it("makes a carousel from typed slides: one set on Instagram and LinkedIn", async () => {
+    const slides = Array.from({ length: 5 }, (_, i) => ({ title: `Point ${i + 1}`, lines: ["a"] }));
+    await expect(
+      writeCarousel(pg.db, {
+        slides: slides.slice(0, 2),
+        text: "x",
+        platforms: ["instagram"],
+        by: null,
+      }),
+    ).rejects.toThrow(/5 to 10 slides/);
+    const made = await writeCarousel(pg.db, {
+      slides,
+      text: "Five points, one swipe.",
+      platforms: ["instagram", "linkedin"],
+      by: "t@x",
+    });
+    const rows = made.results.flatMap((r) => (r.ok ? [r.draft] : []));
+    expect(rows.map((d) => [d.platform, d.extra?.kind])).toEqual([
+      ["instagram", "carousel"],
+      ["linkedin", "document"],
+    ]);
+    expect(rows[0]?.extra?.deck).toBe(rows[1]?.extra?.deck);
+    const ig = rows[0] as (typeof rows)[number];
+    const view = await shapeView(pg.db, ig.id);
+    expect(view?.carousel?.slides).toEqual(slides);
+    // Not drawn yet: a yes waits for the files.
+    await expect(approveDrafts(pg.db, [ig.id], { now: new Date() })).rejects.toThrow(
+      /draw the slides first/,
+    );
   });
 
   it("refuses a Short or a video not approved", async () => {

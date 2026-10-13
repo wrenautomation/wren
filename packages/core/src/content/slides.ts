@@ -43,6 +43,24 @@ export function cleanSlides(v: unknown): Slide[] {
   });
 }
 
+/**
+ * Slides typed as plain text: a blank line between slides, the first line a slide's title and
+ * the rest its lines. Write's carousel box reads it so he types one block, not a form per slide.
+ */
+export function slidesFromText(text: string): Slide[] {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split(/\n\s*\n/)
+    .map((block) =>
+      block
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean),
+    )
+    .filter((lines) => lines.length)
+    .map(([title = "", ...lines]) => ({ title, lines }));
+}
+
 /** Why the set can't be saved or rendered, or null. Counts as the editor shows them. */
 export function slidesUnfit(slides: readonly Slide[]): string | null {
   if (slides.length < SLIDES_MIN || slides.length > SLIDES_MAX)
