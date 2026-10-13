@@ -771,6 +771,11 @@ export interface CadenceGoal {
   pace: string;
   /** How it's made. */
   how: string;
+  /**
+   * The piece he makes that feeds it: one vertical clip goes out as Shorts, Reels and TikTok, one
+   * written post adapts per platform. Goals sharing a piece share the work.
+   */
+  piece: string;
   /** Where the next one starts: his words (Write), a video (Videos), a thread (Engage). */
   starts: "words" | "video" | "thread";
   /**
@@ -784,9 +789,20 @@ export interface CadenceGoal {
  * William's posting plan, per week (10-13): what cadence is measured against, in his order by
  * platform. Formats Wren can't post yet stay on it, uncounted, so the gap shows.
  */
+/** What each piece is called on Plan; a piece not named here shows as its key. */
+export const PIECE_NAMES: Readonly<Record<string, string>> = {
+  long: "Long video",
+  vertical: "Vertical clip",
+  written: "Written post",
+  story: "Story",
+  replies: "Thread replies",
+  newsletter: "Newsletter",
+};
+
 export const CADENCE_GOALS: readonly CadenceGoal[] = [
   {
     id: "youtube-long",
+    piece: "long",
     platform: "youtube",
     label: "Long videos",
     name: "YouTube long videos",
@@ -800,6 +816,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "youtube-short",
+    piece: "vertical",
     platform: "youtube",
     label: "Shorts",
     name: "YouTube Shorts",
@@ -812,6 +829,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "youtube-community",
+    piece: "written",
     platform: "youtube",
     label: "Community posts",
     name: "YouTube Community posts",
@@ -824,6 +842,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "instagram-reel",
+    piece: "vertical",
     platform: "instagram",
     label: "Reels",
     name: "Instagram Reels",
@@ -836,6 +855,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "instagram-story",
+    piece: "story",
     platform: "instagram",
     label: "Stories",
     name: "Instagram Stories",
@@ -848,6 +868,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "tiktok",
+    piece: "vertical",
     platform: "tiktok",
     label: "Videos",
     name: "TikTok videos",
@@ -860,6 +881,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "facebook-reel",
+    piece: "vertical",
     platform: "facebook",
     label: "Reels",
     name: "Facebook Reels",
@@ -872,6 +894,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "facebook-post",
+    piece: "written",
     platform: "facebook",
     label: "Page posts",
     name: "Facebook Page posts",
@@ -884,6 +907,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "facebook-story",
+    piece: "story",
     platform: "facebook",
     label: "Stories",
     name: "Facebook Stories",
@@ -896,6 +920,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "linkedin-video",
+    piece: "vertical",
     platform: "linkedin",
     label: "Vertical videos",
     name: "LinkedIn vertical videos",
@@ -909,6 +934,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "linkedin",
+    piece: "written",
     platform: "linkedin",
     label: "Text posts and carousels",
     name: "LinkedIn text posts and carousels",
@@ -921,6 +947,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "x-video",
+    piece: "vertical",
     platform: "x",
     label: "Video posts",
     name: "X video posts",
@@ -933,6 +960,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "x",
+    piece: "written",
     platform: "x",
     label: "Text posts and threads",
     name: "X text posts and threads",
@@ -945,6 +973,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "threads",
+    piece: "written",
     platform: "threads",
     label: "Text and clips",
     name: "Threads posts",
@@ -957,6 +986,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "reddit",
+    piece: "written",
     platform: "reddit",
     label: "Breakdowns and case studies",
     name: "Reddit posts",
@@ -969,6 +999,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "reddit-comments",
+    piece: "replies",
     platform: "reddit",
     label: "Thread comments",
     name: "Reddit comments",
@@ -981,6 +1012,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
   },
   {
     id: "newsletter",
+    piece: "newsletter",
     platform: "newsletter",
     label: "TLDRs and deep posts",
     name: "Newsletter and Substack",

@@ -10,7 +10,9 @@ import { ingressOf, type Settings } from "@wren/config";
 import {
   approveDrafts,
   askSwap,
+  CADENCE_GOALS,
   type ContentDraft,
+  cadenceGoals,
   DRAFT_STATUSES,
   type DraftStatus,
   draftCosts,
@@ -22,7 +24,9 @@ import {
   formatPlan,
   formatWhatWorked,
   funnelLine,
+  GOALS_COMPONENT,
   getDraft,
+  goalsSchema,
   IDEA_STATUSES,
   type IdeaStatus,
   listDrafts,
@@ -59,6 +63,7 @@ import {
   PLANNER_KEY,
   SCHEDULER_KEY,
 } from "@wren/content/restate";
+import { setWrenSettings } from "@wren/core/clients";
 import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import { coerceField, fieldViews } from "@wren/core/content/shapes";
 import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
@@ -163,6 +168,32 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   const content = program
     .command("content")
     .description("the content loop: ideas → drafts per platform → review → scheduled posts");
+
+  const goals = content
+    .command("goals")
+    .description(
+      "Your posting plan (Marketing → Plan): each goal a week, its piece, how. Prints it as JSON",
+    )
+    .action(async () => {
+      console.log(JSON.stringify({ goals: await withDb((db) => cadenceGoals(db)) }, null, 2));
+    });
+  goals
+    .command("set [file]")
+    .description("Replace the whole plan from JSON ({goals: [...]}, as `goals` prints) or stdin")
+    .action(async (file?: string) => {
+      const plan = goalsSchema.parse(JSON.parse(await readText(file)));
+      await withDb((db) => setWrenSettings(db, GOALS_COMPONENT, plan, "cli"));
+      console.log(`plan saved: ${plan.goals.length} goals`);
+    });
+  goals
+    .command("reset")
+    .description("Back to the default plan")
+    .action(async () => {
+      await withDb((db) =>
+        setWrenSettings(db, GOALS_COMPONENT, goalsSchema.parse({ goals: CADENCE_GOALS }), "cli"),
+      );
+      console.log(`plan reset: ${CADENCE_GOALS.length} goals`);
+    });
 
   content
     .command("add [file]")

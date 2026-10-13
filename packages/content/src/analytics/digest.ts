@@ -8,7 +8,8 @@ import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
 import { type ContentDraft, contentDigests, type DigestLine, formatSql } from "../schema.js";
-import { CADENCE_GOALS, countsFor, type Format, formatOf } from "./catalog.js";
+import { type CadenceGoal, countsFor, type Format, formatOf } from "./catalog.js";
+import { cadenceGoals } from "./goals.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How far back "what to make next" looks. */
@@ -33,6 +34,8 @@ export interface DigestPost {
 
 export interface DigestInput {
   now: Date;
+  /** His plan (`cadenceGoals`). */
+  goals: readonly CadenceGoal[];
   posts: readonly DigestPost[];
   /** Thread comments we posted in the last 7 days, per platform. */
   threadComments?: Partial<Record<Platform, number>>;
@@ -101,7 +104,7 @@ const MOVERS: ReadonlyArray<{
 function linesFor(
   posts: readonly DigestPost[],
   now: Date,
-  goals: typeof CADENCE_GOALS,
+  goals: readonly CadenceGoal[],
   threadComments: Partial<Record<Platform, number>>,
   all: boolean,
 ): DigestLine[] {
@@ -199,11 +202,11 @@ export function buildDigest(input: DigestInput): Map<Platform | "all", DigestLin
   const tc = input.threadComments ?? {};
   for (const platform of PLATFORMS) {
     const mine = input.posts.filter((p) => p.platform === platform);
-    const goals = CADENCE_GOALS.filter((g) => g.platform === platform);
+    const goals = input.goals.filter((g) => g.platform === platform);
     if (!mine.length && !goals.length) continue;
     out.set(platform, linesFor(mine, input.now, goals, tc, false));
   }
-  out.set("all", linesFor(input.posts, input.now, CADENCE_GOALS, tc, true));
+  out.set("all", linesFor(input.posts, input.now, input.goals, tc, true));
   return out;
 }
 
@@ -242,6 +245,7 @@ export async function digestInput(db: Queryable, now: Date): Promise<DigestInput
     where answer_ref is not null and answered_at >= ${weekAgo}::timestamptz
       and answered_at <= ${now.toISOString()}::timestamptz`)) as unknown as Array<{ n: number }>;
   return {
+    goals: await cadenceGoals(db),
     now,
     posts: rows.map((r) => ({
       id: r.id,

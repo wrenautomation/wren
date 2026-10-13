@@ -5,6 +5,8 @@
  * (`marketing.metric`). A post's own numbers are `marketing.post`'s fields and its detail's
  * `analytics` (`postAnalytics`).
  */
+
+import { setWrenSettings } from "@wren/core/clients";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import {
   cued,
@@ -20,20 +22,23 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { z } from "zod";
 import { formatSql } from "../schema.js";
 import { PLATFORM_NAMES } from "../social/store.js";
 import {
   ANALYTICS_CATALOG,
-  CADENCE_GOALS,
+  type CadenceGoal,
   type CatalogEntry,
   type CatalogState,
   countsFor,
   entriesFor,
   type Format,
   type Need,
+  PIECE_NAMES,
   stateLine,
   surfaceOf,
 } from "./catalog.js";
+import { cadenceGoals, GOALS_COMPONENT, goalsSchema } from "./goals.js";
 import { type VariantWindow, variantWindows } from "./variants.js";
 
 /** Wren's clock for "today": William's. */
@@ -156,8 +161,9 @@ export const GOAL_PLACES = cued({
 });
 
 /**
- * William's plan (`CADENCE_GOALS`) against what went out: the last 7 days, today on his clock,
- * and what's approved to go in the next 7. "To write" is what the week still lacks after those.
+ * William's plan (`cadenceGoals`: saved, else `CADENCE_GOALS`) against what went out: the last
+ * 7 days, today on his clock, and what's approved to go in the next 7. "To write" is what the
+ * week still lacks after those.
  */
 export const cadenceRecord = defineRecord({
   id: "marketing.cadence",
@@ -192,7 +198,7 @@ export const cadenceRecord = defineRecord({
         from reddit_threads
         where answer_ref is not null and answered_at >= ${since}::timestamptz`,
     );
-    return CADENCE_GOALS.map((g, n) => {
+    return (await cadenceGoals(db)).map((g, n) => {
       const mine = posts.filter((p) => countsFor(g, p.platform, p.format));
       const sum = (k: "week" | "today" | "queued") => mine.reduce((a, p) => a + p[k], 0);
       const counted = g.counts !== null;
@@ -210,6 +216,8 @@ export const cadenceRecord = defineRecord({
         up_to: g.upTo ?? null,
         pace: g.pace,
         how: g.how,
+        piece: g.piece,
+        piece_name: PIECE_NAMES[g.piece] ?? g.piece,
         starts: g.starts,
         daily: g.daily,
         done: counted ? done : null,
@@ -244,6 +252,8 @@ export const cadenceRecord = defineRecord({
     queued: number("Queued"),
     write: number("To write"),
     how: text("How", { listed: false }),
+    piece: text("Piece", { listed: false }),
+    pieceName: text("Piece name", { listed: false }),
     starts: text("Starts from", { listed: false }),
     n: number("Order", { listed: false }),
     state: status(
@@ -258,6 +268,50 @@ export const cadenceRecord = defineRecord({
     ),
   },
   views: [{ id: "week", label: "This week", sort: "n" }],
+  // A goal's numbers and words, in place; the list itself through `wren content goals`.
+  edits: {
+    fields: ["goal", "upTo", "daily", "pace", "how", "piece"],
+    patch: z
+      .object({
+        goal: z.number().int().min(0).max(500),
+        upTo: z.number().int().min(0).max(500).nullable(),
+        daily: z.number().int().min(0).max(100).nullable(),
+        pace: z.string().max(120),
+        how: z.string().max(200),
+        piece: z.string().regex(/^[a-z0-9-]{1,30}$/),
+      })
+      .partial()
+      .strict(),
+    needs: "manage",
+    about:
+      "one goal of his weekly posting plan: how many a week, a range's top, a day, how, and the piece it shares with other goals (vertical, written, long, story, replies)",
+    read: async (db, id) => {
+      const g = (await cadenceGoals(db)).find((x) => x.id === id);
+      return g
+        ? {
+            goal: g.goal,
+            upTo: g.upTo ?? null,
+            daily: g.daily,
+            pace: g.pace,
+            how: g.how,
+            piece: g.piece,
+          }
+        : null;
+    },
+    check: (patch, now) => {
+      const goal = Number(patch.goal ?? now.goal);
+      const upTo = patch.upTo === undefined ? now.upTo : patch.upTo;
+      return upTo != null && Number(upTo) < goal ? "up to is under the goal" : null;
+    },
+    write: async (db, id, patch, by) => {
+      const goals = (await cadenceGoals(db)).map((g) => {
+        if (g.id !== id) return g;
+        const { upTo, ...rest } = { ...g, ...patch } as CadenceGoal & { upTo?: number | null };
+        return upTo == null ? rest : { ...rest, upTo };
+      });
+      await setWrenSettings(db, GOALS_COMPONENT, goalsSchema.parse({ goals }), by);
+    },
+  },
 });
 
 export interface SourceRow {

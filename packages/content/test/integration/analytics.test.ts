@@ -4,6 +4,7 @@
  * last answer; a post's page reads its days, curve, site clicks and conversation; the
  * conversation, digest, cadence and metric records list. Synthetic rows only.
  */
+import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { comments, reachContacts, reachMessages } from "@wren/outreach";
@@ -391,6 +392,27 @@ describe("digest, cadence and metric records", () => {
     expect(goal("x-video")).toMatchObject({ done: 0, queued: 1, write: 20 });
     expect(goal("x")).toMatchObject({ queued: 0, write: 28, state: "none" });
     expect(goal("threads")).toMatchObject({ done: null, write: null, state: "unbuilt" });
+
+    // His plan is a setting: a goal edits in place, the rest stay the default.
+    await editRecord(pg.db, cadenceRecord, "youtube-short", {
+      patch: { goal: 14, daily: 2, piece: "vertical" },
+      by: "test",
+    });
+    await expect(
+      editRecord(pg.db, cadenceRecord, "youtube-long", { patch: { upTo: 1 }, by: "test" }),
+    ).rejects.toThrow("up to is under the goal");
+    const after = await serveRecords([cadenceRecord], pg.db).list({
+      record: cadenceRecord.id,
+      view: "week",
+      limit: 30,
+    });
+    expect(after.rows.find((r) => r.id === "youtube-short")).toMatchObject({
+      goal: 14,
+      daily: 2,
+      write: 13,
+      pieceName: "Vertical clip",
+    });
+    expect(after.rows).toHaveLength(cadence.rows.length);
 
     const gaps = await api.list({ record: metricRecord.id, view: "scope", limit: 100 });
     expect(gaps.rows.some((r) => r.says === "Needs scope: YouTube Analytics")).toBe(true);

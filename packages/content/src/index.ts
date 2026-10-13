@@ -1,3 +1,5 @@
+export { CADENCE_GOALS, type CadenceGoal, PIECE_NAMES } from "./analytics/catalog.js";
+export { cadenceGoals, GOALS_COMPONENT, goalsSchema } from "./analytics/goals.js";
 export {
   askSwap,
   SWAPS,

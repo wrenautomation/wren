@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { withCounts } from "../restate/metrics.js";
+import { CADENCE_GOALS } from "./catalog.js";
 import { buildDigest, type DigestPost } from "./digest.js";
 
 const NOW = new Date("2026-10-12T09:00:00Z");
@@ -31,7 +32,12 @@ describe("weekly digest", () => {
       post({ title: "Last week", views: 50, engaged: 2, published: ago(9) }),
       post({ title: "Last week too", views: 70, engaged: 3, published: ago(10, 9) }),
     ];
-    const d = buildDigest({ now: NOW, posts, threadComments: { reddit: 12 } });
+    const d = buildDigest({
+      now: NOW,
+      goals: CADENCE_GOALS,
+      posts,
+      threadComments: { reddit: 12 },
+    });
     const yt = d.get("youtube") ?? [];
     expect(yt.find((l) => l.kind === "top")).toMatchObject({ post: posts[0]?.id });
     expect(yt.find((l) => l.kind === "top")?.text).toContain('"Best one"');
@@ -55,7 +61,7 @@ describe("weekly digest", () => {
   });
 
   it("an empty week says so and still counts cadence", () => {
-    const d = buildDigest({ now: NOW, posts: [] });
+    const d = buildDigest({ now: NOW, goals: CADENCE_GOALS, posts: [] });
     expect(d.get("instagram")?.map((l) => l.text)).toEqual([
       "Nothing published this week.",
       "Instagram Reels: 0 of 21 this week.",
