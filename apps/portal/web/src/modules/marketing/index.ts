@@ -9,7 +9,6 @@ import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
 import type { DayPage, ListPage, Module, ModulePage, PageAcross } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
-import { FeedPage } from "../learn/sources.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
@@ -21,6 +20,7 @@ import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EngageHead } from "./engage.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { FactsPage, factsDropped } from "./facts.js";
+import { FeedPage, FeedTabs } from "./feed.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
@@ -937,6 +937,66 @@ const ENGAGE_PAGE: ListPage = {
   count: { state: ["new", "waiting"] },
 };
 
+/** Explore's picks: as if pasted (`ReachDesk.pick`), so a reply waits in Engage. */
+const EXPLORE_ACTIONS: Action[] = [
+  {
+    id: "marketing.exploreReply",
+    label: "Reply",
+    handler: "marketing/exploreReply",
+    key: "r",
+    done: said("It waits in Engage"),
+  },
+  {
+    id: "marketing.exploreFollow",
+    label: "Follow",
+    handler: "marketing/exploreFollow",
+    done: said("Following"),
+  },
+  only(
+    "onpost",
+    {
+      id: "marketing.onpostSkip",
+      label: "Skip",
+      handler: "marketing/onpostSkip",
+      form: REJECT_FORM,
+      each: true,
+      bulk: true,
+      key: "e",
+      done: said("Skipped"),
+    },
+    {},
+  ),
+  only(
+    "thread",
+    {
+      id: "marketing.threadSkip",
+      label: "Skip",
+      handler: "marketing/threadSkip",
+      bulk: true,
+      key: "e",
+      done: said("Skipped"),
+    },
+    {},
+  ),
+];
+/** Marketing → Feed's Explore (`marketing.explore`): found by topic, not followed or picked yet. */
+const EXPLORE_PAGE: ListPage = {
+  id: "explore",
+  label: "Feed",
+  hidden: true,
+  template: "list",
+  record: "marketing.explore",
+  columns: ["who", "platform", "where", "fit", "at"],
+  empty: {
+    best: "Nothing new was found. The topic searches run each day.",
+    posts: "No new posts were found on your topics.",
+    reddit: "No new Reddit threads fit.",
+    new: "Nothing new was found.",
+  },
+  actions: EXPLORE_ACTIONS,
+  head: () => createElement(FeedTabs, { on: "explore" }),
+};
+
 /**
  * What other people sent us (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting
  * on you" are this page, each under its own id.
@@ -1372,6 +1432,7 @@ export const marketing: Module = {
     { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
     ENGAGE_PAGE,
     { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
+    EXPLORE_PAGE,
     // Write lists what waits; this keeps draft links landing.
     {
       id: "drafts",

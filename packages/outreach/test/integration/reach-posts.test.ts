@@ -982,6 +982,35 @@ describe("paste (Marketing → Engage)", () => {
   });
 });
 
+describe("pick (Marketing → Feed, Explore)", () => {
+  it("Follow on a found post follows its author; on a missing row says so", async () => {
+    await settings({ account: "x@wren", pages: [] }, "x");
+    await settings({ account: "linkedin@wren", pages: [] });
+    const [x, li] = (await db().execute(sql`insert into reach_posts (platform, ref, author, handle,
+        author_url, text, url, found_by, account, fit, why, state, raw)
+      values ('x', '881', 'Synth', '@SynthAuthor', null, 'words', 'https://x.com/i/status/881',
+          'topic', 'x@wren', 50, 'topic', 'found', '{}'),
+        ('linkedin', 'urn:li:activity:882', 'Synth Co', null,
+          'https://www.linkedin.com/company/synth-co/', 'words',
+          'https://www.linkedin.com/feed/update/urn:li:activity:882/', 'topic', 'linkedin@wren', 50,
+          'topic', 'found', '{}')
+      returning id`)) as unknown as { id: number }[];
+    expect(await desk().pick({ id: `onpost:${x!.id}`, act: "follow" })).toMatchObject({
+      did: "following",
+      said: "Following synthauthor. Their new posts are read first each day.",
+    });
+    expect(await desk().pick({ id: `onpost:${li!.id}`, act: "follow" })).toMatchObject({
+      did: "following",
+    });
+    const pages = (await db().execute(
+      sql`select component, settings->'pages' pages from wren_settings
+        where component in ('x.comments', 'linkedin.comments') order by component`,
+    )) as unknown as { pages: string[] }[];
+    expect(pages.map((r) => r.pages)).toEqual([["synth-co"], ["synthauthor"]]);
+    await expect(desk().pick({ id: "onpost:999999", act: "reply" })).rejects.toThrow(/no post/);
+  });
+});
+
 describe("find creators (Marketing → Feed)", () => {
   it("every site's hits in one shape, each marked when Learn follows it already", async () => {
     await settings({ account: "linkedin@wren" });

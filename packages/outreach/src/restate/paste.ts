@@ -16,6 +16,7 @@ import {
   holdPasted,
   keepPasted,
   pastedOf,
+  pickedUrl,
   postUrlOf,
   queuePastedThread,
 } from "../intercept.js";
@@ -25,6 +26,13 @@ import { READS_KEY } from "./discovery.js";
 import type { ReachDeps } from "./index.js";
 
 const PASTE = z.looseObject({ url: z.string().trim().min(1).max(2000) });
+const PICK = z.looseObject({
+  id: z
+    .string()
+    .regex(/^(onpost:\d+|thread:t3_\w+)$/)
+    .describe("`onpost:<id>` or `thread:<id>`"),
+  act: z.enum(["reply", "follow"]),
+});
 const FIND = z.looseObject({
   q: z.string().trim().min(1).max(200).describe("A name, a handle or a topic"),
   only: z.array(z.enum(CREATOR_SITES)).optional().describe("The sites to search; all when blank"),
@@ -56,6 +64,96 @@ export function pasteHandlers(deps: ReachDeps) {
         READS_KEY,
       )
       .wake();
+
+  /** What a link names, acted on: watched, followed, queued or drafted now. */
+  async function pasteUrl(ctx: restate.Context, url: string, by: string): Promise<Pasted> {
+    const p = pastedOf(url);
+    const now = await nowOf(ctx);
+    if (p.kind === "unknown") throw new restate.TerminalError(p.why, { errorCode: 400 });
+
+    if (p.kind === "place") {
+      const r = await ctx.run("watch", () =>
+        terminal(async () => {
+          await addPlaces(deps.db, [{ name: p.subreddit, foundBy: "pasted" }]);
+          return watchPlace(deps.db, p.subreddit, now);
+        }),
+      );
+      wakeReads(ctx);
+      return {
+        did: "watching",
+        said: r.account
+          ? `Watching r/${p.subreddit}. New threads show here as they come.`
+          : `Watching r/${p.subreddit}. None of our Reddit accounts meets its minimums yet, so nothing is drafted there.`,
+        item: null,
+      };
+    }
+
+    if (p.kind === "account") {
+      const added = await ctx.run("follow", () =>
+        terminal(() => followAccount(deps.db, p.platform, p.handle, by)),
+      );
+      return {
+        did: "following",
+        said: added
+          ? `Following ${p.handle}. Their new posts are read first each day.`
+          : `Already following ${p.handle}.`,
+        item: null,
+      };
+    }
+
+    if (p.kind === "thread") {
+      const read = await reader(signedOut(deps.sitesFor(ctx))).thread(p.id);
+      const t = await ctx.run("queue", () => terminal(() => queuePastedThread(deps.db, read, now)));
+      if (t.state === "commented")
+        return { did: "answered", said: "We already commented there.", item: `thread:${t.id}` };
+      wakeReads(ctx);
+      return {
+        did: "queued",
+        said: `Queued "${t.title.slice(0, 80)}". Its draft lands here within a few minutes.`,
+        item: `thread:${t.id}`,
+      };
+    }
+
+    const settings = await ctx.run("settings", () => allCommentsSettings(deps.db));
+    const s = settings[p.platform];
+    if (!s.account)
+      throw new restate.TerminalError(
+        `no ${p.platform} account is set for comments (Shop → ${p.platform} comments)`,
+      );
+    const read = postReader(deps.sitesFor(ctx), p.platform, s.account, { now });
+    const post = await read.one(p.ref);
+    if (!post)
+      throw new restate.TerminalError(`that post is gone: ${postUrlOf(p.platform, p.ref)}`);
+    const kept = await ctx.run("keep", () =>
+      keepPasted(deps.db, post, { platform: p.platform, account: s.account, now }),
+    );
+    const item = `onpost:${kept.id}`;
+    if (kept.state === "queued") return { did: "waiting", said: "It already waits here.", item };
+    if (kept.state === "commented")
+      return { did: "answered", said: "We already commented on it.", item };
+    const llm = deps.drafts?.llm;
+    if (!llm) throw new restate.TerminalError("no model is set for drafts");
+    const guide = deps.drafts?.commentGuide;
+    const g = guide ? await ctx.run("guide", () => guide(p.platform)) : undefined;
+    const facts = deps.drafts?.facts;
+    const truths = facts ? await ctx.run("facts", async () => [...(await facts())]) : [];
+    const out = await ctx.run("draft", () =>
+      draftPost(deps.db, llm, kept.id, {
+        ...(g ? { guide: g } : {}),
+        facts: truths,
+        ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
+        now,
+      }),
+    );
+    if (out === "queued")
+      return { did: "drafted", said: `Drafted a reply to ${post.author || "the post"}.`, item };
+    await ctx.run("hold", () => holdPasted(deps.db, kept.id, now));
+    return {
+      did: "dropped",
+      said: "The model had nothing worth adding. It waits here for your own words.",
+      item,
+    };
+  }
 
   return {
     /**
@@ -89,97 +187,21 @@ export function pasteHandlers(deps: ReachDeps) {
     ),
     paste: serviceHandler(
       { input: PASTE },
-      async (ctx: restate.Context, req: { url: string }): Promise<Pasted> => {
-        const p = pastedOf(req.url);
-        const now = await nowOf(ctx);
-        const by = byOf(req) ?? "william";
-        if (p.kind === "unknown") throw new restate.TerminalError(p.why, { errorCode: 400 });
-
-        if (p.kind === "place") {
-          const r = await ctx.run("watch", () =>
-            terminal(async () => {
-              await addPlaces(deps.db, [{ name: p.subreddit, foundBy: "pasted" }]);
-              return watchPlace(deps.db, p.subreddit, now);
-            }),
-          );
-          wakeReads(ctx);
-          return {
-            did: "watching",
-            said: r.account
-              ? `Watching r/${p.subreddit}. New threads show here as they come.`
-              : `Watching r/${p.subreddit}. None of our Reddit accounts meets its minimums yet, so nothing is drafted there.`,
-            item: null,
-          };
-        }
-
-        if (p.kind === "account") {
-          const added = await ctx.run("follow", () =>
-            terminal(() => followAccount(deps.db, p.platform, p.handle, by)),
-          );
-          return {
-            did: "following",
-            said: added
-              ? `Following ${p.handle}. Their new posts are read first each day.`
-              : `Already following ${p.handle}.`,
-            item: null,
-          };
-        }
-
-        if (p.kind === "thread") {
-          const read = await reader(signedOut(deps.sitesFor(ctx))).thread(p.id);
-          const t = await ctx.run("queue", () =>
-            terminal(() => queuePastedThread(deps.db, read, now)),
-          );
-          if (t.state === "commented")
-            return { did: "answered", said: "We already commented there.", item: `thread:${t.id}` };
-          wakeReads(ctx);
-          return {
-            did: "queued",
-            said: `Queued "${t.title.slice(0, 80)}". Its draft lands here within a few minutes.`,
-            item: `thread:${t.id}`,
-          };
-        }
-
-        const settings = await ctx.run("settings", () => allCommentsSettings(deps.db));
-        const s = settings[p.platform];
-        if (!s.account)
-          throw new restate.TerminalError(
-            `no ${p.platform} account is set for comments (Shop → ${p.platform} comments)`,
-          );
-        const read = postReader(deps.sitesFor(ctx), p.platform, s.account, { now });
-        const post = await read.one(p.ref);
-        if (!post)
-          throw new restate.TerminalError(`that post is gone: ${postUrlOf(p.platform, p.ref)}`);
-        const kept = await ctx.run("keep", () =>
-          keepPasted(deps.db, post, { platform: p.platform, account: s.account, now }),
-        );
-        const item = `onpost:${kept.id}`;
-        if (kept.state === "queued")
-          return { did: "waiting", said: "It already waits here.", item };
-        if (kept.state === "commented")
-          return { did: "answered", said: "We already commented on it.", item };
-        const llm = deps.drafts?.llm;
-        if (!llm) throw new restate.TerminalError("no model is set for drafts");
-        const guide = deps.drafts?.commentGuide;
-        const g = guide ? await ctx.run("guide", () => guide(p.platform)) : undefined;
-        const facts = deps.drafts?.facts;
-        const truths = facts ? await ctx.run("facts", async () => [...(await facts())]) : [];
-        const out = await ctx.run("draft", () =>
-          draftPost(deps.db, llm, kept.id, {
-            ...(g ? { guide: g } : {}),
-            facts: truths,
-            ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
-            now,
-          }),
-        );
-        if (out === "queued")
-          return { did: "drafted", said: `Drafted a reply to ${post.author || "the post"}.`, item };
-        await ctx.run("hold", () => holdPasted(deps.db, kept.id, now));
-        return {
-          did: "dropped",
-          said: "The model had nothing worth adding. It waits here for your own words.",
-          item,
-        };
+      async (ctx: restate.Context, req: { url: string }): Promise<Pasted> =>
+        pasteUrl(ctx, req.url, byOf(req) ?? "william"),
+    ),
+    /**
+     * A found post or ranked thread from Marketing → Feed's Explore, picked as if pasted: `reply`
+     * drafts on it now (a thread queues), `follow` follows its author (a thread, its subreddit).
+     */
+    pick: serviceHandler(
+      { input: PICK },
+      async (
+        ctx: restate.Context,
+        req: { id: string; act: "reply" | "follow" },
+      ): Promise<Pasted> => {
+        const url = await ctx.run("row", () => terminal(() => pickedUrl(deps.db, req.id, req.act)));
+        return pasteUrl(ctx, url, byOf(req) ?? "william");
       },
     ),
   };

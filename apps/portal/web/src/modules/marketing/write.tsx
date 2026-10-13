@@ -86,7 +86,8 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
 }
 
 export function WritePage(props: PageProps) {
-  const [text, setText] = useState("");
+  // Feed's Use as idea opens here with the post it came from.
+  const [text, setText] = useState(() => props.params.get("idea") ?? "");
   const [title, setTitle] = useState("");
   const [picked, setPicked] = useState<Platform[]>(["linkedin", "x"]);
   const [adapt, setAdapt] = useState(false);

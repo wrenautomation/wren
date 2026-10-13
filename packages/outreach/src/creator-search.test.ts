@@ -59,15 +59,21 @@ describe("creator search", () => {
               ["https://www.linkedin.com/company/synthetic-co/", "Synthetic Co | LinkedIn"],
               ["https://www.linkedin.com/posts/someone_activity-1-x", "a post"],
             ])()
-          : String(q.q).startsWith("site:instagram.com")
-            ? exa([
-                [
-                  "https://www.instagram.com/synthetic.ig/",
-                  "Synthetic IG (@synthetic.ig) • Instagram",
-                ],
-                ["https://www.instagram.com/p/ABC/", "a post"],
-              ])()
-            : exa([["https://www.tiktok.com/@synthtok/video/1", "Synth Tok | TikTok"]])(),
+          : exa([["https://www.tiktok.com/@synthtok/video/1", "Synth Tok | TikTok"]])(),
+      "web /google": () => ({
+        results: [
+          {
+            site: "Instagram · synthetic.ig",
+            url: "https://www.instagram.com/p/ABC/",
+            snippet: "s",
+          },
+          { site: "Instagram", url: "https://www.instagram.com/other.ig/", snippet: "o" },
+        ],
+      }),
+      "meta /instagram/other.ig": () => ({
+        found: true,
+        profile: { username: "other.ig", name: "Other IG", followers_count: 50 },
+      }),
       "x /2/tweets/search/recent": () => {
         throw new Error("x: 429");
       },
@@ -82,10 +88,17 @@ describe("creator search", () => {
       ["linkedin", "company/synthetic-co", "https://www.linkedin.com/company/synthetic-co/"],
       ["linkedin", "in/pat-synthetic", "https://www.linkedin.com/in/pat-synthetic/"],
       ["instagram", "@synthetic.ig", "https://www.instagram.com/synthetic.ig/"],
+      ["instagram", "@other.ig", "https://www.instagram.com/other.ig/"],
       ["tiktok", "@synthtok", "https://www.tiktok.com/@synthtok"],
     ]);
     expect(out.hits.find((h) => h.site === "youtube")?.followers).toBe(1200);
-    expect(out.hits.find((h) => h.site === "instagram")?.name).toBe("Synthetic IG");
+    // Discovery can't read @synthetic.ig: it still shows, from Google's words.
+    expect(
+      out.hits.filter((h) => h.site === "instagram").map((h) => [h.name, h.followers, h.about]),
+    ).toEqual([
+      ["synthetic.ig", null, "s"],
+      ["Other IG", 50, "o"],
+    ]);
     expect(out.failed).toEqual([{ site: "x", why: "x: 429" }]);
     expect(calls.find((c) => c.path === "/search/results/people")?.account).toBe("linkedin@wren");
   });

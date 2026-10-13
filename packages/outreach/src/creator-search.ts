@@ -6,9 +6,10 @@
  *
  * - YouTube: Data API channel search, then the channels' subscriber counts.
  * - Reddit: subreddit search, signed out.
- * - LinkedIn: people search as the comments account, companies through Exa.
+ * - LinkedIn: people search as the comments account, company pages through Exa.
  * - X: the exact handle, then authors of recent posts on the words.
- * - Instagram: the exact handle through business discovery, then accounts in Exa's results.
+ * - Instagram: the exact handle, then the accounts behind Google's results, each read through
+ *   business discovery.
  * - TikTok: accounts in Exa's results.
  */
 import type { SiteClient } from "@wren/core/content";
@@ -53,22 +54,25 @@ const HANDLE = /^@?([A-Za-z0-9._]{2,30})$/;
 /** The handle when the words are one (`@acme`, `acme.staffing`), else null. */
 export const handleIn = (q: string): string | null => HANDLE.exec(q.trim())?.[1] ?? null;
 
-/** Exa's hits for words on one site: a `site:` hint, then only that host's URLs kept. */
+/** Exa's hits for words on one site: a `site:` hint (`linkedin.com/company`), then only its URLs. */
 async function exaUrls(
   sites: SiteClient,
-  host: string,
+  at: string,
   q: string,
 ): Promise<{ url: string; title: string; snippet: string }[]> {
+  const [host = at, ...under] = at.split("/");
+  const path = under.length ? `/${under.join("/")}/` : "/";
   const r = await sites.call<{ hits?: { url: string; title?: string; snippet?: string }[] }>(
     "web",
     "GET",
     "/search",
-    { q: `site:${host} ${q}`, n: 15, via: "exa" },
+    { q: `site:${at} ${q}`, n: 15, via: "exa" },
   );
   return (r.hits ?? [])
     .filter((h) => {
       try {
-        return new URL(h.url).hostname.replace(/^www\./, "").endsWith(host);
+        const u = new URL(h.url);
+        return u.hostname.replace(/^www\./, "").endsWith(host) && u.pathname.startsWith(path);
       } catch {
         return false;
       }
@@ -169,7 +173,7 @@ const linkedin: Finder = async (sites, q, accounts) => {
         )
       ).people
     : [];
-  const companies = accountsIn(await exaUrls(sites, "linkedin.com", q), (p) =>
+  const companies = accountsIn(await exaUrls(sites, "linkedin.com/company", q), (p) =>
     p[0] === "company" && p[1] ? p[1] : null,
   );
   return [
@@ -269,52 +273,66 @@ const x: Finder = async (sites, q, accounts) => {
 };
 
 const IG_NOT = new Set(["p", "reel", "reels", "explore", "stories", "accounts", "tv", "popular"]);
+/** Google's result line names a post's account: "Instagram · handle". */
+const IG_SITE = /^Instagram\s*·\s*([\w.]{1,30})$/;
+interface IgProfile {
+  username?: string;
+  name?: string;
+  biography?: string;
+  followers_count?: number;
+  profile_picture_url?: string;
+}
+
+/**
+ * The exact handle first, then the accounts behind Google's results for the words (Exa has few
+ * Instagram profiles); each read through business discovery for its followers and picture. One
+ * discovery can't read (a personal account) still shows, from Google's words.
+ */
 const instagram: Finder = async (sites, q) => {
-  const out: CreatorHit[] = [];
-  const handle = handleIn(q);
-  if (handle) {
-    const one = await sites
-      .call<
-        | {
-            found: true;
-            profile: {
-              username?: string;
-              name?: string;
-              biography?: string;
-              followers_count?: number;
-              profile_picture_url?: string;
-            };
-          }
-        | { found: false }
-      >("meta", "GET", `/instagram/${handle}`, { limit: 1 })
-      .catch(() => ({ found: false as const }));
-    if (one.found)
-      out.push({
-        site: "instagram",
-        handle: `@${one.profile.username ?? handle}`,
-        name: one.profile.name || handle,
-        url: `https://www.instagram.com/${one.profile.username ?? handle}/`,
-        follow: `https://www.instagram.com/${one.profile.username ?? handle}/`,
-        about: one.profile.biography || null,
-        followers: one.profile.followers_count ?? null,
-        avatar: one.profile.profile_picture_url ?? null,
-      });
+  const found = new Map<string, string | null>();
+  const exact = handleIn(q);
+  if (exact) found.set(exact.toLowerCase(), null);
+  const serp = await sites.call<{
+    results?: { site?: string | null; url: string; snippet?: string }[];
+  }>("web", "GET", "/google", { q: `site:instagram.com ${q}`, n: 20 });
+  for (const r of serp.results ?? []) {
+    const first = (() => {
+      try {
+        return new URL(r.url).pathname.split("/").filter(Boolean)[0] ?? "";
+      } catch {
+        return "";
+      }
+    })();
+    const h =
+      IG_SITE.exec(r.site ?? "")?.[1] ??
+      (first && !IG_NOT.has(first) && /^[\w.]{1,30}$/.test(first) ? first : null);
+    if (h && !found.has(h.toLowerCase())) found.set(h.toLowerCase(), r.snippet || null);
   }
-  for (const [h, hit] of accountsIn(await exaUrls(sites, "instagram.com", q), (p) =>
-    p[0] && !IG_NOT.has(p[0]) && /^[\w.]{1,30}$/.test(p[0]) ? p[0] : null,
-  ))
-    if (!out.some((o) => o.handle.toLowerCase() === `@${h}`))
-      out.push({
-        site: "instagram",
-        handle: `@${h}`,
-        name: nameOfTitle(hit.title, h),
-        url: `https://www.instagram.com/${h}/`,
-        follow: `https://www.instagram.com/${h}/`,
-        about: hit.snippet || null,
-        followers: null,
-        avatar: null,
-      });
-  return out.slice(0, PER_SITE);
+  const out: CreatorHit[] = [];
+  for (const [h, snippet] of [...found].slice(0, PER_SITE)) {
+    const one = await sites
+      .call<{ found: true; profile: IgProfile } | { found: false }>(
+        "meta",
+        "GET",
+        `/instagram/${h}`,
+        { limit: 1 },
+      )
+      .catch(() => ({ found: false as const }));
+    const p = one.found ? one.profile : null;
+    if (!p && h === exact?.toLowerCase() && snippet === null) continue;
+    const handle = p?.username ?? h;
+    out.push({
+      site: "instagram",
+      handle: `@${handle}`,
+      name: p?.name || handle,
+      url: `https://www.instagram.com/${handle}/`,
+      follow: `https://www.instagram.com/${handle}/`,
+      about: p?.biography || snippet,
+      followers: p?.followers_count ?? null,
+      avatar: p?.profile_picture_url ?? null,
+    });
+  }
+  return out;
 };
 
 const tiktok: Finder = async (sites, q) =>

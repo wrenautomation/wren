@@ -15,7 +15,12 @@ import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
 import { AD_FORMAT_SEED, adFormatRecord } from "../../src/social/ad-formats.js";
 import { doneRecord } from "../../src/social/done-record.js";
-import { approvalRecord, engageRecord, inboxRecord } from "../../src/social/records.js";
+import {
+  approvalRecord,
+  engageRecord,
+  exploreRecord,
+  inboxRecord,
+} from "../../src/social/records.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -291,6 +296,38 @@ describe("marketing.engage: every reply in one queue", () => {
       waiting.every((r) => ["thread", "onpost", "comment", "dm"].includes(String(r.type))),
     ).toBe(true);
     expect(await engageRecord.load?.(pg.db, `onpost:${p!.id}`)).toMatchObject({ ask: [] });
+  });
+});
+
+describe("marketing.explore: found, not followed or picked yet", () => {
+  it("found posts and ranked threads, best fit first; picked and old ones stay out", async () => {
+    const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
+        found_by, account, fit, why, state, raw)
+      values ('linkedin', 'urn:li:activity:9911', 'Found Author', 'a found synthetic post',
+        'https://www.linkedin.com/feed/update/urn:li:activity:9911/', 'topic', 'linkedin@wren',
+        70, 'synthetic topic', 'found', '{}')
+      returning id`)) as unknown as { id: number }[];
+    await pg.db.execute(
+      sql`insert into reddit_places (subreddit, name, found_by) values ('syntheticsub', 'syntheticsub', 'test')`,
+    );
+    await pg.db.execute(sql`insert into reddit_threads (id, subreddit, title, body, author, url,
+        posted_at, comments, raw, fit, angle, state)
+      values ('t3_syn1', 'syntheticsub', 'A ranked thread', 'its words', 'someone',
+          'https://www.reddit.com/r/syntheticsub/comments/syn1/', now(), 3, '{}', 9, 'fits', 'ranked'),
+        ('t3_syn2', 'syntheticsub', 'An old one', '', 'someone',
+          'https://www.reddit.com/r/syntheticsub/comments/syn2/', now() - interval '5 days', 3, '{}',
+          9, 'fits', 'ranked'),
+        ('t3_syn3', 'syntheticsub', 'Queued', '', 'someone',
+          'https://www.reddit.com/r/syntheticsub/comments/syn3/', now(), 3, '{}', 9, 'fits', 'queued')`);
+    const api = serveRecords([exploreRecord], pg.db);
+    for (const v of exploreRecord.views)
+      await api.list({ record: exploreRecord.id, view: v.id, limit: 50 });
+    const best = (await api.list({ record: exploreRecord.id, view: "best", limit: 50 })).rows;
+    expect(best.map((r) => r.id)).toEqual([`onpost:${p!.id}`, "thread:t3_syn1"]);
+    expect(best[1]).toMatchObject({ where: "r/syntheticsub", why: "fits", platform: "reddit" });
+    expect(await exploreRecord.load?.(pg.db, "thread:t3_syn1")).toMatchObject({
+      body: "A ranked thread\n\nits words",
+    });
   });
 });
 

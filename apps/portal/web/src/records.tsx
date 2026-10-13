@@ -368,6 +368,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("ReachDesk", "actOnPost", { id: num(id), act: "like" }, { confirm: "actOnPost" }),
   "marketing/onpostFollow": (id) =>
     handlerCall("ReachDesk", "actOnPost", { id: num(id), act: "follow" }, { confirm: "actOnPost" }),
+  // Feed's Explore: a found post or thread, picked as if pasted.
+  "marketing/exploreReply": (id) => handlerCall("ReachDesk", "pick", { id, act: "reply" }),
+  "marketing/exploreFollow": (id) => handlerCall("ReachDesk", "pick", { id, act: "follow" }),
   "marketing/onpostSkip": (id, { reason, note }) =>
     handlerCall("ReachDesk", "skipPost", { ids: [num(id)], reason, note }),
   // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.

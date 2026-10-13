@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import {
@@ -60,13 +60,8 @@ export function SourcesPage({ client }: PageProps) {
   return <SourcesBody title="Sources" />;
 }
 
-/** Marketing → Feed: the same list, Learn's and Marketing's one set of follows. */
-export function FeedPage({ client }: PageProps) {
-  inWorkspace(client);
-  return <SourcesBody title="Feed" />;
-}
-
-function SourcesBody({ title }: { title: string }) {
+/** The list with the search on top; Marketing → Feed shows it too, one set of follows. */
+export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }) {
   const load = useCall(keyOf("learn.sources"), learn.sources);
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
@@ -81,6 +76,7 @@ function SourcesBody({ title }: { title: string }) {
             <span className="text-[14px] text-(--ui-ink-2) tabular-nums">{total}</span>
           ) : null}
         </div>
+        {tabs}
         {clientOf() === null ? <FindCreators /> : null}
         <Follow />
       </header>

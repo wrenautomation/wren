@@ -1117,6 +1117,98 @@ export const engageRecord = defineRecord({
   },
 });
 
+/** Found posts (last 7 days) and ranked Reddit threads (last 3), best fit first: Explore's rows. */
+const exploreRows = async (db: Queryable, id?: string) => {
+  const [type, key] = id ? typed(id) : [null, null];
+  const posts =
+    type === null || type === "onpost"
+      ? await rowsOf(
+          db,
+          sql`select id, platform, author, text, why, fit, url, coalesce(posted_at, created_at) at
+            from reach_posts where state = 'found'
+              and ${key === null ? sql`created_at > now() - interval '7 days'` : sql`id = ${Number(key)}`}
+            order by fit desc nulls last, id desc limit ${EXPLORE_ROWS}`,
+        )
+      : [];
+  const threads =
+    type === null || type === "thread"
+      ? await rowsOf(
+          db,
+          sql`select id, subreddit, author, title, body, angle, fit, url, posted_at
+            from reddit_threads where state = 'ranked'
+              and ${key === null ? sql`posted_at > now() - interval '3 days'` : sql`id = ${key}`}
+            order by fit desc nulls last, posted_at desc limit ${EXPLORE_ROWS}`,
+        )
+      : [];
+  return [
+    ...posts.map((p) => ({
+      id: `onpost:${p.id}`,
+      type: "onpost",
+      who: p.author,
+      platform: p.platform,
+      where: null,
+      body: p.text,
+      why: p.why,
+      fit: p.fit,
+      at: p.at,
+      url: p.url,
+    })),
+    ...threads.map((t) => ({
+      id: `thread:${t.id}`,
+      type: "thread",
+      who: t.author,
+      platform: "reddit",
+      where: `r/${t.subreddit}`,
+      body: t.body ? `${t.title}\n\n${t.body}` : t.title,
+      why: t.angle,
+      fit: t.fit,
+      at: t.posted_at,
+      url: t.url,
+    })),
+  ];
+};
+const EXPLORE_ROWS = 150;
+
+/**
+ * Marketing → Feed's Explore: what the topic searches and subreddit reads found that no one
+ * follows or picked yet. Reply drafts on it now, Follow follows its author (a thread: its
+ * subreddit), Skip keeps it out (`ReachDesk.pick`, `skipPost`, `skipThread`).
+ */
+export const exploreRecord = defineRecord({
+  id: "marketing.explore",
+  app: "marketing",
+  channel: { field: "platform" },
+  name: { one: "find", many: "finds" },
+  rows: (db) => exploreRows(db),
+  key: "id",
+  title: "who",
+  subtitle: "body",
+  fields: {
+    who: name("Who"),
+    type: status(cued({ thread: neutral("Reddit thread"), onpost: neutral("Post") }), "Type"),
+    platform: status(PLATFORM_LABELS, "Site"),
+    where: text("Where"),
+    body: prose("Their words"),
+    why: text("Found for"),
+    fit: number("Fit"),
+    at: date("When"),
+    url: link("Open"),
+  },
+  views: [
+    { id: "best", label: "Best fit", sort: "-fit", at: "at" },
+    { id: "posts", label: "Posts", where: { type: "onpost" }, sort: "-fit", at: "at" },
+    { id: "reddit", label: "Reddit", where: { type: "thread" }, sort: "-fit", at: "at" },
+    { id: "new", label: "Newest", sort: "-at", at: "at" },
+  ],
+  actions: [
+    "marketing.exploreReply",
+    "marketing.exploreFollow",
+    "marketing.onpostSkip",
+    "marketing.threadSkip",
+  ],
+  load: async (db, id) => (await exploreRows(db, id))[0] ?? null,
+});
+
 /** An asked reply's access channel: texts are `sms`, email `email`; a DM's or comment's, none here. */
 const askedVia = (channel: string) =>
   channel === "text" ? "sms" : channel === "email" ? "email" : null;
@@ -1240,6 +1332,7 @@ export const socialRecords = (signer?: VideoSigner) => [
   inboxRecord,
   approvalRecordOf(signer),
   engageRecord,
+  exploreRecord,
   doneRecord,
   adFormatRecord,
   keywordRecord,

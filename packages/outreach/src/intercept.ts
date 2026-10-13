@@ -241,3 +241,42 @@ export async function holdPasted(db: Queryable, id: number, now: Date): Promise<
     .set({ state: "queued", draft: null, stateReason: null, queuedAt: now })
     .where(eq(reachPosts.id, id));
 }
+
+/**
+ * The link a found row stands for, picked from Explore: `reply` its own address; `follow` its
+ * author's (X and Instagram by handle, LinkedIn by profile), or a thread's subreddit.
+ */
+export async function pickedUrl(
+  db: Queryable,
+  id: string,
+  act: "reply" | "follow",
+): Promise<string> {
+  const at = id.indexOf(":");
+  const [type, key] = [id.slice(0, at), id.slice(at + 1)];
+  if (type === "thread") {
+    const [t] = await db
+      .select({ url: redditThreads.url, subreddit: redditThreads.subreddit })
+      .from(redditThreads)
+      .where(eq(redditThreads.id, key));
+    if (!t) throw new ReachRefusal(`no thread ${key}`);
+    return act === "reply" ? t.url : `https://www.reddit.com/r/${t.subreddit}/`;
+  }
+  const [p] = await db
+    .select({
+      platform: reachPosts.platform,
+      url: reachPosts.url,
+      ref: reachPosts.ref,
+      handle: reachPosts.handle,
+      authorUrl: reachPosts.authorUrl,
+    })
+    .from(reachPosts)
+    .where(eq(reachPosts.id, Number(key)));
+  if (!p) throw new ReachRefusal(`no post ${key}`);
+  if (act === "reply") return p.url || postUrlOf(p.platform, p.ref);
+  if (p.platform === "linkedin" && p.authorUrl) return p.authorUrl;
+  const handle = p.handle?.replace(/^@/, "");
+  if (handle && p.platform !== "linkedin")
+    return p.platform === "x" ? `https://x.com/${handle}` : `https://www.instagram.com/${handle}/`;
+  if (p.authorUrl) return p.authorUrl;
+  throw new ReachRefusal("its author has no address to follow");
+}

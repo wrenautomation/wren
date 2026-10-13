@@ -127,6 +127,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.inbox",
         "marketing.approval",
         "marketing.engage",
+        "marketing.explore",
         "marketing.done",
         "marketing.comment_keyword",
         "marketing.keyword_hit",
