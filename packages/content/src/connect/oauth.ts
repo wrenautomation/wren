@@ -21,8 +21,11 @@ export const GBP_ACCOUNTS = "https://mybusinessaccountmanagement.googleapis.com/
 /** Business Profile locations (v1) and their posts and reviews (v4). */
 export const GBP_INFO = "https://mybusinessbusinessinformation.googleapis.com/v1";
 export const GBP_API = "https://mybusiness.googleapis.com";
-/** LinkedIn's versioned REST API: the month it speaks. */
-export const LINKEDIN_VERSION = "202508";
+/**
+ * LinkedIn's versioned REST API: the month it speaks. A version lives a year, then every call
+ * answers 426 (202508 lapsed by 2026-10-13); 202609 runs to about 2027-09.
+ */
+export const LINKEDIN_VERSION = "202609";
 export const X_API = "https://api.x.com";
 export const TIKTOK_API = "https://open.tiktokapis.com";
 
