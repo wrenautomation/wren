@@ -85,12 +85,17 @@ function accountsIn(
   hits: { url: string; title: string; snippet: string }[],
   keep: (parts: string[]) => string | null,
 ) {
-  const seen = new Map<string, { title: string; snippet: string }>();
+  // `profile`: the hit is the account's own page, so its title is the account's name; a video's
+  // title is the video's.
+  const seen = new Map<string, { title: string; snippet: string; profile: boolean }>();
   for (const h of hits) {
     const parts = new URL(h.url).pathname.split("/").filter(Boolean).map(decodeURIComponent);
     const handle = keep(parts);
-    if (handle && !seen.has(handle.toLowerCase()))
-      seen.set(handle.toLowerCase(), { title: h.title, snippet: h.snippet });
+    if (!handle) continue;
+    const profile = parts.length === 1;
+    const had = seen.get(handle.toLowerCase());
+    if (!had || (profile && !had.profile))
+      seen.set(handle.toLowerCase(), { title: h.title, snippet: h.snippet, profile });
   }
   return [...seen.entries()];
 }
@@ -284,7 +289,7 @@ interface IgProfile {
 }
 
 /**
- * The exact handle first, then the accounts behind Google's results for the words (Exa has few
+ * The exact handle first, then the accounts behind Google's results for the words, as a phrase (Exa has few
  * Instagram profiles); each read through business discovery for its followers and picture. One
  * discovery can't read (a personal account) still shows, from Google's words.
  */
@@ -294,7 +299,7 @@ const instagram: Finder = async (sites, q) => {
   if (exact) found.set(exact.toLowerCase(), null);
   const serp = await sites.call<{
     results?: { site?: string | null; url: string; snippet?: string }[];
-  }>("web", "GET", "/google", { q: `site:instagram.com ${q}`, n: 20 });
+  }>("web", "GET", "/google", { q: `site:instagram.com ${/\s/.test(q) ? `"${q}"` : q}`, n: 20 });
   for (const r of serp.results ?? []) {
     const first = (() => {
       try {
@@ -343,7 +348,7 @@ const tiktok: Finder = async (sites, q) =>
     .map(([h, hit]) => ({
       site: "tiktok" as const,
       handle: `@${h}`,
-      name: nameOfTitle(hit.title, h),
+      name: hit.profile ? nameOfTitle(hit.title, h) : h,
       url: `https://www.tiktok.com/@${h}`,
       follow: `https://www.tiktok.com/@${h}`,
       about: hit.snippet || null,

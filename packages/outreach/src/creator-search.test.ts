@@ -92,6 +92,8 @@ describe("creator search", () => {
       ["tiktok", "@synthtok", "https://www.tiktok.com/@synthtok"],
     ]);
     expect(out.hits.find((h) => h.site === "youtube")?.followers).toBe(1200);
+    // A video's title names the video, so the account goes by its handle.
+    expect(out.hits.find((h) => h.site === "tiktok")?.name).toBe("synthtok");
     // Discovery can't read @synthetic.ig: it still shows, from Google's words.
     expect(
       out.hits.filter((h) => h.site === "instagram").map((h) => [h.name, h.followers, h.about]),
