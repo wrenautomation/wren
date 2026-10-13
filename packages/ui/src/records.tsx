@@ -25,8 +25,10 @@ import {
   ArrowRight,
   ArrowUp,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   Columns3,
+  Ellipsis,
   Maximize2,
   X,
 } from "lucide-react";
@@ -888,7 +890,7 @@ function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
 
 /**
  * The columns a list draws: what's picked, less those blank on every row shown or only repeating the title (unless picked
- * by hand), and on a phone only the title and the first state that tells the rows apart.
+ * by hand), and on a phone the title, the first state that tells the rows apart, and the next fields, three at most.
  */
 export function shownColumns(
   meta: RecordMeta,
@@ -914,11 +916,20 @@ export function shownColumns(
           (f) => f.key === meta.title || (rows.some((r) => !blank(r[f.key])) && !repeats(f)),
         );
   if (!narrow) return filled;
+  const tells = (f: FieldMeta) => new Set(rows.map((r) => String(r[f.key] ?? ""))).size > 1;
   const states = filled.filter((f) => f.key !== meta.title && f.kind === "status");
-  const state =
-    states.find((f) => new Set(rows.map((r) => String(r[f.key] ?? ""))).size > 1) ?? states[0];
-  return filled.filter((f) => f.key === meta.title || f === state);
+  const state = states.find(tells) ?? states[0];
+  // A card: the title, the state, then the next fields, up to three; a state the same on every
+  // row says nothing.
+  const rest = filled.filter(
+    (f) => f.key !== meta.title && f !== state && (f.kind !== "status" || tells(f)),
+  );
+  const lead = filled.filter((f) => f.key === meta.title);
+  return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
 }
+
+/** How many fields a phone's card shows under its title. */
+const NARROW_FIELDS = 3;
 
 export function ListSkeleton() {
   return (
@@ -986,6 +997,7 @@ function List({
   /** The rows the last action changed: they wash once the list has read them again. */
   const [changed, setChanged] = useState<Set<string>>(new Set());
   const body = useRef<HTMLTableSectionElement>(null);
+  const cards = useRef<HTMLUListElement>(null);
   const many = meta.name.many;
   const actions = actsOf(meta, acts);
   const acted = (ids: (string | number)[]) => {
@@ -1016,7 +1028,9 @@ function List({
         const next = Math.max(0, Math.min(k.rows.length - 1, at + step));
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
-        body.current?.querySelector(`[data-row="${next}"]`)?.scrollIntoView({ block: "nearest" });
+        (body.current ?? cards.current)
+          ?.querySelector(`[data-row="${next}"]`)
+          ?.scrollIntoView({ block: "nearest" });
       } else if (e.key === "Enter" && k.openIndex < 0 && at >= 0) k.openAt(at);
       else if (e.key === "Escape" && k.openIndex >= 0)
         k.place.go(k.place.link({ [k.one]: null, tab: null }), true);
@@ -1103,42 +1117,67 @@ function List({
     });
 
   const headed = head?.(meta, () => acted([]));
+  const forms = actions.filter((a) => a.form && !a.each);
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className={PAGE_TITLE}>{title ?? cap(many)}</h1>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {actions.map((a) =>
-            a.form && !a.each ? (
-              <Button key={a.id} size="dense" onClick={() => run(a, [])}>
-                {a.label}
+        {narrow ? (
+          // A phone: the first action stays a button, the rest wait behind one menu.
+          <div className="flex items-center gap-2">
+            {forms[0] ? (
+              <Button size="dense" onClick={() => run(forms[0] as Action, [])}>
+                {forms[0].label}
               </Button>
-            ) : null,
-          )}
-          <ColumnPicker meta={meta} place={place} columns={columns} />
-          <Button
-            tone="quiet"
-            size="dense"
-            icon="download"
-            disabled={!page.data?.total}
-            aria-label="Export CSV"
-            onClick={() => void exportAs("csv")}
-          >
-            <span className="max-sm:hidden">Export </span>CSV
-          </Button>
-          {meta.drafts ? (
+            ) : null}
+            <HeadMenu
+              items={[
+                ...forms.slice(1).map((a) => ({ label: a.label, run: () => run(a, []) })),
+                ...(page.data?.total
+                  ? [
+                      { label: "Export CSV", run: () => void exportAs("csv") },
+                      ...(meta.drafts
+                        ? [{ label: "Export JSONL", run: () => void exportAs("jsonl") }]
+                        : []),
+                    ]
+                  : []),
+              ]}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {actions.map((a) =>
+              a.form && !a.each ? (
+                <Button key={a.id} size="dense" onClick={() => run(a, [])}>
+                  {a.label}
+                </Button>
+              ) : null,
+            )}
+            <ColumnPicker meta={meta} place={place} columns={columns} />
             <Button
               tone="quiet"
               size="dense"
               icon="download"
               disabled={!page.data?.total}
-              aria-label="Export JSONL"
-              onClick={() => void exportAs("jsonl")}
+              aria-label="Export CSV"
+              onClick={() => void exportAs("csv")}
             >
-              <span className="max-sm:hidden">Export </span>JSONL
+              <span className="max-sm:hidden">Export </span>CSV
             </Button>
-          ) : null}
-        </div>
+            {meta.drafts ? (
+              <Button
+                tone="quiet"
+                size="dense"
+                icon="download"
+                disabled={!page.data?.total}
+                aria-label="Export JSONL"
+                onClick={() => void exportAs("jsonl")}
+              >
+                <span className="max-sm:hidden">Export </span>JSONL
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
       {/* The page's own line (a note, a status, a quick form) under its title, not in its tools. */}
       {headed ? (
@@ -1190,189 +1229,243 @@ function List({
         <div
           ref={scroller}
           className={cn(
-            // Framed; its last row drops its rule, which the frame draws.
-            "max-h-[calc(100dvh-280px)] overflow-auto border border-(--ui-hair) transition-opacity [&_tbody>tr:last-child]:border-b-0",
+            // Framed; its last row drops its rule, which the frame draws. A phone's cards scroll
+            // with the page, not in a box of their own.
+            "border border-(--ui-hair) transition-opacity [&_tbody>tr:last-child]:border-b-0",
+            !narrow && "max-h-[calc(100dvh-280px)] overflow-auto",
             page.loading && page.data && "opacity-60",
           )}
         >
-          <table
-            // An empty view shows what fills it, not a row of column heads over nothing.
-            className={cn(
-              "w-full table-fixed border-collapse text-[13px]",
-              page.data && !rows.length && "hidden",
-            )}
-            style={{
-              minWidth: narrow
-                ? undefined
-                : 72 +
-                  cols.reduce((n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)), 0),
-            }}
-          >
-            <colgroup>
-              <col style={{ width: 36 }} />
-              {cols.map((f) => (
-                // A column with no width takes what the others leave; the min width keeps its share.
-                <col
-                  key={f.key}
-                  style={widths[f.key] === undefined ? undefined : { width: widths[f.key] }}
-                />
-              ))}
-              <col style={{ width: 36 }} />
-            </colgroup>
-            <thead>
-              <tr className="text-[12px] text-(--ui-ink-2) [&>th]:font-semibold">
-                <th className="sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) pl-2.5 text-left">
-                  <input
-                    type="checkbox"
-                    aria-label={`Select every ${meta.name.one} shown`}
-                    checked={allPicked}
-                    onChange={() =>
-                      setPicked(allPicked ? new Set() : new Set(rows.map((r) => String(r.id))))
-                    }
-                    className="size-3.5 align-middle accent-(--ui-ink)"
-                  />
-                </th>
-                {cols.map((f) => (
-                  <th
-                    key={f.key}
-                    scope="col"
-                    title={f.label}
-                    className={cn(
-                      // A long head takes two lines, so its column fits its numbers.
-                      "sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) px-3 py-1 leading-tight",
-                      f.column?.align === "end" ? "text-right" : "text-left",
-                    )}
-                  >
-                    <SortHead field={f} place={place} sort={sort} />
-                  </th>
-                ))}
-                <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)" />
-              </tr>
-            </thead>
-            <tbody ref={body}>
+          {narrow ? (
+            <ul ref={cards} className={cn("list-none", page.data && !rows.length && "hidden")}>
               {!page.data
-                ? Array.from({ length: 10 }, (_, i) => (
+                ? Array.from({ length: 8 }, (_, i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                    <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
-                      <td colSpan={cols.length + 2} className="px-3">
-                        <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
-                      </td>
-                    </tr>
+                    <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
+                      <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
+                      <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
+                    </li>
                   ))
                 : rows.map((r, i) => {
                     const id = String(r.id);
-                    const open = id === openId;
                     const g = grouped ? String(r[grouped.key] ?? "") : null;
-                    const head =
-                      grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
-                        <GroupHead field={grouped} value={g ?? ""} span={cols.length + 2} />
-                      ) : null;
                     return (
                       <Fragment key={id}>
-                        {head}
-                        <tr
-                          data-row={i}
-                          onClick={(e) => {
-                            // Its checkbox, links and buttons do their own thing.
-                            if ((e.target as Element).closest("input, a, button")) return;
+                        {grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
+                          <li className="border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
+                            <span className="inline-flex items-center gap-1.5">
+                              <FieldCell field={grouped} cell={r[grouped.key]} />
+                            </span>
+                          </li>
+                        ) : null}
+                        <RowCard
+                          meta={meta}
+                          row={r}
+                          index={i}
+                          fields={cols.filter((f) => f.key !== meta.title)}
+                          preview={preview}
+                          href={place.link({ [meta.name.one]: id, tab: null })}
+                          open={id === openId}
+                          changed={changed.has(id) && !page.loading}
+                          picked={picked.has(id)}
+                          onPick={() => pick(id)}
+                          onOpen={() => {
                             setCursor(i);
                             openAt(i);
                           }}
-                          onAnimationEnd={(e) => {
-                            if (e.animationName === "ui-changed") setChanged(new Set());
-                          }}
-                          className={cn(
-                            "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair)",
-                            open
-                              ? "bg-(--ui-fill)"
-                              : i === cursor
-                                ? "bg-(--ui-hover)"
-                                : "hover:bg-(--ui-hover)",
-                            changed.has(id) && !page.loading && "animate-ui-changed",
-                          )}
-                        >
-                          <td className="pl-2.5">
-                            <input
-                              type="checkbox"
-                              aria-label={`Select ${titleOf(meta, r)}`}
-                              checked={picked.has(id)}
-                              onChange={() => pick(id)}
-                              className="size-3.5 align-middle accent-(--ui-ink)"
-                            />
-                          </td>
-                          {cols.map((f) => (
-                            <td
-                              key={f.key}
-                              className={cn(
-                                "px-3",
-                                // On a phone the title takes two lines before it cuts.
-                                // A cut cell drops its break chances: Chrome breaks at <wbr> even
-                                // under nowrap, so "example.com" wrapped onto two lines.
-                                narrow && f.key === meta.title ? "py-2" : "truncate [&_wbr]:hidden",
-                                !narrow && f.key === meta.title && preview && "py-1.5",
-                                f.column?.align === "end" ? "text-right" : "text-left",
-                                f.key !== meta.title && "text-(--ui-ink-2)",
-                              )}
-                            >
-                              {f.key === meta.title ? (
-                                <a
-                                  href={place.link({ [meta.name.one]: id, tab: null })}
-                                  className={cn(
-                                    "font-medium text-(--ui-ink) no-underline",
-                                    // Cut inside the link, so focusing it never scrolls the cell sideways.
-                                    // A phone breaks a long word (an address) rather than clip it.
-                                    narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
-                                  )}
-                                >
-                                  {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
-                                </a>
-                              ) : null}
-                              {f.key === meta.title && preview ? (
-                                // A message's first words under who sent it, as a mail list shows.
-                                <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
-                                  {firstWords(textOf(r[preview.key]))}
-                                </span>
-                              ) : f.key === meta.title ? null : (
-                                <FieldCell field={f} cell={r[f.key]} />
-                              )}
-                            </td>
-                          ))}
-                          <td className="pr-2 text-right">
-                            <a
-                              href={place.page(id)}
-                              aria-label={`Open ${titleOf(meta, r)}'s page`}
-                              title="Open as a page"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
-                            >
-                              <Maximize2 className="size-3.5" />
-                            </a>
-                          </td>
-                        </tr>
+                          onSettled={() => setChanged(new Set())}
+                        />
                       </Fragment>
                     );
                   })}
-            </tbody>
-            {footed ? (
-              <tfoot>
-                <tr className="text-[12px] text-(--ui-ink-2)">
-                  <td className="sticky bottom-0 h-9 border-t border-(--ui-edge) bg-(--ui-paper)" />
+            </ul>
+          ) : (
+            <table
+              // An empty view shows what fills it, not a row of column heads over nothing.
+              className={cn(
+                "w-full table-fixed border-collapse text-[13px]",
+                page.data && !rows.length && "hidden",
+              )}
+              style={{
+                minWidth: narrow
+                  ? undefined
+                  : 72 +
+                    cols.reduce(
+                      (n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)),
+                      0,
+                    ),
+              }}
+            >
+              <colgroup>
+                <col style={{ width: 36 }} />
+                {cols.map((f) => (
+                  // A column with no width takes what the others leave; the min width keeps its share.
+                  <col
+                    key={f.key}
+                    style={widths[f.key] === undefined ? undefined : { width: widths[f.key] }}
+                  />
+                ))}
+                <col style={{ width: 36 }} />
+              </colgroup>
+              <thead>
+                <tr className="text-[12px] text-(--ui-ink-2) [&>th]:font-semibold">
+                  <th className="sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) pl-2.5 text-left">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select every ${meta.name.one} shown`}
+                      checked={allPicked}
+                      onChange={() =>
+                        setPicked(allPicked ? new Set() : new Set(rows.map((r) => String(r.id))))
+                      }
+                      className="size-3.5 align-middle accent-(--ui-ink)"
+                    />
+                  </th>
                   {cols.map((f) => (
-                    <td
+                    <th
                       key={f.key}
+                      scope="col"
+                      title={f.label}
                       className={cn(
-                        "sticky bottom-0 truncate border-t border-(--ui-edge) bg-(--ui-paper) px-3",
+                        // A long head takes two lines, so its column fits its numbers.
+                        "sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) px-3 py-1 leading-tight",
                         f.column?.align === "end" ? "text-right" : "text-left",
                       )}
                     >
-                      <FieldTotal field={f} total={totals?.[f.key]} to={place.link} />
-                    </td>
+                      <SortHead field={f} place={place} sort={sort} />
+                    </th>
                   ))}
-                  <td className="sticky bottom-0 border-t border-(--ui-edge) bg-(--ui-paper)" />
+                  <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)" />
                 </tr>
-              </tfoot>
-            ) : null}
-          </table>
+              </thead>
+              <tbody ref={body}>
+                {!page.data
+                  ? Array.from({ length: 10 }, (_, i) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+                      <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
+                        <td colSpan={cols.length + 2} className="px-3">
+                          <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
+                        </td>
+                      </tr>
+                    ))
+                  : rows.map((r, i) => {
+                      const id = String(r.id);
+                      const open = id === openId;
+                      const g = grouped ? String(r[grouped.key] ?? "") : null;
+                      const head =
+                        grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
+                          <GroupHead field={grouped} value={g ?? ""} span={cols.length + 2} />
+                        ) : null;
+                      return (
+                        <Fragment key={id}>
+                          {head}
+                          <tr
+                            data-row={i}
+                            onClick={(e) => {
+                              // Its checkbox, links and buttons do their own thing.
+                              if ((e.target as Element).closest("input, a, button")) return;
+                              setCursor(i);
+                              openAt(i);
+                            }}
+                            onAnimationEnd={(e) => {
+                              if (e.animationName === "ui-changed") setChanged(new Set());
+                            }}
+                            className={cn(
+                              "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair)",
+                              open
+                                ? "bg-(--ui-fill)"
+                                : i === cursor
+                                  ? "bg-(--ui-hover)"
+                                  : "hover:bg-(--ui-hover)",
+                              changed.has(id) && !page.loading && "animate-ui-changed",
+                            )}
+                          >
+                            <td className="pl-2.5">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${titleOf(meta, r)}`}
+                                checked={picked.has(id)}
+                                onChange={() => pick(id)}
+                                className="size-3.5 align-middle accent-(--ui-ink)"
+                              />
+                            </td>
+                            {cols.map((f) => (
+                              <td
+                                key={f.key}
+                                className={cn(
+                                  "px-3",
+                                  // On a phone the title takes two lines before it cuts.
+                                  // A cut cell drops its break chances: Chrome breaks at <wbr> even
+                                  // under nowrap, so "example.com" wrapped onto two lines.
+                                  narrow && f.key === meta.title
+                                    ? "py-2"
+                                    : "truncate [&_wbr]:hidden",
+                                  !narrow && f.key === meta.title && preview && "py-1.5",
+                                  f.column?.align === "end" ? "text-right" : "text-left",
+                                  f.key !== meta.title && "text-(--ui-ink-2)",
+                                )}
+                              >
+                                {f.key === meta.title ? (
+                                  <a
+                                    href={place.link({ [meta.name.one]: id, tab: null })}
+                                    className={cn(
+                                      "font-medium text-(--ui-ink) no-underline",
+                                      // Cut inside the link, so focusing it never scrolls the cell sideways.
+                                      // A phone breaks a long word (an address) rather than clip it.
+                                      narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
+                                    )}
+                                  >
+                                    {titleOf(meta, r) || (
+                                      <span className="text-(--ui-ink-3)">-</span>
+                                    )}
+                                  </a>
+                                ) : null}
+                                {f.key === meta.title && preview ? (
+                                  // A message's first words under who sent it, as a mail list shows.
+                                  <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
+                                    {firstWords(textOf(r[preview.key]))}
+                                  </span>
+                                ) : f.key === meta.title ? null : (
+                                  <FieldCell field={f} cell={r[f.key]} />
+                                )}
+                              </td>
+                            ))}
+                            <td className="pr-2 text-right">
+                              <a
+                                href={place.page(id)}
+                                aria-label={`Open ${titleOf(meta, r)}'s page`}
+                                title="Open as a page"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
+                              >
+                                <Maximize2 className="size-3.5" />
+                              </a>
+                            </td>
+                          </tr>
+                        </Fragment>
+                      );
+                    })}
+              </tbody>
+              {footed ? (
+                <tfoot>
+                  <tr className="text-[12px] text-(--ui-ink-2)">
+                    <td className="sticky bottom-0 h-9 border-t border-(--ui-edge) bg-(--ui-paper)" />
+                    {cols.map((f) => (
+                      <td
+                        key={f.key}
+                        className={cn(
+                          "sticky bottom-0 truncate border-t border-(--ui-edge) bg-(--ui-paper) px-3",
+                          f.column?.align === "end" ? "text-right" : "text-left",
+                        )}
+                      >
+                        <FieldTotal field={f} total={totals?.[f.key]} to={place.link} />
+                      </td>
+                    ))}
+                    <td className="sticky bottom-0 border-t border-(--ui-edge) bg-(--ui-paper)" />
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          )}
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
               {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
@@ -1450,6 +1543,124 @@ function List({
   );
 }
 
+/** A phone's list head: what doesn't fit beside the first action, behind one button. */
+function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  if (!items.length) return null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        aria-label="More actions"
+        className="inline-grid size-11 place-items-center border border-(--ui-hair) bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)"
+      >
+        <Ellipsis className="size-4" />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 gap-0 p-1">
+        {items.map((it) => (
+          <button
+            key={it.label}
+            type="button"
+            className="flex h-11 w-full items-center border-0 bg-transparent px-3 text-left text-[15px] text-(--ui-ink) hover:bg-(--ui-hover)"
+            onClick={() => {
+              setOpen(false);
+              it.run();
+            }}
+          >
+            {it.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
+ * One row on a phone: a card a thumb can hit, its title on two lines, the first words under it,
+ * then three of its fields. A tap opens the record; the box picks it for the bulk actions.
+ */
+function RowCard({
+  meta,
+  row,
+  index,
+  fields,
+  preview,
+  href,
+  open,
+  changed,
+  picked,
+  onPick,
+  onOpen,
+  onSettled,
+}: {
+  meta: RecordMeta;
+  row: Row;
+  index: number;
+  fields: FieldMeta[];
+  preview: FieldMeta | undefined;
+  href: string;
+  open: boolean;
+  changed: boolean;
+  picked: boolean;
+  onPick: () => void;
+  onOpen: () => void;
+  onSettled: () => void;
+}) {
+  const title = titleOf(meta, row);
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: its title is the link; the card widens the tap.
+    <li
+      data-row={index}
+      onClick={(e) => {
+        // Its box, links and buttons do their own thing.
+        if ((e.target as Element).closest("input, a, button, label")) return;
+        onOpen();
+      }}
+      onAnimationEnd={(e) => {
+        if (e.animationName === "ui-changed") onSettled();
+      }}
+      className={cn(
+        "flex min-h-14 cursor-pointer items-start border-b border-(--ui-hair) last:border-b-0 active:bg-(--ui-hover)",
+        open && "bg-(--ui-fill)",
+        changed && "animate-ui-changed",
+      )}
+    >
+      <label className="grid size-12 flex-none cursor-pointer place-items-center">
+        <input
+          type="checkbox"
+          aria-label={`Select ${title}`}
+          checked={picked}
+          onChange={onPick}
+          className="accent-(--ui-ink)"
+        />
+      </label>
+      <div className="grid min-w-0 flex-1 gap-1 py-3 pr-4">
+        <a
+          href={href}
+          className="line-clamp-2 text-[15px] leading-snug font-medium text-(--ui-ink) no-underline wrap-anywhere"
+        >
+          {title || <span className="text-(--ui-ink-3)">-</span>}
+        </a>
+        {preview ? (
+          <span className="line-clamp-2 text-[13.5px] leading-snug text-(--ui-ink-2)">
+            {firstWords(textOf(row[preview.key]))}
+          </span>
+        ) : null}
+        {fields.length ? (
+          <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-2) [&>*]:max-w-full [&>*]:min-w-0 [&>*]:truncate">
+            {fields.map((f) =>
+              blank(row[f.key]) ? null : (
+                <span key={f.key} title={f.label}>
+                  <FieldCell field={f} cell={row[f.key]} />
+                </span>
+              ),
+            )}
+          </span>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
 /** An empty view points at the first view that has rows: "No DM waits on you." then "All 12". */
 function ElseWhere({
   meta,
@@ -1485,7 +1696,7 @@ export function Kbd({ children }: { children: ReactNode }) {
 }
 
 const ICON =
-  "inline-flex size-8 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
+  "inline-flex size-8 pointer-coarse:size-11 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
 /** A record beside its list: up and down walk the list, a link opens it as a page. */
 export function Panel({
@@ -1523,7 +1734,15 @@ export function Panel({
         "fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-shadow) sm:w-[560px]",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3">
+      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3 max-sm:box-content max-sm:h-14 max-sm:pt-[env(safe-area-inset-top)] max-sm:pr-[max(12px,env(safe-area-inset-right))] max-sm:pl-[max(4px,env(safe-area-inset-left))]">
+        {/* A phone: the panel is the screen, so the way back leads. */}
+        <a
+          href={place.link({ [meta.name.one]: null, tab: null })}
+          className="inline-flex h-11 items-center gap-1 pr-3 pl-1 text-[15px] font-medium text-(--ui-ink) no-underline sm:hidden"
+        >
+          <ChevronLeft className="size-5" />
+          {cap(meta.name.many)}
+        </a>
         <button
           type="button"
           className={ICON}
@@ -1544,7 +1763,7 @@ export function Panel({
         >
           <ChevronDown className="size-4" />
         </button>
-        <span className="ml-1 text-[12px] text-(--ui-ink-3)">
+        <span className="ml-1 text-[12px] text-(--ui-ink-3) max-sm:hidden">
           {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
         </span>
         <a
@@ -1557,14 +1776,14 @@ export function Panel({
         </a>
         <a
           href={place.link({ [meta.name.one]: null, tab: null })}
-          className={ICON}
+          className={cn(ICON, "max-sm:hidden")}
           aria-label="Close"
           title="Close (Esc)"
         >
           <X className="size-4" />
         </a>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-10 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-6">
         <RecordBody
           meta={meta}
           types={types}
@@ -1575,6 +1794,7 @@ export function Panel({
           acts={acts}
           rev={rev}
           onActed={onActed}
+          docked
         />
       </div>
     </aside>
@@ -1622,6 +1842,7 @@ export function RecordBody({
   acts,
   rev = 0,
   onActed,
+  docked = false,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1633,6 +1854,8 @@ export function RecordBody({
   /** Read again when it changes: something acted on this record. */
   rev?: number | undefined;
   onActed?: ((changed: (string | number)[]) => void) | undefined;
+  /** In a panel: on a phone its actions sit in a bar at the thumb, not under the title. */
+  docked?: boolean | undefined;
 }) {
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
   /** An action changed this record: its states wash once they are read again. */
@@ -1860,7 +2083,13 @@ export function RecordBody({
             ) : null}
           </div>
           {shown.length ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <div
+              className={cn(
+                "flex shrink-0 flex-wrap items-center gap-2",
+                docked &&
+                  "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-10 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:border-t max-sm:border-(--ui-hair) max-sm:bg-(--ui-band) max-sm:px-4 max-sm:pt-2 max-sm:pb-[calc(8px+env(safe-area-inset-bottom))] max-sm:[scrollbar-width:none] max-sm:[&>*]:flex-none",
+              )}
+            >
               {shown.map((a, i) => (
                 <Button
                   key={a.id}

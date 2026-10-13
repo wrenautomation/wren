@@ -70,8 +70,12 @@ describe("shownColumns", () => {
     expect(shownColumns(meta, cols, rows, { byHand: true, narrow: false })).toEqual(cols);
     expect(shownColumns(meta, cols, [], { byHand: false, narrow: false })).toEqual(cols);
   });
-  it("on a phone shows the title and the first state that tells the rows apart", () => {
-    expect(shownColumns(meta, cols, rows, { byHand: false, narrow: true })).toEqual([name, state]);
+  it("on a phone shows the title, the state that tells the rows apart, then the next fields", () => {
+    expect(shownColumns(meta, cols, rows, { byHand: false, narrow: true })).toEqual([
+      name,
+      state,
+      city,
+    ]);
     const kind = field("kind", "status");
     const same = rows.map((r) => ({ ...r, kind: "post" }));
     expect(shownColumns(meta, [name, kind, state], same, { byHand: false, narrow: true })).toEqual([
