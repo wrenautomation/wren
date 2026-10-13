@@ -23,6 +23,7 @@ import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
+import { passedOn, passKey } from "./passes.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   REACH_POST_PLATFORMS,
@@ -720,6 +721,7 @@ export async function keepPosts(
   },
 ): Promise<{ found: number[]; dropped: number }> {
   const out = { found: [] as number[], dropped: 0 };
+  const passed = await passedOn(db, o.platform);
   for (const p of posts) {
     if (!p.ref) continue;
     const handle = p.handle ?? (o.platform === "linkedin" ? vanityOf(p.authorUrl) : null);
@@ -731,9 +733,11 @@ export async function keepPosts(
         ? `older than ${o.maxAgeHours} hours`
         : handle && o.ours.includes(handle)
           ? "ours"
-          : p.text.trim().length < 40
-            ? "too short to answer"
-            : off;
+          : passed.has(passKey(handle, p.author)) || passed.has(passKey(null, p.author))
+            ? "you passed on them"
+            : p.text.trim().length < 40
+              ? "too short to answer"
+              : off;
     const [row] = await db
       .insert(reachPosts)
       .values({

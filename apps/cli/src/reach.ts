@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { setWrenSettings } from "@wren/core/clients";
+import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
@@ -425,6 +426,25 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .command("skip <ids...>")
     .description("Your no: skipped, never proposed again")
     .action(async (ids: string[]) => json(await desk().skipInvites({ ids: ids.map(Number) })));
+
+  const passes = cmd
+    .command("passes")
+    .description("People you passed on: nothing of theirs is proposed again")
+    .action(async () => json(await desk().passes()));
+  passes
+    .command("add <ids...>")
+    .description("Pass on the people behind Engage ids (comment:4, onpost:9, thread:t3_x, dm:3)")
+    .requiredOption("--reason <reason>", PASS_REASONS.join(", "))
+    .option("--note <text>", "why, in a line")
+    .action(async (ids: string[], o: { reason: PassReason; note?: string }) =>
+      json(await desk().passOn({ ids, reason: o.reason, note: o.note ?? null })),
+    );
+  passes
+    .command("lift <platform> <handle>")
+    .description("They can be proposed again")
+    .action(async (platform: string, handle: string) =>
+      json(await desk().liftPass({ platform, handle })),
+    );
 
   const posts = cmd
     .command("posts")

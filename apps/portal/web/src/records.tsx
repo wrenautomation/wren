@@ -378,6 +378,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   // Feed's Explore: a found post or thread, picked as if pasted.
   "marketing/exploreReply": (id) => handlerCall("ReachDesk", "pick", { id, act: "reply" }),
   "marketing/exploreFollow": (id) => handlerCall("ReachDesk", "pick", { id, act: "follow" }),
+  // A person he's done with, from any Engage or Explore row (`comment:4`, `onpost:9`, `thread:t3_x`).
+  "marketing/pass": (id, { reason, note }) =>
+    handlerCall("ReachDesk", "passOn", { ids: [String(id)], reason, note: note || null }),
   "marketing/onpostSkip": (id, { reason, note }) =>
     handlerCall("ReachDesk", "skipPost", { ids: [num(id)], reason, note }),
   // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.

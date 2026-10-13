@@ -22,6 +22,7 @@ import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
+import { passedOn, passKey } from "./passes.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   COMMENT_KINDS,
@@ -88,10 +89,12 @@ export async function keepComments(
   ours: readonly string[],
 ): Promise<Array<Pick<Comment, "id" | "platform" | "author" | "post">>> {
   if (!items.length) return [];
+  const passed = await passedOn(db, account.platform);
   const rows = [...items]
     .sort((a, b) => a.at.localeCompare(b.at))
     .map((c) => {
       const mine = ours.some((h) => same(h, c.handle));
+      const gone = !mine && passed.has(passKey(null, c.handle));
       return {
         platform: account.platform,
         accountId: account.id,
@@ -110,6 +113,7 @@ export async function keepComments(
         at: new Date(c.at),
         raw: c.raw,
         ...(mine ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" } : {}),
+        ...(gone ? { state: "dropped" as const, why: "You passed on them" } : {}),
       };
     });
   const kept = await db.insert(comments).values(rows).onConflictDoNothing().returning({
@@ -118,10 +122,11 @@ export async function keepComments(
     author: comments.author,
     post: comments.post,
     sort: comments.sort,
+    state: comments.state,
   });
   const theirs = kept
-    .filter((k) => k.sort !== "ours")
-    .map(({ sort: _, ...k }) => k)
+    .filter((k) => k.sort !== "ours" && k.state !== "dropped")
+    .map(({ sort: _, state: __, ...k }) => k)
     .sort((a, b) => a.id - b.id);
   for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
   return theirs;

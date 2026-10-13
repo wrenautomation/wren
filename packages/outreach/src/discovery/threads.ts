@@ -17,6 +17,7 @@ import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
+import { passedOn, passKey } from "../passes.js";
 import { ReachRefusal } from "../refusal.js";
 import {
   comments,
@@ -73,6 +74,7 @@ export async function keepThreads(
   posts: readonly Post[],
   o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null },
 ): Promise<string[]> {
+  const passed = await passedOn(db, "reddit");
   const rows = posts.flatMap((p) =>
     p.name && p.created_utc
       ? [
@@ -86,7 +88,9 @@ export async function keepThreads(
             postedAt: new Date(p.created_utc * 1000),
             comments: p.num_comments ?? 0,
             raw: p as unknown as Record<string, unknown>,
-            dropped: dropReason(p, o),
+            dropped: passed.has(passKey(null, p.author ?? ""))
+              ? "you passed on them"
+              : dropReason(p, o),
           },
         ]
       : [],

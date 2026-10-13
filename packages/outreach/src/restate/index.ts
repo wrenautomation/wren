@@ -32,6 +32,7 @@ import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
+import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { gate } from "@wren/core/vendors";
 
 /** The `Content` service's reply handler as the worker serves it. */
@@ -146,6 +147,7 @@ import {
   type TopUpStats,
   topUp,
 } from "../invites.js";
+import { liftPass, listPasses, passOn } from "../passes.js";
 import type { ReachPolicy } from "../policy.js";
 import {
   allCommentsSettings,
@@ -941,6 +943,18 @@ const POST_ACT = z.looseObject({
   act: z.enum(["like", "follow"]).describe("Like the post, or follow its author"),
 });
 const POST_IDS = z.looseObject({ ids: z.array(z.number().int()).min(1).max(100) });
+const PASS = z.looseObject({
+  ids: z
+    .array(z.string().regex(/^(comment|onpost|thread|dm):\S+$/))
+    .min(1)
+    .max(200)
+    .describe("Engage ids: comment:4, onpost:9, thread:t3_x, dm:3"),
+  reason: z
+    .enum(PASS_REASONS)
+    .describe("Why: not_lead, not_worth, spam, competitor, rude, not_now"),
+  note: z.string().max(280).nullish(),
+});
+const LIFT = z.looseObject({ platform: z.string().min(1), handle: z.string().min(1) });
 const POSTS_LIST = z
   .looseObject({ state: z.string().nullish(), limit: z.number().nullish() })
   .nullish();
@@ -1516,6 +1530,32 @@ export function makeReachDesk(deps: ReachDeps) {
         },
       ),
       /** His no on posts to comment on. */
+      /** Pass on the people behind these rows: theirs close now and land closed later. */
+      passOn: serviceHandler(
+        { input: PASS },
+        async (
+          ctx: restate.Context,
+          req: { ids: string[]; reason: PassReason; note?: string | null },
+        ): Promise<{ people: number; closed: number }> => {
+          const now = await nowOf(ctx);
+          const by = (req as { viewer?: { email?: string } }).viewer?.email ?? byOf(req);
+          return ctx.run("pass", () =>
+            passOn(deps.db, req.ids, { reason: req.reason, note: req.note ?? null, by, now }),
+          );
+        },
+      ),
+      liftPass: serviceHandler(
+        { input: LIFT },
+        async (ctx: restate.Context, req: { platform: string; handle: string }) => {
+          const now = await nowOf(ctx);
+          return {
+            lifted: await ctx.run("lift", () => liftPass(deps.db, req.platform, req.handle, now)),
+          };
+        },
+      ),
+      passes: serviceHandler({ input: z.looseObject({}).nullish() }, async (ctx: restate.Context) =>
+        ctx.run("passes", () => listPasses(deps.db)),
+      ),
       skipPost: serviceHandler(
         { input: POST_IDS },
         async (

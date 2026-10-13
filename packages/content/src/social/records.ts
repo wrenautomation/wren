@@ -1105,6 +1105,7 @@ export const engageRecord = defineRecord({
     "marketing.commentDrop",
     "marketing.dmReply",
     "marketing.dmRead",
+    "marketing.pass",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
@@ -1205,6 +1206,7 @@ export const exploreRecord = defineRecord({
     "marketing.exploreFollow",
     "marketing.onpostSkip",
     "marketing.threadSkip",
+    "marketing.pass",
   ],
   load: async (db, id) => (await exploreRows(db, id))[0] ?? null,
 });

@@ -4,6 +4,7 @@
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
+import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
@@ -146,6 +147,25 @@ const REJECT_FORM: readonly FormField[] = [
   },
   { field: "note", label: "Note", optional: true, hint: `Up to ${REJECT_NOTE_MAX} characters` },
 ];
+
+/**
+ * Done with a person, not just a draft: this row and everything open of theirs closes, and what
+ * the reads find from them later lands closed (`ReachDesk.passOn`).
+ */
+const PASS_ACTION: Action = {
+  id: "marketing.pass",
+  label: "Pass on them",
+  handler: "marketing/pass",
+  form: [
+    { field: "reason", label: "Why", type: "select", options: PASS_REASONS, labels: PASS_LABELS },
+    { field: "note", label: "Note", optional: true, hint: `Up to ${REJECT_NOTE_MAX} characters` },
+  ],
+  each: true,
+  bulk: true,
+  key: "x",
+  optimistic: "Passed",
+  done: said("Passed. Nothing of theirs comes back."),
+};
 
 const DRAFT_ACTIONS: Action[] = [
   {
@@ -917,6 +937,7 @@ const ENGAGE_ACTIONS: Action[] = [
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   ...COMMENT_ACTIONS.filter(own).map((a) => only("comment", a)),
   ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
+  PASS_ACTION,
   ...draftActions("inbox", {
     type: ["thread", "onpost", "comment", "dm"],
     state: ["new", "waiting", "read"],
@@ -993,6 +1014,7 @@ const EXPLORE_ACTIONS: Action[] = [
     },
     {},
   ),
+  PASS_ACTION,
 ];
 /** Marketing → Feed's Explore (`marketing.explore`): found by topic, not followed or picked yet. */
 const EXPLORE_PAGE: ListPage = {

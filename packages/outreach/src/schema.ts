@@ -19,6 +19,7 @@ import {
   PLATFORMS as CONTENT_PLATFORMS,
   type Platform as ContentPlatform,
 } from "@wren/core/content";
+import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
@@ -639,3 +640,34 @@ export const reachPosts = pgTable(
 );
 
 export type ReachPost = typeof reachPosts.$inferSelect;
+
+/**
+ * People he passed on (Engage's Pass): not a lead, not worth a reply, spam. Their open comments,
+ * posts and threads close when he passes, and new ones land closed, so nothing of theirs is
+ * drafted again. `handle` is `passKey`'s; `until` null is for good. Lifting keeps the row.
+ */
+export const reachPasses = pgTable(
+  "reach_passes",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    handle: varchar("handle", { length: 200 }).notNull(),
+    /** As the row showed them. */
+    name: text("name").notNull(),
+    reason: varchar("reason", { length: 16, enum: PASS_REASONS }).notNull(),
+    note: text("note"),
+    /** The typed id he passed from: `comment:4`, `onpost:9`, `thread:t3_x`, `dm:3`. */
+    item: varchar("item", { length: 80 }),
+    by: varchar("by", { length: 120 }),
+    until: timestamp("until", { withTimezone: true }),
+    liftedAt: timestamp("lifted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_passes" }),
+    unique("uq_reach_passes_platform_handle").on(t.platform, t.handle),
+    oneOf("ck_reach_passes_reason", t.reason, PASS_REASONS),
+  ],
+);
+
+export type ReachPass = typeof reachPasses.$inferSelect;
