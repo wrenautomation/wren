@@ -932,9 +932,23 @@ const ENGAGE_DRAFT: Record<string, DraftOf> = {
   dm: DM_DRAFT,
 };
 /** Each reply's own page's actions, on its rows only; the typed-id box, as To approve's. */
+/** DM the author of a thread or post. On LinkedIn before they accept, an invite goes first. */
+const DM_FROM_ACTION: Action = {
+  id: "marketing.messageFrom",
+  label: "DM them",
+  handler: "marketing/messageFrom",
+  ask: { field: "body", label: "Your DM" },
+  key: "m",
+  done: said(
+    "Queued. On LinkedIn, if you're not connected yet, an invite goes first and your DM waits.",
+  ),
+};
+
 const ENGAGE_ACTIONS: Action[] = [
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
+  only("thread", DM_FROM_ACTION, WAITS),
+  only("onpost", DM_FROM_ACTION, WAITS),
   ...COMMENT_ACTIONS.filter(own).map((a) => only("comment", a)),
   ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
   PASS_ACTION,

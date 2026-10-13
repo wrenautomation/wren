@@ -123,7 +123,13 @@ import {
 } from "../drafts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
-import { markFollowed, messageAccount, personContact, personFollow } from "../from-people.js";
+import {
+  itemPerson,
+  markFollowed,
+  messageAccount,
+  personContact,
+  personFollow,
+} from "../from-people.js";
 import {
   draftInviteNote,
   invitesToNote,
@@ -975,11 +981,40 @@ const DM = COMMENT.extend({ body: z.string() });
 const PERSON = z.looseObject({
   id: z.string().describe("A People id: li:<people.id>, reddit:<handle> or <platform>:<handle>"),
 });
+const ITEM_MESSAGE = z.looseObject({
+  id: z
+    .string()
+    .regex(/^(comment|onpost|thread|dm):\S+$/)
+    .describe("An Engage row: comment:<n>, onpost:<n>, thread:<id>, dm:<contactId>"),
+  body: z.string().min(1).describe("His words"),
+});
 const PERSON_MESSAGE = PERSON.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
 
 export function makeReachDesk(deps: ReachDeps) {
+  /** A LinkedIn invite for one contact through the invite sequence; answers their id. */
+  const invite = async (c: ReachContact, now: Date): Promise<number> => {
+    const seq = deps.sequences.get(INVITE_SEQUENCE);
+    if (!seq) throw new ReachRefusal(`no sequence ${INVITE_SEQUENCE}`);
+    const settings = await inviteSettings(deps.db);
+    const a = invitesAccount(await listAccounts(deps.db), settings);
+    if (!a) throw new ReachRefusal("no active account set in Shop → LinkedIn invites");
+    if (c.platform !== "linkedin") throw new ReachRefusal("invites are LinkedIn only");
+    if (c.connectedAt) throw new ReachRefusal("already connected: message them");
+    if (c.state !== "new") throw new ReachRefusal(`already ${c.state}`);
+    const e = await enroll(deps.db, {
+      sequence: seq,
+      sender: deps.senderName,
+      contactIds: [c.id],
+      limit: 1,
+      account: a.account,
+      now,
+    });
+    if (!e.enrolled)
+      throw new ReachRefusal((await contactById(deps.db, c.id)).stateReason ?? "not enrolled");
+    return c.id;
+  };
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {
       return await fn();
@@ -1727,35 +1762,48 @@ export function makeReachDesk(deps: ReachDeps) {
       invitePerson: serviceHandler(
         { input: PERSON, effect: "sends" },
         async (ctx: restate.Context, req: { id: string }): Promise<{ contactId: number }> => {
-          const seq = deps.sequences.get(INVITE_SEQUENCE);
-          if (!seq) throw new restate.TerminalError(`no sequence ${INVITE_SEQUENCE}`);
           const now = await nowOf(ctx);
           const contactId = await ctx.run("enroll", () =>
-            terminal(async () => {
-              const settings = await inviteSettings(deps.db);
-              const a = invitesAccount(await listAccounts(deps.db), settings);
-              if (!a) throw new ReachRefusal("no active account set in Shop → LinkedIn invites");
-              const c = await personContact(deps.db, req.id);
-              if (c.platform !== "linkedin") throw new ReachRefusal("invites are LinkedIn only");
-              if (c.connectedAt) throw new ReachRefusal("already connected: message them");
-              if (c.state !== "new") throw new ReachRefusal(`already ${c.state}`);
-              const e = await enroll(deps.db, {
-                sequence: seq,
-                sender: deps.senderName,
-                contactIds: [c.id],
-                limit: 1,
-                account: a.account,
-                now,
-              });
-              if (!e.enrolled)
-                throw new ReachRefusal(
-                  (await contactById(deps.db, c.id)).stateReason ?? "not enrolled",
-                );
-              return c.id;
-            }),
+            terminal(async () => invite(await personContact(deps.db, req.id), now)),
           );
           nudge(ctx);
           return { contactId };
+        },
+      ),
+      /**
+       * DM them from an Engage row (a thread, a post, a comment, a DM): his words to the author.
+       * Not yet connected on LinkedIn, they get an invite and his words wait as the first DM.
+       */
+      messageFrom: serviceHandler(
+        { input: ITEM_MESSAGE, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: string; body: string },
+        ): Promise<{ contactId: number; sent: "dm" | "invite" }> => {
+          const now = await nowOf(ctx);
+          const r = await ctx.run("queue", () =>
+            terminal(async () => {
+              const c = await personContact(deps.db, await itemPerson(deps.db, req.id));
+              if (c.platform === "linkedin" && !c.connectedAt) {
+                await invite(c, now);
+                await deps.db
+                  .update(reachContacts)
+                  .set({ draft: req.body.trim() })
+                  .where(eq(reachContacts.id, c.id));
+                return { contactId: c.id, sent: "invite" as const };
+              }
+              const a = await messageAccount(deps.db, c, now);
+              if (!c.accountId)
+                await deps.db
+                  .update(reachContacts)
+                  .set({ accountId: a.id })
+                  .where(eq(reachContacts.id, c.id));
+              await queueDraft(deps.db, { ...c, accountId: a.id }, req.body, null, now, byOf(req));
+              return { contactId: c.id, sent: "dm" as const };
+            }),
+          );
+          nudge(ctx);
+          return r;
         },
       ),
       ...discoveryHandlers(deps),

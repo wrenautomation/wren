@@ -33,3 +33,4 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 - **joins:** [[leads/touch]] (ours on their post: `rp:<id>` comment, `rp:<id>:like`, `rp:<id>:follow`; `touchesFromReachPost`)
 - **joins:** [[content/linkedin-invite]] (key people: accepted invites), [[content/draft-event]] (`onpost:` items)
 - **looks-like-but-is-not:** [[content/comment]], comments others leave on our posts
+- Who writes replies: setting `drafts.replies` (`packages/core/src/reply-drafts.ts`, `modelDrafts`); `you` = no model draft on threads, posts, comments or DMs (posts queue on rank), `wren drafts replies you|model [--clear]` (`clearReplyDrafts`, `packages/outreach/src/reply-drafts.ts`). Prod set to `you` 2026-10-13

@@ -1105,6 +1105,7 @@ export const engageRecord = defineRecord({
     "marketing.commentDrop",
     "marketing.dmReply",
     "marketing.dmRead",
+    "marketing.messageFrom",
     "marketing.pass",
     "marketing.draftSet",
     "marketing.draftAsk",

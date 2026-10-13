@@ -34,14 +34,14 @@ export async function passedOn(db: Queryable, platform: string): Promise<Set<str
   return new Set(rows.map((r) => r.handle));
 }
 
-interface Who {
+export interface Who {
   platform: string;
   handle: string;
   name: string;
 }
 
 /** Who wrote a typed Engage id; null when the row is gone. */
-async function whoOf(db: Queryable, item: string): Promise<Who | null> {
+export async function whoOf(db: Queryable, item: string): Promise<Who | null> {
   const at = item.indexOf(":");
   const type = item.slice(0, at);
   const key = item.slice(at + 1);

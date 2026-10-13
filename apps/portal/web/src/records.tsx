@@ -385,6 +385,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("ReachDesk", "skipPost", { ids: [num(id)], reason, note }),
   // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.
   "marketing/personDraft": (id) => handlerCall("ReachDesk", "draftPerson", { id }),
+  "marketing/messageFrom": (id, { body }) =>
+    handlerCall("ReachDesk", "messageFrom", { id: String(id), body }, { confirm: "messageFrom" }),
   "marketing/personMessage": (id, { body }) =>
     handlerCall("ReachDesk", "messagePerson", { id, ...words(body) }, { confirm: "messagePerson" }),
   "marketing/personInvite": (id) =>

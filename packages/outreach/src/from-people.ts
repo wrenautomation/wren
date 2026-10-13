@@ -15,6 +15,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { listAccounts } from "./accounts.js";
 import { checkCanDm } from "./comments.js";
 import { addProspects, contactByHandle } from "./contacts.js";
+import { whoOf } from "./passes.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   isReachPlatform,
@@ -49,6 +50,18 @@ async function contactLike(db: Queryable, platform: Platform, handle: string) {
     )
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * An Engage row's author as a People id (`reddit:<handle>`, `linkedin:<vanity>`), so DM them
+ * works from a thread, a post or a comment the same as from People.
+ */
+export async function itemPerson(db: Queryable, item: string): Promise<string> {
+  const who = await whoOf(db, item);
+  if (!who) throw new ReachRefusal("that row is gone");
+  if (who.platform !== "reddit" && who.platform !== "linkedin")
+    throw new ReachRefusal(`DMs on ${who.platform} aren't wired here yet`);
+  return `${who.platform}:${who.handle}`;
 }
 
 /** A People id's reach contact, added (`found_in = people`, person and firm linked) when new. */

@@ -16,6 +16,7 @@ import { keepComments } from "../../src/comments.js";
 import { addPlaces } from "../../src/discovery/places.js";
 import type { Post } from "../../src/discovery/reads.js";
 import { keepThreads, threadsToDraft } from "../../src/discovery/threads.js";
+import { itemPerson } from "../../src/from-people.js";
 import { liftPass, listPasses, passOn } from "../../src/passes.js";
 import { draftPost, type FeedPost, keepPosts } from "../../src/reach-posts.js";
 import { clearReplyDrafts } from "../../src/reply-drafts.js";
@@ -198,5 +199,16 @@ describe("he writes replies", () => {
       { state: "queued", draft: null },
       { state: "queued", draft: null },
     ]);
+  });
+});
+
+describe("DM them from a row", () => {
+  it("names the author as a People id", async () => {
+    const kept = await keepPosts(db(), [feedPost(1, "Jane-Doe")], POSTS);
+    expect(await itemPerson(db(), `onpost:${kept.found[0]}`)).toBe("linkedin:jane-doe");
+    await reddit();
+    await keepThreads(db(), "agency", [thread(1, "Owner_1")], THREADS);
+    expect(await itemPerson(db(), "thread:t3_p1")).toBe("reddit:owner_1");
+    await expect(itemPerson(db(), "onpost:999")).rejects.toThrow("that row is gone");
   });
 });
