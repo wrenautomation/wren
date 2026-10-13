@@ -44,6 +44,8 @@ interface PageBase {
   group?: string;
   /** Reached by link only, never a tab. */
   hidden?: true;
+  /** The tab lit while it's open, when it has none: Feed's Explore lights Feed. */
+  lights?: string;
   /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */
   requires?: Access;
   /**

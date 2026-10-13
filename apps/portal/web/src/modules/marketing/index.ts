@@ -984,6 +984,7 @@ const EXPLORE_PAGE: ListPage = {
   id: "explore",
   label: "Feed",
   hidden: true,
+  lights: "feed",
   template: "list",
   record: "marketing.explore",
   columns: ["who", "platform", "where", "fit", "at"],

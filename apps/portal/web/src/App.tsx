@@ -467,7 +467,9 @@ export function App() {
   });
   const open = at.kind === "page" ? at : null;
   // The tab lit: one the app reads from its data, else the page's own.
-  const lit = open ? (open.module.nav?.here(route.path, route.params) ?? open.page.id) : "";
+  const lit = open
+    ? (open.module.nav?.here(route.path, route.params) ?? open.page.lights ?? open.page.id)
+    : "";
   // The team sees every app; one this client hasn't installed points at its Marketplace row.
   const missing =
     !wren && open?.module.component && !installed.has(open.module.component)

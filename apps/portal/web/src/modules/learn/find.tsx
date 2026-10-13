@@ -8,6 +8,7 @@ import { Button, cx, Input, say } from "@wren/ui";
 import { type FormEvent, useState } from "react";
 import { call } from "../../api.js";
 import { changed, learn } from "./api.js";
+import { Avatar } from "./kinds.js";
 
 type Site = "youtube" | "reddit" | "linkedin" | "x" | "instagram" | "tiktok";
 interface Hit {
@@ -160,13 +161,7 @@ function HitCard(props: { h: Hit; state: "busy" | "done" | undefined; onFollow: 
   const { h } = props;
   return (
     <li className="flex gap-3 border border-(--ui-hair) bg-(--ui-paper) p-3">
-      {h.avatar ? (
-        <img src={h.avatar} alt="" className="size-9 shrink-0 rounded-[6px] object-cover" />
-      ) : (
-        <span className="grid size-9 shrink-0 place-items-center rounded-[6px] bg-(--ui-wash) font-medium text-[14px] text-(--ui-ink-2)">
-          {h.name.replace(/^r\//, "").slice(0, 1).toUpperCase()}
-        </span>
-      )}
+      <Avatar url={h.avatar} name={h.name.replace(/^r\//, "")} size={40} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <a
