@@ -288,7 +288,7 @@ async function readsPass(
     const posts = d.ours
       ? await step("our posts", async () => [...((await d.ours?.()) ?? [])])
       : [];
-    for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS)))
+    for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS, now)))
       await reading(`draft ${t.id}`, async () => {
         const read = await r.thread(t.id);
         const op =

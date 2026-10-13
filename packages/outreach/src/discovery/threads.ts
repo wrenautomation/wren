@@ -16,7 +16,7 @@ import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { passedOn, passKey } from "../passes.js";
@@ -262,13 +262,19 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
   return ids;
 }
 
-/** Queued threads with no draft yet, best first; none when he writes replies himself. */
-export async function threadsToDraft(db: Queryable, limit: number) {
+/** Queued threads with no draft yet and still fresh, best first; none when he writes replies himself. */
+export async function threadsToDraft(db: Queryable, limit: number, now = new Date()) {
   if (!(await modelDrafts(db))) return [];
   return db
     .select({ id: redditThreads.id, author: redditThreads.author })
     .from(redditThreads)
-    .where(and(eq(redditThreads.state, "queued"), isNull(redditThreads.draft)))
+    .where(
+      and(
+        eq(redditThreads.state, "queued"),
+        isNull(redditThreads.draft),
+        gt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
+      ),
+    )
     .orderBy(desc(redditThreads.fit))
     .limit(limit);
 }
