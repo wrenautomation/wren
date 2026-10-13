@@ -2,9 +2,10 @@
  * The lake against a real Postgres (designs/2026-10-11-lake.md): a first sync copies every table,
  * the next moves only what changed, secrets never land, and the lake reads as it was.
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -16,6 +17,7 @@ import {
   syncDatabase,
 } from "../../src/lake-sync.js";
 
+const MODELS = resolve(__dirname, "../../../../lake/models");
 let pg: TestPostgres;
 let dir: string;
 let catalogUrl: string;
@@ -121,9 +123,12 @@ describe("wren lake", () => {
   }, 240_000);
 
   it("builds the warehouse's models", async () => {
+    const skipped: string[] = [];
     const built = await inLake((lake) =>
-      buildModels(lake, resolve(__dirname, "../../../../lake/models")),
+      buildModels(lake, MODELS, { onSkip: (m) => skipped.push(m) }),
     );
+    // No WREN_LAKE_TRACK_PATH: the autotrack models say so and wait.
+    expect(skipped).toEqual(["autotrack_acts", "autotrack_daily", "autotrack_episodes"]);
     expect(built.map((m) => m.model)).toEqual(["loop_passes_daily", "outbound_daily"]);
     expect(
       await ask(
@@ -139,4 +144,358 @@ describe("wren lake", () => {
     );
     expect(s.last).not.toBeNull();
   }, 240_000);
+});
+
+// autotrack's bucket, a directory standing in: gzipped events per segment, labels per session.
+// A lake of its own (a local catalog): these models read only the bucket.
+describe("wren lake: autotrack models", () => {
+  const T0 = Date.UTC(2026, 9, 13, 10, 0, 0);
+  const chrome = { name: "Google Chrome", id: "com.google.Chrome", pid: 1 };
+  const notes = { name: "Notes", id: "com.apple.Notes", pid: 2 };
+  const out = (screen: boolean) => ({ screen, focus: false, dialog: false, window: false });
+  let scratch: string;
+  let track: string;
+  let models: string;
+  const put = (rel: string, body: string | Buffer) => {
+    mkdirSync(dirname(join(track, rel)), { recursive: true });
+    writeFileSync(join(track, rel), body);
+  };
+  const events = (rel: string, list: object[]) =>
+    put(rel, gzipSync(`${list.map((e) => JSON.stringify(e)).join("\n")}\n`));
+  const lake = (readOnly = false) =>
+    openLake({
+      dataPath: `${scratch}/lake/`,
+      catalogUrl: join(scratch, "lake.ducklake"),
+      trackPath: `${track}/`,
+      ...(readOnly ? { readOnly } : {}),
+    });
+  const build = async () => {
+    const l = await lake();
+    try {
+      return await buildModels(l, models, { trackPath: `${track}/` });
+    } finally {
+      l.close();
+    }
+  };
+  const ask2 = async (q: string) => {
+    const l = await lake(true);
+    try {
+      return await query(l, q);
+    } finally {
+      l.close();
+    }
+  };
+
+  beforeAll(() => {
+    scratch = mkdtempSync(join(tmpdir(), "wren-track-"));
+    track = join(scratch, "track");
+    models = join(scratch, "models");
+    mkdirSync(join(scratch, "lake"));
+    mkdirSync(models);
+    for (const f of readdirSync(MODELS).filter((f) => f.startsWith("autotrack_")))
+      copyFileSync(join(MODELS, f), join(models, f));
+    events("mac1/S1/000/events.jsonl.gz", [
+      { kind: "focus", t: 0, ts: T0 - 1000, app: chrome },
+      { kind: "move", t: 500, ts: T0 - 500, x: 90, y: 190, app: chrome },
+      {
+        kind: "click",
+        t: 1000,
+        ts: T0,
+        x: 100,
+        y: 200,
+        button: "left",
+        count: 1,
+        app: chrome,
+        window: { title: "Leads", x: 0, y: 0, width: 10, height: 10 },
+        element: {
+          role: "AXButton",
+          name: "",
+          x: 90,
+          y: 190,
+          width: 30,
+          height: 20,
+          secure: false,
+        },
+        out: out(true),
+      },
+      {
+        kind: "web",
+        act: "click",
+        ts: T0 + 40,
+        tab: 1,
+        frame: 0,
+        x: 101,
+        y: 199,
+        url: "https://www.app.example.test/leads",
+        title: "Leads",
+        target: { tag: "button", role: "button", name: "Approve" },
+      },
+      {
+        kind: "app",
+        ts: T0 + 300,
+        url: "https://www.app.example.test/leads",
+        action: "marketing/approveDraft",
+        detail: { ids: { ids: [7] }, ok: true },
+      },
+      {
+        kind: "click",
+        t: 11_000,
+        ts: T0 + 10_000,
+        x: 500,
+        y: 500,
+        button: "left",
+        count: 1,
+        app: notes,
+        element: {
+          role: "AXButton",
+          name: "Save",
+          x: 490,
+          y: 490,
+          width: 30,
+          height: 20,
+          secure: false,
+        },
+        out: out(false),
+      },
+      {
+        kind: "text",
+        t: 21_000,
+        ts: T0 + 20_000,
+        text: "",
+        redacted: true,
+        app: notes,
+        out: out(true),
+      },
+    ]);
+    events("mac1/S1/001/events.jsonl.gz", [
+      {
+        kind: "key",
+        t: 600_000,
+        ts: T0 + 600_000,
+        key: "enter",
+        mods: [],
+        app: chrome,
+        out: out(true),
+      },
+    ]);
+    events("win1/S2/000/events.jsonl.gz", [
+      {
+        kind: "click",
+        t: 100,
+        ts: T0 + 5000,
+        x: 5,
+        y: 5,
+        button: "left",
+        count: 1,
+        app: { name: "notepad", id: "C:/notepad.exe", pid: 3 },
+      },
+    ]);
+  });
+
+  afterAll(() => rmSync(scratch, { recursive: true, force: true }));
+
+  it("loads acts with no labels yet, joining the page and Wren's command", async () => {
+    const built = await build();
+    expect(built.map((m) => m.model)).toEqual([
+      "autotrack_acts",
+      "autotrack_daily",
+      "autotrack_episodes",
+    ]);
+    expect(
+      await ask2(
+        `SELECT device, act::INT AS act, kind, app_name, domain, element_role, element_name, intent,
+                span_s::DOUBLE AS span_s, app_actions[1].action AS cmd, app_actions[1].ok AS ok
+         FROM warehouse.autotrack_acts ORDER BY device, session, act`,
+      ),
+    ).toEqual([
+      // The OS click's thin element is replaced by the page's target; Wren said what it meant.
+      {
+        device: "mac1",
+        act: 1,
+        kind: "click",
+        app_name: "Google Chrome",
+        domain: "app.example.test",
+        element_role: "button",
+        element_name: "Approve",
+        intent: null,
+        span_s: 10,
+        cmd: "marketing/approveDraft",
+        ok: true,
+      },
+      // Notes isn't a browser: the page's domain doesn't spill over.
+      {
+        device: "mac1",
+        act: 2,
+        kind: "click",
+        app_name: "Notes",
+        domain: null,
+        element_role: "AXButton",
+        element_name: "Save",
+        intent: null,
+        span_s: 10,
+        cmd: null,
+        ok: null,
+      },
+      {
+        device: "mac1",
+        act: 3,
+        kind: "text",
+        app_name: "Notes",
+        domain: null,
+        element_role: null,
+        element_name: null,
+        intent: null,
+        span_s: 30,
+        cmd: null,
+        ok: null,
+      },
+      {
+        device: "mac1",
+        act: 4,
+        kind: "key",
+        app_name: "Google Chrome",
+        domain: null,
+        element_role: null,
+        element_name: null,
+        intent: null,
+        span_s: 0,
+        cmd: null,
+        ok: null,
+      },
+      {
+        device: "win1",
+        act: 1,
+        kind: "click",
+        app_name: "notepad",
+        domain: null,
+        element_role: null,
+        element_name: null,
+        intent: null,
+        span_s: 0,
+        cmd: null,
+        ok: null,
+      },
+    ]);
+    expect(await ask2("SELECT count(*)::INT AS n FROM warehouse.autotrack_episodes")).toEqual([
+      { n: 0 },
+    ]);
+    expect(
+      await ask2(
+        `SELECT device, day::VARCHAR AS day, acts::INT AS acts, active_minutes::INT AS minutes,
+                dead_rate, apps[1].app AS top_app, domains[1].domain AS top_domain
+         FROM warehouse.autotrack_daily ORDER BY device`,
+      ),
+    ).toEqual([
+      {
+        device: "mac1",
+        day: "2026-10-13",
+        acts: 4,
+        minutes: 2,
+        dead_rate: null,
+        top_app: "Notes",
+        top_domain: "app.example.test",
+      },
+      {
+        device: "win1",
+        day: "2026-10-13",
+        acts: 1,
+        minutes: 1,
+        dead_rate: null,
+        top_app: "notepad",
+        top_domain: null,
+      },
+    ]);
+  }, 120_000);
+
+  it("adds intent, signals and episodes once labels land", async () => {
+    put(
+      "labels/mac1/S1.json",
+      JSON.stringify(
+        {
+          v: 1,
+          session: "S1",
+          episodes: [
+            {
+              id: "e1",
+              start: 1000,
+              end: 21_000,
+              goal: "Approve a draft",
+              goalBy: "model",
+              outcome: "done",
+              confidence: 0.9,
+            },
+          ],
+          acts: [
+            {
+              t: 1000,
+              episode: "e1",
+              intent: "approve the draft",
+              signals: {
+                dwell: 1000,
+                hover: 300,
+                dead: false,
+                rage: false,
+                correction: false,
+                error: false,
+              },
+            },
+            {
+              t: 11_000,
+              episode: "e1",
+              intent: "save the note",
+              signals: { dwell: 10_000, dead: true, rage: false, correction: false, error: false },
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    await build();
+    expect(
+      await ask2(
+        `SELECT act::INT AS act, episode, intent, dwell::INT AS dwell, hover::INT AS hover, dead
+         FROM warehouse.autotrack_acts WHERE device = 'mac1' ORDER BY act`,
+      ),
+    ).toEqual([
+      { act: 1, episode: "e1", intent: "approve the draft", dwell: 1000, hover: 300, dead: false },
+      { act: 2, episode: "e1", intent: "save the note", dwell: 10_000, hover: null, dead: true },
+      { act: 3, episode: null, intent: null, dwell: null, hover: null, dead: null },
+      { act: 4, episode: null, intent: null, dwell: null, hover: null, dead: null },
+    ]);
+    expect(
+      await ask2(
+        `SELECT device, episode, goal, goal_by, outcome, confidence, acts::INT AS acts, dead::INT AS dead,
+                apps::VARCHAR AS apps, domains::VARCHAR AS domains
+         FROM warehouse.autotrack_episodes`,
+      ),
+    ).toEqual([
+      {
+        device: "mac1",
+        episode: "e1",
+        goal: "Approve a draft",
+        goal_by: "model",
+        outcome: "done",
+        confidence: 0.9,
+        acts: 2,
+        dead: 1,
+        apps: "[Google Chrome, Notes]",
+        domains: "[app.example.test]",
+      },
+    ]);
+    expect(
+      await ask2(
+        "SELECT labelled_acts::INT AS labelled, dead_rate FROM warehouse.autotrack_daily WHERE device = 'mac1'",
+      ),
+    ).toEqual([{ labelled: 2, dead_rate: 0.5 }]);
+  }, 120_000);
+
+  it("an empty bucket builds empty tables", async () => {
+    rmSync(track, { recursive: true, force: true });
+    mkdirSync(track);
+    await build();
+    expect(await ask2("SELECT count(*)::INT AS n FROM warehouse.autotrack_acts")).toEqual([
+      { n: 0 },
+    ]);
+  }, 120_000);
 });

@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DuckDBConnection, DuckDBInstance } from "@duckdb/node-api";
+import { fillTrack, needsTrack, trackSources } from "./lake-track.js";
 
 /** Columns never copied: plaintext secrets and capability tokens. Hashes of them are fine. */
 export const SECRET_COLUMN = /(^|_)(secret|password|token)$/i;
@@ -76,6 +77,8 @@ export type LakeOptions = {
   dataPath: string;
   /** The catalog: a Postgres URL, or a local `.ducklake` file. */
   catalogUrl: string;
+  /** autotrack's bucket (`s3://…/` or a directory), read by the `autotrack_*` models. */
+  trackPath?: string;
   readOnly?: boolean;
   /** Read the lake as it was: an ISO time, or a snapshot number. */
   at?: string;
@@ -112,7 +115,7 @@ export async function openLake(o: LakeOptions): Promise<Lake> {
   const c = await inst.connect();
   await c.run("SET TimeZone = 'UTC'");
   await c.run("INSTALL ducklake; LOAD ducklake; INSTALL postgres; LOAD postgres");
-  if (o.dataPath.startsWith("s3://")) {
+  if ([o.dataPath, o.trackPath].some((p) => p?.startsWith("s3://"))) {
     await c.run("INSTALL httpfs; LOAD httpfs");
     await c.run(s3Secret());
   }
@@ -362,29 +365,52 @@ export async function compact(lake: Lake) {
   await lake.c.run("CALL ducklake_merge_adjacent_files('lake')");
 }
 
-/** The warehouse: each `*.sql` in `dir`, in name order, one transaction each, with `USE lake`. */
+export type BuildOptions = {
+  /** autotrack's bucket. Unset, models headed `-- needs: track` are skipped. */
+  trackPath?: string;
+  /** Hears a model that was skipped, with why. */
+  onSkip?: (model: string, why: string) => void;
+};
+
+/**
+ * The warehouse: each `*.sql` in `dir`, in name order, one transaction each, with `USE lake`.
+ * A model headed `-- needs: track` reads autotrack's bucket through `{{track_events}}` and
+ * `{{track_labels}}` (`lake-track.ts`).
+ */
 export async function buildModels(
   lake: Lake,
   dir: string,
+  o: BuildOptions = {},
 ): Promise<{ model: string; ms: number }[]> {
   const { c } = lake;
   await c.run("CREATE SCHEMA IF NOT EXISTS lake.warehouse");
   await c.run("USE lake");
   const out: { model: string; ms: number }[] = [];
+  let track: Awaited<ReturnType<typeof trackSources>> | undefined;
   for (const f of readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
     .sort()) {
+    const name = f.replace(/\.sql$/, "");
+    let sql = readFileSync(join(dir, f), "utf8");
+    if (needsTrack(sql)) {
+      if (!o.trackPath) {
+        o.onSkip?.(name, "WREN_LAKE_TRACK_PATH is unset");
+        continue;
+      }
+      track ??= await trackSources(c, o.trackPath);
+      sql = fillTrack(sql, track);
+    }
     const started = Date.now();
     await c.run("BEGIN");
     try {
-      await c.run(readFileSync(join(dir, f), "utf8"));
+      await c.run(sql);
       await c.run(`CALL lake.set_commit_message('wren lake build', ${ql(f)})`);
       await c.run("COMMIT");
     } catch (err) {
       await c.run("ROLLBACK").catch(() => {});
       throw new Error(`model ${f}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    out.push({ model: f.replace(/\.sql$/, ""), ms: Date.now() - started });
+    out.push({ model: name, ms: Date.now() - started });
   }
   return out;
 }

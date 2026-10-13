@@ -1,7 +1,7 @@
 # Nightly: every database's changes into the lake, then the warehouse's models
 # (designs/2026-10-11-lake.md). Logs are public, so `sync --public` names no client.
-# Secrets (production environment): WREN_DATABASE_URL, WREN_LAKE_PATH, AWS_DEPLOY_ROLE_ARN,
-# WREN_DISCORD_WEBHOOK_URL.
+# Secrets (production environment): WREN_DATABASE_URL, WREN_LAKE_PATH, WREN_LAKE_TRACK_PATH (autotrack's
+# bucket, read by the autotrack_* models), AWS_DEPLOY_ROLE_ARN, WREN_DISCORD_WEBHOOK_URL.
 name: lake
 on:
   schedule: [{ cron: "40 7 * * *" }]
@@ -36,6 +36,7 @@ jobs:
         env:
           WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
           WREN_LAKE_PATH: ${{ secrets.WREN_LAKE_PATH }}
+          WREN_LAKE_TRACK_PATH: ${{ secrets.WREN_LAKE_TRACK_PATH }}
       - name: tell Discord
         if: failure()
         run: |

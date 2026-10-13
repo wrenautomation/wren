@@ -55,7 +55,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "lake" {
   }
 }
 
-# CI's nightly sync reads and writes the lake; nothing else in CI touches it.
+# autotrack's bucket (autobrowse's track.tf): the warehouse's autotrack_* models read its sessions and labels.
+locals {
+  track_bucket_arn = "arn:aws:s3:::autobrowse-prod-track-${data.aws_caller_identity.me.account_id}"
+}
+
+# CI's nightly sync reads and writes the lake, and reads autotrack's bucket; nothing else in CI touches either.
 data "aws_iam_policy_document" "ci_lake" {
   statement {
     actions   = ["s3:ListBucket"]
@@ -64,6 +69,14 @@ data "aws_iam_policy_document" "ci_lake" {
   statement {
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["${aws_s3_bucket.lake.arn}/*"]
+  }
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [local.track_bucket_arn]
+  }
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${local.track_bucket_arn}/*"]
   }
 }
 

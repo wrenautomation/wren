@@ -14,3 +14,6 @@ node scripts/prod-wren.mjs lake sync --main --table runs    # one table now
 `models/<name>.sql`: one `CREATE OR REPLACE TABLE warehouse.<name> AS ...` over `wren.*` or
 `client_<id>.*`. Models run in name order, so one can read an earlier one. CI rebuilds them
 nightly after the sync.
+
+A model headed `-- needs: track` reads autotrack's bucket (`autotrack_*`): `{{track_events}}` and
+`{{track_labels}}` in its SQL, skipped when `WREN_LAKE_TRACK_PATH` is unset.

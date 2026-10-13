@@ -55,6 +55,7 @@ async function withLake<T>(
   const lake = await openLake({
     dataPath: settings.lakePath,
     catalogUrl: catalogUrl(settings),
+    ...(settings.lakeTrackPath ? { trackPath: settings.lakeTrackPath } : {}),
     ...o,
   });
   try {
@@ -125,7 +126,12 @@ export function registerLake(program: Command, withMainDb: WithDb, settings: Set
     .description("Rebuild the warehouse: every model in lake/models, in name order")
     .option("--dir <dir>", "the models", "lake/models")
     .action(async (o: { dir: string }) => {
-      const built = await withLake(settings, {}, (lake) => buildModels(lake, resolve(o.dir)));
+      const built = await withLake(settings, {}, (lake) =>
+        buildModels(lake, resolve(o.dir), {
+          ...(settings.lakeTrackPath ? { trackPath: settings.lakeTrackPath } : {}),
+          onSkip: (model, why) => console.log(`${model}: skipped, ${why}`),
+        }),
+      );
       for (const m of built) console.log(`${m.model}: ${m.ms} ms`);
     });
 

@@ -34,6 +34,8 @@ const OPTIONAL = [
   "WREN_POOL_LINKEDIN",
   // The lake: its bucket (designs/2026-10-11-lake.md); the catalog is wren_lake beside the database.
   "WREN_LAKE_PATH",
+  // autotrack's bucket, read by the autotrack_* models (designs/2026-10-11-lake.md).
+  "WREN_LAKE_TRACK_PATH",
   // Our Page and Instagram account: `social push meta` subscribes them.
   "WREN_META_PAGE_ID",
   "WREN_META_IG_ID",

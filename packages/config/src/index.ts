@@ -53,6 +53,11 @@ export const settingsSchema = z.object({
   lakePath: z.string().min(1).optional(),
   /** The lake's catalog: a Postgres URL or a local `.ducklake` file. Unset: `wren_lake` beside main. */
   lakeCatalogUrl: z.string().min(1).optional(),
+  /**
+   * autotrack's bucket (`s3://autobrowse-prod-track-<acct>/` or a local dir): `wren lake build` reads
+   * its sessions and labels for the `autotrack_*` models. Unset, those models are skipped.
+   */
+  lakeTrackPath: z.string().min(1).optional(),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
@@ -548,6 +553,7 @@ export const ENV_KEYS = {
   cacheUrl: "WREN_CACHE_URL",
   lakePath: "WREN_LAKE_PATH",
   lakeCatalogUrl: "WREN_LAKE_CATALOG_URL",
+  lakeTrackPath: "WREN_LAKE_TRACK_PATH",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
   robotsMode: "WREN_ROBOTS_MODE",
