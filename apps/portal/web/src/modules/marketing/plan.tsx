@@ -49,7 +49,7 @@ interface Goal {
 }
 
 const RECORD = "marketing.cadence";
-const OTHER: Record<string, string> = { threads: "Threads", newsletter: "Newsletter and Substack" };
+const OTHER: Record<string, string> = { newsletter: "Blog" };
 const placeName = (p: string) =>
   OTHER[p] ?? PLATFORM_SPECS[p as keyof typeof PLATFORM_SPECS]?.name ?? p;
 
@@ -57,11 +57,13 @@ const placeName = (p: string) =>
 const makeAt = (g: Goal): { href: string; label: string } =>
   g.piece === "story"
     ? { href: `/marketing/write?platform=${g.platform}&story=1`, label: "Story" }
-    : g.starts === "video"
-      ? { href: `/marketing/videos?platform=${g.platform}`, label: "Videos" }
-      : g.starts === "thread"
-        ? { href: `/marketing/engage?platform=${g.platform}`, label: "Answer" }
-        : { href: `/marketing/write?platform=${g.platform}`, label: "Write" };
+    : g.platform === "newsletter"
+      ? { href: "/marketing/write?blog=1", label: "Blog" }
+      : g.starts === "video"
+        ? { href: `/marketing/videos?platform=${g.platform}`, label: "Videos" }
+        : g.starts === "thread"
+          ? { href: `/marketing/engage?platform=${g.platform}`, label: "Answer" }
+          : { href: `/marketing/write?platform=${g.platform}`, label: "Write" };
 
 const counted = (gs: readonly Goal[]) => gs.filter((g) => g.done !== null);
 /** One piece covers each of its goals: what it still lacks is its most lacking goal. */

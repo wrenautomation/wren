@@ -1179,3 +1179,31 @@ export const keywordHitRecords = pgView("keyword_hit_records", {
   from keyword_hits h
   join comment_keywords k on k.id = h.keyword_id
   left join comments c on c.id = h.comment_id`);
+
+/**
+ * Blog posts written in Write (designs/2026-10-13-blog-box.md). The lander repo's Markdown file
+ * is the post; this row is what Write lists and Plan counts: `publishedAt` is the first time it
+ * went up, `emailedAt` when the newsletter took it.
+ */
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    slug: varchar("slug", { length: 80 }).notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    body: text("body").notNull(),
+    date: date("date", { mode: "string" }).notNull(),
+    draft: boolean("draft").notNull().default(true),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    emailedAt: timestamp("emailed_at", { withTimezone: true }),
+    /** The lander commit that last wrote it. */
+    commitSha: varchar("commit_sha", { length: 40 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.slug], name: "pk_blog_posts" }),
+    index("ix_blog_posts_published_at").on(t.publishedAt),
+  ],
+);

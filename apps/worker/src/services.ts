@@ -194,6 +194,7 @@ import {
   commentGuide,
   DEFAULT_VOICE,
   dmGuide,
+  githubRepo,
   s3MediaHost,
   slidePainter,
 } from "@wren/content";
@@ -219,6 +220,7 @@ import {
   DESK_KEY,
   DESK_UNIT,
   makeAutoReply,
+  makeBlog,
   makeChat,
   makeClientReport,
   makeContentDesk,
@@ -1051,6 +1053,15 @@ export async function buildServices(
       from: settings.portalFrom ?? null,
       postal: settings.marketingPostal ?? null,
       send: portalMail,
+    }),
+    // Write's Blog box: posts committed to the lander repo, then mailed (designs/2026-10-13-blog-box.md).
+    makeBlog({
+      db,
+      repo: settings.landerGithubToken
+        ? githubRepo({ token: settings.landerGithubToken, repo: settings.landerRepo })
+        : null,
+      site: settings.siteBaseUrl.replace(/\/+$/, ""),
+      zone: settings.sendTimezone,
     }),
     // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
     makeCalendar(calendarDeps),

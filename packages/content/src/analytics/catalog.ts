@@ -1025,13 +1025,13 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
     piece: "newsletter",
     platform: "newsletter",
     label: "TLDRs and deep posts",
-    name: "Newsletter and Substack",
+    name: "Blog posts",
     goal: 3,
     daily: null,
     pace: "3 days a week",
-    how: "Built from the long videos and the LinkedIn and X posts",
+    how: "Built from the long videos and the LinkedIn and X posts, then emailed",
     starts: "words",
-    counts: null,
+    counts: "any",
   },
 ];
 

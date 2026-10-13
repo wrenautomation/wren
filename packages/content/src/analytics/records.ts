@@ -33,6 +33,7 @@ import {
   countsFor,
   entriesFor,
   type Format,
+  type GoalPlace,
   type Need,
   PIECE_NAMES,
   stateLine,
@@ -153,11 +154,10 @@ export const digestRecord = defineRecord({
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Where a goal posts: every platform, and the two Wren doesn't post to yet. */
+/** Where a goal posts: every platform, and the blog with its newsletter. */
 export const GOAL_PLACES = cued({
   ...Object.fromEntries(PLATFORMS.map((p) => [p, neutral(PLATFORM_NAMES[p] ?? p)])),
-  threads: neutral("Threads"),
-  newsletter: neutral("Newsletter"),
+  newsletter: neutral("Blog"),
 });
 
 /**
@@ -173,7 +173,7 @@ export const cadenceRecord = defineRecord({
   rows: async (db) => {
     const since = new Date(Date.now() - 7 * DAY_MS).toISOString();
     const posts = await rowsOf<{
-      platform: Platform;
+      platform: GoalPlace;
       format: Format;
       week: number;
       today: number;
@@ -188,7 +188,15 @@ export const cadenceRecord = defineRecord({
             and coalesce(d.scheduled_for, now()) < now() + interval '7 days')::int queued
         from content_drafts d
         where d.published_at >= ${since}::timestamptz or d.status = 'approved'
-        group by 1, 2`,
+        group by 1, 2
+        union all
+        select 'newsletter', 'post',
+          count(*)::int,
+          count(*) filter (where b.published_at >= date_trunc('day', now() at time zone ${ZONE})
+            at time zone ${ZONE})::int,
+          0
+        from blog_posts b
+        where b.published_at >= ${since}::timestamptz`,
     );
     const [threads] = await rowsOf<{ week: number; today: number }>(
       db,

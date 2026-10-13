@@ -197,6 +197,10 @@ export const settingsSchema = z.object({
   siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
   /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
   siteExportToken: z.string().min(1).optional(),
+  /** A GitHub token that writes the lander repo's contents: Write's Blog box commits posts with it. */
+  landerGithubToken: z.string().min(1).optional(),
+  /** The lander repo, owner/name. */
+  landerRepo: z.string().default("wrenautomation/lander"),
   /** The lander's /api/edge bearer (its EDGE_TOKEN secret): flags pushed there. A secret. */
   siteEdgeToken: z.string().min(1).optional(),
   /**
@@ -604,6 +608,8 @@ export const ENV_KEYS = {
   instantlyApiKey: "WREN_INSTANTLY_API_KEY",
   siteBaseUrl: "WREN_SITE_BASE_URL",
   siteExportToken: "WREN_SITE_EXPORT_TOKEN",
+  landerGithubToken: "WREN_LANDER_GITHUB_TOKEN",
+  landerRepo: "WREN_LANDER_REPO",
   siteEdgeToken: "WREN_SITE_EDGE_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   searchSite: "WREN_SEARCH_SITE",

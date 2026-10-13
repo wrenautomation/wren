@@ -25,6 +25,7 @@ import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { BlogBox } from "./blog-box.js";
 import { StoryBox } from "./story-box.js";
 
 /** The platforms that post words alone (YouTube as a community post); videos go through Videos. */
@@ -111,6 +112,8 @@ export function WritePage(props: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
+  // Plan's blog goal opens here with ?blog=1: the Blog box alone.
+  const blogOnly = props.params.has("blog");
   // Plan's story goals open here with ?story=1; a video-only platform has nothing else to write.
   const storyOnly = !!only && !TEXT.includes(only);
   const storyFirst = storyOnly || props.params.has("story");
@@ -173,8 +176,9 @@ export function WritePage(props: PageProps) {
           <a href={`/marketing/videos?platform=${only}`}>Open Videos</a>
         </p>
       ) : null}
+      {blogOnly ? <BlogBox demo={props.demo} /> : null}
       {storyFirst ? stories : null}
-      {storyOnly ? null : (
+      {storyOnly || blogOnly ? null : (
         <>
           <Section>
             <div className="grid gap-3">
@@ -287,7 +291,8 @@ export function WritePage(props: PageProps) {
           </Section>
         </>
       )}
-      {storyFirst ? null : stories}
+      {storyFirst || blogOnly ? null : stories}
+      {blogOnly || only ? null : <BlogBox demo={props.demo} />}
 
       <WaitingBoard {...props} nonce={nonce} />
     </>
