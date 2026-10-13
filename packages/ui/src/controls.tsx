@@ -50,6 +50,8 @@ const look = ({ tone = "primary", size = "md", className }: ButtonLook) =>
     BUTTON_TONE[tone],
     (size === "dense" || size === "next") && DENSE_TONE[tone],
     size === "next" && NEXT,
+    // A finger needs 44px.
+    "pointer-coarse:min-h-11",
     className,
   );
 

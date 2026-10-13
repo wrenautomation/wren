@@ -239,6 +239,7 @@ export {
 export {
   AppShell,
   type Brand,
+  type DockItem,
   Gate,
   type NavApp,
   type NavArea,

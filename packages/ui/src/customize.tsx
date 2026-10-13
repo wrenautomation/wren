@@ -232,8 +232,8 @@ export function PinButton({
       title={compact ? label : undefined}
       className={cx(
         QUIET,
-        "h-8 gap-2 rounded-(--ui-radius) px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:text-(--ui-accent)",
-        compact ? "w-8 justify-center px-0" : "",
+        "h-8 gap-2 rounded-(--ui-radius) px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:text-(--ui-accent) pointer-coarse:h-11",
+        compact ? "w-8 justify-center px-0 pointer-coarse:w-11" : "",
       )}
       onClick={onToggle}
     >

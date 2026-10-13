@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
+import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet.js";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
@@ -99,6 +100,17 @@ export interface NavHome {
   count?: number | undefined;
 }
 
+/** One of the phone's bottom tabs: Today, an app, or a page he opens every day. */
+export interface DockItem {
+  id: string;
+  label: string;
+  icon: IconName;
+  href: string;
+  count?: number | undefined;
+  /** It's on screen. */
+  on?: boolean | undefined;
+}
+
 /** His pinned pages, on the rail of every app, and the button that pins the one on screen. */
 export interface RailPins {
   pins: PinLine[];
@@ -143,6 +155,7 @@ export function AppShell({
   launcher,
   home,
   areas,
+  dock,
   app,
   pins,
   actions,
@@ -164,6 +177,8 @@ export function AppShell({
   home?: NavHome | undefined;
   /** Every app by area. Left out (the demo), the sidebar holds the open app alone. */
   areas?: NavArea[] | undefined;
+  /** A phone's bottom tabs, before Menu (every app). Left out, a phone gets Menu at the top. */
+  dock?: DockItem[] | undefined;
   /** Null at home. */
   app: OpenApp | null;
   /** His pins; left out where nothing is kept (the demo). */
@@ -192,6 +207,10 @@ export function AppShell({
   const root = useRef<HTMLDivElement>(null);
   const d = display?.display ?? DISPLAY;
   const [keys, setKeys] = useState(false);
+  // A phone's Menu: every app, in a drawer. A new page shuts it.
+  const [menu, setMenu] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page shuts the menu.
+  useEffect(() => setMenu(false), [page]);
   useFrameKeys(display, app, onGo, () => setKeys((o) => !o));
   useShowKeys(useCallback(() => setKeys(true), []));
   // Rows, counts and motion reach the popups too, which sit outside the frame.
@@ -226,7 +245,8 @@ export function AppShell({
         nav
           ? "grid h-dvh grid-cols-[var(--layout-side)_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
           : "flex h-dvh flex-col",
-        "max-[900px]:block max-[900px]:h-auto",
+        // A phone: one column that scrolls as the page, nothing past its sides, clear of the notch.
+        "max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-x-clip max-[900px]:pr-[env(safe-area-inset-right)] max-[900px]:pl-[env(safe-area-inset-left)]",
         className,
       )}
     >
@@ -240,7 +260,7 @@ export function AppShell({
 
       <header
         className={cx(
-          "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[52px] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2",
+          "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[calc(52px+env(safe-area-inset-top))] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2 max-[900px]:pt-[env(safe-area-inset-top)]",
           nav && "min-[901px]:contents",
         )}
       >
@@ -360,6 +380,8 @@ export function AppShell({
                 // His text size: the page alone, so the frame's controls stay put.
                 "[zoom:var(--layout-zoom)]",
                 "mx-auto px-10 pt-9 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+                // The phone's tabs sit over the page's foot: it scrolls clear of them.
+                nav && "max-[900px]:pb-[calc(96px+env(safe-area-inset-bottom))]",
                 // A new page, or its data after the loader, fades in. Opacity only, so a fixed
                 // panel inside keeps the window as its frame.
                 "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
@@ -373,8 +395,69 @@ export function AppShell({
           </div>
         </div>
       </div>
+      {nav ? (
+        <>
+          <PhoneDock
+            items={dock ?? (home ? [{ ...home, id: "home", icon: "home", on: !app }] : [])}
+            onMenu={() => setMenu(true)}
+          />
+          <Sheet open={menu} onOpenChange={setMenu}>
+            <SheetContent
+              side="left"
+              className="w-[min(320px,86vw)] gap-0 bg-(--ui-canvas) p-0 min-[901px]:hidden"
+              // A tap on any link shuts it, even one to the page on screen.
+              onClick={(e) => {
+                if ((e.target as Element).closest("a")) setMenu(false);
+              }}
+            >
+              <SheetTitle className="sr-only">Every app</SheetTitle>
+              <SideNav app={app} home={home} areas={areas} pins={pins} folded={false} drawer />
+            </SheetContent>
+          </Sheet>
+        </>
+      ) : null}
       {display ? <KeysSheet open={keys} onClose={() => setKeys(false)} /> : null}
     </div>
+  );
+}
+
+const DOCK_TAB =
+  "relative flex min-w-0 flex-col items-center justify-center gap-1 border-0 bg-transparent p-0 text-[11px] leading-none font-medium text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) active:bg-(--ui-hover) aria-[current=page]:text-(--ui-accent)";
+
+/**
+ * A phone's tabs, at the thumb: Today, the pages he opens every day, then Menu, which holds
+ * every app. Over the page's foot, clear of the home bar.
+ */
+function PhoneDock({ items, onMenu }: { items: DockItem[]; onMenu: () => void }) {
+  return (
+    <nav
+      aria-label="Tabs"
+      className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-(--ui-glass) pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block"
+    >
+      <ul className="grid h-14 list-none auto-cols-fr grid-flow-col">
+        {items.map((t) => (
+          <li key={t.id} className="contents">
+            <a className={DOCK_TAB} href={t.href} aria-current={t.on ? "page" : undefined}>
+              <span className="relative">
+                <Icon name={t.icon} size={21} />
+                {t.count ? (
+                  <span className="absolute -top-1.5 left-3.5 min-w-[18px] bg-(--ui-warn-tint) px-1 text-center text-[11px]/[16px] font-semibold text-(--ui-warn-ink) in-data-[counts=off]:hidden">
+                    {num(t.count)}
+                  </span>
+                ) : null}
+              </span>
+              <span className="max-w-full truncate px-1">{t.label}</span>
+            </a>
+          </li>
+        ))}
+        <li className="contents">
+          <button type="button" className={DOCK_TAB} onClick={onMenu}>
+            <Icon name="menu" size={21} />
+            <span>Menu</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }
 
@@ -426,7 +509,7 @@ function useFrameKeys(
 const EASE = "transition-colors duration-150 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
-const ICON_BUTTON = `${HOVER} inline-grid size-8 border-0 bg-transparent p-0 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover) data-[popup-open]:text-(--ui-ink)`;
+const ICON_BUTTON = `${HOVER} inline-grid size-8 pointer-coarse:size-11 border-0 bg-transparent p-0 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover) data-[popup-open]:text-(--ui-ink)`;
 const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
 const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
@@ -706,6 +789,7 @@ function SideNav({
   areas,
   pins,
   folded,
+  drawer = false,
 }: {
   app: OpenApp | null;
   home: NavHome | undefined;
@@ -713,6 +797,8 @@ function SideNav({
   pins: RailPins | undefined;
   /** Icons alone: every app's name and pages show beside it on hover. */
   folded: boolean;
+  /** In a phone's Menu: rows a finger can hit, clear of the notch and the home bar. */
+  drawer?: boolean;
 }) {
   const shown: NavArea[] = areas?.length
     ? areas
@@ -759,7 +845,12 @@ function SideNav({
   return (
     <aside
       ref={aside}
-      className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-2.5 pb-3 pl-(--ui-frame) [grid-area:nav] [scrollbar-width:none] max-[900px]:hidden"
+      className={cx(
+        "flex min-h-0 flex-col gap-2 overflow-y-auto [scrollbar-width:none]",
+        drawer
+          ? "h-full px-3 pt-[calc(52px+env(safe-area-inset-top))] pb-[calc(12px+env(safe-area-inset-bottom))] [--layout-nav-row:44px]"
+          : "pr-2.5 pb-3 pl-(--ui-frame) [grid-area:nav] max-[900px]:hidden",
+      )}
     >
       {home ? (
         <a
@@ -891,7 +982,7 @@ function SideNav({
 }
 
 const PHONE_TAB =
-  "inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)";
+  "inline-flex min-h-11 items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)";
 
 /** One row of tabs that scrolls sideways, the one on screen scrolled into view. */
 function PhoneTabs({
@@ -952,11 +1043,11 @@ function AppHead({
   const groups = runs(app.tabs);
   const here = groups.find((r) => r.tabs.some((t) => t.id === app.current));
   return (
-    <header className="sticky top-0 z-5 hidden border-b border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
+    <header className="sticky top-0 z-5 hidden border-b pt-[env(safe-area-inset-top)] border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
       <div className="mx-auto flex min-h-[52px] items-center gap-1.5 px-4 pt-1.5">
         {launcher ? (
           <>
-            <a className={cx(BACK, "-ml-2 px-2")} href={launcher} aria-label={home}>
+            <a className={cx(BACK, "-ml-3 h-11 px-3")} href={launcher} aria-label={home}>
               <Icon name="home" />
             </a>
             <span className={SLASH} aria-hidden="true">

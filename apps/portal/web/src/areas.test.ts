@@ -1,6 +1,6 @@
 /** Every app sits in one area, and an area shows only the apps a workspace has. */
 import { describe, expect, it } from "vitest";
-import { AREAS, areasOf } from "./areas.js";
+import { AREAS, areasOf, dockOf } from "./areas.js";
 
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
@@ -20,5 +20,20 @@ describe("areas", () => {
       ["business", ["money"]],
       ["tools", ["notes", "new-app"]],
     ]);
+  });
+
+  it("docks the daily pages a workspace has, then its first apps", () => {
+    const pages = (...ids: string[]) => ids.map((id) => ({ id }));
+    const wren = [
+      { id: "notes", pages: pages("home") },
+      { id: "inbox", pages: pages("overview") },
+      { id: "marketing", pages: pages("plan", "write", "engage") },
+    ];
+    expect(dockOf(wren).map((d) => d.pick.page ?? d.app.id)).toEqual(["inbox", "write", "engage"]);
+    const client = [
+      { id: "notes", pages: pages("home") },
+      { id: "money", pages: pages("x") },
+    ];
+    expect(dockOf(client).map((d) => d.app.id)).toEqual(["money", "notes"]);
   });
 });

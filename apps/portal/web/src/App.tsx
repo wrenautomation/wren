@@ -12,6 +12,7 @@ import {
   Button,
   ButtonLink,
   can,
+  type DockItem,
   Empty,
   Gate,
   LOOK_PREF,
@@ -39,7 +40,7 @@ import {
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
-import { areasOf } from "./areas.js";
+import { areasOf, dockOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -503,6 +504,25 @@ export function App() {
       }))
     : undefined;
 
+  const waitingAll = cards.reduce((n, m) => n + appTotal(waiting[m.id]), 0);
+  // A phone's bottom tabs: Today, then what he opens every day; Menu (every app) comes after.
+  const dock: DockItem[] | undefined = launcher
+    ? [
+        { id: "home", label: "Today", icon: "home", href: launcher, count: waitingAll, on: !open },
+        ...dockOf(cards).map(({ app: m, pick }) => {
+          const page = pick.page ? m.pages.find((p) => p.id === pick.page) : undefined;
+          return {
+            id: page ? `${m.id}/${page.id}` : m.id,
+            label: pick.label ?? page?.label ?? m.name,
+            icon: pick.icon ?? m.icon,
+            href: page ? pathOf(m, page) : firstOf(m),
+            count: page ? waiting[m.id]?.[page.id] : appTotal(waiting[m.id]),
+            on: open?.module.id === m.id && (!page || lit === page.id),
+          };
+        }),
+      ]
+    : undefined;
+
   return (
     <SnippetsProvider source={snippets}>
       {/* A failure's raw text, under its plain sentence: Wren's team only. */}
@@ -518,16 +538,9 @@ export function App() {
             onPick: pick,
           }}
           launcher={launcher}
-          home={
-            launcher
-              ? {
-                  label: "Today",
-                  href: launcher,
-                  count: cards.reduce((n, m) => n + appTotal(waiting[m.id]), 0),
-                }
-              : undefined
-          }
+          home={launcher ? { label: "Today", href: launcher, count: waitingAll } : undefined}
           areas={areas}
+          dock={dock}
           bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
           pins={railPins}
           app={
