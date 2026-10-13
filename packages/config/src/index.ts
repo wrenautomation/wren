@@ -24,7 +24,21 @@ const mailboxes = z
     z.array(z.object({ address: z.string().email(), via: z.enum(["delegated", "autobrowse"]) })),
   );
 
+/** The platforms `WREN_CONTENT_CHANNELS` may name. */
+export const CONTENT_CHANNELS = [
+  "linkedin",
+  "reddit",
+  "youtube",
+  "x",
+  "instagram",
+  "threads",
+  "facebook",
+  "tiktok",
+] as const;
+export type ContentChannelName = (typeof CONTENT_CHANNELS)[number];
+
 /** All process settings. Read once at startup, passed down explicitly. */
+
 export const settingsSchema = z.object({
   databaseUrl: z.string().url(),
   /**
@@ -235,7 +249,11 @@ export const settingsSchema = z.object({
   sendTransport: z.enum(["console", "gmail"]).default("console"),
   daemonTickSeconds: z.coerce.number().int().default(60),
   daemonSyncSeconds: z.coerce.number().int().default(120),
-  /** Content platforms served through autobrowse's `sites` Restate service; empty = no `Content` service. */
+  /**
+   * Content platforms served through autobrowse's `sites` Restate service; empty = no `Content` service.
+   * A name this build doesn't know is dropped, not fatal: an invocation pinned to an older version
+   * reads today's env, and a channel added since once killed every loop pinned there (2026-10-13).
+   */
   contentChannels: z
     .string()
     .default("")
@@ -243,21 +261,9 @@ export const settingsSchema = z.object({
       s
         .split(",")
         .map((x) => x.trim())
-        .filter(Boolean),
-    )
-    .pipe(
-      z.array(
-        z.enum([
-          "linkedin",
-          "reddit",
-          "youtube",
-          "x",
-          "instagram",
-          "threads",
-          "facebook",
-          "tiktok",
-        ]),
-      ),
+        .filter((x): x is ContentChannelName =>
+          (CONTENT_CHANNELS as readonly string[]).includes(x),
+        ),
     ),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),

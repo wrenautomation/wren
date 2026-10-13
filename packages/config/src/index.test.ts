@@ -75,4 +75,11 @@ describe("loadSettings", () => {
     const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_CONTENT_VOICE: "" });
     expect(s.contentVoicePath).toBeUndefined();
   });
+  it("drops a content channel this build doesn't know", () => {
+    const s = loadSettings({
+      WREN_DATABASE_URL: "postgresql://u:p@h:1/d",
+      WREN_CONTENT_CHANNELS: "linkedin, somewhere-new,reddit",
+    });
+    expect(s.contentChannels).toEqual(["linkedin", "reddit"]);
+  });
 });
