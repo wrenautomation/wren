@@ -18,7 +18,13 @@ import type { SiteClient } from "@wren/core/content";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, type Guarded, guardDraft, recordGuard } from "@wren/core/grounded";
-import { COMMENT_RULE, type OurPost, ourPostsBlock, postsFor } from "@wren/core/our-posts";
+import {
+  COMMENT_RULE,
+  cleanComment,
+  type OurPost,
+  ourPostsBlock,
+  postsFor,
+} from "@wren/core/our-posts";
 import type { RejectReason } from "@wren/core/reject-reasons";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import type { Queryable } from "@wren/db";
@@ -880,7 +886,7 @@ async function guardedComment(
         system,
         name: `${p.platform}.comment_draft`,
       });
-      return { text: out.parsed?.comment.trim() ?? "", result: out };
+      return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
     },
     { facts, sources: [p.text, p.headline ?? "", ...ours.map((x) => x.text)] },
   );

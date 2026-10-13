@@ -15,7 +15,16 @@ export const COMMENT_RULE =
   "Talk like a peer who has thought about this. Never restate, summarize or praise what they " +
   "wrote: they know what they said. Take a side: agree and add why, or push back and say why. " +
   "Bring one point from our posts below in fresh words, or the high-level idea behind it. One " +
-  "concrete thing beats three general ones.";
+  "concrete thing beats three general ones. Open with your point, never with agreement (no " +
+  '"You\'re right", "Great point", "X\'s point hits home"). No closing question unless it is ' +
+  "specific to them. No \"it's not just X, it's Y\". No dashes. Sound like a text, not a post.";
+
+/** A comment as it goes out: dashes become commas (models lean on them; readers flag them). */
+export const cleanComment = (text: string): string =>
+  text
+    .replace(/\s*[\u2014\u2013]\s*/g, ", ")
+    .replace(/\s+--\s+/g, ", ")
+    .trim();
 
 const bag = (s: string) => new Set(s.toLowerCase().match(/[a-z]{5,}/g) ?? []);
 

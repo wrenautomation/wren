@@ -10,7 +10,13 @@ import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
-import { COMMENT_RULE, type OurPost, ourPostsBlock, postsFor } from "@wren/core/our-posts";
+import {
+  COMMENT_RULE,
+  cleanComment,
+  type OurPost,
+  ourPostsBlock,
+  postsFor,
+} from "@wren/core/our-posts";
 import type { AccountHealth } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
@@ -371,7 +377,7 @@ export async function draftThread(
         system,
         name: "reddit.draft",
       });
-      return { text: out.parsed?.comment.trim() ?? "", result: out };
+      return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
     },
     { facts: truths, sources: [prompt] },
   );
