@@ -122,6 +122,8 @@ export interface WatchDeps {
   /** The fleet's clock: business days and Friday afternoon. */
   zone: string;
   notifier?: Notifier;
+  /** Wren's own failed workflow runs, apart from the clients' flags; unset = in their digest. */
+  ops?: Notifier;
   /** Tells the spine of each flag raised or cleared; unset where no Spine runs. */
   fire?: FireTriggers;
   /**
@@ -1248,6 +1250,7 @@ async function flagClients(
       wallClock(deps.zone, now).hour,
       now,
       failing.wren,
+      deps.ops,
     );
     stats.alerted = told.urgent + told.digest;
   }

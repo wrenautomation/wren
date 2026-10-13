@@ -1687,6 +1687,8 @@ export async function buildServices(
           name: (id) => WORKFLOWS.find((w) => w.id === id)?.name ?? id,
         },
         ...clientsNotify,
+        // Wren's own workflows failing is ops news, not a client's (#ops, the main webhook).
+        ...(settings.notify === "none" ? {} : { ops: notifier }),
       }),
     );
   else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");

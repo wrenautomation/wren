@@ -327,6 +327,24 @@ describe("flags", () => {
       "Wren x: 1 failed run",
     ]);
     expect(told.splice(0).map((t) => t.body)).toEqual([expect.stringContaining("Wren x")]);
+    // With an ops notifier they go there alone, never in the clients' digest.
+    const ops: { title: string }[] = [];
+    await tellFlags(
+      pg.db,
+      notifier,
+      "2026-11-06",
+      9,
+      new Date("2026-11-06T09:10:00Z"),
+      ["Wren y: 2 failed runs"],
+      {
+        notify: async (title: string) => {
+          ops.push({ title });
+          return true;
+        },
+      } as unknown as Notifier,
+    );
+    expect(ops).toEqual([{ title: "Workflows: 1 failing" }]);
+    expect(told.splice(0).map((t) => t.body)).not.toContainEqual(expect.stringContaining("Wren y"));
     expect(await syncFlags(pg.db, "workflows", [], NOW)).toMatchObject({ cleared: 1 });
   });
 });

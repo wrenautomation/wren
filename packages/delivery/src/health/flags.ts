@@ -244,6 +244,8 @@ export async function tellFlags(
   now: Date,
   /** Wren's own failed workflow runs (`failedLines`), at the digest's foot. */
   wren: readonly string[] = [],
+  /** Where Wren's own go instead, in their own message (Discord #ops): they're no client's. */
+  ops?: Notifier,
 ): Promise<{ urgent: number; digest: number }> {
   const told = { urgent: 0, digest: 0 };
   const urgent = await db
@@ -288,7 +290,13 @@ export async function tellFlags(
   const due = open.filter(
     (f) => !f.toldAt || f.toldAt.getTime() <= now.getTime() - f.remindDays * DAY + SLACK,
   );
-  if (due.length || wren.length) {
+  if (ops && wren.length) {
+    if (!(await ops.notify(`Workflows: ${wren.length} failing`, wren.join("\n"), "warning")))
+      return told;
+    told.digest += wren.length;
+  }
+  const foot = ops ? [] : wren;
+  if (due.length || foot.length) {
     const owners = [...new Set(due.map((f) => f.owner))].sort((a, b) =>
       a === null ? -1 : b === null ? 1 : a.localeCompare(b),
     );
@@ -304,12 +312,12 @@ export async function tellFlags(
         ].join("\n");
       })
       .join("\n\n");
-    const all = [text, ...(wren.length ? [`Wren's workflows:\n${wren.join("\n")}`] : [])]
+    const all = [text, ...(foot.length ? [`Wren's workflows:\n${foot.join("\n")}`] : [])]
       .filter(Boolean)
       .join("\n\n");
     const title = due.length
       ? `Clients: ${due.length} to look at`
-      : `Workflows: ${wren.length} failing`;
+      : `Workflows: ${foot.length} failing`;
     if (!(await notifier.notify(title, all, "action"))) return told;
     if (due.length)
       await db
@@ -321,7 +329,7 @@ export async function tellFlags(
             due.map((f) => f.id),
           ),
         );
-    told.digest = due.length + wren.length;
+    told.digest += due.length + foot.length;
   }
   await db
     .insert(flagDigests)
