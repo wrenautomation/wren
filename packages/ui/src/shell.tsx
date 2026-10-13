@@ -88,6 +88,8 @@ export interface NavArea {
   id: string;
   label: string;
   apps: NavApp[];
+  /** Shut until opened: its name and what waits in it, one row. The choice is kept. */
+  shut?: boolean | undefined;
 }
 
 /** The sidebar's first link: Today. */
@@ -433,6 +435,16 @@ const APPMARK =
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
   "ml-auto min-w-5 in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+/** Which sidebar areas he shut or opened, kept in this browser. */
+const SHUT_KEY = "wren:areas-shut";
+function readShut(): Record<string, boolean> {
+  try {
+    const v = JSON.parse(localStorage.getItem(SHUT_KEY) ?? "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
 /** A group's heading, ruled off from the pages above it. */
 const GROUP =
   "mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
@@ -714,6 +726,16 @@ function SideNav({
         ]
       : [];
   const openId = app ? (app.id ?? "") : null;
+  const [shutPref, setShutPref] = useState<Readonly<Record<string, boolean>>>(readShut);
+  const isShut = (a: NavArea) =>
+    !folded && (shutPref[a.id] ?? !!a.shut) && !a.apps.some((x) => x.id === openId);
+  const toggle = (a: NavArea) => {
+    const next = { ...shutPref, [a.id]: !isShut(a) };
+    setShutPref(next);
+    try {
+      localStorage.setItem(SHUT_KEY, JSON.stringify(next));
+    } catch {}
+  };
   const menu = useHoverMenu();
   const aside = useRef<HTMLElement>(null);
   const [hovers] = useState(
@@ -765,18 +787,29 @@ function SideNav({
       <nav aria-label="Apps" className="flex flex-col gap-2">
         {shown.map((area) => (
           <section key={area.id} className="flex flex-col gap-0.5">
-            {area.apps.length > 1 ? (
-              <h2
-                className={
-                  folded
-                    ? "mx-1.5 my-1 h-0 overflow-hidden border-t border-(--ui-hair) text-[0px]"
-                    : cx(GROUP, "mt-0 border-t-0 pt-2")
-                }
-              >
+            {area.apps.length > 1 && folded ? (
+              <h2 className="mx-1.5 my-1 h-0 overflow-hidden border-t border-(--ui-hair) text-[0px]">
                 {area.label}
               </h2>
+            ) : area.apps.length > 1 ? (
+              <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2 pr-1")}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-1.5 bg-transparent p-0 text-left font-[inherit] text-inherit [letter-spacing:inherit] [text-transform:inherit] hover:text-(--ui-ink)"
+                  aria-expanded={!isShut(area)}
+                  onClick={() => toggle(area)}
+                >
+                  {area.label}
+                  <Icon name={isShut(area) ? "right" : "down"} className="size-3 opacity-70" />
+                  {isShut(area) && area.apps.some((x) => x.count) ? (
+                    <span className={cx(COUNT, "[text-transform:none] tracking-normal")}>
+                      {num(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
+                    </span>
+                  ) : null}
+                </button>
+              </h2>
             ) : null}
-            {area.apps.map((a) => {
+            {(isShut(area) ? [] : area.apps).map((a) => {
               const open = a.id === openId && app;
               return (
                 <div

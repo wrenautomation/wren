@@ -232,6 +232,7 @@ import {
   makeKeywordDm,
   makeMailReply,
   makeMarketingConsole,
+  makePieces,
   makeSocialDesk,
   makeSocialInbox,
   makeSocialPush,
@@ -1063,6 +1064,8 @@ export async function buildServices(
       site: settings.siteBaseUrl.replace(/\/+$/, ""),
       zone: settings.sendTimezone,
     }),
+    // Marketing's Today and Pieces: each piece with its branches (designs/2026-10-13-primitives-first.md).
+    makePieces({ db, site: settings.siteBaseUrl.replace(/\/+$/, "") }),
     // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
     makeCalendar(calendarDeps),
     makeClientCalendar(clientCalendarDeps),

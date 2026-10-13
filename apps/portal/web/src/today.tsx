@@ -1,11 +1,13 @@
 /**
- * "/": Today. What waits on you across every app, then how the day goes (Wren's) or the services
- * bought (a client's), then the pins. On a phone, where the sidebar hides, the apps by area too
- * (designs/2026-10-10-portal-areas.md).
+ * "/": Today. Wren's (designs/2026-10-13-primitives-first.md): what to make, then what waits on
+ * you as the things themselves (pieces with every platform they go to, then each other kind with
+ * the first names in it), then what went out. A client's: what waits, a card per service bought.
+ * On a phone, where the sidebar hides, the apps by area too (designs/2026-10-10-portal-areas.md).
  */
 import {
   AppCard,
   AppGrid,
+  cx,
   Icon,
   type IconName,
   Loading,
@@ -16,45 +18,24 @@ import {
   Tag,
 } from "@wren/ui";
 import type { ReactNode } from "react";
+import { call } from "./api.js";
 import { areasOf } from "./areas.js";
 import { Contained } from "./contained.js";
-import type { Module, OverviewPage, PageProps } from "./module.js";
+import { useCall } from "./load.js";
+import type { Module, PageProps } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
+import {
+  allWaiting,
+  happenings,
+  PieceCard,
+  usePieces,
+  WhatHappened,
+} from "./modules/marketing/pieces.js";
+import { goalsOf, MakeList, usePlan } from "./modules/marketing/plan.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { HealthNow } from "./modules/wren/health.js";
-import { TemplatePage } from "./records.js";
 import { appTotal, type Waiting } from "./waiting.js";
-
-const CALLS = "email.call";
-
-/** Wren's day in numbers, and the next calls with their briefs one click away. */
-const DAY: OverviewPage = {
-  id: "overview",
-  label: "Calls and replies",
-  template: "overview",
-  tiles: [
-    { label: "Replies today", record: "email.reply", href: "/inbox/replies?view=all", period: 1 },
-    {
-      label: "Booked this week",
-      record: CALLS,
-      href: "/inbox/calls?view=booked",
-      period: 7,
-      at: "booked",
-    },
-    { label: "Upcoming calls", record: CALLS, href: "/inbox/calls?view=upcoming" },
-    { label: "Calls to mark", record: CALLS, href: "/inbox/calls?view=past", needs: true },
-  ],
-  top: [
-    {
-      label: "Next calls",
-      record: CALLS,
-      href: "/inbox/calls?view=upcoming",
-      fields: ["company", "start"],
-      empty: "No call is booked.",
-    },
-  ],
-};
 
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
@@ -119,6 +100,192 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
   );
 }
 
+/** To approve's other kinds: their name, where they list, and whether `who` is a person. */
+const ASKS: Record<string, { label: string; view: string; person?: boolean }> = {
+  invite: { label: "First messages to new connections", view: "invites", person: true },
+  connect: { label: "Connection notes", view: "invites", person: true },
+  thread: { label: "Reddit thread comments", view: "threads" },
+  onpost: { label: "Comments on others' posts", view: "comments" },
+  reply: { label: "Inbox replies", view: "replies", person: true },
+  video: { label: "Videos", view: "videos" },
+  template: { label: "Template versions", view: "templates" },
+  workflow: { label: "Client workflows", view: "workflows" },
+  page: { label: "Pages", view: "pages" },
+  payment: { label: "Payment links", view: "payments" },
+  swap: { label: "Title and thumbnail swaps", view: "swaps" },
+};
+const APPROVAL = "marketing.approval";
+
+interface Ask {
+  key: string;
+  href: string;
+  icon: IconName;
+  label: string;
+  names: string[];
+  n: number;
+}
+type Row = Record<string, unknown>;
+type Meta = { id: string; title: string };
+
+const nameOf = (v: unknown, person = false) => {
+  const t = String(v ?? "").trim();
+  if (!t) return "";
+  const s = person ? (t.split(/\s+/)[0] ?? t) : t;
+  return s.length > 42 ? `${s.slice(0, 41).trimEnd()}…` : s;
+};
+
+/** Each waiting page as its items: the first names in it, not just a count. */
+async function asksOf(apps: Module[], waiting: Waiting): Promise<Ask[]> {
+  const metas = await call<Meta[]>("console/recordsTypes", {}).catch(() => [] as Meta[]);
+  const titleOf = (record: string) => metas.find((m) => m.id === record)?.title ?? "name";
+  const pages = areasOf(apps).flatMap(({ apps }) =>
+    apps.flatMap((m) =>
+      m.pages
+        .filter((p) => !p.hidden && (waiting[m.id]?.[p.id] ?? 0) > 0)
+        .map((p) => ({ m, p, n: waiting[m.id]?.[p.id] ?? 0 })),
+    ),
+  );
+  const got = await Promise.all(
+    pages.map(async ({ m, p, n }): Promise<Ask[]> => {
+      const href = `/${m.id}/${p.id}`;
+      const record = "record" in p ? p.record : null;
+      const where = "count" in p ? p.count : null;
+      if (!record || !where)
+        return [{ key: href, href, icon: m.icon, label: p.label, names: [], n }];
+      if (record === APPROVAL) {
+        // Post drafts show as pieces above; every other kind gets its own line.
+        const { rows } = await call<{ rows: Row[] }>("console/recordsList", {
+          record,
+          where,
+          limit: 200,
+        });
+        const by = new Map<string, Row[]>();
+        for (const r of rows) {
+          const t = String(r.type);
+          if (t === "draft") continue;
+          by.set(t, [...(by.get(t) ?? []), r]);
+        }
+        return [...by].map(([t, rs]) => {
+          const a = ASKS[t] ?? { label: t, view: "waiting" };
+          return {
+            key: `${href}/${t}`,
+            href: `${href}?view=${a.view}`,
+            icon: m.icon,
+            label: a.label,
+            names: [...new Set(rs.map((r) => nameOf(r.who, a.person)).filter(Boolean))],
+            n: rs.length,
+          };
+        });
+      }
+      const { rows } = await call<{ rows: Row[] }>("console/recordsList", {
+        record,
+        where,
+        limit: 4,
+      });
+      const key = titleOf(record);
+      return [
+        {
+          key: href,
+          href,
+          icon: m.icon,
+          label: p.label,
+          names: rows.map((r) => nameOf(r[key])).filter(Boolean),
+          n,
+        },
+      ];
+    }),
+  );
+  return got.flat().sort((a, b) => b.n - a.n);
+}
+
+/** "Sam, Priya, Ana and 9 more". */
+const namesLine = (names: string[], n: number) => {
+  const shown = names.slice(0, 3);
+  if (!shown.length) return "";
+  const rest = n - shown.length;
+  return rest > 0 ? `${shown.join(", ")} and ${rest} more` : shown.join(", ");
+};
+
+function AskRow({ a }: { a: Ask }) {
+  const names = namesLine(a.names, a.n);
+  return (
+    <li>
+      <a className={ROW} href={a.href}>
+        <Icon name={a.icon} className="text-(--ui-ink-2)" />
+        <span className="min-w-0 truncate">
+          {a.label}
+          {names ? <span className={MUTED}> · {names}</span> : null}
+        </span>
+        <span className={COUNT}>{a.n}</span>
+      </a>
+    </li>
+  );
+}
+
+const PIECES_SHOWN = 3;
+
+/** Wren's work: make, what waits (pieces, then each other kind), what went out. */
+function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
+  const plan = usePlan();
+  const work = usePieces();
+  const key = JSON.stringify(waiting);
+  const asks = useCall(`today-asks:${key}`, () => asksOf(apps, waiting));
+  const goals = goalsOf(plan.data?.rows);
+  const pieces = (work.data?.pieces ?? []).filter((p) => allWaiting(p).length);
+  const lines = asks.data ?? [];
+  const none = work.data && asks.data && !pieces.length && !lines.length;
+  return (
+    <>
+      {goals.length ? (
+        <Section
+          title="Make"
+          note="This week's goals, by what you make"
+          actions={
+            <a className={cx("text-[13px] underline", MUTED)} href="/marketing/plan">
+              Marketing
+            </a>
+          }
+        >
+          <MakeList goals={goals} reload={plan.retry} />
+        </Section>
+      ) : null}
+      <Section
+        title="Waiting on you"
+        actions={
+          pieces.length > PIECES_SHOWN ? (
+            <a className={cx("text-[13px] underline", MUTED)} href="/marketing/pieces?show=waiting">
+              All {pieces.length} pieces
+            </a>
+          ) : null
+        }
+      >
+        {!work.data || !asks.data ? (
+          <Loading lines={5} />
+        ) : none ? (
+          <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
+            <Icon name="check" className="text-(--ui-good)" />
+            Nothing waits on you.
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {pieces.slice(0, PIECES_SHOWN).map((p) => (
+              <PieceCard key={p.id} piece={p} reload={work.retry} />
+            ))}
+            {lines.length ? (
+              <ul className="m-0 list-none border-y border-(--ui-hair) p-0">
+                {lines.map((a) => (
+                  <AskRow key={a.key} a={a} />
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        )}
+      </Section>
+      {work.data ? <WhatHappened items={happenings(work.data.pieces)} /> : null}
+    </>
+  );
+}
+
 /** The apps by area, for a phone, where the sidebar hides. */
 function AppsByArea({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
   return (
@@ -163,10 +330,7 @@ export function WrenToday({
       {props.team ? <SetupNow client={props.client} team /> : null}
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
-      <NeedsYou apps={apps} waiting={waiting} />
-      <div className="mt-6">
-        <TemplatePage {...props} app="" page={DAY} path="/today" id={undefined} />
-      </div>
+      <WrenWork apps={apps} waiting={waiting} />
       <AppsByArea apps={apps} waiting={waiting} />
     </>
   );

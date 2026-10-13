@@ -20,6 +20,7 @@ export * from "./ideas.js";
 export * from "./lessons.js";
 export * from "./media.js";
 export * from "./metrics.js";
+export * from "./pieces.js";
 export * from "./plan.js";
 export * from "./platforms.js";
 export * from "./playbook.js";

@@ -140,11 +140,19 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
   const tiles = arrangeTiles(all, pref.value).shown.filter(here);
   // Each period tile's answer, for the chart under them: asked once, by the tile.
   const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
+  // Each tile says once it reads nothing (zero now and before, or no figure): once every tile
+  // has answered, those fold into one quiet line, so a wall of zeros never hides what moved.
+  const [blank, setBlank] = useState<Readonly<Record<string, boolean>>>({});
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   const metaOf = (id: string) => types.data?.find((t) => t.id === id);
-  const spans = perRow(tiles.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
+  const settled = tiles.length > 0 && tiles.every((t) => t.label in blank);
+  const folded = settled ? tiles.filter((t) => blank[t.label]) : [];
+  const shown = tiles.filter((t) => !folded.includes(t));
+  const spans = perRow(shown.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
   const told = (label: string, shown: Shown) =>
     setStats((s) => (s[label]?.stat === shown.stat ? s : { ...s, [label]: shown }));
+  const said = (label: string, empty: boolean) =>
+    setBlank((b) => (b[label] === empty ? b : { ...b, [label]: empty }));
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       {title || (keep && all.length > 1) ? (
@@ -161,15 +169,21 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
           ) : null}
         </div>
       ) : null}
-      <div className="grid grid-cols-2 gap-px p-px lg:grid-cols-12">
-        {tiles.map((t, i) => {
+      <div
+        className={cn("grid grid-cols-2 gap-px p-px lg:grid-cols-12", !shown.length && "hidden")}
+      >
+        {tiles.map((t) => {
           const meta = metaOf(t.record);
+          const i = shown.indexOf(t);
           // Two to a row on a phone; an odd last one takes the whole row.
-          const wide = i === tiles.length - 1 && tiles.length % 2 === 1;
+          const wide = i === shown.length - 1 && shown.length % 2 === 1;
           return (
-            <div key={t.label} className={cn("grid", spans[i], wide && "max-lg:col-span-2")}>
+            <div
+              key={t.label}
+              className={cn("grid", i < 0 ? "hidden" : spans[i], wide && "max-lg:col-span-2")}
+            >
               {meta && pref.ready ? (
-                <Tile tile={t} meta={meta} api={api} onStat={told} />
+                <Tile tile={t} meta={meta} api={api} onStat={told} onBlank={said} />
               ) : (
                 <TileGhost />
               )}
@@ -177,6 +191,20 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
           );
         })}
       </div>
+      {folded.length ? (
+        <p className="m-0 -mt-4 text-[13.5px] text-(--ui-ink-2)">
+          Nothing yet:{" "}
+          {folded.map((t, i) => (
+            <span key={t.label}>
+              {i ? ", " : ""}
+              <a className="text-(--ui-ink-2) underline-offset-2 hover:underline" href={t.href}>
+                {i ? t.label.charAt(0).toLowerCase() + t.label.slice(1) : t.label}
+              </a>
+            </span>
+          ))}
+          .
+        </p>
+      ) : null}
       {types.data && !tiles.length && !top.some(here) ? (
         <Empty>These numbers show once the parts that count them are installed.</Empty>
       ) : null}
@@ -222,11 +250,14 @@ function Tile({
   meta,
   api,
   onStat,
+  onBlank,
 }: {
   tile: OverviewTile;
   meta: RecordMeta;
   api: RecordsApi;
   onStat: (label: string, shown: Shown) => void;
+  /** Once loaded: whether it reads nothing at all, now or before. A failed tile stays. */
+  onBlank: (label: string, empty: boolean) => void;
 }) {
   const ask = askFor(meta, tile.href);
   const { period, pick } = tile;
@@ -277,7 +308,9 @@ function Tile({
   // biome-ignore lint/correctness/useExhaustiveDependencies: the answer is the cue; `fmt` reads it.
   useEffect(() => {
     if (s && period && !pick && s.series.length > 1) onStat(tile.label, { stat: s, format: fmt });
-  }, [s]);
+    if (s) onBlank(tile.label, !s.value && !s.prior && !s.latest && !s.series.some((x) => x.value));
+    else if (load.error) onBlank(tile.label, false);
+  }, [s, load.error]);
   if (!load.data && !load.error) return <TileGhost />;
   // A pick names its row's month and compares with the row before.
   const newest = pick ? month(s?.series.at(-1)?.at ?? null) : "";

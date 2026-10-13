@@ -9,6 +9,8 @@ export interface Area {
   label: string;
   /** App ids, in sidebar order. */
   apps: readonly string[];
+  /** Folds shut until opened: the set-and-forget apps (designs/2026-10-13-primitives-first.md). */
+  shut?: boolean;
 }
 
 export const AREAS: readonly Area[] = [
@@ -22,6 +24,7 @@ export const AREAS: readonly Area[] = [
   {
     id: "automations",
     label: "Automations",
+    shut: true,
     apps: ["workflows", "loops", "library", "marketplace", "voice", "handlers"],
   },
   {
@@ -29,7 +32,12 @@ export const AREAS: readonly Area[] = [
     label: "Business",
     apps: ["work", "clients", "money", "payments", "documents", "team"],
   },
-  { id: "tools", label: "Tools", apps: ["notes", "calendar", "ask", "review", "settings"] },
+  {
+    id: "tools",
+    label: "Tools",
+    shut: true,
+    apps: ["notes", "calendar", "ask", "review", "settings"],
+  },
 ];
 
 /** The last area, where an app no area names goes, so a new app always shows. */

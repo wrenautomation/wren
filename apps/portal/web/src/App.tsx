@@ -482,6 +482,7 @@ export function App() {
     ? areasOf(cards).map(({ area, apps }) => ({
         id: area.id,
         label: area.label,
+        ...(area.shut ? { shut: true } : {}),
         apps: apps.map((m) => ({
           id: m.id,
           name: m.name,

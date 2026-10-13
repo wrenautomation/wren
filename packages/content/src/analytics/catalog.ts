@@ -806,7 +806,7 @@ export const PIECE_NAMES: Readonly<Record<string, string>> = {
   written: "Written post",
   story: "Story",
   replies: "Thread replies",
-  newsletter: "Newsletter",
+  newsletter: "Blog post",
 };
 
 export const CADENCE_GOALS: readonly CadenceGoal[] = [

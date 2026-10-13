@@ -54,6 +54,7 @@ export const CONTENT_COMPONENTS = [
         "ContentMetrics",
         "DraftAsk",
         "Blog",
+        "Pieces",
       ],
       loops: ["ContentScheduler", "ContentMetrics"],
       templates: ["prompt:content/draft-ask"],

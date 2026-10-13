@@ -8,7 +8,7 @@ import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
-import type { DayPage, ListPage, Module, ModulePage, PageAcross } from "../../module.js";
+import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
@@ -26,6 +26,7 @@ import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
 import { type MoreGroup, MorePage } from "./more.js";
+import { PiecesPage } from "./pieces.js";
 import { PlanPage } from "./plan.js";
 import { postExtras, postLooks } from "./posts.js";
 import { ReportsPage } from "./reports.js";
@@ -912,18 +913,6 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   connect: NOTE_DRAFT,
 };
 
-/** Content's platform switch: what waits on him on each platform, kept from page to page. */
-const BY_PLATFORM: PageAcross = {
-  field: "platform",
-  label: "Platform",
-  waits: [
-    { record: "marketing.draft", view: "waiting" },
-    { record: "marketing.comment", view: "waiting" },
-    { record: "marketing.dm", view: "waiting" },
-    { record: "marketing.video", view: "waiting" },
-  ],
-};
-
 /** Engage's row type picks its box, as on each kind's own page. */
 const ENGAGE_DRAFT: Record<string, DraftOf> = {
   thread: THREAD_DRAFT,
@@ -965,7 +954,6 @@ const ENGAGE_PAGE: ListPage = {
   id: "engage",
   label: "Engage",
   group: "Content",
-  across: BY_PLATFORM,
   template: "list",
   record: "marketing.engage",
   columns: ["who", "platform", "type", "state", "at"],
@@ -1198,7 +1186,6 @@ const TODAY: DayPage = {
   group: "Content",
   template: "day",
   by: "platform",
-  across: BY_PLATFORM,
   sources: [
     {
       record: "marketing.draft",
@@ -1280,17 +1267,16 @@ const REVIEWS_PAGE: ListPage = {
 };
 
 /**
- * Marketing's sidebar: the daily work by platform (plan, write, make videos, answer, read, see what
- * went out, its numbers), and More, a page that lists the rest by what each is for. Ids stay, so
- * old links and pings keep landing; a page past the main ones lights More.
+ * Marketing's pages (designs/2026-10-13-primitives-first.md): Today (what to make, what waits, what
+ * went out), Pieces (each thing made, with everywhere it went), Write, Engage, Numbers, and More,
+ * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
+ * past the main ones lights More.
  */
 const MAIN: Readonly<Record<string, string>> = {
-  plan: "Plan",
+  plan: "Today",
+  pieces: "Pieces",
   write: "Write",
-  videos: "Videos",
   engage: "Engage",
-  feed: "Feed",
-  content: "Posted",
   overview: "Numbers",
 };
 /** More's headings for the old sidebar groups. */
@@ -1496,19 +1482,14 @@ export const marketing: Module = {
     },
     REVIEWS_PAGE,
     TODAY,
-    {
-      id: "plan",
-      label: "Plan",
-      Page: PlanPage,
-      across: { ...BY_PLATFORM, record: "marketing.cadence" },
-    },
+    { id: "plan", label: "Today", Page: PlanPage },
+    { id: "pieces", label: "Pieces", Page: PiecesPage },
     {
       id: "write",
       label: "Write",
       group: "Content",
       Page: WritePage,
       wide: true,
-      across: BY_PLATFORM,
     },
     ENGAGE_PAGE,
     { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
@@ -1518,7 +1499,6 @@ export const marketing: Module = {
       id: "drafts",
       label: "Drafts",
       hidden: true,
-      across: BY_PLATFORM,
       template: "list",
       record: "marketing.draft",
       empty: {
@@ -1533,7 +1513,6 @@ export const marketing: Module = {
       id: "content",
       label: "Posts",
       group: "Content",
-      across: BY_PLATFORM,
       template: "list",
       record: "marketing.post",
       // The rest of its numbers sit on the post, under How it did.
@@ -1559,7 +1538,6 @@ export const marketing: Module = {
       id: "comments",
       label: "Comments",
       group: "Content",
-      across: BY_PLATFORM,
       template: "list",
       record: "marketing.comment",
       // Their words preview under who; Where, On and Open sit on the comment itself.
@@ -1576,7 +1554,6 @@ export const marketing: Module = {
       id: "videos",
       label: "Videos",
       group: "Content",
-      across: BY_PLATFORM,
       template: "list",
       record: "marketing.video",
       empty: {
