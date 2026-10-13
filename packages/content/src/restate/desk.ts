@@ -19,7 +19,7 @@ import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
 import { z } from "zod";
 import { askSwap, planSwap, skipSwaps, startSwap } from "../analytics/variants.js";
@@ -61,6 +61,7 @@ import {
   type VariantField,
 } from "../schema.js";
 import { slotsOf } from "../slots.js";
+import { STORY_PLATFORMS, type StoryPlatform, storyClips, writeStory } from "../story.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
 import { type Brand, DEFAULT_BRAND } from "../voice.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
@@ -172,6 +173,15 @@ const WRITE = z.looseObject({
     .enum(WRITE_GO)
     .nullish()
     .describe("draft: wait for a yes (default); slot: post at each next slot; now: next pass"),
+});
+const STORY = z.looseObject({
+  platforms: z.array(z.enum(STORY_PLATFORMS)).min(1).describe("Where the story goes"),
+  photo: z
+    .object({ name: z.string().min(1), data: z.string().min(1) })
+    .nullish()
+    .describe("A JPG or PNG as base64, up to 2 MB"),
+  clip: z.string().nullish().describe("A Reel draft's id: its stored video"),
+  go: z.enum(WRITE_GO).nullish().describe("draft (default), slot or now"),
 });
 const NONE = z.looseObject({});
 const DRAFT = z.looseObject({
@@ -508,34 +518,43 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                 });
             out.push({ ideaId: made.ideaId, results: made.results.map(written) });
           }
-          const go = req.go ?? "draft";
-          if (go === "draft") return { posts: out };
-          const slots = go === "slot" ? await slotsHere(ctx) : undefined;
-          // One at a time: a draft that can't go yet (Reddit with no subreddit) stays a draft.
-          for (const post of out)
-            for (const r of post.results) {
-              if (!r.draftId) continue;
-              const id = r.draftId;
-              const why = await ctx.run(`approve ${id}`, async () => {
-                try {
-                  const [row] = await approveDrafts(s.db, [id], {
-                    now: new Date(),
-                    zone: deps.zone,
-                    asap: go === "now",
-                    ...(slots ? { slots } : {}),
-                    by,
-                  });
-                  return { at: row?.scheduledFor?.toISOString() ?? null, error: null };
-                } catch (err) {
-                  return { at: null, error: err instanceof Error ? err.message : String(err) };
-                }
-              });
-              if (why.error) r.held = why.error;
-              else r.at = why.at;
-            }
+          await goOn(ctx, s.db, out, req.go ?? "draft", by);
           return { posts: out };
         },
       ),
+      /** A story on Instagram and the Page from a photo or a clip; Write's draft, slot or now. */
+      story: exclusiveHandler(
+        { input: STORY },
+        async (
+          ctx: restate.ObjectContext,
+          req: {
+            platforms: StoryPlatform[];
+            photo?: { name: string; data: string } | null;
+            clip?: string | null;
+            go?: WriteGo | null;
+            viewer?: unknown;
+          },
+        ) => {
+          const s = await scopeOf(ctx);
+          const made = await ctx.run("story", () =>
+            verdictOf(() =>
+              writeStory(s.db, deps.media ?? null, {
+                platforms: req.platforms,
+                photo: req.photo ?? null,
+                clip: req.clip ?? null,
+              }),
+            ),
+          );
+          const out = [{ ideaId: made.ideaId, results: made.results.map(written) }];
+          await goOn(ctx, s.db, out, req.go ?? "draft", byOf(req));
+          return { posts: out };
+        },
+      ),
+      /** Clips a story can share: stored Reels, newest first. */
+      storyClips: sharedHandler({ input: NONE }, async (ctx: restate.ObjectSharedContext) => {
+        const { db } = await scopeOf(ctx);
+        return { clips: await ctx.run("clips", () => storyClips(db)) };
+      }),
       /** A person's yes from the console: each draft posts at its platform's next slot. */
       approve: exclusiveHandler(
         { input: APPROVE },
@@ -885,6 +904,42 @@ export function makeContentDesk(deps: ContentDeskDeps) {
   });
 
   /** Wren's posts land on the planner's slots; a client's on the defaults. */
+  /**
+   * Write's go: "draft" leaves them waiting; "slot" or "now" gives each its yes, one at a time, so
+   * a draft that can't go yet (Reddit with no subreddit) stays a draft and says why.
+   */
+  async function goOn(
+    ctx: restate.ObjectContext,
+    db: Queryable,
+    out: { results: WriteResult[] }[],
+    go: WriteGo,
+    by: ReturnType<typeof byOf>,
+  ) {
+    if (go === "draft") return;
+    const slots = go === "slot" ? await slotsHere(ctx) : undefined;
+    for (const post of out)
+      for (const r of post.results) {
+        if (!r.draftId) continue;
+        const id = r.draftId;
+        const why = await ctx.run(`approve ${id}`, async () => {
+          try {
+            const [row] = await approveDrafts(db, [id], {
+              now: new Date(),
+              zone: deps.zone,
+              asap: go === "now",
+              ...(slots ? { slots } : {}),
+              by,
+            });
+            return { at: row?.scheduledFor?.toISOString() ?? null, error: null };
+          } catch (err) {
+            return { at: null, error: err instanceof Error ? err.message : String(err) };
+          }
+        });
+        if (why.error) r.held = why.error;
+        else r.at = why.at;
+      }
+  }
+
   async function slotsHere(ctx: restate.ObjectContext) {
     const planned = clientOfKey(ctx.key)
       ? null

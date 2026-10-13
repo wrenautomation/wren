@@ -55,11 +55,13 @@ const placeName = (p: string) =>
 
 /** Where the next one gets made. */
 const makeAt = (g: Goal): { href: string; label: string } =>
-  g.starts === "video"
-    ? { href: `/marketing/videos?platform=${g.platform}`, label: "Videos" }
-    : g.starts === "thread"
-      ? { href: `/marketing/engage?platform=${g.platform}`, label: "Answer" }
-      : { href: `/marketing/write?platform=${g.platform}`, label: "Write" };
+  g.piece === "story"
+    ? { href: `/marketing/write?platform=${g.platform}&story=1`, label: "Story" }
+    : g.starts === "video"
+      ? { href: `/marketing/videos?platform=${g.platform}`, label: "Videos" }
+      : g.starts === "thread"
+        ? { href: `/marketing/engage?platform=${g.platform}`, label: "Answer" }
+        : { href: `/marketing/write?platform=${g.platform}`, label: "Write" };
 
 const counted = (gs: readonly Goal[]) => gs.filter((g) => g.done !== null);
 /** One piece covers each of its goals: what it still lacks is its most lacking goal. */

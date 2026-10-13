@@ -437,6 +437,7 @@ export const formatSql = `case
       when d.platform = 'youtube' then case d.extra->>'kind' when 'short' then 'short'
         when 'community' then 'post' else 'long' end
       when d.platform = 'tiktok' then 'video'
+      when d.platform in ('instagram', 'facebook') and d.extra->>'kind' = 'story' then 'story'
       when d.platform = 'instagram' and d.extra->>'kind' = 'video' then 'reel'
       when (d.platform = 'instagram' and d.extra->>'kind' = 'carousel')
         or (d.platform = 'linkedin' and d.extra->>'kind' = 'document') then 'carousel'

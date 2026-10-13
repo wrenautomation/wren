@@ -725,7 +725,16 @@ export function stateLine(state: string, needs?: Need, why?: string | null): str
   }
 }
 
-export const FORMATS = ["long", "short", "reel", "video", "carousel", "thread", "post"] as const;
+export const FORMATS = [
+  "long",
+  "short",
+  "reel",
+  "video",
+  "carousel",
+  "thread",
+  "story",
+  "post",
+] as const;
 export type Format = (typeof FORMATS)[number];
 
 /**
@@ -739,6 +748,7 @@ export function formatOf(
 ): Format {
   if (platform === "youtube" && kind !== "community") return kind === "short" ? "short" : "long";
   if (platform === "tiktok") return "video";
+  if ((platform === "instagram" || platform === "facebook") && kind === "story") return "story";
   if (platform === "instagram" && kind === "video") return "reel";
   if (
     (platform === "instagram" && kind === "carousel") ||
@@ -864,7 +874,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
     pace: "3 a day",
     how: "2 clip shares and 1 behind the scenes or poll",
     starts: "video",
-    counts: null,
+    counts: ["story"],
   },
   {
     id: "tiktok",
@@ -916,7 +926,7 @@ export const CADENCE_GOALS: readonly CadenceGoal[] = [
     pace: "3 a day",
     how: "Mirrored from Instagram Stories",
     starts: "video",
-    counts: null,
+    counts: ["story"],
   },
   {
     id: "linkedin-video",

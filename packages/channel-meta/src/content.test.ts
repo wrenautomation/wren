@@ -131,6 +131,39 @@ describe("instagram content channel", () => {
     expect(calls.filter(([m, p]) => m === "POST" && p === "/ig9/media")).toHaveLength(6);
   });
 
+  it("posts a story: a STORIES container, no caption, publish, its permalink read back", async () => {
+    const slept: number[] = [];
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": () => ({ id: "c3" }),
+      "POST /ig9/media_publish": () => ({ id: "st1" }),
+      "GET /st1": () => ({ permalink: "https://www.instagram.com/stories/wren/st1/" }),
+    });
+    const ch = instagramContent(sites, { host, now, sleep: async (ms) => void slept.push(ms) });
+    const photo = await ch.publish({
+      text: "ignored",
+      media: { kind: "image", source: "/mac/bts.jpg" },
+      extra: { kind: "story" },
+    });
+    expect(calls[1]).toEqual([
+      "POST",
+      "/ig9/media",
+      { image_url: "https://cdn.test/bts.jpg", media_type: "STORIES" },
+    ]);
+    expect(photo).toMatchObject({ id: "st1", url: "https://www.instagram.com/stories/wren/st1/" });
+    expect(slept).toEqual([]);
+    await ch.publish({
+      text: "",
+      media: { kind: "video", source: "/mac/clip.mp4" },
+      extra: { kind: "story" },
+    });
+    expect(calls.filter(([, p]) => p === "/ig9/media").at(-1)?.[2]).toEqual({
+      video_url: "https://cdn.test/clip.mp4",
+      media_type: "STORIES",
+    });
+    expect(slept).toEqual([15_000]);
+  });
+
   it("refuses a local file with no host, and a Page without an Instagram account", async () => {
     const { sites } = fakeSites({ "GET /me/accounts": () => ({ data: [{ id: "111" }] }) });
     await expect(
@@ -214,6 +247,39 @@ describe("instagram content channel", () => {
 });
 
 describe("facebook content channel", () => {
+  it("posts a story on the Page: a photo story or a video story, by hosted URL", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /111/photo_stories": () => ({ post_id: "s1", success: true }),
+      "POST /111/video_stories": () => ({ post_id: "s2", success: true }),
+    });
+    const ch = facebookContent(sites, { now, host, pageId: "111" });
+    const photo = await ch.publish({
+      text: "",
+      media: { kind: "image", source: "/mac/bts.jpg" },
+      extra: { kind: "story" },
+    });
+    expect(calls.at(-1)).toEqual([
+      "POST",
+      "/111/photo_stories",
+      { url: "https://cdn.test/bts.jpg" },
+    ]);
+    expect(photo.id).toBe("s1");
+    await ch.publish({
+      text: "",
+      media: { kind: "video", source: "/mac/clip.mp4" },
+      extra: { kind: "story" },
+    });
+    expect(calls.at(-1)).toEqual([
+      "POST",
+      "/111/video_stories",
+      { file_url: "https://cdn.test/clip.mp4" },
+    ]);
+    await expect(ch.publish({ text: "x", extra: { kind: "story" } })).rejects.toThrow(
+      /image or a video/,
+    );
+  });
+
   it("posts text to the feed (scheduled when asked), a hosted photo, a video; lists and reads", async () => {
     const { sites, calls } = fakeSites({
       "GET /me/accounts": pages,

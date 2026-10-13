@@ -1681,6 +1681,13 @@
       "when": 1791911081725,
       "tag": "0239_youtube_community_format",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1791911578744,
+      "tag": "0240_story_format",
+      "breakpoints": true
     }
   ]
 }

@@ -64,6 +64,7 @@ const FORMAT_WORD: Record<Format, string> = {
   video: "video",
   carousel: "carousel",
   thread: "thread",
+  story: "story",
   post: "post",
 };
 const PLATFORM_WORD: Record<Platform, string> = {

@@ -71,6 +71,8 @@ export interface WaitingIdea {
     error: string | null;
     edited: boolean;
     own: boolean;
+    /** A story: media only, no words to edit. */
+    story: boolean;
   }[];
 }
 
@@ -95,6 +97,7 @@ export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingI
       error: d.error,
       edited: d.edited,
       own: d.promptVersion === OWN_WORDS,
+      story: d.extra?.kind === "story",
     });
     out.set(d.ideaId, at);
   }

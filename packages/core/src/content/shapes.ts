@@ -404,9 +404,9 @@ const youtube = shape({
     hint: "Realistic altered or synthetic content",
     kinds: VIDEOS,
   }),
-  image: file("Image", ["image/jpeg", "image/png", "image/gif"], 16 * MB, {
+  image: file("Image", ["image/jpeg", "image/png"], 2 * MB, {
     kinds: ["community"],
-    hint: "One image, up to 16 MB",
+    hint: "One JPG or PNG, up to 2 MB",
   }),
 });
 
@@ -455,8 +455,8 @@ const instagram = shape({
   // A draft with no kind is a Reel: `kindOf` reads it as "video".
   kind: pick(
     "Kind",
-    ["video", "carousel"],
-    { video: "Reel", carousel: "Carousel" },
+    ["video", "carousel", "story"],
+    { video: "Reel", carousel: "Carousel", story: "Story" },
     { default: "video", readOnly: true },
   ),
   shareToFeed: flag("Also in Feed", { default: true, kinds: ["video"] }),
@@ -479,6 +479,7 @@ const instagram = shape({
       status: "sent" as const,
       max: 3,
       hint: "Usernames, up to 3",
+      kinds: ["video", "carousel"],
     },
   },
   audioName: line("Audio name", 100, { kinds: ["video"] }),
@@ -585,8 +586,15 @@ const x = shape(
   },
 );
 
+// A draft with no kind reads as "video" (`kindOf`): a feed post, a photo or a video.
 const facebook = shape({
-  link: url("Link"),
+  kind: pick(
+    "Kind",
+    ["video", "story"],
+    { video: "Post", story: "Story" },
+    { default: "video", readOnly: true },
+  ),
+  link: url("Link", { kinds: ["video"] }),
 });
 
 /** A Business Profile post's button: what it says and where it goes. */

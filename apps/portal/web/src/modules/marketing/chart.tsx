@@ -127,6 +127,7 @@ const FORMATS = {
   video: "TikToks",
   carousel: "Carousels",
   thread: "Threads",
+  story: "Stories",
   post: "Posts",
 } as const;
 type Format = keyof typeof FORMATS;

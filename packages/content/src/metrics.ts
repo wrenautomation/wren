@@ -74,8 +74,8 @@ export async function metricsDue(
         eq(contentDrafts.status, "published"),
         isNotNull(contentDrafts.publishedId),
         gte(contentDrafts.publishedAt, since),
-        // No API reads a YouTube community post's numbers.
-        sql`not (${contentDrafts.platform} = 'youtube' and ${contentDrafts.extra}->>'kind' = 'community')`,
+        // No API reads a YouTube community post's numbers; a story is gone in a day.
+        sql`coalesce(${contentDrafts.extra}->>'kind', '') not in ('community', 'story')`,
         notExists(lookedRecently),
       ),
     )

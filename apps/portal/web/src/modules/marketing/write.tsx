@@ -25,6 +25,7 @@ import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { StoryBox } from "./story-box.js";
 
 /** The platforms that post words alone (YouTube as a community post); videos go through Videos. */
 const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_SPECS[p].words);
@@ -57,6 +58,7 @@ interface Waiting {
     error: string | null;
     edited: boolean;
     own: boolean;
+    story?: boolean;
   }[];
 }
 
@@ -109,6 +111,14 @@ export function WritePage(props: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
+  // Plan's story goals open here with ?story=1; a video-only platform has nothing else to write.
+  const storyOnly = !!only && !TEXT.includes(only);
+  const storyFirst = storyOnly || props.params.has("story");
+  const stories =
+    !only || only === "instagram" || only === "facebook" ? (
+      <StoryBox demo={props.demo} only={only} made={() => setNonce((n) => n + 1)} />
+    ) : null;
+
   const posts = splitPosts(text);
   const batch = posts.length > 1;
   const titled = picked.some((p) => PLATFORM_SPECS[p].title && !PLATFORM_SPECS[p].words);
@@ -157,117 +167,127 @@ export function WritePage(props: PageProps) {
         title="Write"
         lede="Write it once and pick where it goes. For several posts, put a line of --- between them."
       />
-      {only && !TEXT.includes(only) ? (
+      {storyOnly ? (
         <p className={cx("m-0 text-[13.5px]", QUIET)}>
           {nameOf(only)} posts start from a video.{" "}
           <a href={`/marketing/videos?platform=${only}`}>Open Videos</a>
         </p>
       ) : null}
-      <Section>
-        <div className="grid gap-3">
-          <Textarea
-            aria-label="Your post"
-            rows={batch ? 14 : 8}
-            value={text}
-            placeholder="What do you want to say?"
-            disabled={props.demo}
-            onChange={(e) => {
-              setText(e.target.value);
-              setSure(false);
-            }}
-          />
-          <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
-            <legend className="sr-only">Platforms</legend>
-            {TEXT.map((p) => {
-              const on = picked.includes(p);
-              return (
-                <Button
-                  key={p}
-                  size="dense"
-                  tone={on ? "primary" : "secondary"}
-                  aria-pressed={on}
-                  onClick={() =>
-                    setPicked((now) => (on ? now.filter((x) => x !== p) : [...now, p]))
-                  }
-                >
-                  {targetOf(p)}
-                </Button>
-              );
-            })}
-            <label className={cx("ml-2 flex items-center gap-2 text-[13.5px]", QUIET)}>
-              <input type="checkbox" checked={adapt} onChange={(e) => setAdapt(e.target.checked)} />
-              AI writes each platform's version
-            </label>
-          </fieldset>
-          {titled && !batch && !adapt ? (
-            <Input
-              aria-label="Reddit title"
-              value={title}
-              placeholder="Reddit title (else your first line)"
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          ) : null}
-        </div>
-      </Section>
+      {storyFirst ? stories : null}
+      {storyOnly ? null : (
+        <>
+          <Section>
+            <div className="grid gap-3">
+              <Textarea
+                aria-label="Your post"
+                rows={batch ? 14 : 8}
+                value={text}
+                placeholder="What do you want to say?"
+                disabled={props.demo}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setSure(false);
+                }}
+              />
+              <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
+                <legend className="sr-only">Platforms</legend>
+                {TEXT.map((p) => {
+                  const on = picked.includes(p);
+                  return (
+                    <Button
+                      key={p}
+                      size="dense"
+                      tone={on ? "primary" : "secondary"}
+                      aria-pressed={on}
+                      onClick={() =>
+                        setPicked((now) => (on ? now.filter((x) => x !== p) : [...now, p]))
+                      }
+                    >
+                      {targetOf(p)}
+                    </Button>
+                  );
+                })}
+                <label className={cx("ml-2 flex items-center gap-2 text-[13.5px]", QUIET)}>
+                  <input
+                    type="checkbox"
+                    checked={adapt}
+                    onChange={(e) => setAdapt(e.target.checked)}
+                  />
+                  AI writes each platform's version
+                </label>
+              </fieldset>
+              {titled && !batch && !adapt ? (
+                <Input
+                  aria-label="Reddit title"
+                  value={title}
+                  placeholder="Reddit title (else your first line)"
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              ) : null}
+            </div>
+          </Section>
 
-      {posts.length > 0 && picked.length > 0 && !adapt ? (
-        <Section title={batch ? `${posts.length} posts` : "How it reads"}>
-          <div className="grid gap-4">
-            {versions.map((post, n) => (
-              <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: a post's place in the batch is its name.
-                key={n}
-                className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]"
-              >
-                {post.map(({ platform, v }) => (
-                  <Version key={platform} platform={platform} v={v} />
+          {posts.length > 0 && picked.length > 0 && !adapt ? (
+            <Section title={batch ? `${posts.length} posts` : "How it reads"}>
+              <div className="grid gap-4">
+                {versions.map((post, n) => (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a post's place in the batch is its name.
+                    key={n}
+                    className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]"
+                  >
+                    {post.map(({ platform, v }) => (
+                      <Version key={platform} platform={platform} v={v} />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
-      <Section>
-        <div className={TOOLS}>
-          <Button
-            size="dense"
-            tone="secondary"
-            disabled={!fits || !!busy || props.demo || picked.length === 0}
-            onClick={() => void send("draft")}
-          >
-            {busy === "draft" ? "Saving…" : "Save as drafts"}
-          </Button>
-          <Button
-            size="dense"
-            tone="secondary"
-            disabled={!fits || !!busy || props.demo || picked.length === 0}
-            onClick={() => void send("slot")}
-          >
-            {busy === "slot" ? "Scheduling…" : "Schedule"}
-          </Button>
-          <Button
-            size="dense"
-            disabled={!fits || !!busy || props.demo || picked.length === 0}
-            onClick={() => void send("now")}
-          >
-            {busy === "now" ? "Posting…" : sure ? `Post ${count} now?` : "Post now"}
-          </Button>
-          {sure ? (
-            <Button size="dense" tone="quiet" onClick={() => setSure(false)}>
-              Cancel
-            </Button>
+            </Section>
           ) : null}
-        </div>
-        {said.length ? (
-          <ul className="mt-3 grid list-none gap-1 p-0 text-[14px]">
-            {said.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
-        ) : null}
-        {error ? <p className={ERROR}>{error}</p> : null}
-      </Section>
+
+          <Section>
+            <div className={TOOLS}>
+              <Button
+                size="dense"
+                tone="secondary"
+                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                onClick={() => void send("draft")}
+              >
+                {busy === "draft" ? "Saving…" : "Save as drafts"}
+              </Button>
+              <Button
+                size="dense"
+                tone="secondary"
+                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                onClick={() => void send("slot")}
+              >
+                {busy === "slot" ? "Scheduling…" : "Schedule"}
+              </Button>
+              <Button
+                size="dense"
+                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                onClick={() => void send("now")}
+              >
+                {busy === "now" ? "Posting…" : sure ? `Post ${count} now?` : "Post now"}
+              </Button>
+              {sure ? (
+                <Button size="dense" tone="quiet" onClick={() => setSure(false)}>
+                  Cancel
+                </Button>
+              ) : null}
+            </div>
+            {said.length ? (
+              <ul className="mt-3 grid list-none gap-1 p-0 text-[14px]">
+                {said.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            ) : null}
+            {error ? <p className={ERROR}>{error}</p> : null}
+          </Section>
+        </>
+      )}
+      {storyFirst ? null : stories}
 
       <WaitingBoard {...props} nonce={nonce} />
     </>
@@ -416,25 +436,39 @@ function DraftCard({
         <span className="flex items-center gap-1.5">
           <Tag>{nameOf(d.platform)}</Tag>
           {d.state === "failed" ? <Tag tone="warn">Failed</Tag> : null}
-          {d.own ? <Tag tone="accent">Yours</Tag> : d.edited ? <Tag>Edited</Tag> : null}
+          {d.story ? (
+            <Tag tone="accent">Story</Tag>
+          ) : d.own ? (
+            <Tag tone="accent">Yours</Tag>
+          ) : d.edited ? (
+            <Tag>Edited</Tag>
+          ) : null}
         </span>
-        <span
-          className={cx(
-            "text-[12px] [font-variant-numeric:tabular-nums]",
-            text.length > max ? "text-(--ui-bad)" : QUIET,
-          )}
-        >
-          {text.length} / {max}
-        </span>
+        {d.story ? null : (
+          <span
+            className={cx(
+              "text-[12px] [font-variant-numeric:tabular-nums]",
+              text.length > max ? "text-(--ui-bad)" : QUIET,
+            )}
+          >
+            {text.length} / {max}
+          </span>
+        )}
       </div>
       {d.title ? <b className="text-[14px]">{d.title}</b> : null}
-      <Textarea
-        aria-label={`${nameOf(d.platform)} draft`}
-        rows={Math.min(14, Math.max(4, Math.ceil(text.length / 48)))}
-        value={text}
-        disabled={demo || !!busy}
-        onChange={(e) => setText(e.target.value)}
-      />
+      {d.story ? (
+        <p className={cx("m-0 text-[13.5px]", QUIET)}>
+          A story: the photo or clip goes as is, with no words.
+        </p>
+      ) : (
+        <Textarea
+          aria-label={`${nameOf(d.platform)} draft`}
+          rows={Math.min(14, Math.max(4, Math.ceil(text.length / 48)))}
+          value={text}
+          disabled={demo || !!busy}
+          onChange={(e) => setText(e.target.value)}
+        />
+      )}
       {d.error ? <p className={ERROR}>{d.error}</p> : null}
       {note !== null ? (
         <div className="grid gap-2">
@@ -480,9 +514,11 @@ function DraftCard({
           >
             {busy === "now" ? "Posting…" : "Post now"}
           </Button>
-          <Button size="dense" tone="quiet" disabled={!!busy || demo} onClick={() => setNote("")}>
-            Rewrite with AI
-          </Button>
+          {d.story ? null : (
+            <Button size="dense" tone="quiet" disabled={!!busy || demo} onClick={() => setNote("")}>
+              Rewrite with AI
+            </Button>
+          )}
           <Button
             size="dense"
             tone="quiet"

@@ -43,6 +43,8 @@ export function instagramWebContent(
       if (!post.media) throw new Error("instagram: a post is an image or a video");
       // The composer takes a file and a caption: a field it can't set fails, never drops.
       const f = fieldsOf("instagram", post.extra);
+      if (f.kind === "story")
+        throw new ShapeError("instagram: a story posts through the API, not the web composer");
       const unsent = [
         f.cover && "Cover",
         f.thumbOffset !== undefined && "Cover frame",

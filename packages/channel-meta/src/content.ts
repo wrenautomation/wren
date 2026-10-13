@@ -201,6 +201,33 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     if (!r.id) throw new Error("instagram: publish answered no id");
     return r.id;
   }
+  /** A story: one image or 9:16 video, no caption (the API takes none); gone in a day. */
+  async function story(ig: string, media: NonNullable<Post["media"]>): Promise<Published> {
+    const url = await publicUrlOf(media.source, o.host, "instagram");
+    const video = media.kind === "video";
+    const container = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
+      ...(video ? { video_url: url } : { image_url: url }),
+      media_type: "STORIES",
+    });
+    if (!container.id) throw new Error("instagram: the story container answered no id");
+    if (video) await sleep(15_000);
+    const r = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media_publish`, {
+      creation_id: container.id,
+    });
+    if (!r.id) throw new Error("instagram: publish answered no id");
+    const id = r.id;
+    // A story's link names the account: read it back, never fail the post over it.
+    const link = await sites
+      .call<{ permalink?: string }>("meta", "GET", `/${id}`, { fields: "permalink" })
+      .then((m) => m.permalink ?? null)
+      .catch(() => null);
+    return {
+      id,
+      url: link ?? "https://www.instagram.com/",
+      publishedAt: now().toISOString(),
+      fetchedWith: await via("POST", "/{igUserId}/media_publish"),
+    };
+  }
   return {
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
@@ -209,6 +236,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
       if (isCarousel({ platform: "instagram", extra: post.extra ?? null }))
         return published(await carousel(ig, post, f.collaborators));
       if (!post.media) throw new Error("instagram: a post is an image or a video");
+      if (f.kind === "story") return story(ig, post.media);
       const url = await publicUrlOf(post.media.source, o.host, "instagram");
       const video = post.media.kind === "video";
       const reel = video
@@ -393,11 +421,19 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
   return {
     platform: "facebook",
     async publish(post: Post): Promise<Published> {
-      const { link } = fieldsOf("facebook", post.extra);
+      const { link, kind } = fieldsOf("facebook", post.extra);
       const p = await page();
       let r: { id?: string; post_id?: string };
       let path: string;
-      if (!post.media) {
+      if (kind === "story") {
+        if (!post.media) throw new Error("facebook: a story is an image or a video");
+        const url = await publicUrlOf(post.media.source, o.host, "facebook");
+        const video = post.media.kind === "video";
+        path = video ? "/{pageId}/video_stories" : "/{pageId}/photo_stories";
+        r = await sites.call("meta", "POST", `/${p.id}/${video ? "video" : "photo"}_stories`, {
+          ...(video ? { file_url: url } : { url }),
+        });
+      } else if (!post.media) {
         path = "/{pageId}/feed";
         r = await sites.call("meta", "POST", `/${p.id}/feed`, {
           message: post.text,
