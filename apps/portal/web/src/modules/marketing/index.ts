@@ -9,6 +9,7 @@ import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
 import type { DayPage, ListPage, Module, ModulePage, PageAcross } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
+import { FeedPage } from "../learn/sources.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
@@ -1352,6 +1353,7 @@ export const marketing: Module = {
     TODAY,
     { id: "write", label: "Write", group: "Content", Page: WritePage, wide: true },
     ENGAGE_PAGE,
+    { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
     {
       id: "drafts",
       label: "Drafts",

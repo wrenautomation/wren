@@ -981,3 +981,28 @@ describe("paste (Marketing → Engage)", () => {
     );
   });
 });
+
+describe("find creators (Marketing → Feed)", () => {
+  it("every site's hits in one shape, each marked when Learn follows it already", async () => {
+    await settings({ account: "linkedin@wren" });
+    await db().execute(sql`insert into learn.sources (client, url, name, kind)
+      values ('wren', 'https://www.youtube.com/feeds/videos.xml?channel_id=UC2', 'Two', 'youtube')`);
+    routes["/youtube/v3/search"] = () => ({
+      items: [
+        { id: { channelId: "UC1" }, snippet: { title: "One" } },
+        { id: { channelId: "UC2" }, snippet: { title: "Two" } },
+      ],
+    });
+    routes["/youtube/v3/channels"] = () => ({ items: [] });
+    const out = await desk().findCreators({ q: "synthetic words" });
+    expect(out.hits.map((h) => [h.site, h.name, h.followed])).toEqual([
+      ["youtube", "One", false],
+      ["youtube", "Two", true],
+    ]);
+    expect(out.failed).toContainEqual({
+      site: "x",
+      why: "no X account is set (Shop → X comments)",
+    });
+    expect(calls.find((c) => c.path === "/search/results/people")?.account).toBe("linkedin@wren");
+  });
+});

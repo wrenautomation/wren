@@ -6,7 +6,9 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
+import { CREATOR_SITES, type CreatorSite, findCreators, markFollowed } from "../creator-search.js";
 import { addPlaces, watchPlace } from "../discovery/places.js";
 import { reader, signedOut } from "../discovery/reads.js";
 import {
@@ -23,6 +25,10 @@ import { READS_KEY } from "./discovery.js";
 import type { ReachDeps } from "./index.js";
 
 const PASTE = z.looseObject({ url: z.string().trim().min(1).max(2000) });
+const FIND = z.looseObject({
+  q: z.string().trim().min(1).max(200).describe("A name, a handle or a topic"),
+  only: z.array(z.enum(CREATOR_SITES)).optional().describe("The sites to search; all when blank"),
+});
 
 /** What the paste did, in a line the console shows as is. */
 export interface Pasted {
@@ -52,6 +58,31 @@ export function pasteHandlers(deps: ReachDeps) {
       .wake();
 
   return {
+    /**
+     * Find accounts to follow by name or topic on every site (Marketing → Feed). Each hit says
+     * whether it's followed already: in Learn's sources, or the comments' LinkedIn pages.
+     */
+    findCreators: serviceHandler(
+      { input: FIND },
+      async (ctx: restate.Context, req: { q: string; only?: CreatorSite[] }) => {
+        const settings = await ctx.run("settings", () => allCommentsSettings(deps.db));
+        const found = await findCreators(deps.sitesFor(ctx), req.q, {
+          ...(req.only ? { only: req.only } : {}),
+          accounts: { linkedin: settings.linkedin.account || null, x: settings.x.account || null },
+        });
+        const follows = await ctx.run("follows", async () =>
+          (
+            (await deps.db.execute(
+              sql`select url, page from learn.sources where client = 'wren' and stopped_at is null`,
+            )) as unknown as { url: string; page: string | null }[]
+          ).flatMap((r) => (r.page ? [r.url, r.page] : [r.url])),
+        );
+        return {
+          hits: markFollowed(found.hits, follows, settings.linkedin.pages),
+          failed: found.failed,
+        };
+      },
+    ),
     paste: serviceHandler(
       { input: PASTE },
       async (ctx: restate.Context, req: { url: string }): Promise<Pasted> => {

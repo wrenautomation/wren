@@ -35,6 +35,7 @@ import {
   onChanged,
   type SourceRow,
 } from "./api.js";
+import { FindCreators } from "./find.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
 import { PICKS } from "./today.js";
@@ -56,10 +57,16 @@ const hostOf = (url: string) => {
 
 export function SourcesPage({ client }: PageProps) {
   inWorkspace(client);
-  return <SourcesBody />;
+  return <SourcesBody title="Sources" />;
 }
 
-function SourcesBody() {
+/** Marketing → Feed: the same list, Learn's and Marketing's one set of follows. */
+export function FeedPage({ client }: PageProps) {
+  inWorkspace(client);
+  return <SourcesBody title="Feed" />;
+}
+
+function SourcesBody({ title }: { title: string }) {
   const load = useCall(keyOf("learn.sources"), learn.sources);
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
@@ -69,11 +76,12 @@ function SourcesBody() {
     <div className="flex flex-col gap-8 pb-16">
       <header className="flex flex-col gap-4 border-(--ui-hair) border-b pb-5">
         <div className="flex items-baseline gap-2.5">
-          <h1 className={PAGE_TITLE}>Sources</h1>
+          <h1 className={PAGE_TITLE}>{title}</h1>
           {load.data ? (
             <span className="text-[14px] text-(--ui-ink-2) tabular-nums">{total}</span>
           ) : null}
         </div>
+        {clientOf() === null ? <FindCreators /> : null}
         <Follow />
       </header>
       {load.error && !load.data ? (
