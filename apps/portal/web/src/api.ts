@@ -192,7 +192,6 @@ export async function call<T>(
   retried = false,
 ): Promise<T> {
   const t = await token();
-  const began = performance.now();
   let res: Response;
   try {
     res = await fetch(`/api/${path}`, {
@@ -204,15 +203,15 @@ export async function call<T>(
       body: JSON.stringify(viewingAs ? { ...body, viewAs: viewingAs } : body),
     });
   } catch {
-    tellAutotrack(path, body, 0, Math.round(performance.now() - began));
+    tellAutotrack(path, body, 0);
     throw new ApiError("You're offline, or the portal is.", 0);
   }
-  tellAutotrack(path, body, res.status, Math.round(performance.now() - began));
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401 && TOKEN_URL) {
     held = null;
     return retried ? signIn() : call<T>(path, body, true);
   }
+  tellAutotrack(path, body, res.status);
   const text = await res.text();
   let data: unknown = null;
   try {

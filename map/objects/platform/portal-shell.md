@@ -31,6 +31,8 @@ Areas group apps by job; pages never move between apps, so every link in a ping,
 - Wren's Inbox holds To approve (`APPROVAL_PAGE`, `apps/portal/web/src/modules/marketing/index.ts:901`) and Done (`DONE_PAGE`, `:884`); Marketing keeps `/marketing/inbox` and `/marketing/approve` as hidden pages for old links; its tabs sort by group (`byGroup`, `:1094`)
 - Ads (`ads`, `:1112`) and the site's visitors and search (`SITE_PAGES`, `:1123`, in Sites under Visitors and Search) left Marketing on 2026-10-11 (`designs/2026-10-11-split-marketing.md`); Marketing keeps each as a hidden page for old links; record `app` ids stay `marketing`, so grants are unchanged
 
+- Command events (2026-10-13): `call` (`apps/portal/web/src/api.ts:189`) is the one place every user command leaves the portal; it tells `tellAutotrack` (`autotrack.ts`) which posts `{autotrack:{v:1, action, detail:{ids?, ok, error?}}}` to the window for autotrack's extension. Reads say nothing; never a field value or the server's error text. Not covered: `uploadFile`'s PUT, dictation audio, live notes (socket), the public booking page's `fetch`
+
 ## Connected to
 
 - **owns:** nothing stored
