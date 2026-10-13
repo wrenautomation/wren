@@ -7,10 +7,12 @@
  * claim only his facts and his own earlier messages; the guard redrafts a made-up claim or number
  * once, then keeps no draft.
  */
+
 import { editsFor, keepSentEdit } from "@wren/core/ask";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
+import { modelDrafts } from "@wren/core/reply-drafts";
 import { findHandle, touchesContext, touchesFor } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -77,7 +79,7 @@ const DRAFT = z.object({ draft: z.string() });
  * unanswered and the draft answers an older one, or they accepted an invite and nobody wrote yet.
  */
 export async function contactsToDraft(db: Queryable, limit: number): Promise<number[]> {
-  if (limit <= 0) return [];
+  if (limit <= 0 || !(await modelDrafts(db))) return [];
   const rows = (await db.execute(sql`
     SELECT c.id FROM reach_contacts c
     LEFT JOIN LATERAL (SELECT id, coalesce(sent_at, created_at) at FROM reach_messages

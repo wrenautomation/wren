@@ -13,6 +13,7 @@ import { factsBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
+import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
@@ -260,6 +261,8 @@ export async function sortComment(
       if (sort === "asked" || sort === "question") draft = g?.text || null;
     } else if (!sort) why = "The model's answer didn't read, so it waits unsorted.";
   }
+  // He writes replies himself: the sort stays, the box starts empty.
+  if (draft && !(await modelDrafts(db))) draft = null;
   const [kept] = await db
     .update(comments)
     .set({ sort, why, draft, state: "waiting" })

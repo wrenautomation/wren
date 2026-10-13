@@ -11,6 +11,7 @@
  * under the settings' minimum fit. A draft may claim only Wren's facts (`@wren/core/facts`); the
  * guard (`@wren/core/grounded`) redrafts a made-up claim or number once, then drops it.
  */
+
 import { editsFor, keepSentEdit } from "@wren/core/ask";
 import { settingsFor } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
@@ -18,6 +19,7 @@ import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, type Guarded, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { RejectReason } from "@wren/core/reject-reasons";
+import { modelDrafts } from "@wren/core/reply-drafts";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
@@ -905,6 +907,14 @@ export async function draftPost(
 ): Promise<"queued" | "dropped" | "gone"> {
   const [p] = await db.select().from(reachPosts).where(eq(reachPosts.id, id));
   if (p?.state !== "found") return "gone";
+  // He writes replies himself: queued on code's rank, the box empty.
+  if (!(await modelDrafts(db))) {
+    await db
+      .update(reachPosts)
+      .set({ state: "queued", queuedAt: o.now })
+      .where(eq(reachPosts.id, id));
+    return "queued";
+  }
   const g = await guardedComment(db, llm, p, o);
   const no = unusable(g, p.platform);
   if (no || !g.text) {
@@ -959,6 +969,8 @@ export async function redraftPosts(
   },
 ): Promise<RedraftResult> {
   const out: RedraftResult = { redrafted: [], dropped: [], skipped: [] };
+  if (!(await modelDrafts(db)))
+    return { ...out, skipped: ids.map((id) => ({ id, why: "you write replies" })) };
   for (const id of ids) {
     const [p] = await db.select().from(reachPosts).where(eq(reachPosts.id, id));
     if (p?.state !== "queued") {

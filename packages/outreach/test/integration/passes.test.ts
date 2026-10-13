@@ -3,17 +3,22 @@
  * turned down, closes everything else open of theirs, and what the reads find from them later
  * lands closed. "Not now" rests them 30 days; a lift lets them back.
  */
+
+import { setWrenSettings } from "@wren/core/clients";
 import type { CommentIn } from "@wren/core/outreach";
+import { REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount } from "../../src/accounts.js";
 import { keepComments } from "../../src/comments.js";
 import { addPlaces } from "../../src/discovery/places.js";
 import type { Post } from "../../src/discovery/reads.js";
-import { keepThreads } from "../../src/discovery/threads.js";
+import { keepThreads, threadsToDraft } from "../../src/discovery/threads.js";
 import { liftPass, listPasses, passOn } from "../../src/passes.js";
-import { type FeedPost, keepPosts } from "../../src/reach-posts.js";
+import { draftPost, type FeedPost, keepPosts } from "../../src/reach-posts.js";
+import { clearReplyDrafts } from "../../src/reply-drafts.js";
 import { comments, reachPasses, reachPosts, redditThreads } from "../../src/schema.js";
 
 const TABLES = [
@@ -24,6 +29,7 @@ const TABLES = [
   "reddit_places",
   "reach_accounts",
   "draft_events",
+  "wren_settings",
 ];
 const NOW = new Date("2026-10-13T15:00:00Z");
 const DAY = 86_400_000;
@@ -161,5 +167,36 @@ describe("passes", () => {
     expect(
       await passOn(db(), ["comment:999", "onpost:5"], { reason: "not_lead", now: NOW }),
     ).toEqual({ people: 0, closed: 0 });
+  });
+});
+
+describe("he writes replies", () => {
+  it("no model drafts; posts queue on rank; open boxes empty", async () => {
+    const kept = await keepPosts(db(), [feedPost(1, "jane-doe"), feedPost(2, "sam-roe")], POSTS);
+    await db()
+      .update(reachPosts)
+      .set({ state: "queued", draft: "A model draft." })
+      .where(eq(reachPosts.id, kept.found[0] as number));
+    await setWrenSettings(db(), REPLY_DRAFTS_COMPONENT, { by: "you" }, "test");
+
+    const llm = new FakeLlm({
+      respond: () => {
+        throw new Error("the model was asked");
+      },
+    });
+    expect(await draftPost(db(), llm, kept.found[1] as number, { now: NOW })).toBe("queued");
+    await reddit();
+    await keepThreads(db(), "agency", [thread(1, "owner")], THREADS);
+    await db().update(redditThreads).set({ state: "queued" });
+    expect(await threadsToDraft(db(), 5)).toEqual([]);
+
+    expect(await clearReplyDrafts(db())).toEqual({ threads: 0, posts: 1, comments: 0, dms: 0 });
+    const rows = await db()
+      .select({ state: reachPosts.state, draft: reachPosts.draft })
+      .from(reachPosts);
+    expect(rows).toEqual([
+      { state: "queued", draft: null },
+      { state: "queued", draft: null },
+    ]);
   });
 });

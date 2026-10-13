@@ -16,12 +16,14 @@ import {
   writeDraft,
 } from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
+import { setWrenSettings } from "@wren/core/clients";
 import { REJECT_LABELS } from "@wren/core/draft-record";
 import { editRecord } from "@wren/core/edits";
 import { DEFAULT_FACTS, FACTS_ID, factsRecord, wrenFacts } from "@wren/core/facts";
 import { factsOf, factsText } from "@wren/core/facts-list";
+import { modelDrafts, REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { type Db, serializable, setAuditActor } from "@wren/db";
-import { commentExamples, EXAMPLES_MAX } from "@wren/outreach";
+import { clearReplyDrafts, commentExamples, EXAMPLES_MAX } from "@wren/outreach";
 import type { Command } from "commander";
 import { readText } from "./content.js";
 
@@ -132,6 +134,21 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
         writeDraft(db, item, text, { command: "draft-set", by: "cli" }),
       );
       console.log(`${item}: set (${text.length} chars), was ${out.before?.length ?? 0}`);
+    });
+
+  drafts
+    .command("replies [who]")
+    .description(
+      "Who writes replies (comments, others' posts, Reddit threads, DMs): model drafts them, or you write them and the boxes start empty",
+    )
+    .option("--clear", "also empty every open reply box now (the words stay in the ledger)")
+    .action(async (who: string | undefined, o: { clear?: boolean }) => {
+      if (who && who !== "you" && who !== "model") throw new Error("who: you or model");
+      await withDb(async (db) => {
+        if (who) await setWrenSettings(db, REPLY_DRAFTS_COMPONENT, { by: who }, "cli");
+        console.log(`replies drafted by: ${(await modelDrafts(db)) ? "model" : "you"}`);
+        if (o.clear) console.log(JSON.stringify(await clearReplyDrafts(db)));
+      });
     });
 
   const facts = drafts

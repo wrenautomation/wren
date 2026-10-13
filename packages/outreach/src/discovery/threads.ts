@@ -11,6 +11,7 @@ import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { AccountHealth } from "@wren/core/outreach";
+import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -260,8 +261,9 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
   return ids;
 }
 
-/** Queued threads with no draft yet, best first. */
+/** Queued threads with no draft yet, best first; none when he writes replies himself. */
 export async function threadsToDraft(db: Queryable, limit: number) {
+  if (!(await modelDrafts(db))) return [];
   return db
     .select({ id: redditThreads.id, author: redditThreads.author })
     .from(redditThreads)
