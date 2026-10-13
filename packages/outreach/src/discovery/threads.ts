@@ -10,6 +10,7 @@ import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
+import { COMMENT_RULE, type OurPost, ourPostsBlock, postsFor } from "@wren/core/our-posts";
 import type { AccountHealth } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
@@ -41,7 +42,7 @@ const HOUR = 3_600_000;
 export const MAX_AGE_MS = 24 * HOUR;
 export const MAX_COMMENTS = 40;
 /** A queued thread not answered by then has gone stale. */
-const STALE_MS = 36 * HOUR;
+export const STALE_MS = 36 * HOUR;
 /** Ranked at or above this fit goes to the queue. */
 export const QUEUE_FIT = 6;
 /** With no pool account yet, the queue still shows this many a day to read and learn from. */
@@ -294,10 +295,9 @@ export interface ThreadRead {
 }
 
 const DRAFT_SYSTEM = (voice: string, truths: readonly string[]) => `You write one Reddit comment \
-for William, who runs a one-person automation agency. He edits it before it goes. Reddit rules: \
-no links, no pitch, no "DM me", at most 4 sentences, specific (a practical step, a sharp \
-question, what the thread's own numbers mean), adds something the thread doesn't already say. \
-Pick what to answer: the post itself, or one top-level comment in it that asks the question \
+for William, who runs a one-person automation agency. ${COMMENT_RULE} Reddit rules: no links, no \
+pitch, no "DM me", at most 4 sentences, adds something the thread doesn't already say. Pick what \
+to answer: the post itself, or one top-level comment in it that asks the question \
 better. Our notes are how we work, not stories to retell as his.\n${factsBlock(truths)}\nHis \
 voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
 "comment": "<the comment>"}`;
@@ -317,6 +317,8 @@ export async function draftThread(
     truths?: readonly string[];
     voice: string;
     ours: readonly string[];
+    /** What we've posted; the thread draws on the closest few. */
+    posts?: readonly OurPost[];
   },
 ): Promise<"drafted" | "dropped" | "unread"> {
   const [t] = await db.select().from(redditThreads).where(eq(redditThreads.id, id));
@@ -341,6 +343,7 @@ export async function draftThread(
     )
     .join("\n");
   const ours = factsFor(`${t.title} ${t.body} ${said}`, o.facts);
+  const posts = postsFor(`${t.title} ${t.body}`, o.posts ?? []);
   const opLine = o.op ? personLine(o.op) : null;
   // His last 5 edits of thread comments (content desk, 6), then his yeses and nos closest to it.
   const edits = [
@@ -350,7 +353,7 @@ export async function draftThread(
     .filter(Boolean)
     .join("\n\n");
   const truths = o.truths ?? [];
-  const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}`;
+  const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}${posts.length ? `\n\n${ourPostsBlock(posts)}` : ""}`;
   const system = edits
     ? `${DRAFT_SYSTEM(o.voice, truths)}\n\n${edits}`
     : DRAFT_SYSTEM(o.voice, truths);

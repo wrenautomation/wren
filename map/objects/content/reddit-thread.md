@@ -34,3 +34,5 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 - **joins:** [[content/playbook]] (the SOP texts a draft reads, matched by shared words)
 - **looks-like-but-is-not:** [[learn/item]] (`packages/learn`): those read to learn, these read to find places to talk
 - **joins:** [[content/funnel]] (places pick a promo's subreddit; thread decisions become comment examples)
+- `send_at` (migration 0243): the scheduler's slot; scheduling and our-posts sourcing in [[content/reach-post]]
+

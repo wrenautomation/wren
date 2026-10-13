@@ -255,7 +255,7 @@ const onPostRows = (db: Queryable) =>
   rowsOf(
     db,
     sql`select id, platform, author, text, why, draft, url, account, coalesce(posted_at, created_at) at,
-        queued_at
+        queued_at, send_at
       from reach_posts where state = 'queued'
       order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
   );
@@ -277,6 +277,7 @@ export const MISSING_PICKS = {
 const STATES = status({
   new: { label: "New", tone: "warn" },
   waiting: { label: "Waiting on you", tone: "warn" },
+  scheduled: { label: "Scheduled", tone: "good" },
   answered: { label: "Answered", tone: "good" },
   dropped: neutral("Dropped"),
   read: neutral("Read"),
@@ -292,14 +293,15 @@ const threadItem = (t: Row) => ({
   who: t.author,
   platform: "reddit",
   kind: "thread",
-  state: "waiting",
+  state: t.send_at ? "scheduled" : "waiting",
   body: t.body || t.title,
   post_title: t.title,
   why: t.angle ?? null,
   draft: t.draft,
   account: t.account,
   at: t.posted_at,
-  due: t.posted_at,
+  due: t.send_at ?? t.posted_at,
+  send_at: t.send_at ?? null,
   url: t.url,
 });
 /** Someone else's post with our comment drafted. */
@@ -309,14 +311,15 @@ const onPostItem = (l: Row) => ({
   who: l.author,
   platform: l.platform,
   kind: "onpost",
-  state: "waiting",
+  state: l.send_at ? "scheduled" : "waiting",
   body: l.text,
   post_title: null,
   why: l.why,
   draft: l.draft,
   account: l.account,
   at: l.at,
-  due: l.queued_at ?? l.at,
+  due: l.send_at ?? l.queued_at ?? l.at,
+  send_at: l.send_at ?? null,
   url: l.url,
 });
 /** A comment on our post or under our comment. */
@@ -1081,10 +1084,12 @@ export const engageRecord = defineRecord({
     account: text("On"),
     at: date("When"),
     due: date("Due"),
+    sendAt: date("Sends"),
     url: link("Open"),
   },
   views: [
     { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+    { id: "scheduled", label: "Scheduled", where: { state: "scheduled" }, sort: "due", at: "due" },
     { id: "threads", label: "Reddit", where: { type: "thread" }, sort: "-at", at: "at" },
     { id: "posts", label: "Their posts", where: { type: "onpost" }, sort: "due", at: "due" },
     { id: "ours", label: "On our posts", where: { type: "comment" }, sort: "-at", at: "at" },

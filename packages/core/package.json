@@ -20,6 +20,7 @@
     "./sent-url": "./src/sent-url.ts",
     "./facts": "./src/facts.ts",
     "./facts-list": "./src/facts-list.ts",
+    "./our-posts": "./src/our-posts.ts",
     "./grounded": "./src/grounded.ts",
     "./train": "./src/train.ts",
     "./pass-reasons": "./src/pass-reasons.ts",

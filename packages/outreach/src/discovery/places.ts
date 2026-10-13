@@ -37,6 +37,8 @@ export const discoverySettingsSchema = z
     minPostsADay: z.number().min(0).default(0.2),
     /** Exa searches (reddit.com results) per place-finding pass, from the shared Exa credit; 0 = off. */
     exaSearches: z.number().int().min(0).max(10).default(3),
+    /** Thread drafts go out on the scheduler's spaced slots without his click (`pacing.ts`). */
+    autoSend: z.boolean().default(false),
   })
   .strict();
 export type Audience = z.infer<typeof discoverySettingsSchema>;

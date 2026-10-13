@@ -437,7 +437,7 @@ export const threadRecord = defineRecord({
       (await db.execute(sql`
       select t.id, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
         t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
-        t.posted_at, t.url, a.handle account, p.read op_read, p.fit op_fit, p.site op_site
+        t.posted_at, t.send_at, t.url, a.handle account, p.read op_read, p.fit op_fit, p.site op_site
       from reddit_threads t
       left join reach_accounts a on a.id = t.account_id
       left join reddit_people p on p.handle = lower(t.author)

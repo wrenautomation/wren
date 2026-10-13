@@ -213,6 +213,7 @@ import {
   socialSites,
 } from "@wren/content/connect";
 import { askFollowEmail } from "@wren/content/inbox";
+import { ourPosts } from "@wren/content/our-posts";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   autoReplyFire,
@@ -1608,6 +1609,8 @@ export async function buildServices(
       commentGuide: (p: DmPlatform) => commentGuide(db, p),
       voice: voice ?? DEFAULT_VOICE,
       facts: () => wrenFacts(db),
+      // What we've posted: comments draw on it instead of retelling the other post.
+      ours: () => ourPosts(db),
     },
     // A client's runs: its database, the same model metered on its own gate, its own SOPs.
     clients: {
@@ -1631,6 +1634,7 @@ export async function buildServices(
         voice: voice ?? DEFAULT_VOICE,
         facts: () => playbooksOf(db),
         truths: () => wrenFacts(db),
+        ours: () => ourPosts(db),
         // Wren's saved block (Shop → Reddit discovery); a bad one reads as the default.
         audience: async () => {
           const got = discoverySettingsSchema.safeParse(

@@ -12,6 +12,7 @@
     "./connect/platforms": "./src/connect/platforms.ts",
     "./connect/app-reviews": "./src/connect/app-reviews.ts",
     "./inbox": "./src/inbox/index.ts",
+    "./our-posts": "./src/our-posts.ts",
     "./pieces": "./src/pieces.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",

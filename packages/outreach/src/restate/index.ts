@@ -31,6 +31,7 @@ import {
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
+import type { OurPost } from "@wren/core/our-posts";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { gate } from "@wren/core/vendors";
@@ -177,6 +178,13 @@ import {
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
 import {
+  type Slotted,
+  schedulePosts,
+  scheduleThreads,
+  stillDue,
+  unschedule,
+} from "../scheduled.js";
+import {
   ACCOUNT_STATES,
   type AccountState,
   CONTACT_STATES,
@@ -205,6 +213,7 @@ import {
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
 import { pasteHandlers } from "./paste.js";
+import { fireSlots } from "./schedule.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -276,6 +285,8 @@ export interface ReachDeps {
     commentGuide?: DmGuide;
     voice?: string;
     facts?: () => Promise<readonly string[]>;
+    /** What we've posted: what comments on others' posts draw on. */
+    ours?: () => Promise<readonly OurPost[]>;
   };
   /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
   clients?: ReachClients;
@@ -550,8 +561,11 @@ async function notesPass(
   return out;
 }
 
-/** Others' posts on one platform: read as the settings' account, ranked, drafted for his yes. */
-function postsFor(
+/**
+ * Others' posts on one platform: read as the settings' account, ranked, drafted for his yes. With
+ * `autoSend`, the drafts then take spaced slots and go out on them.
+ */
+async function postsFor(
   deps: ReachDeps,
   ctx: restate.Context,
   platform: ReachPostPlatform,
@@ -559,7 +573,7 @@ function postsFor(
   now: Date,
 ): Promise<PostsStats> {
   const guide = deps.drafts?.commentGuide;
-  return postsPass(deps.db, {
+  const stats = await postsPass(deps.db, {
     platform,
     settings,
     read: postReader(deps.sitesFor(ctx), platform, settings.account, {
@@ -570,10 +584,17 @@ function postsFor(
     ...(guide ? { guide: () => guide(platform) } : {}),
     ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
     ...(deps.drafts?.facts ? { facts: deps.drafts.facts } : {}),
+    ...(deps.drafts?.ours ? { ours: deps.drafts.ours } : {}),
     now,
     step: (name, fn) => ctx.run(name, fn),
     capped: (err) => err instanceof SiteCallError && err.status === 429,
   });
+  if (!settings.autoSend) return stats;
+  const slots = await ctx.run(`schedule ${platform}`, () =>
+    schedulePosts(deps.db, platform, settings, { now, rand: Math.random }),
+  );
+  fireSlots(ctx, slots, now);
+  return { ...stats, scheduled: slots.length };
 }
 
 /** Draft each contact whose next message is ours, one model call each, under the day's cap. */
@@ -943,6 +964,18 @@ export const terminalWhy = (req: { reason?: unknown; note?: unknown }) => {
 const POST = z.looseObject({
   id: z.number().int(),
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
+  at: z.iso
+    .datetime()
+    .nullish()
+    .describe("The scheduler's slot; one moved or cleared sends nothing"),
+});
+const SCHEDULE = z.strictObject({
+  posts: z.boolean().default(true).describe("Comments on others' posts"),
+  threads: z.boolean().default(true).describe("Reddit threads"),
+});
+const UNSCHEDULE = z.looseObject({
+  posts: z.array(z.number().int()).default([]),
+  threads: z.array(z.string()).default([]),
 });
 const POST_ACT = z.looseObject({
   id: z.number().int(),
@@ -1482,9 +1515,12 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: POST, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { id: number; body?: string | null },
-        ): Promise<{ commented: number }> => {
+          req: { id: number; body?: string | null; at?: string | null },
+        ): Promise<{ commented: number; held?: string }> => {
           const now = await nowOf(ctx);
+          const at = req.at;
+          if (at && !(await ctx.run("due", () => stillDue(deps.db, "post", String(req.id), at))))
+            return { commented: 0, held: "taken off the schedule" };
           const post = await ctx.run("plan", () =>
             terminal(() => planPostComment(deps.db, req.id)),
           );
@@ -1629,6 +1665,8 @@ export function makeReachDesk(deps: ReachDeps) {
             : {};
           const facts = deps.drafts?.facts;
           const truths = facts ? await ctx.run("facts", async () => [...(await facts())]) : [];
+          const oursOf = deps.drafts?.ours;
+          const ours = oursOf ? await ctx.run("our posts", async () => [...(await oursOf())]) : [];
           const out: RedraftResult = { redrafted: [], dropped: [], skipped: [] };
           // One step a post: a retry after a crash does not ask the model twice for one done.
           for (const id of [...new Set(req.ids)]) {
@@ -1637,6 +1675,7 @@ export function makeReachDesk(deps: ReachDeps) {
                 settings,
                 guides,
                 facts: truths,
+                ours,
                 ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
                 now,
               }),
@@ -1804,6 +1843,49 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           nudge(ctx);
           return r;
+        },
+      ),
+      /**
+       * Drafted comments onto spaced slots, each sent when its slot comes (`pacing.ts`): others'
+       * posts on each platform with an account, Reddit threads on each warmed account.
+       */
+      schedule: serviceHandler(
+        { input: SCHEDULE },
+        async (
+          ctx: restate.Context,
+          req: { posts?: boolean; threads?: boolean } = {},
+        ): Promise<{ slots: Slotted[] }> => {
+          const now = await nowOf(ctx);
+          const slots: Slotted[] = [];
+          if (req.posts !== false) {
+            const all = await ctx.run("settings", () => allCommentsSettings(deps.db));
+            for (const platform of REACH_POST_PLATFORMS)
+              slots.push(
+                ...(await ctx.run(`schedule ${platform}`, () =>
+                  schedulePosts(deps.db, platform, all[platform], { now, rand: Math.random }),
+                )),
+              );
+          }
+          if (req.threads !== false)
+            slots.push(
+              ...(await ctx.run("schedule threads", () =>
+                scheduleThreads(deps.db, { now, rand: Math.random }),
+              )),
+            );
+          fireSlots(ctx, slots, now);
+          return { slots };
+        },
+      ),
+      /** Off the schedule: the drafts wait for his click again; their delayed calls send nothing. */
+      unschedule: serviceHandler(
+        { input: UNSCHEDULE },
+        async (
+          ctx: restate.Context,
+          req: { posts?: number[]; threads?: string[] },
+        ): Promise<void> => {
+          await ctx.run("unschedule", () =>
+            unschedule(deps.db, { posts: req.posts ?? [], threads: req.threads ?? [] }),
+          );
         },
       ),
       ...discoveryHandlers(deps),

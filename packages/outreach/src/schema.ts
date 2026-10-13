@@ -541,6 +541,8 @@ export const redditThreads = pgTable(
     sources: jsonb("sources").$type<{ label: string; text: string }[]>(),
     state: varchar("state", { length: 16, enum: THREAD_STATES }).notNull().default("new"),
     accountId: uuid("account_id"),
+    /** When the scheduler sends the draft (`pacing.ts`); null: it waits for his click. */
+    sendAt: timestamp("send_at", { withTimezone: true }),
     answer: text("answer"),
     answerRef: varchar("answer_ref", { length: 20 }),
     answeredAt: timestamp("answered_at", { withTimezone: true }),
@@ -620,6 +622,8 @@ export const reachPosts = pgTable(
     stateReason: text("state_reason"),
     draft: text("draft"),
     queuedAt: timestamp("queued_at", { withTimezone: true }),
+    /** When the scheduler sends the draft (`pacing.ts`); null: it waits for his click. */
+    sendAt: timestamp("send_at", { withTimezone: true }),
     /** What we posted, when, and who clicked. */
     comment: text("comment"),
     commentedAt: timestamp("commented_at", { withTimezone: true }),

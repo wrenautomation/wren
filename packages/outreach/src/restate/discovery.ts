@@ -10,6 +10,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
 import { SiteCallError } from "@wren/core/content";
 import { isVendorStop } from "@wren/core/metered";
+import type { OurPost } from "@wren/core/our-posts";
 import {
   clientOfKey,
   errorText,
@@ -60,8 +61,10 @@ import {
   unrankedThreads,
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
+import { scheduleThreads, stillDue } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
 import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
+import { fireSlots } from "./schedule.js";
 
 export const READS_KEY = "wren";
 const HOUR = 3_600_000;
@@ -87,6 +90,8 @@ export interface DiscoveryDeps {
    * Left out (a client's pass), a draft claims nothing first-person.
    */
   truths?: () => Promise<readonly string[]>;
+  /** What we've posted: what thread comments draw on. Left out (a client's pass), none. */
+  ours?: () => Promise<readonly OurPost[]>;
   /** Who we talk to: the `reddit.discovery` setting. */
   audience: () => Promise<Audience>;
 }
@@ -103,6 +108,8 @@ export interface DiscoveryStats {
   capped: boolean;
   /** A client's vendor gate said no: why. Its reads end for the pass, as on a cap. */
   stopped: string | null;
+  /** Drafted threads put on spaced slots this pass (`autoSend`). */
+  scheduled?: number;
   errors: string[];
 }
 
@@ -278,6 +285,9 @@ async function readsPass(
     const truths = d.truths
       ? await step("truths", async () => [...((await d.truths?.()) ?? [])])
       : [];
+    const posts = d.ours
+      ? await step("our posts", async () => [...((await d.ours?.()) ?? [])])
+      : [];
     for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS)))
       await reading(`draft ${t.id}`, async () => {
         const read = await r.thread(t.id);
@@ -293,10 +303,16 @@ async function readsPass(
                 return null;
               });
         const out = await step(`draft ${t.id}`, () =>
-          draftThread(db, llm, t.id, { read, op, facts, truths, voice: d.voice, ours }),
+          draftThread(db, llm, t.id, { read, op, facts, truths, voice: d.voice, ours, posts }),
         );
         if (out === "drafted") s.drafted++;
       });
+  }
+  // Wren's own pass with autoSend: drafted threads onto each account's spaced slots.
+  if (audience.autoSend && !clientOfKey(ctx.key)) {
+    const slots = await step("schedule", () => scheduleThreads(db, { now, rand: Math.random }));
+    fireSlots(ctx, slots, now);
+    s.scheduled = slots.length;
   }
 
   // People who talk to us: commenters on our posts, DM contacts.
@@ -346,6 +362,10 @@ const MOVE = SUB.extend({ account: z.string().describe("reddit@alt, or the handl
 const THREAD = z.looseObject({ id: z.string() });
 const COMMENT = THREAD.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
+  at: z.iso
+    .datetime()
+    .nullish()
+    .describe("The scheduler's slot; one moved or cleared sends nothing"),
 });
 
 /** The desk's discovery handlers, bound on ReachDesk. */
@@ -400,9 +420,12 @@ export function discoveryHandlers(deps: ReachDeps) {
       { input: COMMENT, effect: "sends" },
       async (
         ctx: restate.Context,
-        req: { id: string; body?: string | null },
-      ): Promise<{ ref: string | null }> => {
+        req: { id: string; body?: string | null; at?: string | null },
+      ): Promise<{ ref: string | null; held?: string }> => {
         const now = await nowOf(ctx);
+        const at = req.at;
+        if (at && !(await ctx.run("due", () => stillDue(deps.db, "thread", req.id, at))))
+          return { ref: null, held: "taken off the schedule" };
         const plan = await ctx.run("plan", () =>
           terminal(() => planThreadComment(deps.db, req.id, now)),
         );
