@@ -300,9 +300,9 @@ export function ViewTabs({
 }
 
 const ITEM =
-  "flex h-8 w-full items-center gap-2 border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
+  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
 const INPUT =
-  "h-8 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]";
+  "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]";
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The open saved view's menu: rename, share, move, delete. */
@@ -537,13 +537,13 @@ export type Facets = Record<string, Record<string, number>>;
 
 /** One height, one hairline, one type size for every control in the bar. */
 export const CHIP =
-  "inline-flex h-8 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
+  "inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
 const PILL =
-  "inline-flex h-8 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
+  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
 const POP =
   "w-72 gap-0 overflow-hidden rounded-none bg-(--ui-paper) p-0 text-(--ui-ink) ring-(--ui-hair) shadow-lg";
 const ROW =
-  "flex h-8 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
+  "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
 
 const NUMBERS = new Set(["number", "money", "percent", "rate", "duration", "score"]);
 /** A field's kind as a small icon: a date, a figure, a choice, a person, a company, set or not, words. */
@@ -976,7 +976,7 @@ export function ListBar({
         after: null,
         ...Object.fromEntries(filters.map((f) => [f.key, null])),
       })}
-      className="inline-flex h-8 shrink-0 items-center px-2 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+      className="inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center px-2 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
     >
       Clear
     </a>
@@ -1092,7 +1092,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     return () => clearTimeout(t);
   }, [text, asked, place]);
   return (
-    <label className="relative flex h-8 w-full items-center sm:w-64">
+    <label className="relative flex h-8 pointer-coarse:h-11 w-full items-center sm:w-64">
       <Search className="pointer-events-none absolute left-2.5 size-3.5 text-(--ui-ink-3)" />
       <input
         type="search"
@@ -1103,7 +1103,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-8 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]"
+        className="h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]"
       />
     </label>
   );

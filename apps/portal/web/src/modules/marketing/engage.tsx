@@ -57,9 +57,10 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
   };
 
   return (
-    <div className="mb-4 grid gap-2">
+    // A phone: the box takes the row, Add beside it.
+    <div className="mb-4 grid gap-2 max-sm:w-full">
       <form
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2 max-sm:flex-nowrap"
         onSubmit={(e) => {
           e.preventDefault();
           void paste();
@@ -67,7 +68,7 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
       >
         <Input
           aria-label="Paste a link"
-          className="min-w-0 flex-1 basis-[320px]"
+          className="min-w-0 flex-1 basis-[320px] max-sm:basis-0"
           value={url}
           placeholder="Paste a subreddit, thread, post or account (Reddit, LinkedIn, X, Instagram)"
           onChange={(e) => setUrl(e.target.value)}

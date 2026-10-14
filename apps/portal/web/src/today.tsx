@@ -267,7 +267,7 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
             Nothing waits on you.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {pieces.slice(0, PIECES_SHOWN).map((p) => (
               <PieceCard key={p.id} piece={p} reload={work.retry} />
             ))}

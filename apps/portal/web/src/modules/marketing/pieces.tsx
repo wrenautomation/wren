@@ -542,7 +542,7 @@ export function PiecesPage(props: PageProps) {
           )}
         </Empty>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {shown.map((p) => (
             <PieceCard key={p.id} piece={p} reload={load.retry} />
           ))}

@@ -1370,7 +1370,7 @@ function List({
                               if (e.animationName === "ui-changed") setChanged(new Set());
                             }}
                             className={cn(
-                              "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair)",
+                              "group h-(--layout-row) cursor-pointer border-b pointer-coarse:h-12 border-(--ui-hair)",
                               open
                                 ? "bg-(--ui-fill)"
                                 : i === cursor

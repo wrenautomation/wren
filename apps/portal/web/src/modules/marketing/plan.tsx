@@ -243,7 +243,7 @@ export function PlanPage(_props: PageProps) {
         ) : !work.data ? (
           <Loading lines={4} />
         ) : waiting.length ? (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {waiting.slice(0, SHOWN).map((p) => (
               <PieceCard key={p.id} piece={p} reload={work.retry} />
             ))}
