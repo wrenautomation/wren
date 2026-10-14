@@ -43,6 +43,21 @@ describe("shorts check", () => {
   });
 });
 
+describe("camBox patch", () => {
+  const parse = (x: unknown) => editPatchSchema.safeParse(x);
+  it("takes a face box in the frame, or null to clear", () => {
+    expect(parse({ camBox: [378, 0, 405, 720] }).success).toBe(true);
+    expect(parse({ camBox: null }).success).toBe(true);
+    expect(parse({ camBox: [0, 0, 0, 10] }).success).toBe(false);
+    expect(parse({ camBox: [1, 2, 3] }).success).toBe(false);
+  });
+  it("refuses a box outside the frame", () => {
+    const frame = { width: 1280, height: 720 };
+    expect(checkPatch({ camBox: [378, 0, 405, 720] }, 60, [], [], frame)).toEqual([]);
+    expect(checkPatch({ camBox: [900, 0, 405, 720] }, 60, [], [], frame)[0]).toMatch(/outside/);
+  });
+});
+
 describe("shortProps", () => {
   it("moves the clip onto the cut timeline and its words to its start", () => {
     const edit = {

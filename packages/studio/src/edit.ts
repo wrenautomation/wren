@@ -247,6 +247,15 @@ export const editPatchSchema = z
       .object({ at: sec, text: z.string().max(60) })
       .strict()
       .nullable(),
+    /** Where his face sits in the main track, [x, y, w, h] in its pixels; null clears it. A one-file recording of him alone: a 9:16 window on him, with `layout` `cam`, fills a Short. */
+    camBox: z
+      .tuple([
+        z.number().int().min(0),
+        z.number().int().min(0),
+        z.number().int().min(1),
+        z.number().int().min(1),
+      ])
+      .nullable(),
   })
   .partial()
   .strict();
@@ -262,6 +271,7 @@ export function checkPatch(
   durationS: number,
   cuts: readonly Cut[] = [],
   words: readonly Word[] = [],
+  frame?: { width: number; height: number },
 ): string[] {
   const bad: string[] = [];
   const ranges = (name: string, xs: readonly { from: number; to: number }[] | undefined) =>
@@ -281,6 +291,11 @@ export function checkPatch(
   if (shorts.length && (shorts.length < SHORT_COUNT.min || shorts.length > SHORT_COUNT.max))
     bad.push(`shorts: ${shorts.length} picked; want ${SHORT_COUNT.min} to ${SHORT_COUNT.max}`);
   const keep = keepSegments(patch.cuts ?? cuts, durationS, FPS);
+  if (patch.camBox && frame) {
+    const [x, y, w, h] = patch.camBox;
+    if (x + w > frame.width || y + h > frame.height)
+      bad.push(`camBox: outside the ${frame.width}x${frame.height} frame`);
+  }
   shorts.forEach((r, i) => {
     const len = onCut(r.to, keep) - onCut(r.from, keep);
     if (len < SHORT_S.min || len > SHORT_S.max)
@@ -321,6 +336,12 @@ export function stressOnCut(
   ).map((b) => `stress: ${b} (once cut)`);
 }
 
+/** The tracks with the face box set, or taken off for `null`. */
+function withCamBox(tracks: VideoEdit["tracks"], box: [number, number, number, number] | null) {
+  const { camBox: _old, ...rest } = tracks;
+  return box ? { ...rest, camBox: box } : rest;
+}
+
 /**
  * Write fields of the edit, checked, with a `runs` row holding what they were: `run` when one is
  * open (an Ask on the page), else a new one.
@@ -341,14 +362,23 @@ export async function setEdit(
   return atomic(db, async (tx) => {
     const now = await getEdit(tx, id);
     if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
-    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts, now.words);
+    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts, now.words, now.tracks.main);
     if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
     const before = Object.fromEntries(
-      Object.keys(patch).map((k) => [k, now[k as keyof EditPatch]]),
+      Object.keys(patch).map((k) => [
+        k,
+        k === "camBox" ? (now.tracks.camBox ?? null) : now[k as keyof VideoEdit],
+      ]),
     );
+    const { camBox, ...columns } = patch;
     const [edit] = await tx
       .update(videoEdits)
-      .set({ ...patch, state: now.state === "added" ? "edited" : now.state, updatedAt: new Date() })
+      .set({
+        ...columns,
+        ...(camBox !== undefined ? { tracks: withCamBox(now.tracks, camBox) } : {}),
+        state: now.state === "added" ? "edited" : now.state,
+        updatedAt: new Date(),
+      })
       .where(eq(videoEdits.id, id))
       .returning();
     const run =
