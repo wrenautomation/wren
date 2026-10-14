@@ -15,7 +15,7 @@
 /// <reference lib="dom.iterable" />
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { PRESETS, readTheme, SHOWCASE, type Theme, themeVars } from "@wren/ui/theme";
+import { BASE, PRESETS, readTheme, SHOWCASE, type Theme, themeVars } from "@wren/ui/theme";
 import { type BrowserContext, chromium, type Page } from "playwright-core";
 
 const arg = (name: string) => {
@@ -76,12 +76,12 @@ async function scan(p: Page, look: string, page: string): Promise<Miss[]> {
   u.searchParams.set("theme", viaUrl ? look : "wren");
   await settle(p, u.toString());
   if (!viaUrl)
-    await p.evaluate(
-      (vars) => {
-        for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(k, v);
-      },
-      themeVars({ ...LOOKS[look] }),
-    );
+    // Whole (BASE under the look), and !important: the page's own look lands late on slow pages.
+    await p.addStyleTag({
+      content: `:root { ${Object.entries(themeVars({ ...BASE, ...LOOKS[look] }))
+        .map(([k, v]) => `${k}: ${v} !important;`)
+        .join(" ")} }`,
+    });
   if (!(await p.evaluate(() => "axe" in window))) await p.addScriptTag({ path: AXE });
   const found = await p.evaluate(async () => {
     const axe = (window as unknown as { axe: typeof import("axe-core") }).axe;
