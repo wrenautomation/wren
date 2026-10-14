@@ -26,6 +26,7 @@ export const TEXTS = [
 export const GROUNDS = [
   "canvas",
   "paper",
+  "ground",
   "tile",
   "wash",
   "band",
@@ -74,6 +75,7 @@ const MADE: Theme = {
   tile: "var(--ui-canvas)",
   wash: "color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper))",
   band: "color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper))",
+  ground: "color-mix(in srgb, var(--ui-canvas) 45%, var(--ui-paper))",
   "on-ink": "var(--ui-paper)",
   primary: "var(--ui-accent)",
   active: "var(--ui-accent)",

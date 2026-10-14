@@ -228,7 +228,9 @@ export function PieceCard({
     <article
       className={cx(
         "border border-(--ui-hair) bg-(--ui-bg)",
-        nested ? "border-x-0 border-b-0 px-0 pt-3" : "rounded-(--ui-radius) px-4 pt-3.5 pb-2",
+        nested
+          ? "rounded-none border-x-0 border-b-0 px-0 pt-3"
+          : "rounded-(--ui-radius-panel) px-4 pt-3.5 pb-2",
       )}
     >
       <header className="flex flex-wrap items-start gap-x-3 gap-y-2">

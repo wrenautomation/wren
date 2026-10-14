@@ -13,11 +13,19 @@ export const SECTION_TITLE = "text-[16px] leading-[22px] font-semibold";
 export const GROUP_LABEL =
   "text-[12px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 
-/** A part on the page: hair frame on paper. */
-export const FRAME = "border border-(--ui-hair) bg-(--ui-paper)";
-/** The strip a framed part is headed by: banded, with a rule under it. */
+/**
+ * The wren mark: one wing-feather curve in the motif color (`.ui-wing`), the brand's one motif.
+ * It edges what needs you and leads a "Needs you" head; `className` sizes and places it.
+ */
+export function Wing({ className }: { className?: string | undefined }) {
+  return <span aria-hidden="true" className={cx("ui-wing flex-none", className)} />;
+}
+
+/** A part on the page: a raised panel on paper, its rim in the shadow, its corners soft. */
+export const FRAME = "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)";
+/** The strip a framed part is headed by: banded, with a rule under it, its top corners the frame's. */
 export const FRAME_HEAD =
-  "flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2.5";
+  "flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-t-[inherit] border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2.5";
 /**
  * A framed part's body. A ruled list or facts inside it drops the rule the frame already draws,
  * at its top and under its last row.
@@ -79,6 +87,7 @@ export function PageHeader({
 export function Section({
   title,
   cue,
+  count,
   note,
   actions,
   plain = false,
@@ -88,6 +97,8 @@ export function Section({
   title?: string | undefined;
   /** A mark before the title: the platform or site this section is about. */
   cue?: ReactNode;
+  /** How many it holds, quiet after the title. */
+  count?: number | undefined;
   note?: ReactNode;
   actions?: ReactNode;
   plain?: boolean | undefined;
@@ -106,6 +117,11 @@ export function Section({
             <h2 className={cx("flex items-center gap-2", SECTION_TITLE)}>
               {cue}
               {title}
+              {count === undefined ? null : (
+                <span className="font-normal text-(--ui-ink-3) tabular-nums">
+                  {count.toLocaleString("en-US")}
+                </span>
+              )}
             </h2>
           ) : null}
           {note ? (
@@ -125,7 +141,7 @@ export function Section({
       </section>
     );
   return (
-    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-6", FRAME, className)}>
+    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-7", FRAME, className)}>
       {head}
       <div className={FRAME_BODY}>{children}</div>
     </section>
@@ -147,7 +163,7 @@ export function Fieldset({
   return (
     <fieldset className={cx("m-0 min-w-0 p-0", FRAME, className)}>
       {/* Floated full width, a legend leaves the border's notch and reads as the head strip. */}
-      <legend className="float-left w-full border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2.5">
+      <legend className="float-left w-full rounded-t-[inherit] border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2.5">
         <span className={cx("block", GROUP_LABEL)}>{legend}</span>
         {note ? (
           <span className="mt-0.5 block max-w-[68ch] text-[13px] text-pretty text-(--ui-ink-2)">

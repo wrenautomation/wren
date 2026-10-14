@@ -397,7 +397,7 @@ export function AppShell({
       ) : null}
       <div
         className={cx(
-          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius) bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-paper) shadow-[var(--ui-raise),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
           nav
             ? "[grid-area:window] my-(--ui-frame) mr-(--ui-frame)"
             : "mx-(--ui-frame) mb-(--ui-frame)",
@@ -407,7 +407,8 @@ export function AppShell({
         <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
           {app && !d.pagesShut ? <AppColumn app={app} display={display} host={host} /> : null}
           <div
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
+            // The page's ground, a shade under paper, so its panels read raised on it.
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-(--ui-ground) [scrollbar-width:thin] max-[900px]:overflow-visible"
             ref={scroller}
           >
             {app ? (
@@ -968,7 +969,7 @@ function SideNav({
         // A closed app's pages beside its row; the triangle keeps it open on the way over.
         <div
           ref={menu.flyoutRef}
-          className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) p-1.5 shadow-(--ui-shadow)"
+          className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius-sheet) bg-(--ui-paper) p-1.5 shadow-(--ui-float)"
           style={{
             top: flyTop ?? rowTop ?? 8,
             left: (aside.current?.getBoundingClientRect().right ?? 224) - 2,
@@ -1179,7 +1180,7 @@ export function Gate({
   usePageTheme(theme);
   return (
     <main className={cx("grid min-h-dvh place-items-center px-4 py-6", className)}>
-      <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius) bg-(--ui-paper) p-8 [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-hair) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-hair)">
+      <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius-sheet) bg-(--ui-paper) p-8 shadow-(--ui-raise) [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-hair) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-hair)">
         <img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
         <h1 className="font-(family-name:--ui-font-display) text-[24px]/[1.2] font-(--ui-display-weight) tracking-[calc(-0.025em*var(--ui-display-squeeze))]">
           {title}

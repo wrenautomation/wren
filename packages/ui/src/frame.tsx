@@ -364,7 +364,7 @@ export function Segmented<T extends string>({
           <label
             key={v}
             className={cn(
-              "relative flex h-7 cursor-pointer items-center justify-center px-2 text-[12.5px] font-medium whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-150 ease-(--ui-ease) hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-[0_0_0_1px_var(--ui-hair)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-focus)",
+              "relative flex h-7 cursor-pointer items-center justify-center rounded-md px-2 text-[12.5px] font-medium whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-150 ease-(--ui-ease) hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-[0_0_0_1px_var(--ui-hair)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-focus)",
             )}
           >
             <input

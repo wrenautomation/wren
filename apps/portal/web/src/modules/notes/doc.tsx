@@ -109,7 +109,7 @@ function MoreMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute top-9 right-0 z-30 flex w-64 flex-col border border-(--ui-hair) bg-(--ui-paper) py-1 shadow-lg"
+          className="absolute top-9 right-0 z-30 flex w-64 flex-col rounded-(--ui-radius-sheet) bg-(--ui-paper) p-1 shadow-(--ui-float)"
         >
           {items.map((i, n) =>
             i === null ? (

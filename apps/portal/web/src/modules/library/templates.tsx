@@ -174,7 +174,7 @@ export function Templates({ params, demo, can }: PageProps) {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search names and words"
                 aria-label="Search names and words"
-                className="h-8 rounded-none text-[13.5px]"
+                className="h-8 text-[13.5px]"
               />
               <div className="grid grid-cols-3 gap-1.5">
                 <select
@@ -324,7 +324,7 @@ function RenameFolder({
         value={to}
         onChange={(e) => setTo(e.target.value)}
         aria-label="Folder name"
-        className="h-8 min-w-0 rounded-none text-[13px]"
+        className="h-8 min-w-0 text-[13px]"
         autoFocus
       />
       <Button size="dense" type="submit" busy={busy}>
@@ -397,7 +397,7 @@ function Open({
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`bg-transparent cursor-pointer -mb-px border-0 border-b-2 border-solid pb-2 text-[14px] ${
+            className={`bg-transparent cursor-pointer -mb-px rounded-none border-0 border-b-2 border-solid pb-2 text-[14px] ${
               tab === id
                 ? "border-(--ui-ink) font-medium"
                 : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)"
@@ -556,7 +556,7 @@ function Controls({
               value={to}
               onChange={(e) => setTo(e.target.value)}
               list="template-folders"
-              className="h-8 rounded-none text-[13.5px]"
+              className="h-8 text-[13.5px]"
               autoFocus
             />
             <datalist id="template-folders">
@@ -753,7 +753,7 @@ function Editor({
             onChange={(e) => setWords(e.target.value)}
             readOnly={!mayWrite}
             spellCheck
-            className="max-h-[28rem] min-h-56 overflow-auto rounded-none font-mono text-[13px]/[1.55] md:text-[13px]"
+            className="max-h-[28rem] min-h-56 overflow-auto font-mono text-[13px]/[1.55] md:text-[13px]"
           />
         </DictateField>
       </label>
@@ -772,7 +772,7 @@ function Editor({
               onChange={(e) => setWhy(e.target.value)}
               placeholder="Shorter opener"
               maxLength={500}
-              className="h-8 rounded-none text-[13.5px]"
+              className="h-8 text-[13.5px]"
             />
           </label>
           <Button size="dense" type="submit" busy={busy} disabled={!dirty || !!conflict}>

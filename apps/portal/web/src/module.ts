@@ -104,6 +104,11 @@ export interface ListPage extends PageBase {
   head?: (meta: RecordMeta, reload: () => void, at: PageProps) => ReactNode;
   /** What waits here, counted on its tab in the nav (Wren's workspace): a `where` on the record. */
   count?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * The rows that wait on the viewer, listed first under "Needs you" with the wren mark, the rest
+   * under "For info": a `where` on the record. `count` when left out.
+   */
+  needs?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** An app's numbers first, each a link to its rows, then its top records. */

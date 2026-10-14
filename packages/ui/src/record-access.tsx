@@ -262,7 +262,7 @@ export function AskAccess({
     );
   return (
     <section
-      className="grid gap-3 rounded-(--ui-radius) border border-(--ui-hair) p-3"
+      className="grid gap-3 rounded-(--ui-radius-panel) border border-(--ui-hair) p-3"
       aria-label="Ask for access"
     >
       <h3 className={GROUP_LABEL}>Ask for access</h3>

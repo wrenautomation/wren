@@ -1137,6 +1137,8 @@ export const APPROVAL_PAGE: ListPage = {
   about: "Drafts, replies and posts that wait on your yes before they go out.",
   template: "list",
   record: "marketing.approval",
+  // New and waiting rows wait on a yes; queued ones are for info.
+  needs: { state: ["new", "waiting"] },
   // Kind says what Type does, in more words.
   // Held and Sends at fill only for Queued; a column blank on every row shown is dropped.
   columns: ["who", "platform", "kind", "state", "sendAt", "held", "at", "due"],

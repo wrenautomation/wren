@@ -509,10 +509,7 @@ export function CollectionMenu({
         >
           {trigger ?? <Ellipsis size={15} />}
         </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-52 gap-0 rounded-none bg-(--ui-paper) p-1 text-(--ui-ink) shadow-lg ring-(--ui-hair)"
-        >
+        <PopoverContent align="start" className="w-52 gap-0 bg-(--ui-paper) p-1 text-(--ui-ink)">
           <button type="button" className={item} onClick={() => pick("new")}>
             <FolderPlus size={14} /> New collection inside
           </button>

@@ -307,7 +307,7 @@ function Day({
               <section
                 key={g}
                 aria-label={s.label}
-                className="min-w-0 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper)"
+                className="min-w-0 rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)"
               >
                 <h2
                   className={cn(

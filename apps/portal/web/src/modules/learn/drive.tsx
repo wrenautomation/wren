@@ -695,7 +695,7 @@ function Chips({
               <PopoverTrigger className={cx(CHIP, CHIP_OFF)}>{rest.length} more</PopoverTrigger>
               <PopoverContent
                 align="start"
-                className="max-h-80 w-64 gap-0 overflow-y-auto rounded-none bg-(--ui-paper) p-1 text-(--ui-ink) shadow-lg ring-(--ui-hair)"
+                className="max-h-80 w-64 gap-0 overflow-y-auto bg-(--ui-paper) p-1 text-(--ui-ink)"
               >
                 {rest.map((s) => {
                   const on = srcs.includes(String(s.id));
@@ -1008,10 +1008,7 @@ export function ItemMenu({
       >
         <Ellipsis size={16} />
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-56 gap-0 rounded-none bg-(--ui-paper) p-1 text-(--ui-ink) shadow-lg ring-(--ui-hair)"
-      >
+      <PopoverContent align="end" className="w-56 gap-0 bg-(--ui-paper) p-1 text-(--ui-ink)">
         <a
           href={c.url}
           target="_blank"
@@ -1269,7 +1266,7 @@ function BulkBar({
     <div className="pointer-events-none sticky bottom-4 z-20 mt-6 flex justify-center">
       <section
         aria-label="Selected items"
-        className="pointer-events-auto flex max-w-full animate-in items-center gap-0.5 overflow-x-auto bg-(--ui-ink) p-1 shadow-lg duration-200 fade-in-0 slide-in-from-bottom-2"
+        className="pointer-events-auto flex max-w-full animate-in items-center gap-0.5 overflow-x-auto rounded-(--ui-radius-panel) bg-(--ui-ink) p-1 shadow-(--ui-float) duration-200 fade-in-0 slide-in-from-bottom-2"
       >
         <span className="shrink-0 px-2.5 font-semibold text-(--ui-on-ink) text-[13px] tabular-nums">
           {ids.length} selected

@@ -46,7 +46,7 @@ export function Loading({
             className={
               shape === "rows"
                 ? "flex gap-7 border-b border-(--ui-hair) py-4"
-                : "flex flex-col gap-3.5 rounded-(--ui-radius) border border-(--ui-hair) p-[22px]"
+                : "flex flex-col gap-3.5 rounded-(--ui-radius-panel) border border-(--ui-hair) p-[22px]"
             }
           >
             <Skeleton className={cx(GHOST, shape === "rows" ? "w-[22%]" : "h-3.5 w-[34%]")} />
@@ -82,7 +82,7 @@ export function Empty({
       data-empty=""
       className={cx(
         // A dashed frame: a place that fills, apart from the solid frames of parts that have.
-        "flex flex-col items-center gap-4 rounded-(--ui-radius) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
+        "flex flex-col items-center gap-4 rounded-(--ui-radius-panel) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
         className,
       )}
     >
@@ -103,7 +103,7 @@ export function InDevelopment({
   return (
     <div
       className={cx(
-        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-(--ui-radius) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-3 text-[14px] text-pretty text-(--ui-ink-2)",
+        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-(--ui-radius-panel) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-3 text-[14px] text-pretty text-(--ui-ink-2)",
         className,
       )}
     >

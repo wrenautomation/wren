@@ -39,7 +39,7 @@ function PopoverContent({
           ref={popup}
           data-slot="popover-content"
           className={cn(
-            "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 ease-(--ui-ease) data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-2xl bg-popover p-2.5 text-sm text-popover-foreground shadow-(--ui-float) outline-hidden duration-100 ease-(--ui-ease) data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className,
             SHEET
           )}
@@ -55,7 +55,7 @@ function PopoverContent({
  * home bar, and it slides rather than zooms. Last in the classes, so it wins over a caller's.
  */
 const SHEET =
-  "max-[900px]:mx-auto max-[900px]:w-full! max-[900px]:max-w-[640px]! max-[900px]:max-h-[min(72dvh,560px)]! max-[900px]:min-w-0! max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[900px]:rounded-none! max-[900px]:border-t max-[900px]:border-(--ui-hair) max-[900px]:px-3! max-[900px]:pt-6! max-[900px]:pb-[calc(12px+env(safe-area-inset-bottom))]! max-[900px]:shadow-(--ui-shadow)! max-[900px]:ring-0! max-[900px]:duration-300 max-[900px]:zoom-in-100! max-[900px]:zoom-out-100! max-[900px]:slide-in-from-bottom-[40%]! max-[900px]:slide-out-to-bottom-[40%]! max-[900px]:before:absolute max-[900px]:before:top-2 max-[900px]:before:left-1/2 max-[900px]:before:h-[5px] max-[900px]:before:w-9 max-[900px]:before:-translate-x-1/2 max-[900px]:before:rounded-full max-[900px]:before:bg-(--ui-ink-3) max-[900px]:before:opacity-50 max-[900px]:before:content-['']"
+  "max-[900px]:mx-auto max-[900px]:w-full! max-[900px]:max-w-[640px]! max-[900px]:max-h-[min(72dvh,560px)]! max-[900px]:min-w-0! max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[900px]:rounded-b-none! max-[900px]:rounded-t-2xl! max-[900px]:border-t max-[900px]:border-(--ui-rim) max-[900px]:px-3! max-[900px]:pt-6! max-[900px]:pb-[calc(12px+env(safe-area-inset-bottom))]! max-[900px]:shadow-(--ui-shadow)! max-[900px]:ring-0! max-[900px]:duration-300 max-[900px]:zoom-in-100! max-[900px]:zoom-out-100! max-[900px]:slide-in-from-bottom-[40%]! max-[900px]:slide-out-to-bottom-[40%]! max-[900px]:before:absolute max-[900px]:before:top-2 max-[900px]:before:left-1/2 max-[900px]:before:h-[5px] max-[900px]:before:w-9 max-[900px]:before:-translate-x-1/2 max-[900px]:before:rounded-full max-[900px]:before:bg-(--ui-ink-3) max-[900px]:before:opacity-50 max-[900px]:before:content-['']"
 
 /**
  * A popup sheet follows a finger pulling it down from its top, and past a third of its height

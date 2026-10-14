@@ -736,7 +736,7 @@ export function Segmented({
     <nav aria-label={label} className={cn("min-w-0", className)}>
       <div
         ref={track}
-        className="flex overflow-x-auto bg-(--ui-fill) p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex overflow-x-auto rounded-lg bg-(--ui-fill) p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((i) => (
           <a
@@ -744,7 +744,7 @@ export function Segmented({
             href={i.href}
             aria-current={i.on ? "page" : undefined}
             {...tipProps(i.tip)}
-            className="flex min-h-9 min-w-fit flex-1 items-center justify-center gap-1.5 px-3 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_var(--ui-hair)]"
+            className="flex min-h-9 min-w-fit flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_var(--ui-hair)]"
           >
             {i.label}
             {i.count !== undefined ? (

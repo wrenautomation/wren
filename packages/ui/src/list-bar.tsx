@@ -287,8 +287,8 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
       <PopoverTrigger
         className={cn(
           phone
-            ? "flex min-h-10 shrink-0 items-center gap-1 border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
-            : cn(TAB, "border-0 border-b-2 bg-transparent px-0", tabTone(!!on)),
+            ? "flex min-h-10 shrink-0 items-center gap-1 rounded-lg border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
+            : cn(TAB, "rounded-none border-0 border-b-2 bg-transparent px-0", tabTone(!!on)),
           on && "text-(--ui-ink)",
         )}
       >
@@ -435,7 +435,7 @@ export function ViewTabs({
 }
 
 const ITEM =
-  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
+  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
 const INPUT =
   "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -498,10 +498,7 @@ function SavedMenu({
       >
         <MoreHorizontal className="size-3.5" />
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-60 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="start" className="w-60 gap-0 p-1.5">
         <form
           className="grid gap-1.5 p-1"
           onSubmit={(e) => {
@@ -617,10 +614,7 @@ function SaveView({
         <Bookmark className="size-3.5" />
         Save view
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 gap-0 rounded-none p-2 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="start" className="w-64 gap-0 p-2">
         {sv ? (
           <button
             type="button"
@@ -676,8 +670,7 @@ export const CHIP =
   "inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
 const PILL =
   "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
-const POP =
-  "w-72 gap-0 overflow-hidden rounded-none bg-(--ui-paper) p-0 text-(--ui-ink) ring-(--ui-hair) shadow-lg";
+const POP = "w-72 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)";
 const ROW =
   "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
 
@@ -1133,7 +1126,7 @@ export function ListBar({
           // A phone opens it to tap, not type: no keyboard springs up.
           initialFocus={false}
           side="bottom"
-          className="max-h-[85dvh] gap-0 rounded-none bg-(--ui-paper) text-(--ui-ink)"
+          className="max-h-[85dvh] gap-0 bg-(--ui-paper) text-(--ui-ink)"
         >
           <SheetHeader className="border-b border-(--ui-hair) p-4">
             <SheetTitle className="text-[15px] font-semibold">Filter</SheetTitle>

@@ -145,7 +145,7 @@ export function SourceCard({
     <li
       id={id}
       className={cn(
-        "grid scroll-m-6 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-(--ui-radius) bg-(--ui-paper) pt-[13px] pr-4 pb-3.5 pl-3.5 text-[14px] wrap-anywhere shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-shadow duration-350 ease-(--ui-ease)",
+        "grid scroll-m-6 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-(--ui-radius-panel) bg-(--ui-paper) pt-[13px] pr-4 pb-3.5 pl-3.5 text-[14px] wrap-anywhere shadow-(--ui-raise) transition-shadow duration-350 ease-(--ui-ease)",
         lit && "ring-2 ring-(--ui-active)",
         className,
       )}

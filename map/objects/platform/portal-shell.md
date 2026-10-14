@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-11 @ 7eb4dac5 (+ layout, keys)
+verified: 2026-10-14 @ 3fc09e66 (+ soft look, needs tiers)
 entity: apps/portal/web/src/areas.ts:14
 ---
 
@@ -35,6 +35,8 @@ Areas group apps by job; pages never move between apps, so every link in a ping,
 - Wren's Inbox holds To approve (`APPROVAL_PAGE`, `apps/portal/web/src/modules/marketing/index.ts:901`) and Done (`DONE_PAGE`, `:884`); Marketing keeps `/marketing/inbox` and `/marketing/approve` as hidden pages for old links; its tabs sort by group (`byGroup`, `:1094`)
 - Ads (`ads`, `:1112`) and the site's visitors and search (`SITE_PAGES`, `:1123`, in Sites under Visitors and Search) left Marketing on 2026-10-11 (`designs/2026-10-11-split-marketing.md`); Marketing keeps each as a hidden page for old links; record `app` ids stay `marketing`, so grants are unchanged
 
+- Soft look (2026-10-14, `designs/2026-10-03-console-standard.md` Look): radius scale `--ui-radius` 6px, `--ui-radius-panel`, `--ui-radius-sheet` (`packages/ui/src/tailwind.css`, min() keeps 0 square); a bare `border`, a button or a menu item takes the control corner. Panels raise on `--ui-ground` (the window's page area, `shell.tsx`) by `--ui-raise`; popovers `--ui-float`; `FRAME` in `layout.tsx`. The wren mark is `.ui-wing` in `--ui-motif` (`Wing`, `layout.tsx`)
+- Needs tiers: a page's `needs` (`module.ts`, else its `count`) goes to `RecordList` as `needs`; `tiersOf` and `waitsOn` (`packages/ui/src/records.tsx`) put waiting rows first under "Needs you" with the mark, the rest under "For info"; off when grouped or sorted by hand. To approve names `needs` without a `count`. Today's Needs you and Waiting on you lead with the mark and a count (`Section` `count`)
 - Command events (2026-10-13): `call` (`apps/portal/web/src/api.ts:189`) is the one place every user command leaves the portal; it tells `tellAutotrack` (`autotrack.ts`) which posts `{autotrack:{v:1, action, detail:{ids?, ok, error?}}}` to the window for autotrack's extension. Reads say nothing; never a field value or the server's error text. Not covered: `uploadFile`'s PUT, dictation audio, live notes (socket), the public booking page's `fetch`
 
 ## Connected to

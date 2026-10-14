@@ -295,10 +295,7 @@ export function TilesMenu({
         <Icon name="sliders" size={15} />
         Customize
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-72 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="end" className="w-72 gap-0 p-1.5">
         <p className="px-1.5 pt-1 pb-2 text-[12px] text-(--ui-ink-3)">Tiles to show, in order.</p>
         <ul className="grid list-none gap-px">
           {order.map((label, i) => (

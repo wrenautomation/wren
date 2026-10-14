@@ -224,7 +224,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
             onChange={(e) => setTyped(e.target.value)}
             placeholder="Search every note"
             aria-label="Search every note"
-            className="mb-2 ml-auto h-8 w-full rounded-none text-[13.5px] sm:w-64"
+            className="mb-2 ml-auto h-8 w-full text-[13.5px] sm:w-64"
           />
         </div>
         {list.error && !data ? (

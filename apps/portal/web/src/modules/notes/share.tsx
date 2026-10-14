@@ -151,7 +151,7 @@ export function ShareDialog({
               list={list}
               aria-label="Add a person or group"
               placeholder={wren ? "Email, Wren's team or a client" : "Email"}
-              className="h-8 min-w-0 flex-1 rounded-none"
+              className="h-8 min-w-0 flex-1"
               onChange={(e) => setWho(e.target.value)}
             />
             <datalist id={list}>

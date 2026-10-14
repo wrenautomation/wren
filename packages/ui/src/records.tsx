@@ -32,7 +32,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
 import { type Action, applies, blockedOf, type Call, runs, sayBlocked, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -69,7 +69,7 @@ import { linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
-import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
+import { GROUP_LABEL, PAGE_TITLE, PageTitle, Wing } from "./layout.js";
 import {
   CHIP,
   filtersOf,
@@ -212,6 +212,29 @@ export interface RecordTemplateProps {
   acts?: RecordActs | undefined;
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
   head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined;
+  /**
+   * The rows that wait on the viewer, as field → states (a page's `count`). A list puts them first
+   * under "Needs you", each edged with the wren mark, and the rest under "For info", quieter.
+   */
+  needs?: Needs | undefined;
+}
+
+/** Field → the states in which a row waits on the viewer. */
+export type Needs = Readonly<Record<string, readonly string[]>>;
+
+/** Whether `row` waits on the viewer: every field `needs` names holds one of its states. */
+export const waitsOn = (needs: Needs, row: Row) =>
+  Object.entries(needs).every(([k, states]) => states.includes(String(row[k] ?? "")));
+
+/**
+ * The rows that wait first, the rest after, each tier in its own order, and how many wait.
+ * A list grouped or sorted by hand keeps its own order, so its tiers stay unsplit (`split` -1).
+ */
+export function tiersOf(rows: Row[], needs: Needs | undefined, keep: boolean) {
+  if (!needs || keep) return { rows, split: -1 };
+  const first = rows.filter((r) => waitsOn(needs, r));
+  if (!first.length || first.length === rows.length) return { rows, split: -1 };
+  return { rows: [...first, ...rows.filter((r) => !waitsOn(needs, r))], split: first.length };
 }
 
 type Load<T> = { data: T | null; error: Error | null; loading: boolean; retry: () => void };
@@ -565,10 +588,7 @@ function ListDisplay({
         <SlidersHorizontal className="size-3.5" />
         Display
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="max-h-[70dvh] w-60 gap-3 overflow-y-auto rounded-none p-3 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="end" className="max-h-[70dvh] w-60 gap-3 overflow-y-auto p-3">
         {frame ? (
           <Choice
             label="Rows"
@@ -628,6 +648,44 @@ function GroupHead({ field, value, span }: { field: FieldMeta; value: string; sp
           {state?.label ?? (value || `No ${field.label.toLowerCase()}`)}
         </span>
       </td>
+    </tr>
+  );
+}
+
+/**
+ * A row's title by whether it waits on the viewer: what waits reads heavier, what is for info
+ * reads quieter, and a page that names nothing waiting keeps the one weight.
+ */
+const TITLE_WEIGHT: Record<string, string> = {
+  true: "font-semibold text-(--ui-ink)",
+  false: "font-normal text-(--ui-ink-2)",
+  null: "font-medium text-(--ui-ink)",
+};
+
+/** A tier's name and count: "Needs you 4" after the wren mark, or "For info 9". */
+export function TierLabel({ needs, n }: { needs: boolean; n: number }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {needs ? <Wing className="h-4 w-1.5" /> : null}
+      <span className={needs ? "text-(--ui-ink)" : undefined}>
+        {needs ? "Needs you" : "For info"}
+      </span>
+      <span className="font-normal text-(--ui-ink-3) tabular-nums">{num(n)}</span>
+    </span>
+  );
+}
+
+/** The band over a tier of rows. */
+function TierHead({ needs, n, span }: { needs: boolean; n: number; span: number }) {
+  return (
+    <tr className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
+      <th
+        colSpan={span}
+        scope="colgroup"
+        className="px-3 text-left text-[12px] font-semibold text-(--ui-ink-2)"
+      >
+        <TierLabel needs={needs} n={n} />
+      </th>
     </tr>
   );
 }
@@ -719,7 +777,7 @@ export function NotHere() {
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts, head, title } = props;
+  const { record, api, place, empty, columns, extras, acts, head, title, needs } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
@@ -737,6 +795,7 @@ export function RecordList(props: RecordTemplateProps) {
       acts={acts}
       head={head}
       title={title}
+      needs={needs}
     />
   );
 }
@@ -1013,6 +1072,7 @@ function List({
   acts,
   head,
   title,
+  needs,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1024,6 +1084,7 @@ function List({
   acts: RecordActs | undefined;
   head: RecordTemplateProps["head"];
   title: string | undefined;
+  needs: Needs | undefined;
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -1037,7 +1098,14 @@ function List({
     ...(at > 1 ? { offset: offsetOf(at) } : {}),
   };
   const page = useLoad(JSON.stringify(listed), () => api.list(listed), api);
-  const rows = page.data?.rows ?? [];
+  // What waits on the viewer comes first; `split` is where "For info" starts.
+  const loaded = page.data?.rows;
+  const { rows, split } = useMemo(
+    () => tiersOf(loaded ?? [], needs, !!grouped || !!ask.sort),
+    [loaded, needs, grouped, ask.sort],
+  );
+  /** Whether a row waits on the viewer; null where the page names nothing that waits. */
+  const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
   const pages = pagesOf(page.data?.total ?? 0);
   const narrow = useNarrow();
   const cols = shownColumns(meta, columnsOf(meta, params, columns), rows, {
@@ -1291,10 +1359,10 @@ function List({
         <div
           ref={frameRef}
           className={cn(
-            // Framed; its last row drops its rule, which the frame draws. A phone's cards scroll
-            // with the page, not in a box of their own.
-            "border border-(--ui-hair) transition-opacity [&_tbody>tr:last-child]:border-b-0",
-            !narrow && "max-h-[calc(100dvh-280px)] overflow-auto",
+            // A raised panel; its last row drops its rule, which the panel's rim draws. A phone's
+            // cards scroll with the page, not in a box of their own, clipped to its corners.
+            "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) transition-opacity [&_tbody>tr:last-child]:border-b-0",
+            narrow ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
             page.loading && page.data && "opacity-60",
           )}
         >
@@ -1313,6 +1381,11 @@ function List({
                     const g = grouped ? String(r[grouped.key] ?? "") : null;
                     return (
                       <Fragment key={id}>
+                        {split > 0 && (i === 0 || i === split) ? (
+                          <li className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
+                            <TierLabel needs={i === 0} n={i === 0 ? split : rows.length - split} />
+                          </li>
+                        ) : null}
                         {grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
                           <li className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
                             <span className="inline-flex items-center gap-1.5">
@@ -1326,6 +1399,7 @@ function List({
                           index={i}
                           fields={cols.filter((f) => f.key !== meta.title)}
                           preview={preview}
+                          waits={waits(r)}
                           href={place.link({ [meta.name.one]: id, tab: null })}
                           open={id === openId}
                           changed={changed.has(id) && !page.loading}
@@ -1416,7 +1490,14 @@ function List({
                       const head =
                         grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
                           <GroupHead field={grouped} value={g ?? ""} span={cols.length + 2} />
+                        ) : split > 0 && (i === 0 || i === split) ? (
+                          <TierHead
+                            needs={i === 0}
+                            n={i === 0 ? split : rows.length - split}
+                            span={cols.length + 2}
+                          />
                         ) : null;
+                      const waiting = waits(r);
                       return (
                         <Fragment key={id}>
                           {head}
@@ -1441,7 +1522,10 @@ function List({
                               changed.has(id) && !page.loading && "animate-ui-changed",
                             )}
                           >
-                            <td className="pl-2.5">
+                            <td className={cn("pl-2.5", waiting && "relative")}>
+                              {waiting ? (
+                                <Wing className="absolute top-1.5 bottom-1.5 left-0.5 w-1.5" />
+                              ) : null}
                               <input
                                 type="checkbox"
                                 aria-label={`Select ${titleOf(meta, r)}`}
@@ -1464,7 +1548,11 @@ function List({
                                     : "truncate [&_wbr]:hidden",
                                   !narrow && f.key === meta.title && preview && "py-1.5",
                                   f.column?.align === "end" ? "text-right" : "text-left",
-                                  f.key !== meta.title && "text-(--ui-ink-2)",
+                                  // When it happened reads quieter than what it is.
+                                  f.key !== meta.title &&
+                                    (f.kind === "date"
+                                      ? "text-(--ui-ink-3) tabular-nums"
+                                      : "text-(--ui-ink-2)"),
                                 )}
                               >
                                 {f.key === meta.title ? (
@@ -1472,7 +1560,8 @@ function List({
                                     href={place.link({ [meta.name.one]: id, tab: null })}
                                     {...clipProps()}
                                     className={cn(
-                                      "font-medium text-(--ui-ink) no-underline",
+                                      "no-underline",
+                                      TITLE_WEIGHT[String(waiting)],
                                       // Cut inside the link, so focusing it never scrolls the cell sideways.
                                       // A phone breaks a long word (an address) rather than clip it.
                                       narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
@@ -1485,7 +1574,12 @@ function List({
                                 ) : null}
                                 {f.key === meta.title && preview ? (
                                   // A message's first words under who sent it, as a mail list shows.
-                                  <span className="block truncate text-[12.5px] text-(--ui-ink-2)">
+                                  <span
+                                    className={cn(
+                                      "block truncate text-[12.5px]",
+                                      waiting === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
+                                    )}
+                                  >
                                     {firstWords(textOf(r[preview.key]))}
                                   </span>
                                 ) : f.key === meta.title ? null : (
@@ -1596,10 +1690,7 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
       >
         <Ellipsis className="size-4" />
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-56 gap-0 rounded-none p-1 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="end" className="w-56 gap-0 p-1">
         {items.map((it) => (
           <button
             key={it.label}
@@ -1671,6 +1762,7 @@ function RowCard({
   index,
   fields,
   preview,
+  waits,
   href,
   open,
   changed,
@@ -1685,6 +1777,8 @@ function RowCard({
   index: number;
   fields: FieldMeta[];
   preview: FieldMeta | undefined;
+  /** It waits on the viewer (true), is for info (false), or the page names nothing waiting. */
+  waits: boolean | null;
   href: string;
   open: boolean;
   changed: boolean;
@@ -1713,6 +1807,7 @@ function RowCard({
         changed && "[&>[data-face]]:animate-ui-changed",
       )}
     >
+      {waits ? <Wing className="absolute top-3.5 left-0.5 h-10 w-[5px]" /> : null}
       <label className="grid size-12 flex-none cursor-pointer place-items-center">
         <input
           type="checkbox"
@@ -1725,14 +1820,20 @@ function RowCard({
       <div className="grid min-w-0 flex-1 gap-1 py-3 pr-4">
         <a
           href={href}
-          className="line-clamp-2 text-[15px] leading-snug font-medium text-(--ui-ink) no-underline wrap-anywhere"
+          className={cn(
+            "line-clamp-2 text-[15px] leading-snug no-underline wrap-anywhere",
+            TITLE_WEIGHT[String(waits)],
+          )}
           {...clipProps()}
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
         </a>
         {preview ? (
           <span
-            className="line-clamp-2 text-[13.5px] leading-snug text-(--ui-ink-2)"
+            className={cn(
+              "line-clamp-2 text-[13.5px] leading-snug",
+              waits === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
+            )}
             {...clipProps()}
           >
             {firstWords(textOf(row[preview.key]))}
@@ -1885,7 +1986,8 @@ export function Panel({
       aria-label={cap(meta.name.one)}
       className={cn(
         ROOT,
-        "fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-shadow) sm:w-[560px]",
+        // Off a phone it floats: inset from the edges, a sheet's corners, clipped to them.
+        "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-radius-sheet)",
       )}
     >
       <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3 max-sm:box-content max-sm:h-14 max-sm:pt-[env(safe-area-inset-top)] max-sm:pr-[max(12px,env(safe-area-inset-right))] max-sm:pl-[max(4px,env(safe-area-inset-left))]">
@@ -2526,9 +2628,12 @@ function Beside({
   );
 }
 
-/** A record's facts as a framed two-column table: labels on the band, values on paper. */
+/**
+ * A record's facts as a framed two-column table: labels on the band, values on paper. Clipped to
+ * its soft corners; the last line drops its rule, which the frame draws.
+ */
 const DL =
-  "grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] border border-b-0 border-(--ui-hair) text-[14px]";
+  "grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] overflow-clip rounded-(--ui-radius-panel) border border-(--ui-hair) text-[14px] [&>:nth-last-child(-n+2)]:border-b-0";
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (

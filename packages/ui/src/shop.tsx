@@ -314,7 +314,7 @@ function Card({
         href={href}
         aria-current={open ? "true" : undefined}
         className={cn(
-          "flex h-full flex-col gap-2 rounded-(--ui-radius) p-4 no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-200 ease-(--ui-ease)",
+          "flex h-full flex-col gap-2 rounded-(--ui-radius-panel) p-4 no-underline shadow-(--ui-raise) transition-colors duration-200 ease-(--ui-ease)",
           open ? "bg-(--ui-fill)" : "bg-(--ui-paper) hover:bg-(--ui-wash)",
         )}
       >

@@ -45,7 +45,7 @@ export function AppCard({
   return (
     <li>
       <a
-        className="group/app flex h-full flex-col gap-2 rounded-(--ui-radius) bg-(--ui-paper) px-[22px] pt-5 pb-[22px] no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-350 ease-(--ui-ease) hover:bg-(--ui-wash)"
+        className="group/app flex h-full flex-col gap-2 rounded-(--ui-radius-panel) bg-(--ui-paper) px-[22px] pt-5 pb-[22px] no-underline shadow-(--ui-raise) transition-colors duration-350 ease-(--ui-ease) hover:bg-(--ui-wash)"
         href={href}
       >
         <span className="mb-2 flex items-center justify-between">

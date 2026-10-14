@@ -762,6 +762,7 @@ export function TemplatePage({
     example: props.demo ? page.example : undefined,
     columns: page.columns,
     sections: page.sections,
+    needs: page.needs ?? page.count,
     // Every record lists the notes that @ it, after its own sections.
     extras: (detail: unknown, row: Row, act: RecordAct) => {
       const own = extras ? extras(detail, { ...props, row, act }) : {};

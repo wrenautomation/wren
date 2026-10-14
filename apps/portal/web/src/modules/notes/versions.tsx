@@ -194,7 +194,7 @@ export function VersionOpen({
             maxLength={200}
             aria-label="Version name"
             placeholder="Sent to Ana"
-            className="h-8 w-64 rounded-none"
+            className="h-8 w-64"
             onChange={(e) => setName(e.target.value)}
           />
           <Button size="dense" type="submit">

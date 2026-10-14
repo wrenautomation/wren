@@ -117,7 +117,7 @@ function MenuList({ menu, label }: { menu: Menu | null; label: string }) {
     <div
       role="listbox"
       aria-label={label}
-      className="fixed z-50 max-h-[272px] w-64 overflow-y-auto border border-(--ui-hair) bg-(--ui-paper) py-1 shadow-lg"
+      className="fixed z-50 max-h-[272px] w-64 overflow-y-auto rounded-(--ui-radius-sheet) bg-(--ui-paper) p-1 shadow-(--ui-float)"
       style={{
         left: Math.max(8, Math.min(menu.rect.left, innerWidth - 264)),
         top: below ? menu.rect.bottom + 6 : undefined,
@@ -513,7 +513,7 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
         value={q}
         aria-label="Find"
         placeholder="Find"
-        className="h-8 w-44 rounded-none"
+        className="h-8 w-44"
         onChange={(e) => {
           setQ(e.target.value);
           setPos(find(editor, e.target.value));
@@ -553,7 +553,7 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
             value={by}
             aria-label="Replace with"
             placeholder="Replace with"
-            className="h-8 w-44 rounded-none"
+            className="h-8 w-44"
             onChange={(e) => setBy(e.target.value)}
           />
           <button
@@ -624,7 +624,7 @@ function LinkBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
         value={url}
         aria-label="Link"
         placeholder="Paste a link, or a note's address"
-        className="h-8 w-72 max-w-full rounded-none"
+        className="h-8 w-72 max-w-full"
         onChange={(e) => setUrl(e.target.value)}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       />

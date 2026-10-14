@@ -164,7 +164,7 @@ export function HintLayer() {
       ref={box}
       aria-hidden="true"
       style={{ left: 0, top: 0, visibility: "hidden" }}
-      className="pointer-events-none fixed z-[100] w-max max-w-[280px] animate-[ui-fade_0.12s_var(--ui-ease)_backwards] rounded-(--ui-radius) bg-(--ui-ink) px-2 py-1 text-[12px] leading-4 text-(--ui-paper) shadow-(--ui-shadow)"
+      className="pointer-events-none fixed z-[100] w-max max-w-[280px] animate-[ui-fade_0.12s_var(--ui-ease)_backwards] rounded-(--ui-radius) bg-(--ui-ink) px-2 py-1 text-[12px] leading-4 text-(--ui-paper) shadow-(--ui-float)"
     >
       {shown.text}
       {shown.keys ? (

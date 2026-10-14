@@ -193,7 +193,7 @@ export function ReadAloud({
           id={tip}
           role="status"
           className={cn(
-            "pointer-events-none absolute top-full right-0 z-50 mt-1.5 w-max max-w-[min(20rem,calc(100vw-16px))] rounded-(--ui-radius) bg-(--ui-ink) px-2.5 py-1.5 text-[12.5px]/snug text-(--ui-on-ink) shadow-(--ui-shadow)",
+            "pointer-events-none absolute top-full right-0 z-50 mt-1.5 w-max max-w-[min(20rem,calc(100vw-16px))] rounded-(--ui-radius) bg-(--ui-ink) px-2.5 py-1.5 text-[12.5px]/snug text-(--ui-on-ink) shadow-(--ui-float)",
             state.kind === "error" && "bg-(--ui-bad)",
           )}
         >

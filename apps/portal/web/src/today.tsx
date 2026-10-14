@@ -16,6 +16,7 @@ import {
   PinnedRow,
   Section,
   Tag,
+  Wing,
 } from "@wren/ui";
 import type { ReactNode } from "react";
 import { call } from "./api.js";
@@ -41,7 +42,7 @@ import { appTotal, type Waiting } from "./waiting.js";
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
 const COUNT =
-  "ml-auto min-w-6 bg-(--ui-warn-tint) px-1.5 text-center text-[13px]/6 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-6 rounded-full bg-(--ui-warn-tint) px-2 text-center text-[13px]/6 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
 const MUTED = "text-[13px] text-(--ui-ink-3)";
 
 const pathOf = (m: Module, page: string) => `/${m.id}/${page}`;
@@ -82,9 +83,13 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
     ),
   );
   return (
-    <Section title="Needs you">
+    <Section
+      title="Needs you"
+      cue={lines.length ? <Wing className="h-5 w-1.5" /> : null}
+      count={lines.length ? lines.reduce((t, l) => t + l.n, 0) : undefined}
+    >
       {lines.length ? (
-        <ul className="-my-4 list-none border-y border-(--ui-hair)">
+        <ul className="-my-2 list-none">
           {lines.map(({ m, p, n }) => (
             <Row key={`${m.id}/${p.id}`} href={pathOf(m, p.id)} icon={m.icon} count={n}>
               {p.label} <span className={MUTED}>· {m.name}</span>
@@ -214,7 +219,7 @@ function AskRow({ a }: { a: Ask }) {
       <a className={ROW} href={a.href}>
         <Icon name={a.icon} className="text-(--ui-ink-2)" />
         <span className="min-w-0 truncate">
-          {a.label}
+          <span className="font-medium">{a.label}</span>
           {names ? <span className={MUTED}> · {names}</span> : null}
         </span>
         <span className={COUNT}>{a.n}</span>
@@ -252,6 +257,12 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
       ) : null}
       <Section
         title="Waiting on you"
+        cue={none ? null : <Wing className="h-5 w-1.5" />}
+        count={
+          !work.data || !asks.data || none
+            ? undefined
+            : pieces.length + lines.reduce((t, a) => t + a.n, 0)
+        }
         actions={
           pieces.length > PIECES_SHOWN ? (
             <a className={cx("text-[13px] underline", MUTED)} href="/marketing/pieces?show=waiting">
@@ -273,7 +284,7 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
               <PieceCard key={p.id} piece={p} reload={work.retry} />
             ))}
             {lines.length ? (
-              <ul className="m-0 list-none border-y border-(--ui-hair) p-0">
+              <ul className="m-0 list-none p-0">
                 {lines.map((a) => (
                   <AskRow key={a.key} a={a} />
                 ))}

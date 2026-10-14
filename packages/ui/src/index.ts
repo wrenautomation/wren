@@ -163,6 +163,7 @@ export {
   SECTION_TITLE,
   Section,
   useAbout,
+  Wing,
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";
@@ -206,6 +207,7 @@ export {
 } from "./read-aloud.js";
 export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";
 export {
+  type Needs,
   Panel as RecordPanel,
   type Place,
   type RecordAct,
@@ -217,8 +219,10 @@ export {
   type RecordsApi,
   type RecordTemplateProps,
   type ShopSections,
+  TierLabel,
   useLoad,
   useTypes,
+  waitsOn,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
 export {

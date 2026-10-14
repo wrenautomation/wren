@@ -75,7 +75,7 @@ export function LearnBell({ client }: { client: string }) {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-[min(380px,calc(100vw-24px))] gap-0 rounded-none bg-(--ui-paper) p-0 text-(--ui-ink) shadow-lg ring-(--ui-hair)"
+        className="w-[min(380px,calc(100vw-24px))] gap-0 bg-(--ui-paper) p-0 text-(--ui-ink)"
       >
         <div className={FRAME_HEAD}>
           <span className={GROUP_LABEL}>Alerts</span>

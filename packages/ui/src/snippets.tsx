@@ -215,10 +215,7 @@ export function InsertSnippet({
       <PopoverTrigger className="inline-flex h-7 items-center border-0 bg-transparent px-1.5 text-[12.5px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)">
         Insert snippet
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-[min(22rem,calc(100vw-2rem))] gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
-      >
+      <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] gap-0 p-1.5">
         <input
           value={q}
           onChange={(e) => {

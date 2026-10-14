@@ -61,7 +61,15 @@ export const TOKENS = [
   "warn-tint",
   "scrim",
   "graph",
+  "radius-panel",
+  "radius-sheet",
+  "umbra",
+  "rim",
+  "raise",
+  "float",
   "shadow",
+  "ground",
+  "motif",
   "chart-1",
   "chart-2",
   "chart-3",
@@ -85,7 +93,13 @@ const KNOWN: ReadonlySet<string> = new Set(TOKENS);
 const DERIVED = TOKENS.slice(TOKENS.indexOf("tile"));
 
 /** Lengths the kit does math on: a bare 0 there breaks calc(), so it becomes 0px. */
-const LENGTHS: ReadonlySet<string> = new Set(["radius", "frame", "main-width"]);
+const LENGTHS: ReadonlySet<string> = new Set([
+  "radius",
+  "radius-panel",
+  "radius-sheet",
+  "frame",
+  "main-width",
+]);
 
 /**
  * The set tokens as tailwind.css ships them (its first `:root`), so a preview can start clean
@@ -115,7 +129,7 @@ export const BASE: Theme = {
   "button-case": "uppercase",
   "button-tracking": "0.08em",
   "button-weight": "600",
-  radius: "0px",
+  radius: "6px",
   frame: "10px",
   "main-width": "1240px",
   ease: "cubic-bezier(0.16, 1, 0.3, 1)",
@@ -351,7 +365,7 @@ export const SHOWCASE = {
 
 /** One line each, for the gallery. */
 export const LOOK_NOTES: Readonly<Record<PresetName | ShowcaseName, string>> = {
-  wren: "Square, warm paper, lavender.",
+  wren: "Soft corners, warm paper, lavender.",
   night: "Wren after dark.",
   soft: "Rounded and blue.",
   editorial: "A serif and a deep green.",

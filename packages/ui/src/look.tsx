@@ -475,7 +475,7 @@ function Preview({ vars }: { vars: Record<string, string> }) {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-10 opacity-(--ui-grain) mix-blend-overlay [background-image:var(--grain-noise)]"
       />
-      <div className="grid gap-4 rounded-(--ui-radius) bg-(--ui-paper) p-4 shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-lift)]">
+      <div className="grid gap-4 rounded-(--ui-radius-panel) bg-(--ui-paper) p-4 shadow-[var(--ui-raise),var(--ui-lift)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-heading text-[18px] font-(--ui-display-weight)">
             Your workspace
@@ -584,7 +584,7 @@ export function ThemeGallery({
           <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
             {list.map((name) => (
               <div key={name} className="grid content-start gap-2">
-                <div className="pointer-events-none overflow-hidden rounded-(--ui-radius) shadow-[0_0_0_1px_var(--ui-hair)] select-none">
+                <div className="pointer-events-none overflow-hidden rounded-(--ui-radius-panel) shadow-(--ui-raise) select-none">
                   <Preview vars={themeVars({ ...BASE, ...readTheme(name) })} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
