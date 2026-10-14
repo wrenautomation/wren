@@ -1597,6 +1597,22 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
 }
 
 /**
+ * A docked action bar floats over the record's foot, so the record ends its height above it:
+ * the last lines scroll clear of the buttons.
+ */
+function dockRoom(bar: HTMLDivElement | null) {
+  const article = bar?.closest("article");
+  if (!bar || !article) return;
+  const fit = () => article.style.setProperty("--dock-h", `${bar.offsetHeight}px`);
+  const seen = new ResizeObserver(fit);
+  seen.observe(bar);
+  return () => {
+    seen.disconnect();
+    article.style.removeProperty("--dock-h");
+  };
+}
+
+/**
  * A row's swipes on a phone, as Mail's: right for the first action that moves it on (Approve),
  * left for the ones that set it aside (Skip, Archive), the far one run by a full swipe. Actions
  * that make a record, or run inside its detail, don't swipe.
@@ -2186,7 +2202,7 @@ export function RecordBody({
   );
 
   return (
-    <article className="grid gap-5">
+    <article className="grid gap-5 max-[900px]:pb-(--dock-h,0px)">
       <header className="grid gap-3">
         <div className="flex items-start justify-between gap-3 max-sm:flex-col">
           <div className="min-w-0">
@@ -2204,6 +2220,7 @@ export function RecordBody({
           </div>
           {shown.length ? (
             <div
+              ref={docked ? dockRoom : undefined}
               className={cn(
                 "flex shrink-0 flex-wrap items-center gap-2",
                 // A phone: at the thumb. In a sheet it stays at the screen's foot down to half
