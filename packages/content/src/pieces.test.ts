@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type DraftRow, type PieceRows, piecesOf, titleOf, waitingOf } from "./pieces.js";
+import {
+  type DraftRow,
+  type PieceRows,
+  piecesOf,
+  titleOf,
+  type VideoRow,
+  waitingOf,
+} from "./pieces.js";
 
 const draft = (o: Partial<DraftRow> & Pick<DraftRow, "id" | "idea_id" | "platform">): DraftRow => ({
   format: "post",
@@ -14,6 +21,11 @@ const draft = (o: Partial<DraftRow> & Pick<DraftRow, "id" | "idea_id" | "platfor
   created_at: "2026-10-10T12:00:00Z",
   views: null,
   engaged: null,
+  ...o,
+});
+const video = (o: Partial<VideoRow> & Pick<VideoRow, "id" | "title" | "created_at">): VideoRow => ({
+  state: "added",
+  shorts: [],
   ...o,
 });
 const rows = (o: Partial<PieceRows>): PieceRows => ({
@@ -65,8 +77,8 @@ describe("piecesOf", () => {
     const out = piecesOf(
       rows({
         videos: [
-          { id: 4, title: "How I automate outreach", created_at: "2026-10-01T00:00:00Z" },
-          { id: 5, title: "Fresh recording", created_at: "2026-10-12T00:00:00Z" },
+          video({ id: 4, title: "How I automate outreach", created_at: "2026-10-01T00:00:00Z" }),
+          video({ id: 5, title: "Fresh recording", created_at: "2026-10-12T00:00:00Z" }),
         ],
         ideas: [
           { id: "long", text: "x", ref: "video:4", created_at: "2026-10-02T00:00:00Z" },
@@ -153,6 +165,50 @@ describe("piecesOf", () => {
       ["site", "live", "https://example.com/blog/how-to-animate"],
       ["email", "none", null],
     ]);
+  });
+
+  it("a rendered recording waits for review; proposed Shorts hang under it until they have an idea", () => {
+    const out = piecesOf(
+      rows({
+        videos: [
+          video({
+            id: 7,
+            title: "Rendered one",
+            state: "rendered",
+            shorts: [{ title: "First short" }, { title: "Second short" }],
+            created_at: "2026-10-12T00:00:00Z",
+          }),
+        ],
+        ideas: [
+          {
+            id: "s2",
+            text: "Second short",
+            ref: "video:7/short:2",
+            created_at: "2026-10-13T00:00:00Z",
+          },
+        ],
+        drafts: [draft({ id: "yt2", idea_id: "s2", platform: "youtube", format: "short" })],
+      }),
+    );
+    expect(out.map((p) => p.id)).toEqual(["video:7"]);
+    const [long] = out;
+    expect(long?.branches[0]).toMatchObject({ platform: "editor", state: "review" });
+    expect(waitingOf(long as never).map((b) => b.id)).toEqual(["video:7"]);
+    expect(long?.children.map((c) => [c.id, c.kind, c.title])).toEqual([
+      ["s2", "vertical", "Second short"],
+      ["video:7/short:1", "vertical", "First short"],
+    ]);
+    expect(long?.children[1]?.branches).toMatchObject([
+      { id: "video:7/short:1", platform: "editor", format: "short", state: "editing" },
+    ]);
+  });
+
+  it("an added or edited recording is still editing, and waits on no one", () => {
+    const [p] = piecesOf(
+      rows({ videos: [video({ id: 8, title: "Raw", state: "edited", created_at: "2026-10-12" })] }),
+    );
+    expect(p?.branches[0]?.state).toBe("editing");
+    expect(waitingOf(p as never)).toEqual([]);
   });
 
   it("titles are a first line of 90 at most", () => {

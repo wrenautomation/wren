@@ -8,6 +8,7 @@ import type { Branch, Piece, PieceKind } from "@wren/content/pieces";
 import { PLATFORM_SPECS } from "@wren/content/write";
 import {
   Button,
+  ButtonLink,
   clipProps,
   cx,
   dateTip,
@@ -86,8 +87,9 @@ export function branchName(b: Pick<Branch, "platform" | "format">): string {
 }
 const markOf = (platform: string) => PLACES[platform]?.mark ?? platform;
 
-export const waitingOf = (p: Pick<Piece, "branches">) =>
-  p.branches.filter((b) => b.state === "draft" || b.state === "failed");
+/** A draft, a failed send or a rendered recording waiting on him (`@wren/content/pieces`). */
+const waits = (b: Branch) => b.state === "draft" || b.state === "failed" || b.state === "review";
+export const waitingOf = (p: Pick<Piece, "branches">) => p.branches.filter(waits);
 /** A piece's waiting branches and its children's. */
 export const allWaiting = (p: Piece): Branch[] => [
   ...waitingOf(p),
@@ -112,6 +114,8 @@ export function stateOf(b: Branch, now = new Date()): { label: string; tone: Tag
       return { label: "Live", tone: "green" };
     case "editing":
       return { label: "In the editor", tone: "neutral" };
+    case "review":
+      return { label: "Ready to review", tone: "accent" };
     default:
       return { label: "Not yet", tone: "neutral" };
   }
@@ -128,9 +132,9 @@ function didOf(b: Branch): string | null {
   return [parts.join(", "), when].filter(Boolean).join(" · ");
 }
 
-/** Where a branch opens in the portal: its draft, or the recording in Videos. */
+/** Where a branch opens in the portal: its draft, or the recording in Studio. */
 function hrefOf(b: Branch): string | null {
-  if (b.platform === "editor") return `/marketing/videos/${b.id.slice("video:".length)}`;
+  if (b.platform === "editor") return `/marketing/videos/${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
   if (b.id.startsWith("blog:")) return "/marketing/write?blog=1";
   return `/marketing/drafts/${b.id}`;
 }
@@ -221,8 +225,12 @@ export function PieceCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(!nested && piece.children.length <= 3);
-  // Drafts only: a failed one needs a look first, not a blind yes.
-  const ready = piece.branches.filter((b) => b.state === "draft").map((b) => b.id);
+  // Drafts only: a failed one needs a look first, not a blind yes; a rendered cut needs one look
+  // in Studio, so it gets a Review link instead.
+  const ready = piece.branches
+    .filter((b) => b.state === "draft" && b.platform !== "editor")
+    .map((b) => b.id);
+  const review = piece.branches.find((b) => b.state === "review" && b.platform === "editor");
   const live = piece.branches.filter((b) => b.state === "live").length;
   return (
     <article
@@ -250,6 +258,11 @@ export function PieceCard({
             </p>
           ) : null}
         </div>
+        {review ? (
+          <ButtonLink size="dense" tone="primary" href={hrefOf(review) ?? undefined}>
+            Review
+          </ButtonLink>
+        ) : null}
         {ready.length ? (
           <Button
             size="dense"
@@ -325,11 +338,7 @@ const branchesIn = (p: Piece): Branch[] => [...p.branches, ...p.children.flatMap
 const shows = (p: Piece, s: Show): boolean =>
   s === "all" ||
   branchesIn(p).some((b) =>
-    s === "waiting"
-      ? b.state === "draft" || b.state === "failed"
-      : s === "queued"
-        ? b.state === "queued"
-        : b.state === "live",
+    s === "waiting" ? waits(b) : s === "queued" ? b.state === "queued" : b.state === "live",
   );
 const onPlatform = (p: Piece, place: string): boolean =>
   branchesIn(p).some((b) => b.platform === place);

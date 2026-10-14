@@ -15,8 +15,9 @@ export type PieceKind = (typeof PIECE_KINDS)[number];
 
 /**
  * A branch's state: `draft` and `failed` wait on him, `queued` is approved for a time, `live` went
- * out. `editing` is a recording still in the editor; `none` is a branch not made yet (a blog
- * post's email before it's sent).
+ * out. `editing` is a recording (or a proposed Short) still in the editor, `review` one rendered
+ * and waiting on his look in Studio; `none` is a branch not made yet (a blog post's email before
+ * it's sent).
  */
 export type BranchState =
   | "draft"
@@ -25,10 +26,12 @@ export type BranchState =
   | "publishing"
   | "live"
   | "editing"
+  | "review"
   | "none";
 
 export interface Branch {
-  /** The draft's id; a blog's `blog:<slug>/site`; a recording's `video:<id>`. */
+  /** The draft's id; a blog's `blog:<slug>/site`; a recording's `video:<id>` (a proposed Short's
+   * `video:<id>/short:<n>`). */
   id: string;
   /** A platform, or `site`, `email`, `editor`. */
   platform: string;
@@ -84,6 +87,10 @@ export interface IdeaRow {
 export interface VideoRow {
   id: number;
   title: string;
+  /** `video_edits.state`; rejected rows never reach here. */
+  state: string;
+  /** The Shorts the editor proposed, in order: `short:<n>` is `shorts[n-1]`. */
+  shorts: readonly { title: string }[];
   created_at: string | Date;
 }
 export interface PieceRows {
@@ -185,8 +192,36 @@ export function piecesOf(rows: PieceRows): Piece[] {
     if (up && up !== idea.id) parent.set(idea.id, up);
   }
 
-  // A recording with no idea yet is a long video still in the editor.
+  // A recording with no idea yet is a long video still in the editor: rendered, it waits on
+  // his look in Studio.
+  const editorOf = (id: string, format: string, state: BranchState): Branch => ({
+    id,
+    platform: "editor",
+    format,
+    state,
+    at: null,
+    url: null,
+    views: null,
+    engaged: null,
+    error: null,
+  });
+  const clipRefs = new Set(rows.ideas.map((i) => i.ref ?? "").filter((r) => CLIP_REF.test(r)));
   for (const v of rows.videos) {
+    const at = iso(v.created_at) ?? "";
+    // A proposed Short with no idea yet is a clip still in the editor, under its long video.
+    v.shorts.forEach((s, n) => {
+      const id = `video:${v.id}/short:${n + 1}`;
+      if (clipRefs.has(id)) return;
+      pieces.set(id, {
+        id,
+        kind: "vertical",
+        title: titleOf(s.title) || `Short ${n + 1}`,
+        text: "",
+        at,
+        branches: [editorOf(id, "short", "editing")],
+        children: [],
+      });
+    });
     if (longOfVideo.has(v.id)) {
       const p = pieces.get(longOfVideo.get(v.id) as string);
       if (p && v.title) p.title = titleOf(v.title);
@@ -198,24 +233,18 @@ export function piecesOf(rows: PieceRows): Piece[] {
       kind: "long",
       title: titleOf(v.title) || `Recording ${v.id}`,
       text: "",
-      at: iso(v.created_at) ?? "",
-      branches: [
-        {
-          id,
-          platform: "editor",
-          format: "long",
-          state: "editing",
-          at: null,
-          url: null,
-          views: null,
-          engaged: null,
-          error: null,
-        },
-      ],
+      at,
+      branches: [editorOf(id, "long", v.state === "rendered" ? "review" : "editing")],
       children: [],
     });
     longOfVideo.set(v.id, id);
   }
+  for (const v of rows.videos)
+    v.shorts.forEach((_, n) => {
+      const id = `video:${v.id}/short:${n + 1}`;
+      const up = longOfVideo.get(v.id);
+      if (up && pieces.has(id)) parent.set(id, up);
+    });
   for (const idea of rows.ideas) {
     const clip = CLIP_REF.exec(idea.ref ?? "");
     const up = clip ? longOfVideo.get(Number(clip[1])) : undefined;
@@ -268,11 +297,14 @@ export function piecesOf(rows: PieceRows): Piece[] {
   return [...pieces.values()].sort(newest);
 }
 
-/** The branches waiting on his yes: a piece's own, not its children's. */
+/**
+ * The branches waiting on him: a piece's own, not its children's. A rendered recording (`review`)
+ * counts, though Approve all leaves it out: a cut needs one look.
+ */
 export const waitingOf = (p: Pick<Piece, "branches">) =>
-  p.branches.filter((b) => b.state === "draft" || b.state === "failed");
+  p.branches.filter((b) => b.state === "draft" || b.state === "failed" || b.state === "review");
 
-/** The last `days` days of pieces, rejected drafts left out. */
+/** The last `days` days of pieces, rejected drafts and recordings left out. */
 export async function pieceRows(db: Queryable, site: string, days = 120): Promise<PieceRows> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const drafts = await rowsOf<DraftRow>(
@@ -298,7 +330,12 @@ export async function pieceRows(db: Queryable, site: string, days = 120): Promis
   );
   const videos = await rowsOf<VideoRow>(
     db,
-    sql`select id, title, created_at from video_edits where created_at >= ${since}::timestamptz`,
+    sql`select id, title, state,
+        coalesce((select jsonb_agg(jsonb_build_object('title', s->>'title') order by n)
+          from jsonb_array_elements(shorts) with ordinality as x(s, n)), '[]'::jsonb) shorts,
+        created_at
+      from video_edits
+      where created_at >= ${since}::timestamptz and state <> 'rejected'`,
   );
   const blogs = await blogRows(db, 100);
   return { drafts, ideas, videos, blogs, site };

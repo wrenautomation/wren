@@ -75,7 +75,7 @@ const WHAT_ABOUT: Record<PieceWhat, string> = {
 };
 const SHOW_ABOUT: Record<PieceShow, string> = {
   all: "In any state",
-  waiting: "A draft or a failed send waiting on you",
+  waiting: "A draft, a failed send or a cut to review, waiting on you",
   queued: "Approved and set for a time",
   live: "Out on at least one platform",
 };
