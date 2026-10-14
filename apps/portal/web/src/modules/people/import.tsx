@@ -29,7 +29,12 @@ interface Picked {
 }
 
 const said = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
-const CELL = "py-1.5 pr-3 align-top";
+/**
+ * A table cell; on a phone each row is a stack, a cell a line led by its column's name, so the
+ * Result never sits past the edge. An empty cell leaves its line out.
+ */
+const CELL =
+  "py-1.5 pr-3 align-top max-sm:block max-sm:py-0.5 max-sm:pr-0 max-sm:empty:hidden max-sm:before:mr-2 max-sm:before:text-(--ui-ink-3) max-sm:before:content-[attr(data-label)]";
 
 /** The field's column, chosen from the file's own. "" is unused. */
 function ColumnPick({
@@ -65,8 +70,8 @@ function ColumnPick({
 function Sample({ p }: { p: ImportPreview }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-[13.5px]">
-        <thead className={QUIET}>
+      <table className="w-full text-left text-[13.5px] sm:min-w-[520px] max-sm:block">
+        <thead className={`${QUIET} max-sm:sr-only`}>
           <tr className="border-b border-(--ui-hair)">
             {["Row", "Name", "Company", "Email", "Job title", "Result"].map((h) => (
               <th key={h} className="py-1.5 pr-3 font-normal">
@@ -75,15 +80,25 @@ function Sample({ p }: { p: ImportPreview }) {
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-sm:block">
           {p.sample.map((r) => (
-            <tr key={r.row} className="border-b border-(--ui-hair)">
-              <td className={`${CELL} tabular-nums ${QUIET}`}>{r.row}</td>
-              <td className={CELL}>{r.name ?? ""}</td>
-              <td className={CELL}>{r.company ?? ""}</td>
-              <td className={`${CELL} break-all`}>{r.email ?? ""}</td>
-              <td className={CELL}>{r.title ?? ""}</td>
-              <td className={`${CELL} ${r.skip ? "text-(--ui-bad)" : QUIET}`}>
+            <tr key={r.row} className="border-b border-(--ui-hair) max-sm:block max-sm:py-2">
+              <td data-label="Row" className={`${CELL} tabular-nums ${QUIET}`}>
+                {r.row}
+              </td>
+              <td data-label="Name" className={CELL}>
+                {r.name ?? ""}
+              </td>
+              <td data-label="Company" className={CELL}>
+                {r.company ?? ""}
+              </td>
+              <td data-label="Email" className={`${CELL} break-all`}>
+                {r.email ?? ""}
+              </td>
+              <td data-label="Job title" className={CELL}>
+                {r.title ?? ""}
+              </td>
+              <td data-label="Result" className={`${CELL} ${r.skip ? "text-(--ui-bad)" : QUIET}`}>
                 {r.skip ? `Left out: ${r.skip}` : (r.note ?? "Loads")}
               </td>
             </tr>
