@@ -21,6 +21,23 @@ const sonnerStyles: Plugin = {
 };
 
 /**
+ * The database client never reaches the browser: postgres.js needs Node's Buffer, and the app dies
+ * on load (a blank page). A web import of a core file that takes a value from the `@wren/db` root
+ * pulls it in; import from a db-free subpath (`@wren/db/isolation`) or split the file.
+ */
+const serverOnly: Plugin = {
+  name: "server-only",
+  apply: "build",
+  transform(_, id) {
+    if (
+      /\/node_modules\/(\.pnpm\/postgres@[^/]+\/node_modules\/)?postgres\//.test(id) ||
+      /\/packages\/db\/src\/index\.ts$/.test(id)
+    )
+      this.error(`${id} is server-only, yet the portal web imports it`);
+  },
+};
+
+/**
  * onnxruntime's 26.9 MB wasm is over a Workers asset's 25 MiB, so the model's worker build drops
  * it and the app build ships it gzipped (6.6 MB) at /ort/<version>/ from our own origin. The
  * speech model's worker unzips it (src/dictation/model.worker.ts). Dev serves the same path.
@@ -70,7 +87,7 @@ const ownOrtWasm: Plugin = {
 // `book.html` a client's public booking page (`src/book.ts`).
 export default defineConfig({
   root: import.meta.dirname,
-  plugins: [react(), tailwindcss(), sonnerStyles, ownOrtWasm],
+  plugins: [react(), tailwindcss(), sonnerStyles, ownOrtWasm, serverOnly],
   // Dictation's speech model runs in a module worker (src/dictation/model.worker.ts).
   worker: { format: "es", plugins: () => [noOrtWasm] },
   build: {
