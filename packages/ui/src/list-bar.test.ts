@@ -1,7 +1,7 @@
-/** Quick filters: the ones always on a list's bar. */
+/** Quick filters (offered first by Filter) and which views show as tabs. */
 import { defineRecord, metaOf, name, number, status } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { quickFilters } from "./list-bar.js";
+import { quickFilters, splitViews } from "./list-bar.js";
 
 const two = {
   a: { label: "A", tone: "neutral" as const },
@@ -51,5 +51,28 @@ describe("quickFilters", () => {
       "extra",
       "count",
     ]);
+  });
+});
+
+describe("splitViews", () => {
+  const ids = ["all", "a", "b", "c", "d", "e", "f"];
+  it("before counts: the first five by declared order", () => {
+    expect(splitViews(ids, undefined)).toEqual({
+      tabs: ["all", "a", "b", "c", "d"],
+      more: ["e", "f"],
+    });
+  });
+  it("an empty view waits under More, the default never does", () => {
+    const counts = { all: 0, a: 3, b: 0, c: 1, d: 2, e: 5, f: 1 };
+    expect(splitViews(ids, counts)).toEqual({
+      tabs: ["all", "a", "c", "d", "e"],
+      more: ["b", "f"],
+    });
+  });
+  it("saved views follow the built-in ones", () => {
+    expect(splitViews(["all", "a"], { all: 1, a: 1 }, ["sv:1", "sv:2", "sv:3", "sv:4"])).toEqual({
+      tabs: ["all", "a", "sv:1", "sv:2", "sv:3"],
+      more: ["sv:4"],
+    });
   });
 });

@@ -1,8 +1,10 @@
 /**
  * What sits over a list (designs/2026-10-06-library-and-views.md): its views as tabs, the ones
  * the viewer saved after the built-in ones; search; Filter, as a popover or at phone width one
- * sheet; up to three quick filters always on the bar (`quickFilters`); a pill per filter in plain words ("Campaign is SEC RIA"); and Save view. A list opens on the viewer's last-used
- * view, and the columns he picks stay picked (`list:<record>` in his prefs).
+ * sheet, its likely fields first (`quickFilters`); a pill per filter once set, in plain words
+ * ("Campaign is SEC RIA"); Save view; and the list's Display at the end. Five views show as tabs,
+ * the rest under More. A list opens on the viewer's last-used view, and the columns he picks
+ * stay picked (`list:<record>` in his prefs).
  */
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { SavedViewLine } from "@wren/core/saved-views";
@@ -15,7 +17,6 @@ import {
   ChevronLeft,
   CircleDot,
   Hash,
-  Layers,
   ListFilter,
   MoreHorizontal,
   Search,
@@ -84,14 +85,14 @@ export function useNarrow() {
 export const filtersOf = (meta: RecordMeta): FieldMeta[] =>
   meta.fields.filter((f) => filterShape(f) && f.key !== "id");
 
-/** How many filters sit on the bar unasked. */
+/** How many fields Filter offers first. */
 const QUICK = 3;
 /** A pick list this short reads at a glance; a longer one is Filter's to search. */
 const QUICK_STATES = 12;
 
 /**
- * The filters always on the bar, one click to a choice: the record's `quick`, else the field
- * holding its platform (Site) first, then its short pick lists in order, three at most.
+ * The fields Filter offers first: the record's `quick`, else the field holding its platform
+ * (Site) first, then its short pick lists in order, three at most. None sits on the bar until set.
  */
 export function quickFilters(meta: RecordMeta): FieldMeta[] {
   const filters = filtersOf(meta);
@@ -239,9 +240,89 @@ const tabTone = (on: boolean) =>
     ? "border-(--ui-ink) text-(--ui-ink)"
     : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)";
 
+/** How many views show as tabs; the rest wait under More. */
+export const TABS = 5;
+
 /**
- * A list's views as tabs, with how many rows each holds under the current filters; then the
- * viewer's saved ones, the open one with its menu.
+ * Which views show as tabs: the default, then the next by declared order (built-in, then
+ * saved), five at most. A built-in view with no rows waits under More unless it is the
+ * default. While counts are unknown, declared order alone.
+ */
+export function splitViews<T extends string>(
+  ids: readonly T[],
+  counts: Record<string, number> | undefined,
+  saved: readonly T[] = [],
+  max = TABS,
+): { tabs: T[]; more: T[] } {
+  const tabs: T[] = [];
+  const more: T[] = [];
+  ids.forEach((id, i) => {
+    const empty = !!counts && i > 0 && !counts[id];
+    (tabs.length < max && !empty ? tabs : more).push(id);
+  });
+  for (const id of saved) (tabs.length < max ? tabs : more).push(id);
+  return { tabs, more };
+}
+
+/** A view under More: its link, its count, whether it's open. */
+interface MoreView {
+  id: string;
+  label: string;
+  href: string;
+  count?: number | undefined;
+  on: boolean;
+}
+
+/** The views past the tabs, behind one button that names the open one when it's among them. */
+function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
+  const [open, setOpen] = useState(false);
+  if (!views.length) return null;
+  const on = views.find((v) => v.on);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(
+          phone
+            ? "flex min-h-10 shrink-0 items-center gap-1 border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
+            : cn(TAB, "border-0 border-b-2 bg-transparent px-0", tabTone(!!on)),
+          on && "text-(--ui-ink)",
+        )}
+      >
+        {on ? on.label : "More"}
+        {on && on.count !== undefined ? (
+          <span className="text-(--ui-ink-2)">{num(on.count)}</span>
+        ) : null}
+        <ChevronDown className="size-3.5" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className={cn(POP, "w-60 p-1")}>
+        <nav aria-label="More views" className="grid">
+          {views.map((v) => (
+            <a
+              key={v.id}
+              href={v.href}
+              aria-current={v.on ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={cn(
+                ITEM,
+                "justify-between no-underline aria-[current=page]:font-semibold",
+                phone && "h-11 text-[15px]",
+              )}
+            >
+              <span className="min-w-0 truncate">{v.label}</span>
+              {v.count !== undefined ? (
+                <span className="text-(--ui-ink-2) tabular-nums">{num(v.count)}</span>
+              ) : null}
+            </a>
+          ))}
+        </nav>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
+ * A list's views as tabs, with how many rows each holds under the current filters, then the
+ * viewer's saved ones, the open one with its menu: five at most, the rest under More.
  */
 export function ViewTabs({
   meta,
@@ -262,74 +343,84 @@ export function ViewTabs({
   const lines = saved?.lines ?? [];
   const narrow = useNarrow();
   if (!meta.views.length && !lines.length) return null;
-  if (narrow) {
-    // A phone: iOS's segmented control, the saved views in it too. The open saved view's menu
-    // sits beside it.
-    const open = lines.findIndex((v) => String(v.id) === sv);
-    const line = lines[open];
+  const all: (MoreView & { saved?: SavedViewLine; at?: number })[] = [
+    ...meta.views.map((v, i) => ({
+      id: v.id,
+      label: v.label,
+      href: place.link({ view: i === 0 ? null : v.id, after: null, sort: null, sv: null }),
+      count: counts ? (counts[v.id] ?? 0) : undefined,
+      on: v.id === current && !sv,
+    })),
+    ...lines.map((v, at) => ({
+      id: `sv:${v.id}`,
+      label: v.name,
+      href: savedLink(meta, place, v),
+      on: String(v.id) === sv,
+      saved: v,
+      at,
+    })),
+  ];
+  const split = splitViews(
+    meta.views.map((v) => v.id),
+    counts,
+    lines.map((v) => `sv:${v.id}`),
+  );
+  const byId = new Map(all.map((v) => [v.id, v]));
+  const tabs = split.tabs.flatMap((id) => byId.get(id) ?? []);
+  const more = split.more.flatMap((id) => byId.get(id) ?? []);
+  const open = all.find((v) => v.on && v.saved);
+  const menu =
+    open?.saved && keep && saved ? (
+      <SavedMenu
+        view={open.saved}
+        at={open.at ?? 0}
+        meta={meta}
+        place={place}
+        keep={keep}
+        saved={saved}
+      />
+    ) : null;
+  if (narrow)
+    // A phone: iOS's segmented control, the saved views in it too; More and the open saved
+    // view's menu beside it.
     return (
       <div className="flex min-w-0 items-center gap-2">
-        <Segmented
-          label="Views"
-          className="flex-1"
-          items={[
-            ...meta.views.map((v, i) => ({
-              id: v.id,
-              label: v.label,
-              href: place.link({ view: i === 0 ? null : v.id, after: null, sort: null, sv: null }),
-              count: counts ? (counts[v.id] ?? 0) : undefined,
-              on: v.id === current && !sv,
-            })),
-            ...lines.map((v) => ({
-              id: `sv:${v.id}`,
-              label: v.name,
-              href: savedLink(meta, place, v),
-              on: String(v.id) === sv,
-            })),
-          ]}
-        />
-        {line && keep && saved ? (
-          <SavedMenu view={line} at={open} meta={meta} place={place} keep={keep} saved={saved} />
-        ) : null}
+        <Segmented label="Views" className="min-w-0 flex-1" items={tabs} />
+        <MoreViews views={more} phone />
+        {menu}
       </div>
     );
-  }
   return (
     <nav className="flex gap-6 overflow-x-auto border-b border-(--ui-hair)" aria-label="Views">
-      {meta.views.map((v, i) => {
-        const on = v.id === current && !sv;
-        return (
-          <a
-            key={v.id}
-            href={place.link({ view: i === 0 ? null : v.id, after: null, sort: null, sv: null })}
-            aria-current={on ? "page" : undefined}
-            className={cn(TAB, tabTone(on))}
-          >
-            {v.label}
-            <span className="text-(--ui-ink-2)">{counts ? num(counts[v.id] ?? 0) : ""}</span>
-          </a>
-        );
-      })}
-      {lines.map((v, i) => {
-        const on = String(v.id) === sv;
-        return (
-          <span key={v.id} className={cn(TAB, "gap-1", tabTone(on))}>
+      {tabs.map((v) =>
+        v.saved ? (
+          <span key={v.id} className={cn(TAB, "gap-1", tabTone(v.on))}>
             <a
-              href={savedLink(meta, place, v)}
-              aria-current={on ? "page" : undefined}
+              href={v.href}
+              aria-current={v.on ? "page" : undefined}
               className="text-inherit no-underline"
             >
-              {v.name}
+              {v.label}
             </a>
-            {v.shared ? (
+            {v.saved.shared ? (
               <span className="text-[11px] font-normal text-(--ui-ink-3)">Team</span>
             ) : null}
-            {on && keep && saved ? (
-              <SavedMenu view={v} at={i} meta={meta} place={place} keep={keep} saved={saved} />
-            ) : null}
+            {v.on ? menu : null}
           </span>
-        );
-      })}
+        ) : (
+          <a
+            key={v.id}
+            href={v.href}
+            aria-current={v.on ? "page" : undefined}
+            className={cn(TAB, tabTone(v.on))}
+          >
+            {v.label}
+            <span className="text-(--ui-ink-2)">{v.count !== undefined ? num(v.count) : ""}</span>
+          </a>
+        ),
+      )}
+      <MoreViews views={more} />
+      {open && more.includes(open) ? menu : null}
     </nav>
   );
 }
@@ -611,6 +702,7 @@ function FilterPanel({
   shown,
   place,
   many,
+  first,
   start,
   facets,
   close,
@@ -618,6 +710,8 @@ function FilterPanel({
 }: {
   filters: FieldMeta[];
   shown: Set<string>;
+  /** Offered at the top of their group: `quickFilters`. */
+  first?: Set<string> | undefined;
   place: Place;
   /** The list's plural, when it searches. */
   many: string | null;
@@ -646,7 +740,10 @@ function FilterPanel({
   }, [field, facets]);
 
   const t = text.trim().toLowerCase();
-  const match = filters.filter((f) => f.label.toLowerCase().includes(t));
+  const lead = (f: FieldMeta) => (first?.has(f.key) ? 0 : 1);
+  const match = filters
+    .filter((f) => f.label.toLowerCase().includes(t))
+    .sort((a, b) => lead(a) - lead(b));
   const groups: [string, FieldMeta[]][] = [
     ["On screen", match.filter((f) => shown.has(f.key))],
     ["Hidden", match.filter((f) => !shown.has(f.key))],
@@ -855,40 +952,6 @@ function FilterPill({
   );
 }
 
-/** A quick filter not yet set: its name and a caret; a click opens its choices. */
-function QuickPill({
-  field,
-  onOpen,
-  panel,
-}: {
-  field: FieldMeta;
-  onOpen?: (() => void) | undefined;
-  panel: (close: () => void) => ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const face = (
-    <>
-      {field.label}
-      <ChevronDown className="size-3.5" />
-    </>
-  );
-  const cls = cn(CHIP, "border-dashed");
-  if (onOpen)
-    return (
-      <button type="button" className={cls} onClick={onOpen}>
-        {face}
-      </button>
-    );
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className={cls}>{face}</PopoverTrigger>
-      <PopoverContent align="start" className={POP}>
-        {panel(() => setOpen(false))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 /** "Filter", with how many are on. */
 function FilterFace({ on }: { on: number }) {
   return (
@@ -913,6 +976,7 @@ export function ListBar({
   saved,
   end,
   facets,
+  display,
 }: {
   meta: RecordMeta;
   place: Place;
@@ -923,6 +987,8 @@ export function ListBar({
   end?: ReactNode;
   /** Rows per state under the other filters, read when a choice opens. */
   facets?: (() => Promise<Facets | undefined>) | undefined;
+  /** How the list shows (columns, grouping, rows), last on the bar. */
+  display?: ReactNode;
 }) {
   const { params } = place;
   const narrow = useNarrow();
@@ -930,7 +996,7 @@ export function ListBar({
   const searchable = meta.fields.some((f) => f.searchable);
   const many = meta.name.many;
   const on = filters.filter((f) => params.get(f.key));
-  const quick = quickFilters(meta).filter((f) => !params.get(f.key));
+  const first = useMemo(() => new Set(quickFilters(meta).map((f) => f.key)), [meta]);
   const narrowed = !!params.get("q") || on.length > 0;
   const [picker, setPicker] = useState(false);
   const [sheet, setSheet] = useState<{ open: boolean; start: FieldMeta | null; n: number }>({
@@ -963,6 +1029,7 @@ export function ListBar({
       shown={shown}
       place={place}
       many={searchable ? many : null}
+      first={first}
       start={start}
       facets={counts}
       close={close}
@@ -996,14 +1063,6 @@ export function ListBar({
       panel={(close) => panel(f, close)}
     />
   ));
-  const quicks = quick.map((f) => (
-    <QuickPill
-      key={f.key}
-      field={f}
-      onOpen={narrow ? () => openSheet(f) : undefined}
-      panel={(close) => panel(f, close)}
-    />
-  ));
   const clear = narrowed ? (
     <a
       href={place.link({
@@ -1018,21 +1077,13 @@ export function ListBar({
   ) : null;
   const save =
     keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null;
-  // One platform's rows together, under its mark: the list stays sorted inside each.
-  const site = siteField(meta);
-  const grouping = !!site && params.get("group") === site.key;
-  const group = site ? (
-    <button
-      type="button"
-      aria-pressed={grouping}
-      className={cn(CHIP, grouping && "border-(--ui-edge) bg-(--ui-fill) text-(--ui-ink)")}
-      onClick={() => place.go(place.link({ group: grouping ? null : site.key, after: null }), true)}
-    >
-      <Layers className="size-3.5" />
-      Group by {site.label.toLowerCase()}
-    </button>
-  ) : null;
-  const tail = end ? <span className="ml-auto text-[13px] text-(--ui-ink-2)">{end}</span> : null;
+  const tail =
+    end || display ? (
+      <span className="ml-auto flex items-center gap-3 text-[13px] text-(--ui-ink-2)">
+        {end}
+        {display}
+      </span>
+    ) : null;
   const search = searchable ? <SearchBox place={place} label={many} /> : null;
 
   if (!narrow)
@@ -1041,9 +1092,7 @@ export function ListBar({
         {search}
         {filter}
         {pills}
-        {quicks}
         {clear}
-        {group}
         {save}
         {tail}
       </div>
@@ -1053,17 +1102,11 @@ export function ListBar({
       {search}
       <div className="flex flex-wrap items-center gap-2">
         {filter}
-        {group}
         {save}
         {clear}
         {tail}
       </div>
-      {pills.length || quicks.length ? (
-        <div className="flex flex-wrap gap-2">
-          {pills}
-          {quicks}
-        </div>
-      ) : null}
+      {pills.length ? <div className="flex flex-wrap gap-2">{pills}</div> : null}
       <Sheet open={sheet.open} onOpenChange={(o) => (o ? null : shut())}>
         <SheetContent
           // A phone opens it to tap, not type: no keyboard springs up.
