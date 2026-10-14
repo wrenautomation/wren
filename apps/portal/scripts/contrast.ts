@@ -89,10 +89,12 @@ async function scan(p: Page, look: string, page: string): Promise<Miss[]> {
   await settle(p, u.toString());
   if (!viaUrl)
     // Whole (BASE under the look), and !important: the page's own look lands late on slow pages.
+    // No transitions: axe would read colors halfway from the old look to this one.
     await p.addStyleTag({
       content: `:root { ${Object.entries(themeVars({ ...BASE, ...LOOKS[look] }))
         .map(([k, v]) => `${k}: ${v} !important;`)
-        .join(" ")} }`,
+        .join(" ")} }
+        *, ::before, ::after { transition: none !important; }`,
     });
   if (!(await p.evaluate(() => "axe" in window))) await p.addScriptTag({ path: AXE });
   const found = await p.evaluate(async () => {
