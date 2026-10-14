@@ -23,4 +23,4 @@ jobs:
       - run: ./scripts/gates.sh integration
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
-          WREN_TEST_PG_IMAGE: public.ecr.aws/docker/library/postgres:17
+          WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
