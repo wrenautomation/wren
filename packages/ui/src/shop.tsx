@@ -7,7 +7,7 @@
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import { cn } from "cn";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "./controls.js";
 import { LoadFailed } from "./feedback.js";
 import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
@@ -52,6 +52,7 @@ function Shop({
   acts,
   title,
   sections,
+  art,
 }: RecordTemplateProps & { meta: RecordMeta; types: RecordMeta[] }) {
   const { params } = place;
   // ponytail: one page of 200; a cursor when a catalog outgrows it.
@@ -162,6 +163,7 @@ function Shop({
                       chips={chips.filter((f) => f.key !== sections?.field)}
                       open={String(r.id) === openId}
                       href={place.link({ [one]: String(r.id), tab: null })}
+                      art={art?.(r)}
                     />
                   ))}
                 </ul>
@@ -289,19 +291,24 @@ function Facet({
   );
 }
 
-/** One record as a card: its icon (an `icon` field), title, subtitle, and the page's chips. */
+/**
+ * One record as a card: its art across the top when the page draws one, else its icon (an `icon`
+ * field), then title, subtitle, and the page's chips.
+ */
 function Card({
   meta,
   row,
   chips,
   open,
   href,
+  art,
 }: {
   meta: RecordMeta;
   row: Row;
   chips: FieldMeta[];
   open: boolean;
   href: string;
+  art?: ReactNode;
 }) {
   const icon = textOf(row.icon);
   // A text column reads as one quiet line under the name ("In place of Calendly"); the rest
@@ -314,12 +321,13 @@ function Card({
         href={href}
         aria-current={open ? "true" : undefined}
         className={cn(
-          "flex h-full flex-col gap-2 rounded-(--ui-radius-panel) p-4 no-underline shadow-(--ui-raise) transition-colors duration-200 ease-(--ui-ease)",
+          "group flex h-full flex-col gap-2 overflow-hidden rounded-(--ui-radius-panel) p-4 no-underline shadow-(--ui-raise) transition-colors duration-200 ease-(--ui-ease)",
           open ? "bg-(--ui-fill)" : "bg-(--ui-paper) hover:bg-(--ui-wash)",
         )}
       >
+        {art ? <span className="-mx-4 -mt-4 mb-1 block">{art}</span> : null}
         <span className="flex items-center gap-3">
-          {icon ? (
+          {icon && !art ? (
             <span
               aria-hidden
               className="grid size-8 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)"

@@ -5,7 +5,9 @@
  * a sample firm could install says nothing about it. The Map draws what builds on
  * what. Browser mods list autobrowse's on npm.
  */
+import { createElement } from "react";
 import type { Module } from "../../module.js";
+import { PartArt } from "./art.js";
 import { catalogExtras } from "./Catalog.js";
 import { ComponentMap } from "./Map.js";
 import { Mods } from "./Mods.js";
@@ -36,6 +38,7 @@ export const marketplace: Module = {
           workflow: "How parts connect. Each installs part by part.",
         },
       },
+      art: (row) => createElement(PartArt, { row, size: "card" }),
       extras: catalogExtras,
     },
     { id: "map", label: "Map", about: "How each part builds on the others.", Page: ComponentMap },

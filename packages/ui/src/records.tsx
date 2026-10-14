@@ -153,6 +153,8 @@ export interface RecordSource {
 
 /** What a record adds from its `detail` (its type's `load`, if any): lines under its fields, sections, sources. */
 export interface RecordExtras {
+  /** Art over the head, before the title: what a part in the Shop does, drawn large. */
+  hero?: ReactNode;
   /** What leads the details, before the fields: an email's draft. */
   lead?: ReactNode;
   /** What the page asks for first, under the header and above the tabs: accounts to connect. */
@@ -219,6 +221,8 @@ export interface RecordTemplateProps {
   columns?: string[] | undefined;
   /** A Shop's groups: its rows by one field's value, in this order, each under its own heading. */
   sections?: ShopSections | undefined;
+  /** A Shop card's art, across its top in place of the icon: what the record does, drawn. */
+  art?: ((row: Row) => ReactNode) | undefined;
   extras?: ((detail: unknown, row: Row, act: RecordAct) => RecordExtras) | undefined;
   acts?: RecordActs | undefined;
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
@@ -2523,6 +2527,7 @@ export function RecordBody({
   return (
     <article className="grid gap-5 max-[900px]:pb-(--dock-h,0px)">
       <header className="grid gap-3">
+        {more.hero}
         <div className="flex items-start justify-between gap-3 max-sm:flex-col">
           <div className="min-w-0">
             <h2 className={PAGE_TITLE}>{titleOf(meta, row)}</h2>

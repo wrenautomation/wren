@@ -23,6 +23,7 @@ import { type ReactNode, useState } from "react";
 import { call, ME_CHANGED } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
+import { LazyMark, PartArt } from "./art.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
 import { type TemplateDetail, templateExtras } from "./Template.js";
 
@@ -228,7 +229,10 @@ function AccountList({
         return (
           <li key={a.site} className="grid gap-2">
             <span className={SPLIT}>
-              <span className="font-medium">{a.label}</span>
+              <span className="flex min-w-0 items-center gap-2 font-medium">
+                {isFact(a) ? null : <LazyMark vendor={a.site} size={18} />}
+                {a.label}
+              </span>
               {a.has === null ? null : <Tag tone={tag.tone}>{tag.label}</Tag>}
             </span>
             {a.has && a.account && !edit && !isFact(a) ? (
@@ -287,7 +291,8 @@ export function catalogExtras(
   const { row, client, team, can } = props;
   const got = detail as Detail | undefined;
   if (!got) return {};
-  if ("template" in got) return templateExtras(got, props);
+  const hero = <PartArt row={row} size="hero" />;
+  if ("template" in got) return { ...templateExtras(got, props), hero };
   const id = String(row.id);
   const name = String(row.name);
   const at = (to: string) =>
@@ -315,7 +320,7 @@ export function catalogExtras(
     const io = ports(got.workflow.in, got.workflow.out);
     if (io) sections.push(io);
     if (got.usedIn.length) sections.push(usedIn(got.usedIn));
-    return { sections };
+    return { hero, sections };
   }
   const d = got;
   // An installed part keeps its settings form while it waits on an account: its rules still edit.
@@ -332,7 +337,8 @@ export function catalogExtras(
         items={tool.instead.map((i) => [
           i.vendor,
           <span key={i.vendor}>
-            {i.plan}, {i.price === null ? i.unit : `$${i.price} ${i.unit}`}.{" "}
+            <LazyMark vendor={i.vendor} /> {i.plan},{" "}
+            {i.price === null ? i.unit : `$${i.price} ${i.unit}`}.{" "}
             <a href={i.url} target="_blank" rel="noreferrer">
               Their pricing
             </a>
@@ -485,5 +491,5 @@ export function catalogExtras(
         {accounts}
       </section>
     ) : null;
-  return { lead, sections, top };
+  return { hero, lead, sections, top };
 }

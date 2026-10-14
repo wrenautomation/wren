@@ -11,6 +11,7 @@ import { call, ME_CHANGED, type Me } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { FIELD, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
+import { LazyMark } from "./art.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
 import { DeleteSaved } from "./delete-saved.js";
 
@@ -198,6 +199,11 @@ function PartRow({
       <Settings values={p.settings} fields={fields} />
       {needs.map((a) => (
         <span key={a.site} className="text-[13.5px] text-(--ui-ink-2)">
+          {a.site === "any" || a.site.includes(".") ? null : (
+            <>
+              <LazyMark vendor={a.site} size={14} />{" "}
+            </>
+          )}
           <b className="font-medium text-(--ui-ink)">{a.label}:</b> {a.how}
         </span>
       ))}

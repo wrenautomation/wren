@@ -11,6 +11,7 @@
     "./tailwind.css": "./src/tailwind.css",
     "./palette": "./src/palette.tsx",
     "./theme": "./src/theme.tsx",
+    "./vendor-marks": "./src/vendor-marks.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./lib/*": "./src/lib/*.ts"
   },

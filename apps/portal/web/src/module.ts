@@ -96,6 +96,8 @@ export interface ListPage extends PageBase {
   columns?: string[];
   /** A Shop's groups, in order, each under its own heading (Templates, Parts, Workflows). */
   sections?: ShopSections;
+  /** A Shop card's art, across its top: what the record does, drawn. */
+  art?: (row: Row) => ReactNode;
   /** Lines and sources a record's detail adds under its fields. */
   extras?: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => RecordExtras;
   /**
