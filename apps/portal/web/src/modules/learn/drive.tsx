@@ -652,7 +652,7 @@ function Chips({
             onClick={() => set({ type: null })}
           >
             All types
-            <span className="tabular-nums opacity-70">{total}</span>
+            <span className="tabular-nums">{total}</span>
           </button>
           {shown.map((t) => {
             const on = types.includes(t);
@@ -666,7 +666,7 @@ function Chips({
               >
                 <TypeMark type={t as ItemType} size={14} mono={on} />
                 {TYPES[t as ItemType].many}
-                <span className="tabular-nums opacity-70">{counts[t as ItemType] ?? 0}</span>
+                <span className="tabular-nums">{counts[t as ItemType] ?? 0}</span>
               </button>
             );
           })}
@@ -686,7 +686,7 @@ function Chips({
               >
                 <Avatar url={s.avatar} name={s.name} size={20} />
                 <span className="max-w-40 truncate">{s.name}</span>
-                <span className="tabular-nums opacity-70">{s.n}</span>
+                <span className="tabular-nums">{s.n}</span>
               </button>
             );
           })}

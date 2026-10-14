@@ -177,8 +177,9 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
   return (
     <div
       className={cx(
-        "flex flex-col gap-3 border border-(--ui-hair) bg-(--ui-paper) p-4",
-        s.stopped && "opacity-70",
+        "flex flex-col gap-3 border border-(--ui-hair) p-4",
+        // Stopped reads as set aside by its ground, not by fading: faded text fails 4.5:1.
+        s.stopped ? "bg-(--ui-wash)" : "bg-(--ui-paper)",
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
