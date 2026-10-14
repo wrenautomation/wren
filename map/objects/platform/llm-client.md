@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-14 @ 288611dc
 entity: packages/llm/src/client.ts:30
 ---
 
@@ -19,6 +19,7 @@ Every paid step is one function with one shape, so a model never disposes: extra
 
 - `LlmClient` (`client.ts:30`), `completeAndParse` (`stage.ts:62`), `CallRecord`, `recordFor` (`audit.ts:19`, `:104`), optional tracing (`tracing.ts`)
 - `WREN_LLM` and `WREN_LLM_MODEL` choose provider and model
+- reach drafts pick a model per item: `ArmedLlm` wraps the Monitor's client, `modelFor(llm, item)` returns the arm's client by hash of the item id (`packages/outreach/src/draft-llm.ts`, setting `drafts.model`, `packages/core/src/draft-models.ts`)
 
 Citations: `packages/llm/src/client.ts:30`, `packages/llm/src/stage.ts:62`
 

@@ -355,11 +355,13 @@ import { makeNotesConsole, type NoteTurns, notesContext } from "@wren/notes/cons
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import {
+  ArmedLlm,
   type DmPlatform,
   discoverySettingsSchema,
   REACH_SEQUENCES,
   policyFrom as reachPolicyFrom,
   touchStep as reachTouchStep,
+  savedArms,
   sortStep,
   WREN_AUDIENCE,
 } from "@wren/outreach";
@@ -1288,8 +1290,25 @@ export async function buildServices(
         }
       : undefined,
   };
-  // The Monitor's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
+  // The Monitor's model (Cohere on prod): mail triage, the inbox, a client's drafts. Reach drafts have their own, below.
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
+  // Reach drafts (thread replies, comments on others' posts, comment answers, DMs): each item's
+  // model is its arm of the saved `drafts.model` test (default gateway free chain against
+  // Cohere), apart from the Monitor's model; everything else the reach code asks still goes to
+  // watchLlm. Clients keep watchLlm. designs/2026-10-14-draft-models.md.
+  const armClients = new Map<string, ReturnType<typeof makeLlm> | null>();
+  const armClient = (model: string) => {
+    if (!armClients.has(model)) {
+      try {
+        armClients.set(model, makeLlm(model, process.env));
+      } catch {
+        // No keys here (a laptop without the gateway): the arm is skipped, not the drafting.
+        armClients.set(model, null);
+      }
+    }
+    return armClients.get(model) ?? null;
+  };
+  const draftsLlm = watchLlm ? new ArmedLlm(watchLlm, savedArms(db), armClient) : null;
   // Google user data goes only to a model that doesn't train on it (Limited Use); none by default.
   const googleLlm = settings.googleLlm === "none" ? null : makeLlm(settings.googleLlm, process.env);
   services.push(
@@ -1671,7 +1690,7 @@ export async function buildServices(
     // Comments on others' LinkedIn posts: the comments SOP and his voice. Both claim only his
     // facts (Shop → Facts for drafts).
     drafts: {
-      llm: watchLlm,
+      llm: draftsLlm,
       guide: (p: DmPlatform) => dmGuide(db, p),
       commentGuide: (p: DmPlatform) => commentGuide(db, p),
       voice: voice ?? DEFAULT_VOICE,
@@ -1708,7 +1727,7 @@ export async function buildServices(
     makeRedditReads({
       ...reach,
       discovery: {
-        llm: watchLlm,
+        llm: draftsLlm,
         voice: voice ?? DEFAULT_VOICE,
         facts: () => playbooksOf(db),
         truths: () => wrenFacts(db),
@@ -2080,7 +2099,7 @@ export async function buildServices(
         // The Monitor's model: both read a few lines and answer in one.
         "comments.sort": sortStep(
           db,
-          watchLlm,
+          draftsLlm,
           (p) => commentGuide(db, p as Platform),
           // A client's comment sorts in its database; the model only with the part installed and
           // its `models` gate open, metered. Else the words alone.

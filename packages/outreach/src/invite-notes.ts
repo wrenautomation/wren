@@ -12,6 +12,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
+import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { dmContext } from "./drafts.js";
 import { ReachRefusal } from "./refusal.js";
 import { reachMessages } from "./schema.js";
@@ -98,9 +99,10 @@ export async function draftInviteNote(
   const facts = o.facts ?? [];
   const system = systemFor(o.sender, facts);
   const item = `note:${contact.id}`;
+  const picked = await modelFor(llm, item);
   const g = await guardDraft(
     async (fix) => {
-      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, NOTE, {
+      const out = await completeAndParse(picked.llm, fix ? `${prompt}\n\n${fix}` : prompt, NOTE, {
         maxTokens: 200,
         system,
         name: "reach.invite_note",
@@ -109,13 +111,13 @@ export async function draftInviteNote(
     },
     { facts, sources: [prompt], own: mine },
   );
-  await recordGuard(db, "reach.invite_note", item, g);
+  await recordGuard(db, "reach.invite_note", item, g, guardBy(picked));
   const text = g.text ?? "";
   const note = text && text.length <= NOTE_MAX ? text : null;
   if (!note) return null;
   const [kept] = await db
     .update(reachMessages)
-    .set({ body: note, provenance: { ...MODEL, by: llm.name } })
+    .set({ body: note, provenance: { ...MODEL, by: picked.llm.name } })
     .where(
       and(
         eq(reachMessages.contactId, contact.id),
@@ -131,10 +133,11 @@ export async function draftInviteNote(
     platform: "linkedin",
     event: "generated",
     via: "model",
-    by: llm.name,
+    by: picked.llm.name,
     text: note,
     llm: llmOf(g.result, "reach.invite_note"),
     runId: g.result.call?.run_id ?? null,
+    meta: armMeta(picked.arm),
   });
   return note;
 }

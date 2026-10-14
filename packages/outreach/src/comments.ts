@@ -22,6 +22,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
+import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { passedOn, passKey } from "./passes.js";
 import { ReachRefusal } from "./refusal.js";
@@ -215,7 +216,9 @@ export async function sortComment(
   let why = sort ? "Asked in words" : "No model is set, so it waits unsorted.";
   let draft: string | null = null;
   let out: Outcome<z.infer<typeof ANSWER>> | null = null;
-  if (llm) {
+  // The model for this comment: its arm of the draft-model test, or the client's own model.
+  const picked = llm ? await modelFor(llm, `comment:${id}`) : null;
+  if (llm && picked) {
     // The SOPs, his last 5 edits of comment answers (content desk, 6), then his yeses and nos
     // closest to this comment.
     const [sops, edits, examples] = await Promise.all([
@@ -233,7 +236,7 @@ export async function sortComment(
     // A client's model gate saying no leaves it to the words, as with no model.
     const g = await guardDraft(
       async (fix) => {
-        const r = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, ANSWER, {
+        const r = await completeAndParse(picked.llm, fix ? `${prompt}\n\n${fix}` : prompt, ANSWER, {
           maxTokens: 300,
           system,
           name: "comments.sort",
@@ -248,7 +251,7 @@ export async function sortComment(
       if (!sort) why = `${err.why}, so it waits unsorted.`;
       return null;
     });
-    if (g) await recordGuard(db, "comments.sort", `comment:${id}`, g);
+    if (g) await recordGuard(db, "comments.sort", `comment:${id}`, g, guardBy(picked));
     out = g?.result ?? null;
     if (!out) {
       // Kept as the words left it.
@@ -268,17 +271,18 @@ export async function sortComment(
     .set({ sort, why, draft, state: "waiting" })
     .where(and(eq(comments.id, id), eq(comments.state, "new")))
     .returning({ id: comments.id });
-  if (kept && draft && out?.parsed && llm)
+  if (kept && draft && out?.parsed && picked)
     await recordDraft(db, {
       item: `comment:${id}`,
       kind: "comment",
       platform: c.platform,
       event: "generated",
       via: "model",
-      by: llm.name,
+      by: picked.llm.name,
       text: draft,
       llm: llmOf(out, "comments.sort", { sort }),
       runId: out.call?.run_id ?? null,
+      meta: armMeta(picked.arm),
     });
   return sort;
 }

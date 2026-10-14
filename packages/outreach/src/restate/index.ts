@@ -29,6 +29,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
+import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
@@ -115,6 +116,7 @@ import {
   enrichContact,
   listContacts,
 } from "../contacts.js";
+import { draftScorecard, parseSince } from "../draft-models.js";
 import {
   contactsToDraft,
   type DmGuide,
@@ -993,6 +995,7 @@ const POST_ACT = z.looseObject({
   id: z.number().int(),
   act: z.enum(["like", "follow"]).describe("Like the post, or follow its author"),
 });
+const DRAFT_MODELS = z.looseObject({ since: z.string().max(40).nullish() });
 const POST_IDS = z.looseObject({ ids: z.array(z.number().int()).min(1).max(100) });
 const PASS = z.looseObject({
   ids: z
@@ -1266,6 +1269,16 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           if (stats.enrolled > 0) nudge(ctx);
           return stats;
+        },
+      ),
+      /** Each draft model's record on reach drafts, and the verdict (designs/2026-10-14-draft-models.md). */
+      draftModels: serviceHandler(
+        { input: DRAFT_MODELS },
+        async (ctx: restate.Context, req: { since?: string | null } = {}): Promise<Scorecard> => {
+          const now = await nowOf(ctx);
+          const since = parseSince(req?.since ?? "30d", now);
+          if (!since) throw new restate.TerminalError("since is a day count like 30d, or a date");
+          return ctx.run("draft models", () => draftScorecard(deps.db, since));
         },
       ),
       templates: serviceHandler(

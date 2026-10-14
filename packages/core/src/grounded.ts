@@ -282,9 +282,15 @@ export async function recordGuard(
   stage: string,
   item: string,
   g: Guarded<unknown>,
+  /** The model whose draft it was: the run's `model`, so the draft-model scorecard counts it. */
+  by?: string | null,
 ): Promise<void> {
   if (g.outcome === "clean") return;
-  const run = await openRun(db, { command: "guard", argv: { stage, item } });
+  const run = await openRun(db, {
+    command: "guard",
+    argv: { stage, item },
+    ...(by ? { model: by.slice(0, 64) } : {}),
+  });
   await finishRun(db, run.id, {
     outcome: g.outcome,
     flags: g.flags,

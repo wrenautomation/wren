@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-09 (reach on X and Instagram)
+verified: 2026-10-14 @ 288611dc (reach on X and Instagram; draft models)
 entity: packages/outreach/src/schema.ts:581
 ---
 
@@ -34,6 +34,7 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 - **joins:** [[leads/touch]] (ours on their post: `rp:<id>` comment, `rp:<id>:like`, `rp:<id>:follow`; `touchesFromReachPost`)
 - **joins:** [[content/linkedin-invite]] (key people: accepted invites), [[content/draft-event]] (`onpost:` items)
 - **looks-like-but-is-not:** [[content/comment]], comments others leave on our posts
+- Which model writes reach drafts (thread replies, comments on others' posts, comment answers, DMs, invite notes): setting `drafts.model`, a list of arms (model spec + weight), default `gateway:free` 50 / `cohere` 50, apart from the Monitor's `watchLlm` (mail triage stays on Cohere). An item's arm is a hash of its Inbox id (`armOf`, `packages/core/src/draft-models.ts`), so a redraft keeps its arm. The worker hands drafting an `ArmedLlm` (`packages/outreach/src/draft-llm.ts`); each draft site calls `modelFor(llm, item)` and records `by` = the model and `meta.arm`. Scorecard `wren drafts models [--since]`, `ReachDesk.draftModels`, Engage > Draft models; clear-winner rule in `verdict` (40 decided per arm, 10 point unedited-approve gap), never auto-switched. `wren drafts models set gateway:free:50 cohere:50`. Design: `designs/2026-10-14-draft-models.md`
 - Who writes replies: setting `drafts.replies` (`packages/core/src/reply-drafts.ts`, `modelDrafts`); `you` = no model draft on threads, posts, comments or DMs (posts queue on rank), `wren drafts replies you|model [--clear]` (`clearReplyDrafts`, `packages/outreach/src/reply-drafts.ts`). Prod set to `you` 2026-10-13
 - Comments draw on our posts (2026-10-13, William: "your comments are basically AI summaries"): `COMMENT_RULE` + `ourPostsBlock` (`packages/core/src/our-posts.ts`), the closest 3 of `ourPosts` (`packages/content/src/our-posts.ts`: published or approved `content_drafts`), also guard sources. Same in [[content/reddit-thread]]
 - Schedule (2026-10-13, "make sure its not sent at once"): `sendSlots` (`packages/outreach/src/pacing.ts`: gap, local hours, per-day cap, jitter, America/Toronto), `schedulePosts`/`scheduleThreads`/`unschedule`/`stillDue` (`packages/outreach/src/scheduled.ts`; posts 45 min apart 9-20 under `perDay`, threads 2 h apart 9-21 under the account's warm-up cap and before stale). `ReachDesk.schedule {posts, threads}` and `unschedule {posts, threads}`; each slot is a ReachDesk `commentPost`/`commentThread` call delayed to it with `at` (`restate/schedule.ts` `fireSlots`), which sends nothing when `send_at` moved. A slot that fails for good (`sendFailed`) leaves the schedule so the next pass slots it again; a post's second failure is `skipped` with `state_reason` "send failed: …", a thread retries until stale. A site's 4xx at send (or at the thread-authors guard) is terminal (`finalRefusal`, `restate/index.ts`), never a retry against the journaled answer. Setting `autoSend` (comments settings, `reddit.discovery`) schedules each pass's drafts

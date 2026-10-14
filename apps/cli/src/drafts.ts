@@ -17,13 +17,26 @@ import {
 } from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
 import { setWrenSettings } from "@wren/core/clients";
+import {
+  armLabel,
+  DRAFT_MODELS_COMPONENT,
+  draftArms,
+  draftModelsSchema,
+  type Scorecard,
+} from "@wren/core/draft-models";
 import { REJECT_LABELS } from "@wren/core/draft-record";
 import { editRecord } from "@wren/core/edits";
 import { DEFAULT_FACTS, FACTS_ID, factsRecord, wrenFacts } from "@wren/core/facts";
 import { factsOf, factsText } from "@wren/core/facts-list";
 import { modelDrafts, REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { type Db, serializable, setAuditActor } from "@wren/db";
-import { clearReplyDrafts, commentExamples, EXAMPLES_MAX } from "@wren/outreach";
+import {
+  clearReplyDrafts,
+  commentExamples,
+  draftScorecard,
+  EXAMPLES_MAX,
+  parseSince,
+} from "@wren/outreach";
 import type { Command } from "commander";
 import { readText } from "./content.js";
 
@@ -149,6 +162,68 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
         console.log(`replies drafted by: ${(await modelDrafts(db)) ? "model" : "you"}`);
         if (o.clear) console.log(JSON.stringify(await clearReplyDrafts(db)));
       });
+    });
+
+  const models = drafts
+    .command("models")
+    .description(
+      "Which model writes reach drafts (thread replies, comments, comment answers, DMs): the A/B and its scorecard",
+    );
+  const pct = (x: number | null) => (x === null ? "-" : `${Math.round(x * 100)}%`);
+  const show = (c: Scorecard) => {
+    const total = c.arms.reduce((n, a) => n + a.weight, 0);
+    console.log(
+      `Arms: ${c.arms.map((a) => `${armLabel(a.model)} (${a.model}) ${Math.round((a.weight / total) * 100)}%`).join(", ")}`,
+    );
+    console.log(`Since ${c.since.slice(0, 10)}`);
+    if (!c.rows.length) console.log("No drafts yet.");
+    for (const r of c.rows) {
+      console.log(
+        `${r.label}: ${r.generated} drafts, ${r.approvedUnedited} unedited, ${r.approvedEdited} edited` +
+          `${r.editChars === null ? "" : ` (avg ${Math.round(r.editChars)} chars, ${pct(r.editShare)})`}, ` +
+          `${r.rejected} rejected, ${r.open} open, ${r.dropped} dropped by guard, ${r.redrafted} redrafted; ` +
+          `unedited ${pct(r.uneditedRate)} of ${r.decided}; proof ${r.proof.live} live ${r.proof.hidden} hidden ` +
+          `${r.proof.missing} missing; replied ${r.replied}/${r.repliable}`,
+      );
+    }
+    console.log(c.verdict.says);
+  };
+  models
+    .command("scorecard", { isDefault: true })
+    .description("Per model: drafts, approved unedited or edited, rejected, guard drops, outcomes")
+    .option("--since <when>", "a day count (14d) or a date", "30d")
+    .option("--json", "print JSON")
+    .action(async (o: { since: string; json?: boolean }) => {
+      const since = parseSince(o.since, new Date());
+      if (!since) throw new Error("--since is a day count like 14d, or a date");
+      const card = await withDb((db) => draftScorecard(db, since));
+      if (o.json) console.log(JSON.stringify(card, null, 2));
+      else show(card);
+    });
+  models
+    .command("set <arm...>")
+    .description(
+      "Save the arms: model[:weight] each, e.g. gateway:free:50 cohere:50. One arm ends the test. 'default' restores gateway:free vs cohere",
+    )
+    .action(async (arms: string[]) => {
+      if (arms.length === 1 && arms[0] === "default") {
+        await withDb((db) => setWrenSettings(db, DRAFT_MODELS_COMPONENT, {}, "cli"));
+      } else {
+        const parsed = draftModelsSchema.parse({
+          arms: arms.map((a) => {
+            // A weight is the last colon part when it is a number: gateway:free:50, cohere:50, cohere.
+            const m = /^(.+?)(?::(\d+(?:\.\d+)?))?$/.exec(a);
+            const weight = m?.[2] ? Number(m[2]) : 1;
+            return { model: m?.[1] ?? a, weight };
+          }),
+        });
+        await withDb((db) => setWrenSettings(db, DRAFT_MODELS_COMPONENT, parsed, "cli"));
+      }
+      console.log(
+        (await withDb((db) => draftArms(db)))
+          .map((a) => `${armLabel(a.model)} (${a.model}) weight ${a.weight}`)
+          .join("\n"),
+      );
     });
 
   const facts = drafts

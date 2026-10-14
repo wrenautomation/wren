@@ -7,6 +7,7 @@ import { Button, cx, Input } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { ERROR, QUIET } from "../work/bits.js";
+import { DraftModels } from "./draft-models.js";
 
 interface Pasted {
   did: string;
@@ -101,6 +102,7 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
           .
         </p>
       ) : null}
+      <DraftModels demo={props.demo} />
     </div>
   );
 }

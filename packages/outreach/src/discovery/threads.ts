@@ -25,6 +25,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
+import { armMeta, guardBy, modelFor } from "../draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { passedOn, passKey } from "../passes.js";
 import { ReachRefusal } from "../refusal.js";
@@ -366,6 +367,7 @@ export async function draftThread(
     .filter(Boolean)
     .join("\n\n");
   const truths = o.truths ?? [];
+  const picked = await modelFor(llm, `thread:${id}`);
   const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}${posts.length ? `\n\n${ourPostsBlock(posts)}` : ""}`;
   const system = edits
     ? `${DRAFT_SYSTEM(o.voice, truths)}\n\n${edits}`
@@ -374,16 +376,21 @@ export async function draftThread(
   const g = await guardDraft(
     (fix) =>
       plainComment(async (note) => {
-        const out = await completeAndParse(llm, note ? `${prompt}\n\n${note}` : prompt, DRAFT, {
-          maxTokens: 400,
-          system,
-          name: "reddit.draft",
-        });
+        const out = await completeAndParse(
+          picked.llm,
+          note ? `${prompt}\n\n${note}` : prompt,
+          DRAFT,
+          {
+            maxTokens: 400,
+            system,
+            name: "reddit.draft",
+          },
+        );
         return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
       }, fix),
     { facts: truths, sources: [prompt] },
   );
-  await recordGuard(db, "reddit.draft", `thread:${id}`, g);
+  await recordGuard(db, "reddit.draft", `thread:${id}`, g, guardBy(picked));
   const out = g.result;
   if (g.text === null) {
     await db
@@ -414,10 +421,11 @@ export async function draftThread(
     platform: "reddit",
     event: "generated",
     via: "model",
-    by: llm.name,
+    by: picked.llm.name,
     text: g.text,
     llm: llmOf(out, "reddit.draft", { target: target?.name ?? t.id }),
     runId: out.call?.run_id ?? null,
+    meta: armMeta(picked.arm),
   });
   return "drafted";
 }

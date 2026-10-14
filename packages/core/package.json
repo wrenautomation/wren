@@ -26,6 +26,7 @@
     "./pass-reasons": "./src/pass-reasons.ts",
     "./reject-reasons": "./src/reject-reasons.ts",
     "./reply-drafts": "./src/reply-drafts.ts",
+    "./draft-models": "./src/draft-models.ts",
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
     "./content/ingress": "./src/content/ingress.ts",

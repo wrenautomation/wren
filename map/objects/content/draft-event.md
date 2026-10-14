@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-11 @ 85dbc0b6 (+ Inbox → Done)
+verified: 2026-10-14 @ 288611dc (+ Inbox → Done, meta.arm)
 entity: packages/core/src/schema.ts:650
 ---
 
@@ -18,6 +18,8 @@ Append-only, so the first version and its prompt can't be written over. One narr
 ## Shape
 
 - `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id`, `url`, `meta`, `run_id`, `ref`, `at`
+
+On a reach draft (`thread`, `post_comment`, `comment`, `dm`, `invite_note`) the model's `generated` step carries `meta.arm`, the draft-model test arm that chose `by` (`designs/2026-10-14-draft-models.md`); history and the Inbox's own suggestions have none. The scorecard (`draftScorecard`, `packages/outreach/src/draft-models.ts`) reads the last model `generated` step against the `sent`/`approved`/`rejected` after it, guard drops from `runs` (`command = 'guard'`, `model` set only for an arm's draft), the comment proof and replies.
 
 Live steps take the database's clock as each row is written (`clock_timestamp()`); only the backfill and a video's first words set `at`. Reads order by `(at, id)`; `draft_activity.seq` is the step's id for the Activity tab.
 
@@ -38,6 +40,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 | Surface | Role |
 |---|---|
+| `wren drafts models`, `ReachDesk.draftModels`, Engage > Draft models | read: per-model scorecard over reach drafts |
 | drafting (`draftIdea`, `redraft`, `sortComment`, `draftThread`, `draftDm`) | write `generated` with the prompt |
 | the draft box, Ask Claude, Undo, `wren drafts set`, `wren content edit`, a changed send | write `edited` |
 | a post field save (`setFields`: editor, attach, `wren content fields`) | writes `edited` with `meta.fields: {key: [before, after]}`; `sent` carries `meta.fields` (what went out) and `meta.notes`. Export versions carry `fields` |

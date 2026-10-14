@@ -32,6 +32,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
+import { armMeta, guardBy, modelFor, type Picked } from "./draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { passedOn, passKey } from "./passes.js";
 import { ReachRefusal } from "./refusal.js";
@@ -868,7 +869,8 @@ async function guardedComment(
   llm: LlmClient,
   p: ReachPost,
   o: CommentDraftOptions,
-): Promise<Guarded<DraftOut>> {
+): Promise<Guarded<DraftOut> & { picked: Picked }> {
+  const picked = await modelFor(llm, `onpost:${p.id}`);
   const facts = o.facts ?? [];
   // His last 5 edits, then his yeses and nos closest to this post.
   const edits = [
@@ -883,17 +885,22 @@ async function guardedComment(
   const g = await guardDraft(
     (fix) =>
       plainComment(async (note) => {
-        const out = await completeAndParse(llm, note ? `${prompt}\n\n${note}` : prompt, DRAFT, {
-          maxTokens: 400,
-          system,
-          name: `${p.platform}.comment_draft`,
-        });
+        const out = await completeAndParse(
+          picked.llm,
+          note ? `${prompt}\n\n${note}` : prompt,
+          DRAFT,
+          {
+            maxTokens: 400,
+            system,
+            name: `${p.platform}.comment_draft`,
+          },
+        );
         return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
       }, fix),
     { facts, sources: [p.text, p.headline ?? "", ...ours.map((x) => x.text)] },
   );
-  await recordGuard(db, `${p.platform}.comment_draft`, `onpost:${p.id}`, g);
-  return g;
+  await recordGuard(db, `${p.platform}.comment_draft`, `onpost:${p.id}`, g, guardBy(picked));
+  return { ...g, picked };
 }
 
 /** Why a guarded draft can't wait for his yes, or null when it can. */
@@ -947,11 +954,14 @@ export async function draftPost(
     platform: p.platform,
     event: "generated",
     via: "model",
-    by: llm.name,
+    by: g.picked.llm.name,
     text: g.text,
     llm: llmOf(g.result, `${p.platform}.comment_draft`, { ref: p.ref }),
     runId: g.result.call?.run_id ?? null,
-    ...(g.outcome === "redrafted" ? { meta: { guard: "redrafted" } } : {}),
+    meta: {
+      ...armMeta(g.picked.arm),
+      ...(g.outcome === "redrafted" ? { guard: "redrafted" } : {}),
+    },
   });
   return "queued";
 }
@@ -1044,11 +1054,12 @@ export async function redraftPosts(
       platform: p.platform,
       event: "generated",
       via: "model",
-      by: llm.name,
+      by: g.picked.llm.name,
       text: g.text,
       llm: llmOf(g.result, `${p.platform}.comment_draft`, { ref: p.ref }),
       runId: g.result.call?.run_id ?? null,
       meta: {
+        ...armMeta(g.picked.arm),
         redraft: o.why ?? "facts guard",
         ...(g.outcome === "redrafted" ? { guard: "redrafted" } : {}),
       },

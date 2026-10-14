@@ -20,6 +20,7 @@ import { and, desc, eq, gt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { contactById } from "./contacts.js";
 import { personLine } from "./discovery/people.js";
+import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   comments,
@@ -211,9 +212,10 @@ export async function draftDm(
   ]);
   const facts = o.facts ?? [];
   const system = systemFor(contact.platform, o.sender, facts, guide, edits);
+  const picked = await modelFor(llm, `${record}:${contact.id}`);
   const g = await guardDraft(
     async (fix) => {
-      const out = await completeAndParse(llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
+      const out = await completeAndParse(picked.llm, fix ? `${prompt}\n\n${fix}` : prompt, DRAFT, {
         maxTokens: 400,
         system,
         name: "reach.dm_draft",
@@ -222,7 +224,7 @@ export async function draftDm(
     },
     { facts, sources: [prompt], own: mine },
   );
-  await recordGuard(db, "reach.dm_draft", `${record}:${contact.id}`, g);
+  await recordGuard(db, "reach.dm_draft", `${record}:${contact.id}`, g, guardBy(picked));
   const out = g.result;
   // Dropped by the guard: kept as none, like an empty draft, until they write again.
   const text = g.text ?? "";
@@ -237,10 +239,11 @@ export async function draftDm(
       platform: contact.platform,
       event: "generated",
       via: "model",
-      by: llm.name,
+      by: picked.llm.name,
       text: draft,
       llm: llmOf(out, "reach.dm_draft", { answering: lastIn }),
       runId: out.call?.run_id ?? null,
+      meta: armMeta(picked.arm),
     });
   return draft;
 }
