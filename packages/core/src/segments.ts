@@ -13,7 +13,9 @@
  * archived; restoring it is one click. "Describe" asks the model for a rule from plain words,
  * checked here before anyone sees it.
  */
-import { atomic, type Queryable } from "@wren/db";
+import type { Queryable } from "@wren/db";
+// The subpath, not the root: the portal web imports this file, and the root bundles postgres.js.
+import { atomic } from "@wren/db/isolation";
 import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TIMELINE_KIND_NAMES, TIMELINE_KINDS, type TimelineKind } from "./profiles-schema.js";

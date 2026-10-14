@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./columns": "./src/columns.ts",
+    "./isolation": "./src/isolation.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {
