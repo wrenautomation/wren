@@ -77,11 +77,11 @@ function Adapter({ name, rows }: { name: string; rows: DictationStat[] }) {
                 aria-label={`${label}: p50 ${r.p50 ?? "none"} ms, p95 ${r.p95 ?? "none"} ms`}
               >
                 <span
-                  className="absolute inset-y-0 left-0 rounded-full bg-[color-mix(in_oklab,var(--ui-accent)_30%,transparent)]"
+                  className="absolute inset-y-0 left-0 rounded-full bg-[color-mix(in_oklab,var(--ui-chart-1)_30%,transparent)]"
                   style={{ width: pct(r.p95 ?? 0, scale) }}
                 />
                 <span
-                  className={`absolute inset-y-0 left-0 rounded-full ${last ? "bg-(--ui-accent)" : "bg-(--ui-ink-2)"}`}
+                  className={`absolute inset-y-0 left-0 rounded-full ${last ? "bg-(--ui-chart-1)" : "bg-(--ui-ink-2)"}`}
                   style={{ width: pct(r.p50 ?? 0, scale) }}
                 />
                 {last ? (

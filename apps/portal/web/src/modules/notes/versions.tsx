@@ -256,7 +256,7 @@ function Compare({ client, id, a, b }: { client: string; id: string; a: number; 
                 title={`Added in ${by}`}
                 className="no-underline"
                 style={{
-                  background: `color-mix(in srgb, ${who ? hueOf(who) : "var(--ui-accent)"} 26%, transparent)`,
+                  background: `color-mix(in srgb, ${who ? hueOf(who) : "var(--ui-live)"} 26%, transparent)`,
                 }}
               >
                 {p.text}

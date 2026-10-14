@@ -870,7 +870,7 @@ export function Proposal({
   onReject: () => void;
 }) {
   return (
-    <div className="mb-3 flex flex-wrap items-start gap-3 border border-(--ui-accent) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]">
+    <div className="mb-3 flex flex-wrap items-start gap-3 border border-(--ui-live) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]">
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="font-semibold">Claude</span>
         <span className="whitespace-pre-wrap text-(--ui-ink-2)">{reply || "Done."}</span>

@@ -154,7 +154,7 @@ export function goTo(editor: Editor, t: Thread) {
 // ---- The panel ---------------------------------------------------------------------------------
 
 const FIELD =
-  "w-full resize-y border border-(--ui-hair) bg-(--ui-paper) px-2 py-1.5 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-accent)";
+  "w-full resize-y border border-(--ui-hair) bg-(--ui-paper) px-2 py-1.5 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-focus)";
 
 /**
  * A text box where `@` offers the people here, and inserts their email. The Inbox's note box is
@@ -424,10 +424,10 @@ function ThreadCard({
     <li
       onClick={onPick}
       data-on={on || undefined}
-      className="flex flex-col gap-2 border border-(--ui-hair) bg-(--ui-paper) p-3 data-on:border-(--ui-accent)"
+      className="flex flex-col gap-2 border border-(--ui-hair) bg-(--ui-paper) p-3 data-on:border-(--ui-active)"
     >
       {t.quote ? (
-        <p className="m-0 line-clamp-2 border-l-2 border-(--ui-accent) pl-2 text-[12px] text-(--ui-ink-2)">
+        <p className="m-0 line-clamp-2 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
           {t.quote}
         </p>
       ) : null}
@@ -601,8 +601,8 @@ export function CommentsPanel({
       </div>
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 max-lg:max-h-96 lg:max-h-[calc(100dvh-180px)]">
         {draft && data?.canComment ? (
-          <div className="flex flex-col gap-2 border border-(--ui-accent) bg-(--ui-paper) p-3">
-            <p className="m-0 line-clamp-2 border-l-2 border-(--ui-accent) pl-2 text-[12px] text-(--ui-ink-2)">
+          <div className="flex flex-col gap-2 border border-(--ui-active) bg-(--ui-paper) p-3">
+            <p className="m-0 line-clamp-2 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
               {draft.quote}
             </p>
             <Compose

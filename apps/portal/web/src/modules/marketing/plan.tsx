@@ -166,7 +166,7 @@ function PieceGoals({
         <div className="flex items-center gap-3 sm:justify-end">
           {lead ? (
             n ? (
-              <span className="font-semibold text-[13px] text-(--ui-accent) tabular-nums">
+              <span className="font-semibold text-[13px] text-(--ui-warn-ink) tabular-nums">
                 {n} to make
               </span>
             ) : (
@@ -177,7 +177,7 @@ function PieceGoals({
             Goals <Icon name={open ? "down" : "right"} />
           </Button>
           {lead ? (
-            <ButtonLink size="dense" tone={n ? "primary" : "secondary"} href={make.href}>
+            <ButtonLink size="dense" tone="secondary" href={make.href}>
               {make.label}
             </ButtonLink>
           ) : null}
@@ -293,7 +293,7 @@ function GoalRow({ g, reload }: { g: Goal; reload: () => void }) {
         )}
         <div className="flex items-center gap-3 sm:justify-end">
           {g.write ? (
-            <span className="font-semibold text-[13px] text-(--ui-accent) tabular-nums">
+            <span className="font-semibold text-[13px] text-(--ui-warn-ink) tabular-nums">
               {g.write} to go
             </span>
           ) : g.done !== null ? (
@@ -416,10 +416,10 @@ function Bar({ done, queued, goal }: { done: number; queued: number; goal: numbe
       aria-label={`${done} posted and ${queued} queued of ${goal}`}
     >
       <div
-        className="absolute inset-y-0 left-0 bg-(--ui-accent) opacity-35"
+        className="absolute inset-y-0 left-0 bg-(--ui-ink) opacity-25"
         style={{ width: pct(done + queued) }}
       />
-      <div className="absolute inset-y-0 left-0 bg-(--ui-accent)" style={{ width: pct(done) }} />
+      <div className="absolute inset-y-0 left-0 bg-(--ui-ink)" style={{ width: pct(done) }} />
     </div>
   );
 }

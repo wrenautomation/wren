@@ -394,8 +394,8 @@ const tone = (c: Call, now: Date) =>
     : c.outcome === "no_show"
       ? "bg-[color-mix(in_srgb,var(--ui-bad)_14%,var(--ui-paper))] text-(--ui-ink)"
       : c.end < now
-        ? "bg-[color-mix(in_srgb,var(--ui-accent)_26%,var(--ui-paper))] text-(--ui-ink)"
-        : "bg-(--ui-accent) text-(--ui-on-accent)";
+        ? "bg-[color-mix(in_srgb,var(--ui-ink)_10%,var(--ui-paper))] text-(--ui-ink)"
+        : "bg-(--ui-accent-tint) text-(--ui-ink) shadow-[inset_2px_0_0_var(--ui-live)]";
 /** Words a fill can't say: a no-show. */
 const flag = (c: Call) =>
   c.state === "booked" && c.outcome === "no_show" ? CALL_OUTCOME_LABELS.no_show.label : null;
@@ -442,7 +442,7 @@ function Grid({
           <div
             key={dayKey(d)}
             className={`grid justify-items-center py-2 text-[12px] ${
-              dayKey(d) === today ? "text-(--ui-accent)" : "text-(--ui-ink-2)"
+              dayKey(d) === today ? "text-(--ui-active)" : "text-(--ui-ink-2)"
             }`}
           >
             <span className="uppercase tracking-wide">{fmt(d, { weekday: "short" })}</span>
@@ -589,7 +589,7 @@ function Month({
               title="Open the day"
               className={`mb-0.5 inline-flex size-6 items-center justify-center justify-self-center rounded-full border-0 text-[12px] ${
                 dayKey(d) === today
-                  ? "bg-(--ui-accent) text-(--ui-on-accent)"
+                  ? "bg-(--ui-active) text-(--ui-on-accent)"
                   : `bg-transparent hover:bg-(--ui-hover) ${out ? "text-(--ui-ink-3)" : "text-(--ui-ink)"}`
               }`}
             >
@@ -646,7 +646,7 @@ function Agenda({
         <section key={dayKey(d)} className="grid gap-1">
           <h2
             className={`m-0 text-[13px] font-semibold ${
-              dayKey(d) === dayKey(now) ? "text-(--ui-accent)" : "text-(--ui-ink-2)"
+              dayKey(d) === dayKey(now) ? "text-(--ui-active)" : "text-(--ui-ink-2)"
             }`}
           >
             {fmt(d, { weekday: "long", month: "long", day: "numeric" })}

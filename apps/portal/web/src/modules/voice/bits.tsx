@@ -31,7 +31,7 @@ export function ToolLine({ tool, text }: { tool: string; text: string }) {
   return (
     <li className="flex min-w-0 items-baseline justify-center gap-2 py-1 text-[12.5px] text-(--ui-ink-2)">
       <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-(--ui-ink)">
-        <span aria-hidden className="size-1.5 rounded-full bg-(--ui-accent)" />
+        <span aria-hidden className="size-1.5 rounded-full bg-(--ui-chart-1)" />
         {TOOL_LABEL[tool] ?? tool}
       </span>
       <span className="min-w-0 truncate" title={toolText(text)}>
@@ -115,7 +115,7 @@ export function TurnBar({ turn, scale }: { turn: Turn; scale: number }) {
         style={{ width: at(end) ?? "0%" }}
       />
       <span
-        className="absolute inset-y-0 rounded-r-full bg-(--ui-accent)"
+        className="absolute inset-y-0 rounded-r-full bg-(--ui-chart-1)"
         style={{ left: at(end) ?? "0%", width: `calc(${at(heard) ?? "0%"} - ${at(end) ?? "0%"})` }}
       />
       {(["token", "audio"] as const).map((k) =>
@@ -140,7 +140,7 @@ export function TurnKey() {
         ends
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span aria-hidden className="h-2 w-4 rounded-full bg-(--ui-accent)" /> Our wait until they
+        <span aria-hidden className="h-2 w-4 rounded-full bg-(--ui-chart-1)" /> Our wait until they
         hear us
       </span>
       <span className="inline-flex items-center gap-1.5">

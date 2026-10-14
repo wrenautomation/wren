@@ -183,7 +183,7 @@ export function MoveDialog({
         <div className="-mx-2 max-h-72 overflow-y-auto">
           {q.trim() && !exact ? (
             <button type="button" className={ROW} disabled={busy} onClick={create}>
-              <FolderPlus size={15} className="text-(--ui-accent)" />
+              <FolderPlus size={15} className="text-(--ui-link)" />
               <span>
                 New collection <b className="font-semibold">{q.trim()}</b>
               </span>
@@ -206,7 +206,7 @@ export function MoveDialog({
               <span className={cx("shrink-0", INDENT[Math.min(c.depth, 4)])} />
               <Folder size={15} className="shrink-0 text-(--ui-ink-2)" />
               <span className="min-w-0 flex-1 truncate">{q.trim() ? c.path : c.name}</span>
-              {c.id === current ? <Check size={15} className="text-(--ui-accent)" /> : null}
+              {c.id === current ? <Check size={15} className="text-(--ui-active)" /> : null}
               <span className="text-[12px] text-(--ui-ink-2) tabular-nums">{c.n || ""}</span>
             </button>
           ))}

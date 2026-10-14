@@ -187,7 +187,7 @@ export function ScoreBadge({ score, className }: { score: number | null; classNa
   if (score === null) return null;
   const tone =
     score >= 7
-      ? "bg-(--ui-accent) text-(--ui-on-accent)"
+      ? "bg-(--ui-live) text-(--ui-on-accent)"
       : score >= 4
         ? "bg-(--ui-ink) text-(--ui-on-ink)"
         : "bg-(--ui-tile) text-(--ui-ink-2)";
@@ -403,7 +403,7 @@ export function Thumb({
 export function Progress({ value, className }: { value: number; className?: string }) {
   return (
     <span
-      className={cx("block h-full bg-(--ui-accent)", className)}
+      className={cx("block h-full bg-(--ui-chart-1)", className)}
       style={{ width: `${Math.round(value * 100)}%` }}
     />
   );

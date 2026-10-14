@@ -277,7 +277,7 @@ function Formats({ formats, act }: { formats: Format[]; act: RecordAct }) {
             type="checkbox"
             checked={formats.includes(f)}
             onChange={(e) => void flip(f, e.target.checked)}
-            className="mt-1 size-4 accent-(--ui-accent)"
+            className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
             <span className="text-[14px]">{label}</span>
@@ -345,7 +345,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
             name="caption-style"
             checked={captions.style === style}
             onChange={() => void save({ ...captions, style })}
-            className="mt-1 size-4 accent-(--ui-accent)"
+            className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
             <span className="text-[14px]">{label}</span>
@@ -359,7 +359,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
             type="checkbox"
             checked={shown(captions, f)}
             onChange={(e) => void save({ ...captions, [f]: e.target.checked ? "screen" : "track" })}
-            className="mt-1 size-4 accent-(--ui-accent)"
+            className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
             <span className="text-[14px]">{label}</span>
@@ -372,7 +372,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
           type="checkbox"
           checked={!!captions.behind}
           onChange={(e) => void save({ ...captions, behind: e.target.checked })}
-          className="mt-1 size-4 accent-(--ui-accent)"
+          className="mt-1 size-4 accent-(--ui-active)"
         />
         <span className="grid gap-0.5">
           <span className="text-[14px]">Stressed words behind you</span>
@@ -642,7 +642,7 @@ function Transcript({
             className={cx(
               w.cut === "cut" && "text-(--ui-ink-3) line-through",
               w.cut === "proposed" && "bg-(--ui-accent-wash) line-through",
-              w.stress && "font-semibold underline decoration-(--ui-accent) decoration-2",
+              w.stress && "font-semibold underline decoration-(--ui-link) decoration-2",
             )}
           >
             {w.w}{" "}

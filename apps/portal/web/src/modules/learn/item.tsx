@@ -400,11 +400,11 @@ function Moments({
             className={cx(
               "flex w-44 shrink-0 flex-col gap-1 border px-3 py-2 text-left transition-colors duration-200",
               i === at
-                ? "border-(--ui-accent) bg-(--ui-accent-wash)"
+                ? "border-(--ui-active) bg-(--ui-accent-wash)"
                 : "border-(--ui-hair) bg-(--ui-paper) hover:border-(--ui-ink-3)",
             )}
           >
-            <span className="font-semibold text-(--ui-accent) text-[12px] tabular-nums">
+            <span className="font-semibold text-(--ui-ink-2) text-[12px] tabular-nums">
               {clock(m.t)}
             </span>
             <span className="line-clamp-2 text-[13px] text-(--ui-ink) leading-snug">{m.label}</span>
@@ -452,7 +452,7 @@ function Transcript({
               type="checkbox"
               checked={follow}
               onChange={(e) => setFollow(e.target.checked)}
-              className="accent-(--ui-accent)"
+              className="accent-(--ui-active)"
             />
             Follow along
           </label>
@@ -476,7 +476,7 @@ function Transcript({
                 l.head && "mt-3",
               )}
             >
-              <span className="w-12 shrink-0 pt-px text-(--ui-accent) text-[12px] tabular-nums">
+              <span className="w-12 shrink-0 pt-px text-(--ui-link) text-[12px] tabular-nums">
                 {clock(l.t ?? 0)}
               </span>
               <span
@@ -586,7 +586,7 @@ function Act({
       className={cx(
         "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[13px] transition-colors duration-150",
         on
-          ? "border-(--ui-accent) bg-(--ui-accent-wash) text-(--ui-accent)"
+          ? "border-(--ui-active) bg-(--ui-accent-wash) text-(--ui-active)"
           : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) hover:bg-(--ui-hover)",
       )}
     >
@@ -617,7 +617,7 @@ function Side({ item }: { item: ItemPage }) {
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {item.changes.map((c) => (
               <li key={c} className="flex gap-2 text-[14px] text-(--ui-ink) leading-relaxed">
-                <span className="mt-[0.6em] size-1.5 shrink-0 bg-(--ui-accent)" />
+                <span className="mt-[0.6em] size-1.5 shrink-0 bg-(--ui-ink-3)" />
                 {c}
               </li>
             ))}
@@ -892,7 +892,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
           Waits to be transcribed. The summary and score follow.
         </p>
       ) : item.state === "reading" || item.state === "scoring" ? (
-        <p className="mb-5 border-(--ui-accent) border-l-2 bg-(--ui-wash) px-3 py-2 text-[13.5px] text-(--ui-ink-2)">
+        <p className="mb-5 border-(--ui-live) border-l-2 bg-(--ui-wash) px-3 py-2 text-[13.5px] text-(--ui-ink-2)">
           {item.state === "reading" ? "Reading it now." : "Scoring it against your SOPs."} This page
           fills in when it's done.
         </p>

@@ -300,7 +300,7 @@ function CallHead({
           aria-hidden
           className={[
             "size-2 rounded-full",
-            on ? "animate-pulse bg-(--ui-accent) motion-reduce:animate-none" : "bg-(--ui-hair)",
+            on ? "animate-pulse bg-(--ui-live) motion-reduce:animate-none" : "bg-(--ui-hair)",
           ].join(" ")}
         />
         {state}
@@ -484,7 +484,7 @@ function Listening({
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="w-1 animate-pulse rounded-full bg-(--ui-accent) motion-reduce:animate-none"
+                className="w-1 animate-pulse rounded-full bg-(--ui-live) motion-reduce:animate-none"
                 style={{
                   height: `${partial ? 100 : 40 + i * 20}%`,
                   animationDelay: `${i * 150}ms`,

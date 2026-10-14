@@ -133,7 +133,7 @@ export function Secret({
   return (
     <div
       ref={box}
-      className="mb-4 grid gap-2 border border-(--ui-accent) bg-(--ui-tile) p-3"
+      className="mb-4 grid gap-2 border border-(--ui-live) bg-(--ui-tile) p-3"
       role="status"
     >
       <p className="m-0 font-medium">Copy this {what} now. It won't show again.</p>

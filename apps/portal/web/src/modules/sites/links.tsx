@@ -14,7 +14,7 @@ import { QUIET } from "../work/bits.js";
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
-  "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 
 /** Where a link is posted: the short name, as the edge reads it. Wren's lander knows the first nine. */
 const PLACES: [string, string][] = [

@@ -865,7 +865,7 @@ function History({
                   checked={picked.includes(v.number)}
                   onChange={() => pick(v.number)}
                   aria-label={`Compare version ${v.number}`}
-                  className="size-4 accent-(--ui-accent)"
+                  className="size-4 accent-(--ui-active)"
                 />
                 <span className="font-medium tabular-nums">Version {v.number}</span>
               </label>

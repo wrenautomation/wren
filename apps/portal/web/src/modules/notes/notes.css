@@ -66,7 +66,7 @@
 }
 .note-body a,
 .note-body .note-mention {
-  color: var(--ui-accent);
+  color: var(--ui-link);
   text-decoration: underline;
   text-underline-offset: 0.18em;
   cursor: pointer;
@@ -117,7 +117,7 @@
 .note-body ul[data-type="taskList"] li > label input {
   width: 15px;
   height: 15px;
-  accent-color: var(--ui-accent);
+  accent-color: var(--ui-active);
   cursor: pointer;
 }
 .note-body ul[data-type="taskList"] li > div {
@@ -159,7 +159,7 @@
   margin: 1.2em 0;
 }
 .note-body hr.ProseMirror-selectednode {
-  border-top-color: var(--ui-accent);
+  border-top-color: var(--ui-active);
 }
 .note-body table {
   border-collapse: collapse;
@@ -200,10 +200,10 @@
 }
 .note-body .ProseMirror-selectednode.note-image,
 .note-body img.ProseMirror-selectednode {
-  outline: 2px solid var(--ui-accent);
+  outline: 2px solid var(--ui-active);
 }
 .note-body .ProseMirror-selectednode.note-mention {
-  outline: 2px solid var(--ui-accent);
+  outline: 2px solid var(--ui-active);
 }
 .note-body p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -298,8 +298,8 @@
   position: relative;
   margin-left: -1px;
   margin-right: -1px;
-  border-left: 1px solid var(--who, var(--ui-accent));
-  border-right: 1px solid var(--who, var(--ui-accent));
+  border-left: 1px solid var(--who, var(--ui-live));
+  border-right: 1px solid var(--who, var(--ui-live));
   word-break: normal;
   pointer-events: none;
 }
@@ -315,35 +315,35 @@
   white-space: nowrap;
   user-select: none;
   color: var(--ui-paper);
-  background: var(--who, var(--ui-accent));
+  background: var(--who, var(--ui-live));
 }
 .collaboration-carets__selection {
-  background: color-mix(in srgb, var(--who, var(--ui-accent)) 22%, transparent);
+  background: color-mix(in srgb, var(--who, var(--ui-live)) 22%, transparent);
 }
 
 /* Comments: the words a thread is on; the open one stronger. */
 .note-body .note-comment {
   background: var(--ui-accent-wash);
-  border-bottom: 2px solid color-mix(in srgb, var(--ui-accent) 45%, transparent);
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-active) 45%, transparent);
   cursor: pointer;
 }
 .note-body .note-comment-on {
   background: var(--ui-accent-tint);
-  border-bottom-color: var(--ui-accent);
+  border-bottom-color: var(--ui-active);
 }
 
 /* Suggestions: added underlined, removed struck, in the suggester's hue. */
 .note-sugg-add {
-  color: var(--who, var(--ui-accent));
+  color: var(--who, var(--ui-live));
   text-decoration: underline;
-  text-decoration-color: var(--who, var(--ui-accent));
+  text-decoration-color: var(--who, var(--ui-live));
   text-underline-offset: 0.18em;
-  background: color-mix(in srgb, var(--who, var(--ui-accent)) 9%, transparent);
+  background: color-mix(in srgb, var(--who, var(--ui-live)) 9%, transparent);
 }
 .note-sugg-del {
-  color: var(--who, var(--ui-accent));
+  color: var(--who, var(--ui-live));
   text-decoration: line-through;
-  text-decoration-color: var(--who, var(--ui-accent));
+  text-decoration-color: var(--who, var(--ui-live));
 }
 @media print {
   .collaboration-carets__caret,

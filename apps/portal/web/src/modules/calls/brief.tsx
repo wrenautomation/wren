@@ -89,7 +89,7 @@ export function BriefTop({ brief }: { brief: CallBrief }) {
   return (
     <section
       aria-label="Before the call"
-      className="grid gap-3 border-l-2 border-(--ui-accent) pl-4"
+      className="grid gap-3 border-l-2 border-(--ui-ink-3) pl-4"
     >
       <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Before the call</h3>
       <ul className="grid gap-3">

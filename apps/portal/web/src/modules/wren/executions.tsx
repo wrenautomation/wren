@@ -140,7 +140,7 @@ export function Executions({
                   aria-current={open === r.id ? "true" : undefined}
                   className={cx(
                     "grid gap-0.5 px-2 py-2 text-[13.5px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)",
-                    open === r.id && "bg-(--ui-tile) shadow-[inset_2px_0_0_var(--ui-accent)]",
+                    open === r.id && "bg-(--ui-tile) shadow-[inset_2px_0_0_var(--ui-active)]",
                   )}
                 >
                   <span className="flex items-center justify-between gap-2">
@@ -309,7 +309,7 @@ export function ExecutionTrace({
               onClick={() => setCard(cardOf(s))}
               className={cx(
                 "inline-flex h-7 cursor-pointer items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2 text-[12.5px] text-(--ui-ink) hover:bg-(--ui-hover)",
-                card === cardOf(s) && "border-(--ui-accent)",
+                card === cardOf(s) && "border-(--ui-active)",
                 s.error && "text-(--ui-bad)",
               )}
             >

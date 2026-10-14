@@ -67,7 +67,7 @@ export function LearnBell({ client }: { client: string }) {
       >
         <Bell size={17} aria-hidden="true" />
         {unseen ? (
-          <span className="-top-0.5 -right-0.5 absolute inline-flex h-4 min-w-4 items-center justify-center bg-(--ui-accent) px-1 font-semibold text-(--ui-on-accent) text-[10.5px] tabular-nums leading-none">
+          <span className="-top-0.5 -right-0.5 absolute inline-flex h-4 min-w-4 items-center justify-center bg-(--ui-live) px-1 font-semibold text-(--ui-on-accent) text-[10.5px] tabular-nums leading-none">
             {unseen > 99 ? "99+" : unseen}
           </span>
         ) : null}
@@ -124,7 +124,7 @@ export function LearnBell({ client }: { client: string }) {
                   </span>
                   {a.seen ? null : (
                     <span
-                      className="mt-1.5 size-2 shrink-0 bg-(--ui-accent)"
+                      className="mt-1.5 size-2 shrink-0 bg-(--ui-live)"
                       role="img"
                       aria-label="New"
                     />

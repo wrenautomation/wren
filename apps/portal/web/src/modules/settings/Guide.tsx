@@ -18,7 +18,7 @@ function App({ m }: { m: Module }) {
   return (
     <li className="grid grid-cols-[30px_minmax(0,1fr)] gap-x-3 gap-y-1 border-b border-(--ui-hair) py-3.5 last:border-b-0">
       <span
-        className="row-span-2 grid size-[30px] place-items-center bg-(--ui-accent-wash) text-(--ui-accent)"
+        className="row-span-2 grid size-[30px] place-items-center bg-(--ui-fill) text-(--ui-ink)"
         aria-hidden="true"
       >
         <Icon name={m.icon} />

@@ -90,7 +90,7 @@ const longWhen = (iso: string, zone: string) =>
     timeZoneName: "short",
   });
 
-const LABEL = "m-0 text-[13px] font-medium text-(--ui-accent)";
+const LABEL = "m-0 text-[13px] font-medium text-(--ui-ink-2)";
 const H1 = "m-0 mt-2 text-[28px] leading-tight font-semibold tracking-tight text-(--ui-ink)";
 const LEDE = "m-0 mt-2 text-[15px] text-(--ui-ink-2)";
 
@@ -135,7 +135,7 @@ function ContactLinks({ links }: { links: Contact[] }) {
               href={l.href}
               {...(web ? { target: "_blank", rel: "noopener" } : {})}
               aria-label={`${NAME[l.kind]}: ${l.label}`}
-              className="inline-flex h-9 items-center gap-2 border border-(--ui-hair) bg-(--ui-paper) px-3 text-[14px] text-(--ui-ink) no-underline hover:border-(--ui-accent) hover:text-(--ui-accent)"
+              className="inline-flex h-9 items-center gap-2 border border-(--ui-hair) bg-(--ui-paper) px-3 text-[14px] text-(--ui-ink) no-underline hover:border-(--ui-link) hover:text-(--ui-link)"
             >
               <Icon name={ICON[l.kind]} size={14} className="text-(--ui-ink-3)" />
               {web && l.kind !== "linkedin" ? `${NAME[l.kind]} ${l.label}` : l.label}
@@ -219,7 +219,7 @@ function Picker({
                   onClick={() => setDay(d)}
                   className={`grid min-w-16 flex-none gap-0.5 border px-3 py-2.5 text-center text-[13px] ${
                     on
-                      ? "border-(--ui-accent) bg-(--ui-accent-wash) text-(--ui-accent)"
+                      ? "border-(--ui-active) bg-(--ui-accent-wash) text-(--ui-active)"
                       : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) hover:border-(--ui-ink-3)"
                   }`}
                 >
@@ -241,7 +241,7 @@ function Picker({
                 key={s}
                 type="button"
                 onClick={() => pick(s)}
-                className="border border-(--ui-hair) bg-(--ui-paper) px-2 py-3 text-[15px] font-medium text-(--ui-ink) hover:border-(--ui-accent) hover:text-(--ui-accent)"
+                className="border border-(--ui-hair) bg-(--ui-paper) px-2 py-3 text-[15px] font-medium text-(--ui-ink) hover:border-(--ui-link) hover:text-(--ui-link)"
               >
                 {fmt(s, zone, { hour: "numeric", minute: "2-digit" })}
               </button>
@@ -427,7 +427,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
                   setStart(null);
                   setError(null);
                 }}
-                className="border-0 bg-transparent p-0 text-[14px] text-(--ui-accent) underline underline-offset-4"
+                className="border-0 bg-transparent p-0 text-[14px] text-(--ui-link) underline underline-offset-4"
               >
                 Pick another time
               </button>
@@ -564,7 +564,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
           <p className={LEDE}>{longWhen(call.start, zone)}</p>
           {call.open && call.meetUrl && step === "show" ? (
             <p className={LEDE}>
-              <a href={call.meetUrl} target="_blank" rel="noopener" className="text-(--ui-accent)">
+              <a href={call.meetUrl} target="_blank" rel="noopener" className="text-(--ui-link)">
                 Join on Google Meet
               </a>
             </p>
@@ -622,7 +622,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
                 <button
                   type="button"
                   onClick={() => setStart(null)}
-                  className="border-0 bg-transparent p-0 text-[14px] text-(--ui-accent) underline underline-offset-4"
+                  className="border-0 bg-transparent p-0 text-[14px] text-(--ui-link) underline underline-offset-4"
                 >
                   Pick another time
                 </button>

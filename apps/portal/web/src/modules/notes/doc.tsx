@@ -410,7 +410,7 @@ function Doc({
               aria-label={note.starred ? "Unstar" : "Star"}
               title={note.starred ? "Starred" : "Star it"}
               onClick={() => act("star", !note.starred, note.starred ? "Unstarred." : "Starred.")}
-              className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:text-(--ui-accent)"
+              className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
             >
               <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden="true">
                 <path

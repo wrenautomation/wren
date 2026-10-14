@@ -176,7 +176,7 @@ function LinkLine({
               type="checkbox"
               checked={funnel.linked}
               onChange={(e) => void run({ linked: e.target.checked ? "on" : "off" })}
-              className="size-4 accent-(--ui-accent)"
+              className="size-4 accent-(--ui-active)"
             />
             <span className="text-[14px]">Link in the post</span>
           </label>

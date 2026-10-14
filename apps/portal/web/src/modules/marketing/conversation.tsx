@@ -112,7 +112,7 @@ function Tagged({ body }: { body: string }) {
       {parts.map((p, i) =>
         p.startsWith("@") && p.includes(".") ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: the words' own order.
-          <b key={i} className="font-medium text-(--ui-accent)">
+          <b key={i} className="font-medium text-(--ui-link)">
             {p}
           </b>
         ) : (

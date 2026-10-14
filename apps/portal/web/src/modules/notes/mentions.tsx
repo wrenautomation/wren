@@ -70,7 +70,7 @@ export function NoteMentions({ client }: PageProps) {
                     <span
                       role="img"
                       aria-label="New"
-                      className="mt-2 inline-block size-2 flex-none rounded-full bg-(--ui-accent)"
+                      className="mt-2 inline-block size-2 flex-none rounded-full bg-(--ui-live)"
                     />
                   )}
                 </a>

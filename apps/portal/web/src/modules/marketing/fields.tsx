@@ -307,7 +307,7 @@ function SwitchField({ f, act, draftId }: FieldProps) {
             type="checkbox"
             checked={on}
             onChange={(e) => void choose(e.target.checked)}
-            className="size-4 accent-(--ui-accent)"
+            className="size-4 accent-(--ui-active)"
           />
           <span className="text-[14px]">
             {f.label}

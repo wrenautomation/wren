@@ -14,7 +14,7 @@ import { type PageProps, WREN } from "../../module.js";
 import { href } from "../../route.js";
 
 const SELECT =
-  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 
 /** The body's client: none in Wren's workspace, whose deals the server keeps as Wren's. */
 export const atOf = (client: string): Record<string, string> =>
@@ -138,7 +138,7 @@ function Column({
       aria-label={stage.label}
       className={cx(
         "grid w-[264px] shrink-0 content-start gap-2 border border-(--ui-hair) bg-(--ui-wash) p-2",
-        over && "border-(--ui-accent)",
+        over && "border-(--ui-active)",
       )}
       onDragOver={(e) => {
         if (!write) return;

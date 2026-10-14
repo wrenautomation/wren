@@ -706,7 +706,7 @@ function Chips({
                     >
                       <Avatar url={s.avatar} name={s.name} size={16} />
                       <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                      {on ? <Check size={14} className="text-(--ui-accent)" /> : null}
+                      {on ? <Check size={14} className="text-(--ui-active)" /> : null}
                       <span className="text-[12px] text-(--ui-ink-2) tabular-nums">{s.n}</span>
                     </button>
                   );
@@ -778,9 +778,9 @@ function Box({
   return (
     <label
       className={cx(
-        "inline-flex size-[18px] shrink-0 cursor-pointer items-center justify-center border transition-colors duration-100 has-focus-visible:outline-2 has-focus-visible:outline-(--ui-accent) has-focus-visible:outline-offset-2",
+        "inline-flex size-[18px] shrink-0 cursor-pointer items-center justify-center border transition-colors duration-100 has-focus-visible:outline-2 has-focus-visible:outline-(--ui-focus) has-focus-visible:outline-offset-2",
         on
-          ? "border-(--ui-accent) bg-(--ui-accent) text-(--ui-on-accent)"
+          ? "border-(--ui-active) bg-(--ui-active) text-(--ui-on-accent)"
           : "border-(--ui-ink-3) bg-(--ui-paper) text-transparent hover:border-(--ui-ink)",
         className,
       )}
@@ -816,7 +816,7 @@ function Dot({ c }: { c: Card }) {
   if (c.status !== "unread") return null;
   return (
     <span
-      className="mt-[0.45em] inline-block size-2 shrink-0 rounded-full bg-(--ui-accent)"
+      className="mt-[0.45em] inline-block size-2 shrink-0 rounded-full bg-(--ui-live)"
       title="New"
     >
       <span className="sr-only">New</span>
@@ -836,7 +836,7 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
       onFocusCapture={() => r.onFocus(c.id)}
       className={cx(
         "group/card relative flex min-w-0 flex-col gap-3 outline-offset-4",
-        r.focusId === c.id && "outline-2 outline-(--ui-accent) outline-solid",
+        r.focusId === c.id && "outline-2 outline-(--ui-focus) outline-solid",
       )}
     >
       <div className="relative">
@@ -845,7 +845,7 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
             card={c}
             className={cx(
               "transition-[filter] duration-200",
-              on && "ring-(--ui-accent) ring-[3px]",
+              on && "ring-(--ui-active) ring-[3px]",
               c.status === "archived" && "grayscale",
             )}
           />
@@ -960,7 +960,7 @@ function Quick({
       }}
       className={cx(
         "inline-flex size-8 items-center justify-center border-0 bg-(--ui-paper)/95 shadow-sm hover:bg-(--ui-paper)",
-        on ? "text-(--ui-accent)" : "text-(--ui-ink)",
+        on ? "text-(--ui-active)" : "text-(--ui-ink)",
       )}
     >
       {children}
@@ -1034,7 +1034,7 @@ export function ItemMenu({
             <span
               className={cx(
                 "size-2 rounded-full",
-                c.status === "unread" ? "border border-(--ui-ink-2)" : "bg-(--ui-accent)",
+                c.status === "unread" ? "border border-(--ui-ink-2)" : "bg-(--ui-live)",
               )}
             />
           </span>
@@ -1114,7 +1114,7 @@ function ListTable({
                 className={cx(
                   "border-(--ui-hair) border-b transition-colors duration-100 hover:bg-(--ui-wash)",
                   on && "bg-(--ui-accent-wash)",
-                  r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-accent)]",
+                  r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
                 )}
               >
                 <td className="px-2 py-2">
@@ -1190,7 +1190,7 @@ function CompactRow({ c, ...r }: RowProps & { c: Card }) {
       className={cx(
         "group/row flex h-10 min-w-0 items-center gap-2.5 border-(--ui-hair) border-b px-1 text-[13.5px] transition-colors duration-100 hover:bg-(--ui-wash)",
         on && "bg-(--ui-accent-wash)",
-        r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-accent)]",
+        r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
       )}
     >
       <PickBox
@@ -1205,7 +1205,7 @@ function CompactRow({ c, ...r }: RowProps & { c: Card }) {
       />
       <span className="inline-flex w-2 justify-center">
         {c.status === "unread" ? (
-          <span className="size-2 rounded-full bg-(--ui-accent)" title="New" />
+          <span className="size-2 rounded-full bg-(--ui-live)" title="New" />
         ) : null}
       </span>
       <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />

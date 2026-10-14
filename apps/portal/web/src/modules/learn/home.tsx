@@ -241,7 +241,7 @@ function ShelfCard({ c, tall }: { c: Card; tall: boolean }) {
       </div>
       <span className="flex gap-1.5">
         {c.status === "unread" ? (
-          <span className="mt-[0.45em] size-2 shrink-0 rounded-full bg-(--ui-accent)" title="New" />
+          <span className="mt-[0.45em] size-2 shrink-0 rounded-full bg-(--ui-live)" title="New" />
         ) : null}
         <span className="line-clamp-2 font-semibold text-[14px] leading-snug group-hover:underline">
           {c.title}
@@ -293,7 +293,7 @@ function Welcome() {
           key={s.title}
           className="flex flex-col gap-3 border border-(--ui-hair) bg-(--ui-paper) p-5"
         >
-          <s.Icon size={20} className="text-(--ui-accent)" />
+          <s.Icon size={20} className="text-(--ui-ink-2)" />
           <h2 className="m-0 font-semibold text-[15px]">{s.title}</h2>
           <p className="m-0 flex-1 text-[13.5px] text-(--ui-ink-2) leading-relaxed">{s.body}</p>
           <div>

@@ -148,7 +148,7 @@ function Follow() {
           <select
             value={tell}
             onChange={(e) => setTell(e.target.value)}
-            className="h-full cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-(--ui-ink) outline-none focus:border-(--ui-accent)"
+            className="h-full cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-(--ui-ink) outline-none focus:border-(--ui-focus)"
           >
             {TELLS.map(([id, label]) => (
               <option key={id} value={id}>
@@ -199,7 +199,7 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
           </a>
         </div>
         {s.fresh ? (
-          <span className="shrink-0 bg-(--ui-accent) px-1.5 py-0.5 font-semibold text-(--ui-on-accent) text-[11.5px] tabular-nums">
+          <span className="shrink-0 bg-(--ui-live) px-1.5 py-0.5 font-semibold text-(--ui-on-accent) text-[11.5px] tabular-nums">
             {s.fresh} new
           </span>
         ) : null}

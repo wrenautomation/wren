@@ -72,7 +72,7 @@ function Check({
           checked={on && !off}
           disabled={!!off}
           onChange={(e) => pick(e.target.checked)}
-          className="size-4 accent-(--ui-accent)"
+          className="size-4 accent-(--ui-active)"
         />
         <span className="text-[14px]">{label}</span>
       </label>
@@ -220,7 +220,7 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
             aria-checked={!!v.disclose}
             checked={!!v.disclose}
             onChange={(e) => void pick("disclose", e.target.checked)}
-            className="size-4 accent-(--ui-accent)"
+            className="size-4 accent-(--ui-active)"
           />
           <span className="text-[14px]">{TIKTOK_COPY.disclose}</span>
         </label>

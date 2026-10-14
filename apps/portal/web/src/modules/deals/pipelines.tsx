@@ -18,7 +18,7 @@ let lines = 0;
 const lineOf = (s: Stage): Line => ({ ...s, line: ++lines });
 
 const SELECT =
-  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[14px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[14px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 const KIND_LABELS: Record<StageKind, string> = { open: "Open", won: "Won", lost: "Lost" };
 
 const FRESH: Pipe = {

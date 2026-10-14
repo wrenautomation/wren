@@ -96,7 +96,7 @@ function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) |
           aria-pressed={n.starred}
           aria-label={n.starred ? `Unstar ${n.name}` : `Star ${n.name}`}
           onClick={onStar}
-          className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-accent)"
+          className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
         >
           <svg viewBox="0 0 16 16" width={15} height={15} aria-hidden="true">
             <path
@@ -204,7 +204,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
                 key={v}
                 href={href(PATH, { view: v === "recent" ? null : v, q: null })}
                 aria-current={!q && v === view ? "page" : undefined}
-                className="border-b-2 border-transparent px-2.5 py-2 text-[13.5px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=page]:border-(--ui-accent) aria-[current=page]:font-medium aria-[current=page]:text-(--ui-ink)"
+                className="border-b-2 border-transparent px-2.5 py-2 text-[13.5px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=page]:border-(--ui-active) aria-[current=page]:font-medium aria-[current=page]:text-(--ui-ink)"
               >
                 {label}
               </a>

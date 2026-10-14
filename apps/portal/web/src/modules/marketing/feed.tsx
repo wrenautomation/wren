@@ -42,7 +42,7 @@ export function FeedTabs({ on }: { on: Tab }) {
           aria-current={id === on ? "page" : undefined}
           className={cx(
             "-mb-px border-transparent border-b-2 px-3 py-2 font-medium text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
-            "aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)",
+            "aria-[current=page]:border-(--ui-active) aria-[current=page]:text-(--ui-ink)",
           )}
         >
           {label}

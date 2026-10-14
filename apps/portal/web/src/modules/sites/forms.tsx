@@ -41,7 +41,7 @@ import { Said, Table, useRun } from "./detail.js";
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
-  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 
 const HAS_RULES = new Set<FieldKind>(["text", "long"]);
@@ -179,7 +179,7 @@ function FieldRow({
   };
   return (
     <fieldset
-      className={`grid min-w-0 gap-2 border-l-2 pl-3 ${f.kind === "step" ? "border-(--ui-accent)" : "border-(--ui-hair)"}`}
+      className={`grid min-w-0 gap-2 border-l-2 pl-3 ${f.kind === "step" ? "border-(--ui-ink-3)" : "border-(--ui-hair)"}`}
     >
       <legend className={LABEL}>{f.kind === "step" ? "New step" : `Field ${i + 1}`}</legend>
       <div className="grid gap-2 sm:grid-cols-[160px_minmax(0,1fr)]">

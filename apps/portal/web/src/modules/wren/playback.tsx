@@ -203,7 +203,7 @@ export function usePlay(
             <li
               key={s.box}
               className={`grid gap-1 border-l-2 pl-4 text-[14px] ${
-                s.box === step?.box ? "border-(--ui-accent)" : "border-(--ui-hair)"
+                s.box === step?.box ? "border-(--ui-active)" : "border-(--ui-hair)"
               }`}
             >
               <span className={`text-[12.5px] ${QUIET}`}>

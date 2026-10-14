@@ -59,7 +59,7 @@ export function Dictation() {
           checked={set.fallback}
           disabled={set.choice === "off"}
           onChange={(e) => pick({ ...set, fallback: e.target.checked })}
-          className="mt-1 size-4 accent-(--ui-accent)"
+          className="mt-1 size-4 accent-(--ui-active)"
         />
         <span className="grid gap-0.5">
           <span className="text-[15px]">Use the browser's speech when nothing else works</span>

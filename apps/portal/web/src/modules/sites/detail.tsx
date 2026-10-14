@@ -46,7 +46,7 @@ const TH = "py-1.5 pr-3 font-normal";
 const TD = "py-1.5 pr-3 tabular-nums";
 
 const SELECT =
-  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 const usd = (n: number) => (n ? money(n, "USD") : "");

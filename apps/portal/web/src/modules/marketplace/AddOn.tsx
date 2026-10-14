@@ -73,7 +73,7 @@ export function AddOn({
           checked={on}
           disabled={!!done}
           onChange={(e) => setOn(e.target.checked)}
-          className="mt-1 size-4 accent-(--ui-accent)"
+          className="mt-1 size-4 accent-(--ui-active)"
         />
         <span className="grid gap-0.5">
           <span className="text-[15px] font-medium">{String(row.name)}</span>

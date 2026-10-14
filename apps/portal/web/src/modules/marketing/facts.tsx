@@ -182,14 +182,14 @@ function FactRow({
       onDragEnd={drag.end}
       className={cx(
         "group/fact relative grid grid-cols-[28px_minmax(0,1fr)] items-start gap-x-1 border-b border-(--ui-hair) py-2 sm:grid-cols-[28px_minmax(0,1fr)_auto]",
-        over === "above" && "shadow-[inset_0_2px_0_var(--ui-accent)]",
-        over === "below" && "shadow-[inset_0_-2px_0_var(--ui-accent)]",
+        over === "above" && "shadow-[inset_0_2px_0_var(--ui-active)]",
+        over === "below" && "shadow-[inset_0_-2px_0_var(--ui-active)]",
       )}
     >
       {fresh ? (
         <span
           aria-hidden
-          className="absolute top-2 bottom-2 -left-3 w-0.5 rounded-full bg-(--ui-accent)"
+          className="absolute top-2 bottom-2 -left-3 w-0.5 rounded-full bg-(--ui-active)"
         />
       ) : null}
       {writes ? (
