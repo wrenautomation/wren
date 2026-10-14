@@ -47,6 +47,7 @@ import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving }
 import { num } from "./format.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
+import { sayFilters, sayRaw, saySaved, sayView, tipProps } from "./view-says.js";
 
 export type { SavedViewLine };
 
@@ -271,6 +272,8 @@ interface MoreView {
   href: string;
   count?: number | undefined;
   on: boolean;
+  /** What the tab keeps, in words, on hover. */
+  tip?: string | undefined;
 }
 
 /** The views past the tabs, behind one button that names the open one when it's among them. */
@@ -301,6 +304,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
               key={v.id}
               href={v.href}
               aria-current={v.on ? "page" : undefined}
+              {...tipProps(v.tip)}
               onClick={() => setOpen(false)}
               className={cn(
                 ITEM,
@@ -350,12 +354,14 @@ export function ViewTabs({
       href: place.link({ view: i === 0 ? null : v.id, pg: null, sort: null, sv: null }),
       count: counts ? (counts[v.id] ?? 0) : undefined,
       on: v.id === current && !sv,
+      tip: sayView(meta, v),
     })),
     ...lines.map((v, at) => ({
       id: `sv:${v.id}`,
       label: v.name,
       href: savedLink(meta, place, v),
       on: String(v.id) === sv,
+      tip: `${saySaved(meta, v.params)}${v.shared ? " · Shared with the team" : ""}`,
       saved: v,
       at,
     })),
@@ -398,6 +404,7 @@ export function ViewTabs({
             <a
               href={v.href}
               aria-current={v.on ? "page" : undefined}
+              {...tipProps(v.tip)}
               className="text-inherit no-underline"
             >
               {v.label}
@@ -412,6 +419,7 @@ export function ViewTabs({
             key={v.id}
             href={v.href}
             aria-current={v.on ? "page" : undefined}
+            {...tipProps(v.tip)}
             className={cn(TAB, tabTone(v.on))}
           >
             {v.label}
@@ -847,6 +855,7 @@ function FilterPanel({
                     ref={inSight(i === nav.at)}
                     onMouseMove={() => nav.setAt(i)}
                     onClick={() => setField(f)}
+                    {...tipProps(v ? sayRaw(f, v) : undefined)}
                     className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
                   >
                     <KindIcon field={f} />
@@ -926,15 +935,19 @@ function FilterPill({
   );
   const faceClass =
     "inline-flex h-full min-w-0 items-center gap-1 border-0 bg-transparent py-0 pr-1 pl-2.5 text-[13px]";
+  // The face cuts a long value short; the hover says all of it.
+  const tip = tipProps(sayRaw(field, raw));
   return (
     <span className={PILL}>
       {onOpen ? (
-        <button type="button" onClick={onOpen} className={faceClass}>
+        <button type="button" onClick={onOpen} {...tip} className={faceClass}>
           {face}
         </button>
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger className={faceClass}>{face}</PopoverTrigger>
+          <PopoverTrigger {...tip} className={faceClass}>
+            {face}
+          </PopoverTrigger>
           <PopoverContent align="start" className={POP}>
             {panel(() => setOpen(false))}
           </PopoverContent>
@@ -1039,6 +1052,7 @@ export function ListBar({
   const filter = !filters.length ? null : narrow ? (
     <button
       type="button"
+      {...tipProps(sayFilters(params, filters))}
       className={cn(CHIP, on.length && "text-(--ui-ink)")}
       onClick={() => openSheet(null)}
     >
@@ -1046,7 +1060,10 @@ export function ListBar({
     </button>
   ) : (
     <Popover open={picker} onOpenChange={setPicker}>
-      <PopoverTrigger className={cn(CHIP, on.length && "text-(--ui-ink)")}>
+      <PopoverTrigger
+        {...tipProps(sayFilters(params, filters))}
+        className={cn(CHIP, on.length && "text-(--ui-ink)")}
+      >
         <FilterFace on={on.length} />
       </PopoverTrigger>
       <PopoverContent align="start" className={POP}>

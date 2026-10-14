@@ -22,6 +22,7 @@ import {
   soon,
   Tag,
   type TagTone,
+  tipProps,
 } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
@@ -36,6 +37,9 @@ import {
   type PieceSort,
   type PieceWhat,
   paramsOf,
+  sayPieceShow,
+  sayPieceView,
+  sayPieceWhat,
   viewOf,
 } from "./piece-views.js";
 
@@ -392,7 +396,7 @@ function Chips<T extends string>({
   set,
 }: {
   label: string;
-  options: { id: T; name: string; n?: number; mark?: string }[];
+  options: { id: T; name: string; n?: number; mark?: string; tip?: string }[];
   value: T;
   set: (v: T) => void;
 }) {
@@ -408,6 +412,7 @@ function Chips<T extends string>({
             key={o.id}
             type="button"
             aria-pressed={value === o.id}
+            {...tipProps(o.tip)}
             className={cx(CHIP, value === o.id && CHIP_ON)}
             onClick={() => set(o.id)}
           >
@@ -460,6 +465,7 @@ export function PiecesPage(props: PageProps) {
   const whats = WHATS.map((w) => ({
     id: w.id,
     name: w.name,
+    tip: sayPieceWhat(w.id),
     n: (w.id === "long" ? all : every).filter((p) => w.is(p) && fits(p, "what")).length,
   })).filter((w) => w.n > 0 || w.id === what);
   const inView = (v: (typeof PIECE_VIEWS)[number]) => {
@@ -505,6 +511,7 @@ export function PiecesPage(props: PageProps) {
           options={PIECE_VIEWS.map((v) => ({
             id: v.id,
             name: v.name,
+            tip: sayPieceView(v),
             ...(v.id === "all" ? {} : load.data ? { n: inView(v) } : {}),
           }))}
         />
@@ -538,7 +545,12 @@ export function PiecesPage(props: PageProps) {
           value={what}
           set={(v) => set("what", v)}
           options={[
-            { id: "all", name: "Everything", n: all.filter((p) => fits(p, "what")).length },
+            {
+              id: "all",
+              name: "Everything",
+              tip: sayPieceWhat("all"),
+              n: all.filter((p) => fits(p, "what")).length,
+            },
             ...whats,
           ]}
         />
@@ -547,7 +559,10 @@ export function PiecesPage(props: PageProps) {
             label="Where"
             value={place || "all"}
             set={(v) => set("platform", v)}
-            options={[{ id: "all", name: "Anywhere" }, ...places]}
+            options={[
+              { id: "all", name: "Anywhere", tip: "Pieces that went anywhere" },
+              ...places.map((p) => ({ ...p, tip: `Pieces that went to ${p.name}` })),
+            ]}
           />
         ) : null}
         <Chips
@@ -557,6 +572,7 @@ export function PiecesPage(props: PageProps) {
           options={(Object.keys(SHOWS) as Show[]).map((s) => ({
             id: s,
             name: SHOWS[s],
+            tip: sayPieceShow(s),
             ...(s === "all"
               ? {}
               : { n: pool.filter((p) => shows(p, s) && fits(p, "show")).length }),

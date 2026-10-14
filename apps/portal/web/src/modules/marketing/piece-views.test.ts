@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { nextOut, PIECE_VIEWS, paramsOf, viewOf } from "./piece-views.js";
+import {
+  nextOut,
+  PIECE_VIEWS,
+  paramsOf,
+  sayPieceShow,
+  sayPieceView,
+  sayPieceWhat,
+  viewOf,
+} from "./piece-views.js";
 
 describe("piece views", () => {
   it("each one names a different look", () => {
@@ -49,5 +57,31 @@ describe("nextOut", () => {
 
   it("is null with nothing queued", () => {
     expect(nextOut({ branches: [branch("draft", null)], children: [] })).toBeNull();
+  });
+});
+
+describe("sayPieceView", () => {
+  it("reads the kind, state and order", () => {
+    expect(sayPieceView({ what: "all", show: "all", sort: "new" })).toBe(
+      "Every piece · Sort: newest first",
+    );
+    expect(sayPieceView({ what: "all", show: "queued", sort: "soon" })).toBe(
+      "Pieces · Approved and set for a time · Sort: soonest to go out first",
+    );
+    expect(sayPieceView({ what: "carousel", show: "all", sort: "new" })).toBe(
+      "Posts of swipeable slides, inside a long video too · Sort: newest first",
+    );
+  });
+
+  it("a hint wins", () => {
+    expect(sayPieceView({ what: "all", show: "all", sort: "new", hint: "Just this." })).toBe(
+      "Just this.",
+    );
+  });
+
+  it("every view and chip says something", () => {
+    for (const v of PIECE_VIEWS) expect(sayPieceView(v).length).toBeGreaterThan(8);
+    expect(sayPieceWhat("clip")).toMatch(/Shorts/);
+    expect(sayPieceShow("live")).toMatch(/platform/);
   });
 });

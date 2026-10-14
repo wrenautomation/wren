@@ -12,6 +12,7 @@ import { Cue } from "./fields.js";
 import { num } from "./format.js";
 import { markName } from "./marks.js";
 import { type Place, type RecordsApi, useLoad, useTypes } from "./records.js";
+import { tipProps } from "./view-says.js";
 
 /** What counts as waiting in one record: its view, counted by the switch's field. */
 export interface SwitchWait {
@@ -109,11 +110,22 @@ export function RecordSwitch({
         aria-label={label}
         className="mb-5 -mt-1 flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <Chip href={link(null)} on={!picked} count={all}>
+        <Chip
+          href={link(null)}
+          on={!picked}
+          count={all}
+          tip={`Every ${label.toLowerCase()}${all ? ` · ${num(all)} waiting on you` : ""}`}
+        >
           All
         </Chip>
         {choices.map(([k, s]) => (
-          <Chip key={k} href={link(k)} on={k === pick} count={n[k] ?? 0}>
+          <Chip
+            key={k}
+            href={link(k)}
+            on={k === pick}
+            count={n[k] ?? 0}
+            tip={`${label}: ${s.label}${n[k] ? ` · ${num(n[k] ?? 0)} waiting on you` : ""}`}
+          >
             <Cue state={s} />
             {s.label}
           </Chip>
@@ -134,17 +146,20 @@ function Chip({
   href,
   on,
   count,
+  tip,
   children,
 }: {
   href: string;
   on: boolean;
   count: number;
+  tip: string;
   children: ReactNode;
 }) {
   return (
     <a
       href={href}
       aria-current={on ? "page" : undefined}
+      {...tipProps(tip)}
       className={cn(
         "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-(--ui-radius) px-2.5 text-[13px] whitespace-nowrap no-underline transition-[background-color,color] duration-150 ease-(--ui-ease)",
         on

@@ -18,6 +18,7 @@ import {
 import { createPortal } from "react-dom";
 import { num } from "./format.js";
 import { rubber, settle, swipeEnd } from "./phone-nav.js";
+import { tipProps } from "./view-says.js";
 
 /** Apple's sheet curve: quick off the mark, long soft landing. */
 export const SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";
@@ -704,6 +705,8 @@ export interface Segment {
   href: string;
   count?: number | undefined;
   on: boolean;
+  /** What it keeps, in words, on hover (a narrow desktop window). */
+  tip?: string | undefined;
 }
 
 /**
@@ -740,6 +743,7 @@ export function Segmented({
             key={i.id}
             href={i.href}
             aria-current={i.on ? "page" : undefined}
+            {...tipProps(i.tip)}
             className="flex min-h-9 min-w-fit flex-1 items-center justify-center gap-1.5 px-3 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_var(--ui-hair)]"
           >
             {i.label}

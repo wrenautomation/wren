@@ -472,6 +472,11 @@ export interface SavedView {
   /** The date field its stats count by (`recordsStats`): "received". */
   at?: string;
   /**
+   * What the tab says on hover, in plain words. Absent, it is read from `where` and `sort`
+   * ("Type: comment or dm · Sort: newest first"); write one when that reads worse than a sentence.
+   */
+  hint?: string;
+  /**
    * Kept to the signed-in person: the text or actor field holding their address ("owner"). The
    * view's rows, counts and stats are theirs only; with nobody signed in, it has none.
    */

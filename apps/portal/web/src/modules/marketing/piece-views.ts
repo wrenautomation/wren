@@ -14,6 +14,8 @@ export interface PieceView {
   what: PieceWhat;
   show: PieceShow;
   sort: PieceSort;
+  /** Its hover, when the read-out of what, state and sort says it worse than a sentence. */
+  hint?: string;
 }
 
 export const PIECE_VIEWS: readonly PieceView[] = [
@@ -58,4 +60,41 @@ export function nextOut(p: {
   };
   walk(p);
   return soon;
+}
+
+const WHAT_ABOUT: Record<PieceWhat, string> = {
+  all: "Every piece, whatever it is",
+  long: "Long videos, their clips and posts under them",
+  clip: "Vertical clips: Shorts and Reels",
+  post: "Written posts",
+  thread: "Posts that run as a thread",
+  carousel: "Posts of swipeable slides, inside a long video too",
+  story: "Stories",
+  blog: "Blog posts on the site",
+};
+const SHOW_ABOUT: Record<PieceShow, string> = {
+  all: "In any state",
+  waiting: "A draft or a failed send waiting on you",
+  queued: "Approved and set for a time",
+  live: "Out on at least one platform",
+};
+const SORT_ABOUT: Record<PieceSort, string> = {
+  new: "newest first",
+  waiting: "waiting on you first",
+  views: "most views first",
+  soon: "soonest to go out first",
+};
+
+/** What a kind chip finds, in words. */
+export const sayPieceWhat = (what: PieceWhat): string => WHAT_ABOUT[what];
+/** What a state chip finds, in words. */
+export const sayPieceShow = (show: PieceShow): string => SHOW_ABOUT[show];
+
+/** What a view finds, for its hover: its `hint`, else its kind, state and order read out. */
+export function sayPieceView(v: Pick<PieceView, "what" | "show" | "sort" | "hint">): string {
+  if (v.hint) return v.hint;
+  const kind =
+    v.what === "all" ? (v.show === "all" ? "Every piece" : "Pieces") : WHAT_ABOUT[v.what];
+  const state = v.show === "all" ? "" : ` · ${SHOW_ABOUT[v.show]}`;
+  return `${kind}${state} · Sort: ${SORT_ABOUT[v.sort]}`;
 }
