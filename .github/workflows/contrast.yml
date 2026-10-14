@@ -1,0 +1,46 @@
+name: contrast
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+# The axe color-contrast scan: every portal page in every look, all text at 4.5:1
+# (designs/2026-10-14-customerio-audit.md, B3 item 11). The preview runs on an empty migrated
+# database. Reports only, like integration.yml: deploy follows ci.yml.
+concurrency: { group: "contrast-${{ github.ref }}", cancel-in-progress: true }
+jobs:
+  contrast:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:17
+        env: { POSTGRES_USER: wren, POSTGRES_PASSWORD: wren, POSTGRES_DB: wren }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      WREN_DATABASE_URL: postgres://wren:wren@localhost:5432/wren
+      PORT: "8788"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: apps/portal
+      - name: Start the preview
+        working-directory: apps/portal
+        run: |
+          nohup pnpm -s preview > preview.log 2>&1 &
+          for _ in $(seq 120); do curl -sf "http://localhost:$PORT/" > /dev/null && exit 0; sleep 2; done
+          cat preview.log; exit 1
+      - run: npx tsx scripts/contrast.ts --out contrast.json
+        working-directory: apps/portal
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contrast
+          path: |
+            apps/portal/contrast.json
+            apps/portal/preview.log
+          if-no-files-found: ignore
