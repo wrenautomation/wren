@@ -1440,10 +1440,19 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      stripe:
+        specifier: 22.6.2
+        version: 22.6.2(@types/node@26.6.4)
       zod:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -7226,6 +7235,15 @@ packages:
   strip-final-newline@4.0.0:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
     engines: {node: '>=18'}
+
+  stripe@22.6.2:
+    resolution: {integrity: sha512-PwRE2scocvXqDKPiskMa5vRJEAEkq46W69XyUYmAwrNSLr675lQnfqLwnsndAWizwgihOWw/irLmoFRo3ez7ew==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   style-loader@4.0.0:
     resolution: {integrity: sha512-1V4WqhhZZgjVAVJyt7TdDPZoPBPNHbekX4fWnCJL1yQukhCeZhJySUL+gL9y6sNdN95uEOS83Y55SqHcP7MzLA==}
@@ -13213,6 +13231,10 @@ snapshots:
   strip-final-newline@2.0.0: {}
 
   strip-final-newline@4.0.0: {}
+
+  stripe@22.6.2(@types/node@26.6.4):
+    optionalDependencies:
+      '@types/node': 26.6.4
 
   style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28)):
     dependencies:
