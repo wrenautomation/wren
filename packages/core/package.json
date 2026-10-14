@@ -69,6 +69,7 @@
     "./profiles": "./src/profiles.ts",
     "./profiles-schema": "./src/profiles-schema.ts",
     "./profiles-backfill": "./src/profiles-backfill.ts",
+    "./profiles-bulk": "./src/profiles-bulk.ts",
     "./profile-records": "./src/profile-records.ts",
     "./portal": "./src/portal.ts",
     "./refusal": "./src/refusal.ts",

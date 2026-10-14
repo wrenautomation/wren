@@ -113,7 +113,7 @@ export interface Resolved {
   merged: number[];
 }
 
-const nameOf = (s: string | null | undefined) => {
+export const nameOf = (s: string | null | undefined) => {
   const t = s?.replace(/\s+/g, " ").trim();
   return t ? t.slice(0, 200) : null;
 };
@@ -299,7 +299,7 @@ async function putTrait(
 }
 
 /** A trait's value as kept: a trimmed string, a finite number, a boolean, or null to skip. */
-function traitValue(v: unknown): string | number | boolean | null {
+export function traitValue(v: unknown): string | number | boolean | null {
   if (typeof v === "string") {
     const s = v.trim();
     return s ? s.slice(0, 2000) : null;

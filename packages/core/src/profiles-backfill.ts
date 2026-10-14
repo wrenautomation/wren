@@ -199,7 +199,7 @@ const FORM_SKIP = new Set([
   "card",
 ]);
 
-interface Source {
+export interface Source {
   name: ProfileSource;
   /** Rows after `after` by id, at most `limit`, with `cursor` as text. */
   rows: (db: Queryable, after: string, limit: number) => Promise<Record<string, unknown>[]>;
@@ -214,7 +214,7 @@ const int = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 const rows = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute<Record<string, unknown>>(q)) as unknown as Record<string, unknown>[];
 
-const SOURCES: Source[] = [
+export const SOURCES: Source[] = [
   {
     name: "people_import",
     first: "0",

@@ -31,7 +31,7 @@ Only `resolveProfile` (`packages/core/src/profiles.ts:126`) writes profiles. Wri
 - `profile_timeline` view (`:242`): one line per sent or received email, text, call, social touch, consent event, Wren form entry (with its pages seen first), site chat, booking (any calendar in this database), `profile_events` line, workflow run, trait change and merge. Kinds in `TIMELINE_KINDS` (`:33`). Each line has `link` to its own page and `source` (the table)
 - Records `people.profile`, `people.event`, `people.trait`, `people.merge`, `people.datum` (data index: every address kind, trait and timeline kind, its sources, people, last seen, workflows that use it) (`packages/core/src/profile-records.ts`)
 - Writers (source names in `PROFILE_SOURCES`, `packages/core/src/profiles-backfill.ts:48`): lead import, people import, SMS contacts (`noteContacts`), consents, social handles (`resolveHandle`), enrollments, CRM import (incl. connector pulls), site forms (Wren's with the `wv` visitor; a client's into its workspace via `noteClientForm`), site chat, bookings on any calendar, call bookings, pay links once sent and when paid (`notePayLink`, `packages/payments/src/service.ts`)
-- Backfill: `backfillProfiles` (`profiles-backfill.ts:435`), and `backfillClientRows` (`:624`) for a client's rows on main. CLI `wren people backfill [--dry-run] [--only] [--batch]`; with `--client <id>` it also writes that client's form entries and sent or paid pay links as lines. Idempotent
+- Backfill: `backfillProfiles` (`profiles-backfill.ts:435`), and `backfillClientRows` (`:624`) for a client's rows on main. CLI `wren people backfill [--dry-run] [--only] [--batch] [--bulk [rows]]`; `--bulk` is `bulkBackfillProfiles` (`profiles-bulk.ts`): the same result in a few set-based statements per chunk, merges and what touches them one by one through `resolveProfile`, the same per-key advisory locks, so safe beside a live per-row run; with `--client <id>` it also writes that client's form entries and sent or paid pay links as lines. Idempotent
 
 Citations: `packages/core/src/profiles-schema.ts:71`, `packages/core/src/profiles.ts:126`
 
@@ -45,7 +45,7 @@ Citations: `packages/core/src/profiles-schema.ts:71`, `packages/core/src/profile
 
 ## If you change this
 
-- **Hits:** `packages/db/drizzle.config.ts` (lists `profiles-schema.ts`), a new migration for any table or view edit; every writer above; `apps/portal/web/src/modules/people/`; `PLATFORM.records` (`apps/worker/src/components.ts`); `packages/core/test/integration/profiles.test.ts`
+- **Hits:** `packages/db/drizzle.config.ts` (lists `profiles-schema.ts`), a new migration for any table or view edit; every writer above; `apps/portal/web/src/modules/people/`; `PLATFORM.records` (`apps/worker/src/components.ts`); `packages/core/test/integration/profiles.test.ts`; `profiles-bulk.ts` mirrors `resolveProfile`'s rules, so a rule change there changes it too (`profiles-bulk.test.ts` compares both)
 - **Does not hit:** the source tables (the timeline only reads them; `profile_events` is rewritten from them); sending and compose (they don't read profiles yet)
 
 ## Surfaces
