@@ -6,7 +6,14 @@
 import { readFileSync } from "node:fs";
 import { getAddresses, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { describe, expect, it } from "vitest";
-import { classify, type Inbound, normalizeMessageId, ownText, stripQuoted } from "./inbound.js";
+import {
+  classify,
+  type Inbound,
+  mayBeBounce,
+  normalizeMessageId,
+  ownText,
+  stripQuoted,
+} from "./inbound.js";
 
 const FIXTURES = new URL("../../test/fixtures/inbound/", import.meta.url);
 // The Message-ID of the outreach message these fixtures answer.
@@ -488,5 +495,28 @@ Content-Transfer-Encoding: base64
     expect(broken.parts).toEqual([]);
     expect(broken.get("Content-Type")).toBe("multipart/mixed");
     expect(parseMessage(Buffer.alloc(0)).text()).toBe("");
+  });
+});
+
+describe("mayBeBounce", () => {
+  const look = (fromAddress: string, fromName: string, subject: string) =>
+    mayBeBounce({ fromAddress, fromName, subject });
+
+  it("lets through what a mail daemon or a failure subject sends", () => {
+    expect(
+      look(
+        "mailer-daemon@googlemail.com",
+        "Mail Delivery Subsystem",
+        "Delivery Status Notification (Failure)",
+      ),
+    ).toBe(true);
+    expect(look("postmaster@example.com", "", "Undeliverable: Quick question")).toBe(true);
+    expect(look("ops@example.com", "Ops", "Undeliverable: News")).toBe(true);
+    expect(look("noreply@example.com", "", "Delivery Status Notification (Delay)")).toBe(true);
+  });
+
+  it("passes over everyday mail, a reply that quotes a failure word included", () => {
+    expect(look("lee@example.com", "Lee", "Re: Undeliverable invoice?")).toBe(false);
+    expect(look("lee@example.com", "Lee", "Quick question")).toBe(false);
   });
 });

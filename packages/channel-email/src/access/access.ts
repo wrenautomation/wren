@@ -4,7 +4,7 @@
  * tokens live in the key store (designs/2026-10-07-key-store.md), sealed under the client;
  * access tokens live in memory for their hour. Nothing here returns or logs a token.
  */
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
@@ -770,7 +770,7 @@ export function mailAccess(deps: MailDeps) {
             subject: m.subject,
             replySubject: null,
             body: m.text,
-            messageId: `<${randomUUID()}@${domainOf(at)}>`,
+            messageId: m.messageId,
             headers: m.headers,
           });
           return guarded(
@@ -827,6 +827,8 @@ export interface MarketingSender {
     subject: string;
     text: string;
     headers: [string, string][];
+    /** Minted by the caller and kept with the send: a bounce finds it by it. */
+    messageId: string;
   }): Promise<void>;
 }
 

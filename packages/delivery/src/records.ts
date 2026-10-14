@@ -193,7 +193,8 @@ export function deliveryRecords(
   app = WORK_APP,
   bills: () => Promise<boolean> = async () => operator,
   manages: () => Promise<boolean> = async () => operator,
-  messaging?: () => Promise<MessageSettings>,
+  /** `senderReads` false: the sender is connected to send only, so its bounces aren't read. */
+  messaging?: () => Promise<MessageSettings & { senderReads?: boolean }>,
 ): RecordType[] {
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
@@ -560,7 +561,11 @@ export function deliveryRecords(
             {
               id: "sender",
               label: "Email marketing sends from",
-              value: s.sender ?? "Not set: email broadcasts can't send",
+              value: !s.sender
+                ? "Not set: email broadcasts can't send"
+                : s.senderReads === false
+                  ? `${s.sender} (sends only: its bounced mail isn't read)`
+                  : s.sender,
             },
             {
               id: "postal",

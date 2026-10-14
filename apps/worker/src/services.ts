@@ -105,6 +105,7 @@ import {
   DISPOSITION_KEY,
   dailyOpenerCapacity,
   inboxPush,
+  makeBounceScheduler,
   makeCallBookings,
   makeClicksScheduler,
   makeComposeScheduler,
@@ -1961,6 +1962,7 @@ export async function buildServices(
       // The message rules on Account live in each client's own database.
       open: openClient,
       senders: (client) => clientMail.sendersOf(client),
+      readers: async (client) => (await clientMail.boxesOf(client)).map((b) => b.address),
     }),
     makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),
@@ -2322,6 +2324,15 @@ export async function buildServices(
       clients: () => clientMail.readingClients(),
       boxesOf: (client) => clientMail.boxesOf(client),
       sweep: (at) => sweepGrants(db, at),
+    }),
+    // Marketing email bounces, hourly: portal@'s mailbox into main, each client's sender into its
+    // own database; off until `BounceScheduler/all/start`.
+    makeBounceScheduler({
+      db,
+      wren: settings.portalMailbox ? delegatedMailbox(gmail, settings.portalMailbox) : null,
+      clientDb,
+      clients: () => clientMail.readingClients(),
+      boxesOf: (client) => clientMail.boxesOf(client),
     }),
     makeConsolePortal({
       main: db,

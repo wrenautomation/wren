@@ -16,6 +16,7 @@ import { type Db, snapshot } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { mayApprove, WREN } from "./access.js";
+import { mintMessageId } from "./bounces.js";
 import { BROADCAST_RECORDS } from "./broadcast-records.js";
 import { BROADCAST, type BroadcastObject, broadcastKey } from "./broadcast-run.js";
 import {
@@ -391,6 +392,7 @@ export function peopleConsoleApi({
           subject: `[test] ${copy.subject ?? b.name}`,
           text: `${copy.body}${env.footer}`,
           headers: env.headers,
+          messageId: mintMessageId(m.domain),
         });
         await markTested(w.db, b.id, addr, at);
         return { sent: addr };

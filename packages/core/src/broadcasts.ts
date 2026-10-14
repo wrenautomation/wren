@@ -14,6 +14,7 @@
 import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { mintMessageId } from "./bounces.js";
 import {
   type BroadcastChannel,
   type BroadcastState,
@@ -570,11 +571,13 @@ export async function emailsToday(db: Queryable, now: Date): Promise<number> {
 
 /** How an email broadcast leaves: the mailer, and what every marketing email carries. */
 export interface BroadcastMail {
+  /** `messageId` is minted here first (`mintMessageId`) and kept with the send: bounces find it by it. */
   send(m: {
     to: string;
     subject: string;
     text: string;
     headers: [string, string][];
+    messageId: string;
   }): Promise<void>;
   /** The footer and one-click unsubscribe for this address and topic. */
   envelope(
@@ -703,9 +706,11 @@ export async function sendRecipient(
   }
 
   if (isUnset(deps.mail)) return { state: "failed", why: await failed(db, r.id, deps.mail.unset) };
+  // Kept as it starts sending, so a bounce finds the send even when the step is cut off after.
+  const messageId = mintMessageId(deps.mail.domain);
   const claimed = await db
     .update(broadcastRecipients)
-    .set({ state: "sending" })
+    .set({ state: "sending", messageId })
     .where(
       and(eq(broadcastRecipients.id, r.id), inArray(broadcastRecipients.state, ["due", "held"])),
     )
@@ -721,6 +726,7 @@ export async function sendRecipient(
       subject: copy.subject ?? b.name,
       text: `${text}${env.footer}`,
       headers: env.headers,
+      messageId,
     });
   } catch (err) {
     const why = `Didn't send: ${String((err as Error).message ?? err).slice(0, 300)}`;

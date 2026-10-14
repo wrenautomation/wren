@@ -18,6 +18,10 @@
  * - broadcasts (`./broadcasts.ts`): an email is its recipient row, sent or not yet; a text is its
  *   recipient row until it is queued, then its `sms_messages` row. `broadcast` names the
  *   broadcast on both, so its results are this view's rows for it.
+ * - marketing email (broadcasts, newsletter, a workflow's Send message) bounces back to its sending
+ *   mailbox (`./bounces.ts`): a hard bounce on the address mailed is "bounced". With none, it counts
+ *   as delivered after 48 hours, but only once that workspace's mailbox was read past the mark
+ *   (`mail_bounce_reads`): a mailbox nobody reads never claims it.
  *
  * Not here: drafts, rejected and skipped messages (they never left), and what people sent us.
  * Each row's `key_kind` and `key_value` are how B1's `profile_keys` name the same address
@@ -60,6 +64,13 @@ const REPLY_SMS = `exists (select 1 from sms_messages i
 const REPLY_DM = `exists (select 1 from reach_messages i
     where i.contact_id = m.contact_id and i.direction = 'in'
       and i.sent_at > m.sent_at and i.sent_at < ${NEXT_DM})`;
+
+/** A marketing email's hard bounce, by its column (`r.id`, `e.id`): put the address on do-not-contact. */
+const HARD = (col: string, id: string) => `exists (select 1 from mail_bounces x
+    where x.${col} = ${id} and x.class = 'hard' and x.suppression_id is not null)`;
+/** 48 hours since it went, and the workspace's mailbox read since then with no bounce for it. */
+const QUIET = (at: string) => `${at} <= now() - interval '48 hours'
+    and exists (select 1 from mail_bounce_reads x where x.read_at >= ${at} + interval '48 hours')`;
 
 /** A broadcast text's broadcast id: its ref is `<slug>/<id>`. */
 const BROADCAST_OF_REF = `case when split_part(m.ref, '/', 2) ~ '^[0-9]+$'
@@ -112,7 +123,11 @@ export const sentRecords = pgView("sent_records", {
   select 'newsletter:' || e.id, 'email', 'newsletter',
     c.address, 'email', lower(c.address),
     coalesce(b.title, e.evidence ->> 'issue'),
-    'sent', 'sent', t.public_name, e.created_at, null::int
+    'sent',
+    case when ${sql.raw(HARD("consent_event_id", "e.id"))} then 'bounced'
+      when ${sql.raw(QUIET("e.created_at"))} then 'delivered'
+      else 'sent' end,
+    t.public_name, e.created_at, null::int
   from consent_events e
   join consents c on c.id = e.consent_id
   join topics t on t.id = c.topic_id
@@ -123,7 +138,11 @@ export const sentRecords = pgView("sent_records", {
     r.address, case b.channel when 'email' then 'email' else 'phone' end, lower(r.address),
     ${sql.raw(LINE("coalesce(b.subject, b.body)"))},
     r.state,
-    case r.state when 'sent' then 'sent' when 'failed' then 'failed' else 'queued' end,
+    case when r.state = 'failed' then 'failed'
+      when r.state <> 'sent' then 'queued'
+      when ${sql.raw(HARD("recipient_id", "r.id"))} then 'bounced'
+      when ${sql.raw(QUIET("r.sent_at"))} then 'delivered'
+      else 'sent' end,
     b.name, coalesce(r.sent_at, r.due_at), b.id
   from broadcast_recipients r
   join broadcasts b on b.id = r.broadcast_id
@@ -294,6 +313,30 @@ export const sentActivity = pgView("sent_activity", {
   union all
   select 'broadcast:' || r.id, coalesce(r.sent_at, r.due_at), 'failed', coalesce(r.why, 'Didn''t send: no reason kept'), 3
   from broadcast_recipients r where r.state = 'failed'
+  union all
+  select 'broadcast:' || r.id, r.sent_at + interval '48 hours', 'delivered', 'Counted as delivered: no bounce in 48 hours', 4
+  from broadcast_recipients r join broadcasts b on b.id = r.broadcast_id
+  where b.channel = 'email' and r.state = 'sent'
+    and not ${sql.raw(HARD("recipient_id", "r.id"))} and ${sql.raw(QUIET("r.sent_at"))}
+  union all
+  select 'newsletter:' || e.id, e.created_at + interval '48 hours', 'delivered', 'Counted as delivered: no bounce in 48 hours', 4
+  from consent_events e join consents c on c.id = e.consent_id
+  where e.kind = 'sent' and c.channel = 'email' and not coalesce(e.evidence ? 'broadcast', false)
+    and not ${sql.raw(HARD("consent_event_id", "e.id"))} and ${sql.raw(QUIET("e.created_at"))}
+  union all
+  select case when x.recipient_id is not null then 'broadcast:' || x.recipient_id
+      else 'newsletter:' || x.consent_event_id end,
+    x.received_at,
+    case when x.class = 'hard' and x.suppression_id is not null then 'bounce' else 'note' end,
+    case when x.class = 'soft'
+        then 'Soft bounce' || coalesce(' (' || x.status || ')', '') || coalesce(': ' || ${sql.raw(LINE("x.diagnostic"))}, '')
+          || '. Recorded only: the address stays'
+      when x.suppression_id is null
+        then 'A bounce came back for ' || coalesce(x.address, 'another address') || ', not the address we mailed: recorded only'
+      else 'Bounced' || coalesce(' (' || x.status || ')', '') || coalesce(': ' || ${sql.raw(LINE("x.diagnostic"))}, '')
+        || '. On the do-not-contact list now' end,
+    6
+  from mail_bounces x
   union all
   select 'sms:' || m.id, m.created_at, 'queued', 'Queued', 1
   from sms_messages m where m.direction = 'out'

@@ -87,6 +87,27 @@ describe("message rules", () => {
     expect((await readMessageSettings(pg.db)).sender).toBeNull();
   });
 
+  it("says when the sender is connected to send only, so its bounces aren't read", async () => {
+    await set.messagingSender(ask("sender", "news@acme.example"));
+    const readsNone = deliveryApi({
+      main: pg.db,
+      demoName: "Demo firm",
+      open: () => pg.db,
+      readers: async () => [],
+    });
+    expect((await rules(AMY, readsNone)).sender).toBe(
+      "news@acme.example (sends only: its bounced mail isn't read)",
+    );
+    const reads = deliveryApi({
+      main: pg.db,
+      demoName: "Demo firm",
+      open: () => pg.db,
+      readers: async () => ["News@acme.example"],
+    });
+    expect((await rules(AMY, reads)).sender).toBe("news@acme.example");
+    await set.messagingSender(ask("sender", ""));
+  });
+
   it("an owner sets the postal address; too short says why", async () => {
     await set.messagingPostal(ask("postal", "1 Main St\nTown, ST 00000"));
     expect((await rules(AMY)).postal).toBe("1 Main St, Town, ST 00000");

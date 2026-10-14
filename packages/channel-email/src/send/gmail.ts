@@ -71,6 +71,8 @@ export interface PlainMail {
   subject: string;
   text: string;
   headers?: readonly (readonly [string, string])[];
+  /** Its Message-ID, when the caller keeps it (marketing mail, for bounces); else one is minted. */
+  messageId?: string;
 }
 
 /**
@@ -89,7 +91,7 @@ export function plainMailer(
       subject: m.subject,
       replySubject: null,
       body: m.text,
-      messageId: `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`,
+      messageId: m.messageId ?? `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`,
       ...(m.headers ? { headers: m.headers } : {}),
     });
     await gmail.sendRaw(o.mailbox, mime);

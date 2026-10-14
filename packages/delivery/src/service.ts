@@ -113,6 +113,8 @@ export interface DeliveryDeps {
   open?: (client: Pick<Client, "id" | "database">) => Db;
   /** A client's mailboxes that can send now, for its email marketing sender. */
   senders?: (client: string) => Promise<string[]>;
+  /** A client's mailboxes connected to read: a sender not among them has its bounces unread. */
+  readers?: (client: string) => Promise<string[]>;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -159,8 +161,16 @@ const recordsOf = (deps: DeliveryDeps, c: Client, operator: boolean, req: Record
     typeof req.app === "string" ? req.app : undefined,
     () => mayOn(deps.main, req, "money", c.id),
     () => mayOn(deps.main, req, "manage", c.id),
-    opener && !isDemo(req.viewer) ? () => readMessageSettings(opener(c)) : undefined,
+    opener && !isDemo(req.viewer) ? () => messagingOf(deps, opener(c), c.id) : undefined,
   );
+};
+
+/** The message rules, and whether the sender's bounces are read (unknown without `readers`). */
+const messagingOf = async (deps: DeliveryDeps, db: Db, client: string) => {
+  const s = await readMessageSettings(db);
+  if (!s.sender || !deps.readers) return s;
+  const reads = (await deps.readers(client)).map((a) => a.toLowerCase());
+  return { ...s, senderReads: reads.includes(s.sender.toLowerCase()) };
 };
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) =>

@@ -18,6 +18,7 @@ export default defineConfig({
     "../core/src/profiles-schema.ts",
     "../core/src/segments-schema.ts",
     "../core/src/broadcasts-schema.ts",
+    "../core/src/bounces-schema.ts",
     "../core/src/custom-schema.ts",
     "../research/src/schema.ts",
     "../research/src/social-schema.ts",

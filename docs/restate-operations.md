@@ -80,6 +80,7 @@ curl -X POST -H "$H" $U/InboxScheduler/alice@example.com/sync
 curl -X POST -H "$H" $U/PostmasterScheduler/fleet/start
 curl -X POST -H "$H" $U/OpensScheduler/fleet/start
 curl -X POST -H "$H" $U/ClicksScheduler/fleet/start     # hourly: the lander's email-link views into email_clicks (the sent log's "clicked"); the first pass reads all history
+curl -X POST -H "$H" $U/BounceScheduler/all/start      # hourly: marketing email bounces from portal@ and each client's sender; hard ones go on do-not-contact
 curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
 curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
 curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now

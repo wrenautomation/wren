@@ -1,4 +1,5 @@
 export * from "@wren/core/restate";
+export * from "./bounce-scheduler.js";
 export * from "./call-bookings.js";
 export * from "./clicks-scheduler.js";
 export * from "./compose-scheduler.js";

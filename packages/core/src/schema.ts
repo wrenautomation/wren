@@ -1444,11 +1444,14 @@ export const consentEvents = pgTable(
     /** Who did it: "subscriber", "lander:form", "meta:lead-form", an operator's email. */
     by: varchar("by", { length: 320 }).notNull(),
     evidence: jsonb("evidence"),
+    /** A `sent` email's Message-ID (`<uuid@domain>`): a bounce finds its send by it. */
+    messageId: varchar("message_id", { length: 998 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_consent_events" }),
     index("ix_consent_events_consent_id").on(t.consentId, t.createdAt),
+    index("ix_consent_events_message_id").on(t.messageId),
     foreignKey({
       columns: [t.consentId],
       foreignColumns: [consents.id],

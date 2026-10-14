@@ -16,6 +16,7 @@ export {
   type RunInvitesOptions,
   runInvites,
 } from "./invite.js";
+export * from "./marketing-bounces.js";
 export * from "./opens.js";
 export * from "./placement.js";
 export * from "./postmaster.js";

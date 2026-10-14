@@ -272,6 +272,7 @@ describe("Google Workspace", () => {
       subject: "October news",
       text: "Hi Lee",
       headers: [["List-Unsubscribe", "<https://site.example/prefs/t?off=1>"]],
+      messageId: "<m1@acme.example>",
     });
     const [send] = fake.sent;
     expect(send?.url).toBe("https://gmail.googleapis.com/gmail/v1/users/me/messages/send");
@@ -281,6 +282,7 @@ describe("Google Workspace", () => {
     expect(mime).toContain("From: Acme Dental <ann@acme.example>");
     expect(mime).toContain("Subject: October news");
     expect(mime).toContain("List-Unsubscribe: <https://site.example/prefs/t?off=1>");
+    expect(mime).toContain("Message-ID: <m1@acme.example>");
     expect(await acc.sendersOf("acme")).toEqual(["ann@acme.example"]);
     await expect(acc.marketingSenderOf("beta", "ann@acme.example")).rejects.toThrow(/Needs setup/);
     fake.sent.length = 0;
@@ -460,6 +462,7 @@ describe("Microsoft 365", () => {
       subject: "News",
       text: "Hi",
       headers: [["List-Unsubscribe-Post", "List-Unsubscribe=One-Click"]],
+      messageId: "<m2@beta.example>",
     });
     expect(fake.sent[0]?.url).toBe("https://graph.microsoft.com/v1.0/me/sendMail");
     const mime = Buffer.from(String(fake.sent[0]?.body), "base64").toString();

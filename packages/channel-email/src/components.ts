@@ -244,7 +244,8 @@ export const EMAIL_COMPONENTS = [
     missing: ["Not built per client yet: Wren's own lists only"],
     requires: { components: [] },
     provides: {
-      services: ["Marketing", "Newsletter"],
+      services: ["Marketing", "Newsletter", "BounceScheduler"],
+      loops: ["BounceScheduler"],
       records: ["marketing.subscriber", "marketing.topic"],
     },
     effects: ["sends"],

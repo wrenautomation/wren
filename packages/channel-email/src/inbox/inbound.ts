@@ -307,6 +307,24 @@ function looksLikeDaemon(fromAddress: string | null, fromName: string | null): b
   return DAEMON_NAMES.some((marker) => name.includes(marker));
 }
 
+/**
+ * Whether a message may be a bounce, from its sender and subject alone: the cheap look before a
+ * whole message is fetched for `classify`, which decides. A report from a mail daemon, or a
+ * subject that announces one.
+ */
+export function mayBeBounce(m: {
+  fromAddress: string | null;
+  fromName: string | null;
+  subject: string | null;
+}): boolean {
+  const subject = (m.subject ?? "").trim().toLowerCase();
+  return (
+    BOUNCE_SUBJECT_PREFIXES.some((p) => subject.startsWith(p)) ||
+    subject.startsWith("delivery status notification") ||
+    looksLikeDaemon(m.fromAddress, m.fromName)
+  );
+}
+
 /** The NDRs that arrive without a report part: Exchange's "Undeliverable:", sendmail's "Returned mail", anything from a mailer-daemon. */
 function heuristicBounce(
   msg: MimePart,

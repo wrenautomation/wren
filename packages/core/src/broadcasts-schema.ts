@@ -125,10 +125,13 @@ export const broadcastRecipients = pgTable(
     /** Why it was skipped, held or failed, in words. */
     why: text("why"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** An email's Message-ID (`<uuid@domain>`), set as it starts sending: a bounce finds it by it. */
+    messageId: varchar("message_id", { length: 998 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_broadcast_recipients" }),
+    index("ix_broadcast_recipients_message_id").on(t.messageId),
     unique("uq_broadcast_recipients_broadcast_profile").on(t.broadcastId, t.profileId),
     index("ix_broadcast_recipients_due").on(t.broadcastId, t.state, t.dueAt),
     index("ix_broadcast_recipients_profile_id").on(t.profileId),

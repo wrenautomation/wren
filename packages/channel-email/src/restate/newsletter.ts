@@ -6,6 +6,7 @@
  * Mail goes from portal@ with one-click unsubscribe, the preference link and the postal address.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { mintMessageId } from "@wren/core/bounces";
 import {
   issueAudience,
   issueSentTo,
@@ -19,6 +20,8 @@ import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import type { PlainMail } from "../send/gmail.js";
+
+type Sent = { messageId: string } | { skip: string };
 
 /** Under Gmail's 2,000 a day for a Workspace mailbox, with room for the confirm emails. */
 export const ISSUE_DAILY = 1500;
@@ -131,19 +134,22 @@ export function makeNewsletter(deps: {
           const audience = await ctx.run("audience", () => issueAudience(db, issue.topic));
           const run: IssueRun = { sent: 0, skipped: {} };
           for (const c of audience) {
-            const done = await ctx.run(`to ${c.consentId}`, async () => {
-              if (await issueSentTo(db, c.consentId, ctx.key)) return "already";
+            // The Message-ID comes back from the send and is kept with it: bounces find it by it.
+            const done = await ctx.run(`to ${c.consentId}`, async (): Promise<Sent> => {
+              if (await issueSentTo(db, c.consentId, ctx.key)) return { skip: "already" };
               const v = await mayMarket(db, {
                 channel: "email",
                 address: c.address,
                 topic: issue.topic,
               });
-              if (!v.send) return v.why;
-              await send(issueMail({ issue, to: c.address, ...envelope(c.address), tags }));
-              return "sent";
+              if (!v.send) return { skip: v.why };
+              const messageId = mintMessageId(from.split("@")[1] ?? "");
+              const mail = issueMail({ issue, to: c.address, ...envelope(c.address), tags });
+              await send({ ...mail, messageId });
+              return { messageId };
             });
-            if (done !== "sent") {
-              run.skipped[done] = (run.skipped[done] ?? 0) + 1;
+            if ("skip" in done) {
+              run.skipped[done.skip] = (run.skipped[done.skip] ?? 0) + 1;
               continue;
             }
             // Its own step: a failed write retries alone and never mails the address again.
@@ -153,6 +159,7 @@ export function makeNewsletter(deps: {
                 by: "newsletter",
                 evidence: { issue: ctx.key, url: issue.url },
                 campaign: issue.slug,
+                messageId: done.messageId,
               }),
             );
             run.sent += 1;

@@ -227,6 +227,8 @@ export async function recordMarketingSend(
     campaign?: string | null;
     /** False when the sender counts it toward the workspace's caps itself (the texts sender). */
     capped?: boolean;
+    /** The email's Message-ID, when this event is its send record: a bounce finds it by it. */
+    messageId?: string | null;
   },
 ): Promise<void> {
   const now = input.now ?? new Date();
@@ -237,6 +239,7 @@ export async function recordMarketingSend(
       kind: "sent",
       by: input.by,
       evidence: input.evidence ?? null,
+      messageId: input.messageId ?? null,
       createdAt: now,
     });
     const [c] = await tx

@@ -9,6 +9,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
 import { and, eq, sql } from "drizzle-orm";
+import { mintMessageId } from "./bounces.js";
 import { checkWords, factsOf, isUnset, type MailOf, renderFor } from "./broadcasts.js";
 import { dig } from "./logic.js";
 import { addressOf, mayMarket, recordMarketingSend } from "./marketing.js";
@@ -147,13 +148,16 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
 
     const mail = await deps.mail(null, main);
     if (isUnset(mail)) throw new restate.TerminalError(`Send message: ${mail.unset}`);
-    // Kept first, so a retry after a cut-off send never sends twice; a failed send takes it back.
+    // Kept first, with its Message-ID, so a retry after a cut-off send never sends twice and a
+    // bounce finds it; a failed send takes it back.
+    const messageId = mintMessageId(mail.domain);
     await recordMarketingSend(main, {
       consentId: v.consent.id,
       by: `workflow:${at.workflow}`,
       evidence: key,
       campaign: at.workflow,
       now,
+      messageId,
     });
     const env = mail.envelope(address, { name: topic.name, publicName: topic.publicName });
     try {
@@ -162,6 +166,7 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
         subject: copy.subject ?? topic.publicName,
         text: `${copy.body}${env.footer}`,
         headers: env.headers,
+        messageId,
       });
     } catch (err) {
       await main.execute(sql`delete from consent_events
