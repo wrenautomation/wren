@@ -3,7 +3,7 @@ type: object
 cluster: reactivation
 universe: live
 status: verified
-verified: 2026-10-09 @ 25f37b6e
+verified: 2026-10-14 @ b0d2bdb5
 entity: packages/reactivation/src/schema.ts:29
 ---
 
@@ -22,9 +22,11 @@ The export is the client's truth; people and companies are ours. Keeping the CRM
 - `mover_addresses`: one row per move tried, `found|no_domain|catch_all|not_found`; `found` links the verified `contact_candidates` row at the new firm, the only address compose uses for a mover (`movers.ts:96`). A found address adds the new firm to `companies` by domain; the mover's enrollment is filed under it.
 - `job_orders` (`schema.ts:432`): the client's ATS job orders, `wren crm job-orders` (`crm/job-orders.ts`), formats `ats-generic|bullhorn|jobadder`; `open` read from an open column, a close date or the status. Unplaced rows keep `company_name`, no `company_id`.
 - `account_visits` (`schema.ts:396`): a form an account sent on the client's Sites pages, copied from Wren's `site_entry_records` by the reactivation pass (`keep.ts`, `loop.ts:226`), matched by a contact's email or a work domain.
-- Formats: `packages/reactivation/src/crm/formats.ts`; import `crm/import.ts:23`; health gate `crm/health.ts`
+- Formats: `packages/reactivation/src/crm/formats.ts`; import `crm/import.ts:24`; health gate `crm/health.ts`
+- People > Import (2026-10-14, `designs/2026-10-14-customerio-audit.md` B4): a client's own CSV through the same `runCrmImport` (`importApi`, `packages/reactivation/src/portal/import.ts:227`). `importPreview` reads the file and writes nothing (guessed or chosen columns, the first 10 rows as the import reads them, what is left out and why, an earlier import of the same bytes); `importRun` runs in one transaction under `pg_advisory_xact_lock`, so one load at a time. Both need `manage` in app `people`, refuse the demo, and take at most 1 MB and 1000 rows (`IMPORT_MAX_BYTES`, `IMPORT_MAX_ROWS`, `portal/routes.ts:67`; 3000 rows in one transaction ran out of locks). The browser sends base64, so the edge Worker takes a larger body on these two routes only (`PORTAL_MAX_BODY`, `bodyLimit` in `apps/portal/src/services.ts:130`). `CrmCsvSource` takes an optional header map, so a person's column choices drive it
+- Record `reactivation.import` (`records.ts:379`, app `people`): one row per file a person loaded, with new, merged, skipped and why. It leaves out a connected app's hourly reads (`FROM_APPS` in `portal/import-log.ts`) and any import that is not a contacts file. The page is `importPage` (`apps/portal/web/src/modules/people/import.tsx:370`), in `clientPeople` only. The leads importer (`wren email import`) has no page: it fills Wren's own pool in main
 
-Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/movers.ts:96`, `packages/reactivation/src/crm/import.ts:23`
+Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/movers.ts:96`, `packages/reactivation/src/crm/import.ts:24`
 
 ## Connected to
 
@@ -33,7 +35,7 @@ Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/
 
 ## If you change this
 
-- **Hits:** `crm import|job-orders|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm, the `reactivation_people` record view ([[platform/records]]; a column change needs a migration)
+- **Hits:** `crm import|job-orders|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm, the `reactivation_people` record view ([[platform/records]]; a column change needs a migration), People > Import (a change to `CrmCsvSource`, `mapHeaders` or `runCrmImport` changes what a person's upload does, and the 1000-row cap follows the import's speed)
 - **Does not hit:** Wren's own leads (main database)
 
 ## Surfaces
@@ -41,6 +43,7 @@ Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/
 | Surface | Role |
 |---|---|
 | `wren --client <id> crm import`, `crm job-orders` | writes |
+| People > Import (`Reactivation/{client}/importPreview`, `importRun`) | preview reads, run writes |
 | the reactivation pass (`readVisits`) | writes `account_visits` |
 | `Reactivation/{client}`, portal | reads |
 | Reactivation app, Keep (`reactivation_keep`, `packages/reactivation/src/portal/record-views.ts:188`; record `reactivation.keep`, `records.ts:338`) | reads: accounts placed with in 24 months, ranked by risk (champion left, past the usual reorder unless a job order is open, hiring again, on your site, news, open orders) |
