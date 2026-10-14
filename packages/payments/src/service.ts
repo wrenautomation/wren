@@ -15,6 +15,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { SmsDeskService } from "@wren/channel-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import type { KeyStore } from "@wren/core/keys";
+import { noteClientPayLink } from "@wren/core/profiles-backfill";
 import { setUp } from "@wren/core/refusal";
 import { serviceHandler } from "@wren/core/restate";
 import type { Fired, FireTriggers } from "@wren/core/spine";
@@ -149,6 +150,24 @@ export interface HookAnswer {
 }
 
 /**
+ * A link's line on its client's timeline (People, B7), once sent and again when paid: the link
+ * lives here on main, the profile in the client's workspace. Never throws.
+ */
+export async function notePayLink(
+  d: Pick<PaymentsDeps, "main" | "open">,
+  id: string,
+): Promise<number | null> {
+  try {
+    const l = await linkById(d.main, id);
+    const c = l ? await findClient(d.main, l.client) : null;
+    return l && c ? await noteClientPayLink(d.open(c), l) : null;
+  } catch (err) {
+    console.error(`profile event (pay link ${id}): ${(err as Error).message}`);
+    return null;
+  }
+}
+
+/**
  * One webhook, checked and applied: the plain function the service journals, and tests call.
  * `paid` is the link newly paid, for the spine.
  */
@@ -177,6 +196,7 @@ export async function takeWebhook(
   const got = await applyEvent(d.main, client.id, facts);
   if (got.paid?.contact && got.paid.paidCents)
     await markContactPaid(d.open(client), got.paid.contact, got.paid.paidCents, now);
+  if (got.paid) await notePayLink(d, got.paid.id);
   return { status: 200, result: got.fresh ? got.result : "seen", paid: got.paid };
 }
 
@@ -265,6 +285,7 @@ export function makePayments(deps: PaymentsDeps) {
             return { sent: false, why };
           }
           await ctx.run("sent", () => markSent(deps.main, l.id, { message, now }));
+          await ctx.run("profile", () => notePayLink(deps, l.id));
           return { sent: true };
         },
       ),

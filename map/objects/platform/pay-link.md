@@ -30,12 +30,13 @@ Citations: `packages/payments/src/schema.ts:43`, `packages/payments/src/schema.t
 
 - **owns:** `pay_links`, `pay_accounts`, `pay_events`
 - **owned-by:** `@wren/payments`
+- **writes:** [[leads/profile]] in the client's workspace: one `profile_events` line per link once sent, rewritten when paid (`notePayLink`, `packages/payments/src/service.ts`). The old `sms_contacts.paid_at` timeline stand-in is gone
 - **joins:** [[clients/client]] by `client`; [[sms/sms-contact]] by `contact`; [[sms/sms-message]] (the `pay` text via `SmsDesk.reply`); [[platform/vendors]] (`stripe`, own key); [[platform/spine]] (`trigger.payment`)
 - **looks-like-but-is-not:** [[books/vendor]] bills (Wren's own spend)
 
 ## If you change this
 
-- **Hits:** the Stripe webhook URL registered on every client's account (path and client slug), To approve (`pay:<id>` items in `packages/content/src/social/records.ts`), the thread's Paid fact in Texts, webhooks out's `payment.received` payload.
+- **Hits:** the payment line on the person's timeline (`lineFrom.payLink`, `packages/core/src/profiles-backfill.ts`), the Stripe webhook URL registered on every client's account (path and client slug), To approve (`pay:<id>` items in `packages/content/src/social/records.ts`), the thread's Paid fact in Texts, webhooks out's `payment.received` payload.
 - **Does not hit:** cards or charges (none here).
 
 ## Surfaces

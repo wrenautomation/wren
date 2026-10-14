@@ -47,19 +47,42 @@ const CHANNELS = cued({
   profile: { label: "Profile", tone: "neutral" },
 } as const);
 
+/** One visit line: a page seen or a recorded session, from Wren's site log (B7). */
+export interface VisitLine {
+  /** When, ISO. */
+  at: string;
+  text: string;
+  href: string | null;
+}
+
+/**
+ * A Wren profile's site visits by its `visitor` keys (the `wv` cookie), read live from the
+ * lander's log each time the page opens and never stored. Newest first; empty when the read fails.
+ */
+export type VisitReader = (visitors: readonly string[]) => Promise<VisitLine[]>;
+
+/** The visitor keys a profile page reads, newest first. */
+export const VISITORS_MAX = 5;
+
 /** One row's lines counted by kind: the profile page's timeline, each count a link to its lines. */
 export interface ProfileDetail {
   timeline: { kind: string; label: string; count: number; last: string | null; href: string }[];
   total: number;
   /** Every line, filtered to this profile. */
   href: string;
+  /** Its site visits, read live; null where no reader is set or it has no visitor key. */
+  visits: VisitLine[] | null;
 }
 
 /** The Timeline page's address for one profile's lines, of one kind when given. */
 export const timelineHref = (profile: number | string, kind?: string) =>
   `/people/timeline?profile=${profile}..${profile}${kind ? `&kind=${kind}` : ""}`;
 
-async function profileDetail(db: Queryable, id: string): Promise<ProfileDetail | null> {
+async function profileDetail(
+  db: Queryable,
+  id: string,
+  visits?: VisitReader,
+): Promise<ProfileDetail | null> {
   if (!/^\d+$/.test(id)) return null;
   const rows = (await db.execute<{ kind: string; n: number; last: Date | string | null }>(sql`
     select kind, count(*)::int n, max(at) last from profile_timeline
@@ -82,7 +105,15 @@ async function profileDetail(db: Queryable, id: string): Promise<ProfileDetail |
     timeline,
     total: timeline.reduce((n, t) => n + t.count, 0),
     href: timelineHref(id),
+    visits: visits ? await visitsOf(db, Number(id), visits) : null,
   };
+}
+
+async function visitsOf(db: Queryable, id: number, read: VisitReader) {
+  const keys = (await db.execute<{ value: string }>(sql`
+    select value from profile_keys where profile_id = ${id} and kind = 'visitor'
+    order by first_seen desc limit ${VISITORS_MAX}`)) as unknown as { value: string }[];
+  return keys.length ? read(keys.map((k) => k.value)) : null;
 }
 
 export const profileRecord = defineRecord({
@@ -120,7 +151,7 @@ export const profileRecord = defineRecord({
     { record: "people.merge", by: "into_id" },
   ],
   // The Timeline tab is `people.event` by profile: whole rows, each linked to its own page.
-  load: profileDetail,
+  load: (db, id) => profileDetail(db, id),
 });
 
 export const eventRecord = defineRecord({
@@ -318,6 +349,17 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
 }
 
 /** Every People record past the sent log, the data index's "used by" read from `workflows`. */
-export function profileRecords(workflows: readonly Workflow[] = []): RecordType[] {
-  return [profileRecord, eventRecord, keyRecord, traitRecord, mergeRecord, datumRecord(workflows)];
+/**
+ * The People app's records. `visits`: Wren's own console reads its profiles' site visits live
+ * (a client's sites keep no visitor id, so its profiles have none).
+ */
+export function profileRecords(
+  workflows: readonly Workflow[] = [],
+  o: { visits?: VisitReader } = {},
+): RecordType[] {
+  const read = o.visits;
+  const profile: RecordType = read
+    ? { ...profileRecord, load: (db, id) => profileDetail(db, id, read) }
+    : profileRecord;
+  return [profile, eventRecord, keyRecord, traitRecord, mergeRecord, datumRecord(workflows)];
 }

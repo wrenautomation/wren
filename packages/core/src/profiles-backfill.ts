@@ -7,8 +7,10 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import {
+  type ElsewhereLine,
   keysOfFields,
   nameOfFields,
+  noteElsewhere,
   noteProfile,
   type ProfileKey,
   type ResolveOptions,
@@ -394,8 +396,7 @@ const SOURCES: Source[] = [
       rows(
         db,
         sql`select id::text cursor, email, name, source ->> 'visitor' visitor, created_at
-          from calendar.bookings where id > ${Number(after)} and calendar = 'wren'
-          order by id limit ${n}`,
+          from calendar.bookings where id > ${Number(after)} order by id limit ${n}`,
       ),
     input: (r) =>
       profileFrom.booking({
@@ -497,4 +498,192 @@ export async function noteContacts(db: Queryable, ids: readonly number[]): Promi
   } catch (err) {
     console.error(`profile (sms_contact): ${(err as Error).message}`);
   }
+}
+
+/** One page a visit saw before its form (`site_forms.pages`). */
+export interface SeenPage {
+  path: string;
+  at: number;
+}
+
+/** A form entry's body on the timeline: its fields, then the pages seen before it. */
+export function formBody(fields: Record<string, unknown>, pages?: readonly SeenPage[] | null) {
+  const lines = Object.entries(fields)
+    .filter(([, v]) => typeof v === "string" && v)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}: ${v}`);
+  const seen = pages?.length ? `Pages seen first: ${pages.map((p) => p.path).join(", ")}` : null;
+  return [lines.join("\n"), seen].filter(Boolean).join("\n\n") || null;
+}
+
+const money = (cents: number, currency: string) =>
+  currency.toLowerCase() === "usd"
+    ? `$${(cents / 100).toFixed(2)}`
+    : `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
+
+/** A client's form entry, kept on main, as its workspace's timeline line. */
+export interface ClientForm {
+  id: string;
+  title: string | null;
+  fields: Record<string, unknown>;
+  pages?: readonly SeenPage[] | null;
+  at: Date;
+}
+
+/** A client's pay link, kept on main, as far as its timeline line needs. */
+export interface ClientPayLink {
+  id: string;
+  contact: number | null;
+  email: string | null;
+  name: string | null;
+  channel: string;
+  description: string;
+  amountCents: number;
+  quantity: number;
+  currency: string;
+  sentAt: Date | null;
+  paidCents: number | null;
+  paidAt: Date | null;
+}
+
+/** Rows kept on main that belong to a client, as their one line in its workspace (B7). */
+export const lineFrom = {
+  form: (e: ClientForm): ElsewhereLine => ({
+    kind: "form",
+    channel: "site",
+    at: e.at,
+    summary: `${e.title ?? "A form"} sent`,
+    body: formBody(e.fields, e.pages),
+    link: `/sites/submissions/${e.id}`,
+    source: "site_forms",
+    sourceId: e.id,
+  }),
+  /** Null until it was sent or paid: a draft link is nothing that happened to anyone. */
+  payLink: (l: ClientPayLink): ElsewhereLine | null => {
+    const at = l.paidAt ?? l.sentAt;
+    if (!at) return null;
+    const what = ` for ${l.description}`;
+    return {
+      kind: "payment",
+      channel: l.channel,
+      at,
+      summary: l.paidAt
+        ? `Paid ${money(l.paidCents ?? l.amountCents * l.quantity, l.currency)}${what}`
+        : `Pay link sent: ${money(l.amountCents * l.quantity, l.currency)}${what}`,
+      link: `/payments/links/${l.id}`,
+      source: "pay_links",
+      sourceId: l.id,
+    };
+  },
+};
+
+/** A client's form entry into its workspace (`db`): its profile and its line. Never throws. */
+export function noteClientForm(db: Queryable, e: ClientForm) {
+  const { keys, ...o } = profileFrom.form({ fields: e.fields, at: e.at });
+  return noteElsewhere(db, keys, "site_form", o, lineFrom.form(e));
+}
+
+/**
+ * A client's pay link into its workspace (`db`), once sent and again when paid: its profile by
+ * the email, or the text thread's number read here, and its line. Never throws.
+ */
+export async function noteClientPayLink(db: Queryable, l: ClientPayLink) {
+  const line = lineFrom.payLink(l);
+  if (!line) return null;
+  try {
+    const keys: ProfileKey[] = [{ kind: "email", value: l.email }];
+    if (l.contact !== null) {
+      const [c] = await rows(
+        db,
+        sql`select e164, email, person_id from sms_contacts where id = ${l.contact}`,
+      );
+      if (c)
+        keys.push(
+          { kind: "phone", value: str(c.e164) },
+          { kind: "email", value: str(c.email) },
+          { kind: "person", value: int(c.person_id) },
+        );
+    }
+    return await noteElsewhere(db, keys, "payment", { name: l.name, at: line.at }, line);
+  } catch (err) {
+    console.error(`profile event (payment pay_links ${l.id}): ${(err as Error).message}`);
+    return null;
+  }
+}
+
+export interface ElsewhereCount {
+  source: "site_forms" | "pay_links";
+  rows: number;
+  noted: number;
+}
+
+/**
+ * One client's rows kept on main (form entries, sent or paid pay links) into its workspace, one
+ * line each. Lines are upserted by source row, so running it twice changes nothing.
+ */
+export async function backfillClientRows(
+  main: Queryable,
+  client: string,
+  workspace: Queryable,
+  o: { dryRun?: boolean; batch?: number } = {},
+): Promise<ElsewhereCount[]> {
+  const n = o.batch ?? 500;
+  const forms: ElsewhereCount = { source: "site_forms", rows: 0, noted: 0 };
+  for (let after = "00000000-0000-0000-0000-000000000000"; ; ) {
+    const batch = await rows(
+      main,
+      sql`select e.id::text id, e.fields, e.pages, e.at, coalesce(f.name, p.title) title
+        from site_forms e left join site_form_defs f on f.id = e.form
+        left join site_pages p on p.id = e.page
+        where e.id > ${after}::uuid and coalesce(f.client, p.client) = ${client}
+        order by e.id limit ${n}`,
+    );
+    for (const r of batch) {
+      forms.rows += 1;
+      if (o.dryRun) continue;
+      const got = await noteClientForm(workspace, {
+        id: String(r.id),
+        title: str(r.title),
+        fields: (r.fields ?? {}) as Record<string, unknown>,
+        pages: (r.pages ?? null) as SeenPage[] | null,
+        at: at(r.at) ?? new Date(),
+      });
+      if (got !== null) forms.noted += 1;
+    }
+    if (batch.length < n) break;
+    after = String(batch[batch.length - 1]?.id);
+  }
+  const links: ElsewhereCount = { source: "pay_links", rows: 0, noted: 0 };
+  for (let after = "00000000-0000-0000-0000-000000000000"; ; ) {
+    const batch = await rows(
+      main,
+      sql`select id::text id, contact, email, name, channel, description, amount_cents, quantity,
+          currency, sent_at, paid_cents, paid_at from pay_links
+        where id > ${after}::uuid and client = ${client}
+          and (sent_at is not null or paid_at is not null)
+        order by id limit ${n}`,
+    );
+    for (const r of batch) {
+      links.rows += 1;
+      if (o.dryRun) continue;
+      const got = await noteClientPayLink(workspace, {
+        id: String(r.id),
+        contact: int(r.contact),
+        email: str(r.email),
+        name: str(r.name),
+        channel: String(r.channel),
+        description: String(r.description),
+        amountCents: Number(r.amount_cents),
+        quantity: Number(r.quantity),
+        currency: String(r.currency),
+        sentAt: at(r.sent_at) ?? null,
+        paidCents: int(r.paid_cents),
+        paidAt: at(r.paid_at) ?? null,
+      });
+      if (got !== null) links.noted += 1;
+    }
+    if (batch.length < n) break;
+    after = String(batch[batch.length - 1]?.id);
+  }
+  return [forms, links];
 }

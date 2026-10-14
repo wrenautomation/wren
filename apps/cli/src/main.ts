@@ -309,7 +309,11 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
-registerPeople(program, withDb);
+registerPeople(program, {
+  withDb,
+  withMainDb,
+  client: () => program.opts<{ client?: string }>().client,
+});
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
 registerSitePages(

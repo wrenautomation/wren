@@ -230,8 +230,21 @@ const SERVICES: Record<
         ...SITES_RECORDS,
         // Every message we sent (People → Sent).
         ...SENT_RECORDS,
-        // People: everyone once, their addresses, traits and timeline.
-        ...profileRecords(WORKFLOWS),
+        // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
+        // for the lander's log (the worker reads it live), two lines for any visitor.
+        ...profileRecords(WORKFLOWS, {
+          visits: async (v) =>
+            v.length
+              ? [
+                  { at: new Date().toISOString(), text: "Saw /pricing, 2 min", href: null },
+                  {
+                    at: new Date(Date.now() - 864e5).toISOString(),
+                    text: "Saw /, 40 sec, from google",
+                    href: null,
+                  },
+                ]
+              : [],
+        }),
       ],
     }),
   },

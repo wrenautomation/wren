@@ -4,7 +4,12 @@
  */
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
-import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
+import {
+  noteClientForm,
+  noteProfileFrom,
+  profileFrom,
+  type SeenPage,
+} from "@wren/core/profiles-backfill";
 import { PortalRefusal } from "@wren/core/refusal";
 import { hooks } from "@wren/core/schema";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
@@ -25,6 +30,7 @@ import {
 import {
   type FormConsent,
   type FormTouch,
+  type SiteForm,
   type SitePage,
   type SitePageVersion,
   siteEvents,
@@ -646,6 +652,26 @@ export interface EntryMeta {
   consent?: FormConsent | null;
   visitor?: string | null;
   human?: "yes" | "off" | null;
+  /** The kit's list of pages this visit saw (`sessionStorage`), checked by `pagesOf`. */
+  pages?: unknown;
+}
+
+/** A client's workspace database by its id: where its form entries' profiles live. */
+export type OpenClient = (client: string) => Queryable;
+
+const PAGES_MAX = 30;
+
+/** The kit's page list as kept: paths on the site, newest `PAGES_MAX`, oldest first; else null. */
+export function pagesOf(raw: unknown): SeenPage[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: SeenPage[] = [];
+  for (const p of raw.slice(-PAGES_MAX)) {
+    const path = typeof p?.path === "string" ? p.path.trim().slice(0, 200) : "";
+    const at = Number(p?.at);
+    if (path.startsWith("/") && Number.isFinite(at) && at > 0)
+      out.push({ path, at: Math.round(at) });
+  }
+  return out.length ? out : null;
 }
 
 /**
@@ -665,6 +691,7 @@ export async function keepForm(
     formSplit?: string | null;
     arm?: FormArm | null;
   } & EntryMeta,
+  open?: OpenClient,
 ) {
   const t = touchOf(f.touch);
   const formSplit = f.formSplit && f.arm ? f.formSplit : null;
@@ -688,6 +715,7 @@ export async function keepForm(
       consent: f.consent ?? null,
       visitor: visitor && /^[A-Za-z0-9_.-]+$/.test(visitor) ? visitor : null,
       human: f.human ?? null,
+      pages: pagesOf(f.pages),
     })
     .returning();
   await db.insert(siteEvents).values({
@@ -706,29 +734,43 @@ export async function keepForm(
     ref: touch.ref,
   });
   if (!row) throw new Error("insert returned nothing");
-  await noteFormProfile(db, f.page, form, row);
+  await noteFormProfile(db, f.page, form, row, open);
   return row;
 }
 
 /**
- * A Wren-owned entry's address fields and cookie into a profile (People). A client's entry stays
- * out: its people are its own, in its own database (its texts carry them there).
+ * An entry's address fields into a profile (People). Wren's own: here, with its cookie, and the
+ * timeline reads the entry. A client's: in its workspace, with the entry's one line there
+ * (`profile_events`), since the workspace can't read this database.
  */
 async function noteFormProfile(
   db: Queryable,
   page: SitePage | null,
   form: string | null,
-  row: { fields: unknown; visitor: string | null; at: Date },
+  row: SiteForm,
+  open: OpenClient | undefined,
 ) {
   let client = page?.client ?? null;
-  if (!client && form) {
+  let title = page?.title ?? null;
+  if (form) {
     const [d] = await db
-      .select({ client: siteFormDefs.client })
+      .select({ client: siteFormDefs.client, name: siteFormDefs.name })
       .from(siteFormDefs)
       .where(eq(siteFormDefs.id, form));
-    client = d?.client ?? null;
+    client ??= d?.client ?? null;
+    title = d?.name ?? title;
   }
-  if (client) return;
+  if (client) {
+    if (!open) return;
+    await noteClientForm(open(client), {
+      id: row.id,
+      title,
+      fields: row.fields,
+      pages: row.pages,
+      at: row.at,
+    });
+    return;
+  }
   await noteProfileFrom(
     db,
     "site_form",

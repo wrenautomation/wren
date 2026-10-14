@@ -7,7 +7,8 @@
  * move, the younger keeps its row with `merged_into` set, and `profile_merges` says what moved.
  * Nothing here is ever deleted. Only `./profiles.ts` writes these.
  *
- * The timeline (`profile_timeline`) reads the source tables through the keys; nothing is copied.
+ * The timeline (`profile_timeline`) reads the source tables through the keys. The one copy is
+ * `profile_events`: lines whose rows live in another database (B7).
  */
 import { sql } from "drizzle-orm";
 import {
@@ -192,6 +193,41 @@ export const profileMerges = pgTable(
   ],
 );
 
+/**
+ * One timeline line whose row lives in another database (B7): a client's form entries and pay
+ * links are kept in Wren's main database, and a workspace view can't read that. The only copy the
+ * timeline keeps, one line per source row, rewritten when the row changes (a pay link paid).
+ */
+export const profileEvents = pgTable(
+  "profile_events",
+  {
+    id: serial("id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    /** A `TIMELINE_KINDS` kind: `form`, `payment`. */
+    kind: varchar("kind", { length: 24 }).notNull(),
+    channel: varchar("channel", { length: 24 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    summary: text("summary").notNull(),
+    body: text("body"),
+    /** Its page in the portal: `/payments/links/<id>`. */
+    link: text("link"),
+    /** The table and row it stands for, in main: `pay_links`, its id. */
+    source: varchar("source", { length: 32 }).notNull(),
+    sourceId: varchar("source_id", { length: 64 }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_events" }),
+    unique("uq_profile_events_source").on(t.source, t.sourceId),
+    index("ix_profile_events_profile_id").on(t.profileId, t.at),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_events_profile_id_profiles",
+    }),
+  ],
+);
+
 /** A timeline line's columns, every branch the same. */
 const LINE = sql.raw(`lines.id, lines.profile_id, lines.at, lines.kind, lines.channel,
   lines.summary, lines.body, lines.link, lines.source,
@@ -200,9 +236,8 @@ const LINE = sql.raw(`lines.id, lines.profile_id, lines.at, lines.kind, lines.ch
 /**
  * Every line about one profile, over the source tables by its keys (never copied). Each line:
  * its time, kind, channel, one line, the whole thing (`body`), where its row shows in the
- * portal (`link`, when it has a page) and the table it came from. Rows a client's workspace
- * keeps on main (its forms, pay links) show in its workspace by their texts; here, a form is
- * Wren's own only.
+ * portal (`link`, when it has a page) and the table it came from. A client's rows kept on main
+ * (its forms, pay links) come in through `profile_events`; the `site_forms` branch is Wren's own.
  */
 export const profileTimeline = pgView("profile_timeline", {
   id: text("id"),
@@ -280,9 +315,13 @@ export const profileTimeline = pgView("profile_timeline", {
   join consent_events ce on ce.consent_id = c.id
   where k.kind in ('email', 'phone')
   union all
-  select 'site_form:' || e.id, hit.profile_id, e.at, 'form', coalesce(e.channel, 'site'),
+  select 'site_form:' || e.id, hit.profile_id, e.at, 'form', 'site',
     coalesce(f.name, p.title, 'A form') || ' sent',
-    (select string_agg(a || ': ' || b, chr(10) order by a) from jsonb_each_text(e.fields) x(a, b)),
+    concat_ws(chr(10) || chr(10),
+      (select string_agg(a || ': ' || b, chr(10) order by a) from jsonb_each_text(e.fields) x(a, b)),
+      'Pages seen first: '
+        || (select string_agg(v ->> 'path', ', ' order by n) from jsonb_array_elements(e.pages)
+          with ordinality y(v, n))),
     '/sites/submissions/' || e.id, 'site_forms'
   from (
     select e.id, k.profile_id from profile_keys k
@@ -321,7 +360,7 @@ export const profileTimeline = pgView("profile_timeline", {
     b.reason, '/calendar/calls/' || b.id, 'bookings'
   from profile_keys k
   join calendar.bookings b on lower(b.email) = k.value
-  where k.kind = 'email' and b.calendar = 'wren'
+  where k.kind = 'email'
   union all
   select 'call_booking:' || cb.id, k.profile_id, coalesce(cb.booked_at, cb.start), 'booking',
     'calendar', 'Booked a call' || coalesce(' for '
@@ -331,12 +370,9 @@ export const profileTimeline = pgView("profile_timeline", {
   join call_bookings cb on lower(cb.email) = k.value
   where k.kind = 'email' and cb.uid not like 'wren-%'
   union all
-  select 'paid:' || c.id, k.profile_id, c.paid_at, 'payment', 'sms',
-    'Paid ' || to_char(c.paid_cents / 100.0, 'FM999999990.00') || ' by pay link', null,
-    '/marketing/texts/' || c.id, 'sms_contacts'
-  from profile_keys k
-  join sms_contacts c on c.e164 = k.value
-  where k.kind = 'phone' and c.paid_at is not null
+  select 'profile_event:' || pe.id, pe.profile_id, pe.at, pe.kind, pe.channel, pe.summary, pe.body,
+    pe.link, pe.source
+  from profile_events pe
   union all
   select distinct on (ev.workflow, ev.subject, w.profile_id) 'event:' || ev.id, w.profile_id,
     ev.at, 'workflow', 'workflow', 'Entered ' || ev.workflow, ev.subject, null, 'events'

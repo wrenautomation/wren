@@ -94,6 +94,7 @@ import {
   briefSettingsOf,
   briefStep,
   CALL_BRIEF,
+  landerVisitLines,
   landerVisits,
   makeCallBriefs,
 } from "@wren/channel-email/calls";
@@ -1086,7 +1087,7 @@ export async function buildServices(
     makeNotesConsole(notesDeps),
     // Sites: offer landers as data at /o/<slug>, code pages by URL, one tracker and form into the
     // door (designs/2026-10-07-sites.md). Claude drafts copy only where a real model runs.
-    makeSites({ main: db, shareKey: settings.siteExportToken ?? null }),
+    makeSites({ main: db, shareKey: settings.siteExportToken ?? null, open: clientDb }),
     makeSitesConsole({
       db,
       shareKey: settings.siteExportToken ?? null,
@@ -2215,8 +2216,18 @@ export async function buildServices(
         ...MARKETING_RECORDS,
         // Every message we sent, on any channel (People → Sent).
         ...SENT_RECORDS,
-        // Everyone once, their addresses, traits and timeline (People).
-        ...profileRecords(WORKFLOWS),
+        // Everyone once, their addresses, traits and timeline (People); site visits read live.
+        ...profileRecords(
+          WORKFLOWS,
+          settings.siteExportToken
+            ? {
+                visits: landerVisitLines({
+                  baseUrl: settings.siteBaseUrl,
+                  exportToken: settings.siteExportToken,
+                }),
+              }
+            : {},
+        ),
         ...templateRecords(WORKFLOWS),
         clientRecord,
         // Each client's health and the flags about it (Clients).

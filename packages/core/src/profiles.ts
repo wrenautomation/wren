@@ -7,7 +7,13 @@
  */
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { profileKeys, profileMerges, profiles, profileTraits } from "./profiles-schema.js";
+import {
+  profileEvents,
+  profileKeys,
+  profileMerges,
+  profiles,
+  profileTraits,
+} from "./profiles-schema.js";
 import { normalizeHandle } from "./touches.js";
 
 /** One address as a writer has it, not yet normalized: `{kind: "phone", value: "(555) 010-0000"}`. */
@@ -229,6 +235,7 @@ export async function mergeProfiles(
     .set({ profileId: into })
     .where(eq(profileKeys.profileId, from))
     .returning({ id: profileKeys.id });
+  await db.update(profileEvents).set({ profileId: into }).where(eq(profileEvents.profileId, from));
   const theirs = await db.select().from(profileTraits).where(eq(profileTraits.profileId, from));
   let traits = 0;
   for (const t of theirs) if (await putTrait(db, into, t.key, t.value, t.source, t.at)) traits += 1;
@@ -334,6 +341,63 @@ export async function noteProfile(
     return await resolveProfile(db, keys, source, o);
   } catch (err) {
     console.error(`profile (${source}): ${(err as Error).message}`);
+    return null;
+  }
+}
+
+/** A timeline line whose row lives in another database (`profile_events`). */
+export interface ElsewhereLine {
+  kind: string;
+  channel: string;
+  at: Date;
+  summary: string;
+  body?: string | null;
+  link?: string | null;
+  /** Its table and row id where it lives: `pay_links`, the link's id. */
+  source: string;
+  sourceId: string;
+}
+
+/**
+ * A row kept in another database (a client's form entry or pay link, on main) into this
+ * workspace: its keys resolve a profile here and its one timeline line is written, or rewritten
+ * when the row changed. Never throws, like `noteProfile`; null when no key was usable.
+ */
+export async function noteElsewhere(
+  db: Queryable,
+  keys: readonly ProfileKey[],
+  source: string,
+  o: ResolveOptions,
+  line: ElsewhereLine,
+): Promise<number | null> {
+  try {
+    return await atomic(db, async (tx) => {
+      const got = await resolveProfile(tx, keys, source, o);
+      if (!got) return null;
+      const row = {
+        profileId: got.id,
+        kind: line.kind.slice(0, 24),
+        channel: line.channel.slice(0, 24),
+        at: line.at,
+        summary: line.summary.slice(0, 400),
+        body: line.body?.slice(0, 8000) ?? null,
+        link: line.link ?? null,
+        source: line.source.slice(0, 32),
+        sourceId: line.sourceId.slice(0, 64),
+      };
+      await tx
+        .insert(profileEvents)
+        .values(row)
+        .onConflictDoUpdate({
+          target: [profileEvents.source, profileEvents.sourceId],
+          set: { ...row, updatedAt: sql`now()` },
+        });
+      return got.id;
+    });
+  } catch (err) {
+    console.error(
+      `profile event (${source} ${line.source} ${line.sourceId}): ${(err as Error).message}`,
+    );
     return null;
   }
 }

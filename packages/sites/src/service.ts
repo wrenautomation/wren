@@ -24,6 +24,7 @@ import {
   formFieldsOf,
   keepForm,
   markForm,
+  type OpenClient,
   pageById,
   pageToServe,
   recordEvent,
@@ -71,7 +72,10 @@ async function sectionForm(
 
 const humanOf = (h: unknown): "yes" | "off" | null => (h === "yes" || h === "off" ? h : null);
 
-export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}) {
+export function sitesPublicApi(
+  main: Db,
+  opts: { shareKey?: string | null; open?: OpenClient } = {},
+) {
   /**
    * A hosted form's submit, checked against its spec: kept with the consent words it showed, the
    * visitor and Turnstile's answer, then the payload for its door. A page it sits on rides along.
@@ -95,19 +99,24 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       words && values.sms_consent === "yes"
         ? { text: words, version: consentVersion(words) }
         : null;
-    const kept = await keepForm(main, {
-      page,
-      form: form.id,
-      split: req.split ?? null,
-      formSplit: arm.split,
-      arm: arm.arm,
-      view: req.view ?? null,
-      fields: values,
-      touch: req.touch,
-      consent,
-      visitor: req.visitor ?? null,
-      human: humanOf(req.human),
-    });
+    const kept = await keepForm(
+      main,
+      {
+        page,
+        form: form.id,
+        split: req.split ?? null,
+        formSplit: arm.split,
+        arm: arm.arm,
+        view: req.view ?? null,
+        fields: values,
+        touch: req.touch,
+        consent,
+        visitor: req.visitor ?? null,
+        human: humanOf(req.human),
+        pages: req.pages,
+      },
+      opts.open,
+    );
     const t = touchOf(req.touch);
     const hook = await doorFor(main, form);
     return {
@@ -324,19 +333,24 @@ export function sitesPublicApi(main: Db, opts: { shareKey?: string | null } = {}
       const fields = formFieldsOf(raw);
       if (!fields.email && !fields.phone)
         return { status: 400, error: "Add an email or a phone number." };
-      const kept = await keepForm(main, {
-        page,
-        split: req.split ?? null,
-        view: req.view ?? null,
-        fields,
-        touch: req.touch,
-        consent:
-          fields.sms_consent === "yes"
-            ? { text: DEFAULT_CONSENT, version: consentVersion(DEFAULT_CONSENT) }
-            : null,
-        visitor: req.visitor ?? null,
-        human: humanOf(req.human),
-      });
+      const kept = await keepForm(
+        main,
+        {
+          page,
+          split: req.split ?? null,
+          view: req.view ?? null,
+          fields,
+          touch: req.touch,
+          consent:
+            fields.sms_consent === "yes"
+              ? { text: DEFAULT_CONSENT, version: consentVersion(DEFAULT_CONSENT) }
+              : null,
+          visitor: req.visitor ?? null,
+          human: humanOf(req.human),
+          pages: req.pages,
+        },
+        opts.open,
+      );
       const hook = await doorOf(main, page);
       const t = touchOf(req.touch);
       return {
@@ -406,6 +420,8 @@ export interface FormRequest {
   visitor?: string | null;
   /** The Worker's Turnstile answer: `yes`, or `off` where no secret is set. */
   human?: string | null;
+  /** The pages this visit saw before the form, from the kit's `sessionStorage`. */
+  pages?: unknown;
 }
 export interface Answer {
   status: number;
@@ -442,8 +458,11 @@ const ARM = z.string().max(1).nullish().describe("The form split's arm: A or B")
 export const SITES = { name: "Sites" } as const;
 
 /** The Restate service. Public: the Worker calls it for anyone's browser. */
-export function makeSites(deps: { main: Db; shareKey?: string | null }) {
-  const api = sitesPublicApi(deps.main, { shareKey: deps.shareKey ?? null });
+export function makeSites(deps: { main: Db; shareKey?: string | null; open?: OpenClient }) {
+  const api = sitesPublicApi(deps.main, {
+    shareKey: deps.shareKey ?? null,
+    ...(deps.open ? { open: deps.open } : {}),
+  });
   return restate.service({
     name: SITES.name,
     handlers: {
@@ -521,6 +540,8 @@ export function makeSites(deps: { main: Db; shareKey?: string | null }) {
             host: z.string().max(253).nullish(),
             visitor: z.string().max(64).nullish().describe("The wv cookie"),
             human: z.enum(["yes", "off"]).nullish().describe("Turnstile, checked at the edge"),
+            // Checked by `pagesOf`, never refused: a bad list must not lose the form.
+            pages: z.unknown().optional().describe("The pages this visit saw first"),
           }),
         },
         async (ctx: restate.Context, req: FormRequest): Promise<Answer> => {

@@ -18,7 +18,7 @@ One door path for pages and forms: a submit lands in the same `site_forms` table
 ## Shape
 
 - `site_form_defs`: `client` (null is Wren), `slug` (unique per owner), `name`, `status` draft|live|retired, `spec` (`FormSpec`, `packages/sites/src/forms.ts:60`), `hook`, `created_*`, `updated_*`.
-- `site_forms` gains `form`, `consent {text, version}`, `visitor` (`wv`), `human` (Turnstile `yes` | `off`); `page` nullable. `site_events` gains `form` and the `start` event.
+- `site_forms` gains `form`, `consent {text, version}`, `visitor` (`wv`), `human` (Turnstile `yes` | `off`), `pages` (the visit's page list from the kit's `sessionStorage`, checked by `pagesOf` in `packages/sites/src/store.ts`; migration 0249); `page` nullable. `site_events` gains `form` and the `start` event.
 - Views `site_form_records` (views, starts, submits, conversion, url) and `site_entry_records` (every field, source, consent, door result). Migration `0182_forms`.
 - Round two: a field's `show` rule (is, not, filled, empty on an earlier field) and `step` fields
   that split it into steps (`site_events.step`, migration 0204). `site_form_splits` runs A/B per
@@ -33,6 +33,7 @@ Citations: `packages/sites/src/schema.ts:138`, `packages/sites/src/forms.ts:60`,
 
 - **owns:** `site_form_defs`, `site_form_splits`
 - **owned-by:** `@wren/sites`
+- **writes:** [[leads/profile]]: Wren's entries here; a client's in its workspace with one `profile_events` line (`keepForm` with `open`, `noteClientForm`)
 - **joins:** [[clients/client]] by `client`; [[platform/spine]] (the door); [[platform/webhook-subscription]] (`form.submitted`)
 - **looks-like-but-is-not:** a Sites page's default form section (no def row); `Ads.leads` (Meta form fills)
 

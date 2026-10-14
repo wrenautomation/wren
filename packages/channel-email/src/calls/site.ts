@@ -81,3 +81,48 @@ export function landerVisits(site: Site): (email: string) => Promise<Cited[]> {
     }
   };
 }
+
+/** How many visit lines a profile page shows: the newest. */
+export const VISIT_LINES = 40;
+
+/**
+ * People's `VisitReader` for Wren's own profiles (designs/2026-10-14-customerio-audit.md, B7):
+ * each visitor's pages and recorded sessions, read live from the lander's export when the page
+ * opens, newest first. Nothing is kept. A failed read shows none, never breaks the page.
+ */
+export function landerVisitLines(
+  site: Site,
+): (visitors: readonly string[]) => Promise<{ at: string; text: string; href: string | null }[]> {
+  const base = site.baseUrl.replace(/\/+$/, "");
+  return async (visitors) => {
+    try {
+      const lines: { at: string; text: string; href: string | null }[] = [];
+      for (const visitor of visitors) {
+        const [hits, replays] = await Promise.all([
+          siteExport("hits", { ...site, visitor }),
+          siteExport("replays", { ...site, visitor }),
+        ]);
+        for (const h of hits) {
+          const secs = Number(h.secs) || 0;
+          const from = h.utm_source ? `, from ${h.utm_source}` : "";
+          const cta = Number(h.cta) > 0 ? ", clicked through" : "";
+          lines.push({
+            at: new Date(h.ts).toISOString(),
+            text: `Saw ${h.page}${secs ? `, ${mins(secs)}` : ""}${cta}${from}`,
+            href: `${base}${h.page}`,
+          });
+        }
+        for (const r of replays)
+          lines.push({
+            at: new Date(r.started).toISOString(),
+            text: `Recorded visit to ${r.page}, ${mins((Date.parse(r.last) - Date.parse(r.started)) / 1000)}`,
+            href: `/sites/sessions/${encodeURIComponent(r.view)}`,
+          });
+      }
+      return lines.sort((a, b) => b.at.localeCompare(a.at)).slice(0, VISIT_LINES);
+    } catch (err) {
+      console.warn(`profile site visits: ${(err as Error).message}`);
+      return [];
+    }
+  };
+}

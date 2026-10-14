@@ -12,7 +12,7 @@ import { clientAccounts } from "@wren/core/setup-schema";
 import { vendorModes } from "@wren/core/vendor-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";
 import { payLinks } from "../../src/schema.js";
@@ -233,6 +233,14 @@ describe("Stripe's webhook", () => {
     });
     const [c] = await acme.select().from(smsContacts).where(eq(smsContacts.id, contact));
     expect(c?.paidCents).toBe(4900);
+    // The payment is a line in the client's workspace, on Sam's profile (People, B7).
+    const lines = await acme.execute<{ summary: string; link: string; who: string }>(
+      sql`select summary, link, who from profile_timeline where kind = 'payment'`,
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ link: `/payments/links/${l.id}`, who: "Sam Rivera" });
+    expect(lines[0]?.summary).toMatch(/^Paid \$49\.00 for /);
+    expect(await pg.db.execute(sql`select 1 from profile_events`)).toHaveLength(0);
     // Stripe retries: kept once, nothing marked twice.
     const again = await takeWebhook(
       deps(),

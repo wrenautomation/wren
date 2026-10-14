@@ -175,6 +175,57 @@ describe("tracking and forms", () => {
     const [f] = await pg.db.execute<{ entered: boolean }>(sql`select entered from site_forms`);
     expect(f?.entered).toBe(true);
   });
+
+  it("keeps the visit's pages on the entry, and a client's entry lands in its workspace", async () => {
+    await truncate(pg.db, ["profile_events", "profile_traits", "profile_keys", "profiles"]);
+    await pg.db.execute(
+      sql`insert into clients (id, name, database) values ('acme', 'Acme', 'wren_client_acme')
+        on conflict do nothing`,
+    );
+    const page = await livePage();
+    await pg.db.execute(sql`update site_pages set client = 'acme' where id = ${page.id}`);
+    const opened: string[] = [];
+    // One database stands in for the workspace too.
+    const withOpen = sitesPublicApi(pg.db, {
+      open: (c) => {
+        opened.push(c);
+        return pg.db;
+      },
+    });
+    const pages = [
+      { path: "/", at: 1790000000000 },
+      { path: "/pricing", at: 1790000060000 },
+      { path: "not a path", at: 1 },
+      "junk",
+    ];
+    const res = await withOpen.form(
+      { page: page.id, fields: { email: "kim@example.test" }, pages },
+      async () => ({ status: 202 }),
+    );
+    expect(res.status).toBe(202);
+    const [e] = await pg.db.execute<{ id: string; pages: unknown }>(
+      sql`select id, pages from site_forms`,
+    );
+    expect(e?.pages).toEqual([
+      { path: "/", at: 1790000000000 },
+      { path: "/pricing", at: 1790000060000 },
+    ]);
+    expect(opened).toEqual(["acme"]);
+    const [l] = await pg.db.execute<{ summary: string; body: string; link: string }>(
+      sql`select summary, body, link from profile_timeline where kind = 'form'`,
+    );
+    expect(l?.link).toBe(`/sites/submissions/${e?.id}`);
+    expect(l?.body).toContain("Pages seen first: /, /pricing");
+    // A bad list loses nothing: the form is kept without one.
+    await withOpen.form(
+      { page: page.id, fields: { email: "lou@example.test" }, pages: "nope" },
+      async () => ({ status: 202 }),
+    );
+    const kept = await pg.db.execute<{ pages: unknown }>(
+      sql`select pages from site_forms where fields ->> 'email' = 'lou@example.test'`,
+    );
+    expect(kept[0]?.pages).toBeNull();
+  });
 });
 
 describe("hosted forms", () => {

@@ -14,6 +14,7 @@
  * - `site_links`: tracked `/go/` links made in the portal, each to one page, with its utm.
  */
 import { clients } from "@wren/core/clients";
+import type { SeenPage } from "@wren/core/profiles-backfill";
 import { hooks } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
@@ -413,6 +414,11 @@ export const siteForms = pgTable(
     /** Turnstile: `yes` passed, `off` not set up where it came in. */
     human: varchar("human", { length: 4 }),
     touch: jsonb("touch").$type<FormTouch>().notNull(),
+    /**
+     * The pages this visit saw before the form, oldest first, from the browser's `sessionStorage`
+     * (no cookie, no visitor id); null when the page sent none.
+     */
+    pages: jsonb("pages").$type<SeenPage[]>(),
     channel: varchar("channel", { length: 10 }).notNull(),
     /** Sent to the door; false with `why` when it had none or it refused. */
     entered: boolean("entered").notNull().default(false),

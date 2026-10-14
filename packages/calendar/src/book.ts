@@ -133,18 +133,18 @@ export async function claim(
       if (!row) throw new Error("booking insert returned no row");
       return row;
     });
-    // Wren's own calendar: the booker joins their profile (People). A client's booker is its own.
-    if (booked.calendar === "wren")
-      await noteProfileFrom(
-        db,
-        "booking",
-        profileFrom.booking({
-          email: booked.email,
-          name: booked.name,
-          visitor: booked.source.visitor ?? null,
-          at: booked.createdAt,
-        }),
-      );
+    // The booker joins their profile (People) in this calendar's own database: Wren's, or the
+    // client's workspace for its calendar.
+    await noteProfileFrom(
+      db,
+      "booking",
+      profileFrom.booking({
+        email: booked.email,
+        name: booked.name,
+        visitor: booked.source.visitor ?? null,
+        at: booked.createdAt,
+      }),
+    );
     return booked;
   } catch (err) {
     if (sqlState(err) === "23505") throw new SlotTaken();
