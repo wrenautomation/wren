@@ -8,7 +8,7 @@ import { applies, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, FieldCell } from "./fields.js";
-import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
+import { FRAME, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
   cap,
@@ -52,7 +52,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
 
   return (
     <div className={cn(ROOT, "grid max-w-[760px] min-w-0 gap-6")}>
-      <h1 className={PAGE_TITLE}>{title ?? cap(meta.name.many)}</h1>
+      <PageTitle title={title ?? cap(meta.name.many)} />
       {!rows.length ? (
         <p className="text-[14px] text-(--ui-ink-2)">
           {emptyOf(empty, meta.views[0]?.id, meta.name.many)}

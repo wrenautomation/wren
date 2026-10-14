@@ -14,7 +14,7 @@ import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js
 import { Empty, LoadFailed } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
-import { FRAME, FRAME_HEAD, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
+import { FRAME, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   askOf,
   cap,
@@ -162,7 +162,7 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
           ) : as === "section" ? (
             <h2 className={SECTION_TITLE}>{title}</h2>
           ) : (
-            <h1 className={PAGE_TITLE}>{title}</h1>
+            <PageTitle title={title} />
           )}
           {keep && all.length > 1 ? (
             <TilesMenu labels={all.map((t) => t.label)} pref={pref.value} onChange={pref.set} />

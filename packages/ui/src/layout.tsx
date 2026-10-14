@@ -3,7 +3,7 @@
  * the next: a hair frame, a banded head strip with a rule under it, and a heading scale with
  * plain steps (page title, section title, group label).
  */
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { cx } from "./format.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
@@ -27,6 +27,26 @@ export const FRAME_BODY =
 
 const ACTIONS = "flex flex-wrap items-center gap-2.5";
 
+const AboutContext = createContext<string | undefined>(undefined);
+/** The open page's `about`: one line under its title saying what it's for. */
+export const AboutProvider = AboutContext.Provider;
+export const useAbout = () => useContext(AboutContext);
+
+/** The line under a title: the page's own lede, else what the page is for. */
+export const ABOUT = "mt-1 max-w-[62ch] text-[14px] text-pretty text-(--ui-ink-2)";
+
+/** A page's title, with its line under it. */
+export function PageTitle({ title, lede }: { title: ReactNode; lede?: ReactNode }) {
+  const about = useAbout();
+  const line = lede ?? about;
+  return (
+    <div className="min-w-0">
+      <h1 className={PAGE_TITLE}>{title}</h1>
+      {line ? <p className={ABOUT}>{line}</p> : null}
+    </div>
+  );
+}
+
 export function PageHeader({
   title,
   lede,
@@ -34,7 +54,7 @@ export function PageHeader({
   className,
 }: {
   title: string;
-  /** One line, only when the page needs an instruction. */
+  /** Its own line under the title; without one, the page's declared `about` shows. */
   lede?: ReactNode;
   actions?: ReactNode;
   className?: string | undefined;
@@ -46,12 +66,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div>
-        <h1 className={PAGE_TITLE}>{title}</h1>
-        {lede ? (
-          <p className="mt-1 max-w-[62ch] text-[14px] text-pretty text-(--ui-ink-2)">{lede}</p>
-        ) : null}
-      </div>
+      <PageTitle title={title} lede={lede} />
       {actions ? <div className={ACTIONS}>{actions}</div> : null}
     </header>
   );

@@ -13,7 +13,7 @@ import { Button, ButtonLink } from "./controls.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
-import { GROUP_LABEL, PAGE_TITLE, SECTION_TITLE } from "./layout.js";
+import { GROUP_LABEL, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
   ListSkeleton,
@@ -214,7 +214,7 @@ function Day({
   return (
     <div className={cn(ROOT, "grid min-w-0 grid-cols-1 gap-5")}>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className={PAGE_TITLE}>{named}</h1>
+        <PageTitle title={named} />
         <div className="flex items-center gap-1">
           <ButtonLink
             href={link(dayKey(plus(day, -1)))}
