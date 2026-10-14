@@ -24,14 +24,14 @@
   --ui-paper: #fff; /* windows and cards */
   --ui-ink: #0e0e0e;
   --ui-ink-2: #56564f; /* secondary text, 7.4:1 on white */
-  --ui-ink-3: #9c9c96; /* marks only, never text */
-  --ui-accent: #7969a3; /* Smoky Lavender, a step deeper than the pfp's #8270b0: 4.8:1 on white */
+  --ui-ink-3: #63645e; /* faint text, 4.5:1 on every ground like all text */
+  --ui-accent: #6a5a93; /* Smoky Lavender, deeper than the pfp's #8270b0: 4.5:1 on every ground */
   --ui-on-accent: #faf7f2;
   --ui-good: #17803d;
   --ui-good-ink: #136b33;
-  --ui-bad: #d2281e;
+  --ui-bad: #c31c15;
   --ui-warn: #b7791f; /* waiting on you: needs counts, the amber status tone */
-  --ui-warn-ink: #8a5a12; /* amber small text, 5.9:1 on white */
+  --ui-warn-ink: #895911; /* amber small text */
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
   --ui-font: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
   --ui-font-display: var(--ui-font); /* headings and big figures */

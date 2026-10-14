@@ -9,15 +9,12 @@ import {
   argbFromHex,
   argbFromRgb,
   Blend,
-  blueFromArgb,
   Contrast,
   type DynamicScheme,
-  greenFromArgb,
   Hct,
   hexFromArgb,
   lstarFromArgb,
   QuantizerCelebi,
-  redFromArgb,
   SchemeContent,
   SchemeExpressive,
   SchemeFidelity,
@@ -29,6 +26,7 @@ import {
   sanitizeDegreesDouble,
   TonalPalette,
 } from "@material/material-color-utilities";
+import { type GROUNDS, NEED, pairsOf } from "./contrast.js";
 import type { Theme, Token } from "./theme.js";
 
 /** MCU's scheme variants. `tonal_spot` is calm; `fidelity` stays closest to the brand color. */
@@ -87,36 +85,18 @@ export function readBrand(raw: unknown): BrandInput | null {
   };
 }
 
-/** Where text sits: a token, or a tint as tailwind.css mixes it, laid on paper. */
-export type Ground = Token | "accent-tint" | "good-tint" | "bad-tint";
-const TINTS: Partial<Record<Ground, [Token, number]>> = {
-  "accent-tint": ["accent", 0.1],
-  "good-tint": ["good", 0.1],
-  "bad-tint": ["bad", 0.06],
-};
+/** Where text sits: one of the grounds `contrast.ts` checks, or the accent for on-accent. */
+export type Ground = (typeof GROUNDS)[number] | "accent";
 
 /**
- * Text on its ground and the ratio it needs. Body text 4.5:1, ink-3 3:1. A text color stepped
- * for one ground only moves further from the next, since canvas, paper and tile sit on one side.
+ * Text colors in the order they're stepped. The accent goes first: the tints it makes are
+ * grounds for the rest.
  */
-const CHECKS: [Token, Ground, number][] = [
-  ["ink", "canvas", 4.5],
-  ["ink", "paper", 4.5],
-  ["ink", "tile", 4.5],
-  ["ink-2", "canvas", 4.5],
-  ["ink-2", "paper", 4.5],
-  ["ink-2", "tile", 4.5],
-  ["ink-3", "canvas", 3],
-  ["ink-3", "paper", 3],
-  // Before on-accent: stepping the accent moves the ground on-accent is checked on.
-  ["accent", "accent-tint", 4.5],
-  ["on-accent", "accent", 4.5],
-  ["good-ink", "good-tint", 4.5],
-  ["bad", "bad-tint", 4.5],
-];
+const STEPPED: Token[] = ["accent", "ink", "ink-2", "ink-3", "good-ink", "warn-ink", "bad"];
 
 export interface ContrastLine {
   text: Token;
+  /** Its weakest ground. */
   on: Ground;
   need: number;
   ratio: number;
@@ -124,18 +104,13 @@ export interface ContrastLine {
   was?: string;
 }
 
-/** The green a good result shows in, harmonized toward the brand. */
+/** The green a good result shows in, and the amber a wait shows in, harmonized toward the brand. */
 const GREEN = 0xff2e7d32;
+const AMBER = 0xffb7791f;
 const BLACK = 0xff000000;
 const WHITE = 0xffffffff;
 
 const ratio = (a: number, b: number) => Contrast.ratioOfTones(lstarFromArgb(a), lstarFromArgb(b));
-
-/** `share` of `color` over `under`, mixed in sRGB as color-mix does. */
-function mix(color: number, share: number, under: number): number {
-  const m = (f: (c: number) => number) => Math.round(f(color) * share + f(under) * (1 - share));
-  return argbFromRgb(m(redFromArgb), m(greenFromArgb), m(blueFromArgb));
-}
 
 /**
  * `text` stepped in HCT tone, a point at a time, toward black or white, whichever is further from
@@ -159,6 +134,7 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
   const dark = brand.scheme === "dark";
   const s = new SCHEMES[brand.variant](Hct.fromInt(source), dark, brand.contrast);
   const good = Blend.harmonize(GREEN, source);
+  const warn = Blend.harmonize(AMBER, source);
   const c: Partial<Record<Token, number>> = {
     canvas: s.surface,
     paper: dark ? s.surfaceContainer : s.surfaceContainerLowest,
@@ -171,44 +147,57 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
     good,
     "good-ink": TonalPalette.fromInt(good).tone(dark ? 80 : 30),
     bad: s.error,
+    warn,
+    "warn-ink": TonalPalette.fromInt(warn).tone(dark ? 80 : 35),
     shade: s.shadow,
   };
-  const at = (t: Token) => c[t] ?? BLACK;
-  const ground = (g: Ground) => {
-    const tint = TINTS[g];
-    return tint ? mix(at(tint[0]), tint[1], at("paper")) : at(g as Token);
+  const colors = (): Theme => {
+    const t: Theme = { scheme: brand.scheme };
+    for (const [k, v] of Object.entries(c)) t[k as Token] = hexFromArgb(v);
+    return t;
   };
+  const weakest = (text: Token) =>
+    pairsOf(colors())
+      .filter((p) => p.text === text)
+      .reduce((a, b) => (b.ratio < a.ratio ? b : a));
 
+  // Each text color steps in tone, away from the paper, until its weakest ground reads.
   const was: Partial<Record<Token, number>> = {};
-  for (const [text, on, need] of CHECKS) {
-    const fixed = stepToPass(at(text), ground(on), need);
-    if (fixed === at(text)) continue;
-    was[text] ??= at(text);
-    c[text] = fixed;
+  for (const text of STEPPED) {
+    const start = c[text] ?? BLACK;
+    const { hue, chroma, tone } = Hct.fromInt(start);
+    for (let t = Math.round(tone); weakest(text).ratio < NEED && t >= 0 && t <= 100; ) {
+      t += dark ? 1 : -1;
+      c[text] = Hct.from(hue, chroma, t).toInt();
+    }
+    if (c[text] !== start) was[text] = start;
+  }
+  const onAccent = stepToPass(c["on-accent"] ?? WHITE, c.accent ?? BLACK, NEED);
+  if (onAccent !== c["on-accent"]) {
+    was["on-accent"] = c["on-accent"] ?? WHITE;
+    c["on-accent"] = onAccent;
   }
 
   // Chart series: the accent (chart-1 follows it in CSS), the harmony's hues, a neutral.
   const tone = dark ? 70 : 50;
   const chroma = Math.max(s.primaryPalette.chroma, 36);
   const hue = Hct.fromInt(source).hue;
-  const theme: Theme = { scheme: brand.scheme };
-  for (const [t, v] of Object.entries(c)) theme[t as Token] = hexFromArgb(v);
+  const theme = colors();
   HARMONY[brand.harmony].forEach((turn, i) => {
     const p = TonalPalette.fromHueAndChroma(sanitizeDegreesDouble(hue + turn), chroma);
     theme[`chart-${i + 2}` as Token] = hexFromArgb(p.tone(tone));
   });
   theme["chart-5"] = hexFromArgb(s.neutralVariantPalette.tone(tone));
 
-  const report = CHECKS.map(([text, on, need]): ContrastLine => {
+  const line = (text: Token, on: Ground, r: number): ContrastLine => {
     const w = was[text];
-    return {
-      text,
-      on,
-      need,
-      ratio: ratio(at(text), ground(on)),
-      ...(w !== undefined ? { was: hexFromArgb(w) } : {}),
-    };
+    return { text, on, need: NEED, ratio: r, ...(w !== undefined ? { was: hexFromArgb(w) } : {}) };
+  };
+  const report = STEPPED.map((text) => {
+    const p = weakest(text);
+    return line(text, p.on as Ground, p.ratio);
   });
+  report.push(line("on-accent", "accent", ratio(c["on-accent"] ?? WHITE, c.accent ?? BLACK)));
   return { theme, report };
 }
 

@@ -41,10 +41,10 @@ export const WREN_COLORS: Partial<Record<Token, string>> = {
   paper: "#ffffff",
   ink: "#0e0e0e",
   "ink-2": "#56564f",
-  accent: "#7969a3",
+  accent: "#6a5a93",
   "on-accent": "#faf7f2",
   good: "#17803d",
-  bad: "#d2281e",
+  bad: "#c31c15",
 };
 const TYPED = Object.keys(WREN_COLORS) as Token[];
 
@@ -54,15 +54,26 @@ const NAMES: Partial<Record<Token | Ground, string>> = {
   tile: "Tiles",
   ink: "Text",
   "ink-2": "Second text",
-  "ink-3": "Marks",
+  "ink-3": "Faint text",
   accent: "Accent",
   "on-accent": "Text on accent",
   good: "Good",
   "good-ink": "Good text",
   bad: "Bad",
+  "warn-ink": "Wait text",
+  wash: "row hover",
+  band: "bands",
+  fill: "counts",
+  "fill/canvas": "counts on ground",
+  "fill/tile": "counts on tiles",
+  hover: "hover",
+  "accent-wash": "accent wash",
   "accent-tint": "accent tint",
+  "accent-tint/canvas": "accent tint on ground",
   "good-tint": "good tint",
   "bad-tint": "bad tint",
+  "warn-tint": "wait tint",
+  "warn-tint/canvas": "wait tint on ground",
 };
 const nameOf = (t: Token | Ground) => NAMES[t] ?? t;
 
@@ -170,7 +181,7 @@ export function LookEditor({
         ...withBase(base),
         ...Object.fromEntries(TYPED.map((t) => [t, color(t)])),
       });
-    setDraft({ ...withBase(base), brand: { color: hex6(color("accent")) ?? "#7969a3" } });
+    setDraft({ ...withBase(base), brand: { color: hex6(color("accent")) ?? "#6a5a93" } });
   };
   const setBase = (p: Named) => {
     const { preset: _, ...rest } = obj();
