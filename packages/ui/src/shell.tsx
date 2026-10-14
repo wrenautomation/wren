@@ -558,14 +558,15 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const [over, setOver] = useState(false);
   const className = cx(
     HOVER,
-    "flex h-(--layout-tab-row) w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) pr-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    // A long label ("Waiting on you") wraps to a second line instead of cutting off.
+    "flex min-h-(--layout-tab-row) w-full min-w-0 items-center gap-[11px] rounded-(--ui-radius) py-1.5 pr-2.5 text-[14px] leading-[18px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
     DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
     TAB_ON,
     over && TAB_OVER,
   );
   const body = (
     <>
-      <span className="min-w-0 truncate">{t.label}</span>
+      <span className="min-w-0 text-pretty [overflow-wrap:anywhere]">{t.label}</span>
       {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
     </>
   );
