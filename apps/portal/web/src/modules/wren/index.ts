@@ -160,6 +160,7 @@ export const outbound: Module = {
   pages: [
     {
       ...overview,
+      about: "Cold email campaigns, inboxes and replies, at a glance.",
       tiles: [
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
         { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
@@ -200,6 +201,7 @@ export const outbound: Module = {
     {
       id: "campaigns",
       label: "Campaigns",
+      about: "Every cold email campaign, and how it's doing.",
       template: "list",
       record: "email.campaign",
       empty: "Campaigns show here once they start.",
@@ -208,6 +210,7 @@ export const outbound: Module = {
     {
       id: "inboxes",
       label: "Inboxes",
+      about: "The mailboxes we send cold email from, and their health.",
       template: "list",
       record: "email.inbox",
       empty: { paused: "Every inbox is sending.", sending: "No inbox is sending." },
@@ -216,6 +219,7 @@ export const outbound: Module = {
     {
       id: "signals",
       label: "Signals",
+      about: "News about prospects that gives us a reason to write.",
       template: "list",
       record: "research.signal",
       empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
@@ -326,6 +330,7 @@ export const inbox: Module = {
   pages: [
     {
       ...overview,
+      about: "Everything that waits on you, across channels.",
       tiles: [
         {
           label: "Waiting on you",
@@ -394,6 +399,7 @@ export const inbox: Module = {
     {
       id: "mentions",
       label: "Mentions",
+      about: "Notes where someone tagged you with @.",
       template: "list",
       record: "notes.mention",
       empty: {
@@ -408,6 +414,7 @@ export const inbox: Module = {
     {
       id: "replies",
       label: "Email replies",
+      about: "Warm email replies, each with a drafted answer.",
       template: "queue",
       record: "email.reply",
       empty: {
@@ -421,6 +428,7 @@ export const inbox: Module = {
     {
       id: "mail",
       label: "Your mail",
+      about: "Your own email that needs you, pulled from the rest.",
       template: "list",
       record: "watch.mail",
       empty: {
@@ -434,6 +442,7 @@ export const inbox: Module = {
     {
       id: "rules",
       label: "Mail rules",
+      about: "Rules that hide email you don't need to see.",
       template: "list",
       record: "watch.rule",
       empty: { all: "No rules yet. Hide like this on any email writes one." },
@@ -451,6 +460,7 @@ export const loops: Module = {
   pages: [
     {
       ...overview,
+      about: "Everything that runs on its own, and whether it's healthy.",
       tiles: [
         { label: "Failing", record: "console.loop", href: "/loops/all?view=failing", needs: true },
         { label: "Stopped", record: "console.loop", href: "/loops/all?view=stopped" },
@@ -466,10 +476,17 @@ export const loops: Module = {
         },
       ],
     },
-    { id: "agents", label: "Agents", Page: Agents, wide: true },
+    {
+      id: "agents",
+      label: "Agents",
+      about: "Everything that runs for Wren, by department.",
+      Page: Agents,
+      wide: true,
+    },
     {
       id: "all",
       label: "Loops",
+      about: "Every loop, and whether it's running or failing.",
       template: "list",
       record: "console.loop",
       empty: { failing: "Nothing is failing.", stopped: "Every loop is running." },
@@ -479,6 +496,7 @@ export const loops: Module = {
       // Each edits in place with History and Undo (`console.setting`); saving needs `manage`.
       id: "settings",
       label: "Settings",
+      about: "Settings for the parts that run for Wren.",
       template: "list",
       record: "console.setting",
       empty: { all: "No part that runs for Wren has settings." },
@@ -487,12 +505,13 @@ export const loops: Module = {
       // Rules, fallback and the kill switch edit in place, with History and Undo.
       id: "flags",
       label: "Flags",
+      about: "Switches the code reads to turn a feature on or off.",
       template: "list",
       record: "loops.flag",
       empty: { all: "No flags yet. New flag adds one; code reads it with useFlag." },
       actions: FLAG_ACTIONS,
     },
-    { id: "infra", label: "Infra", Page: Infra },
+    { id: "infra", label: "Infra", about: "Every host, and what calls what.", Page: Infra },
   ],
 };
 
@@ -555,6 +574,7 @@ export const money: Module = {
   pages: [
     {
       ...overview,
+      about: "Where Wren's money goes, at a glance.",
       tiles: [
         {
           label: "Spend",
@@ -605,6 +625,7 @@ export const money: Module = {
     {
       id: "spend",
       label: "Spend",
+      about: "Everything we spend, by vendor and month.",
       template: "list",
       record: "books.spend",
       empty: "Spend shows here once the books import it.",
@@ -612,6 +633,7 @@ export const money: Module = {
     {
       id: "models",
       label: "Model usage",
+      about: "AI model calls, and what they cost.",
       template: "list",
       record: "email.model",
       empty: "Model calls show here once a run makes them.",
@@ -620,6 +642,7 @@ export const money: Module = {
     {
       id: "subscriptions",
       label: "Subscriptions",
+      about: "Every subscription we pay for.",
       template: "list",
       record: "books.subscription",
       empty: "Subscriptions show here once the books find them.",
@@ -627,6 +650,7 @@ export const money: Module = {
     {
       id: "card",
       label: "Card",
+      about: "Charges on the company card, and the bill each one paid.",
       template: "list",
       record: "books.card",
       empty: {
@@ -639,6 +663,7 @@ export const money: Module = {
     {
       id: "in-house",
       label: "In-house",
+      about: "Tools we built instead of buying, and what they save.",
       template: "list",
       record: "books.in_house",
       empty: {
@@ -658,6 +683,7 @@ export const money: Module = {
     {
       id: "economics",
       label: "Economics",
+      about: "What it costs to win a client, and what a client brings in.",
       template: "overview",
       tiles: [
         figure("CAC", "cac6"),
@@ -689,6 +715,7 @@ export const money: Module = {
     {
       id: "months",
       label: "Months",
+      about: "Every cost and revenue figure, month by month.",
       template: "list",
       record: "books.month",
       empty: "Months show here once the books have spend.",
@@ -696,6 +723,7 @@ export const money: Module = {
     {
       id: "channels",
       label: "Channels",
+      about: "Spend and the cost of a client for each channel, by month.",
       template: "list",
       record: "books.channel",
       empty: {
@@ -706,6 +734,7 @@ export const money: Module = {
     {
       id: "cohorts",
       label: "Cohorts",
+      about: "Clients grouped by the month they first paid.",
       template: "list",
       record: "books.cohort",
       empty: "Cohorts show here once a client pays.",
@@ -713,6 +742,7 @@ export const money: Module = {
     {
       id: "accounts",
       label: "Accounts",
+      about: "Expense accounts, and where each one's spend counts.",
       template: "list",
       record: "books.account",
       empty: { expenses: "No expense accounts yet.", all: "No accounts yet." },
@@ -726,6 +756,7 @@ export const money: Module = {
 const sheetPages = (base: string): Module["pages"] => [
   {
     ...overview,
+    about: "Companies our lead sources found, and how far each got.",
     tiles: [
       {
         label: "Companies found",
@@ -789,6 +820,7 @@ const sheetPages = (base: string): Module["pages"] => [
   {
     id: "companies",
     label: "Companies",
+    about: "Every company our lead sources found, with its people.",
     template: "list",
     record: "email.firm",
     empty: "Companies show here once a source finds them.",
@@ -799,6 +831,7 @@ const sheetPages = (base: string): Module["pages"] => [
   {
     id: "stalls",
     label: "Stalls",
+    about: "Leads stuck before a send, and why.",
     template: "list",
     record: "email.stall",
     empty: "Nothing is stuck.",
@@ -834,6 +867,7 @@ export const clients: Module = {
   pages: [
     {
       ...overview,
+      about: "How your clients are doing, at a glance.",
       tiles: [
         { label: "Clients", record: "console.client", href: "/clients/all?view=clients" },
         // Demos are accounts, not clients: both tiles count clients only.
@@ -884,6 +918,7 @@ export const clients: Module = {
     {
       id: "all",
       label: "Clients",
+      about: "Every client, with what they bought and how it's going.",
       template: "list",
       record: "console.client",
       empty: "Clients show here once you add one.",
@@ -910,6 +945,7 @@ export const clients: Module = {
     {
       id: "health",
       label: "Health",
+      about: "Each client's health score, lowest first.",
       template: "list",
       record: "console.health",
       empty: {
@@ -926,6 +962,7 @@ export const clients: Module = {
     {
       id: "flags",
       label: "Flags",
+      about: "Risks and openings flagged on clients, to own and close.",
       template: "list",
       record: "console.flag",
       empty: {
@@ -943,6 +980,7 @@ export const clients: Module = {
     {
       id: "days",
       label: "Health by day",
+      about: "Each client's health score, day by day.",
       template: "list",
       record: "console.health_day",
       hidden: true,
@@ -950,11 +988,17 @@ export const clients: Module = {
     {
       id: "inputs",
       label: "Health inputs",
+      about: "The numbers behind each health score.",
       template: "list",
       record: "console.health_input",
       hidden: true,
     },
-    { id: "usage", label: "Vendor usage", Page: VendorUsage },
+    {
+      id: "usage",
+      label: "Vendor usage",
+      about: "What each client used of each vendor this month.",
+      Page: VendorUsage,
+    },
   ],
 };
 
@@ -1012,6 +1056,7 @@ export const team: Module = {
     {
       id: "all",
       label: "Team",
+      about: "Your team, and when each person last signed in.",
       template: "list",
       record: "console.team",
       empty: "Your team shows here once someone is invited.",
@@ -1034,6 +1079,7 @@ export const team: Module = {
     {
       id: "changes",
       label: "Changes",
+      about: "Who changed what in the last 7 days.",
       template: "list",
       record: "console.change",
       empty: { today: "No changes today.", people: "Nobody changed anything by hand this week." },
@@ -1052,6 +1098,7 @@ export const review: Module = {
   pages: [
     {
       ...overview,
+      about: "Parked ideas that need a look, read on Fridays.",
       tiles: [
         {
           label: "Needs a look",
@@ -1074,6 +1121,7 @@ export const review: Module = {
     {
       id: "parked",
       label: "Parked",
+      about: "Ideas we parked, and what would bring each one back.",
       template: "list",
       record: "wren.parked",
       empty: { look: "No trigger fired.", manual: "Nothing to judge by hand." },
@@ -1126,10 +1174,16 @@ export const workflows: Module = {
   blurb: "How Wren wins clients and runs, drawn with live numbers.",
   requires: TEAM,
   pages: [
-    { id: "canvas", label: "Canvas", Page: Workflows },
+    {
+      id: "canvas",
+      label: "Canvas",
+      about: "Every workflow as it's wired, with its numbers.",
+      Page: Workflows,
+    },
     {
       id: "runs",
       label: "Executions",
+      about: "Each person's path through a workflow, and where they are now.",
       template: "list",
       record: "console.execution",
       requires: { ...TEAM, needs: "read" },
@@ -1145,6 +1199,7 @@ export const workflows: Module = {
     {
       id: "events",
       label: "Events",
+      about: "Workflow steps that failed, and why.",
       template: "list",
       record: "console.event",
       empty: {
@@ -1157,6 +1212,7 @@ export const workflows: Module = {
     {
       id: "holds",
       label: "Holds",
+      about: "Work a check held back, and until when.",
       template: "list",
       record: "console.hold",
       empty: { open: "Nothing is held.", all: "Nothing was ever held." },
@@ -1165,6 +1221,7 @@ export const workflows: Module = {
     {
       id: "checks",
       label: "Checks",
+      about: "How often each check passes, by stage and source.",
       template: "list",
       record: "console.check",
       empty: { all: "No check has run in 30 days." },
@@ -1178,7 +1235,14 @@ export const ask: Module = {
   icon: "sparkle",
   blurb: "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
   requires: { ...TEAM, needs: "run" },
-  pages: [{ id: "questions", label: "Questions", Page: Ask }],
+  pages: [
+    {
+      id: "questions",
+      label: "Questions",
+      about: "Answers from the code, the designs and prod.",
+      Page: Ask,
+    },
+  ],
 };
 
 export const WREN_APPS = [

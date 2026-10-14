@@ -219,6 +219,7 @@ export function managePages(wren: boolean): ListPage[] {
     {
       id: "roles",
       label: "Roles",
+      about: "The roles people can hold, and what each one may do.",
       requires: { needs: "manage" },
       template: "list",
       record: "access.role",
@@ -229,6 +230,7 @@ export function managePages(wren: boolean): ListPage[] {
     {
       id: "grants",
       label: "Grants",
+      about: "Extra access given to someone beyond their role.",
       requires: { needs: "manage" },
       template: "list",
       record: "access.grant",
@@ -243,6 +245,7 @@ export function managePages(wren: boolean): ListPage[] {
     {
       id: "review",
       label: "Access review",
+      about: "Who can reach what, to check it's still right.",
       requires: { needs: "manage" },
       template: "list",
       record: "access.review",
@@ -262,6 +265,7 @@ export function inboxPages(): ListPage[] {
     {
       id: "issues",
       label: "Issues",
+      about: "Problems raised on a record, waiting on a fix.",
       template: "list",
       record: "access.issue",
       empty: {
@@ -275,6 +279,7 @@ export function inboxPages(): ListPage[] {
     {
       id: "asks",
       label: "Access asks",
+      about: "Requests for access, waiting on an answer.",
       template: "list",
       record: "access.ask",
       empty: {

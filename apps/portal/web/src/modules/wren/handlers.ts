@@ -16,6 +16,7 @@ export const handlers: Module = {
     {
       id: "all",
       label: "Handlers",
+      about: "Every action a form can run.",
       template: "list",
       record: "console.handler",
       empty: {
@@ -50,6 +51,11 @@ export const handlers: Module = {
         };
       },
     },
-    { id: "ai", label: "AI tools", Page: AiTools },
+    {
+      id: "ai",
+      label: "AI tools",
+      about: "Let Claude Code or your own script use your Wren.",
+      Page: AiTools,
+    },
   ],
 };
