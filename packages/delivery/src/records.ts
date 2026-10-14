@@ -5,6 +5,7 @@
  */
 
 import { CHANGE_FIELDS, CHANGE_VIEWS } from "@wren/core/clients";
+import type { MessageSettings } from "@wren/core/message-settings";
 import { PortalRefusal } from "@wren/core/portal";
 import {
   actor,
@@ -30,6 +31,7 @@ import {
   type UpdateView,
   WORK_APP,
 } from "./index.js";
+import { capText } from "./messaging.js";
 
 /** Wren's own notes on a project: a client's people never see a change to them. */
 const TEAM_TABLES = [
@@ -178,7 +180,9 @@ async function allUpdates(
 /**
  * The types for one client as this viewer sees them, read once per request: the projects run
  * in `app`, or all of them in the work app. Invoices are every project's, read only when
- * `bills` says this viewer may: an owner or Wren. Changes likewise, when `manages` says so.
+ * `bills` says this viewer may: an owner or Wren. Changes likewise, when `manages` says so. The
+ * message rules are the client's own database's: given `messaging` (never for the demo) and
+ * `manages`, they show on Account.
  * ponytail: a client's projects share one list; split by project if one client ever runs two
  * in the same app at once.
  */
@@ -189,6 +193,7 @@ export function deliveryRecords(
   app = WORK_APP,
   bills: () => Promise<boolean> = async () => operator,
   manages: () => Promise<boolean> = async () => operator,
+  messaging?: () => Promise<MessageSettings>,
 ): RecordType[] {
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
@@ -526,5 +531,51 @@ export function deliveryRecords(
     views: CHANGE_VIEWS,
   });
 
-  return [step, update, ask, deliverable, paperwork, result, invoice, change];
+  const rules = messaging
+    ? defineRecord({
+        id: "delivery.messaging",
+        app: "work",
+        channel: null,
+        name: { one: "message rule", many: "message rules" },
+        rows: async () => {
+          if (!(await manages()))
+            throw new PortalRefusal("message rules are for this account's owners", 403);
+          const s = await messaging();
+          return [
+            {
+              id: "caps.day",
+              label: "Most messages per person, a day",
+              value: capText(s.capPerDay),
+            },
+            {
+              id: "caps.week",
+              label: "Most messages per person, a week",
+              value: capText(s.capPerWeek),
+            },
+            {
+              id: "links",
+              label: "Tag links with where they came from",
+              value: s.utmLinks ? "On" : "Off",
+            },
+          ];
+        },
+        key: "id",
+        title: "label",
+        fields: { label: text("Rule"), value: text("Now") },
+        views: [{ id: "all", label: "Message rules" }],
+        actions: ["delivery.messaging.change", "delivery.messaging.on", "delivery.messaging.off"],
+      })
+    : null;
+
+  return [
+    step,
+    update,
+    ask,
+    deliverable,
+    paperwork,
+    result,
+    invoice,
+    change,
+    ...(rules ? [rules] : []),
+  ];
 }

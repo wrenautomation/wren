@@ -1,4 +1,5 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
+import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
@@ -17,6 +18,35 @@ import { Social } from "./Social.js";
 import { Vendors } from "./Vendors.js";
 import { Webhooks } from "./Webhooks.js";
 import { You } from "./You.js";
+
+/** Messaging: a cap is typed (a number, or "off"); the link tags are a switch. */
+const MESSAGING_ACTIONS: Action[] = [
+  {
+    id: "delivery.messaging.change",
+    label: "Change",
+    handler: "delivery/messagingChange",
+    key: "e",
+    ask: { field: "value", label: "Most messages (a number, or off)", from: "value" },
+    when: { id: ["caps.day", "caps.week"] },
+    done: () => "Changed",
+  },
+  {
+    id: "delivery.messaging.on",
+    label: "Turn on",
+    handler: "delivery/messagingLinksOn",
+    undo: "delivery/messagingLinksOff",
+    when: { id: ["links"], value: ["Off"] },
+    done: () => "Links are tagged",
+  },
+  {
+    id: "delivery.messaging.off",
+    label: "Turn off",
+    handler: "delivery/messagingLinksOff",
+    undo: "delivery/messagingLinksOn",
+    when: { id: ["links"], value: ["On"] },
+    done: () => "Links are left as written",
+  },
+];
 
 /** Pages under one sidebar heading; with `id`, only that one. */
 const inGroup = (pages: ListPage[], group: string, id?: string): ListPage[] =>
@@ -126,6 +156,17 @@ export const account: Module = {
       label: "Business facts",
       about: "Your phone, address, hours and the like, kept in one place.",
       Page: Facts,
+      group: "Setup",
+    },
+    {
+      id: "messaging",
+      label: "Messaging",
+      about: "How many marketing messages one person gets, and how links are tagged.",
+      requires: { needs: "manage" },
+      template: "form",
+      record: "delivery.messaging",
+      columns: ["value"],
+      actions: MESSAGING_ACTIONS,
       group: "Setup",
     },
     {

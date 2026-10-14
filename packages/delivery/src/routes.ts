@@ -54,6 +54,10 @@ export const DELIVERY_ROUTES = {
   webhookRotate: "manage",
   webhookTest: "manage",
   webhookRedeliver: "manage",
+  // The rules for marketing messages, in the client's own database.
+  messagingChange: "manage",
+  messagingLinksOn: "manage",
+  messagingLinksOff: "manage",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Work, or the Account pages; records check each type. */
 export const DELIVERY_APPS = {
@@ -84,6 +88,9 @@ export const DELIVERY_APPS = {
   webhookRotate: "account",
   webhookTest: "account",
   webhookRedeliver: "account",
+  messagingChange: "account",
+  messagingLinksOn: "account",
+  messagingLinksOff: "account",
 } as const satisfies RouteApps<typeof DELIVERY_ROUTES>;
 export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -116,6 +123,9 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "webhookRotate",
   "webhookTest",
   "webhookRedeliver",
+  "messagingChange",
+  "messagingLinksOn",
+  "messagingLinksOff",
 ];
 
 /** Client files (D11): at most this big, and only these types. The web checks first; the service decides. */

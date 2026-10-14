@@ -19,6 +19,7 @@ import {
   removeMember,
 } from "@wren/core/clients";
 import { roleFits, roleRefusal, rolesIn } from "@wren/core/grants";
+import { readMessageSettings } from "@wren/core/message-settings";
 import {
   answer,
   canAt,
@@ -86,6 +87,7 @@ import {
   timeline,
   type UpdateView,
 } from "./index.js";
+import { messagingApi } from "./messaging.js";
 import { deliveryRecords } from "./records.js";
 import { DELIVERY_APPS, DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
@@ -107,6 +109,8 @@ export interface DeliveryDeps {
   app?: string | undefined;
   /** Custom hosts (`./domains.ts`): the fallback origin, and Cloudflare when it's set up. */
   domains?: Partial<Omit<DomainsDeps, "main">>;
+  /** A client's own database, for the message rules on Account; without it they aren't offered. */
+  open?: (client: Pick<Client, "id" | "database">) => Db;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -144,20 +148,23 @@ const mayOn = async (main: Db, req: PortalRequest, p: Permission, client: string
 
 /** The projects in the asking app (`app`), as records this viewer may see: a client never reads a team note. */
 type RecordsReq = PortalRequest & { app?: string };
-const recordsOf = (main: Db, c: Client, operator: boolean, req: RecordsReq) =>
-  deliveryRecords(
-    main,
+const recordsOf = (deps: DeliveryDeps, c: Client, operator: boolean, req: RecordsReq) => {
+  const opener = deps.open;
+  return deliveryRecords(
+    deps.main,
     c.id,
     operator,
     typeof req.app === "string" ? req.app : undefined,
-    () => mayOn(main, req, "money", c.id),
-    () => mayOn(main, req, "manage", c.id),
+    () => mayOn(deps.main, req, "money", c.id),
+    () => mayOn(deps.main, req, "manage", c.id),
+    opener && !isDemo(req.viewer) ? () => readMessageSettings(opener(c)) : undefined,
   );
+};
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) =>
     use(
       serveRecords(
-        recordsOf(deps.main, c, operator, req),
+        recordsOf(deps, c, operator, req),
         db,
         undefined,
         fenceFor(req, c.id),
@@ -307,7 +314,7 @@ export function deliveryApi(deps: DeliveryDeps) {
     /** What each record type shows and lets this viewer filter, sort and search. */
     recordsTypes: (req: RecordsReq): Promise<RecordMeta[]> =>
       read(deps, req, async (_db, c, operator) =>
-        recordsOf(deps.main, c, operator, req).map((t) => metaOf(t, false)),
+        recordsOf(deps, c, operator, req).map((t) => metaOf(t, false)),
       ),
     recordsList: (req: RecordsReq & ListAsk): Promise<RecordsPage> =>
       records(deps, req, (r) => r.list(req)),
@@ -754,6 +761,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
   const api = deliveryApi(deps);
   const hosts = domainsApi({ target: DEFAULT_TARGET, ...deps.domains, main: deps.main });
   const hooks = webhooksApi({ main: deps.main });
+  const rules = messagingApi({ main: deps.main, open: deps.open });
   type Req<K extends keyof DeliveryApi> = Parameters<DeliveryApi[K]>[0];
   return portalService({
     name: "DeliveryPortal",
@@ -838,6 +846,12 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
           ctx.serviceSendClient<WebhooksService>(WEBHOOKS).deliver({ id });
           return { id };
         }),
+      messagingChange: (_: restate.Context, req: Parameters<typeof rules.messagingChange>[0]) =>
+        answer(() => rules.messagingChange(req)),
+      messagingLinksOn: (_: restate.Context, req: Parameters<typeof rules.messagingLinksOn>[0]) =>
+        answer(() => rules.messagingLinksOn(req)),
+      messagingLinksOff: (_: restate.Context, req: Parameters<typeof rules.messagingLinksOff>[0]) =>
+        answer(() => rules.messagingLinksOff(req)),
       interest: async (ctx: restate.Context, req: Req<"interest">) => {
         const out = await answer(() => api.interest(req));
         if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();

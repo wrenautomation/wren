@@ -109,6 +109,7 @@ export const PLATFORM = {
     "console.event": "every spine arrival, failed ones with Retry",
     "console.execution": "each subject's walk through a workflow, its path lit",
     "delivery.change": "who changed an account's rows, from the audit log",
+    "delivery.messaging": "an account's message rules: the per-person cap and link tags",
     "wren.parked": "parked ideas and their triggers",
   },
 } as const;

@@ -1813,6 +1813,8 @@ export async function buildServices(
       zone: settings.sendTimezone,
       app: portal ?? undefined,
       domains: customDomains(),
+      // The message rules on Account live in each client's own database.
+      open: openClient,
     }),
     makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),

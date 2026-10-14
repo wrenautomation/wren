@@ -28,6 +28,7 @@ import {
 } from "@wren/core/console";
 import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { MESSAGE_DEFAULTS } from "@wren/core/message-settings";
 import { handlerForm } from "@wren/core/restate";
 import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
@@ -132,7 +133,15 @@ const RECORD_TYPES = [
   executionRecord,
   handlerRecord(async () => ({})),
   componentRecord([], null, false),
-  ...deliveryRecords({} as Queryable, "synthetic", true),
+  ...deliveryRecords(
+    {} as Queryable,
+    "synthetic",
+    true,
+    undefined,
+    undefined,
+    undefined,
+    async () => MESSAGE_DEFAULTS,
+  ),
   ...REACTIVATION_RECORDS,
   ...MARKETING_RECORDS,
   settingOf({} as Client),
