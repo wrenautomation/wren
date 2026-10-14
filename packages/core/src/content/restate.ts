@@ -192,12 +192,12 @@ const waitOf = (message: string) => {
 /**
  * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
  * a short 429 can; a 429 whose wait is hours (a used daily cap) cannot, and retrying it would
- * pause the caller's loop until someone resumes it.
+ * pause the caller's loop until someone resumes it. A 501 (no leg, no recorded workflow yet)
+ * stays one until someone builds it.
  */
 export const isRefusal = (err: unknown): err is SiteCallError =>
   err instanceof SiteCallError &&
-  err.status >= 400 &&
-  err.status < 500 &&
+  ((err.status >= 400 && err.status < 500) || err.status === 501) &&
   err.status !== 408 &&
   (err.status !== 429 || (waitOf(err.message) ?? 0) > LONG_WAIT_S);
 

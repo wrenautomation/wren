@@ -463,4 +463,8 @@ describe("isRefusal", () => {
     expect(isRefusal(e(403))).toBe(true);
     expect(isRefusal(e(503))).toBe(false);
   });
+  it("a route nothing does yet (501) is final", () => {
+    expect(isRefusal(e(501, "workflow linkedin-post-stats not recorded yet"))).toBe(true);
+    expect(isRefusal(e(502))).toBe(false);
+  });
 });
