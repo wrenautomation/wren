@@ -330,6 +330,7 @@ function Thanks({ score, words }: { score: number; words: string }) {
       </p>
       <div className={TOOLS}>
         <Button
+          tone="primary"
           size="dense"
           onClick={() => {
             if (words) void navigator.clipboard?.writeText(words).catch(() => undefined);

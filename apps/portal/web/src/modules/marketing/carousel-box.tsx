@@ -216,7 +216,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
             >
               {busy === "slot" ? "Scheduling…" : "Schedule"}
             </Button>
-            <Button size="dense" disabled={!ready} onClick={() => void send("now")}>
+            <Button tone="primary" size="dense" disabled={!ready} onClick={() => void send("now")}>
               {busy === "now" ? "Posting…" : sure ? `Post ${where.length} now?` : "Post now"}
             </Button>
             {sure ? (

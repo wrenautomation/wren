@@ -316,7 +316,7 @@ export function TagDialog({
             <Button size="dense" tone="secondary" onClick={() => onClose()}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy}>
+            <Button tone="primary" size="dense" type="submit" busy={busy}>
               Save tags
             </Button>
           </div>
@@ -371,7 +371,7 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
             <Button size="dense" tone="secondary" onClick={() => onClose()}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy} disabled={!ok}>
+            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!ok}>
               Add to SOP
             </Button>
           </div>
@@ -428,7 +428,7 @@ export function NameDialog({
             <Button size="dense" tone="secondary" onClick={() => onClose()}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy} disabled={!name.trim()}>
+            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!name.trim()}>
               {action}
             </Button>
           </div>
@@ -455,6 +455,7 @@ function DropDialog({ c, onClose }: { c: Collection; onClose: () => void }) {
             Keep it
           </Button>
           <Button
+            tone="primary"
             size="dense"
             busy={busy}
             onClick={async () => {

@@ -712,6 +712,7 @@ function Editor({
           </Button>
           {test ? null : d.status !== "live" ? (
             <Button
+              tone="primary"
               disabled={changed}
               busy={busy === "publish"}
               onClick={() =>
@@ -888,6 +889,7 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
           />
         </label>
         <Button
+          tone="primary"
           disabled={!valid || Number(share) === test.weight}
           busy={busy === "share"}
           onClick={() =>

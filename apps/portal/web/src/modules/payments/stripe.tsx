@@ -127,7 +127,13 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
               placeholder="Signing secret, if asked"
               aria-label="Webhook signing secret"
             />
-            <Button size="dense" type="submit" busy={busy} disabled={!key.trim() && !secret.trim()}>
+            <Button
+              tone="primary"
+              size="dense"
+              type="submit"
+              busy={busy}
+              disabled={!key.trim() && !secret.trim()}
+            >
               Save
             </Button>
           </div>

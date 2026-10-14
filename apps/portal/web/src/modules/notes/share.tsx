@@ -162,7 +162,7 @@ export function ShareDialog({
               ))}
             </datalist>
             <RolePick value={role} onChange={(r) => r && setRole(r)} label="Their role" />
-            <Button size="dense" type="submit" disabled={!who.trim()}>
+            <Button tone="primary" size="dense" type="submit" disabled={!who.trim()}>
               Add
             </Button>
           </form>

@@ -652,7 +652,7 @@ function SaveView({
             />
             Share with the team
           </label>
-          <Button type="submit" size="dense" busy={busy} disabled={!name.trim()}>
+          <Button tone="primary" type="submit" size="dense" busy={busy} disabled={!name.trim()}>
             Save view
           </Button>
           {said ? <p className="text-[12px] text-(--ui-bad)">{said}</p> : null}

@@ -327,7 +327,7 @@ function RenameFolder({
         className="h-8 min-w-0 text-[13px]"
         autoFocus
       />
-      <Button size="dense" type="submit" busy={busy}>
+      <Button tone="primary" size="dense" type="submit" busy={busy}>
         Rename
       </Button>
       <Button tone="quiet" size="dense" onClick={() => setTo(null)}>
@@ -507,7 +507,7 @@ function Controls({
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
         {canPublish ? (
-          <Button size="dense" onClick={() => setAsk("publish")}>
+          <Button tone="primary" size="dense" onClick={() => setAsk("publish")}>
             {d.sends ? "Ask to publish" : "Publish"}
           </Button>
         ) : null}
@@ -566,7 +566,7 @@ function Controls({
             </datalist>
           </label>
           <div className="flex gap-2 self-end">
-            <Button size="dense" type="submit" busy={busy}>
+            <Button tone="primary" size="dense" type="submit" busy={busy}>
               Move
             </Button>
             <Button tone="quiet" size="dense" onClick={() => setAsk(null)}>
@@ -596,7 +596,7 @@ function Confirm({
     <div className="grid gap-2 border border-(--ui-hair) p-3 text-[14px]">
       <p>{line}</p>
       <div className="flex gap-2">
-        <Button size="dense" busy={busy} onClick={onYes}>
+        <Button tone="primary" size="dense" busy={busy} onClick={onYes}>
           {yes}
         </Button>
         <Button tone="quiet" size="dense" onClick={onNo}>
@@ -775,7 +775,13 @@ function Editor({
               className="h-8 text-[13.5px]"
             />
           </label>
-          <Button size="dense" type="submit" busy={busy} disabled={!dirty || !!conflict}>
+          <Button
+            tone="primary"
+            size="dense"
+            type="submit"
+            busy={busy}
+            disabled={!dirty || !!conflict}
+          >
             Save
           </Button>
           {dirty ? (

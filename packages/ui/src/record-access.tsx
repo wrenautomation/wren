@@ -179,6 +179,7 @@ export function RecordIssues({
           />
           <div>
             <Button
+              tone="primary"
               size="dense"
               busy={busy === "raise"}
               disabled={!body.trim() || busy !== null}
@@ -315,7 +316,13 @@ export function AskAccess({
         onChange={(e) => setReason(e.target.value)}
       />
       <div className="flex gap-2">
-        <Button size="dense" busy={busy} disabled={!reason.trim()} onClick={() => void send()}>
+        <Button
+          tone="primary"
+          size="dense"
+          busy={busy}
+          disabled={!reason.trim()}
+          onClick={() => void send()}
+        >
           Ask
         </Button>
         <Button size="dense" tone="secondary" onClick={() => setOpen(false)}>

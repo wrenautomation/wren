@@ -47,7 +47,7 @@ export function Latency(_: PageProps) {
       ) : !pipelines.length ? (
         <Empty
           action={
-            <ButtonLink size="dense" icon="phone" href="/voice/test">
+            <ButtonLink tone="primary" size="dense" icon="phone" href="/voice/test">
               Make a test call
             </ButtonLink>
           }

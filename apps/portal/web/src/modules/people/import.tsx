@@ -265,7 +265,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-3">
         {fileInput}
-        <Button size="dense" onClick={() => input.current?.click()}>
+        <Button tone="primary" size="dense" onClick={() => input.current?.click()}>
           Import a CSV
         </Button>
         <span className="text-[13px] text-(--ui-ink-3)">
@@ -368,7 +368,13 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="dense" busy={busy === "import"} disabled={!canLoad} onClick={load}>
+            <Button
+              tone="primary"
+              size="dense"
+              busy={busy === "import"}
+              disabled={!canLoad}
+              onClick={load}
+            >
               {p.missing.length
                 ? "Import"
                 : `Import ${plural(Math.max(willLoad(p), 0), "person", "people")}`}

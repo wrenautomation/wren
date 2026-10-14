@@ -178,6 +178,7 @@ function SetMode({
         </>
       ) : null}
       <Button
+        tone="primary"
         type="submit"
         size="dense"
         busy={act.busy}

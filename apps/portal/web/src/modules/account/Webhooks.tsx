@@ -314,7 +314,7 @@ export function Webhooks(props: PageProps) {
               ))}
             </fieldset>
             <div>
-              <Button type="submit" size="dense" busy={act.busy}>
+              <Button tone="primary" type="submit" size="dense" busy={act.busy}>
                 Add
               </Button>
             </div>

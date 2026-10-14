@@ -111,6 +111,7 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
             </label>
           ))}
           <Button
+            tone="primary"
             disabled={!valid || !changed}
             busy={busy === "weights"}
             onClick={() =>

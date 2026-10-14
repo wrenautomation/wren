@@ -98,7 +98,7 @@ export function SopDialog({
             <Button size="dense" tone="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy} disabled={!ok}>
+            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!ok}>
               Add to SOP
             </Button>
           </div>

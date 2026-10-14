@@ -93,6 +93,7 @@ export function QuickNote({
               Make it a note
             </Button>
             <Button
+              tone="primary"
               size="dense"
               type="submit"
               busy={busy === "dump"}

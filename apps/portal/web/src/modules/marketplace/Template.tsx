@@ -366,6 +366,7 @@ function InstallBox({ d, name, client }: { d: TemplateDetail; name: string; clie
           ) : null}
           <div>
             <Button
+              tone="primary"
               size="dense"
               busy={busy === "install"}
               disabled={!ok || busy !== null}

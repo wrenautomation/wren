@@ -7,7 +7,10 @@ import { buttonVariants, Button as ShadButton } from "./components/ui/button.js"
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 
-/** `primary` is the one action on a screen (the accent); `secondary` is outlined; `quiet` is text. */
+/**
+ * `primary` is the one action on a screen (the accent), named where it is used; `secondary`, the
+ * default, is outlined; `quiet` is text.
+ */
 export type ButtonTone = "primary" | "secondary" | "quiet";
 
 interface ButtonLook {
@@ -43,7 +46,7 @@ const BUTTON_TONE: Record<ButtonTone, string> = {
     "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
 };
 
-const look = ({ tone = "primary", size = "md", className }: ButtonLook) =>
+const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
   cn(
     buttonVariants(),
     BUTTON,

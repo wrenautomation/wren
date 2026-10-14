@@ -631,7 +631,13 @@ export function SegmentEditor({
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="dense" busy={busy === "save"} disabled={!canSave} onClick={save}>
+        <Button
+          tone="primary"
+          size="dense"
+          busy={busy === "save"}
+          disabled={!canSave}
+          onClick={save}
+        >
           {start.id ? "Save changes" : "Save segment"}
           {ruled && preview ? ` (${preview.size})` : ""}
         </Button>
@@ -649,7 +655,7 @@ function SegmentsHead({ client, reload }: { client: string; reload: () => void }
   const [open, setOpen] = useState(false);
   if (!open)
     return (
-      <Button size="dense" onClick={() => setOpen(true)}>
+      <Button tone="primary" size="dense" onClick={() => setOpen(true)}>
         New segment
       </Button>
     );

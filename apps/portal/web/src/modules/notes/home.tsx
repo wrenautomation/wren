@@ -172,7 +172,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {writes ? (
           <>
-            <Button size="dense" icon="note" busy={busy} onClick={() => create()}>
+            <Button tone="primary" size="dense" icon="note" busy={busy} onClick={() => create()}>
               New note
             </Button>
             <Button tone="secondary" size="dense" onClick={() => setQuick(true)}>
@@ -353,7 +353,13 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
             <Button tone="secondary" size="dense" type="button" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy} disabled={!link.trim() || busy}>
+            <Button
+              tone="primary"
+              size="dense"
+              type="submit"
+              busy={busy}
+              disabled={!link.trim() || busy}
+            >
               Import
             </Button>
           </div>

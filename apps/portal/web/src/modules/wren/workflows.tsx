@@ -776,6 +776,7 @@ function Canvas({
             Save draft
           </Button>
           <Button
+            tone="primary"
             size="dense"
             busy={busy}
             onClick={() => publish()}
@@ -803,7 +804,13 @@ function Canvas({
                 aria-label={`Type ${w.id} to confirm`}
               />
             </label>
-            <Button type="submit" size="dense" busy={busy} disabled={confirm.typed.trim() !== w.id}>
+            <Button
+              tone="primary"
+              type="submit"
+              size="dense"
+              busy={busy}
+              disabled={confirm.typed.trim() !== w.id}
+            >
               Publish
             </Button>
             <Button tone="quiet" size="dense" onClick={() => setConfirm(null)}>

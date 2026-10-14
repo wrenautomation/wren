@@ -134,7 +134,7 @@ export function HandlerForm({
           <p className="text-[14px] text-(--ui-ink-2)">It takes no input.</p>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="dense" type="submit" busy={busy}>
+          <Button tone="primary" size="dense" type="submit" busy={busy}>
             {verb}
           </Button>
           {warning ? <span className="text-[13px] text-(--ui-bad)">{warning}</span> : null}
@@ -177,7 +177,13 @@ export function HandlerForm({
               <Button tone="quiet" size="dense" onClick={() => setAsking(false)}>
                 Cancel
               </Button>
-              <Button size="dense" type="submit" busy={busy} disabled={confirm !== name}>
+              <Button
+                tone="primary"
+                size="dense"
+                type="submit"
+                busy={busy}
+                disabled={confirm !== name}
+              >
                 {verb}
               </Button>
             </DialogFooter>

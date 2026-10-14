@@ -220,7 +220,7 @@ export function PersonAccess({
               <Input name="reason" maxLength={500} />
             </label>
             <div className="flex basis-full gap-2">
-              <Button type="submit" size="sm" busy={busy}>
+              <Button tone="primary" type="submit" size="sm" busy={busy}>
                 Add grant
               </Button>
               <Button size="sm" tone="quiet" onClick={() => setAdding(false)}>

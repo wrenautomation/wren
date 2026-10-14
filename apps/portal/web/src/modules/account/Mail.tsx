@@ -76,7 +76,12 @@ function MailboxRow({ m, mayAct, act }: { m: Mailbox; mayAct: boolean; act: Act 
       {mayAct ? (
         <div className={TOOLS}>
           {m.may.connectRead && m.state !== "read_send" ? (
-            <Button size="sm" disabled={act.busy} onClick={() => void connect(act, m.id, "read")}>
+            <Button
+              tone="primary"
+              size="sm"
+              disabled={act.busy}
+              onClick={() => void connect(act, m.id, "read")}
+            >
               {connected ? "Connect to read" : "Connect to read and send"}
             </Button>
           ) : null}
@@ -177,6 +182,7 @@ function MicrosoftSteps({ o, mayAct, act }: { o: Org; mayAct: boolean; act: Act 
         ) : mayAct && !o.ready ? (
           <span>
             <Button
+              tone="primary"
               size="sm"
               disabled={act.busy}
               onClick={() =>

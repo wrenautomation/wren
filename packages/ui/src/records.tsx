@@ -1411,7 +1411,7 @@ function List({
         {/* One button: the first thing the page makes. The rest wait behind one menu. */}
         <div className="flex items-center gap-2">
           {forms[0] ? (
-            <Button size="dense" onClick={() => run(forms[0] as Action, [])}>
+            <Button tone="primary" size="dense" onClick={() => run(forms[0] as Action, [])}>
               {forms[0].label}
             </Button>
           ) : null}

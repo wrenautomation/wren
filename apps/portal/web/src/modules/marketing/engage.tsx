@@ -73,7 +73,12 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
           placeholder="Paste a subreddit, thread, post or account (Reddit, LinkedIn, X, Instagram)"
           onChange={(e) => setUrl(e.target.value)}
         />
-        <Button size="dense" type="submit" disabled={busy || props.demo || !url.trim()}>
+        <Button
+          tone="primary"
+          size="dense"
+          type="submit"
+          disabled={busy || props.demo || !url.trim()}
+        >
           {busy ? "Reading…" : "Add"}
         </Button>
       </form>

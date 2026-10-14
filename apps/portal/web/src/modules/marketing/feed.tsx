@@ -193,7 +193,12 @@ function FeedItem({ c, onMuted }: { c: Card; onMuted: () => void }) {
         ) : null}
         <div className="mt-1 flex flex-wrap gap-2">
           {replyable(c.url) ? (
-            <Button size="dense" busy={busy === "reply"} onClick={() => void reply()}>
+            <Button
+              tone="primary"
+              size="dense"
+              busy={busy === "reply"}
+              onClick={() => void reply()}
+            >
               Reply
             </Button>
           ) : null}

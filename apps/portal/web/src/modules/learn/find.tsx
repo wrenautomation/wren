@@ -94,7 +94,14 @@ export function FindCreators() {
           aria-label="Find people to follow"
           className="min-w-0 flex-1"
         />
-        <Button size="dense" type="submit" busy={busy} disabled={!q.trim()} className="h-9">
+        <Button
+          tone="primary"
+          size="dense"
+          type="submit"
+          busy={busy}
+          disabled={!q.trim()}
+          className="h-9"
+        >
           Search
         </Button>
       </form>

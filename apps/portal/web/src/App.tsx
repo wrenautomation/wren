@@ -645,6 +645,7 @@ export function App() {
             <Empty
               action={
                 <ButtonLink
+                  tone="primary"
                   size="dense"
                   href={`/marketplace/catalog/${encodeURIComponent(missing)}`}
                 >

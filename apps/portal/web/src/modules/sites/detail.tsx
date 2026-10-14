@@ -442,6 +442,7 @@ function CopyEditor({
             Save
           </Button>
           <Button
+            tone="primary"
             disabled={changed || live || asked || closed}
             busy={busy === "ask"}
             onClick={() =>

@@ -589,6 +589,7 @@ function DocForm({
         </Button>
         {send ? (
           <Button
+            tone="primary"
             type="submit"
             size="dense"
             busy={busy}
@@ -625,7 +626,7 @@ function NewDocument({ client, reload }: { client: string; reload: () => void })
   return open ? (
     <NewDocumentForm client={client} reload={reload} close={() => setOpen(false)} />
   ) : (
-    <Button size="dense" onClick={() => setOpen(true)}>
+    <Button tone="primary" size="dense" onClick={() => setOpen(true)}>
       New document
     </Button>
   );
@@ -982,7 +983,7 @@ function TemplateForm({
       <Lines lines={lines} set={setLines} currency="usd" />
       {error ? <p className={ERROR}>{error}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="dense" busy={busy}>
+        <Button tone="primary" type="submit" size="dense" busy={busy}>
           {t ? "Save" : "Add template"}
         </Button>
         {saved ? <span className={QUIET}>Saved. New documents start from this.</span> : null}
@@ -1027,7 +1028,7 @@ function NewTemplate({ client, reload }: { client: string; reload: () => void })
   const [open, setOpen] = useState(false);
   if (!open)
     return (
-      <Button size="dense" onClick={() => setOpen(true)}>
+      <Button tone="primary" size="dense" onClick={() => setOpen(true)}>
         New template
       </Button>
     );

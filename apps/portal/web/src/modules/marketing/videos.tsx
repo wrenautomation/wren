@@ -664,7 +664,7 @@ function Transcript({
           <span className="text-[13px]">
             {n} {n === 1 ? "word" : "words"} from {clock(first.s)}
           </span>
-          <Button size="dense" busy={busy} onClick={() => void cut()}>
+          <Button tone="primary" size="dense" busy={busy} onClick={() => void cut()}>
             Cut {n === 1 ? "it" : "them"}
           </Button>
           {n === 1 ? (
@@ -892,7 +892,13 @@ function Agent({
             />
           </DictateField>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="dense" busy={busy} disabled={running} onClick={() => void send()}>
+            <Button
+              tone="primary"
+              size="dense"
+              busy={busy}
+              disabled={running}
+              onClick={() => void send()}
+            >
               {note.trim()
                 ? "Ask for changes"
                 : passes.length

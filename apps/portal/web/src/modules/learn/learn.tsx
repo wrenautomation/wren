@@ -79,7 +79,7 @@ export function SaveBox({ reload }: { reload?: () => void }) {
           placeholder="Paste a link"
           aria-label="Save a link"
         />
-        <Button size="dense" type="submit" busy={busy} disabled={!url.trim()}>
+        <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!url.trim()}>
           Save
         </Button>
       </div>
@@ -197,7 +197,7 @@ function SearchBody({ params }: { params: URLSearchParams }) {
           placeholder="warmup schedule"
           aria-label="Search transcripts"
         />
-        <Button size="dense" type="submit" disabled={!q.trim()}>
+        <Button tone="primary" size="dense" type="submit" disabled={!q.trim()}>
           Search
         </Button>
       </form>

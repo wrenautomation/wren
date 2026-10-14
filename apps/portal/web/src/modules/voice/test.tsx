@@ -404,7 +404,7 @@ function Setup(o: {
           ))}
         </select>
       </label>
-      <Button size="dense" icon="phone" disabled={!o.ready} onClick={o.onStart}>
+      <Button tone="primary" size="dense" icon="phone" disabled={!o.ready} onClick={o.onStart}>
         {o.again ? "Call again" : "Start call"}
       </Button>
       {o.mode === "spoken" ? (
@@ -444,7 +444,7 @@ function Composer({ transport, onHangUp }: { transport: TextTransport; onHangUp(
           onChange={(e) => setText(e.target.value)}
           className="h-9 min-w-0 flex-1 text-[14.5px]"
         />
-        <Button size="dense" type="submit" disabled={!text.trim()}>
+        <Button tone="primary" size="dense" type="submit" disabled={!text.trim()}>
           Send
         </Button>
         <Button size="dense" tone="secondary" onClick={onHangUp}>

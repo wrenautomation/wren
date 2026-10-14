@@ -137,7 +137,7 @@ function Sign({ k, props, onSigned }: { k: ContractView; props: PageProps; onSig
           I've read this agreement. I agree to it for my company and I'm allowed to sign for it.
         </label>
         <div className="flex basis-full flex-wrap items-center gap-3">
-          <Button size="dense" type="submit" disabled={busy}>
+          <Button tone="primary" size="dense" type="submit" disabled={busy}>
             Sign the contract
           </Button>
           <span className={QUIET}>This counts as your signature. We email you a copy.</span>

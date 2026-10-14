@@ -284,7 +284,12 @@ export function Compose({
         </ul>
       ) : null}
       <div className="flex items-center gap-2">
-        <Button size="dense" disabled={!text.trim() || busy} onClick={() => void send()}>
+        <Button
+          tone="primary"
+          size="dense"
+          disabled={!text.trim() || busy}
+          onClick={() => void send()}
+        >
           {button ?? (initial ? "Save" : "Comment")}
         </Button>
         {onCancel ? (

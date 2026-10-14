@@ -116,7 +116,7 @@ export function Ask() {
           />
         </DictateField>
         <div className="flex items-center gap-3">
-          <Button size="dense" type="submit" busy={busy} disabled={!q.trim()}>
+          <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!q.trim()}>
             Ask
           </Button>
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}

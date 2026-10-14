@@ -61,7 +61,7 @@ function HomeBody() {
           <ButtonLink href="/learn/items" size="dense" tone="secondary">
             Open Inbox
           </ButtonLink>
-          <ButtonLink href="/learn/add" size="dense">
+          <ButtonLink tone="primary" href="/learn/add" size="dense">
             Save a link
           </ButtonLink>
         </div>

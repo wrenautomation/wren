@@ -204,7 +204,7 @@ function ReportForm({
         <span>On</span>
       </label>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="dense" busy={act.busy}>
+        <Button tone="primary" type="submit" size="dense" busy={act.busy}>
           {report ? "Save" : "Add report"}
         </Button>
         {report ? (
@@ -360,7 +360,7 @@ export function ReportsPage(props: PageProps) {
             </Section>
           ) : (
             <div>
-              <Button size="dense" onClick={() => setAdding(true)}>
+              <Button tone="primary" size="dense" onClick={() => setAdding(true)}>
                 New report
               </Button>
             </div>

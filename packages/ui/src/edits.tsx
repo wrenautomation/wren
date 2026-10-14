@@ -195,7 +195,7 @@ export function EditField({
         />
       )}
       <div className="flex items-center gap-2">
-        <Button size="dense" busy={busy} onClick={() => void commit()}>
+        <Button tone="primary" size="dense" busy={busy} onClick={() => void commit()}>
           Save
         </Button>
         <Button size="dense" tone="quiet" disabled={busy} onClick={() => setOpen(false)}>

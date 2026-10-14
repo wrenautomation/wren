@@ -374,6 +374,7 @@ export function WritePage(props: PageProps) {
                 {busy === "slot" ? "Scheduling…" : "Schedule"}
               </Button>
               <Button
+                tone="primary"
                 size="dense"
                 disabled={!fits || !!busy || props.demo || picked.length === 0}
                 onClick={() => void send("now")}
@@ -618,7 +619,12 @@ function DraftCard({
               {busy === "save" ? "Saving…" : "Save"}
             </Button>
           ) : null}
-          <Button size="dense" disabled={!!busy || demo} onClick={() => void act("approve")}>
+          <Button
+            tone="primary"
+            size="dense"
+            disabled={!!busy || demo}
+            onClick={() => void act("approve")}
+          >
             {busy === "approve" ? "Scheduling…" : "Schedule"}
           </Button>
           <Button

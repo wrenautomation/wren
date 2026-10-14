@@ -355,6 +355,7 @@ export function LookEditor({
 
           <div className={ROW}>
             <Button
+              tone="primary"
               size="dense"
               busy={busy === "save"}
               disabled={!!busy || !changed}
@@ -484,7 +485,9 @@ function Preview({ vars }: { vars: Record<string, string> }) {
             <Button size="dense" tone="secondary">
               Later
             </Button>
-            <Button size="dense">Approve</Button>
+            <Button tone="primary" size="dense">
+              Approve
+            </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">

@@ -227,7 +227,7 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
           <Button size="dense" tone="secondary" disabled={!ready} onClick={() => void send("slot")}>
             {busy === "slot" ? "Scheduling…" : "Schedule"}
           </Button>
-          <Button size="dense" disabled={!ready} onClick={() => void send("now")}>
+          <Button tone="primary" size="dense" disabled={!ready} onClick={() => void send("now")}>
             {busy === "now" ? "Posting…" : sure ? `Post ${where.length} now?` : "Post now"}
           </Button>
           {sure ? (

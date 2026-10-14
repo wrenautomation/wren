@@ -655,7 +655,13 @@ export function FactsPage({ demo, can }: PageProps) {
             <Button tone="quiet" size="dense" onClick={discard} disabled={busy}>
               Discard
             </Button>
-            <Button size="dense" busy={busy} disabled={!!problem} onClick={() => void save()}>
+            <Button
+              tone="primary"
+              size="dense"
+              busy={busy}
+              disabled={!!problem}
+              onClick={() => void save()}
+            >
               Save
             </Button>
           </span>

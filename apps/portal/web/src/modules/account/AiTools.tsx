@@ -209,7 +209,7 @@ export function AiTools(props: PageProps) {
             </div>
           </details>
           <div className={TOOLS}>
-            <Button type="submit" size="dense" busy={busy}>
+            <Button tone="primary" type="submit" size="dense" busy={busy}>
               Make token
             </Button>
           </div>

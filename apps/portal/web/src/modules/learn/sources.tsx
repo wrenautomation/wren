@@ -158,7 +158,14 @@ function Follow() {
             ))}
           </select>
         </label>
-        <Button size="dense" type="submit" busy={busy} disabled={!url.trim()} className="h-9">
+        <Button
+          tone="primary"
+          size="dense"
+          type="submit"
+          busy={busy}
+          disabled={!url.trim()}
+          className="h-9"
+        >
           Follow
         </Button>
       </div>
@@ -283,6 +290,7 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
                 Keep it
               </Button>
               <Button
+                tone="primary"
                 size="dense"
                 onClick={async () => {
                   if (await act(learn.unfollow(s.id), `Stopped following ${s.name}`))

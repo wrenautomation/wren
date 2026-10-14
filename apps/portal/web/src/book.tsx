@@ -465,7 +465,13 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
             </label>
             {page.human ? <div ref={box} /> : null}
             <p className="m-0">
-              <Button type="submit" busy={busy} disabled={busy} className="max-sm:w-full">
+              <Button
+                tone="primary"
+                type="submit"
+                busy={busy}
+                disabled={busy}
+                className="max-sm:w-full"
+              >
                 Book the call
               </Button>
             </p>
@@ -573,7 +579,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
         {error ? <Alert>{error}</Alert> : null}
         {step === "show" && call.open ? (
           <div className="flex flex-wrap gap-3">
-            <Button onClick={move} className="max-sm:w-full">
+            <Button tone="primary" onClick={move} className="max-sm:w-full">
               Pick a new time
             </Button>
             <Button tone="secondary" onClick={() => setStep("cancel")} className="max-sm:w-full">
@@ -583,7 +589,10 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
         ) : null}
         {step === "show" && !call.open ? (
           <p className="m-0">
-            <ButtonLink href={`${at.base}/book${call.offer ? `/${call.offer}` : ""}`}>
+            <ButtonLink
+              tone="primary"
+              href={`${at.base}/book${call.offer ? `/${call.offer}` : ""}`}
+            >
               Book another time
             </ButtonLink>
           </p>
@@ -601,6 +610,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
             </label>
             <div className="flex flex-wrap gap-3">
               <Button
+                tone="primary"
                 busy={busy}
                 disabled={busy}
                 onClick={() => void run("cancel", reason.trim() ? { reason: reason.trim() } : {})}
@@ -629,6 +639,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button
+                  tone="primary"
                   busy={busy}
                   disabled={busy}
                   onClick={() => void run("reschedule", { start })}

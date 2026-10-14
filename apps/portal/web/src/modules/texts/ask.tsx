@@ -66,7 +66,7 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
           placeholder="Email"
           aria-label="Customer's email"
         />
-        <Button size="dense" type="submit" busy={busy} disabled={!any}>
+        <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!any}>
           Ask for a review
         </Button>
       </div>

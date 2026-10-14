@@ -55,6 +55,7 @@ export function MadeHere({ client }: { client: string | null }) {
         </label>
         <div className="flex flex-wrap items-center gap-2">
           <Button
+            tone="primary"
             type="submit"
             size="sm"
             busy={busy === "build"}

@@ -160,7 +160,7 @@ function FieldRow({
               />
             </label>
           ) : null}
-          <Button type="submit" size="sm" busy={write.busy}>
+          <Button tone="primary" type="submit" size="sm" busy={write.busy}>
             Save
           </Button>
         </form>
@@ -270,7 +270,7 @@ export function Fields(props: PageProps) {
                   <Input name="options" placeholder="Shingle, Metal, Tile" required />
                 </label>
               ) : null}
-              <Button type="submit" busy={write.busy}>
+              <Button tone="primary" type="submit" busy={write.busy}>
                 Add field
               </Button>
             </form>
@@ -380,7 +380,7 @@ export function Facts(props: PageProps) {
             Value (same name replaces it)
             <Input name="value" maxLength={2000} placeholder="(416) 555-0100" required />
           </label>
-          <Button type="submit" busy={write.busy}>
+          <Button tone="primary" type="submit" busy={write.busy}>
             Save fact
           </Button>
         </form>

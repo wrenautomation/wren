@@ -46,7 +46,7 @@ export function Pipelines(props: PageProps) {
         lede="Each pipeline's stages, in board order. Every pipeline has one won and one lost stage."
         actions={
           write && !adding ? (
-            <Button size="sm" onClick={() => setAdding(true)}>
+            <Button tone="primary" size="sm" onClick={() => setAdding(true)}>
               New pipeline
             </Button>
           ) : null
@@ -180,6 +180,7 @@ function PipeForm({
             Add a stage
           </Button>
           <Button
+            tone="primary"
             size="sm"
             busy={busy}
             onClick={() =>

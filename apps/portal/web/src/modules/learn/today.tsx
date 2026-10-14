@@ -293,7 +293,7 @@ function Mail({ s }: { s: AlertSettings }) {
               <Button size="dense" tone="secondary" onClick={() => setAsking(false)}>
                 Keep it off
               </Button>
-              <Button size="dense" onClick={() => void turn(true)}>
+              <Button tone="primary" size="dense" onClick={() => void turn(true)}>
                 Turn on
               </Button>
             </div>

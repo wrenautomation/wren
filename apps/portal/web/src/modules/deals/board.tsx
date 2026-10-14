@@ -93,7 +93,7 @@ export function DealBoard(props: PageProps) {
               </select>
             ) : null}
             {write ? (
-              <Button size="sm" icon="board" onClick={() => setAdding((a) => !a)}>
+              <Button tone="primary" size="sm" icon="board" onClick={() => setAdding((a) => !a)}>
                 New deal
               </Button>
             ) : null}
@@ -324,7 +324,7 @@ function NewDeal({
           onChange={(e) => setContact(e.target.value)}
         />
       </label>
-      <Button type="submit" size="sm" busy={busy} disabled={!name.trim()}>
+      <Button tone="primary" type="submit" size="sm" busy={busy} disabled={!name.trim()}>
         Add
       </Button>
     </form>

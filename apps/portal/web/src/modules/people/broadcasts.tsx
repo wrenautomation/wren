@@ -335,6 +335,7 @@ function BroadcastEditor({
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          tone="primary"
           size="dense"
           busy={busy === "ask"}
           disabled={!canSave || !!busy}
@@ -473,7 +474,7 @@ function BroadcastsHead({ client, reload }: { client: string; reload: () => void
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <Button size="dense" onClick={() => setOpen(open === "new" ? null : "new")}>
+        <Button tone="primary" size="dense" onClick={() => setOpen(open === "new" ? null : "new")}>
           New broadcast
         </Button>
         <Button

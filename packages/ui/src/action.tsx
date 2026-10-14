@@ -729,7 +729,7 @@ export function useRun(
             <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" busy={busy}>
+            <Button tone="primary" size="dense" type="submit" busy={busy}>
               {asked?.action.label}
             </Button>
           </DialogFooter>

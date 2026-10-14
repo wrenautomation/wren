@@ -313,7 +313,13 @@ export function TestStep({
     <div className="grid gap-3">
       <TestFields ports={ports} f={f} label="On input" untils={untilsOf(w)} />
       <span className="flex flex-wrap items-center gap-2">
-        <Button size="dense" onClick={go} disabled={!f.parsed} busy={run.state === "busy"}>
+        <Button
+          tone="primary"
+          size="dense"
+          onClick={go}
+          disabled={!f.parsed}
+          busy={run.state === "busy"}
+        >
           Test step
         </Button>
         {client ? null : <LastInput workflow={workflow} node={node} use={(t) => f.setText(t)} />}
@@ -416,7 +422,13 @@ function TestTrigger({
         {parsed ? null : <span className="text-(--ui-bad)">That isn't a JSON object.</span>}
       </label>
       <span>
-        <Button size="dense" onClick={go} disabled={!parsed} busy={run.state === "busy"}>
+        <Button
+          tone="primary"
+          size="dense"
+          onClick={go}
+          disabled={!parsed}
+          busy={run.state === "busy"}
+        >
           {door ? "Send a test lead" : "Test from here"}
         </Button>
       </span>
@@ -475,7 +487,13 @@ export function TestPanel({
         <Block title="Event">
           <TestFields ports={entries} f={f} label="Enters at" untils={untilsOf(w)} />
           <span>
-            <Button size="dense" onClick={go} disabled={!f.parsed} busy={run.state === "busy"}>
+            <Button
+              tone="primary"
+              size="dense"
+              onClick={go}
+              disabled={!f.parsed}
+              busy={run.state === "busy"}
+            >
               Run test
             </Button>
           </span>

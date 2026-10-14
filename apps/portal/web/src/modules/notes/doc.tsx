@@ -455,7 +455,7 @@ function Doc({
           >
             History
           </Button>
-          <Button size="dense" icon="people" onClick={() => setSharing(true)}>
+          <Button tone="primary" size="dense" icon="people" onClick={() => setSharing(true)}>
             Share
           </Button>
           <MoreMenu

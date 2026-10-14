@@ -174,7 +174,7 @@ export function VersionOpen({
             </Button>
           ) : null}
           {canEdit && number !== current ? (
-            <Button size="dense" busy={busy} onClick={restore}>
+            <Button tone="primary" size="dense" busy={busy} onClick={restore}>
               Restore this version
             </Button>
           ) : null}
@@ -197,7 +197,7 @@ export function VersionOpen({
             className="h-8 w-64"
             onChange={(e) => setName(e.target.value)}
           />
-          <Button size="dense" type="submit">
+          <Button tone="primary" size="dense" type="submit">
             Save
           </Button>
         </form>

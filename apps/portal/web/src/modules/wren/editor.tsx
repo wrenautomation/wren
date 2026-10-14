@@ -899,7 +899,7 @@ export function Proposal({
       </span>
       {changes !== null ? (
         <span className="flex gap-2">
-          <Button size="dense" onClick={onAccept}>
+          <Button tone="primary" size="dense" onClick={onAccept}>
             Accept
           </Button>
           <Button tone="secondary" size="dense" onClick={onReject}>
@@ -1022,7 +1022,13 @@ function SaveTemplate({
             />
           </label>
           <span>
-            <Button size="dense" busy={busy} disabled={title.trim().length < 2} onClick={save}>
+            <Button
+              tone="primary"
+              size="dense"
+              busy={busy}
+              disabled={title.trim().length < 2}
+              onClick={save}
+            >
               Save as template
             </Button>
           </span>

@@ -204,7 +204,7 @@ export function BlogBox(props: { demo?: boolean }) {
                 ? "Take it down to a draft"
                 : "Save as draft"}
           </Button>
-          <Button size="dense" disabled={!ready} onClick={() => save(true)}>
+          <Button tone="primary" size="dense" disabled={!ready} onClick={() => save(true)}>
             {busy === "publish"
               ? "Publishing…"
               : sure === "publish"
@@ -231,7 +231,12 @@ export function BlogBox(props: { demo?: boolean }) {
                     : "Who would get it"}
               </Button>
               {audience?.live && !open.emailedAt ? (
-                <Button size="dense" disabled={!!busy || gets === 0} onClick={() => email()}>
+                <Button
+                  tone="primary"
+                  size="dense"
+                  disabled={!!busy || gets === 0}
+                  onClick={() => email()}
+                >
                   {busy === "email"
                     ? "Sending…"
                     : sure === "email"
