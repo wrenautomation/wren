@@ -24,7 +24,13 @@
  */
 import { SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
-import { readMessageSettings, tagLinks } from "@wren/core/message-settings";
+import {
+  campaignOfRef,
+  capCheck,
+  countMarketingSend,
+  readMessageSettings,
+  tagLinks,
+} from "@wren/core/message-settings";
 import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
@@ -90,6 +96,11 @@ export interface Candidate {
   account: ReachAccount;
   /** LinkedIn step: ask the relationship first. */
   checkRelationship: boolean;
+  /**
+   * A marketing DM (a follow-up): the person key it counts under toward the workspace's cap, set
+   * once the cap let it through. Absent: cold steps, manual replies and invites are not counted.
+   */
+  person?: string;
 }
 
 export const emptyStats = (): TickStats => ({
@@ -252,6 +263,21 @@ export async function planTick(
       hold(stats, "gap");
       continue;
     }
+    // A follow-up is marketing: the workspace's cap across email, texts and DMs holds it until
+    // its person has room. Cold steps keep their own policy, and manual replies are not marketing.
+    let person: string | undefined;
+    if (row.kind === "follow_up") {
+      const cap = await capCheck(db, "dm", contact.handle, o.now, contact.platform);
+      if (cap.until) {
+        await db
+          .update(reachMessages)
+          .set({ dueAt: cap.until, stateReason: "over the frequency cap" })
+          .where(eq(reachMessages.id, row.id));
+        hold(stats, "frequency cap");
+        continue;
+      }
+      person = cap.person;
+    }
     const standing = standingOf(
       { platform: account.platform, startedOn: account.startedOn, health: healthOf(account) },
       o.policy,
@@ -286,6 +312,7 @@ export async function planTick(
       contact,
       account,
       checkRelationship: row.kind !== "connect" && Boolean(seq?.connectFirst),
+      ...(person ? { person } : {}),
     });
   }
   return { stats, candidates };
@@ -429,6 +456,13 @@ export async function recordSent(
     .set({ state: "sent", sentAt: o.now, ref: sent.ref })
     .where(eq(reachMessages.id, c.row.id));
   await keepTouch(`rm:${c.row.id}`, () => touchFromMessage(db, c.row.id));
+  if (c.person)
+    await countMarketingSend(db, {
+      personKey: c.person,
+      channel: "dm",
+      campaign: followCampaign(c.row) ?? c.contact.sequence,
+      now: o.now,
+    });
   // A note the model drafted (invite-notes.ts): its send closes its draft record.
   if (
     c.row.kind === "connect" &&
@@ -495,6 +529,12 @@ export async function recordFailure(
   stats.failed++;
 }
 
+/** The workflow a follow-up DM belongs to (`provenance.follow` is `<workflow>/<node>`). */
+const followCampaign = (row: ReachMessage): string | null =>
+  row.kind === "follow_up"
+    ? campaignOfRef((row.provenance as { follow?: string } | null)?.follow)
+    : null;
+
 /** A journal step: on Restate `ctx.run`, in tests a plain call. */
 export type Journal = <T>(name: string, fn: () => Promise<T>) => Promise<T>;
 
@@ -551,7 +591,7 @@ export async function tick(
                 ? tagLinks(c.row.body, {
                     source: o.linkSource as string,
                     medium: "dm",
-                    campaign: c.contact.sequence,
+                    campaign: followCampaign(c.row) ?? c.contact.sequence,
                   })
                 : c.row.body,
               c.row.subject,

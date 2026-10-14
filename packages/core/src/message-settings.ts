@@ -4,11 +4,14 @@
  * with where it came from. One row in `message_settings`; a missing row is the defaults.
  *
  * Cold outreach keeps its own policy and never reads this. Transactional mail (an opt-in confirm,
- * a receipt) is exempt: it never asks `mayMarket`.
+ * a receipt) is exempt: it never asks `mayMarket`. A newsletter asks `mayMarket`; a follow-up text
+ * or DM to someone who asked has no topic consent, so its sender asks `capCheck` and counts the
+ * send with `countMarketingSend`. One person is one key (`profile:<id>`) when People knows them.
  */
 import type { Queryable } from "@wren/db";
-import { and, count, eq, gt, isNotNull, sql } from "drizzle-orm";
-import { leads, marketingSends, messageSettings, type SendChannel } from "./schema.js";
+import { and, count, desc, eq, gt, sql } from "drizzle-orm";
+import { profileOf } from "./profiles.js";
+import { marketingSends, messageSettings, type SendChannel } from "./schema.js";
 import { normalizeValue } from "./suppress.js";
 
 const DAY = 86_400_000;
@@ -79,43 +82,50 @@ export async function saveMessageSettings(
 }
 
 /**
- * Who a channel address is, as the person's one key: `person:<id>` when something knows the
- * person, else `<kind>:<address>`. Email, SMS and DM keys only add up when something knows the
- * person behind them, so a sender with a better answer (a profile layer) sets one.
+ * Who a channel address is, as the person's one key: `profile:<id>` when People knows the person,
+ * else `<kind>:<address>`. `kind` is `email`, `phone` or `handle:<platform>`, People's own key
+ * kinds. Email, SMS and DM keys only add up when something knows the person behind them.
  */
-export type PersonResolver = (
-  db: Queryable,
-  kind: "email" | "phone" | "handle",
-  value: string,
-) => Promise<string | null>;
+export type PersonResolver = (db: Queryable, kind: string, value: string) => Promise<string | null>;
 
-/** Core knows the person behind an email through `leads.person_id`; nothing else here does. */
-const leadPerson: PersonResolver = async (db, kind, value) => {
-  if (kind !== "email") return null;
-  const [row] = await db
-    .select({ id: leads.personId })
-    .from(leads)
-    .where(and(eq(leads.email, value), isNotNull(leads.personId)))
-    .limit(1);
-  return row?.id ? `person:${row.id}` : null;
+/**
+ * People's answer, read only: the profile an address already belongs to. An address People has
+ * not met stands alone until it does; this never makes a profile.
+ */
+const profileResolver: PersonResolver = async (db, kind, value) => {
+  const id = await profileOf(db, { kind, value });
+  return id === null ? null : `profile:${id}`;
 };
 
-let resolver: PersonResolver = leadPerson;
-/** Swap how a person is found (null: back to leads only). */
+let resolver: PersonResolver = profileResolver;
+/** Swap how a person is found (null: People's profiles, the default). A test seam. */
 export const setPersonResolver = (fn: PersonResolver | null): void => {
-  resolver = fn ?? leadPerson;
+  resolver = fn ?? profileResolver;
 };
 
-const KIND = { email: "email", sms: "phone", dm: "handle" } as const;
-
-/** The one key a person's sends are counted under, whichever channel the address is on. */
+/**
+ * The one key a person's sends are counted under, whichever channel the address is on. A DM
+ * names its `platform`, since a handle is only one on its own site.
+ */
 export async function personKeyOf(
   db: Queryable,
   channel: SendChannel,
   address: string,
+  platform?: string,
 ): Promise<string> {
-  const kind = KIND[channel];
-  const value = kind === "handle" ? address.trim().toLowerCase() : normalizeValue(kind, address);
+  if (channel === "dm") {
+    const handle = address.trim();
+    const kind = `handle:${platform ?? "dm"}`;
+    return (await resolver(db, kind, handle)) ?? `${kind}:${handle.toLowerCase()}`.slice(0, 340);
+  }
+  const kind = channel === "email" ? "email" : "phone";
+  // A blank or odd address never stops a send: it counts under what was written.
+  let value: string;
+  try {
+    value = normalizeValue(kind, address);
+  } catch {
+    value = kind === "phone" ? address.replace(/[^\d+]/g, "") : address.trim().toLowerCase();
+  }
   return (await resolver(db, kind, value)) ?? `${kind}:${value}`.slice(0, 340);
 }
 
@@ -164,6 +174,72 @@ export async function recordMessageSend(
     sentAt: input.now ?? new Date(),
   });
 }
+
+/**
+ * When a person has room again: null when they are under both caps now, else the moment the
+ * oldest send holding them back leaves its window. A queued message waits until then.
+ */
+export async function capRoomAt(
+  db: Queryable,
+  personKey: string,
+  now: Date = new Date(),
+): Promise<Date | null> {
+  const { capPerDay, capPerWeek } = await readMessageSettings(db);
+  if (capPerDay === null && capPerWeek === null) return null;
+  const rows = await db
+    .select({ at: marketingSends.sentAt })
+    .from(marketingSends)
+    .where(
+      and(
+        eq(marketingSends.personKey, personKey),
+        gt(marketingSends.sentAt, new Date(now.getTime() - WEEK)),
+      ),
+    )
+    .orderBy(desc(marketingSends.sentAt))
+    .limit(CAP_MAX);
+  const sent = rows.map((r) => r.at.getTime());
+  let room = 0;
+  if (capPerDay !== null) {
+    const today = sent.filter((t) => t > now.getTime() - DAY);
+    const holding = today[capPerDay - 1];
+    if (holding !== undefined) room = Math.max(room, holding + DAY);
+  }
+  const holdingWeek = capPerWeek === null ? undefined : sent[capPerWeek - 1];
+  if (holdingWeek !== undefined) room = Math.max(room, holdingWeek + WEEK);
+  return room ? new Date(room) : null;
+}
+
+/**
+ * The cap, for a text or DM to someone who asked for it (a form, a thread we wrote on) and gave
+ * no topic consent: `mayMarket` would refuse them, so the cap is all that applies. `until` is
+ * when they have room, null when they have it now. `person` is the key the send counts under.
+ */
+export async function capCheck(
+  db: Queryable,
+  channel: SendChannel,
+  address: string,
+  now: Date,
+  platform?: string,
+): Promise<{ person: string; until: Date | null }> {
+  const person = await personKeyOf(db, channel, address, platform);
+  return { person, until: await capRoomAt(db, person, now) };
+}
+
+/** `recordMessageSend` for a message that already went: a ledger error is logged, never thrown. */
+export async function countMarketingSend(
+  db: Queryable,
+  input: Parameters<typeof recordMessageSend>[1],
+): Promise<void> {
+  try {
+    await recordMessageSend(db, input);
+  } catch (err) {
+    console.error(`marketing send not counted (${input.channel}): ${(err as Error).message}`);
+  }
+}
+
+/** The workflow a follow-up's `ref` (`<workflow>/<node>`) names, as its campaign slug. */
+export const campaignOfRef = (ref: string | null | undefined): string | null =>
+  ref ? ref.split("/")[0] || null : null;
 
 // ---- Link parameters ----
 

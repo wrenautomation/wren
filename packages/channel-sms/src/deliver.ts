@@ -19,7 +19,13 @@
  * REMINDER_FRESH_MS: a reminder is never sent late.
  */
 import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
-import { readMessageSettings, tagLinks } from "@wren/core/message-settings";
+import {
+  campaignOfRef,
+  capCheck,
+  countMarketingSend,
+  readMessageSettings,
+  tagLinks,
+} from "@wren/core/message-settings";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
@@ -110,6 +116,19 @@ export async function reconcile(db: Queryable, now: Date): Promise<number> {
 const FOLLOW_ENDS = new Set(["replied", "opted_out", "unreachable", "stopped"]);
 /** Contact states an answer (a text back, a review ask) skips: they may have replied before. */
 const ANSWER_ENDS = new Set(["opted_out", "unreachable", "stopped"]);
+
+/**
+ * Whether a text counts toward the workspace's per-person cap: a Follow-up or Nurture touch, or a
+ * sequence step after the opener to someone who asked to be texted. Cold steps keep their own
+ * policy, and answers (a text back, a review ask, a pay link), reminders and an operator's own
+ * texts are not marketing.
+ */
+export const isMarketingText = (
+  msg: Pick<SmsMessage, "kind" | "step">,
+  contact: Pick<SmsContact, "sourceKind">,
+) =>
+  msg.kind === "follow_up" ||
+  (msg.kind === "sequence" && ASKED.has(contact.sourceKind) && (msg.step ?? 1) > 1);
 
 /** Queued sequence messages of a contact → `skipped`, when its thread ends. */
 export async function skipQueued(db: Queryable, contactId: number, why: string): Promise<number> {
@@ -404,10 +423,32 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           )
         : text.body;
       rendered = { templateVersion: text.provenance.version, provenance: text.provenance };
+    } else if (msg.kind === "follow_up" && tagFor) {
+      // A follow-up is written when it is queued; its links are tagged as it goes.
+      body = withinParts(
+        msg.body,
+        tagLinks(msg.body, {
+          source: opts.linkSource as string,
+          medium: "sms",
+          campaign: campaignOfRef(msg.ref),
+        }),
+      );
     }
     if (!live) {
       stats.gated += 1;
       continue;
+    }
+    // The workspace's cap across email, texts and DMs: a marketing text waits until its person
+    // has room (a held text keeps its place and goes on a later pass).
+    let counted: string | null = null;
+    if (isMarketingText(msg, contact)) {
+      const cap = await capCheck(db, "sms", contact.e164, now);
+      if (cap.until) {
+        await db.update(smsMessages).set({ dueAt: cap.until }).where(eq(smsMessages.id, msg.id));
+        stats.capped += 1;
+        continue;
+      }
+      counted = cap.person;
     }
     const claimed = await db
       .update(smsMessages)
@@ -447,6 +488,13 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           service: result.service ?? null,
         })
         .where(eq(smsMessages.id, msg.id));
+      if (counted)
+        await countMarketingSend(db, {
+          personKey: counted,
+          channel: "sms",
+          campaign: campaignOfRef(msg.ref) ?? contact.sequence ?? msg.template,
+          now,
+        });
       await stepped(db, msg, contact, opts, stats);
       stats.sent += 1;
     } else if (result.retry) {

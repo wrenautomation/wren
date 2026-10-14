@@ -3,7 +3,7 @@ type: object
 cluster: sms
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-10-14 @ da6ecb53
 entity: packages/channel-sms/src/schema.ts:200
 ---
 
@@ -30,7 +30,7 @@ Citations: `packages/channel-sms/src/schema.ts:200`
 
 ## If you change this
 
-- **Hits:** `deliver.ts` (tick, reconcile, `queueManual`); `follow.ts` (`touch` queues steps 2+ from the spine); `reminders.ts`; `enroll.ts:172` (the opener); `events.ts:168`; `classify.ts`; `threads.ts`; `templates.ts` (step bodies); `SmsSender`, `SmsDesk.reply`, the phone app
+- **Hits:** `deliver.ts` (tick, reconcile, `queueManual`; the tick holds a `follow_up`, or a sequence step 2+ to someone who asked, until the person is under the workspace's cap and counts it when sent: [[leads/consent]] "Cap reach"); `follow.ts` (`touch` queues steps 2+ from the spine); `reminders.ts`; `enroll.ts:172` (the opener); `events.ts:168`; `classify.ts`; `threads.ts`; `templates.ts` (step bodies); `SmsSender`, `SmsDesk.reply`, the phone app
 - **Does not hit:** email's state machine
 
 ## Surfaces
