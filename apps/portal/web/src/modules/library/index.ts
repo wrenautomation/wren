@@ -84,6 +84,8 @@ export const library: Module = {
       id: "workflows",
       label: "Workflows",
       about: "Saved workflow templates, and how each one is wired.",
+      // Automations → All lists them with numbers; the Marketplace sells them (old links keep working).
+      hidden: true,
       template: "list",
       record: "library.workflow",
       empty: "No workflow is declared.",

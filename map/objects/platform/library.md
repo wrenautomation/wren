@@ -41,7 +41,7 @@ Each tab is a record type on the list template, so filters, saved views, the sid
 | Surface | Role |
 |---|---|
 | portal Library: Snippets | write (add, edit, delete, favorite), read |
-| portal Library: Media, SOPs, Workflows | read |
+| portal Library: Media, SOPs, Workflows (hidden from the nav since 2026-10-14: Automations → All lists them; its URL and search hits still open) | read |
 | any draft, reply or long-text edit | read (Insert) |
 
 ## See
