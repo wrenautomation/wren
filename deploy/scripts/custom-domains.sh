@@ -32,7 +32,8 @@ cf "$WREN_CLOUDFLARE_SAAS_TOKEN" PUT /custom_hostnames/fallback_origin "{\"origi
 echo "fallback origin: $target"
 
 # 2. Our own proxied hosts that `*/*` would catch. A route with no script runs no Worker. app.,
-#    auth., demo. and phone. are Worker custom domains and win anyway; t. and www. have routes.
+#    demo. and phone. are Worker custom domains and win; auth. also needs its own route (its
+#    wrangler.toml), since the portal's /assets/* skip its Worker; t. and www. have routes.
 routes="$(cf "$CLOUDFLARE_API_TOKEN" GET /workers/routes)"
 for pattern in "$domain/*" "desk.$domain/*"; do
   if printf '%s' "$routes" | P="$pattern" python3 -c 'import json,os,sys; sys.exit(0 if any(r["pattern"]==os.environ["P"] for r in json.load(sys.stdin)["result"]) else 1)'; then

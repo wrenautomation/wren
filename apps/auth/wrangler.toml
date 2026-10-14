@@ -6,7 +6,13 @@ main = "src/worker.ts"
 compatibility_date = "2026-09-27"
 workers_dev = false
 
-routes = [{ pattern = "auth.wrenautomation.com", custom_domain = true }]
+# The route keeps the portal's `*/*` off this host: since the portal's /assets/* skip its Worker,
+# that route answered auth.'s /assets/* with the portal's SPA page, and the custom domain alone
+# did not win (2026-10-14: sign-in served a blank page).
+routes = [
+  { pattern = "auth.wrenautomation.com", custom_domain = true },
+  { pattern = "auth.wrenautomation.com/*", zone_name = "wrenautomation.com" },
+]
 
 [vars]
 APPS = "https://app.wrenautomation.com,https://phone.wrenautomation.com"
