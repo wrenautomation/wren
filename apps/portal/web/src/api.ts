@@ -7,6 +7,7 @@
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
 import { tellAutotrack } from "./autotrack.js";
+import { dropSnapshot } from "./snapshot.js";
 
 export type {
   AccessView,
@@ -93,6 +94,7 @@ const SENT_AT = "wren.signInSentAt";
  */
 export function signIn(): Promise<never> {
   if (!AUTH_ORIGIN && !ON_CLIENT_HOST) return new Promise(() => {});
+  forgetDevice();
   try {
     if (Date.now() - Number(sessionStorage.getItem(SENT_AT) ?? 0) < 30_000)
       throw new ApiError("Sign-in isn't sticking. Try again in a minute.", 401);
@@ -120,7 +122,69 @@ const TOKEN_URL = AUTH_ORIGIN
     ? "/__auth/token"
     : null;
 
-let held: { token: string; until: number } | null = null;
+/** The token kept across loads (it lasts 15 minutes), and who it names, kept past that. */
+const HELD_KEY = "wren.portal.token";
+const OWNER_KEY = "wren.portal.owner";
+
+/** This browser's local storage, or null where it's blocked. */
+export const device = (): Storage | null => {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+};
+const stored = (key: string): string | null => {
+  try {
+    return device()?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+};
+const store = (key: string, value: string | null) => {
+  try {
+    if (value === null) device()?.removeItem(key);
+    else device()?.setItem(key, value);
+  } catch {
+    // Blocked storage: every load asks for a token, as before.
+  }
+};
+
+let held: { token: string; until: number } | null = (() => {
+  if (!TOKEN_URL) return null;
+  try {
+    const h = JSON.parse(stored(HELD_KEY) ?? "null") as { token: string; until: number } | null;
+    return h && h.until > Date.now() ? h : null;
+  } catch {
+    return null;
+  }
+})();
+
+/**
+ * Who last signed in on this device: what the portal shows before the server answers belongs to
+ * them. A host without sign-in (the demo, a local run) has one viewer.
+ */
+export const deviceOwner = (): string | null => (TOKEN_URL ? stored(OWNER_KEY) : "here");
+
+/** Sign-out, or a sign-in the server refused: nothing of this login stays on the device. */
+export function forgetDevice() {
+  held = null;
+  store(HELD_KEY, null);
+  store(OWNER_KEY, null);
+  const d = device();
+  if (d) dropSnapshot(d);
+}
+
+// Sign-out is a plain link to the sign-in host: wipe the device on the click, before it leaves.
+if (signOutUrl && typeof addEventListener === "function")
+  addEventListener(
+    "click",
+    (e) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (a && a.getAttribute("href") === signOutUrl) forgetDevice();
+    },
+    true,
+  );
 /** One ask at a time: calls made together share it. */
 let asking: Promise<string | null> | null = null;
 
@@ -162,8 +226,14 @@ async function fresh(url: string): Promise<string | null> {
   if (res.status === 429) throw new ApiError("Sign-in is busy. Try again in a minute.", 429);
   if (!res.ok) throw new ApiError(`Couldn't check your sign-in (${res.status}).`, res.status);
   const { token: t } = (await res.json()) as { token: string };
-  const exp = JSON.parse(atob(t.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? "")).exp;
-  held = { token: t, until: Number(exp) * 1000 - 60_000 };
+  const claims = JSON.parse(atob(t.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? ""));
+  held = { token: t, until: Number(claims.exp) * 1000 - 60_000 };
+  // Someone else signed in here: the last login's snapshot isn't theirs.
+  const who = String(claims.email ?? "").toLowerCase() || null;
+  const d = device();
+  if (d && who !== stored(OWNER_KEY)) dropSnapshot(d);
+  store(OWNER_KEY, who);
+  store(HELD_KEY, JSON.stringify(held));
   return t;
 }
 
@@ -312,6 +382,7 @@ async function sendNow<T>(
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401 && TOKEN_URL) {
     held = null;
+    store(HELD_KEY, null);
     return retried ? signIn() : sendNow<T>(path, body, true);
   }
   tellAutotrack(path, body, res.status);

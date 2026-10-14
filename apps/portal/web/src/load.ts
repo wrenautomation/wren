@@ -1,6 +1,7 @@
 /** Loading a portal call into a component. */
 import { useLoad } from "@wren/ui";
-import { ApiError } from "./api.js";
+import { ApiError, device, deviceOwner, viewingAs } from "./api.js";
+import { readSnapshot, writeSnapshot } from "./snapshot.js";
 
 export type Load<T> = {
   data: T | null;
@@ -12,17 +13,56 @@ export type Load<T> = {
 /** Every portal call's last answers; each key names its client. */
 const PORTAL = {};
 
+/** Answers kept on the device: the last load's, then this one's (never under View as). */
+const KEPT_MAX = 200;
+const kept = new Map<string, unknown>(
+  viewingAs
+    ? []
+    : (() => {
+        const d = device();
+        return d ? readSnapshot(d, deviceOwner(), Date.now()) : [];
+      })(),
+);
+function keep(key: string, data: unknown) {
+  kept.delete(key);
+  kept.set(key, data);
+  if (kept.size > KEPT_MAX) kept.delete(kept.keys().next().value as string);
+}
+function save() {
+  const d = device();
+  const who = deviceOwner();
+  if (!d || !who || viewingAs) return;
+  writeSnapshot(d, who, Date.now(), [...kept]);
+}
+if (typeof addEventListener === "function") {
+  addEventListener("pagehide", save);
+  addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") save();
+  });
+}
+
 /**
  * Run `fn` whenever `key` changes, or on `retry`; the last answer stays on screen while the
- * next loads, and one seen before in this tab shows at once while it refreshes.
+ * next loads, and one seen before (in this tab, or on this device's last load) shows at once
+ * while it refreshes. A refused answer drops what the device kept for it.
  */
 export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
-  return useLoad(
+  const load = useLoad(
     key,
     () =>
-      fn().catch((err: unknown) => {
-        throw err instanceof ApiError ? err : new ApiError(String(err), 0);
-      }),
+      fn().then(
+        (data) => {
+          keep(key, data);
+          return data;
+        },
+        (err: unknown) => {
+          const e = err instanceof ApiError ? err : new ApiError(String(err), 0);
+          if (e.status === 401 || e.status === 403 || e.status === 404) kept.delete(key);
+          throw e;
+        },
+      ),
     PORTAL,
   ) as Load<T>;
+  if (load.data !== null || !kept.has(key)) return load;
+  return { ...load, data: kept.get(key) as T };
 }
