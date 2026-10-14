@@ -18,6 +18,7 @@ import { randomBytes } from "node:crypto";
 import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { leadOf } from "@wren/core/door";
 import { linkPeople } from "@wren/core/leads";
+import { noteContacts } from "@wren/core/profiles-backfill";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
 import { factKeys, renderKind } from "@wren/core/slots";
 import type { SpineEvent, Step } from "@wren/core/spine";
@@ -281,6 +282,7 @@ export async function askReview(db: Db, c: Customer, o: AskOptions): Promise<Rev
     contact = made ?? (await threadOf(db, to, null));
     if (!contact) throw new Error(`no contact for ${c.subject}`);
     await linkPeople(db, "sms_contacts", [contact.id]);
+    await noteContacts(db, [contact.id]);
   }
   if (!contact.numberId) return row("refused", "no number of ours on their thread", contact.id);
   const asked = await row("queued", null, contact.id);

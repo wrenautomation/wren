@@ -23,6 +23,7 @@ import {
   signed,
 } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
+import { noteProfile } from "@wren/core/profiles";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource, livePrompt } from "@wren/core/templates/defaults";
@@ -765,6 +766,14 @@ async function enroll(
         })
         .returning({ id: enrollments.id });
       const enrollmentId = (row as { id: number }).id;
+      await noteProfile(
+        tx,
+        [
+          { kind: "email", value: s.email },
+          { kind: "person", value: s.personId },
+        ],
+        "enrollment",
+      );
       const now = new Date();
       const approval: {
         state: "draft" | "approved";

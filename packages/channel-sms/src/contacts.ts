@@ -4,6 +4,8 @@
  * consent record. Enroll treats it like any other `new` contact (same basis
  * gate, same lookup). A thread started by hand from the app is never enrolled.
  */
+
+import { noteContacts } from "@wren/core/profiles-backfill";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { queueManual } from "./deliver.js";
@@ -37,6 +39,7 @@ export async function addContact(
       niche: input.niche ?? null,
     })
     .returning();
+  if (made) await noteContacts(db, [made.id]);
   return { contact: made as SmsContact, created: true };
 }
 

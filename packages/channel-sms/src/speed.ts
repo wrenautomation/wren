@@ -12,6 +12,7 @@
 import { activeSuppressionOf } from "@wren/core";
 import { type DoorLead, leadOf } from "@wren/core/door";
 import { linkPeople } from "@wren/core/leads";
+import { noteContacts } from "@wren/core/profiles-backfill";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
@@ -163,6 +164,7 @@ export async function firstText(
   const contactId = contact?.id as number;
   // A lead who's a person already gets them, for the copy and the other channels.
   await linkPeople(db, "sms_contacts", [contactId]);
+  await noteContacts(db, [contactId]);
   await db.update(speedRuns).set({ smsContactId: contactId }).where(eq(speedRuns.id, run.id));
   let got: Awaited<ReturnType<typeof enroll>>;
   try {

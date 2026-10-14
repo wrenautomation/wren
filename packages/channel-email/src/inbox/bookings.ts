@@ -6,6 +6,8 @@
  * firm's sequences the way a reply does. A cancel only marks the row: it never restarts
  * a sequence.
  */
+
+import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { callBookings, enrollments, messages } from "../schema.js";
@@ -141,6 +143,14 @@ export async function applyBooking(
   e: BookingEvent,
   opts: { now: Date },
 ): Promise<BookingOutcome> {
+  // A booker joins their profile (People); Wren's own calendar's mirror rows (`wren-`) are
+  // noted where that calendar books.
+  if (e.email && !e.uid.startsWith("wren-"))
+    await noteProfileFrom(
+      db,
+      "call_booking",
+      profileFrom.booking({ email: e.email, name: e.name, at: e.bookedAt ?? opts.now }),
+    );
   return serializable(db, async (tx) => {
     const state = e.change === "cancelled" ? "cancelled" : "booked";
     const fields = {

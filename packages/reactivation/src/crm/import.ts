@@ -5,6 +5,7 @@
  */
 import { contactCandidates } from "@wren/channel-email/schema";
 import { emailDomain, emailSyntaxError, type PeopleImportStats, runPeopleImport } from "@wren/core";
+import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { type ImportBatch, imports } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
@@ -62,6 +63,21 @@ export async function runCrmImport(
           target: [crmContacts.format, crmContacts.crmKey],
           set: { ...update, updatedAt: sql`now()` },
         });
+      // The CRM's id, email and phone join the person's profile (People).
+      await noteProfileFrom(
+        db,
+        "crm",
+        profileFrom.crm({
+          format: source.format.name,
+          crmKey: rec.crmKey,
+          email: rec.email,
+          phone: rec.phone,
+          personId: person.id,
+          name: person.fullName,
+          owner: rec.owner,
+          status: rec.status,
+        }),
+      );
       if (keys.has(rec.crmKey)) extra.crm_ids_repeated += 1;
       else {
         keys.add(rec.crmKey);

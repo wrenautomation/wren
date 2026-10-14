@@ -1730,6 +1730,13 @@
       "when": 1791984060905,
       "tag": "0246_sent_log",
       "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1791985940755,
+      "tag": "0247_profiles",
+      "breakpoints": true
     }
   ]
 }

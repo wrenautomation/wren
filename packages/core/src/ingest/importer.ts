@@ -20,6 +20,7 @@
 import type { Queryable } from "@wren/db";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { emailDomain } from "../emails.js";
+import { noteProfileFrom, profileFrom } from "../profiles-backfill.js";
 import {
   type Company,
   companies,
@@ -418,6 +419,20 @@ export async function runImport(
       })
       .returning()) as [Lead];
     leadsByEmail.set(parsed.email, lead); // same-batch duplicates must sight this lead
+    // One profile per person, however many lists name them (People).
+    await noteProfileFrom(
+      db,
+      "lead_import",
+      profileFrom.lead({
+        email: lead.email,
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        title: lead.title,
+        company: parsed.companyName ?? company?.name,
+        country,
+        socialUrl: lead.socialUrl,
+      }),
+    );
     counts[matched ? "leads_suppressed" : "leads_created"] += 1;
   }
 

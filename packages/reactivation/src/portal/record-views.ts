@@ -30,6 +30,8 @@ export const reactivationPeople = pgView("reactivation_people", {
   /** The score's first reason, the one that counts most: "Moved to Acme 4 months ago". */
   reason: text("reason"),
   brief: text("brief"),
+  /** Their People profile (B1), once a writer has seen them. */
+  profile: text("profile"),
 }).as(sql`
   with latest as (
     select distinct on (c.person_id) c.person_id, c.company_id, c.email, c.owner,
@@ -58,7 +60,9 @@ export const reactivationPeople = pgView("reactivation_people", {
         where cc.evidence = 'crm' and lower(cc.email) = lower(s.email)
         order by v.checked_at desc, v.id desc limit 1) end email,
     sc.reasons->0->>'reason' reason,
-    case when b.state = 'written' and sc.score > 0 then b.text end brief
+    case when b.state = 'written' and sc.score > 0 then b.text end brief,
+    (select '/people/people/' || pk.profile_id from profile_keys pk
+      where pk.kind = 'person' and pk.value = s.person_id::text) profile
   from subjects s
   join people p on p.id = s.person_id
   join companies co on co.id = s.company_id

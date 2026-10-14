@@ -19,6 +19,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { activeElsewhere } from "@wren/core/leads";
+import { noteProfile } from "@wren/core/profiles";
 import type { FactValues } from "@wren/core/slots";
 import { MissingFactError, type Rendered, render, type Template, toSource } from "@wren/core/slots";
 import { emailRef, recordVersion } from "@wren/core/templates";
@@ -853,6 +854,14 @@ async function enroll(
     })
     .returning({ id: enrollments.id });
   const enrollmentId = (row as { id: number }).id;
+  await noteProfile(
+    tx,
+    [
+      { kind: "email", value: input.address.email },
+      { kind: "person", value: input.personId },
+    ],
+    "enrollment",
+  );
   const counted = { messages_drafted: 0, auto_approved: 0 };
   const now = new Date();
   const values = shared.sequence.steps.map((step, index) => {

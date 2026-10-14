@@ -6,6 +6,8 @@
  * we find) but land as `unreachable`: they are switchboards, never a person's
  * phone. Companies in a held niche are never lifted.
  */
+
+import { noteContacts } from "@wren/core/profiles-backfill";
 import { companies } from "@wren/core/schema";
 import type { Db } from "@wren/db";
 import { ownContactPoints } from "@wren/research/schema";
@@ -88,11 +90,15 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
         niche: row.niche,
       };
     });
-    const inserted = await db
-      .insert(smsContacts)
-      .values(values)
-      .onConflictDoNothing()
-      .returning({ companyId: smsContacts.companyId, lineType: smsContacts.lineType });
+    const inserted = await db.insert(smsContacts).values(values).onConflictDoNothing().returning({
+      id: smsContacts.id,
+      companyId: smsContacts.companyId,
+      lineType: smsContacts.lineType,
+    });
+    await noteContacts(
+      db,
+      inserted.map((r) => r.id),
+    );
     stats.added += inserted.length;
     for (const r of inserted) {
       if (r.companyId !== null) touched.add(r.companyId);

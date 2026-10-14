@@ -30,6 +30,7 @@ Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.
 - **feeds:** [[content/inbox-thread]] (touches show in the person's Inbox timeline and in Suggest's prompt)
 - **owned-by:** [[leads/person]] (`social_handles.person_id`), [[leads/lead]] (`social_handles.lead_id`)
 - **joins:** [[content/comment]], [[content/linkedin-invite]], [[content/reach-post]], [[content/reddit-thread]], `social_activity`
+- **feeds:** [[leads/profile]] (a new or newly linked handle is noted as key `handle:<platform>`; each touch is a timeline line)
 - **looks-like-but-is-not:** `draft_events` (the training record, keyed per draft, not per person); `lead_channels` (active sequences, not history)
 
 ## If you change this

@@ -1,0 +1,466 @@
+/**
+ * Profiles (designs/2026-10-14-customerio-audit.md, B1): one person in a workspace, by every
+ * address they go by. `profile_keys` is one address (an email, a phone, a handle on a platform,
+ * the site's visitor cookie, a CRM id, a `people` row); one key is one profile's, at most.
+ * `profile_traits` is what we know about them, one row per key, each change kept in
+ * `profile_trait_events`. Two profiles found to be one merge into the older: its keys and traits
+ * move, the younger keeps its row with `merged_into` set, and `profile_merges` says what moved.
+ * Nothing here is ever deleted. Only `./profiles.ts` writes these.
+ *
+ * The timeline (`profile_timeline`) reads the source tables through the keys; nothing is copied.
+ */
+import { sql } from "drizzle-orm";
+import {
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  pgView,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+  unique,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+/** Key kinds past the platform handles (`handle:<platform>`) and CRM ids (`crm:<source>`). */
+export const PROFILE_KEY_KINDS = ["email", "phone", "visitor", "person"] as const;
+
+/** What a timeline line is, as its kind filter lists them. */
+export const TIMELINE_KINDS = [
+  "email_sent",
+  "email_received",
+  "text_sent",
+  "text_received",
+  "call_in",
+  "voice_call",
+  "call",
+  "touch",
+  "consent",
+  "form",
+  "chat",
+  "booking",
+  "payment",
+  "workflow",
+  "trait",
+  "merge",
+] as const;
+export type TimelineKind = (typeof TIMELINE_KINDS)[number];
+export const TIMELINE_KIND_NAMES: Readonly<Record<TimelineKind, string>> = {
+  email_sent: "Email sent",
+  email_received: "Email received",
+  text_sent: "Text sent",
+  text_received: "Text received",
+  call_in: "Called in",
+  voice_call: "Voice agent call",
+  call: "Called",
+  touch: "Social touch",
+  consent: "Consent",
+  form: "Form sent",
+  chat: "Site chat",
+  booking: "Booking",
+  payment: "Payment",
+  workflow: "Workflow",
+  trait: "Trait changed",
+  merge: "Merged",
+};
+
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: serial("id").notNull(),
+    /** The best name any source gave; the first one stands until a person changes it. */
+    name: text("name"),
+    firstSeen: timestamp("first_seen", { withTimezone: true }).defaultNow().notNull(),
+    lastSeen: timestamp("last_seen", { withTimezone: true }).defaultNow().notNull(),
+    /** Set when this profile turned out to be another's: that one holds its keys now. */
+    mergedInto: integer("merged_into"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profiles" }),
+    index("ix_profiles_merged_into").on(t.mergedInto),
+    index("ix_profiles_last_seen").on(t.lastSeen),
+    foreignKey({
+      columns: [t.mergedInto],
+      foreignColumns: [t.id],
+      name: "fk_profiles_merged_into_profiles",
+    }),
+  ],
+);
+
+export const profileKeys = pgTable(
+  "profile_keys",
+  {
+    id: serial("id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    /** `email`, `phone`, `visitor`, `person`, `handle:<platform>` or `crm:<source>`. */
+    kind: varchar("kind", { length: 48 }).notNull(),
+    /** Normalized (`keyOf`): a lowercased email, an E.164 phone, a bare handle. */
+    value: varchar("value", { length: 320 }).notNull(),
+    /** The writer that first saw it: `lead_import`, `sms_contact`, `site_form`, ... */
+    source: varchar("source", { length: 32 }).notNull(),
+    firstSeen: timestamp("first_seen", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_keys" }),
+    unique("uq_profile_keys_kind_value").on(t.kind, t.value),
+    index("ix_profile_keys_profile_id").on(t.profileId, t.kind),
+    // A record's page reads its lines by id as text (`records-serve`): this serves the timeline.
+    index("ix_profile_keys_profile_text").on(sql`(${t.profileId}::text)`),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_keys_profile_id_profiles",
+    }),
+  ],
+);
+
+export const profileTraits = pgTable(
+  "profile_traits",
+  {
+    profileId: integer("profile_id").notNull(),
+    key: varchar("key", { length: 64 }).notNull(),
+    value: jsonb("value").notNull(),
+    source: varchar("source", { length: 32 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.key], name: "pk_profile_traits" }),
+    index("ix_profile_traits_key").on(t.key),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_traits_profile_id_profiles",
+    }),
+  ],
+);
+
+/** Append only: every change to a trait, old and new. What B5's "trait changed" reads. */
+export const profileTraitEvents = pgTable(
+  "profile_trait_events",
+  {
+    id: serial("id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    key: varchar("key", { length: 64 }).notNull(),
+    old: jsonb("old"),
+    new: jsonb("new").notNull(),
+    source: varchar("source", { length: 32 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_trait_events" }),
+    index("ix_profile_trait_events_profile_id").on(t.profileId, t.at),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_trait_events_profile_id_profiles",
+    }),
+  ],
+);
+
+/** One merge: `from_id` turned out to be `into_id`; what moved, and which key showed it. */
+export const profileMerges = pgTable(
+  "profile_merges",
+  {
+    id: serial("id").notNull(),
+    intoId: integer("into_id").notNull(),
+    fromId: integer("from_id").notNull(),
+    /** The key both were found by: `email:a@b.co`. */
+    by: varchar("by", { length: 400 }).notNull(),
+    keys: integer("keys").notNull(),
+    traits: integer("traits").notNull(),
+    source: varchar("source", { length: 32 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_merges" }),
+    index("ix_profile_merges_into_id").on(t.intoId),
+    index("ix_profile_merges_from_id").on(t.fromId),
+    foreignKey({
+      columns: [t.intoId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_merges_into_id_profiles",
+    }),
+    foreignKey({
+      columns: [t.fromId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_merges_from_id_profiles",
+    }),
+  ],
+);
+
+/** A timeline line's columns, every branch the same. */
+const LINE = sql.raw(`lines.id, lines.profile_id, lines.at, lines.kind, lines.channel,
+  lines.summary, lines.body, lines.link, lines.source,
+  coalesce(p.name, '#' || p.id) who, '/people/people/' || p.id profile_link`);
+
+/**
+ * Every line about one profile, over the source tables by its keys (never copied). Each line:
+ * its time, kind, channel, one line, the whole thing (`body`), where its row shows in the
+ * portal (`link`, when it has a page) and the table it came from. Rows a client's workspace
+ * keeps on main (its forms, pay links) show in its workspace by their texts; here, a form is
+ * Wren's own only.
+ */
+export const profileTimeline = pgView("profile_timeline", {
+  id: text("id"),
+  profileId: integer("profile_id"),
+  at: timestamp("at", { withTimezone: true }),
+  kind: text("kind"),
+  channel: text("channel"),
+  summary: text("summary"),
+  body: text("body"),
+  link: text("link"),
+  source: text("source"),
+  who: text("who"),
+  profileLink: text("profile_link"),
+}).as(sql`
+  select ${LINE} from (
+  select 'message:' || m.id id, k.profile_id, coalesce(m.sent_at, m.created_at) at,
+    'email_sent' kind, 'email' channel, coalesce(nullif(m.subject, ''), '(no subject)') summary,
+    m.body, null::text link, 'messages' source
+  from profile_keys k
+  join enrollments e on lower(e.to_email) = k.value
+  join messages m on m.enrollment_id = e.id
+  where k.kind = 'email' and m.sent_at is not null
+  union all
+  select 'thread_event:' || t.id, k.profile_id, t.received_at, 'email_received', 'email',
+    replace(t.kind, '_', ' ') || ': ' || coalesce(nullif(t.subject, ''), t.snippet, ''),
+    coalesce(t.body_text, t.snippet), null, 'thread_events'
+  from profile_keys k
+  join enrollments e on lower(e.to_email) = k.value
+  join thread_events t on t.enrollment_id = e.id
+  where k.kind = 'email' and t.kind <> 'note'
+  union all
+  select 'sms_message:' || s.id, k.profile_id, coalesce(s.received_at, s.sent_at, s.created_at),
+    case when s.direction = 'in' then 'text_received' else 'text_sent' end, 'sms',
+    left(s.body, 160), s.body, '/marketing/texts/' || c.id, 'sms_messages'
+  from profile_keys k
+  join sms_contacts c on c.e164 = k.value
+  join sms_messages s on s.contact_id = c.id
+  where k.kind = 'phone' and (s.direction = 'in' or s.sent_at is not null)
+  union all
+  select 'sms_call:' || x.id, k.profile_id, x.started_at, 'call_in', 'phone',
+    'Called in: ' || coalesce(x.result, 'ringing'), x.text_back_detail,
+    case when x.contact_id is not null then '/marketing/texts/' || x.contact_id end, 'sms_calls'
+  from profile_keys k
+  join sms_calls x on x.from_e164 = k.value
+  where k.kind = 'phone'
+  union all
+  select 'voice_call:' || v.id, k.profile_id, v.started_at, 'voice_call', 'phone',
+    v.direction || ' call: ' || v.outcome, v.message, '/voice/calls/' || v.id, 'voice_calls'
+  from profile_keys k
+  join voice_calls v on k.value in (v.from_number, v.to_number)
+  where k.kind = 'phone'
+  union all
+  select 'call:' || c.id, k.profile_id, c.called_at, 'call', 'phone', 'Called by ' || c.called_by,
+    null, '/reactivation/people/' || c.person_id, 'calls'
+  from profile_keys k
+  join calls c on c.person_id::text = k.value
+  where k.kind = 'person'
+  union all
+  select 'touch:' || t.id, k.profile_id, t.at, 'touch', h.platform,
+    case t.direction when 'ours' then 'We ' else 'They ' end || t.kind
+      || coalesce(': ' || left(t.text, 140), ''),
+    t.text, t.url, 'touches'
+  from profile_keys k
+  join social_handles h on k.kind = 'handle:' || h.platform and h.handle = k.value
+  join touches t on t.handle_id = h.id
+  where k.kind like 'handle:%'
+  union all
+  select 'consent_event:' || ce.id, k.profile_id, ce.created_at, 'consent', c.channel,
+    tp.public_name || ': ' || ce.kind || ' (' || ce.by || ')', ce.evidence::text, null,
+    'consent_events'
+  from profile_keys k
+  join consents c on c.address = k.value
+    and c.channel = case k.kind when 'email' then 'email' when 'phone' then 'sms' end
+  join topics tp on tp.id = c.topic_id
+  join consent_events ce on ce.consent_id = c.id
+  where k.kind in ('email', 'phone')
+  union all
+  select 'site_form:' || e.id, hit.profile_id, e.at, 'form', coalesce(e.channel, 'site'),
+    coalesce(f.name, p.title, 'A form') || ' sent',
+    (select string_agg(a || ': ' || b, chr(10) order by a) from jsonb_each_text(e.fields) x(a, b)),
+    '/sites/submissions/' || e.id, 'site_forms'
+  from (
+    select e.id, k.profile_id from profile_keys k
+      join site_forms e on lower(e.fields ->> 'email') = k.value where k.kind = 'email'
+    union
+    select e.id, k.profile_id from profile_keys k
+      join site_forms e on k.value in (e.fields ->> 'phone',
+        '+' || regexp_replace(e.fields ->> 'phone', '[^0-9]', '', 'g'),
+        '+1' || regexp_replace(e.fields ->> 'phone', '[^0-9]', '', 'g'))
+      where k.kind = 'phone'
+    union
+    select e.id, k.profile_id from profile_keys k
+      join site_forms e on e.visitor = k.value where k.kind = 'visitor'
+  ) hit
+  join site_forms e on e.id = hit.id
+  left join site_form_defs f on f.id = e.form
+  left join site_pages p on p.id = e.page
+  where coalesce(f.client, p.client) is null
+  union all
+  select 'chat_message:' || m.id, k.profile_id, m.at, 'chat', 'site',
+    case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || left(m.body, 140),
+    m.body, null, 'chat_messages'
+  from (
+    select t.id, k.profile_id from profile_keys k
+      join chat_threads t on lower(t.email) = k.value where k.kind = 'email'
+    union
+    select t.id, k.profile_id from profile_keys k
+      join chat_threads t on k.value in (t.phone, '+' || t.phone, '+1' || t.phone)
+      where k.kind = 'phone'
+  ) k
+  join chat_messages m on m.thread_id = k.id
+  union all
+  select 'booking:' || b.id, k.profile_id, b.created_at, 'booking', 'calendar',
+    case when b.state = 'cancelled' then 'Cancelled the call on ' else 'Booked a call for ' end
+      || to_char(b.start at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || ' UTC',
+    b.reason, '/calendar/calls/' || b.id, 'bookings'
+  from profile_keys k
+  join calendar.bookings b on lower(b.email) = k.value
+  where k.kind = 'email' and b.calendar = 'wren'
+  union all
+  select 'call_booking:' || cb.id, k.profile_id, coalesce(cb.booked_at, cb.start), 'booking',
+    'calendar', 'Booked a call' || coalesce(' for '
+      || to_char(cb.start at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || ' UTC', ''),
+    cb.outcome, '/calls/calls/' || cb.id, 'call_bookings'
+  from profile_keys k
+  join call_bookings cb on lower(cb.email) = k.value
+  where k.kind = 'email' and cb.uid not like 'wren-%'
+  union all
+  select 'paid:' || c.id, k.profile_id, c.paid_at, 'payment', 'sms',
+    'Paid ' || to_char(c.paid_cents / 100.0, 'FM999999990.00') || ' by pay link', null,
+    '/marketing/texts/' || c.id, 'sms_contacts'
+  from profile_keys k
+  join sms_contacts c on c.e164 = k.value
+  where k.kind = 'phone' and c.paid_at is not null
+  union all
+  select distinct on (ev.workflow, ev.subject, w.profile_id) 'event:' || ev.id, w.profile_id,
+    ev.at, 'workflow', 'workflow', 'Entered ' || ev.workflow, ev.subject, null, 'events'
+  from (
+    select k.profile_id, 'lead:email:' || e.id subject from profile_keys k
+      join enrollments e on lower(e.to_email) = k.value where k.kind = 'email'
+    union all
+    select k.profile_id, 'lead:sms:' || c.id from profile_keys k
+      join sms_contacts c on c.e164 = k.value where k.kind = 'phone'
+  ) w
+  join events ev on ev.subject = w.subject
+  union all
+  select 'trait_event:' || te.id, te.profile_id, te.at, 'trait', 'profile',
+    te.key || ': ' || coalesce(te.old::text, 'none') || ' to ' || te.new::text, null, null,
+    'profile_trait_events'
+  from profile_trait_events te
+  union all
+  select 'merge:' || pm.id, pm.into_id, pm.at, 'merge', 'profile',
+    'Profile #' || pm.from_id || ' merged in by ' || pm.by, null, null, 'profile_merges'
+  from profile_merges pm
+  ) lines
+  join profiles p on p.id = lines.profile_id`);
+
+/** Each trait's changes, for its page's History. */
+export const profileTraitActivity = pgView("profile_trait_activity", {
+  trait: text("trait"),
+  seq: integer("seq"),
+  at: timestamp("at", { withTimezone: true }),
+  kind: text("kind"),
+  what: text("what"),
+}).as(sql`
+  select e.profile_id || ':' || e.key trait, e.id seq, e.at, e.source::text kind,
+    coalesce(e.old::text, 'none') || ' to ' || e.new::text what
+  from profile_trait_events e`);
+
+/** Live profiles as the People list reads them: addresses, channels and consent on the row. */
+export const profileRecords = pgView("profile_records", {
+  id: integer("id"),
+  name: text("name"),
+  emails: text("emails"),
+  phones: text("phones"),
+  handles: text("handles"),
+  channels: text("channels"),
+  consent: text("consent"),
+  firstSeen: timestamp("first_seen", { withTimezone: true }),
+  lastSeen: timestamp("last_seen", { withTimezone: true }),
+  keys: integer("keys"),
+  traits: integer("traits"),
+  merged: integer("merged"),
+}).as(sql`
+  select p.id, coalesce(p.name, (select k.value from profile_keys k where k.profile_id = p.id
+      order by k.kind <> 'email', k.kind <> 'phone', k.id limit 1), '#' || p.id) "name",
+    (select string_agg(k.value, ', ' order by k.id) from profile_keys k
+      where k.profile_id = p.id and k.kind = 'email') emails,
+    (select string_agg(k.value, ', ' order by k.id) from profile_keys k
+      where k.profile_id = p.id and k.kind = 'phone') phones,
+    (select string_agg(substr(k.kind, 8) || ' ' || k.value, ', ' order by k.id) from profile_keys k
+      where k.profile_id = p.id and k.kind like 'handle:%') handles,
+    (select string_agg(distinct case when k.kind = 'phone' then 'sms'
+        when k.kind like 'handle:%' then substr(k.kind, 8) else k.kind end, ', ')
+      from profile_keys k where k.profile_id = p.id and (k.kind in ('email', 'phone')
+        or k.kind like 'handle:%')) channels,
+    (select string_agg(distinct x.said, ', ') from (
+      select c.channel || ' ' || c.state said from profile_keys k
+        join consents c on c.address = k.value
+          and c.channel = case k.kind when 'email' then 'email' when 'phone' then 'sms' end
+        where k.profile_id = p.id and k.kind in ('email', 'phone')
+      union all
+      select 'sms opted out' from profile_keys k join sms_contacts s on s.e164 = k.value
+        where k.profile_id = p.id and k.kind = 'phone' and s.state = 'opted_out') x) consent,
+    p.first_seen, p.last_seen,
+    (select count(*)::int from profile_keys k where k.profile_id = p.id) keys,
+    (select count(*)::int from profile_traits t where t.profile_id = p.id) traits,
+    (select count(*)::int from profile_merges m where m.into_id = p.id) merged
+  from profiles p
+  where p.merged_into is null`);
+
+/** Each trait as a row: its value as text for the list, the whole JSON for the page. */
+export const profileTraitRecords = pgView("profile_trait_records", {
+  id: text("id"),
+  profileId: integer("profile_id"),
+  key: text("key"),
+  value: text("value"),
+  source: text("source"),
+  at: timestamp("at", { withTimezone: true }),
+  changes: integer("changes"),
+  profileLink: text("profile_link"),
+}).as(sql`
+  select t.profile_id || ':' || t.key id, t.profile_id, t.key::text,
+    case jsonb_typeof(t.value) when 'string' then t.value #>> '{}' else t.value::text end "value",
+    t.source::text, t.at,
+    (select count(*)::int from profile_trait_events e
+      where e.profile_id = t.profile_id and e.key = t.key) changes,
+    '/people/people/' || t.profile_id profile_link
+  from profile_traits t`);
+
+/** Each address with the link to its profile. */
+export const profileKeyRecords = pgView("profile_key_records", {
+  id: integer("id"),
+  profileId: integer("profile_id"),
+  kind: text("kind"),
+  value: text("value"),
+  source: text("source"),
+  firstSeen: timestamp("first_seen", { withTimezone: true }),
+  profileLink: text("profile_link"),
+}).as(sql`
+  select k.id, k.profile_id, k.kind::text, k.value::text, k.source::text, k.first_seen,
+    '/people/people/' || k.profile_id profile_link
+  from profile_keys k`);
+
+/** Each merge with both names, under the profile that took it in. */
+export const profileMergeRecords = pgView("profile_merge_records", {
+  id: integer("id"),
+  intoId: integer("into_id"),
+  fromId: integer("from_id"),
+  fromName: text("from_name"),
+  by: text("by"),
+  keys: integer("keys"),
+  traits: integer("traits"),
+  source: text("source"),
+  at: timestamp("at", { withTimezone: true }),
+  intoLink: text("into_link"),
+}).as(sql`
+  select m.id, m.into_id, m.from_id, coalesce(p.name, '#' || m.from_id) from_name, m.by::text,
+    m.keys, m.traits, m.source::text, m.at, '/people/people/' || m.into_id into_link
+  from profile_merges m
+  join profiles p on p.id = m.from_id`);

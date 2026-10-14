@@ -29,7 +29,8 @@ Citations: `packages/core/src/schema.ts:135`
 - **owned-by:** [[leads/company]]
 - **owns:** [[research/contact-candidate]] (`person_id`), [[email/enrollment]] when `kind = person`
 - **joins:** `person_facts` (`packages/core/src/views.ts:14`), [[leads/sighting]]
-- **looks-like-but-is-not:** [[leads/lead]] (an address may have no person)
+- **feeds:** [[leads/profile]] (key `person`; the people importer notes each one)
+- **looks-like-but-is-not:** [[leads/lead]] (an address may have no person); [[leads/profile]] (anyone we hold an address for, research or not)
 
 ## If you change this
 

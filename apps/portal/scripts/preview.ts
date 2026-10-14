@@ -62,6 +62,7 @@ import {
 import { PEOPLE_RECORDS, peopleConsoleApi } from "@wren/core/people/console";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "@wren/core/people/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
+import { profileRecords } from "@wren/core/profile-records";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templatesApi } from "@wren/core/templates/console";
 import {
@@ -220,6 +221,8 @@ const SERVICES: Record<
         ...SITES_RECORDS,
         // Every message we sent (People → Sent).
         ...SENT_RECORDS,
+        // People: everyone once, their addresses, traits and timeline.
+        ...profileRecords(WORKFLOWS),
       ],
     }),
   },
@@ -378,7 +381,7 @@ const SERVICES: Record<
     api: peopleConsoleApi({
       db: main,
       open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
-      records: PEOPLE_RECORDS,
+      records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
     }),
   },
   sms: {

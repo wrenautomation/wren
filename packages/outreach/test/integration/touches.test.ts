@@ -184,6 +184,8 @@ describe("touches", () => {
     const rows = (await personRecord.rows?.(db())) ?? [];
     expect(rows.find((x) => x.id === `li:${personId}`)).toMatchObject({ touches: 1 });
     expect(rows.find((x) => x.id === "reddit:jo_test")).toMatchObject({ touches: 3 });
+    // Each links to its profile, made when the handle was first seen.
+    expect(rows.find((x) => x.id === "reddit:jo_test")?.profile).toMatch(/^\/people\/people\/\d+$/);
     const lines = (await db().execute(
       sql`select kind, what from person_touch_lines where person = ${`li:${personId}`}`,
     )) as unknown as Array<{ kind: string; what: string }>;

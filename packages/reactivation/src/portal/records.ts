@@ -69,6 +69,7 @@ export const person = defineRecord({
     email: verdict(),
     reason: text("Why this score"),
     brief: cited("Why call now"),
+    profile: link("Profile"),
   },
   views: [
     { id: "call", label: "Call first", where: { now: ["moved", "hiring"] }, sort: "-score" },

@@ -13,6 +13,7 @@
 import type { Queryable } from "@wren/db";
 import { eq, inArray, or } from "drizzle-orm";
 import { findReplay } from "../ingest/importer.js";
+import { noteProfileFrom, profileFrom } from "../profiles-backfill.js";
 import {
   type Company,
   companies,
@@ -275,6 +276,18 @@ export async function runPeopleImport(
     }
     if (person.sourceKey) peopleBySourceKey.set(person.sourceKey, person);
     peopleByName.set(key, person);
+    // One profile per person (People): the person id, their LinkedIn, title and firm.
+    await noteProfileFrom(
+      db,
+      "people_import",
+      profileFrom.person({
+        id: person.id,
+        fullName: person.fullName,
+        title: person.title,
+        company: company.name,
+        linkedinUrl: person.linkedinUrl,
+      }),
+    );
     await opts.onPerson?.({ person, company, row, rowNumber, batch, created });
   }
 

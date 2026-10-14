@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
+import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { PortalRefusal } from "@wren/core/refusal";
 import { hooks } from "@wren/core/schema";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
@@ -27,6 +28,7 @@ import {
   type SitePage,
   type SitePageVersion,
   siteEvents,
+  siteFormDefs,
   siteForms,
   siteHops,
   sitePages,
@@ -704,7 +706,38 @@ export async function keepForm(
     ref: touch.ref,
   });
   if (!row) throw new Error("insert returned nothing");
+  await noteFormProfile(db, f.page, form, row);
   return row;
+}
+
+/**
+ * A Wren-owned entry's address fields and cookie into a profile (People). A client's entry stays
+ * out: its people are its own, in its own database (its texts carry them there).
+ */
+async function noteFormProfile(
+  db: Queryable,
+  page: SitePage | null,
+  form: string | null,
+  row: { fields: unknown; visitor: string | null; at: Date },
+) {
+  let client = page?.client ?? null;
+  if (!client && form) {
+    const [d] = await db
+      .select({ client: siteFormDefs.client })
+      .from(siteFormDefs)
+      .where(eq(siteFormDefs.id, form));
+    client = d?.client ?? null;
+  }
+  if (client) return;
+  await noteProfileFrom(
+    db,
+    "site_form",
+    profileFrom.form({
+      fields: (row.fields ?? {}) as Record<string, unknown>,
+      visitor: row.visitor,
+      at: row.at,
+    }),
+  );
 }
 
 /** The split, when the page is one of its arms; else null (a stale or forged id). */

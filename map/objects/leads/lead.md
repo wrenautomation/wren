@@ -29,6 +29,7 @@ Citations: `packages/core/src/schema.ts:219`
 - **owned-by:** [[leads/company]], [[ledger/import]]
 - **owns:** [[research/verification]] (`lead_id`), [[research/lead-check]] (`lead_id`)
 - **joins:** [[research/contact-candidate]] (`lead_id` once promoted), [[leads/suppression]] (`suppression_id`)
+- **feeds:** [[leads/profile]] (key `email`, plus `person` and a social handle; the lead importer notes each one)
 - **looks-like-but-is-not:** [[research/contact-candidate]] (a guess, not yet a lead); `Ads.leads` (Meta form fills)
 
 ## If you change this

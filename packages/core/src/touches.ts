@@ -9,7 +9,8 @@
  * social URL). Core reads those tables by name, so it imports no channel.
  */
 import type { Queryable } from "@wren/db";
-import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { noteProfileFrom, profileFrom } from "./profiles-backfill.js";
 import {
   type HandleLink,
   type SocialHandle,
@@ -321,20 +322,34 @@ export async function resolveHandle(
         name: sql`coalesce(${socialHandles.name}, excluded.name)`,
       },
     })
-    .returning();
-  const h = row as SocialHandle;
-  if (h.personId !== null && h.leadId !== null) return h;
+    .returning({ ...getTableColumns(socialHandles), made: sql<boolean>`xmax = 0` });
+  const { made, ...h } = row as SocialHandle & { made: boolean };
+  // A new handle, or one newly linked, joins its person's profile (People).
+  const noted = async (x: SocialHandle) => {
+    await noteProfileFrom(
+      db,
+      "social_handle",
+      profileFrom.handle({
+        platform: x.platform,
+        handle: x.handle,
+        personId: x.personId,
+        name: x.name,
+      }),
+    );
+    return x;
+  };
+  if (h.personId !== null && h.leadId !== null) return made ? noted(h) : h;
   const given = o.personId != null || o.leadId != null;
   const found = await findLinks(db, ref);
   const personId = h.personId ?? o.personId ?? found.personId;
   const leadId = h.leadId ?? o.leadId ?? found.leadId;
-  if (personId === h.personId && leadId === h.leadId) return h;
+  if (personId === h.personId && leadId === h.leadId) return made ? noted(h) : h;
   const [linked] = await db
     .update(socialHandles)
     .set({ personId, leadId, linkedBy: given ? "given" : found.by, linkedAt: sql`now()` })
     .where(eq(socialHandles.id, h.id))
     .returning();
-  return linked ?? h;
+  return noted(linked ?? h);
 }
 
 /** Link a handle to a person (and lead) by hand: `wren touches link`. */

@@ -3,6 +3,7 @@
  * holds, their messages and ours, and the Inbox's rows. All in the owner's database.
  */
 import { createHash, randomBytes } from "node:crypto";
+import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { PortalRefusal } from "@wren/core/refusal";
 import type { Queryable } from "@wren/db";
 import { CHAT_MAX } from "@wren/sites/chat-widget";
@@ -156,6 +157,9 @@ export async function say(
       .where(eq(chatThreads.id, thread.id));
   }
   await db.insert(chatMessages).values({ threadId: thread.id, direction: "in", body, at: now });
+  // Left an address: they join their profile (People).
+  if (email || phone)
+    await noteProfileFrom(db, "site_chat", profileFrom.chat({ email, phone, name, at: now }));
   const after = Number(input.after);
   return {
     key,

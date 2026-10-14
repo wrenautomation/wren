@@ -9,6 +9,7 @@
 import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/channel-email/inbox";
 import { callBookings } from "@wren/channel-email/schema";
 import type { MeetingOutcome } from "@wren/core/calls";
+import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
 import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import type { Rules } from "./rules.js";
@@ -114,7 +115,7 @@ export async function claim(
 ): Promise<CalendarBooking> {
   const t = o.start.getTime();
   try {
-    return await serializable(db, async (tx) => {
+    const booked = await serializable(db, async (tx) => {
       const calls = await bookedCalls(tx, o.calendar, new Date(t - NEAR), new Date(t + NEAR));
       if (!isOpen(o.rules, o.start, { now: o.now, busy: o.busy, calls })) throw new SlotTaken();
       const [row] = await tx
@@ -132,6 +133,19 @@ export async function claim(
       if (!row) throw new Error("booking insert returned no row");
       return row;
     });
+    // Wren's own calendar: the booker joins their profile (People). A client's booker is its own.
+    if (booked.calendar === "wren")
+      await noteProfileFrom(
+        db,
+        "booking",
+        profileFrom.booking({
+          email: booked.email,
+          name: booked.name,
+          visitor: booked.source.visitor ?? null,
+          at: booked.createdAt,
+        }),
+      );
+    return booked;
   } catch (err) {
     if (sqlState(err) === "23505") throw new SlotTaken();
     throw err;

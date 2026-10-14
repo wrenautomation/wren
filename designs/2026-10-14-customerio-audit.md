@@ -111,3 +111,6 @@ B1 through B4 run at once, one builder each. B5 and B6 start after B1 lands. Bui
 
 - 2026-10-14: The profile layer reads the source tables for the timeline instead of copying events. Copying would double storage and drift from the source.
 - 2026-10-14: People becomes its own app in the Leads area. Marketing → People (social touches) and Reactivation → People stay and link to the profile.
+- 2026-10-14 (B1 built): A merge keeps the older profile. The younger keeps its row with `merged_into`, its keys move, and only its newer traits are taken, each logged as a trait change. Nothing is deleted, so a wrong merge can be traced.
+- 2026-10-14 (B1 built): Writers call `noteProfile`, which never throws. A profile failure never blocks an import, a send or a booking; the backfill (`wren people backfill`) catches up anything missed.
+- 2026-10-14 (B1 built): A client's forms, pay links and calendars live in Wren's main database, so only Wren's own form entries, bookings and chats write profiles. A client's payments show on the timeline from `sms_contacts.paid_at`. Site visits by the `wv` cookie aren't in Postgres; the cookie is kept as a `visitor` key when a form carries it.

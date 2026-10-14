@@ -22,6 +22,7 @@
 import { activeSuppressionsOf, addSuppression, liftSuppression } from "@wren/core";
 import { giveConsent, topicByKeyword } from "@wren/core/marketing";
 import type { Notifier } from "@wren/core/notify";
+import { noteContacts } from "@wren/core/profiles-backfill";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { skipQueued } from "./deliver.js";
@@ -170,6 +171,7 @@ async function contactFor(
       endedAt: now,
     })
     .returning();
+  if (made) await noteContacts(db, [made.id]);
   return made as SmsContact;
 }
 

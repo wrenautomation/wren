@@ -10,6 +10,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
 import { overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
+import { noteProfileFrom, profileFrom } from "./profiles-backfill.js";
 import {
   type Consent,
   type ConsentEventKind,
@@ -220,6 +221,10 @@ export async function mayAskConsent(db: Queryable, channel: MarketingChannel, ad
   return !(await activeSuppressionOf(db, "domain", a.slice(a.lastIndexOf("@") + 1)));
 }
 
+/** A signup's address into its profile (People), before the serializable write, never failing it. */
+const noteSignUp = (db: Queryable, input: SignUp, address: string, at: Date) =>
+  noteProfileFrom(db, "consent", profileFrom.consent({ channel: input.channel, address, at }));
+
 export interface SignUp {
   channel: MarketingChannel;
   address: string;
@@ -243,6 +248,7 @@ export async function askConsent(
 ): Promise<{ consent: Consent; confirm: boolean }> {
   const now = input.now ?? new Date();
   const address = addressOf(input.channel, input.address);
+  await noteSignUp(db, input, address, now);
   return serializable(db, async (tx) => {
     const topic = await topicId(tx, input.topic, input.channel);
     const had = await consentOf(tx, input.channel, address, topic);
@@ -342,6 +348,7 @@ async function liftOlderOptOut(
 export async function giveConsent(db: Queryable, input: SignUp): Promise<Consent> {
   const now = input.now ?? new Date();
   const address = addressOf(input.channel, input.address);
+  await noteSignUp(db, input, address, now);
   return serializable(db, async (tx) => {
     const topic = await topicId(tx, input.topic, input.channel);
     const had = await consentOf(tx, input.channel, address, topic);

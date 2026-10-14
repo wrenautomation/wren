@@ -114,5 +114,11 @@ export const PLATFORM = {
     "delivery.messaging": "an account's message rules: the per-person cap and link tags",
     "wren.parked": "parked ideas and their triggers",
     "people.sent": "every message we sent, on any channel, with one state ladder",
+    "people.profile": "one person, by every address they use",
+    "people.event": "each line of a person's timeline, read from its own table",
+    "people.key": "each email, phone, handle or cookie a person goes by",
+    "people.trait": "what we know of a person, one value per trait, every change kept",
+    "people.merge": "two profiles found to be one person, and what moved",
+    "people.datum": "every address kind, trait and timeline kind, who has it, what uses it",
   },
 } as const;

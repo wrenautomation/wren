@@ -240,6 +240,8 @@ describe("the demo", () => {
     expect(view.sources.map((s) => s.url)).toContain("https://www.linkedin.com/in/•••/");
     const people = await api.recordsList({ ...demo, record: PERSON, where: { now: ["moved"] } });
     expect(people.rows.map((r) => r.name)).toEqual(["Cara L."]);
+    // The CRM import made her People profile; the row links to it.
+    expect(people.rows[0]?.profile).toMatch(/^\/people\/people\/\d+$/);
   });
 
   it("setup says what was plugged in, never whose or from which file", async () => {

@@ -12,6 +12,7 @@
  */
 import { activeSuppressionOf } from "@wren/core";
 import { linkPeople } from "@wren/core/leads";
+import { noteContacts } from "@wren/core/profiles-backfill";
 import type { Step } from "@wren/core/spine";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
@@ -169,6 +170,7 @@ export async function textBack(db: Db, id: number, o: TextBackOptions): Promise<
     contact = made ?? (await threadOf(db, e164));
     if (!contact) throw new Error(`no contact for call ${id}`);
     await linkPeople(db, "sms_contacts", [contact.id]);
+    await noteContacts(db, [contact.id]);
   } else if (!contact.numberId) {
     await db
       .update(smsContacts)

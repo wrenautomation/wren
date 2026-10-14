@@ -15,6 +15,7 @@ import { ads, clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
 import { payments } from "./payments/index.js";
+import { clientPeople, people } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { settings } from "./settings/index.js";
 import { clientSites, sites } from "./sites/index.js";
@@ -34,6 +35,9 @@ export const MODULES: Module[] = [
   // One address, two apps, as Marketing: a client's deals in its own, Wren's in Wren's.
   clientDeals,
   deals,
+  // One address, two apps, as Deals: a client's people in its own, Wren's in Wren's.
+  clientPeople,
+  people,
   marketplace,
   // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
   clientMarketing,

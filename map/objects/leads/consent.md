@@ -31,6 +31,7 @@ Two one-step sources confirm without a click (`giveConsent`), and neither lifts 
 
 - **owns:** `topics`, `consent_events`
 - **joins:** [[leads/suppression]] (read by `mayMarket`, written by unsubscribe-everything and the double opt-in lift)
+- **feeds:** [[leads/profile]] (asking or giving consent notes the address; each consent event is a timeline line)
 - **looks-like-but-is-not:** [[leads/suppression]] (a no to everything; a consent is a yes to one topic)
 
 ## If you change this

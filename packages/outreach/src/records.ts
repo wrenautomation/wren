@@ -645,7 +645,9 @@ export const personRecord = defineRecord({
         case when rc.state in ('opted_out', 'blocked') then 'stopped'
           when rc.connected_at is not null then 'message'
           when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end can,
-        coalesce(tl.n, 0) touches, tl.last touched
+        coalesce(tl.n, 0) touches, tl.last touched,
+        (select '/people/people/' || pk.profile_id from profile_keys pk
+          where pk.kind = 'person' and pk.value = p.id::text) profile
       from people p
       join companies co on co.id = p.company_id
       left join reach_contacts rc on rc.platform = 'linkedin' and lower(rc.handle) = ${VANITY}
@@ -657,7 +659,9 @@ export const personRecord = defineRecord({
         rp.read #>> '{business,value}', 'https://www.reddit.com/user/' || rp.handle, rc.state,
         rc.draft, rp.read_at,
         case when rc.state in ('opted_out', 'blocked') then 'stopped' else 'message' end,
-        coalesce(tl.n, 0), tl.last
+        coalesce(tl.n, 0), tl.last,
+        (select '/people/people/' || pk.profile_id from profile_keys pk
+          where pk.kind = 'handle:reddit' and pk.value = rp.handle)
       from reddit_people rp
       left join reach_contacts rc on rc.platform = 'reddit' and lower(rc.handle) = rp.handle
       left join tl on tl.person = 'reddit:' || rp.handle
@@ -670,7 +674,10 @@ export const personRecord = defineRecord({
           when h.platform <> 'linkedin' or h.handle like '%:%' then null
           when rc.connected_at is not null then 'message'
           when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end,
-        coalesce(tl.n, 0), tl.last
+        coalesce(tl.n, 0), tl.last,
+        (select '/people/people/' || pk.profile_id from profile_keys pk
+          where (pk.kind, pk.value) in (('person', h.person_id::text),
+            ('handle:' || h.platform, h.handle)) limit 1)
       from social_handles h
       left join people p on p.id = h.person_id
       left join companies co on co.id = p.company_id
@@ -717,6 +724,7 @@ export const personRecord = defineRecord({
     touched: date("Last touch"),
     at: date("Added"),
     url: link("Their page"),
+    profile: link("Profile"),
   },
   views: [
     { id: "message", label: "Can message", where: { can: "message" }, sort: "-at", at: "at" },

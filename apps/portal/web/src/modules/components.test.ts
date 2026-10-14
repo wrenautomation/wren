@@ -35,12 +35,13 @@ describe("apps and components", () => {
       appsIn(MODULES, { wren: false, team, installed: new Set(installed) }).map((m) => m.id);
     expect(ids(false, ["reactivation"])).toEqual([
       "reactivation",
+      "people",
       "marketplace",
       "learn",
       "notes",
       "account",
     ]);
-    expect(ids(false, [])).toEqual(["marketplace", "learn", "notes", "account"]);
+    expect(ids(false, [])).toEqual(["people", "marketplace", "learn", "notes", "account"]);
     expect(ids(true, [])).toEqual([
       "work",
       "reactivation",
@@ -50,6 +51,7 @@ describe("apps and components", () => {
       "payments",
       "documents",
       "deals",
+      "people",
       "marketplace",
       "marketing",
       "learn",
@@ -59,6 +61,7 @@ describe("apps and components", () => {
       "account",
     ]);
     expect(ids(false, ["calendar.booking"])).toEqual([
+      "people",
       "marketplace",
       "learn",
       "notes",
@@ -67,6 +70,7 @@ describe("apps and components", () => {
     ]);
     expect(ids(false, ["research.lead_sheet"])).toEqual([
       "leads",
+      "people",
       "marketplace",
       "learn",
       "notes",
@@ -74,12 +78,14 @@ describe("apps and components", () => {
     ]);
     expect(ids(false, ["calls.outcome"])).toEqual([
       "calls",
+      "people",
       "marketplace",
       "learn",
       "notes",
       "account",
     ]);
     expect(ids(false, ["marketing.stats"])).toEqual([
+      "people",
       "marketplace",
       "marketing",
       "learn",
@@ -100,6 +106,7 @@ describe("apps and components", () => {
     expect(sitesOf(false)).toBe(clientSites);
     expect(sitesOf(true)).toBe(sites);
     expect(ids(false, ["sites.pages"])).toEqual([
+      "people",
       "marketplace",
       "learn",
       "sites",
