@@ -13,6 +13,7 @@ import {
   capCheck,
   capRoomAt,
   countMarketingSend,
+  keysOfPerson,
   MESSAGE_DEFAULTS,
   personKeyOf,
   readMessageSettings,
@@ -190,6 +191,65 @@ describe("the cross-channel cap", () => {
       why: "capped",
     });
     expect(e.state).toBe("confirmed");
+  });
+
+  it("counts sends recorded under any profile merged into this one", async () => {
+    const ana = await resolveProfile(pg.db, [{ kind: "email", value: "ana@firm.example" }], "t");
+    const phone = await resolveProfile(pg.db, [{ kind: "phone", value: "+15555550100" }], "t");
+    const dm = await resolveProfile(pg.db, [{ kind: "handle:linkedin", value: "ana-firm" }], "t");
+    const stranger = await resolveProfile(
+      pg.db,
+      [{ kind: "email", value: "zed@other.example" }],
+      "t",
+    );
+    if (!ana || !phone || !dm || !stranger) throw new Error("profiles were not made");
+    const own = (id: number) => `profile:${id}`;
+    // Each was counted on its own, before People knew they are one person.
+    await recordMessageSend(pg.db, { personKey: own(ana.id), channel: "email", now: at(1) });
+    await recordMessageSend(pg.db, { personKey: own(phone.id), channel: "sms", now: at(2) });
+    await recordMessageSend(pg.db, { personKey: own(dm.id), channel: "dm", now: at(3) });
+    await recordMessageSend(pg.db, { personKey: own(stranger.id), channel: "email", now: at(3) });
+    expect((await capCheck(pg.db, "email", "ana@firm.example", at(4))).until).toBeNull();
+    // The phone merges in, then the handle: the merge moves the keys, never the ledger.
+    const first = await resolveProfile(
+      pg.db,
+      [
+        { kind: "email", value: "ana@firm.example" },
+        { kind: "phone", value: "+15555550100" },
+      ],
+      "t",
+    );
+    const all = await resolveProfile(
+      pg.db,
+      [
+        { kind: "email", value: "ana@firm.example" },
+        { kind: "handle:linkedin", value: "ana-firm" },
+      ],
+      "t",
+    );
+    if (!first || !all) throw new Error("merge failed");
+    const key = await personKeyOf(pg.db, "email", "ana@firm.example");
+    expect(key).toBe(own(all.id));
+    expect(new Set(await keysOfPerson(pg.db, key))).toEqual(
+      new Set([own(ana.id), own(phone.id), own(dm.id)]),
+    );
+    // A loser's own key reads as the whole person too.
+    const loser = [ana.id, phone.id, dm.id].find((id) => id !== all.id);
+    if (loser === undefined) throw new Error("nobody lost");
+    expect(new Set(await keysOfPerson(pg.db, own(loser)))).toEqual(
+      new Set(await keysOfPerson(pg.db, key)),
+    );
+    // Three sends in the day, whichever id they went under: over the cap of 2, room when the
+    // second oldest leaves its day.
+    expect(await capRoomAt(pg.db, key, at(4))).toEqual(at(2 + 24));
+    expect((await capCheck(pg.db, "email", "ana@firm.example", at(4))).until).toEqual(at(2 + 24));
+    // Someone else's sends never count for her.
+    expect(await keysOfPerson(pg.db, own(stranger.id))).toEqual([own(stranger.id)]);
+    expect((await capCheck(pg.db, "email", "zed@other.example", at(4))).until).toBeNull();
+    // A key that is no profile stands alone.
+    expect(await keysOfPerson(pg.db, "email:nobody@firm.example")).toEqual([
+      "email:nobody@firm.example",
+    ]);
   });
 
   it("a recorded send keys the person from its consent when none is given", async () => {

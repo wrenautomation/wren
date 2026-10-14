@@ -258,6 +258,17 @@ export function waitingReplies(db: Queryable, limit = 500) {
     .limit(limit);
 }
 
+/**
+ * A claimed reply the frequency cap held: back to waiting, with why on its row, so it keeps its
+ * place in To approve. Only one this approve claimed (sent a moment ago) moves.
+ */
+export async function holdReply(db: Queryable, id: number, detail: string): Promise<void> {
+  await db
+    .update(inboxReplies)
+    .set({ state: "waiting", detail, why: detail, decidedBy: null, decidedAt: null })
+    .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "sent")));
+}
+
 /** A claimed reply whose send was refused: failed, with why. */
 export async function failReply(db: Queryable, id: number, detail: string): Promise<void> {
   await db.update(inboxReplies).set({ state: "failed", detail }).where(eq(inboxReplies.id, id));

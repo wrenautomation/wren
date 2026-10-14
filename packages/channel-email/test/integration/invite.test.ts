@@ -5,15 +5,16 @@
  * labelled, or cold reply is never touched.
  */
 
-import { suppressions } from "@wren/core";
+import { marketingSends, suppressions } from "@wren/core";
 import { FakeCalendar } from "@wren/core/calendar";
+import { personKeyOf } from "@wren/core/message-settings";
 import type { Notifier } from "@wren/core/notify";
 import { parseTemplate } from "@wren/core/slots";
 import type { StepAt } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type AskFollowEmail, emailTouchStep } from "../../src/follow.js";
 import { approveInvite, dropInvite, followUpByHand, runInvites } from "../../src/inbox/invite.js";
@@ -52,7 +53,13 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, [...TABLES, "call_invites"]);
+  await truncate(pg.db, [
+    ...TABLES,
+    "call_invites",
+    "marketing_sends",
+    "message_settings",
+    "profiles",
+  ]);
   await liveCopy(pg.db, "sec_ria", REPLY);
 });
 const db = (): Db => pg.db;
@@ -482,5 +489,52 @@ describe("a follow-up email to a quiet thread", () => {
       ok: false,
       reason: "that thread ended: bounce",
     });
+  });
+
+  it("counts a follow-up toward the cap, and over it holds the email with when there is room", async () => {
+    await db().execute(sql`insert into message_settings (id, cap_per_day, cap_per_week)
+      values (1, 1, 5)`);
+    const e = await offered();
+    await db().update(enrollments).set({ state: "finished" }).where(eq(enrollments.id, e.id));
+    const transport = quiet();
+    const opts = { transport, fleet: FLEET, now: NOW, body: "Still worth a call?" };
+    // The cold opener and its sequence never counted: the ledger starts empty.
+    expect(await db().select().from(marketingSends)).toEqual([]);
+    expect((await followUpByHand(db(), e.id, opts)).ok).toBe(true);
+    const counted = await db().select().from(marketingSends);
+    expect(counted).toHaveLength(1);
+    expect(counted[0]).toMatchObject({
+      personKey: await personKeyOf(db(), "email", e.toEmail),
+      channel: "email",
+      campaign: e.sequenceName,
+    });
+    const before = (await messagesOf(db(), e)).length;
+    const held = await followUpByHand(db(), e.id, { ...opts, now: new Date(NOW.getTime() + HOUR) });
+    expect(held).toMatchObject({ ok: false, until: new Date(NOW.getTime() + 24 * HOUR) });
+    expect(!held.ok && held.reason).toContain("Held by the frequency cap until 2026-10-06 13:00");
+    // Held: nothing drafted, nothing sent, nothing counted.
+    expect(await messagesOf(db(), e)).toHaveLength(before);
+    expect([...transport.mailbox.values()].flat()).toHaveLength(1);
+    expect(await db().select().from(marketingSends)).toHaveLength(1);
+    const later = await followUpByHand(db(), e.id, {
+      ...opts,
+      now: new Date(NOW.getTime() + 25 * HOUR),
+    });
+    expect(later.ok).toBe(true);
+    expect(await db().select().from(marketingSends)).toHaveLength(2);
+  });
+
+  it("a refused follow-up (opted out, bounced) counts nothing", async () => {
+    const e = await offered();
+    await db().update(enrollments).set({ state: "finished" }).where(eq(enrollments.id, e.id));
+    await db().insert(suppressions).values({ kind: "email", value: e.toEmail, reason: "opt_out" });
+    const out = await followUpByHand(db(), e.id, {
+      transport: quiet(),
+      fleet: FLEET,
+      now: NOW,
+      body: "Still worth a call?",
+    });
+    expect(out).toEqual({ ok: false, reason: "they opted out of email" });
+    expect(await db().select().from(marketingSends)).toEqual([]);
   });
 });

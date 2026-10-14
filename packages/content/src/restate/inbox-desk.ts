@@ -29,6 +29,7 @@ import {
   type Copied,
   copiedOf,
   failReply,
+  holdReply,
   mayWork,
   partOf,
   pickOption,
@@ -104,12 +105,15 @@ type ReachArm = { armComment: Fn<{ id: number; body: string }, { armed: boolean 
 type MailReplyDesk = {
   send: Fn<{ client: string; mailId: number; body: string; by?: string | null }, unknown>;
 };
-type Outcome = { ok: boolean; reason?: string | null };
+type Outcome = { ok: boolean; reason?: string | null; until?: string | null };
 type Disposition = {
   approve: Fn<{ id: number; body: string }, Outcome>;
   reply: Fn<{ threadEventId: number; body: string }, Outcome>;
   followUp: Fn<{ enrollmentId: number; body: string }, Outcome>;
 };
+
+/** An email the frequency cap holds: not sent, and not failed, so its To approve draft waits. */
+class HeldReply extends restate.TerminalError {}
 
 /**
  * The channels' own desks, called as this viewer. A client's DMs and comments go through its own
@@ -149,7 +153,11 @@ function restateChannels(
     },
     invite: async (id, body) => ok(await disposition().approve({ id, body })),
     email: async (threadEventId, body) => ok(await disposition().reply({ threadEventId, body })),
-    thread: async (enrollmentId, body) => ok(await disposition().followUp({ enrollmentId, body })),
+    thread: async (enrollmentId, body) => {
+      const out = await disposition().followUp({ enrollmentId, body });
+      if (!out.ok && out.until) throw new HeldReply(out.reason ?? "held by the frequency cap");
+      ok(out);
+    },
     mail: async (mailId, body) => {
       if (!client) throw new restate.TerminalError("Only a client's mailbox answers mail here.");
       await ctx
@@ -434,7 +442,9 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           try {
             await sendOn(channels(ctx, client, req.viewer as Viewer), option, row.body);
           } catch (err) {
-            await ctx.run("failed", () => failReply(db, req.id, errorText(err)));
+            if (err instanceof HeldReply)
+              await ctx.run("held", () => holdReply(db, req.id, err.message));
+            else await ctx.run("failed", () => failReply(db, req.id, errorText(err)));
             throw err;
           }
           const now = await nowOf(ctx);

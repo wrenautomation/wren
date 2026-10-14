@@ -24,6 +24,7 @@
  */
 import { companies, people } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
+import { capCheck, countMarketingSend } from "@wren/core/message-settings";
 import type { Notifier, NotifyLevel } from "@wren/core/notify";
 import { canonicalZone, wallClock, zonedInstant } from "@wren/core/time";
 import { type Db, serializable } from "@wren/db";
@@ -617,12 +618,16 @@ const CLOSED = new Set(["bounce", "opt_out", "complaint", "undeliverable", "manu
  * Follow-up's draft once a person says yes, or words typed in the Inbox. In reply to the last one
  * we sent, from its inbox. Refused while its sequence still sends, for a thread that bounced, was
  * opted out or stopped by hand, a suppressed address, or one with nothing sent yet.
+ *
+ * It is marketing to someone with no topic consent, so it keeps the frequency cap
+ * (`capCheck`, then `countMarketingSend` once it went). Over the cap it is refused with `until`,
+ * when they have room: the caller leaves a To approve draft waiting.
  */
 export async function followUpByHand(
   db: Db,
   enrollmentId: number,
   opts: SendReplyOptions & { body: string; shared?: SharedSuppressions | null },
-): Promise<{ ok: true; reply: ReplyOutcome } | { ok: false; reason: string }> {
+): Promise<{ ok: true; reply: ReplyOutcome } | { ok: false; reason: string; until?: Date }> {
   const body = opts.body.trim();
   if (!body) return { ok: false, reason: "the email is empty" };
   const [enrollment] = await db.select().from(enrollments).where(eq(enrollments.id, enrollmentId));
@@ -638,13 +643,26 @@ export async function followUpByHand(
   if (!sent) return { ok: false, reason: "nothing was sent in that thread" };
   if (await activeSuppression(db, enrollment.toEmail, opts.shared ?? null))
     return { ok: false, reason: "they opted out of email" };
+  const now = opts.now ?? new Date();
+  const cap = await capCheck(db, "email", enrollment.toEmail, now);
+  if (cap.until) {
+    const at = cap.until.toISOString().slice(0, 16).replace("T", " ");
+    return { ok: false, reason: `Held by the frequency cap until ${at} UTC.`, until: cap.until };
+  }
   const draft = await draftByHand(db, enrollment, null, body);
   const reply = await sendReply(db, draft.id, null, enrollment, {
     transport: opts.transport,
     fleet: opts.fleet,
-    now: opts.now ?? new Date(),
+    now,
   });
-  return reply.sent ? { ok: true, reply } : { ok: false, reason: `not sent: ${reply.reason}` };
+  if (!reply.sent) return { ok: false, reason: `not sent: ${reply.reason}` };
+  await countMarketingSend(db, {
+    personKey: cap.person,
+    channel: "email",
+    campaign: enrollment.sequenceName,
+    now,
+  });
+  return { ok: true, reply };
 }
 
 /** William passes: nothing books, nothing sends, the draft is rejected. */

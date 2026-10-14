@@ -238,7 +238,8 @@ export function makeDisposition(deps: DispositionDeps) {
 
       /**
        * Our next email in a thread they never answered: a Follow-up's draft once approved, or
-       * words typed in the Inbox (`followUpByHand`).
+       * words typed in the Inbox (`followUpByHand`). `until`: over the frequency cap, when they
+       * have room.
        */
       followUp: exclusiveHandler(
         {
@@ -251,7 +252,7 @@ export function makeDisposition(deps: DispositionDeps) {
         async (
           ctx: restate.ObjectContext,
           req: { enrollmentId: number; body: string },
-        ): Promise<{ ok: boolean; reason: string | null }> => {
+        ): Promise<{ ok: boolean; reason: string | null; until: string | null }> => {
           if (!wired(ctx.key)) {
             throw new restate.TerminalError("follow-ups are not wired on this worker");
           }
@@ -268,7 +269,9 @@ export function makeDisposition(deps: DispositionDeps) {
                 now,
                 shared: owner ? { main: deps.dbOf(DISPOSITION_KEY), client: owner.client } : null,
               });
-              return out.ok ? { ok: true, reason: null } : { ok: false, reason: out.reason };
+              return out.ok
+                ? { ok: true, reason: null, until: null }
+                : { ok: false, reason: out.reason, until: out.until?.toISOString() ?? null };
             } catch (err) {
               throw new restate.TerminalError(errorText(err));
             }

@@ -9,7 +9,7 @@
  * send with `countMarketingSend`. One person is one key (`profile:<id>`) when People knows them.
  */
 import type { Queryable } from "@wren/db";
-import { and, count, desc, eq, gt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { profileOf } from "./profiles.js";
 import { marketingSends, messageSettings, type SendChannel } from "./schema.js";
 import { normalizeValue } from "./suppress.js";
@@ -129,6 +129,30 @@ export async function personKeyOf(
   return (await resolver(db, kind, value)) ?? `${kind}:${value}`.slice(0, 340);
 }
 
+/**
+ * Every key this person's sends were ever counted under. A `profile:<id>` key also stands for the
+ * profiles merged into it, since a merge moves the keys but not the ledger: sends counted before
+ * it sit under the old id. Any other key stands alone.
+ */
+export async function keysOfPerson(db: Queryable, personKey: string): Promise<string[]> {
+  const m = /^profile:(\d+)$/.exec(personKey);
+  if (!m) return [personKey];
+  const rows = await db.execute<{ id: number }>(sql`
+    with recursive up(id, hops) as (
+      select ${Number(m[1])}::int, 0
+      union all
+      select p.merged_into, up.hops + 1 from profiles p join up on p.id = up.id
+      where p.merged_into is not null and up.hops < 50),
+    root as (select id from up order by hops desc limit 1),
+    down(id) as (
+      select id from root
+      union
+      select p.id from profiles p join down on p.merged_into = down.id)
+    select id from down`);
+  const keys = rows.map((r) => `profile:${r.id}`);
+  return keys.includes(personKey) ? keys : [personKey, ...keys];
+}
+
 /** Which cap a person is at, now, or null when under both. */
 export async function overCap(
   db: Queryable,
@@ -137,6 +161,7 @@ export async function overCap(
 ): Promise<"day" | "week" | null> {
   const { capPerDay, capPerWeek } = await readMessageSettings(db);
   if (capPerDay === null && capPerWeek === null) return null;
+  const keys = await keysOfPerson(db, personKey);
   const [n] = await db
     .select({
       week: count(),
@@ -147,7 +172,7 @@ export async function overCap(
     .from(marketingSends)
     .where(
       and(
-        eq(marketingSends.personKey, personKey),
+        inArray(marketingSends.personKey, keys),
         gt(marketingSends.sentAt, new Date(now.getTime() - WEEK)),
       ),
     );
@@ -186,12 +211,13 @@ export async function capRoomAt(
 ): Promise<Date | null> {
   const { capPerDay, capPerWeek } = await readMessageSettings(db);
   if (capPerDay === null && capPerWeek === null) return null;
+  const keys = await keysOfPerson(db, personKey);
   const rows = await db
     .select({ at: marketingSends.sentAt })
     .from(marketingSends)
     .where(
       and(
-        eq(marketingSends.personKey, personKey),
+        inArray(marketingSends.personKey, keys),
         gt(marketingSends.sentAt, new Date(now.getTime() - WEEK)),
       ),
     )
