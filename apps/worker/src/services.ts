@@ -2607,7 +2607,15 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
         : {}),
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("threads") ? { threads: threadsContent(sites, host ? { host } : {}) } : {}),
-      ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
+      // Studio in the box's browser posts public; the API waits on TikTok's audit (WREN_TIKTOK_POST_VIA).
+      ...(on.includes("tiktok")
+        ? {
+            tiktok: tiktokContent(sites, {
+              ...(host ? { host } : {}),
+              postVia: settings.tiktokPostVia,
+            }),
+          }
+        : {}),
     };
   };
 }

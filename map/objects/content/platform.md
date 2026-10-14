@@ -20,7 +20,7 @@ Every adapter speaks the platform's own REST shape through autobrowse's `sites` 
 - `Platform` = linkedin | youtube | x | instagram | threads | facebook | tiktok | reddit | google_business (`index.ts:12`); `ContentChannel` (`:122`); `SiteClient` (`autobrowse.ts:14`); `MediaHost` (`index.ts:44`)
 - `SHAPES`, `fieldsOf`, `patchFields`, `missingFields`, `fieldViews` (`packages/core/src/content/shapes.ts`)
 - `PLATFORM_SPECS` (`packages/content/src/platforms.ts:23`); default slots (`packages/content/src/slots.ts`)
-- adapters: `packages/channel-{linkedin,youtube,x,tiktok,meta,reddit}/src/content.ts`; Instagram via the box composer `channel-meta/src/content-web.ts`; Threads `channel-meta/src/threads.ts`
+- adapters: `packages/channel-{linkedin,youtube,x,tiktok,meta,reddit}/src/content.ts`; Instagram via the box composer `channel-meta/src/content-web.ts`; Wren's own TikTok posts via the box's Studio flow (`/web/posts`) while `WREN_TIKTOK_POST_VIA=web` (default, until the app is audited), reads stay API; Threads `channel-meta/src/threads.ts`
 - wired per settings in `apps/worker/src/services.ts` (`contentFor`)
 
 Citations: `packages/core/src/content/index.ts:12`, `:122`
