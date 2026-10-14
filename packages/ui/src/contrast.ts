@@ -9,7 +9,18 @@ import { BASE, type Theme, type Token } from "./theme.js";
 export const NEED = 4.5;
 
 /** Colors that carry text on the kit's grounds. */
-export const TEXTS = ["ink", "ink-2", "ink-3", "accent", "good-ink", "warn-ink", "bad"] as const;
+export const TEXTS = [
+  "ink",
+  "ink-2",
+  "ink-3",
+  "accent",
+  "link",
+  "active",
+  "live",
+  "good-ink",
+  "warn-ink",
+  "bad",
+] as const;
 
 /** Where text sits. A see-through ground is laid on paper, and on canvas too where noted. */
 export const GROUNDS = [
@@ -34,6 +45,7 @@ export const GROUNDS = [
 /** Pairs outside the grid: text on a filled ground. */
 const FILLED: [Token, Token][] = [
   ["on-accent", "accent"],
+  ["on-accent", "primary"],
   ["on-ink", "ink"],
 ];
 
@@ -63,6 +75,10 @@ const MADE: Theme = {
   wash: "color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper))",
   band: "color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper))",
   "on-ink": "var(--ui-paper)",
+  primary: "var(--ui-accent)",
+  active: "var(--ui-accent)",
+  link: "var(--ui-accent)",
+  live: "var(--ui-accent)",
   fill: "color-mix(in srgb, var(--ui-ink) 6%, transparent)",
   hover: "color-mix(in srgb, var(--ui-ink) 4.5%, transparent)",
   "accent-wash": "color-mix(in srgb, var(--ui-accent) 7%, transparent)",

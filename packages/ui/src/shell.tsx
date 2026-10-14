@@ -526,7 +526,7 @@ const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-rad
 const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
 const APPMARK =
-  "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)";
+  "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
   "ml-auto min-w-5 in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
@@ -545,13 +545,13 @@ const GROUP =
   "mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 /** The page on screen: a lavender wash, bolder, and an accent bar on its left edge. */
 const TAB_ON =
-  "aria-[current=page]:bg-(--ui-accent-wash) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_3px_0_0_var(--ui-accent)]";
+  "aria-[current=page]:bg-(--ui-accent-wash) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_3px_0_0_var(--ui-active)]";
 
 /** A sidebar tab's indent by its depth. */
 const DEPTH = ["pl-2.5", "pl-6", "pl-9", "pl-12"];
 /** A tab with something dragged over it that it takes. */
 const TAB_OVER =
-  "bg-(--ui-accent-wash) text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-accent)]";
+  "bg-(--ui-accent-wash) text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-active)]";
 
 /** One tab in the sidebar: a link that may take what's dropped on it. */
 function SideTab({ t, on }: { t: NavItem; on: boolean }) {
@@ -609,7 +609,7 @@ const DOT = "absolute top-1.5 right-1.5 size-1.5 bg-(--ui-warn-ink) in-data-[cou
 /** An app's row in the sidebar: its mark, its name, what waits in it. */
 const APP_ROW = cx(
   HOVER,
-  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-accent)]",
+  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-active)]",
 );
 
 /** The open app's pages, under its row: grouped, a group of one page standing alone. */
@@ -918,7 +918,7 @@ function SideNav({
                     aria-current={open ? "true" : undefined}
                     title={folded && !hovers ? a.name : undefined}
                   >
-                    <Icon name={a.icon} className={open ? "text-(--ui-accent)" : ""} />
+                    <Icon name={a.icon} className={open ? "text-(--ui-active)" : ""} />
                     <span className={folded ? "sr-only" : "min-w-0 truncate"}>{a.name}</span>
                     {a.count ? (
                       <span className={folded ? DOT : COUNT}>{folded ? null : num(a.count)}</span>
@@ -975,7 +975,7 @@ function SideNav({
 }
 
 const PHONE_TAB =
-  "inline-flex min-h-11 items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)";
+  "inline-flex min-h-11 items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-active) aria-[current=page]:text-(--ui-ink)";
 
 /** One row of tabs that scrolls sideways, the one on screen scrolled into view. */
 function PhoneTabs({
@@ -1080,7 +1080,7 @@ function AppHead({
 }
 
 const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
-const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-accent)`;
+const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-focus)`;
 
 /** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
 function WorkspacePick({ workspace }: { workspace: Workspace }) {

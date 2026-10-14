@@ -256,7 +256,7 @@ if (typeof window !== "undefined") addEventListener("popstate", landBack);
 // --- The bar at the top ---------------------------------------------------------------------
 
 const BAR_BUTTON =
-  "inline-flex h-11 min-w-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[16px] text-(--ui-accent) no-underline active:opacity-50";
+  "inline-flex h-11 min-w-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[16px] text-(--ui-link) no-underline active:opacity-50";
 
 /** The heading the page opens with, the one the bar's title takes over from. */
 function useHeading(
@@ -449,7 +449,7 @@ function useEdgeBack(link: RefObject<HTMLAnchorElement | null> | null) {
 // --- The bottom tabs ------------------------------------------------------------------------
 
 const TAB =
-  "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-accent) aria-expanded:text-(--ui-accent)";
+  "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-active) aria-expanded:text-(--ui-active)";
 /** The icon's seat: a capsule lit under the tab on screen, and it gives a little under a thumb. */
 const SEAT =
   "relative grid h-[30px] w-[52px] place-items-center rounded-full transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
@@ -550,7 +550,7 @@ export function PhoneTabs({
 // --- Sheet: every app, and the section's other pages ------------------------------------------------------------
 
 const SHEET_ROW =
-  "flex min-h-12 items-center gap-3 border-b border-(--ui-hair) px-4 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-hover) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-accent)";
+  "flex min-h-12 items-center gap-3 border-b border-(--ui-hair) px-4 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-hover) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-active)";
 const SHEET_HEAD =
   "sticky top-0 z-1 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-1.5 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) uppercase";
 
@@ -590,7 +590,7 @@ const TILE_BADGE =
 const TILE =
   "flex min-w-0 flex-col items-center gap-1.5 py-2 text-center text-[12px] leading-tight font-medium text-(--ui-ink) no-underline active:opacity-60";
 const TILE_MARK =
-  "relative grid size-14 place-items-center border border-(--ui-hair) bg-(--ui-tile) text-(--ui-ink-2) in-aria-[current=page]:border-(--ui-accent) in-aria-[current=page]:bg-(--ui-accent-tint) in-aria-[current=page]:text-(--ui-accent)";
+  "relative grid size-14 place-items-center border border-(--ui-hair) bg-(--ui-tile) text-(--ui-ink-2) in-aria-[current=page]:border-(--ui-active) in-aria-[current=page]:bg-(--ui-accent-tint) in-aria-[current=page]:text-(--ui-active)";
 
 /**
  * Every app, as a phone's home screen: by area, a grid of marks. Whose workspace it is and his

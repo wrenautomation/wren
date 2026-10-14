@@ -367,7 +367,7 @@ export function FormBox({
 }
 
 const PICK =
-  "h-7 rounded-(--ui-radius) border border-(--ui-line) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:border-(--ui-accent) aria-pressed:bg-(--ui-accent)/10 aria-pressed:font-medium aria-pressed:text-(--ui-ink)";
+  "h-7 rounded-(--ui-radius) border border-(--ui-line) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:border-(--ui-active) aria-pressed:bg-(--ui-active)/10 aria-pressed:font-medium aria-pressed:text-(--ui-ink)";
 
 /** Any of a few choices, as toggles; kept as their values split by commas, in `options` order. */
 function PickBox({

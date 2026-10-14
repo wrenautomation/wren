@@ -80,6 +80,12 @@
   --ui-fill: color-mix(in srgb, var(--ui-ink) 6%, transparent); /* counts, tracks, ghosts */
   --ui-hover: color-mix(in srgb, var(--ui-ink) 4.5%, transparent);
   --ui-glass: color-mix(in srgb, var(--ui-paper) 88%, transparent);
+  /* All the accent marks (60-30-10): parts take these, never --ui-accent itself. */
+  --ui-primary: var(--ui-accent); /* the one primary button */
+  --ui-active: var(--ui-accent); /* the page you're on, the chosen tab or option */
+  --ui-link: var(--ui-accent); /* text that goes somewhere */
+  --ui-focus: var(--ui-accent); /* the focus ring */
+  --ui-live: var(--ui-accent); /* a real event: running, new, just changed */
   --ui-accent-wash: color-mix(in srgb, var(--ui-accent) 7%, transparent);
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
@@ -119,7 +125,7 @@
   --card-foreground: var(--ui-ink);
   --popover: var(--ui-paper);
   --popover-foreground: var(--ui-ink);
-  --primary: var(--ui-accent);
+  --primary: var(--ui-primary);
   --primary-foreground: var(--ui-on-accent);
   --secondary: var(--ui-fill);
   --secondary-foreground: var(--ui-ink);
@@ -130,7 +136,7 @@
   --destructive: var(--ui-bad);
   --border: var(--ui-hair);
   --input: var(--ui-edge);
-  --ring: var(--ui-accent);
+  --ring: var(--ui-focus);
   --radius: var(--ui-radius);
   --chart-1: var(--ui-chart-1);
   --chart-2: var(--ui-chart-2);
@@ -139,12 +145,12 @@
   --chart-5: var(--ui-chart-5);
   --sidebar: var(--ui-paper);
   --sidebar-foreground: var(--ui-ink);
-  --sidebar-primary: var(--ui-accent);
+  --sidebar-primary: var(--ui-active);
   --sidebar-primary-foreground: var(--ui-on-accent);
   --sidebar-accent: var(--ui-hover);
   --sidebar-accent-foreground: var(--ui-ink);
   --sidebar-border: var(--ui-hair);
-  --sidebar-ring: var(--ui-accent);
+  --sidebar-ring: var(--ui-focus);
   /* The status tones' amber, by its older name. */
   --warn: var(--ui-warn);
 }
@@ -234,7 +240,7 @@
     mix-blend-mode: overlay;
   }
   ::selection {
-    background: var(--ui-accent);
+    background: var(--ui-active);
     color: var(--ui-on-accent);
   }
   a {
@@ -263,7 +269,7 @@
   }
   input,
   textarea {
-    caret-color: var(--ui-accent);
+    caret-color: var(--ui-focus);
   }
   input[type="checkbox"] {
     width: 16px;
@@ -286,7 +292,7 @@
     }
   }
   :focus-visible {
-    outline: 2px solid var(--ui-accent);
+    outline: 2px solid var(--ui-focus);
     outline-offset: 2px;
   }
   b,
@@ -349,7 +355,7 @@
   }
   /* A focused part shows the full accent, never the half-strength ring above. */
   [data-slot]:focus-visible {
-    outline-color: var(--ui-accent);
+    outline-color: var(--ui-focus);
   }
   button[data-slot] {
     background: none;
@@ -408,7 +414,7 @@
   }
   @keyframes ui-changed {
     from {
-      background-color: color-mix(in srgb, var(--ui-accent) 14%, transparent);
+      background-color: color-mix(in srgb, var(--ui-live) 14%, transparent);
     }
   }
 }

@@ -177,8 +177,8 @@ export function PinnedRail({
               "group/pin relative flex items-center",
               over === i && from.current !== null && from.current !== i
                 ? from.current < i
-                  ? "shadow-[inset_0_-2px_0_var(--ui-accent)]"
-                  : "shadow-[inset_0_2px_0_var(--ui-accent)]"
+                  ? "shadow-[inset_0_-2px_0_var(--ui-active)]"
+                  : "shadow-[inset_0_2px_0_var(--ui-active)]"
                 : "",
             )}
           >
@@ -232,7 +232,7 @@ export function PinButton({
       title={compact ? label : undefined}
       className={cx(
         QUIET,
-        "h-8 gap-2 rounded-(--ui-radius) px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:text-(--ui-accent) pointer-coarse:h-11",
+        "h-8 gap-2 rounded-(--ui-radius) px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:text-(--ui-active) pointer-coarse:h-11",
         compact ? "w-8 justify-center px-0 pointer-coarse:w-11" : "",
       )}
       onClick={onToggle}
@@ -304,7 +304,7 @@ export function TilesMenu({
               <label className={cx(ITEM, "min-w-0 flex-1 cursor-pointer")}>
                 <input
                   type="checkbox"
-                  className="size-3.5 accent-(--ui-accent)"
+                  className="size-3.5 accent-(--ui-active)"
                   checked={!off.has(label)}
                   // One tile always shows.
                   disabled={!off.has(label) && order.length - off.size <= 1}

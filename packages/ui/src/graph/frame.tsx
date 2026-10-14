@@ -194,7 +194,7 @@ export function GraphFrame({
       tabIndex={0}
       aria-label={`${label}. Arrows pan, plus and minus zoom, F fits all.`}
       className={cn(
-        "group/frame relative w-full max-w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)",
+        "group/frame relative w-full max-w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)",
         !bare && "border border-(--ui-hair) bg-(--ui-graph)",
         className,
       )}

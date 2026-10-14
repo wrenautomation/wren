@@ -91,7 +91,7 @@ function Folder({
         className={cx(
           "group flex h-8 items-center gap-1 pr-2 text-[13.5px]",
           at === node.path ? "bg-(--ui-fill) font-medium" : "hover:bg-(--ui-hover)",
-          over && "outline-2 -outline-offset-2 outline-(--ui-accent)",
+          over && "outline-2 -outline-offset-2 outline-(--ui-focus)",
         )}
         style={{ paddingLeft: 4 + depth * 14 }}
         onDragOver={(e) => {
@@ -326,7 +326,7 @@ export function Browser({
           className={cx(
             "flex h-8 items-center gap-1 pr-2 pl-1 text-[13.5px]",
             folder === "" ? "bg-(--ui-fill) font-medium" : "hover:bg-(--ui-hover)",
-            overRoot && "outline-2 -outline-offset-2 outline-(--ui-accent)",
+            overRoot && "outline-2 -outline-offset-2 outline-(--ui-focus)",
           )}
           onDragOver={(e) => {
             if (!onDrop || !e.dataTransfer.types.includes(DRAG)) return;

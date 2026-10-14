@@ -118,7 +118,7 @@ export function FavoriteStar({
       aria-label={on ? `Unfavorite ${label}` : `Favorite ${label}`}
       title={on ? "Favorite" : "Make it a favorite"}
       onClick={onToggle}
-      className="inline-flex size-7 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-accent)"
+      className="inline-flex size-7 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
     >
       <svg viewBox="0 0 16 16" width={15} height={15} aria-hidden="true">
         <path
@@ -237,7 +237,7 @@ export function InsertSnippet({
           }}
           placeholder="Search snippets"
           aria-label="Search snippets"
-          className="mb-1 h-8 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]"
+          className="mb-1 h-8 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]"
         />
         {failed ? (
           <p className="px-1.5 py-2 text-[12.5px] text-(--ui-bad)">{failed}</p>

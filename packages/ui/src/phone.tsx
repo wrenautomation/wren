@@ -349,7 +349,7 @@ export interface Swipes {
 
 const REVEAL = 84;
 const TONE: Record<SwipeAct["tone"], string> = {
-  accent: "bg-(--ui-accent) text-(--ui-on-accent)",
+  accent: "bg-(--ui-primary) text-(--ui-on-accent)",
   bad: "bg-(--ui-bad) text-white",
   ink: "bg-(--ui-ink-2) text-(--ui-paper)",
   warn: "bg-(--ui-warn) text-white",

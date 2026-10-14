@@ -185,10 +185,10 @@ const typing = (t: EventTarget | null) =>
 const RunGraph = lazy(() => import("./run-graph.js"));
 
 const BUTTON =
-  "inline-flex cursor-pointer items-center gap-2 rounded-(--ui-radius) border-0 bg-(--ui-paper) px-3 py-[7px] font-[inherit] text-[12px] leading-[inherit] font-(--ui-button-weight) tracking-(--ui-button-tracking) text-(--ui-ink) [text-transform:var(--ui-button-case)] shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:text-(--ui-accent) disabled:cursor-default disabled:opacity-50";
+  "inline-flex cursor-pointer items-center gap-2 rounded-(--ui-radius) border-0 bg-(--ui-paper) px-3 py-[7px] font-[inherit] text-[12px] leading-[inherit] font-(--ui-button-weight) tracking-(--ui-button-tracking) text-(--ui-ink) [text-transform:var(--ui-button-case)] shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:text-(--ui-link) disabled:cursor-default disabled:opacity-50";
 /** A button that reads as text: Show all, and a line's name to follow. */
 const LINK =
-  "cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] text-[length:inherit] leading-[inherit] decoration-(--ui-accent) underline-offset-3 hover:underline focus-visible:rounded-[2px]";
+  "cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] text-[length:inherit] leading-[inherit] decoration-(--ui-link) underline-offset-3 hover:underline focus-visible:rounded-[2px]";
 /** Fades up into place: a feed line, the opened work, the results. */
 const RISE =
   "animate-in fade-in slide-in-from-bottom-[6px] ease-(--ui-ease) motion-reduce:animate-none";
@@ -212,7 +212,7 @@ const DASH = "h-0.5 w-2.5 rounded-(--ui-radius)";
 const MARK: Record<RunLineKind, string> = {
   started: `${DASH} bg-(--ui-ink)`,
   done: `${DASH} bg-(--ui-good)`,
-  found: `${DOT} bg-(--ui-accent)`,
+  found: `${DOT} bg-(--ui-live)`,
   failed: `${DOT} bg-(--ui-bad)`,
   waiting: `${DOT} shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]`,
   did: `${DOT} bg-(--ui-ink-3)`,
@@ -455,7 +455,7 @@ export function RunView({
             </span>
             <button
               type="button"
-              className={cx(LINK, "font-semibold text-(--ui-accent)")}
+              className={cx(LINK, "font-semibold text-(--ui-link)")}
               onClick={() => setFocus(null)}
             >
               Show all
@@ -522,7 +522,7 @@ export function RunView({
             {l.source ? (
               l.source.href ? (
                 <a
-                  className={cx(CITE, "hover:bg-(--ui-accent-tint) hover:text-(--ui-accent)")}
+                  className={cx(CITE, "hover:bg-(--ui-accent-tint) hover:text-(--ui-link)")}
                   href={l.source.href}
                   target="_blank"
                   rel="noreferrer noopener"
@@ -537,7 +537,7 @@ export function RunView({
               <button
                 type="button"
                 className={cx(
-                  "cursor-pointer rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-accent) hover:text-(--ui-accent) aria-expanded:border-(--ui-accent) aria-expanded:text-(--ui-accent) @max-[420px]/run:justify-self-start",
+                  "cursor-pointer rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-link) hover:text-(--ui-link) aria-expanded:border-(--ui-active) aria-expanded:text-(--ui-active) @max-[420px]/run:justify-self-start",
                   l.source ? "@max-[420px]/run:col-3" : "@max-[420px]/run:col-2",
                 )}
                 aria-expanded={opened?.id === l.id}

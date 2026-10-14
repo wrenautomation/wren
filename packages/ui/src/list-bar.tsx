@@ -436,7 +436,7 @@ export function ViewTabs({
 const ITEM =
   "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
 const INPUT =
-  "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]";
+  "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The open saved view's menu: rename, share, move, delete. */
@@ -1198,7 +1198,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-accent) focus:shadow-[0_0_0_1px_var(--ui-accent)]"
+        className="h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]"
       />
     </label>
   );

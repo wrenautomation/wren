@@ -273,7 +273,7 @@ function Day({
               <span
                 className={cn(
                   "text-[15px] font-semibold tabular-nums",
-                  k === today && "text-(--ui-accent)",
+                  k === today && "text-(--ui-active)",
                 )}
               >
                 {d.getDate()}
@@ -281,7 +281,7 @@ function Day({
               {has ? <span className="sr-only">, has work</span> : null}
               <span
                 aria-hidden
-                className={cn("size-1.5 rounded-full", has ? "bg-(--ui-accent)" : "bg-transparent")}
+                className={cn("size-1.5 rounded-full", has ? "bg-(--ui-ink-3)" : "bg-transparent")}
               />
             </a>
           );

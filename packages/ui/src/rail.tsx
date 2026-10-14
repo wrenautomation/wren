@@ -45,15 +45,15 @@ const MARKS: Partial<Record<RailState, IconName>> = {
 /** The mark's fill and ring per state; `next` gets a dot in the middle. */
 const MARK_TONE: Record<RailState, string> = {
   done: "bg-(--ui-good) text-(--ui-paper)",
-  yours: "bg-(--ui-accent) text-(--ui-on-accent)",
-  next: "bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_2px_var(--ui-accent)] after:size-2 after:rounded-full after:bg-(--ui-accent) after:content-['']",
+  yours: "bg-(--ui-active) text-(--ui-on-accent)",
+  next: "bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_2px_var(--ui-active)] after:size-2 after:rounded-full after:bg-(--ui-active) after:content-['']",
   waiting: "bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
   idle: "bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-hair)]",
 };
 
 /** Under 820px of rail, the steps run down the page. */
 const STEP =
-  "relative flex min-w-0 flex-1 flex-col gap-0.5 pr-3 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-(--ui-accent) " +
+  "relative flex min-w-0 flex-1 flex-col gap-0.5 pr-3 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-(--ui-focus) " +
   // The line from this step's mark to the next; inked once the step is done.
   "before:absolute before:inset-x-0 before:top-2.5 before:h-0.5 before:rounded-(--ui-radius) before:bg-(--ui-fill) before:content-[''] data-[state=done]:before:bg-(--ui-ink) " +
   "@max-[820px]/rail:grid @max-[820px]/rail:grid-cols-[22px_minmax(0,1fr)_auto] @max-[820px]/rail:items-start @max-[820px]/rail:gap-x-3.5 @max-[820px]/rail:px-0 @max-[820px]/rail:py-2.5 @max-[820px]/rail:[grid-template-areas:'mark_name_count'_'mark_note_count'] " +
@@ -114,14 +114,14 @@ export function Rail({
                     {s.count !== undefined ? (
                       <span
                         className={cn(
-                          "font-(family-name:--ui-font-display) text-[26px] leading-[1.1] font-(--ui-display-weight) tracking-[calc(-0.03em*var(--ui-display-squeeze))] lining-nums tabular-nums transition-colors duration-250 ease-(--ui-ease) group-hover/step:text-(--ui-accent) @max-[820px]/rail:text-right @max-[820px]/rail:text-[22px] @max-[820px]/rail:[grid-area:count]",
+                          "font-(family-name:--ui-font-display) text-[26px] leading-[1.1] font-(--ui-display-weight) tracking-[calc(-0.03em*var(--ui-display-squeeze))] lining-nums tabular-nums transition-colors duration-250 ease-(--ui-ease) group-hover/step:text-(--ui-link) @max-[820px]/rail:text-right @max-[820px]/rail:text-[22px] @max-[820px]/rail:[grid-area:count]",
                           s.state === "idle" && "text-(--ui-ink-2)",
                         )}
                       >
                         {s.count}
                       </span>
                     ) : null}
-                    <span className="text-[14px] leading-[1.3] font-medium group-hover/step:text-(--ui-accent) @max-[820px]/rail:pt-px @max-[820px]/rail:[grid-area:name]">
+                    <span className="text-[14px] leading-[1.3] font-medium group-hover/step:text-(--ui-link) @max-[820px]/rail:pt-px @max-[820px]/rail:[grid-area:name]">
                       {s.href ? (
                         <a
                           href={s.href}
@@ -138,7 +138,7 @@ export function Rail({
                         className={cn(
                           "text-[13px] leading-[1.35] text-pretty @max-[820px]/rail:[grid-area:note]",
                           s.state === "yours"
-                            ? "font-medium text-(--ui-accent)"
+                            ? "font-medium text-(--ui-active)"
                             : "text-(--ui-ink-2)",
                         )}
                       >

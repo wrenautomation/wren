@@ -24,7 +24,7 @@ describe("every text color on every ground", () => {
   });
 
   it("checks each pair on every ground", () => {
-    expect(pairsOf({}).length).toBe(7 * 16 + 2);
+    expect(pairsOf({}).length).toBe(10 * 16 + 3);
     expect(pairsOf({}).every((p) => p.ratio >= NEED)).toBe(true);
   });
 });

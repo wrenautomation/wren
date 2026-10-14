@@ -169,7 +169,7 @@ function Chip({
     >
       {children}
       {count ? (
-        <span className="text-[12px] font-semibold text-(--ui-accent) tabular-nums">
+        <span className="text-[12px] font-semibold text-(--ui-ink-2) tabular-nums">
           {num(count)}
         </span>
       ) : null}

@@ -92,31 +92,30 @@ const edgeId = (from: string, to: string) => `${from}>${to}`;
 const DIM = "opacity-35";
 /** A step's shadow: working beats picked, picked beats hover. */
 const LIFT = {
-  active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-accent)]",
-  picked:
-    "shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-2 outline-offset-2 outline-(--ui-accent)",
+  active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-active)]",
+  picked: "shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-2 outline-offset-2 outline-(--ui-focus)",
   rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
 };
 const INDEX: Record<RunStepState, string> = {
   idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-hair)]",
-  active: "bg-(--ui-accent) text-(--ui-on-accent)",
+  active: "bg-(--ui-active) text-(--ui-on-accent)",
   done: "bg-(--ui-good) text-(--ui-paper)",
   waiting: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
 };
 const SOURCE = "row-2 text-[12px] leading-[1.3] text-(--ui-ink-2)";
 const MIX: Record<keyof RunMix, string> = {
-  found: "bg-(--ui-accent)",
+  found: "bg-(--ui-live)",
   did: "bg-(--ui-ink-3)",
   failed: "bg-(--ui-bad)",
   waiting: "bg-[repeating-linear-gradient(135deg,var(--ui-ink-3)_0_2px,transparent_2px_4px)]",
 };
 const CHIP: Partial<Record<RunLineKind, string>> = {
-  found: "bg-(--ui-accent) text-(--ui-on-accent)",
+  found: "bg-(--ui-live) text-(--ui-on-accent)",
   failed: "bg-(--ui-bad) text-(--ui-paper)",
 };
 const RING = "shadow-[0_0_0_3px_var(--ui-tile)]";
 const SPARK: Partial<Record<RunLineKind, string>> = {
-  found: `bg-(--ui-accent) ${RING}`,
+  found: `bg-(--ui-live) ${RING}`,
   failed: `bg-(--ui-bad) ${RING}`,
   waiting: "bg-(--ui-tile) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
 };
@@ -223,7 +222,7 @@ function StepNode({ id }: NodeProps) {
             {num(v.handled)}
           </span>
           {s.found && v.found ? (
-            <span className={cx("text-[12px] font-semibold text-(--ui-accent)", narrow)}>
+            <span className={cx("text-[12px] font-semibold text-(--ui-live)", narrow)}>
               {num(v.found)} {s.found}
             </span>
           ) : null}
@@ -325,9 +324,9 @@ function RunEdge({ id, source, target }: EdgeProps) {
         className={cx(
           "fill-none [stroke-linecap:round] transition-[stroke,opacity] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
           traced
-            ? "stroke-(--ui-accent) stroke-[2.5]"
+            ? "stroke-(--ui-live) stroke-[2.5]"
             : state === "flowing"
-              ? "animate-ui-run-flow stroke-(--ui-accent) stroke-[1.5] [stroke-dasharray:6_5] motion-reduce:animate-none"
+              ? "animate-ui-run-flow stroke-(--ui-live) stroke-[1.5] [stroke-dasharray:6_5] motion-reduce:animate-none"
               : state === "done"
                 ? "stroke-(--ui-ink-3) stroke-[1.5]"
                 : "stroke-(--ui-hair) stroke-[1.5] [stroke-dasharray:3_4]",

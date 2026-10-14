@@ -119,12 +119,12 @@ export function PageChip({
   );
   const chip = cx(
     "inline-flex max-w-full items-center gap-1.5 rounded-(--ui-radius) border bg-(--ui-paper) py-0.5 pr-2.5 pl-[3px] text-[12px] no-underline",
-    tone === "kept" ? "border-(--ui-accent)" : "border-(--ui-hair)",
+    tone === "kept" ? "border-(--ui-active)" : "border-(--ui-hair)",
     tone === "dropped" ? "text-(--ui-ink-2)" : "text-(--ui-ink)",
   );
   return page.href ? (
     <a
-      className={cx(chip, "hover:border-(--ui-accent) hover:text-(--ui-accent)")}
+      className={cx(chip, "hover:border-(--ui-link) hover:text-(--ui-link)")}
       data-tone={tone}
       href={page.href}
       target="_blank"
@@ -150,7 +150,7 @@ function Step({ s }: { s: RunWorkStep }) {
         className={cx(
           "grid size-[26px] place-items-center rounded-full",
           s.tone === "kept"
-            ? "bg-(--ui-accent-tint) text-(--ui-accent)"
+            ? "bg-(--ui-accent-tint) text-(--ui-active)"
             : "bg-(--ui-fill) text-(--ui-ink-2)",
         )}
         aria-hidden="true"
@@ -163,7 +163,7 @@ function Step({ s }: { s: RunWorkStep }) {
           {s.query ? (
             s.queryHref ? (
               <a
-                className={cx(QUERY, "decoration-(--ui-hair) hover:text-(--ui-accent)")}
+                className={cx(QUERY, "decoration-(--ui-hair) hover:text-(--ui-link)")}
                 href={s.queryHref}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -180,7 +180,7 @@ function Step({ s }: { s: RunWorkStep }) {
           <p className="text-[12px] text-(--ui-ink-3) wrap-anywhere">
             Read by the machine at{" "}
             <a
-              className="text-(--ui-ink-2) hover:text-(--ui-accent)"
+              className="text-(--ui-ink-2) hover:text-(--ui-link)"
               href={s.read.href}
               target="_blank"
               rel="noreferrer noopener"

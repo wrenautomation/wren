@@ -335,7 +335,7 @@ export function Resizer({
       <span
         aria-hidden="true"
         className={cx(
-          "absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-(--ui-accent) opacity-0 transition-opacity duration-150 ease-(--ui-ease) group-hover/edge:opacity-60 group-focus-visible/edge:opacity-100",
+          "absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-(--ui-focus) opacity-0 transition-opacity duration-150 ease-(--ui-ease) group-hover/edge:opacity-60 group-focus-visible/edge:opacity-100",
           dragging && "opacity-100",
         )}
       />
@@ -363,7 +363,7 @@ export function Segmented<T extends string>({
           <label
             key={v}
             className={cn(
-              "relative flex h-7 cursor-pointer items-center justify-center px-2 text-[12.5px] font-medium whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-150 ease-(--ui-ease) hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-[0_0_0_1px_var(--ui-hair)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-accent)",
+              "relative flex h-7 cursor-pointer items-center justify-center px-2 text-[12.5px] font-medium whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-150 ease-(--ui-ease) hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-[0_0_0_1px_var(--ui-hair)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-focus)",
             )}
           >
             <input

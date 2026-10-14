@@ -322,7 +322,7 @@ function Card({
           {icon ? (
             <span
               aria-hidden
-              className="grid size-8 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)"
+              className="grid size-8 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)"
             >
               <Icon name={icon as IconName} size={16} />
             </span>

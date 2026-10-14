@@ -50,14 +50,14 @@ export function AppCard({
       >
         <span className="mb-2 flex items-center justify-between">
           <span
-            className="grid size-10 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)"
+            className="grid size-10 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)"
             aria-hidden="true"
           >
             <Icon name={icon} size={20} />
           </span>
           <Icon
             name="arrow"
-            className="text-(--ui-ink-3) transition-[color,transform] duration-350 ease-(--ui-ease) group-hover/app:translate-x-[3px] group-hover/app:text-(--ui-accent)"
+            className="text-(--ui-ink-3) transition-[color,transform] duration-350 ease-(--ui-ease) group-hover/app:translate-x-[3px] group-hover/app:text-(--ui-link)"
           />
         </span>
         <span className="font-(family-name:--ui-font-display) text-[20px]/[1.2] font-(--ui-display-weight) tracking-[-0.015em]">

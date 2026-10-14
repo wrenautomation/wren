@@ -1938,7 +1938,7 @@ function SheetDone() {
   return (
     <button
       type="button"
-      className="h-11 border-0 bg-transparent px-2 text-[16px] font-semibold text-(--ui-accent) active:opacity-50"
+      className="h-11 border-0 bg-transparent px-2 text-[16px] font-semibold text-(--ui-link) active:opacity-50"
       onClick={() => sheet?.close()}
     >
       Done

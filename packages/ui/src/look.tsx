@@ -304,7 +304,7 @@ export function LookEditor({
               <div className={LABEL}>
                 From a logo
                 {/* The browser's own file box says "No file chosen"; a button says what it does. */}
-                <label className="inline-flex h-8 w-fit cursor-pointer items-center px-3 text-[13px] font-medium text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) has-focus-visible:outline-2 has-focus-visible:outline-(--ui-accent) has-focus-visible:outline-offset-2">
+                <label className="inline-flex h-8 w-fit cursor-pointer items-center px-3 text-[13px] font-medium text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) has-focus-visible:outline-2 has-focus-visible:outline-(--ui-focus) has-focus-visible:outline-offset-2">
                   Pick an image
                   <input
                     type="file"

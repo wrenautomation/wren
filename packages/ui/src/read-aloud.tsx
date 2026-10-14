@@ -168,7 +168,7 @@ export function ReadAloud({
         data-read={state.kind}
         onClick={press}
         className={cn(
-          "inline-flex h-8 min-w-8 shrink-0 cursor-pointer select-none items-center justify-center gap-1.5 rounded-(--ui-radius) border-0 bg-transparent px-2 text-(--ui-ink-2) outline-none hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)",
+          "inline-flex h-8 min-w-8 shrink-0 cursor-pointer select-none items-center justify-center gap-1.5 rounded-(--ui-radius) border-0 bg-transparent px-2 text-(--ui-ink-2) outline-none hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)",
           active && "bg-(--ui-wash) text-(--ui-ink)",
           unavailable &&
             "cursor-default text-(--ui-ink-3) opacity-60 hover:bg-transparent hover:text-(--ui-ink-3)",

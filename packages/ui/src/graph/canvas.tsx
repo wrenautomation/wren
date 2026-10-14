@@ -170,12 +170,12 @@ const TONE: Record<GraphTone, string> = {
   good: "text-(--ui-good-ink) before:bg-(--ui-good)",
   warn: "text-(--warn) before:bg-(--warn)",
   bad: "text-(--ui-bad) before:bg-(--ui-bad)",
-  accent: "text-(--ui-accent) before:bg-(--ui-accent)",
+  accent: "text-(--ui-live) before:bg-(--ui-live)",
   neutral: "text-(--ui-ink-2) before:bg-(--ui-ink-3)",
 };
 const DOT: Record<GraphTone, string> = {
-  good: "bg-(--ui-accent)",
-  accent: "bg-(--ui-accent)",
+  good: "bg-(--ui-good)",
+  accent: "bg-(--ui-live)",
   neutral: "bg-(--ui-ink-2)",
   warn: "bg-(--warn)",
   bad: "bg-(--ui-bad)",
@@ -264,8 +264,8 @@ function KitNode({ id }: NodeProps) {
           g.hover === id && "shadow-[inset_0_0_0_1.5px_var(--ui-ink)]",
           n.dim && "opacity-55",
           faded && "opacity-20",
-          g.lit?.has(id) && "shadow-[inset_0_0_0_2px_var(--ui-accent)]",
-          g.selected === id && "outline-2 outline-offset-2 outline-(--ui-accent)",
+          g.lit?.has(id) && "shadow-[inset_0_0_0_2px_var(--ui-live)]",
+          g.selected === id && "outline-2 outline-offset-2 outline-(--ui-focus)",
           mark === "added" && "shadow-[inset_0_0_0_2px_var(--ui-good)]",
           mark === "changed" && "shadow-[inset_0_0_0_2px_var(--warn)]",
           mark === "removed" &&
@@ -407,8 +407,8 @@ function Handles({
           data-lands={String(lands(p?.kind ?? list[0]?.kind))}
           className={cn(
             HANDLE,
-            live && "hover:bg-(--ui-accent)!",
-            lands(p?.kind ?? list[0]?.kind) === true && "scale-150 bg-(--ui-accent)!",
+            live && "hover:bg-(--ui-active)!",
+            lands(p?.kind ?? list[0]?.kind) === true && "scale-150 bg-(--ui-active)!",
             lands(p?.kind ?? list[0]?.kind) === false && "opacity-20",
           )}
           style={{
@@ -489,7 +489,7 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
         )}
         style={{
           color: dots.length
-            ? "var(--ui-accent)"
+            ? "var(--ui-live)"
             : data.mark === "added"
               ? "var(--ui-good)"
               : data.mark === "removed"
@@ -532,7 +532,7 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
           <span
             key={d.id}
             className={cn(
-              "pointer-events-none absolute top-0 left-0 z-10 size-3 animate-ui-run-spark rounded-full shadow-[0_0_0_3px_var(--ui-paper),0_0_10px_2px_var(--ui-accent)] [animation-duration:1.4s] [offset-rotate:0deg] motion-reduce:hidden",
+              "pointer-events-none absolute top-0 left-0 z-10 size-3 animate-ui-run-spark rounded-full shadow-[0_0_0_3px_var(--ui-paper),0_0_10px_2px_var(--ui-live)] [animation-duration:1.4s] [offset-rotate:0deg] motion-reduce:hidden",
               DOT[d.tone],
             )}
             data-tone={d.tone}
