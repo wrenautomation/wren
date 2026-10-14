@@ -161,6 +161,8 @@ export interface ApproveVideo {
   privacy?: VideoPrivacy;
   /** When YouTube makes it public: it uploads now, private, until then (designs/2026-10-13-video-review.md). */
   publishAt?: Date;
+  /** Upload at this time instead of on the next pass (a Short's slot); `privacy` is who sees it then. */
+  at?: Date;
   /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
   replace?: boolean;
   source: IdeaSource;
@@ -294,7 +296,7 @@ export async function approveVideo(
           status: "approved",
           approvedAt: now,
           // Null: the next publish pass.
-          scheduledFor: null,
+          scheduledFor: o.at ?? null,
           promptVersion: "video",
           ...funnel,
         })
