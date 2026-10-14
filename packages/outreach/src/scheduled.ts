@@ -9,6 +9,7 @@ import { warmupOf } from "@wren/channel-reddit";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { applyGates } from "./discovery/requirements.js";
 import { STALE_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
 import type { CommentsSettings } from "./reach-posts.js";
@@ -109,6 +110,13 @@ export async function scheduleThreads(
   db: Queryable,
   o: { now: Date; rand: () => number },
 ): Promise<Slotted[]> {
+  const since = new Date(o.now.getTime() - LOOKBACK_MS);
+  const out: Slotted[] = [];
+  // A sub whose floor no account meets keeps its queue off the schedule; one only another account
+  // meets moves to it. Held comments stay queued and are slotted once the floor is met.
+  const held = new Set(
+    [...(await applyGates(db, o.now))].flatMap(([sub, g]) => (g.ok ? [] : [sub])),
+  );
   const accounts = await db
     .select()
     .from(reachAccounts)
@@ -118,8 +126,6 @@ export async function scheduleThreads(
         inArray(reachAccounts.state, ["warming", "active"]),
       ),
     );
-  const since = new Date(o.now.getTime() - LOOKBACK_MS);
-  const out: Slotted[] = [];
   for (const a of accounts) {
     const w = a.health ? warmupOf(a.health as AccountHealth, o.now) : null;
     if (!w || w.frozen || w.caps.comments <= 0) continue;
@@ -140,7 +146,11 @@ export async function scheduleThreads(
         ),
       );
     const items = await db
-      .select({ id: redditThreads.id, postedAt: redditThreads.postedAt })
+      .select({
+        id: redditThreads.id,
+        postedAt: redditThreads.postedAt,
+        subreddit: redditThreads.subreddit,
+      })
       .from(redditThreads)
       .where(
         and(
@@ -151,13 +161,16 @@ export async function scheduleThreads(
         ),
       )
       .orderBy(desc(redditThreads.fit), redditThreads.id);
-    const slots = fill(items, {
-      now: o.now,
-      taken: lane.map((r) => new Date(r.at)),
-      pace: { ...THREAD_PACE, perDay: w.caps.comments },
-      rand: o.rand,
-      latest: (t) => t.postedAt.getTime() + STALE_MS,
-    });
+    const slots = fill(
+      items.filter((t) => !held.has(t.subreddit)),
+      {
+        now: o.now,
+        taken: lane.map((r) => new Date(r.at)),
+        pace: { ...THREAD_PACE, perDay: w.caps.comments },
+        rand: o.rand,
+        latest: (t) => t.postedAt.getTime() + STALE_MS,
+      },
+    );
     for (const { item, at } of slots)
       await db
         .update(redditThreads)

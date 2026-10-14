@@ -44,6 +44,7 @@ import { keepTouch, touchFromThread } from "../touches.js";
 import { personLine } from "./people.js";
 import type { Audience } from "./places.js";
 import type { Post } from "./reads.js";
+import { gatesFor, ThreadHeld } from "./requirements.js";
 
 const HOUR = 3_600_000;
 /** Late comments sink: older or busier threads are dropped in code. */
@@ -450,7 +451,11 @@ export async function planThreadComment(
     .select({ accountId: redditPlaces.accountId })
     .from(redditPlaces)
     .where(eq(redditPlaces.subreddit, thread.subreddit));
-  const account = await accountById(db, place?.accountId ?? thread.accountId);
+  // The sub's own floor (karma, age, an unknown gate): held, not dropped. Another account that
+  // qualifies sends instead.
+  const gate = (await gatesFor(db, [thread.subreddit], now)).get(thread.subreddit);
+  if (gate && !gate.ok) throw new ThreadHeld(gate.reason ?? `r/${thread.subreddit} is held`);
+  const account = await accountById(db, gate?.accountId ?? place?.accountId ?? thread.accountId);
   if (!account)
     throw new ReachRefusal(`r/${thread.subreddit} has no account yet: pick one on Places`);
   if (account.state === "paused" || account.state === "retired")

@@ -7,6 +7,7 @@
 import type { Proof, ProofTarget } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, eq, gte, sql } from "drizzle-orm";
+import { learnFromProof } from "./discovery/requirements.js";
 import { type CommentProofRow, commentProofs } from "./schema.js";
 
 /** When each check runs after the send: 2 minutes, an hour (filters and mods act late), a day. */
@@ -140,6 +141,7 @@ export async function keepProof(
         checks: sql`${commentProofs.checks} || ${JSON.stringify([line])}::jsonb`,
       },
     });
+  await learnFromProof(db, item, proof);
   return { warn: round === WARN_ROUND && (proof.state === "hidden" || proof.state === "missing") };
 }
 

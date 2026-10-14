@@ -26,6 +26,7 @@ import {
   reachMessages,
   reachPosts,
   redditPlaces,
+  redditRequirements,
   redditThreads,
 } from "@wren/outreach";
 import { eq } from "drizzle-orm";
@@ -139,6 +140,7 @@ beforeEach(async () => {
     "reach_messages",
     "reach_contacts",
     "reach_posts",
+    "reddit_requirements",
     "reddit_threads",
     "reddit_places",
   ]);
@@ -386,6 +388,17 @@ describe("SocialWatch", () => {
       state: "waiting",
       draft: "We send them from the CRM.",
     });
+    // A subreddit's karma rule we don't meet holds it: queued, with the reason, no slot.
+    await pg.db
+      .insert(redditRequirements)
+      .values({ subreddit: "agency", source: "removal", minKarma: 50, item: "thread:t3_old" });
+    const heldRows = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(heldRows.find((r) => r.id === "thread:t3_q1")).toMatchObject({
+      state: "held",
+      held: "r/agency needs 50 karma: no account to send from",
+      send_at: null,
+    });
+    await pg.db.delete(redditRequirements);
     const inboxAfter = (await inboxRecord.rows?.(pg.db)) ?? [];
     expect(inboxAfter.find((r) => String(r.id).startsWith("thread:"))).toBeUndefined();
     expect(inboxAfter.find((r) => String(r.id).startsWith("onpost:"))).toBeUndefined();

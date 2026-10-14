@@ -6,6 +6,7 @@ export * from "./contacts.js";
 export * from "./discovery/people.js";
 export * from "./discovery/places.js";
 export * from "./discovery/reads.js";
+export * from "./discovery/requirements.js";
 export * from "./discovery/threads.js";
 export * from "./draft-llm.js";
 export * from "./draft-models.js";

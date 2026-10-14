@@ -22,11 +22,13 @@ Each comment we send (a Reddit thread answer, ours on someone's post, our answer
 - Rows `packages/outreach/src/proofs.ts`: `proofTarget` (`:35`), `keepProof` (`:102`: a pending check never covers an earlier verdict; answers warn on round 2 hidden or missing), `proofsSince`, `sentSince` (`:158`, the backfill's list), `warningOf`
 - Service `CommentProofs/check {item, round?}` (`packages/outreach/src/restate/proofs.ts:51`); `scheduleProofs` (`:45`) sends rounds 1-3 delayed 2 min, 1 h, 24 h, from `commentThread` (`restate/discovery.ts:480`), `answerComment` (`restate/index.ts:1361`, `:1375`) and `commentPost` (`:1579`). Round 2 hidden or missing posts once to Discord's reach lane at `warning`. Wired in `apps/worker/src/services.ts:1671` (shots via `putMedia`, LinkedIn reader `linkedin@wren`)
 - Console: Marketing → Engage views Posted (sent, newest first) and Not live (hidden, missing), column Proof (`packages/content/src/social/records.ts`: `sentRows` `:265`, `proofsBy` `:285`, `PROOF_STATES` `:318`). A sent row's page shows the badge: hover for the screenshot, click for the permalink (`apps/portal/web/src/modules/marketing/proof.tsx`)
+- A hidden or missing Reddit proof's note carries the mod's or AutoModerator's reply under our comment (`modNoteIn`, `packages/core/src/content/proof.ts:124`); `keepProof` hands the proof to `learnFromProof`, which keeps the floor it states or holds the sub ([[content/reddit-requirement]])
 - Touch history: `person_touch_lines` adds " · Live/Hidden/Missing/Checking" to our comment touches (`packages/core/src/touches-schema.ts`)
 - CLI `wren reach proof <item>` (a check now), `--recent` (the last day), `--since 2026-10-12` (backfill, one by one) (`apps/cli/src/reach.ts:776`)
 
 ## Connected to
 
+- **joins:** [[content/reddit-requirement]] (a removal teaches a sub's floor)
 - **joins:** [[content/reddit-thread]] (`thread:`), [[content/reach-post]] (`onpost:`), [[content/comment]] (`comment:`), [[leads/touch]] (the touch line's state)
 - **looks-like-but-is-not:** the send's own result: a 200 from the site says it was posted, not that anyone sees it
 

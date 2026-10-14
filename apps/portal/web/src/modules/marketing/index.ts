@@ -656,6 +656,9 @@ const only = (type: string, a: Action, when: Action["when"] = a.when): Action =>
 };
 /** Every Inbox row but activity reads as waiting or not; each page's states are mapped to it. */
 const WAITS = { state: ["waiting"] };
+/** A thread comment a subreddit's karma or age rule holds can be edited or skipped, not sent. */
+const HELD = { state: ["waiting", "held"] };
+const threadWhen = (a: Action) => (a.id === "marketing.threadComment" ? WAITS : HELD);
 /** A page's own draft box and its Read now stay there; the Inbox has one box of each kind. */
 const own = (a: Action) => !a.form && !DRAFT_BOX.includes(a.id);
 /** What the Inbox's thread does (designs/2026-10-07-inbox-reply.md): assign, close, snooze. */
@@ -884,7 +887,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ...WORKFLOW_ACTIONS.map((a) => only("workflow", a, WAITS)),
   ...PAGE_ACTIONS.map((a) => only("page", a, WAITS)),
   ...RETIRE_ACTIONS.map((a) => only("retire", a, WAITS)),
-  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, threadWhen(a))),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
@@ -977,7 +980,7 @@ const DM_FROM_ACTION: Action = {
 };
 
 const ENGAGE_ACTIONS: Action[] = [
-  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, threadWhen(a))),
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   only("thread", DM_FROM_ACTION, WAITS),
   only("onpost", DM_FROM_ACTION, WAITS),
@@ -1000,9 +1003,10 @@ const ENGAGE_PAGE: ListPage = {
   group: "Content",
   template: "list",
   record: "marketing.engage",
-  columns: ["who", "platform", "type", "state", "proof", "at"],
+  columns: ["who", "platform", "type", "state", "held", "proof", "at"],
   empty: {
     waiting: "Nothing waits on a reply. Paste a link above to add one.",
+    held: "No comment is held. One shows here when its subreddit asks for more karma or an older account than ours has.",
     posted: "Comments and replies we send show here, each checked for a signed-out reader.",
     notlive: "Every sent comment checked so far is live for strangers.",
     threads: "No Reddit thread waits. Paste a subreddit to watch it, or a thread to answer it.",
@@ -1152,7 +1156,8 @@ export const APPROVAL_PAGE: ListPage = {
   columns: ["who", "platform", "kind", "state", "sendAt", "held", "at", "due"],
   empty: {
     waiting: "Nothing waits on your yes.",
-    queued: "Nothing is queued. A reply you approved shows here when the frequency cap holds it.",
+    queued:
+      "Nothing is queued. A reply you approved shows here when the frequency cap holds it, and a Reddit comment shows here when the subreddit's karma or age rule holds it.",
     posts: "No post draft waits on you.",
     videos: "No rendered video waits on your Approve.",
     threads: "No thread comment waits on you.",
@@ -1799,6 +1804,7 @@ export const marketing: Module = {
       empty: {
         found: "Nothing to pick. Places are found once a month from the audience.",
         watching: "No place watched yet. Pick one under To pick.",
+        held: "No subreddit holds our comments back. One shows here when it asks for more karma or an older account than we have.",
         all: "Subreddits found for the audience show here.",
       },
       actions: PLACE_ACTIONS,

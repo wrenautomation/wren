@@ -46,6 +46,7 @@ import {
   watchPlace,
 } from "../discovery/places.js";
 import { reader } from "../discovery/reads.js";
+import { ThreadHeld } from "../discovery/requirements.js";
 import {
   draftThread,
   keepScores,
@@ -61,7 +62,7 @@ import {
   unrankedThreads,
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
-import { scheduleThreads, sendFailed, stillDue } from "../scheduled.js";
+import { scheduleThreads, sendFailed, stillDue, unschedule } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
 import {
   channelsFor,
@@ -434,9 +435,22 @@ export function discoveryHandlers(deps: ReachDeps) {
         const at = req.at;
         if (at && !(await ctx.run("due", () => stillDue(deps.db, "thread", req.id, at))))
           return { ref: null, held: "taken off the schedule" };
-        const plan = await ctx.run("plan", () =>
-          terminal(() => planThreadComment(deps.db, req.id, now)),
-        );
+        // A sub whose floor we don't meet holds the comment: queued, not dropped, not sent.
+        const planned = await ctx.run("plan", async () => {
+          try {
+            return { plan: await planThreadComment(deps.db, req.id, now) };
+          } catch (err) {
+            if (err instanceof ThreadHeld) return { held: err.message };
+            if (err instanceof ReachRefusal) throw new restate.TerminalError(err.message);
+            throw err;
+          }
+        });
+        if ("held" in planned) {
+          if (!at) throw new restate.TerminalError(planned.held);
+          await ctx.run("hold", () => unschedule(deps.db, { threads: [req.id] }));
+          return { ref: null, held: planned.held };
+        }
+        const plan = planned.plan;
         const body = (req.body ?? plan.thread.draft ?? "").trim();
         if (!body) throw new restate.TerminalError("the comment is empty");
         const ch = channelsFor(deps, ctx)(plan.account);

@@ -348,6 +348,12 @@ const STATES = status({
   answered: { label: "Answered", tone: "good" },
   sent: { label: "Sent", tone: "good" },
   queued: neutral("Queued"),
+  held: {
+    label: "Held",
+    tone: "warn",
+    about:
+      "The subreddit asks for more karma or an older account than ours has, or removed our last comment without saying why. It stays queued and sends itself once the rule is met.",
+  },
   dropped: neutral("Dropped"),
   read: neutral("Read"),
   seen: neutral("Seen"),
@@ -362,15 +368,17 @@ const threadItem = (t: Row) => ({
   who: t.author,
   platform: "reddit",
   kind: "thread",
-  state: t.send_at ? "scheduled" : "waiting",
+  // A sub whose karma or age rule we don't meet holds it: queued, never sent, never dropped.
+  state: t.held ? "held" : t.send_at ? "scheduled" : "waiting",
   body: t.body || t.title,
   post_title: t.title,
   why: t.angle ?? null,
+  held: t.held ?? null,
   draft: t.draft,
   account: t.account,
   at: t.posted_at,
-  due: t.send_at ?? t.posted_at,
-  send_at: t.send_at ?? null,
+  due: t.held ? t.posted_at : (t.send_at ?? t.posted_at),
+  send_at: t.held ? null : (t.send_at ?? null),
   url: t.url,
 });
 /** Someone else's post with our comment drafted. */
@@ -1016,7 +1024,14 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
     views: [
       { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
       // Said yes to, held by the frequency cap: each sends itself at its time.
-      { id: "queued", label: "Queued", where: { state: "queued" }, sort: "due", at: "due" },
+      // Also the comments a subreddit's rules hold back: each says which rule.
+      {
+        id: "queued",
+        label: "Queued",
+        where: { state: ["queued", "held"] },
+        sort: "due",
+        at: "due",
+      },
       { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
       { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
       { id: "threads", label: "Thread replies", where: { type: "thread" }, sort: "-at", at: "at" },
@@ -1185,6 +1200,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       body: prose("Their words"),
       postTitle: text("Post"),
       why: text("Picked for"),
+      held: text("Held because"),
       draft: prose("Our draft"),
       account: text("On"),
       at: date("When"),
@@ -1215,6 +1231,15 @@ export const engageRecordOf = (signer?: VideoSigner) =>
         at: "due",
         hint: "Approved and set to send, soonest first",
       },
+      // Behind a subreddit's karma or age rule: queued, each with the rule it waits on.
+      {
+        id: "held",
+        label: "Held",
+        where: { state: "held" },
+        sort: "due",
+        at: "due",
+        hint: "Comments waiting on a subreddit's karma or account-age rule; each sends itself once we meet it",
+      },
       // People talking to us: comments on our posts and DMs.
       {
         id: "inbound",
@@ -1228,7 +1253,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       {
         id: "outbound",
         label: "Our comments",
-        where: { type: ["thread", "onpost"], state: ["waiting", "scheduled"] },
+        where: { type: ["thread", "onpost"], state: ["waiting", "scheduled", "held"] },
         sort: "due",
         at: "due",
         hint: "Comments we write on Reddit threads and on other people's posts, due soonest first",
@@ -1253,7 +1278,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       {
         id: "threads",
         label: "Reddit",
-        where: { type: "thread", state: ["waiting", "scheduled"] },
+        where: { type: "thread", state: ["waiting", "scheduled", "held"] },
         sort: "-at",
         at: "at",
         hint: "Reddit threads we found and drafted a comment for, newest first",

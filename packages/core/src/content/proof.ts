@@ -80,6 +80,8 @@ interface RedditThing {
   author?: string;
   permalink?: string;
   link_id?: string;
+  parent_id?: string;
+  distinguished?: string | null;
   replies?: RedditListing | "";
   children?: string[];
 }
@@ -111,6 +113,29 @@ export function idsIn(tree: RedditListing | undefined): { ids: Set<string>; part
   };
   walk(tree);
   return { ids, partial };
+}
+
+const MOD_NOTE_CHARS = 300;
+
+/**
+ * What a moderator or AutoModerator wrote under our comment: the reason it was removed, which
+ * often states the floor ("account must be 10+ days old with 50+ karma"). Null when none did.
+ */
+export function modNoteIn(tree: RedditListing | undefined, ref: string): string | null {
+  const id = ref.replace(/^t1_/, "");
+  let found: string | null = null;
+  const mod = (d: RedditThing) => d.author === "AutoModerator" || d.distinguished === "moderator";
+  const walk = (l: RedditListing | "" | undefined, under: boolean) => {
+    for (const c of (l ? l.data?.children : undefined) ?? []) {
+      const d = c.data;
+      if (!d || found) continue;
+      if (under && mod(d) && (d.body ?? "").trim())
+        found = `${d.author === "AutoModerator" ? "AutoModerator" : `mod ${d.author ?? ""}`.trim()}: "${(d.body ?? "").replace(/\s+/g, " ").trim().slice(0, MOD_NOTE_CHARS)}"`;
+      else walk(d.replies, d.name === `t1_${id}` || d.id === id);
+    }
+  };
+  walk(tree, false);
+  return found;
 }
 
 export interface RedditReads {
@@ -221,6 +246,18 @@ export function siteProof(deps: ProofDeps): CommentProof {
           ? await info("reddit", t.account).catch(() => undefined)
           : undefined;
     const v = redditVerdict({ open, inThread, ...(own !== undefined ? { own } : {}) });
+    // A removal's reason is the moderator's reply under our comment; the send gate reads it.
+    const why =
+      (v.state === "hidden" || v.state === "missing") && a
+        ? await sites
+            .call<[RedditListing, RedditListing]>("reddit-public", "GET", `/comments/${a}`, {
+              limit: 500,
+              raw_json: 1,
+            })
+            .then(([, tree]) => modNoteIn(tree, t.ref as string))
+            .catch(() => null)
+        : null;
+    if (why) v.note = join(v.note, why);
     const url = redditPermalink(t, open ?? own);
     // www, not old.reddit: old.reddit sends a signed-out reader to its login wall.
     const s = await shoot(url, { ref: t.ref });

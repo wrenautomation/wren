@@ -20,6 +20,7 @@ import {
   redditPlaces,
 } from "../schema.js";
 import type { PlaceRead, Post } from "./reads.js";
+import { keepRulesNeed } from "./requirements.js";
 
 export const WREN_ABOUT =
   "Medium-sized businesses that charge a lot per client: agencies, consultancies, recruiters, B2B services, clinics and firms like them. Owners and operators who sell, deliver and hire.";
@@ -233,6 +234,7 @@ export async function keepPlace(
       readAt: now,
     })
     .where(eq(redditPlaces.subreddit, key(sub)));
+  await keepRulesNeed(db, key(sub), j, rulesText(read.rules));
   return { rulesChanged };
 }
 

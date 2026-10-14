@@ -15,16 +15,20 @@ import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
+  backfillFromProofs,
   COMMENTS_COMPONENTS,
   COMMENTS_SETTINGS,
   CONTACT_STATES,
   type ContactState,
+  clearGate,
   commentsSettings,
   discoverySettingsSchema,
+  gateList,
   INVITES_COMPONENT,
   inviteSettings,
   invitesSettingsSchema,
   isProofItem,
+  learnText,
   listAccounts,
   listPosts,
   listTemplates,
@@ -39,6 +43,7 @@ import {
   type ReachPostPlatform,
   reachStats,
   sentSince,
+  setNeed,
   slotsOf,
   topicYields,
   viewOf,
@@ -818,6 +823,79 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
       if (!isProofItem(item))
         throw new Error(`${item}: want thread:<t3_id>, onpost:<id> or comment:<id>`);
       json(await checkNow(item));
+    });
+  const gates = cmd
+    .command("gates")
+    .description(
+      "Subreddits whose karma or age rule holds our comments (queued, never dropped), with the gate now",
+    )
+    .action(async () => {
+      const rows = await withDb((db) => gateList(db, new Date()));
+      if (!rows.length) console.log("no subreddit has a requirement or a hold");
+      for (const r of rows)
+        console.log(
+          [
+            `r/${r.name}`,
+            r.gate?.ok ? "open" : "held",
+            r.gate?.reason ?? "",
+            r.hold ? "unknown gate" : "",
+            r.need.other ? `also: ${r.need.other}` : "",
+            ...r.from,
+          ].join("\t"),
+        );
+    });
+  gates
+    .command("set <subreddit>")
+    .description("Set a subreddit's floor by hand (fields left out stay)")
+    .option("--days <n>", "account age in days")
+    .option("--karma <n>", "total karma")
+    .option("--comment-karma <n>", "comment karma")
+    .option("--note <text>", "where it came from")
+    .action(
+      async (
+        sub: string,
+        o: { days?: string; karma?: string; commentKarma?: string; note?: string },
+      ) => {
+        const n = (v: string | undefined, flag: string) => {
+          if (v === undefined) return undefined;
+          const x = Number(v);
+          if (!Number.isInteger(x) || x < 0) throw new Error(`${flag}: want a whole number`);
+          return x;
+        };
+        const need = {
+          minAgeDays: n(o.days, "--days"),
+          minKarma: n(o.karma, "--karma"),
+          minCommentKarma: n(o.commentKarma, "--comment-karma"),
+        };
+        await withDb((db) =>
+          setNeed(
+            db,
+            sub,
+            Object.fromEntries(Object.entries(need).filter(([, v]) => v !== undefined)),
+            o.note ?? null,
+          ),
+        );
+        console.log(`r/${sub.replace(/^\/?r\//i, "")} set`);
+      },
+    );
+  gates
+    .command("learn <subreddit> <words>")
+    .description('Keep the floor a moderator\'s words state ("must be 10 days old with 50 karma")')
+    .action(async (sub: string, words: string) => {
+      json(await withDb((db) => learnText(db, sub, words, new Date())));
+    });
+  gates
+    .command("clear <subreddit>")
+    .description("Lift every hold and floor on a subreddit; the next removal brings them back")
+    .action(async (sub: string) => {
+      const n = await withDb((db) => clearGate(db, sub, new Date()));
+      console.log(n ? `cleared ${n}` : "nothing to clear");
+    });
+  gates
+    .command("backfill")
+    .description("Replay the kept comment proofs into requirements (removals state their floor)")
+    .action(async () => {
+      console.log(`${await withDb((db) => backfillFromProofs(db))} proofs replayed`);
     });
   return cmd;
 }

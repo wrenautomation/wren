@@ -4,6 +4,7 @@ import {
   holds,
   idsIn,
   linkedinVerdict,
+  modNoteIn,
   redditPermalink,
   redditVerdict,
   siteProof,
@@ -83,6 +84,39 @@ describe("reddit verdict", () => {
   });
 });
 
+describe("a moderator's note under our comment", () => {
+  const ours = {
+    ...thing("[removed]"),
+    replies: listing({
+      name: "t1_m1",
+      author: "AutoModerator",
+      body: "Your comment was removed. Accounts must be 10+ days old\nwith 50+ karma.",
+      parent_id: "t1_c1",
+    }),
+  };
+
+  it("reads AutoModerator's reply to our comment", () => {
+    expect(modNoteIn(listing(ours), "t1_c1")).toBe(
+      'AutoModerator: "Your comment was removed. Accounts must be 10+ days old with 50+ karma."',
+    );
+  });
+
+  it("reads a distinguished moderator, and ignores replies to other comments", () => {
+    const mod = listing({
+      ...thing("[removed]"),
+      replies: listing({
+        name: "t1_m2",
+        author: "jane",
+        distinguished: "moderator",
+        body: "Rule 3.",
+      }),
+    });
+    expect(modNoteIn(mod, "t1_c1")).toBe('mod jane: "Rule 3."');
+    expect(modNoteIn(mod, "t1_other")).toBeNull();
+    expect(modNoteIn(listing(thing("hi")), "t1_c1")).toBeNull();
+  });
+});
+
 describe("linkedin verdict", () => {
   it("matches by the first words, whatever the spacing and quotes", () => {
     expect(
@@ -155,6 +189,34 @@ describe("siteProof", () => {
     expect(p.state).toBe("hidden");
     expect(p.shot).toBeNull();
     expect(p.note).toContain("no shot: desk down");
+  });
+
+  it("keeps the moderator's reason in a removal's note", async () => {
+    const d = desk({
+      "reddit-public GET /api/info": listing(thing("[removed]", "")),
+      "reddit GET /api/info@reddit@one": listing(thing("hi")),
+      "reddit-public GET /comments/p1": [
+        listing(),
+        listing({
+          ...thing("[removed]", ""),
+          replies: listing({
+            name: "t1_m1",
+            author: "AutoModerator",
+            body: "Needs 50 karma.",
+          }),
+        }),
+      ],
+      "web GET /proof/shot": new Error("desk down"),
+    });
+    const p = await siteProof({ sites: d, now: () => NOW, keep: async () => "s3://b/k" }).check({
+      platform: "reddit",
+      ref: "t1_c1",
+      parent: "t3_p1",
+      url: null,
+      account: "reddit@one",
+    });
+    expect(p.state).toBe("hidden");
+    expect(p.note).toContain('AutoModerator: "Needs 50 karma."');
   });
 
   it("reads linkedin's public page, then the account's comments", async () => {

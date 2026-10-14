@@ -22,6 +22,7 @@ import {
 import { inArray, sql } from "drizzle-orm";
 import { accountById, listAccounts } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
+import { gatesFor } from "./discovery/requirements.js";
 import { VANITY } from "./invites.js";
 import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
 import {
@@ -365,8 +366,9 @@ export const placeRecord = defineRecord({
   app: "marketing",
   channel: "reddit",
   name: { one: "place", many: "places" },
-  rows: async (db) =>
-    (
+  rows: async (db) => {
+    const gates = await gatesFor(db, null, new Date());
+    return (
       (await db.execute(sql`
       select p.subreddit id, 'r/' || p.name place, p.fit, p.judged, p.subscribers, p.found_by,
         p.state, a.handle account, p.read_at, p.raw->>'error' error,
@@ -380,8 +382,12 @@ export const placeRecord = defineRecord({
       limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
     ).map(({ judged, ...r }) => {
       const j = judged as Partial<PlaceJudged> | null;
+      const gate = gates.get(String(r.id));
       return {
         ...r,
+        // Held: no account of ours meets the sub's karma or age rule yet.
+        gate: gate && !gate.ok ? gate.reason : null,
+        gated: gate && !gate.ok ? "held" : null,
         why: j?.why ?? r.error ?? null,
         rules: j?.rules ?? null,
         allows: j
@@ -390,7 +396,8 @@ export const placeRecord = defineRecord({
         pace: j ? `${j.postsADay} posts a day, ${j.medianComments} comments each` : null,
         url: `https://www.reddit.com/${String(r.place)}/`,
       };
-    }),
+    });
+  },
   key: "id",
   title: "place",
   subtitle: "why",
@@ -399,6 +406,18 @@ export const placeRecord = defineRecord({
     fit: score("Fit", { max: 10 }),
     why: text("Why"),
     allows: text("Allows"),
+    gated: status(
+      {
+        held: {
+          label: "Held",
+          tone: "warn",
+          about:
+            "No account of ours meets this subreddit's karma or age rule yet. Its comments stay queued and send once one does.",
+        },
+      },
+      "Gate",
+    ),
+    gate: text("Held because"),
     rules: prose("Rules"),
     pace: text("Pace"),
     subscribers: number("Members"),
@@ -417,6 +436,8 @@ export const placeRecord = defineRecord({
   views: [
     { id: "found", label: "To pick", where: { state: "found" }, sort: "-fit" },
     { id: "watching", label: "Watching", where: { state: "watching" }, sort: "-fit" },
+    // Subreddits whose karma or age rule we don't meet: the comments queue, none sends.
+    { id: "held", label: "Held", where: { gated: "held" }, sort: "-fit" },
     { id: "all", label: "All", sort: "-fit" },
   ],
   actions: [
@@ -433,10 +454,11 @@ export const threadRecord = defineRecord({
   app: "marketing",
   channel: "reddit",
   name: { one: "thread", many: "threads" },
-  rows: async (db) =>
-    (
+  rows: async (db) => {
+    const gates = await gatesFor(db, null, new Date());
+    return (
       (await db.execute(sql`
-      select t.id, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
+      select t.id, t.subreddit, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
         t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
         t.posted_at, t.send_at, t.url, a.handle account, p.read op_read, p.fit op_fit, p.site op_site
       from reddit_threads t
@@ -444,19 +466,27 @@ export const threadRecord = defineRecord({
       left join reddit_people p on p.handle = lower(t.author)
       where t.state <> 'dropped' or t.created_at > now() - interval '2 days'
       order by t.posted_at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
-    ).map(({ op_read, op_fit, op_site, sources, ...r }) => ({
-      ...r,
-      op: personLine({
-        read: op_read as RedditPerson["read"],
-        fit: op_fit as number | null,
-        site: op_site as string | null,
-      }),
-      sources: Array.isArray(sources)
-        ? (sources as { label: string; text: string }[])
-            .map((s) => `${s.label}: ${s.text}`)
-            .join("\n\n")
-        : null,
-    })),
+    ).map(({ op_read, op_fit, op_site, sources, subreddit, ...r }) => {
+      // Queued behind the sub's karma or age rule: the reason, and no slot.
+      const gate = r.state === "queued" ? gates.get(String(subreddit)) : undefined;
+      const held = gate && !gate.ok ? gate.reason : null;
+      return {
+        ...r,
+        held,
+        ...(held ? { send_at: null } : {}),
+        op: personLine({
+          read: op_read as RedditPerson["read"],
+          fit: op_fit as number | null,
+          site: op_site as string | null,
+        }),
+        sources: Array.isArray(sources)
+          ? (sources as { label: string; text: string }[])
+              .map((s) => `${s.label}: ${s.text}`)
+              .join("\n\n")
+          : null,
+      };
+    });
+  },
   key: "id",
   title: "title",
   subtitle: "angle",
@@ -491,6 +521,7 @@ export const threadRecord = defineRecord({
       dropped: neutral("Dropped"),
     }),
     dropped: text("Dropped because"),
+    held: text("Held because"),
     answer: prose("Our comment"),
     score: number("Score"),
     comments: number("Comments"),
