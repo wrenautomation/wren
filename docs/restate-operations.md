@@ -412,7 +412,8 @@ hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
 
 Each email's sign-off link carries `?r=<code>`; the lander records it on the landing view.
 `ClicksScheduler/fleet` reads those views hourly into `email_clicks` whenever
-`WREN_SITE_EXPORT_TOKEN` is set, and `wren email clicks` lists them. The loop is started by
+`WREN_SITE_EXPORT_TOKEN` is set, and `wren email clicks` lists them, with what each clicker did
+on the site afterwards read live from the export (never stored). The loop is started by
 hand like the others (the first pass reads the lander's whole history). Text and DM `/go/`
 links carry no code, so their clicks are not counted.
 

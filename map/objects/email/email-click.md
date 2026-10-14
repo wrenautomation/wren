@@ -21,7 +21,8 @@ A code no message holds is stored with `message_id` null (typed by hand, or the 
 
 - `email_clicks`: `link_code` + `url` (unique), `message_id` (null when unknown), `first_at`, `last_at`, `clicks` (`schema.ts:632`)
 - `click_syncs`: `base_url`, `cursor_id` (the lander's view id), `synced_at`, `stats` (`schema.ts:661`)
-- `clickedEmails`: the rows with their message, company and niche; behind `wren email clicks` (`inbox/clicks.ts:210`)
+- `clickedEmails`: one row per email (its pages, clicks added), with message, company and niche; behind `wren email clicks` (`inbox/clicks.ts:212`)
+- `clickFollowUps`: what each code's visitors did after (visitors, views, secs, form, applied). Read live from the export's `hits` and `applications` by `wren email clicks`, never stored; with no token or the lander down the command prints counts only (`inbox/clicks.ts:283`)
 - The first run reads all of the lander's `hits` history; start `ClicksScheduler/fleet` in prod once
 
 Citations: `packages/channel-email/src/schema.ts:632`, `packages/channel-email/src/inbox/click-sync.ts:45`
@@ -34,7 +35,7 @@ Citations: `packages/channel-email/src/schema.ts:632`, `packages/channel-email/s
 
 ## If you change this
 
-- **Hits:** `inbox/click-sync.ts`, `restate/clicks-scheduler.ts`, `clickedEmails`, the `sent_records` and `sent_activity` views (migration), `wren email clicks`, the lander's `hits.r` column and `?r=` link
+- **Hits:** `inbox/click-sync.ts`, `restate/clicks-scheduler.ts`, `clickedEmails`, `clickFollowUps`, the `sent_records` and `sent_activity` views (migration), `wren email clicks`, the lander's `hits.r` column and `?r=` link
 - **Does not hit:** anything that sends or stops
 
 ## Surfaces
@@ -43,7 +44,7 @@ Citations: `packages/channel-email/src/schema.ts:632`, `packages/channel-email/s
 |---|---|
 | `ClicksScheduler` (when `WREN_SITE_EXPORT_TOKEN` is set) | writes |
 | `sent_records`, `sent_activity` | reads |
-| `wren email clicks` | reads |
+| `wren email clicks` | reads (the table, and the lander's export live for the follow-up) |
 
 ## See
 

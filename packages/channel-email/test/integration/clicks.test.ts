@@ -8,7 +8,15 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { syncClicks } from "../../src/inbox/click-sync.js";
-import { clickedEmails, SITE_PAGE, SiteExportError, type SiteHit } from "../../src/inbox/clicks.js";
+import {
+  type ClickedEmail,
+  clickedEmails,
+  clickFollowUps,
+  SITE_PAGE,
+  type SiteApplication,
+  SiteExportError,
+  type SiteHit,
+} from "../../src/inbox/clicks.js";
 import { clickSyncs, emailClicks } from "../../src/schema.js";
 import { allMessages, makeCompany, makePerson, runCompose, TABLES } from "./compose-fixtures.js";
 
@@ -212,7 +220,7 @@ describe("syncClicks", () => {
 });
 
 describe("clickedEmails", () => {
-  it("names the message and company behind each code, latest click first", async () => {
+  it("names the message and company behind each code, one row per email, latest click first", async () => {
     const oak = await sentCode("oakbridge.example", "Oakbridge");
     const pine = await sentCode("pine.example", "Pinecrest");
     const rows = [
@@ -238,7 +246,101 @@ describe("clickedEmails", () => {
       toEmail: "jane@oakbridge.example",
       step: 0,
     });
-    expect(clicks[2]).toMatchObject({ url: "/recruiting" });
+    expect(clicks[2]).toMatchObject({ pages: ["/recruiting"] });
     expect(await clickedEmails(db(), { limit: 1 })).toHaveLength(1);
+  });
+
+  it("folds one email's pages into one row: pages listed, clicks added, first and last kept", async () => {
+    const oak = await sentCode("oakbridge.example", "Oakbridge");
+    await sync(
+      lander(() => [
+        view(2, { r: oak }),
+        view(8, { r: oak, page: "/recruiting" }),
+        view(20, { r: oak }),
+      ]).fetch,
+    );
+
+    const [row, ...rest] = await clickedEmails(db());
+
+    expect(rest).toEqual([]);
+    expect(row).toMatchObject({ code: oak, pages: ["/", "/recruiting"], clicks: 3 });
+    expect(row?.firstAt.toISOString()).toBe(at(2));
+    expect(row?.lastAt.toISOString()).toBe(at(20));
+  });
+});
+
+const applied = (id: number, visitor: string, fit: 0 | 1, minutes: number): SiteApplication => ({
+  id,
+  ts: at(minutes),
+  visitor,
+  offer: "recruiting",
+  fit,
+  r: "",
+});
+
+describe("clickFollowUps", () => {
+  const follow = async (rows: SiteHit[], apps: SiteApplication[] = []) => {
+    await sync(lander(() => rows).fetch);
+    const clicks: ClickedEmail[] = await clickedEmails(db());
+    const after = clickFollowUps(rows, apps);
+    return { clicks, after };
+  };
+
+  it("follows each clicker through later visits, the form, and an application, by code", async () => {
+    const oak = await sentCode("oakbridge.example", "Oakbridge");
+    const pine = await sentCode("pine.example", "Pinecrest");
+    const rows = [
+      view(1, { r: oak, visitor: "a", secs: 10 }),
+      view(40, { visitor: "a", page: "/recruiting", secs: 30, cta: 1 }),
+      view(50, { visitor: "a", page: "/book", secs: 5 }),
+      view(2, { r: pine, visitor: "b", secs: 7 }),
+      view(3, { visitor: "c", secs: 99 }),
+    ];
+
+    const { after } = await follow(rows, [applied(1, "a", 1, 60), applied(2, "c", 1, 61)]);
+
+    expect(after.get(oak)).toEqual({
+      visitors: 1,
+      views: 3,
+      secs: 45,
+      reachedForm: true,
+      applied: { offer: "recruiting", fit: true, ts: at(60) },
+    });
+    expect(after.get(pine)).toEqual({
+      visitors: 1,
+      views: 1,
+      secs: 7,
+      reachedForm: false,
+      applied: null,
+    });
+  });
+
+  it("counts a forwarded email's second browser, and picks a fit application over an earlier miss", async () => {
+    const oak = await sentCode("oakbridge.example", "Oakbridge");
+    const rows = [
+      view(1, { r: oak, visitor: "phone", secs: 4 }),
+      view(30, { r: oak, visitor: "desk", secs: 12, touched: 1 }),
+    ];
+
+    const { after } = await follow(rows, [applied(1, "phone", 0, 5), applied(2, "desk", 1, 31)]);
+
+    expect(after.get(oak)).toMatchObject({
+      visitors: 2,
+      views: 2,
+      secs: 16,
+      reachedForm: true,
+      applied: { fit: true, ts: at(31) },
+    });
+  });
+
+  it("has no entry for a stored code the export no longer shows", async () => {
+    const oak = await sentCode("oakbridge.example", "Oakbridge");
+    await sync(lander(() => [view(1, { r: oak })]).fetch);
+
+    const clicks = await clickedEmails(db());
+    const after = clickFollowUps([view(2, { r: "other" })], []);
+
+    expect(clicks.map((c) => c.code)).toEqual([oak]);
+    expect(after.has(oak)).toBe(false);
   });
 });

@@ -16,9 +16,11 @@ import {
   applyBooking,
   audienceGate,
   bookingFromList,
+  type ClickFollowUp,
   campaignFunnel,
   classifyValue,
   clickedEmails,
+  clickFollowUps,
   expandHome,
   GmailClient,
   GmailTransport,
@@ -34,6 +36,7 @@ import {
   runListedContacts,
   SmtpTransport,
   senderDays,
+  siteExport,
   variantOutcomes,
 } from "@wren/channel-email";
 import type { QueueRefresh } from "@wren/channel-email/restate";
@@ -257,7 +260,7 @@ export function registerEmail(
   email
     .command("clicks")
     .description(
-      "Who clicked the site link in which email (?r= codes the lander saw, pulled hourly into email_clicks)",
+      "Who clicked the site link in which email (counts stored hourly from the ?r= codes the lander saw), and what they did after (read live from the lander)",
     )
     .option("--limit <n>", "at most", "50")
     .action(async (opts: { limit: string }) => {
@@ -266,13 +269,47 @@ export function registerEmail(
         console.log("no email link clicks yet (ClicksScheduler/fleet pulls them hourly)");
         return;
       }
-      console.log("last click · company · to · niche step · clicks · page");
+      // What they did after is the lander's, so it is read now and never stored. Counts need no
+      // export: with no token, or the lander down, the list prints without those columns.
+      let after: Map<string, ClickFollowUp> | null = null;
+      if (!settings.siteExportToken) {
+        console.log(
+          "(counts only: WREN_SITE_EXPORT_TOKEN is unset, the lander's EXPORT_TOKEN secret)",
+        );
+      } else {
+        const site = { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken };
+        try {
+          const [hits, applications] = await Promise.all([
+            siteExport("hits", site),
+            siteExport("applications", site),
+          ]);
+          after = clickFollowUps(hits, applications);
+        } catch (err) {
+          console.log(`(counts only: the lander's export failed: ${(err as Error).message})`);
+        }
+      }
+      console.log(
+        after
+          ? "last click · company · to · niche step · clicks · page · visitors views secs · form · applied"
+          : "last click · company · to · niche step · clicks · page",
+      );
       for (const c of clicks) {
         const m = c.message;
         const who = m
           ? `${m.company ?? "?"} · ${m.toEmail} · ${m.niche} step ${m.step}`
           : `unknown code ${c.code}`;
-        console.log(`  ${c.lastAt.toISOString().slice(0, 16)} · ${who} · ${c.clicks} · ${c.url}`);
+        const head = `  ${c.lastAt.toISOString().slice(0, 16)} · ${who} · ${c.clicks} · ${c.pages.join(" ")}`;
+        const f = after?.get(c.code);
+        if (!after) console.log(head);
+        else if (!f) console.log(`${head} · not in the lander's export`);
+        else {
+          const applied = f.applied
+            ? `applied ${f.applied.offer}${f.applied.fit ? " (fit)" : ""}`
+            : "–";
+          console.log(
+            `${head} · ${f.visitors} ${f.views} ${f.secs}s · ${f.reachedForm ? "form" : "–"} · ${applied}`,
+          );
+        }
       }
     });
 

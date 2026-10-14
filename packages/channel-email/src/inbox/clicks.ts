@@ -5,16 +5,16 @@
  * the view the link lands on (`hits.r`). `ClicksScheduler` pulls those views hourly into
  * `email_clicks` (`./click-sync.ts`): one row per code and page, with the first and last click and
  * a count. The sent log (`core/sent-views.ts`) reads that table to set "clicked", and
- * `wren email clicks` lists it (`clickedEmails`). Stored since 2026-10-14 (B7): until then this
+ * `wren email clicks` lists it (`clickedEmails`) with what each clicker did after (`clickFollowUps`, live). Stored since 2026-10-14 (B7): until then this
  * read the export on every call and kept nothing, but the log needs clicks in SQL.
  *
- * What stays a live read of the export: visits and what a visitor did after (`siteExport`, the
- * call brief's "On the site", the day tables). A click is interest, not consent: nothing sends or
- * stops on it.
+ * What stays a live read of the export: visits and what a visitor did after (`siteExport`,
+ * `clickFollowUps` for `wren email clicks`, the call brief's "On the site", the day tables).
+ * A click is interest, not consent: nothing sends or stops on it.
  */
 import { companies } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { emailClicks, enrollments, messages } from "../schema.js";
 
@@ -188,12 +188,14 @@ export async function siteExport<T extends keyof SiteTables>(
   );
 }
 
-/** One stored click row (a code and the page it landed on), named by the message that carried it. */
+/** One clicked email: every page its link landed on, counted, named by the message that carried it. */
 export interface ClickedEmail {
   code: string;
-  url: string;
+  /** The pages it landed on, sorted. */
+  pages: string[];
   firstAt: Date;
   lastAt: Date;
+  /** Clicks on all its pages. */
   clicks: number;
   /** null = no message holds this code: typed by hand, or from a message since deleted. */
   message: {
@@ -206,7 +208,7 @@ export interface ClickedEmail {
   } | null;
 }
 
-/** The stored clicks, newest first, each named by its message (`messages.link_code`). */
+/** The stored clicks, one row per email, latest click first, each named by its message (`messages.link_code`). */
 export async function clickedEmails(
   db: Queryable,
   opts: { limit?: number } = {},
@@ -228,25 +230,80 @@ export async function clickedEmails(
     .from(emailClicks)
     .leftJoin(messages, eq(messages.id, emailClicks.messageId))
     .leftJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
-    .leftJoin(companies, eq(companies.id, enrollments.companyId))
-    .orderBy(desc(emailClicks.lastAt), desc(emailClicks.id))
-    .limit(opts.limit ?? 50);
-  return rows.map((r) => ({
-    code: r.code,
-    url: r.url,
-    firstAt: r.firstAt,
-    lastAt: r.lastAt,
-    clicks: r.clicks,
-    message:
-      r.id === null || r.step === null || r.toEmail === null || r.niche === null
-        ? null
-        : {
-            id: r.id,
-            step: r.step,
-            niche: r.niche,
-            toEmail: r.toEmail,
-            company: r.company,
-            sentAt: r.sentAt,
-          },
-  }));
+    .leftJoin(companies, eq(companies.id, enrollments.companyId));
+  const byCode = new Map<string, ClickedEmail>();
+  for (const r of rows) {
+    const seen = byCode.get(r.code);
+    if (seen) {
+      seen.pages = [...new Set([...seen.pages, r.url])].sort();
+      seen.clicks += r.clicks;
+      if (r.firstAt < seen.firstAt) seen.firstAt = r.firstAt;
+      if (r.lastAt > seen.lastAt) seen.lastAt = r.lastAt;
+      continue;
+    }
+    byCode.set(r.code, {
+      code: r.code,
+      pages: [r.url],
+      firstAt: r.firstAt,
+      lastAt: r.lastAt,
+      clicks: r.clicks,
+      message:
+        r.id === null || r.step === null || r.toEmail === null || r.niche === null
+          ? null
+          : {
+              id: r.id,
+              step: r.step,
+              niche: r.niche,
+              toEmail: r.toEmail,
+              company: r.company,
+              sentAt: r.sentAt,
+            },
+    });
+  }
+  return [...byCode.values()]
+    .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime() || a.code.localeCompare(b.code))
+    .slice(0, opts.limit ?? 50);
+}
+
+/** What the browsers that arrived on one email's link did on the site, from the export's live rows. */
+export interface ClickFollowUp {
+  /** Browsers that arrived on this code. Two or more = forwarded, or opened on phone and desk. */
+  visitors: number;
+  /** Every view those browsers made, from any source. */
+  views: number;
+  secs: number;
+  reachedForm: boolean;
+  applied: { offer: string; fit: boolean; ts: string } | null;
+}
+
+/**
+ * Follow each code's visitors through the export's `hits` and `applications`, by code. Read live and
+ * never stored: a visitor's later visits are the lander's, and a click is all this side keeps.
+ */
+export function clickFollowUps(
+  hits: readonly SiteHit[],
+  applications: readonly SiteApplication[],
+): Map<string, ClickFollowUp> {
+  const byVisitor = new Map<string, SiteHit[]>();
+  const arrivals = new Map<string, SiteHit[]>();
+  for (const h of hits) {
+    if (h.visitor) byVisitor.set(h.visitor, [...(byVisitor.get(h.visitor) ?? []), h]);
+    if (h.r) arrivals.set(h.r, [...(arrivals.get(h.r) ?? []), h]);
+  }
+  const out = new Map<string, ClickFollowUp>();
+  for (const [code, came] of arrivals) {
+    const visitors = new Set(came.map((h) => h.visitor).filter((v): v is string => !!v));
+    const seen = [...visitors].flatMap((v) => byVisitor.get(v) ?? []);
+    const applied = applications
+      .filter((a) => a.visitor && visitors.has(a.visitor))
+      .sort((a, b) => b.fit - a.fit || a.id - b.id)[0];
+    out.set(code, {
+      visitors: visitors.size,
+      views: seen.length || came.length,
+      secs: seen.reduce((n, h) => n + h.secs, 0),
+      reachedForm: seen.some((h) => h.cta || h.touched),
+      applied: applied ? { offer: applied.offer, fit: applied.fit === 1, ts: applied.ts } : null,
+    });
+  }
+  return out;
 }
