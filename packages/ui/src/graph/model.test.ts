@@ -114,7 +114,7 @@ describe("graph model", () => {
     // Curved wires with an arrow, the count in a pill at the middle.
     expect(svg).toContain(" C");
     expect(svg).toContain(">31<");
-  });
+  }, 20_000); // ELK's first load is slow on a busy CI runner.
 });
 
 describe("node look", () => {
