@@ -66,8 +66,8 @@ export function ProofBadge({ row }: { row: Row }) {
 
 /** Engage's extras with the proof first, when the row was sent and checked. */
 export const withProof =
-  (extras: (detail: unknown, at: { row: Row }) => RecordExtras) =>
-  (detail: unknown, at: { row: Row }): RecordExtras => {
+  <A extends { row: Row }>(extras: (detail: unknown, at: A) => RecordExtras) =>
+  (detail: unknown, at: A): RecordExtras => {
     const base = extras(detail, at);
     if (!at.row.proof) return base;
     return {
