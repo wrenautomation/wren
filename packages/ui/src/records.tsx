@@ -79,7 +79,7 @@ import { linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
-import { GROUP_LABEL, PAGE_TITLE, PageTitle, Wing } from "./layout.js";
+import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
   filtersOf,
@@ -685,11 +685,10 @@ const TITLE_WEIGHT: Record<string, string> = {
   null: "font-medium text-(--ui-ink)",
 };
 
-/** A tier's name and count: "Needs you 4" after the wren mark, or "For info 9". */
+/** A tier's name and count: "Needs you 4" or "For info 9". */
 export function TierLabel({ needs, n }: { needs: boolean; n: number }) {
   return (
     <span className="inline-flex items-center gap-2">
-      {needs ? <Wing className="h-4 w-1.5" /> : null}
       <span className={needs ? "text-(--ui-ink)" : undefined}>
         {needs ? "Needs you" : "For info"}
       </span>
@@ -1661,10 +1660,7 @@ function List({
                               changed.has(id) && !page.loading && "animate-ui-changed",
                             )}
                           >
-                            <td className={cn("pl-2.5", waiting && "relative")}>
-                              {waiting ? (
-                                <Wing className="absolute top-1.5 bottom-1.5 left-0.5 w-1.5" />
-                              ) : null}
+                            <td className="pl-2.5">
                               <input
                                 type="checkbox"
                                 aria-label={`Select ${titleOf(meta, r)}`}
@@ -2003,7 +1999,6 @@ function RowCard({
         changed && "[&>[data-face]]:animate-ui-changed",
       )}
     >
-      {waits ? <Wing className="absolute top-3.5 left-0.5 h-10 w-[5px]" /> : null}
       <label className="grid size-12 flex-none cursor-pointer place-items-center">
         <input
           type="checkbox"

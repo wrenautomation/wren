@@ -163,7 +163,6 @@ export {
   SECTION_TITLE,
   Section,
   useAbout,
-  Wing,
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";

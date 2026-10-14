@@ -127,10 +127,6 @@
     0 0 0 1px var(--ui-rim), 0 30px 80px -30px color-mix(in srgb, var(--ui-umbra) 45%, transparent);
   /* The ground a page's panels sit on, inside the window: between the canvas and the paper. */
   --ui-ground: color-mix(in srgb, var(--ui-canvas) 45%, var(--ui-paper));
-  /* The wren mark: one wing-feather curve, the brand's one motif. It edges what needs you and
-     heads the "Needs you" tier, so the eye finds that first. An accent role (60-30-10). */
-  --ui-motif: var(--ui-accent);
-  --wing-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 32' preserveAspectRatio='none'%3E%3Cpath d='M5.8 0C2.2 5 0 12 0.4 19.5 0.7 25 1.8 29 3 32 3.6 24 5.6 13 5.8 0Z'/%3E%3C/svg%3E");
 }
 
 /* The night theme flips the tokens, so shadcn's own dark styles stay off. */
@@ -388,15 +384,6 @@
   [role="menuitem"],
   [role="option"] {
     border-radius: var(--ui-radius);
-  }
-}
-
-/* The wren mark (--wing-mark in --ui-motif): give it a size and a place; it draws the curve. */
-@layer components {
-  .ui-wing {
-    background: var(--ui-motif);
-    -webkit-mask: var(--wing-mark) center / 100% 100% no-repeat;
-    mask: var(--wing-mark) center / 100% 100% no-repeat;
   }
 }
 

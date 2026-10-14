@@ -69,7 +69,6 @@ export const TOKENS = [
   "float",
   "shadow",
   "ground",
-  "motif",
   "chart-1",
   "chart-2",
   "chart-3",

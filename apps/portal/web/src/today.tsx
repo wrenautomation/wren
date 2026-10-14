@@ -16,7 +16,6 @@ import {
   PinnedRow,
   Section,
   Tag,
-  Wing,
 } from "@wren/ui";
 import type { ReactNode } from "react";
 import { call } from "./api.js";
@@ -85,7 +84,6 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
   return (
     <Section
       title="Needs you"
-      cue={lines.length ? <Wing className="h-5 w-1.5" /> : null}
       count={lines.length ? lines.reduce((t, l) => t + l.n, 0) : undefined}
     >
       {lines.length ? (
@@ -257,7 +255,6 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
       ) : null}
       <Section
         title="Waiting on you"
-        cue={none ? null : <Wing className="h-5 w-1.5" />}
         count={
           !work.data || !asks.data || none
             ? undefined

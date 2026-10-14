@@ -13,14 +13,6 @@ export const SECTION_TITLE = "text-[16px] leading-[22px] font-semibold";
 export const GROUP_LABEL =
   "text-[12px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 
-/**
- * The wren mark: one wing-feather curve in the motif color (`.ui-wing`), the brand's one motif.
- * It edges what needs you and leads a "Needs you" head; `className` sizes and places it.
- */
-export function Wing({ className }: { className?: string | undefined }) {
-  return <span aria-hidden="true" className={cx("ui-wing flex-none", className)} />;
-}
-
 /** A part on the page: a raised panel on paper, its rim in the shadow, its corners soft. */
 export const FRAME = "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)";
 /** The strip a framed part is headed by: banded, with a rule under it, its top corners the frame's. */
