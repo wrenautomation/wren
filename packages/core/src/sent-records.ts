@@ -9,7 +9,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
-import { cued, date, defineRecord, name, status, text } from "./records.js";
+import { cued, date, defineRecord, name, number, status, text } from "./records.js";
 
 /** The channels a message goes out on. The keys are access channels; each gets its mark. */
 const CHANNELS = cued({
@@ -26,10 +26,14 @@ const CHANNELS = cued({
   google_business: { label: "Google", tone: "neutral" },
 } as const);
 
-/** What kind of message: a cold or follow-up email, a newsletter issue, a text, a DM, a comment. */
+/**
+ * What kind of message: a cold or follow-up email, a newsletter issue, a broadcast, a text, a DM,
+ * a comment.
+ */
 export const SENT_KINDS = {
   email: { label: "Email", tone: "neutral" },
   newsletter: { label: "Newsletter", tone: "neutral" },
+  broadcast: { label: "Broadcast", tone: "neutral" },
   sms: { label: "Text", tone: "neutral" },
   dm: { label: "DM", tone: "neutral" },
   comment: { label: "Comment", tone: "neutral" },
@@ -122,6 +126,32 @@ export async function sentDetail(db: Queryable, id: string): Promise<SentDetail 
       body: body.filter(Boolean).join("\n\n"),
     };
   }
+  if (source === "broadcast" && n !== null) {
+    const [m] = await rowsOf(
+      db,
+      sql`select b.id, b.channel, b.subject, b.body, r.address "to", r.profile_id, p.name
+        from broadcast_recipients r join broadcasts b on b.id = r.broadcast_id
+        join profiles p on p.id = r.profile_id where r.id = ${n}`,
+    );
+    if (!m) return null;
+    // The words as this person gets them, filled from their profile. Loaded here only: the
+    // portal's bundle reads this file's record, and the templates need node.
+    const { factsOf, renderFor } = await import("./broadcasts.js");
+    const channel = m.channel === "sms" ? "sms" : "email";
+    const copy = renderFor(
+      { id: Number(m.id), channel, subject: m.subject ?? null, body: m.body ?? "" },
+      factsOf(m.name ?? null),
+      String(m.profile_id),
+    );
+    return {
+      as: channel,
+      site: null,
+      from: null,
+      to: m.to ?? "",
+      subject: "missing" in copy ? (m.subject ?? null) : copy.subject,
+      body: "missing" in copy ? (m.body ?? "") : copy.body,
+    };
+  }
   if (source === "sms" && n !== null) {
     const [m] = await rowsOf(
       db,
@@ -182,6 +212,7 @@ export const sentRecord = defineRecord({
     state: status(SENT_STATES),
     channelState: text("Channel's own state"),
     campaign: text("Campaign or workflow"),
+    broadcast: number("Broadcast", { listed: false }),
   },
   quick: ["channel", "state", "kind"],
   views: [

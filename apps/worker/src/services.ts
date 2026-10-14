@@ -251,6 +251,9 @@ import { resolve as dohResolve } from "@wren/core";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
+import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
+import { makeBroadcast } from "@wren/core/broadcast-run";
+import type { BroadcastMail } from "@wren/core/broadcasts";
 import { cacheFrom } from "@wren/core/cache";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import {
@@ -280,6 +283,7 @@ import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
+import { linkKey, marketingEnvelope } from "@wren/core/marketing";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
@@ -713,6 +717,26 @@ export async function buildServices(
           from: settings.portalFrom,
           name: "Wren",
         })
+      : null;
+  // People broadcasts' email (B6): Wren's own, from portal@ with the marketing envelope. Null
+  // without portal@, the lander's link key or a postal address: email broadcasts then refuse.
+  const shared = settings.siteExportToken;
+  const postal = settings.marketingPostal;
+  const broadcastMail: BroadcastMail | null =
+    portalMail && settings.portalFrom && shared && postal
+      ? {
+          send: portalMail,
+          domain: settings.portalFrom.split("@")[1]?.toLowerCase() ?? "",
+          envelope: (address, topic) =>
+            marketingEnvelope({
+              key: linkKey(shared),
+              site: settings.siteBaseUrl.replace(/\/+$/, ""),
+              address,
+              topic: topic.name,
+              postal,
+              why: `You signed up for ${topic.publicName}.`,
+            }),
+        }
       : null;
   // Inboxes on their own login send over SMTP and are read over IMAP; the rest go through Gmail.
   const smtpInboxes = roster.flatMap((s) => {
@@ -1601,6 +1625,9 @@ export async function buildServices(
       db,
       open: openClient,
       records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
+      // Broadcasts (B6): Wren's email and its tests; a text test only to the operator's phone.
+      mail: broadcastMail,
+      testPhone: settings.operatorPhone ?? null,
       // Describe segment: Wren's model for Wren, a client's own key or Wren's, metered on its share.
       model: (client) =>
         client
@@ -2128,6 +2155,8 @@ export async function buildServices(
       };
       return [makeSegments(segments), makeSegmentsNet(segments)];
     })(),
+    // Broadcasts (B6): each approved one started on its time and sent a batch per run.
+    makeBroadcast({ main: db, clientDb, mail: broadcastMail }),
     makeWebhooks({
       main: db,
       // A URL Wren turned off: its client's owners and whoever added it hear from portal@.
@@ -2261,6 +2290,8 @@ export async function buildServices(
         ...SENT_RECORDS,
         // Wren's segments and who is in each (People → Segments).
         ...SEGMENT_RECORDS,
+        // Wren's broadcasts and who each went to (People → Broadcasts).
+        ...BROADCAST_RECORDS,
         // Everyone once, their addresses, traits and timeline (People); site visits read live.
         ...profileRecords(
           WORKFLOWS,

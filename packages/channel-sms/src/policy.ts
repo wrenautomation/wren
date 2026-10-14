@@ -9,7 +9,7 @@
  * strictest state rules), and weekends are off unless listed.
  */
 import { canonicalZone, wallClock } from "@wren/core/time";
-import { ANSWER_KINDS, type ContactBasis, type SourceKind } from "./schema.js";
+import { ANSWER_KINDS, CONSENTED_KINDS, type ContactBasis, type SourceKind } from "./schema.js";
 
 export const FLEET_ZONE = "America/New_York";
 const UNKNOWN_ZONE_CHECKS = ["America/New_York", "America/Los_Angeles"] as const;
@@ -61,10 +61,12 @@ export const ASKED: ReadonlySet<SourceKind> = new Set(["form", "hook", "call"]);
 
 /**
  * The policy a contact's texts are timed by: the asked window for those who asked, and for a
- * text that answers something they did (a missed call, a job done), whoever they are.
+ * text that answers something they did (a missed call, a job done), whoever they are, and for
+ * a broadcast, which only goes to someone who said yes to its topic.
  */
 export function policyFor(source: SourceKind, policy: SmsPolicy, kind?: string): SmsPolicy {
-  return ASKED.has(source) || (kind !== undefined && ANSWER_KINDS.has(kind))
+  return ASKED.has(source) ||
+    (kind !== undefined && (ANSWER_KINDS.has(kind) || CONSENTED_KINDS.has(kind)))
     ? { ...policy, ...(policy.asked ?? ASKED_WINDOW) }
     : policy;
 }

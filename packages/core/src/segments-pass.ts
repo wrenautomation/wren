@@ -2,7 +2,8 @@
  * The segments pass (designs/2026-10-14-customerio-audit.md, B5), one per workspace:
  *
  * 1. Every active live segment recomputed, dependencies first; entries and exits kept.
- * 2. What uses each segment written on its row (workflows' Segment triggers, other rules).
+ * 2. What uses each segment written on its row (workflows' Segment triggers, other rules,
+ *    broadcasts not yet done).
  * 3. Segments unused for 90 days archived.
  * 4. The spine told: each entry and exit past the last one told, to a Segment trigger that
  *    hears it; each trait change, to a Trait changed trigger; once a day from 09:00 (New York),
@@ -16,6 +17,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { broadcastUses } from "./broadcasts.js";
 import { type DateEvery, everyOf, offsetOf, SCHEDULE_ZONE, type TriggerFacts } from "./logic.js";
 import { exclusiveHandler, NO_INPUT, sharedHandler } from "./restate/form.js";
 import { clientKey, clientOfKey } from "./restate/keys.js";
@@ -60,6 +62,16 @@ export function workflowUses(flows: readonly Workflow[]): Map<number, SegmentUse
       if (!has.some((u) => u.id === f.id))
         out.set(id, [...has, { kind: "workflow", id: f.id, name: f.name }]);
     }
+  return out;
+}
+
+/** Two maps of uses as one. */
+export function joinUses(
+  a: ReadonlyMap<number, SegmentUse[]>,
+  b: ReadonlyMap<number, SegmentUse[]>,
+): Map<number, SegmentUse[]> {
+  const out = new Map(a);
+  for (const [id, uses] of b) out.set(id, [...(out.get(id) ?? []), ...uses]);
   return out;
 }
 
@@ -230,7 +242,7 @@ export async function segmentsPass(
   // The start is read before the recompute, so its entries are told.
   const cursor = from ?? (await startOf(db));
   const changes: MembershipChange[] = await recomputeLive(db, now);
-  await setUses(db, workflowUses(flows), now);
+  await setUses(db, joinUses(workflowUses(flows), await broadcastUses(db)), now);
   const archived = await archiveUnused(db, now);
   const ear = heard(flows);
   const fires: Fired[] = [];

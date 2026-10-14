@@ -9,7 +9,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
-import { overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
+import { capRoomAt, overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
 import { noteProfileFrom, profileFrom } from "./profiles-backfill.js";
 import {
   type Consent,
@@ -171,6 +171,48 @@ export async function mayMarket(
 }
 
 /**
+ * When a `capped` verdict lifts: the latest of the person's own frequency (their last send plus
+ * its gap), the texts' 4 in 31 days, and the workspace's caps. Null when none holds them now.
+ */
+export async function marketingRoomAt(
+  db: Queryable,
+  input: { channel: MarketingChannel; address: string; now: Date; person?: string },
+): Promise<Date | null> {
+  const { channel, now } = input;
+  const address = addressOf(channel, input.address);
+  const mine = and(eq(consents.channel, channel), eq(consents.address, address));
+  let room = 0;
+  const own = await db
+    .select({ frequency: consents.frequency, last: consents.lastSentAt })
+    .from(consents)
+    .where(mine);
+  const last = Math.max(0, ...own.map((c) => c.last?.getTime() ?? 0));
+  const gap = Math.max(0, ...own.map((c) => FREQUENCY_DAYS[c.frequency]));
+  if (last && gap) room = Math.max(room, last + gap * DAY);
+  if (channel === "sms") {
+    const sent = await db
+      .select({ at: consentEvents.createdAt })
+      .from(consentEvents)
+      .innerJoin(consents, eq(consents.id, consentEvents.consentId))
+      .where(
+        and(
+          mine,
+          eq(consentEvents.kind, "sent"),
+          gt(consentEvents.createdAt, new Date(now.getTime() - SMS_WINDOW_DAYS * DAY)),
+        ),
+      )
+      .orderBy(desc(consentEvents.createdAt))
+      .limit(SMS_CAP);
+    const holding = sent[SMS_CAP - 1];
+    if (holding) room = Math.max(room, holding.at.getTime() + SMS_WINDOW_DAYS * DAY);
+  }
+  const person = input.person ?? (await personKeyOf(db, channel, address));
+  const cap = await capRoomAt(db, person, now);
+  if (cap) room = Math.max(room, cap.getTime());
+  return room > now.getTime() ? new Date(room) : null;
+}
+
+/**
  * A send happened: the cap counts it, the cross-channel cap counts it, and the subscriber's
  * record shows it. `campaign` is the workflow, broadcast or campaign slug it belonged to.
  */
@@ -183,6 +225,8 @@ export async function recordMarketingSend(
     now?: Date;
     person?: string;
     campaign?: string | null;
+    /** False when the sender counts it toward the workspace's caps itself (the texts sender). */
+    capped?: boolean;
   },
 ): Promise<void> {
   const now = input.now ?? new Date();
@@ -199,7 +243,7 @@ export async function recordMarketingSend(
       .select({ channel: consents.channel, address: consents.address })
       .from(consents)
       .where(eq(consents.id, input.consentId));
-    if (!c) return;
+    if (!c || input.capped === false) return;
     await recordMessageSend(tx, {
       personKey: input.person ?? (await personKeyOf(tx, c.channel, c.address)),
       channel: c.channel,

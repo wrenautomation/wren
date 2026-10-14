@@ -12,6 +12,7 @@ import { findRecords } from "../../find.js";
 import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
+import { BROADCAST_DECIDE_ACTIONS } from "../people/broadcasts.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
@@ -893,6 +894,8 @@ const APPROVAL_ACTIONS: Action[] = [
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
   // Payments: a pay link or a document someone without the yes asked to send.
   ...PAY_ACTIONS.map((a) => only("pay", a, WAITS)),
+  // A broadcast to a segment: People's own yes and no.
+  ...BROADCAST_DECIDE_ACTIONS.map((a) => only("broadcast", a, WAITS)),
   ...DOC_ACTIONS.filter((a) => a.id === "documents.approve" || a.id === "documents.decline").map(
     (a) => only("doc", a, WAITS),
   ),
@@ -2102,16 +2105,22 @@ const clientInbox = (a: Action): Action => {
 const CLIENT_APPROVE: ListPage = {
   id: "approve",
   label: "To approve",
-  about: "Inbox replies that wait on a yes before they send.",
+  about: "Inbox replies and broadcasts that wait on a yes before they send.",
   template: "list",
   record: "marketing.asked_reply",
   columns: ["who", "kind", "why", "sendAt", "held", "account", "at"],
   empty: {
-    waiting: "No Inbox reply waits on a yes.",
+    waiting: "No Inbox reply or broadcast waits on a yes.",
     queued: "Nothing is queued. A reply you approved shows here when the frequency cap holds it.",
     all: "Replies asked from the Inbox show here.",
   },
-  actions: ASKED_REPLY_ACTIONS.map(clientInbox),
+  // A broadcast's yes is People's own route, which checks the approver itself.
+  actions: [
+    ...ASKED_REPLY_ACTIONS.map((a) =>
+      clientInbox({ ...a, when: { ...a.when, kind: ["email", "text", "dm", "comment"] } }),
+    ),
+    ...BROADCAST_DECIDE_ACTIONS.map((a) => ({ ...a, when: { ...WAITS, kind: ["broadcast"] } })),
+  ],
   extras: (detail, at) => askedReplyExtras(detail, at.row),
 };
 

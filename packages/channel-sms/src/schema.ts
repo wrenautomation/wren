@@ -116,7 +116,9 @@ export type Direction = (typeof DIRECTIONS)[number];
  * `text_back` = the text after a missed call (`ref` names the call); `review` = a review ask or
  * its reminder (`ref` names the ask and round). One per contact and ref. `pay` = a pay link
  * (`@wren/payments`) typed from a thread: an answer, so the asked window, never early. `doc` = a
- * document's signing link (`@wren/documents`), the same way.
+ * document's signing link (`@wren/documents`), the same way. `broadcast` = one person's copy of a
+ * People broadcast (`@wren/core/broadcasts`, `ref` = `<slug>/<broadcast id>`): marketing to
+ * someone who said yes to its topic, so the asked window, and one per contact and broadcast.
  */
 export const MESSAGE_KINDS = [
   "sequence",
@@ -128,9 +130,12 @@ export const MESSAGE_KINDS = [
   "review",
   "pay",
   "doc",
+  "broadcast",
 ] as const;
 /** Kinds that answer something the person did: the asked window, never cold volume. */
 export const ANSWER_KINDS: ReadonlySet<string> = new Set(["text_back", "review", "pay", "doc"]);
+/** Kinds sent under a consent the person gave: the asked window, counted as marketing. */
+export const CONSENTED_KINDS: ReadonlySet<string> = new Set(["broadcast"]);
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
@@ -341,6 +346,9 @@ export const smsMessages = pgTable(
     uniqueIndex("uq_sms_messages_follow_up_ref")
       .on(t.contactId, t.ref)
       .where(sql`(kind)::text = 'follow_up'::text`),
+    uniqueIndex("uq_sms_messages_broadcast_ref")
+      .on(t.contactId, t.ref)
+      .where(sql`(kind)::text = 'broadcast'::text`),
     uniqueIndex("uq_sms_messages_answer_ref")
       .on(t.contactId, t.ref)
       .where(sql`(kind)::text = ANY (ARRAY['text_back'::text, 'review'::text])`),

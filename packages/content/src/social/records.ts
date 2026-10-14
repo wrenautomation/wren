@@ -8,6 +8,7 @@
 
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
+import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
@@ -761,7 +762,10 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const pays = await waitingPayLinks(db);
       const dcs = await waitingDocs(db);
       const sws = await waitingSwaps(db);
+      const bcs = await waitingBroadcasts(db);
       return [
+        // A broadcast to a segment (People → Broadcasts): a yes schedules it; nothing sends before.
+        ...bcs.map(broadcastItem),
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
         ...rs.map(replyItem),
         // One he said yes to that the frequency cap holds: it sends itself at `send_at`.
@@ -967,6 +971,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           pay: neutral("Payment"),
           doc: neutral("Document"),
           swap: neutral("Swap"),
+          broadcast: neutral("Broadcast"),
         }),
         "Type",
       ),
@@ -990,6 +995,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           pay: neutral("Pay link to send"),
           doc: neutral("Document to send"),
           swap: neutral("Swap on a live post"),
+          broadcast: neutral("Broadcast to send"),
         }),
         "Kind",
       ),
@@ -1032,6 +1038,13 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         at: "at",
       },
       { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
+      {
+        id: "broadcasts",
+        label: "Broadcasts",
+        where: { type: "broadcast" },
+        sort: "due",
+        at: "due",
+      },
       {
         id: "payments",
         label: "Payments",
@@ -1082,6 +1095,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "documents.decline",
       "marketing.swapApprove",
       "marketing.swapSkip",
+      "people.broadcastApprove",
+      "people.broadcastDecline",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: {
@@ -1101,7 +1116,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "retire" ||
         type === "pay" ||
         type === "doc" ||
-        type === "swap"
+        type === "swap" ||
+        type === "broadcast"
       )
         return null;
       // An asked reply: the conversation it answers.
@@ -1399,13 +1415,35 @@ const askedVia = (channel: string) =>
  * that wait on a yes, `reply:<id>`. Approve sends it on its channel, from whoever the client's
  * approver setting names. Wren's own wait in `marketing.approval`.
  */
+/** A broadcast waiting on a yes, as To approve lists it: Wren's and a client's alike. */
+function broadcastItem(b: Awaited<ReturnType<typeof waitingBroadcasts>>[number]) {
+  return {
+    id: `broadcast:${b.id}`,
+    type: "broadcast",
+    who: b.name,
+    platform: b.channel,
+    kind: "broadcast",
+    state: "waiting",
+    body: `${broadcastLine(b)}\n\n${b.subject ? `Subject: ${b.subject}\n\n` : ""}${b.body}`,
+    post_title: b.subject,
+    draft: null,
+    account: b.by,
+    at: b.askedAt,
+    due: b.sendAt ?? b.askedAt,
+    send_at: b.sendAt,
+    url: `/people/broadcasts/${b.id}`,
+  };
+}
+
 export const askedReplyRecord = defineRecord({
   id: "marketing.asked_reply",
   app: "marketing",
   channel: { field: "platform" },
   name: { one: "reply to approve", many: "replies to approve" },
-  rows: async (db) =>
-    [
+  rows: async (db) => [
+    // A broadcast to a segment (People → Broadcasts): a yes schedules it.
+    ...(await waitingBroadcasts(db)).map(broadcastItem),
+    ...[
       ...(await waitingReplies(db, ACTIVITY_ROWS)),
       // Said yes to and held by the frequency cap: it sends itself at `send_at`.
       ...(await queuedReplies(db, ACTIVITY_ROWS)),
@@ -1423,6 +1461,7 @@ export const askedReplyRecord = defineRecord({
       at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
       url: `/marketing/inbox/${encodeURIComponent(r.thread)}`,
     })),
+  ],
   key: "id",
   title: "who",
   subtitle: "body",
@@ -1435,6 +1474,7 @@ export const askedReplyRecord = defineRecord({
         text: neutral("Text"),
         dm: neutral("DM"),
         comment: neutral("Comment"),
+        broadcast: neutral("Broadcast"),
       }),
       "Reply by",
     ),
@@ -1452,11 +1492,17 @@ export const askedReplyRecord = defineRecord({
     { id: "queued", label: "Queued", where: { state: "queued" }, sort: "sendAt", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  actions: ["inbox.replyApprove", "inbox.replyDrop"],
+  actions: [
+    "inbox.replyApprove",
+    "inbox.replyDrop",
+    "people.broadcastApprove",
+    "people.broadcastDecline",
+  ],
   calls: { "InboxDesk/approve": "id", "InboxDesk/drop": "id" },
   /** The conversation it answers. */
   load: async (db, id) => {
-    const [, rest] = typed(id);
+    const [type, rest] = typed(id);
+    if (type === "broadcast") return null;
     const [r] = (await db.execute(
       sql`select thread from inbox_replies where id = ${Number(rest)}`,
     )) as unknown as Array<{ thread: string }>;

@@ -35,6 +35,7 @@ import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import {
   ANSWER_KINDS,
+  CONSENTED_KINDS,
   type MessageState,
   type SmsContact,
   type SmsMessage,
@@ -118,8 +119,8 @@ const FOLLOW_ENDS = new Set(["replied", "opted_out", "unreachable", "stopped"]);
 const ANSWER_ENDS = new Set(["opted_out", "unreachable", "stopped"]);
 
 /**
- * Whether a text counts toward the workspace's per-person cap: a Follow-up or Nurture touch, or a
- * sequence step after the opener to someone who asked to be texted. Cold steps keep their own
+ * Whether a text counts toward the workspace's per-person cap: a Follow-up or Nurture touch, a
+ * broadcast, or a sequence step after the opener to someone who asked to be texted. Cold steps keep their own
  * policy, and answers (a text back, a review ask, a pay link), reminders and an operator's own
  * texts are not marketing.
  */
@@ -128,6 +129,7 @@ export const isMarketingText = (
   contact: Pick<SmsContact, "sourceKind">,
 ) =>
   msg.kind === "follow_up" ||
+  CONSENTED_KINDS.has(msg.kind) ||
   (msg.kind === "sequence" && ASKED.has(contact.sourceKind) && (msg.step ?? 1) > 1);
 
 /** Queued sequence messages of a contact → `skipped`, when its thread ends. */
@@ -328,8 +330,11 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       stats.skipped += 1;
       continue;
     }
-    // A text back or a review ask never goes to someone who ended texts.
-    if (ANSWER_KINDS.has(msg.kind) && ANSWER_ENDS.has(contact.state)) {
+    // A text back, a review ask or a broadcast never goes to someone who ended texts.
+    if (
+      (ANSWER_KINDS.has(msg.kind) || CONSENTED_KINDS.has(msg.kind)) &&
+      ANSWER_ENDS.has(contact.state)
+    ) {
       await db
         .update(smsMessages)
         .set({ state: "skipped", detail: `contact ${contact.state}` })
@@ -423,8 +428,8 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           )
         : text.body;
       rendered = { templateVersion: text.provenance.version, provenance: text.provenance };
-    } else if (msg.kind === "follow_up" && tagFor) {
-      // A follow-up is written when it is queued; its links are tagged as it goes.
+    } else if ((msg.kind === "follow_up" || CONSENTED_KINDS.has(msg.kind)) && tagFor) {
+      // A follow-up or a broadcast is written when it is queued; its links are tagged as it goes.
       body = withinParts(
         msg.body,
         tagLinks(msg.body, {

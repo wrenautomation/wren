@@ -65,10 +65,11 @@ export const PLATFORM = {
     DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
-    PeopleConsole: "People in every workspace: records, segments, Describe segment",
+    PeopleConsole: "People in every workspace: records, segments, Describe segment, broadcasts",
     Segments:
       "a workspace's segments kept true; entries, exits, traits and dates told to the spine",
     SegmentsNet: "wakes every workspace's segments pass every 15 minutes",
+    Broadcast: "one approved broadcast: started on its time, then a batch of its people per run",
     MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
     SocialAccess: "Account → Social: a client's own social accounts, each one's state and sign-in",

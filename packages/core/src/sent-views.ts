@@ -15,6 +15,9 @@
  * - texts: the carrier's receipt sets "delivered"; an inbound text after ours is a reply.
  * - DMs and comments: sent or not; a DM's reply is the next inbound message on the thread.
  * - newsletter and marketing mail: a consent event of kind `sent`, one per address and issue.
+ * - broadcasts (`./broadcasts.ts`): an email is its recipient row, sent or not yet; a text is its
+ *   recipient row until it is queued, then its `sms_messages` row. `broadcast` names the
+ *   broadcast on both, so its results are this view's rows for it.
  *
  * Not here: drafts, rejected and skipped messages (they never left), and what people sent us.
  * Each row's `key_kind` and `key_value` are how B1's `profile_keys` name the same address
@@ -58,6 +61,10 @@ const REPLY_DM = `exists (select 1 from reach_messages i
     where i.contact_id = m.contact_id and i.direction = 'in'
       and i.sent_at > m.sent_at and i.sent_at < ${NEXT_DM})`;
 
+/** A broadcast text's broadcast id: its ref is `<slug>/<id>`. */
+const BROADCAST_OF_REF = `case when split_part(m.ref, '/', 2) ~ '^[0-9]+$'
+    then split_part(m.ref, '/', 2)::int end`;
+
 export const sentRecords = pgView("sent_records", {
   id: text("id"),
   channel: text("channel"),
@@ -70,6 +77,7 @@ export const sentRecords = pgView("sent_records", {
   state: text("state"),
   campaign: text("campaign"),
   at: timestamp("at", { withTimezone: true }),
+  broadcast: integer("broadcast"),
 }).as(sql`
   with ev as (
     select message_id, bool_or(kind = 'bounce') bounced, bool_or(kind = 'reply') replied
@@ -93,7 +101,7 @@ export const sentRecords = pgView("sent_records", {
       when m.sent_at <= now() - interval '48 hours' then 'delivered'
       else 'sent' end state,
     e.niche || ' / ' || replace(e.sequence_name, '_', ' ') campaign,
-    coalesce(m.sent_at, m.approved_at, m.created_at) at
+    coalesce(m.sent_at, m.approved_at, m.created_at) at, null::int broadcast
   from messages m
   join enrollments e on e.id = m.enrollment_id
   left join ev on ev.message_id = m.id
@@ -104,14 +112,25 @@ export const sentRecords = pgView("sent_records", {
   select 'newsletter:' || e.id, 'email', 'newsletter',
     c.address, 'email', lower(c.address),
     coalesce(b.title, e.evidence ->> 'issue'),
-    'sent', 'sent', t.public_name, e.created_at
+    'sent', 'sent', t.public_name, e.created_at, null::int
   from consent_events e
   join consents c on c.id = e.consent_id
   join topics t on t.id = c.topic_id
   left join blog_posts b on b.slug = split_part(e.evidence ->> 'issue', ':', 2)
-  where e.kind = 'sent' and c.channel = 'email'
+  where e.kind = 'sent' and c.channel = 'email' and not coalesce(e.evidence ? 'broadcast', false)
   union all
-  select 'sms:' || m.id, 'sms', 'sms',
+  select 'broadcast:' || r.id, b.channel, 'broadcast',
+    r.address, case b.channel when 'email' then 'email' else 'phone' end, lower(r.address),
+    ${sql.raw(LINE("coalesce(b.subject, b.body)"))},
+    r.state,
+    case r.state when 'sent' then 'sent' when 'failed' then 'failed' else 'queued' end,
+    b.name, coalesce(r.sent_at, r.due_at), b.id
+  from broadcast_recipients r
+  join broadcasts b on b.id = r.broadcast_id
+  where r.address is not null and (r.state in ('due', 'held', 'sending', 'sent', 'failed')
+    and (b.channel = 'email' or r.state in ('due', 'held')))
+  union all
+  select 'sms:' || m.id, 'sms', case m.kind when 'broadcast' then 'broadcast' else 'sms' end,
     m.to_e164, 'phone', m.to_e164,
     ${sql.raw(LINE("m.body"))},
     m.state,
@@ -122,10 +141,12 @@ export const sentRecords = pgView("sent_records", {
       else 'sent' end,
     case m.kind
       when 'sequence' then coalesce(c.niche || ' / ', '') || replace(coalesce(c.sequence, m.template, 'sequence'), '_', ' ')
+      when 'broadcast' then coalesce(bc.name, 'broadcast')
       else replace(m.kind, '_', ' ') end,
-    coalesce(m.sent_at, m.due_at, m.created_at)
+    coalesce(m.sent_at, m.due_at, m.created_at), bc.id
   from sms_messages m
   join sms_contacts c on c.id = m.contact_id
+  left join broadcasts bc on m.kind = 'broadcast' and bc.id = ${sql.raw(BROADCAST_OF_REF)}
   where m.direction = 'out' and m.state in ('queued', 'sending', 'sent', 'delivered', 'failed', 'unknown')
   union all
   select 'dm:' || m.id, c.platform, 'dm',
@@ -140,7 +161,7 @@ export const sentRecords = pgView("sent_records", {
       when 'sequence' then coalesce(c.niche || ' / ', '') || replace(coalesce(c.sequence, 'sequence'), '_', ' ')
       when 'connect' then 'invite'
       else replace(m.kind, '_', ' ') end,
-    coalesce(m.sent_at, m.due_at, m.created_at)
+    coalesce(m.sent_at, m.due_at, m.created_at), null::int
   from reach_messages m
   join reach_contacts c on c.id = m.contact_id
   where m.direction = 'out' and m.state in ('queued', 'sending', 'sent', 'failed', 'unknown')
@@ -150,21 +171,21 @@ export const sentRecords = pgView("sent_records", {
     ${sql.raw(LINE("k.answer"))},
     'answered', 'sent',
     case k.channel when 'content' then 'replies on our posts' else 'replies to comments' end,
-    k.answered_at
+    k.answered_at, null::int
   from comments k
   where k.answer is not null and k.answered_at is not null
   union all
   select 'post:' || p.id, p.platform, 'comment',
     coalesce(p.handle, p.author), 'handle:' || p.platform, lower(coalesce(p.handle, p.author)),
     ${sql.raw(LINE("p.comment"))},
-    'commented', 'sent', p.found_by, p.commented_at
+    'commented', 'sent', p.found_by, p.commented_at, null::int
   from reach_posts p
   where p.comment is not null and p.commented_at is not null
   union all
   select 'thread:' || r.id, 'reddit', 'comment',
     r.author, 'handle:reddit', lower(r.author),
     ${sql.raw(LINE("r.answer"))},
-    'commented', 'sent', 'r/' || r.subreddit, r.answered_at
+    'commented', 'sent', 'r/' || r.subreddit, r.answered_at, null::int
   from reddit_threads r
   where r.answer is not null and r.answered_at is not null`);
 
@@ -255,10 +276,32 @@ export const sentActivity = pgView("sent_activity", {
   union all
   select 'newsletter:' || e.id, e.created_at, 'sent', 'Sent as ' || coalesce(e.evidence ->> 'issue', 'an issue'), 3
   from consent_events e join consents c on c.id = e.consent_id
-  where e.kind = 'sent' and c.channel = 'email'
+  where e.kind = 'sent' and c.channel = 'email' and not coalesce(e.evidence ? 'broadcast', false)
+  union all
+  select 'broadcast:' || r.id, r.created_at, 'queued', 'In the broadcast ' || b.name || ', due ' || ${DAY("r.due_at")}, 1
+  from broadcast_recipients r join broadcasts b on b.id = r.broadcast_id
+  union all
+  select 'broadcast:' || r.id, b.decided_at, 'approved', 'Approved' || coalesce(' (' || b.decided_by || ')', ''), 2
+  from broadcast_recipients r join broadcasts b on b.id = r.broadcast_id
+  where b.decided_at is not null
+  union all
+  select 'broadcast:' || r.id, r.created_at, 'note', r.why || ' Next try ' || ${DAY("r.due_at")}, 4
+  from broadcast_recipients r where r.state = 'held'
+  union all
+  select 'broadcast:' || r.id, r.sent_at, 'sent', 'Sent', 3
+  from broadcast_recipients r join broadcasts b on b.id = r.broadcast_id
+  where b.channel = 'email' and r.state = 'sent'
+  union all
+  select 'broadcast:' || r.id, coalesce(r.sent_at, r.due_at), 'failed', coalesce(r.why, 'Didn''t send: no reason kept'), 3
+  from broadcast_recipients r where r.state = 'failed'
   union all
   select 'sms:' || m.id, m.created_at, 'queued', 'Queued', 1
   from sms_messages m where m.direction = 'out'
+  union all
+  select 'sms:' || m.id, bc.decided_at, 'approved',
+    'Approved in the broadcast ' || bc.name || coalesce(' (' || bc.decided_by || ')', ''), 2
+  from sms_messages m join broadcasts bc on bc.id = ${sql.raw(BROADCAST_OF_REF)}
+  where m.direction = 'out' and m.kind = 'broadcast' and bc.decided_at is not null
   union all
   select 'sms:' || m.id, m.sent_at, 'sent',
     'Sent' || coalesce(' from ' || m.from_e164, '') || coalesce(' by ' || m.service, ''), 3

@@ -5,15 +5,38 @@
  *
  * Segments (B5) are made and changed here, in Wren's workspace (a team login naming no client) or
  * a client's: a preview counts a rule, describe asks the model for one, save checks and counts
- * it. Nothing here sends.
+ * it.
+ *
+ * Broadcasts (B6) too: saved, asked, approved (only by who may approve the workspace's To
+ * approve), declined, canceled, restored, tested. Approve and Restore tell the `Broadcast` object
+ * when to run; a test goes to one address on our own domain. Nothing else here sends.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { type Db, snapshot } from "@wren/db";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { WREN } from "./access.js";
+import { mayApprove, WREN } from "./access.js";
+import { BROADCAST_RECORDS } from "./broadcast-records.js";
+import { BROADCAST, type BroadcastObject, broadcastKey } from "./broadcast-run.js";
+import {
+  askBroadcast,
+  type BroadcastInput,
+  type BroadcastMail,
+  broadcastById,
+  broadcastContext,
+  broadcastMonth,
+  cancelBroadcast,
+  decideBroadcast,
+  markTested,
+  previewBroadcast,
+  renderFor,
+  restoreBroadcast,
+  saveBroadcast,
+} from "./broadcasts.js";
 import type { Client } from "./clients/schema.js";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "./people-console-routes.js";
 import {
+  accessOf,
   answer,
   canAt,
   isDemo,
@@ -23,6 +46,7 @@ import {
   pickForWrite,
   portalService,
   type SignedViewer,
+  whoIs,
 } from "./portal.js";
 import { metaOf, type RecordType } from "./records.js";
 import {
@@ -37,6 +61,7 @@ import {
   serveRecords,
 } from "./records-serve.js";
 import { PORTAL_FIELDS, serviceHandler } from "./restate/form.js";
+import { topics } from "./schema.js";
 import { SEGMENT_RECORDS } from "./segment-records.js";
 import {
   addMembers,
@@ -56,7 +81,7 @@ import {
 import { SENT_RECORDS } from "./sent-records.js";
 
 /** The record types a client's People serves. Each build adds its own here. */
-export const PEOPLE_RECORDS = [...SENT_RECORDS, ...SEGMENT_RECORDS];
+export const PEOPLE_RECORDS = [...SENT_RECORDS, ...SEGMENT_RECORDS, ...BROADCAST_RECORDS];
 
 export interface PeopleConsoleDeps {
   /** Main: the client registry. */
@@ -67,7 +92,29 @@ export interface PeopleConsoleDeps {
   records?: readonly RecordType[];
   /** The model Describe asks, per workspace (null: Wren's); unset, Describe says so. */
   model?: (client: string | null) => SegmentModel | null;
+  /** How Wren's email broadcasts and their tests leave; unset, email says it isn't set up. */
+  mail?: BroadcastMail | null;
+  /** The one phone a text test may go to (Wren's operator's); unset, text tests are refused. */
+  testPhone?: string | null;
   now?: () => Date;
+}
+
+export interface BroadcastSaveRequest extends PortalRequest, BroadcastInput {}
+/** Broadcasts picked, by id or To approve's `broadcast:<id>`; `note` is a decline's why. */
+export interface BroadcastIdsRequest extends PortalRequest {
+  ids?: (string | number)[];
+  note?: string;
+}
+/** One copy to `to`: the broadcast by `id`, or the one picked (`ids`). */
+export interface BroadcastTestRequest extends PortalRequest {
+  id?: number | string;
+  ids?: (string | number)[];
+  to?: string;
+}
+/** When each approved or restored broadcast runs: the service tells its `Broadcast` object. */
+export interface BroadcastRun {
+  key: string;
+  at: string;
 }
 
 export interface SegmentIdsRequest extends PortalRequest {
@@ -86,6 +133,8 @@ export function peopleConsoleApi({
   open,
   records = PEOPLE_RECORDS,
   model,
+  mail = null,
+  testPhone = null,
   now = () => new Date(),
 }: PeopleConsoleDeps) {
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
@@ -116,6 +165,21 @@ export function peopleConsoleApi({
     return client ? { client: client.id, db: open(client) } : { client: null, db };
   };
   const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "portal";
+  /** May this viewer say yes in this workspace's To approve: Wren's team for Wren's. */
+  const approves = async (req: PortalRequest, client: string | null) => {
+    if (!client) return mayApprove(accessOf(req), null);
+    const row = await pickClient(db, { ...req, client });
+    const v = req.viewer;
+    const who = !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client) : accessOf(req);
+    return mayApprove(who, client, row.approver);
+  };
+  const broadcastIds = (req: BroadcastIdsRequest) => {
+    const ids = [
+      ...new Set((req.ids ?? []).map((i) => Number(String(i).replace(/^broadcast:/, "")))),
+    ].filter((n) => Number.isSafeInteger(n) && n > 0);
+    if (!ids.length) throw new PortalRefusal("nothing picked", 404);
+    return ids;
+  };
   const idsOf = (req: SegmentIdsRequest) => {
     const ids = [...new Set((req.ids ?? []).map(Number))].filter(Number.isSafeInteger);
     if (!ids.length) throw new PortalRefusal("nothing picked", 404);
@@ -217,6 +281,135 @@ export function peopleConsoleApi({
       for (const [s, ps] of by) await removeMembers(w.db, s, ps, now());
       return { done: req.ids ?? [] };
     },
+    /** The broadcast editor's lists: segments, topics, merge fields, and what may send here. */
+    broadcastContext: async (req: PortalRequest) => {
+      const w = await workspace(req, "read");
+      return {
+        ...(await broadcastContext(w.db)),
+        email: !w.client && !!mail,
+        text: true,
+        testDomain: mail?.domain ?? null,
+        testPhone: w.client ? null : testPhone,
+      };
+    },
+    /** The words for a sample person, and how many it would reach. Saves nothing. */
+    broadcastPreview: async (req: BroadcastSaveRequest) => {
+      const w = await workspace(req, "read");
+      return previewBroadcast(w.db, req);
+    },
+    /** The calendar's broadcasts between `from` and `to` (at most 62 days). */
+    broadcastMonth: async (req: PortalRequest & { from?: string; to?: string }) => {
+      const w = await workspace(req, "read");
+      const from = new Date(String(req.from ?? ""));
+      const to = new Date(String(req.to ?? ""));
+      if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to <= from)
+        throw new PortalRefusal("from and to are dates", 422);
+      if (to.getTime() - from.getTime() > 62 * 86_400_000)
+        throw new PortalRefusal("at most 62 days at once", 422);
+      return { broadcasts: await broadcastMonth(w.db, from, to) };
+    },
+    /** A broadcast made or changed; `ask` puts it in To approve. A client's email waits on B6+. */
+    broadcastSave: async (req: BroadcastSaveRequest) => {
+      const w = await workspace(req, "act");
+      const was = req.id ? await broadcastById(w.db, Number(req.id)) : null;
+      const channel = req.channel ?? was?.channel;
+      if (channel === "email" && (w.client || !mail))
+        throw new PortalRefusal(
+          w.client
+            ? "In development: a client's own marketing email isn't set up yet. Texts work."
+            : "In development: email isn't set up here",
+          503,
+        );
+      return { broadcast: await saveBroadcast(w.db, req, by(req), now()) };
+    },
+    broadcastAsk: async (req: BroadcastIdsRequest) => {
+      const w = await workspace(req, "act");
+      for (const id of broadcastIds(req)) await askBroadcast(w.db, id, by(req), now());
+      return { done: broadcastIds(req) };
+    },
+    /** A yes: each scheduled, and when each runs, for the service to tell its object. */
+    broadcastApprove: async (req: BroadcastIdsRequest) => {
+      const w = await workspace(req, "act");
+      if (!(await approves(req, w.client)))
+        throw new PortalRefusal("your role can't approve here", 403);
+      const runs: BroadcastRun[] = [];
+      for (const id of broadcastIds(req)) {
+        const got = await decideBroadcast(w.db, id, true, by(req), now());
+        if (got.startAt)
+          runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
+      }
+      return { done: broadcastIds(req), runs };
+    },
+    broadcastDecline: async (req: BroadcastIdsRequest) => {
+      const w = await workspace(req, "act");
+      if (!(await approves(req, w.client)))
+        throw new PortalRefusal("your role can't decline here", 403);
+      for (const id of broadcastIds(req))
+        await decideBroadcast(w.db, id, false, by(req), now(), req.note ?? null);
+      return { done: broadcastIds(req) };
+    },
+    broadcastCancel: async (req: BroadcastIdsRequest) => {
+      const w = await workspace(req, "act");
+      for (const id of broadcastIds(req)) await cancelBroadcast(w.db, id, by(req), now());
+      return { done: broadcastIds(req) };
+    },
+    /** Cancel undone: a started one resumes (it had its yes), else it's a draft again. */
+    broadcastRestore: async (req: BroadcastIdsRequest) => {
+      const w = await workspace(req, "act");
+      const runs: BroadcastRun[] = [];
+      for (const id of broadcastIds(req)) {
+        const got = await restoreBroadcast(w.db, id, now());
+        if (got.startAt)
+          runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
+      }
+      return { done: broadcastIds(req), runs };
+    },
+    /**
+     * One copy to one address, marked [test], recorded nowhere but the broadcast's last test. An
+     * email only to our own domain; a text only to the operator's phone, through its thread.
+     */
+    broadcastTest: async (req: BroadcastTestRequest) => {
+      const w = await workspace(req, "act");
+      const one = req.id ?? req.ids?.[0] ?? "";
+      const b = await broadcastById(w.db, Number(String(one).replace(/^broadcast:/, "")));
+      if (!b) throw new PortalRefusal("no such broadcast", 404);
+      const to = String(req.to ?? "").trim();
+      const copy = renderFor(b, { first_name: "Sam", name: "Sam Rivera" }, "test");
+      if ("missing" in copy) throw new PortalRefusal(copy.missing, 422);
+      const at = now();
+      if (b.channel === "email") {
+        if (w.client || !mail)
+          throw new PortalRefusal("In development: email isn't set up here", 503);
+        const addr = to.toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+$/.test(addr) || !addr.endsWith(`@${mail.domain}`))
+          throw new PortalRefusal(`a test goes only to an @${mail.domain} address`, 422);
+        const [t] = await w.db.select().from(topics).where(eq(topics.id, b.topicId));
+        const env = mail.envelope(addr, { name: t?.name ?? "", publicName: t?.publicName ?? "" });
+        await mail.send({
+          to: addr,
+          subject: `[test] ${copy.subject ?? b.name}`,
+          text: `${copy.body}${env.footer}`,
+          headers: env.headers,
+        });
+        await markTested(w.db, b.id, addr, at);
+        return { sent: addr };
+      }
+      if (w.client || !testPhone)
+        throw new PortalRefusal("In development: a text test needs the operator's phone set", 503);
+      if (to.replace(/[^\d+]/g, "") !== testPhone)
+        throw new PortalRefusal("a text test goes only to the operator's phone", 422);
+      const [c] = (await w.db.execute(
+        sql`select id, number_id from sms_contacts where e164 = ${testPhone} and number_id is not null
+          order by id desc limit 1`,
+      )) as unknown as { id: number; number_id: string }[];
+      if (!c) throw new PortalRefusal("no texts thread with that phone here yet", 409);
+      await w.db.execute(sql`insert into sms_messages
+          (contact_id, direction, kind, number_id, to_e164, body, state, due_at, created_at)
+        values (${c.id}, 'out', 'manual', ${c.number_id}::uuid, ${testPhone}, ${`[test] ${copy.body}`},
+          'queued', ${at.toISOString()}::timestamptz, ${at.toISOString()}::timestamptz)`);
+      await markTested(w.db, b.id, testPhone, at);
+      return { sent: testPhone };
+    },
     recordsTypes: async (req: PortalRequest) => {
       const fence = fenceFor(req, (await pickClient(db, req)).id);
       return records.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
@@ -229,6 +422,12 @@ export function peopleConsoleApi({
 }
 
 const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
+
+/** Each approved or restored broadcast's object told when to run. */
+function runAll(ctx: restate.Context, runs: readonly BroadcastRun[]) {
+  for (const r of runs)
+    ctx.objectSendClient<BroadcastObject>(BROADCAST, r.key).schedule({ at: r.at });
+}
 
 export function makePeopleConsole(deps: PeopleConsoleDeps) {
   const api = peopleConsoleApi(deps);
@@ -287,6 +486,54 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
         RECORDS,
         (ctx: restate.Context, req: PortalRequest & { ids?: string[] }) =>
           answer(() => ctx.run("remove", () => answer(() => api.memberRemove(req)))),
+      ),
+      broadcastContext: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.broadcastContext(req)),
+      ),
+      broadcastPreview: serviceHandler(RECORDS, (_: restate.Context, req: BroadcastSaveRequest) =>
+        answer(() => api.broadcastPreview(req)),
+      ),
+      broadcastMonth: serviceHandler(
+        RECORDS,
+        (_: restate.Context, req: PortalRequest & { from?: string; to?: string }) =>
+          answer(() => api.broadcastMonth(req)),
+      ),
+      broadcastSave: serviceHandler(RECORDS, (ctx: restate.Context, req: BroadcastSaveRequest) =>
+        answer(() => ctx.run("save", () => answer(() => api.broadcastSave(req)))),
+      ),
+      broadcastAsk: serviceHandler(RECORDS, (ctx: restate.Context, req: BroadcastIdsRequest) =>
+        answer(() => ctx.run("ask", () => answer(() => api.broadcastAsk(req)))),
+      ),
+      broadcastApprove: serviceHandler(
+        { ...RECORDS, effect: "sends" },
+        async (ctx: restate.Context, req: BroadcastIdsRequest) => {
+          const got = await answer(() =>
+            ctx.run("approve", () => answer(() => api.broadcastApprove(req))),
+          );
+          runAll(ctx, got.runs);
+          return { done: got.done };
+        },
+      ),
+      broadcastDecline: serviceHandler(RECORDS, (ctx: restate.Context, req: BroadcastIdsRequest) =>
+        answer(() => ctx.run("decline", () => answer(() => api.broadcastDecline(req)))),
+      ),
+      broadcastCancel: serviceHandler(RECORDS, (ctx: restate.Context, req: BroadcastIdsRequest) =>
+        answer(() => ctx.run("cancel", () => answer(() => api.broadcastCancel(req)))),
+      ),
+      broadcastRestore: serviceHandler(
+        { ...RECORDS, effect: "sends" },
+        async (ctx: restate.Context, req: BroadcastIdsRequest) => {
+          const got = await answer(() =>
+            ctx.run("restore", () => answer(() => api.broadcastRestore(req))),
+          );
+          runAll(ctx, got.runs);
+          return { done: got.done };
+        },
+      ),
+      broadcastTest: serviceHandler(
+        { ...RECORDS, effect: "sends" },
+        (ctx: restate.Context, req: BroadcastTestRequest) =>
+          answer(() => ctx.run("test", () => answer(() => api.broadcastTest(req)))),
       ),
     },
   });
