@@ -58,11 +58,13 @@ export function findRecords(o: { record: string; path: string; kind: string }) {
       limit: FEW,
     });
     return rows.slice(0, FEW).map((r) => {
+      // A short subtitle only (a stage, a domain): a sentence would crowd out the name.
       const sub = meta.subtitle ? textOf(r[meta.subtitle]) : "";
+      const short = sub.length <= 32 ? sub : "";
       return {
         label: textOf(r[meta.title]) || String(r.id),
         href: `${o.path}/${encodeURIComponent(String(r.id))}`,
-        hint: sub ? `${o.kind} · ${sub}` : o.kind,
+        hint: short ? `${o.kind} · ${short}` : o.kind,
       };
     });
   };
