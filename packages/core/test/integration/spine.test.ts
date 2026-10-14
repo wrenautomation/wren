@@ -394,6 +394,24 @@ describe("made workflows (designs/2026-10-09-workflow-builder.md)", () => {
     await expect(api().workflowTemplateSave({ ...operator, workflow, name: "T" })).rejects.toThrow(
       /in development/,
     );
+    // Off: a new live save of the same graph; on again clears it. Publish keeps it off.
+    const off = await api().workflowSwitch({ ...operator, workflow, on: false });
+    expect(off).toMatchObject({ on: false, start: [] });
+    expect((await savedWorkflows(pg.db, null))[workflow]?.edits).toMatchObject({ off: true });
+    const all = await api().recordsList({ ...operator, record: "console.automation" });
+    expect(all.rows.find((r) => r.id === `workflow:${workflow}`)).toMatchObject({
+      kind: "made",
+      state: "off",
+      name: "Hook in",
+    });
+    await api().workflowSave({ ...operator, workflow, wires, steps });
+    await api().workflowPublish({ ...operator, workflow });
+    expect((await savedWorkflows(pg.db, null))[workflow]?.edits?.off).toBe(true);
+    await api().workflowSwitch({ ...operator, workflow, on: true });
+    expect((await savedWorkflows(pg.db, null))[workflow]?.edits?.off).toBeUndefined();
+    await expect(api().workflowSwitch({ ...operator, workflow, on: "yes" })).rejects.toThrow(
+      /on or off/,
+    );
   });
 
   it("asks Claude to draw it from words, and deletes a draft", async () => {

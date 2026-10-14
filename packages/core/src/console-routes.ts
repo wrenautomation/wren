@@ -96,6 +96,8 @@ export const CONSOLE_ROUTES = {
   // nowhere; Publish of one that sends or spends also checks `effect` and `money` inside.
   workflowSave: "wren:manage",
   workflowPublish: "wren:manage",
+  // On or off: a new live save of the same graph; on checks `effect` and `money` as Publish does.
+  workflowSwitch: "wren:manage",
   workflowDiscard: "wren:manage",
   // A live workflow kept as a template: it starts nothing; installing it is the Shop's path.
   workflowTemplateSave: "wren:manage",
@@ -160,6 +162,7 @@ export const CONSOLE_APPS = {
   templateInstalls: "marketplace",
   workflowSave: "workflows",
   workflowPublish: "workflows",
+  workflowSwitch: "workflows",
   workflowDiscard: "workflows",
   workflowTemplateSave: "workflows",
   workflowTemplateDelete: "workflows",
@@ -234,6 +237,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "templateDecline",
   "workflowSave",
   "workflowPublish",
+  "workflowSwitch",
   "workflowDiscard",
   "workflowTemplateSave",
   "workflowTemplateDelete",

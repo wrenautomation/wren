@@ -46,6 +46,7 @@ import {
 import { accessApi, accessHandlers } from "./access-console.js";
 import { ACCESS_TYPES, accessRecords } from "./access-records.js";
 import { ASK, type AskContext, type AskService, ask, type QuestionRequest } from "./ask.js";
+import { automationRecord } from "./automations.js";
 import { type Cache, memoryCache, readThrough } from "./cache.js";
 import { release } from "./checks.js";
 import {
@@ -2114,6 +2115,11 @@ export function consoleApi({
     experimentRecord(),
     surveyRecord(edge),
     workflowRecord(workflows, components),
+    automationRecord({
+      workflows,
+      components,
+      loops: admin ? async () => loopsOf(await admin(LOOPS_SQL)) : null,
+    }),
     eventRecord,
     executionRecordOf(nowAtLabels(workflows, components)),
     holdRecord,
@@ -3186,18 +3192,58 @@ export function consoleApi({
         throw new PortalRefusal("it spends: only an admin can make it live", 403);
       if (effects.length && req.confirm !== w.id)
         throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
+      // Publishing keeps the switch where it was: an off workflow stays off.
+      const wasOff = (await savedWorkflows(main, client))[w.id]?.edits?.off === true;
+      const edits = wasOff && draft.edits ? { ...draft.edits, off: true } : draft.edits;
       return atomic(main, async (tx) => {
         const [row] = await tx
           .insert(workflowSaves)
-          .values({ client, workflow: w.id, edits: draft.edits, live: true, by })
+          .values({ client, workflow: w.id, edits, live: true, by })
           .returning({ id: workflowSaves.id });
         await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
           AND client IS NOT DISTINCT FROM ${client}`);
         // Each Webhook or Form node's door, made once and kept across publishes.
         const flow = next.flows.find((f) => f.id === w.id) as Workflow;
         const made = await ensureDoors(tx, { client, flow, open: true });
-        return { id: row?.id ?? 0, doors: made, start: clocksOf(client, flow) };
+        return { id: row?.id ?? 0, doors: made, start: wasOff ? [] : clocksOf(client, flow) };
       });
+    },
+    /**
+     * A made workflow on or off (designs/2026-10-14-automations.md): a new live save of the same
+     * graph with `off` set or cleared. Off, its triggers hear nothing, its doors shut and its
+     * clocks stop; subjects already inside finish. On needs what Publish needs, bar the typed id.
+     */
+    async workflowSwitch(req: WorkflowSaveRequest & { on?: unknown }): Promise<{
+      id: number;
+      on: boolean;
+      start: LoopKey[];
+      stop: LoopKey[];
+    }> {
+      const { w, client, by } = await workflowFor(req);
+      if (typeof req.on !== "boolean") throw new PortalRefusal("say on or off", 400);
+      const on = req.on;
+      if (!isMade(w.id))
+        throw new PortalRefusal("a built-in workflow runs by its loops: switch those", 409);
+      const live = (await savedWorkflows(main, client))[w.id];
+      if (!live?.edits) throw new PortalRefusal("it isn't live yet: publish it first", 409);
+      const next = flowsWith(workflows, { [w.id]: live.edits }, components);
+      const flow = next.flows.find((f) => f.id === w.id) as Workflow;
+      if (on) {
+        const effects = workflowEffects(w.id, next.flows, components);
+        if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+          throw new PortalRefusal("it sends: only an admin can switch it on", 403);
+        if (effects.includes("spends") && !teamCan(req, "money", WREN))
+          throw new PortalRefusal("it spends: only an admin can switch it on", 403);
+      }
+      if ((live.edits.off === true) === !on) return { id: live.id, on, start: [], stop: [] };
+      const { off: _, ...rest } = live.edits;
+      const edits: WorkflowEdits = on ? rest : { ...rest, off: true };
+      const [row] = await main
+        .insert(workflowSaves)
+        .values({ client, workflow: w.id, edits, live: true, by })
+        .returning({ id: workflowSaves.id });
+      const clocks = clocksOf(client, flow);
+      return { id: row?.id ?? 0, on, start: on ? clocks : [], stop: on ? [] : clocks };
     },
     /** The doors into a workflow, for its node panel: masked, with their calls. */
     async workflowDoors(req: DoorRequest): Promise<Door[]> {
@@ -3769,6 +3815,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const out = await api.workflowPublish(req);
           return { ...out, start: out.start ?? [], stop: [] };
         }),
+      workflowSwitch: (ctx: restate.Context, req: WorkflowSaveRequest & { on?: unknown }) =>
+        changeLoops(ctx, "switch", () => api.workflowSwitch(req)),
       workflowDiscard: (ctx: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => ctx.run("discard draft", () => answer(() => api.workflowDiscard(req)))),
       workflowTemplateSave: (

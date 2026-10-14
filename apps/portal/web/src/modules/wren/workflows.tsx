@@ -460,12 +460,15 @@ function Canvas({
   });
   const open = params.get("component");
 
-  // `?edit=1` (a made workflow from the builder) opens on its draft, once.
+  // `?edit=1` (a made workflow from the builder) opens on its draft, once; `?test=1` (Test run
+  // on Automations) opens the tester on it too.
   const opened = useRef(false);
   useEffect(() => {
-    if (opened.current || !team || params.get("edit") !== "1") return;
+    const test = params.get("test") === "1";
+    if (opened.current || !team || (params.get("edit") !== "1" && !test)) return;
     opened.current = true;
     setDraftNow(stored);
+    if (test) setTesting(true);
   }, [team, params, stored]);
 
   const back = () => {

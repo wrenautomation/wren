@@ -657,6 +657,8 @@ export async function addHook(main: Db, h: HookAsk): Promise<string> {
 const PAYLOAD_MAX = 64_000;
 /** What a post to a shut door hears. */
 export const SHUT = "this door opens once its workflow is approved";
+/** A door whose workflow is switched off. */
+export const OFF = "this workflow is off";
 
 /**
  * A hook's payload as the event it enters with, and where it leaves from: the workflow's input
@@ -983,7 +985,7 @@ export function hearersOf(
   const out: Array<{ workflow: string; from: string }> = [];
   for (const f of flows)
     for (const n of f.nodes)
-      if (triggerHears(n, facts)) out.push({ workflow: f.id, from: `${n.id}.out` });
+      if (!f.off && triggerHears(n, facts)) out.push({ workflow: f.id, from: `${n.id}.out` });
   return out;
 }
 
@@ -1112,7 +1114,10 @@ export function makeSpine(d: SpineDeps) {
     if (!h) return { status: 404, error: "no such hook" };
     // A template's door before its workflow is approved: counted, nothing enters.
     if (!h.open) return { status: 409, error: SHUT };
-    const got = hookEvent(h, await flowsFor(ctx, h.client), payload);
+    const flows = await flowsFor(ctx, h.client);
+    // A workflow switched off takes nothing in at its door.
+    if (flows.get(h.workflow)?.off) return { status: 409, error: OFF };
+    const got = hookEvent(h, flows, payload);
     if ("error" in got) return got;
     // The lead's facts by this hook's field map, for every lead step after (./door.ts).
     got.event.data = { ...got.event.data, lead: leadOf(payload, h.fields) };
@@ -1258,7 +1263,10 @@ export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "compon
     const flow = flowsWith(d.workflows, editsOf(saves), d.components).flows.find(
       (f) => f.id === k.workflow,
     );
-    const n = flow?.nodes.find((x) => x.id === k.node && x.uses === "trigger.schedule");
+    // Switched off: no slot is set, so the clock stops until it's switched on.
+    const n = flow?.off
+      ? undefined
+      : flow?.nodes.find((x) => x.id === k.node && x.uses === "trigger.schedule");
     return n ? { ...k, with: n.with ?? {} } : null;
   };
   /** The next slot after `after`, kept and sent; none clears the clock. */

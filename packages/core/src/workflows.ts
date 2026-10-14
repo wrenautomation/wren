@@ -81,6 +81,8 @@ export interface Workflow {
   template?: TemplateSpec;
   /** A failed step tries again on its own this many times (0 to 5), on Zapier's ladder. */
   retry?: number;
+  /** Switched off on its live save: nothing new enters by a trigger; runs inside finish. */
+  off?: true;
 }
 
 type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">>;
@@ -287,6 +289,8 @@ export interface WorkflowEdits {
   retry?: number;
   /** Set on a made workflow's saves: its name, as nothing in code names it. */
   made?: Made;
+  /** Switched off: its triggers hear nothing and its door shuts; subjects inside finish. */
+  off?: boolean;
 }
 
 /**
@@ -330,6 +334,7 @@ export function madeIdOf(words: string, nonce: string): string {
 export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
   ...w,
   ...(e.retry !== undefined ? { retry: e.retry } : {}),
+  ...(e.off ? { off: true as const } : {}),
   nodes: [
     ...w.nodes.map((n) => {
       const set = e.settings?.[n.id];

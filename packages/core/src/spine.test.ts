@@ -23,7 +23,7 @@ import {
   waitMs,
   walk,
 } from "./spine.js";
-import { cadenceWorkflow, defineWorkflow, type Workflow } from "./workflows.js";
+import { cadenceWorkflow, defineWorkflow, type Workflow, withEdits } from "./workflows.js";
 
 const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
 const part = (id: string) =>
@@ -597,6 +597,13 @@ describe("fired triggers", () => {
       "any.out",
     ]);
     expect(replyFired(null, "email", 3).event.data).toEqual({ channel: "email", enrollmentId: 3 });
+  });
+
+  it("a workflow switched off hears nothing", () => {
+    const off = withEdits(flow, { wires: [], steps: [], off: true });
+    expect(off.off).toBe(true);
+    expect(hearersOf([off], replyFired(null, "sms", 1).facts)).toEqual([]);
+    expect(withEdits(flow, { wires: [], steps: [] }).off).toBeUndefined();
   });
 
   it("keep one clock per Schedule node, and a slot enters once", () => {

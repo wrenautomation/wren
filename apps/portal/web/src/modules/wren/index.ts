@@ -19,6 +19,7 @@ import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marke
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
+import { Automations, NewAutomation } from "./automations.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
 import { FLAG_ACTIONS } from "./flags.js";
@@ -1180,6 +1181,19 @@ export const workflows: Module = {
   requires: TEAM,
   pages: [
     {
+      id: "all",
+      label: "All",
+      about: "Everything that runs on its own: what starts it, how it went, its switch.",
+      Page: Automations,
+      wide: true,
+    },
+    {
+      id: "new",
+      label: "New",
+      about: "Start from a template, describe one, or start blank.",
+      Page: NewAutomation,
+    },
+    {
       id: "canvas",
       label: "Canvas",
       about: "Every workflow as it's wired, with its numbers.",
@@ -1204,6 +1218,8 @@ export const workflows: Module = {
     {
       id: "events",
       label: "Events",
+      // Executions shows the same steps per person, with the failures first.
+      hidden: true,
       about: "Workflow steps that failed, and why.",
       template: "list",
       record: "console.event",

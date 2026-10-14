@@ -265,6 +265,7 @@ describe("ConsolePortal records", () => {
       "marketing.experiment",
       "marketing.survey",
       "library.workflow",
+      "console.automation",
       "console.event",
       "console.execution",
       "console.hold",
