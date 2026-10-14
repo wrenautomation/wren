@@ -1,9 +1,10 @@
 /**
  * ⌘K: what you can do here first (this view, the open record: `./palette-scope.ts`), then jump
- * to any app or page. Its box takes dictation. Import it from `@wren/ui/palette` and load it on the first ⌘K: cmdk and
- * the dialog stay out of the first load.
+ * to any app or page. Typing finds records in each app, grouped by app, the ones opened lately
+ * first; with nothing typed, those recent ones lead. Its box takes dictation. Import it from
+ * `@wren/ui/palette` and load it on the first ⌘K: cmdk and the dialog stay out of the first load.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Command,
@@ -29,6 +30,52 @@ export interface PaletteItem {
   hint?: string | undefined;
 }
 
+const RECENT = 8;
+const recentAt = (key: string) => `wren.palette.recent:${key}`;
+/** The records last opened from ⌘K in this workspace, newest first; none where storage is shut. */
+function readRecent(key: string | undefined): PaletteItem[] {
+  if (!key) return [];
+  try {
+    const got = JSON.parse(localStorage.getItem(recentAt(key)) ?? "[]");
+    return Array.isArray(got) ? (got as PaletteItem[]).filter((i) => i?.href && i.label) : [];
+  } catch {
+    return [];
+  }
+}
+function keepRecent(key: string | undefined, item: PaletteItem) {
+  if (!key) return;
+  try {
+    const next = [item, ...readRecent(key).filter((i) => i.href !== item.href)].slice(0, RECENT);
+    localStorage.setItem(recentAt(key), JSON.stringify(next));
+  } catch {}
+}
+
+/**
+ * Found records with the recent ones first: their groups lead, and inside each group they come
+ * before the rest, newest first. Otherwise the order `find` gave.
+ */
+export function byRecent(found: readonly PaletteItem[], recent: readonly string[]): PaletteItem[] {
+  const at = (i: PaletteItem) => {
+    const n = recent.indexOf(i.href);
+    return n < 0 ? recent.length : n;
+  };
+  const groupAt = new Map<string, number>();
+  found.forEach((i, n) => {
+    const g = groupAt.get(i.group);
+    const rank = at(i) * 1000 + n;
+    if (g === undefined || rank < g) groupAt.set(i.group, rank);
+  });
+  return found
+    .map((i, n) => ({ i, n }))
+    .sort(
+      (a, b) =>
+        (groupAt.get(a.i.group) ?? 0) - (groupAt.get(b.i.group) ?? 0) ||
+        at(a.i) - at(b.i) ||
+        a.n - b.n,
+    )
+    .map(({ i }) => i);
+}
+
 /** What a "note:" line says, without the prefix; anything else typed counts too. */
 const noted = (q: string) => q.replace(/^\s*note:\s*/i, "").trim();
 
@@ -40,6 +87,7 @@ export function CommandPalette({
   ask,
   capture,
   find,
+  recentKey,
 }: {
   items: PaletteItem[];
   onPick: (href: string) => void;
@@ -51,13 +99,24 @@ export function CommandPalette({
   capture?: ((words: string) => void) | undefined;
   /** Records that match what's typed, asked after a pause: Learn's items, by their app. */
   find?: ((q: string) => Promise<PaletteItem[]>) | undefined;
+  /** Where the records opened from here are remembered: the workspace. None, none kept. */
+  recentKey?: string | undefined;
 }) {
   const scope = useScoped();
   const record = useOpened();
   const [q, setQ] = useState("");
   const box = useRef<HTMLInputElement>(null);
-  const found = useFound(find, q);
+  const recent = useMemo(() => (open ? readRecent(recentKey) : []), [open, recentKey]);
+  const found = byRecent(
+    useFound(find, q),
+    recent.map((i) => i.href),
+  );
   const foundGroups = [...new Set(found.map((i) => i.group))];
+  const pickFound = (i: PaletteItem) => () => {
+    keepRecent(recentKey, i);
+    onOpenChange(false);
+    onPick(i.href);
+  };
   const groups = [...new Set(items.map((i) => i.group))];
   const here = [...new Set(scope.items.map((i) => i.group))];
   const run = (i: Pick<ScopeItem, "run">) => () => {
@@ -109,6 +168,21 @@ export function CommandPalette({
             </CommandGroup>
           ) : null}
           {lead ? note : null}
+          {!q.trim() && recent.length ? (
+            <CommandGroup heading="Recent">
+              {recent.map((i) => (
+                <CommandItem
+                  key={`recent ${i.href}`}
+                  value={`recent ${i.label} ${i.href}`}
+                  onSelect={pickFound(i)}
+                >
+                  {i.icon ? <Icon name={i.icon} /> : null}
+                  <span className="truncate">{i.label}</span>
+                  <CommandShortcut>{i.hint ? `${i.group} · ${i.hint}` : i.group}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : null}
           {ask && q.trim() ? (
             <CommandGroup heading="Ask">
               {record?.ask ? (
@@ -170,10 +244,7 @@ export function CommandPalette({
                     key={i.href}
                     value={`found ${i.href}`}
                     forceMount
-                    onSelect={() => {
-                      onOpenChange(false);
-                      onPick(i.href);
-                    }}
+                    onSelect={pickFound(i)}
                   >
                     {i.icon ? <Icon name={i.icon} /> : null}
                     <span className="truncate">{i.label}</span>

@@ -352,7 +352,8 @@ export function App() {
   const noteAt =
     current && !sample && !viewingAs && apps.some((m) => m.id === "notes") ? current.id : null;
   const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
-  // ⌘K finds records as you type in each app here that can (Learn's items); never on a sample.
+  // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
+  // workflows, templates, pages, Learn's items); never on a sample.
   const finders = apps.filter((m) => m.find);
   const finder =
     current && !sample && finders.length
@@ -700,6 +701,7 @@ export function App() {
             onPick={(href) => navigate(href)}
             capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
             find={finder}
+            recentKey={finder ? current?.id : undefined}
             ask={
               me.data?.team?.wren.includes("run")
                 ? (q) => void askClaude(q, location.pathname + location.search)

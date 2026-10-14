@@ -8,6 +8,7 @@ import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
+import { findRecords } from "../../find.js";
 import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
@@ -1509,6 +1510,7 @@ export const marketing: Module = {
   icon: "megaphone",
   blurb: "Every platform's posts, comments, DMs and their numbers in one place.",
   requires: { audience: "team" },
+  find: findRecords({ record: "marketing.person", path: "/marketing/people", kind: "Person" }),
   pages: mainPlusMore([
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
     { id: "inbox", ...INBOX_PAGE, hidden: true },

@@ -6,6 +6,7 @@
 import { IN_HOUSE, totalOf } from "@wren/core/in-house";
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
+import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
@@ -845,6 +846,8 @@ export const pipeline: Module = {
   icon: "pulse",
   blurb: "Companies from found to verified lead, and where they stall.",
   requires: TEAM,
+  // People are leads until profiles land (B1): the companies they work at.
+  find: findRecords({ record: "email.firm", path: "/pipeline/companies", kind: "Company" }),
   pages: sheetPages("/pipeline"),
 };
 
@@ -855,6 +858,7 @@ export const leads: Module = {
   component: "research.lead_sheet",
   icon: "pulse",
   blurb: "Companies from found to verified lead, and where they stall.",
+  find: findRecords({ record: "email.firm", path: "/leads/companies", kind: "Company" }),
   pages: sheetPages("/leads"),
 };
 
@@ -864,6 +868,7 @@ export const clients: Module = {
   icon: "people",
   blurb: "Every client, how each is doing, and what needs a look.",
   requires: TEAM,
+  find: findRecords({ record: "console.client", path: "/clients/all", kind: "Client" }),
   pages: [
     {
       ...overview,

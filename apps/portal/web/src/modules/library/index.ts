@@ -4,6 +4,7 @@
  * version, publishing copy that sends waits in To approve, and nothing sends from here. Snippets are inserted from
  * any draft or reply box; Media, Sections, SOPs and Workflows read only, a workflow opening on the canvas.
  */
+import { findAll, findRecords, findTemplates } from "../../find.js";
 import type { Module } from "../../module.js";
 import { workflowExtras } from "./flows.js";
 import { mediaExtras } from "./media.js";
@@ -17,6 +18,11 @@ export const library: Module = {
   name: "Library",
   icon: "stack",
   blurb: "Every template, sequence, snippet, video and SOP, with its numbers and where it's used.",
+  find: findAll(
+    findTemplates,
+    findRecords({ record: "library.workflow", path: "/library/workflows", kind: "Workflow" }),
+    findRecords({ record: "templates.sequence", path: "/library/sequences", kind: "Sequence" }),
+  ),
   requires: { audience: "team" },
   pages: [
     // A browser: folders, rows, the open one's editor, history and numbers.

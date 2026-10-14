@@ -1,6 +1,7 @@
 /** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
+import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
 import { ENGAGEMENT_PAGES, Feedback } from "../work/index.js";
 import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js";
@@ -69,6 +70,11 @@ export const reactivation: Module = {
   blurb:
     "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",
   Glance,
+  find: findRecords({
+    record: "reactivation.person",
+    path: `/${REACTIVATION}/people`,
+    kind: "Person",
+  }),
   action: { page: "run", label: "Watch it run", icon: "play" },
   pages: [
     {

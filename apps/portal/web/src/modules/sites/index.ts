@@ -7,6 +7,7 @@
  * as fields and live at /o/f/<slug> or framed anywhere; Submissions holds every form sent, whole,
  * for export. Links makes tracked `/go/` links with their QR codes and counts what each brought.
  */
+import { findRecords } from "../../find.js";
 import type { ListPage, Module } from "../../module.js";
 import { SITE_PAGES } from "../marketing/index.js";
 import { CLIENT_PAGE_ACTIONS, FORM_ACTIONS, PAGE_ACTIONS, SPLIT_ACTIONS } from "./actions.js";
@@ -93,6 +94,9 @@ const SUBMISSIONS: ListPage = {
   ],
 };
 
+/** ⌘K: pages by name or address. */
+const findPages = findRecords({ record: "sites.page", path: "/sites/pages", kind: "Page" });
+
 export const sites: Module = {
   id: "sites",
   name: "Sites",
@@ -100,6 +104,7 @@ export const sites: Module = {
   blurb:
     "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
   requires: { audience: "team" },
+  find: findPages,
   component: "sites.pages",
   pages: [
     {
@@ -172,6 +177,7 @@ export const clientSites: Module = {
   icon: "globe",
   blurb: "Your landing pages, their copy, tracked links, visits, forms, bookings and ads.",
   component: "sites.pages",
+  find: findPages,
   pages: [
     {
       id: "pages",

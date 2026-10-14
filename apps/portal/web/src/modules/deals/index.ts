@@ -4,6 +4,7 @@
  * workspace and each client's. A move sends nothing: a workflow that hears it decides.
  */
 import type { Action } from "@wren/ui";
+import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
 import { DealBoard } from "./board.js";
 import { Pipelines } from "./pipelines.js";
@@ -87,6 +88,7 @@ export const clientDeals: Module = {
   component: "deals.board",
   icon: "target",
   blurb: "Every deal by stage, with its value and who works it. Drag one on when it moves.",
+  find: findRecords({ record: "deals.deal", path: "/deals/deals", kind: "Deal" }),
   pages: [
     {
       id: "board",
