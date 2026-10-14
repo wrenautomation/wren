@@ -252,9 +252,11 @@ export async function approveVideo(
       o.short || (vertical && e.tracks.main.durationS - cutSeconds(e.cuts) <= SHORT_MAX_S)
         ? "short"
         : "video";
+    // A Short says what its own clip says; the video's description belongs to the long one.
+    const about = typeof reels === "number" ? clipWords(e, reels) || e.description : e.description;
     // Chapters go under the description (a Short has none), then the footer for its kind.
     const body = withFooter(
-      [e.description, kind === "short" ? "" : chapterLines(e)],
+      [about, kind === "short" ? "" : chapterLines(e)],
       fillFooter(footers[kind === "short" ? "short" : "long"], e),
       YT_DESCRIPTION,
     );
@@ -329,13 +331,13 @@ export async function approveVideo(
       have: new Set(had.map((d) => d.platform)),
       stored,
       title,
-      description: e.description,
+      description: about,
       video: id,
       short: reels,
       funnel,
     });
     if (reel) return { ...out, reel: { id: reel.id, again: true }, also };
-    const caption = withFooter([title, e.description], fillFooter(footers.reel, e), IG_CAPTION);
+    const caption = withFooter([title, about], fillFooter(footers.reel, e), IG_CAPTION);
     const [r] = await tx
       .insert(contentDrafts)
       .values({
@@ -370,16 +372,30 @@ type AlsoPlatform = (typeof ALSO_PLATFORMS)[number];
 /** TikTok takes a caption up to 2,200 characters; this keeps one in a line or two. */
 const ALSO_BODY = 400;
 
+/** What a Short says: its spoken words on the cut timeline, cut at a sentence or a word; "" when it has none. */
+export function clipWords(e: Pick<VideoEdit, "words" | "cuts" | "shorts">, n: number): string {
+  const clip = e.shorts[n - 1];
+  if (!clip) return "";
+  const said = markWords(e.words, e.cuts)
+    .filter((w) => w.cut !== "cut" && (w.s + w.e) / 2 >= clip.from && (w.s + w.e) / 2 < clip.to)
+    .map((w) => w.w.trim())
+    .join(" ");
+  return excerpt(said);
+}
+
+/** Text cut to `max` characters at the last sentence end past its middle, else at a word, with an ellipsis. */
+export function excerpt(text: string, max = ALSO_BODY): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
+  if (end >= max / 2) return cut.slice(0, end + 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).trimEnd()}...`;
+}
+
 /** The first paragraph of a description, cut at a word, for a caption under the title. */
 export function leadOf(description: string, max = ALSO_BODY): string {
-  const first =
-    description
-      .trim()
-      .split(/\n\s*\n/)[0]
-      ?.trim() ?? "";
-  if (first.length <= max) return first;
-  const cut = first.slice(0, max);
-  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).trimEnd()}...`;
+  return excerpt(description.trim().split(/\n\s*\n/)[0] ?? "", max);
 }
 
 /**

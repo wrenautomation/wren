@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   alsoText,
   chapterLines,
+  clipWords,
   clock,
   cutSeconds,
+  excerpt,
   fillFooter,
   leadOf,
   longOf,
@@ -148,5 +150,25 @@ describe("clip captions", () => {
       "A point\n\nFirst paragraph of the video.",
     );
     expect(alsoText("facebook", "A point", "")).toBe("A point");
+  });
+
+  it("reads a clip's own words on the cut timeline, cut at a sentence", () => {
+    const words = [
+      { w: "Hello", s: 0, e: 0.4 },
+      { w: "um", s: 1, e: 1.2 },
+      { w: "there.", s: 2, e: 2.4 },
+      { w: "Next", s: 5, e: 5.4 },
+      { w: "bit.", s: 5.5, e: 5.9 },
+    ];
+    const cuts = [{ from: 0.9, to: 1.3, why: "filler", state: "cut" }] as const;
+    const shorts = [
+      { from: 0, to: 3, title: "A" },
+      { from: 5, to: 6, title: "B" },
+    ];
+    expect(clipWords({ words, cuts: [...cuts], shorts }, 1)).toBe("Hello there.");
+    expect(clipWords({ words, cuts: [...cuts], shorts }, 2)).toBe("Next bit.");
+    expect(clipWords({ words, cuts: [], shorts }, 3)).toBe("");
+    expect(excerpt("One two. Three four five six.", 14)).toBe("One two.");
+    expect(excerpt("alpha beta gamma delta", 12)).toBe("alpha beta...");
   });
 });
