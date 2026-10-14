@@ -1,5 +1,6 @@
 /**
- * A list's page bar: ‹ Prev  1 2 3 … 12  Next ›, the page you are on filled in. The address
+ * A list's page bar: ‹ Prev  1 2 3 … 12  Next ›. Soft, like the rest of the portal: ghost
+ * cells with the control radius, the page you are on a quiet filled pill. The address
  * holds the page (`pg`), so a link reloads or shares it. One page draws nothing. A phone keeps
  * a window of one page and arrows alone, so it fits 393px without scrolling sideways.
  */
@@ -10,8 +11,9 @@ import { type Slot, slotsOf, spanOf } from "./pager.js";
 import type { Place } from "./records.js";
 
 const CELL =
-  "inline-flex h-8 pointer-coarse:h-11 min-w-9 items-center justify-center px-1 text-[13px] tabular-nums no-underline select-none";
-const LINK = "text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
+  "inline-flex h-8 pointer-coarse:h-11 min-w-8 items-center justify-center rounded-(--ui-radius) px-2 text-[13px] tabular-nums no-underline select-none transition-colors";
+const LINK =
+  "text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-(--ui-focus)";
 
 export function PageBar({
   place,
@@ -58,7 +60,7 @@ export function PageBar({
         {inner}
       </a>
     ) : (
-      <span aria-hidden className={cn(CELL, "text-(--ui-ink-3) opacity-50", wide)}>
+      <span aria-hidden className={cn(CELL, "text-(--ui-ink-3)", wide)}>
         {inner}
       </span>
     );
@@ -76,7 +78,7 @@ export function PageBar({
       <span
         key={s}
         aria-current="page"
-        className={cn(CELL, "bg-(--ui-ink) font-semibold text-(--ui-paper)")}
+        className={cn(CELL, "bg-(--ui-fill) font-medium text-(--ui-ink)")}
       >
         {num(s)}
       </span>
@@ -98,7 +100,7 @@ export function PageBar({
           {num(from)}–{num(upto)} of {num(total)}
         </span>
       )}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         {arrow(-1)}
         {slotsOf(page, pages, narrow ? 1 : 2).map(slot)}
         {arrow(1)}
