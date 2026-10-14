@@ -31,6 +31,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { shown } from "../../pulse.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
 import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
@@ -336,7 +337,7 @@ function useEvents(w: Drawn, on: boolean): GraphDot[] {
       since.current = newest ?? "";
     };
     void ask();
-    const timer = setInterval(() => void ask(), POLL_MS);
+    const timer = setInterval(() => shown() && void ask(), POLL_MS);
     return () => {
       live = false;
       clearInterval(timer);

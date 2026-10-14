@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { shown } from "../../pulse.js";
 import { ERROR, FIELD, Form, field, QUIET, TOOLS, useAct } from "../work/bits.js";
 
 interface DomainView {
@@ -85,7 +86,7 @@ export function Domain(props: PageProps & { bare?: boolean }) {
 
   useEffect(() => {
     if (!waiting) return;
-    const t = setInterval(() => setNonce((n) => n + 1), POLL_MS);
+    const t = setInterval(() => shown() && setNonce((n) => n + 1), POLL_MS);
     return () => clearInterval(t);
   }, [waiting]);
 

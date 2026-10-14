@@ -2,5 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "lib": ["ES2023"], "types": ["@cloudflare/workers-types"] },
   "include": ["src", "test"],
-  "exclude": ["test/inventory.test.ts", "test/preview-styles.test.ts", "test/accent.test.ts"]
+  "exclude": [
+    "test/inventory.test.ts",
+    "test/preview-styles.test.ts",
+    "test/accent.test.ts",
+    "test/config.test.ts"
+  ]
 }

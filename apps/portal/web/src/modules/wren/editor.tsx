@@ -24,6 +24,7 @@ import {
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
+import { shown } from "../../pulse.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
 import { boxOf, roleOfPart } from "./canvas.js";
@@ -826,7 +827,7 @@ export function AskGraph({
         onAnswer(a.reply, a.patch);
       }
     };
-    const timer = setInterval(() => void ask(), 2000);
+    const timer = setInterval(() => shown() && void ask(), 2000);
     return () => {
       live = false;
       clearInterval(timer);

@@ -83,6 +83,50 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("pulse", () => {
+  it("runs each read as its own call, in order, with the same sign-in", async () => {
+    const t = await token({});
+    const res = await worker.fetch(
+      post(
+        "app.test",
+        "pulse",
+        { calls: [{ path: "console/recordsCounts", body: { n: 1 } }, { path: "delivery/me" }] },
+        { authorization: `Bearer ${t}` },
+      ),
+      env({ APP_HOST: "app.test" } as Partial<Env>),
+    );
+    const { answers } = (await res.json()) as { answers: { status: number; body: unknown }[] };
+    expect(answers.map((a) => a.status)).toEqual([200, 200]);
+    expect(restate.map((r) => r.url)).toEqual([
+      "https://restate.test:8080/ConsolePortal/recordsCounts",
+      "https://restate.test:8080/DeliveryPortal/me",
+    ]);
+    expect(restate[0]?.body.n).toBe(1);
+  });
+
+  it("refuses a batch with no sign-in answer by answer, and a malformed one outright", async () => {
+    const res = await worker.fetch(
+      post("app.test", "pulse", { calls: [{ path: "delivery/me" }] }),
+      env(),
+    );
+    const { answers } = (await res.json()) as { answers: { status: number }[] };
+    expect(answers[0]?.status).toBe(401);
+    for (const body of [{}, { calls: [] }, { calls: [{ path: "a/b/c" }] }, { calls: "x" }])
+      expect((await worker.fetch(post("demo.test", "pulse", body), env())).status).toBe(400);
+    expect(restate).toEqual([]);
+  });
+
+  it("a write has no place in a batch", async () => {
+    const res = await worker.fetch(
+      post("demo.test", "pulse", { calls: [{ path: "console/setPref" }] }),
+      env(),
+    );
+    const { answers } = (await res.json()) as { answers: { status: number }[] };
+    expect(answers[0]?.status).toBe(403);
+    expect(restate).toEqual([]);
+  });
+});
+
 describe("routes", () => {
   it("an unknown route is 404, a GET 405, a form post 415, an array 400", async () => {
     for (const path of [

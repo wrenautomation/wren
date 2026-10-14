@@ -53,6 +53,7 @@ import {
 } from "./media.js";
 import { oauthLanding } from "./oauth-landing.js";
 import { payRoute } from "./pay.js";
+import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
 import { bodyLimit, SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
 
@@ -79,6 +80,37 @@ async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
   }
   if (!who) return json({ error: "Sign in." }, 401);
   return who.operator ? { email: who.email, operator: true } : { email: who.email };
+}
+
+/** A batch of reads (./pulse.ts): each runs through `api` as its own call, in order. */
+async function pulseRoute(req: Request, env: Env, site: Site, ctx?: ExecutionContext) {
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (!(req.headers.get("content-type") ?? "").startsWith("application/json"))
+    return json({ error: "json only" }, 415);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  let calls: ReturnType<typeof pulseCalls>;
+  try {
+    calls = pulseCalls(raw ? JSON.parse(raw) : null);
+  } catch {
+    calls = null;
+  }
+  if (!calls) return json({ error: `a list of calls, at most ${PULSE_MAX}` }, 400);
+  const answers: PulseAnswer[] = await Promise.all(
+    calls.map(async (c): Promise<PulseAnswer> => {
+      const [name = "", route = ""] = c.path.split("/");
+      const svc = Object.hasOwn(SERVICES, name) ? SERVICES[name] : undefined;
+      if (svc?.writes.has(route)) return { status: 403, body: { error: "A batch reads only." } };
+      const one = new Request(new URL(`/api/${c.path}`, req.url), {
+        method: "POST",
+        headers: req.headers,
+        body: JSON.stringify(c.body),
+      });
+      const res = await api(one, env, c.path, site, ctx);
+      return { status: res.status, body: await res.json().catch(() => null) };
+    }),
+  );
+  return json({ answers });
 }
 
 async function sha256(s: string): Promise<string> {
@@ -295,6 +327,7 @@ export default {
     }
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);
+    if (pathname === PULSE_PATH) return pulseRoute(req, env, site, ctx);
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);

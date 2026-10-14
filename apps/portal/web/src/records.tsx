@@ -22,6 +22,7 @@ import {
   RecordShop,
   RecordSwitch,
   type RecordsApi,
+  type SavedViewLine,
 } from "@wren/ui";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -113,13 +114,61 @@ export function keepOf(client: string | null, scope: Scope): KeepApi {
   if (!keep) {
     const ask = <T,>(handler: string, body: Record<string, unknown>) =>
       call<T>(`console/${handler}`, client ? { client, asClient: scope.asClient, ...body } : body);
+    // One read of every pref and of each record's views per load; writes update the copy.
+    let prefsAll: Promise<Record<string, unknown>> | null = null;
+    const viewsOf = new Map<string, Promise<SavedViewLine[]>>();
+    const readPrefs = () => {
+      const got = prefsAll ?? ask<Record<string, unknown>>("prefs", {});
+      prefsAll = got;
+      got.catch(() => {
+        if (prefsAll === got) prefsAll = null;
+      });
+      return got;
+    };
     keep = {
-      views: (record) => ask("savedViews", { record }),
-      save: (v) => ask("saveView", { ...v }),
-      remove: (id) => ask("removeView", { id }),
-      move: (record, ids) => ask("moveViews", { record, ids }),
-      prefs: (keys) => ask("prefs", keys ? { keys } : {}),
-      setPref: (key, value) => ask("setPref", { key, value }),
+      views: (record) => {
+        let got = viewsOf.get(record);
+        if (!got) {
+          const read = ask<SavedViewLine[]>("savedViews", { record });
+          got = read;
+          read.catch(() => viewsOf.delete(record));
+          viewsOf.set(record, read);
+        }
+        return got.then((lines) => [...lines]);
+      },
+      save: (v) => {
+        viewsOf.delete(v.record);
+        return ask("saveView", { ...v });
+      },
+      remove: (id) => {
+        viewsOf.clear();
+        return ask("removeView", { id });
+      },
+      move: (record, ids) => {
+        viewsOf.delete(record);
+        return ask<SavedViewLine[]>("moveViews", { record, ids }).then((lines) => {
+          viewsOf.set(record, Promise.resolve(lines));
+          return [...lines];
+        });
+      },
+      prefs: (keys) =>
+        readPrefs().then((all) =>
+          keys
+            ? Object.fromEntries(keys.filter((k) => k in all).map((k) => [k, all[k]]))
+            : { ...all },
+        ),
+      setPref: (key, value) => {
+        // The copy changes at once; a failed write drops it so the next read starts over.
+        if (prefsAll)
+          void prefsAll.then((all) => {
+            if (value === null || value === undefined) delete all[key];
+            else all[key] = value;
+          });
+        return ask("setPref", { key, value }).catch((err: unknown) => {
+          prefsAll = null;
+          throw err;
+        });
+      },
     };
     KEEPS.set(key, keep);
   }
@@ -747,7 +796,7 @@ export function TemplatePage({
       />,
     );
 
-  const { extras, head } = page;
+  const { extras, head, reply } = page;
   const shared = {
     record: page.record,
     title: page.label,
@@ -768,6 +817,11 @@ export function TemplatePage({
       const own = extras ? extras(detail, { ...props, row, act }) : {};
       const notes = notesSection(props, page.record, String(row.id));
       return notes ? { ...own, sections: [...(own.sections ?? []), notes] } : own;
+    },
+    // A list row's Reply opens the page's own box under it.
+    reply: reply && {
+      when: reply.when,
+      box: (detail: unknown, row: Row, act: RecordAct) => reply.box(detail, { ...props, row, act }),
     },
     // The page's head sees whose page it is, as its extras do.
     head: head && ((meta: HeadMeta, reload: () => void) => head(meta, reload, props)),

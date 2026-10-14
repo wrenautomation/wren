@@ -189,10 +189,110 @@ export function viewAs(email: string | null) {
   location.assign("/");
 }
 
-export async function call<T>(
+/** Answers read once per load and shared: a product's record types never change under a page. */
+const SHARED = /(^|\/)recordsTypes$/;
+const shared = new Map<string, Promise<unknown>>();
+// A saved look or a changed install can change what is served: read again.
+if (typeof addEventListener === "function") addEventListener(ME_CHANGED, () => shared.clear());
+
+export function call<T>(
   path: string,
   body: Record<string, unknown> = {},
   retried = false,
+): Promise<T> {
+  if (!SHARED.test(path)) return send<T>(path, body, retried);
+  const key = `${path}:${JSON.stringify(body)}`;
+  let got = shared.get(key) as Promise<T> | undefined;
+  if (!got) {
+    got = send<T>(path, body, retried);
+    // A failed read asks again next time.
+    got.catch(() => shared.delete(key));
+    shared.set(key, got);
+  }
+  return got;
+}
+
+type Queued = {
+  path: string;
+  body: Record<string, unknown>;
+  ok: (v: unknown) => void;
+  fail: (e: unknown) => void;
+};
+let batch: Queued[] | null = null;
+/** What `apps/portal/src/pulse.ts` takes in one request. */
+const BATCH_MAX = 8;
+
+/**
+ * Run `fn`, and send the reads it starts right now (not after an await) as one request, not one
+ * each. A lone read goes alone. If the batch fails, each read is sent by itself.
+ */
+export function batched<T>(fn: () => T): T {
+  const outer = batch;
+  const mine: Queued[] = [];
+  batch = mine;
+  try {
+    return fn();
+  } finally {
+    batch = outer;
+    void flush(mine);
+  }
+}
+
+async function flush(all: Queued[]) {
+  for (let i = 0; i < all.length; i += BATCH_MAX) {
+    const some = all.slice(i, i + BATCH_MAX);
+    const alone = (q: Queued) => sendNow<unknown>(q.path, q.body, false).then(q.ok, q.fail);
+    const [only] = some;
+    if (some.length === 1 && only) {
+      await alone(only);
+      continue;
+    }
+    let answers: { status: number; body: unknown }[] | null = null;
+    try {
+      const got = await sendNow<{ answers: { status: number; body: unknown }[] }>(
+        "pulse",
+        { calls: some.map((q) => ({ path: q.path, body: q.body })) },
+        false,
+      );
+      if (got.answers.length === some.length) answers = got.answers;
+    } catch {
+      // The batch itself failed: each read asks for itself below.
+    }
+    await Promise.all(
+      some.map((q, k) => {
+        const a = answers?.[k];
+        // A refused token or a failed batch: the single path knows how to sign in again.
+        if (!a || a.status === 401 || a.status === 0) return alone(q);
+        tellAutotrack(q.path, q.body, a.status);
+        if (a.status >= 200 && a.status < 300) return q.ok(a.body);
+        const d = a.body as { message?: string; error?: string } | null;
+        return q.fail(
+          new ApiError(d?.message ?? d?.error ?? `Something went wrong (${a.status}).`, a.status),
+        );
+      }),
+    );
+  }
+}
+
+function send<T>(path: string, body: Record<string, unknown>, retried: boolean): Promise<T> {
+  if (batch && !retried) {
+    const into = batch;
+    return new Promise<T>((ok, fail) => {
+      into.push({
+        path,
+        body: viewingAs ? { ...body, viewAs: viewingAs } : body,
+        ok: ok as (v: unknown) => void,
+        fail,
+      });
+    });
+  }
+  return sendNow<T>(path, body, retried);
+}
+
+async function sendNow<T>(
+  path: string,
+  body: Record<string, unknown>,
+  retried: boolean,
 ): Promise<T> {
   const t = await token();
   let res: Response;
@@ -212,7 +312,7 @@ export async function call<T>(
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401 && TOKEN_URL) {
     held = null;
-    return retried ? signIn() : call<T>(path, body, true);
+    return retried ? signIn() : sendNow<T>(path, body, true);
   }
   tellAutotrack(path, body, res.status);
   const text = await res.text();

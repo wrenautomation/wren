@@ -7,11 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/
 import { Bell } from "@wren/ui/lib/lucide";
 import { useCallback, useEffect, useState } from "react";
 import { WREN } from "../../module.js";
+import { onPulse } from "../../pulse.js";
 import { type Bell as BellData, type BellLine, bell } from "./api.js";
 import { ScoreBadge } from "./kinds.js";
-
-/** How often the bell asks again while the tab is open. */
-const EVERY_MS = 120_000;
 
 const WHY: Record<BellLine["why"], string> = {
   new: "New post",
@@ -32,16 +30,8 @@ export function LearnBell({ client }: { client: string }) {
   );
   useEffect(() => {
     setData(null);
-    void load();
-    const again = () => {
-      if (document.visibilityState === "visible") void load();
-    };
-    const timer = setInterval(again, EVERY_MS);
-    addEventListener("focus", again);
-    return () => {
-      clearInterval(timer);
-      removeEventListener("focus", again);
-    };
+    // The app's one pulse (../../pulse.ts): now, each minute while the tab shows, and on return.
+    return onPulse(load);
   }, [load]);
   const onOpen = (next: boolean) => {
     setOpen(next);

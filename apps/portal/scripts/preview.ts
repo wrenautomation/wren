@@ -116,6 +116,7 @@ import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 import { type DictateEnv, dictate } from "../src/dictate.js";
 import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "../src/media.js";
+import { PULSE_PATH, pulseCalls } from "../src/pulse.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -728,6 +729,20 @@ const server = createServer(async (req, res) => {
         guarded ? undefined : async () => true,
       );
       return send(out.status, out.body);
+    }
+    // A batch of reads (src/pulse.ts): each as its own call.
+    if (path === PULSE_PATH) {
+      const calls = pulseCalls(body);
+      if (!calls) return send(400, { error: "a list of calls" });
+      const answers = await Promise.all(
+        calls.map(async (c) => {
+          const [n = "", r = ""] = c.path.split("/");
+          if (!SERVICES[n]?.routes.includes(r))
+            return { status: 404, body: { error: "not found" } };
+          return callApi(n, r, { ...c.body, viewer });
+        }),
+      );
+      return send(200, { answers });
     }
     const [name = "", call = ""] = route.split("/");
     const svc = SERVICES[name];

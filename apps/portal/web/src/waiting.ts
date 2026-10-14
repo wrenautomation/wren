@@ -1,16 +1,15 @@
 /**
  * What waits in each app, by page: pages with a `count` in Wren's workspace, pages with a `badge`
- * in any. One read for every app on load and each minute while the tab shows, for the sidebar
+ * in any. One read for every app on load and, on the app's pulse, each minute while the tab shows, for the sidebar
  * and Today; the open app's again on each move, so a tab drops as soon as its rows are done.
  */
 import { useEffect, useRef, useState } from "react";
 import { call } from "./api.js";
 import type { Module, ModulePage } from "./module.js";
+import { onPulse } from "./pulse.js";
 
 /** App id → page id → rows waiting. A page with none isn't named. */
 export type Waiting = Readonly<Record<string, Readonly<Record<string, number>>>>;
-
-const EVERY_MS = 60_000;
 
 const counted = (p: ModulePage) =>
   "count" in p && p.count && "record" in p ? { record: p.record, where: p.count } : null;
@@ -79,15 +78,11 @@ export function useWaiting(
     let live = true;
     const all = () =>
       readApps(latest.current, client, wren, team).then((got) => live && setWaiting(got));
-    void all();
-    // A hidden tab reads nothing; it catches up when it's back.
-    const tick = () => document.visibilityState === "visible" && void all();
-    const timer = setInterval(tick, EVERY_MS);
-    document.addEventListener("visibilitychange", tick);
+    // The app's one pulse: now, each minute while the tab shows, and on return (./pulse.ts).
+    const leave = onPulse(all);
     return () => {
       live = false;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", tick);
+      leave();
     };
   }, [key]);
 

@@ -24,11 +24,14 @@ DEMO_HOST = "demo.wrenautomation.com"
 AUTH_ORIGIN = "https://auth.wrenautomation.com"
 APP_HOST = "app.wrenautomation.com"
 
-# The Worker decides first: /api is code, the rest is the built app.
+# The Worker decides first: /api is code, the rest is the built app. Hashed files under /assets/
+# skip it (designs/2026-10-14-portal-requests.md): a Worker run each is a request on the free
+# plan's 100k a day. The `!` rule sends matches to the asset server; every other path, hosts
+# and the SPA fallback included, still goes to the Worker.
 [assets]
 directory = "./dist"
 binding = "ASSETS"
-run_worker_first = true
+run_worker_first = ["/*", "!/assets/*"]
 not_found_handling = "single-page-application"
 
 # Live notes: one room per open note (src/live.ts). SQLite-backed class, though the room keeps
@@ -46,3 +49,8 @@ new_sqlite_classes = ["NoteRoom"]
 name = "PUBLIC_LIMIT"
 namespace_id = "1001"
 simple = { limit = 120, period = 60 }
+
+# Logs for the next spike: one request in ten, so its paths show.
+[observability]
+enabled = true
+head_sampling_rate = 0.1
