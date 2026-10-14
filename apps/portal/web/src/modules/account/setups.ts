@@ -70,6 +70,49 @@ export function railOf(run: RunRow, team: boolean, id: string = run.setup): Rail
 export const currentOf = (run: RunRow): StepRow | null =>
   run.step ? (run.steps.find((s) => s.id === run.step) ?? null) : null;
 
+export interface SetupProgress {
+  done: number;
+  total: number;
+  /** One segment a setup, in order: done or not. */
+  bar: boolean[];
+  next: { name: string; step: string; who: string; why: string | null } | null;
+}
+
+/** Whose turn first: the viewer's own, then what's stuck or lost, then the rest. */
+const rank = (run: RunRow, team: boolean) =>
+  run.state === (team ? "waiting_wren" : "waiting_client")
+    ? 0
+    : run.state === "stuck" || run.state === "lost"
+      ? 1
+      : 2;
+
+/** Today's Get set up card: the owner's setups as progress; null when none, or all are done. */
+export function setupProgress(view: AccountsView, team: boolean): SetupProgress | null {
+  const runs = view.accounts.flatMap((a) => a.runs);
+  const done = runs.filter((r) => r.state === "done").length;
+  if (!runs.length || done === runs.length) return null;
+  const open = runs
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => r.state !== "done")
+    .sort((a, b) => rank(a.r, team) - rank(b.r, team) || a.i - b.i)[0]?.r;
+  const step = open ? currentOf(open) : null;
+  return {
+    done,
+    total: runs.length,
+    bar: [...runs]
+      .sort((a, b) => +(b.state === "done") - +(a.state === "done"))
+      .map((r) => r.state === "done"),
+    next: open
+      ? {
+          name: open.name,
+          step: step?.label ?? open.name,
+          who: step ? whoText(step, open.mode, team) : "",
+          why: open.why ?? step?.why ?? null,
+        }
+      : null,
+  };
+}
+
 /** A mailbox's state on Account → Mail, as a tag (designs/2026-10-07-mail-access.md). */
 export function mailTag(
   state: "not_set_up" | "waiting_admin" | "send_only" | "read_send" | "broken",

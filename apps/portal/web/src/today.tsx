@@ -25,6 +25,7 @@ import { useCall } from "./load.js";
 import type { Module, PageProps } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
+import { SetupCard } from "./modules/account/SetupCard.js";
 import {
   allWaiting,
   happenings,
@@ -326,7 +327,17 @@ export function WrenToday({
 }) {
   return (
     <>
-      <PageHeader title="Today" lede={DATE.format(new Date())} />
+      <PageHeader
+        title="Today"
+        lede={`${DATE.format(new Date())}. What waits on you, then every app.`}
+      />
+      {props.team ? (
+        <SetupCard
+          client={props.client}
+          team
+          href={apps.some((m) => m.id === "account") ? "/account/accounts" : null}
+        />
+      ) : null}
       {props.team ? <SetupNow client={props.client} team /> : null}
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
@@ -364,6 +375,9 @@ export function ClientToday({
   return (
     <>
       <PageHeader title="Today" lede={`Everything Wren runs for ${name}.`} />
+      {props.demo ? null : (
+        <SetupCard client={props.client} team={props.team} href="/account/accounts" />
+      )}
       {props.demo ? null : <SetupNow client={props.client} team={props.team} />}
       <PinnedRow pins={pins} />
       {/* Installing needs `manage`: a viewer or member never sees the offer. */}

@@ -1,4 +1,5 @@
 // How Accounts and Vendors say a setup run and a vendor: whose turn, the rail, the room.
+import type { AccountsView } from "@wren/core/accounts/console";
 import { describe, expect, it } from "vitest";
 import {
   currentOf,
@@ -10,6 +11,7 @@ import {
   roomText,
   runTag,
   type StepRow,
+  setupProgress,
   whoText,
 } from "./setups.js";
 
@@ -83,5 +85,35 @@ describe("mailTag", () => {
     expect(mailTag("send_only").label).toBe("Connected (send only)");
     expect(mailTag("read_send").label).toBe("Connected (read and send)");
     expect(mailTag("broken")).toEqual({ label: "Broken", tone: "warn" });
+  });
+});
+
+describe("setupProgress", () => {
+  const view = (...runs: RunRow[]) =>
+    ({ accounts: [{ runs: runs.slice(0, 1) }, { runs: runs.slice(1) }] }) as AccountsView;
+  const at = (name: string, state: RunRow["state"], who: StepRow["who"] = "client") =>
+    ({
+      ...run("self", [step("dns", who, state)], state === "done" ? null : "dns"),
+      name,
+      state,
+      why: null,
+    }) as RunRow;
+
+  it("counts done setups and leads with the viewer's own turn", () => {
+    const p = setupProgress(
+      view(
+        at("Text number", "done"),
+        at("Inbox", "checking", "auto"),
+        at("Domain", "waiting_client"),
+      ),
+      false,
+    );
+    expect(p).toMatchObject({ done: 1, total: 3, bar: [true, false, false] });
+    expect(p?.next).toMatchObject({ name: "Domain", step: "dns", who: "You" });
+  });
+
+  it("is gone with no setups, or once all are done", () => {
+    expect(setupProgress(view(), false)).toBeNull();
+    expect(setupProgress(view(at("A", "done"), at("B", "done")), true)).toBeNull();
   });
 });
