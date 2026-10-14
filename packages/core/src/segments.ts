@@ -13,7 +13,7 @@
  * archived; restoring it is one click. "Describe" asks the model for a rule from plain words,
  * checked here before anyone sees it.
  */
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TIMELINE_KIND_NAMES, TIMELINE_KINDS, type TimelineKind } from "./profiles-schema.js";
@@ -495,7 +495,7 @@ export async function recompute(
 ): Promise<MembershipChange | null> {
   const s = await segmentById(db, id);
   if (!s?.rule || s.kind === "manual") return null;
-  return db.transaction((tx) => setMembers(tx, id, matchingSql(s.rule as Rule, now), now));
+  return atomic(db, (tx) => setMembers(tx, id, matchingSql(s.rule as Rule, now), now));
 }
 
 /**
@@ -540,7 +540,7 @@ export async function addMembers(
 ): Promise<MembershipChange> {
   const s = await manualOf(db, id);
   const ids = [...new Set(profileIds.filter(Number.isSafeInteger))];
-  return db.transaction((tx) =>
+  return atomic(db, (tx) =>
     setMembers(
       tx,
       s.id,
@@ -561,7 +561,7 @@ export async function removeMembers(
 ): Promise<MembershipChange> {
   const s = await manualOf(db, id);
   const ids = [...new Set(profileIds.filter(Number.isSafeInteger))];
-  return db.transaction((tx) =>
+  return atomic(db, (tx) =>
     setMembers(
       tx,
       s.id,
