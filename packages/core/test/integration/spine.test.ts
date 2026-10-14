@@ -362,6 +362,17 @@ describe("made workflows (designs/2026-10-09-workflow-builder.md)", () => {
     expect(await api().workflowsMade(operator)).toMatchObject([
       { id: workflow, made: { name: "Leads in", for: "wren" }, live: false, draft: true, nodes: 0 },
     ]);
+    // The canvas opens it by id before it has a live save (was a 404).
+    const opened = await api().recordsGet({
+      ...operator,
+      record: "console.component",
+      id: workflow,
+    });
+    expect(opened.row).toMatchObject({ id: workflow, type: "made", name: "Leads in" });
+    expect((opened.detail as { workflow: { id: string } }).workflow.id).toBe(workflow);
+    // Never in the Shop's list.
+    const listed = await api().recordsList({ ...operator, record: "console.component" });
+    expect(listed.rows.map((r) => r.id)).not.toContain(workflow);
     const saved = await api().workflowSave({
       ...operator,
       workflow,

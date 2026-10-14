@@ -1809,15 +1809,16 @@ export const componentRecord = (
                 ...c.missing,
               ].join("; ") || null,
           })),
-        // A made workflow is listed on the Workflows page, never in the Shop.
+        // A made workflow is a row only when it is read by id (its saves load for one get), so
+        // the canvas opens it; lists never load saves, so the Shop never shows one.
         ...flows
-          .filter((w) => shownAs(w) === w && !soldAs.has(w.id) && !isMade(w.id))
+          .filter((w) => shownAs(w) === w && !soldAs.has(w.id))
           .map((w) => {
             const parts = partsIn(w.id, flows, all);
             const behind = parts.filter((c) => !c.ready);
             return {
               id: w.id,
-              type: "workflow",
+              type: isMade(w.id) ? "made" : "workflow",
               name: w.name,
               blurb: w.blurb,
               icon: w.icon,
@@ -1846,7 +1847,9 @@ export const componentRecord = (
       blurb: text("What it does"),
       instead: text("In place of"),
       type: status(
-        cued(neutral({ template: "Template", part: "Part", workflow: "Workflow" })),
+        cued(
+          neutral({ template: "Template", part: "Part", workflow: "Workflow", made: "Made here" }),
+        ),
         "Type",
       ),
       stage: status(cued(neutral(STAGES)), "Stage"),
