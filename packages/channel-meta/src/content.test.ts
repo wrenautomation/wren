@@ -28,6 +28,7 @@ const now = () => new Date("2026-09-22T10:00:00Z");
 describe("instagram content channel", () => {
   it("hosts a local video, makes a Reel container, waits, publishes; lists and reads", async () => {
     const slept: number[] = [];
+    let polls = 0;
     const { sites, calls } = fakeSites({
       "GET /me/accounts": pages,
       "POST /ig9/media": (i) => {
@@ -37,6 +38,10 @@ describe("instagram content channel", () => {
           caption: "a reel",
         });
         return { id: "c1" };
+      },
+      "GET /c1": (i) => {
+        expect(i).toEqual({ fields: "status_code,status" });
+        return { status_code: ++polls < 3 ? "IN_PROGRESS" : "FINISHED" };
       },
       "POST /ig9/media_publish": (i) => {
         expect(i).toEqual({ creation_id: "c1" });
@@ -84,7 +89,7 @@ describe("instagram content channel", () => {
       url: "https://www.instagram.com/p/p1/",
       fetchedWith: "api",
     });
-    expect(slept).toEqual([15_000]);
+    expect(slept).toEqual([10_000, 10_000, 10_000]);
     expect((await ch.list()).map((r) => r.url)).toEqual(["https://www.instagram.com/reel/x/"]);
     expect(await ch.metrics("p1")).toMatchObject({
       views: 40,
@@ -138,6 +143,7 @@ describe("instagram content channel", () => {
       "POST /ig9/media": () => ({ id: "c3" }),
       "POST /ig9/media_publish": () => ({ id: "st1" }),
       "GET /st1": () => ({ permalink: "https://www.instagram.com/stories/wren/st1/" }),
+      "GET /c3": () => ({ status_code: "FINISHED" }),
     });
     const ch = instagramContent(sites, { host, now, sleep: async (ms) => void slept.push(ms) });
     const photo = await ch.publish({
@@ -161,7 +167,22 @@ describe("instagram content channel", () => {
       video_url: "https://cdn.test/clip.mp4",
       media_type: "STORIES",
     });
-    expect(slept).toEqual([15_000]);
+    expect(slept).toEqual([10_000]);
+  });
+
+  it("stops on a video Graph refused, never publishing it", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": () => ({ id: "c4" }),
+      "GET /c4": () => ({ status_code: "ERROR", status: "Error: unsupported codec" }),
+    });
+    await expect(
+      instagramContent(sites, { host, now, sleep: async () => {} }).publish({
+        text: "a reel",
+        media: { kind: "video", source: "/data/short.mp4" },
+      }),
+    ).rejects.toThrow(/refused \(Error: unsupported codec\)/);
+    expect(calls.some(([, p]) => p === "/ig9/media_publish")).toBe(false);
   });
 
   it("refuses a local file with no host, and a Page without an Instagram account", async () => {

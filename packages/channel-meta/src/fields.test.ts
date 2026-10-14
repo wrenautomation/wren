@@ -13,7 +13,7 @@ describe("instagram reel fields", () => {
         calls.push([path, input]);
         if (path === "/me/accounts")
           return { data: [{ id: "1", instagram_business_account: { id: "ig9" } }] } as never;
-        return { id: "c1" } as never;
+        return { id: "c1", status_code: "FINISHED" } as never;
       },
       via: async () => "api",
     };

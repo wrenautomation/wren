@@ -151,6 +151,10 @@ const IG_ACCOUNT: Record<string, string> = {
   accounts_engaged: M.accountsEngaged,
 };
 
+/** A video container is polled every 10 s, for up to 5 minutes. */
+const VIDEO_POLLS = 30;
+const VIDEO_POLL_MS = 10_000;
+
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const sleep = o.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -165,6 +169,24 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const inbox = async () =>
     sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
+  /** Waits out a video container: FINISHED goes on, ERROR or EXPIRED stops with Graph's words. */
+  const ready = async (id: string): Promise<void> => {
+    for (let n = 0; n < VIDEO_POLLS; n++) {
+      await sleep(VIDEO_POLL_MS);
+      const c = await sites.call<{ status_code?: string; status?: string }>(
+        "meta",
+        "GET",
+        `/${id}`,
+        {
+          fields: "status_code,status",
+        },
+      );
+      if (c.status_code === "FINISHED" || c.status_code === "PUBLISHED") return;
+      if (c.status_code === "ERROR" || c.status_code === "EXPIRED")
+        throw new Error(`instagram: the video was refused (${c.status ?? c.status_code})`);
+    }
+    throw new Error("instagram: the video was still processing after 5 minutes");
+  };
   const published = async (id: string): Promise<Published> => ({
     id,
     url: `https://www.instagram.com/p/${id}/`,
@@ -210,7 +232,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
       media_type: "STORIES",
     });
     if (!container.id) throw new Error("instagram: the story container answered no id");
-    if (video) await sleep(15_000);
+    if (video) await ready(container.id);
     const r = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media_publish`, {
       creation_id: container.id,
     });
@@ -255,7 +277,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
       });
       if (!container.id) throw new Error("instagram: the container answered no id");
       // A video container is ready once Graph has fetched and processed it.
-      if (video) await sleep(15_000);
+      if (video) await ready(container.id);
       const r = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media_publish`, {
         creation_id: container.id,
       });
