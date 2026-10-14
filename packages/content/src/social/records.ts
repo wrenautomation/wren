@@ -36,8 +36,9 @@ import { sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
 import { conversationOf } from "../inbox/conversation.js";
-import { waitingReplies } from "../inbox/send.js";
+import { queuedReplies, waitingReplies } from "../inbox/send.js";
 import { statusOf, threadStates, typed } from "../inbox/threads.js";
+import type { InboxReply } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import type { VideoSigner } from "../video.js";
 import { adFormatRecord } from "./ad-formats.js";
@@ -279,6 +280,7 @@ const STATES = status({
   waiting: { label: "Waiting on you", tone: "warn" },
   scheduled: { label: "Scheduled", tone: "good" },
   answered: { label: "Answered", tone: "good" },
+  queued: neutral("Queued"),
   dropped: neutral("Dropped"),
   read: neutral("Read"),
   seen: neutral("Seen"),
@@ -639,6 +641,30 @@ export const inboxRecord = defineRecord({
 });
 
 /**
+ * An asked reply as To approve's row: waiting on a yes, or queued after one (`send_at`, and why the
+ * cap holds it as `held`).
+ */
+const replyItem = (r: InboxReply) => ({
+  id: `reply:${r.id}`,
+  type: "reply",
+  who: r.who ?? r.thread,
+  platform: r.channel === "text" ? "sms" : r.channel === "email" ? "email" : null,
+  kind: "reply",
+  state: r.state === "queued" ? "queued" : "waiting",
+  body: r.body,
+  post_title: null,
+  why: r.why,
+  held: r.state === "queued" ? r.detail : null,
+  send_at: r.state === "queued" ? r.sendAt : null,
+  draft: null,
+  account: r.askedBy,
+  at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
+  due: r.state === "queued" ? (r.sendAt ?? r.askedAt) : r.askedAt,
+  // Our email thread they never answered has no Inbox row to open.
+  url: r.thread.startsWith("outbound:") ? null : `/inbox/waiting/${encodeURIComponent(r.thread)}`,
+});
+
+/**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
  * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7` (accepted), `connect:7` (a
  * proposed invite, by contact), `onpost:9` (a comment drafted on someone else's post),
@@ -664,30 +690,15 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const pgs = await waitingPages(db);
       const outs = await waitingRetires(db);
       const rs = await waitingReplies(db, ACTIVITY_ROWS);
+      const qs = await queuedReplies(db, ACTIVITY_ROWS);
       const pays = await waitingPayLinks(db);
       const dcs = await waitingDocs(db);
       const sws = await waitingSwaps(db);
       return [
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
-        ...rs.map((r) => ({
-          id: `reply:${r.id}`,
-          type: "reply",
-          who: r.who ?? r.thread,
-          platform: r.channel === "text" ? "sms" : r.channel === "email" ? "email" : null,
-          kind: "reply",
-          state: "waiting",
-          body: r.body,
-          post_title: null,
-          why: r.why,
-          draft: null,
-          account: r.askedBy,
-          at: r.askedAt,
-          due: r.askedAt,
-          // Our email thread they never answered has no Inbox row to open.
-          url: r.thread.startsWith("outbound:")
-            ? null
-            : `/inbox/waiting/${encodeURIComponent(r.thread)}`,
-        })),
+        ...rs.map(replyItem),
+        // One he said yes to that the frequency cap holds: it sends itself at `send_at`.
+        ...qs.map(replyItem),
         ...ps.map((p) => ({
           id: `draft:${p.id}`,
           type: "draft",
@@ -921,6 +932,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       body: prose("Words"),
       postTitle: text("Post"),
       why: text("Picked for"),
+      held: text("Held because"),
+      sendAt: date("Sends at"),
       draft: prose("Our draft"),
       account: text("On"),
       at: date("When"),
@@ -929,6 +942,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
     },
     views: [
       { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+      // Said yes to, held by the frequency cap: each sends itself at its time.
+      { id: "queued", label: "Queued", where: { state: "queued" }, sort: "due", at: "due" },
       { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
       { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
       { id: "threads", label: "Thread replies", where: { type: "thread" }, sort: "-at", at: "at" },
@@ -1292,16 +1307,22 @@ export const askedReplyRecord = defineRecord({
   channel: { field: "platform" },
   name: { one: "reply to approve", many: "replies to approve" },
   rows: async (db) =>
-    (await waitingReplies(db, ACTIVITY_ROWS)).map((r) => ({
+    [
+      ...(await waitingReplies(db, ACTIVITY_ROWS)),
+      // Said yes to and held by the frequency cap: it sends itself at `send_at`.
+      ...(await queuedReplies(db, ACTIVITY_ROWS)),
+    ].map((r) => ({
       id: `reply:${r.id}`,
       who: r.who ?? r.thread,
       platform: askedVia(r.channel),
       kind: r.channel,
-      state: "waiting",
+      state: r.state === "queued" ? "queued" : "waiting",
       body: r.body,
       why: r.why,
+      held: r.state === "queued" ? r.detail : null,
+      send_at: r.state === "queued" ? r.sendAt : null,
       account: r.askedBy,
-      at: r.askedAt,
+      at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
       url: `/marketing/inbox/${encodeURIComponent(r.thread)}`,
     })),
   key: "id",
@@ -1322,12 +1343,15 @@ export const askedReplyRecord = defineRecord({
     state: STATES,
     body: prose("Words"),
     why: text("Why it waits"),
+    held: text("Held because"),
+    sendAt: date("Sends at"),
     account: text("Asked by"),
     at: date("When"),
     url: link("Open the thread"),
   },
   views: [
     { id: "waiting", label: "Waiting on a yes", where: INBOX_WAITING, sort: "-at", at: "at" },
+    { id: "queued", label: "Queued", where: { state: "queued" }, sort: "sendAt", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: ["inbox.replyApprove", "inbox.replyDrop"],

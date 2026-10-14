@@ -841,7 +841,10 @@ const RETIRE_ACTIONS: Action[] = [
     done: said("Declined. The page stays up."),
   },
 ];
-/** A reply typed in the Inbox that waits on a yes: Approve sends it on its channel. */
+/**
+ * A reply typed in the Inbox that waits on a yes: Approve sends it on its channel. One the cap
+ * holds after the yes is queued: no second Approve, and Drop cancels it.
+ */
 const ASKED_REPLY_ACTIONS: Action[] = [
   {
     id: "inbox.replyApprove",
@@ -849,6 +852,7 @@ const ASKED_REPLY_ACTIONS: Action[] = [
     handler: "inbox/replyApprove",
     confirm: "Send this reply on its channel now?",
     key: "a",
+    when: WAITS,
     // An email the frequency cap holds is queued and sends itself (`InboxDesk.approve`).
     done: (answer) =>
       (answer as { queued?: string } | null)?.queued
@@ -862,6 +866,7 @@ const ASKED_REPLY_ACTIONS: Action[] = [
     label: "Drop",
     handler: "inbox/replyDrop",
     key: "x",
+    when: { state: ["waiting", "queued"] },
     done: said("Dropped. Nothing was sent."),
   },
 ];
@@ -883,7 +888,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ),
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
-  ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a, WAITS)),
+  ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a)),
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
   // Payments: a pay link or a document someone without the yes asked to send.
   ...PAY_ACTIONS.map((a) => only("pay", a, WAITS)),
@@ -1133,9 +1138,11 @@ export const APPROVAL_PAGE: ListPage = {
   template: "list",
   record: "marketing.approval",
   // Kind says what Type does, in more words.
-  columns: ["who", "platform", "kind", "state", "at", "due"],
+  // Held and Sends at fill only for Queued; a column blank on every row shown is dropped.
+  columns: ["who", "platform", "kind", "state", "sendAt", "held", "at", "due"],
   empty: {
     waiting: "Nothing waits on your yes.",
+    queued: "Nothing is queued. A reply you approved shows here when the frequency cap holds it.",
     posts: "No post draft waits on you.",
     videos: "No rendered video waits on your Approve.",
     threads: "No thread comment waits on you.",
@@ -1153,7 +1160,7 @@ export const APPROVAL_PAGE: ListPage = {
     (row) => APPROVAL_DRAFT[String(row.type)] ?? null,
     withShape((detail, at) =>
       at.row.type === "reply"
-        ? askedReplyExtras(detail)
+        ? askedReplyExtras(detail, at.row)
         : (detail as { messages?: unknown } | null)?.messages
           ? dmExtras(detail, at)
           : { sections: [] },
@@ -2092,13 +2099,14 @@ const CLIENT_APPROVE: ListPage = {
   about: "Inbox replies that wait on a yes before they send.",
   template: "list",
   record: "marketing.asked_reply",
-  columns: ["who", "kind", "why", "account", "at"],
+  columns: ["who", "kind", "why", "sendAt", "held", "account", "at"],
   empty: {
     waiting: "No Inbox reply waits on a yes.",
+    queued: "Nothing is queued. A reply you approved shows here when the frequency cap holds it.",
     all: "Replies asked from the Inbox show here.",
   },
   actions: ASKED_REPLY_ACTIONS.map(clientInbox),
-  extras: askedReplyExtras,
+  extras: (detail, at) => askedReplyExtras(detail, at.row),
 };
 
 /**

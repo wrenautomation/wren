@@ -290,7 +290,7 @@ export interface Entry {
   who: string | null;
   body: string;
   subject?: string | null;
-  /** queued, sent, failed; `asked` waits in To approve. */
+  /** queued, sent, failed; `asked` waits in To approve (`queued`: held, sends itself). */
   state?: string | null;
   /** Teammates `@`ed in a note. */
   mentions?: string[];
@@ -357,8 +357,8 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
       : [],
     rowsOf(
       db,
-      sql`select id, channel, body, asked_by, asked_at at from inbox_replies
-        where thread = ${p.thread} and state = 'waiting'`,
+      sql`select id, channel, body, asked_by, asked_at at, state from inbox_replies
+        where thread = ${p.thread} and state in ('waiting', 'queued')`,
     ),
     p.chatIds.length
       ? rowsOf(
@@ -506,7 +506,8 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
       platform: null,
       who: str(a.asked_by),
       body: String(a.body),
-      state: "asked",
+      // Waiting on a yes, or said yes to and held by the cap until its time.
+      state: a.state === "queued" ? "queued" : "asked",
     });
   return out.sort((a, b) => a.at.localeCompare(b.at)).slice(-TIMELINE_MAX);
 }

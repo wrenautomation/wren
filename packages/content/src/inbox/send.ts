@@ -15,7 +15,7 @@ import { type Client, sendsOn } from "@wren/core/clients";
 import { threadOf } from "@wren/core/leads";
 import { campaignOfRef } from "@wren/core/message-settings";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { type InboxChannel, type InboxReply, inboxReplies } from "../schema.js";
 import { optionsOf, partyOf, type ReplyOption } from "./conversation.js";
 
@@ -266,7 +266,7 @@ export async function settleReply(
 ): Promise<boolean> {
   const done = await db
     .update(inboxReplies)
-    .set({ state, detail, decidedBy: by.toLowerCase(), decidedAt: now })
+    .set({ state, detail, sendAt: null, decidedBy: by.toLowerCase(), decidedAt: now })
     .where(
       and(
         eq(inboxReplies.id, id),
@@ -289,17 +289,30 @@ export function waitingReplies(db: Queryable, limit = 500) {
     .limit(limit);
 }
 
+/** Why a queued reply waits: the cap's own words for the person. */
+export const QUEUED_WHY = "Held by the frequency cap. They are at their limit for now.";
+
 /**
- * A claimed reply the frequency cap held: queued with why on its row, and its yes kept (`decidedBy`
- * stays). It leaves To approve, so there is no second Approve; `releaseReply` takes it back at
- * `until`. Only one this approve (or release) claimed, `sent` a moment ago, moves.
+ * A claimed reply the frequency cap held: queued with why on its row and when it goes (`sendAt`),
+ * its yes kept (`decidedBy` stays). It leaves To approve, so there is no second Approve;
+ * `releaseReply` takes it back at `until`. Only one this approve (or release) claimed, `sent` a
+ * moment ago, moves.
  */
 export async function queueReply(db: Queryable, id: number, until: Date): Promise<void> {
-  const at = until.toISOString().slice(0, 16).replace("T", " ");
   await db
     .update(inboxReplies)
-    .set({ state: "queued", detail: `Held by the frequency cap. It sends itself after ${at} UTC.` })
+    .set({ state: "queued", sendAt: until, detail: QUEUED_WHY })
     .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "sent")));
+}
+
+/** Replies William said yes to that the cap holds, the next to go first. */
+export function queuedReplies(db: Queryable, limit = 500) {
+  return db
+    .select()
+    .from(inboxReplies)
+    .where(eq(inboxReplies.state, "queued"))
+    .orderBy(asc(inboxReplies.sendAt), asc(inboxReplies.id))
+    .limit(limit);
 }
 
 /**
@@ -309,7 +322,7 @@ export async function queueReply(db: Queryable, id: number, until: Date): Promis
 export async function releaseReply(db: Queryable, id: number): Promise<InboxReply | null> {
   const [row] = await db
     .update(inboxReplies)
-    .set({ state: "sent", detail: null })
+    .set({ state: "sent", detail: null, sendAt: null })
     .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "queued")))
     .returning();
   return row ?? null;

@@ -9,6 +9,8 @@ import {
   askReply,
   campaignOfAsker,
   failReply,
+  QUEUED_WHY,
+  queuedReplies,
   queueReply,
   releaseReply,
   settleReply,
@@ -43,16 +45,30 @@ describe("queueReply", () => {
     expect(await waitingReplies(pg.db)).toEqual([]);
     expect(await settleReply(pg.db, row.id, "sent", AMY)).toBe(false);
     const taken = await releaseReply(pg.db, row.id);
-    expect(taken).toMatchObject({ state: "sent", decidedBy: AMY, detail: null });
+    expect(taken).toMatchObject({ state: "sent", decidedBy: AMY, detail: null, sendAt: null });
   });
 
-  it("says when it goes", async () => {
+  it("says when it goes and why it waits", async () => {
     const row = await ask();
     await settleReply(pg.db, row.id, "sent", AMY);
     await queueReply(pg.db, row.id, UNTIL);
     const [queued] = await pg.db.select().from(inboxReplies).where(eq(inboxReplies.id, row.id));
-    expect(queued).toMatchObject({ state: "queued", decidedBy: AMY });
-    expect(queued?.detail).toContain("2026-10-06 13:00 UTC");
+    expect(queued).toMatchObject({
+      state: "queued",
+      decidedBy: AMY,
+      sendAt: UNTIL,
+      detail: QUEUED_WHY,
+    });
+  });
+
+  it("lists the queued, the soonest to go first, and not the waiting", async () => {
+    const later = await ask();
+    const sooner = await ask();
+    await ask();
+    for (const r of [later, sooner]) await settleReply(pg.db, r.id, "sent", AMY);
+    await queueReply(pg.db, later.id, new Date("2026-10-07T13:00:00Z"));
+    await queueReply(pg.db, sooner.id, UNTIL);
+    expect((await queuedReplies(pg.db)).map((r) => r.id)).toEqual([sooner.id, later.id]);
   });
 
   it("is taken back once: a second release gets nothing", async () => {
@@ -69,6 +85,9 @@ describe("queueReply", () => {
     await queueReply(pg.db, row.id, UNTIL);
     expect(await settleReply(pg.db, row.id, "dropped", "bo@example.test")).toBe(true);
     expect(await releaseReply(pg.db, row.id)).toBeNull();
+    expect(await queuedReplies(pg.db)).toEqual([]);
+    const [gone] = await pg.db.select().from(inboxReplies).where(eq(inboxReplies.id, row.id));
+    expect(gone).toMatchObject({ state: "dropped", sendAt: null });
   });
 
   it("never moves a reply that was dropped, failed or never claimed", async () => {

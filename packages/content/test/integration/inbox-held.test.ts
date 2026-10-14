@@ -8,14 +8,16 @@ import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import { serveRecords } from "@wren/core/records/serve";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { conversationOf } from "../../src/inbox/conversation.js";
 import { askFollowEmail } from "../../src/inbox/index.js";
 import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
 import { inboxReplies } from "../../src/schema.js";
-import { approvalRecord } from "../../src/social/records.js";
+import { approvalRecord, askedReplyRecord } from "../../src/social/records.js";
 import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
 
 type Out = { ok: boolean; reason: string | null; until: string | null };
@@ -107,8 +109,17 @@ const threadStatus = async () => {
   )) as unknown as Array<{ status: string }>;
   return r?.status ?? null;
 };
+/** To approve's reply rows in a saved view, as the portal lists them. */
+const listed = async (record: { id: string }, view: string) =>
+  (
+    await serveRecords([approvalRecord, askedReplyRecord], pg.db).list({
+      record: record.id,
+      view,
+      limit: 50,
+    })
+  ).rows;
 const toApprove = async () =>
-  ((await approvalRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "reply");
+  (await listed(approvalRecord, "waiting")).filter((r) => r.type === "reply");
 /** Until the delayed release has run: a few seconds. */
 const until = (state: string) =>
   vi.waitFor(async () => expect(await stateOf()).toBe(state), { timeout: 30_000, interval: 250 });
@@ -125,6 +136,28 @@ describe("an approved follow-up email the frequency cap holds", () => {
     expect((await reply()).detail).toMatch(/frequency cap/);
     // Not in To approve, so no second Approve; a second ask of the same node finds it asked.
     expect(await toApprove()).toEqual([]);
+    // It shows in Queued, with when it goes and why, on both To approve records.
+    const id = `reply:${(await reply()).id}`;
+    for (const record of [approvalRecord, askedReplyRecord]) {
+      const rows = (await listed(record, "queued")).filter((r) => r.id === id);
+      expect(rows).toEqual([
+        expect.objectContaining({
+          state: "queued",
+          body: "Still worth a call? https://sample-plumbing.example.test/book",
+          held: expect.stringContaining("frequency cap"),
+        }),
+      ]);
+      expect(new Date(String(rows[0]?.sendAt)).getTime()).toBeGreaterThan(Date.now() - 1_000);
+      expect(await listed(record, "waiting")).toEqual([]);
+    }
+    // The thread reads it too, as ours and queued.
+    expect((await conversationOf(pg.db, `outbound:${s.enrollmentId}`))?.entries).toContainEqual(
+      expect.objectContaining({
+        direction: "out",
+        state: "queued",
+        id: `ask:${(await reply()).id}`,
+      }),
+    );
     expect(await threadStatus()).toBeNull();
     expect(await ask()).toEqual({ asked: false, why: "already asked" });
     await expect(desk().approve({ id: (await reply()).id, ...as(s.admin) })).rejects.toThrow(
@@ -134,6 +167,8 @@ describe("an approved follow-up email the frequency cap holds", () => {
       timeout: 30_000,
       interval: 250,
     });
+    // Sent: it leaves Queued.
+    expect(await listed(approvalRecord, "queued")).toEqual([]);
     // The same words and the workflow's campaign, twice: held, then sent.
     expect(calls).toEqual([
       expect.objectContaining({
@@ -174,9 +209,11 @@ describe("an approved follow-up email the frequency cap holds", () => {
     await ask();
     script = [held(3_000)];
     await desk().approve({ id: (await reply()).id, ...as(s.admin) });
+    expect(await listed(approvalRecord, "queued")).toHaveLength(1);
     expect(await desk().drop({ id: (await reply()).id, ...as(s.admin) })).toEqual({
       dropped: true,
     });
+    expect(await listed(approvalRecord, "queued")).toEqual([]);
     await new Promise((r) => setTimeout(r, 7_000));
     expect(await stateOf()).toBe("dropped");
     expect(calls).toHaveLength(1);

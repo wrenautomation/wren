@@ -3,6 +3,7 @@
  * person on every channel, oldest at the top; a reply box that sends on the channel picked, or
  * asks for a yes; and a note box for the team, never sent. R puts you in the reply, N in the note.
  */
+import { segments } from "@wren/channel-sms/templates";
 import type { Permission } from "@wren/core/access";
 import type { Row } from "@wren/core/records/serve";
 import {
@@ -16,6 +17,8 @@ import {
   Icon,
   type IconName,
   InsertSnippet,
+  type MessageKind,
+  MessagePreview,
   PlatformMark,
   ReadAloud,
   type RecordAct,
@@ -515,19 +518,46 @@ export const conversationExtras = (
   };
 };
 
-/** To approve's asked reply: the conversation it answers, read only. */
-export const askedReplyExtras = (detail: unknown): RecordExtras => {
+/**
+ * An asked reply's words as their reader gets them: a text by its parts, an email as our next one
+ * in the thread (`Re:` the last we sent, from the inbox that sent it). A DM or comment has no
+ * frame here.
+ */
+export const replyLooks = (c: Conversation | null, row: Row): MessageKind | null => {
+  if (row.platform === "sms") return { kind: "sms", parts: segments };
+  if (row.platform !== "email") return null;
+  const last = [...(c?.entries ?? [])]
+    .reverse()
+    .find((e) => e.channel === "email" && e.direction === "out" && e.subject?.trim());
+  const subject = last?.subject?.trim();
+  return {
+    kind: "email",
+    ...(last?.who ? { from: last.who } : {}),
+    subject: subject ? (/^re:/i.test(subject) ? subject : `Re: ${subject}`) : null,
+  };
+};
+
+/**
+ * To approve's asked reply, waiting or queued: the message as it will arrive, and the
+ * conversation it answers, read only.
+ */
+export const askedReplyExtras = (detail: unknown, row?: Row): RecordExtras => {
   const c = conversationOf(detail);
-  return c
-    ? {
-        sections: [
-          [
-            `Everything with ${c.who ?? "them"}`,
-            <div key="thread" className="max-h-[480px] overflow-y-auto">
-              <Timeline entries={c.entries} />
-            </div>,
-          ] as [string, ReactNode],
+  const kind = row ? replyLooks(c, row) : null;
+  const body = String(row?.body ?? "");
+  const looks: [string, ReactNode][] =
+    kind && body.trim()
+      ? [["How it looks", <MessagePreview key="looks" message={kind} body={body} />]]
+      : [];
+  const thread: [string, ReactNode][] = c
+    ? [
+        [
+          `Everything with ${c.who ?? "them"}`,
+          <div key="thread" className="max-h-[480px] overflow-y-auto">
+            <Timeline entries={c.entries} />
+          </div>,
         ],
-      }
-    : { sections: [] };
+      ]
+    : [];
+  return { sections: [...looks, ...thread] };
 };

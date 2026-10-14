@@ -877,6 +877,8 @@ export const inboxReplies = pgTable(
     why: text("why"),
     state: varchar("state", { length: 8, enum: INBOX_REPLY_STATES }).notNull().default("waiting"),
     detail: text("detail"),
+    /** A `queued` reply's turn: the cap's `until`, when the delayed release sends it. */
+    sendAt: timestamp("send_at", { withTimezone: true }),
     askedBy: varchar("asked_by", { length: 200 }).notNull(),
     askedAt: timestamp("asked_at", { withTimezone: true }).notNull().defaultNow(),
     decidedBy: varchar("decided_by", { length: 200 }),
