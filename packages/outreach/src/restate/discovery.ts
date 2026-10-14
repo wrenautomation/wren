@@ -63,7 +63,14 @@ import {
 import { ReachRefusal } from "../refusal.js";
 import { scheduleThreads, sendFailed, stillDue } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
-import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
+import {
+  channelsFor,
+  clientDeps,
+  finalRefusal,
+  type ReachDeps,
+  terminalWhy,
+  wakeWatch,
+} from "./index.js";
 import { fireSlots } from "./schedule.js";
 
 export const READS_KEY = "wren";
@@ -434,14 +441,18 @@ export function discoveryHandlers(deps: ReachDeps) {
         const ch = channelsFor(deps, ctx)(plan.account);
         if (!ch?.comment) throw new restate.TerminalError("this account can't comment");
         // The guard again at send: none of ours may already be in the thread.
-        const authors = (await ch.threadAuthors?.(plan.thread.id)) ?? [];
+        const authors =
+          (await ch.threadAuthors?.(plan.thread.id).catch((err) => {
+            throw finalRefusal(err);
+          })) ?? [];
         const met = plan.others.find((o) =>
           authors.some((a) => a.toLowerCase() === o.toLowerCase()),
         );
         if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
         const sent = await ch
           .comment(plan.thread.target ?? plan.thread.id, body)
-          .catch(async (err) => {
+          .catch(async (thrown) => {
+            const err = finalRefusal(thrown);
             if (at && err instanceof restate.TerminalError)
               await ctx.run("send failed", () =>
                 sendFailed(deps.db, "thread", req.id, err.message),

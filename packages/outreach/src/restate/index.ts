@@ -28,6 +28,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
+import { isRefusal } from "@wren/core/content/restate";
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
@@ -377,6 +378,14 @@ export function channelsFor(deps: ReachDeps, ctx: restate.Context) {
     made.set(a.id, ch);
     return ch;
   };
+}
+
+/**
+ * A site's refusal (4xx, `isRefusal`) as the terminal error it is. `restateSites` hands it back
+ * as a SiteCallError, which a handler would retry forever against the journaled answer.
+ */
+export function finalRefusal(err: unknown): unknown {
+  return isRefusal(err) ? new restate.TerminalError(err.message, { errorCode: err.status }) : err;
 }
 
 export function makeReachSender(deps: ReachDeps) {
@@ -1351,9 +1360,14 @@ export function makeReachDesk(deps: ReachDeps) {
           }
           const ch = channelsFor(deps, ctx)(plan.account);
           if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
-          const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];
+          const authors =
+            (await ch.threadAuthors?.(plan.comment.post).catch((err) => {
+              throw finalRefusal(err);
+            })) ?? [];
           await terminal(async () => checkThread(authors, plan.others));
-          const sent = await ch.comment(plan.comment.ref, body);
+          const sent = await ch.comment(plan.comment.ref, body).catch((err) => {
+            throw finalRefusal(err);
+          });
           await answered(sent.ref);
           wakeWatch(ctx);
           return { ref: sent.ref };
@@ -1546,7 +1560,8 @@ export function makeReachDesk(deps: ReachDeps) {
               await ctx
                 .serviceClient<ContentReply>({ name: "Content" })
                 .reply({ platform: post.platform, commentId: post.ref, text: body });
-          } catch (err) {
+          } catch (thrown) {
+            const err = finalRefusal(thrown);
             // A slot that fails for good leaves the schedule, or it would sit queued forever.
             if (at && err instanceof restate.TerminalError)
               await ctx.run("send failed", () =>
