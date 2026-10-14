@@ -8,6 +8,7 @@
 
 import type { Permission, Who } from "@wren/core/access";
 import {
+  AboutProvider,
   AppShell,
   Button,
   ButtonLink,
@@ -504,11 +505,11 @@ export function App() {
       }))
     : undefined;
 
-  const waitingAll = cards.reduce((n, m) => n + appTotal(waiting[m.id]), 0);
   // A phone's bottom tabs at home: Home (Today), then what he opens every day; Apps comes after.
   const dock: DockItem[] | undefined = launcher
     ? [
-        { id: "home", label: "Today", icon: "home", href: launcher, count: waitingAll, on: !open },
+        // Today holds no number: counts sit only where something waits on him (Inbox, To approve).
+        { id: "home", label: "Today", icon: "home", href: launcher, on: !open },
         ...dockOf(cards).map(({ app: m, pick }) => {
           const page = pick.page ? m.pages.find((p) => p.id === pick.page) : undefined;
           return {
@@ -554,7 +555,7 @@ export function App() {
             onPick: pick,
           }}
           launcher={launcher}
-          home={launcher ? { label: "Today", href: launcher, count: waitingAll } : undefined}
+          home={launcher ? { label: "Today", href: launcher } : undefined}
           areas={areas}
           dock={dock}
           bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
@@ -643,29 +644,31 @@ export function App() {
           ) : open ? (
             <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
               <LookProvider value={wren ? myLook : null}>
-                <Suspense fallback={<Loading lines={8} heading />}>
-                  {"Page" in open.page ? (
-                    open.page.across ? (
-                      <HandSwitch
-                        {...props(current.id)}
-                        across={open.page.across}
-                        path={pathOf(open.module, open.page)}
-                      >
+                <AboutProvider value={open.page.about}>
+                  <Suspense fallback={<Loading lines={8} heading />}>
+                    {"Page" in open.page ? (
+                      open.page.across ? (
+                        <HandSwitch
+                          {...props(current.id)}
+                          across={open.page.across}
+                          path={pathOf(open.module, open.page)}
+                        >
+                          <open.page.Page {...props(current.id)} />
+                        </HandSwitch>
+                      ) : (
                         <open.page.Page {...props(current.id)} />
-                      </HandSwitch>
+                      )
                     ) : (
-                      <open.page.Page {...props(current.id)} />
-                    )
-                  ) : (
-                    <TemplatePage
-                      {...props(current.id)}
-                      app={open.module.name}
-                      page={open.page}
-                      path={pathOf(open.module, open.page)}
-                      id={route.path[2]}
-                    />
-                  )}
-                </Suspense>
+                      <TemplatePage
+                        {...props(current.id)}
+                        app={open.module.name}
+                        page={open.page}
+                        path={pathOf(open.module, open.page)}
+                        id={route.path[2]}
+                      />
+                    )}
+                  </Suspense>
+                </AboutProvider>
               </LookProvider>
             </Contained>
           ) : wren ? (
