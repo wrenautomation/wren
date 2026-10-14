@@ -34,7 +34,17 @@ import {
 } from "lucide-react";
 import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
-import { type Action, applies, blockedOf, type Call, runs, sayBlocked, useRun } from "./action.js";
+import {
+  type Action,
+  applies,
+  blockedOf,
+  type Call,
+  inputOf,
+  runs,
+  sayBlocked,
+  useHeld,
+  useRun,
+} from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
@@ -94,6 +104,7 @@ import {
   rowTarget,
 } from "./record-access.js";
 import { recordHead } from "./record-head.js";
+import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { sortTip } from "./view-says.js";
 
@@ -213,10 +224,22 @@ export interface RecordTemplateProps {
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
   head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined;
   /**
+   * The page's own reply box (a conversation's, which picks the channel): a list row's Reply
+   * opens it under the row, from the record's detail. Its `act` runs the type's inline actions.
+   * `when` names the rows it answers, as field → states; every row when left out.
+   */
+  reply?: RowReplyBox | undefined;
+  /**
    * The rows that wait on the viewer, as field → states (a page's `count`). A list puts them first
    * under "Needs you", each edged with the wren mark, and the rest under "For info", quieter.
    */
   needs?: Needs | undefined;
+}
+
+/** A page's reply box under a list row, and the rows it answers. */
+export interface RowReplyBox {
+  when?: Needs | undefined;
+  box: (detail: unknown, row: Row, act: RecordAct) => ReactNode;
 }
 
 /** Field → the states in which a row waits on the viewer. */
@@ -777,7 +800,7 @@ export function NotHere() {
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts, head, title, needs } = props;
+  const { record, api, place, empty, columns, extras, acts, head, title, needs, reply } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
@@ -796,6 +819,7 @@ export function RecordList(props: RecordTemplateProps) {
       head={head}
       title={title}
       needs={needs}
+      reply={reply}
     />
   );
 }
@@ -1073,6 +1097,7 @@ function List({
   head,
   title,
   needs,
+  reply,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1085,6 +1110,7 @@ function List({
   head: RecordTemplateProps["head"];
   title: string | undefined;
   needs: Needs | undefined;
+  reply: RecordTemplateProps["reply"];
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -1098,11 +1124,44 @@ function List({
     ...(at > 1 ? { offset: offsetOf(at) } : {}),
   };
   const page = useLoad(JSON.stringify(listed), () => api.list(listed), api);
+  // Rows set aside wait out their undo off the list; it reads again once their call lands.
+  const held = useHeld(meta.name.many);
+  const landed = useRef(held.landed);
+  useEffect(() => {
+    if (landed.current === held.landed) return;
+    landed.current = held.landed;
+    page.retry();
+  }, [held.landed, page.retry]);
+  const many = meta.name.many;
+  const actions = actsOf(meta, acts);
+  /** The rows the last action changed: they wash once the list has read them again. */
+  const [changed, setChanged] = useState<Set<string>>(new Set());
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [rev, setRev] = useState(0);
+  const acted = (ids: (string | number)[]) => {
+    page.retry();
+    setRev((n) => n + 1);
+    setPicked(new Set());
+    setChanged(new Set(ids.map(String)));
+  };
+  const {
+    run,
+    send,
+    busy: acting,
+    running,
+    dialog,
+    gone,
+  } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
   // What waits on the viewer comes first; `split` is where "For info" starts.
   const loaded = page.data?.rows;
   const { rows, split } = useMemo(
-    () => tiersOf(loaded ?? [], needs, !!grouped || !!ask.sort),
-    [loaded, needs, grouped, ask.sort],
+    () =>
+      tiersOf(
+        (loaded ?? []).filter((r) => !held.ids.has(String(r.id)) && !gone.has(String(r.id))),
+        needs,
+        !!grouped || !!ask.sort,
+      ),
+    [loaded, needs, grouped, ask.sort, held.ids, gone],
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
@@ -1147,32 +1206,88 @@ function List({
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
   const openId = params.get(meta.name.one);
   const [cursor, setCursor] = useState(-1);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
-  const [rev, setRev] = useState(0);
-  /** The rows the last action changed: they wash once the list has read them again. */
-  const [changed, setChanged] = useState<Set<string>>(new Set());
   const body = useRef<HTMLTableSectionElement>(null);
   const cards = useRef<HTMLUListElement>(null);
-  const many = meta.name.many;
-  const actions = actsOf(meta, acts);
-  const acted = (ids: (string | number)[]) => {
-    page.retry();
-    setRev((n) => n + 1);
-    setPicked(new Set());
-    setChanged(new Set(ids.map(String)));
+  /** The row a box is open under: an action's words (a reason, a reply), or the page's reply. */
+  const [boxed, setBoxed] = useState<{ id: string; action: Action | null } | null>(null);
+  /** A row's action from where it sits: one that asks for words opens a box under the row. */
+  const rowRun = (a: Action, r: Row) => {
+    if (sayBlocked(a, r)) return;
+    if (a.ask) setBoxed({ id: String(r.id), action: a });
+    else run(a, [r.id], startOf(a, r));
   };
-  const { run, busy: acting, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  const replyTo = reply ? (r: Row) => setBoxed({ id: String(r.id), action: null }) : null;
+  /** Reply on this row, when the page answers it. */
+  const replyOn = (r: Row) =>
+    replyTo && (!reply?.when || waitsOn(reply.when, r)) ? () => replyTo(r) : null;
+  const boxFor = (r: Row) => {
+    if (boxed?.id !== String(r.id)) return null;
+    const close = () => setBoxed(null);
+    const a = boxed.action;
+    if (!a)
+      return reply ? (
+        <RowReply
+          meta={meta}
+          api={api}
+          acts={acts}
+          row={r}
+          reply={reply}
+          acted={acted}
+          close={close}
+        />
+      ) : null;
+    const start = startOf(a, r);
+    return (
+      <AskBox
+        action={a}
+        start={start}
+        close={close}
+        send={(text) => {
+          const field = a.ask?.field ?? "text";
+          return send(a, [r.id], inputOf(a, { ids: [r.id], [field]: start }, text));
+        }}
+      />
+    );
+  };
 
   const openAt = (i: number, replace = false) => {
     const r = rows[i];
     if (r) place.go(place.link({ [meta.name.one]: String(r.id), tab: null }), replace);
   };
   const openIndex = openId === null ? -1 : rows.findIndex((r) => String(r.id) === openId);
+  // A record set aside from its own panel leaves with it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: place changes every render.
+  useEffect(() => {
+    if (openId !== null && held.ids.has(openId))
+      place.go(place.link({ [meta.name.one]: null, tab: null }), true);
+  }, [openId, held.ids]);
 
   // ↑/↓ (or J/K) walk the rows (or the open records), Enter opens, Escape closes, an action's key runs it.
-  const keys = useRef({ cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run });
-  keys.current = { cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run };
+  const keys = useRef({
+    cursor,
+    openIndex,
+    rows,
+    openAt,
+    place,
+    one: meta.name.one,
+    actions,
+    run,
+    rowRun,
+    replyOn,
+  });
+  keys.current = {
+    cursor,
+    openIndex,
+    rows,
+    openAt,
+    place,
+    one: meta.name.one,
+    actions,
+    run,
+    rowRun,
+    replyOn,
+  };
   useEffect(() => {
     const press = (e: KeyboardEvent) => {
       if (typing(e)) return;
@@ -1195,7 +1310,19 @@ function List({
         const a = keyed(e, k.actions, row);
         if (a && row) {
           e.preventDefault();
-          if (!sayBlocked(a, row)) k.run(a, [row.id], startOf(a, row));
+          // With the record open, its words are asked beside it, as before.
+          if (k.openIndex < 0) k.rowRun(a, row);
+          else if (!sayBlocked(a, row)) k.run(a, [row.id], startOf(a, row));
+        } else if (
+          row &&
+          k.replyOn(row) &&
+          k.openIndex < 0 &&
+          e.key === "r" &&
+          !e.metaKey &&
+          !e.ctrlKey
+        ) {
+          e.preventDefault();
+          k.replyOn(row)?.();
         }
       }
     };
@@ -1410,8 +1537,16 @@ function List({
                             openAt(i);
                           }}
                           onSettled={() => setChanged(new Set())}
-                          swipes={swipesOf(actions, r, (a) => run(a, [r.id], startOf(a, r)))}
+                          swipes={withReply(
+                            swipesOf(actions, r, (a) => rowRun(a, r)),
+                            replyOn(r),
+                          )}
                         />
+                        {boxed?.id === id ? (
+                          <li className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3">
+                            {boxFor(r)}
+                          </li>
+                        ) : null}
                       </Fragment>
                     );
                   })}
@@ -1498,11 +1633,14 @@ function List({
                           />
                         ) : null;
                       const waiting = waits(r);
+                      const replies = replyOn(r);
+                      const { main, more } = rowActsOf(actions, r, !!replies);
                       return (
                         <Fragment key={id}>
                           {head}
                           <tr
                             data-row={i}
+                            data-cursor={i === cursor && !open ? "" : undefined}
                             onClick={(e) => {
                               // Its checkbox, links and buttons do their own thing.
                               if ((e.target as Element).closest("input, a, button")) return;
@@ -1514,11 +1652,12 @@ function List({
                             }}
                             className={cn(
                               "group h-(--layout-row) cursor-pointer border-b pointer-coarse:h-12 border-(--ui-hair)",
+                              // The row's ground, which its actions sit over at its right end.
                               open
-                                ? "bg-(--ui-fill)"
+                                ? "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]"
                                 : i === cursor
-                                  ? "bg-(--ui-hover)"
-                                  : "hover:bg-(--ui-hover)",
+                                  ? "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]"
+                                  : "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]",
                               changed.has(id) && !page.loading && "animate-ui-changed",
                             )}
                           >
@@ -1587,18 +1726,26 @@ function List({
                                 )}
                               </td>
                             ))}
-                            <td className="pr-2 text-right">
-                              <a
-                                href={place.page(id)}
-                                aria-label={`Open ${titleOf(meta, r)}'s page`}
-                                {...tipProps("Open as a page", { as: "none" })}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
-                              >
-                                <Maximize2 className="size-3.5" />
-                              </a>
+                            <td className="relative pr-2 text-right">
+                              <RowActions
+                                title={titleOf(meta, r)}
+                                main={main}
+                                more={more}
+                                reply={replies}
+                                page={place.page(id)}
+                                busy={acting}
+                                run={(a) => rowRun(a, r)}
+                              />
                             </td>
                           </tr>
+                          {boxed?.id === id ? (
+                            <tr className="border-b border-(--ui-hair) bg-(--ui-wash)">
+                              <td />
+                              <td colSpan={cols.length + 1} className="px-3 py-3">
+                                {boxFor(r)}
+                              </td>
+                            </tr>
+                          ) : null}
                         </Fragment>
                       );
                     })}
@@ -1750,6 +1897,55 @@ export function swipesOf(
     lead: lead ? act(lead, true) : undefined,
     trail: trail.map((a) => act(a, false)),
   };
+}
+
+/** A phone row's swipes with the page's Reply added on the left, when the page has one. */
+export function withReply(swipes: Swipes | null, reply: (() => void) | null): Swipes | null {
+  if (!reply) return swipes;
+  const act = { id: "reply", label: "Reply", tone: "ink" as const, run: reply };
+  return { lead: swipes?.lead, trail: [...(swipes?.trail ?? []).slice(0, 1), act] };
+}
+
+/** The page's own reply box under a row, from the record's detail. */
+function RowReply({
+  meta,
+  api,
+  acts,
+  row,
+  reply,
+  acted,
+  close,
+}: {
+  meta: RecordMeta;
+  api: RecordsApi;
+  acts: RecordActs | undefined;
+  row: Row;
+  reply: RowReplyBox;
+  acted: (ids: (string | number)[]) => void;
+  close: () => void;
+}) {
+  const id = String(row.id);
+  const got = useLoad(`${meta.id}:${id}:reply`, () => api.get({ record: meta.id, id }), api);
+  const here: Target = rowTarget(meta, row, api.access?.client ?? "");
+  if (!api.access) delete here.client;
+  const act: RecordAct = async (action, input = {}) => {
+    const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
+    if (!a || !acts) throw new Error("You can't do that here.");
+    const out = await acts.call(a.handler, { ids: [row.id], ...input });
+    acted([row.id]);
+    return out;
+  };
+  return (
+    <ReplyFrame close={close}>
+      {got.data ? (
+        reply.box(got.data.detail, got.data.row, act)
+      ) : got.error ? (
+        <LoadFailed error={got.error} onRetry={got.retry} />
+      ) : (
+        <div className="h-28 animate-pulse rounded-(--ui-radius) bg-(--ui-fill)" />
+      )}
+    </ReplyFrame>
+  );
 }
 
 /**

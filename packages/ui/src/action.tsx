@@ -2,7 +2,15 @@
  * A record's actions: `useRun` asks first when the action says to, calls the handler by id, says
  * how it went in a toast, and offers undo.
  */
-import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { toast } from "sonner";
 import type { Access } from "./access.js";
 import {
@@ -197,6 +205,58 @@ export function sayBlocked(action: Action, row: Record<string, unknown>): boolea
   const why = blockedOf(action, row);
   if (why) toast(why);
   return !!why;
+}
+
+/** Words that set a record aside rather than move it on. */
+const ASIDE =
+  /\b(delete|remove|archive|take out|void|drop|hide|dismiss|withdraw|retire|skip|reject|decline|don't|pass)\b/i;
+
+/** Does an action by this label set a record aside? */
+export const setsAside = (label: string) => ASIDE.test(label);
+
+/**
+ * It sets a record aside and has no handler to take it back (Delete, Archive, Skip): it never
+ * asks. The record leaves at once with an undo toast, and the call goes when the toast does.
+ */
+export const held = (a: Action) =>
+  !a.undo && !a.form && !a.ask && !a.optimistic && ASIDE.test(a.label);
+
+/** Records set aside and waiting out their undo, by `many` and id; `landed` counts calls made. */
+const HELD = new Set<string>();
+let heldNow: { keys: ReadonlySet<string>; landed: number } = { keys: new Set(), landed: 0 };
+const heldSeen = new Set<() => void>();
+const heldKey = (many: string, id: string | number) => `${many}\u0000${id}`;
+function heldSet(keys: readonly string[], on: boolean, landed = false) {
+  for (const k of keys) on ? HELD.add(k) : HELD.delete(k);
+  heldNow = { keys: new Set(HELD), landed: heldNow.landed + (landed ? 1 : 0) };
+  for (const f of heldSeen) f();
+}
+const heldWatch = (f: () => void) => {
+  heldSeen.add(f);
+  return () => void heldSeen.delete(f);
+};
+/** Calls still inside their undo window: a closing tab makes them now. */
+const PENDING = new Set<() => void>();
+if (typeof addEventListener === "function")
+  addEventListener("pagehide", () => {
+    for (const go of [...PENDING]) go();
+  });
+
+/**
+ * The ids of `many` set aside now (a list leaves them out), and a count that moves each time a
+ * held call lands (a list reads again).
+ */
+export function useHeld(many: string): { ids: ReadonlySet<string>; landed: number } {
+  const now = useSyncExternalStore(
+    heldWatch,
+    () => heldNow,
+    () => heldNow,
+  );
+  const ids = useMemo(() => {
+    const at = heldKey(many, "");
+    return new Set([...now.keys].filter((k) => k.startsWith(at)).map((k) => k.slice(at.length)));
+  }, [now.keys, many]);
+  return { ids, landed: now.landed };
 }
 
 /** A form's values: each field as typed, else as its `from` makes it. */
@@ -420,6 +480,12 @@ export function useRun(
   names: { one: string; many: string },
 ): {
   run: (action: Action, ids: (string | number)[], start?: string) => void;
+  /** Runs it with this input, no dialog (a row's own box): true once it worked. */
+  send: (
+    action: Action,
+    ids: (string | number)[],
+    input: Record<string, unknown>,
+  ) => Promise<boolean>;
   busy: boolean;
   running: { action: string; ids: (string | number)[] } | null;
   dialog: ReactNode;
@@ -462,14 +528,71 @@ export function useRun(
       after([]);
     }
   };
+  /** Out of the list now with an undo toast; the call goes when the toast does. */
+  const hold = (action: Action, ids: (string | number)[]) => {
+    const keys = ids.map((id) => heldKey(names.many, id));
+    setAsked(null);
+    heldSet(keys, true);
+    let settled = false;
+    const settle = () => {
+      if (settled) return false;
+      settled = true;
+      clearTimeout(timer);
+      PENDING.delete(commit);
+      return true;
+    };
+    function commit() {
+      if (!settle()) return;
+      void call(action.handler, { ids }).then(
+        () => {
+          heldSet([], true, true);
+          after(ids);
+          // Out of the held set once the list has read again without them.
+          setTimeout(() => heldSet(keys, false), 4000);
+        },
+        (err: unknown) => {
+          heldSet(keys, false);
+          toast.error(
+            `${action.label} failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        },
+      );
+    }
+    const timer = setTimeout(commit, UNDO_MS);
+    PENDING.add(commit);
+    let line = `${action.label}: done`;
+    try {
+      line = action.done?.(undefined) ?? line;
+    } catch {}
+    toast.success(line, {
+      duration: UNDO_MS,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (!settle()) return void toast.error("Too late to undo.");
+          heldSet(keys, false);
+          toast.success("Undone");
+        },
+      },
+    });
+  };
   // A form stays open until it works, so a refusal doesn't lose what was typed.
-  const go = async (action: Action, ids: (string | number)[], input: Record<string, unknown>) => {
-    if (action.optimistic && !action.form && !action.undo) return goAhead(action, ids, input);
+  const go = async (
+    action: Action,
+    ids: (string | number)[],
+    input: Record<string, unknown>,
+  ): Promise<boolean> => {
+    if (action.optimistic && !action.form && !action.undo) {
+      await goAhead(action, ids, input);
+      return true;
+    }
     if (!action.form) setAsked(null);
     setRunning({ action: action.id, ids });
     let changed: (string | number)[] = [];
+    let ok = false;
     try {
       const answer = await call(action.handler, input);
+      ok = true;
       setAsked(null);
       const line = action.done?.(answer) ?? `${action.label}: done`;
       const undo = action.undo;
@@ -505,9 +628,11 @@ export function useRun(
       setRunning(null);
       after(changed);
     }
+    return ok;
   };
   const run = (action: Action, ids: (string | number)[], start = "") => {
     if ((!ids.length && (!action.form || action.each)) || busy) return;
+    if (held(action)) return hold(action, ids);
     if (action.undo && !action.ask && !action.form) return void go(action, ids, { ids });
     setText(start);
     setTyped({});
@@ -612,7 +737,9 @@ export function useRun(
       </DialogContent>
     </Dialog>
   );
-  return { run, busy, running, dialog, gone };
+  const send = (action: Action, ids: (string | number)[], input: Record<string, unknown>) =>
+    busy ? Promise.resolve(false) : go(action, ids, input);
+  return { run, send, busy, running, dialog, gone };
 }
 
 /** The one place toasts show; an app mounts it once. */
