@@ -91,3 +91,104 @@ export function dockOf<T extends { id: string; pages: readonly { id: string }[] 
         out.push({ app, pick: { app: app.id } });
   return out.slice(0, size);
 }
+
+/** One of an app's own bottom tabs on a phone: a page, under a short name and its icon. */
+export interface TabPick {
+  page: string;
+  label?: string;
+  icon: IconName;
+}
+
+/**
+ * The pages each app's phone tabs lead with, as a phone app's tab bar would: three a day's work
+ * runs through, the rest under More. An app named here gets these; any other gets a tab per page
+ * or group, in its own order.
+ */
+export const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
+  marketing: [
+    { page: "plan", icon: "calendar" },
+    { page: "write", icon: "write" },
+    { page: "engage", icon: "reply" },
+  ],
+  inbox: [
+    { page: "overview", label: "All", icon: "inbox" },
+    { page: "waiting", label: "Waiting", icon: "clock" },
+    { page: "approve", label: "Approve", icon: "check" },
+  ],
+};
+
+/** A page's icon by what its name says, for a tab no pick names. */
+const ICONS: readonly [RegExp, IconName][] = [
+  [/overview|home|numbers|board|health/, "board"],
+  [/call|voice|phone|latency/, "phone"],
+  [/mail|email|inbox|outbound|newsletter/, "mail"],
+  [/repl|thread|chat|text|mention|ask|question/, "chat"],
+  [/people|client|team|role|grant|contact|lead|compan/, "people"],
+  [/plan|schedule|calendar|today|month/, "calendar"],
+  [/setting|setup|layout|look|theme|field|rule/, "sliders"],
+  [/link|domain|connector|webhook/, "link"],
+  [/search|keyword|answer/, "search"],
+  [/video|reel|media|test/, "play"],
+  [/review|star|keep/, "star"],
+  [/money|spend|pay|card|billing|subscription|economic|cohort|account/, "money"],
+  [/flag|issue|stall|hold|check|parked/, "flag"],
+  [/chart|visit|session|funnel|signal|usage|report|result|event|metric/, "chart"],
+  [/page|form|submission|site|doc|template|paperwork|deliverable/, "page"],
+  [/run|execution|loop|agent|workflow|canvas|handler|ai|tool/, "bolt"],
+  [/approv|done/, "check"],
+  [/write|draft|piece|sop|snippet|section|note|hook/, "write"],
+  [/ad|campaign|format|set/, "billboard"],
+  [/source|catalog|map|mod|librar|sequence/, "stack"],
+];
+export const pageIcon = (id: string, label = ""): IconName =>
+  ICONS.find(([re]) => re.test(`${id} ${label}`.toLowerCase()))?.[1] ?? "list";
+
+interface Tab {
+  id: string;
+  label: string;
+  href: string;
+  count?: number | undefined;
+  group?: string | undefined;
+}
+/** A phone tab: the shell's DockItem, with the pages it holds. */
+export interface PhoneTab {
+  id: string;
+  label: string;
+  icon: IconName;
+  href: string;
+  count?: number;
+  holds: string[];
+}
+
+/**
+ * An app's phone tabs, before the shell fits them to the bar: its picks first, then a tab per
+ * run of the rest (a group of pages is one tab, named by the group). The shell moves what
+ * doesn't fit under More.
+ */
+export function phoneTabsOf(app: string, tabs: readonly Tab[]): PhoneTab[] {
+  const tab = (t: Tab, label = t.label, icon = pageIcon(t.id, t.label), holds = [t.id]) => ({
+    id: t.id,
+    label,
+    icon,
+    href: t.href,
+    holds,
+    ...(t.count !== undefined ? { count: t.count } : {}),
+  });
+  const picks = (PHONE_TABS[app] ?? []).flatMap((p) => {
+    const t = tabs.find((x) => x.id === p.page);
+    return t ? [tab(t, p.label ?? t.label, p.icon)] : [];
+  });
+  const picked = new Set(picks.map((p) => p.id));
+  const rest: PhoneTab[] = [];
+  for (const t of tabs) {
+    if (picked.has(t.id)) continue;
+    const last = rest.at(-1);
+    const prior = last && tabs.find((x) => x.id === last.id);
+    if (t.group && prior?.group === t.group && last) {
+      last.holds.push(t.id);
+      last.label = t.group;
+      if (t.count !== undefined) last.count = (last.count ?? 0) + t.count;
+    } else rest.push(tab(t));
+  }
+  return [...picks, ...rest];
+}

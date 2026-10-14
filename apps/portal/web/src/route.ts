@@ -30,10 +30,11 @@ const MOVED = "wren:route";
 
 /** Go to `to` inside the app. `replace` swaps the current history entry instead of adding one. */
 export function navigate(to: string, replace = false) {
-  // The same address again (the current page's own link) adds no entry to go back through.
-  if (replace || to === location.pathname + location.search + location.hash)
-    history.replaceState(null, "", to);
-  else history.pushState(null, "", to);
+  const here = location.pathname + location.search + location.hash;
+  // The same address again (the current page's own link) adds no entry to go back through. Each
+  // entry keeps where it came from, so a phone's back button can step back through history.
+  if (replace || to === here) history.replaceState(history.state, "", to);
+  else history.pushState({ from: here }, "", to);
   dispatchEvent(new Event(MOVED));
 }
 

@@ -40,7 +40,7 @@ import {
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
-import { areasOf, dockOf } from "./areas.js";
+import { areasOf, dockOf, phoneTabsOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -523,6 +523,22 @@ export function App() {
       ]
     : undefined;
 
+  // The app's action opens its page: one way in, not a tab as well.
+  const openTabs = open
+    ? open.module.pages
+        .filter((p) => (!p.hidden && p.id !== action?.page) || p.id === lit)
+        .flatMap((p) => [
+          {
+            id: p.id,
+            label: p.label,
+            href: tabOf(open.module, open.page, p, route.params),
+            ...(p.group ? { group: p.group } : {}),
+            ...(counts[p.id] ? { count: counts[p.id] } : {}),
+          },
+          ...(p.id === open.module.nav?.after ? extra : []),
+        ])
+    : [];
+
   return (
     <SnippetsProvider source={snippets}>
       {/* A failure's raw text, under its plain sentence: Wren's team only. */}
@@ -550,19 +566,8 @@ export function App() {
                   name: open.module.name,
                   icon: open.module.icon,
                   href: firstOf(open.module),
-                  // The app's action opens its page: one way in, not a tab as well.
-                  tabs: open.module.pages
-                    .filter((p) => (!p.hidden && p.id !== action?.page) || p.id === lit)
-                    .flatMap((p) => [
-                      {
-                        id: p.id,
-                        label: p.label,
-                        href: tabOf(open.module, open.page, p, route.params),
-                        ...(p.group ? { group: p.group } : {}),
-                        ...(counts[p.id] ? { count: counts[p.id] } : {}),
-                      },
-                      ...(p.id === open.module.nav?.after ? extra : []),
-                    ]),
+                  tabs: openTabs,
+                  dock: phoneTabsOf(open.module.id, openTabs),
                   current: lit,
                   action:
                     action && action.page !== open.page.id ? (
@@ -616,6 +621,8 @@ export function App() {
             ) : null
           }
           onGo={navigate}
+          at={`${location.pathname}${location.search}`}
+          deep={!!open && route.path.length > 2}
           wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
         >
           {!current ? (

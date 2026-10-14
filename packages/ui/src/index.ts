@@ -181,6 +181,8 @@ export {
   type Variant,
 } from "./palette-brand.js";
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
+export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
+export { runs as tabRuns } from "./phone-nav.js";
 export { DeviceFrame, type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";

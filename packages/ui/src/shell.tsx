@@ -17,7 +17,6 @@ import {
   useState,
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet.js";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
@@ -32,6 +31,17 @@ import {
   useShowKeys,
 } from "./frame.js";
 import { Icon, type IconName } from "./icons.js";
+import { headed, runs, total } from "./phone-nav.js";
+import {
+  AppsSheet,
+  MoreSheet,
+  PhoneTabs as PhoneBar,
+  PhonePull,
+  PhoneTop,
+  usePhone,
+  usePhoneWalk,
+  useScrollKeep,
+} from "./phone-shell.js";
 import { useHoverMenu } from "./safe-triangle.js";
 import { type Theme, usePageTheme } from "./theme.js";
 
@@ -68,6 +78,8 @@ export interface OpenApp {
   current: string;
   /** Its one button, at the head's right. */
   action?: ReactNode;
+  /** A phone's bottom tabs in it: its daily pages first. Left out, one per run of its pages. */
+  dock?: DockItem[] | undefined;
 }
 
 /** An app in the sidebar, under its area. */
@@ -109,6 +121,8 @@ export interface DockItem {
   count?: number | undefined;
   /** It's on screen. */
   on?: boolean | undefined;
+  /** In an app's tabs: the pages under it (a group's), when more than its own id. */
+  holds?: string[] | undefined;
 }
 
 /** His pinned pages, on the rail of every app, and the button that pins the one on screen. */
@@ -166,6 +180,8 @@ export function AppShell({
   display,
   customize,
   onGo,
+  at,
+  deep = false,
   className,
   children,
 }: {
@@ -199,6 +215,10 @@ export function AppShell({
   customize?: ReactNode;
   /** Opens a page in the app, for ⌥↑ and ⌥↓. */
   onGo?: ((href: string) => void) | undefined;
+  /** The address on screen, search and all: a phone keeps each tab's walk by it. */
+  at?: string | undefined;
+  /** A record's own page, under its list: a phone's tabs give way to its buttons. */
+  deep?: boolean | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
@@ -207,10 +227,15 @@ export function AppShell({
   const root = useRef<HTMLDivElement>(null);
   const d = display?.display ?? DISPLAY;
   const [keys, setKeys] = useState(false);
-  // A phone's Menu: every app, in a drawer. A new page shuts it.
-  const [menu, setMenu] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page shuts the menu.
-  useEffect(() => setMenu(false), [page]);
+  // A phone's sheets: every app, and the app's pages past its tabs. A new page shuts them.
+  const [sheet, setSheet] = useState<"apps" | "more" | null>(null);
+  const here = at ?? page;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page shuts them.
+  useEffect(() => setSheet(null), [here]);
+  const phone = usePhone();
+  const walk = usePhoneWalk({ app, dock, home, at: here });
+  const main = useRef<HTMLElement>(null);
+  useScrollKeep(phone, here);
   useFrameKeys(display, app, onGo, () => setKeys((o) => !o));
   useShowKeys(useCallback(() => setKeys(true), []));
   // Rows, counts and motion reach the popups too, which sit outside the frame.
@@ -224,7 +249,8 @@ export function AppShell({
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page starts at its top.
   useEffect(() => {
     scroller.current?.scrollTo(0, 0);
-    scrollTo(0, 0);
+    // A phone's window scroll is kept per page instead (useScrollKeep).
+    if (!phone) scrollTo(0, 0);
   }, [page]);
 
   // Every app by area: the sidebar, which on a computer also holds whose workspace this is and
@@ -240,6 +266,7 @@ export function AppShell({
       ref={root}
       style={displayVars(d) as CSSProperties}
       data-side={folded ? "icons" : "full"}
+      data-phone-nav={nav ? "" : undefined}
       className={cx(
         "relative",
         nav
@@ -262,6 +289,11 @@ export function AppShell({
         className={cx(
           "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[calc(52px+env(safe-area-inset-top))] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2 max-[900px]:pt-[env(safe-area-inset-top)]",
           nav && "min-[901px]:contents",
+          // A phone: inside an app the bar at the top takes its place, and these move to Apps.
+          nav && app && "max-[900px]:hidden",
+          nav &&
+            !app &&
+            "max-[900px]:sticky max-[900px]:top-0 max-[900px]:z-20 max-[900px]:border-b max-[900px]:border-(--ui-hair) max-[900px]:bg-(--ui-glass) max-[900px]:backdrop-blur-[16px]",
         )}
       >
         <div
@@ -374,7 +406,13 @@ export function AppShell({
             className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
             ref={scroller}
           >
-            {app ? <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} /> : null}
+            {app ? (
+              nav ? (
+                <PhoneTop app={app} walk={walk} at={here} main={main} pins={pins} deep={deep} />
+              ) : (
+                <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} />
+              )
+            ) : null}
             <main
               className={cx(
                 // His text size: the page alone, so the frame's controls stay put.
@@ -388,6 +426,7 @@ export function AppShell({
                 wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
               )}
               id="main"
+              ref={main}
               tabIndex={-1}
             >
               <FrameProvider value={display ?? null}>{children}</FrameProvider>
@@ -397,67 +436,46 @@ export function AppShell({
       </div>
       {nav ? (
         <>
-          <PhoneDock
-            items={dock ?? (home ? [{ ...home, id: "home", icon: "home", on: !app }] : [])}
-            onMenu={() => setMenu(true)}
+          <PhonePull on={phone && !deep} app={!!app} />
+          <PhoneBar
+            walk={walk}
+            app={app}
+            hidden={deep}
+            more={sheet === "more"}
+            onApps={() => setSheet("apps")}
+            onMore={() => setSheet("more")}
           />
-          <Sheet open={menu} onOpenChange={setMenu}>
-            <SheetContent
-              side="left"
-              className="w-[min(320px,86vw)] gap-0 bg-(--ui-canvas) p-0 min-[901px]:hidden"
-              // A tap on any link shuts it, even one to the page on screen.
-              onClick={(e) => {
-                if ((e.target as Element).closest("a")) setMenu(false);
-              }}
-            >
-              <SheetTitle className="sr-only">Every app</SheetTitle>
-              <SideNav app={app} home={home} areas={areas} pins={pins} folded={false} drawer />
-            </SheetContent>
-          </Sheet>
+          {phone && sheet === "apps" ? (
+            <AppsSheet
+              head={
+                <>
+                  <WorkspacePick workspace={workspace} />
+                  {workspace.chip ? (
+                    <a
+                      className="flex-none bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline"
+                      href={workspace.chip.href}
+                    >
+                      {workspace.chip.label}
+                    </a>
+                  ) : null}
+                  <div className="ml-auto flex flex-wrap items-center gap-1.5">{actions}</div>
+                </>
+              }
+              home={home}
+              areas={areas ?? []}
+              pins={pins}
+              app={app}
+              walk={walk}
+              onClose={() => setSheet(null)}
+            />
+          ) : null}
+          {phone && app && sheet === "more" ? (
+            <MoreSheet app={app} pages={walk.more} onClose={() => setSheet(null)} />
+          ) : null}
         </>
       ) : null}
       {display ? <KeysSheet open={keys} onClose={() => setKeys(false)} /> : null}
     </div>
-  );
-}
-
-const DOCK_TAB =
-  "relative flex min-w-0 flex-col items-center justify-center gap-1 border-0 bg-transparent p-0 text-[11px] leading-none font-medium text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) active:bg-(--ui-hover) aria-[current=page]:text-(--ui-accent)";
-
-/**
- * A phone's tabs, at the thumb: Today, the pages he opens every day, then Menu, which holds
- * every app. Over the page's foot, clear of the home bar.
- */
-function PhoneDock({ items, onMenu }: { items: DockItem[]; onMenu: () => void }) {
-  return (
-    <nav
-      aria-label="Tabs"
-      className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-(--ui-glass) pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block"
-    >
-      <ul className="grid h-14 list-none auto-cols-fr grid-flow-col">
-        {items.map((t) => (
-          <li key={t.id} className="contents">
-            <a className={DOCK_TAB} href={t.href} aria-current={t.on ? "page" : undefined}>
-              <span className="relative">
-                <Icon name={t.icon} size={21} />
-                {t.count ? (
-                  <span className="absolute -top-1.5 left-3.5 min-w-[18px] bg-(--ui-warn-tint) px-1 text-center text-[11px]/[16px] font-semibold text-(--ui-warn-ink) in-data-[counts=off]:hidden">
-                    {num(t.count)}
-                  </span>
-                ) : null}
-              </span>
-              <span className="max-w-full truncate px-1">{t.label}</span>
-            </a>
-          </li>
-        ))}
-        <li className="contents">
-          <button type="button" className={DOCK_TAB} onClick={onMenu}>
-            <Icon name="menu" size={21} />
-            <span>Menu</span>
-          </button>
-        </li>
-      </ul>
-    </nav>
   );
 }
 
@@ -588,26 +606,6 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
     </div>
   );
 }
-
-/** Tabs in runs of one group; a tab with none is a run of its own. */
-function runs(tabs: NavItem[]): { group: string | undefined; tabs: NavItem[] }[] {
-  const out: { group: string | undefined; tabs: NavItem[] }[] = [];
-  for (const t of tabs) {
-    const last = out.at(-1);
-    if (t.group && last?.group === t.group) last.tabs.push(t);
-    else out.push({ group: t.group, tabs: [t] });
-  }
-  return out;
-}
-
-/** A run that shows its group as a heading: a group of more than one page. */
-const headed = (r: { group: string | undefined; tabs: NavItem[] } | undefined) =>
-  !!r?.group && r.tabs.length > 1;
-
-const total = (tabs: NavItem[]) =>
-  tabs.some((t) => t.count !== undefined)
-    ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
-    : undefined;
 
 /** Folded: the icon alone, centered; what waits is a dot on its corner. */
 const FOLDED_ROW = "relative justify-center px-0";

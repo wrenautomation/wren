@@ -1,6 +1,6 @@
 /** Every app sits in one area, and an area shows only the apps a workspace has. */
 import { describe, expect, it } from "vitest";
-import { AREAS, areasOf, dockOf } from "./areas.js";
+import { AREAS, areasOf, dockOf, pageIcon, phoneTabsOf } from "./areas.js";
 
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
@@ -35,5 +35,37 @@ describe("areas", () => {
       { id: "money", pages: pages("x") },
     ];
     expect(dockOf(client).map((d) => d.app.id)).toEqual(["money", "notes"]);
+  });
+});
+
+describe("phoneTabsOf", () => {
+  const t = (id: string, group?: string, count?: number) => ({
+    id,
+    label: id,
+    href: `/x/${id}`,
+    ...(group ? { group } : {}),
+    ...(count !== undefined ? { count } : {}),
+  });
+  it("leads with an app's picks, then a tab per page or group", () => {
+    const tabs = [t("pieces"), t("plan"), t("write"), t("engage"), t("a", "G", 2), t("b", "G", 3)];
+    const out = phoneTabsOf("marketing", tabs);
+    expect(out.map((x) => [x.id, x.label, x.holds])).toEqual([
+      ["plan", "plan", ["plan"]],
+      ["write", "write", ["write"]],
+      ["engage", "engage", ["engage"]],
+      ["pieces", "pieces", ["pieces"]],
+      ["a", "G", ["a", "b"]],
+    ]);
+    expect(out[4]?.count).toBe(5);
+  });
+  it("skips picks the workspace lacks", () => {
+    expect(phoneTabsOf("inbox", [t("overview"), t("done")]).map((x) => x.label)).toEqual([
+      "All",
+      "done",
+    ]);
+  });
+  it("names an icon from the page", () => {
+    expect(pageIcon("calls")).toBe("phone");
+    expect(pageIcon("zzz")).toBe("list");
   });
 });

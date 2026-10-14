@@ -44,6 +44,7 @@ import {
 import { Button } from "./controls.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
+import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
 
 export type { SavedViewLine };
@@ -65,7 +66,8 @@ export interface KeepApi {
 }
 
 /** A phone's width (Tailwind's `sm`): a list there shows its title and state, not every column. */
-const NARROW = "(max-width: 639px)";
+/** A phone or a tablet held up: cards, and Filter in a sheet. The phone shell's line too. */
+const NARROW = "(max-width: 899.98px)";
 export function useNarrow() {
   return useSyncExternalStore(
     (on) => {
@@ -258,7 +260,40 @@ export function ViewTabs({
 }) {
   const sv = place.params.get("sv");
   const lines = saved?.lines ?? [];
+  const narrow = useNarrow();
   if (!meta.views.length && !lines.length) return null;
+  if (narrow) {
+    // A phone: iOS's segmented control, the saved views in it too. The open saved view's menu
+    // sits beside it.
+    const open = lines.findIndex((v) => String(v.id) === sv);
+    const line = lines[open];
+    return (
+      <div className="flex min-w-0 items-center gap-2">
+        <Segmented
+          label="Views"
+          className="flex-1"
+          items={[
+            ...meta.views.map((v, i) => ({
+              id: v.id,
+              label: v.label,
+              href: place.link({ view: i === 0 ? null : v.id, after: null, sort: null, sv: null }),
+              count: counts ? (counts[v.id] ?? 0) : undefined,
+              on: v.id === current && !sv,
+            })),
+            ...lines.map((v) => ({
+              id: `sv:${v.id}`,
+              label: v.name,
+              href: savedLink(meta, place, v),
+              on: String(v.id) === sv,
+            })),
+          ]}
+        />
+        {line && keep && saved ? (
+          <SavedMenu view={line} at={open} meta={meta} place={place} keep={keep} saved={saved} />
+        ) : null}
+      </div>
+    );
+  }
   return (
     <nav className="flex gap-6 overflow-x-auto border-b border-(--ui-hair)" aria-label="Views">
       {meta.views.map((v, i) => {

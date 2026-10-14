@@ -78,6 +78,8 @@ import {
   ViewTabs,
 } from "./list-bar.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
+import { BottomSheet, onRefresh, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
+import { usePhone } from "./phone-shell.js";
 import {
   type AccessApi,
   AskAccess,
@@ -240,27 +242,47 @@ export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): L
     loading: true,
   }));
   const [attempt, setAttempt] = useState(0);
+  // A phone's pull to refresh reads it again, and waits for the answer.
+  const answered = useRef<(() => void) | null>(null);
+  useEffect(
+    () =>
+      onRefresh(
+        () =>
+          new Promise<void>((done) => {
+            answered.current?.();
+            answered.current = done;
+            setAttempt((n) => n + 1);
+          }),
+      ),
+    [],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads.
   useEffect(() => {
     let live = true;
+    const settled = () => {
+      answered.current?.();
+      answered.current = null;
+    };
     setState((s) => ({
       data: seen?.has(key) ? (seen.get(key) as T) : s.data,
       error: null,
       loading: true,
     }));
-    fn().then(
-      (data) => {
-        if (seen) remember(seen, key, data);
-        if (live) setState({ data, error: null, loading: false });
-      },
-      (err: unknown) =>
-        live &&
-        setState((s) => ({
-          data: s.data,
-          error: err instanceof Error ? err : new Error(String(err)),
-          loading: false,
-        })),
-    );
+    fn()
+      .then(
+        (data) => {
+          if (seen) remember(seen, key, data);
+          if (live) setState({ data, error: null, loading: false });
+        },
+        (err: unknown) =>
+          live &&
+          setState((s) => ({
+            data: s.data,
+            error: err instanceof Error ? err : new Error(String(err)),
+            loading: false,
+          })),
+      )
+      .finally(settled);
     return () => {
       live = false;
     };
@@ -1252,7 +1274,7 @@ function List({
                     return (
                       <Fragment key={id}>
                         {grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
-                          <li className="border-b border-(--ui-hair) bg-(--ui-band) px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
+                          <li className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
                             <span className="inline-flex items-center gap-1.5">
                               <FieldCell field={grouped} cell={r[grouped.key]} />
                             </span>
@@ -1274,6 +1296,7 @@ function List({
                             openAt(i);
                           }}
                           onSettled={() => setChanged(new Set())}
+                          swipes={swipesOf(actions, r, (a) => run(a, [r.id], startOf(a, r)))}
                         />
                       </Fragment>
                     );
@@ -1523,7 +1546,6 @@ function List({
 
       {openId ? (
         <Panel
-          key={openId}
           meta={meta}
           types={types}
           id={openId}
@@ -1575,6 +1597,33 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
 }
 
 /**
+ * A row's swipes on a phone, as Mail's: right for the first action that moves it on (Approve),
+ * left for the ones that set it aside (Skip, Archive), the far one run by a full swipe. Actions
+ * that make a record, or run inside its detail, don't swipe.
+ */
+export function swipesOf(
+  actions: readonly Action[],
+  row: Row,
+  run: (a: Action) => void,
+): Swipes | null {
+  const can = actions.filter((a) => !a.form && !a.inline && runs(a, row));
+  if (!can.length) return null;
+  const aside = (a: Action) => toneOf(a.label, false) === "bad";
+  const lead = can.find((a) => !aside(a));
+  const trail = [...can.filter(aside), ...can.filter((a) => !aside(a) && a !== lead)].slice(0, 2);
+  const act = (a: Action, first: boolean) => ({
+    id: a.id,
+    label: a.label,
+    tone: toneOf(a.label, first),
+    run: () => run(a),
+  });
+  return {
+    lead: lead ? act(lead, true) : undefined,
+    trail: trail.map((a) => act(a, false)),
+  };
+}
+
+/**
  * One row on a phone: a card a thumb can hit, its title on two lines, the first words under it,
  * then three of its fields. A tap opens the record; the box picks it for the bulk actions.
  */
@@ -1591,6 +1640,7 @@ function RowCard({
   onPick,
   onOpen,
   onSettled,
+  swipes,
 }: {
   meta: RecordMeta;
   row: Row;
@@ -1604,13 +1654,14 @@ function RowCard({
   onPick: () => void;
   onOpen: () => void;
   onSettled: () => void;
+  swipes: Swipes | null;
 }) {
   const title = titleOf(meta, row);
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: its title is the link; the card widens the tap.
-    <li
+    <SwipeRow
+      swipes={swipes}
       data-row={index}
-      onClick={(e) => {
+      onTap={(e) => {
         // Its box, links and buttons do their own thing.
         if ((e.target as Element).closest("input, a, button, label")) return;
         onOpen();
@@ -1619,9 +1670,9 @@ function RowCard({
         if (e.animationName === "ui-changed") onSettled();
       }}
       className={cn(
-        "flex min-h-14 cursor-pointer items-start border-b border-(--ui-hair) last:border-b-0 active:bg-(--ui-hover)",
-        open && "bg-(--ui-fill)",
-        changed && "animate-ui-changed",
+        "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-14 [&>[data-face]]:items-start active:[&>[data-face]]:bg-(--ui-hover)",
+        open && "[&>[data-face]]:bg-(--ui-fill)",
+        changed && "[&>[data-face]]:animate-ui-changed",
       )}
     >
       <label className="grid size-12 flex-none cursor-pointer place-items-center">
@@ -1657,7 +1708,7 @@ function RowCard({
           </span>
         ) : null}
       </div>
-    </li>
+    </SwipeRow>
   );
 }
 
@@ -1726,6 +1777,67 @@ export function Panel({
   rev: number;
   onActed: (changed: (string | number)[]) => void;
 }) {
+  const phone = usePhone();
+  const shut = place.link({ [meta.name.one]: null, tab: null });
+  const body = (
+    <RecordBody
+      key={id}
+      meta={meta}
+      types={types}
+      id={id}
+      api={api}
+      place={place}
+      extras={extras}
+      acts={acts}
+      rev={rev}
+      onActed={onActed}
+      docked
+    />
+  );
+  if (phone)
+    // A phone: a sheet over the list, open full height; drag it to half to see the list, or
+    // down to shut it.
+    return (
+      <BottomSheet
+        label={cap(meta.name.one)}
+        start="large"
+        escape={false}
+        onClose={() => place.go(shut, true)}
+        className={ROOT}
+        bodyClassName="px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))]"
+        head={
+          <div className="flex h-11 items-center gap-1 border-b border-(--ui-hair) px-2">
+            <SheetDone />
+            <span className="min-w-0 flex-1 truncate text-center text-[13px] text-(--ui-ink-2)">
+              {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
+            </span>
+            <button
+              type="button"
+              className={ICON}
+              aria-label="Previous"
+              disabled={index <= 0}
+              onClick={() => step(-1)}
+            >
+              <ChevronUp className="size-4" />
+            </button>
+            <button
+              type="button"
+              className={ICON}
+              aria-label="Next"
+              disabled={index < 0 || index >= count - 1}
+              onClick={() => step(1)}
+            >
+              <ChevronDown className="size-4" />
+            </button>
+            <a href={place.page(id)} className={ICON} aria-label="Open as a page">
+              <Maximize2 className="size-3.5" />
+            </a>
+          </div>
+        }
+      >
+        {body}
+      </BottomSheet>
+    );
   return (
     <aside
       aria-label={cap(meta.name.one)}
@@ -1783,21 +1895,27 @@ export function Panel({
           <X className="size-4" />
         </a>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-6">
-        <RecordBody
-          meta={meta}
-          types={types}
-          id={id}
-          api={api}
-          place={place}
-          extras={extras}
-          acts={acts}
-          rev={rev}
-          onActed={onActed}
-          docked
-        />
+      <div
+        key={id}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-6"
+      >
+        {body}
       </div>
     </aside>
+  );
+}
+
+/** A sheet's Done, at its head's left as iOS puts it: slides it shut. */
+function SheetDone() {
+  const sheet = useSheet();
+  return (
+    <button
+      type="button"
+      className="h-11 border-0 bg-transparent px-2 text-[16px] font-semibold text-(--ui-accent) active:opacity-50"
+      onClick={() => sheet?.close()}
+    >
+      Done
+    </button>
   );
 }
 
@@ -1809,9 +1927,10 @@ export function RecordPage({ id, ...props }: RecordTemplateProps & { id: string 
   if (!meta || !types.data) return <ListSkeleton />;
   return (
     <div className={cn(ROOT, "mx-auto grid max-w-[880px] gap-4")}>
+      {/* A phone's bar at the top leads back there instead. */}
       <a
         href={props.place.list}
-        className="w-fit text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+        className="w-fit text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) max-[900px]:in-data-[phone-nav]:hidden"
       >
         ← {cap(meta.name.many)}
       </a>
@@ -1823,6 +1942,7 @@ export function RecordPage({ id, ...props }: RecordTemplateProps & { id: string 
         place={props.place}
         extras={props.extras}
         acts={props.acts}
+        docked
       />
     </div>
   );
@@ -2086,8 +2206,10 @@ export function RecordBody({
             <div
               className={cn(
                 "flex shrink-0 flex-wrap items-center gap-2",
+                // A phone: at the thumb. In a sheet it stays at the screen's foot down to half
+                // height, moving as the sheet does (--sheet-y), then rides down with it.
                 docked &&
-                  "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-10 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:border-t max-sm:border-(--ui-hair) max-sm:bg-(--ui-band) max-sm:px-4 max-sm:pt-2 max-sm:pb-[calc(8px+env(safe-area-inset-bottom))] max-sm:[scrollbar-width:none] max-sm:[&>*]:flex-none",
+                  "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-10 max-[900px]:flex-nowrap max-[900px]:overflow-x-auto max-[900px]:border-t max-[900px]:border-(--ui-hair) max-[900px]:[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] max-[900px]:px-4 max-[900px]:pt-2 max-[900px]:pb-[calc(8px+env(safe-area-inset-bottom))] max-[900px]:[scrollbar-width:none] max-[900px]:[transform:translate3d(0,calc(-1*min(var(--sheet-y,0px),var(--sheet-mid,0px))),0)] max-[900px]:[transition:transform_var(--sheet-t,0ms)_cubic-bezier(0.32,0.72,0,1)] max-[900px]:[&>*]:flex-none",
               )}
             >
               {shown.map((a, i) => (
