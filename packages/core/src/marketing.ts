@@ -9,6 +9,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
+import { overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
 import {
   type Consent,
   type ConsentEventKind,
@@ -106,11 +107,19 @@ async function log(
 /**
  * Whether one marketing message may go to `address` on `topic` now. Compose asks, and send asks
  * again. In order: no suppression (on email, none on its domain either), a confirmed consent,
- * not paused, and under the cap (the person's frequency; on SMS also 4 in 31 days).
+ * not paused, and under the cap (the person's frequency; on SMS also 4 in 31 days), then under
+ * the workspace's caps across every channel together (`./message-settings.ts`). `person` is the
+ * key the sender already knows the person by; absent, it is found from the address.
  */
 export async function mayMarket(
   db: Queryable,
-  input: { channel: MarketingChannel; address: string; topic: string; now?: Date },
+  input: {
+    channel: MarketingChannel;
+    address: string;
+    topic: string;
+    now?: Date;
+    person?: string;
+  },
 ): Promise<Verdict> {
   const { channel } = input;
   const now = input.now ?? new Date();
@@ -154,13 +163,26 @@ export async function mayMarket(
       );
     if ((sent?.n ?? 0) >= SMS_CAP) return { send: false, why: "capped", consent };
   }
+  // The workspace's own caps count this person's marketing on every channel together.
+  const person = input.person ?? (await personKeyOf(db, channel, address));
+  if (await overCap(db, person, now)) return { send: false, why: "capped", consent };
   return { send: true, consent };
 }
 
-/** A send happened: the cap counts it, and the subscriber's record shows it. */
+/**
+ * A send happened: the cap counts it, the cross-channel cap counts it, and the subscriber's
+ * record shows it. `campaign` is the workflow, broadcast or campaign slug it belonged to.
+ */
 export async function recordMarketingSend(
   db: Queryable,
-  input: { consentId: number; by: string; evidence?: Evidence; now?: Date },
+  input: {
+    consentId: number;
+    by: string;
+    evidence?: Evidence;
+    now?: Date;
+    person?: string;
+    campaign?: string | null;
+  },
 ): Promise<void> {
   const now = input.now ?? new Date();
   await atomic(db, async (tx) => {
@@ -171,6 +193,17 @@ export async function recordMarketingSend(
       by: input.by,
       evidence: input.evidence ?? null,
       createdAt: now,
+    });
+    const [c] = await tx
+      .select({ channel: consents.channel, address: consents.address })
+      .from(consents)
+      .where(eq(consents.id, input.consentId));
+    if (!c) return;
+    await recordMessageSend(tx, {
+      personKey: input.person ?? (await personKeyOf(tx, c.channel, c.address)),
+      channel: c.channel,
+      campaign: input.campaign ?? null,
+      now,
     });
   });
 }

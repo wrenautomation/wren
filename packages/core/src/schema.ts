@@ -1458,6 +1458,56 @@ export const consentEvents = pgTable(
   ],
 );
 
+/** Where a marketing message went. The cross-channel cap counts these, and DMs have no consent row. */
+export const SEND_CHANNELS = ["email", "sms", "dm"] as const;
+export type SendChannel = (typeof SEND_CHANNELS)[number];
+
+/**
+ * Append only: one row per marketing message to a person, on any channel
+ * (designs/2026-10-14-customerio-audit.md, B4). `person_key` is one string for the person across
+ * channels (`person:<id>`, else `<channel kind>:<address>`), so the cap adds email, texts and DMs.
+ * Cold outreach never writes it. Only `../message-settings.ts` writes it.
+ */
+export const marketingSends = pgTable(
+  "marketing_sends",
+  {
+    id: serial("id").notNull(),
+    personKey: varchar("person_key", { length: 340 }).notNull(),
+    channel: varchar("channel", { length: 16, enum: SEND_CHANNELS }).notNull(),
+    /** The workflow, broadcast or campaign slug it belonged to, when it had one. */
+    campaign: varchar("campaign", { length: 120 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_marketing_sends" }),
+    index("ix_marketing_sends_person_key").on(t.personKey, t.sentAt),
+    oneOf("ck_marketing_sends_channel", t.channel, SEND_CHANNELS),
+  ],
+);
+
+/**
+ * The workspace's message rules: one row, defaults when it is missing. The caps are per person
+ * across email, texts and DMs, in a rolling day and week; null is no cap. `utm_links` tags every
+ * link in marketing messages with where it came from.
+ */
+export const messageSettings = pgTable(
+  "message_settings",
+  {
+    id: integer("id").notNull().default(1),
+    capPerDay: integer("cap_per_day"),
+    capPerWeek: integer("cap_per_week"),
+    utmLinks: boolean("utm_links").notNull().default(true),
+    updatedBy: varchar("updated_by", { length: 200 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_message_settings" }),
+    check("ck_message_settings_one", sql`${t.id} = 1`),
+    check("ck_message_settings_day", sql`${t.capPerDay} IS NULL OR ${t.capPerDay} > 0`),
+    check("ck_message_settings_week", sql`${t.capPerWeek} IS NULL OR ${t.capPerWeek} > 0`),
+  ],
+);
+
 // ---- Templates (designs/2026-10-06-edits-claude-templates.md, 3; 2026-10-07-templates-live-copy.md) ----
 
 /** What a template is: kept here as well as in `slots/kinds.ts`, which the schema can't import. */

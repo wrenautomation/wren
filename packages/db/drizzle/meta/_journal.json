@@ -1716,6 +1716,13 @@
       "when": 1791926039771,
       "tag": "0244_video_rejected",
       "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1791983952759,
+      "tag": "0245_message_caps",
+      "breakpoints": true
     }
   ]
 }
