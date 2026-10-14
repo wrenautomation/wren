@@ -105,6 +105,7 @@ import {
   dailyOpenerCapacity,
   inboxPush,
   makeCallBookings,
+  makeClicksScheduler,
   makeComposeScheduler,
   makeDigestScheduler,
   makeDisposition,
@@ -1208,6 +1209,15 @@ export async function buildServices(
   // Tracking off: only mail sent while it was on can still open, so hourly is enough.
   const opensMs = settings.openTracking ? syncMs : 3_600_000;
   if (opens) services.push(makeOpensScheduler({ db, ...opens, syncMs: opensMs, tickMs }));
+  // Email link clicks, counted hourly from the lander's views into `email_clicks` (the sent log's "clicked").
+  if (settings.siteExportToken)
+    services.push(
+      makeClicksScheduler({
+        db,
+        baseUrl: settings.siteBaseUrl,
+        exportToken: settings.siteExportToken,
+      }),
+    );
   // The Friday report mails from a fleet inbox by default: the one mailbox the
   // service account is known to be able to impersonate.
   const reportFrom = settings.reportFrom ?? fleet.senders[0] ?? null;

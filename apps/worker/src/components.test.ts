@@ -76,6 +76,7 @@ async function boundHandlers(): Promise<Map<string, Record<string, unknown>>> {
       WREN_NOTIFY: "console",
       WREN_PIXEL_BASE_URL: "https://pixel.example.test",
       WREN_PIXEL_EXPORT_TOKEN: "t",
+      WREN_SITE_EXPORT_TOKEN: "t",
       WREN_REPORT_TO: "r@example.test",
       WREN_REPORT_FROM: "f@example.test",
       WREN_PORTAL_ORIGIN: "https://app.example.test",

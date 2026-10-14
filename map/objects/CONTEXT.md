@@ -7,7 +7,7 @@ One card per noun: a table, a type, a file kind, or a service set. Clusters are 
 | `leads/` | company, person, lead, sighting, suppression |
 | `ledger/` | run, import |
 | `research/` | document, enrichment, discovery-attempt, contact-candidate, verification |
-| `email/` | enrollment, message, thread-event, template, sequence, roster, send-policy, transport, sender-pause, open-event, inbox-sync-cursor, postmaster-day, report |
+| `email/` | enrollment, message, thread-event, template, sequence, roster, send-policy, transport, sender-pause, open-event, email-click, inbox-sync-cursor, postmaster-day, report |
 | `content/` | idea, draft, content-metric, platform, media, playbook, comment, inbox-thread |
 | `ads/` | ad-launch |
 | `sms/` | sms-number, sms-contact, sms-message, sms-event, sms-provider |

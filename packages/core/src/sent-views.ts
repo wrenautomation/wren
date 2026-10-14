@@ -6,9 +6,12 @@
  * A row sits at the furthest step it reached. A failure (bounced, failed) wins over the rest, since
  * nothing after it can have happened. Each source keeps its own state beside it (`channel_state`).
  * What each channel can prove:
- * - email: no delivery receipts, so no "delivered"; a bounce, a reply, or an open (a fetch of the
- *   tracking image at least 2 minutes after sending, as `open_outcomes` counts it) is its proof.
- *   Clicks are in the lander's export only, never copied here, so nothing sets "clicked" yet.
+ * - email: no delivery receipts, so it counts as delivered once 48 hours pass with no bounce, or
+ *   sooner on an open, a click or a reply (the history says which rule fired). An open is a fetch
+ *   of the tracking image at least 2 minutes after sending, as `open_outcomes` counts it; a click
+ *   is a view of the lander that came from the email's link (`email_clicks`, pulled hourly), also
+ *   counted only from 2 minutes after sending. Both rules read `now()`, so a message crosses into
+ *   "delivered" by itself with nothing written.
  * - texts: the carrier's receipt sets "delivered"; an inbound text after ours is a reply.
  * - DMs and comments: sent or not; a DM's reply is the next inbound message on the thread.
  * - newsletter and marketing mail: a consent event of kind `sent`, one per address and issue.
@@ -73,7 +76,10 @@ export const sentRecords = pgView("sent_records", {
     from (${sql.raw(THREAD)}) t where message_id is not null group by message_id),
   op as (
     select o.message_id from open_events o join messages m on m.id = o.message_id
-    where o.seen_at >= m.sent_at + interval '2 minutes' group by o.message_id)
+    where o.seen_at >= m.sent_at + interval '2 minutes' group by o.message_id),
+  ck as (
+    select c.message_id from email_clicks c join messages m on m.id = c.message_id
+    where c.last_at >= m.sent_at + interval '2 minutes' group by c.message_id)
   select 'email:' || m.id id, 'email' channel, 'email' kind,
     m.to_email to_address, 'email' key_kind, lower(m.to_email) key_value,
     ${sql.raw(LINE("coalesce(m.subject, m.body)"))} subject,
@@ -82,7 +88,9 @@ export const sentRecords = pgView("sent_records", {
       when m.state in ('approved', 'sending') then 'queued'
       when ev.bounced then 'bounced'
       when ev.replied then 'replied'
+      when ck.message_id is not null then 'clicked'
       when op.message_id is not null then 'opened'
+      when m.sent_at <= now() - interval '48 hours' then 'delivered'
       else 'sent' end state,
     e.niche || ' / ' || replace(e.sequence_name, '_', ' ') campaign,
     coalesce(m.sent_at, m.approved_at, m.created_at) at
@@ -90,6 +98,7 @@ export const sentRecords = pgView("sent_records", {
   join enrollments e on e.id = m.enrollment_id
   left join ev on ev.message_id = m.id
   left join op on op.message_id = m.id
+  left join ck on ck.message_id = m.id
   where m.state in ('approved', 'sending', 'sent', 'failed', 'unknown')
   union all
   select 'newsletter:' || e.id, 'email', 'newsletter',
@@ -163,6 +172,11 @@ export const sentRecords = pgView("sent_records", {
  * Each sent row's history, by `message` (a `sent_records` id): when it was written, approved,
  * sent, delivered, opened, replied to or bounced, and why a failure failed. `seq` breaks a tie in
  * `at`, the higher happened later.
+ *
+ * Email's "delivered" line is its first proof of arrival: the earliest open, click or reply, or
+ * the 48-hour mark when none came sooner, and never on a message that bounced. A click's time is
+ * its first one from 2 minutes after sending; when the first came sooner (a mail scanner), the
+ * last one stands in for it.
  */
 export const sentActivity = pgView("sent_activity", {
   message: text("message"),
@@ -171,6 +185,21 @@ export const sentActivity = pgView("sent_activity", {
   what: text("what"),
   seq: integer("seq"),
 }).as(sql`
+  with th as (${sql.raw(THREAD)}),
+  proof as (
+    select distinct on (message_id) message_id, at, what from (
+      select o.message_id, min(o.seen_at) at, 'it was opened' what
+      from open_events o join messages m on m.id = o.message_id
+      where o.seen_at >= m.sent_at + interval '2 minutes' group by o.message_id
+      union all
+      select c.message_id, min(case when c.first_at >= m.sent_at + interval '2 minutes' then c.first_at else c.last_at end), 'they clicked a link'
+      from email_clicks c join messages m on m.id = c.message_id
+      where c.last_at >= m.sent_at + interval '2 minutes' group by c.message_id
+      union all
+      select t.message_id, min(t.received_at), 'they replied'
+      from th t where t.kind = 'reply' and t.message_id is not null group by t.message_id
+    ) p order by message_id, at),
+  bounced as (select message_id from th where kind = 'bounce' and message_id is not null group by message_id)
   select 'email:' || m.id message, m.approved_at at, 'approved' kind,
     'Approved' || coalesce(' (' || replace(m.approved_by, '_', ' ') || ')', '') what, 2 seq
   from messages m where m.approved_at is not null
@@ -194,6 +223,17 @@ export const sentActivity = pgView("sent_activity", {
   from open_events o join messages m on m.id = o.message_id
   where o.seen_at >= m.sent_at + interval '2 minutes' group by o.message_id
   union all
+  select 'email:' || c.message_id, min(c.first_at), 'note',
+    'Link followed within 2 minutes of sending: a mail scanner, so not counted as a click', 4
+  from email_clicks c join messages m on m.id = c.message_id
+  where c.last_at < m.sent_at + interval '2 minutes' group by c.message_id
+  union all
+  select 'email:' || c.message_id, min(case when c.first_at >= m.sent_at + interval '2 minutes' then c.first_at else c.last_at end), 'clicked',
+    'Clicked the link, landing on ' || string_agg(distinct c.url, ', ' order by c.url)
+      || case when sum(c.clicks) > 1 then ' (' || sum(c.clicks) || ' times, last ' || ${DAY("max(c.last_at)")} || ')' else '' end, 5
+  from email_clicks c join messages m on m.id = c.message_id
+  where c.last_at >= m.sent_at + interval '2 minutes' group by c.message_id
+  union all
   select 'email:' || t.message_id, t.received_at, t.kind,
     case t.kind
       when 'reply' then 'They replied' || coalesce(': ' || left(t.snippet, 140), '')
@@ -201,7 +241,17 @@ export const sentActivity = pgView("sent_activity", {
       when 'auto_reply' then 'Automatic reply'
       when 'unsubscribe' then 'They unsubscribed'
       else 'They marked it as spam' end, 6
-  from (${sql.raw(THREAD)}) t where t.message_id is not null
+  from th t where t.message_id is not null
+  union all
+  select 'email:' || m.id, d.at, 'delivered', 'Counted as delivered: ' || d.what, 4
+  from messages m
+  left join proof p on p.message_id = m.id
+  cross join lateral (
+    select case when p.at < m.sent_at + interval '48 hours' then p.at else m.sent_at + interval '48 hours' end at,
+      case when p.at < m.sent_at + interval '48 hours' then p.what else 'no bounce in 48 hours' end what) d
+  where m.state = 'sent' and m.sent_at is not null
+    and not exists (select 1 from bounced b where b.message_id = m.id)
+    and (p.at is not null or m.sent_at + interval '48 hours' <= now())
   union all
   select 'newsletter:' || e.id, e.created_at, 'sent', 'Sent as ' || coalesce(e.evidence ->> 'issue', 'an issue'), 3
   from consent_events e join consents c on c.id = e.consent_id

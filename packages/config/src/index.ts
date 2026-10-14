@@ -212,7 +212,7 @@ export const settingsSchema = z.object({
   pixelExportToken: z.string().min(1).optional(),
   /** Instantly's API key: reads the inboxes the roster marks `transport = "instantly"`. A secret: never logged. */
   instantlyApiKey: z.string().min(1).optional(),
-  /** The lander, where email sign-off links point; `wren email clicks` reads its /api/export. */
+  /** The lander, where email sign-off links point; `ClicksScheduler` pulls its /api/export hourly into `email_clicks`. */
   siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
   /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
   siteExportToken: z.string().min(1).optional(),

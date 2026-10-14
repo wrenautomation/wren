@@ -1,18 +1,22 @@
 /**
- * Who clicked the site link in which email. Each message's sign-off link
- * carries `?r=<messages.link_code>`; the lander records the code on the visit
- * and keeps every later visit and form from that browser. This reads the
- * lander's export and names each code: message, step, company, address.
+ * The lander's export, and who clicked what in which email.
  *
- * Read only, nothing stored. The lander is the source of truth for visits and
- * the numbers are small, so a re-read is cheaper than a second copy to keep in
- * step. A click is interest, not consent: nothing sends or stops on it.
+ * Each message's sign-off link carries `?r=<messages.link_code>`; the lander records the code on
+ * the view the link lands on (`hits.r`). `ClicksScheduler` pulls those views hourly into
+ * `email_clicks` (`./click-sync.ts`): one row per code and page, with the first and last click and
+ * a count. The sent log (`core/sent-views.ts`) reads that table to set "clicked", and
+ * `wren email clicks` lists it (`clickedEmails`). Stored since 2026-10-14 (B7): until then this
+ * read the export on every call and kept nothing, but the log needs clicks in SQL.
+ *
+ * What stays a live read of the export: visits and what a visitor did after (`siteExport`, the
+ * call brief's "On the site", the day tables). A click is interest, not consent: nothing sends or
+ * stops on it.
  */
 import { companies } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
-import { enrollments, messages } from "../schema.js";
+import { emailClicks, enrollments, messages } from "../schema.js";
 
 /** Rows per request; the lander caps at 5000. */
 export const SITE_PAGE = 5000;
@@ -124,47 +128,58 @@ export interface SiteTables {
   clicks: SiteClick;
 }
 
+interface SiteReadOptions {
+  baseUrl: string;
+  exportToken: string;
+  fetch?: FetchLike;
+  since?: number;
+  /** One visitor's rows only (every table but clicks). */
+  visitor?: string;
+}
+
+/** One page of one lander table after id `since`, oldest first: at most `SITE_PAGE` rows. */
+export async function sitePage<T extends keyof SiteTables>(
+  table: T,
+  opts: SiteReadOptions,
+): Promise<SiteTables[T][]> {
+  const fetchImpl = opts.fetch ?? globalThis.fetch;
+  const url = new URL(`${opts.baseUrl.replace(/\/+$/, "")}/api/export`);
+  url.searchParams.set("table", table);
+  url.searchParams.set("since", String(opts.since ?? 0));
+  url.searchParams.set("limit", String(SITE_PAGE));
+  if (opts.visitor) url.searchParams.set("visitor", opts.visitor);
+  let response: Response;
+  try {
+    response = await fetchImpl(url.toString(), {
+      headers: { Authorization: `Bearer ${opts.exportToken}` },
+    });
+  } catch (err) {
+    throw new SiteExportError(`site unreachable: ${(err as Error).message}`);
+  }
+  if (response.status === 401) {
+    // Named without quoting either value: the secret never reaches a log line.
+    throw new SiteExportError(
+      "site rejected the export credential: WREN_SITE_EXPORT_TOKEN must equal the lander's EXPORT_TOKEN secret",
+    );
+  }
+  if (response.status === 404)
+    throw new SiteExportError("site has no export (EXPORT_TOKEN unset on the lander)");
+  if (response.status !== 200) throw new SiteExportError(`site answered ${response.status}`);
+  const rows = ((await response.json()) as Record<string, unknown> | null)?.[table];
+  if (!Array.isArray(rows)) throw new SiteExportError(`site answered with no ${table}`);
+  return rows as SiteTables[T][];
+}
+
 /** Every row of one lander table after id `since` (all of them by default), paged forward by id. */
 export async function siteExport<T extends keyof SiteTables>(
   table: T,
-  opts: {
-    baseUrl: string;
-    exportToken: string;
-    fetch?: FetchLike;
-    since?: number;
-    /** One visitor's rows only (every table but clicks). */
-    visitor?: string;
-  },
+  opts: SiteReadOptions,
 ): Promise<SiteTables[T][]> {
-  const fetchImpl = opts.fetch ?? globalThis.fetch;
   const out: SiteTables[T][] = [];
   let since = opts.since ?? 0;
   for (let page = 0; page < SITE_MAX_PAGES; page++) {
-    const url = new URL(`${opts.baseUrl.replace(/\/+$/, "")}/api/export`);
-    url.searchParams.set("table", table);
-    url.searchParams.set("since", String(since));
-    url.searchParams.set("limit", String(SITE_PAGE));
-    if (opts.visitor) url.searchParams.set("visitor", opts.visitor);
-    let response: Response;
-    try {
-      response = await fetchImpl(url.toString(), {
-        headers: { Authorization: `Bearer ${opts.exportToken}` },
-      });
-    } catch (err) {
-      throw new SiteExportError(`site unreachable: ${(err as Error).message}`);
-    }
-    if (response.status === 401) {
-      // Named without quoting either value: the secret never reaches a log line.
-      throw new SiteExportError(
-        "site rejected the export credential: WREN_SITE_EXPORT_TOKEN must equal the lander's EXPORT_TOKEN secret",
-      );
-    }
-    if (response.status === 404)
-      throw new SiteExportError("site has no export (EXPORT_TOKEN unset on the lander)");
-    if (response.status !== 200) throw new SiteExportError(`site answered ${response.status}`);
-    const rows = ((await response.json()) as Record<string, unknown> | null)?.[table];
-    if (!Array.isArray(rows)) throw new SiteExportError(`site answered with no ${table}`);
-    out.push(...(rows as SiteTables[T][]));
+    const rows = await sitePage(table, { ...opts, since });
+    out.push(...rows);
     if (rows.length < SITE_PAGE) return out;
     since = (rows[rows.length - 1] as { id: number }).id;
   }
@@ -173,10 +188,13 @@ export async function siteExport<T extends keyof SiteTables>(
   );
 }
 
-/** One email link code that was clicked, named, with what those visitors did after. */
-export interface EmailClick {
+/** One stored click row (a code and the page it landed on), named by the message that carried it. */
+export interface ClickedEmail {
   code: string;
-  firstClick: string;
+  url: string;
+  firstAt: Date;
+  lastAt: Date;
+  clicks: number;
   /** null = no message holds this code: typed by hand, or from a message since deleted. */
   message: {
     id: number;
@@ -186,65 +204,49 @@ export interface EmailClick {
     company: string | null;
     sentAt: Date | null;
   } | null;
-  /** Browsers that arrived on this code. Two or more = forwarded, or opened on phone and desk. */
-  visitors: number;
-  /** Every view those browsers made, from any source. */
-  views: number;
-  secs: number;
-  reachedForm: boolean;
-  applied: { offer: string; fit: boolean; ts: string } | null;
 }
 
-/** Name each clicked code from `messages.link_code` and follow its visitors. Newest click first. */
-export async function emailClicks(
+/** The stored clicks, newest first, each named by its message (`messages.link_code`). */
+export async function clickedEmails(
   db: Queryable,
-  hits: readonly SiteHit[],
-  applications: readonly SiteApplication[],
-): Promise<EmailClick[]> {
-  const byVisitor = new Map<string, SiteHit[]>();
-  const arrivals = new Map<string, SiteHit[]>();
-  for (const h of hits) {
-    if (h.visitor) byVisitor.set(h.visitor, [...(byVisitor.get(h.visitor) ?? []), h]);
-    if (h.r) arrivals.set(h.r, [...(arrivals.get(h.r) ?? []), h]);
-  }
-  const codes = [...arrivals.keys()];
-  const named =
-    codes.length === 0
-      ? []
-      : await db
-          .select({
-            code: messages.linkCode,
-            id: messages.id,
-            step: messages.step,
-            toEmail: messages.toEmail,
-            sentAt: messages.sentAt,
-            niche: enrollments.niche,
-            company: companies.name,
-          })
-          .from(messages)
-          .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
-          .leftJoin(companies, eq(companies.id, enrollments.companyId))
-          .where(inArray(messages.linkCode, codes));
-  const messageOf = new Map(named.map(({ code, ...m }) => [code as string, m]));
-
-  return codes
-    .map((code) => {
-      const came = arrivals.get(code) ?? [];
-      const visitors = new Set(came.map((h) => h.visitor).filter((v): v is string => !!v));
-      const seen = [...visitors].flatMap((v) => byVisitor.get(v) ?? []);
-      const applied = applications
-        .filter((a) => a.visitor && visitors.has(a.visitor))
-        .sort((a, b) => b.fit - a.fit || a.id - b.id)[0];
-      return {
-        code,
-        firstClick: came.map((h) => h.ts).sort()[0] ?? "",
-        message: messageOf.get(code) ?? null,
-        visitors: visitors.size,
-        views: seen.length || came.length,
-        secs: seen.reduce((n, h) => n + h.secs, 0),
-        reachedForm: seen.some((h) => h.cta || h.touched),
-        applied: applied ? { offer: applied.offer, fit: applied.fit === 1, ts: applied.ts } : null,
-      };
+  opts: { limit?: number } = {},
+): Promise<ClickedEmail[]> {
+  const rows = await db
+    .select({
+      code: emailClicks.linkCode,
+      url: emailClicks.url,
+      firstAt: emailClicks.firstAt,
+      lastAt: emailClicks.lastAt,
+      clicks: emailClicks.clicks,
+      id: messages.id,
+      step: messages.step,
+      toEmail: messages.toEmail,
+      sentAt: messages.sentAt,
+      niche: enrollments.niche,
+      company: companies.name,
     })
-    .sort((a, b) => b.firstClick.localeCompare(a.firstClick));
+    .from(emailClicks)
+    .leftJoin(messages, eq(messages.id, emailClicks.messageId))
+    .leftJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
+    .leftJoin(companies, eq(companies.id, enrollments.companyId))
+    .orderBy(desc(emailClicks.lastAt), desc(emailClicks.id))
+    .limit(opts.limit ?? 50);
+  return rows.map((r) => ({
+    code: r.code,
+    url: r.url,
+    firstAt: r.firstAt,
+    lastAt: r.lastAt,
+    clicks: r.clicks,
+    message:
+      r.id === null || r.step === null || r.toEmail === null || r.niche === null
+        ? null
+        : {
+            id: r.id,
+            step: r.step,
+            niche: r.niche,
+            toEmail: r.toEmail,
+            company: r.company,
+            sentAt: r.sentAt,
+          },
+  }));
 }

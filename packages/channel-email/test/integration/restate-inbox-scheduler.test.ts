@@ -12,6 +12,12 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { PostmasterClient } from "../../src/inbox/postmaster.js";
 import {
+  CLICKS_KEY,
+  CLICKS_SYNC_COMMAND,
+  type ClicksScheduler,
+  makeClicksScheduler,
+} from "../../src/restate/clicks-scheduler.js";
+import {
   DISPOSITION_COMMAND,
   DISPOSITION_KEY,
   type Disposition,
@@ -43,6 +49,7 @@ import {
 } from "../../src/restate/postmaster-scheduler.js";
 import {
   type Enrollment,
+  emailClicks,
   enrollments,
   messages,
   placementChecks,
@@ -125,6 +132,16 @@ const postmaster: PostmasterClient = {
 };
 /** A pixel host that refuses every credential: the pass that throws. */
 const refusingHost = async () => new Response("no", { status: 401 });
+/** The lander's export: refuses the credential until a test gives it views to serve. */
+const CLICKS_TOKEN = "lander-token-4f2a";
+let landerViews: { id: number; ts: string; page: string; r: string }[] | null = null;
+const lander = async (url: string, init?: RequestInit) =>
+  landerViews === null ||
+  new Headers(init?.headers).get("authorization") !== `Bearer ${CLICKS_TOKEN}`
+    ? new Response("no", { status: 401 })
+    : Response.json({
+        hits: landerViews.filter((v) => v.id > Number(new URL(url).searchParams.get("since"))),
+      });
 /** Seed Gmails: one finds the copy in Promotions, one refuses (no consent), one is down. */
 const seedGmail: SiteClient = {
   async call(site, method, path, _input, account) {
@@ -183,6 +200,14 @@ beforeAll(async () => {
         syncMs: SYNC_MS,
         tickMs: TICK_MS,
       }),
+      makeClicksScheduler({
+        db: pg.db,
+        baseUrl: "https://site.example",
+        exportToken: CLICKS_TOKEN,
+        fetch: lander,
+        syncMs: SYNC_MS,
+        tickMs: TICK_MS,
+      }),
       // No ramps: a pass only reads back copies already sent.
       makePlacementScheduler({
         db: pg.db,
@@ -207,8 +232,11 @@ beforeEach(async () => {
     "inbox_syncs",
     "postmaster_days",
     "open_syncs",
+    "click_syncs",
+    "email_clicks",
     "placement_checks",
   ]);
+  landerViews = null;
   reader.mail.clear();
 });
 const db = () => pg.db;
@@ -220,6 +248,8 @@ const disposition = () =>
 const postmasterClient = () =>
   ingress().objectClient<PostmasterScheduler>({ name: "PostmasterScheduler" }, POSTMASTER_KEY);
 const opens = () => ingress().objectClient<OpensScheduler>({ name: "OpensScheduler" }, OPENS_KEY);
+const clicks = () =>
+  ingress().objectClient<ClicksScheduler>({ name: "ClicksScheduler" }, CLICKS_KEY);
 const placement = () =>
   ingress().objectClient<PlacementScheduler>({ name: "PlacementScheduler" }, PLACEMENT_KEY);
 
@@ -398,6 +428,44 @@ describe("OpensScheduler", () => {
     expect(run?.argv).toEqual({ daemon: true, base_url: "https://t.example" });
     expect(JSON.stringify(run?.stats)).toContain("OpenSyncError");
     expect(JSON.stringify(run)).not.toContain("wrong");
+  });
+});
+
+describe("ClicksScheduler", () => {
+  it("a refused credential is recorded without naming it, and asked again after a tick", async () => {
+    const outcome = await clicks().sync();
+
+    expect(outcome.stats).toBeNull();
+    expect(outcome.error).toContain("WREN_SITE_EXPORT_TOKEN");
+    expect(outcome.error).not.toContain(CLICKS_TOKEN);
+    expect(outcome.delayMs).toBe(TICK_MS);
+    const [run] = await runsFor(CLICKS_SYNC_COMMAND);
+    expect(run?.argv).toEqual({ daemon: true, base_url: "https://site.example" });
+    expect(JSON.stringify(run)).not.toContain(CLICKS_TOKEN);
+  });
+
+  it("a pass counts the email-link views, keeps the cursor, and comes back in an hour", async () => {
+    await enrollSent("clicked.example", "jane@clicked.example");
+    const [opener] = await db().select().from(messages);
+    const code = opener?.linkCode as string;
+    landerViews = [
+      { id: 1, ts: agoMs(3_600_000).toISOString(), page: "/", r: code },
+      { id: 2, ts: agoMs(1_800_000).toISOString(), page: "/", r: "" },
+      { id: 3, ts: agoMs(1_000_000).toISOString(), page: "/", r: code },
+    ];
+
+    const outcome = await clicks().sync();
+
+    expect(outcome.error).toBeNull();
+    expect(outcome.stats).toMatchObject({ fetched: 3, coded: 2, matched: 2, unknown_code: 0 });
+    expect(outcome.delayMs).toBe(SYNC_MS);
+    const stored = await db().select().from(emailClicks);
+    expect(stored.map((r) => [r.messageId, r.clicks])).toEqual([[opener?.id, 2]]);
+    const again = await clicks().sync();
+    expect(again.stats).toMatchObject({ fetched: 0 });
+    expect((await db().select().from(emailClicks))[0]?.clicks).toBe(2);
+    const [run] = await runsFor(CLICKS_SYNC_COMMAND);
+    expect(JSON.stringify(run)).not.toContain(CLICKS_TOKEN);
   });
 });
 

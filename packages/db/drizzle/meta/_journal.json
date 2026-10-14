@@ -1737,6 +1737,13 @@
       "when": 1791985940755,
       "tag": "0247_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1791988076571,
+      "tag": "0248_email_clicks",
+      "breakpoints": true
     }
   ]
 }

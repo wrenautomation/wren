@@ -31,7 +31,7 @@ Citations: `packages/channel-search/src/site-days.ts:43`
 ## If you change this
 
 - **Hits:** `rollupSite`, both views (migration), `records.ts`, the Marketing app's Site and Funnel pages, tiles and weekly chart
-- **Does not hit:** `wren email clicks`, which reads the export itself
+- **Does not hit:** `ClicksScheduler` and `wren email clicks` ([[email/email-click]]), which read the export's `hits` themselves
 
 ## Surfaces
 

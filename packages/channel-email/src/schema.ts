@@ -623,6 +623,52 @@ export const openSyncs = pgTable(
   (t) => [primaryKey({ columns: [t.baseUrl], name: "pk_open_syncs" })],
 );
 
+/**
+ * Email link clicks, pulled from the lander's `hits` (designs/2026-10-14-customerio-audit.md, B7).
+ * One row per code and page: the lander tags the view an email link lands on with `?r=<code>`,
+ * and `messages.link_code` names the message. `message_id` is null for a code no message holds
+ * (typed by hand, or a message since deleted); the row is kept, the sent log never reads it.
+ */
+export const emailClicks = pgTable(
+  "email_clicks",
+  {
+    id: serial("id").notNull(),
+    linkCode: varchar("link_code", { length: 40 }).notNull(),
+    /** The page it landed on: a path, as the lander recorded it. */
+    url: varchar("url", { length: 200 }).notNull(),
+    messageId: integer("message_id"),
+    firstAt: timestamp("first_at", { withTimezone: true }).notNull(),
+    lastAt: timestamp("last_at", { withTimezone: true }).notNull(),
+    /** Views that arrived on this code and page. */
+    clicks: integer("clicks").default(1).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_email_clicks" }),
+    unique("uq_email_clicks_link_code_url").on(t.linkCode, t.url),
+    index("ix_email_clicks_message_id").on(t.messageId),
+    foreignKey({
+      columns: [t.messageId],
+      foreignColumns: [messages.id],
+      name: "fk_email_clicks_message_id_messages",
+    }).onDelete("cascade"),
+  ],
+);
+
+/**
+ * Where the click pull stopped, per site host: the last `hits` id read. Written in the same
+ * transaction as the counts it covers, so a run never counts a view twice or skips one.
+ */
+export const clickSyncs = pgTable(
+  "click_syncs",
+  {
+    baseUrl: varchar("base_url", { length: 255 }).notNull(),
+    cursorId: bigint("cursor_id", { mode: "number" }).default(0).notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }),
+    stats: jsonb("stats"),
+  },
+  (t) => [primaryKey({ columns: [t.baseUrl], name: "pk_click_syncs" })],
+);
+
 export const inboxSyncs = pgTable(
   "inbox_syncs",
   {
@@ -752,6 +798,10 @@ export type OpenEvent = typeof openEvents.$inferSelect;
 export type NewOpenEvent = typeof openEvents.$inferInsert;
 export type OpenSync = typeof openSyncs.$inferSelect;
 export type NewOpenSync = typeof openSyncs.$inferInsert;
+export type EmailClickRow = typeof emailClicks.$inferSelect;
+export type NewEmailClickRow = typeof emailClicks.$inferInsert;
+export type ClickSync = typeof clickSyncs.$inferSelect;
+export type NewClickSync = typeof clickSyncs.$inferInsert;
 export type InboxSync = typeof inboxSyncs.$inferSelect;
 export type NewInboxSync = typeof inboxSyncs.$inferInsert;
 export type SenderPause = typeof senderPauses.$inferSelect;

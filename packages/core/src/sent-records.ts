@@ -37,7 +37,7 @@ export const SENT_KINDS = {
 
 /**
  * The ladder, in order. A message sits at the furthest step it reached; bounced and failed win
- * over the rest. "Clicked" is declared but nothing sets it: email clicks stay in the lander.
+ * over the rest. Email sets "delivered" after 48 hours with no bounce, "clicked" from `email_clicks`.
  */
 export const SENT_STATES = {
   queued: { label: "Queued", tone: "neutral" },

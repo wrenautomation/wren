@@ -24,7 +24,7 @@ Citations: `packages/channel-email/src/schema.ts:236`, `packages/channel-email/s
 ## Connected to
 
 - **owned-by:** [[email/enrollment]], [[email/template]] (`template`, `template_version`)
-- **owns:** [[email/open-event]] (`message_id`)
+- **owns:** [[email/open-event]], [[email/email-click]] (`message_id`)
 - **joins:** [[email/thread-event]] (`in_reply_to_message_id`), [[ledger/run]]
 - **joins:** [[leads/sent-log]] (every sent message is a row in People → Sent, read from the `sent_records` view)
 - **looks-like-but-is-not:** [[sms/sms-message]]; a `content_drafts` row

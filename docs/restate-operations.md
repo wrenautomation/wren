@@ -79,6 +79,7 @@ curl -X POST -H "$H" $U/SendScheduler/alice@example.com/stop
 curl -X POST -H "$H" $U/InboxScheduler/alice@example.com/sync
 curl -X POST -H "$H" $U/PostmasterScheduler/fleet/start
 curl -X POST -H "$H" $U/OpensScheduler/fleet/start
+curl -X POST -H "$H" $U/ClicksScheduler/fleet/start     # hourly: the lander's email-link views into email_clicks (the sent log's "clicked"); the first pass reads all history
 curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
 curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
 curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
@@ -406,6 +407,14 @@ complaint / bounce also write the suppression). Answering a reply is done from t
 `t.wrenautomation.com` is a Cloudflare Worker + D1, source and deploy steps in
 `deploy/pixel/`. Tracking is off (`WREN_OPEN_TRACKING`); `OpensScheduler/fleet` pulls
 hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
+
+## Email link clicks
+
+Each email's sign-off link carries `?r=<code>`; the lander records it on the landing view.
+`ClicksScheduler/fleet` reads those views hourly into `email_clicks` whenever
+`WREN_SITE_EXPORT_TOKEN` is set, and `wren email clicks` lists them. The loop is started by
+hand like the others (the first pass reads the lander's whole history). Text and DM `/go/`
+links carry no code, so their clicks are not counted.
 
 ## Discord (what you get told, and what you never get told)
 
