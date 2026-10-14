@@ -23,6 +23,9 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
       calls.push({ handler: `run ${name}`, req: null });
       return fn();
     },
+    sleep: async (ms: number) => {
+      calls.push({ handler: "sleep", req: ms });
+    },
     serviceSendClient: (service: unknown) => {
       services.push(service);
       return new Proxy(
@@ -276,6 +279,47 @@ describe("restateSites over a named service", () => {
     ).rejects.toBe(plain);
   });
 
+  it("a read or an upload that failed in passing is called again, paused, then journaled final", async () => {
+    let n = 0;
+    const flaky = ctxOf(() => {
+      if (++n < 3) throw new restate.TerminalError("HTTP 0 TypeError (UND_ERR_SOCKET)");
+      return { urn: "urn:li:video:1" };
+    });
+    const sites = restateSites(flaky.ctx, { caller: "test", service: DESK });
+    expect(await sites.call("linkedin", "POST", "/upload", { kind: "video" })).toEqual({
+      urn: "urn:li:video:1",
+    });
+    expect(flaky.calls.filter((c) => c.handler === "sleep").map((c) => c.req)).toEqual([
+      30_000, 60_000,
+    ]);
+
+    const down = ctxOf(() => {
+      throw new restate.TerminalError("bad gateway", { errorCode: 502 });
+    });
+    const err = await restateSites(down.ctx, { caller: "test", service: DESK })
+      .call("youtube", "GET", "/youtube/v3/videos")
+      .catch((e: unknown) => e);
+    expect(down.calls.filter((c) => c.handler === "call")).toHaveLength(3);
+    expect(err).toMatchObject({ status: 502, journaled: true });
+  });
+
+  it("a post or a refusal is never called again", async () => {
+    const post = ctxOf(() => {
+      throw new restate.TerminalError("bad gateway", { errorCode: 502 });
+    });
+    await restateSites(post.ctx, { caller: "test", service: DESK })
+      .call("x", "POST", "/2/tweets", { text: "hi" })
+      .catch(() => null);
+    expect(post.calls.filter((c) => c.handler === "call")).toHaveLength(1);
+    const refused = ctxOf(() => {
+      throw new restate.TerminalError("not found", { errorCode: 404 });
+    });
+    await restateSites(refused.ctx, { caller: "test", service: DESK })
+      .call("x", "GET", "/2/tweets/1")
+      .catch(() => null);
+    expect(refused.calls.filter((c) => c.handler === "call")).toHaveLength(1);
+  });
+
   it("via reads one status per site and keeps each site's apart", async () => {
     const { ctx, calls } = ctxOf((h, req) => {
       if (h !== "status") return {};
@@ -443,6 +487,21 @@ describe("Content service", () => {
     expect(await hx.insights?.(ctx, { platform: "x", id: "t" })).toBeNull();
     expect(await hx.accountInsights?.(ctx, { platform: "x" })).toBeNull();
     expect(await hx.reportDays?.(ctx, { platform: "x" })).toBeNull();
+  });
+
+  it("a journaled site failure is terminal, so the queue moves on; an unjournaled one retries", async () => {
+    const dropped = (journaled: boolean) => {
+      const e = new SiteCallError("linkedin", "POST", "/upload", 500, "UND_ERR_SOCKET");
+      e.journaled = journaled;
+      const ch = { ...fakeContentChannel("linkedin"), publish: () => Promise.reject(e) };
+      return (
+        makeContent(() => ({ linkedin: ch })) as unknown as {
+          service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+        }
+      ).service.publish?.(ctx, { platform: "linkedin", post: { text: "hi" } });
+    };
+    await expect(dropped(true)).rejects.toMatchObject({ name: "TerminalError", code: 500 });
+    await expect(dropped(false)).rejects.toMatchObject({ name: "SiteCallError" });
   });
 
   it("an unconfigured platform is a terminal 404, not a retry", async () => {

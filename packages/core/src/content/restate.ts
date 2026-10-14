@@ -152,17 +152,26 @@ export function restateSites(
         throw new ArmedStop();
       }
       await awake();
-      try {
-        return (await client.call({
-          site,
-          method,
-          path,
-          input,
-          ...(account ? { account } : {}),
-          caller,
-        })) as never;
-      } catch (err) {
-        throw siteCallErrorFrom(err, site, method, path);
+      for (let attempt = 1; ; attempt++) {
+        try {
+          return (await client.call({
+            site,
+            method,
+            path,
+            input,
+            ...(account ? { account } : {}),
+            caller,
+          })) as never;
+        } catch (err) {
+          const e = siteCallErrorFrom(err, site, method, path);
+          if (!(e instanceof SiteCallError)) throw e;
+          if (attempt < CALL_TRIES && !isRefusal(e) && safeToRepeat(method, path)) {
+            await ctx.sleep(attempt * CALL_PAUSE_MS);
+            continue;
+          }
+          e.journaled = true;
+          throw e;
+        }
       }
     },
     async via(site, method, path) {
@@ -179,6 +188,14 @@ export function restateSites(
     },
   };
 }
+
+/** Tries of one `sites` call that failed in passing (a dropped socket, a 5xx), paused between. */
+const CALL_TRIES = 3;
+const CALL_PAUSE_MS = 30_000;
+
+/** Calls that change nothing a person sees: a read, or a file's upload before any post names it. */
+const safeToRepeat = (method: SiteMethod, path: string) =>
+  method === "GET" || /\/upload\b/.test(path);
 
 /** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
 const LONG_WAIT_S = 15 * 60;
@@ -247,6 +264,9 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
   } catch (err) {
     if (isRefusal(err) || isVendorStop(err))
       throw new restate.TerminalError(err.message, { errorCode: err.status });
+    // A journaled failure replays on every retry: final for this call, so its caller moves on.
+    if (err instanceof SiteCallError && err.journaled)
+      throw new restate.TerminalError(err.message, { errorCode: err.status || 502 });
     // A field its platform won't take: the draft's to fix, never a retry.
     if (err instanceof ShapeError) throw new restate.TerminalError(err.message, { errorCode: 400 });
     throw err;

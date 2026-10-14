@@ -27,6 +27,11 @@ export interface SiteClient {
 export class SiteCallError extends Error {
   readonly site: string;
   readonly status: number;
+  /**
+   * The answer of a journaled call: a retried invocation replays it rather than calling again,
+   * so retrying the invocation cannot help (`restateSites` tries again itself first).
+   */
+  journaled = false;
   constructor(site: string, method: string, path: string, status: number, message: string) {
     super(`${site} ${method} ${path}: ${status} ${message}`);
     this.name = "SiteCallError";
