@@ -4,12 +4,15 @@
  * preview; the token test (packages/ui/src/contrast.test.ts) checks the colors themselves.
  *
  *   tsx scripts/contrast.ts                         # the preview on :8788, every look
- *   tsx scripts/contrast.ts --url https://app.example.com --state signed-in.json
+ *   tsx scripts/contrast.ts --url https://app.example.com --state signed-in.json --allow-prod
  *   tsx scripts/contrast.ts --looks wren,night --only /inbox --out report.json
  *
  * A preset or showcase look goes in by `?theme=`, as a person tries one. A client's look (a
  * brand) goes on the page root as the portal puts it. `--inject` puts every look in that way,
  * to try this checkout's tokens on a live portal. `--report` exits 0 with failures.
+ *
+ * A full run is thousands of requests: a live portal's Worker hits its daily cap. Anything but
+ * a local preview needs `--allow-prod`.
  */
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
@@ -23,6 +26,15 @@ const arg = (name: string) => {
   return i > 0 ? process.argv[i + 1] : undefined;
 };
 const url = (arg("url") ?? `http://localhost:${process.env.PORT ?? 8788}`).replace(/\/$/, "");
+if (
+  !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(url) &&
+  !process.argv.includes("--allow-prod")
+) {
+  console.error(
+    `${url} isn't a local preview. A scan is thousands of requests; pass --allow-prod.`,
+  );
+  process.exit(2);
+}
 const only = arg("only");
 const inject = process.argv.includes("--inject");
 const workers = Number(arg("workers") ?? 4);
