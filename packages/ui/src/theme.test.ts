@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyTheme,
   BASE,
+  dropPreloadedLook,
   isShowcase,
   PRESETS,
   type PresetName,
@@ -387,6 +388,22 @@ describe("applyTheme", () => {
     expect(props.get("--ui-accent")).toBe("red");
     undo();
     expect(Object.fromEntries(props)).toEqual({ "--ui-accent": "blue", color: "green" });
+  });
+
+  it("a preloaded look comes off whole, so the real look's undo doesn't bring it back", () => {
+    const { el, props } = fakeElement({
+      "--ui-canvas": "#101014",
+      "--ui-ink": "#eee",
+      color: "green",
+    });
+    (el as unknown as { dataset: Record<string, string> }).dataset = {
+      lookPreload: "--ui-canvas --ui-ink",
+    };
+    dropPreloadedLook(el);
+    const undo = applyTheme({ accent: "red" }, el);
+    undo();
+    expect(Object.fromEntries(props)).toEqual({ color: "green" });
+    expect(el.dataset.lookPreload).toBeUndefined();
   });
 
   it("undo leaves properties the theme did not set", () => {

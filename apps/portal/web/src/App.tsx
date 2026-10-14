@@ -14,6 +14,7 @@ import {
   ButtonLink,
   can,
   type DockItem,
+  dropPreloadedLook,
   Empty,
   Gate,
   LOOK_PREF,
@@ -33,6 +34,7 @@ import {
   type SnippetsSource,
   type Theme,
   Toasts,
+  themeVars,
   togglePin,
   useDisplay,
   usePref,
@@ -62,6 +64,8 @@ import { appTotal, useWaiting } from "./waiting.js";
 const STAMP = "/wren-icon.png";
 const WORKSPACE_KEY = "wren.portal.workspace";
 const THEME_KEY = "wren.portal.theme";
+/** The look last shown, painted by public/look.js before `me` answers on the next load. */
+const LOOK_KEY = "wren.portal.look";
 const AS_CLIENT_KEY = "wren.portal.asClient";
 /** A link under the Layout settings. */
 const MORE_LINK =
@@ -408,6 +412,14 @@ export function App() {
     route.params,
     wren ? myLook.value : clients.find((c) => c.id === current?.id)?.look,
   );
+  // Once this login's look is known, it replaces the preloaded one and is kept for the next load.
+  const lookKnown = me.data !== null && (!operator || myLook.ready);
+  const lookVars = JSON.stringify(themeVars(theme));
+  useEffect(() => {
+    if (!lookKnown) return;
+    dropPreloadedLook();
+    keep(LOOK_KEY, lookVars);
+  }, [lookKnown, lookVars]);
   const waiting = useWaiting(
     cards,
     current?.id,

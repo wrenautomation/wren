@@ -473,6 +473,17 @@ export function applyTheme(theme: Theme, el: HTMLElement = document.documentElem
 }
 
 /**
+ * Takes off the look a page put on before its app loaded (the portal's public/look.js), once the
+ * real one is known, so none of its tokens outlive it.
+ */
+export function dropPreloadedLook(root: HTMLElement = document.documentElement) {
+  const keys = root.dataset.lookPreload;
+  if (keys === undefined) return;
+  for (const k of keys.split(" ")) root.style.removeProperty(k);
+  delete root.dataset.lookPreload;
+}
+
+/**
  * Keeps `theme` on the page's root while the caller is on screen, so the body, the scrim and
  * the phone's browser bar all match it.
  */
@@ -483,6 +494,7 @@ export function usePageTheme(theme: Theme | undefined) {
     const t = JSON.parse(key) as Theme;
     if (!Object.keys(t).length) return;
     const root = document.documentElement;
+    dropPreloadedLook(root);
     const undo = applyTheme(t, root);
     // Grain is a fixed layer over the page: drawn only when a look asks for it.
     const grain = Number(t.grain) > 0;

@@ -294,6 +294,7 @@ export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export {
   applyTheme,
   BASE,
+  dropPreloadedLook,
   isShowcase,
   LOOK_NOTES,
   PRESETS,
