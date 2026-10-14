@@ -9,7 +9,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
 import { and, eq, sql } from "drizzle-orm";
-import { type BroadcastMail, checkWords, factsOf, renderFor } from "./broadcasts.js";
+import { checkWords, factsOf, isUnset, type MailOf, renderFor } from "./broadcasts.js";
 import { dig } from "./logic.js";
 import { addressOf, mayMarket, recordMarketingSend } from "./marketing.js";
 import type { Notifier } from "./notify.js";
@@ -70,7 +70,7 @@ export function messageWould(w: StepAt["with"], e: SpineEvent): string {
 }
 
 /** The Send message node's step. */
-export function messageStep(main: Queryable, deps: { mail: BroadcastMail | null }): Step {
+export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
   return async (_port, e, at) => {
     const skip = (why: string) => [
       { port: "skipped", event: { ...e, data: { ...e.data, skipped: why } } },
@@ -145,7 +145,8 @@ export function messageStep(main: Queryable, deps: { mail: BroadcastMail | null 
       return [{ port: "sent", event: sent }];
     }
 
-    if (!deps.mail) throw new restate.TerminalError("Send message: email isn't set up here");
+    const mail = await deps.mail(null, main);
+    if (isUnset(mail)) throw new restate.TerminalError(`Send message: ${mail.unset}`);
     // Kept first, so a retry after a cut-off send never sends twice; a failed send takes it back.
     await recordMarketingSend(main, {
       consentId: v.consent.id,
@@ -154,9 +155,9 @@ export function messageStep(main: Queryable, deps: { mail: BroadcastMail | null 
       campaign: at.workflow,
       now,
     });
-    const env = deps.mail.envelope(address, { name: topic.name, publicName: topic.publicName });
+    const env = mail.envelope(address, { name: topic.name, publicName: topic.publicName });
     try {
-      await deps.mail.send({
+      await mail.send({
         to: address,
         subject: copy.subject ?? topic.publicName,
         text: `${copy.body}${env.footer}`,

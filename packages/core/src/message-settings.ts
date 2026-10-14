@@ -23,6 +23,10 @@ export interface MessageSettings {
   capPerWeek: number | null;
   /** Tag every http link in marketing messages with `utm_*`. */
   utmLinks: boolean;
+  /** A client's connected mailbox its email marketing sends from; null: email can't send. */
+  sender: string | null;
+  /** The postal address in every marketing email's footer; null: email can't send. */
+  postal: string | null;
 }
 
 /** What a workspace has before anyone changes it: generous caps, links tagged. */
@@ -30,6 +34,8 @@ export const MESSAGE_DEFAULTS: Readonly<MessageSettings> = {
   capPerDay: 2,
   capPerWeek: 5,
   utmLinks: true,
+  sender: null,
+  postal: null,
 };
 /** The most a cap can be set to: past it, say no cap. */
 export const CAP_MAX = 100;
@@ -38,7 +44,13 @@ export const CAP_MAX = 100;
 export async function readMessageSettings(db: Queryable): Promise<MessageSettings> {
   const [row] = await db.select().from(messageSettings).where(eq(messageSettings.id, 1));
   return row
-    ? { capPerDay: row.capPerDay, capPerWeek: row.capPerWeek, utmLinks: row.utmLinks }
+    ? {
+        capPerDay: row.capPerDay,
+        capPerWeek: row.capPerWeek,
+        utmLinks: row.utmLinks,
+        sender: row.sender,
+        postal: row.postal,
+      }
     : { ...MESSAGE_DEFAULTS };
 }
 
@@ -56,6 +68,18 @@ export function capOf(input: unknown): number | null {
   return n;
 }
 
+/** A postal address from a form: one line, 10 to 300 characters; blank clears it. */
+export function postalOf(input: unknown): string | null {
+  const text = String(input ?? "")
+    .replace(/\s*\n\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return null;
+  if (text.length < 10 || text.length > 300)
+    throw new RangeError("a postal address is 10 to 300 characters: street, city, region, code");
+  return text;
+}
+
 /** Change some of the rules; a field left out keeps its value. Returns what is saved now. */
 export async function saveMessageSettings(
   db: Queryable,
@@ -67,6 +91,8 @@ export async function saveMessageSettings(
     capPerDay: patch.capPerDay === undefined ? now.capPerDay : patch.capPerDay,
     capPerWeek: patch.capPerWeek === undefined ? now.capPerWeek : patch.capPerWeek,
     utmLinks: patch.utmLinks ?? now.utmLinks,
+    sender: patch.sender === undefined ? now.sender : patch.sender,
+    postal: patch.postal === undefined ? now.postal : patch.postal,
   };
   if (next.capPerDay !== null && next.capPerWeek !== null && next.capPerWeek < next.capPerDay) {
     throw new RangeError("the weekly cap can't be under the daily one");

@@ -1497,6 +1497,10 @@ export const messageSettings = pgTable(
     capPerDay: integer("cap_per_day"),
     capPerWeek: integer("cap_per_week"),
     utmLinks: boolean("utm_links").notNull().default(true),
+    /** A client's mailbox its email marketing sends from: one connected in Account → Mailboxes. */
+    sender: varchar("sender", { length: 320 }),
+    /** The postal address every marketing email carries (CAN-SPAM). */
+    postal: varchar("postal", { length: 300 }),
     updatedBy: varchar("updated_by", { length: 200 }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -4,7 +4,7 @@
  * tokens live in the key store (designs/2026-10-07-key-store.md), sealed under the client;
  * access tokens live in memory for their hour. Nothing here returns or logs a token.
  */
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
@@ -15,13 +15,16 @@ import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
+import { buildMime } from "../send/mime.js";
 import {
   gmailMailbox,
   gmailReads,
   gmailReply,
+  gmailSend,
   graphMailbox,
   graphReads,
   graphReply,
+  graphSend,
   MailApiError,
 } from "./mailbox.js";
 import {
@@ -730,6 +733,58 @@ export function mailAccess(deps: MailDeps) {
       };
     },
 
+    /** The client's mailboxes that can send now: connected, any access. */
+    async sendersOf(client: string): Promise<string[]> {
+      const rows = await main
+        .select({ address: mailConnections.address })
+        .from(mailConnections)
+        .innerJoin(clientAccounts, eq(clientAccounts.id, mailConnections.accountId))
+        .where(and(eq(clientAccounts.client, client), eq(mailConnections.state, "connected")));
+      return rows.map((r) => r.address).sort();
+    },
+
+    /**
+     * A client's mailbox as its marketing sender: whole new messages with their own headers
+     * (`List-Unsubscribe`). `personal` is a free Gmail, which Google caps far lower per day.
+     */
+    async marketingSenderOf(client: string, address: string): Promise<MarketingSender> {
+      const at = address.trim().toLowerCase();
+      const [row] = await main
+        .select({ c: mailConnections })
+        .from(mailConnections)
+        .innerJoin(clientAccounts, eq(clientAccounts.id, mailConnections.accountId))
+        .where(and(eq(clientAccounts.client, client), eq(mailConnections.address, at)));
+      const c = row?.c;
+      if (!c) throw new MailRefusal(`Needs setup: ${at} isn't connected in Mailboxes.`);
+      if (c.state !== "connected")
+        throw new MailRefusal(`Needs setup: ${at} needs connecting again in Mailboxes.`);
+      const token = () => tokenOf(c);
+      return {
+        address: at,
+        personal: c.provider === "google" && CONSUMER_GOOGLE.has(domainOf(at)),
+        send: (m) => {
+          const mime = buildMime({
+            fromAddress: at,
+            fromName: m.fromName,
+            to: m.to,
+            subject: m.subject,
+            replySubject: null,
+            body: m.text,
+            messageId: `<${randomUUID()}@${domainOf(at)}>`,
+            headers: m.headers,
+          });
+          return guarded(
+            c,
+            () =>
+              c.provider === "google"
+                ? gmailSend(deps.fetch, token, mime)
+                : graphSend(deps.fetch, token, mime),
+            "Sending was refused. Connect it again.",
+          );
+        },
+      };
+    },
+
     /** The page: the client's mailboxes and orgs, each with its state and next step. */
     async view(client: string) {
       const accounts = (await accountsOf(main, client)).filter((a) =>
@@ -760,6 +815,20 @@ export function mailAccess(deps: MailDeps) {
   };
 }
 export type MailAccessApi = ReturnType<typeof mailAccess>;
+
+/** A client's mailbox sending its marketing mail (`marketingSenderOf`). */
+export interface MarketingSender {
+  address: string;
+  /** A free Gmail: Google caps it at 500 a day. */
+  personal: boolean;
+  send(m: {
+    fromName: string | null;
+    to: string;
+    subject: string;
+    text: string;
+    headers: [string, string][];
+  }): Promise<void>;
+}
 
 /**
  * Whether a client's connected mailbox is a Google one: its mail is Google user data, so a model

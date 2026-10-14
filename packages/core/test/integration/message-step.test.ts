@@ -16,6 +16,7 @@ const sent: { to: string; subject: string; text: string }[] = [];
 let down = false;
 const mail: BroadcastMail = {
   domain: "wren.example",
+  daily: 1500,
   envelope: () => ({ footer: "\n\n--\nUnsubscribe: https://example.test/u", headers: [] }),
   send: async (m) => {
     if (down) throw new Error("smtp down");
@@ -74,7 +75,7 @@ const yes = (email: string) =>
 describe("Send message", () => {
   it("sends once to a yes, with the footer, however often it runs", async () => {
     await yes("sam@example.com");
-    const step = messageStep(pg.db, { mail });
+    const step = messageStep(pg.db, { mail: async () => mail });
     const out = await step("in", lead("sam@example.com"), at());
     expect(out[0]?.port).toBe("sent");
     expect(out[0]?.event.data.message).toEqual({ channel: "email", to: "sam@example.com" });
@@ -87,7 +88,7 @@ describe("Send message", () => {
   });
 
   it("skips without a yes, and on a client's workflow", async () => {
-    const step = messageStep(pg.db, { mail });
+    const step = messageStep(pg.db, { mail: async () => mail });
     const none = await step("in", lead("pat@example.com"), at());
     expect(none[0]).toMatchObject({ port: "skipped" });
     expect(none[0]?.event.data.skipped).toBe("Never said yes to this topic");
@@ -97,7 +98,7 @@ describe("Send message", () => {
   });
 
   it("refuses a topic that doesn't exist", async () => {
-    const step = messageStep(pg.db, { mail });
+    const step = messageStep(pg.db, { mail: async () => mail });
     await expect(step("in", lead("sam@example.com"), at({ topic: "nope" }))).rejects.toThrow(
       /no email topic called nope/,
     );
@@ -105,7 +106,7 @@ describe("Send message", () => {
 
   it("a failed send takes its claim back, so the retry sends", async () => {
     await yes("sam@example.com");
-    const step = messageStep(pg.db, { mail });
+    const step = messageStep(pg.db, { mail: async () => mail });
     down = true;
     await expect(step("in", lead("sam@example.com"), at())).rejects.toThrow(/smtp down/);
     const kept = (await pg.db.execute(

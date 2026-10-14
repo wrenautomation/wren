@@ -28,8 +28,10 @@ interface Context {
   topics: { id: number; name: string; publicName: string; channel: string }[];
   fields: string[];
   textMost: number;
-  /** What may send here: a client's email waits on its own sending domain. */
+  /** What may send here: email needs a sender (a client's: its mailbox and postal address). */
   email: boolean;
+  /** Why email can't send yet, and where to fix it. */
+  emailUnset: string | null;
   text: boolean;
   testDomain: string | null;
   testPhone: string | null;
@@ -206,10 +208,13 @@ function BroadcastEditor({
             {(Object.keys(CHANNELS) as Channel[]).map((c) => (
               <option key={c} value={c} disabled={c === "email" && !ctx.email}>
                 {CHANNELS[c]}
-                {c === "email" && !ctx.email ? " (in development)" : ""}
+                {c === "email" && !ctx.email ? " (needs setup)" : ""}
               </option>
             ))}
           </select>
+          {!ctx.email && ctx.emailUnset ? (
+            <span className="text-[12px] text-(--ui-ink-2)">Email: {ctx.emailUnset}</span>
+          ) : null}
         </label>
         <label className={FIELD}>
           Segment

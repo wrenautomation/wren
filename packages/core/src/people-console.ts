@@ -21,12 +21,13 @@ import { BROADCAST, type BroadcastObject, broadcastKey } from "./broadcast-run.j
 import {
   askBroadcast,
   type BroadcastInput,
-  type BroadcastMail,
   broadcastById,
   broadcastContext,
   broadcastMonth,
   cancelBroadcast,
   decideBroadcast,
+  isUnset,
+  type MailOf,
   markTested,
   previewBroadcast,
   renderFor,
@@ -92,8 +93,8 @@ export interface PeopleConsoleDeps {
   records?: readonly RecordType[];
   /** The model Describe asks, per workspace (null: Wren's); unset, Describe says so. */
   model?: (client: string | null) => SegmentModel | null;
-  /** How Wren's email broadcasts and their tests leave; unset, email says it isn't set up. */
-  mail?: BroadcastMail | null;
+  /** How a workspace's email broadcasts and their tests leave; unset, email isn't set up. */
+  mail?: MailOf;
   /** The one phone a text test may go to (Wren's operator's); unset, text tests are refused. */
   testPhone?: string | null;
   now?: () => Date;
@@ -133,7 +134,7 @@ export function peopleConsoleApi({
   open,
   records = PEOPLE_RECORDS,
   model,
-  mail = null,
+  mail = async () => ({ unset: "Email isn't set up here" }),
   testPhone = null,
   now = () => new Date(),
 }: PeopleConsoleDeps) {
@@ -284,11 +285,14 @@ export function peopleConsoleApi({
     /** The broadcast editor's lists: segments, topics, merge fields, and what may send here. */
     broadcastContext: async (req: PortalRequest) => {
       const w = await workspace(req, "read");
+      const m = await mail(w.client, w.db);
       return {
         ...(await broadcastContext(w.db)),
-        email: !w.client && !!mail,
+        email: !isUnset(m),
+        /** Why email can't send yet, and where to fix it. */
+        emailUnset: isUnset(m) ? m.unset : null,
         text: true,
-        testDomain: mail?.domain ?? null,
+        testDomain: isUnset(m) ? null : m.domain,
         testPhone: w.client ? null : testPhone,
       };
     },
@@ -308,18 +312,15 @@ export function peopleConsoleApi({
         throw new PortalRefusal("at most 62 days at once", 422);
       return { broadcasts: await broadcastMonth(w.db, from, to) };
     },
-    /** A broadcast made or changed; `ask` puts it in To approve. A client's email waits on B6+. */
+    /** A broadcast made or changed; `ask` puts it in To approve. Email needs a mailer first. */
     broadcastSave: async (req: BroadcastSaveRequest) => {
       const w = await workspace(req, "act");
       const was = req.id ? await broadcastById(w.db, Number(req.id)) : null;
       const channel = req.channel ?? was?.channel;
-      if (channel === "email" && (w.client || !mail))
-        throw new PortalRefusal(
-          w.client
-            ? "In development: a client's own marketing email isn't set up yet. Texts work."
-            : "In development: email isn't set up here",
-          503,
-        );
+      if (channel === "email") {
+        const m = await mail(w.client, w.db);
+        if (isUnset(m)) throw new PortalRefusal(m.unset, 409);
+      }
       return { broadcast: await saveBroadcast(w.db, req, by(req), now()) };
     },
     broadcastAsk: async (req: BroadcastIdsRequest) => {
@@ -378,14 +379,14 @@ export function peopleConsoleApi({
       if ("missing" in copy) throw new PortalRefusal(copy.missing, 422);
       const at = now();
       if (b.channel === "email") {
-        if (w.client || !mail)
-          throw new PortalRefusal("In development: email isn't set up here", 503);
+        const m = await mail(w.client, w.db);
+        if (isUnset(m)) throw new PortalRefusal(m.unset, 409);
         const addr = to.toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+$/.test(addr) || !addr.endsWith(`@${mail.domain}`))
-          throw new PortalRefusal(`a test goes only to an @${mail.domain} address`, 422);
+        if (!/^[^@\s]+@[^@\s]+$/.test(addr) || !addr.endsWith(`@${m.domain}`))
+          throw new PortalRefusal(`a test goes only to an @${m.domain} address`, 422);
         const [t] = await w.db.select().from(topics).where(eq(topics.id, b.topicId));
-        const env = mail.envelope(addr, { name: t?.name ?? "", publicName: t?.publicName ?? "" });
-        await mail.send({
+        const env = m.envelope(addr, { name: t?.name ?? "", publicName: t?.publicName ?? "" });
+        await m.send({
           to: addr,
           subject: `[test] ${copy.subject ?? b.name}`,
           text: `${copy.body}${env.footer}`,

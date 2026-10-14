@@ -111,6 +111,8 @@ export interface DeliveryDeps {
   domains?: Partial<Omit<DomainsDeps, "main">>;
   /** A client's own database, for the message rules on Account; without it they aren't offered. */
   open?: (client: Pick<Client, "id" | "database">) => Db;
+  /** A client's mailboxes that can send now, for its email marketing sender. */
+  senders?: (client: string) => Promise<string[]>;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -761,7 +763,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
   const api = deliveryApi(deps);
   const hosts = domainsApi({ target: DEFAULT_TARGET, ...deps.domains, main: deps.main });
   const hooks = webhooksApi({ main: deps.main });
-  const rules = messagingApi({ main: deps.main, open: deps.open });
+  const rules = messagingApi({ main: deps.main, open: deps.open, senders: deps.senders });
   type Req<K extends keyof DeliveryApi> = Parameters<DeliveryApi[K]>[0];
   return portalService({
     name: "DeliveryPortal",
@@ -848,6 +850,10 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
         }),
       messagingChange: (_: restate.Context, req: Parameters<typeof rules.messagingChange>[0]) =>
         answer(() => rules.messagingChange(req)),
+      messagingSender: (_: restate.Context, req: Parameters<typeof rules.messagingSender>[0]) =>
+        answer(() => rules.messagingSender(req)),
+      messagingPostal: (_: restate.Context, req: Parameters<typeof rules.messagingPostal>[0]) =>
+        answer(() => rules.messagingPostal(req)),
       messagingLinksOn: (_: restate.Context, req: Parameters<typeof rules.messagingLinksOn>[0]) =>
         answer(() => rules.messagingLinksOn(req)),
       messagingLinksOff: (_: restate.Context, req: Parameters<typeof rules.messagingLinksOff>[0]) =>

@@ -668,6 +668,8 @@ export interface LinkFor {
   channel: MarketingChannel;
   address: string;
   topic?: string | undefined;
+  /** The client whose list it is; absent: Wren's own. */
+  client?: string | undefined;
 }
 
 /** The key preference links are signed with, from the secret the lander and Wren share. */
@@ -682,7 +684,9 @@ export const signupSig = (shared: string, topic: string, address: string) =>
 
 /** `<payload>.<mac>`, both base64url: the address in it is the subscriber's own. */
 export function signLink(key: string, to: LinkFor): string {
-  const body = b64(JSON.stringify([to.channel, to.address, to.topic ?? null]));
+  const body = b64(
+    JSON.stringify([to.channel, to.address, to.topic ?? null, ...(to.client ? [to.client] : [])]),
+  );
   return `${body}.${b64(mac(key, body))}`;
 }
 
@@ -694,10 +698,15 @@ export function readLink(key: string, token: string): LinkFor | null {
   const got = Buffer.from(sig, "base64url");
   if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
   try {
-    const [channel, address, topic] = JSON.parse(Buffer.from(body, "base64url").toString());
+    const [channel, address, topic, client] = JSON.parse(Buffer.from(body, "base64url").toString());
     if (channel !== "email" && channel !== "sms") return null;
     if (typeof address !== "string") return null;
-    return { channel, address, ...(typeof topic === "string" ? { topic } : {}) };
+    return {
+      channel,
+      address,
+      ...(typeof topic === "string" ? { topic } : {}),
+      ...(typeof client === "string" ? { client } : {}),
+    };
   } catch {
     return null;
   }
@@ -717,10 +726,13 @@ export function marketingEnvelope(o: {
   postal: string;
   /** Why they get it: "You signed up at wrenautomation.com." */
   why: string;
+  /** A client's list: its links change that client's records. */
+  client?: string | null;
 }): { headers: [string, string][]; footer: string } {
   if (!o.postal.trim()) throw new Error("a marketing email needs a postal address");
-  const prefs = `${o.site}/prefs/${signLink(o.key, { channel: "email", address: o.address })}`;
-  const off = `${o.site}/prefs/${signLink(o.key, { channel: "email", address: o.address, topic: o.topic })}?off=1`;
+  const to = { channel: "email" as const, address: o.address, client: o.client ?? undefined };
+  const prefs = `${o.site}/prefs/${signLink(o.key, to)}`;
+  const off = `${o.site}/prefs/${signLink(o.key, { ...to, topic: o.topic })}?off=1`;
   return {
     headers: [
       ["List-Unsubscribe", `<${off}>`],

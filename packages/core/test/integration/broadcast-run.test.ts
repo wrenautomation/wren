@@ -29,6 +29,7 @@ let env: RestateTestEnvironment;
 const sent: string[] = [];
 const mail: BroadcastMail = {
   domain: "wren.example",
+  daily: 1500,
   envelope: () => ({ footer: "\n\n--\nUnsubscribe: https://example.test/u", headers: [] }),
   send: async (m) => {
     sent.push(m.to);
@@ -48,7 +49,10 @@ const teller = restate.service({
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [makeBroadcast({ main: pg.db, clientDb: () => pg.db, mail }), teller],
+    services: [
+      makeBroadcast({ main: pg.db, clientDb: () => pg.db, mail: async () => mail }),
+      teller,
+    ],
     alwaysReplay: true,
   });
 });

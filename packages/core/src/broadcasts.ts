@@ -6,7 +6,8 @@
  * The life of one: saved as a draft, asked (To approve), approved, then on its time `start`
  * reads the segment once into recipients, each due at its own time. `sendRecipient` sends one:
  * consent, suppressions and the frequency cap gate it (`mayMarket`); a capped person is held
- * until the cap lifts and tried again then. An email goes from here; a text is queued on
+ * until the cap lifts and tried again then. An email goes from here, through the workspace's mailer
+ * (`MailOf`: Wren's portal@, a client's own connected mailbox); a text is queued on
  * `sms_messages` (kind `broadcast`) for the texts sender, which keeps quiet hours. The
  * `Broadcast` object (`./broadcast-run.ts`) drives it. Results are the sent log's (B2).
  */
@@ -47,6 +48,8 @@ export const EMAIL_PAUSE_MS = 30_000;
 export const TEXT_BATCH = 200;
 /** Under Gmail's 2,000 a day for portal@, with room for its other mail (`ISSUE_DAILY`). */
 export const EMAIL_DAILY = 1500;
+/** Under a free Gmail's 500 a day, with room for the person's own mail. */
+export const PERSONAL_DAILY = 400;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 /** Texts never go to a contact in these states. */
@@ -580,7 +583,19 @@ export interface BroadcastMail {
   ): { footer: string; headers: [string, string][] };
   /** A test goes to this domain only, so it never reaches a subscriber. */
   domain: string;
+  /** The most broadcast emails it sends in a rolling day. */
+  daily: number;
 }
+
+/** Why a workspace's email can't send yet, in words for its owner. */
+export interface MailUnset {
+  unset: string;
+}
+
+/** A workspace's mailer: Wren's (`client` null) or a client's own, or why there is none yet. */
+export type MailOf = (client: string | null, db: Queryable) => Promise<BroadcastMail | MailUnset>;
+
+export const isUnset = (m: BroadcastMail | MailUnset): m is MailUnset => "unset" in m;
 
 /** What one person's turn came to. */
 export type Outcome =
@@ -608,7 +623,7 @@ async function settle(db: Queryable, id: number, set: Partial<Recipient>) {
 export async function sendRecipient(
   db: Queryable,
   recipientId: number,
-  deps: { mail: BroadcastMail | null; now: Date },
+  deps: { mail: BroadcastMail | MailUnset; now: Date },
 ): Promise<Outcome> {
   const { now } = deps;
   const [r] = await db
@@ -687,8 +702,7 @@ export async function sendRecipient(
     return { state: "queued" };
   }
 
-  if (!deps.mail)
-    return { state: "failed", why: await failed(db, r.id, "Email isn't set up here") };
+  if (isUnset(deps.mail)) return { state: "failed", why: await failed(db, r.id, deps.mail.unset) };
   const claimed = await db
     .update(broadcastRecipients)
     .set({ state: "sending" })

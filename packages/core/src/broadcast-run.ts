@@ -12,13 +12,14 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import {
-  type BroadcastMail,
   broadcastById,
   dueRecipients,
   EMAIL_BATCH,
   EMAIL_DAILY,
   EMAIL_PAUSE_MS,
   emailsToday,
+  isUnset,
+  type MailOf,
   nextOrFinish,
   type Outcome,
   sendRecipient,
@@ -40,8 +41,8 @@ const CEILING_MS = 3_600_000;
 export interface BroadcastDeps {
   main: Db;
   clientDb(id: string): Db;
-  /** How Wren's email broadcasts leave; null where email isn't set up. A client's has none. */
-  mail: BroadcastMail | null;
+  /** How a workspace's email broadcasts leave, or why they can't yet. */
+  mail: MailOf;
 }
 
 /** A broadcast's key: Wren's is its id. */
@@ -135,14 +136,22 @@ export function makeBroadcast(d: BroadcastDeps) {
           let batch = b.channel === "email" ? EMAIL_BATCH : TEXT_BATCH;
           if (b.channel === "email") {
             const today = await ctx.run("today", () => emailsToday(w.db, now));
-            batch = Math.max(0, Math.min(batch, EMAIL_DAILY - today));
+            const daily = await ctx.run("daily", async () => {
+              const m = await d.mail(w.client, w.db);
+              return isUnset(m) ? EMAIL_DAILY : m.daily;
+            });
+            batch = Math.max(0, Math.min(batch, daily - today));
           }
           const due = batch
             ? await ctx.run("due", () => dueRecipients(w.db, w.id, now, batch))
             : [];
           for (const id of due) {
-            const out: Outcome = await ctx.run(`to ${id}`, () =>
-              sendRecipient(w.db, id, { mail: w.client ? null : d.mail, now }),
+            const out: Outcome = await ctx.run(`to ${id}`, async () =>
+              sendRecipient(w.db, id, {
+                mail:
+                  b.channel === "email" ? await d.mail(w.client, w.db) : { unset: "texts only" },
+                now,
+              }),
             );
             if (out.state !== "gone") stats[out.state] += 1;
           }

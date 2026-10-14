@@ -98,6 +98,7 @@ function fakeMail(
   return {
     sent,
     domain: "wren.example",
+    daily: 1500,
     envelope: (address, topic) => ({
       footer: `\n\n--\nYou get ${topic.publicName}. Unsubscribe: https://example.test/u/${address}`,
       headers: [["List-Unsubscribe", `<https://example.test/u/${address}>`]],
@@ -143,9 +144,10 @@ async function segmentOf(ids: number[]): Promise<number> {
 
 /** Every due person sent once, as a run does. */
 async function sendDue(id: number, mail: BroadcastMail | null, now = NOW) {
+  const m = mail ?? { unset: "Email isn't set up here" };
   const out: Record<string, string> = {};
   for (const r of await dueRecipients(pg.db, id, now, 100)) {
-    const got = await sendRecipient(pg.db, r, { mail, now });
+    const got = await sendRecipient(pg.db, r, { mail: m, now });
     out[r] = got.state;
   }
   return out;

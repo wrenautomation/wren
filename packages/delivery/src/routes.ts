@@ -56,6 +56,8 @@ export const DELIVERY_ROUTES = {
   webhookRedeliver: "manage",
   // The rules for marketing messages, in the client's own database.
   messagingChange: "manage",
+  messagingSender: "manage",
+  messagingPostal: "manage",
   messagingLinksOn: "manage",
   messagingLinksOff: "manage",
 } as const satisfies Record<string, Need>;
@@ -89,6 +91,8 @@ export const DELIVERY_APPS = {
   webhookTest: "account",
   webhookRedeliver: "account",
   messagingChange: "account",
+  messagingSender: "account",
+  messagingPostal: "account",
   messagingLinksOn: "account",
   messagingLinksOff: "account",
 } as const satisfies RouteApps<typeof DELIVERY_ROUTES>;
@@ -124,6 +128,8 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "webhookTest",
   "webhookRedeliver",
   "messagingChange",
+  "messagingSender",
+  "messagingPostal",
   "messagingLinksOn",
   "messagingLinksOff",
 ];

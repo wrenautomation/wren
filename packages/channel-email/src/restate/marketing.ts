@@ -2,10 +2,12 @@
  * `Marketing`: the lander's signup form and preference center, through the phone Worker
  * (designs/2026-10-04-borrowed-ui.md, M2). The lander signs each signup after its bot check;
  * the preference center's links are signed per address, so the link is the login.
- * The confirm email is transactional mail from portal@.
+ * The confirm email is transactional mail from portal@. A client's broadcast links name the client,
+ * so their preference center reads and changes that client's database.
  */
 import { timingSafeEqual } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
+import { findClient } from "@wren/core/clients";
 import {
   askConsent,
   confirmConsent,
@@ -25,7 +27,7 @@ import {
 } from "@wren/core/marketing";
 import { serviceHandler } from "@wren/core/restate";
 import { FREQUENCIES, type Frequency, topics } from "@wren/core/schema";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { PlainMail } from "../send/gmail.js";
@@ -102,8 +104,18 @@ export function makeMarketing(deps: {
   site: string;
   /** Sends the confirm email; null = signups are refused, since none could confirm. */
   send: ((m: PlainMail) => Promise<void>) | null;
+  /** A client's own database, for links a client's mail carries; unset: those links fail. */
+  clientDb?: (id: string) => Db;
 }) {
   const { db } = deps;
+  /** Where the link's list lives, and whose it is: a client's, or Wren's own. */
+  const home = async (link: LinkFor): Promise<{ db: Queryable; from: string | null }> => {
+    if (!link.client) return { db, from: null };
+    const c = deps.clientDb ? await findClient(db, link.client) : null;
+    if (!c || !deps.clientDb)
+      throw new restate.TerminalError("this link isn't valid", { errorCode: 404 });
+    return { db: deps.clientDb(c.id), from: c.name };
+  };
   const key = (): string => {
     if (!deps.shared)
       throw new restate.TerminalError("marketing is off: no shared secret", { errorCode: 503 });
@@ -119,19 +131,24 @@ export function makeMarketing(deps: {
     ...(v.ip ? { ip: v.ip } : {}),
     ...(v.ua ? { ua: v.ua.slice(0, 300) } : {}),
   });
-  const topicNamed = (name: string) =>
-    db
+  const topicNamed = (name: string, at: Queryable = db) =>
+    at
       .select()
       .from(topics)
       .where(and(eq(topics.name, name), eq(topics.channel, "email")))
       .then((r) => r[0] ?? null);
-  const prefs = async (link: LinkFor) => ({
-    ...(await preferencesOf(db, link.channel, link.address)),
-    channel: link.channel,
-    /** The topic the link names (a confirm or an unsubscribe), and its public name. */
-    topic: link.topic ?? null,
-    named: link.topic ? ((await topicNamed(link.topic))?.publicName ?? null) : null,
-  });
+  const prefs = async (link: LinkFor) => {
+    const h = await home(link);
+    return {
+      ...(await preferencesOf(h.db, link.channel, link.address)),
+      channel: link.channel,
+      /** The topic the link names (a confirm or an unsubscribe), and its public name. */
+      topic: link.topic ?? null,
+      named: link.topic ? ((await topicNamed(link.topic, h.db))?.publicName ?? null) : null,
+      /** Whose list: a client's name; null is Wren's own. */
+      from: h.from,
+    };
+  };
 
   return restate.service({
     name: "Marketing",
@@ -195,8 +212,8 @@ export function makeMarketing(deps: {
             throw new restate.TerminalError("not a confirm link", { errorCode: 404 });
           const topic = link.topic;
           const now = new Date(await ctx.date.now());
-          const row = await ctx.run("confirm", () =>
-            confirmConsent(db, {
+          const row = await ctx.run("confirm", async () =>
+            confirmConsent((await home(link)).db, {
               ...link,
               topic,
               evidence: proof(req, { click: true }),
@@ -227,6 +244,7 @@ export function makeMarketing(deps: {
           const by = "subscriber";
           const base = { channel: link.channel, address: link.address };
           const event = await ctx.run("set", async (): Promise<number | null> => {
+            const { db } = await home(link);
             if (c && "topic" in c) {
               const shown = (await preferencesOf(db, link.channel, link.address)).topics;
               if (c.topic !== link.topic && !shown.some((t) => t.name === c.topic))

@@ -17,7 +17,7 @@ Nothing sends without a yes: draft, then asked (To approve), then approved (`sch
 
 On its time, `startBroadcast` (`packages/core/src/broadcasts.ts:486`) reads the segment once into recipients, each with its own `due_at`. Local time means the same wall clock in each person's zone (`dueFor`, `:141`). It starts when the first zone reaches it (`startOf`, `:157`).
 
-`sendRecipient` (`:608`) gates each person on [[leads/consent]], suppressions and the frequency cap (`mayMarket`). A capped person goes `held` until `marketingRoomAt` and is tried again then, as queued follow-ups are. Email leaves from here, in batches of 20 with a 1,500/day ceiling. A text is queued on [[sms/sms-message]] (kind `broadcast`, ref `<slug>/<id>`) for the texts sender, which keeps quiet hours. Each person is one journaled step, so a retry never sends twice.
+`sendRecipient` (`:608`) gates each person on [[leads/consent]], suppressions and the frequency cap (`mayMarket`). A capped person goes `held` until `marketingRoomAt` and is tried again then, as queued follow-ups are. Email leaves from here, in batches of 20, through the workspace's mailer (`MailOf`): Wren's from portal@; a client's from the mailbox it picked in Account → Messaging, with its postal address, and unsubscribe links that name the client. The daily ceiling is 1,500, or 400 from a free Gmail. A text is queued on [[sms/sms-message]] (kind `broadcast`, ref `<slug>/<id>`) for the texts sender, which keeps quiet hours. Each person is one journaled step, so a retry never sends twice.
 
 Results are the [[leads/sent-log]]'s rows for it (`broadcast` column), counted on its ladder, each linking to its rows.
 
@@ -42,7 +42,7 @@ Citations: `packages/core/src/broadcasts-schema.ts:60`, `packages/core/src/broad
 
 ## If you change this
 
-- **Hits:** `packages/db/drizzle.config.ts` (lists `broadcasts-schema.ts`), a migration; `sent-views.ts` (the broadcast rows); `apps/portal/web/src/modules/people/broadcasts.tsx`; To approve (`packages/content/src/social/records.ts`, `apps/portal/web/src/modules/marketing/index.ts`); `apps/worker/src/services.ts:725` (Wren's mail)
+- **Hits:** `packages/db/drizzle.config.ts` (lists `broadcasts-schema.ts`), a migration; `sent-views.ts` (the broadcast rows); `apps/portal/web/src/modules/people/broadcasts.tsx`; To approve (`packages/content/src/social/records.ts`, `apps/portal/web/src/modules/marketing/index.ts`); `apps/worker/src/services.ts` (`mailOf`: each workspace's mail)
 - **Does not hit:** the segment's rule; consent rows
 
 ## Surfaces

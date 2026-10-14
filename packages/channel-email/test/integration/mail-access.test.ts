@@ -59,7 +59,9 @@ const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
   ) {
     if (fake.refuseSend)
       return Response.json({ error: { message: "Insufficient Permission" } }, { status: 403 });
-    fake.sent.push({ url, body: JSON.parse(String(init.body)) });
+    // Graph's MIME send is base64 text, every other write JSON.
+    const mime = new Headers(init.headers).get("content-type") === "text/plain";
+    fake.sent.push({ url, body: mime ? String(init.body) : JSON.parse(String(init.body)) });
     return url.endsWith("/messages/send")
       ? Response.json({ id: "s1", threadId: "t1" })
       : new Response(null, { status: 202 });
@@ -260,6 +262,30 @@ describe("Google Workspace", () => {
     expect(mime).toContain("Subject: Re: Quote");
   });
 
+  it("a marketing email goes out as its own message, with its unsubscribe headers", async () => {
+    fake.sent.length = 0;
+    const box = await acc.marketingSenderOf("acme", "Ann@acme.example");
+    expect(box).toMatchObject({ address: "ann@acme.example", personal: false });
+    await box.send({
+      fromName: "Acme Dental",
+      to: "lee@patient.example",
+      subject: "October news",
+      text: "Hi Lee",
+      headers: [["List-Unsubscribe", "<https://site.example/prefs/t?off=1>"]],
+    });
+    const [send] = fake.sent;
+    expect(send?.url).toBe("https://gmail.googleapis.com/gmail/v1/users/me/messages/send");
+    const body = (send?.body ?? {}) as { raw: string; threadId?: string };
+    expect(body.threadId).toBeUndefined();
+    const mime = Buffer.from(body.raw, "base64url").toString();
+    expect(mime).toContain("From: Acme Dental <ann@acme.example>");
+    expect(mime).toContain("Subject: October news");
+    expect(mime).toContain("List-Unsubscribe: <https://site.example/prefs/t?off=1>");
+    expect(await acc.sendersOf("acme")).toEqual(["ann@acme.example"]);
+    await expect(acc.marketingSenderOf("beta", "ann@acme.example")).rejects.toThrow(/Needs setup/);
+    fake.sent.length = 0;
+  });
+
   it("a refused send breaks the mailbox with why", async () => {
     fake.refuseSend = true;
     const box = await acc.senderOf("acme", "ann@acme.example");
@@ -424,6 +450,21 @@ describe("Microsoft 365", () => {
         body: { message: { body: { contentType: "Text", content: "Tuesday works." } } },
       },
     ]);
+
+    // A marketing email goes as MIME, since Graph's JSON takes only x- headers.
+    fake.sent.length = 0;
+    const sender = await acc.marketingSenderOf("beta", "bo@beta.example");
+    await sender.send({
+      fromName: null,
+      to: "lee@patient.example",
+      subject: "News",
+      text: "Hi",
+      headers: [["List-Unsubscribe-Post", "List-Unsubscribe=One-Click"]],
+    });
+    expect(fake.sent[0]?.url).toBe("https://graph.microsoft.com/v1.0/me/sendMail");
+    const mime = Buffer.from(String(fake.sent[0]?.body), "base64").toString();
+    expect(mime).toContain("List-Unsubscribe-Post: List-Unsubscribe=One-Click");
+    expect(mime).toContain("To: lee@patient.example");
   });
 });
 

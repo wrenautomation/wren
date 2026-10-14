@@ -19,7 +19,7 @@ import { Vendors } from "./Vendors.js";
 import { Webhooks } from "./Webhooks.js";
 import { You } from "./You.js";
 
-/** Messaging: a cap is typed (a number, or "off"); the link tags are a switch. */
+/** Messaging: a cap is typed (a number, or "off"); the link tags are a switch; sender and postal are typed. */
 const MESSAGING_ACTIONS: Action[] = [
   {
     id: "delivery.messaging.change",
@@ -29,6 +29,24 @@ const MESSAGING_ACTIONS: Action[] = [
     ask: { field: "value", label: "Most messages (a number, or off)", from: "value" },
     when: { id: ["caps.day", "caps.week"] },
     done: () => "Changed",
+  },
+  {
+    id: "delivery.messaging.sender",
+    label: "Change",
+    handler: "delivery/messagingSender",
+    key: "e",
+    ask: { field: "value", label: "A mailbox connected in Mailboxes (blank clears it)" },
+    when: { id: ["sender"] },
+    done: () => "Email marketing sends from it now",
+  },
+  {
+    id: "delivery.messaging.postal",
+    label: "Change",
+    handler: "delivery/messagingPostal",
+    key: "e",
+    ask: { field: "value", label: "Street, city, region, postal code (blank clears it)" },
+    when: { id: ["postal"] },
+    done: () => "Saved",
   },
   {
     id: "delivery.messaging.on",

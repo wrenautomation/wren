@@ -18,6 +18,28 @@ describe("preference links", () => {
     expect(readLink(KEY, "garbage.garbage")).toBeNull();
   });
 
+  it("a client's link names the client; Wren's old links still read", () => {
+    const theirs = { ...ana, client: "acme" };
+    expect(readLink(KEY, signLink(KEY, theirs))).toEqual(theirs);
+    const e = marketingEnvelope({
+      key: KEY,
+      site: "https://site.example",
+      address: ana.address,
+      topic: ana.topic,
+      postal: "1 Main St, Town",
+      why: "",
+      client: "acme",
+    });
+    const off = e.headers[0]?.[1].match(/prefs\/([^?]+)\?off=1/);
+    expect(readLink(KEY, off?.[1] ?? "")).toEqual(theirs);
+    const prefs = e.footer.match(/prefs\/(\S+)/);
+    expect(readLink(KEY, prefs?.[1] ?? "")).toEqual({
+      channel: "email",
+      address: ana.address,
+      client: "acme",
+    });
+  });
+
   it("every marketing email gets one-click unsubscribe and a postal footer", () => {
     const e = marketingEnvelope({
       key: KEY,

@@ -557,13 +557,29 @@ export function deliveryRecords(
               label: "Tag links with where they came from",
               value: s.utmLinks ? "On" : "Off",
             },
+            {
+              id: "sender",
+              label: "Email marketing sends from",
+              value: s.sender ?? "Not set: email broadcasts can't send",
+            },
+            {
+              id: "postal",
+              label: "Postal address in every marketing email",
+              value: s.postal ?? "Not set: email broadcasts can't send",
+            },
           ];
         },
         key: "id",
         title: "label",
         fields: { label: text("Rule"), value: text("Now") },
         views: [{ id: "all", label: "Message rules" }],
-        actions: ["delivery.messaging.change", "delivery.messaging.on", "delivery.messaging.off"],
+        actions: [
+          "delivery.messaging.change",
+          "delivery.messaging.sender",
+          "delivery.messaging.postal",
+          "delivery.messaging.on",
+          "delivery.messaging.off",
+        ],
       })
     : null;
 

@@ -187,6 +187,30 @@ async function postJson<T>(
   return text ? (JSON.parse(text) as T) : null;
 }
 
+/** A whole new message from a Gmail or Workspace mailbox (gmail.send), its MIME as built. */
+export async function gmailSend(fetch: FetchLike, token: TokenOf, mime: Buffer): Promise<void> {
+  await postJson(fetch, `${GMAIL}/messages/send`, token, { raw: mime.toString("base64url") });
+}
+
+/**
+ * A whole new message from a Microsoft 365 mailbox (Mail.Send). MIME, not Graph's JSON: Graph's
+ * JSON takes only `x-` headers, and a marketing mail needs `List-Unsubscribe`.
+ */
+export async function graphSend(fetch: FetchLike, token: TokenOf, mime: Buffer): Promise<void> {
+  const res = await fetch(`${GRAPH}/sendMail`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${await token()}`, "content-type": "text/plain" },
+    body: mime.toString("base64"),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new MailApiError(
+      res.status,
+      `${res.status}: ${String(err.error?.message ?? res.statusText).slice(0, 200)}`,
+    );
+  }
+}
+
 /** "Re: Quote", once: a subject that already says Re keeps it. */
 export const replySubject = (subject: string): string => {
   const s = oneLine(subject).trim();

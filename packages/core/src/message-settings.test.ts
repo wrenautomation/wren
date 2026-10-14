@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAP_MAX, capOf, slugOf, tagLinks } from "./message-settings.js";
+import { CAP_MAX, capOf, postalOf, slugOf, tagLinks } from "./message-settings.js";
 
 const tags = { source: "Acme Dental", medium: "email", campaign: "Spring Offer!" };
 
@@ -67,5 +67,18 @@ describe("capOf", () => {
   });
   it("refuses the rest", () => {
     for (const v of ["-1", "2.5", "many", CAP_MAX + 1]) expect(() => capOf(v)).toThrow(RangeError);
+  });
+});
+
+describe("postalOf", () => {
+  it("keeps one line, folds breaks, clears on blank", () => {
+    expect(postalOf("1 Main St\nTown, ST 00000")).toBe("1 Main St, Town, ST 00000");
+    expect(postalOf("  ")).toBeNull();
+    expect(postalOf(undefined)).toBeNull();
+  });
+
+  it("refuses a line too short or too long to be an address", () => {
+    expect(() => postalOf("Town")).toThrow(RangeError);
+    expect(() => postalOf("x".repeat(301))).toThrow(RangeError);
   });
 });

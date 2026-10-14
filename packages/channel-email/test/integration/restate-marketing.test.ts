@@ -1,11 +1,13 @@
 /**
  * Marketing through Restate: a signed signup mails one confirm link, the link confirms, and the
- * preference center's changes land as the person's own. Unsigned or forged calls move nothing.
+ * preference center's changes land as the person's own. Unsigned or forged calls move nothing. A
+ * client's link opens that client's database and names the client.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import { mayMarket, signupSig } from "@wren/core/marketing";
+import { clients as clientRows } from "@wren/core/clients";
+import { linkKey, mayMarket, signLink, signupSig } from "@wren/core/marketing";
 import { topics } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -19,6 +21,9 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
+  await pg.db
+    .insert(clientRows)
+    .values({ id: "acme", name: "Acme Dental", database: "wren_client_acme" });
   env = await startTestRestate({
     services: [
       makeMarketing({
@@ -28,6 +33,8 @@ beforeAll(async () => {
         send: async (m) => {
           sent.push(m);
         },
+        // The same database stands in for the client's own.
+        clientDb: () => pg.db,
       }),
     ],
     alwaysReplay: true,
@@ -132,5 +139,25 @@ describe("Marketing", () => {
     expect(await may()).toMatchObject({ why: "suppressed" });
     await mk().set({ token, change: { undo: all.event ?? 0 } });
     expect(await may()).toMatchObject({ send: true });
+  });
+
+  it("a client's link changes the client's records and names the client", async () => {
+    await signUp();
+    await mk().confirm({ token: tokenOf(sent[0]) });
+    const theirs = (client: string) =>
+      signLink(linkKey(SHARED), {
+        channel: "email",
+        address: ADDRESS,
+        topic: "weekly-breakdown",
+        client,
+      });
+    const off = await mk().set({
+      token: theirs("acme"),
+      change: { topic: "weekly-breakdown", on: false },
+    });
+    expect(off.prefs.from).toBe("Acme Dental");
+    expect(await may()).toMatchObject({ why: "withdrawn" });
+    expect((await mk().prefs({ token: sent[0] ? tokenOf(sent[0]) : "" })).from).toBeNull();
+    await expect(mk().prefs({ token: theirs("nobody") })).rejects.toThrow("this link isn't valid");
   });
 });

@@ -253,7 +253,12 @@ import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { makeBroadcast } from "@wren/core/broadcast-run";
-import type { BroadcastMail } from "@wren/core/broadcasts";
+import {
+  type BroadcastMail,
+  EMAIL_DAILY,
+  type MailOf,
+  PERSONAL_DAILY,
+} from "@wren/core/broadcasts";
 import { cacheFrom } from "@wren/core/cache";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import {
@@ -285,6 +290,7 @@ import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { linkKey, marketingEnvelope } from "@wren/core/marketing";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { readMessageSettings } from "@wren/core/message-settings";
 import { messageStep, notifyStep } from "@wren/core/message-step";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
@@ -730,6 +736,7 @@ export async function buildServices(
       ? {
           send: portalMail,
           domain: settings.portalFrom.split("@")[1]?.toLowerCase() ?? "",
+          daily: EMAIL_DAILY,
           envelope: (address, topic) =>
             marketingEnvelope({
               key: linkKey(shared),
@@ -1088,6 +1095,7 @@ export async function buildServices(
       shared: settings.siteExportToken ?? null,
       site: settings.siteBaseUrl.replace(/\/+$/, ""),
       send: portalMail,
+      clientDb,
     }),
     // A blog post mailed to its confirmed subscribers, once each (designs/2026-10-11-newsletter.md).
     makeNewsletter({
@@ -1645,8 +1653,8 @@ export async function buildServices(
       db,
       open: openClient,
       records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
-      // Broadcasts (B6): Wren's email and its tests; a text test only to the operator's phone.
-      mail: broadcastMail,
+      // Broadcasts (B6): each workspace's email and its tests; a text test only to the operator's phone.
+      mail: (client, cdb) => mailOf(client, cdb),
       testPhone: settings.operatorPhone ?? null,
       // Describe segment: Wren's model for Wren, a client's own key or Wren's, metered on its share.
       model: (client) =>
@@ -1851,6 +1859,44 @@ export async function buildServices(
     origin: settings.portalOrigin ?? null,
     fetch,
   });
+  /**
+   * Where a workspace's email marketing leaves: Wren's from portal@; a client's from the mailbox it
+   * picked in Account → Messaging, with its postal address, under its name. Same footer and
+   * one-click unsubscribe; the links name the client, so they change its records.
+   */
+  const mailOf: MailOf = async (client, cdb) => {
+    if (!client) return broadcastMail ?? { unset: "Email isn't set up here" };
+    if (!shared) return { unset: "Email isn't set up here" };
+    const rules = await readMessageSettings(cdb);
+    if (!rules.sender)
+      return { unset: "Needs setup: pick the mailbox it sends from in Account → Messaging" };
+    if (!rules.postal)
+      return { unset: "Needs setup: add your postal address in Account → Messaging" };
+    const [box, c] = await Promise.all([
+      clientMail.marketingSenderOf(client, rules.sender).catch((err: unknown) => {
+        if (err instanceof PortalRefusal) return { unset: err.message };
+        throw err;
+      }),
+      findClient(db, client),
+    ]);
+    if ("unset" in box) return box;
+    const postal = rules.postal;
+    return {
+      domain: box.address.split("@")[1] ?? "",
+      daily: box.personal ? PERSONAL_DAILY : EMAIL_DAILY,
+      send: (m) => box.send({ ...m, fromName: c?.name ?? null }),
+      envelope: (address, topic) =>
+        marketingEnvelope({
+          key: linkKey(shared),
+          site: settings.siteBaseUrl.replace(/\/+$/, ""),
+          address,
+          topic: topic.name,
+          postal,
+          why: `You signed up for ${topic.publicName}.`,
+          client,
+        }),
+    };
+  };
   const setupChecks = {
     // Wren's mail apps, a Workspace domain's test read, a tenant's consent, each mailbox's token.
     ...mailChecks({ main: db, apps: mailApps, access: clientMail, fetch }),
@@ -1913,6 +1959,7 @@ export async function buildServices(
       domains: customDomains(),
       // The message rules on Account live in each client's own database.
       open: openClient,
+      senders: (client) => clientMail.sendersOf(client),
     }),
     makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),
@@ -2133,7 +2180,7 @@ export async function buildServices(
         "logic.set_field": setFieldStep(db),
         // Send message and Notify me (designs/2026-10-14-automations.md): one person's broadcast,
         // gated like one; a line to Wren's team on the main lane.
-        "logic.message": messageStep(db, { mail: broadcastMail }),
+        "logic.message": messageStep(db, { mail: (client, cdb) => mailOf(client, cdb) }),
         "logic.notify": notifyStep((client) =>
           settings.notify === "none" ? null : client ? namedFor(notifier, client) : notifier,
         ),
@@ -2182,7 +2229,7 @@ export async function buildServices(
       return [makeSegments(segments), makeSegmentsNet(segments)];
     })(),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
-    makeBroadcast({ main: db, clientDb, mail: broadcastMail }),
+    makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),
     makeWebhooks({
       main: db,
       // A URL Wren turned off: its client's owners and whoever added it hear from portal@.

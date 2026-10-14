@@ -55,7 +55,11 @@ beforeAll(async () => {
   await addMember(pg.db, "acme", "cy@acme.example", { role: "member" });
   // The same database stands in for the client's own.
   api = deliveryApi({ main: pg.db, demoName: "Demo firm", open: () => pg.db });
-  set = messagingApi({ main: pg.db, open: () => pg.db });
+  set = messagingApi({
+    main: pg.db,
+    open: () => pg.db,
+    senders: async (client) => (client === "acme" ? ["news@acme.example"] : []),
+  });
   bare = deliveryApi({ main: pg.db, demoName: "Demo firm" });
   bareSet = messagingApi({ main: pg.db });
 }, 120_000);
@@ -69,7 +73,25 @@ describe("message rules", () => {
       "caps.day": String(MESSAGE_DEFAULTS.capPerDay),
       "caps.week": String(MESSAGE_DEFAULTS.capPerWeek),
       links: "On",
+      sender: "Not set: email broadcasts can't send",
+      postal: "Not set: email broadcasts can't send",
     });
+  });
+
+  it("an owner picks a connected mailbox to send from, or clears it", async () => {
+    await set.messagingSender(ask("sender", " News@Acme.example "));
+    expect((await rules(AMY)).sender).toBe("news@acme.example");
+    expect(await refused(set.messagingSender(ask("sender", "cy@acme.example")))).toBe(400);
+    expect((await readMessageSettings(pg.db)).sender).toBe("news@acme.example");
+    await set.messagingSender(ask("sender", ""));
+    expect((await readMessageSettings(pg.db)).sender).toBeNull();
+  });
+
+  it("an owner sets the postal address; too short says why", async () => {
+    await set.messagingPostal(ask("postal", "1 Main St\nTown, ST 00000"));
+    expect((await rules(AMY)).postal).toBe("1 Main St, Town, ST 00000");
+    expect(await refused(set.messagingPostal(ask("postal", "Town")))).toBe(400);
+    expect(await refused(set.messagingPostal(ask("sender", "1 Main St, Town")))).toBe(404);
   });
 
   it("an owner changes a cap, or turns it off", async () => {
@@ -124,7 +146,13 @@ describe("message rules", () => {
   });
 
   it("the routes need manage and never run on the demo", () => {
-    for (const r of ["messagingChange", "messagingLinksOn", "messagingLinksOff"] as const) {
+    for (const r of [
+      "messagingChange",
+      "messagingSender",
+      "messagingPostal",
+      "messagingLinksOn",
+      "messagingLinksOff",
+    ] as const) {
       expect(DELIVERY_ROUTES[r]).toBe("manage");
       expect(DELIVERY_WRITES).toContain(r);
     }
