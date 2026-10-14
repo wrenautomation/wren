@@ -180,7 +180,27 @@ export type TriggerFacts =
   | { trigger: "trigger.payment"; change: "paid" }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
   | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
-  | { trigger: "trigger.app"; app: string; change: AppChange };
+  | { trigger: "trigger.app"; app: string; change: AppChange }
+  | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
+  | { trigger: "trigger.trait"; key: string; value: string | null }
+  | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
+
+/** A profile entering or leaving a segment (designs/2026-10-14-customerio-audit.md, B5). */
+export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
+export type SegmentChange = keyof typeof SEGMENT_CHANGES;
+/** A date trait's trigger: on that date once, or on its day each year (a birthday). */
+export const DATE_EVERY = { once: "On the date", yearly: "Every year" } as const;
+export type DateEvery = keyof typeof DATE_EVERY;
+/** A trait key, as profiles keep them. */
+const TRAIT_KEY = /^[a-z][a-z0-9_]{0,63}$/;
+/** A Date trigger's offset in whole days, -365 to 365; 0 when unread. */
+export const offsetOf = (v: unknown): number => {
+  const n = Math.round(Number(v ?? 0));
+  return Number.isFinite(n) && Math.abs(n) <= 365 ? n : 0;
+};
+/** A Date trigger's repeat: yearly, else once. */
+export const everyOf = (v: unknown): DateEvery =>
+  String(v ?? "") === "yearly" ? "yearly" : "once";
 
 /** What a sent document tells the spine (designs/2026-10-09-documents.md). */
 export const DOC_CHANGES = {
@@ -228,6 +248,18 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const stage = text(w.stage);
     return (on === "any" || on === f.change) && (!stage || stage === f.stage);
   }
+  if (f.trigger === "trigger.segment") {
+    const on = text(w.on) || "entered";
+    return Number(w.segment) === f.segment && (on === "any" || on === f.change);
+  }
+  if (f.trigger === "trigger.trait") {
+    const to = text(w.to);
+    return text(w.trait) === f.key && (!to || to.toLowerCase() === (f.value ?? "").toLowerCase());
+  }
+  if (f.trigger === "trigger.date")
+    return (
+      text(w.trait) === f.key && offsetOf(w.offset) === f.offset && everyOf(w.every) === f.every
+    );
   if (f.trigger === "trigger.flag") {
     const on = text(w.on) || "raised";
     const side = text(w.side) || "any";
@@ -277,7 +309,10 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
         f.trigger === "trigger.payment" ||
         f.trigger === "trigger.document" ||
         f.trigger === "trigger.deal" ||
-        f.trigger === "trigger.app"
+        f.trigger === "trigger.app" ||
+        f.trigger === "trigger.segment" ||
+        f.trigger === "trigger.trait" ||
+        f.trigger === "trigger.date"
       ? null
       : f.change === "booked"
         ? "booking"
@@ -735,6 +770,74 @@ export const LOGIC: readonly LogicPart[] = [
     },
   ),
   trigger(
+    "segment",
+    "Segment",
+    "Starts when someone enters or leaves a segment in People. Once per person.",
+    "people",
+    "lead",
+    [
+      { field: "segment", label: "Segment (its number in People → Segments)", type: "number" },
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["entered", "left", "any"],
+        labels: { ...SEGMENT_CHANGES, any: "Either" },
+        start: "entered",
+      },
+    ],
+    (w) => {
+      const on = text(w.on) || "entered";
+      const what = on === "left" ? "Leaves" : on === "any" ? "Enters or leaves" : "Enters";
+      return `${what} segment ${text(w.segment) || "?"}`;
+    },
+  ),
+  trigger(
+    "trait",
+    "Trait changed",
+    "Starts when a person's trait changes, or changes to one value. Once per person.",
+    "edit",
+    "lead",
+    [
+      { field: "trait", label: "Trait key", type: "text", hint: "plan" },
+      { field: "to", label: "Only when it becomes", type: "text", hint: "Any value when empty" },
+    ],
+    (w) =>
+      text(w.to)
+        ? `${text(w.trait) || "A trait"} becomes ${text(w.to)}`
+        : `${text(w.trait) || "A trait"} changes`,
+  ),
+  trigger(
+    "date",
+    "Date",
+    "Starts on a date a person's trait holds, like a renewal or a birthday, a few days before or after.",
+    "calendar",
+    "lead",
+    [
+      { field: "trait", label: "Date trait key", type: "text", hint: "renewal_date" },
+      {
+        field: "offset",
+        label: "Days from it (-7 is a week before)",
+        type: "number",
+        start: 0,
+      },
+      {
+        field: "every",
+        label: "Repeat",
+        type: "choice",
+        options: ["once", "yearly"],
+        labels: DATE_EVERY,
+        start: "once",
+      },
+    ],
+    (w) => {
+      const n = offsetOf(w.offset);
+      const when = n === 0 ? "On" : n < 0 ? `${-n} days before` : `${n} days after`;
+      const yearly = everyOf(w.every) === "yearly" ? ", every year" : "";
+      return `${when} ${text(w.trait) || "a date trait"}${yearly}`;
+    },
+  ),
+  trigger(
     "flag",
     "Client flag",
     "Starts when a client's risk or opportunity is raised or clears.",
@@ -850,6 +953,14 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     !HOOK_PRESETS[text(w.form)]
   )
     out.push(`${at}: no form called ${text(w.form)}`);
+  if (l.id === "trigger.segment") {
+    const n = Number(w.segment);
+    if (!Number.isSafeInteger(n) || n < 1) out.push(`${at}: Segment names a segment's number`);
+  }
+  if ((l.id === "trigger.trait" || l.id === "trigger.date") && !TRAIT_KEY.test(text(w.trait)))
+    out.push(`${at}: name a trait key, like renewal_date`);
+  if (l.id === "trigger.date" && w.offset !== undefined && offsetOf(w.offset) !== Number(w.offset))
+    out.push(`${at}: days from the date are -365 to 365`);
   if (l.id === "trigger.schedule") {
     if (text(w.every) === "hours") {
       if (!hoursOf(w.hours)) out.push(`${at}: every 1 to 168 hours`);

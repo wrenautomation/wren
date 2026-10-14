@@ -27,7 +27,7 @@ Citations: `packages/core/src/profiles-schema.ts:95`, `packages/core/src/profile
 ## Connected to
 
 - **owned-by:** [[leads/profile]]
-- **joins:** [[leads/sent-log]] (`key_kind` + `key_value`), [[leads/touch]] (`handle:<platform>`), [[leads/person]] (`person`)
+- **joins:** [[leads/sent-log]] (`key_kind` + `key_value`), [[leads/segment]] (consent and message conditions match through keys; a key change wakes `Segments`), [[leads/touch]] (`handle:<platform>`), [[leads/person]] (`person`)
 - **looks-like-but-is-not:** `social_handles` (a handle with its touches; a key is just the address)
 
 ## If you change this

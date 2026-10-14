@@ -63,6 +63,7 @@ import { PEOPLE_RECORDS, peopleConsoleApi } from "@wren/core/people/console";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "@wren/core/people/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
+import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templatesApi } from "@wren/core/templates/console";
 import {
@@ -228,8 +229,9 @@ const SERVICES: Record<
         ...LEARN_RECORDS,
         sopRecordFor(resolve(rootDir, settings.sopsDir)),
         ...SITES_RECORDS,
-        // Every message we sent (People → Sent).
+        // Every message we sent (People → Sent), and Wren's segments.
         ...SENT_RECORDS,
+        ...SEGMENT_RECORDS,
         // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
         // for the lander's log (the worker reads it live), two lines for any visitor.
         ...profileRecords(WORKFLOWS, {
@@ -399,7 +401,7 @@ const SERVICES: Record<
   // Restate: not here.
   people: {
     routes: Object.keys(PEOPLE_CONSOLE_ROUTES),
-    guard: { needs: PEOPLE_CONSOLE_ROUTES, apps: PEOPLE_CONSOLE_APPS, unnamed: "first" },
+    guard: { needs: PEOPLE_CONSOLE_ROUTES, apps: PEOPLE_CONSOLE_APPS, unnamed: "wren" },
     api: peopleConsoleApi({
       db: main,
       open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),

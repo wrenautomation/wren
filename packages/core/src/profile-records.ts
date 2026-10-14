@@ -20,6 +20,7 @@ import {
   status,
   text,
 } from "./records.js";
+import { conditionsOf, dataOf, listSegments } from "./segments.js";
 import type { Workflow } from "./workflows.js";
 
 const KINDS = cued(
@@ -149,7 +150,10 @@ export const profileRecord = defineRecord({
     { record: "people.trait", by: "profile_id" },
     { record: "people.event", by: "profile_id" },
     { record: "people.merge", by: "into_id" },
+    { record: "people.member", by: "profile_id" },
   ],
+  // Put in a manual segment (B5).
+  actions: ["people.memberAdd"],
   // The Timeline tab is `people.event` by profile: whole rows, each linked to its own page.
   load: (db, id) => profileDetail(db, id),
 });
@@ -262,6 +266,9 @@ export function usesOf(workflows: readonly Workflow[]): Map<string, string[]> {
   for (const w of workflows)
     for (const n of w.nodes) {
       for (const k of HEARD_BY[n.uses ?? ""] ?? []) add(`event:${k}`, w.name);
+      // Trait changed and Date name their trait plainly.
+      if ((n.uses === "trigger.trait" || n.uses === "trigger.date") && n.with?.trait)
+        add(`trait:${String(n.with.trait)}`, w.name);
       // A node that reads a trait names it `trait.<key>` in its settings (B5).
       for (const m of JSON.stringify(n.with ?? {}).matchAll(/trait\.([a-z][a-z0-9_]{0,63})/g))
         add(`trait:${m[1]}`, w.name);
@@ -275,10 +282,20 @@ const DATA_KINDS = {
   event: { label: "Timeline", tone: "neutral" },
 } as const;
 
+/** Each data point the workspace's active segments read: "Segment <name>", by datum id. */
+async function segmentUses(db: Queryable): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  for (const s of await listSegments(db, "active")) {
+    if (!s.rule) continue;
+    for (const id of new Set(conditionsOf(s.rule).flatMap(dataOf)))
+      out.set(id, [...(out.get(id) ?? []), `Segment ${s.name}`]);
+  }
+  return out;
+}
+
 /**
  * The data index: every address kind, trait key and timeline kind there is, where it comes from,
- * how many people have it, when it was last seen and which workflows use it. Segments join
- * "used by" when they land (B5).
+ * how many people have it, when it was last seen and which workflows and segments use it.
  */
 export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
   const uses = usesOf(workflows);
@@ -324,8 +341,10 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
         rows: number;
         last_seen: Date | string | null;
       }[];
+      const bySegment = await segmentUses(db);
       return raw.map((r) => {
         const id = `${r.what}:${r.name}`;
+        const usedBy = [...(uses.get(id) ?? []), ...(bySegment.get(id) ?? [])];
         return {
           id,
           what: r.what,
@@ -335,7 +354,7 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
           people: Number(r.people),
           rows: Number(r.rows),
           last_seen: r.last_seen instanceof Date ? r.last_seen.toISOString() : r.last_seen,
-          used_by: uses.get(id)?.join(", ") ?? null,
+          used_by: usedBy.length ? usedBy.join(", ") : null,
           list:
             r.what === "event"
               ? `/people/timeline?kind=${r.name}`

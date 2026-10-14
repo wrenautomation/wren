@@ -31,6 +31,7 @@ Citations: `packages/core/src/sent-views.ts:58`, `packages/core/src/sent-records
 
 - **reads:** [[email/message]], [[sms/sms-message]], [[email/open-event]], [[email/email-click]], [[email/thread-event]], [[content/comment]], [[content/reach-post]], [[content/reddit-thread]], [[leads/consent]]
 - **joins:** B1's profiles on `key_kind` + `key_value` (to show a name and link the row)
+- **feeds:** [[leads/segment]] (message conditions count `sent_records` rows at or past a state)
 - **looks-like-but-is-not:** [[leads/touch]] (social touches per person, ours and theirs, kept as rows); `draft_events` (training record)
 
 ## If you change this

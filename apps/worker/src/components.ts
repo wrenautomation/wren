@@ -65,7 +65,10 @@ export const PLATFORM = {
     DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
-    PeopleConsole: "a client's People records, from its own database",
+    PeopleConsole: "People in every workspace: records, segments, Describe segment",
+    Segments:
+      "a workspace's segments kept true; entries, exits, traits and dates told to the spine",
+    SegmentsNet: "wakes every workspace's segments pass every 15 minutes",
     MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
     SocialAccess: "Account → Social: a client's own social accounts, each one's state and sign-in",
@@ -120,5 +123,7 @@ export const PLATFORM = {
     "people.trait": "what we know of a person, one value per trait, every change kept",
     "people.merge": "two profiles found to be one person, and what moved",
     "people.datum": "every address kind, trait and timeline kind, who has it, what uses it",
+    "people.segment": "a named group of people: live, by hand or a snapshot",
+    "people.member": "who is in each segment, and since when",
   },
 } as const;

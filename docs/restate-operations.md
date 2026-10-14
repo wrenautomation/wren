@@ -88,6 +88,7 @@ curl -X POST -H "$H" $U/ContentScheduler/default/start  # post approved content 
 curl -X POST -H "$H" $U/ContentMetrics/default/start    # daily metrics snapshots of young posts; Monday what-worked (`wren content metrics start`)
 curl -X POST -H "$H" $U/AdsWatch/default/start          # daily ads guard: pauses a launch over WREN_ADS_PAUSE_AFTER_USD with no clicks/results (`wren ads watch start`)
 curl -X POST -H "$H" $U/RedditReads/wren/start           # Reddit discovery, signed out: places monthly, watched places every 2 h, drafts to Marketing → Threads; posts nothing (`wren reach discovery start`)
+curl -X POST -H "$H" $U/SegmentsNet/all/start           # every 15 min: wakes Segments/fleet and each <client>/fleet (People → Segments kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```
 

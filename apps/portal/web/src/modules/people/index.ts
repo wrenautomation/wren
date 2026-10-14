@@ -1,10 +1,12 @@
 /**
  * People (designs/2026-10-14-customerio-audit.md, B1): one profile per person in the workspace,
- * every address it goes by, its traits and its timeline. B2's sent log lives here too.
+ * every address it goes by, its traits and its timeline. B2's sent log and B5's segments live
+ * here too.
  * One address, two apps: a client's own people and Wren's.
  */
 import type { Module, ModulePage } from "../../module.js";
 import { importPage } from "./import.js";
+import { addToSegment, membersPage, segmentsPage } from "./segments.js";
 import { sentPage } from "./sent.js";
 import { profileExtras } from "./timeline.js";
 
@@ -23,6 +25,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
       merged: "No two profiles have turned out to be one person yet.",
     },
     columns: ["name", "emails", "phones", "channels", "lastSeen", "consent"],
+    actions: [addToSegment],
     extras: (detail) => profileExtras(detail),
   },
   {
@@ -35,10 +38,12 @@ export const PEOPLE_PAGES: ModulePage[] = [
     columns: ["at", "who", "kind", "channel", "summary"],
   },
   sentPage,
+  segmentsPage,
   {
     id: "data",
     label: "Data",
-    about: "Every address kind, trait and timeline kind: where it comes from and who has it.",
+    about:
+      "Every address kind, trait and timeline kind: where it comes from, who has it, what uses it.",
     template: "list",
     record: "people.datum",
     empty: "Data shows here once the first profile is made.",
@@ -71,6 +76,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
     record: "people.merge",
     empty: "No merges yet.",
   },
+  membersPage,
 ];
 
 /** A client's People, in its own workspace. */

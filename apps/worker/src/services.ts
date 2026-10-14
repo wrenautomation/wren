@@ -257,6 +257,7 @@ import {
   CustomHostnames,
   clientRecord,
   findClient,
+  listClients,
   sendsOn,
   settingsFor,
 } from "@wren/core/clients";
@@ -286,16 +287,20 @@ import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
 import { PortalRefusal } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
+import { SEGMENT_RECORDS } from "@wren/core/segment-records";
+import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
 import {
+  editsOf,
   type FireTriggers,
   failedRuns,
   makeSpine,
   makeSpineClock,
   type SpineEvent,
+  savedWorkflows,
   spineFire,
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
@@ -304,6 +309,7 @@ import { makeTokens } from "@wren/core/tokens";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
+import { flowsWith } from "@wren/core/workflows";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { makeDealsConsole } from "@wren/deals/console";
 import { dealRecordFor } from "@wren/deals/records";
@@ -354,6 +360,7 @@ import {
   WREN_AUDIENCE,
 } from "@wren/outreach";
 import {
+  makeCommentProofs,
   makeReachDesk,
   makeReachSender,
   makeReachWatch,
@@ -1589,11 +1596,24 @@ export async function buildServices(
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
     makeSmsConsole({ db, open: openClient }),
-    // A client's People: the sent log, from its own database.
+    // A client's People (the sent log, profiles, segments) from its own database; Wren's segments.
     makePeopleConsole({
       db,
       open: openClient,
       records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
+      // Describe segment: Wren's model for Wren, a client's own key or Wren's, metered on its share.
+      model: (client) =>
+        client
+          ? meteredModel(llm, {
+              main: db,
+              client,
+              part: "people.segments",
+              now: () => new Date(),
+              store: keys,
+              own: llmForKey,
+              unset: "managed",
+            })
+          : llm,
     }),
   );
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
@@ -1646,6 +1666,17 @@ export async function buildServices(
     makeReachSender(reach),
     makeReachWatch(reach),
     makeReachDesk(reach),
+    // Each sent comment's proof (designs/2026-10-14-comment-proof.md): read through the desk,
+    // its shot in the media bucket, the hour's hidden or missing on the reach lane.
+    makeCommentProofs({
+      db,
+      sitesFor: reach.sitesFor,
+      ...(mediaBucket
+        ? { keep: (jpeg: Uint8Array) => putMedia(jpeg, ".jpg", { bucket: mediaBucket }) }
+        : {}),
+      linkedinAccount: "linkedin@wren",
+      ...reachNotify,
+    }),
     // Reddit discovery reads signed out; drafts in the content voice, researched against the SOPs.
     makeRedditReads({
       ...reach,
@@ -2085,6 +2116,18 @@ export async function buildServices(
     }),
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.
     makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
+    // Segments (B5): each workspace's live segments kept true, entries, exits, trait changes and
+    // dates told to the spine; woken on a changed row, the net every 15 minutes.
+    ...(() => {
+      const segments = {
+        main: db,
+        clientDb,
+        flows: async (client: string | null) =>
+          flowsWith(WORKFLOWS, editsOf(await savedWorkflows(db, client)), COMPONENTS).flows,
+        clients: async () => (await listClients(db)).map((c) => c.id),
+      };
+      return [makeSegments(segments), makeSegmentsNet(segments)];
+    })(),
     makeWebhooks({
       main: db,
       // A URL Wren turned off: its client's owners and whoever added it hear from portal@.
@@ -2216,6 +2259,8 @@ export async function buildServices(
         ...MARKETING_RECORDS,
         // Every message we sent, on any channel (People → Sent).
         ...SENT_RECORDS,
+        // Wren's segments and who is in each (People → Segments).
+        ...SEGMENT_RECORDS,
         // Everyone once, their addresses, traits and timeline (People); site visits read live.
         ...profileRecords(
           WORKFLOWS,
