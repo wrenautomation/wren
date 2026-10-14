@@ -842,11 +842,14 @@ function Agent({
   checks,
   edit,
   act,
+  narrow = false,
 }: {
   steps: Step[];
   checks: Check[];
   edit: boolean;
   act: RecordAct;
+  /** A phone: Ask for changes sits right under the checks, the passes after it. */
+  narrow?: boolean;
 }) {
   const [note, setNote] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
@@ -866,18 +869,19 @@ function Agent({
       setBusy(false);
     }
   };
+  const said = passes.length ? (
+    <ol className="grid list-none gap-4 p-0 text-[14px]">
+      {passes.slice(-5).map((p) => (
+        <Pass key={p.id} p={p} />
+      ))}
+    </ol>
+  ) : (
+    <p className="text-[14px] text-(--ui-ink-2)">The agent hasn't worked on this one yet.</p>
+  );
   return (
     <div className="grid min-w-0 gap-4">
       {checks.length ? <Checks checks={checks} /> : null}
-      {passes.length ? (
-        <ol className="grid list-none gap-4 p-0 text-[14px]">
-          {passes.slice(-5).map((p) => (
-            <Pass key={p.id} p={p} />
-          ))}
-        </ol>
-      ) : (
-        <p className="text-[14px] text-(--ui-ink-2)">The agent hasn't worked on this one yet.</p>
-      )}
+      {narrow ? null : said}
       {edit ? (
         <div className="grid min-w-0 gap-2">
           <DictateField target={box} label="Dictate changes">
@@ -913,6 +917,7 @@ function Agent({
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       ) : null}
+      {narrow ? said : null}
     </div>
   );
 }
@@ -1155,18 +1160,52 @@ function WriteAbout({ id, title }: { id: string; title: string }) {
   );
 }
 
+/** Below this width the record is a phone's: review first, editing folded (C5). */
+const NARROW = "(max-width: 899px)";
+const isNarrow = () => typeof window !== "undefined" && !!window.matchMedia?.(NARROW).matches;
+
+/**
+ * The editing sections on a phone, folded behind Edit: editing happens at the Mac, a phone
+ * reviews (designs/2026-10-14-content-types.md, Phone).
+ */
+const EditFold = ({ sections }: { sections: [string, ReactNode][] }) => (
+  <details className="group/edit min-w-0">
+    <summary className="cursor-pointer py-2.5 text-[14px] text-(--ui-ink-2) hover:text-(--ui-ink)">
+      Transcript, cuts and captions
+    </summary>
+    <div className="mt-3 grid min-w-0 gap-6">
+      {sections.map(([title, body]) => (
+        <section key={title} className="grid min-w-0 gap-2">
+          <h4 className="m-0 font-semibold text-[13px] text-(--ui-ink-2)">{title}</h4>
+          {body}
+        </section>
+      ))}
+    </div>
+  </details>
+);
+
 export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row }) => {
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
   const steps = v.steps ?? [];
+  const narrow = isNarrow();
   const sections: [string, ReactNode][] = [
     ["Preview", <Player key="p" src={v.preview} />],
     [
-      "Editing agent",
-      <Agent key="ag" steps={steps} checks={v.checks ?? []} edit={edit} act={act} />,
+      narrow ? "Review" : "Editing agent",
+      <Agent
+        key="ag"
+        steps={steps}
+        checks={v.checks ?? []}
+        edit={edit}
+        act={act}
+        narrow={narrow}
+      />,
     ],
   ];
+  // What edits the cut: in place on a wide page, folded behind Edit on a phone.
+  const editing: [string, ReactNode][] = [];
   if (v.vertical)
     sections.push([
       "Vertical",
@@ -1189,7 +1228,7 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
         )}
       </div>,
     ]);
-  sections.push(
+  editing.push(
     edit
       ? ["Title, description and the rest", <Fields key="f" edit={v.edit} act={act} />]
       : [
@@ -1200,18 +1239,20 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
           </div>,
         ],
   );
-  if (edit) sections.push(["Cuts", <Cuts key="c" cuts={v.cuts} act={act} />]);
-  sections.push([
+  if (edit) editing.push(["Cuts", <Cuts key="c" cuts={v.cuts} act={act} />]);
+  editing.push([
     "Transcript",
     <Transcript key="t" words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />,
   ]);
-  if (edit) sections.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
+  if (edit) editing.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
+  if (!narrow) sections.push(...editing);
   if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
   if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);
   sections.push([
     "From this video",
     <WriteAbout key="wa" id={String(row.id)} title={v.edit.title} />,
   ]);
+  if (narrow) sections.push(["Edit", <EditFold key="ed" sections={editing} />]);
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
   if (steps.length) sections.push(["Steps", <Steps key="st" steps={steps} />]);

@@ -163,3 +163,4 @@ Each phase ships on its own.
 - 10-14 C2: rendered recording is branch `review` (waiting, Review link, not in Approve all); proposed Shorts without an idea hang under their video as `editing` clips; rejected recordings left out.
 - 10-14 C3: Write takes `?from=video:<id>` (and `?about=` for the title), shows About with Clear; `ContentDesk.write` `from` writes ref `video:<id>/post:<8 hex>`; Studio's "From this video" links to Write (post and blog); Pieces nests any `video:<id>/<k>` ref.
 - 10-14 C4: migration 0257 `blog_posts.from_ref`; `Blog.save` `from`; Blog box From pick over recent long videos (preset by `?from=`); Pieces nests `blog:<slug>` under its video; long pieces carry `video`.
+- 10-14 C5: Studio record below 900px: Review section (checks, Ask for changes, then passes) after the preview; title, cuts, transcript and Ask Claude fold behind Edit. Screenshots at 390 and 1360 from a local preview on a throwaway database.

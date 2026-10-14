@@ -39,8 +39,11 @@ const SNIPPET = 155;
 /** How many recent long videos the From pick offers. */
 const FROM_SHOWN = 20;
 
-/** `from`: Write's `?from=video:<id>`, so a new post starts written from that video. */
-export function BlogBox(props: { demo?: boolean; from?: string | null }) {
+/**
+ * `from`: Write's `?from=video:<id>`, so a new post starts written from that video; `fromTitle`
+ * names it until the pieces load.
+ */
+export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle?: string }) {
   const list = useCall("blog-posts", () =>
     blog<{ on: boolean; site: string; posts: Post[] }>("posts"),
   );
@@ -133,7 +136,10 @@ export function BlogBox(props: { demo?: boolean; from?: string | null }) {
     .slice(0, FROM_SHOWN)
     .map((p) => ({ value: `video:${p.video}`, label: p.title || `Video ${p.video}` }));
   if (from && !videos.some((v) => v.value === from))
-    videos.unshift({ value: from, label: `Video ${from.slice("video:".length)}` });
+    videos.unshift({
+      value: from,
+      label: (from === props.from && props.fromTitle) || `Video ${from.slice("video:".length)}`,
+    });
 
   const ready = title.trim() && description.trim() && body.trim() && !busy && !props.demo && !off;
   const gets = audience?.tally["gets it"] ?? 0;
