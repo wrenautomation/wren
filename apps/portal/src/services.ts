@@ -92,7 +92,12 @@ import {
   PAYMENTS_CONSOLE_ROUTES,
   PAYMENTS_CONSOLE_WRITES,
 } from "@wren/payments/console-routes";
-import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
+import {
+  PORTAL_APPS,
+  PORTAL_MAX_BODY,
+  PORTAL_ROUTES,
+  PORTAL_WRITES,
+} from "@wren/reactivation/portal-routes";
 import {
   SITES_CONSOLE_APPS,
   SITES_CONSOLE_ROUTES,
@@ -117,15 +122,19 @@ export interface Service {
   apps: RouteApps<object>;
   routes: ReadonlySet<string>;
   writes: ReadonlySet<string>;
-  /** The largest request body, in bytes; absent, 16 KB. */
-  maxBody?: number;
+  /** The largest request body in bytes: one for every route, or per route; the rest keep 16 KB. */
+  maxBody?: number | Readonly<Record<string, number>>;
 }
+
+/** The largest body a route takes, in bytes. */
+export const bodyLimit = (svc: Service, route: string, fallback: number): number =>
+  typeof svc.maxBody === "number" ? svc.maxBody : (svc.maxBody?.[route] ?? fallback);
 const service = <R extends Readonly<Record<string, Need>>>(
   name: string,
   needs: R,
   apps: RouteApps<R>,
   writes: readonly (keyof R & string)[],
-  maxBody?: number,
+  maxBody?: number | Readonly<Record<string, number>>,
 ): Service => ({
   name,
   needs,
@@ -137,7 +146,14 @@ const service = <R extends Readonly<Record<string, Need>>>(
 
 export const SERVICES: Readonly<Record<string, Service>> = {
   delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_APPS, DELIVERY_WRITES),
-  reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_APPS, PORTAL_WRITES),
+  // Import takes a whole file in the body: those routes may be larger than the rest.
+  reactivation: service(
+    "ReactivationPortal",
+    PORTAL_ROUTES,
+    PORTAL_APPS,
+    PORTAL_WRITES,
+    PORTAL_MAX_BODY,
+  ),
   // Views by name, records, the loops, any public handler by its form, a client's components.
   console: service("ConsolePortal", CONSOLE_ROUTES, CONSOLE_APPS, CONSOLE_WRITES),
   // Warm replies, inboxes and campaigns; a client's lead sheet.

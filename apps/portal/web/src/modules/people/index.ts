@@ -4,6 +4,7 @@
  * One address, two apps: a client's own people and Wren's.
  */
 import type { Module, ModulePage } from "../../module.js";
+import { importPage } from "./import.js";
 import { sentPage } from "./sent.js";
 import { profileExtras } from "./timeline.js";
 
@@ -78,12 +79,14 @@ export const clientPeople: Module = {
   name: "People",
   icon: "people",
   blurb: "Everyone you know, by every address they use, with all they did and got.",
-  pages: PEOPLE_PAGES,
+  // Import is a client's own: it loads that client's contacts.
+  pages: [...PEOPLE_PAGES, importPage],
 };
 
 /** Wren's own People, in Wren's workspace. */
 export const people: Module = {
   ...clientPeople,
   blurb: "Everyone Wren knows, by every address they use, with all they did and got.",
+  pages: PEOPLE_PAGES,
   requires: { audience: "team" },
 };

@@ -76,6 +76,7 @@ import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { healthConsoleApi } from "@wren/delivery/health/console";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/health/console-routes";
+import { messagingApi } from "@wren/delivery/messaging";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { webhooksApi } from "@wren/delivery/webhooks";
@@ -170,7 +171,15 @@ const SERVICES: Record<
     routes: Object.keys(DELIVERY_ROUTES),
     guard: { needs: DELIVERY_ROUTES, apps: DELIVERY_APPS, unnamed: "first" },
     api: {
-      ...deliveryApi({ main, demoName: DEMO_NAME, files, app: `http://localhost:${port}` }),
+      ...deliveryApi({
+        main,
+        demoName: DEMO_NAME,
+        files,
+        app: `http://localhost:${port}`,
+        // A client's own database, for the rules Account > Messaging shows.
+        open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      }),
+      ...messagingApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
       // Redeliver answers the id here; the worker's handler is what sends it.
       ...webhooksApi({ main }),
     },

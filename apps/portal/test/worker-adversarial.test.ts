@@ -257,6 +257,21 @@ describe("requests", () => {
     expect(pulled).toBeLessThanOrEqual(256 * 1024);
   });
 
+  // Import sends a whole file in its body; no other route may, so the larger limit is theirs alone.
+  it("a file's routes take a larger body than the rest, up to their own limit", async () => {
+    const t = await token({});
+    const asks = (route: string, size: number) =>
+      worker.fetch(
+        post("app.test", route, { file: "A".repeat(size) }, { authorization: `Bearer ${t}` }),
+        env(),
+      );
+    expect((await asks("reactivation/importPreview", 200_000)).status).toBe(200);
+    expect(restate.map((r) => r.url)).toEqual([expect.stringContaining("importPreview")]);
+    expect((await asks("reactivation/recordsList", 200_000)).status).toBe(413);
+    expect((await asks("reactivation/importRun", 1_500_000)).status).toBe(413);
+    expect((await asks("delivery/me", 200_000)).status).toBe(413);
+  });
+
   it("Restate's error status and body pass through; unreachable is 502", async () => {
     restateReply = () => Response.json({ message: "this login has no client" }, { status: 403 });
     const res = await signedIn({});
