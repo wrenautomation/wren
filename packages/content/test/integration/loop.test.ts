@@ -130,9 +130,6 @@ beforeAll(async () => {
         db: pg.db,
         zone: "UTC",
         notifier,
-        repos: ["wrenautomation/wren"],
-        fetch: async () =>
-          new Response(JSON.stringify([{ commit: { message: "planner drafts tomorrow" } }])),
       }),
     ],
     alwaysReplay: true,
@@ -455,18 +452,18 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     new Date(tomorrowOf(new Date(), "UTC").from.getTime() + (h * 60 + m) * 60_000).toISOString();
   const slotOf = (d: { scheduledFor: Date | null }) => d.scheduledFor?.toISOString();
 
-  it("fills tomorrow's slots from ideas, the build log, then a question; approve keeps the slot", async () => {
+  it("fills tomorrow's slots from ideas in order; approve keeps the slot", async () => {
     await addIdea(pg.db, "first idea", "cli");
+    await addIdea(pg.db, "second idea", "cli");
     await planner().start(settings);
     await planner().stop(); // queued behind the pass the start sent
     const last = (await planner().status()).last as PassOutcome<PlannerStats> | null;
     expect(last?.stats?.drafted.map((d) => [d.platform, d.slot, d.source]).sort()).toEqual([
       ["linkedin", at(8, 30), "cli"],
       ["reddit", at(9, 30), "cli"],
-      ["reddit", at(15, 0), "build_log"],
+      ["reddit", at(15, 0), "cli"],
     ]);
     expect(notes.at(-1)).toMatch(/drafted 3 for tomorrow: LinkedIn, Reddit$/);
-    expect(prompts.some((p) => p.includes("- wren: planner drafts tomorrow"))).toBe(true);
     const rows = await listDrafts(pg.db, { status: "draft" });
     expect(rows.every((r) => r.scheduledFor !== null)).toBe(true);
 

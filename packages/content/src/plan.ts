@@ -8,7 +8,6 @@ import type { Platform } from "@wren/core/content";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, gte, inArray, lt, notInArray } from "drizzle-orm";
-import { buildLogIdea, type Fetch } from "./ideas/build-log.js";
 import { chapterIdea } from "./ideas/chapters.js";
 import { questionIdea } from "./ideas/questions.js";
 import { type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
@@ -124,25 +123,21 @@ export async function openSlots(
 
 export interface NextIdea {
   idea: Pick<ContentIdea, "id" | "source" | "text"> | null;
-  /** Repos the build log could not read. */
-  errors: string[];
 }
 
 /**
- * The next idea to draft, in order: the oldest undrafted idea, then today's build log, then a
- * reader's question, then a chapter of a video that is up (Wren only, like the build log).
- * `exclude` holds ideas already tried this pass, so one that fails to draft is not picked again.
+ * The next idea to draft, in order: the oldest undrafted idea, then a reader's question, then a
+ * chapter of a video that is up (Wren only). No build log: commit-by-commit updates gave readers
+ * little (William, 2026-10-14). `exclude` holds ideas already tried this pass, so one that fails
+ * to draft is not picked again.
  */
 export async function nextIdea(
   db: Queryable,
   o: {
     now: Date;
-    day: string;
     exclude?: readonly string[];
-    repos?: readonly string[];
-    fetch?: Fetch;
-    /** Off for a client: Wren's build log is Wren's story. */
-    buildLog?: boolean;
+    /** A client's planner: chapters are of Wren's own videos, so it skips them. */
+    client?: boolean;
   },
 ): Promise<NextIdea> {
   const pick = ({ id, source, text }: ContentIdea) => ({ id, source, text });
@@ -158,18 +153,9 @@ export async function nextIdea(
     )
     .orderBy(asc(contentIdeas.createdAt))
     .limit(1);
-  if (open) return { idea: pick(open), errors: [] };
-  if (o.buildLog === false) {
-    const q = await questionIdea(db, o.now);
-    return { idea: q ? pick(q) : null, errors: [] };
-  }
-  const log = await buildLogIdea(db, o.now, o.day, {
-    ...(o.repos ? { repos: o.repos } : {}),
-    ...(o.fetch ? { fetch: o.fetch } : {}),
-  });
-  if (log.idea) return { idea: pick(log.idea), errors: log.errors };
-  const q = (await questionIdea(db, o.now)) ?? (await chapterIdea(db));
-  return { idea: q ? pick(q) : null, errors: log.errors };
+  if (open) return { idea: pick(open) };
+  const q = (await questionIdea(db, o.now)) ?? (o.client ? null : await chapterIdea(db));
+  return { idea: q ? pick(q) : null };
 }
 
 export function formatPlan(p: DayPlan): string[] {

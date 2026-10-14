@@ -2,7 +2,7 @@
  * `ContentPlanner/default`: once a day, at `hour` on the fleet's clock, reads
  * tomorrow's plan (slots vs drafts per platform) and says it on Discord. With
  * `draft: true` it first fills each open slot with a draft (O5): ideas in order
- * from `nextIdea` (undrafted ideas, the day's build log, a reader's question),
+ * from `nextIdea` (undrafted ideas, a reader's question, a video chapter),
  * drafted by `ContentDesk` with the platform's playbook. A draft lands as
  * `draft` holding its slot. With `approve: true` as well (Wren only, his call of 10-13: keep the
  * queues full) each draft is approved into the slot it holds; otherwise approving stays a
@@ -13,7 +13,7 @@
  * `ContentPlanner/<client>/daily`: the same for a client with Content plan installed, on its own
  * logins' platforms, into its own database, drafted by `ContentDesk/<client>/desk` as the client.
  * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
- * questions, never Wren's build log. Drafts wait in its To approve.
+ * questions, never Wren's video chapters. Drafts wait in its To approve.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { PLATFORMS, type Platform } from "@wren/core/content";
@@ -31,7 +31,6 @@ import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { clientContent, clientPlan } from "../clients.js";
-import type { Fetch } from "../ideas/build-log.js";
 import {
   type DayPlan,
   formatPlan,
@@ -60,9 +59,6 @@ export interface ContentPlannerDeps {
   /** Hour of day the plan goes out (default 17:00, time to review before tomorrow). */
   hour?: number;
   notifier?: Notifier;
-  /** For the build log's GitHub read; tests pass a stand-in. */
-  fetch?: Fetch;
-  repos?: readonly string[];
   /** A client's database; absent, a client's key stops. */
   clientDb?: ((client: string) => Db) | null;
   /** Slots under every key's own, replacing the platforms' defaults (tests: any weekday). */
@@ -190,14 +186,10 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
         const next = await ctx.run(`idea ${i}`, () =>
           nextIdea(db, {
             now,
-            day: day.day,
             exclude: tried,
-            ...(client ? { buildLog: false } : {}),
-            ...(deps.repos ? { repos: deps.repos } : {}),
-            ...(deps.fetch ? { fetch: deps.fetch } : {}),
+            ...(client ? { client: true } : {}),
           }),
         );
-        for (const e of next.errors) skipped.push(`build log: ${e}`);
         if (!next.idea) break;
         const idea = next.idea;
         tried.push(idea.id);
