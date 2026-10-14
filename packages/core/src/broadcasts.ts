@@ -10,7 +10,8 @@
  * `sms_messages` (kind `broadcast`) for the texts sender, which keeps quiet hours. The
  * `Broadcast` object (`./broadcast-run.ts`) drives it. Results are the sent log's (B2).
  */
-import { atomic, type Queryable } from "@wren/db";
+import type { Queryable } from "@wren/db";
+import { atomic } from "@wren/db/isolation";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   type BroadcastChannel,

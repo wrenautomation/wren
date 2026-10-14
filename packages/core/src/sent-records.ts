@@ -9,6 +9,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
+import { factsOf, renderFor } from "./broadcasts.js";
 import { cued, date, defineRecord, name, number, status, text } from "./records.js";
 
 /** The channels a message goes out on. The keys are access channels; each gets its mark. */
@@ -134,9 +135,7 @@ export async function sentDetail(db: Queryable, id: string): Promise<SentDetail 
         join profiles p on p.id = r.profile_id where r.id = ${n}`,
     );
     if (!m) return null;
-    // The words as this person gets them, filled from their profile. Loaded here only: the
-    // portal's bundle reads this file's record, and the templates need node.
-    const { factsOf, renderFor } = await import("./broadcasts.js");
+    // The words as this person gets them, filled from their profile.
     const channel = m.channel === "sms" ? "sms" : "email";
     const copy = renderFor(
       { id: Number(m.id), channel, subject: m.subject ?? null, body: m.body ?? "" },
