@@ -18,6 +18,9 @@ export const PORTAL_ROUTES = {
   called: "act",
   uncalled: "act",
   settle: "act",
+  // Loading a file adds people to the list: its owner's call, not any member's.
+  importPreview: "manage",
+  importRun: "manage",
   run: "read",
   work: "read",
   recordsTypes: "read",
@@ -31,6 +34,8 @@ export const PORTAL_APPS = {
   "*": { app: "reactivation", channel: "email" },
   overview: "reactivation",
   person: "reactivation",
+  importPreview: "people",
+  importRun: "people",
   run: "reactivation",
   work: null,
   recordsTypes: null,
@@ -51,4 +56,21 @@ export const PORTAL_WRITES: readonly PortalRoute[] = [
   "called",
   "uncalled",
   "settle",
+  "importPreview",
+  "importRun",
 ];
+
+/**
+ * The Import page's file: up to this many bytes and people in one go. The rows are the tight one:
+ * a load is one transaction, and 1,000 people is about 20 s here and a few thousand locks.
+ */
+export const IMPORT_MAX_BYTES = 1_000_000;
+export const IMPORT_MAX_ROWS = 1000;
+/**
+ * The largest request the edge takes on the routes that carry a file (the others keep its 16 KB):
+ * the file as base64, and the columns. Well under the 6 MB a Lambda invoke takes.
+ */
+export const PORTAL_MAX_BODY: Readonly<Record<string, number>> = {
+  importPreview: Math.ceil((IMPORT_MAX_BYTES * 4) / 3) + 16 * 1024,
+  importRun: Math.ceil((IMPORT_MAX_BYTES * 4) / 3) + 16 * 1024,
+};

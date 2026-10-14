@@ -24,6 +24,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { POINTS } from "../score.js";
+import { importRows } from "./import-log.js";
 import { personTouches } from "./journey.js";
 import { portalEmails } from "./outbox.js";
 import { portalSetup } from "./setup.js";
@@ -371,4 +372,41 @@ export const keep = defineRecord({
   ],
 });
 
-export const REACTIVATION_RECORDS: readonly RecordType[] = [person, email, reply, finding, keep];
+/**
+ * People's Import page: each file loaded, with what it did. A client finds it in People, so it
+ * answers to that app though this product serves it.
+ */
+export const importLog = defineRecord({
+  id: "reactivation.import",
+  app: "people",
+  channel: null,
+  name: { one: "import", many: "imports" },
+  rows: importRows,
+  key: "id",
+  title: "file",
+  subtitle: "source",
+  fields: {
+    file: text("File"),
+    source: text("From"),
+    at: date("Loaded"),
+    rows: number("Rows"),
+    created: number("New"),
+    merged: number("Merged"),
+    skipped: number("Skipped"),
+    why: text("Why skipped"),
+    notes: text("Notes"),
+  },
+  views: [
+    { id: "all", label: "All imports", sort: "-at" },
+    { id: "skipped", label: "With skipped rows", where: { skipped: { gte: 1 } }, sort: "-at" },
+  ],
+});
+
+export const REACTIVATION_RECORDS: readonly RecordType[] = [
+  person,
+  email,
+  reply,
+  finding,
+  keep,
+  importLog,
+];

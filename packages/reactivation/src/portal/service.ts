@@ -43,6 +43,7 @@ import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
 import { readClientProfile, setClientProfile } from "../profile.js";
 import { scoreCrmContacts, WHERE_STAGE, whereConflict } from "../score.js";
 import { reactivationSettingsOf } from "../settings.js";
+import { importApi } from "./import.js";
 import { makeMask } from "./mask.js";
 import { type EmailFilter, type EmailsPage, portalEmails } from "./outbox.js";
 import { EDITABLE, REACTIVATION_RECORDS, settingOf } from "./records.js";
@@ -251,6 +252,7 @@ async function booking(
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function portalApi(deps: PortalDeps) {
   return {
+    ...importApi(deps),
     overview: async (req: PortalRequest): Promise<Overview> => {
       const client = await pickClient(deps.main, req);
       // The demo shows the client's turn, as a client would see it.
@@ -430,6 +432,7 @@ export type { WhyLine } from "../compose.js";
 /** What the answers look like, for the portal's web app. */
 export type { RankedContact } from "../ranked.js";
 export type { Reason } from "../score.js";
+export type { ImportPreview, ImportResult, ImportSampleRow } from "./import.js";
 export type { EmailFilter, EmailRow, EmailStatus, EmailsPage } from "./outbox.js";
 export type { Pipeline, PipelineStep, PipelineStepId, StepState } from "./pipeline.js";
 export { PORTAL_ROUTES, PORTAL_WRITES } from "./routes.js";
@@ -476,6 +479,9 @@ export function makeReactivationPortal(deps: PortalDeps) {
       called: (_: restate.Context, req: Req<"called">) => answer(() => api.called(req)),
       uncalled: (_: restate.Context, req: Req<"uncalled">) => answer(() => api.uncalled(req)),
       settle: (_: restate.Context, req: Req<"settle">) => answer(() => api.settle(req)),
+      importPreview: (_: restate.Context, req: Req<"importPreview">) =>
+        answer(() => api.importPreview(req)),
+      importRun: (_: restate.Context, req: Req<"importRun">) => answer(() => api.importRun(req)),
     },
   });
 }

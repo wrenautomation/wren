@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
   decodeCsvBytes,
+  dedupeHeaders,
   emailDomain,
   emailSyntaxError,
   extractDomain,
@@ -38,6 +39,7 @@ import {
   CRM_DATE_FIELDS,
   type CrmField,
   type CrmFormat,
+  checkHeaders,
   type HeaderMap,
   mapHeaders,
 } from "./formats.js";
@@ -112,11 +114,19 @@ function siteDomain(website: string | null): string | null {
   return d && !isPlatformDomain(d) ? d : null;
 }
 
+/** A file's header row, a repeated name suffixed (`Email`, `Email__2`) as the rows key it. */
+export function fileHeadersOf(bytes: Uint8Array, name: string): string[] {
+  return dedupeHeaders(parseCsvRecords(decodeCsvBytes(bytes, name).text)[0] ?? []);
+}
+
 export class CrmCsvSource implements PersonSource {
   readonly sourceType: string;
   readonly sourceRef: string;
   readonly contentHash: string;
+  /** Which file header serves which field: the synonym tables' guess, or the one given. */
   readonly headers: HeaderMap;
+  /** The file's header row, a repeated name suffixed (`Email`, `Email__2`), as the rows key it. */
+  readonly fileHeaders: string[];
   private readonly raws: RawRow[];
   private readonly order: DayOrder;
   /** Company slug -> a domain some row gave it, so a freemail row still finds its firm. */
@@ -127,12 +137,20 @@ export class CrmCsvSource implements PersonSource {
     readonly format: CrmFormat,
     readonly path: string,
     bytes: Uint8Array = readFileSync(path),
+    /** A person's own choice of columns (the portal's import): checked, never guessed over. */
+    map?: HeaderMap,
   ) {
     this.sourceType = format.name;
     this.sourceRef = path;
     this.contentHash = createHash("sha256").update(bytes).digest("hex");
     const records = parseCsvRecords(decodeCsvBytes(bytes, path).text);
-    this.headers = mapHeaders(format, records[0] ?? []);
+    this.fileHeaders = dedupeHeaders(records[0] ?? []);
+    if (map) {
+      for (const h of Object.values(map))
+        if (!this.fileHeaders.includes(h)) throw new Error(`no column named ${h} in the file`);
+      checkHeaders(format, map, this.fileHeaders);
+      this.headers = map;
+    } else this.headers = mapHeaders(format, records[0] ?? []);
     this.raws = [...rowsFromRecords(records)];
     // One locale per export: a single day-first date anywhere settles every date column.
     this.order = dayOrder(CRM_DATE_FIELDS.flatMap((f) => this.raws.map((r) => this.cell(r, f))));

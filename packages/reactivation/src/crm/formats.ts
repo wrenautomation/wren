@@ -147,11 +147,11 @@ export const normalizeHeader = (h: string): string =>
 export type HeaderMap = Partial<Record<CrmField, string>>;
 
 /**
- * Header -> field for one file. A header serves one field at most; the first field
- * to claim it wins, in CRM_FIELDS order. Fails loudly, listing the headers, when a
- * row could never make a person: no name, or neither an email nor a company.
+ * Header -> field for one file, as far as the synonym tables reach. A header serves one field at
+ * most; the first field to claim it wins, in CRM_FIELDS order. Never fails: `checkHeaders` says
+ * whether the result is enough.
  */
-export function mapHeaders(format: CrmFormat, headers: readonly string[]): HeaderMap {
+export function guessHeaders(format: CrmFormat, headers: readonly string[]): HeaderMap {
   const byNorm = new Map<string, string>();
   for (const h of headers) {
     const n = normalizeHeader(h);
@@ -172,13 +172,30 @@ export function mapHeaders(format: CrmFormat, headers: readonly string[]): Heade
       }
     }
   }
+  return map;
+}
+
+/** What a map still lacks for a row to make a person: no name, or neither email nor company. */
+export function missingFields(map: HeaderMap): string[] {
   const missing: string[] = [];
   if (!map.fullName && !map.firstName) missing.push("a name (Name, or First Name)");
   if (!map.email && !map.company && !map.website)
     missing.push("an email, company or website column");
+  return missing;
+}
+
+/** Fails loudly, listing the headers, when a row could never make a person. */
+export function checkHeaders(format: CrmFormat, map: HeaderMap, headers: readonly string[]): void {
+  const missing = missingFields(map);
   if (missing.length)
     throw new Error(
       `${format.name}: no ${missing.join(" and no ")}. Headers: ${headers.join(", ")}`,
     );
+}
+
+/** `guessHeaders`, failing when the guess is not enough. */
+export function mapHeaders(format: CrmFormat, headers: readonly string[]): HeaderMap {
+  const map = guessHeaders(format, headers);
+  checkHeaders(format, map, headers);
   return map;
 }
