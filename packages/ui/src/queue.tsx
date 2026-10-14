@@ -13,17 +13,17 @@ import { Button } from "./controls.js";
 import { LoadFailed } from "./feedback.js";
 import { Cue, relative } from "./fields.js";
 import { num } from "./format.js";
-import { PAGE_TITLE } from "./layout.js";
+import { usePageKeys } from "./frame.js";
+import { PageTitle } from "./layout.js";
 import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
 import {
+  actionKeys,
   actsOf,
   askOf,
   Bulk,
   cap,
   emptyOf,
   facetsOf,
-  Kbd,
-  KeyHints,
   keyed,
   ListSkeleton,
   NotHere,
@@ -141,11 +141,14 @@ function Queue({
     });
   const here = row ? actions.filter((a) => applies(a, row)) : [];
   const inItem = asked !== null;
+  // Its keys sit in the sheet on ?, not under the list.
+  const keyLines = actionKeys(actions, row ? [row] : rows);
+  usePageKeys(keyLines.length ? { title: `On ${meta.name.many}`, keys: keyLines } : null);
 
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className={PAGE_TITLE}>{title ?? cap(meta.name.many)}</h1>
+        <PageTitle title={title ?? cap(meta.name.many)} />
         {actions.map((a) =>
           a.form && !a.each ? (
             <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
@@ -258,10 +261,6 @@ function Queue({
                 );
               })}
             </ul>
-            <p className="text-[12px] text-(--ui-ink-2) max-sm:hidden">
-              <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move
-              <KeyHints actions={actions} row={row} />
-            </p>
           </div>
 
           <section className={cn("grid min-w-0 content-start gap-4", !inItem && "max-md:hidden")}>

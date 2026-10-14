@@ -27,9 +27,9 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronUp,
-  Columns3,
   Ellipsis,
   Maximize2,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -66,12 +66,14 @@ import {
   widthOf,
 } from "./fields.js";
 import { linkLabel, num } from "./format.js";
-import { GROUP_LABEL, PAGE_TITLE } from "./layout.js";
+import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
+import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
   filtersOf,
   type KeepApi,
   ListBar,
+  siteField,
   useLastUsed,
   useNarrow,
   useSaved,
@@ -423,39 +425,22 @@ export function keyed(e: KeyboardEvent, actions: readonly Action[], row: Row | u
 }
 
 /**
- * ", R reply, E edit": each key once, as it runs on `row`. With no row, only keys that do the
- * same on every row.
+ * The keys a list's actions answer, for the sheet on ?: each key once, with every action it runs
+ * on these rows ("Reply or reject" where a mixed list gives R to both). Keys that run on none of
+ * the rows shown are left out.
  */
-export function KeyHints({
-  actions,
-  row,
-  rows = [],
-}: {
-  actions: readonly Action[];
-  row: Row | undefined;
-  /** With no row picked, a key shows only when it works on one of these. */
-  rows?: readonly Row[];
-}) {
-  const by = new Map<string, Action | null>();
+export function actionKeys(actions: readonly Action[], rows: readonly Row[] = []): KeyLine[] {
+  const by = new Map<string, string[]>();
   for (const a of actions) {
     if (!a.key) continue;
-    if (row ? !applies(a, row) : rows.length && !rows.some((r) => applies(a, r))) continue;
-    const had = by.get(a.key);
-    // With a row the first wins, as `keyed` runs it; with none, two labels on one key say nothing.
-    if (had === undefined) by.set(a.key, a);
-    else if (!row && had && had.label !== a.label) by.set(a.key, null);
+    if (rows.length && !rows.some((r) => applies(a, r))) continue;
+    const had = by.get(a.key) ?? [];
+    if (!had.includes(a.label)) by.set(a.key, [...had, a.label]);
   }
-  return (
-    <>
-      {[...by].map(([k, a]) =>
-        a ? (
-          <span key={k}>
-            , <Kbd>{k.toUpperCase()}</Kbd> {a.label.toLowerCase()}
-          </span>
-        ) : null,
-      )}
-    </>
-  );
+  return [...by].map(([k, labels]) => [
+    k.toUpperCase(),
+    labels.map((l, i) => (i ? l.toLowerCase() : l)).join(" or "),
+  ]);
 }
 
 /** "3 selected", what each bulk action would do to them, and a way out. */
@@ -532,16 +517,26 @@ function columnsOf(meta: RecordMeta, params: URLSearchParams, columns?: string[]
   return all.filter((f) => f.key === meta.title || picked.includes(f.key));
 }
 
-function ColumnPicker({
+/**
+ * How the list shows, in one popover (Linear's Display): its columns, rows grouped by platform
+ * where it mixes them, and row height. A phone shows the title and one state whatever is
+ * picked, so it has no columns there.
+ */
+function ListDisplay({
   meta,
   place,
   columns,
+  narrow,
 }: {
   meta: RecordMeta;
   place: Place;
   columns: string[] | undefined;
+  narrow: boolean;
 }) {
-  const all = meta.fields.filter((f) => f.column && f.key !== meta.title);
+  const frame = useFrame();
+  const site = siteField(meta);
+  const all = narrow ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
+  if (!frame && !site && !all.length) return null;
   const shown = new Set(columnsOf(meta, place.params, columns).map((f) => f.key));
   const fallback = columnsOf(meta, new URLSearchParams(), columns)
     .map((f) => f.key)
@@ -554,31 +549,63 @@ function ColumnPicker({
       .join(",");
     place.go(place.link({ cols: next === fallback ? null : next || "none" }), true);
   };
+  const grouping = !!site && place.params.get("group") === site.key;
+  const label =
+    "flex h-8 pointer-coarse:h-11 cursor-pointer items-center gap-2.5 px-1.5 text-[13px] hover:bg-(--ui-hover)";
   return (
     <Popover>
-      {/* A phone shows the title and one state, whatever is picked: no picker there. */}
-      <PopoverTrigger className={cn(CHIP, "border-transparent bg-transparent max-sm:hidden")}>
-        <Columns3 className="size-3.5" />
-        Columns
+      <PopoverTrigger
+        className={cn(CHIP, (grouping || place.params.has("cols")) && "text-(--ui-ink)")}
+      >
+        <SlidersHorizontal className="size-3.5" />
+        Display
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-56 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
+        className="max-h-[70dvh] w-60 gap-3 overflow-y-auto rounded-none p-3 ring-(--ui-hair) shadow-lg"
       >
-        {all.map((f) => (
-          <label
-            key={f.key}
-            className="flex h-8 cursor-pointer items-center gap-2.5 px-1.5 text-[13px] hover:bg-(--ui-hover)"
-          >
+        {frame ? (
+          <Choice
+            label="Rows"
+            value={frame.display.density}
+            options={[
+              ["roomy", "Roomy"],
+              ["snug", "Snug"],
+            ]}
+            onChange={(density) => frame.set({ density })}
+          />
+        ) : null}
+        {site ? (
+          <label className={cn(label, "-mx-1.5")}>
             <input
               type="checkbox"
-              checked={shown.has(f.key)}
-              onChange={() => flip(f.key)}
+              checked={grouping}
+              onChange={() =>
+                place.go(place.link({ group: grouping ? null : site.key, after: null }), true)
+              }
               className="size-3.5 accent-(--ui-ink)"
             />
-            {f.label}
+            Group by {site.label.toLowerCase()}
           </label>
-        ))}
+        ) : null}
+        {all.length ? (
+          <fieldset className="m-0 grid min-w-0 border-0 p-0">
+            <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">
+              Columns
+            </legend>
+            {all.map((f) => (
+              <label key={f.key} className={cn(label, "-mx-1.5")}>
+                <input
+                  type="checkbox"
+                  checked={shown.has(f.key)}
+                  onChange={() => flip(f.key)}
+                  className="size-3.5 accent-(--ui-ink)"
+                />
+                {f.label}
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
       </PopoverContent>
     </Popover>
   );
@@ -1140,66 +1167,39 @@ function List({
 
   const headed = head?.(meta, () => acted([]));
   const forms = actions.filter((a) => a.form && !a.each);
+  // Its rows' keys sit in the sheet on ?, not under the list.
+  const keyLines = actionKeys(actions, rows);
+  usePageKeys(keyLines.length ? { title: `On ${many}`, keys: keyLines } : null);
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className={PAGE_TITLE}>{title ?? cap(many)}</h1>
-        {narrow ? (
-          // A phone: the first action stays a button, the rest wait behind one menu.
-          <div className="flex items-center gap-2">
-            {forms[0] ? (
-              <Button size="dense" onClick={() => run(forms[0] as Action, [])}>
-                {forms[0].label}
-              </Button>
-            ) : null}
-            <HeadMenu
-              items={[
-                ...forms.slice(1).map((a) => ({ label: a.label, run: () => run(a, []) })),
-                ...(page.data?.total
-                  ? [
-                      { label: "Export CSV", run: () => void exportAs("csv") },
-                      ...(meta.drafts
-                        ? [{ label: "Export JSONL", run: () => void exportAs("jsonl") }]
-                        : []),
-                    ]
-                  : []),
-              ]}
-            />
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {actions.map((a) =>
-              a.form && !a.each ? (
-                <Button key={a.id} size="dense" onClick={() => run(a, [])}>
-                  {a.label}
-                </Button>
-              ) : null,
-            )}
-            <ColumnPicker meta={meta} place={place} columns={columns} />
-            <Button
-              tone="quiet"
-              size="dense"
-              icon="download"
-              disabled={!page.data?.total}
-              aria-label="Export CSV"
-              onClick={() => void exportAs("csv")}
-            >
-              <span className="max-sm:hidden">Export </span>CSV
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageTitle title={title ?? cap(many)} />
+        {/* One button: the first thing the page makes. The rest wait behind one menu. */}
+        <div className="flex items-center gap-2">
+          {forms[0] ? (
+            <Button size="dense" onClick={() => run(forms[0] as Action, [])}>
+              {forms[0].label}
             </Button>
-            {meta.drafts ? (
-              <Button
-                tone="quiet"
-                size="dense"
-                icon="download"
-                disabled={!page.data?.total}
-                aria-label="Export JSONL"
-                onClick={() => void exportAs("jsonl")}
-              >
-                <span className="max-sm:hidden">Export </span>JSONL
-              </Button>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+          <HeadMenu
+            items={[
+              ...forms.slice(1).map((a) => ({ label: a.label, run: () => run(a, []) })),
+              ...(page.data?.total
+                ? [
+                    { label: "Export CSV", run: () => void exportAs("csv") },
+                    ...(meta.drafts
+                      ? [{ label: "Export JSONL", run: () => void exportAs("jsonl") }]
+                      : []),
+                  ]
+                : []),
+              {
+                label: "Copy link",
+                run: () => void navigator.clipboard?.writeText(location.href),
+              },
+              ...(narrow ? [] : [{ label: "Keyboard shortcuts", run: showKeys }]),
+            ]}
+          />
+        </div>
       </div>
       {/* The page's own line (a note, a status, a quick form) under its title, not in its tools. */}
       {headed ? (
@@ -1224,6 +1224,7 @@ function List({
           keep={api.keep}
           saved={saved}
           facets={facetsOf(api, ask)}
+          display={<ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />}
           end={
             picked.size ? (
               <Bulk
@@ -1512,16 +1513,6 @@ function List({
       )}
 
       <div className="flex items-center justify-between gap-3 text-[13px] text-(--ui-ink-2)">
-        {rows.length ? (
-          <span className="max-sm:hidden">
-            <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd>Enter</Kbd> to open
-            <KeyHints
-              actions={actions}
-              row={rows[openIndex >= 0 ? openIndex : cursor]}
-              rows={rows}
-            />
-          </span>
-        ) : null}
         <span className="ml-auto flex gap-2">
           {ask.cursor ? (
             <Button
@@ -1565,7 +1556,7 @@ function List({
   );
 }
 
-/** A phone's list head: what doesn't fit beside the first action, behind one button. */
+/** A list head's ⋯: what doesn't fit beside the first action, behind one button. */
 function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
   const [open, setOpen] = useState(false);
   if (!items.length) return null;
@@ -1573,16 +1564,19 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label="More actions"
-        className="inline-grid size-11 place-items-center border border-(--ui-hair) bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)"
+        className="inline-grid size-8 place-items-center border border-(--ui-hair) bg-transparent pointer-coarse:size-11 max-[900px]:size-11 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)"
       >
         <Ellipsis className="size-4" />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 gap-0 p-1">
+      <PopoverContent
+        align="end"
+        className="w-56 gap-0 rounded-none p-1 ring-(--ui-hair) shadow-lg"
+      >
         {items.map((it) => (
           <button
             key={it.label}
             type="button"
-            className="flex h-11 w-full items-center border-0 bg-transparent px-3 text-left text-[15px] text-(--ui-ink) hover:bg-(--ui-hover)"
+            className="flex h-8 w-full items-center border-0 bg-transparent px-2 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) pointer-coarse:h-11 pointer-coarse:text-[15px] max-[900px]:h-11 max-[900px]:px-3 max-[900px]:text-[15px]"
             onClick={() => {
               setOpen(false);
               it.run();

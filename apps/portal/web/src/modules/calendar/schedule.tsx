@@ -15,6 +15,7 @@ import {
   type RecordActs,
   RecordPanel,
   type RecordsApi,
+  usePageKeys,
   useTypes,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -126,9 +127,15 @@ function clientApi(client: string, asClient: boolean): RecordsApi {
   return api;
 }
 
-const Kbd = ({ children }: { children: ReactNode }) => (
-  <kbd className="border border-(--ui-hair) px-1 font-[inherit] text-[12px]">{children}</kbd>
-);
+/** Its keys, for the sheet on ?. */
+const SCHEDULE_KEYS = {
+  title: "On the calendar",
+  keys: [
+    ["←  →", "The day, week or month before or after"],
+    ["T", "Today"],
+    ["D  W  M  L", "Day, week, month or list"],
+  ] as [string, string][],
+};
 
 const phone = () => typeof matchMedia === "function" && matchMedia("(max-width: 640px)").matches;
 
@@ -241,6 +248,7 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
     return () => removeEventListener("keydown", on);
   }, []);
 
+  usePageKeys(SCHEDULE_KEYS);
   const types = useTypes(API);
   const meta = types.data?.find((t) => t.id === RECORD);
   const ordered = calls
@@ -312,8 +320,7 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
       )}
 
       <p className="m-0 text-[13px] text-(--ui-ink-3) max-sm:hidden">
-        <Kbd>←</Kbd> <Kbd>→</Kbd> to move, <Kbd>T</Kbd> today, <Kbd>D</Kbd> <Kbd>W</Kbd>{" "}
-        <Kbd>M</Kbd> <Kbd>L</Kbd> to switch. Shaded: your open hours
+        Shaded: your open hours
         {got.data ? ` (${got.data.zone.replace(/_/g, " ")})` : ""}.
       </p>
 

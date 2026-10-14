@@ -1,10 +1,8 @@
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Action } from "./action.js";
 import { totalSays, widthOf } from "./fields.js";
-import { fitOf, fitRoom, KeyHints, shownColumns, widthsOf } from "./records.js";
+import { actionKeys, fitOf, fitRoom, shownColumns, widthsOf } from "./records.js";
 
 const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   key,
@@ -126,7 +124,7 @@ describe("totalSays", () => {
   });
 });
 
-describe("KeyHints", () => {
+describe("actionKeys", () => {
   const send: Action = {
     id: "send",
     label: "Send",
@@ -141,12 +139,16 @@ describe("KeyHints", () => {
     key: "m",
     when: { type: ["comment"] },
   };
-  const hints = (rows: { id: number; type: string }[]) =>
-    renderToStaticMarkup(createElement(KeyHints, { actions: [send, dm], row: undefined, rows }));
-  it("with no row picked, names only keys that work on a row shown", () => {
-    const posts = hints([{ id: 1, type: "email" }]);
-    expect(posts).toContain("send");
-    expect(posts).not.toContain("dm them");
+  const reply: Action = { ...dm, id: "reply", label: "Reply", key: "a" };
+  it("names only keys that work on a row shown", () => {
+    expect(actionKeys([send, dm], [{ id: 1, type: "email" }])).toEqual([["A", "Send"]]);
+  });
+  it("one key, two actions: both said", () => {
+    const rows = [
+      { id: 1, type: "email" },
+      { id: 2, type: "comment" },
+    ];
+    expect(actionKeys([send, reply], rows)).toEqual([["A", "Send or reply"]]);
   });
 });
 
