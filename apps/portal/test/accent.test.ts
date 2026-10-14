@@ -1,3 +1,4 @@
+// Node, not the Worker: type-checked by scripts/tsconfig.json.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -8,12 +9,12 @@ import { describe, expect, it } from "vitest";
 describe("the accent", () => {
   it("reaches the portal's pages only through its roles", () => {
     const web = new URL("../web/src/", import.meta.url);
-    const raw = (readdirSync(web, { recursive: true }) as string[])
-      .filter((f: string) => /\.(tsx?|css)$/.test(f) && !/\.test\.tsx?$/.test(f))
-      .flatMap((f: string) =>
+    const raw = readdirSync(web, { recursive: true, encoding: "utf8" })
+      .filter((f) => /\.(tsx?|css)$/.test(f) && !/\.test\.tsx?$/.test(f))
+      .flatMap((f) =>
         readFileSync(new URL(f, web), "utf8")
           .split("\n")
-          .map((line: string, i: number) => [line, i] as const)
+          .map((line, i) => [line, i] as const)
           .filter(([line]) => /var\(--ui-accent\)|\(--ui-accent\)/.test(line))
           .map(([line, i]) => `${f}:${i + 1}: ${line.trim().slice(0, 100)}`),
       );
