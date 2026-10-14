@@ -189,6 +189,7 @@ export const texts: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "Your text replies, missed calls and reviews, at a glance.",
       template: "overview",
       tiles: [
         { label: "Their turn", record: THREAD, href: threads("waiting"), needs: true },
@@ -224,6 +225,7 @@ export const texts: Module = {
     {
       id: "threads",
       label: "Threads",
+      about: "Text conversations waiting on a reply.",
       template: "list",
       record: THREAD,
       empty: {
@@ -237,6 +239,7 @@ export const texts: Module = {
     {
       id: "speed",
       label: "Speed to lead",
+      about: "Each new lead and how fast they got a text and a call.",
       template: "list",
       record: SPEED,
       // What fits at 1440; source, email and the booking time are in Columns.
@@ -263,6 +266,7 @@ export const texts: Module = {
     {
       id: "calls",
       label: "Missed calls",
+      about: "Calls nobody picked up, and the text each caller got back.",
       template: "list",
       record: CALL,
       columns: ["who", "result", "textBack", "why", "caller", "startedAt", "repliedAt", "tel"],
@@ -278,6 +282,7 @@ export const texts: Module = {
     {
       id: "reviews",
       label: "Reviews",
+      about: "Customers we asked for a review, and who left one.",
       template: "list",
       record: REVIEW,
       columns: ["who", "ask", "why", "reminder", "clickedAt", "source", "askAt"],

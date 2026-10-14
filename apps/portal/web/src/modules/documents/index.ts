@@ -22,6 +22,7 @@ export const documents: Module = {
     {
       id: "all",
       label: "Documents",
+      about: "Estimates and contracts you sent, and whether they're signed.",
       template: "list",
       record: "documents.document",
       columns: ["number", "title", "kind", "who", "total", "status", "createdAt", "signedAt"],
@@ -39,6 +40,7 @@ export const documents: Module = {
     {
       id: "templates",
       label: "Templates",
+      about: "Saved documents to start an estimate or contract from.",
       template: "list",
       record: "documents.template",
       columns: ["name", "kind", "lines", "depositPct", "expiresDays", "starter"],

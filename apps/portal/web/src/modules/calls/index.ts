@@ -17,6 +17,7 @@ export const emailCallExtras: NonNullable<ListPage["extras"]> = (detail, { row, 
 export const callsPage = (empty: string): ListPage => ({
   id: "calls",
   label: "Calls",
+  about: "Sales calls booked with you, past and coming up.",
   template: "list",
   record: RECORD,
   columns: ["who", "company", "status", "start", "campaign", "reason"],
@@ -43,6 +44,7 @@ export const calls: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "Your booked sales calls at a glance.",
       template: "overview",
       tiles: [
         { label: "Upcoming", record: RECORD, href: "/calls/calls?view=upcoming" },

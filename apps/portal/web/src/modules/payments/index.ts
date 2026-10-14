@@ -93,6 +93,7 @@ export const payments: Module = {
     {
       id: "links",
       label: "Pay links",
+      about: "Links your customers pay you through, and whether they paid.",
       template: "list",
       record: "payments.link",
       columns: ["who", "description", "amount", "status", "channel", "paid", "createdAt", "paidAt"],

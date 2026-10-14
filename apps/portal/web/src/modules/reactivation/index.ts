@@ -74,6 +74,7 @@ export const reactivation: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "How winning back your past customers is going.",
       template: "overview",
       tiles: [
         { label: "Call first", record: PERSON, href: people("view=call") },
@@ -129,10 +130,16 @@ export const reactivation: Module = {
       // The review and the weekly pulse; the Friday mail's links land here.
       below: Feedback,
     },
-    { id: "run", label: "Run", Page: Run },
+    {
+      id: "run",
+      label: "Run",
+      about: "Watch the campaign's work as it runs, line by line.",
+      Page: Run,
+    },
     {
       id: "people",
       label: "People",
+      about: "Everyone on your list, ranked by why to call them now.",
       template: "list",
       record: PERSON,
       empty: "Everyone on your list shows here once it loads, ranked by why to call now.",
@@ -144,6 +151,7 @@ export const reactivation: Module = {
     {
       id: "emails",
       label: "Emails",
+      about: "Emails to past customers, waiting for your OK.",
       template: "queue",
       record: EMAIL,
       empty: EMAIL_EMPTY,
@@ -154,6 +162,7 @@ export const reactivation: Module = {
     {
       id: "replies",
       label: "Replies",
+      about: "Replies from past customers, ready for you to answer.",
       template: "queue",
       record: REPLY,
       empty: REPLY_EMPTY,
@@ -164,6 +173,7 @@ export const reactivation: Module = {
     {
       id: "keep",
       label: "Keep",
+      about: "Current customers who may go quiet, riskiest first.",
       template: "list",
       record: "reactivation.keep",
       empty: {
@@ -178,6 +188,7 @@ export const reactivation: Module = {
     {
       id: "setup",
       label: "Setup",
+      about: "Who your campaign writes to, and how.",
       template: "form",
       record: "reactivation.setting",
       empty: "Your setup shows here once Wren sets it up with you.",
@@ -185,7 +196,14 @@ export const reactivation: Module = {
       actions: SETTING_ACTIONS,
     },
     // The demo's own, from the top bar's "Sample company" chip.
-    { id: "real", label: "What's real", Page: Real, hidden: true, requires: { audience: "demo" } },
+    {
+      id: "real",
+      label: "What's real",
+      about: "What in this sample is real and what is made up.",
+      Page: Real,
+      hidden: true,
+      requires: { audience: "demo" },
+    },
     // The client's plan and paperwork, here and not in an app of their own.
     ...ENGAGEMENT_PAGES,
   ],

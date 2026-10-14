@@ -204,6 +204,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "plan",
     label: "Plan",
+    about: "Every step of your project, with its dates.",
     template: "list",
     record: "delivery.step",
     requires: OWN,
@@ -218,6 +219,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "updates",
     label: "Updates",
+    about: "What we've done on your project, as we post it.",
     template: "list",
     record: "delivery.update",
     requires: OWN,
@@ -229,6 +231,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "needs-you",
     label: "Needs you",
+    about: "Questions and files we need from you.",
     template: "queue",
     record: "delivery.ask",
     requires: OWN,
@@ -239,6 +242,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "paperwork",
     label: "Paperwork",
+    about: "Your contract, the setup fee and the access we need.",
     template: "list",
     record: "delivery.paperwork",
     requires: OWN,
@@ -250,6 +254,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "deliverables",
     label: "Deliverables",
+    about: "What we hand over, waiting for your OK.",
     template: "queue",
     record: "delivery.deliverable",
     requires: OWN,
@@ -264,6 +269,7 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "results",
     label: "Results",
+    about: "The numbers that show whether the work paid off.",
     template: "list",
     record: "delivery.result",
     requires: OWN,
@@ -272,8 +278,22 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
     columns: ["value", "note", "at"],
     actions: RESULT_ACTIONS,
   },
-  { id: "contract", label: "Contract", Page: Contract, requires: OWN, hidden: true },
-  { id: "welcome", label: "Welcome guide", Page: Welcome, requires: OWN, hidden: true },
+  {
+    id: "contract",
+    label: "Contract",
+    about: "Your contract with Wren, to read and sign.",
+    Page: Contract,
+    requires: OWN,
+    hidden: true,
+  },
+  {
+    id: "welcome",
+    label: "Welcome guide",
+    about: "How this works, who does what, and where to find us.",
+    Page: Welcome,
+    requires: OWN,
+    hidden: true,
+  },
 ];
 
 const page = (p: string, q: string) => `/${WORK}/${p}?${q}`;
@@ -292,6 +312,7 @@ export const work: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "Where your project stands and what we need from you next.",
       template: "overview",
       tiles: [
         {

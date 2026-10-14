@@ -11,9 +11,14 @@ export const settings: Module = {
   blurb: "Your layout, your themes and colors, and a guide to every app and key.",
   requires: { audience: "team" },
   pages: [
-    { id: "layout", label: "Layout", Page: Display },
-    { id: "themes", label: "Themes", Page: Themes },
-    { id: "look", label: "Look", Page: MyLook },
-    { id: "guide", label: "Guide", Page: Guide },
+    { id: "layout", label: "Layout", about: "How the portal sits on your screen.", Page: Display },
+    { id: "themes", label: "Themes", about: "Try a look on Wren's workspace.", Page: Themes },
+    { id: "look", label: "Look", about: "Colors and type in Wren's workspace.", Page: MyLook },
+    {
+      id: "guide",
+      label: "Guide",
+      about: "Where everything is, and the fastest ways to reach it.",
+      Page: Guide,
+    },
   ],
 };

@@ -88,10 +88,17 @@ export const clientDeals: Module = {
   icon: "target",
   blurb: "Every deal by stage, with its value and who works it. Drag one on when it moves.",
   pages: [
-    { id: "board", label: "Board", Page: DealBoard, wide: true },
+    {
+      id: "board",
+      label: "Board",
+      about: "Your open deals, laid out by stage.",
+      Page: DealBoard,
+      wide: true,
+    },
     {
       id: "deals",
       label: "Deals",
+      about: "Every deal, open, won and lost.",
       template: "list",
       record: "deals.deal",
       empty: {
@@ -117,7 +124,12 @@ export const clientDeals: Module = {
         "movedAt",
       ],
     },
-    { id: "pipelines", label: "Pipelines", Page: Pipelines },
+    {
+      id: "pipelines",
+      label: "Pipelines",
+      about: "The stages each pipeline moves a deal through.",
+      Page: Pipelines,
+    },
   ],
 };
 

@@ -20,6 +20,7 @@ export const marketplace: Module = {
     {
       id: "catalog",
       label: "Catalog",
+      about: "Add-ons you can install, and the ones you have.",
       template: "shop",
       record: "console.component",
       empty: { installed: "Nothing installed yet." },
@@ -37,7 +38,12 @@ export const marketplace: Module = {
       },
       extras: catalogExtras,
     },
-    { id: "map", label: "Map", Page: ComponentMap },
-    { id: "mods", label: "Browser mods", Page: Mods },
+    { id: "map", label: "Map", about: "How each part builds on the others.", Page: ComponentMap },
+    {
+      id: "mods",
+      label: "Browser mods",
+      about: "Browser mods, and what each one can touch.",
+      Page: Mods,
+    },
   ],
 };

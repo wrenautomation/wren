@@ -24,6 +24,7 @@ export const voice: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "Your phone agent at a glance.",
       template: "overview",
       tiles: [
         { label: "Calls", record: CALL, href: calls("live"), period: 30 },
@@ -41,10 +42,16 @@ export const voice: Module = {
         },
       ],
     },
-    { id: "test", label: "Test call", Page: TestCall },
+    {
+      id: "test",
+      label: "Test call",
+      about: "Call the agent the way a caller would.",
+      Page: TestCall,
+    },
     {
       id: "calls",
       label: "Calls",
+      about: "Every call the agent took, and how it went.",
       template: "list",
       record: CALL,
       columns: ["who", "direction", "outcome", "turns", "heard", "seconds", "started"],
@@ -57,7 +64,17 @@ export const voice: Module = {
       },
       extras: callExtras,
     },
-    { id: "latency", label: "Latency", Page: Latency },
-    { id: "agent", label: "Agent", Page: Agent },
+    {
+      id: "latency",
+      label: "Latency",
+      about: "How fast the agent answers after a caller stops talking.",
+      Page: Latency,
+    },
+    {
+      id: "agent",
+      label: "Agent",
+      about: "Who answers the phone, what it says and what it may do.",
+      Page: Agent,
+    },
   ],
 };

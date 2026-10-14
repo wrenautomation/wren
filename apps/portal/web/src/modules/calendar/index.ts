@@ -22,10 +22,16 @@ export const calendar: Module = {
   blurb: "Calls booked on your page, a brief before each, and how each went.",
   requires: { audience: "team" },
   pages: [
-    { id: "schedule", label: "Schedule", Page: Schedule },
+    {
+      id: "schedule",
+      label: "Schedule",
+      about: "Your calls on a calendar, by day, week or month.",
+      Page: Schedule,
+    },
     {
       id: "overview",
       label: "Overview",
+      about: "Your calls at a glance.",
       template: "overview",
       tiles: [
         {
@@ -65,6 +71,7 @@ export const calendar: Module = {
     {
       id: "calls",
       label: "Calls",
+      about: "Every booked call, past and coming up.",
       template: "list",
       record: "calendar.booking",
       actions: CALL_ACTIONS,
