@@ -293,7 +293,10 @@ export const REVIEWS: readonly Review[] = [
       ["Privacy Policy URL", PRIVACY],
       ["Redirect URI", callbackOf("tiktok")],
       ["Products", "Login Kit, Content Posting API (Direct Post on)"],
-      ["Description", DESCRIPTION],
+      [
+        "Description (TikTok caps it at 120)",
+        "Wren helps small businesses plan, post and reply on their own social accounts. Each reply is approved first.",
+      ],
     ],
     scopes: why(TIKTOK_WHY, SOCIAL.tiktok.scopes),
     video: [
@@ -304,7 +307,11 @@ export const REVIEWS: readonly Review[] = [
       "Pick a privacy level, tick the declaration, post. Show it on TikTok (video.publish, video.upload).",
       "Marketing, Reports: followers and the video's views (user.info.stats, video.list).",
     ],
-    open: ["Record on the production domain; TikTok rejects a localhost demo."],
+    open: [
+      "Record on the production domain; TikTok rejects a localhost demo.",
+      "The TikTok sandbox draft must show app.wrenautomation.com's redirect (the reviews domain's is not registered); remove the stale /oauth/callback URI.",
+      "The recording browser needs www.tiktok.com signed in as the sandbox target user (wrenautomation). `autobrowse login tiktok` reports signed in but tiktok.com still shows Log in.",
+    ],
   },
   {
     id: "tiktok-direct-post",
