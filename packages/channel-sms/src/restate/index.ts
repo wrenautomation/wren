@@ -217,6 +217,7 @@ export function makeSmsSender(wren: SmsDeps) {
           sequences: deps.sequences,
           senderName: deps.senderName,
           bookingLink: deps.bookingLink ?? null,
+          linkSource: client ?? "wren",
           now,
           runId,
         }),

@@ -19,6 +19,7 @@
  * REMINDER_FRESH_MS: a reminder is never sent late.
  */
 import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
+import { readMessageSettings, tagLinks } from "@wren/core/message-settings";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
@@ -55,6 +56,11 @@ export interface TickOptions {
   senderName: string;
   /** `{booking_link}` in the copy; null = none set. */
   bookingLink?: string | null;
+  /**
+   * Whose texts these are, for the `utm_source` on their links (the workspace's switch decides
+   * whether any are added). Null or left out: links go as written.
+   */
+  linkSource?: string | null;
   now: Date;
   runId?: string | null;
 }
@@ -225,6 +231,14 @@ async function wroteRecently(db: Queryable, contactId: number, now: Date): Promi
   return row !== undefined;
 }
 
+/**
+ * The tagged text, unless the tags would add a billed part: a text keeps its price, so then the
+ * links go as written.
+ */
+function withinParts(plain: string, tagged: string): string {
+  return segments(tagged).parts > segments(plain).parts ? plain : tagged;
+}
+
 export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
   const { now, policy } = opts;
   const stats: TickStats = {
@@ -245,6 +259,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     stepped: [],
     nextDue: null,
   };
+  const tagFor = opts.linkSource ? (await readMessageSettings(db)).utmLinks : false;
   const pool = await poolToday(db, policy, now);
   stats.activeNumbers = pool.numbers.filter((n) => n.number.state === "active").length;
   let remaining = pool.remaining;
@@ -378,7 +393,16 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
         await fieldsFor(db, contact, opts.senderName, opts.bookingLink ?? null),
         textSeed(contact.id),
       );
-      body = text.body;
+      body = tagFor
+        ? withinParts(
+            text.body,
+            tagLinks(text.body, {
+              source: opts.linkSource as string,
+              medium: "sms",
+              campaign: contact.sequence ?? msg.template,
+            }),
+          )
+        : text.body;
       rendered = { templateVersion: text.provenance.version, provenance: text.provenance };
     }
     if (!live) {

@@ -434,6 +434,7 @@ async function senderPass(
         sender: deps.senderName,
         live: deps.live,
         ...(scope.sends ? { sends: scope.sends } : {}),
+        linkSource: scope.client ?? "wren",
         now,
         runId,
       },

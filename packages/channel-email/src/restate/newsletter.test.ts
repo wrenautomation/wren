@@ -20,6 +20,20 @@ describe("issueMail", () => {
     expect(m.headers).toBe(headers);
   });
 
+  it("tags the post's links with where they came from, but not the footer's", () => {
+    const m = issueMail({
+      issue: { ...issue, text: "Read https://other.example/guide today." },
+      to: "a@b.example",
+      footer: "\n\n--\nhttps://example.test/prefs/abc?off=1",
+      headers: [],
+      tags: { source: "wren", medium: "email", campaign: "first-post" },
+    });
+    const tag = "utm_source=wren&utm_medium=email&utm_campaign=first-post";
+    expect(m.text).toBe(
+      `Read https://other.example/guide?${tag} today.\n\nOn the site, with the pictures: https://example.test/blog/first-post?${tag}\n\n--\nhttps://example.test/prefs/abc?off=1`,
+    );
+  });
+
   it("marks a test", () => {
     expect(
       issueMail({ issue, to: "a@b.example", footer: "", headers: [], test: true }).subject,

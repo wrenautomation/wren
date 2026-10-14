@@ -14,6 +14,7 @@ import {
   mayMarket,
   recordMarketingSend,
 } from "@wren/core/marketing";
+import { type LinkTags, readMessageSettings, tagLinks } from "@wren/core/message-settings";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";
@@ -53,18 +54,23 @@ const ISSUE = z.looseObject({
   test: z.string().email().optional(),
 });
 
-/** The issue's text for one address: the post, a line to the page, then the envelope's footer. */
+/**
+ * The issue's text for one address: the post, a line to the page, then the envelope's footer.
+ * `tags` puts utm parameters on the post's links; the footer's signed links are left as they are.
+ */
 export function issueMail(o: {
   issue: Issue;
   to: string;
   footer: string;
   headers: [string, string][];
   test?: boolean;
+  tags?: LinkTags | null;
 }): PlainMail {
+  const body = `${o.issue.text}\n\nOn the site, with the pictures: ${o.issue.url}`;
   return {
     to: o.to,
     subject: o.test ? `[test] ${o.issue.subject}` : o.issue.subject,
-    text: `${o.issue.text}\n\nOn the site, with the pictures: ${o.issue.url}${o.footer}`,
+    text: `${o.tags ? tagLinks(body, o.tags) : body}${o.footer}`,
     headers: o.headers,
   };
 }
@@ -99,6 +105,10 @@ export function makeNewsletter(deps: {
           if (ctx.key !== `${issue.topic}:${issue.slug}`)
             throw new restate.TerminalError(`key must be ${issue.topic}:${issue.slug}`);
           const key = linkKey(shared);
+          // The workspace's switch, read once so a retried step sends what the first would have.
+          const tags = (await ctx.run("utm", async () => (await readMessageSettings(db)).utmLinks))
+            ? { source: "wren", medium: "email", campaign: issue.slug }
+            : null;
           const envelope = (address: string) =>
             marketingEnvelope({
               key,
@@ -113,7 +123,7 @@ export function makeNewsletter(deps: {
             if (!testAllowed(to, from))
               throw new restate.TerminalError(`a test goes to @${from.split("@")[1]} only`);
             await ctx.run("test", () =>
-              send(issueMail({ issue, to, ...envelope(to), test: true })),
+              send(issueMail({ issue, to, ...envelope(to), test: true, tags })),
             );
             return { sent: 1, skipped: {} };
           }
@@ -129,7 +139,7 @@ export function makeNewsletter(deps: {
                 topic: issue.topic,
               });
               if (!v.send) return v.why;
-              await send(issueMail({ issue, to: c.address, ...envelope(c.address) }));
+              await send(issueMail({ issue, to: c.address, ...envelope(c.address), tags }));
               return "sent";
             });
             if (done !== "sent") {
@@ -142,6 +152,7 @@ export function makeNewsletter(deps: {
                 consentId: c.consentId,
                 by: "newsletter",
                 evidence: { issue: ctx.key, url: issue.url },
+                campaign: issue.slug,
               }),
             );
             run.sent += 1;

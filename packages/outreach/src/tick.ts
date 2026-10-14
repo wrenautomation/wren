@@ -24,6 +24,7 @@
  */
 import { SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
+import { readMessageSettings, tagLinks } from "@wren/core/message-settings";
 import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
@@ -60,6 +61,11 @@ export interface TickOptions {
    * says no to holds as `gated`, a typed one too. Wren's own run has none.
    */
   sends?: (kind: ReachMessage["kind"]) => boolean;
+  /**
+   * Whose messages these are, for the `utm_source` on links in sequence and follow-up DMs (the
+   * workspace's switch decides whether any are added). Null or left out: links go as written.
+   */
+  linkSource?: string | null;
   now: Date;
   runId?: string | null;
 }
@@ -499,6 +505,10 @@ export async function tick(
   run: Journal = (_n, fn) => fn(),
 ): Promise<TickStats> {
   const { stats, candidates } = await run("plan", () => planTick(db, o));
+  // The workspace's switch, journaled so a replayed pass sends what the first would have.
+  const tagFor = o.linkSource
+    ? await run("links", async () => (await readMessageSettings(db)).utmLinks)
+    : false;
   const stepStats = async (name: string, body: (s: TickStats) => Promise<unknown>) => {
     const s = await run(name, async () => {
       const s = emptyStats();
@@ -535,7 +545,17 @@ export async function tick(
               c.contact.handle,
               c.row.body || null,
             )
-          : await channel.message(c.contact.handle, c.row.body, c.row.subject);
+          : await channel.message(
+              c.contact.handle,
+              tagFor && (c.row.kind === "sequence" || c.row.kind === "follow_up")
+                ? tagLinks(c.row.body, {
+                    source: o.linkSource as string,
+                    medium: "dm",
+                    campaign: c.contact.sequence,
+                  })
+                : c.row.body,
+              c.row.subject,
+            );
     } catch (err) {
       await stepStats(`failed ${c.row.id}`, (s) => recordFailure(db, c, err, o.now, s));
       continue;
