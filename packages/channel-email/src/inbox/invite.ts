@@ -24,7 +24,7 @@
  */
 import { companies, people } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
-import { capCheck, countMarketingSend } from "@wren/core/message-settings";
+import { capCheck, countMarketingSend, tagged } from "@wren/core/message-settings";
 import type { Notifier, NotifyLevel } from "@wren/core/notify";
 import { canonicalZone, wallClock, zonedInstant } from "@wren/core/time";
 import { type Db, serializable } from "@wren/db";
@@ -621,12 +621,20 @@ const CLOSED = new Set(["bounce", "opt_out", "complaint", "undeliverable", "manu
  *
  * It is marketing to someone with no topic consent, so it keeps the frequency cap
  * (`capCheck`, then `countMarketingSend` once it went). Over the cap it is refused with `until`,
- * when they have room: the caller leaves a To approve draft waiting.
+ * when they have room: the caller queues it for then.
+ *
+ * `tags` is a workflow's email: its links get `utm_source`, `utm_medium` (email) and
+ * `utm_campaign` as the newsletter's do, when the workspace has links on. Words typed by hand
+ * pass none and go as written.
  */
 export async function followUpByHand(
   db: Db,
   enrollmentId: number,
-  opts: SendReplyOptions & { body: string; shared?: SharedSuppressions | null },
+  opts: SendReplyOptions & {
+    body: string;
+    shared?: SharedSuppressions | null;
+    tags?: { source: string; campaign?: string | null } | null;
+  },
 ): Promise<{ ok: true; reply: ReplyOutcome } | { ok: false; reason: string; until?: Date }> {
   const body = opts.body.trim();
   if (!body) return { ok: false, reason: "the email is empty" };
@@ -649,7 +657,8 @@ export async function followUpByHand(
     const at = cap.until.toISOString().slice(0, 16).replace("T", " ");
     return { ok: false, reason: `Held by the frequency cap until ${at} UTC.`, until: cap.until };
   }
-  const draft = await draftByHand(db, enrollment, null, body);
+  const words = opts.tags ? await tagged(db, body, { ...opts.tags, medium: "email" }) : body;
+  const draft = await draftByHand(db, enrollment, null, words);
   const reply = await sendReply(db, draft.id, null, enrollment, {
     transport: opts.transport,
     fleet: opts.fleet,

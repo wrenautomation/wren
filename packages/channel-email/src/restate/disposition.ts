@@ -246,12 +246,16 @@ export function makeDisposition(deps: DispositionDeps) {
           input: z.looseObject({
             enrollmentId: z.number().describe("The email thread's id"),
             body: z.string().describe("The words to send"),
+            campaign: z
+              .string()
+              .nullish()
+              .describe("A workflow's email: its links are tagged with this campaign"),
           }),
           effect: "sends",
         },
         async (
           ctx: restate.ObjectContext,
-          req: { enrollmentId: number; body: string },
+          req: { enrollmentId: number; body: string; campaign?: string | null },
         ): Promise<{ ok: boolean; reason: string | null; until: string | null }> => {
           if (!wired(ctx.key)) {
             throw new restate.TerminalError("follow-ups are not wired on this worker");
@@ -268,6 +272,9 @@ export function makeDisposition(deps: DispositionDeps) {
                 body: req.body,
                 now,
                 shared: owner ? { main: deps.dbOf(DISPOSITION_KEY), client: owner.client } : null,
+                tags: req.campaign
+                  ? { source: owner?.client ?? "wren", campaign: req.campaign }
+                  : null,
               });
               return out.ok
                 ? { ok: true, reason: null, until: null }

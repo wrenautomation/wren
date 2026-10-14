@@ -524,6 +524,43 @@ describe("a follow-up email to a quiet thread", () => {
     expect(await db().select().from(marketingSends)).toHaveLength(2);
   });
 
+  describe("links", () => {
+    const BODY = "See https://sample.example/book and https://sample.example/go/abc.";
+    const sendTagged = async (
+      domain: string,
+      tags: { source: string; campaign?: string | null } | null,
+    ) => {
+      const e = await offered(domain);
+      await db().update(enrollments).set({ state: "finished" }).where(eq(enrollments.id, e.id));
+      const transport = quiet();
+      const out = await followUpByHand(db(), e.id, {
+        transport,
+        fleet: FLEET,
+        now: NOW,
+        body: BODY,
+        tags,
+      });
+      expect(out.ok).toBe(true);
+      return [...transport.mailbox.values()].flat().map((m) => m.email.body)[0];
+    };
+
+    it("tags a workflow's links as the newsletter's are: source, email, its campaign", async () => {
+      expect(
+        await sendTagged("oak.example", { source: "wren", campaign: "follow_up.touches" }),
+      ).toBe(
+        "See https://sample.example/book?utm_source=wren&utm_medium=email&utm_campaign=follow-up-touches and https://sample.example/go/abc.",
+      );
+    });
+
+    it("leaves words typed by hand as written, and every link when links are off", async () => {
+      expect(await sendTagged("elm.example", null)).toBe(BODY);
+      await db().execute(sql`insert into message_settings (id, utm_links) values (1, false)`);
+      expect(
+        await sendTagged("fir.example", { source: "wren", campaign: "follow_up.touches" }),
+      ).toBe(BODY);
+    });
+  });
+
   it("a refused follow-up (opted out, bounced) counts nothing", async () => {
     const e = await offered();
     await db().update(enrollments).set({ state: "finished" }).where(eq(enrollments.id, e.id));

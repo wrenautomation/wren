@@ -27,13 +27,16 @@ import {
   accessChannel,
   askReply,
   type Copied,
+  campaignOfAsker,
   copiedOf,
   failReply,
-  holdReply,
+  HeldReply,
   mayWork,
   partOf,
   pickOption,
+  queueReply,
   type ReplySender,
+  releaseReply,
   replyGate,
   replyWords,
   sendOn,
@@ -112,8 +115,12 @@ type Disposition = {
   followUp: Fn<{ enrollmentId: number; body: string }, Outcome>;
 };
 
-/** An email the frequency cap holds: not sent, and not failed, so its To approve draft waits. */
-class HeldReply extends restate.TerminalError {}
+/** `InboxDesk.release`, sent to itself after a delay (`deliver`). */
+type ReleaseDesk = {
+  release: Fn<{ id: number; client?: string }, { state: "sent" | "queued" | "failed" | "gone" }>;
+};
+/** A beat past the cap's `until`, so the release finds the room already there. */
+const RELEASE_SLACK_MS = 1_000;
 
 /**
  * The channels' own desks, called as this viewer. A client's DMs and comments go through its own
@@ -153,9 +160,14 @@ function restateChannels(
     },
     invite: async (id, body) => ok(await disposition().approve({ id, body })),
     email: async (threadEventId, body) => ok(await disposition().reply({ threadEventId, body })),
-    thread: async (enrollmentId, body) => {
-      const out = await disposition().followUp({ enrollmentId, body });
-      if (!out.ok && out.until) throw new HeldReply(out.reason ?? "held by the frequency cap");
+    thread: async (enrollmentId, body, campaign) => {
+      const out = await disposition().followUp({
+        enrollmentId,
+        body,
+        ...(campaign ? { campaign } : {}),
+      });
+      if (!out.ok && out.until)
+        throw new HeldReply(out.reason ?? "held by the frequency cap", new Date(out.until));
       ok(out);
     },
     mail: async (mailId, body) => {
@@ -290,6 +302,39 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
         throw new Error(need === "read" ? "no access" : "you don't manage this here");
     });
 
+  /**
+   * Send a claimed reply on its channel. An email the frequency cap holds is queued instead: its
+   * yes stays, it leaves To approve, and `release` sends it once they have room, as a delayed
+   * call to this service. Any other refusal fails the row and throws. `queued` is when it goes.
+   */
+  const deliver = async (
+    ctx: restate.Context,
+    db: Db,
+    client: string | null,
+    viewer: Viewer,
+    row: { id: number; body: string; askedBy: string },
+    option: ReplyOption,
+  ): Promise<{ queued: Date | null }> => {
+    try {
+      await sendOn(channels(ctx, client, viewer), option, row.body, campaignOfAsker(row.askedBy));
+      return { queued: null };
+    } catch (err) {
+      if (!(err instanceof HeldReply)) {
+        await ctx.run("failed", () => failReply(db, row.id, errorText(err)));
+        throw err;
+      }
+      const now = await nowOf(ctx);
+      await ctx.run("queue", () => queueReply(db, row.id, err.until));
+      ctx.serviceSendClient<ReleaseDesk>({ name: "InboxDesk" }).release(
+        { id: row.id, ...(client ? { client } : {}) },
+        restate.rpc.sendOpts({
+          delay: Math.max(0, err.until.getTime() - now.getTime()) + RELEASE_SLACK_MS,
+        }),
+      );
+      return { queued: err.until };
+    }
+  };
+
   return restate.service({
     name: "InboxDesk",
     handlers: {
@@ -417,13 +462,16 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           return { asked };
         },
       ),
-      /** A yes on an asked reply: sent on its channel now. A second yes finds it sent and stops. */
+      /**
+       * A yes on an asked reply: sent on its channel now. A second yes finds it settled and stops.
+       * An email the frequency cap holds is queued with the yes kept, and sends itself (`release`).
+       */
       approve: serviceHandler(
         { input: ASKED, effect: "sends" },
         async (
           ctx: restate.Context,
           req: Req & { id: number },
-        ): Promise<{ sent: true; copy?: Copied }> => {
+        ): Promise<{ sent: boolean; queued?: string; copy?: Copied }> => {
           const me = by(req);
           const client = clientOf(req);
           const db = dbOf(client);
@@ -439,18 +487,49 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
           const claimed = await ctx.run("claim", () => settleReply(db, req.id, "sent", me));
           if (!claimed) throw new restate.TerminalError("that reply was settled already");
-          try {
-            await sendOn(channels(ctx, client, req.viewer as Viewer), option, row.body);
-          } catch (err) {
-            if (err instanceof HeldReply)
-              await ctx.run("held", () => holdReply(db, req.id, err.message));
-            else await ctx.run("failed", () => failReply(db, req.id, errorText(err)));
-            throw err;
-          }
+          const { queued } = await deliver(ctx, db, client, req.viewer as Viewer, row, option);
+          if (queued) return { sent: false, queued: queued.toISOString() };
           const now = await nowOf(ctx);
           await ctx.run("waiting", () => setThread(db, row.thread, { status: "waiting" }, me, now));
           const copy = copiedOf(option, row.body);
           return { sent: true, ...(copy ? { copy } : {}) };
+        },
+      ),
+      /**
+       * A queued reply's turn, called by `approve` after a delay: nothing is asked again, the yes
+       * is on the row. It sends if they have room now, else queues again for when they will. A
+       * reply dropped meanwhile is `gone`; one the send refuses fails, with why on its row.
+       */
+      release: serviceHandler(
+        {
+          input: z.looseObject({ id: z.number(), client: z.string().optional() }),
+          effect: "sends",
+          ingressPrivate: true,
+        },
+        async (
+          ctx: restate.Context,
+          req: { id: number; client?: string },
+        ): Promise<{ state: "sent" | "queued" | "failed" | "gone" }> => {
+          const client = req.client || null;
+          const db = dbOf(client);
+          const row = await ctx.run("take", () => releaseReply(db, req.id));
+          if (!row) return { state: "gone" };
+          const me = row.decidedBy ?? row.askedBy;
+          try {
+            const option = await ctx.run("pick", () =>
+              terminal(() => pickOption(db, row.thread, row.channel, row.target)),
+            );
+            await ctx.run("route", () => routed(client, option));
+            const { queued } = await deliver(ctx, db, client, { email: me }, row, option);
+            if (queued) return { state: "queued" };
+          } catch (err) {
+            // `deliver` failed its own refusals; one before it failed nothing yet.
+            await ctx.run("failed", () => failReply(db, row.id, errorText(err)));
+            return { state: "failed" };
+          }
+          const now = await nowOf(ctx);
+          await ctx.run("waiting", () => setThread(db, row.thread, { status: "waiting" }, me, now));
+          return { state: "sent" };
         },
       ),
       /** No to an asked reply: nothing sends. */

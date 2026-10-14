@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-09 @ 0ad591c4 (mail replies)
+verified: 2026-10-14 @ 06792d79 (queued replies)
 entity: packages/content/src/schema.ts:465
 ---
 
@@ -18,7 +18,7 @@ GHL Conversations is the model (William, 2026-10-07: "steal all the stuff"). A r
 ## Shape
 
 - `inbox_threads` (`schema.ts:465`): thread, assignee, status open|waiting|closed, `status_at`, `snooze_until`, by. No row: status follows the channel's state. A message in after `status_at` reopens (`statusOf`, `packages/content/src/inbox/threads.ts:37`)
-- `inbox_replies` (`schema.ts:494`): an asked reply (thread, channel, target, body, state waiting|sent|dropped, by, why); To approve lists it as type `reply` (`approvalRecord`, `packages/content/src/social/records.ts:480`). Approve claims the row (`sent`) before it sends; a send the frequency cap holds (an email follow-up, `thread:` target) goes back to `waiting` with the hold as `why` (`holdReply`, `packages/content/src/inbox/send.ts:265`), any other refusal marks it `failed`
+- `inbox_replies` (`schema.ts:868`): an asked reply (thread, channel, target, body, state waiting|queued|sent|dropped|failed, by, why, detail); To approve lists it as type `reply` (`approvalRecord`, `packages/content/src/social/records.ts:480`). Approve claims the row (`sent`) before it sends; a send the frequency cap holds (an email follow-up, `thread:` target, `HeldReply` with `until`, `packages/content/src/inbox/send.ts:178`) keeps William's yes: the row goes to `queued` (`queueReply`, `:297`, `detail` says when) and leaves To approve, `InboxDesk.approve` returns `{sent: false, queued}`, and a delayed `InboxDesk.release` call (`inbox-desk.ts:503`, ingress private, takes only `{id, client}`) takes it back (`releaseReply`, `:309`, `queued` to `sent`), asks `Disposition.followUp` again with the workflow's campaign (UTM tags) and sends, or queues again if still held, or marks it `failed` with why on a refusal; Drop while queued cancels it (`settleReply` takes `queued` to `dropped`), and nothing lists a queued row yet. Any other refusal marks it `failed`
 - Timeline: `conversationOf` (`packages/content/src/inbox/conversation.ts:645`) joins by person: emails, texts, DMs, comments (also by linked `social_handles`), bookings, touches, notes, asked replies; oldest first. `options` lists each channel a reply can take; `pickOption` rebuilds it on send and refuses any other target or an opted-out one. Email with no reply of theirs offers `thread:<enrollment>`: our next email in our newest thread that sent, shut while its sequence sends or once it bounced, opted out or was stopped by hand; it sends through `Disposition.followUp`. Follow-up and Nurture's email asks here (`askFollowEmail`, `send.ts`)
 - Gate: `replyGate` (`send.ts:73`) says send or ask; part per channel (`partOf`): DM `reach.outreach`, comment `content.posting`, email and text `follow_up`, mail to a client's mailbox `mail.triage`, site chat `sites.chat`. Wren's own threads skip the flag; the viewer's `effect` still decides
 - `InboxDesk` (`packages/content/src/restate/inbox-desk.ts:110`): reply (`effect: sends`), ask, approve, drop, suggest (`suggestReply`, `suggest.ts`; DMs via `draftDm`; a client's thread holding Google data, YouTube comments, Business Profile reviews or a Google mailbox's mail, goes only to `WREN_GOOGLE_LLM`, else `GOOGLE_HELD`), note, assign, take, status, snooze. Bound in `apps/worker/src/services.ts:1014`

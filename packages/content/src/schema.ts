@@ -856,7 +856,8 @@ export type InboxThread = typeof inboxThreads.$inferSelect;
 
 export const INBOX_CHANNELS = ["email", "text", "dm", "comment", "chat"] as const;
 export type InboxChannel = (typeof INBOX_CHANNELS)[number];
-export const INBOX_REPLY_STATES = ["waiting", "sent", "dropped", "failed"] as const;
+/** `queued`: said yes to, held by the frequency cap, and sends itself once they have room. */
+export const INBOX_REPLY_STATES = ["waiting", "queued", "sent", "dropped", "failed"] as const;
 export type InboxReplyState = (typeof INBOX_REPLY_STATES)[number];
 
 /**

@@ -13,6 +13,7 @@ import {
 } from "@wren/core/access";
 import { type Client, sendsOn } from "@wren/core/clients";
 import { threadOf } from "@wren/core/leads";
+import { campaignOfRef } from "@wren/core/message-settings";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { type InboxChannel, type InboxReply, inboxReplies } from "../schema.js";
@@ -146,8 +147,11 @@ export interface ReplySender {
   invite(inviteId: number, body: string): Promise<void>;
   /** An email with no open invite: answer in its thread. */
   email(threadEventId: number, body: string): Promise<void>;
-  /** Our email thread they never answered: our next email in it. */
-  thread(enrollmentId: number, body: string): Promise<void>;
+  /**
+   * Our email thread they never answered: our next email in it. `campaign` is a workflow's: its
+   * links are tagged. Over the frequency cap it throws `HeldReply`, which queues it.
+   */
+  thread(enrollmentId: number, body: string, campaign?: string | null): Promise<void>;
   /** Mail to a client's mailbox (`watch.mail`): answer in its thread, from that mailbox. */
   mail(mailId: number, body: string): Promise<void>;
   /** A site chat: our message in the bubble. */
@@ -166,8 +170,28 @@ export interface Copied {
 export const copiedOf = (option: ReplyOption, body: string): Copied | null =>
   option.copy ? { text: body, url: option.copy } : null;
 
-/** Send `body` on `option`'s path. */
-export async function sendOn(sender: ReplySender, option: ReplyOption, body: string) {
+/** The campaign an asked reply tags its links with: the workflow that asked, none for a person. */
+export const campaignOfAsker = (askedBy: string): string | null =>
+  askedBy.startsWith("workflow:") ? campaignOfRef(askedBy.slice("workflow:".length)) : null;
+
+/** An email the frequency cap holds, not one that failed: it sends itself at `until`. */
+export class HeldReply extends Error {
+  constructor(
+    message: string,
+    readonly until: Date,
+  ) {
+    super(message);
+    this.name = "HeldReply";
+  }
+}
+
+/** Send `body` on `option`'s path; `campaign` tags a workflow's email links. */
+export async function sendOn(
+  sender: ReplySender,
+  option: ReplyOption,
+  body: string,
+  campaign: string | null = null,
+) {
   const t = option.target;
   const n = (s: string) => {
     const v = Number(s);
@@ -187,7 +211,7 @@ export async function sendOn(sender: ReplySender, option: ReplyOption, body: str
     case "email":
       if (t.startsWith("invite:")) return sender.invite(n(t.slice(7)), body);
       if (t.startsWith("mail:")) return sender.mail(n(t.slice(5)), body);
-      if (t.startsWith("thread:")) return sender.thread(n(t.slice(7)), body);
+      if (t.startsWith("thread:")) return sender.thread(n(t.slice(7)), body, campaign);
       return sender.email(n(t.slice(t.indexOf(":") + 1)), body);
   }
 }
@@ -230,7 +254,7 @@ export async function waitingReply(db: Queryable, id: number): Promise<InboxRepl
 
 /**
  * Settle an asked reply: sent, dropped or failed, by whom. Only a waiting one moves, so a second
- * Approve finds it settled and stops.
+ * Approve finds it settled and stops. A queued one can be dropped too: that cancels it.
  */
 export async function settleReply(
   db: Queryable,
@@ -243,7 +267,14 @@ export async function settleReply(
   const done = await db
     .update(inboxReplies)
     .set({ state, detail, decidedBy: by.toLowerCase(), decidedAt: now })
-    .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "waiting")))
+    .where(
+      and(
+        eq(inboxReplies.id, id),
+        state === "dropped"
+          ? inArray(inboxReplies.state, ["waiting", "queued"])
+          : eq(inboxReplies.state, "waiting"),
+      ),
+    )
     .returning({ id: inboxReplies.id });
   return done.length > 0;
 }
@@ -259,14 +290,29 @@ export function waitingReplies(db: Queryable, limit = 500) {
 }
 
 /**
- * A claimed reply the frequency cap held: back to waiting, with why on its row, so it keeps its
- * place in To approve. Only one this approve claimed (sent a moment ago) moves.
+ * A claimed reply the frequency cap held: queued with why on its row, and its yes kept (`decidedBy`
+ * stays). It leaves To approve, so there is no second Approve; `releaseReply` takes it back at
+ * `until`. Only one this approve (or release) claimed, `sent` a moment ago, moves.
  */
-export async function holdReply(db: Queryable, id: number, detail: string): Promise<void> {
+export async function queueReply(db: Queryable, id: number, until: Date): Promise<void> {
+  const at = until.toISOString().slice(0, 16).replace("T", " ");
   await db
     .update(inboxReplies)
-    .set({ state: "waiting", detail, why: detail, decidedBy: null, decidedAt: null })
+    .set({ state: "queued", detail: `Held by the frequency cap. It sends itself after ${at} UTC.` })
     .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "sent")));
+}
+
+/**
+ * Take a queued reply back to send it: `sent`, and the row, or null when it isn't queued (dropped
+ * meanwhile, or sent already). Whoever gets the row sends it, so two releases send once.
+ */
+export async function releaseReply(db: Queryable, id: number): Promise<InboxReply | null> {
+  const [row] = await db
+    .update(inboxReplies)
+    .set({ state: "sent", detail: null })
+    .where(and(eq(inboxReplies.id, id), eq(inboxReplies.state, "queued")))
+    .returning();
+  return row ?? null;
 }
 
 /** A claimed reply whose send was refused: failed, with why. */
@@ -302,7 +348,7 @@ export async function askFollowEmail(
         and(
           eq(inboxReplies.target, option.target),
           eq(inboxReplies.askedBy, o.by.toLowerCase()),
-          inArray(inboxReplies.state, ["waiting", "sent"]),
+          inArray(inboxReplies.state, ["waiting", "queued", "sent"]),
         ),
       )
       .limit(1);

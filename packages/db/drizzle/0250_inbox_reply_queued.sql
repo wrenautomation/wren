@@ -1,0 +1,2 @@
+ALTER TABLE "inbox_replies" DROP CONSTRAINT "ck_inbox_replies_state";--> statement-breakpoint
+ALTER TABLE "inbox_replies" ADD CONSTRAINT "ck_inbox_replies_state" CHECK (("state")::text = ANY ((ARRAY['waiting'::character varying, 'queued'::character varying, 'sent'::character varying, 'dropped'::character varying, 'failed'::character varying])::text[]));

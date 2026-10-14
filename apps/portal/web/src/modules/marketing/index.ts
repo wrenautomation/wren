@@ -849,7 +849,11 @@ const ASKED_REPLY_ACTIONS: Action[] = [
     handler: "inbox/replyApprove",
     confirm: "Send this reply on its channel now?",
     key: "a",
-    done: said("Sent"),
+    // An email the frequency cap holds is queued and sends itself (`InboxDesk.approve`).
+    done: (answer) =>
+      (answer as { queued?: string } | null)?.queued
+        ? "Queued. It sends itself once the cap has room."
+        : "Sent",
     // Armed when asked (designs/2026-10-12-push-everywhere.md): it goes out in seconds.
     optimistic: "Sending",
   },
