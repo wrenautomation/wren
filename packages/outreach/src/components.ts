@@ -24,7 +24,7 @@ export const OUTREACH_COMPONENTS = [
     requires: { anyAccount: ["linkedin", "reddit"] },
     soon: ["x"],
     provides: {
-      services: ["ReachSender", "ReachWatch", "ReachDesk"],
+      services: ["ReachSender", "ReachWatch", "ReachDesk", "CommentProofs"],
       loops: ["ReachSender", "ReachWatch"],
       records: ["marketing.person"],
     },
