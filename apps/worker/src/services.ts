@@ -278,6 +278,7 @@ import {
   type ChannelsFor,
   type ContentClients,
   DESK,
+  journaledHost,
   journaledSites,
   makeContent,
   restateSites,
@@ -2553,16 +2554,17 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   }
   const sitesAt = sitesHost(settings.autobrowseInstanceId);
   log.info({ sites: sitesAt.service.name }, "autobrowse sites host");
-  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
+  const signer = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
   log.info({ mediaBucket: settings.mediaBucket ?? "none" }, "media host");
-  const meta = {
-    ...(host ? { host } : {}),
-    ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
-  };
   // Reddit: its API with wren's own token, or the Mac's desk worker, whatever the sites host.
   const reddit = redditFrom(settings, on, log);
   return (ctx, o) => {
     const arm = o?.arm ? { arm: true } : {};
+    const host = signer ? journaledHost(ctx, signer) : undefined;
+    const meta = {
+      ...(host ? { host } : {}),
+      ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
+    };
     const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt, ...arm });
     return {
       // Wren's own login (William, 10-06): bare `linkedin` is his personal account, never used here.
@@ -2610,10 +2612,10 @@ function contentClientsFor(
 ): ContentClients {
   const on = settings.contentChannels;
   const sitesAt = sitesHost(settings.autobrowseInstanceId);
-  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
-  const hosted = host ? { host } : {};
+  const signer = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
   return {
     channels: async (ctx, client, part) => {
+      const hosted = signer ? { host: journaledHost(ctx, signer) } : {};
       const { logins, connected } = await ctx.run(`${client} logins`, async () => {
         const c = await clientContent(db, client, part);
         return c.kind === "work"

@@ -6,6 +6,7 @@ import {
   ArmedStop,
   DESK,
   isRefusal,
+  journaledHost,
   journaledSites,
   makeContent,
   restateSites,
@@ -302,6 +303,23 @@ describe("restateSites over a named service", () => {
     await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
     await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
     expect(calls.filter((c) => c.handler === "status")).toHaveLength(2);
+  });
+});
+
+describe("journaledHost", () => {
+  it("signs each source in a journaled step, so a replay hands the site the same URL", async () => {
+    const journal = new Map<string, unknown>();
+    const ctx = {
+      run: async (name: string, fn: () => Promise<unknown>) => {
+        if (!journal.has(name)) journal.set(name, await fn());
+        return journal.get(name);
+      },
+    } as unknown as restate.Context;
+    let n = 0;
+    const host = journaledHost(ctx, { host: async (s) => `${s}?sig=${++n}` });
+    const first = await host.host("s3://b/k.mp4");
+    expect(await host.host("s3://b/k.mp4")).toBe(first);
+    expect([...journal.keys()]).toEqual(["sign s3://b/k.mp4"]);
   });
 });
 

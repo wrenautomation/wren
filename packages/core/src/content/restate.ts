@@ -30,6 +30,7 @@ import type {
   ContentChannel,
   Insights,
   ListQuery,
+  MediaHost,
   Platform,
   Post,
   PostPatch,
@@ -199,6 +200,16 @@ export const isRefusal = (err: unknown): err is SiteCallError =>
   err.status < 500 &&
   err.status !== 408 &&
   (err.status !== 429 || (waitOf(err.message) ?? 0) > LONG_WAIT_S);
+
+/**
+ * A media host made durable: each source is signed once, in a journaled step,
+ * so a retried invocation hands the site the same URL. A fresh signature on
+ * replay is a different call input, and Restate stops the invocation on the
+ * journal mismatch (10-14: a Facebook short stuck backing off).
+ */
+export function journaledHost(ctx: restate.Context, host: MediaHost): MediaHost {
+  return { host: (source) => ctx.run(`sign ${source}`, () => host.host(source)) };
+}
 
 /**
  * A direct API client (no `sites` hop) made durable: each call is one

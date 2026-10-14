@@ -9,6 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { settingsFor } from "@wren/core/clients";
 import type { MediaHost, SiteClient } from "@wren/core/content";
+import { journaledHost } from "@wren/core/content/restate";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";
@@ -98,7 +99,7 @@ export function makeAds(deps: AdsDeps) {
     metaAds(deps.sitesFor(ctx), {
       ...(deps.adAccountId ? { adAccountId: deps.adAccountId } : {}),
       ...(deps.pageId ? { pageId: deps.pageId } : {}),
-      ...(deps.host ? { host: deps.host } : {}),
+      ...(deps.host ? { host: journaledHost(ctx, deps.host) } : {}),
     });
   return restate.service({
     name: "Ads",
