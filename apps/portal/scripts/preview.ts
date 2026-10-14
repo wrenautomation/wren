@@ -50,6 +50,7 @@ import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
 import { askRecord } from "@wren/core/ask";
+import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
@@ -232,6 +233,7 @@ const SERVICES: Record<
         // Every message we sent (People → Sent), and Wren's segments.
         ...SENT_RECORDS,
         ...SEGMENT_RECORDS,
+        ...BROADCAST_RECORDS,
         // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
         // for the lander's log (the worker reads it live), two lines for any visitor.
         ...profileRecords(WORKFLOWS, {
