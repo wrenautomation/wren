@@ -17,6 +17,7 @@ export const PAYMENTS_CONSOLE_ROUTES = {
   fromThread: "act",
   approve: "act",
   decline: "act",
+  again: "act",
   connect: "act",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; the rest are Payments. */
@@ -28,6 +29,7 @@ export const PAYMENTS_CONSOLE_APPS = {
   fromThread: { app: "texts", channel: "sms" },
   approve: "payments",
   decline: "payments",
+  again: "payments",
   connect: "payments",
 } as const satisfies RouteApps<typeof PAYMENTS_CONSOLE_ROUTES>;
 export type PaymentsConsoleRoute = keyof typeof PAYMENTS_CONSOLE_ROUTES;
@@ -37,5 +39,6 @@ export const PAYMENTS_CONSOLE_WRITES: readonly PaymentsConsoleRoute[] = [
   "fromThread",
   "approve",
   "decline",
+  "again",
   "connect",
 ];

@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-09 @ 900950d3
+verified: 2026-10-14 @ ab9feb64
 entity: packages/documents/src/schema.ts:107
 ---
 
@@ -22,7 +22,7 @@ Rows live in main with a `client` column, so the edge serves a signing page with
 - Pure math in `packages/documents/src/lines.ts:5` (kinds, totals rounded per line, slots); the portal imports it.
 - Slots: `{contact.name|first_name|email}`, `{biz.name}`, `{biz.<fact>}` (`customFacts`), `{doc.number|total|deposit|expires}`. A slot left blocks Send.
 - Edge: `apps/portal/src/docs.ts:97` serves `/o/d/<token>` (GET page, POST sign/decline after Turnstile), `/pdf`, `/pay` on the client's host, Wren's apex, or the app host. Never cached; bots never count as an open.
-- Deposit: `/o/d/<token>/pay` makes a `pay_links` row (`pay_links.document`) on the client's Stripe key on first ask, then 303 to Stripe.
+- Deposit: `/o/d/<token>/pay` makes a `pay_links` row (`pay_links.document`) on the client's Stripe key on first ask, then 303 to Stripe. Its id comes from the journal, so a retry or a second click finds one link; Stripe's 5xx is retried, its refusal shuts the page. The page follows the link both ways: paid, clearing (bank), refunded; a failed bank payment gets a new link (`packages/documents/src/service.ts:186`).
 - Spine: `trigger.document` (viewed|signed|declined), event kind `document`, webhooks out `document.*` (`docFired`, `packages/documents/src/service.ts:124`).
 - Migration `0222_documents`. Texts kind `doc` (in `ANSWER_KINDS`).
 

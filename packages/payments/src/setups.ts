@@ -21,7 +21,7 @@ export const STRIPE_SETUP = defineSetup({
       fact: "stripe.key",
       label: "Stripe key",
       who: "client",
-      how: "In Stripe, make a restricted key that can write Prices, Payment Links and Webhook Endpoints. Paste it under Payments, Connect Stripe.",
+      how: "In Stripe, make a restricted key that can write Prices, Payment Links and Webhook Endpoints, and read Checkout Sessions, Payment Intents, Charges and Disputes. Paste it under Payments, Connect Stripe.",
       forYou: "Make the restricted key in Stripe and send it to Wren's team. They save it for you.",
       check: "stripe.key",
       every: "1 hour",

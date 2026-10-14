@@ -17,6 +17,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { and, desc, eq } from "drizzle-orm";
 import { payEvents, payLinks } from "./schema.js";
+import type { PayStatus } from "./states.js";
 
 export const LINK_RECORD = "payments.link";
 
@@ -24,10 +25,30 @@ const STATUSES = {
   waiting: { label: "To approve", tone: "warn" },
   sending: { label: "Sending", tone: "neutral" },
   sent: { label: "Sent", tone: "neutral" },
+  processing: { label: "Bank payment clearing", tone: "neutral" },
+  unpaid: { label: "Didn't go through", tone: "bad" },
   paid: { label: "Paid", tone: "good" },
+  refunded: { label: "Refunded", tone: "warn" },
   declined: { label: "Declined", tone: "neutral" },
   failed: { label: "Failed", tone: "bad" },
+} as const satisfies Record<PayStatus, unknown>;
+const DISPUTES = {
+  open: { label: "Disputed", tone: "warn" },
+  won: { label: "Dispute won", tone: "good" },
+  lost: { label: "Dispute lost", tone: "bad" },
 } as const;
+/** How a kept event reads on the link's steps. */
+const SAID: Record<string, string> = {
+  paid: "paid",
+  processing: "bank payment clearing",
+  unpaid: "didn't go through",
+  refunded: "refund",
+  disputed: "dispute",
+  stale: "seen before, nothing changed",
+  unknown: "kept",
+  ignored: "not ours",
+  drift: "disagrees with Stripe",
+};
 
 /** ponytail: rows, not a view: a client sends dozens of links a month, not thousands. */
 const ROWS = 1000;
@@ -46,6 +67,8 @@ const rowsOf = async (db: Queryable, client: string, id?: string) =>
     description: l.description,
     amount: (l.amountCents * l.quantity) / 100,
     paid: l.paidCents === null ? null : l.paidCents / 100,
+    refunded: l.refundedCents ? l.refundedCents / 100 : null,
+    dispute: l.dispute,
     currency: l.currency.toUpperCase(),
     quantity: l.quantity,
     status: l.status,
@@ -58,6 +81,8 @@ const rowsOf = async (db: Queryable, client: string, id?: string) =>
     approved_by: l.approvedBy,
     sent_at: l.sentAt,
     paid_at: l.paidAt,
+    refunded_at: l.refundedAt,
+    checked_at: l.checkedAt,
     test: l.live === false ? "test" : l.live ? "live" : null,
   }));
 
@@ -77,7 +102,9 @@ export function linkRecordFor(client: string): RecordType {
       description: text("For"),
       amount: money("Amount"),
       paid: money("Paid"),
+      refunded: money("Refunded"),
       status: status(STATUSES, "Status"),
+      dispute: status(DISPUTES, "Dispute"),
       channel: status(
         { sms: { label: "Text", tone: "neutral" }, email: { label: "Email", tone: "neutral" } },
         "Sent by",
@@ -91,6 +118,8 @@ export function linkRecordFor(client: string): RecordType {
       approvedBy: actor("Approved by"),
       sentAt: date("Sent"),
       paidAt: date("Paid on"),
+      refundedAt: date("Refunded on"),
+      checkedAt: date("Checked with Stripe"),
       test: status(
         { test: { label: "Test mode", tone: "warn" }, live: { label: "Live", tone: "neutral" } },
         "Mode",
@@ -113,14 +142,26 @@ export function linkRecordFor(client: string): RecordType {
         at: "createdAt",
       },
       { id: "paid", label: "Paid", where: { status: "paid" }, sort: "-paidAt", at: "paidAt" },
+      {
+        id: "trouble",
+        label: "Refunds and failures",
+        where: { status: ["refunded", "unpaid", "failed"] },
+        sort: "-createdAt",
+        at: "createdAt",
+      },
     ],
-    actions: ["payments.create", "payments.approve", "payments.decline"],
+    actions: ["payments.create", "payments.approve", "payments.decline", "payments.again"],
     /** What happened to it, Stripe's events included (trimmed: no card ever reaches us). */
     load: async (db, id) => {
       const [l] = await rowsOf(db, client, String(id));
       if (!l) return null;
       const events = await db
-        .select({ type: payEvents.type, result: payEvents.result, at: payEvents.at })
+        .select({
+          id: payEvents.id,
+          type: payEvents.type,
+          result: payEvents.result,
+          at: payEvents.at,
+        })
         .from(payEvents)
         .where(eq(payEvents.link, String(id)))
         .orderBy(payEvents.at);
@@ -133,7 +174,11 @@ export function linkRecordFor(client: string): RecordType {
           ...(l.sent_at
             ? [{ step: l.channel === "sms" ? "Text queued" : "Emailed", at: l.sent_at, by: null }]
             : []),
-          ...events.map((e) => ({ step: `Stripe: ${e.type} (${e.result})`, at: e.at, by: null })),
+          ...events.map((e) => ({
+            step: `${e.id.startsWith("recon:") ? "Reconcile" : "Stripe"}: ${e.type} (${SAID[e.result] ?? e.result})`,
+            at: e.at,
+            by: null,
+          })),
         ],
       };
     },

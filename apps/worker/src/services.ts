@@ -383,6 +383,7 @@ import {
   wakeWatch,
 } from "@wren/outreach/restate";
 import { makePaymentsConsole } from "@wren/payments/console";
+import { makePayReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
 import { clientSendScope, crmLanding } from "@wren/reactivation";
@@ -1137,10 +1138,11 @@ export async function buildServices(
       shareKey: settings.siteExportToken ?? null,
       write: settings.llm === "fake" ? null : (p) => llm.complete(p).then((r) => r.text),
     }),
-    // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md). No key
-    // store yet, as for Accounts: connect says "in development" and nothing reaches Stripe.
+    // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md), and its
+    // daily reconcile against Stripe, which tells the spine what a dropped webhook missed.
     makePayments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makePaymentsConsole(payDeps),
+    makePayReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),
     // Contracts, proposals and estimates to sign; a deposit on the same Stripe key
     // (designs/2026-10-09-documents.md).
     makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),

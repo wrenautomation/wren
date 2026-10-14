@@ -6,12 +6,15 @@
  * - `create`, `fromThread`: a new link. Whoever may approve for the client sends it now;
  *   anyone else's waits in To approve.
  * - `approve`, `decline`: To approve's yes and no, checked against the client's approver.
+ * - `again`: a bank payment that failed (`unpaid`) gets a new link with the same ask: Stripe
+ *   lets a link take one checkout, so the old one can't be paid again.
  * - `connect`: the client's Stripe key, staged at the edge and bound here by its ref, then
  *   Wren's webhook on their account with it. A key that can't add webhooks leaves a signing
  *   secret to paste. The key itself never comes through Restate.
  * - `status`: what the page's Stripe panel shows.
  *
- * A key is never read back, and no card ever reaches us.
+ * A new link's id is made before the step that inserts it (`ctx.rand`), so a retried step finds
+ * its row and never makes a second link. A key is never read back, and no card ever reaches us.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { toPhoneE164 } from "@wren/channel-sms";
@@ -50,12 +53,12 @@ import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
 import { setOwnKey } from "@wren/core/vendors";
 import { snapshot } from "@wren/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "./console-routes.js";
 import { linkRecordFor } from "./records.js";
 import type { PayChannel, PayLink } from "./schema.js";
-import { payLinks } from "./schema.js";
+import { payEvents, payLinks } from "./schema.js";
 import {
   PAYMENTS,
   type PaymentsDeps,
@@ -68,12 +71,14 @@ import {
   centsOf,
   createLink,
   declineLinks,
+  linkById,
+  linkIdFor,
   linkIdOf,
   payAccountOf,
   savePayAccount,
   UUID,
 } from "./store.js";
-import { keyMode, StripeError, stripeApi } from "./stripe.js";
+import { keyMode, STRIPE_EVENTS, StripeError, stripeApi } from "./stripe.js";
 
 export type PaymentsConsoleDeps = Pick<
   PaymentsDeps,
@@ -100,6 +105,9 @@ export interface FromThreadRequest extends PortalRequest {
 export interface IdsRequest extends PortalRequest {
   ids: string[];
 }
+
+/** Drift reconcile kept in the last month: the Stripe panel says it. */
+const DRIFT_DAYS = 30;
 export interface ConnectRequest extends PortalRequest {
   /** The Stripe key's ref, as `/api/keys/stage` answered. */
   keyRef?: string | null;
@@ -185,11 +193,26 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
             : null,
         managed: "In development",
         approves: await approves(req, client),
+        /** Links reconcile found disagreeing with Stripe lately: each says why on its row. */
+        drift: Number(
+          (
+            await main
+              .select({ n: count() })
+              .from(payEvents)
+              .where(
+                and(
+                  eq(payEvents.client, client.id),
+                  eq(payEvents.result, "drift"),
+                  gt(payEvents.at, new Date(Date.now() - DRIFT_DAYS * 86_400_000)),
+                ),
+              )
+          )[0]?.n ?? 0,
+        ),
       };
     },
 
     /** A new link from the Payments page: a phone with a thread, or an email. */
-    create: async (req: CreateRequest, now: Date) => {
+    create: async (req: CreateRequest, now: Date, seed?: string) => {
       const { client, viewer } = await pickForWrite(main, req);
       const phone = typeof req.phone === "string" && req.phone.trim() ? req.phone : null;
       const email = typeof req.email === "string" && req.email.trim() ? req.email : null;
@@ -222,12 +245,13 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         by: viewer.email,
         approved: await approves(req, client),
         now,
+        ...(seed ? { id: linkIdFor(seed) } : {}),
       });
       return { links: [link] };
     },
 
     /** One link per thread picked in Texts, each to that thread's number. */
-    fromThread: async (req: FromThreadRequest, now: Date) => {
+    fromThread: async (req: FromThreadRequest, now: Date, seed?: string) => {
       const { client, viewer } = await pickForWrite(main, req);
       const ids = (Array.isArray(req.ids) ? req.ids : [])
         .map(Number)
@@ -256,8 +280,46 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
             by: viewer.email,
             approved,
             now,
+            ...(seed ? { id: linkIdFor(seed, t.id) } : {}),
           }),
         );
+      return { links };
+    },
+
+    /**
+     * A failed bank payment asked again: a new link with the same ask, to the same person.
+     * Approvers send it now; anyone else's waits in To approve. One per failed link.
+     */
+    again: async (req: IdsRequest, now: Date) => {
+      const { client, viewer } = await pickForWrite(main, req);
+      const ids = (Array.isArray(req.ids) ? req.ids : []).map((x) => linkIdOf(String(x)));
+      if (!ids.length || ids.length > 50)
+        throw new PortalRefusal("pick a pay link (up to 50)", 400);
+      const approved = await approves(req, client);
+      const links: PayLink[] = [];
+      for (const id of ids) {
+        const old = await linkById(main, id);
+        if (!old || old.client !== client.id) throw new PortalRefusal("no such pay link", 404);
+        if (old.status !== "unpaid")
+          throw new PortalRefusal("only a payment that didn't go through is sent again", 409);
+        links.push(
+          await createLink(main, {
+            client: client.id,
+            channel: old.channel as PayChannel,
+            contact: old.contact,
+            email: old.email,
+            name: old.name,
+            description: old.description,
+            cents: old.amountCents,
+            quantity: old.quantity,
+            by: viewer.email,
+            approved,
+            now,
+            // One new link per failed one, whoever asks and however often.
+            id: linkIdFor(`again:${old.id}`),
+          }),
+        );
+      }
       return { links };
     },
 
@@ -328,6 +390,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         const hook = await stripeApi(key, deps.fetch, deps.stripeBase).registerWebhook({
           client: client.id,
           url,
+          // The step's journaled time: a retried connect gets Stripe's first answer back.
           idem: `${client.id}-${now.getTime()}`,
         });
         const s = await keys
@@ -350,7 +413,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
           url,
           last4,
           why: err.denied
-            ? "This key can't add webhooks. In Stripe, add an endpoint at this URL for checkout.session.completed, then paste its signing secret."
+            ? `This key can't add webhooks. In Stripe, add an endpoint at this URL for ${STRIPE_EVENTS.join(", ")}, then paste its signing secret.`
             : `Stripe: ${err.message}`,
         };
       }
@@ -442,7 +505,10 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
         (ctx: restate.Context, req: CreateRequest) =>
           answer(async () => {
             const at = await now(ctx);
-            const { links } = await ctx.run("create", () => answer(() => api.create(req, at)));
+            const seed = ctx.rand.uuidv4();
+            const { links } = await ctx.run("create", () =>
+              answer(() => api.create(req, at, seed)),
+            );
             sendAll(ctx, links);
             return { links: links.map(brief) };
           }),
@@ -460,7 +526,10 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
         (ctx: restate.Context, req: FromThreadRequest) =>
           answer(async () => {
             const at = await now(ctx);
-            const { links } = await ctx.run("create", () => answer(() => api.fromThread(req, at)));
+            const seed = ctx.rand.uuidv4();
+            const { links } = await ctx.run("create", () =>
+              answer(() => api.fromThread(req, at, seed)),
+            );
             sendAll(ctx, links);
             return { links: links.map(brief) };
           }),
@@ -474,6 +543,15 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
             sendAll(ctx, links);
             return { done: links.map((l) => l.id) };
           }),
+      ),
+      /** A failed bank payment's new link. */
+      again: serviceHandler({ ...IDS, effect: "sends" }, (ctx: restate.Context, req: IdsRequest) =>
+        answer(async () => {
+          const at = await now(ctx);
+          const { links } = await ctx.run("again", () => answer(() => api.again(req, at)));
+          sendAll(ctx, links);
+          return { links: links.map(brief) };
+        }),
       ),
       decline: serviceHandler(IDS, (ctx: restate.Context, req: IdsRequest) =>
         answer(async () => {

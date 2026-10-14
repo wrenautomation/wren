@@ -4,9 +4,10 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env.js";
+import { deliveryKey } from "../src/pay.js";
 import worker from "../src/worker.js";
 
-let calls: { url: string; body: Record<string, unknown> }[];
+let calls: { url: string; body: Record<string, unknown>; key: string | null }[];
 let answer: () => Response;
 
 const env = (): Env =>
@@ -37,7 +38,8 @@ beforeEach(() => {
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input instanceof Request ? input.url : String(input);
     if (url.endsWith("/Domains/resolve")) return Response.json({ client: null });
-    calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
+    const key = new Headers(init?.headers).get("idempotency-key");
+    calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")), key });
     return answer();
   });
 });
@@ -49,6 +51,16 @@ describe("Stripe's webhook at the edge", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.url).toBe("https://restate.test:8080/Payments/stripe");
     expect(calls[0]?.body).toEqual({ client: "acme", raw: RAW, signature: "t=1,v1=ab" });
+  });
+
+  it("keys one delivery once: the same post twice shares a key, another body doesn't", async () => {
+    await hook();
+    await hook();
+    expect(calls[0]?.key).toMatch(/^stripe:acme:[0-9a-f]{64}$/);
+    expect(calls[1]?.key).toBe(calls[0]?.key);
+    const forged = await deliveryKey("acme", RAW.replace("checkout", "charge"), "t=1,v1=ab");
+    expect(forged).not.toBe(calls[0]?.key);
+    expect(await deliveryKey("acme", RAW, "t=2,v1=cd")).not.toBe(calls[0]?.key);
   });
 
   it("gives Stripe the service's refusal, and 502 to retry when Restate fails", async () => {

@@ -177,7 +177,7 @@ export type TriggerFacts =
   | { trigger: "trigger.reply"; channel: "email" | "sms" | "dm" }
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
   | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
-  | { trigger: "trigger.payment"; change: "paid" }
+  | { trigger: "trigger.payment"; change: PayChange }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
   | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
   | { trigger: "trigger.app"; app: string; change: AppChange }
@@ -210,6 +210,14 @@ export const DOC_CHANGES = {
 } as const;
 export type DocChange = keyof typeof DOC_CHANGES;
 
+/** What a pay link tells the spine, each once (designs/2026-10-07-forms-and-pay.md). */
+export const PAY_CHANGES = {
+  paid: "Paid",
+  refunded: "Refunded or a dispute lost",
+  failed: "A bank payment failed",
+} as const;
+export type PayChange = keyof typeof PAY_CHANGES;
+
 /** What a connected app tells the spine (designs/2026-10-09-connectors.md). */
 export const APP_CHANGES = {
   contact_added: "A contact added",
@@ -232,7 +240,10 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const on = text(w.channel) || "any";
     return on === "any" || on === f.channel;
   }
-  if (f.trigger === "trigger.payment") return true;
+  if (f.trigger === "trigger.payment") {
+    const on = text(w.on) || "paid";
+    return on === "any" || on === f.change;
+  }
   if (f.trigger === "trigger.document") {
     const kind = text(w.kind) || "any";
     const on = text(w.on) || "signed";
@@ -730,11 +741,26 @@ export const LOGIC: readonly LogicPart[] = [
   trigger(
     "payment",
     "Payment",
-    "Starts when someone pays a pay link sent by text or email.",
+    "Starts when someone pays a pay link sent by text or email, or the payment is refunded or fails.",
     "money",
     "invoice",
-    [],
-    () => "A pay link paid",
+    [
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["paid", "refunded", "failed", "any"],
+        labels: { ...PAY_CHANGES, any: "Any of these" },
+        start: "paid",
+      },
+    ],
+    (w) => {
+      const on = text(w.on) || "paid";
+      if (on === "refunded") return "A payment refunded";
+      if (on === "failed") return "A bank payment failed";
+      if (on === "any") return "A pay link paid, refunded or failed";
+      return "A pay link paid";
+    },
   ),
   trigger(
     "document",

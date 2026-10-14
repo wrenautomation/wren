@@ -1,7 +1,9 @@
 /**
  * Text-to-pay on a real Postgres (designs/2026-10-07-forms-and-pay.md): connect Stripe with a
  * fake Stripe, make links (approved or waiting by the client's approver), approve, and take
- * Stripe's signed webhook: the link and the thread marked paid, once. Keys go through the key
+ * Stripe's signed webhook: the link and the thread marked paid, once. Durability (any order,
+ * replays, crashes, reconcile) is `money.test.ts`; Restate's retries `restate-payments.test.ts`;
+ * request shapes against Stripe's own spec `stripe-mock.test.ts`. Keys go through the key
  * store by ref, as the portal stages them. No network, no charge. Synthetic data only.
  */
 import { smsContacts } from "@wren/channel-sms/schema";
@@ -16,8 +18,14 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";
 import { payLinks } from "../../src/schema.js";
-import { stripeKeyOf, takeWebhook } from "../../src/service.js";
-import { keepStripeLink, payAccountOf, payApprovalId, waitingPayLinks } from "../../src/store.js";
+import { settleLink, stripeKeyOf, takeWebhook } from "../../src/service.js";
+import {
+  keepStripeLink,
+  linkById,
+  payAccountOf,
+  payApprovalId,
+  waitingPayLinks,
+} from "../../src/store.js";
 import { type Fetch, signFor } from "../../src/stripe.js";
 
 let pg: TestPostgres;
@@ -224,13 +232,13 @@ describe("Stripe's webhook", () => {
       { client: "acme", raw, signature: signFor(raw, SECRET, NOW) },
       NOW,
     );
-    expect(got).toMatchObject({ status: 200, result: "paid" });
-    expect(got.paid).toMatchObject({
-      id: l.id,
+    expect(got).toMatchObject({ status: 200, result: "paid", link: l.id });
+    expect(await linkById(pg.db, l.id)).toMatchObject({
       status: "paid",
       paidCents: 4900,
       session: "cs_evt_test_1",
     });
+    await settleLink(deps(), l.id);
     const [c] = await acme.select().from(smsContacts).where(eq(smsContacts.id, contact));
     expect(c?.paidCents).toBe(4900);
     // The payment is a line in the client's workspace, on Sam's profile (People, B7).
@@ -247,7 +255,8 @@ describe("Stripe's webhook", () => {
       { client: "acme", raw, signature: signFor(raw, SECRET, NOW) },
       NOW,
     );
-    expect(again).toMatchObject({ status: 200, result: "seen", paid: null });
+    expect(again).toMatchObject({ status: 200, result: "seen", link: l.id });
+    await settleLink(deps(), l.id);
     const [c2] = await acme.select().from(smsContacts).where(eq(smsContacts.id, contact));
     expect(c2?.paidCents).toBe(4900);
   });
@@ -277,7 +286,7 @@ describe("Stripe's webhook", () => {
       { client: "acme", raw, signature: signFor(raw, SECRET, NOW) },
       NOW,
     );
-    expect(unknown).toMatchObject({ status: 200, result: "unknown", paid: null });
+    expect(unknown).toMatchObject({ status: 200, result: "unknown", link: null });
     // Another client's link is never matched from this client's endpoint.
     const theirs = event("evt_test_3", "plink_test_1");
     const cross = await takeWebhook(

@@ -20,14 +20,17 @@ import type { Fired, FireTriggers } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { payLinks } from "@wren/payments/schema";
 import type { PaymentsDeps } from "@wren/payments/service";
-import { stripeKeyOf } from "@wren/payments/service";
+import { STRIPE_RETRY, stripeKeyOf, stripeStep } from "@wren/payments/service";
+import type { PayStatus } from "@wren/payments/states";
 import {
   createLink,
   keepStripeLink,
+  linkById,
+  linkIdFor,
+  markFailed as markPayFailed,
   markSent as markPaySent,
-  PayRefusal,
 } from "@wren/payments/store";
-import { StripeError, stripeApi } from "@wren/payments/stripe";
+import { stripeApi } from "@wren/payments/stripe";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DOCUMENTS } from "./components.js";
@@ -56,7 +59,10 @@ import {
 export type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;
 
 export interface DocumentsDeps
-  extends Pick<PaymentsDeps, "main" | "open" | "keys" | "fetch" | "portal" | "stripeBase"> {
+  extends Pick<
+    PaymentsDeps,
+    "main" | "open" | "keys" | "fetch" | "portal" | "stripeBase" | "stripeRetry"
+  > {
   /** Mail under a sender's name; null: no document email here. */
   mailer: ((from: string) => SendMail) | null;
   /** The spine's ear for `trigger.document`; unset where no Spine runs. */
@@ -176,7 +182,12 @@ interface Asked {
 const ownerAsked = (client: string | null | undefined, apex: boolean | null | undefined) =>
   apex ? WREN_CLIENT : (client ?? null);
 
-/** The deposit's state on the page. */
+/** A deposit link past paying: Stripe has it, is clearing it, or gave it back. */
+const SETTLED: readonly string[] = ["paid", "processing", "refunded"] satisfies PayStatus[];
+/** A deposit link that can't be paid any more: a new one replaces it. */
+const GONE: readonly string[] = ["unpaid", "failed", "declined"] satisfies PayStatus[];
+
+/** The deposit's state on the page: follows the link both ways, refunds included. */
 async function depositState(main: Db, d: Doc): Promise<PageCtx["deposit"]> {
   if (!d.depositCents || d.status !== "signed") return null;
   if (!d.payLink) return "pay";
@@ -184,7 +195,10 @@ async function depositState(main: Db, d: Doc): Promise<PageCtx["deposit"]> {
     .select({ status: payLinks.status })
     .from(payLinks)
     .where(eq(payLinks.id, d.payLink));
-  return l?.status === "paid" ? "paid" : "pay";
+  if (l?.status === "paid") return "paid";
+  if (l?.status === "processing") return "clearing";
+  if (l?.status === "refunded") return "refunded";
+  return "pay";
 }
 
 /** The page for a document as it stands. */
@@ -437,7 +451,11 @@ export function makeDocuments(deps: DocumentsDeps) {
         }),
       ),
 
-      /** Pay the deposit: a pay link on the client's Stripe key, made once, then Stripe's page. */
+      /**
+       * Pay the deposit: a pay link on the client's Stripe key, made once, then Stripe's page.
+       * Its id comes from the journal, so a retried step finds its row; two clicks at once keep
+       * the one the document took. Stripe's trouble is retried; its refusal shuts the page.
+       */
       deposit: serviceHandler(
         { input: z.looseObject(ASK), effect: "sends" },
         async (ctx: restate.Context, req: Req): Promise<Answer> => {
@@ -447,64 +465,77 @@ export function makeDocuments(deps: DocumentsDeps) {
             if (d?.status !== "signed" || !d.depositCents) return null;
             if (d.payLink) {
               const [l] = await main.select().from(payLinks).where(eq(payLinks.id, d.payLink));
-              if (l?.url && l.status !== "paid") return { doc: d, url: l.url };
-              if (l?.status === "paid") return { doc: d, url: null };
+              if (l && SETTLED.includes(l.status)) return { doc: d, url: null, done: true };
+              // A bank payment that failed used the link up: a new one takes its place.
+              if (l && GONE.includes(l.status))
+                return { doc: d, url: null, done: false, stale: l.id };
+              if (l?.url) return { doc: d, url: l.url, done: false };
             }
-            return { doc: d, url: null as string | null };
+            return { doc: d, url: null as string | null, done: false };
           });
           if (!got) return pageFor(main, await docByToken(main, req.token, null, at), req);
           const d = got.doc as unknown as Doc;
           if (got.url) return { status: 303, location: got.url };
-          if (d.payLink) return pageFor(main, d, req);
-          const made: Made = await ctx.run("stripe", async () => {
-            try {
-              const link = await createLink(main, {
-                client: d.client,
-                channel: "email",
-                email: d.signerEmail,
-                name: d.signerName,
-                description: `Deposit for ${KIND_NAME[d.kind as DocKind]} ${d.number}`.slice(
-                  0,
-                  200,
-                ),
-                cents: d.depositCents as number,
-                by: "recipient",
-                approved: true,
-                now: at,
-              });
-              await main.update(payLinks).set({ document: d.id }).where(eq(payLinks.id, link.id));
-              await keepPayLink(main, d.id, link.id, at);
-              const key = await stripeKeyOf(deps, d.client, `make deposit link ${link.id}`);
-              const api = stripeApi(key, deps.fetch, deps.stripeBase);
-              const price = await api.createPrice({
-                id: link.id,
-                cents: link.amountCents,
-                currency: link.currency,
-                description: link.description,
-              });
-              const pl = await api.createPaymentLink({
-                id: link.id,
-                client: d.client,
-                price: price.id,
-                quantity: 1,
-              });
-              await keepStripeLink(main, link.id, {
-                stripeLink: pl.id,
-                url: pl.url,
-                live: pl.livemode,
-              });
-              await markPaySent(main, link.id, { message: null, now: at });
-              return { url: pl.url };
-            } catch (err) {
-              if (
-                err instanceof StripeError ||
-                err instanceof PayRefusal ||
-                err instanceof DocRefusal
-              )
-                return { error: err.message };
-              throw err;
-            }
-          });
+          if (got.done) return pageFor(main, d, req);
+          const stale = "stale" in got ? (got.stale ?? null) : null;
+          const seed = ctx.rand.uuidv4();
+          const made: Made = await stripeStep(
+            ctx,
+            "stripe",
+            deps.stripeRetry ?? STRIPE_RETRY,
+            async () => {
+              try {
+                const mine = await createLink(main, {
+                  id: d.payLink && !stale ? d.payLink : linkIdFor(seed, d.id),
+                  client: d.client,
+                  channel: "email",
+                  email: d.signerEmail,
+                  name: d.signerName,
+                  description: `Deposit for ${KIND_NAME[d.kind as DocKind]} ${d.number}`.slice(
+                    0,
+                    200,
+                  ),
+                  cents: d.depositCents as number,
+                  by: "recipient",
+                  approved: true,
+                  now: at,
+                });
+                await main.update(payLinks).set({ document: d.id }).where(eq(payLinks.id, mine.id));
+                await keepPayLink(main, d.id, mine.id, at, stale);
+                // Two clicks at once: the document kept one; the other is let go, never sent.
+                const kept = (await docByToken(main, req.token, null, at))?.payLink ?? mine.id;
+                if (kept !== mine.id)
+                  await markPayFailed(main, mine.id, "Another click made this deposit's link");
+                const link = kept === mine.id ? mine : await linkById(main, kept);
+                if (!link) throw new Error(`deposit link ${kept} is gone`);
+                if (link.url && link.stripeLink) return { url: link.url };
+                const key = await stripeKeyOf(deps, d.client, `make deposit link ${link.id}`);
+                const api = stripeApi(key, deps.fetch, deps.stripeBase);
+                const price = await api.createPrice({
+                  id: link.id,
+                  cents: link.amountCents,
+                  currency: link.currency,
+                  description: link.description,
+                });
+                const pl = await api.createPaymentLink({
+                  id: link.id,
+                  client: d.client,
+                  price: price.id,
+                  quantity: 1,
+                });
+                await keepStripeLink(main, link.id, {
+                  stripeLink: pl.id,
+                  url: pl.url,
+                  live: pl.livemode,
+                });
+                await markPaySent(main, link.id, { message: null, now: at });
+                return { url: pl.url };
+              } catch (err) {
+                if (err instanceof DocRefusal) return { error: err.message };
+                throw err;
+              }
+            },
+          );
           if ("error" in made) {
             const o = await ctx.run("owner", () => ownerOf(main, d.client));
             return {

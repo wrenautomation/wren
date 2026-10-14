@@ -122,9 +122,11 @@ Main database, `client` column, so To approve and the webhook read one place.
 
 - `pay_links`: `id`, `client`, `contact` (an `sms_contacts` id in the owner's database, or
   null), `email`, `name`, `channel` (sms | email), `description`, `amount_cents`, `quantity`,
-  `currency`, `status` (waiting | sending | sent | paid | declined | failed), `why`,
-  `stripe_link`, `url`, `message` (the queued text's id), `paid_cents`, `paid_at`, `session`,
-  `live` (Stripe's livemode), `created_*`, `approved_*`.
+  `currency`, `status` (waiting | sending | sent | processing | unpaid | paid | refunded |
+  declined | failed), `why`, `stripe_link`, `url`, `message` (the queued text's id),
+  `paid_cents`, `paid_at`, `session`, `intent` (the PaymentIntent), `refunded_cents`,
+  `refunded_at`, `dispute` (open | won | lost) and `dispute_at`, `checked_at` (reconcile),
+  `told` (changes the spine heard), `live` (Stripe's livemode), `created_*`, `approved_*`.
 - `pay_accounts`: per client, the webhook endpoint's id and the name of its signing secret in the
   key store. Never the secret.
 - `pay_events`: each Stripe event once, by its id, with what applying it did. Kept trimmed: ids,
@@ -150,6 +152,53 @@ Main database, `client` column, so To approve and the webhook read one place.
    `payment_status: paid` marks the link, the contact and fires `payment.received`. Webhooks out
    maps the `trigger.payment` fire to `payment.received` too. A retried event answers `seen` and
    changes nothing; another client's link never matches from this client's endpoint.
+5. **After:** refunds, disputes and bank payments that fail move the link too. See "Durable
+   payments".
+
+### Durable payments (2026-10-14)
+
+Stripe sends each event at least once, in any order. Our worker can die between any two steps.
+Every path below holds under both.
+
+- **Client.** The official `stripe` SDK on an injected fetch, API version pinned
+  (`Stripe.API_VERSION`). Each write carries an idempotency key from our row's id
+  (`wren-price-<id>`, `wren-link-<id>`, `wren-webhook-<connect>`). The SDK retries twice on the
+  same key, then Restate retries the step on the same key for up to 30 minutes. A 5xx or a dropped
+  connection is never a failure. Stripe's 4xx is, at once, with its message.
+- **Ids before inserts.** A link's id comes from the journal (`ctx.rand`, then `linkIdFor`). A
+  retried step finds its row instead of making a second link. Ask again and the deposit do too.
+- **Events.** `checkout.session.completed`, `async_payment_succeeded`, `async_payment_failed`,
+  `charge.refunded`, `charge.dispute.created|updated|closed`. The Worker checks nothing but size.
+  `Payments/stripe` checks the signature (SDK, 5 minutes either way), keeps the event once by its
+  id, then applies it with the link's row locked.
+- **States** (`states.ts`, pure). Paid is sticky. Processing only from an open state. A failed
+  bank payment makes it unpaid. Refunds use Stripe's running total, so an old event never
+  lowers it. A dispute event older than the last one is skipped. Status comes from the facts:
+  refunded when the refund covers the payment or a dispute is lost. An open dispute keeps
+  access; a won one keeps it.
+- **Out of order.** A refund or dispute that arrives before its checkout is kept as unknown. Once
+  the checkout names the PaymentIntent, it is applied.
+- **After a crash.** The thread's paid mark is worked out again from the links, net of refunds,
+  and cleared at zero. It runs on every delivery, duplicates included, so Stripe's resend finishes
+  a run cut short. The spine hears each change (paid, refunded, failed) once ever: a journaled
+  token claims it in `told`.
+- **Reconcile.** `PayReconcile/all`, daily. Each connected client's links from the last 120
+  days, at most 50 per pass, rechecked after 20 hours. It reads the link's sessions, its payment
+  with the charge, and its disputes. A missed fact is applied as a `recon:` event through the
+  same steps. Paid here but not on Stripe is drift: one event, said on the link, never changed
+  by code. It also adds the new events to endpoints Wren registered. It writes nothing else on
+  Stripe.
+- **Access.** No portal page sits behind a paywall. Access means three things. The thread's
+  paid mark. The document's deposit, which shows paid, clearing or refunded and makes a new link
+  after a failed bank payment. And the spine's `payment` trigger with `on: paid | refunded |
+  failed | any`. All three follow the link both ways.
+- **Invoices.** The delivery app's invoices (Wise, manual) stay manual. The engagement's start
+  gate only goes forward. Stripe invoices and subscriptions are not built.
+- **Tests.** `states.test.ts` covers every transition and order. Integration, on a real
+  Postgres: `money.test.ts` (duplicates, replay, any order, crash, access both ways, reconcile),
+  `restate-payments.test.ts` (Restate retries with `alwaysReplay`, exactly-once spine),
+  `stripe-mock.test.ts` (every call against Stripe's own spec) and documents'
+  `restate-deposit.test.ts`.
 
 ### Setup and vendors
 
@@ -226,7 +275,8 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
 
 ## In development
 
-- Stripe Connect (managed by Wren). Refunds and invoices. A drag editor.
+- Stripe Connect (managed by Wren). Refunds from the portal (Stripe's dashboard for now), Stripe
+  invoices and subscriptions. A drag editor.
 
 ## Shipped
 
@@ -244,6 +294,8 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
   A/B per form (495ae61c, `form-split.ts`, migration `0205_form_splits`, the Worker's form
   branch shares the page split cache and cookie); a client's own Forms and Submissions
   (`formRecordFor`, `entryRecordFor`, New form owned by the asking workspace).
+- Durable payments (2026-10-14): official SDK, `states.ts`, refunds, disputes, bank payments,
+  `PayReconcile`, Ask again, migration `0259_pay_money`.
 
 ## Build
 
@@ -262,3 +314,15 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
   The thread mark lives with the contact in its owner's database.
 - 2026-10-07: `payment.received` is a spine fire (trigger `trigger.payment`, event kind
   `invoice`), as bookings are, not a door entry: there's no hook to name.
+- 2026-10-14: the official `stripe` SDK plus stripe-mock, not a paid billing layer. The SDK pins
+  the API version, types every object, retries on the same idempotency key, and keeps the
+  signature check current. stripe-mock checks our requests against Stripe's own spec in CI. The
+  only state of our own is a pay link's, and `states.ts` holds it. A paid service was never
+  needed.
+- 2026-10-14: an open dispute keeps access, a lost one ends it, a won one keeps it. A refund
+  ends access only when it covers the payment.
+- 2026-10-14: reconcile reads Stripe and heals through the same steps as a webhook. Drift
+  (paid here, nothing on Stripe) is said on the link, never fixed by code.
+- 2026-10-14: delivery invoices stay Wise and manual. Stripe invoices or subscriptions for Wren's
+  own billing are William's call (money). A refunded setup invoice doesn't pause an engagement;
+  that reverse gate isn't built.

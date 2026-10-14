@@ -885,12 +885,24 @@ export async function declineDoc(main: Db, d: Doc, v: Visit & { why?: unknown })
   });
 }
 
-/** The deposit's pay link, kept once: a second ask reuses it. */
-export async function keepPayLink(main: Db, id: string, link: string, now: Date): Promise<void> {
+/**
+ * The deposit's pay link, kept once: a second ask reuses it. `replacing` names a link that
+ * can't be paid any more (a failed bank payment): only that one gives way.
+ */
+export async function keepPayLink(
+  main: Db,
+  id: string,
+  link: string,
+  now: Date,
+  replacing: string | null = null,
+): Promise<void> {
+  const open = replacing
+    ? sql`(${docs.payLink} is null or ${docs.payLink} = ${replacing}::uuid)`
+    : sql`${docs.payLink} is null`;
   await main
     .update(docs)
     .set({ payLink: link, updatedAt: now })
-    .where(and(eq(docs.id, id), sql`${docs.payLink} is null`));
+    .where(and(eq(docs.id, id), open));
 }
 
 export async function docEventsOf(main: Queryable, id: string) {

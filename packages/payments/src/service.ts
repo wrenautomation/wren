@@ -5,9 +5,13 @@
  *   text through `SmsDesk.reply` as kind `pay` (it waits for the window) or an email from the
  *   client's name when its sends flag is on.
  * - `Payments/stripe`: Stripe's webhook as the portal Worker passes it (the raw body and
- *   `Stripe-Signature`), checked with the client's own signing secret, kept once, and on a paid
- *   checkout the link and the thread are marked and the spine hears `payment.received`.
+ *   `Stripe-Signature`), checked with the client's own signing secret, kept once by its event id
+ *   and applied in any order (`./states.ts`). Then the thread's paid mark is worked out again
+ *   and the spine hears each change (paid, refunded, failed) once ever.
  *
+ * Durable at each step: a link's id is made before its insert, Stripe's writes carry
+ * idempotency keys, a dropped connection or Stripe's 5xx is retried (never marked failed), and
+ * a crash after the event is kept still marks the thread and tells the spine on the retry.
  * The client's key and signing secret are read inside one journaled step each and never
  * returned from it, so neither lands in Restate's journal.
  */
@@ -25,16 +29,18 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { PAY_LINKS } from "./components.js";
 import type { PayLink } from "./schema.js";
+import type { PayChange } from "./states.js";
 import {
   applyEvent,
+  claimChanges,
   keepStripeLink,
   linkById,
-  markContactPaid,
   markFailed,
   markSent,
   money,
   PayRefusal,
   payAccountOf,
+  syncContactPaid,
 } from "./store.js";
 import { type Fetch, factsOf, StripeError, stripeApi, verifySignature } from "./stripe.js";
 
@@ -54,10 +60,55 @@ export interface PaymentsDeps {
   portal: string;
   /** Mail under a sender's name; null: no pay email here. */
   mailer: ((from: string) => SendMail) | null;
-  /** The spine's ear for `payment.received`; unset where no Spine runs. */
+  /** The spine's ear for a link's changes; unset where no Spine runs. */
   fire?: FireTriggers;
-  /** Stripe's API base: tests point it at nothing real. */
+  /** Stripe's API base: tests point it at stripe-mock or nothing real. */
   stripeBase?: string;
+  /** How long a Stripe step keeps retrying Stripe's own trouble; tests shorten it. */
+  stripeRetry?: StripeRetry;
+}
+
+/** Retries on a dropped connection or Stripe's 5xx, inside Stripe's 24 h idempotency window. */
+export interface StripeRetry {
+  maxRetryDuration: number;
+  initialRetryInterval: number;
+  maxRetryInterval: number;
+}
+export const STRIPE_RETRY: StripeRetry = {
+  maxRetryDuration: 30 * 60_000,
+  initialRetryInterval: 2_000,
+  maxRetryInterval: 5 * 60_000,
+};
+
+/**
+ * A Stripe step: Stripe's refusal is the answer (`error`), its trouble is retried with the same
+ * idempotency keys, and only when retries run out does the link fail, saying why.
+ */
+export async function stripeStep<T extends object>(
+  ctx: restate.Context,
+  name: string,
+  retry: StripeRetry,
+  fn: () => Promise<T>,
+): Promise<T | { error: string }> {
+  try {
+    return await ctx.run(
+      name,
+      async (): Promise<T | { error: string }> => {
+        try {
+          return await fn();
+        } catch (err) {
+          if (err instanceof PayRefusal) return { error: `Stripe: ${err.message}` };
+          if (err instanceof StripeError && !err.transient)
+            return { error: `Stripe: ${err.message}` };
+          throw err;
+        }
+      },
+      retry,
+    );
+  } catch (err) {
+    if (!(err instanceof restate.TerminalError)) throw err;
+    return { error: `Stripe: ${err.message}` };
+  }
 }
 
 export const PAYMENTS = { name: "Payments" } as const;
@@ -118,23 +169,29 @@ export function payEmail(business: string, l: PayLink, url: string) {
   };
 }
 
-/** A paid link as the spine hears it: about the payer's email and their thread. */
-export function paymentFired(l: PayLink): Fired {
+/**
+ * A link's change as the spine hears it: about the payer's email and their thread. Paid keeps
+ * its old subject; a refund or a failure is its own, so a flow that took the payment hears it.
+ */
+export function paymentFired(l: PayLink, change: PayChange = "paid"): Fired {
   return {
     client: l.client,
-    facts: { trigger: "trigger.payment", change: "paid" },
+    facts: { trigger: "trigger.payment", change },
     about: [...(l.email ? [l.email] : []), ...(l.contact ? [`sms:${l.contact}`] : [])],
     event: {
-      subject: `payment:${l.id}`,
+      subject: change === "paid" ? `payment:${l.id}` : `payment:${l.id}:${change}`,
       kind: "invoice",
       data: {
         link: l.id,
+        change,
         description: l.description,
         amount_cents: l.paidCents ?? l.amountCents * l.quantity,
+        refunded_cents: l.refundedCents ?? 0,
         currency: l.currency,
         email: l.email,
         name: l.name,
         contact: l.contact,
+        document: l.document ?? null,
         live: l.live,
       },
     },
@@ -169,14 +226,14 @@ export async function notePayLink(
 
 /**
  * One webhook, checked and applied: the plain function the service journals, and tests call.
- * `paid` is the link newly paid, for the spine.
+ * `link` is the link it was about, for `settleLink` and the spine, even on a duplicate.
  */
 export async function takeWebhook(
   d: Pick<PaymentsDeps, "main" | "open" | "keys">,
   req: { client: string; raw: string; signature?: string | null },
   now: Date,
-): Promise<HookAnswer & { paid: PayLink | null }> {
-  const no = (status: number, result: string) => ({ status, result, paid: null });
+): Promise<HookAnswer & { link: string | null }> {
+  const no = (status: number, result: string) => ({ status, result, link: null });
   const client = await findClient(d.main, req.client);
   if (!client) return no(404, "no such client");
   const acct = await payAccountOf(d.main, client.id);
@@ -193,11 +250,36 @@ export async function takeWebhook(
   if (!v.ok) return no(400, v.why);
   const facts = factsOf(req.raw);
   if (!facts) return no(400, "not a Stripe event");
-  const got = await applyEvent(d.main, client.id, facts);
-  if (got.paid?.contact && got.paid.paidCents)
-    await markContactPaid(d.open(client), got.paid.contact, got.paid.paidCents, now);
-  if (got.paid) await notePayLink(d, got.paid.id);
-  return { status: 200, result: got.fresh ? got.result : "seen", paid: got.paid };
+  const got = await applyEvent(d.main, client.id, facts, now);
+  return { status: 200, result: got.fresh ? got.result : "seen", link: got.link?.id ?? null };
+}
+
+/**
+ * What follows a link's money, worked out again from main so it is safe twice: the thread's
+ * paid mark (net of refunds; cleared when access goes) and the line on the client's timeline.
+ */
+export async function settleLink(d: Pick<PaymentsDeps, "main" | "open">, id: string) {
+  const l = await linkById(d.main, id);
+  if (!l) return;
+  if (l.contact) {
+    const c = await findClient(d.main, l.client);
+    if (c) await syncContactPaid(d.main, d.open(c), l.client, l.contact);
+  }
+  await notePayLink(d, id);
+}
+
+/** The spine hears each change of the link once ever: claimed under a journaled token. */
+export async function tellChanges(ctx: restate.Context, d: PaymentsDeps, id: string) {
+  if (!d.fire) return [];
+  const token = ctx.rand.uuidv4();
+  const got = await ctx.run("claim", async () => {
+    const c = await claimChanges(d.main, id, token);
+    return { link: c.link, changes: c.changes };
+  });
+  if (!got.link) return [];
+  const l = got.link as unknown as PayLink;
+  for (const change of got.changes) d.fire(ctx, paymentFired(l, change));
+  return got.changes;
 }
 
 export function makePayments(deps: PaymentsDeps) {
@@ -220,9 +302,14 @@ export function makePayments(deps: PaymentsDeps) {
           });
           if (!got) return { sent: false };
           const l = { ...got.link, createdAt: new Date(got.link.createdAt) } as PayLink;
-          const made: Made = await ctx.run("stripe", async () => {
-            if (l.url && l.stripeLink) return { url: l.url, stripeLink: l.stripeLink };
-            try {
+          const made: Made = await stripeStep(
+            ctx,
+            "stripe",
+            deps.stripeRetry ?? STRIPE_RETRY,
+            async () => {
+              // Read again: a run cut short after Stripe answered kept the link.
+              const now = await linkById(deps.main, l.id);
+              if (now?.url && now.stripeLink) return { url: now.url, stripeLink: now.stripeLink };
               const key = await stripeKeyOf(deps, l.client, `make pay link ${l.id}`);
               const api = stripeApi(key, deps.fetch, deps.stripeBase);
               const price = await api.createPrice({
@@ -243,12 +330,8 @@ export function makePayments(deps: PaymentsDeps) {
                 live: link.livemode,
               });
               return { url: link.url, stripeLink: link.id };
-            } catch (err) {
-              if (err instanceof StripeError || err instanceof PayRefusal)
-                return { error: `Stripe: ${err.message}` };
-              throw err;
-            }
-          });
+            },
+          );
           if ("error" in made) {
             await ctx.run("failed", () => markFailed(deps.main, l.id, made.error));
             return { sent: false, why: made.error };
@@ -302,13 +385,12 @@ export function makePayments(deps: PaymentsDeps) {
           ctx: restate.Context,
           req: { client: string; raw: string; signature?: string | null },
         ): Promise<HookAnswer> => {
-          const got = await ctx.run("apply", async () => {
-            const r = await takeWebhook(deps, req, new Date());
-            return { status: r.status, result: r.result, paid: r.paid };
-          });
-          if (got.paid && deps.fire) {
-            const p = got.paid as unknown as PayLink;
-            deps.fire(ctx, paymentFired(p));
+          const got = await ctx.run("apply", () => takeWebhook(deps, req, new Date()));
+          // On a duplicate too: a run cut short after "apply" finishes here when Stripe resends.
+          if (got.link) {
+            const id = got.link;
+            await ctx.run("settle", () => settleLink(deps, id));
+            await tellChanges(ctx, deps, id);
           }
           return { status: got.status, result: got.result };
         },

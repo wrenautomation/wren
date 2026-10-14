@@ -7,10 +7,12 @@
     "./components": "./src/components.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
+    "./reconcile": "./src/reconcile.ts",
     "./records": "./src/records.ts",
     "./schema": "./src/schema.ts",
     "./service": "./src/service.ts",
     "./setups": "./src/setups.ts",
+    "./states": "./src/states.ts",
     "./store": "./src/store.ts",
     "./stripe": "./src/stripe.ts"
   },
@@ -25,9 +27,12 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "drizzle-orm": "0.45.2",
+    "stripe": "22.6.2",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

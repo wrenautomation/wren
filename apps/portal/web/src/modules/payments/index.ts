@@ -1,6 +1,7 @@
 /**
  * Payments (designs/2026-10-07-forms-and-pay.md, "Text-to-pay"): a client's Stripe pay links,
- * made here or from a texting thread, sent by text or email, marked paid when Stripe says so.
+ * made here or from a texting thread, sent by text or email, marked paid, refunded or failed
+ * as Stripe says.
  * The head connects the client's own Stripe account. Nothing here charges anyone.
  */
 import type { Action } from "@wren/ui";
@@ -36,6 +37,17 @@ export const PAY_ACTIONS: Action[] = [
     done: said("Declined. Nothing was sent."),
   },
 ];
+
+/** A bank payment that didn't go through: a new link with the same ask. */
+const AGAIN: Action = {
+  id: "payments.again",
+  label: "Send a new link",
+  handler: "payments/again",
+  confirm: "Send a new pay link for the same amount? The old one can't be paid again.",
+  when: { status: ["unpaid"] },
+  bulk: true,
+  done: (a) => sentLine(a),
+};
 
 /** The amount, what it's for and how many: a new link's and a thread's form alike. */
 const MONEY = [
@@ -96,14 +108,25 @@ export const payments: Module = {
       about: "Links your customers pay you through, and whether they paid.",
       template: "list",
       record: "payments.link",
-      columns: ["who", "description", "amount", "status", "channel", "paid", "createdAt", "paidAt"],
+      columns: [
+        "who",
+        "description",
+        "amount",
+        "status",
+        "channel",
+        "paid",
+        "refunded",
+        "createdAt",
+        "paidAt",
+      ],
       empty: {
         all: "No pay links yet. Make one with New pay link, or from a texting thread.",
         waiting: "Nothing to approve.",
         sent: "No link is out yet.",
         paid: "No link is paid yet.",
+        trouble: "No refunds, disputes lost or failed payments.",
       },
-      actions: [CREATE, ...PAY_ACTIONS],
+      actions: [CREATE, ...PAY_ACTIONS, AGAIN],
       head: (_meta, reload, at) =>
         at.demo ? null : createElement(StripePanel, { client: at.client, reload }),
     },

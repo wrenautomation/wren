@@ -3,11 +3,11 @@
  * To approve and Stripe's webhook read one place. A thread's mark lives with its contact in the
  * owner's database (`sms_contacts.paid_*`).
  *
- * - `pay_links`: one Stripe Payment Link each, from ask to paid.
+ * - `pay_links`: one Stripe Payment Link each, from ask to paid, refunded or disputed.
  * - `pay_accounts`: per client, the webhook endpoint and the name its signing secret is kept
  *   under. Never a secret.
- * - `pay_events`: each Stripe event once, trimmed: ids, amounts, status, email. No card data
- *   ever reaches us; Stripe Checkout holds it.
+ * - `pay_events`: each Stripe event once, and reconcile's own, trimmed: ids, amounts, states,
+ *   email. No card data ever reaches us; Stripe Checkout holds it.
  */
 import { clients } from "@wren/core/clients";
 import { oneOf } from "@wren/db/columns";
@@ -28,17 +28,13 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { DISPUTES, PAY_EVENT_RESULTS, PAY_STATUSES, type PayChange } from "./states.js";
 
 export const PAY_CHANNELS = ["sms", "email"] as const;
 export type PayChannel = (typeof PAY_CHANNELS)[number];
 
-/**
- * waiting: on a yes. sending: yes given, the link and the message on their way. sent: the text
- * is queued for the window, or the email went. paid: Stripe says so. declined: a person said no.
- * failed: Stripe or the send refused (`why`).
- */
-export const PAY_STATUSES = ["waiting", "sending", "sent", "paid", "declined", "failed"] as const;
-export type PayStatus = (typeof PAY_STATUSES)[number];
+/** Where a link is, and why each status: `./states.ts`. */
+export { PAY_STATUSES, type PayStatus } from "./states.js";
 
 export const payLinks = pgTable(
   "pay_links",
@@ -56,7 +52,7 @@ export const payLinks = pgTable(
     amountCents: integer("amount_cents").notNull(),
     quantity: integer("quantity").notNull().default(1),
     currency: varchar("currency", { length: 3 }).notNull().default("usd"),
-    status: varchar("status", { length: 8 }).notNull().default("waiting"),
+    status: varchar("status", { length: 16 }).notNull().default("waiting"),
     why: text("why"),
     /** Stripe's Payment Link id (`plink_…`) and its URL. */
     stripeLink: varchar("stripe_link", { length: 80 }),
@@ -68,6 +64,19 @@ export const payLinks = pgTable(
     paidAt: timestamp("paid_at", { withTimezone: true }),
     /** The Checkout Session that paid it (`cs_…`). */
     session: varchar("session", { length: 80 }),
+    /** Its PaymentIntent (`pi_…`): refunds and disputes find the link by it. */
+    intent: varchar("intent", { length: 80 }),
+    /** Refunded so far, all told (Stripe's own total), and when it last grew. */
+    refundedCents: integer("refunded_cents").notNull().default(0),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
+    /** A dispute on the payment: open keeps access, lost takes it (`./states.ts`). */
+    dispute: varchar("dispute", { length: 8 }),
+    /** When Stripe made the dispute event we hold (unix seconds): an older one changes nothing. */
+    disputeAt: bigint("dispute_at", { mode: "number" }),
+    /** When reconcile last held it against Stripe (`PayReconcile`). */
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    /** Changes a workflow has heard, each once ever: change to the claim that told it. */
+    told: jsonb("told").$type<Partial<Record<PayChange, string>>>().notNull().default({}),
     /** Stripe's livemode on the paying event: false is a test payment. */
     live: boolean("live"),
     /** The signed document whose deposit it is (`docs.id`, `@wren/documents`). */
@@ -83,6 +92,7 @@ export const payLinks = pgTable(
     uniqueIndex("uq_pay_links_stripe_link").on(t.stripeLink),
     index("ix_pay_links_status").on(t.status),
     index("ix_pay_links_document").on(t.document),
+    index("ix_pay_links_intent").on(t.intent),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],
@@ -90,6 +100,8 @@ export const payLinks = pgTable(
     }).onDelete("cascade"),
     oneOf("ck_pay_links_channel", t.channel, PAY_CHANNELS),
     oneOf("ck_pay_links_status", t.status, PAY_STATUSES),
+    oneOf("ck_pay_links_dispute", t.dispute, DISPUTES),
+    check("ck_pay_links_refunded", sql`${t.refundedCents} >= 0`),
     check("ck_pay_links_amount", sql`${t.amountCents} >= 50 and ${t.amountCents} <= 99999999`),
     check("ck_pay_links_quantity", sql`${t.quantity} between 1 and 100`),
     check(
@@ -127,8 +139,8 @@ export const payAccounts = pgTable(
 );
 export type PayAccount = typeof payAccounts.$inferSelect;
 
-/** What applying a Stripe event did. */
-export const PAY_EVENT_RESULTS = ["paid", "unpaid", "unknown", "ignored"] as const;
+/** What applying a Stripe event did: `./states.ts`. */
+export { PAY_EVENT_RESULTS } from "./states.js";
 
 export const payEvents = pgTable(
   "pay_events",
@@ -137,10 +149,10 @@ export const payEvents = pgTable(
     id: varchar("id", { length: 80 }).notNull(),
     client: varchar("client", { length: 40 }).notNull(),
     type: varchar("type", { length: 80 }).notNull(),
-    /** The link it paid, when it matched one. */
+    /** The link it was about, when it matched one. */
     link: uuid("link"),
-    result: varchar("result", { length: 8 }).notNull(),
-    /** Trimmed: session, payment link, status, amount, currency, email, livemode. */
+    result: varchar("result", { length: 16 }).notNull(),
+    /** The `StripeFact`, all of it: enough to apply it again. No card, no address. */
     seen: jsonb("seen").$type<Record<string, string | number | boolean | null>>().notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -102,5 +102,5 @@ Nothing in this repo references these; they break silently.
 | `~/.local/bin/wren` on William's Mac | `bin/wren` | [[platform/cli]] |
 | `walkthrough/demos/prod.sh` | CLI commands by name against prod | [[platform/cli]] |
 | S3 `legacy/` and `wrenautomation/legacy-private` | the Python era's data; `scripts/import-legacy.sh` | [[ledger/import]] |
-| each client's Stripe account (webhook endpoint for `checkout.session.completed`) | `https://app.wrenautomation.com/__pay/stripe/<client>`, signed with that client's secret (`STRIPE_WEBHOOK_SECRET` beside its key) | [[platform/pay-link]] |
+| each client's Stripe account (webhook endpoint for checkouts, refunds and disputes; `PayReconcile` reads sessions, payments, disputes daily) | `https://app.wrenautomation.com/__pay/stripe/<client>`, signed with that client's secret (`STRIPE_WEBHOOK_SECRET` beside its key) | [[platform/pay-link]] |
 | client sites embedding a form | `/o/f/<slug>?embed=1` and `/o/__kit.js` with `data-embed` | [[platform/hosted-form]] |

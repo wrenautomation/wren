@@ -146,8 +146,8 @@ export interface PageCtx {
   error?: string | null;
   /** Prefill for the form after a refusal. */
   typed?: { name?: string; email?: string } | null;
-  /** The deposit's state: none asked, to pay, or paid. */
-  deposit?: "pay" | "paid" | null | undefined;
+  /** The deposit's state: none asked, to pay, paid, a bank payment clearing, or refunded. */
+  deposit?: "pay" | "paid" | "clearing" | "refunded" | null | undefined;
 }
 
 const shell = (title: string, ctx: Pick<PageCtx, "look">, inner: string, turnstile: boolean) =>
@@ -178,7 +178,9 @@ export function docPage(d: Doc, ctx: PageCtx): string {
     action = `<div class="box done"><p><strong>Signed by ${esc(d.signerName)} on ${esc(day(d.signedAt))}.</strong></p>
 <p><a href="${path}/pdf">Download the signed copy (PDF)</a></p>
 ${ctx.deposit === "pay" && d.depositCents ? `<p><a class="button" href="${path}/pay">Pay deposit: ${esc(money(d.depositCents, d.currency))}</a></p><p class="meta">The payment goes through Stripe.</p>` : ""}
-${ctx.deposit === "paid" ? "<p>Deposit paid. Thank you.</p>" : ""}</div>`;
+${ctx.deposit === "paid" ? "<p>Deposit paid. Thank you.</p>" : ""}
+${ctx.deposit === "clearing" ? "<p>Deposit paid by bank. It is still clearing.</p>" : ""}
+${ctx.deposit === "refunded" ? "<p>Deposit refunded.</p>" : ""}</div>`;
   } else if (d.status === "declined") {
     action = `<div class="box done"><p><strong>Declined on ${esc(day(d.declinedAt))}.</strong> ${esc(ctx.business)} has been told.</p></div>`;
   } else {

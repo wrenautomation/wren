@@ -18,6 +18,8 @@ interface Status {
   last4: string | null;
   managed: string;
   approves: boolean;
+  /** Links reconcile found disagreeing with Stripe in the last month. */
+  drift?: number;
 }
 interface Connected {
   connected: boolean;
@@ -90,8 +92,15 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
         {s.connected ? (
           <span className={LINE}>
             {s.webhook
-              ? "Stripe tells us when a link is paid."
+              ? "Stripe tells us when a link is paid or refunded."
               : "Stripe can't tell us about payments yet."}
+          </span>
+        ) : null}
+        {s.drift ? (
+          <span className="text-[13px] text-(--ui-bad)">
+            {s.drift === 1
+              ? "1 link disagrees with Stripe. Its row says why."
+              : `${s.drift} links disagree with Stripe. Each row says why.`}
           </span>
         ) : null}
         <span className={LINE}>Managed by Wren: in development.</span>
@@ -138,8 +147,9 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
             </Button>
           </div>
           <span className="text-[12px] text-(--ui-ink-3)">
-            Give the key write access to Prices, Payment Links and Webhook Endpoints. We never show
-            it again.
+            Give the key write access to Prices, Payment Links and Webhook Endpoints, and read
+            access to Checkout Sessions, Payment Intents, Charges and Disputes. We never show it
+            again.
           </span>
         </form>
       ) : null}

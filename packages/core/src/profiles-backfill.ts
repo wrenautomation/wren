@@ -544,6 +544,10 @@ export interface ClientPayLink {
   sentAt: Date | null;
   paidCents: number | null;
   paidAt: Date | null;
+  /** Refunded so far, and when; a lost dispute reads as refunded (`status`). */
+  refundedCents?: number;
+  refundedAt?: Date | null;
+  status?: string;
 }
 
 /** Rows kept on main that belong to a client, as their one line in its workspace (B7). */
@@ -560,16 +564,23 @@ export const lineFrom = {
   }),
   /** Null until it was sent or paid: a draft link is nothing that happened to anyone. */
   payLink: (l: ClientPayLink): ElsewhereLine | null => {
-    const at = l.paidAt ?? l.sentAt;
+    const at = l.refundedAt ?? l.paidAt ?? l.sentAt;
     if (!at) return null;
     const what = ` for ${l.description}`;
+    const paid = money(l.paidCents ?? l.amountCents * l.quantity, l.currency);
+    const back = l.refundedCents ? money(l.refundedCents, l.currency) : null;
     return {
       kind: "payment",
       channel: l.channel,
       at,
-      summary: l.paidAt
-        ? `Paid ${money(l.paidCents ?? l.amountCents * l.quantity, l.currency)}${what}`
-        : `Pay link sent: ${money(l.amountCents * l.quantity, l.currency)}${what}`,
+      summary:
+        l.paidAt && l.status === "refunded"
+          ? `Refunded ${back ?? paid}${what}`
+          : l.paidAt && back
+            ? `Paid ${paid}${what}, ${back} refunded`
+            : l.paidAt
+              ? `Paid ${paid}${what}`
+              : `Pay link sent: ${money(l.amountCents * l.quantity, l.currency)}${what}`,
       link: `/payments/links/${l.id}`,
       source: "pay_links",
       sourceId: l.id,
@@ -658,7 +669,8 @@ export async function backfillClientRows(
     const batch = await rows(
       main,
       sql`select id::text id, contact, email, name, channel, description, amount_cents, quantity,
-          currency, sent_at, paid_cents, paid_at from pay_links
+          currency, sent_at, paid_cents, paid_at, refunded_cents, refunded_at, status
+        from pay_links
         where id > ${after}::uuid and client = ${client}
           and (sent_at is not null or paid_at is not null)
         order by id limit ${n}`,
@@ -679,6 +691,9 @@ export async function backfillClientRows(
         sentAt: at(r.sent_at) ?? null,
         paidCents: int(r.paid_cents),
         paidAt: at(r.paid_at) ?? null,
+        refundedCents: Number(r.refunded_cents ?? 0),
+        refundedAt: at(r.refunded_at) ?? null,
+        status: String(r.status),
       });
       if (got !== null) links.noted += 1;
     }
