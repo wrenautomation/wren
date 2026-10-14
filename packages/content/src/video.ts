@@ -4,6 +4,7 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
+import type { Platform } from "@wren/core/content";
 import { fieldsOf, YOUTUBE_PRIVACY } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
@@ -175,6 +176,8 @@ export interface ApprovedVideo {
    * (`missing`: rendered before Reels were uploaded).
    */
   reel?: { id: string; again: boolean } | { missing: string };
+  /** The TikTok, X, Facebook and LinkedIn drafts of the same render this call made, in To approve. */
+  also?: { platform: string; id: string }[];
 }
 
 /** IG captions stop at 2,200 characters. */
@@ -185,8 +188,9 @@ const SHORT_MAX_S = 180;
 /**
  * His yes on the long video, Short `short` (1-based) or the vertical cut: a YouTube draft, approved
  * to go on the next pass, private. A Short or the vertical also gets an Instagram Reel draft of the same render, from the
- * media bucket (Graph fetches a URL), waiting in To approve: it posts only on his Approve there.
- * Approving the same one again answers its drafts and adds only a missing Reel draft.
+ * media bucket (Graph fetches a URL), and TikTok, X, Facebook and LinkedIn drafts of it, waiting in
+ * To approve: they post only on his Approve there. Approving the same one again answers its drafts
+ * and adds only the missing ones.
  */
 export async function approveVideo(
   db: Queryable,
@@ -308,7 +312,6 @@ export async function approveVideo(
     if (!reels) return { id: ytId, again: false };
     const out = { id: ytId, again: Boolean(yt) };
     const reel = had.find((d) => d.platform === "instagram");
-    if (reel) return { ...out, reel: { id: reel.id, again: true } };
     const stored = e.keys[reelKey(reels)];
     if (!stored)
       return {
@@ -319,6 +322,17 @@ export async function approveVideo(
             : `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
         },
       };
+    const also = await alsoDrafts(tx, {
+      ideaId,
+      have: new Set(had.map((d) => d.platform)),
+      stored,
+      title,
+      description: e.description,
+      video: id,
+      short: reels,
+      funnel,
+    });
+    if (reel) return { ...out, reel: { id: reel.id, again: true }, also };
     const caption = withFooter([title, e.description], fillFooter(footers.reel, e), IG_CAPTION);
     const [r] = await tx
       .insert(contentDrafts)
@@ -343,8 +357,95 @@ export async function approveVideo(
       title,
       wait: true,
     });
-    return { ...out, reel: { id: r.id, again: false } };
+    return { ...out, reel: { id: r.id, again: false }, also };
   });
+}
+
+/** The other vertical platforms a Short or the vertical cut goes to, beside YouTube and Instagram. */
+export const ALSO_PLATFORMS = ["tiktok", "x", "facebook", "linkedin"] as const;
+type AlsoPlatform = (typeof ALSO_PLATFORMS)[number];
+
+/** TikTok takes a caption up to 2,200 characters; this keeps one in a line or two. */
+const ALSO_BODY = 400;
+
+/** The first paragraph of a description, cut at a word, for a caption under the title. */
+export function leadOf(description: string, max = ALSO_BODY): string {
+  const first =
+    description
+      .trim()
+      .split(/\n\s*\n/)[0]
+      ?.trim() ?? "";
+  if (first.length <= max) return first;
+  const cut = first.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).trimEnd()}...`;
+}
+
+/**
+ * The words a clip goes out with on each platform: X and TikTok the title alone, LinkedIn and
+ * Facebook the title and the description's first paragraph. Links come at publish time (the funnel).
+ */
+export function alsoText(platform: AlsoPlatform, title: string, description: string): string {
+  if (platform === "x" || platform === "tiktok") return title;
+  return [title, leadOf(description)].filter(Boolean).join("\n\n");
+}
+
+/** The fields each takes; TikTok's privacy waits on his pick in To approve (the sandbox app posts only to him). */
+const alsoFields = (platform: AlsoPlatform) =>
+  platform === "tiktok"
+    ? fieldsOf("tiktok", { privacy: "SELF_ONLY" })
+    : platform === "x"
+      ? fieldsOf("x", {})
+      : platform === "facebook"
+        ? fieldsOf("facebook", { kind: "video" })
+        : fieldsOf("linkedin", { kind: "post" });
+
+/**
+ * Drafts of the same render for TikTok, X, Facebook and LinkedIn, each waiting in To approve, for
+ * the platforms the clip has none on yet. Returns the ones it made.
+ */
+async function alsoDrafts(
+  db: Queryable,
+  o: {
+    ideaId: string;
+    have: ReadonlySet<string>;
+    stored: string;
+    title: string;
+    description: string;
+    video: number;
+    short: number | "vertical";
+    funnel: { stage: "reach" | "trust"; pointsTo: "video" | "site"; videoDraft?: string | null };
+  },
+): Promise<{ platform: AlsoPlatform; id: string }[]> {
+  const made: { platform: AlsoPlatform; id: string }[] = [];
+  for (const platform of ALSO_PLATFORMS) {
+    if (o.have.has(platform)) continue;
+    const text = alsoText(platform, o.title, o.description);
+    const [d] = await db
+      .insert(contentDrafts)
+      .values({
+        ideaId: o.ideaId,
+        platform,
+        text,
+        title: o.title,
+        media: { kind: "video", source: o.stored, title: o.title },
+        extra: alsoFields(platform),
+        status: "draft",
+        promptVersion: "video",
+        ...o.funnel,
+      })
+      .returning({ id: contentDrafts.id });
+    if (!d) throw new Error("insert returned no draft");
+    await keepUpload(db, d.id, {
+      video: o.video,
+      short: o.short,
+      text,
+      title: o.title,
+      wait: true,
+      platform,
+    });
+    made.push({ platform, id: d.id });
+  }
+  return made;
 }
 
 /**
@@ -360,6 +461,8 @@ async function keepUpload(
     text: string;
     title: string;
     wait?: boolean;
+    /** Where a waiting draft goes; Instagram's Reel unless said. */
+    platform?: Platform;
   },
 ) {
   const meta = {
@@ -370,7 +473,7 @@ async function keepUpload(
   await recordDraft(db, {
     item,
     kind: "video",
-    platform: o.wait ? "instagram" : "youtube",
+    platform: o.wait ? (o.platform ?? "instagram") : "youtube",
     event: "generated",
     via: "wren",
     text: o.text,

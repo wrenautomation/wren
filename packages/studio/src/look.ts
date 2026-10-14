@@ -30,7 +30,7 @@ const ASK = (transcript: string) =>
   `You are helping edit this YouTube video. Watch it and answer in JSON only, with times in seconds of this file:
 {"summary": one line on what the video is,
  "moments": [{"at": s, "why": what happens on screen that matters}] (screen changes, demos, strong lines; up to 15),
- "shorts": [{"from": s, "to": s, "title": short title}] (2 to 4 clips of 20 to 60 s with a strong first line that make sense alone and work visually),
+ "shorts": [{"from": s, "to": s, "title": short title}] (8 to 12 clips of 20 to 60 s, each opening on a hook in its first 2 seconds, making one point that makes sense alone, ending clean; they work visually),
  "chapters": [{"at": s, "title": 2 to 5 words}] (first at 0, at screen or topic changes),
  "thumbnails": [{"at": s, "why": why this frame}] (3 frames: face clear, expressive, screen readable)}
 The transcript, for exact words:

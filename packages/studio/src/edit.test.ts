@@ -8,15 +8,18 @@ const check = (shorts: ReturnType<typeof short>[], cuts: Cut[] = []) =>
   checkPatch(editPatchSchema.parse({ shorts }), 300, cuts);
 
 describe("shorts check", () => {
-  it("takes none, or 2 to 4 of 20 to 60 s", () => {
+  it("takes none, or 2 to 12 of 20 to 60 s", () => {
     expect(check([])).toEqual([]);
     expect(check([short(0, 20), short(100, 160)])).toEqual([]);
     expect(check([short(0, 30), short(40, 70), short(80, 110), short(120, 150)])).toEqual([]);
+    expect(check([...Array(12).keys()].map((i) => short(i * 24, i * 24 + 22)))).toEqual([]);
   });
 
-  it("refuses 1 or 5 picks", () => {
-    expect(check([short(0, 30)])).toEqual(["shorts: 1 picked; want 2 to 4"]);
-    expect(check([0, 1, 2, 3, 4].map((i) => short(i * 40, i * 40 + 30)))[0]).toMatch(/5 picked/);
+  it("refuses 1 or 13 picks", () => {
+    expect(check([short(0, 30)])).toEqual(["shorts: 1 picked; want 2 to 12"]);
+    expect(check([...Array(13).keys()].map((i) => short(i * 22, i * 22 + 21)))[0]).toMatch(
+      /13 picked/,
+    );
   });
 
   it("refuses under 20 s or over 60 s", () => {

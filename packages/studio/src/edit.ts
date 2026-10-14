@@ -253,7 +253,7 @@ export const editPatchSchema = z
 export type EditPatch = z.infer<typeof editPatchSchema>;
 
 /**
- * Refuse a range backwards or past the end, Shorts off the rules (none, or 2 to 4 of 20 to 60 s
+ * Refuse a range backwards or past the end, Shorts off the rules (none, or 2 to 12 of 20 to 60 s
  * each once cut), and stressed words off the spacing rule once cut (`stressOnCut`). `cuts`: the
  * edit's, unless the patch sets them too.
  */

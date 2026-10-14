@@ -269,9 +269,9 @@ export function faceRect(face: Face, w: number, h: number): Rect {
   return [(w - bw * k) / 2 - bx * k, (h - bh * k) / 2 - by * k, fw * k, fh * k];
 }
 
-/** Shorts run 20 to 60 s on the cut timeline, 2 to 4 of them (or none). */
+/** Shorts run 20 to 60 s on the cut timeline, 2 to 12 of them (or none): a 20 minute video yields a dozen. */
 export const SHORT_S = { min: 20, max: 60 } as const;
-export const SHORT_COUNT = { min: 2, max: 4 } as const;
+export const SHORT_COUNT = { min: 2, max: 12 } as const;
 
 function faceOf(edit: VideoEdit): Face {
   const { main, cam, camBox } = edit.tracks;

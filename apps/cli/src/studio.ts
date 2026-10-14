@@ -372,6 +372,8 @@ export function registerStudio(
             console.log(
               `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
             );
+          for (const a of d.also ?? [])
+            console.log(`${a.platform} draft ${a.id} waits in To approve`);
         }),
     );
 

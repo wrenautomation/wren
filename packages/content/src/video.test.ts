@@ -2,10 +2,12 @@ import { parseKind } from "@wren/core/slots";
 import { defaultFile } from "@wren/core/templates/defaults";
 import { describe, expect, it } from "vitest";
 import {
+  alsoText,
   chapterLines,
   clock,
   cutSeconds,
   fillFooter,
+  leadOf,
   longOf,
   markWords,
   numbered,
@@ -128,5 +130,23 @@ describe("videos", () => {
     );
     expect(withFooter(["About."], "  ", 5000)).toBe("About.");
     expect(withFooter(["x".repeat(30)], "Footer.", 20)).toBe("xxxxxxxxxxx\n\nFooter.");
+  });
+});
+
+describe("clip captions", () => {
+  const description = "First paragraph of the video.\n\nSecond paragraph.";
+  it("takes a description's first paragraph, cut at a word", () => {
+    expect(leadOf(description)).toBe("First paragraph of the video.");
+    expect(leadOf("one two three four", 12)).toBe("one two...");
+    expect(leadOf("")).toBe("");
+  });
+
+  it("gives X and TikTok the title, LinkedIn and Facebook the title and a lead", () => {
+    expect(alsoText("x", "A point", description)).toBe("A point");
+    expect(alsoText("tiktok", "A point", description)).toBe("A point");
+    expect(alsoText("linkedin", "A point", description)).toBe(
+      "A point\n\nFirst paragraph of the video.",
+    );
+    expect(alsoText("facebook", "A point", "")).toBe("A point");
   });
 });
