@@ -18,7 +18,7 @@ import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { AutoReplyPage } from "./auto-reply.js";
 import { NumbersBelow } from "./chart.js";
-import { askedReplyExtras, conversationExtras } from "./conversation.js";
+import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
 import { EngageHead } from "./engage.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
@@ -1113,6 +1113,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   actions: INBOX_ACTIONS,
   // The whole conversation with its reply and note boxes; activity has none.
   extras: conversationExtras,
+  reply: conversationReply,
   count: { status: ["open"] },
 };
 
@@ -2141,6 +2142,7 @@ export const clientMarketing: Module = {
     asClient("inbox", {
       actions: INBOX_THREAD_ACTIONS.map(clientInbox),
       extras: conversationExtras,
+      reply: conversationReply,
     }),
     {
       id: "auto-reply",

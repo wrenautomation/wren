@@ -98,6 +98,14 @@ export interface ListPage extends PageBase {
   sections?: ShopSections;
   /** Lines and sources a record's detail adds under its fields. */
   extras?: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => RecordExtras;
+  /**
+   * Its own reply box, opened under a list row by Reply: a conversation's, which picks the
+   * channel. `when` names the rows it answers, as field → states.
+   */
+  reply?: {
+    when?: Readonly<Record<string, readonly string[]>>;
+    box: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => ReactNode;
+  };
   /** Old params rewritten on arrival, so old links still land: the changes, or null. */
   legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
   /** Beside the list's title, such as a form that adds one; `reload` reads the list again. */

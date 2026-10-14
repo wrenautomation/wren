@@ -519,6 +519,40 @@ export const conversationExtras = (
   };
 };
 
+/** The rows a conversation's reply box answers: every kind but activity. */
+const REPLIES = { type: ["comment", "dm", "email", "text", "mail", "chat"] } as const;
+
+/** Its reply box alone, under its row in a list: Reply there opens it. */
+function RowReply({
+  c,
+  draft,
+  send,
+  act,
+}: {
+  c: Conversation;
+  draft: string;
+  send: boolean;
+  act: RecordAct;
+}) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  return (
+    <ReplyBox key={c.thread} options={c.options} draft={draft} send={send} act={act} box={box} />
+  );
+}
+
+export const conversationReply = {
+  when: REPLIES,
+  box: (
+    detail: unknown,
+    { row, act, can }: { row: Row; act: RecordAct; can?: readonly Permission[] | undefined },
+  ) => {
+    const c = conversationOf(detail);
+    if (!c) return <p className="text-[13px] text-(--ui-ink-2)">Nothing to reply to here.</p>;
+    const draft = typeof row.draft === "string" ? row.draft : "";
+    return <RowReply c={c} draft={draft} send={!!can?.includes("effect")} act={act} />;
+  },
+};
+
 /**
  * An asked reply's words as their reader gets them: a text by its parts, an email as our next one
  * in the thread (`Re:` the last we sent, from the inbox that sent it). A DM or comment has no
