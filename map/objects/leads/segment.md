@@ -13,11 +13,11 @@ A named group of profiles in a workspace: live (a rule kept true), manual (by ha
 
 ## Why this shape
 
-A rule is data (`Rule`, a group of conditions and groups, `packages/core/src/segments.ts:146`), compiled to one SQL test on `profiles p` (`compileRule`, `:319`) over [[leads/profile]] traits, its timeline, [[leads/consent]] by [[leads/profile-key]], the [[leads/sent-log]] by `key_kind` + `key_value`, and other segments' members. Members are stored, not recomputed per read, so entries and exits are events the spine can hear and B6 broadcasts read a fixed list. One recompute is one statement (`setMembers`): delete who left, insert who came, log both.
+A rule is data (`Rule`, a group of conditions and groups, `packages/core/src/segments.ts:146`), compiled to one SQL test on `profiles p` (`compileRule`, `:319`) over [[leads/profile]] traits, its timeline, [[leads/consent]] by [[leads/profile-key]], the [[leads/sent-log]] by `key_kind` + `key_value`, and other segments' members. Members are stored, not recomputed per read, so entries and exits are events the spine can hear and a [[leads/broadcast]] reads a fixed list. One recompute is one statement (`setMembers`): delete who left, insert who came, log both.
 
 A segment keeps its kind. A live one recomputes on save and on every pass, dependencies first (`recomputeOrder`); a rule that would read itself is refused (`cycleOf`). A snapshot counts once when made and again on Retake. A manual one has no rule; people go in from the People list (Add to segment) and out from its members.
 
-What uses it (workflows' Segment triggers, other segments' rules; B6 broadcasts later) is written on the row by each pass (`setUses`, `:802`), so the list says it without reading every workflow. Anything that uses it moves `used_at`; unused 90 days, it's archived (`archiveUnused`, `:784`), members kept. Restore is one click. Archive by hand is refused while it's used.
+What uses it (workflows' Segment triggers, other segments' rules, broadcasts not yet done: `broadcastUses`, `packages/core/src/broadcasts.ts:856`) is written on the row by each pass (`setUses`, `:802`), so the list says it without reading every workflow. Anything that uses it moves `used_at`; unused 90 days, it's archived (`archiveUnused`, `:784`), members kept. Restore is one click. Archive by hand is refused while it's used.
 
 ## Shape
 
@@ -35,7 +35,7 @@ Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segment
 
 - **owns:** [[leads/segment-membership]]
 - **reads:** [[leads/profile]], [[leads/profile-key]], [[leads/consent]], [[leads/sent-log]]
-- **feeds:** [[platform/spine]] (`trigger.segment`, through the segments pass)
+- **feeds:** [[platform/spine]] (`trigger.segment`, through the segments pass); [[leads/broadcast]] (read once when one starts)
 - **looks-like-but-is-not:** a saved view (a list filter, per viewer); `wren campaigns` cohorts
 
 ## If you change this

@@ -19,7 +19,7 @@ One ladder for all (`SENT_STATES`, `sent-records.ts:42`): a row sits at the furt
 
 ## Shape
 
-- `sent_records`: `id`, `channel` (an access channel), `kind` (email | newsletter | sms | dm | comment), `to_address`, `key_kind` + `key_value` (the `profile_keys` pair for the same address: `email`, `phone`, `handle:<platform>`), `subject` (else the first 140 characters of the body), `channel_state`, `state`, `campaign`, `at` (`sent-views.ts:58`)
+- `sent_records`: `id`, `channel` (an access channel), `kind` (email | newsletter | sms | dm | comment), `to_address`, `key_kind` + `key_value` (the `profile_keys` pair for the same address: `email`, `phone`, `handle:<platform>`), `subject` (else the first 140 characters of the body), `channel_state`, `state`, `campaign`, `at`, `broadcast` (the [[leads/broadcast]] it belongs to: an email is its recipient row; a text is its recipient row until queued, then its `sms_messages` row, `sent-views.ts:122`, `:133`; a newsletter-style consent `sent` event marked `broadcast` is left out, `:120`) (`sent-views.ts:58`)
 - `sent_activity`: `message`, `at`, `kind`, `what`, `seq` (`:181`). An email open or click counts only 2 minutes or more after sending, as `open_outcomes` does; a scan before that shows as a note. Both the 48-hour rule and the proof read `now()`: a message crosses into delivered by itself, with nothing written
 - Replies and bounces find their message by the headers, else the last one sent on that thread before they arrived; a text or DM reply is the next inbound before our next send
 - `people.sent` record, views All, Bounced and failed, Opened, Replied (`packages/core/src/sent-records.ts:167`)
@@ -31,7 +31,7 @@ Citations: `packages/core/src/sent-views.ts:58`, `packages/core/src/sent-records
 
 - **reads:** [[email/message]], [[sms/sms-message]], [[email/open-event]], [[email/email-click]], [[email/thread-event]], [[content/comment]], [[content/reach-post]], [[content/reddit-thread]], [[leads/consent]]
 - **joins:** B1's profiles on `key_kind` + `key_value` (to show a name and link the row)
-- **feeds:** [[leads/segment]] (message conditions count `sent_records` rows at or past a state)
+- **feeds:** [[leads/broadcast]] (its results: these rows counted on the ladder); [[leads/segment]] (message conditions count `sent_records` rows at or past a state)
 - **looks-like-but-is-not:** [[leads/touch]] (social touches per person, ours and theirs, kept as rows); `draft_events` (training record)
 
 ## If you change this

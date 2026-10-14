@@ -37,7 +37,7 @@ Two one-step sources confirm without a click (`giveConsent`), and neither lifts 
 
 - **owns:** `topics`, `consent_events`, `marketing_sends`, `message_settings`
 - **joins:** [[leads/suppression]] (read by `mayMarket`, written by unsubscribe-everything and the double opt-in lift)
-- **feeds:** [[leads/profile]] (asking or giving consent notes the address; each consent event is a timeline line); [[leads/segment]] (consent conditions read `consents` and `sms_contacts.state` by profile key)
+- **feeds:** [[leads/broadcast]] (each person gated by `mayMarket`; a capped one is held until `marketingRoomAt`, `packages/core/src/marketing.ts:177`); [[leads/profile]] (asking or giving consent notes the address; each consent event is a timeline line); [[leads/segment]] (consent conditions read `consents` and `sms_contacts.state` by profile key)
 - **looks-like-but-is-not:** [[leads/suppression]] (a no to everything; a consent is a yes to one topic)
 
 ## If you change this

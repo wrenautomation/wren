@@ -33,7 +33,7 @@ Citations: `packages/core/src/segments-schema.ts:70`, `packages/core/src/segment
 
 ## If you change this
 
-- **Hits:** `trigger.segment` and `trigger.trait` subjects (a change re-fires people already told); the cursor in `Segments` state; B6's `segmentMembers` reads
+- **Hits:** `trigger.segment` and `trigger.trait` subjects (a change re-fires people already told); the cursor in `Segments` state; [[leads/broadcast]]'s `segmentMembers` read (`packages/core/src/broadcasts.ts:486`)
 - **Does not hit:** the segment's rule; profiles
 
 ## Surfaces
