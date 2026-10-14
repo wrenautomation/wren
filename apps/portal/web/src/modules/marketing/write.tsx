@@ -289,7 +289,7 @@ export function WritePage(props: PageProps) {
       ) : make === "story" ? (
         <StoryBox demo={props.demo} only={only} made={made} />
       ) : make === "blog" ? (
-        <BlogBox demo={props.demo} />
+        <BlogBox demo={props.demo} from={about?.from ?? null} />
       ) : make === "video" ? (
         <p className={cx("m-0 text-[13.5px]", QUIET)}>
           {only ? nameOf(only) : "Video"} posts start from a recording.{" "}

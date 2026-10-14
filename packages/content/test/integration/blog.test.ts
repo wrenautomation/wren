@@ -46,4 +46,17 @@ describe("blog rows", () => {
     await markEmailed(pg.db, post.slug, new Date(t1.getTime() + 1000));
     expect((await blogRows(pg.db))[0]?.emailedAt?.getTime()).toBe(t1.getTime());
   });
+
+  it("keeps what it was written from until a save says otherwise", async () => {
+    const p = { ...post, slug: "synthetic-from", draft: true };
+    const now = new Date();
+    const fromOf = async () =>
+      (await blogRows(pg.db)).find((r) => r.slug === p.slug)?.fromRef ?? null;
+    await keepBlogRow(pg.db, p, { commit: "c1", by: "test", now, from: "video:7" });
+    expect(await fromOf()).toBe("video:7");
+    await keepBlogRow(pg.db, p, { commit: "c2", by: "test", now });
+    expect(await fromOf()).toBe("video:7");
+    await keepBlogRow(pg.db, p, { commit: "c3", by: "test", now, from: null });
+    expect(await fromOf()).toBeNull();
+  });
 });

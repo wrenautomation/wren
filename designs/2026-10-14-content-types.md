@@ -162,3 +162,4 @@ Each phase ships on its own.
 - 10-14 C1: sidebar Today, Write, Studio, Engage, Pieces, Numbers; Studio label and about; by-platform day page hidden; Posts under More's Numbers; Pieces "Long videos" and "Best" views; "Open Studio" copy in Write, Today and the funnel picker.
 - 10-14 C2: rendered recording is branch `review` (waiting, Review link, not in Approve all); proposed Shorts without an idea hang under their video as `editing` clips; rejected recordings left out.
 - 10-14 C3: Write takes `?from=video:<id>` (and `?about=` for the title), shows About with Clear; `ContentDesk.write` `from` writes ref `video:<id>/post:<8 hex>`; Studio's "From this video" links to Write (post and blog); Pieces nests any `video:<id>/<k>` ref.
+- 10-14 C4: migration 0257 `blog_posts.from_ref`; `Blog.save` `from`; Blog box From pick over recent long videos (preset by `?from=`); Pieces nests `blog:<slug>` under its video; long pieces carry `video`.

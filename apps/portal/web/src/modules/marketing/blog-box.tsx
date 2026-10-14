@@ -9,7 +9,8 @@ import { Button, cx, Input, Section, Tag, Textarea } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
-import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { ERROR, QUIET, SELECT, TOOLS } from "../work/bits.js";
+import { usePieces } from "./pieces.js";
 
 interface Post {
   slug: string;
@@ -21,6 +22,8 @@ interface Post {
   publishedAt: string | null;
   emailedAt: string | null;
   updatedAt: string;
+  /** What it was written from, `video:<id>`. */
+  fromRef: string | null;
 }
 interface Audience {
   live: boolean;
@@ -33,10 +36,16 @@ const blog = <T,>(handler: string, input: Record<string, unknown> = {}) =>
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const SNIPPET = 155;
 
-export function BlogBox(props: { demo?: boolean }) {
+/** How many recent long videos the From pick offers. */
+const FROM_SHOWN = 20;
+
+/** `from`: Write's `?from=video:<id>`, so a new post starts written from that video. */
+export function BlogBox(props: { demo?: boolean; from?: string | null }) {
   const list = useCall("blog-posts", () =>
     blog<{ on: boolean; site: string; posts: Post[] }>("posts"),
   );
+  const work = usePieces();
+  const [from, setFrom] = useState(props.from ?? "");
   const [slug, setSlug] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,6 +67,7 @@ export function BlogBox(props: { demo?: boolean }) {
     setTitle(p?.title ?? "");
     setDescription(p?.description ?? "");
     setBody(p?.body ?? "");
+    setFrom(p ? (p.fromRef ?? "") : (props.from ?? ""));
     setSure(null);
     setLines([]);
     setError(null);
@@ -86,6 +96,7 @@ export function BlogBox(props: { demo?: boolean }) {
         description,
         body,
         publish,
+        from: from || null,
       });
       setSlug(out.post.slug);
       setLines([
@@ -115,6 +126,14 @@ export function BlogBox(props: { demo?: boolean }) {
       if (!to) list.retry();
     });
   };
+
+  // Long videos, newest first; the post's own pick stays even when it's older than the rest.
+  const videos = (work.data?.pieces ?? [])
+    .filter((p) => p.kind === "long" && p.video != null)
+    .slice(0, FROM_SHOWN)
+    .map((p) => ({ value: `video:${p.video}`, label: p.title || `Video ${p.video}` }));
+  if (from && !videos.some((v) => v.value === from))
+    videos.unshift({ value: from, label: `Video ${from.slice("video:".length)}` });
 
   const ready = title.trim() && description.trim() && body.trim() && !busy && !props.demo && !off;
   const gets = audience?.tally["gets it"] ?? 0;
@@ -153,6 +172,23 @@ export function BlogBox(props: { demo?: boolean }) {
             ))}
           </div>
         ) : null}
+        <label className={cx("flex flex-wrap items-center gap-2 text-[13.5px]", QUIET)}>
+          From
+          <select
+            aria-label="From"
+            className={cx(SELECT, "min-w-0 max-w-full flex-1 basis-60")}
+            value={from}
+            disabled={props.demo}
+            onChange={(e) => setFrom(e.target.value)}
+          >
+            <option value="">Nothing, it stands alone</option>
+            {videos.map((v) => (
+              <option key={v.value} value={v.value}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <Input
           aria-label="Title"
           value={title}

@@ -136,7 +136,13 @@ export async function blogRow(db: Queryable, slug: string): Promise<BlogRow | nu
 export async function keepBlogRow(
   db: Queryable,
   p: BlogPost,
-  o: { commit: string | null; by: string; now: Date },
+  o: {
+    commit: string | null;
+    by: string;
+    now: Date;
+    /** What it was written from (`video:<id>`); null clears it, absent keeps it. */
+    from?: string | null;
+  },
 ): Promise<BlogRow> {
   const published = p.draft ? null : o.now;
   const [r] = await db
@@ -150,6 +156,7 @@ export async function keepBlogRow(
       draft: p.draft,
       publishedAt: published,
       commitSha: o.commit,
+      fromRef: o.from ?? null,
       updatedBy: o.by,
       updatedAt: o.now,
     })
@@ -165,6 +172,7 @@ export async function keepBlogRow(
           ? sql`null`
           : sql`coalesce(${blogPosts.publishedAt}, ${o.now.toISOString()}::timestamptz)`,
         commitSha: sql`coalesce(${o.commit}, ${blogPosts.commitSha})`,
+        ...(o.from !== undefined ? { fromRef: o.from } : {}),
         updatedBy: o.by,
         updatedAt: o.now,
       },

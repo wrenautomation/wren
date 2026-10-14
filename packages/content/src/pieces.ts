@@ -3,8 +3,8 @@
  * went hanging under it. A long video carries its clips and its promo posts; a clip, a post or a
  * story carries one branch per platform; a blog post carries the site and the email. Lineage is
  * what the rows already say: an idea's `ref` (`video:<id>`, `video:<id>/short:<n>`, a post about
- * it `video:<id>/post:<k>`), a promo draft's `video_draft`, and `blog_posts`. Nothing is stored
- * here.
+ * it `video:<id>/post:<k>`), a promo draft's `video_draft`, and `blog_posts` (its `from_ref`
+ * nests it under a video). Nothing is stored here.
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -60,6 +60,8 @@ export interface Piece {
   branches: Branch[];
   /** A long video's clips and promo posts. */
   children: Piece[];
+  /** A long video's recording (`video_edits.id`): what a post or blog post is written from. */
+  video?: number;
 }
 
 export interface DraftRow {
@@ -100,7 +102,14 @@ export interface PieceRows {
   videos: readonly VideoRow[];
   blogs: readonly Pick<
     BlogRow,
-    "slug" | "title" | "description" | "draft" | "publishedAt" | "emailedAt" | "createdAt"
+    | "slug"
+    | "title"
+    | "description"
+    | "draft"
+    | "publishedAt"
+    | "emailedAt"
+    | "createdAt"
+    | "fromRef"
   >[];
   /** The site blog posts go up on: `https://wrenautomation.com`. */
   site: string;
@@ -188,7 +197,10 @@ export function piecesOf(rows: PieceRows): Piece[] {
       branches,
       children: [],
     });
-    if (long) longOfVideo.set(Number(long[1]), idea.id);
+    if (long) {
+      longOfVideo.set(Number(long[1]), idea.id);
+      (pieces.get(idea.id) as Piece).video = Number(long[1]);
+    }
     // A promo points at the YouTube draft; its long video is that draft's idea.
     const promoOf = drafts.find((d) => d.video_draft)?.video_draft;
     const up = promoOf ? ideaOfDraft.get(promoOf) : undefined;
@@ -239,6 +251,7 @@ export function piecesOf(rows: PieceRows): Piece[] {
       at,
       branches: [editorOf(id, "long", v.state === "rendered" ? "review" : "editing")],
       children: [],
+      video: v.id,
     });
     longOfVideo.set(v.id, id);
   }
@@ -285,6 +298,10 @@ export function piecesOf(rows: PieceRows): Piece[] {
       ],
       children: [],
     });
+    // Written from a long video: it hangs under it (`blog_posts.from_ref`).
+    const from = LONG_REF.exec(b.fromRef ?? "");
+    const up = from ? longOfVideo.get(Number(from[1])) : undefined;
+    if (up) parent.set(id, up);
   }
 
   for (const [child, up] of parent) {

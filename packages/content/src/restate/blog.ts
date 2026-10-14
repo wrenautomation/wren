@@ -23,6 +23,7 @@ import {
   markEmailed,
   slugOf,
 } from "../blog.js";
+import { FROM } from "../own.js";
 
 export const BLOG_KEY = "wren";
 const TOPIC = "newsletter";
@@ -35,6 +36,11 @@ const SAVE = z.looseObject({
   description: z.string(),
   body: z.string(),
   publish: z.boolean().describe("Up on the site now; false keeps it a draft"),
+  from: z
+    .string()
+    .regex(FROM)
+    .nullish()
+    .describe("What it's written from, video:<id>: it hangs under that video in Pieces"),
   ...PORTAL_FIELDS,
 });
 const EMAIL = z.looseObject({
@@ -101,6 +107,7 @@ export function makeBlog(deps: BlogDeps) {
             description: string;
             body: string;
             publish: boolean;
+            from?: string | null;
             viewer?: unknown;
           },
         ) => {
@@ -130,7 +137,10 @@ export function makeBlog(deps: BlogDeps) {
               `Blog: ${req.publish ? "publish" : "draft"} ${slug} (from Write, ${by})`,
             ),
           );
-          const row = await ctx.run("keep", () => keepBlogRow(db, post, { commit, by, now }));
+          const from = req.from === undefined ? {} : { from: req.from };
+          const row = await ctx.run("keep", () =>
+            keepBlogRow(db, post, { commit, by, now, ...from }),
+          );
           return { post: row, url: `${deps.site}/blog/${slug}` };
         },
       ),

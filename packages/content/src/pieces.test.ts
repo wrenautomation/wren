@@ -117,6 +117,7 @@ describe("piecesOf", () => {
     expect(out[1]?.branches[0]).toMatchObject({ platform: "editor", state: "editing" });
     const long = out[0];
     expect(long).toMatchObject({
+      video: 4,
       kind: "long",
       title: "How I automate outreach",
       at: "2026-10-14T15:00:00.000Z",
@@ -152,6 +153,7 @@ describe("piecesOf", () => {
             publishedAt: new Date("2026-10-06T00:00:00Z"),
             emailedAt: null,
             createdAt: new Date("2026-10-03T00:00:00Z"),
+            fromRef: null,
           },
         ],
       }),
@@ -220,6 +222,28 @@ describe("piecesOf", () => {
     );
     expect(long?.id).toBe("video:9");
     expect(long?.children.map((c) => [c.id, c.kind])).toEqual([["about", "written"]]);
+  });
+
+  it("a blog post written from a video hangs under it", () => {
+    const [long] = piecesOf(
+      rows({
+        videos: [video({ id: 3, title: "Demo", created_at: "2026-10-10T00:00:00Z" })],
+        blogs: [
+          {
+            slug: "from-the-demo",
+            title: "From the demo",
+            description: "One line.",
+            draft: true,
+            publishedAt: null,
+            emailedAt: null,
+            createdAt: new Date("2026-10-11T00:00:00Z"),
+            fromRef: "video:3",
+          },
+        ],
+      }),
+    );
+    expect(long).toMatchObject({ id: "video:3", video: 3 });
+    expect(long?.children.map((c) => [c.id, c.kind])).toEqual([["blog:from-the-demo", "blog"]]);
   });
 
   it("an added or edited recording is still editing, and waits on no one", () => {

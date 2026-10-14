@@ -1201,6 +1201,11 @@ export const blogPosts = pgTable(
     emailedAt: timestamp("emailed_at", { withTimezone: true }),
     /** The lander commit that last wrote it. */
     commitSha: varchar("commit_sha", { length: 40 }),
+    /**
+     * What it was written from (`video:<id>`), so Pieces nests it under that video. Blog posts have
+     * no idea row to carry a ref (designs/2026-10-14-content-types.md).
+     */
+    fromRef: text("from_ref"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: text("updated_by"),
