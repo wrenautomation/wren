@@ -3,7 +3,7 @@
 Living doc. Started 2026-10-14. Two of William's notes:
 
 - "Investigate and compare / contrast our app to customer.io (google sign in with wrenautomation email, autobrowse audit) to see what we are lacking compared to them"
-- "UI from big apps (copy UI feel), simplify user experience"
+- "UI from big apps (copy UI feel), simplify user experience", and later on 10-14: "60-30-10 rule for better feel in the UI, 4.5 to 1 minimum contrast for all text (definitely is failing on some of the filters)"
 
 ## How I looked
 
@@ -89,6 +89,8 @@ What big apps do that we don't, from customer.io, Linear, Stripe and Intercom, c
 7. **Page column labels never cut off.** "Waiting on …" wraps or the column widens.
 8. **⌘K searches records.** Each app's `find` covers people (B1 profiles, or leads before that), clients, deals, workflows, templates and pages. Results group by app, with recent items first.
 9. **Setup card on Today.** "Get set up · 2 of 5 done", with a bar and the next step's button, built from the existing setup items. It is gone once all are done.
+10. **60-30-10 color.** In every look, about 60% of the screen is the base (page background), 30% is surfaces (rail, panels, cards, table heads), and 10% is the accent. The accent marks only the one primary button, the active nav item or tab, links, focus, and real-event state. Secondary buttons are outline or ghost. On Today, each Make row's action moves from a filled accent button to an outline one, and only the page's primary stays filled. Tokens enforce it: components take `accent` only through the primary button, active and link tokens.
+11. **4.5:1 contrast for all text.** Every text color on every background it sits on, in every look (light, dark, client looks and William's showcase ones), meets WCAG AA 4.5:1. Placeholders, muted lines, filter chips, tab counts, disabled labels and badges are included. Large text gets no 3:1 exception: William said all text. Two checks keep it that way: a unit test that computes the ratio for every text token on every surface token in every look, and an axe `color-contrast` scan of every portal page in each look in CI. Fix the failures first (William: "definitely failing on some of the filters").
 
 Check every change on desktop, at WebKit 393 (phone), and in both the light and dark looks.
 
