@@ -16,6 +16,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { chapterIdea } from "../../src/ideas/chapters.js";
 import {
   addIdea,
   approveDrafts,
@@ -514,6 +515,50 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     ]);
     expect(prompts.at(-1)).toContain('"how do you pick leads?"');
     expect(prompts.at(-1)).not.toContain("quiet_fox");
+  });
+
+  it("with approve on, each draft is approved into the slot it holds", async () => {
+    await addIdea(pg.db, "an idea to post", "cli");
+    await planner().start({
+      platforms: ["linkedin"],
+      draft: true,
+      approve: true,
+      slots: { linkedin: [{ hour: 8, minute: 30 }] },
+    });
+    await planner().stop();
+    const rows = await listDrafts(pg.db, { status: "approved" });
+    expect(rows.map((r) => [r.platform, slotOf(r)])).toEqual([["linkedin", at(8, 30)]]);
+  });
+
+  it("a chapter of a video that is up becomes an idea once, with what he said in it", async () => {
+    const [edit] = await pg.db.execute(sql`
+      insert into video_edits (title, dir, tracks, chapters, words, cuts) values ('My video', '/tmp',
+        '{"main": {"fps": 30, "path": "/tmp/a.mov", "width": 1280, "height": 720, "durationS": 120}}',
+        '[{"at": 0, "title": "Intro"}, {"at": 60, "title": "The point"}]',
+        (select jsonb_agg(jsonb_build_object('s', i, 'e', i + 0.5, 'w', 'word' || i)) from generate_series(0, 119) i),
+        '[]') returning id`);
+    const id = Number(edit?.id);
+    const [video] = await pg.db
+      .insert(contentIdeas)
+      .values({ text: "My video", source: "cli", ref: `video:${id}`, status: "drafted" })
+      .returning();
+    if (!video) throw new Error("no idea");
+    await pg.db.insert(contentDrafts).values({
+      ideaId: video.id,
+      platform: "youtube",
+      text: "about it",
+      status: "published",
+      url: "https://youtu.be/test",
+      promptVersion: "t",
+    });
+    const first = await chapterIdea(pg.db);
+    expect(first?.ref).toBe(`chapter:${id}:0`);
+    expect(first?.text).toContain('the part "Intro"');
+    expect(first?.text).toContain("word0 word1");
+    expect(first?.text).not.toContain("word60");
+    expect((await chapterIdea(pg.db))?.ref).toBe(`chapter:${id}:1`);
+    expect(await chapterIdea(pg.db)).toBeNull();
+    await pg.db.execute(sql`delete from video_edits`);
   });
 
   it("old drafts wait in To approve without filling tomorrow; approve uses the planner's slots", async () => {

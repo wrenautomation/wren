@@ -9,6 +9,7 @@ import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, gte, inArray, lt, notInArray } from "drizzle-orm";
 import { buildLogIdea, type Fetch } from "./ideas/build-log.js";
+import { chapterIdea } from "./ideas/chapters.js";
 import { questionIdea } from "./ideas/questions.js";
 import { type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { DEFAULT_SLOTS, type Slots, slotInstants } from "./slots.js";
@@ -129,8 +130,8 @@ export interface NextIdea {
 
 /**
  * The next idea to draft, in order: the oldest undrafted idea, then today's build log, then a
- * reader's question. `exclude` holds ideas already tried this pass, so one that fails to draft
- * is not picked again.
+ * reader's question, then a chapter of a video that is up (Wren only, like the build log).
+ * `exclude` holds ideas already tried this pass, so one that fails to draft is not picked again.
  */
 export async function nextIdea(
   db: Queryable,
@@ -167,7 +168,7 @@ export async function nextIdea(
     ...(o.fetch ? { fetch: o.fetch } : {}),
   });
   if (log.idea) return { idea: pick(log.idea), errors: log.errors };
-  const q = await questionIdea(db, o.now);
+  const q = (await questionIdea(db, o.now)) ?? (await chapterIdea(db));
   return { idea: q ? pick(q) : null, errors: log.errors };
 }
 

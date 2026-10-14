@@ -4,8 +4,9 @@
  * `draft: true` it first fills each open slot with a draft (O5): ideas in order
  * from `nextIdea` (undrafted ideas, the day's build log, a reader's question),
  * drafted by `ContentDesk` with the platform's playbook. A draft lands as
- * `draft` holding its slot; nothing is approved here, approving is publishing
- * and stays a person's click. Off until started;
+ * `draft` holding its slot. With `approve: true` as well (Wren only, his call of 10-13: keep the
+ * queues full) each draft is approved into the slot it holds; otherwise approving stays a
+ * person's click. Off until started;
  * `start {"platforms":["linkedin","reddit"],"draft":true}`.
  * Design: designs/2026-10-06-social-inbox.md (Daily drafts).
  *
@@ -41,6 +42,7 @@ import {
   tomorrowOf,
 } from "../plan.js";
 import { PLATFORM_SPECS } from "../platforms.js";
+import { approveDrafts } from "../review.js";
 import { contentDrafts } from "../schema.js";
 import { type Slot, slotsOf } from "../slots.js";
 import { type ContentDesk, DESK_KEY, DESK_UNIT } from "./desk.js";
@@ -71,6 +73,8 @@ export interface PlannerSettings {
   platforms?: Platform[];
   /** Fill tomorrow's open slots with drafts (default off: the plan is only said). */
   draft?: boolean;
+  /** Approve each draft into its slot as it is made (default off: approving is his). */
+  approve?: boolean;
   /** A platform's slots a day, replacing its defaults: `{"linkedin":[{"hour":8,"minute":30}]}`. */
   slots?: Partial<Record<Platform, Slot[]>>;
 }
@@ -221,6 +225,14 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
               .then(() => undefined),
           );
           drafted.push({ platform: r.platform, draftId: r.draft.id, slot, source: idea.source });
+          if (!settings.approve) continue;
+          const refused = await ctx.run(`approve ${r.draft.id}`, () =>
+            approveDrafts(db, [r.draft.id], { now, at: new Date(slot), by: "ContentPlanner" }).then(
+              () => null,
+              (err: unknown) => (err instanceof Error ? err.message : String(err)),
+            ),
+          );
+          if (refused) skipped.push(`approving ${r.platform} ${r.draft.id}: ${refused}`);
         }
       }
     }

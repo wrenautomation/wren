@@ -545,22 +545,26 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .description("Settings replace the stored ones when any flag is given")
     .option("--platforms <list>", "comma-separated (default linkedin,reddit)")
     .option("--draft", "fill tomorrow's open slots with drafts (Cohere); approving stays yours")
+    .option("--approve", "with --draft, approve each draft into its slot as it is made")
     .option("--slots <json>", 'per-platform slots, e.g. {"linkedin":[{"hour":8,"minute":30}]}')
-    .action(async (o: { platforms?: string; draft?: boolean; slots?: string }) => {
-      const platforms = platformsOf(o.platforms);
-      const body = {
-        ...(platforms ? { platforms } : {}),
-        ...(o.draft ? { draft: true } : {}),
-        ...(o.slots ? { slots: JSON.parse(o.slots) as Record<string, unknown> } : {}),
-      };
-      console.log(
-        JSON.stringify(
-          await planner().start(Object.keys(body).length > 0 ? body : undefined),
-          null,
-          2,
-        ),
-      );
-    });
+    .action(
+      async (o: { platforms?: string; draft?: boolean; approve?: boolean; slots?: string }) => {
+        const platforms = platformsOf(o.platforms);
+        const body = {
+          ...(platforms ? { platforms } : {}),
+          ...(o.draft ? { draft: true } : {}),
+          ...(o.approve ? { approve: true } : {}),
+          ...(o.slots ? { slots: JSON.parse(o.slots) as Record<string, unknown> } : {}),
+        };
+        console.log(
+          JSON.stringify(
+            await planner().start(Object.keys(body).length > 0 ? body : undefined),
+            null,
+            2,
+          ),
+        );
+      },
+    );
   pl.command("slots <platform> [times...]")
     .description(
       "Set one platform's post times (HH:MM, the fleet's clock), keeping the other settings; starts the planner",
