@@ -34,7 +34,6 @@ import { Icon, type IconName } from "./icons.js";
 import { headed, runs, total } from "./phone-nav.js";
 import {
   AppsSheet,
-  MoreSheet,
   PhoneTabs as PhoneBar,
   PhonePull,
   PhoneTop,
@@ -227,8 +226,8 @@ export function AppShell({
   const root = useRef<HTMLDivElement>(null);
   const d = display?.display ?? DISPLAY;
   const [keys, setKeys] = useState(false);
-  // A phone's sheets: every app, and the app's pages past its tabs. A new page shuts them.
-  const [sheet, setSheet] = useState<"apps" | "more" | null>(null);
+  // A phone's Apps sheet: every app, and the app's pages past its tabs. A new page shuts it.
+  const [sheet, setSheet] = useState<"apps" | null>(null);
   const here = at ?? page;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page shuts them.
   useEffect(() => setSheet(null), [here]);
@@ -441,9 +440,8 @@ export function AppShell({
             walk={walk}
             app={app}
             hidden={deep}
-            more={sheet === "more"}
-            onApps={() => setSheet("apps")}
-            onMore={() => setSheet("more")}
+            apps={sheet === "apps"}
+            onApps={() => setSheet(sheet === "apps" ? null : "apps")}
           />
           {phone && sheet === "apps" ? (
             <AppsSheet
@@ -461,16 +459,12 @@ export function AppShell({
                   <div className="ml-auto flex flex-wrap items-center gap-1.5">{actions}</div>
                 </>
               }
-              home={home}
               areas={areas ?? []}
               pins={pins}
               app={app}
               walk={walk}
               onClose={() => setSheet(null)}
             />
-          ) : null}
-          {phone && app && sheet === "more" ? (
-            <MoreSheet app={app} pages={walk.more} onClose={() => setSheet(null)} />
           ) : null}
         </>
       ) : null}

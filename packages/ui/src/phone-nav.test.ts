@@ -1,15 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  backOf,
-  barOf,
-  MORE,
-  rubber,
-  settle,
-  stepTo,
-  swipeEnd,
-  tabOfPage,
-  tapOf,
-} from "./phone-nav.js";
+import { backOf, barOf, rubber, settle, stepTo, swipeEnd, tabOfPage, tapOf } from "./phone-nav.js";
 
 const page = (id: string, group?: string) => ({ id, label: id, href: `/app/${id}`, group });
 
@@ -24,26 +14,25 @@ describe("barOf", () => {
     expect(more).toEqual([]);
   });
 
-  it("puts what doesn't fit under More", () => {
+  it("keeps three tabs and leaves the rest for Apps", () => {
     const { tabs, more } = barOf(
-      ["a", "b", "c", "d", "e", "f"].map((id) => page(id)),
+      ["a", "b", "c", "d", "e"].map((id) => page(id)),
       undefined,
     );
-    expect(tabs.map((t) => t.id)).toEqual(["a", "b", "c", MORE]);
-    expect(more.map((p) => p.id)).toEqual(["d", "e", "f"]);
+    expect(tabs.map((t) => t.id)).toEqual(["a", "b", "c"]);
+    expect(more.map((p) => p.id)).toEqual(["d", "e"]);
   });
 
-  it("gives a lone leftover page its own slot", () => {
+  it("leaves pages a pick doesn't hold for Apps", () => {
     const { tabs, more } = barOf(
       ["a", "b", "c", "d"].map((id) => page(id)),
       [
         { id: "a", label: "A", icon: "home", href: "/app/a", holds: [] },
-        { id: "b", label: "B", icon: "home", href: "/app/b", holds: [] },
-        { id: "c", label: "C", icon: "home", href: "/app/c", holds: [] },
+        { id: "b", label: "B", icon: "home", href: "/app/b", holds: ["b", "c"] },
       ],
     );
-    expect(tabs.map((t) => t.id)).toEqual(["a", "b", "c", "d"]);
-    expect(more).toEqual([]);
+    expect(tabs.map((t) => t.id)).toEqual(["a", "b"]);
+    expect(more.map((p) => p.id)).toEqual(["d"]);
   });
 
   it("drops picks for pages he can't see", () => {
@@ -63,9 +52,9 @@ describe("tabOfPage", () => {
     ["a", "b", "c", "d", "e"].map((id) => page(id)),
     undefined,
   );
-  it("finds the tab holding a page, More included", () => {
+  it("finds the tab holding a page; one left for Apps has none", () => {
     expect(tabOfPage(tabs, "b", undefined)).toBe("b");
-    expect(tabOfPage(tabs, "e", undefined)).toBe(MORE);
+    expect(tabOfPage(tabs, "e", undefined)).toBeUndefined();
   });
   it("keeps the last tab for a page no tab holds", () => {
     expect(tabOfPage(tabs, "hidden", "b")).toBe("b");

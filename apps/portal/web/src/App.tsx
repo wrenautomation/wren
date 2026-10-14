@@ -505,7 +505,7 @@ export function App() {
     : undefined;
 
   const waitingAll = cards.reduce((n, m) => n + appTotal(waiting[m.id]), 0);
-  // A phone's bottom tabs: Today, then what he opens every day; Menu (every app) comes after.
+  // A phone's bottom tabs at home: Home (Today), then what he opens every day; Apps comes after.
   const dock: DockItem[] | undefined = launcher
     ? [
         { id: "home", label: "Today", icon: "home", href: launcher, count: waitingAll, on: !open },

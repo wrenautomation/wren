@@ -1,6 +1,6 @@
 /**
- * How a phone walks the portal, as the big apps do: inside an app the bottom tabs are that app's
- * own pages, each tab keeps the stack of pages walked from it, and the bar at the top goes back
+ * How a phone walks the portal, as the big apps do: Home and Apps hold the bar's ends, the three
+ * tabs between are the section's own pages, each tab keeps the stack of pages walked from it, and the bar at the top goes back
  * one step, named for where it goes. Pure, so it's tested without a page.
  */
 import type { IconName } from "./icons.js";
@@ -47,13 +47,13 @@ export const total = (tabs: readonly TabPage[]) =>
     ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
     : undefined;
 
-/** iOS fits five; one is Apps. */
-export const BAR_SIZE = 4;
-export const MORE = "more";
+/** iOS fits five: Home first and Apps last never move; these three in between are the section's. */
+export const BAR_SIZE = 3;
+export const HOME = "home";
 
 /**
- * An app's bottom tabs: its picks (else one per run of its pages), four at most, the fourth
- * More when pages are left over. A pick names the pages it holds; `holds` empty means its own id.
+ * A section's bottom tabs: its picks (else one per run of its pages), three at most. The pages
+ * they leave over open from Apps, under the section's name.
  */
 export function barOf(
   pages: readonly TabPage[],
@@ -61,7 +61,7 @@ export function barOf(
   iconOf: (p: TabPage) => IconName = () => "page",
 ): { tabs: BarTab[]; more: TabPage[] } {
   const ids = new Set(pages.map((p) => p.id));
-  const all: BarTab[] = (
+  const tabs: BarTab[] = (
     picks?.length
       ? picks
       : runs(pages).map((r) => {
@@ -77,40 +77,10 @@ export function barOf(
         })
   )
     .map((t) => ({ ...t, holds: (t.holds.length ? t.holds : [t.id]).filter((id) => ids.has(id)) }))
-    .filter((t) => t.holds.length);
-  const held = (tabs: BarTab[]) => new Set(tabs.flatMap((t) => t.holds));
-  let tabs = all.slice(0, BAR_SIZE);
-  let left = pages.filter((p) => !held(tabs).has(p.id));
-  if (left.length) {
-    tabs = all.slice(0, BAR_SIZE - 1);
-    left = pages.filter((p) => !held(tabs).has(p.id));
-  }
-  // One page left over needs no More: it takes the slot itself.
-  if (left.length === 1 && tabs.length === BAR_SIZE - 1) {
-    const p = left[0] as TabPage;
-    return {
-      tabs: [
-        ...tabs,
-        { id: p.id, label: p.label, icon: iconOf(p), href: p.href, count: p.count, holds: [p.id] },
-      ],
-      more: [],
-    };
-  }
-  if (!left.length) return { tabs, more: [] };
-  return {
-    tabs: [
-      ...tabs,
-      {
-        id: MORE,
-        label: "More",
-        icon: "more",
-        href: left[0]?.href ?? "",
-        count: total(left),
-        holds: left.map((p) => p.id),
-      },
-    ],
-    more: left,
-  };
+    .filter((t) => t.holds.length)
+    .slice(0, BAR_SIZE);
+  const held = new Set(tabs.flatMap((t) => t.holds));
+  return { tabs, more: pages.filter((p) => !held.has(p.id)) };
 }
 
 /** The tab a page sits under: the one that holds it, else the one he came from. */

@@ -1,6 +1,7 @@
 /**
- * The shell on a phone, under 900px, walked as the big apps are walked. At home the bottom tabs
- * are the daily picks; inside an app they're that app's own pages, with Apps last to switch. Each
+ * The shell on a phone, under 900px, walked as the big apps are walked. The bottom bar's ends never
+ * move: Home first, Apps last. The three tabs between are the section's: the daily picks at home,
+ * the app's own pages inside one; its other pages open from Apps. Each
  * tab keeps its stack, so a tap on another tab and back lands where he was, scrolled where he
  * was. The bar at the top is iOS's: back, named for where it goes, the page's title once its own
  * heading scrolls under, and the app's buttons.
@@ -21,11 +22,12 @@ import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { BottomSheet, EDGE, PullToRefresh, Segmented, useSheet } from "./phone.js";
 import {
+  BAR_SIZE,
   type BarTab,
   backOf,
   barOf,
+  HOME,
   headed,
-  MORE,
   pathOfUrl,
   runs,
   type Step,
@@ -96,8 +98,6 @@ const keepWalk = (w: Walk) => {
 /** Where each page was scrolled to, so back and a tab switch land there. */
 const SCROLLS = new Map<string, number>();
 
-const HOME_APP = "home";
-
 /** This screen's bottom tabs, the one it sits under, and its stack. */
 export function usePhoneWalk({
   app,
@@ -118,22 +118,31 @@ export function usePhoneWalk({
     bump((n) => n + 1);
   }, []);
 
-  const appId = app ? (app.id ?? app.name) : HOME_APP;
+  const appId = app ? (app.id ?? app.name) : HOME;
   const bar = useMemo((): { tabs: BarTab[]; more: TabPage[] } => {
-    if (!app) {
-      const items = dock ?? (home ? [{ ...home, id: "home", icon: "home" as IconName }] : []);
+    const items = dock ?? (home ? [{ ...home, id: HOME, icon: "home" as IconName }] : []);
+    const homeTab = items.find((d) => d.id === HOME);
+    // No badge on Home: what waits there is counted again on the tabs and apps it waits in.
+    const first = homeTab ? [{ ...homeTab, label: "Home", count: undefined, holds: [HOME] }] : [];
+    if (!app)
       return {
-        tabs: items.map((d) => ({ ...d, holds: d.holds ?? [d.id] })),
+        tabs: [
+          ...first,
+          ...items.filter((d) => d.id !== HOME).map((d) => ({ ...d, holds: d.holds ?? [d.id] })),
+        ].slice(0, BAR_SIZE + 1),
         more: [],
       };
-    }
     const picks = app.dock?.map((d) => ({ ...d, holds: d.holds ?? [] }));
-    return barOf(app.tabs, picks);
+    const own = barOf(app.tabs, picks);
+    return { tabs: [...first, ...own.tabs], more: own.more };
   }, [app, dock, home]);
 
+  // A page left for Apps lights no tab; one no tab holds (a record) stays under the tab it came from.
   const current = app
-    ? tabOfPage(bar.tabs, app.current, walk.current.last[appId])
-    : (dock?.find((d) => d.on)?.id ?? "home");
+    ? bar.more.some((p) => p.id === app.current)
+      ? undefined
+      : tabOfPage(bar.tabs, app.current, walk.current.last[appId])
+    : (dock?.find((d) => d.on)?.id ?? HOME);
   const key = `${appId}:${current ?? ""}`;
 
   // Each move puts the page in its tab's stack.
@@ -181,9 +190,11 @@ export function usePhoneWalk({
       },
       [key],
     ),
-    /** Where a tab tap goes. */
+    /** Where a tab tap goes. Home, from inside an app, is Home's own stack. */
     tap: (tab: BarTab) =>
-      tapOf(tab.id === current, walk.current.stacks[`${appId}:${tab.id}`]?.steps, tab.href, at),
+      app && tab.id === HOME
+        ? tapOf(false, walk.current.stacks[`${HOME}:${HOME}`]?.steps, tab.href, at)
+        : tapOf(tab.id === current, walk.current.stacks[`${appId}:${tab.id}`]?.steps, tab.href, at),
     /** An app as he left it. */
     resume: (id: string, href: string) => {
       const tab = walk.current.last[id];
@@ -438,10 +449,13 @@ function useEdgeBack(link: RefObject<HTMLAnchorElement | null> | null) {
 // --- The bottom tabs ------------------------------------------------------------------------
 
 const TAB =
-  "relative flex min-w-0 flex-col items-center justify-center gap-[3px] border-0 bg-transparent p-0 pt-1 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) aria-[current=page]:text-(--ui-accent) aria-expanded:text-(--ui-accent)";
-/** What waits under a tab: a solid tag at the icon's top right corner, clear of the icon. */
+  "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-accent) aria-expanded:text-(--ui-accent)";
+/** The icon's seat: a capsule lit under the tab on screen, and it gives a little under a thumb. */
+const SEAT =
+  "relative grid h-[30px] w-[52px] place-items-center rounded-full transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
+/** What waits under a tab: iOS's red badge at the icon's top right. */
 const BADGE =
-  "absolute -top-1.5 left-[calc(100%-5px)] min-w-[18px] rounded-(--ui-radius) bg-(--ui-warn-ink) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-paper) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-bad) px-[5px] text-center text-[11px]/[17px] font-semibold text-white [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 
 function TabFace({
   icon,
@@ -454,7 +468,7 @@ function TabFace({
 }) {
   return (
     <>
-      <span className="relative">
+      <span className={SEAT}>
         <Icon name={icon} size={22} />
         {count ? <span className={BADGE}>{count > 99 ? "99+" : num(count)}</span> : null}
       </span>
@@ -464,51 +478,35 @@ function TabFace({
 }
 
 /**
- * The tabs at the thumb. A tap on another tab opens it where he left it; on the tab on screen,
- * it goes back to the tab's first page, and from there up to the top. Hidden on a record's own
- * page, which brings its buttons down here instead.
+ * The tabs at the thumb: Home, the section's three, Apps. A tap on another tab opens it where he
+ * left it; on the tab on screen, it goes back to the tab's first page, and from there up to the
+ * top. Hidden on a record's own page, which brings its buttons down here instead.
  */
 export function PhoneTabs({
   walk,
   app,
   hidden,
+  apps,
   onApps,
-  onMore,
-  more,
 }: {
   walk: PhoneWalk;
   app: OpenApp | null;
   hidden: boolean;
+  /** The Apps sheet is up. */
+  apps: boolean;
   onApps: () => void;
-  onMore: () => void;
-  more: boolean;
 }) {
   return (
     <nav
       aria-label={app ? `${app.name} tabs` : "Tabs"}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-(--ui-glass) pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-[16px] backdrop-saturate-[1.6]",
+        "fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-paper)_97%,transparent)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-[24px] backdrop-saturate-[1.8]",
         !hidden && "max-[900px]:block",
       )}
     >
-      <ul className="mx-auto grid h-[52px] max-w-[640px] list-none auto-cols-fr grid-flow-col">
+      <ul className="mx-auto grid h-[54px] max-w-[640px] list-none grid-cols-5">
         {walk.tabs.map((t) => {
-          const on = t.id === walk.current;
-          if (t.id === MORE)
-            return (
-              <li key={t.id} className="contents">
-                <button
-                  type="button"
-                  className={TAB}
-                  aria-current={on ? "page" : undefined}
-                  aria-expanded={more}
-                  aria-haspopup="dialog"
-                  onClick={onMore}
-                >
-                  <TabFace icon={t.icon} label={t.label} count={t.count} />
-                </button>
-              </li>
-            );
+          const on = !apps && t.id === walk.current;
           const go = walk.tap(t);
           return (
             <li key={t.id} className="contents">
@@ -522,7 +520,7 @@ export function PhoneTabs({
                     scrollTo({ top: 0, behavior: "smooth" });
                     return;
                   }
-                  moving(app ? "tab" : "apps");
+                  moving(app || t.id === HOME ? "tab" : "apps");
                   if (!on) landBack();
                 }}
               >
@@ -532,11 +530,13 @@ export function PhoneTabs({
           );
         })}
         <li className="contents">
+          {/* Apps keeps the right end however few tabs come before it. */}
           <button
             type="button"
-            className={TAB}
+            className={cn(TAB, "col-start-5")}
             onClick={onApps}
             aria-haspopup="dialog"
+            aria-expanded={apps}
             aria-label="Apps"
           >
             <TabFace icon="apps" label="Apps" />
@@ -547,7 +547,7 @@ export function PhoneTabs({
   );
 }
 
-// --- Sheets: More, and every app ------------------------------------------------------------
+// --- Sheet: every app, and the section's other pages ------------------------------------------------------------
 
 const SHEET_ROW =
   "flex min-h-12 items-center gap-3 border-b border-(--ui-hair) px-4 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-hover) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-accent)";
@@ -585,48 +585,6 @@ function SheetLink({
   );
 }
 
-/** The app's pages that didn't fit in the tabs, as iOS's More list. */
-export function MoreSheet({
-  app,
-  pages,
-  onClose,
-}: {
-  app: OpenApp;
-  pages: TabPage[];
-  onClose: () => void;
-}) {
-  return (
-    <BottomSheet
-      label={`More in ${app.name}`}
-      onClose={onClose}
-      head={<h2 className="px-4 pt-1 pb-3 text-[17px] font-semibold">More</h2>}
-    >
-      {runs(pages).map((r) => (
-        <section key={`${r.group ?? ""}:${r.tabs[0]?.id}`}>
-          {r.group && headed(r) ? <h3 className={SHEET_HEAD}>{r.group}</h3> : null}
-          {r.tabs.map((p) => (
-            <SheetLink
-              key={p.id}
-              href={p.href}
-              how="tab"
-              className={SHEET_ROW}
-              current={p.id === app.current}
-            >
-              <span className="min-w-0 flex-1 truncate">{p.label}</span>
-              {p.count ? (
-                <span className="text-[14px] text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]">
-                  {num(p.count)}
-                </span>
-              ) : null}
-              <Icon name="right" className="flex-none text-(--ui-ink-3)" />
-            </SheetLink>
-          ))}
-        </section>
-      ))}
-    </BottomSheet>
-  );
-}
-
 const TILE_BADGE =
   "absolute -top-2 -right-2 min-w-[18px] rounded-(--ui-radius) bg-(--ui-warn-ink) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-paper) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 const TILE =
@@ -636,11 +594,10 @@ const TILE_MARK =
 
 /**
  * Every app, as a phone's home screen: by area, a grid of marks. Whose workspace it is and his
- * own buttons sit at its head. Opens at half height; pull it up for the rest.
+ * own buttons sit at its head; the open app's pages past its three tabs come first. Opens at half height; pull it up for the rest.
  */
 export function AppsSheet({
   head,
-  home,
   areas,
   pins,
   app,
@@ -648,7 +605,6 @@ export function AppsSheet({
   onClose,
 }: {
   head: ReactNode;
-  home: NavHome | undefined;
   areas: NavArea[];
   pins: RailPins | undefined;
   app: OpenApp | null;
@@ -661,16 +617,36 @@ export function AppsSheet({
       <div className="flex flex-wrap items-center gap-1.5 border-b border-(--ui-hair) px-3 pb-3">
         {head}
       </div>
-      {home ? (
-        <SheetLink href={home.href} how="apps" className={SHEET_ROW} current={!app}>
-          <Icon name="home" className="flex-none text-(--ui-ink-2)" />
-          <span className="min-w-0 flex-1 truncate">{home.label}</span>
-          {home.count ? (
-            <span className="text-[14px] text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]">
-              {num(home.count)}
-            </span>
-          ) : null}
-        </SheetLink>
+      {app && walk.more.length ? (
+        <section>
+          <h3 className={SHEET_HEAD}>More in {app.name}</h3>
+          {runs(walk.more).map((r) => (
+            <div key={`${r.group ?? ""}:${r.tabs[0]?.id}`}>
+              {r.tabs.map((p) => (
+                <SheetLink
+                  key={p.id}
+                  href={p.href}
+                  how="tab"
+                  className={SHEET_ROW}
+                  current={p.id === app.current}
+                >
+                  <span className="min-w-0 flex-1 truncate">
+                    {r.group && headed(r) ? (
+                      <span className="text-(--ui-ink-2)">{r.group} · </span>
+                    ) : null}
+                    {p.label}
+                  </span>
+                  {p.count ? (
+                    <span className="text-[14px] text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]">
+                      {num(p.count)}
+                    </span>
+                  ) : null}
+                  <Icon name="right" className="flex-none text-(--ui-ink-3)" />
+                </SheetLink>
+              ))}
+            </div>
+          ))}
+        </section>
       ) : null}
       {pins?.pins.length ? (
         <section>
