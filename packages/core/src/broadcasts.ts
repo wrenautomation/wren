@@ -803,13 +803,13 @@ export async function broadcastContext(db: Queryable) {
   };
 }
 
-/** The month's broadcasts for the calendar: by when each goes or went. */
+/** The month's broadcasts for the calendar: by when each goes or went. A draft has no date yet. */
 export async function broadcastMonth(db: Queryable, from: Date, to: Date) {
   const got = await rows(
     db,
     sql`select id, name, channel, state, "when" from broadcast_records
       where "when" >= ${from.toISOString()}::timestamptz and "when" < ${to.toISOString()}::timestamptz
-        and state <> 'canceled'
+        and state not in ('draft', 'declined', 'canceled')
       order by "when", id`,
   );
   return got.map((r) => ({

@@ -413,6 +413,13 @@ describe("times, cancel and restore", () => {
     );
     const { startAt } = await decideBroadcast(pg.db, b.id, true, BY, NOW);
     expect(startAt).toEqual(new Date("2026-10-19T20:00:00Z"));
+    // A draft has no date yet, so the calendar leaves it out.
+    await saveBroadcast(
+      pg.db,
+      { name: "Someday", channel: "email", segmentId, topic: "news", subject: "S", body: "S." },
+      BY,
+      NOW,
+    );
     expect(await broadcastMonth(pg.db, T(1), T(31))).toEqual([
       {
         id: b.id,

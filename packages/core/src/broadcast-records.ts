@@ -6,7 +6,18 @@
  */
 import type { Queryable } from "@wren/db";
 import { type BroadcastResults, broadcastById, broadcastResults } from "./broadcasts.js";
-import { cued, date, defineRecord, link, name, number, prose, status, text } from "./records.js";
+import {
+  cued,
+  date,
+  defineRecord,
+  link,
+  name,
+  number,
+  prose,
+  SYSTEM,
+  status,
+  text,
+} from "./records.js";
 
 export const BROADCAST_CHANNEL_STATES = cued({
   email: { label: "Email", tone: "neutral" },
@@ -87,7 +98,7 @@ export const broadcastRecord = defineRecord({
     testedAt: date("Last test", { listed: false }),
     sentLog: link("In the sent log"),
     recipients: link("Its people", { listed: false }),
-    segmentId: number("Segment id", { listed: false }),
+    segmentId: number("Segment id", { listed: false, group: SYSTEM }),
     createdAt: date("Made", { listed: false }),
   },
   quick: ["state", "channel"],
