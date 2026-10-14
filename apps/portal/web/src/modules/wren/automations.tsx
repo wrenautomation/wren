@@ -3,6 +3,7 @@
  * each: what starts it, its runs over 30 days, what failed and waits, its last and next run, its
  * last error and its switch. Every number opens the rows behind it.
  */
+import { AUTOMATION_TEMPLATES } from "@wren/core/automation-templates";
 import type { AutomationKind, AutomationRow, AutomationState } from "@wren/core/automations";
 import type { RecordsPage } from "@wren/core/records/serve";
 import {
@@ -23,9 +24,9 @@ import { type ReactNode, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { href } from "../../route.js";
+import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
-import { MadeHere } from "./made.js";
+import { MadeHere, madeAt } from "./made.js";
 
 const DAYS = 30;
 const VIEWS = [
@@ -501,11 +502,105 @@ export function Automations({ params }: PageProps) {
   );
 }
 
-/** New: describe one for Claude to draw, or start blank. Nothing runs until it's published. */
+/** What each template card starts it with, and its link when it isn't a workflow. */
+const KEYWORD_CARD = {
+  id: "keyword",
+  name: "Comment keyword: DM the link",
+  blurb: "Someone comments the word on your post and gets your DM. Runs on its own sender.",
+  steps: ["A comment has the word", "DM them", "Reply to the comment"],
+};
+
+function TemplateCard({
+  name,
+  blurb,
+  steps,
+  busy,
+  onPick,
+  href: to,
+}: {
+  name: string;
+  blurb: string;
+  steps: readonly string[];
+  busy?: boolean;
+  onPick?: () => void;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <span className="text-[14.5px] font-medium text-(--ui-ink)">{name}</span>
+      <span className={cx("text-[13px]", QUIET)}>{blurb}</span>
+      <ol className="m-0 mt-1 grid list-none gap-1 p-0 text-[12.5px] text-(--ui-ink-2)">
+        {steps.map((s, i) => (
+          <li key={s} className="flex items-baseline gap-2">
+            <span className="w-4 shrink-0 text-right tabular-nums text-(--ui-ink-3)">{i + 1}</span>
+            {s}
+          </li>
+        ))}
+      </ol>
+      <span className="mt-auto pt-2 text-[13px] font-medium text-(--ui-link)">
+        {busy ? "Opening…" : to ? "Add a keyword" : "Use this"}
+      </span>
+    </>
+  );
+  const cls =
+    "flex h-full flex-col gap-1.5 border border-(--ui-hair) bg-(--ui-paper) p-4 text-left no-underline hover:border-(--ui-link) disabled:opacity-60";
+  return to ? (
+    <a href={to} className={cls}>
+      {body}
+    </a>
+  ) : (
+    <button
+      type="button"
+      className={cx(cls, "w-full cursor-pointer")}
+      disabled={busy}
+      onClick={onPick}
+    >
+      {body}
+    </button>
+  );
+}
+
+/**
+ * New: a template, a description for Claude to draw, or a blank canvas. Each opens as a draft on
+ * the canvas; nothing runs until it's published.
+ */
 export function NewAutomation() {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const start = async (template: string) => {
+    setBusy(template);
+    setError(null);
+    try {
+      const made = await call<{ workflow: string }>("console/workflowBuild", { template });
+      navigate(madeAt(made.workflow, null));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+      setBusy(null);
+    }
+  };
   return (
     <>
-      <PageHeader title="New automation" />
+      <PageHeader
+        title="New automation"
+        lede="Start from a template. It opens as a draft on the canvas, and nothing runs until you publish it."
+      />
+      <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        {AUTOMATION_TEMPLATES.map((t) => (
+          <li key={t.id}>
+            <TemplateCard
+              name={t.name}
+              blurb={t.blurb}
+              steps={t.steps}
+              busy={busy === t.id}
+              onPick={() => void start(t.id)}
+            />
+          </li>
+        ))}
+        <li>
+          <TemplateCard {...KEYWORD_CARD} href="/marketing/keywords" />
+        </li>
+      </ul>
+      {error ? <p className="mt-3 text-[13.5px] text-(--ui-bad)">{error}</p> : null}
       <MadeHere client={null} />
     </>
   );

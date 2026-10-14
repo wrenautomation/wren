@@ -10,6 +10,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { CODE_STEPS } from "./code-step.js";
 import type { Component, Effect, Port } from "./components.js";
 import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
+import { messageWould, notifyLine } from "./message-step.js";
 import {
   type Arrival,
   resume,
@@ -175,6 +176,21 @@ export async function dryWalk(o: {
       return async (_port, e, at) => {
         would.set(`${at.node}|${e.subject}`, webhookWould(n.with ?? {}, e));
         return [{ port: "answered", event: e }];
+      };
+    // Send message sends nothing in a test: it says to whom, and the event leaves as sent.
+    if (n.uses === "logic.message")
+      return async (_port, e, at) => {
+        would.set(`${at.node}|${e.subject}`, messageWould(n.with ?? {}, e));
+        return [{ port: "sent", event: e }];
+      };
+    // Notify me pings no one in a test.
+    if (n.uses === "logic.notify")
+      return async (_port, e, at) => {
+        would.set(
+          `${at.node}|${e.subject}`,
+          `Would ping the team: "${notifyLine(n.with ?? {}, e, at.workflow)}"`,
+        );
+        return [{ port: "out", event: e }];
       };
     // Set field writes nothing in a test: it says what it would set, and the event goes on.
     if (n.uses === "logic.set_field")

@@ -539,6 +539,68 @@ export const LOGIC: readonly LogicPart[] = [
     },
   },
   {
+    id: "logic.message",
+    name: "Send message",
+    blurb:
+      "Emails or texts the person, if they said yes to the topic. The same gate as a broadcast: consent, do-not-contact, the frequency cap.",
+    icon: "mail",
+    group: "action",
+    ready: true,
+    effects: ["sends"],
+    settings: [
+      {
+        field: "channel",
+        label: "Send by",
+        type: "choice",
+        options: ["email", "sms"],
+        labels: { email: "Email", sms: "Text" },
+        start: "email",
+      },
+      { field: "topic", label: "Topic they said yes to", type: "text", hint: "newsletter" },
+      {
+        field: "subject",
+        label: "Subject",
+        type: "text",
+        hint: "Thanks, {first_name|there}",
+        shows: { channel: "email" },
+      },
+      {
+        field: "body",
+        label: "Message",
+        type: "long",
+        hint: "Hi {first_name|there}, ...",
+      },
+      KIND,
+    ],
+    ports: (w) => ({
+      in: [one("in", "in", kindOf(w))],
+      out: [one("sent", "sent", kindOf(w)), one("skipped", "skipped", kindOf(w))],
+    }),
+    says: (w) => {
+      const by = text(w.channel) === "sms" ? "Text" : "Email";
+      return text(w.topic) ? `${by} on ${text(w.topic)}` : `${by}: pick a topic`;
+    },
+  },
+  {
+    id: "logic.notify",
+    name: "Notify me",
+    blurb: "Sends Wren's team one line, with a link to the run. Nothing reaches the person.",
+    icon: "flag",
+    group: "action",
+    ready: true,
+    settings: [
+      {
+        field: "line",
+        label: "What it says",
+        type: "text",
+        hint: "New lead: {{data.lead.name}}",
+      },
+      KIND,
+    ],
+    ports: (w) => ({ in: [one("in", "in", kindOf(w))], out: [one("out", "out", kindOf(w))] }),
+    says: (w) => (text(w.line) ? `Ping: ${text(w.line).slice(0, 40)}` : "Ping the team"),
+  },
+  {
     id: "logic.set_field",
     name: "Set field",
     blurb:
@@ -941,6 +1003,16 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     if (body) out.push(`${at}: ${body}`);
     out.push(...headersOf(w.headers, {}).problems.map((p) => `${at}: ${p}`));
     out.push(...keepOf(w.keep).problems.map((p) => `${at}: ${p}`));
+  }
+  if (l.id === "logic.message") {
+    const sms = text(w.channel) === "sms";
+    if (w.channel !== undefined && !sms && text(w.channel) !== "email")
+      out.push(`${at}: Send message goes by email or text`);
+    if (!text(w.topic)) out.push(`${at}: Send message names the topic they said yes to`);
+    if (!text(w.body)) out.push(`${at}: Send message needs its words`);
+    if (!sms && !text(w.subject)) out.push(`${at}: an email needs a subject`);
+    if (sms && !/\bstop\b/i.test(text(w.body))) out.push(`${at}: a text says how to stop (STOP)`);
+    if (sms && text(w.body).length > 459) out.push(`${at}: a text is at most 459 characters`);
   }
   if (l.id === "trigger.hook" && !/^[A-Za-z0-9_.]+$/.test(text(w.subject)))
     out.push(`${at}: a webhook names the payload field it's about`);

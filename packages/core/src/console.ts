@@ -46,6 +46,7 @@ import {
 import { accessApi, accessHandlers } from "./access-console.js";
 import { ACCESS_TYPES, accessRecords } from "./access-records.js";
 import { ASK, type AskContext, type AskService, ask, type QuestionRequest } from "./ask.js";
+import { templateOf } from "./automation-templates.js";
 import { automationRecord } from "./automations.js";
 import { type Cache, memoryCache, readThrough } from "./cache.js";
 import { release } from "./checks.js";
@@ -3318,12 +3319,24 @@ export function consoleApi({
      * saved, and, with a message, Claude asked to draw it. Nothing runs until Publish.
      */
     async workflowBuild(
-      req: PortalRequest & { message?: unknown; name?: unknown },
+      req: PortalRequest & { message?: unknown; name?: unknown; template?: unknown },
     ): Promise<{ workflow: string; ask: string | null }> {
       team(req);
       if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
       const client = req.client ? (await pickForWrite(main, req)).client.id : null;
       const by = (req.viewer as SignedViewer).email;
+      // From a template (Automations → New): its graph as the first draft, nothing asked.
+      if (req.template !== undefined) {
+        const t = templateOf(String(req.template));
+        if (!t) throw new PortalRefusal("no such template", 404);
+        const made: Made = { name: t.name, blurb: t.blurb, for: client ? "client" : "wren" };
+        const id = madeIdOf(t.name, randomUUID().slice(0, 4));
+        const draft: WorkflowEdits = { wires: t.wires, steps: t.nodes, made };
+        await main
+          .insert(workflowSaves)
+          .values({ client, workflow: id, edits: draft, live: false, by });
+        return { workflow: id, ask: null };
+      }
       const message = typeof req.message === "string" ? req.message.trim() : "";
       if (message.length > BUILD_MAX)
         throw new PortalRefusal(`keep it under ${BUILD_MAX} characters`, 400);

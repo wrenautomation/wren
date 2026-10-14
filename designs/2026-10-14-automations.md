@@ -86,17 +86,19 @@ Each one makes a made workflow as a draft and opens it on the canvas to check an
 
 | Template | Graph | Runs on |
 |---|---|---|
-| Comment keyword → DM | the keyword form | `KeywordDm` (SocialWatch catches the comment). One send path, so no spine copy |
-| New lead → follow-up | Form → Send message (text) → Notify me | Sites forms' door; `logic.message`; notifier |
-| Booking → confirm and remind | Booking (booked) → Send message (email) → Notify me | `bookingFired`; reminders 24 h and 1 h before already go out by SmsWatch and Calendar |
-| Segment entry → message | Segment (entered) → Send message (email) | B5 segment triggers |
+| Comment keyword → DM | links to the keyword form | `KeywordDm` (SocialWatch catches the comment). One send path, so no spine copy |
+| New lead → follow-up | Form → Notify me → Wait until an answer (2 days) → on timeout, Send message (email) | Sites forms' door; notifier; `logic.message` |
+| Booking → confirm | Booking (booked) → Send message (email) → Notify me (sent or skipped) | `bookingFired`; reminders 24 h and 1 h before already go out by SmsWatch and Calendar |
+| Segment entry → message | Segment (entered) → Send message (email) | B5 segment triggers. Opens with its segment and subject to fill, so it can't publish blank |
 
 New action parts:
-- **Send message** (`logic.message`): email or text. Settings: topic, subject, body with `{{first_name}}` fills.
+- **Send message** (`logic.message`): email or text. Settings: topic, subject, body with broadcast fills (`{first_name|there}`).
   - Gated by `mayMarket` (consent to the topic, suppressions, frequency cap) exactly like a broadcast.
   - A text queues on the person's existing text thread. Email goes through `BroadcastMail` with the topic's footer and one-click unsubscribe.
   - Records the send on the consent.
   - Ports: sent, skipped (with why).
+  - Wren's own workflows only for now. On a client's it leaves by skipped.
+  - Email claims its send on the consent first, so a retry never sends twice. A failed send takes the claim back.
 - **Notify me** (`logic.notify`): a line to the operator lane, with a link to the run.
 
 A test run plays the walk with nothing sent ("Would send …").
@@ -105,7 +107,7 @@ A test run plays the walk with nothing sent ("Would send …").
 
 1. `console.automation` and All. ✔
 2. On/off for made workflows and keywords; Test run from the row. ✔ Loop keys keep their switch on Loops.
-3. Send message and Notify me, and the New page with the four templates.
+3. Send message and Notify me, and the New page with the four templates. ✔ Templates live in `packages/core/src/automation-templates.ts`; `workflowBuild {template}` makes the draft.
 4. Hide Events and Library → Workflows; move Handlers to Tools; map cards.
 
 ## Decision log
@@ -118,3 +120,5 @@ A test run plays the walk with nothing sent ("Would send …").
 - 2026-10-14: Booking reminders already run (SmsWatch texts, Calendar mail). The template adds a confirmation and a ping, not a third reminder.
 - 2026-10-14: Send message gates like a broadcast (`mayMarket`). A workflow that messages a segment is marketing, and marketing needs consent.
 - 2026-10-14: Wren's workspace only for All in v1. Clients see Workflows when their pages show it.
+- 2026-10-14: The templates use the `newsletter` topic, Wren's one email topic on prod. Send message skips anyone without a yes to it and says why on the run.
+- 2026-10-14: New lead pings first and emails only if no answer in 2 days. An instant email to a form fill nobody opted into would skip anyway.
