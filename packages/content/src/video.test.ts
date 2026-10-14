@@ -13,6 +13,7 @@ import {
   longOf,
   markWords,
   numbered,
+  tidy,
   VIDEO_FOOTERS,
   type VideoFooter,
   videoRef,
@@ -169,6 +170,8 @@ describe("clip captions", () => {
     expect(clipWords({ words, cuts: [...cuts], shorts }, 2)).toBe("Next bit.");
     expect(clipWords({ words, cuts: [], shorts }, 3)).toBe("");
     expect(excerpt("One two. Three four five six.", 14)).toBe("One two.");
+    expect(tidy("so i think i'll go")).toBe("So I think I'll go.");
+    expect(tidy("Done?")).toBe("Done?");
     expect(excerpt("alpha beta gamma delta", 12)).toBe("alpha beta...");
   });
 });

@@ -380,7 +380,14 @@ export function clipWords(e: Pick<VideoEdit, "words" | "cuts" | "shorts">, n: nu
     .filter((w) => w.cut !== "cut" && (w.s + w.e) / 2 >= clip.from && (w.s + w.e) / 2 < clip.to)
     .map((w) => w.w.trim())
     .join(" ");
-  return excerpt(said);
+  return tidy(excerpt(said));
+}
+
+/** Words with no punctuation (some transcripts) read as a sentence: a capital, "I", a full stop. */
+export function tidy(text: string): string {
+  const t = text.replace(/\bi(?=\b|')/g, "I");
+  const cap = t.charAt(0).toUpperCase() + t.slice(1);
+  return cap && !/[.?!]$|\.\.\.$/.test(cap) ? `${cap}.` : cap;
 }
 
 /** Text cut to `max` characters at the last sentence end past its middle, else at a word, with an ellipsis. */
