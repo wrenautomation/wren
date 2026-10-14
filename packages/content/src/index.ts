@@ -40,6 +40,8 @@ export {
   fillFooter,
   pickThumbnail,
   reelKey,
+  type SwappedDraft,
+  swapShortMedia,
   VIDEO_FOOTERS,
   VIDEO_PRIVACY,
   type VideoFooter,

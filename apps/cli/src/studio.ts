@@ -14,6 +14,7 @@ import {
   approveVideo,
   checkMediaStore,
   reelKey,
+  swapShortMedia,
   uploadMedia,
   VIDEO_PRIVACY,
 } from "@wren/content";
@@ -51,6 +52,7 @@ import {
   promoScript,
   proposeStress,
   proxy360,
+  punctuate,
   type RenderJob,
   redoSilence,
   renderAll,
@@ -75,6 +77,7 @@ import {
   twelvelabsFind,
   twelvelabsLooker,
   twelvelabsMinutes,
+  unpunctuated,
   type VideoEdit,
   verticalProps,
   videoEdits,
@@ -259,6 +262,8 @@ export function registerStudio(
         };
         return setEdit(db, id(v), { captions: next }, { by: "cli" });
       });
+      for (const m of r.snapped)
+        console.log(`short ${m.n}: snapped to whole sentences (start ${m.from}s, end ${m.to}s)`);
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
 
@@ -320,18 +325,66 @@ export function registerStudio(
     .description("fix a misheard word in the transcript before render: its text, never its times")
     .option("--fix <wrong=right>", 'every match, case kept: --fix "drug fooding=dogfooding"')
     .option("--at <s>", "the one word said at this second of the recording (with <text>)", Number)
+    .option(
+      "--punctuate",
+      "a transcript with no punctuation: a model adds stops, commas and capitals (text only), so Shorts snap to sentences",
+    )
+    .option("--dry", "with --punctuate: print the punctuated text, write nothing")
+    .option("--llm <spec>", "model for --punctuate", "gateway")
+    .option(
+      "--fallback <spec>",
+      'model for --punctuate when the gateway\'s free keys are spent or cooling; "none" to fail instead',
+      "gateway:cohere",
+    )
     .argument("[text]", "the word's new text, with --at")
-    .action((v: string, text: string | undefined, o: { fix?: string; at?: number }) =>
-      withDb(async (db) => {
-        let change: { wrong: string; right: string } | { at: number; text: string };
-        if (o.fix) {
-          const [wrong = "", ...rest] = o.fix.split("=");
-          change = { wrong, right: rest.join("=") };
-        } else if (o.at !== undefined && text) change = { at: o.at, text };
-        else throw new Error('pass --fix "wrong=right", or --at <s> <text>');
-        const r = await setWords(db, id(v), change, { by: "cli" });
-        console.log(`video ${v}: ${r.n} ${r.n === 1 ? "word" : "places"} fixed (run ${r.run})`);
-      }),
+    .action(
+      (
+        v: string,
+        text: string | undefined,
+        o: {
+          fix?: string;
+          at?: number;
+          punctuate?: boolean;
+          dry?: boolean;
+          llm: string;
+          fallback: string;
+        },
+      ) =>
+        withDb(async (db) => {
+          if (o.punctuate) {
+            const e = await getEdit(db, id(v));
+            if (!unpunctuated(e.words))
+              throw new Error(`video ${e.id}: the transcript has punctuation already`);
+            loadLlmEnv(settings.llmEnvPath, rootDir);
+            const llm = withFallback(
+              makeLlm(o.llm, process.env),
+              o.fallback === "none" ? null : makeLlm(o.fallback, process.env),
+            );
+            const p = await punctuate(llm, e.words);
+            const said = `${p.changed} of ${e.words.length} words punctuated in ${p.asked} asks (${llm.answered.join(", ")})`;
+            if (o.dry) {
+              console.log(p.words.map((w) => w.w).join(" "));
+              console.log(`video ${e.id}: ${said}; nothing written (--dry)`);
+              return;
+            }
+            const r = await setWords(
+              db,
+              e.id,
+              { words: p.words },
+              { by: "cli", command: "video words" },
+            );
+            console.log(`video ${e.id}: ${said} (run ${r.run}); Shorts snap on the next set`);
+            return;
+          }
+          let change: { wrong: string; right: string } | { at: number; text: string };
+          if (o.fix) {
+            const [wrong = "", ...rest] = o.fix.split("=");
+            change = { wrong, right: rest.join("=") };
+          } else if (o.at !== undefined && text) change = { at: o.at, text };
+          else throw new Error('pass --fix "wrong=right", or --at <s> <text>');
+          const r = await setWords(db, id(v), change, { by: "cli" });
+          console.log(`video ${v}: ${r.n} ${r.n === 1 ? "word" : "places"} fixed (run ${r.run})`);
+        }),
     );
 
   video
@@ -382,6 +435,27 @@ export function registerStudio(
           for (const a of d.also ?? [])
             console.log(`${a.platform} draft ${a.id} waits in To approve`);
         }),
+    );
+
+  video
+    .command("swap <id>")
+    .description(
+      "after a render: each approved Short draft not out yet points at the new file; slot, words and approval stay",
+    )
+    .option("--short <n>", "only Short n", id)
+    .action((v: string, o: { short?: number }) =>
+      withDb(async (db) => {
+        const r = await swapShortMedia(db, id(v), {
+          by: "cli",
+          ...(o.short ? { short: o.short } : {}),
+        });
+        for (const d of r.swapped)
+          console.log(`short ${d.short} ${d.platform} draft ${d.id}: ${d.to}`);
+        for (const m of r.missing) console.log(m);
+        console.log(
+          `video ${v}: ${r.swapped.length} drafts point at the new render (run ${r.run})`,
+        );
+      }),
     );
 
   video

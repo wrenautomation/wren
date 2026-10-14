@@ -4,6 +4,7 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
+import { finishRun, openRun } from "@wren/core";
 import type { Platform } from "@wren/core/content";
 import { fieldsOf, YOUTUBE_PRIVACY } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
@@ -518,6 +519,78 @@ async function keepUpload(
 
 /** The full-size Short (or vertical) in the media bucket, for its Reel: `wren video render` uploads it. */
 export const reelKey = (short: number | "vertical") => `reel-${short}`;
+
+export interface SwappedDraft {
+  id: string;
+  platform: string;
+  short: number;
+  from: string;
+  to: string;
+}
+
+/**
+ * A Short rendered again reaching the drafts he already approved: each approved draft not out yet
+ * points at the current render (YouTube at the file on the Mac, the rest at its Reel upload). The
+ * slot, the words and his yes stay. Published, publishing, failed and waiting drafts are left
+ * alone. One `video swap` run holds what each pointed at before.
+ */
+export async function swapShortMedia(
+  db: Queryable,
+  id: number,
+  o: { short?: number; by: string },
+): Promise<{ run: string; swapped: SwappedDraft[]; missing: string[] }> {
+  return atomic(db, async (tx) => {
+    const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id));
+    if (!e) throw new Error(`no video ${id}`);
+    const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
+    if (o.short && !e.shorts[o.short - 1])
+      throw new Error(`video ${id} has ${e.shorts.length} shorts; no ${o.short}`);
+    const swapped: SwappedDraft[] = [];
+    const missing: string[] = [];
+    for (const n of numbers) {
+      const rows = await tx
+        .select({
+          id: contentDrafts.id,
+          platform: contentDrafts.platform,
+          media: contentDrafts.media,
+        })
+        .from(contentDrafts)
+        .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
+        .where(
+          and(
+            eq(contentIdeas.ref, videoRef(id, n)),
+            eq(contentDrafts.status, "approved"),
+            sql`${contentDrafts.publishedAt} is null`,
+          ),
+        );
+      for (const d of rows) {
+        const next = d.platform === "youtube" ? e.files[`short-${n}`] : e.keys[reelKey(n)];
+        if (!next) {
+          missing.push(
+            `short ${n} on ${d.platform}: no render (wren video render ${id} --short ${n})`,
+          );
+          continue;
+        }
+        const was = d.media?.source ?? "";
+        if (!d.media || was === next) continue;
+        // Guarded on approved: a post the scheduler took meanwhile keeps what it took.
+        const done = await tx
+          .update(contentDrafts)
+          .set({ media: { ...d.media, source: next } })
+          .where(and(eq(contentDrafts.id, d.id), eq(contentDrafts.status, "approved")))
+          .returning({ id: contentDrafts.id });
+        if (done.length)
+          swapped.push({ id: d.id, platform: d.platform, short: n, from: was, to: next });
+      }
+    }
+    const { id: run } = await openRun(tx, {
+      command: "video swap",
+      argv: { id, short: o.short ?? null, by: o.by },
+    });
+    await finishRun(tx, run, { swapped: swapped.length, before: swapped, missing });
+    return { run, swapped, missing };
+  });
+}
 
 /** What Approve uploads: the file, its title and (the long video only) its thumbnail. */
 function target(e: VideoEdit, short?: number | "vertical") {

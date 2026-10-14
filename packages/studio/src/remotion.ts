@@ -5,7 +5,7 @@
  * into every bundle, and its server refuses a linked file but not a linked folder.
  */
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { normalizeLoudness } from "./loudness.js";
@@ -151,13 +151,16 @@ export async function renderAll(
   await withBundle(pkgDir, dir, async (bundle) => {
     const video = async (name: string, comp: string, props: unknown, bitrate: string) => {
       const file = join(out, `${name}.mp4`);
+      // Rendered aside, then moved in whole: an approved YouTube draft uploads this very path.
+      const part = join(out, `${name}.rendering.mp4`);
       await timed(name, async () => {
         await remotion(pkgDir, [
-          ...["render", bundle, comp, file, "--props", await propsFile(dir, name, props)],
+          ...["render", bundle, comp, part, "--props", await propsFile(dir, name, props)],
           ...["--codec=h264", "--hardware-acceleration=if-possible", `--video-bitrate=${bitrate}`],
         ]);
-        const was = await normalizeLoudness(file, ffmpeg);
+        const was = await normalizeLoudness(part, ffmpeg);
         if (was) log(`${name}: audio ${was.i} LUFS to -14`);
+        await rename(part, file);
       });
       files[name] = file;
     };

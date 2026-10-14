@@ -24,7 +24,7 @@ import {
   withSilence,
 } from "./cuts.js";
 import { FPS, pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
-import { SHORT_COUNT, SHORT_S } from "./props.js";
+import { CARD, SHORT_COUNT, SHORT_S } from "./props.js";
 import {
   CUT_STATES,
   CUT_WHYS,
@@ -32,6 +32,7 @@ import {
   FORMATS,
   type Format,
   LAYOUTS,
+  type Look,
   type RenderState,
   type Track,
   type Tracks,
@@ -39,6 +40,7 @@ import {
   videoEdits,
   type Word,
 } from "./schema.js";
+import { type Moved, shortIssues, snapShorts } from "./sentences.js";
 import { checkStress, remapStress } from "./stress.js";
 import { transcribe } from "./whisper.js";
 import { fixWordAt, fixWords } from "./words.js";
@@ -238,7 +240,16 @@ export const editPatchSchema = z
       ),
     /** Stressed words, as indexes into `words` (step 6). */
     stress: z.array(z.number().int().min(0)).max(500),
-    shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()),
+    shorts: z.array(
+      z
+        .object({
+          ...span,
+          title: z.string().max(100),
+          card: z.boolean().optional(),
+          cardText: z.string().max(CARD.maxChars).optional(),
+        })
+        .strict(),
+    ),
     formats: z
       .array(z.enum(FORMATS))
       .min(1)
@@ -272,6 +283,8 @@ export function checkPatch(
   cuts: readonly Cut[] = [],
   words: readonly Word[] = [],
   frame?: { width: number; height: number },
+  /** Shorts already on the edit: one kept as it was isn't refused for its sentences (a warn). */
+  held: readonly { from: number; to: number }[] = [],
 ): string[] {
   const bad: string[] = [];
   const ranges = (name: string, xs: readonly { from: number; to: number }[] | undefined) =>
@@ -301,6 +314,12 @@ export function checkPatch(
     if (len < SHORT_S.min || len > SHORT_S.max)
       bad.push(`shorts[${i}]: ${len.toFixed(1)}s once cut; want ${SHORT_S.min} to ${SHORT_S.max}`);
   });
+  // Whole sentences (sentences.ts): setEdit snaps first, so this refuses only what can't snap.
+  bad.push(
+    ...shortIssues({ words, cuts: patch.cuts ?? cuts, durationS }, shorts, (r) =>
+      held.every((h) => h.from !== r.from || h.to !== r.to),
+    ),
+  );
   if (patch.stress) bad.push(...stressOnCut(words, patch.stress, keep));
   return bad;
 }
@@ -351,7 +370,7 @@ export async function setEdit(
   id: number,
   input: unknown,
   o: { by: string; command?: string; run?: string; stats?: object },
-): Promise<{ run: string; edit: VideoEdit }> {
+): Promise<{ run: string; edit: VideoEdit; snapped: Moved[] }> {
   const parsed = editPatchSchema.safeParse(input);
   if (!parsed.success)
     throw new Error(
@@ -362,7 +381,22 @@ export async function setEdit(
   return atomic(db, async (tx) => {
     const now = await getEdit(tx, id);
     if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
-    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts, now.words, now.tracks.main);
+    // Every Short set or proposed starts and ends on a whole sentence.
+    const snap = patch.shorts
+      ? snapShorts(
+          { words: now.words, cuts: patch.cuts ?? now.cuts, durationS: now.tracks.main.durationS },
+          patch.shorts,
+        )
+      : null;
+    if (snap) patch.shorts = snap.shorts;
+    const bad = checkPatch(
+      patch,
+      now.tracks.main.durationS,
+      now.cuts,
+      now.words,
+      now.tracks.main,
+      now.shorts,
+    );
     if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
     const before = Object.fromEntries(
       Object.keys(patch).map((k) => [
@@ -389,11 +423,17 @@ export async function setEdit(
           argv: { id, fields: Object.keys(patch), by: o.by },
         })
       ).id;
-    await finishRun(tx, run, { ...o.stats, fields: Object.keys(patch), before });
+    const snapped = snap?.moved ?? [];
+    await finishRun(tx, run, {
+      ...o.stats,
+      fields: Object.keys(patch),
+      before,
+      ...(snapped.length ? { snapped } : {}),
+    });
     if (edit && (edit.title !== now.title || edit.description !== now.description))
       // An open run with no command is an Ask on the page: Claude's words.
       await keepWords(tx, now, edit, { ...o, run, asked: !!o.run && !o.command });
-    return { run, edit: edit as VideoEdit };
+    return { run, edit: edit as VideoEdit, snapped };
   });
 }
 
@@ -570,11 +610,16 @@ export async function setFiles(db: Queryable, id: number, files: Record<string, 
     .where(eq(videoEdits.id, id));
 }
 
-export async function setLook(db: Queryable, id: number, provider: string, look: unknown) {
+export async function setLook(db: Queryable, id: number, provider: string, look: Look) {
   const e = await getEdit(db, id);
+  // Its Shorts are proposals: snapped to whole sentences like a set.
+  const { shorts } = snapShorts(
+    { words: e.words, cuts: e.cuts, durationS: e.tracks.main.durationS },
+    look.shorts,
+  );
   await db
     .update(videoEdits)
-    .set({ looks: { ...e.looks, [provider]: look } as VideoEdit["looks"], updatedAt: new Date() })
+    .set({ looks: { ...e.looks, [provider]: { ...look, shorts } }, updatedAt: new Date() })
     .where(eq(videoEdits.id, id));
 }
 

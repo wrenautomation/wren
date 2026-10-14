@@ -196,7 +196,33 @@ export type ShortProps = Omit<LongProps, "cam"> & {
   /** Where the clip starts on the cut file, in frames. */
   startFrame: number;
   title: string;
+  /** The title on screen at the start (`cardOf`); null when the Short turns it off. */
+  card: TitleCard | null;
 };
+
+/**
+ * A Short's opening title, Reels style: a small label in the top third, there from the first
+ * frame (the platforms' cover), held `holdS`, then gone over `fadeS`. At most `maxChars`.
+ */
+export const CARD = { holdS: 2.6, fadeS: 0.4, maxChars: 60 } as const;
+export type TitleCard = { text: string; holdS: number; fadeS: number };
+
+/** A Short's captions read as whole sentences: a capital first, a stop for a trailing comma. */
+const opened = (w: string) => w.replace(/^(["'“‘(]?)(\p{Ll})/u, (_, q, c) => q + c.toUpperCase());
+const closed = (w: string) => w.replace(/[,;:]$/, ".");
+
+/** What a Short's title card says and how long it stays: its `cardText`, else its title. */
+export function cardOf(short: Short, durationS: number): TitleCard | null {
+  if (short.card === false) return null;
+  let text = (short.cardText ?? short.title).replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  if (text.length > CARD.maxChars) {
+    const cut = text.slice(0, CARD.maxChars + 1);
+    text = cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).replace(/[\s,;:.-]+$/, "");
+  }
+  const holdS = Math.max(0, Math.min(CARD.holdS, durationS - CARD.fadeS));
+  return { text, holdS, fadeS: CARD.fadeS };
+}
 
 export type ThumbnailProps = {
   main: string;
@@ -305,15 +331,25 @@ export function shortProps(
   const start = onCut(short.from, keep);
   const end = onCut(short.to, keep);
   const r = (x: number) => Math.round(x * 1000) / 1000;
-  const inside = long.words.flatMap((w, j) => (w.s >= start && w.s < end ? [j] : []));
+  // By their middles, like `sentences.ts` snaps them: a word Whisper overlaps into the edge.
+  const inside = long.words.flatMap((w, j) => {
+    const mid = (w.s + w.e) / 2;
+    return mid >= start && mid < end ? [j] : [];
+  });
+  const last = inside.length - 1;
   return {
     ...long,
     face,
     startFrame: Math.round(start * FPS),
     durationInFrames: Math.max(1, Math.round((end - start) * FPS)),
-    words: inside.map((j) => {
+    words: inside.map((j, k) => {
       const w = long.words[j] as Word;
-      return { ...w, s: r(w.s - start), e: r(Math.min(w.e, end) - start) };
+      return {
+        ...w,
+        w: k === last ? closed(k === 0 ? opened(w.w) : w.w) : k === 0 ? opened(w.w) : w.w,
+        s: r(Math.max(w.s, start) - start),
+        e: r(Math.min(w.e, end) - start),
+      };
     }),
     stress: inside.flatMap((j, k) => (long.stress.includes(j) ? [k] : [])),
     behind: shortBehind(
@@ -338,6 +374,7 @@ export function shortProps(
       .filter((l) => l.to > start && l.from < end)
       .map((l) => ({ ...l, from: r(Math.max(0, l.from - start)), to: r(l.to - start) })),
     title: short.title,
+    card: cardOf(short, end - start),
   };
 }
 

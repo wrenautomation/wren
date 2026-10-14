@@ -472,3 +472,14 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   `spaceStress`). Picks are kept strongest first, so trimming keeps the stronger; across asks
   "stronger" is each ask's own order, earlier asks first. It binds the model's picks only: a word he
   stresses by hand (`--add`, the page) isn't refused.
+- 2026-10-14: William: "all shorts approved btw, as long as they start and end on coherent
+  sentences", and a small Reels-style title at the start of each. Shorts now snap to whole
+  sentences on every set or proposal (`snapShorts`, `sentences.ts`), and a new or moved Short still
+  mid-sentence is refused. Video 4's transcript had no punctuation; pauses alone gave bad edges
+  ("i want | to scale"), so the gateway model punctuated it (`video words --punctuate`, text only,
+  1034 of 4489 words; Cohere took over when the free keys ran out). Whisper overlaps some words
+  ("heart." and the "um" after it), so an edge may sit on the word's own end. Video 3 moved 7 of 12
+  Shorts, video 4 moved 8, by up to 8.4 s. Title card: white label, 44 px, at y 170 of 1920, above
+  his eyes in the face-on-top layout, on from frame 0 (the cover), gone at 3 s; per Short `card` /
+  `cardText`. The approved drafts got the new render without a new approval (`video swap`); TikTok
+  drafts stay waiting.

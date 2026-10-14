@@ -49,6 +49,7 @@ import {
 } from "../src/promo-clock.ts";
 import type {
   BehindWord,
+  TitleCard as Card,
   Face,
   LongProps,
   ShortProps,
@@ -444,6 +445,49 @@ const FaceBox: FC<{
 };
 
 /**
+ * A Short's opening title, Reels style: a small white label at the top, just below the
+ * platforms' top bar and above his eyes, there from the first frame (the cover), then lifted
+ * away by `holdS + fadeS`.
+ */
+const TitleCard: FC<{ card: Card; t: number; look: Look }> = ({ card, t, look }) => {
+  if (t >= card.holdS + card.fadeS) return null;
+  const k = Math.min(1, Math.max(0, (t - card.holdS) / card.fadeS));
+  // Leaving accelerates (ease-in): it holds still, then goes.
+  const out = k * k;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 120,
+        right: 120,
+        top: 170,
+        display: "flex",
+        justifyContent: "center",
+        opacity: 1 - out,
+        transform: `translateY(${-16 * out}px)`,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 820,
+          padding: "16px 30px 18px",
+          borderRadius: 22,
+          background: "rgba(255,255,255,0.96)",
+          color: look.foreground,
+          font: `650 44px/1.2 ${look.font}`,
+          letterSpacing: "-0.01em",
+          textAlign: "center",
+          textWrap: "balance",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.28)",
+        }}
+      >
+        {card.text}
+      </div>
+    </div>
+  );
+};
+
+/**
  * 9:16: his face on top and the screen below (corner layout), his face alone (cam), or the screen
  * alone (screen, or no face). The recording plays under every layout: it carries the sound.
  */
@@ -457,6 +501,7 @@ export const Short: FC<ShortProps> = ({
   stress,
   behind,
   look,
+  card,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -512,6 +557,7 @@ export const Short: FC<ShortProps> = ({
           stress={stressed}
         />
       ) : null}
+      {card ? <TitleCard card={card} t={t} look={look} /> : null}
     </AbsoluteFill>
   );
 };
@@ -1139,7 +1185,7 @@ const Root: FC = () => (
       height={1920}
       fps={30}
       durationInFrames={300}
-      defaultProps={{ ...PLACEHOLDER, face: NO_FACE, startFrame: 0, title: "" }}
+      defaultProps={{ ...PLACEHOLDER, face: NO_FACE, startFrame: 0, title: "", card: null }}
       calculateMetadata={({ props }) => ({
         durationInFrames: props.durationInFrames,
         fps: props.fps,

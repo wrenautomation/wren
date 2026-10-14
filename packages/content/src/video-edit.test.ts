@@ -149,6 +149,18 @@ describe("videoChecks", () => {
     expect(says(c)).toContain("good: The preview is the latest render.");
   });
 
+  it("warns about Shorts that start or end mid-sentence", () => {
+    const words = ["One", "two", "three.", "Four", "five", "six."].map((w, i) => word(w, i));
+    const tracks = { main: { path: "/m.mp4", durationS: 10, width: 1920, height: 1080, fps: 30 } };
+    const shorts = [
+      { from: 0, to: 2.9, title: "a" },
+      { from: 1, to: 5.9, title: "b" },
+    ];
+    expect(says(videoChecks(edit({ words, shorts, tracks }), o))).toContain(
+      "warn: 1 Short starts or ends mid-sentence. Save the Shorts again to snap it to whole sentences.",
+    );
+  });
+
   it("says a stale render stopped, and a video never rendered", () => {
     const at = new Date(Date.now() - RENDER_STALE_MS - 1).toISOString();
     expect(says(videoChecks(edit({ render: { state: "rendering", at } }), o))).toContain(

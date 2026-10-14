@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { checkPatch, editPatchSchema, formatsFor } from "./edit.js";
-import { longProps, longSrt, shortProps, verticalProps, verticalWindow } from "./props.js";
+import {
+  CARD,
+  cardOf,
+  longProps,
+  longSrt,
+  shortProps,
+  verticalProps,
+  verticalWindow,
+} from "./props.js";
 import type { Cut, VideoEdit } from "./schema.js";
 
 const short = (from: number, to: number) => ({ from, to, title: "t" });
@@ -43,6 +51,56 @@ describe("shorts check", () => {
   });
 });
 
+describe("shorts on whole sentences", () => {
+  // Two 25 s sentences: "Alpha ... end." and "Beta ... end.", a word a second.
+  const sentence = (first: string, at: number) =>
+    Array.from({ length: 25 }, (_, i) => ({
+      w: i === 0 ? first : i === 24 ? "end." : "word",
+      s: at + i,
+      e: at + i + 0.9,
+    }));
+  const words = [...sentence("Alpha", 0), ...sentence("Beta", 25)];
+  const patch = (a: number, b: number) =>
+    editPatchSchema.parse({ shorts: [short(0, 24.95), short(a, b)] });
+
+  it("refuses a Short that starts or ends mid-sentence once there are words", () => {
+    expect(checkPatch(patch(25, 49.95), 60, [], words)).toEqual([]);
+    expect(checkPatch(patch(28, 49.95), 60, [], words)).toEqual([
+      'shorts[1]: starts mid-sentence ("Beta word word | word word word")',
+    ]);
+  });
+
+  it("lets a Short kept as it was through (the page warns instead)", () => {
+    expect(
+      checkPatch(patch(28, 49.95), 60, [], words, undefined, [{ from: 28, to: 49.95 }]),
+    ).toEqual([]);
+  });
+});
+
+describe("cardOf", () => {
+  it("is the title by default, there from the start", () => {
+    expect(cardOf(short(0, 30), 30)).toEqual({ text: "t", holdS: CARD.holdS, fadeS: CARD.fadeS });
+  });
+
+  it("says its own text, or nothing when turned off", () => {
+    expect(cardOf({ ...short(0, 30), cardText: "  Why  ads  " }, 30)?.text).toBe("Why ads");
+    expect(cardOf({ ...short(0, 30), card: false }, 30)).toBeNull();
+    expect(cardOf({ ...short(0, 30), title: " " }, 30)).toBeNull();
+  });
+
+  it("cuts a long title at a word, under the limit", () => {
+    const title = "How we turned one long video into twelve shorts without editing by hand";
+    const text = cardOf({ ...short(0, 30), title }, 30)?.text ?? "";
+    expect(text.length).toBeLessThanOrEqual(CARD.maxChars);
+    expect(title.startsWith(text)).toBe(true);
+    expect(text.endsWith(" ")).toBe(false);
+  });
+
+  it("goes before a very short clip ends", () => {
+    expect(cardOf(short(0, 2), 2)?.holdS).toBeCloseTo(2 - CARD.fadeS);
+  });
+});
+
 describe("camBox patch", () => {
   const parse = (x: unknown) => editPatchSchema.safeParse(x);
   it("takes a face box in the frame, or null to clear", () => {
@@ -77,8 +135,22 @@ describe("shortProps", () => {
     const p = shortProps(edit, 1);
     expect(p.startFrame).toBe(20 * 30);
     expect(p.durationInFrames).toBe(30 * 30);
-    expect(p.words).toEqual([{ w: "in", s: 1, e: 2 }]);
+    expect(p.words).toEqual([{ w: "In", s: 1, e: 2 }]);
     expect(p.face.file).toBeNull();
+    expect(p.card).toEqual({ text: "t", holdS: CARD.holdS, fadeS: CARD.fadeS });
+    // Its captions open on a capital and close on a stop.
+    const said = shortProps(
+      {
+        ...edit,
+        words: [
+          { w: "so,", s: 31, e: 32 },
+          { w: "we", s: 32, e: 33 },
+          { w: "ship,", s: 33, e: 34 },
+        ],
+      },
+      1,
+    ).words.map((w) => w.w);
+    expect(said).toEqual(["So,", "we", "ship."]);
     expect(() => shortProps(edit, 2)).toThrow(/no 2/);
   });
 });

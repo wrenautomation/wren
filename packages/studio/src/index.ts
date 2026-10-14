@@ -125,6 +125,13 @@ export {
   verticalWindow,
 } from "./props.js";
 export {
+  alignPunctuation,
+  PUNCTUATE_CHUNK,
+  punctuate,
+  punctuatePrompt,
+  unpunctuated,
+} from "./punctuate.js";
+export {
   openStudio,
   type RenderJob,
   renderAll,
@@ -148,6 +155,15 @@ export {
   zoneOf,
 } from "./safe-zones.js";
 export * from "./schema.js";
+export {
+  type EditWords,
+  keptWords,
+  type Moved,
+  SENTENCE,
+  sentenceEdges,
+  shortIssues,
+  snapShorts,
+} from "./sentences.js";
 export {
   checkStress,
   OUT_OF_FREE,

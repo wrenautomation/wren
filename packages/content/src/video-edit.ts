@@ -11,6 +11,7 @@ import { atomic, type Queryable } from "@wren/db";
 import { reviewCuts } from "@wren/studio/cuts";
 import { getEdit, setWords } from "@wren/studio/edit";
 import { type RenderState, type VideoEdit, videoEdits } from "@wren/studio/schema";
+import { shortIssues } from "@wren/studio/sentences";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { applyAnswer } from "./video-ask.js";
@@ -285,7 +286,8 @@ export function videoChecks(
   e: Pick<
     VideoEdit,
     "title" | "description" | "chapters" | "cuts" | "words" | "state" | "render" | "files"
-  >,
+  > &
+    Partial<Pick<VideoEdit, "shorts" | "tracks">>,
   o: { chaptersShown: number; lastChange: string | null; lastRender: string | null; now?: number },
 ): VideoCheck[] {
   const out: VideoCheck[] = [];
@@ -323,6 +325,23 @@ export function videoChecks(
         flagged === 1
           ? "1 cut is long or touches a word. Look at it under Cuts."
           : `${flagged} cuts are long or touch a word. Look at them under Cuts.`,
+    });
+  // Shorts open and close on whole sentences (sentences.ts); a set snaps them.
+  const loose = new Set(
+    e.shorts?.length && e.tracks
+      ? shortIssues(
+          { words: e.words, cuts: e.cuts, durationS: e.tracks.main.durationS },
+          e.shorts,
+        ).map((b) => b.split(":")[0])
+      : [],
+  ).size;
+  if (loose)
+    out.push({
+      tone: "warn",
+      say:
+        loose === 1
+          ? "1 Short starts or ends mid-sentence. Save the Shorts again to snap it to whole sentences."
+          : `${loose} Shorts start or end mid-sentence. Save the Shorts again to snap them to whole sentences.`,
     });
   out.push(...renderCheck(e.render, e.files, e.state, o, now));
   return out;

@@ -62,6 +62,10 @@ export interface Short {
   from: number;
   to: number;
   title: string;
+  /** The title on screen for its first seconds (`ShortProps.card`); false hides it. Default on. */
+  card?: boolean | undefined;
+  /** What the on-screen title says instead of `title`. */
+  cardText?: string | undefined;
 }
 export interface Chapter {
   at: number;
