@@ -115,6 +115,7 @@ export const APPS: Readonly<Record<string, string>> = {
   calls: "Calls",
   voice: "Voice",
   account: "Account",
+  people: "People",
 };
 export type App = keyof typeof APPS & string;
 

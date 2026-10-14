@@ -65,6 +65,7 @@ export const PLATFORM = {
     DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
+    PeopleConsole: "a client's People records, from its own database",
     MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
     SocialAccess: "Account → Social: a client's own social accounts, each one's state and sign-in",
@@ -93,6 +94,7 @@ export const PLATFORM = {
     library: "every template, prompt and sequence, with their numbers",
     notes: "docs for Wren's team and each client's people, with versions and sharing",
     learn: "saved links and followed sources, read and kept like a drive, in every workspace",
+    people: "everyone a workspace knows, and every message sent to them",
   },
   records: {
     "console.ask": "every question asked of Claude Code",
@@ -111,5 +113,6 @@ export const PLATFORM = {
     "delivery.change": "who changed an account's rows, from the audit log",
     "delivery.messaging": "an account's message rules: the per-person cap and link tags",
     "wren.parked": "parked ideas and their triggers",
+    "people.sent": "every message we sent, on any channel, with one state ladder",
   },
 } as const;

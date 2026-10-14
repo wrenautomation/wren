@@ -1723,6 +1723,13 @@
       "when": 1791983952759,
       "tag": "0245_message_caps",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1791984060905,
+      "tag": "0246_sent_log",
+      "breakpoints": true
     }
   ]
 }

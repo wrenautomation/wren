@@ -4,9 +4,10 @@
  * One address, two apps: a client's own people and Wren's.
  */
 import type { Module, ModulePage } from "../../module.js";
+import { sentPage } from "./sent.js";
 
 /** The pages both apps share; each build adds its own here. */
-export const PEOPLE_PAGES: ModulePage[] = [];
+export const PEOPLE_PAGES: ModulePage[] = [sentPage];
 
 /** A client's People, in its own workspace. */
 export const clientPeople: Module = {

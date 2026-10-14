@@ -280,8 +280,10 @@ import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox"
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
+import { makePeopleConsole } from "@wren/core/people/console";
 import { PortalRefusal } from "@wren/core/portal";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
+import { SENT_RECORDS } from "@wren/core/sent/records";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
@@ -1575,6 +1577,8 @@ export async function buildServices(
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
     makeSmsConsole({ db, open: openClient }),
+    // A client's People: the sent log, from its own database.
+    makePeopleConsole({ db, open: openClient }),
   );
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
   // reach account. Always bound: the sender and watch are off until
@@ -2194,6 +2198,8 @@ export async function buildServices(
         sopRecord,
         ...copyRecords(settings.smsSenderName),
         ...MARKETING_RECORDS,
+        // Every message we sent, on any channel (People → Sent).
+        ...SENT_RECORDS,
         ...templateRecords(WORKFLOWS),
         clientRecord,
         // Each client's health and the flags about it (Clients).

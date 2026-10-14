@@ -53,6 +53,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | CRM formats, import, scoring | [[reactivation/crm-contact]] | [[processes/reactivation-pass]] |
 | recruiters, firm facts | [[reactivation/client-profile]] | [[reactivation/handoff]], compose (`packages/reactivation/src/compose.ts`) |
 | forwarding, meetings, the bill | [[reactivation/handoff]] | [[platform/offer]] (`perUnit`), the portal (`packages/reactivation/src/portal/`) |
+| a message's state, or what People → Sent shows | [[leads/sent-log]] | [[email/message]], [[sms/sms-message]], [[content/comment]], [[processes/migrate]] (its views), `apps/portal/web/src/modules/people/sent.tsx` |
 | a record type, a field kind, or a portal table | [[platform/records]] | [[processes/migrate]] (its view), [[reactivation/crm-contact]], the portal Worker routes (`packages/reactivation/src/portal/routes.ts`) |
 | a bill, a vendor's rules, or how bills post | [[books/bill]], [[books/vendor]] | [[processes/books-import]], [[books/entry]], [[processes/migrate]] |
 | unit economics: spend buckets, invoices, an engagement's end or source | [[books/entry]], [[clients/engagement]] | `packages/books/src/economics.ts`, [[processes/migrate]] |

@@ -25,6 +25,7 @@ Citations: `packages/channel-sms/src/schema.ts:200`
 
 - **owned-by:** [[sms/sms-contact]], [[sms/sms-number]]
 - **joins:** [[sms/sms-event]] (delivery receipts update it), [[ledger/run]]
+- **joins:** [[leads/sent-log]] (each outbound text is a row in People → Sent; a later inbound text before our next send marks it replied)
 - **looks-like-but-is-not:** [[email/message]]
 
 ## If you change this

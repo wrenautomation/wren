@@ -52,6 +52,11 @@ import {
   MARKETING_CONSOLE_WRITES,
 } from "@wren/core/marketing/console-routes";
 import {
+  PEOPLE_CONSOLE_APPS,
+  PEOPLE_CONSOLE_ROUTES,
+  PEOPLE_CONSOLE_WRITES,
+} from "@wren/core/people/console-routes";
+import {
   TEMPLATES_CONSOLE_APPS,
   TEMPLATES_CONSOLE_ROUTES,
   TEMPLATES_CONSOLE_WRITES,
@@ -145,6 +150,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     MARKETING_CONSOLE_ROUTES,
     MARKETING_CONSOLE_APPS,
     MARKETING_CONSOLE_WRITES,
+  ),
+  // A client's People: the sent log, from its own database.
+  people: service(
+    "PeopleConsole",
+    PEOPLE_CONSOLE_ROUTES,
+    PEOPLE_CONSOLE_APPS,
+    PEOPLE_CONSOLE_WRITES,
   ),
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),

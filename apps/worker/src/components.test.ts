@@ -30,6 +30,7 @@ import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { MESSAGE_DEFAULTS } from "@wren/core/message-settings";
 import { handlerForm } from "@wren/core/restate";
+import { SENT_RECORDS } from "@wren/core/sent/records";
 import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
@@ -144,6 +145,7 @@ const RECORD_TYPES = [
   ),
   ...REACTIVATION_RECORDS,
   ...MARKETING_RECORDS,
+  ...SENT_RECORDS,
   settingOf({} as Client),
   reviewRecord(),
   askRecord,

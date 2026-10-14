@@ -8,6 +8,7 @@ export default defineConfig({
     "../core/src/schema.ts",
     "../core/src/views.ts",
     "../core/src/marketing-views.ts",
+    "../core/src/sent-views.ts",
     "../core/src/clients/schema.ts",
     "../core/src/setup-schema.ts",
     "../core/src/dead-letter-schema.ts",

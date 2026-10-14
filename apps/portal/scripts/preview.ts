@@ -59,7 +59,10 @@ import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
 } from "@wren/core/marketing/console-routes";
+import { PEOPLE_RECORDS, peopleConsoleApi } from "@wren/core/people/console";
+import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "@wren/core/people/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
+import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templatesApi } from "@wren/core/templates/console";
 import {
   TEMPLATES_CONSOLE_APPS,
@@ -215,6 +218,8 @@ const SERVICES: Record<
         ...LEARN_RECORDS,
         sopRecordFor(resolve(rootDir, settings.sopsDir)),
         ...SITES_RECORDS,
+        // Every message we sent (People → Sent).
+        ...SENT_RECORDS,
       ],
     }),
   },
@@ -367,6 +372,15 @@ const SERVICES: Record<
   },
   // A client's Texts, from its own database. A reply, Done and a review ask by hand run on
   // Restate: not here.
+  people: {
+    routes: Object.keys(PEOPLE_CONSOLE_ROUTES),
+    guard: { needs: PEOPLE_CONSOLE_ROUTES, apps: PEOPLE_CONSOLE_APPS, unnamed: "first" },
+    api: peopleConsoleApi({
+      db: main,
+      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      records: PEOPLE_RECORDS,
+    }),
+  },
   sms: {
     routes: Object.keys(SMS_CONSOLE_ROUTES),
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
