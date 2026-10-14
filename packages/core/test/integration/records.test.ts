@@ -188,6 +188,16 @@ describe("paging", () => {
     await refused(api.list({ record: "test.item", limit: 2.5 }));
   });
 
+  it("an offset starts that many rows in", async () => {
+    const all = await api.list({ record: "test.item", sort: "nm", limit: 200 });
+    const rest = await api.list({ record: "test.item", sort: "nm", limit: 3, offset: 3 });
+    expect(rest.rows.map((r) => r.id)).toEqual(all.rows.slice(3, 6).map((r) => r.id));
+    expect(rest.total).toBe(N);
+    await refused(api.list({ record: "test.item", offset: -1 }));
+    await refused(api.list({ record: "test.item", offset: 1.5 }));
+    await refused(api.list({ record: "test.item", offset: 1e9 }));
+  });
+
   it("a page marker from another sort is refused", async () => {
     const page = await api.list({ record: "test.item", sort: "n", limit: 3 });
     await refused(api.list({ record: "test.item", sort: "-n", cursor: page.next ?? "" }));

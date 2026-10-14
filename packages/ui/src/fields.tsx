@@ -331,7 +331,7 @@ export function FieldTotal({
   const link = (text: ReactNode, change: Record<string, string> | null, title?: string) =>
     change ? (
       <a
-        href={to({ ...change, after: null })}
+        href={to({ ...change, pg: null })}
         title={title}
         className="text-inherit no-underline hover:text-(--ui-ink) hover:underline"
       >

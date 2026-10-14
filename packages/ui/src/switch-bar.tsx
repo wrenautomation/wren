@@ -101,7 +101,7 @@ export function RecordSwitch({
   const all = Object.values(n).reduce((a, b) => a + b, 0);
   const meta = record ? types.data.find((t) => t.id === record) : undefined;
   const picked = choices.find(([k]) => k === pick)?.[1];
-  const link = (to: string | null) => place.link({ [field]: to, after: null });
+  const link = (to: string | null) => place.link({ [field]: to, pg: null });
 
   return (
     <>

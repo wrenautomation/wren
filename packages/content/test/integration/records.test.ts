@@ -295,6 +295,13 @@ describe("marketing.engage: every reply in one queue", () => {
     expect(
       waiting.every((r) => ["thread", "onpost", "comment", "dm"].includes(String(r.type))),
     ).toBe(true);
+    // Replies + DMs are people talking to us; Our comments are what we write on their ground.
+    const inbound = (await api.list({ record: engageRecord.id, view: "inbound", limit: 50 })).rows;
+    expect(inbound.every((r) => ["comment", "dm"].includes(String(r.type)))).toBe(true);
+    const outbound = (await api.list({ record: engageRecord.id, view: "outbound", limit: 50 }))
+      .rows;
+    expect(outbound.every((r) => ["thread", "onpost"].includes(String(r.type)))).toBe(true);
+    expect(outbound.map((r) => r.id)).toContain(`onpost:${p!.id}`);
     expect(await engageRecord.load?.(pg.db, `onpost:${p!.id}`)).toMatchObject({ ask: [] });
   });
 });

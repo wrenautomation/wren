@@ -1,8 +1,9 @@
 /**
  * The records routes over one client's database: list, get, export, and the types the web draws.
  * Every name in the SQL comes from a declaration (`./records.ts`), never from the ask; every
- * value is bound and cast by its field's kind. Pages are keyset, ordered by the sort, then the
- * key as text, so equal sort values never repeat or skip a row.
+ * value is bound and cast by its field's kind. Rows are ordered by the sort, then the key as
+ * text, so equal sort values never repeat or skip a row. A page follows a `cursor` (keyset) or
+ * starts `offset` rows in (a numbered pager jumps to page 12).
  *
  * With a mask (the demo), every row, detail and CSV cell goes through it, and filters are only
  * those `allowed` leaves: no masked field, no substring match, no value the mask would rewrite.
@@ -53,6 +54,8 @@ export interface ListAsk {
   /** `next` from the page before. */
   cursor?: string;
   limit?: number;
+  /** Rows to skip, after the cursor's: a numbered pager's page 12 is `11 * limit`. */
+  offset?: number;
   /** Only rows pointing at this record, as its type's `related` says: a person's emails. */
   of?: { record: string; id: string | number };
   /** Also count each state of every status, tags, verdict and choice field: Shop, Filter. */
@@ -104,7 +107,7 @@ export interface RecordAnswer {
   edit?: EditState | null;
 }
 export type ExportFormat = "csv" | "jsonl";
-export interface ExportAsk extends Omit<ListAsk, "cursor" | "limit"> {
+export interface ExportAsk extends Omit<ListAsk, "cursor" | "limit" | "offset"> {
   /** Absent, CSV. JSONL is a line per row, with its drafts' training records when it has some. */
   format?: ExportFormat;
 }
@@ -161,6 +164,7 @@ export const toCsv = ({ columns, rows }: { columns: string[]; rows: CsvCell[][] 
 
 const PAGE = 50;
 const MAX_LIMIT = 200;
+const MAX_OFFSET = 100_000;
 /** Like ConsolePortal's cap on a view. */
 export const MAX_EXPORT = 5000;
 const MAX_Q = 100;
@@ -730,6 +734,12 @@ export function serveRecords(
             throw new BadAsk("limit takes a whole number");
           limit = Math.min(ask.limit, MAX_LIMIT);
         }
+        let skip = 0;
+        if (ask.offset !== undefined) {
+          if (!Number.isSafeInteger(ask.offset) || ask.offset < 0 || ask.offset > MAX_OFFSET)
+            throw new BadAsk("offset takes a whole number");
+          skip = ask.offset;
+        }
         let after = sql`true`;
         if (ask.cursor !== undefined) {
           const [, isNull, v, k, g] = decode(ask.cursor, p.sortKey);
@@ -751,7 +761,7 @@ export function serveRecords(
           from ${await source(p.t)}
           where ${p.base} and ${p.inView} and ${after}
           order by ${p.order}
-          limit ${limit + 1}`);
+          limit ${limit + 1} offset ${skip}`);
         const views = p.t.views;
         const totals = totalsOf(p.t, p.inView);
         const [n] = await db.execute<Raw>(sql`

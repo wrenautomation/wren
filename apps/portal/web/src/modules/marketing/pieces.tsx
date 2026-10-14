@@ -29,6 +29,15 @@ import { type Load, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
+import {
+  nextOut,
+  PIECE_VIEWS,
+  type PieceShow,
+  type PieceSort,
+  type PieceWhat,
+  paramsOf,
+  viewOf,
+} from "./piece-views.js";
 
 export type { Branch, Piece };
 
@@ -297,7 +306,7 @@ function childLine(children: Piece[]): string {
   return `${parts.join(", ")} from it${waiting ? `, ${waiting} waiting on you` : ""}`;
 }
 
-type Show = "all" | "waiting" | "queued" | "live";
+type Show = PieceShow;
 const SHOWS: Record<Show, string> = {
   all: "Any state",
   waiting: "Waiting on you",
@@ -321,7 +330,7 @@ const onPlatform = (p: Piece, place: string): boolean =>
  * What a piece is, as he looks for it: a carousel or a thread is a format on a post's branch,
  * so it's found by its branches; the rest by the piece's kind.
  */
-type What = "long" | "clip" | "post" | "thread" | "carousel" | "story" | "blog";
+type What = Exclude<PieceWhat, "all">;
 const WHATS: { id: What; name: string; is: (p: Piece) => boolean }[] = [
   { id: "long", name: "Long videos", is: (p) => p.kind === "long" },
   { id: "clip", name: "Clips", is: (p) => p.kind === "vertical" },
@@ -342,20 +351,29 @@ const WHATS: { id: What; name: string; is: (p: Piece) => boolean }[] = [
 /** Every piece, a long video's clips and promos beside it: a carousel made from a video counts. */
 const everyPiece = (ps: Piece[]): Piece[] => ps.flatMap((p) => [p, ...everyPiece(p.children)]);
 
-type Sort = "new" | "waiting" | "views";
+type Sort = PieceSort;
 const SORTS: Record<Sort, string> = {
   new: "Newest first",
   waiting: "Waiting on you first",
   views: "Most views first",
+  soon: "Going out soonest first",
 };
 const viewsOf = (p: Piece) => branchesIn(p).reduce((n, b) => n + (b.views ?? 0), 0);
+/** Soonest first among what is set to go out; pieces with nothing queued follow, newest first. */
+const bySoon = (a: Piece, b: Piece): number => {
+  const x = nextOut(a);
+  const y = nextOut(b);
+  return x && y ? x.localeCompare(y) : x ? -1 : y ? 1 : b.at.localeCompare(a.at);
+};
 const sorted = (ps: Piece[], by: Sort): Piece[] =>
   by === "new"
     ? ps
     : [...ps].sort((a, b) =>
         by === "views"
           ? viewsOf(b) - viewsOf(a)
-          : allWaiting(b).length - allWaiting(a).length || b.at.localeCompare(a.at),
+          : by === "soon"
+            ? bySoon(a, b)
+            : allWaiting(b).length - allWaiting(a).length || b.at.localeCompare(a.at),
       );
 const found = (p: Piece, q: string): boolean =>
   !q || `${p.title}\n${p.text}`.toLowerCase().includes(q) || p.children.some((c) => found(c, q));
@@ -424,6 +442,7 @@ export function PiecesPage(props: PageProps) {
       true,
     );
 
+  const view = viewOf(what, show, sort);
   const all = load.data?.pieces ?? [];
   const every = everyPiece(all);
   const words = q.trim().toLowerCase();
@@ -443,6 +462,13 @@ export function PiecesPage(props: PageProps) {
     name: w.name,
     n: (w.id === "long" ? all : every).filter((p) => w.is(p) && fits(p, "what")).length,
   })).filter((w) => w.n > 0 || w.id === what);
+  const inView = (v: (typeof PIECE_VIEWS)[number]) => {
+    const w = WHATS.find((x) => x.id === v.what);
+    return (v.what === "long" ? all : every).filter(
+      (p) =>
+        (!w || w.is(p)) && shows(p, v.show) && (!place || onPlatform(p, place)) && found(p, words),
+    ).length;
+  };
   const places = [...new Set(every.flatMap((p) => p.branches.map((b) => b.platform)))]
     .filter((p) => p !== "editor")
     .sort()
@@ -469,6 +495,19 @@ export function PiecesPage(props: PageProps) {
         }
       />
       <div className="mb-5 grid gap-2.5">
+        <Chips
+          label="View"
+          value={view?.id ?? ""}
+          set={(id) => {
+            const v = PIECE_VIEWS.find((x) => x.id === id);
+            if (v) navigate(href("/marketing/pieces", paramsOf(v), props.params), true);
+          }}
+          options={PIECE_VIEWS.map((v) => ({
+            id: v.id,
+            name: v.name,
+            ...(v.id === "all" ? {} : load.data ? { n: inView(v) } : {}),
+          }))}
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Input
             aria-label="Find a piece"

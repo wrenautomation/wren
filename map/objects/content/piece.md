@@ -37,7 +37,7 @@ Citations: `packages/content/src/pieces.ts:1`, `packages/content/src/restate/pie
 
 | Surface | Role |
 |---|---|
-| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves; finds by words, what (`WHATS`: a carousel or thread by its branch format, inside a long video too), where, state, sort; picks live in the address |
+| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves; finds by words, what (`WHATS`: a carousel or thread by its branch format, inside a long video too), where, state, sort; picks live in the address; built-in views (`PIECE_VIEWS`, `piece-views.ts`: Everything, Waiting on you, Scheduled, Carousels, Videos, Clips, Written posts, Posted) set what, state and sort in one press and light when the picks match; Scheduled sorts by the soonest queued branch (`nextOut`) |
 | Marketing → Today (`apps/portal/web/src/modules/marketing/plan.tsx`) | reads, approves |
 | Home Today (`apps/portal/web/src/today.tsx`) | reads, approves |
 

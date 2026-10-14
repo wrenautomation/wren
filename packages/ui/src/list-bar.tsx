@@ -141,7 +141,7 @@ export function savedLink(meta: RecordMeta, place: Place, v: SavedViewLine) {
   const drop = Object.fromEntries(keysOf(meta).map((k) => [k, null]));
   return place.link({
     ...drop,
-    after: null,
+    pg: null,
     ...Object.fromEntries(new URLSearchParams(v.params)),
     sv: String(v.id),
   });
@@ -347,7 +347,7 @@ export function ViewTabs({
     ...meta.views.map((v, i) => ({
       id: v.id,
       label: v.label,
-      href: place.link({ view: i === 0 ? null : v.id, after: null, sort: null, sv: null }),
+      href: place.link({ view: i === 0 ? null : v.id, pg: null, sort: null, sv: null }),
       count: counts ? (counts[v.id] ?? 0) : undefined,
       on: v.id === current && !sv,
     })),
@@ -728,7 +728,7 @@ function FilterPanel({
   const id = useId();
   const { params } = place;
   const set = (f: FieldMeta, next: string | null) =>
-    place.go(place.link({ [f.key]: next, after: null }), true);
+    place.go(place.link({ [f.key]: next, pg: null }), true);
 
   useEffect(() => {
     if (!field || filterShape(field) !== "states" || !facets) return;
@@ -751,7 +751,7 @@ function FilterPanel({
   const order = groups.flatMap(([, fs]) => fs);
   const searching = !!many && !!t;
   const search = () => {
-    place.go(place.link({ q: text.trim(), after: null }), true);
+    place.go(place.link({ q: text.trim(), pg: null }), true);
     close();
   };
   const nav = useRoving(order.length + (searching ? 1 : 0));
@@ -943,7 +943,7 @@ function FilterPill({
       <button
         type="button"
         aria-label={`Remove ${field.label} filter`}
-        onClick={() => place.go(place.link({ [field.key]: null, after: null }), true)}
+        onClick={() => place.go(place.link({ [field.key]: null, pg: null }), true)}
         className="mr-1 inline-flex size-6 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-3) hover:text-(--ui-ink)"
       >
         <X className="size-3.5" />
@@ -1067,7 +1067,7 @@ export function ListBar({
     <a
       href={place.link({
         q: null,
-        after: null,
+        pg: null,
         ...Object.fromEntries(filters.map((f) => [f.key, null])),
       })}
       className="inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center px-2 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
@@ -1128,7 +1128,7 @@ export function ListBar({
               onClick={() =>
                 place.go(
                   place.link({
-                    after: null,
+                    pg: null,
                     ...Object.fromEntries(filters.map((f) => [f.key, null])),
                   }),
                   true,
@@ -1165,7 +1165,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     }
     const t = setTimeout(() => {
       typed.current = false;
-      place.go(place.link({ q: text.trim() || null, after: null }), true);
+      place.go(place.link({ q: text.trim() || null, pg: null }), true);
     }, 250);
     return () => clearTimeout(t);
   }, [text, asked, place]);

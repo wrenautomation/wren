@@ -74,7 +74,7 @@ const cleanParams = (params: unknown) => {
   if (typeof params !== "string") throw new PortalRefusal("say what it keeps", 400);
   if (params.length > PARAMS_MAX) throw new PortalRefusal("that view keeps too much", 400);
   const kept = new URLSearchParams(params);
-  for (const k of ["after", "sv", "tab"]) kept.delete(k);
+  for (const k of ["after", "pg", "sv", "tab"]) kept.delete(k);
   return kept.toString();
 };
 

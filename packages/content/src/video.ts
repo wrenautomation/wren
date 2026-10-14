@@ -673,6 +673,13 @@ export const videoRecord = (signer?: VideoSigner) => {
         sort: "-updated",
         at: "updated",
       },
+      {
+        id: "uploaded",
+        label: "On YouTube",
+        where: { state: "uploaded" },
+        sort: "-updated",
+        at: "updated",
+      },
       { id: "all", label: "All", sort: "-updated", at: "updated" },
       {
         id: "rejected",

@@ -1090,6 +1090,22 @@ export const engageRecord = defineRecord({
   views: [
     { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
     { id: "scheduled", label: "Scheduled", where: { state: "scheduled" }, sort: "due", at: "due" },
+    // People talking to us: comments on our posts and DMs.
+    {
+      id: "inbound",
+      label: "Replies + DMs",
+      where: { type: ["comment", "dm"] },
+      sort: "-at",
+      at: "at",
+    },
+    // What we write on others' ground: Reddit threads and their posts.
+    {
+      id: "outbound",
+      label: "Our comments",
+      where: { type: ["thread", "onpost"] },
+      sort: "due",
+      at: "due",
+    },
     { id: "threads", label: "Reddit", where: { type: "thread" }, sort: "-at", at: "at" },
     { id: "posts", label: "Their posts", where: { type: "onpost" }, sort: "due", at: "due" },
     { id: "ours", label: "On our posts", where: { type: "comment" }, sort: "-at", at: "at" },

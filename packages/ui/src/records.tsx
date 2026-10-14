@@ -79,6 +79,8 @@ import {
   useSaved,
   ViewTabs,
 } from "./list-bar.js";
+import { PageBar } from "./page-bar.js";
+import { offsetOf, PAGE_SIZE, pageAt, pagesOf } from "./pager.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
 import { BottomSheet, onRefresh, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
@@ -581,7 +583,7 @@ function ListDisplay({
               type="checkbox"
               checked={grouping}
               onChange={() =>
-                place.go(place.link({ group: grouping ? null : site.key, after: null }), true)
+                place.go(place.link({ group: grouping ? null : site.key, pg: null }), true)
               }
               className="size-3.5 accent-(--ui-ink)"
             />
@@ -644,21 +646,19 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   if (group && meta.fields.some((f) => f.key === group && f.states)) ask.group = group;
   const q = params.get("q")?.trim();
   if (q) ask.q = q;
-  const after = params.get("after");
-  if (after) ask.cursor = after;
   return ask;
 }
 
 /** Filter's counts: one row's page with the facets of this address, read when a choice opens. */
 export const facetsOf = (api: RecordsApi, ask: ListAsk) => () => {
-  const { cursor: _, ...rest } = ask;
+  const { cursor: _, offset: __, ...rest } = ask;
   return api.list({ ...rest, facets: true, limit: 1 }).then((p) => p.facets);
 };
 
 const EXPORT_TYPE = { csv: "text/csv", jsonl: "application/jsonl" } as const;
 
 async function download(api: RecordsApi, ask: ListAsk, name: string, format: ExportFormat) {
-  const { cursor: _, limit: __, ...rest } = ask;
+  const { cursor: _, limit: __, offset: ___, ...rest } = ask;
   const got = await api.export({ ...rest, format });
   const url = URL.createObjectURL(new Blob([got.body], { type: EXPORT_TYPE[format] }));
   const a = Object.assign(document.createElement("a"), {
@@ -690,7 +690,7 @@ function SortHead({
   const Arrow = desc ? ArrowDown : ArrowUp;
   return (
     <a
-      href={place.link({ sort: next, after: null })}
+      href={place.link({ sort: next, pg: null })}
       className={cn(
         "inline-flex items-center gap-1 no-underline hover:text-(--ui-ink)",
         end && "flex-row-reverse",
@@ -1020,8 +1020,16 @@ function List({
   const ask = askOf(meta, params);
   /** The field rows are grouped by, each group under its band. */
   const grouped = ask.group ? (meta.fields.find((f) => f.key === ask.group) ?? null) : null;
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
+  // The page the address names: `pg` from 1, read as rows to skip.
+  const at = pageAt(params.get("pg"));
+  const listed: ListAsk = {
+    ...ask,
+    limit: PAGE_SIZE,
+    ...(at > 1 ? { offset: offsetOf(at) } : {}),
+  };
+  const page = useLoad(JSON.stringify(listed), () => api.list(listed), api);
   const rows = page.data?.rows ?? [];
+  const pages = pagesOf(page.data?.total ?? 0);
   const narrow = useNarrow();
   const cols = shownColumns(meta, columnsOf(meta, params, columns), rows, {
     byHand: params.has("cols"),
@@ -1032,6 +1040,28 @@ function List({
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const [scroller, room] = useRoom();
+  const frame = useRef<HTMLDivElement | null>(null);
+  const frameRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      frame.current = el;
+      scroller(el);
+    },
+    [scroller],
+  );
+  // A new page starts at the top of the list, not wherever the pager was pressed.
+  const was = useRef(at);
+  useEffect(() => {
+    if (was.current === at) return;
+    was.current = at;
+    frame.current?.scrollTo?.(0, 0);
+    frame.current?.scrollIntoView({ block: "nearest" });
+  }, [at]);
+  // A page past the end (rows left since the link was made) lands on the last one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: place changes every render.
+  useEffect(() => {
+    if (page.data && at > pages)
+      place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
+  }, [page.data, at, pages]);
   const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
   const saved = useSaved(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
@@ -1152,7 +1182,7 @@ function List({
         },
       ],
       search: searchable
-        ? { label: `Search ${many}`, run: (q: string) => place.go(place.link({ q, after: null })) }
+        ? { label: `Search ${many}`, run: (q: string) => place.go(place.link({ q, pg: null })) }
         : undefined,
     }),
   );
@@ -1250,7 +1280,7 @@ function List({
         <LoadFailed error={page.error} onRetry={page.retry} />
       ) : (
         <div
-          ref={scroller}
+          ref={frameRef}
           className={cn(
             // Framed; its last row drops its rule, which the frame draws. A phone's cards scroll
             // with the page, not in a box of their own.
@@ -1512,28 +1542,15 @@ function List({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 text-[13px] text-(--ui-ink-2)">
-        <span className="ml-auto flex gap-2">
-          {ask.cursor ? (
-            <Button
-              tone="secondary"
-              size="dense"
-              onClick={() => place.go(place.link({ after: null }))}
-            >
-              First page
-            </Button>
-          ) : null}
-          {page.data?.next ? (
-            <Button
-              tone="secondary"
-              size="dense"
-              onClick={() => place.go(place.link({ after: page.data?.next ?? null }))}
-            >
-              Next {num(rows.length)}
-            </Button>
-          ) : null}
-        </span>
-      </div>
+      <PageBar
+        place={place}
+        page={Math.min(at, pages)}
+        pages={pages}
+        total={page.data?.total ?? 0}
+        shown={rows.length}
+        size={PAGE_SIZE}
+        narrow={narrow}
+      />
 
       {openId ? (
         <Panel
@@ -1739,7 +1756,7 @@ function ElseWhere({
   if (!v || !counts) return null;
   return (
     <a
-      href={place.link({ view: i === 0 ? null : v.id, after: null, sort: null })}
+      href={place.link({ view: i === 0 ? null : v.id, pg: null, sort: null })}
       className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
     >
       {v.label} <span className="text-(--ui-ink-2)">{num(counts[v.id] ?? 0)}</span>
