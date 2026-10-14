@@ -42,16 +42,60 @@ function SavedPage(_: PageProps) {
 
 // Items' places, collections and tags are tabs from its data, after Search (./frame.tsx).
 const pages: Module["pages"] = [
-  { id: "overview", label: "Home", Page: HomePage, wide: true },
+  {
+    id: "overview",
+    label: "Home",
+    about: "The best of what you follow, scored against your SOPs.",
+    Page: HomePage,
+    wide: true,
+  },
   // Your daily digest: the last 24 hours, best first, and your alert picks.
-  { id: "today", label: "Today", Page: TodayPage, wide: true },
-  { id: "search", label: "Search", Page: SearchPage, wide: true },
-  { id: "sources", label: "Sources", group: "Setup", Page: SourcesPage, wide: true },
+  {
+    id: "today",
+    label: "Today",
+    about: "The last day's best from what you follow.",
+    Page: TodayPage,
+    wide: true,
+  },
+  {
+    id: "search",
+    label: "Search",
+    about: "Search every transcript, word for word.",
+    Page: SearchPage,
+    wide: true,
+  },
+  {
+    id: "sources",
+    label: "Sources",
+    about: "The creators and feeds you follow.",
+    group: "Setup",
+    Page: SourcesPage,
+    wide: true,
+  },
 ];
 const hidden: Module["pages"] = [
-  { id: "items", label: "Items", hidden: true, Page: ItemsPage, wide: true },
-  { id: "saved", label: "Saved", hidden: true, Page: SavedPage },
-  { id: "add", label: "Save a link", hidden: true, Page: AddPage },
+  {
+    id: "items",
+    label: "Items",
+    about: "One saved item, with its transcript and notes.",
+    hidden: true,
+    Page: ItemsPage,
+    wide: true,
+  },
+  {
+    id: "saved",
+    label: "Saved",
+    about: "Everything you saved to come back to.",
+    hidden: true,
+    Page: SavedPage,
+  },
+  {
+    id: "add",
+    label: "Save a link",
+    about: "Save a link to read and learn from.",
+    hidden: true,
+    Page: AddPage,
+  },
 ];
 
 export const learn: Module = {
@@ -70,6 +114,7 @@ export const learn: Module = {
     {
       id: "competitors",
       label: "Competitors",
+      about: "How competitors' reels are made, and how far they reach.",
       group: "Competitors",
       template: "overview",
       tiles: [
@@ -112,6 +157,7 @@ export const learn: Module = {
     {
       id: "reels",
       label: "Reels",
+      about: "Each reel broken down into its hook, beats and ask.",
       group: "Competitors",
       template: "list",
       record: "learn.breakdown",
@@ -121,6 +167,7 @@ export const learn: Module = {
     {
       id: "hooks",
       label: "Hooks",
+      about: "Hook styles, ranked by how far they reach.",
       group: "Competitors",
       template: "list",
       record: "learn.hook",
@@ -129,6 +176,7 @@ export const learn: Module = {
     {
       id: "sops",
       label: "SOPs",
+      about: "Your SOPs, and the items added to each one.",
       group: "Setup",
       template: "list",
       record: "learn.sop",

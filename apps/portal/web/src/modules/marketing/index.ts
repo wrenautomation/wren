@@ -982,6 +982,7 @@ const ENGAGE_ACTIONS: Action[] = [
 const ENGAGE_PAGE: ListPage = {
   id: "engage",
   label: "Engage",
+  about: "Every reply you might write, in one queue.",
   group: "Content",
   template: "list",
   record: "marketing.engage",
@@ -1051,6 +1052,7 @@ const EXPLORE_ACTIONS: Action[] = [
 const EXPLORE_PAGE: ListPage = {
   id: "explore",
   label: "Feed",
+  about: "New posts the topic searches found, to reply to or follow.",
   hidden: true,
   lights: "feed",
   template: "list",
@@ -1072,6 +1074,7 @@ const EXPLORE_PAGE: ListPage = {
  */
 export const INBOX_PAGE: Omit<ListPage, "id"> = {
   label: "Inbox",
+  about: "Messages, comments and replies waiting on you, from every channel.",
   template: "list",
   record: "marketing.inbox",
   // Their words preview under who; Kind, Where and Open sit on the thread itself.
@@ -1103,6 +1106,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
 export const DONE_PAGE: ListPage = {
   id: "done",
   label: "Done",
+  about: "What you approved, rejected, edited or sent, newest first.",
   template: "list",
   record: "marketing.done",
   columns: ["what", "event", "kind", "platform", "via", "at", "url", "open"],
@@ -1120,6 +1124,7 @@ export const DONE_PAGE: ListPage = {
 export const APPROVAL_PAGE: ListPage = {
   id: "approve",
   label: "To approve",
+  about: "Drafts, replies and posts that wait on your yes before they go out.",
   template: "list",
   record: "marketing.approval",
   // Kind says what Type does, in more words.
@@ -1212,6 +1217,7 @@ const TEXT_COPY_ACTIONS: Action[] = [
 const TODAY: DayPage = {
   id: "today",
   label: "Today",
+  about: "Each platform's day: what went out and what waits on you.",
   group: "Content",
   template: "day",
   by: "platform",
@@ -1284,6 +1290,7 @@ export const CONVERSATION_TOP = {
 const REVIEWS_PAGE: ListPage = {
   id: "reviews",
   label: "Reviews",
+  about: "Reviews of your business, each with a reply to send.",
   group: "Reach",
   template: "list",
   record: "marketing.review",
@@ -1331,6 +1338,7 @@ const mainPlusMore = (pages: ModulePage[]): ModulePage[] => {
   const more: ModulePage = {
     id: "more",
     label: "More",
+    about: "Every other Marketing page, by what it's for.",
     Page: () => createElement(MorePage, { groups }),
   };
   const main = order
@@ -1353,6 +1361,7 @@ const mainPlusMore = (pages: ModulePage[]): ModulePage[] => {
 const AD_DAYS: ListPage = {
   id: "ads",
   label: "Ads",
+  about: "How each ad set did, day by day.",
   template: "list",
   record: "marketing.ad_day",
   empty: "Ad days show here once an ad runs.",
@@ -1373,6 +1382,7 @@ export const ads: Module = {
     {
       id: "formats",
       label: "Formats",
+      about: "The ad formats we make, and how each one does.",
       template: "list",
       record: "ads.format",
       empty: "No formats yet.",
@@ -1385,6 +1395,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "visits",
     label: "Visits",
+    about: "Visits to your site, day by day.",
     group: "Visitors",
     template: "list",
     record: "marketing.site_day",
@@ -1393,6 +1404,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "sessions",
     label: "Sessions",
+    about: "Recordings of single visits to your site, to replay.",
     group: "Visitors",
     template: "list",
     record: "marketing.session",
@@ -1405,6 +1417,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "heatmaps",
     label: "Heatmaps",
+    about: "Where visitors click and how far they scroll, per page.",
     group: "Visitors",
     template: "list",
     record: "marketing.heat",
@@ -1414,6 +1427,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "experiments",
     label: "Experiments",
+    about: "Tests of a site's variants, and which one wins.",
     group: "Visitors",
     template: "list",
     record: "marketing.experiment",
@@ -1426,6 +1440,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "surveys",
     label: "Surveys",
+    about: "One-question surveys for site visitors or clients.",
     group: "Visitors",
     template: "list",
     record: "marketing.survey",
@@ -1438,6 +1453,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "survey-answers",
     label: "Survey answers",
+    about: "The answers your surveys got.",
     group: "Visitors",
     template: "list",
     record: "marketing.survey_answer",
@@ -1446,6 +1462,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "search-days",
     label: "Search days",
+    about: "Your Google search numbers, day by day.",
     group: "Search",
     hidden: true,
     template: "list",
@@ -1455,6 +1472,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "search",
     label: "Search",
+    about: "Your site's pages, and whether Google has them.",
     group: "Search",
     template: "list",
     record: "marketing.search_page",
@@ -1463,6 +1481,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "keywords",
     label: "Keywords",
+    about: "The searches you show up for, and where you rank.",
     group: "Search",
     template: "list",
     record: "marketing.keyword",
@@ -1471,6 +1490,7 @@ export const SITE_PAGES: ListPage[] = [
   {
     id: "answers",
     label: "AI answers",
+    about: "What AI assistants say when asked your keywords.",
     group: "Search",
     template: "list",
     record: "marketing.answer",
@@ -1493,10 +1513,17 @@ export const marketing: Module = {
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
     { id: "inbox", ...INBOX_PAGE, hidden: true },
     { ...APPROVAL_PAGE, hidden: true },
-    { id: "auto-reply", label: "Auto-reply", group: "Reach", Page: AutoReplyPage },
+    {
+      id: "auto-reply",
+      label: "Auto-reply",
+      about: "What happens when someone writes in, per channel.",
+      group: "Reach",
+      Page: AutoReplyPage,
+    },
     {
       id: "keywords",
       label: "Comment keywords",
+      about: "Words that get a commenter your DM when they say them.",
       group: "Reach",
       template: "list",
       record: "marketing.comment_keyword",
@@ -1506,6 +1533,7 @@ export const marketing: Module = {
     {
       id: "keyword-dms",
       label: "Keyword DMs",
+      about: "Comments that said a keyword, and the DM each one got.",
       group: "Reach",
       template: "list",
       record: "marketing.keyword_hit",
@@ -1513,22 +1541,41 @@ export const marketing: Module = {
     },
     REVIEWS_PAGE,
     TODAY,
-    { id: "plan", label: "Today", Page: PlanPage },
-    { id: "pieces", label: "Pieces", Page: PiecesPage },
+    {
+      id: "plan",
+      label: "Today",
+      about: "What to make today, what waits on you, and what went out.",
+      Page: PlanPage,
+    },
+    {
+      id: "pieces",
+      label: "Pieces",
+      about: "Everything you made, each with everywhere it went.",
+      Page: PiecesPage,
+    },
     {
       id: "write",
       label: "Write",
+      about: "Write a post once and pick where it goes.",
       group: "Content",
       Page: WritePage,
       wide: true,
     },
     ENGAGE_PAGE,
-    { id: "feed", label: "Feed", group: "Content", Page: FeedPage, wide: true },
+    {
+      id: "feed",
+      label: "Feed",
+      about: "Posts from the people and topics you follow.",
+      group: "Content",
+      Page: FeedPage,
+      wide: true,
+    },
     EXPLORE_PAGE,
     // Write lists what waits; this keeps draft links landing.
     {
       id: "drafts",
       label: "Drafts",
+      about: "Post drafts waiting for you to approve or reject.",
       hidden: true,
       template: "list",
       record: "marketing.draft",
@@ -1543,6 +1590,7 @@ export const marketing: Module = {
     {
       id: "content",
       label: "Posts",
+      about: "Every post that went out, best first.",
       group: "Content",
       template: "list",
       record: "marketing.post",
@@ -1568,6 +1616,7 @@ export const marketing: Module = {
     {
       id: "comments",
       label: "Comments",
+      about: "Comments on your posts, waiting on a reply.",
       group: "Content",
       template: "list",
       record: "marketing.comment",
@@ -1584,6 +1633,7 @@ export const marketing: Module = {
     {
       id: "videos",
       label: "Videos",
+      about: "Rendered videos waiting on your review.",
       group: "Content",
       template: "list",
       record: "marketing.video",
@@ -1597,16 +1647,24 @@ export const marketing: Module = {
     {
       id: "topics",
       label: "Topics",
+      about: "The email topics people can sign up for.",
       group: "Content",
       template: "list",
       record: "marketing.topic",
       empty: "Email topics people can sign up for show here.",
     },
     // What every draft may claim; the guard's drop reason on a draft links here.
-    { id: "facts", label: "Facts", group: "Content", Page: FactsPage },
+    {
+      id: "facts",
+      label: "Facts",
+      about: "What drafts may say about you and Wren.",
+      group: "Content",
+      Page: FactsPage,
+    },
     {
       id: "people",
       label: "People",
+      about: "People you can message, and what's open with each.",
       group: "Reach",
       template: "list",
       record: "marketing.person",
@@ -1620,6 +1678,7 @@ export const marketing: Module = {
     {
       id: "dms",
       label: "DMs",
+      about: "Direct messages waiting on your reply.",
       group: "Reach",
       template: "list",
       record: "marketing.dm",
@@ -1637,6 +1696,7 @@ export const marketing: Module = {
     {
       id: "invites",
       label: "Invites",
+      about: "Connection invites waiting on your yes.",
       group: "Reach",
       template: "list",
       record: "marketing.invite",
@@ -1659,6 +1719,7 @@ export const marketing: Module = {
     {
       id: "followers",
       label: "Followers",
+      about: "Your followers on each platform, and the change in a week.",
       group: "Reach",
       template: "list",
       record: "marketing.audience",
@@ -1668,6 +1729,7 @@ export const marketing: Module = {
     {
       id: "subscribers",
       label: "Subscribers",
+      about: "People who signed up for your email topics.",
       group: "Reach",
       template: "list",
       record: "marketing.subscriber",
@@ -1682,6 +1744,7 @@ export const marketing: Module = {
     {
       id: "dm-copy",
       label: "DM copy",
+      about: "The words each DM sends, slot by slot.",
       group: "Reach",
       template: "list",
       record: "marketing.dm_copy",
@@ -1691,6 +1754,7 @@ export const marketing: Module = {
     {
       id: "threads",
       label: "Thread replies",
+      about: "New posts in the places you watch, each with a reply drafted.",
       group: "Reach",
       template: "list",
       record: "marketing.thread",
@@ -1705,6 +1769,7 @@ export const marketing: Module = {
     {
       id: "places",
       label: "Places",
+      about: "Subreddits worth posting in, and what each one wants.",
       group: "Reach",
       template: "list",
       record: "marketing.place",
@@ -1718,6 +1783,7 @@ export const marketing: Module = {
     {
       id: "texts",
       label: "Texts",
+      about: "Text conversations waiting on your reply.",
       group: "Reach",
       template: "list",
       record: "marketing.text_contact",
@@ -1732,6 +1798,7 @@ export const marketing: Module = {
     {
       id: "text-copy",
       label: "Text copy",
+      about: "The words of every text we send.",
       group: "Reach",
       template: "list",
       record: "marketing.text_copy",
@@ -1742,6 +1809,7 @@ export const marketing: Module = {
     {
       id: "overview",
       label: "Overview",
+      about: "Your marketing numbers at a glance.",
       group: "Numbers",
       template: "overview",
       tiles: [
@@ -1911,6 +1979,7 @@ export const marketing: Module = {
     {
       id: "funnel",
       label: "Funnel",
+      about: "Each channel's funnel, from first visit to booking.",
       group: "Numbers",
       template: "list",
       record: "marketing.funnel",
@@ -1919,6 +1988,7 @@ export const marketing: Module = {
     {
       id: "links",
       label: "Links",
+      about: "Who came through each tracked link, and what they did next.",
       group: "Ads & Site",
       hidden: true,
       template: "list",
@@ -1932,6 +2002,7 @@ export const marketing: Module = {
     {
       id: "conversation",
       label: "Conversation",
+      about: "How fast and how often we answer comments and DMs.",
       group: "Numbers",
       hidden: true,
       template: "list",
@@ -1941,6 +2012,7 @@ export const marketing: Module = {
     {
       id: "cadence",
       label: "Cadence",
+      about: "Your posting goals against what went out this week.",
       group: "Numbers",
       hidden: true,
       template: "list",
@@ -1950,6 +2022,7 @@ export const marketing: Module = {
     {
       id: "digest",
       label: "What worked",
+      about: "What worked last week, by platform.",
       group: "Numbers",
       hidden: true,
       template: "list",
@@ -1959,6 +2032,7 @@ export const marketing: Module = {
     {
       id: "metrics",
       label: "Every number",
+      about: "Every number we track, and what each missing one needs.",
       group: "Numbers",
       hidden: true,
       template: "list",
@@ -1968,6 +2042,7 @@ export const marketing: Module = {
     {
       id: "reports",
       label: "Reports",
+      about: "Your numbers by email each week or month, against the one before.",
       group: "Numbers",
       Page: ReportsPage,
       requires: { needs: "manage" },
@@ -2008,6 +2083,7 @@ const clientInbox = (a: Action): Action => {
 const CLIENT_APPROVE: ListPage = {
   id: "approve",
   label: "To approve",
+  about: "Inbox replies that wait on a yes before they send.",
   template: "list",
   record: "marketing.asked_reply",
   columns: ["who", "kind", "why", "account", "at"],
@@ -2037,7 +2113,12 @@ export const clientMarketing: Module = {
       actions: INBOX_THREAD_ACTIONS.map(clientInbox),
       extras: conversationExtras,
     }),
-    { id: "auto-reply", label: "Auto-reply", Page: AutoReplyPage },
+    {
+      id: "auto-reply",
+      label: "Auto-reply",
+      about: "What happens when someone writes in, per channel.",
+      Page: AutoReplyPage,
+    },
     REVIEWS_PAGE,
     CLIENT_APPROVE,
     asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
@@ -2045,6 +2126,12 @@ export const clientMarketing: Module = {
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
     asClient("search"),
     asClient("keywords"),
-    { id: "reports", label: "Reports", Page: ReportsPage, requires: { needs: "manage" } },
+    {
+      id: "reports",
+      label: "Reports",
+      about: "Your numbers by email each week or month, against the one before.",
+      Page: ReportsPage,
+      requires: { needs: "manage" },
+    },
   ],
 };

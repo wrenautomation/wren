@@ -20,10 +20,17 @@ export const library: Module = {
   requires: { audience: "team" },
   pages: [
     // A browser: folders, rows, the open one's editor, history and numbers.
-    { id: "templates", label: "Templates", Page: Templates, wide: true },
+    {
+      id: "templates",
+      label: "Templates",
+      about: "Every template and prompt, by folder, with its versions.",
+      Page: Templates,
+      wide: true,
+    },
     {
       id: "sequences",
       label: "Sequences",
+      about: "The email sequences our workflows send.",
       template: "list",
       record: "templates.sequence",
       empty: "No workflow sends a sequence.",
@@ -33,6 +40,7 @@ export const library: Module = {
     {
       id: "snippets",
       label: "Snippets",
+      about: "Replies you send often, ready to drop into any draft.",
       template: "list",
       record: SNIPPET,
       empty: "No snippets yet. Save a reply you send often, then insert it from any draft.",
@@ -43,6 +51,7 @@ export const library: Module = {
     {
       id: "media",
       label: "Media",
+      about: "Every rendered file, and where it went.",
       template: "list",
       record: "library.media",
       empty: "No video is rendered yet.",
@@ -50,10 +59,16 @@ export const library: Module = {
       extras: mediaExtras,
     },
     // Read only: the blocks of a Sections page, drawn from sample words.
-    { id: "sections", label: "Sections", Page: Sections },
+    {
+      id: "sections",
+      label: "Sections",
+      about: "The blocks a page is built from.",
+      Page: Sections,
+    },
     {
       id: "sops",
       label: "SOPs",
+      about: "The SOPs the content loop follows.",
       template: "list",
       record: "library.sop",
       empty: "No SOP is pushed yet.",
@@ -62,6 +77,7 @@ export const library: Module = {
     {
       id: "workflows",
       label: "Workflows",
+      about: "Saved workflow templates, and how each one is wired.",
       template: "list",
       record: "library.workflow",
       empty: "No workflow is declared.",

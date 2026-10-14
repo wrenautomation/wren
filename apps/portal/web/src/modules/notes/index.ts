@@ -12,9 +12,22 @@ import { NoteMentions, unseenMentions } from "./mentions.js";
 const NoteDoc = lazy(() => import("./doc.js").then((m) => ({ default: m.NoteDoc })));
 
 const pages: Module["pages"] = [
-  { id: "home", label: "Notes", Page: NotesHome, wide: true },
-  { id: "mentions", label: "Mentions", Page: NoteMentions, badge: unseenMentions },
-  { id: "doc", label: "Note", Page: NoteDoc, wide: true, hidden: true },
+  { id: "home", label: "Notes", about: "Your notes, plans and docs.", Page: NotesHome, wide: true },
+  {
+    id: "mentions",
+    label: "Mentions",
+    about: "Notes where someone tagged you with @.",
+    Page: NoteMentions,
+    badge: unseenMentions,
+  },
+  {
+    id: "doc",
+    label: "Note",
+    about: "One note, with its versions and comments.",
+    Page: NoteDoc,
+    wide: true,
+    hidden: true,
+  },
 ];
 
 export const notes: Module = {

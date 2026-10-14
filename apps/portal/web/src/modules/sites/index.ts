@@ -19,6 +19,7 @@ import { linkExtras, linkHead } from "./links.js";
 const LINKS: ListPage = {
   id: "links",
   label: "Links",
+  about: "Tracked links to your pages, one for each place you post them.",
   template: "list",
   record: "sites.link",
   empty: {
@@ -46,6 +47,7 @@ const LINKS: ListPage = {
 const FORMS: ListPage = {
   id: "forms",
   label: "Forms",
+  about: "The forms on your pages.",
   template: "list",
   record: "sites.form",
   empty: {
@@ -73,6 +75,7 @@ const FORMS: ListPage = {
 const SUBMISSIONS: ListPage = {
   id: "submissions",
   label: "Submissions",
+  about: "Every form someone sent from your pages, in full.",
   template: "list",
   record: "sites.entry",
   empty: "No forms sent. Every submit from a page or a hosted form lands here, whole.",
@@ -102,6 +105,7 @@ export const sites: Module = {
     {
       id: "pages",
       label: "Pages",
+      about: "The pages Wren built for you, and how each one does.",
       template: "list",
       record: "sites.page",
       empty: {
@@ -134,13 +138,20 @@ export const sites: Module = {
     {
       id: "funnel",
       label: "Funnel",
+      about: "Each page's visits, forms and bookings.",
       template: "list",
       record: "sites.funnel",
       empty: "No visits counted yet. Each page's tracker fills this.",
       columns: ["title", "channel", "offer", "views", "forms", "books", "formRate", "spend"],
     },
     // The same rows drawn: sources, pages, forms, bookings.
-    { id: "funnel-map", label: "Funnel map", Page: FunnelGraph, wide: true },
+    {
+      id: "funnel-map",
+      label: "Funnel map",
+      about: "Where visits came from, where they landed, and what they did next.",
+      Page: FunnelGraph,
+      wide: true,
+    },
     LINKS,
     FORMS,
     SUBMISSIONS,
@@ -165,6 +176,7 @@ export const clientSites: Module = {
     {
       id: "pages",
       label: "Pages",
+      about: "Every landing page, and how each one does.",
       template: "list",
       record: "sites.page",
       empty: {
