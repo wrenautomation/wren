@@ -72,6 +72,19 @@ describe("connectUrl", () => {
   });
 });
 
+describe("tiktok who", () => {
+  it("asks only for fields the granted scopes cover (username needs user.info.profile)", async () => {
+    const { fetch, asked } = fakeFetch((url) =>
+      url.includes("/v2/user/info/")
+        ? new Response(JSON.stringify({ data: { user: { open_id: "o1", display_name: "Wren" } } }))
+        : undefined,
+    );
+    const who = await whoAmI(fetch, "tiktok", "tok", {});
+    expect(asked[0]?.url).not.toContain("username");
+    expect(who).toMatchObject({ externalId: "o1", name: "Wren", handle: null });
+  });
+});
+
 describe("landCode", () => {
   it("Meta: code, long-lived user token, then the Page's token is the one kept", async () => {
     const { fetch, asked } = fakeFetch((url) => {

@@ -396,14 +396,15 @@ export async function whoAmI(
     case "tiktok": {
       const b = await json(
         fetch,
-        `${TIKTOK_API}/v2/user/info/?fields=open_id,display_name,username`,
+        // `username` needs user.info.profile, a scope Wren does not ask for: asking 401s the connect.
+        `${TIKTOK_API}/v2/user/info/?fields=open_id,display_name`,
         bearer(access),
       );
       const u = ((b.data as Json | undefined)?.user as Json | undefined) ?? {};
       return {
         externalId: String(u.open_id),
         name: str(u.display_name),
-        handle: str(u.username),
+        handle: null,
       };
     }
     case "linkedin_page": {
