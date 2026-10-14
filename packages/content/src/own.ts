@@ -1,4 +1,5 @@
 /** Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`). */
+import { randomBytes } from "node:crypto";
 import type { Platform } from "@wren/core/content";
 import { isCarousel } from "@wren/core/content/slides";
 import { recordDraft } from "@wren/core/draft-record";
@@ -11,6 +12,19 @@ import { OWN_WORDS, ownDraftOf } from "./write.js";
 
 export { splitPosts } from "./write.js";
 
+/** What a post can be written about: a long video (designs/2026-10-14-content-types.md). */
+export const FROM = /^video:\d+$/;
+
+/**
+ * A new idea's ref under what it's about: `video:<id>/post:<8 chars>`, unique per post, so Pieces
+ * nests it under the video. Null without a `from`; a `from` that isn't a video is refused.
+ */
+export function refFrom(from: string | null | undefined): string | null {
+  if (!from) return null;
+  if (!FROM.test(from)) throw new Error(`can't write about ${from}: a video:<id> only`);
+  return `${from}/post:${randomBytes(4).toString("hex")}`;
+}
+
 /** An idea and a draft per platform that takes the words; the rest say why not. */
 export async function writeOwn(
   db: Queryable,
@@ -20,9 +34,11 @@ export async function writeOwn(
     platforms: readonly Platform[];
     by: string | null;
     source?: IdeaSource;
+    /** What it's about (`video:<id>`): the idea's ref hangs it there. */
+    from?: string | null;
   },
 ): Promise<{ idea: ContentIdea; results: DraftResult[] }> {
-  const idea = await addIdea(db, o.text, o.source ?? "cli");
+  const idea = await addIdea(db, o.text, o.source ?? "cli", null, refFrom(o.from));
   const results: DraftResult[] = [];
   for (const platform of o.platforms) {
     const v = ownDraftOf(platform, o.text, o.title);

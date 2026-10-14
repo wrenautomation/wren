@@ -23,6 +23,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
+import { href } from "../../route.js";
 
 type Word = {
   w: string;
@@ -1135,7 +1136,26 @@ function Promos({ promos }: { promos: Promo[] }) {
   );
 }
 
-export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) => {
+/**
+ * Words made from this video (designs/2026-10-14-content-types.md): Write opens about it, and what
+ * it makes hangs under the video in Pieces.
+ */
+function WriteAbout({ id, title }: { id: string; title: string }) {
+  const about = { from: `video:${id}`, about: title };
+  const link = "text-[14px] text-(--ui-ink) underline underline-offset-2";
+  return (
+    <p className="m-0 flex flex-wrap gap-x-5 gap-y-1">
+      <a className={link} href={href("/marketing/write", about)}>
+        Write a post about it
+      </a>
+      <a className={link} href={href("/marketing/write", { ...about, make: "blog" })}>
+        Write a blog post about it
+      </a>
+    </p>
+  );
+}
+
+export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row }) => {
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
@@ -1188,6 +1208,10 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
   if (edit) sections.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
   if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
   if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);
+  sections.push([
+    "From this video",
+    <WriteAbout key="wa" id={String(row.id)} title={v.edit.title} />,
+  ]);
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
   if (steps.length) sections.push(["Steps", <Steps key="st" steps={steps} />]);

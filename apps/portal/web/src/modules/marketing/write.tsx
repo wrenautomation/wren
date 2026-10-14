@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { href, navigate } from "../../route.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 import { BlogBox } from "./blog-box.js";
 import { CarouselBox } from "./carousel-box.js";
@@ -34,6 +35,14 @@ const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_S
 const nameOf = (p: Platform) => PLATFORM_SPECS[p].name;
 /** What Write makes there: "YouTube post" for YouTube. */
 const targetOf = (p: Platform) => PLATFORM_SPECS[p].words?.name ?? nameOf(p);
+/**
+ * What a post is about (`?from=video:<id>`, Studio's "Write a post about it"): it hangs under that
+ * video in Pieces. `?about=` carries the title for the line that says so.
+ */
+const fromOf = (params: URLSearchParams): { from: string; id: string; title: string } | null => {
+  const id = /^video:(\d+)$/.exec(params.get("from") ?? "")?.[1];
+  return id ? { from: `video:${id}`, id, title: params.get("about") || `Video ${id}` } : null;
+};
 /** The platform chip on top (`?platform=`), when it's one Wren posts to. */
 const chosen = (params: URLSearchParams): Platform | null => {
   const p = params.get("platform");
@@ -214,6 +223,7 @@ export function WritePage(props: PageProps) {
   const [said, setSaid] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  const about = fromOf(props.params);
 
   // What he's making: the picker on top, or Plan's links (?make=, ?blog=1, ?story=1).
   const offered = offeredFor(only);
@@ -253,6 +263,7 @@ export function WritePage(props: PageProps) {
         platforms: picked,
         ...(title && !batch ? { title } : {}),
         ...(adapt ? { adapt: true } : {}),
+        ...(about ? { from: about.from } : {}),
         go,
       });
       setSaid(summary(out.posts, go));
@@ -288,6 +299,24 @@ export function WritePage(props: PageProps) {
         <>
           <Section>
             <div className="grid gap-3">
+              {about ? (
+                <p className="m-0 flex flex-wrap items-center gap-x-2 text-[13.5px]">
+                  <span className={QUIET}>About:</span>
+                  <a href={`/marketing/videos/${about.id}`}>{about.title}</a>
+                  <Button
+                    size="dense"
+                    tone="quiet"
+                    onClick={() =>
+                      navigate(
+                        href("/marketing/write", { from: "", about: "" }, props.params),
+                        true,
+                      )
+                    }
+                  >
+                    Clear
+                  </Button>
+                </p>
+              ) : null}
               <Textarea
                 aria-label="Your post"
                 rows={batch ? 14 : 8}

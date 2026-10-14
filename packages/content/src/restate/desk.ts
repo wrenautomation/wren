@@ -39,7 +39,7 @@ import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } 
 import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
-import { splitPosts, waitingIdeas, writeOwn } from "../own.js";
+import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
 import {
   draftCarousel,
   draftPromo,
@@ -176,6 +176,11 @@ const WRITE = z.looseObject({
     .enum(WRITE_GO)
     .nullish()
     .describe("draft: wait for a yes (default); slot: post at each next slot; now: next pass"),
+  from: z
+    .string()
+    .regex(FROM)
+    .nullish()
+    .describe("What it's about, video:<id>: the post hangs under that video in Pieces"),
 });
 const STORY = z.looseObject({
   platforms: z.array(z.enum(STORY_PLATFORMS)).min(1).describe("Where the story goes"),
@@ -503,6 +508,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             platforms: Platform[];
             adapt?: boolean | null;
             go?: WriteGo | null;
+            from?: string | null;
             viewer?: unknown;
           },
         ) => {
@@ -519,7 +525,9 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           for (const [n, text] of posts.entries()) {
             const made = req.adapt
               ? await (async () => {
-                  const idea = await ctx.run(`idea ${n}`, () => addIdea(s.db, text, "cli"));
+                  const idea = await ctx.run(`idea ${n}`, () =>
+                    addIdea(s.db, text, "cli", null, refFrom(req.from)),
+                  );
                   const r = await draft(ctx, { ideaId: idea.id, platforms: req.platforms });
                   return { ideaId: idea.id, results: r.results };
                 })()
@@ -529,6 +537,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                     title: req.title ?? null,
                     platforms: req.platforms,
                     by,
+                    from: req.from ?? null,
                   });
                   return { ideaId: r.idea.id, results: r.results };
                 });

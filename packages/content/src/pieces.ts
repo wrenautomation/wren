@@ -2,8 +2,9 @@
  * Pieces (designs/2026-10-13-primitives-first.md): what William makes, each once, with where it
  * went hanging under it. A long video carries its clips and its promo posts; a clip, a post or a
  * story carries one branch per platform; a blog post carries the site and the email. Lineage is
- * what the rows already say: an idea's `ref` (`video:<id>`, `video:<id>/short:<n>`), a promo
- * draft's `video_draft`, and `blog_posts`. Nothing is stored here.
+ * what the rows already say: an idea's `ref` (`video:<id>`, `video:<id>/short:<n>`, a post about
+ * it `video:<id>/post:<k>`), a promo draft's `video_draft`, and `blog_posts`. Nothing is stored
+ * here.
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -114,6 +115,8 @@ const latest = (...ds: (string | null)[]) =>
 const VERTICAL = new Set(["short", "reel", "video"]);
 const LONG_REF = /^video:(\d+)$/;
 const CLIP_REF = /^video:(\d+)\/(short:\d+|vertical)$/;
+/** Anything made from a long video (a clip, `post:<k>`): it nests under it. */
+const FROM_VIDEO = /^video:(\d+)\/./;
 
 function stateOf(d: DraftRow): BranchState {
   switch (d.status) {
@@ -246,8 +249,8 @@ export function piecesOf(rows: PieceRows): Piece[] {
       if (up && pieces.has(id)) parent.set(id, up);
     });
   for (const idea of rows.ideas) {
-    const clip = CLIP_REF.exec(idea.ref ?? "");
-    const up = clip ? longOfVideo.get(Number(clip[1])) : undefined;
+    const from = FROM_VIDEO.exec(idea.ref ?? "");
+    const up = from ? longOfVideo.get(Number(from[1])) : undefined;
     if (up) parent.set(idea.id, up);
   }
 

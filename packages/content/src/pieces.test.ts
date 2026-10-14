@@ -203,6 +203,25 @@ describe("piecesOf", () => {
     ]);
   });
 
+  it("a post written about a video nests under it, its kind from its formats", () => {
+    const [long] = piecesOf(
+      rows({
+        videos: [video({ id: 9, title: "Talk", created_at: "2026-10-10T00:00:00Z" })],
+        ideas: [
+          {
+            id: "about",
+            text: "Why I cut it",
+            ref: "video:9/post:1a2b3c4d",
+            created_at: "2026-10-11T00:00:00Z",
+          },
+        ],
+        drafts: [draft({ id: "x1", idea_id: "about", platform: "x" })],
+      }),
+    );
+    expect(long?.id).toBe("video:9");
+    expect(long?.children.map((c) => [c.id, c.kind])).toEqual([["about", "written"]]);
+  });
+
   it("an added or edited recording is still editing, and waits on no one", () => {
     const [p] = piecesOf(
       rows({ videos: [video({ id: 8, title: "Raw", state: "edited", created_at: "2026-10-12" })] }),

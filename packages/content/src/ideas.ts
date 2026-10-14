@@ -3,16 +3,23 @@ import type { Queryable } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { type ContentIdea, contentIdeas, type IdeaSource, type IdeaStatus } from "./schema.js";
 
-/** Insert one idea. Blank text is refused so nothing is ever drafted from nothing. */
+/**
+ * Insert one idea. Blank text is refused so nothing is ever drafted from nothing. `ref` hangs it
+ * under what it came from (`video:<id>/post:<k>`, designs/2026-10-14-content-types.md).
+ */
 export async function addIdea(
   db: Queryable,
   text: string,
   source: IdeaSource,
   media: Media | null = null,
+  ref: string | null = null,
 ): Promise<ContentIdea> {
   const trimmed = text.trim();
   if (trimmed === "") throw new Error("idea text is empty");
-  const [row] = await db.insert(contentIdeas).values({ text: trimmed, source, media }).returning();
+  const [row] = await db
+    .insert(contentIdeas)
+    .values({ text: trimmed, source, media, ref })
+    .returning();
   if (!row) throw new Error("insert returned no row");
   return row;
 }
