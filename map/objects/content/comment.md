@@ -33,6 +33,7 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 
 ## Connected to
 
+- **joins:** [[content/comment-proof]] (our answer checked at 2 min, 1 h, 24 h: live, hidden or missing)
 - **joins:** [[content/inbox-thread]] (in the Inbox a comment opens as the commenter's whole conversation; the reply box answers it through `ReachDesk/answerComment`, or asks in To approve)
 - **joins:** [[leads/sent-log]] (our answer is a row in People → Sent, `comment:<id>`; DMs in `reach_messages` are `dm:<id>` there)
 - **joins:** [[leads/touch]] (each comment is a theirs touch `c:<id>`, our answer an ours reply `ca:<id>`; a reply to our answer marks it replied)

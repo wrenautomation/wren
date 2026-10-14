@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
+import type { Proof } from "@wren/core/content";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
@@ -23,6 +24,7 @@ import {
   INVITES_COMPONENT,
   inviteSettings,
   invitesSettingsSchema,
+  isProofItem,
   listAccounts,
   listPosts,
   listTemplates,
@@ -30,17 +32,20 @@ import {
   PLATFORMS,
   platformOf,
   policyFrom,
+  proofsSince,
   proposedInvites,
   REACH_POST_PLATFORMS,
   REACH_SEQUENCES,
   type ReachPostPlatform,
   reachStats,
+  sentSince,
   slotsOf,
   topicYields,
   viewOf,
   warmupOf,
 } from "@wren/outreach";
 import {
+  type CommentProofsService,
   READS_KEY,
   type ReachDeskService,
   type ReachSender,
@@ -749,5 +754,70 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         ),
       ),
     );
+
+  // designs/2026-10-14-comment-proof.md: is a sent comment there for a stranger.
+  const proofLine = (
+    item: string,
+    p: { state: string; note?: string | null; url?: string | null },
+  ) => console.log([item, p.state, p.note ?? "", p.url ?? ""].join("\t"));
+  /** One check on the desk: sent, then its output polled (the reads are paced). */
+  const checkNow = async (item: string): Promise<Proof> => {
+    const sent = await ingress()
+      .serviceSendClient<CommentProofsService>({ name: "CommentProofs" })
+      .check({ item }, clients.rpc.sendOpts({ idempotencyKey: longCallKey(`proof ${item}`) }));
+    const { url, headers } = ingressOf(settings);
+    return pollOutput<Proof>(sent.invocationId, {
+      url,
+      ...(headers ? { headers } : {}),
+      log: (l) => console.error(l),
+    });
+  };
+  cmd
+    .command("proof [item]")
+    .description(
+      "Whether a sent comment is there for a stranger (thread:t3_x, onpost:9, comment:4): live, hidden, missing or pending, checked now",
+    )
+    .option("--recent", "the last day's proofs, newest first")
+    .option("--since <day>", "check every comment sent since this day (2026-10-12), one by one")
+    .action(async (item: string | undefined, o: { recent?: boolean; since?: string }) => {
+      if (o.recent) {
+        const rows = await withDb((db) => proofsSince(db, new Date(Date.now() - 86_400_000)));
+        if (!rows.length) console.log("no proofs in the last day");
+        for (const r of rows)
+          console.log(
+            [
+              r.item,
+              r.platform,
+              r.state,
+              r.checkedAt?.toISOString() ?? "",
+              r.note ?? "",
+              r.url ?? "",
+            ].join("\t"),
+          );
+        return;
+      }
+      if (o.since) {
+        const since = new Date(o.since);
+        if (Number.isNaN(since.getTime())) throw new Error("--since: want a day, 2026-10-12");
+        const items = await withDb((db) => sentSince(db, since));
+        console.error(`${items.length} sent since ${o.since}`);
+        for (const i of items) {
+          try {
+            proofLine(i, await checkNow(i));
+          } catch (err) {
+            proofLine(i, {
+              state: "failed",
+              note: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        return;
+      }
+      if (!item)
+        throw new Error("give an item (thread:t3_x, onpost:9, comment:4), --recent or --since");
+      if (!isProofItem(item))
+        throw new Error(`${item}: want thread:<t3_id>, onpost:<id> or comment:<id>`);
+      json(await checkNow(item));
+    });
   return cmd;
 }

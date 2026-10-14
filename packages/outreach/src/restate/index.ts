@@ -215,6 +215,7 @@ import {
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
 import { pasteHandlers } from "./paste.js";
+import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
 
 export const SENDER_KEY = "fleet";
@@ -1357,6 +1358,7 @@ export function makeReachDesk(deps: ReachDeps) {
               .serviceClient<ContentReply>({ name: "Content" })
               .reply({ platform: plan.comment.platform, commentId: plan.comment.ref, text: body });
             await answered(null);
+            scheduleProofs(ctx, `comment:${req.id}`);
             return { ref: null };
           }
           const ch = channelsFor(deps, ctx)(plan.account);
@@ -1370,6 +1372,7 @@ export function makeReachDesk(deps: ReachDeps) {
             throw finalRefusal(err);
           });
           await answered(sent.ref);
+          scheduleProofs(ctx, `comment:${req.id}`);
           wakeWatch(ctx);
           return { ref: sent.ref };
         },
@@ -1573,6 +1576,7 @@ export function makeReachDesk(deps: ReachDeps) {
           await ctx.run("commented", () =>
             markPostCommented(deps.db, post, { body, by: byOf(req), now }),
           );
+          scheduleProofs(ctx, `onpost:${post.id}`);
           for (const [what, act] of [
             ["like", acts.like],
             ["follow", acts.follow],
@@ -1946,4 +1950,12 @@ export {
   READS_KEY,
   type RedditReadsObject,
 } from "./discovery.js";
+export {
+  type CommentProofsService,
+  makeCommentProofs,
+  PROOFS_SERVICE,
+  type ProofCheck,
+  type ProofsDeps,
+  scheduleProofs,
+} from "./proofs.js";
 export type { Platform };

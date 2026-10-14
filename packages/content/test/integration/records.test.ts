@@ -306,6 +306,36 @@ describe("marketing.engage: every reply in one queue", () => {
   });
 });
 
+describe("marketing.engage: Posted and Not live (comment proofs)", () => {
+  it("lists sent comments newest first with their proof; Not live keeps hidden and missing", async () => {
+    const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
+        found_by, account, state, comment, commented_at, raw)
+      values ('linkedin', 'urn:li:activity:9921', 'Proof Author', 'a synthetic post',
+        'https://www.linkedin.com/feed/update/urn:li:activity:9921/', 'pasted', 'linkedin@wren',
+        'commented', 'our synthetic words', now(), '{}')
+      returning id`)) as unknown as { id: number }[];
+    const item = `onpost:${p?.id}`;
+    await pg.db.execute(sql`insert into comment_proofs (item, platform, state, url, note, checked_at)
+      values (${item}, 'linkedin', 'hidden', 'https://example.com/c', 'not on the public page', now())`);
+    const api = serveRecords([engageRecord], pg.db);
+    const posted = (await api.list({ record: engageRecord.id, view: "posted", limit: 50 })).rows;
+    expect(posted).toContainEqual(
+      expect.objectContaining({
+        id: item,
+        state: "sent",
+        proof: "hidden",
+        draft: "our synthetic words",
+      }),
+    );
+    const notLive = (await api.list({ record: engageRecord.id, view: "notlive", limit: 50 })).rows;
+    expect(notLive.map((r) => r.id)).toContain(item);
+    // A sent comment is no longer one to write.
+    const outbound = (await api.list({ record: engageRecord.id, view: "outbound", limit: 50 }))
+      .rows;
+    expect(outbound.map((r) => r.id)).not.toContain(item);
+  });
+});
+
 describe("marketing.explore: found, not followed or picked yet", () => {
   it("found posts and ranked threads, best fit first; picked and old ones stay out", async () => {
     const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,

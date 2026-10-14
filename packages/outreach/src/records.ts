@@ -189,7 +189,8 @@ export const commentRecord = defineRecord({
     (
       (await db.execute(sql`
       select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post_title, c.body,
-        c.sort, c.why, c.draft, c.state, c.answer, c.at, c.url, coalesce(a.handle, 'Wren') account,
+        c.sort, c.why, c.draft, c.state, c.answer, c.at, c.answered_at, c.url,
+        coalesce(a.handle, 'Wren') account,
         c.contact_id, p.read p_read, p.fit p_fit, p.site p_site,
         -- The way into their DMs (dmDoorOf): the button shows only where there is one.
         case when c.account_id is not null then 'reach'

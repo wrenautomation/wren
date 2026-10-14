@@ -14,6 +14,7 @@ export * from "./follow.js";
 export * from "./invites.js";
 export * from "./passes.js";
 export * from "./policy.js";
+export * from "./proofs.js";
 export * from "./reach-posts.js";
 export * from "./refusal.js";
 export * from "./replies.js";

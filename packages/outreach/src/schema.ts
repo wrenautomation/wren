@@ -18,6 +18,7 @@
 import {
   PLATFORMS as CONTENT_PLATFORMS,
   type Platform as ContentPlatform,
+  PROOF_STATES,
 } from "@wren/core/content";
 import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { companies, people, runs } from "@wren/core/schema";
@@ -675,3 +676,38 @@ export const reachPasses = pgTable(
 );
 
 export type ReachPass = typeof reachPasses.$inferSelect;
+
+/**
+ * Whether each comment we sent is there for a stranger (designs/2026-10-14-comment-proof.md):
+ * one row per sent item (`thread:t3_x`, `onpost:9`, `comment:4`), the newest check's answer,
+ * with every check before it in `checks`. The person's touch line shows the newest state.
+ */
+export const commentProofs = pgTable(
+  "comment_proofs",
+  {
+    item: varchar("item", { length: 80 }).notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    state: varchar("state", { length: 16, enum: PROOF_STATES }).notNull().default("pending"),
+    /** The comment's permalink, else its post's page. */
+    url: text("url"),
+    /** The screenshot, `s3://` in the media bucket. */
+    shot: text("shot"),
+    note: text("note"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    /** Every check, oldest first: the item's proof history (`round` 1, 2, 3 = 2 min, 1 h, 24 h; 0 by hand). */
+    checks: jsonb("checks")
+      .$type<
+        { at: string; state: string; note: string | null; shot: string | null; round: number }[]
+      >()
+      .notNull()
+      .default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.item], name: "pk_comment_proofs" }),
+    index("ix_comment_proofs_checked_at").on(t.checkedAt),
+    oneOf("ck_comment_proofs_state", t.state, PROOF_STATES),
+  ],
+);
+
+export type CommentProofRow = typeof commentProofs.$inferSelect;

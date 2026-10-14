@@ -261,6 +261,71 @@ const onPostRows = (db: Queryable) =>
       order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
   );
 
+/** Our comments sent on their ground, newest first: Engage's Posted. */
+const sentRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select * from (
+        select 'thread:' || t.id id, 'thread' type, t.author who, 'reddit' platform,
+          coalesce(nullif(t.body, ''), t.title) body, t.title post_title, t.answer draft,
+          a.handle account, t.posted_at at, t.answered_at sent, t.url
+        from reddit_threads t left join reach_accounts a on a.id = t.account_id
+        where t.answered_at is not null and t.answer_ref is not null
+        union all
+        select 'onpost:' || id, 'onpost', author, platform, text, null, comment, account,
+          coalesce(posted_at, created_at), commented_at, url
+        from reach_posts where commented_at is not null
+      ) s order by sent desc limit ${ACTIVITY_ROWS}`,
+  );
+
+/**
+ * Each sent comment's last proof (designs/2026-10-14-comment-proof.md), by item: whether a
+ * stranger sees it, when that was read, its permalink and shot (signed by `signer`).
+ */
+async function proofsBy(db: Queryable, signer?: VideoSigner) {
+  const rows = await rowsOf(
+    db,
+    sql`select item, state, note, url, shot, checked_at from comment_proofs
+      order by checked_at desc limit ${ACTIVITY_ROWS * 2}`,
+  );
+  const sign = async (shot: unknown) =>
+    typeof shot === "string" && shot && signer ? signer.host.host(shot).catch(() => null) : null;
+  return new Map(
+    await Promise.all(
+      rows.map(
+        async (r) =>
+          [
+            String(r.item),
+            {
+              proof: r.state,
+              proof_note: r.note,
+              proof_at: r.checked_at,
+              proof_url: r.url,
+              proof_shot: await sign(r.shot),
+            },
+          ] as const,
+      ),
+    ),
+  );
+}
+
+/** A row with its proof, when its item has one. */
+const withProof =
+  (by: Awaited<ReturnType<typeof proofsBy>>) =>
+  <R extends { id: string }>(r: R) => ({ ...r, ...by.get(r.id) });
+
+/** Whether a stranger sees our sent comment: Live, Hidden (only we see it), Missing, Checking. */
+export const PROOF_STATES = {
+  live: { label: "Live", tone: "good", about: "Someone signed out sees it" },
+  hidden: {
+    label: "Hidden",
+    tone: "warn",
+    about: "We see it, strangers don't: a filter or a mod holds it",
+  },
+  missing: { label: "Missing", tone: "bad", about: "Gone even for us: removed or deleted" },
+  pending: { label: "Checking", tone: "neutral", about: "Not read yet, or the read said nothing" },
+} as const;
+
 /** What a draft goes out as: one post, an X thread, or a slide set (`marketing_draft_records`). */
 export const FORMATS = {
   post: neutral("Post"),
@@ -280,6 +345,7 @@ const STATES = status({
   waiting: { label: "Waiting on you", tone: "warn" },
   scheduled: { label: "Scheduled", tone: "good" },
   answered: { label: "Answered", tone: "good" },
+  sent: { label: "Sent", tone: "good" },
   queued: neutral("Queued"),
   dropped: neutral("Dropped"),
   read: neutral("Read"),
@@ -339,6 +405,7 @@ const commentItem = (c: Row) => ({
   account: c.account,
   at: c.at,
   due: c.at,
+  sent: c.answered_at ?? null,
   url: c.url,
 });
 /** A DM thread; waiting when theirs is the last word. */
@@ -1059,145 +1126,176 @@ export const approvalRecord = approvalRecordOf();
  * with our comment drafted (as To approve has them), comments on ours and DMs (as the Inbox has
  * them). Each row keeps its own page's actions; links he pastes land here too (`ReachDesk.paste`).
  */
-export const engageRecord = defineRecord({
-  id: "marketing.engage",
-  app: "marketing",
-  channel: { field: "platform" },
-  name: { one: "reply", many: "replies" },
-  rows: async (db) => {
-    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
-    const ls = await onPostRows(db);
-    const cs = (await commentRecord.rows?.(db)) ?? [];
-    const ds = (await dmRecord.rows?.(db)) ?? [];
-    return [
-      ...ts.map(threadItem),
-      ...ls.map(onPostItem),
-      ...cs.map(commentItem),
-      ...ds.map(dmItem),
-    ];
-  },
-  key: "id",
-  title: "who",
-  subtitle: "body",
-  fields: {
-    who: name("Who"),
-    type: status(
-      cued({
-        thread: neutral("Reddit thread"),
-        onpost: neutral("Their post"),
-        comment: neutral("On our post"),
-        dm: neutral("DM"),
-      }),
-      "Type",
-    ),
-    platform: status(PLATFORM_LABELS, "Site"),
-    state: STATES,
-    body: prose("Their words"),
-    postTitle: text("Post"),
-    why: text("Picked for"),
-    draft: prose("Our draft"),
-    account: text("On"),
-    at: date("When"),
-    due: date("Due"),
-    sendAt: date("Sends"),
-    url: link("Open"),
-  },
-  views: [
-    {
-      id: "waiting",
-      label: "Waiting on you",
-      where: INBOX_WAITING,
-      sort: "due",
-      at: "due",
-      hint: "Everything with a reply, comment or DM drafted for your yes, most overdue first",
+/** Engage; a sent comment's shot signed by `signer`. */
+export const engageRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.engage",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "reply", many: "replies" },
+    rows: async (db) => {
+      const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
+      const ls = await onPostRows(db);
+      const cs = (await commentRecord.rows?.(db)) ?? [];
+      const ds = (await dmRecord.rows?.(db)) ?? [];
+      const ss = await sentRows(db);
+      const proved = withProof(await proofsBy(db, signer));
+      return [
+        ...ts.map(threadItem),
+        ...ls.map(onPostItem),
+        ...cs.map(commentItem).map(proved),
+        ...ds.map(dmItem),
+        ...ss.map((r) =>
+          proved({ ...r, id: String(r.id), kind: r.type, state: "sent", due: r.sent }),
+        ),
+      ];
     },
-    {
-      id: "scheduled",
-      label: "Scheduled",
-      where: { state: "scheduled" },
-      sort: "due",
-      at: "due",
-      hint: "Approved and set to send, soonest first",
+    key: "id",
+    title: "who",
+    subtitle: "body",
+    fields: {
+      who: name("Who"),
+      type: status(
+        cued({
+          thread: neutral("Reddit thread"),
+          onpost: neutral("Their post"),
+          comment: neutral("On our post"),
+          dm: neutral("DM"),
+        }),
+        "Type",
+      ),
+      platform: status(PLATFORM_LABELS, "Site"),
+      state: STATES,
+      body: prose("Their words"),
+      postTitle: text("Post"),
+      why: text("Picked for"),
+      draft: prose("Our draft"),
+      account: text("On"),
+      at: date("When"),
+      due: date("Due"),
+      sendAt: date("Sends"),
+      sent: date("Sent"),
+      proof: status(PROOF_STATES, "Proof"),
+      proofNote: text("Proof note"),
+      proofAt: date("Checked"),
+      proofUrl: link("Permalink", { listed: false }),
+      proofShot: link("Screenshot", { listed: false }),
+      url: link("Open"),
     },
-    // People talking to us: comments on our posts and DMs.
-    {
-      id: "inbound",
-      label: "Replies + DMs",
-      where: { type: ["comment", "dm"] },
-      sort: "-at",
-      at: "at",
-      hint: "Comments on our posts and DMs, newest first",
+    views: [
+      {
+        id: "waiting",
+        label: "Waiting on you",
+        where: INBOX_WAITING,
+        sort: "due",
+        at: "due",
+        hint: "Everything with a reply, comment or DM drafted for your yes, most overdue first",
+      },
+      {
+        id: "scheduled",
+        label: "Scheduled",
+        where: { state: "scheduled" },
+        sort: "due",
+        at: "due",
+        hint: "Approved and set to send, soonest first",
+      },
+      // People talking to us: comments on our posts and DMs.
+      {
+        id: "inbound",
+        label: "Replies + DMs",
+        where: { type: ["comment", "dm"] },
+        sort: "-at",
+        at: "at",
+        hint: "Comments on our posts and DMs, newest first",
+      },
+      // What we write on others' ground: Reddit threads and their posts.
+      {
+        id: "outbound",
+        label: "Our comments",
+        where: { type: ["thread", "onpost"], state: ["waiting", "scheduled"] },
+        sort: "due",
+        at: "due",
+        hint: "Comments we write on Reddit threads and on other people's posts, due soonest first",
+      },
+      // What went out, and whether a stranger sees it (designs/2026-10-14-comment-proof.md).
+      {
+        id: "posted",
+        label: "Posted",
+        where: { state: ["sent", "answered"] },
+        sort: "-sent",
+        at: "sent",
+        hint: "Comments and replies we sent, newest first, each with whether a stranger sees it",
+      },
+      {
+        id: "notlive",
+        label: "Not live",
+        where: { proof: ["hidden", "missing"] },
+        sort: "-sent",
+        at: "sent",
+        hint: "Sent comments a stranger can't see: hidden by a filter or a mod, or gone",
+      },
+      {
+        id: "threads",
+        label: "Reddit",
+        where: { type: "thread", state: ["waiting", "scheduled"] },
+        sort: "-at",
+        at: "at",
+        hint: "Reddit threads we found and drafted a comment for, newest first",
+      },
+      {
+        id: "posts",
+        label: "Their posts",
+        where: { type: "onpost", state: ["waiting", "scheduled"] },
+        sort: "due",
+        at: "due",
+        hint: "Other people's posts we drafted a comment on, due soonest first",
+      },
+      {
+        id: "ours",
+        label: "On our posts",
+        where: { type: "comment" },
+        sort: "-at",
+        at: "at",
+        hint: "Comments people left on our posts, newest first",
+      },
+      {
+        id: "dms",
+        label: "DMs",
+        where: { type: "dm" },
+        sort: "-at",
+        at: "at",
+        hint: "Direct messages to and from us, newest first",
+      },
+      { id: "all", label: "All", sort: "-at", at: "at", hint: "Every item above, newest first" },
+    ],
+    activity: { view: "draft_activity", by: "item", seq: "seq" },
+    drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
+    actions: [
+      "marketing.threadComment",
+      "marketing.threadSkip",
+      "marketing.onpostComment",
+      "marketing.onpostLike",
+      "marketing.onpostFollow",
+      "marketing.onpostSkip",
+      "marketing.commentAnswer",
+      "marketing.commentDm",
+      "marketing.commentDrop",
+      "marketing.dmReply",
+      "marketing.dmRead",
+      "marketing.messageFrom",
+      "marketing.pass",
+      "marketing.draftSet",
+      "marketing.draftAsk",
+      "marketing.draftUndo",
+    ],
+    /** Comments and DMs as the Inbox opens them; threads and posts as To approve does. */
+    load: async (db, id) => {
+      const [type] = typed(id);
+      const from = type === "comment" || type === "dm" ? inboxRecord : approvalRecord;
+      return (await from.load?.(db, id)) ?? null;
     },
-    // What we write on others' ground: Reddit threads and their posts.
-    {
-      id: "outbound",
-      label: "Our comments",
-      where: { type: ["thread", "onpost"] },
-      sort: "due",
-      at: "due",
-      hint: "Comments we write on Reddit threads and on other people's posts, due soonest first",
-    },
-    {
-      id: "threads",
-      label: "Reddit",
-      where: { type: "thread" },
-      sort: "-at",
-      at: "at",
-      hint: "Reddit threads we found and drafted a comment for, newest first",
-    },
-    {
-      id: "posts",
-      label: "Their posts",
-      where: { type: "onpost" },
-      sort: "due",
-      at: "due",
-      hint: "Other people's posts we drafted a comment on, due soonest first",
-    },
-    {
-      id: "ours",
-      label: "On our posts",
-      where: { type: "comment" },
-      sort: "-at",
-      at: "at",
-      hint: "Comments people left on our posts, newest first",
-    },
-    {
-      id: "dms",
-      label: "DMs",
-      where: { type: "dm" },
-      sort: "-at",
-      at: "at",
-      hint: "Direct messages to and from us, newest first",
-    },
-    { id: "all", label: "All", sort: "-at", at: "at", hint: "Every item above, newest first" },
-  ],
-  activity: { view: "draft_activity", by: "item", seq: "seq" },
-  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
-  actions: [
-    "marketing.threadComment",
-    "marketing.threadSkip",
-    "marketing.onpostComment",
-    "marketing.onpostLike",
-    "marketing.onpostFollow",
-    "marketing.onpostSkip",
-    "marketing.commentAnswer",
-    "marketing.commentDm",
-    "marketing.commentDrop",
-    "marketing.dmReply",
-    "marketing.dmRead",
-    "marketing.messageFrom",
-    "marketing.pass",
-    "marketing.draftSet",
-    "marketing.draftAsk",
-    "marketing.draftUndo",
-  ],
-  /** Comments and DMs as the Inbox opens them; threads and posts as To approve does. */
-  load: async (db, id) => {
-    const [type] = typed(id);
-    const from = type === "comment" || type === "dm" ? inboxRecord : approvalRecord;
-    return (await from.load?.(db, id)) ?? null;
-  },
-});
+  });
+export const engageRecord = engageRecordOf();
 
 /** Found posts (last 7 days) and ranked Reddit threads (last 3), best fit first: Explore's rows. */
 const exploreRows = async (db: Queryable, id?: string) => {
@@ -1423,7 +1521,7 @@ export const audienceRecord = defineRecord({
 export const socialRecords = (signer?: VideoSigner) => [
   inboxRecord,
   approvalRecordOf(signer),
-  engageRecord,
+  engageRecordOf(signer),
   exploreRecord,
   doneRecord,
   adFormatRecord,

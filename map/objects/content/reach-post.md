@@ -30,6 +30,7 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 
 ## Connected to
 
+- **joins:** [[content/comment-proof]] (each sent comment checked at 2 min, 1 h, 24 h: live, hidden or missing)
 - **joins:** [[leads/touch]] (ours on their post: `rp:<id>` comment, `rp:<id>:like`, `rp:<id>:follow`; `touchesFromReachPost`)
 - **joins:** [[content/linkedin-invite]] (key people: accepted invites), [[content/draft-event]] (`onpost:` items)
 - **looks-like-but-is-not:** [[content/comment]], comments others leave on our posts

@@ -30,6 +30,7 @@ import { type MoreGroup, MorePage } from "./more.js";
 import { PiecesPage } from "./pieces.js";
 import { PlanPage } from "./plan.js";
 import { postExtras, postLooks } from "./posts.js";
+import { withProof } from "./proof.js";
 import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
 import { SLIDES } from "./slides.js";
@@ -996,9 +997,11 @@ const ENGAGE_PAGE: ListPage = {
   group: "Content",
   template: "list",
   record: "marketing.engage",
-  columns: ["who", "platform", "type", "state", "at"],
+  columns: ["who", "platform", "type", "state", "proof", "at"],
   empty: {
     waiting: "Nothing waits on a reply. Paste a link above to add one.",
+    posted: "Comments and replies we send show here, each checked for a signed-out reader.",
+    notlive: "Every sent comment checked so far is live for strangers.",
     threads: "No Reddit thread waits. Paste a subreddit to watch it, or a thread to answer it.",
     posts: "No one else's post waits. Paste one, or an account to follow.",
     ours: "Comments on our posts show here.",
@@ -1008,8 +1011,9 @@ const ENGAGE_PAGE: ListPage = {
   actions: ENGAGE_ACTIONS,
   extras: withDraft(
     (row) => ENGAGE_DRAFT[String(row.type)] ?? null,
-    (detail, at) =>
+    withProof((detail, at) =>
       (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+    ),
   ),
   head: (_meta, reload, at) => createElement(EngageHead, { reload, demo: !!at.demo }),
   count: { state: ["new", "waiting"] },

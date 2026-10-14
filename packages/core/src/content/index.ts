@@ -11,6 +11,7 @@ import type { AccountInsights, Insights, InsightsQuery, ReportDays } from "./ins
 export * from "./autobrowse.js";
 export * from "./do.js";
 export * from "./insights.js";
+export * from "./proof.js";
 
 export type Platform =
   | "linkedin"

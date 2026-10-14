@@ -71,6 +71,7 @@ import {
   terminalWhy,
   wakeWatch,
 } from "./index.js";
+import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
 
 export const READS_KEY = "wren";
@@ -476,6 +477,7 @@ export function discoveryHandlers(deps: ReachDeps) {
             by: byOf(req),
           });
         });
+        scheduleProofs(ctx, `thread:${req.id}`);
         wakeWatch(ctx);
         return { ref: sent.ref };
       },

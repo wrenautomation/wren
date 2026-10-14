@@ -148,7 +148,8 @@ export type Touch = typeof touches.$inferSelect;
 /**
  * Touches as Marketing → People's Touches tab reads them: each line twice, under the person's
  * record id (`li:<people.id>`) when the handle is linked, and under `<platform>:<handle>`. An
- * ours touch with no answer after 14 days reads "no answer".
+ * ours touch with no answer after 14 days reads "no answer"; our sent comment reads its proof
+ * (Live, Hidden, Missing, Checking: designs/2026-10-14-comment-proof.md).
  */
 export const personTouchLines = pgView("person_touch_lines", {
   person: text("person"),
@@ -189,8 +190,15 @@ export const personTouchLines = pgView("person_touch_lines", {
         when t.kind in ('comment', 'reply', 'dm', 'connect')
           and t.at < now() - interval '14 days' then ' · No answer'
         else '' end
+      -- Our sent comment's proof (comment_proofs): is it there for a stranger.
+      || case p.state when 'live' then ' · Live' when 'hidden' then ' · Hidden'
+        when 'missing' then ' · Missing' when 'pending' then ' · Checking' else '' end
       || coalesce(' · ' || t.url, '') what
     from touches t join social_handles h on h.id = t.handle_id
+    left join comment_proofs p on t.direction = 'ours' and p.item = case
+      when t.ref like 'rt:%' then 'thread:' || substr(t.ref, 4)
+      when t.ref ~ '^rp:[0-9]+$' then 'onpost:' || substr(t.ref, 4)
+      when t.ref like 'ca:%' then 'comment:' || substr(t.ref, 4) end
   )
   select 'li:' || person_id person, at, kind, what, id seq from lines where person_id is not null
   union all

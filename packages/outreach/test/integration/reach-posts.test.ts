@@ -32,6 +32,7 @@ import {
   rankPost,
 } from "../../src/reach-posts.js";
 import {
+  makeCommentProofs,
   makeReachDesk,
   makeReachWatch,
   type ReachDeps,
@@ -165,7 +166,13 @@ beforeAll(async () => {
     },
   };
   env = await startTestRestate({
-    services: [fakeContent, makeReachWatch(deps), makeReachDesk(deps)],
+    // A sent comment schedules its proof checks (2 minutes on: none fire in a test).
+    services: [
+      fakeContent,
+      makeReachWatch(deps),
+      makeReachDesk(deps),
+      makeCommentProofs({ db: pg.db, sitesFor: deps.sitesFor }),
+    ],
     alwaysReplay: true,
     disableRetries: true,
   });
