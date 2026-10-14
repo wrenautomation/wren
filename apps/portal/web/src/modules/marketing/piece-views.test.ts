@@ -21,6 +21,8 @@ describe("piece views", () => {
     expect(viewOf("carousel", "all", "new")?.id).toBe("carousels");
     expect(viewOf("all", "all", "new")?.id).toBe("all");
     expect(viewOf("carousel", "waiting", "new")).toBeNull();
+    expect(viewOf("all", "live", "views")?.id).toBe("best");
+    expect(viewOf("long", "all", "new")?.name).toBe("Long videos");
   });
 
   it("every view reads back as itself from its own params", () => {

@@ -250,7 +250,7 @@ export function FunnelFields({
                   hint={
                     videos.length
                       ? "A YouTube video. Its link fills in once it's up."
-                      : "No YouTube video yet. Approve one in Videos."
+                      : "No YouTube video yet. Approve one in Studio."
                   }
                   act={act}
                   field="video"

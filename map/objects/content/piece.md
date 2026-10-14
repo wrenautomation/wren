@@ -37,8 +37,9 @@ Citations: `packages/content/src/pieces.ts:1`, `packages/content/src/restate/pie
 
 | Surface | Role |
 |---|---|
-| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves; finds by words, what (`WHATS`: a carousel or thread by its branch format, inside a long video too), where, state, sort; picks live in the address; built-in views (`PIECE_VIEWS`, `piece-views.ts`: Everything, Waiting on you, Scheduled, Carousels, Videos, Clips, Written posts, Posted) set what, state and sort in one press and light when the picks match; Scheduled sorts by the soonest queued branch (`nextOut`); every view and kind, place and state chip has a hover (`sayPieceView`, `sayPieceWhat`, `sayPieceShow`; a view's `hint` wins) |
+| Marketing → Pieces (`apps/portal/web/src/modules/marketing/pieces.tsx`) | reads, approves; finds by words, what (`WHATS`: a carousel or thread by its branch format, inside a long video too), where, state, sort; picks live in the address; built-in views (`PIECE_VIEWS`, `piece-views.ts`: Everything, Waiting on you, Scheduled, Carousels, Long videos (id `videos`), Clips, Written posts, Posted, Best: live by views) set what, state and sort in one press and light when the picks match; Scheduled sorts by the soonest queued branch (`nextOut`); every view and kind, place and state chip has a hover (`sayPieceView`, `sayPieceWhat`, `sayPieceShow`; a view's `hint` wins) |
 | Marketing → Today (`apps/portal/web/src/modules/marketing/plan.tsx`) | reads, approves |
+| Marketing sidebar (`MAIN`, `index.ts`) | Today, Write, Studio, Engage, Pieces, Numbers, More: type and platform are filters on Pieces, not pages (designs/2026-10-14-content-types.md); the by-platform day page (`TODAY`) is hidden |
 | Home Today (`apps/portal/web/src/today.tsx`) | reads, approves |
 
 ## See

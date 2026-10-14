@@ -1245,7 +1245,8 @@ const TODAY: DayPage = {
   id: "today",
   label: "Today",
   about: "Each platform's day: what went out and what waits on you.",
-  group: "Content",
+  // Platform is a filter, not a page (2026-10-14-content-types.md); Today (plan) replaces it.
+  hidden: true,
   template: "day",
   by: "platform",
   sources: [
@@ -1330,18 +1331,19 @@ const REVIEWS_PAGE: ListPage = {
 };
 
 /**
- * Marketing's pages (designs/2026-10-13-primitives-first.md): Today (what to make, what waits, what
- * went out), Pieces (each thing made, with everywhere it went), Write, Videos (the editing agent's
- * work, designs/2026-10-13-video-review.md), Engage, Numbers, and More,
+ * Marketing's pages (designs/2026-10-13-primitives-first.md, 2026-10-14-content-types.md): Today
+ * (what to make, what waits, what went out), Write, Studio (id `videos`: recordings, the editing
+ * agent's work, designs/2026-10-13-video-review.md), Engage, Pieces (each thing made, with
+ * everywhere it went), Numbers, and More,
  * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
  * past the main ones lights More.
  */
 const MAIN: Readonly<Record<string, string>> = {
   plan: "Today",
-  pieces: "Pieces",
   write: "Write",
-  videos: "Videos",
+  videos: "Studio",
   engage: "Engage",
+  pieces: "Pieces",
   overview: "Numbers",
 };
 /** More's headings for the old sidebar groups. */
@@ -1619,7 +1621,7 @@ export const marketing: Module = {
       id: "content",
       label: "Posts",
       about: "Every post that went out, best first.",
-      group: "Content",
+      group: "Numbers",
       template: "list",
       record: "marketing.post",
       // The rest of its numbers sit on the post, under How it did.
@@ -1660,8 +1662,8 @@ export const marketing: Module = {
     },
     {
       id: "videos",
-      label: "Videos",
-      about: "Rendered videos waiting on your review.",
+      label: "Studio",
+      about: "Recordings: the agent edits, you review, they go out as videos and Shorts.",
       group: "Content",
       template: "list",
       record: "marketing.video",

@@ -23,10 +23,11 @@ export const PIECE_VIEWS: readonly PieceView[] = [
   { id: "waiting", name: "Waiting on you", what: "all", show: "waiting", sort: "waiting" },
   { id: "scheduled", name: "Scheduled", what: "all", show: "queued", sort: "soon" },
   { id: "carousels", name: "Carousels", what: "carousel", show: "all", sort: "new" },
-  { id: "videos", name: "Videos", what: "long", show: "all", sort: "new" },
+  { id: "videos", name: "Long videos", what: "long", show: "all", sort: "new" },
   { id: "clips", name: "Clips", what: "clip", show: "all", sort: "new" },
   { id: "written", name: "Written posts", what: "post", show: "all", sort: "new" },
   { id: "posted", name: "Posted", what: "all", show: "live", sort: "new" },
+  { id: "best", name: "Best", what: "all", show: "live", sort: "views" },
 ];
 
 /** The view the address's picks add up to, if any; a mix of picks no view names is none. */

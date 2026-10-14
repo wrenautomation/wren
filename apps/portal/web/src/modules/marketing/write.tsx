@@ -29,7 +29,7 @@ import { BlogBox } from "./blog-box.js";
 import { CarouselBox } from "./carousel-box.js";
 import { StoryBox } from "./story-box.js";
 
-/** The platforms that post words alone (YouTube as a community post); videos go through Videos. */
+/** The platforms that post words alone (YouTube as a community post); videos go through Studio. */
 const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_SPECS[p].words);
 const nameOf = (p: Platform) => PLATFORM_SPECS[p].name;
 /** What Write makes there: "YouTube post" for YouTube. */
@@ -49,7 +49,7 @@ interface MakeKind {
   /** Whether it goes to this platform. */
   on: (p: Platform) => boolean;
 }
-/** What Write makes, in the order he reaches for them. A video starts in Videos. */
+/** What Write makes, in the order he reaches for them. A video starts in Studio. */
 const MAKES: readonly MakeKind[] = [
   {
     id: "post",
@@ -73,7 +73,7 @@ const MAKES: readonly MakeKind[] = [
   {
     id: "video",
     name: "Video",
-    where: "YouTube, Shorts, Reels, TikTok",
+    where: "Opens Studio: YouTube, Shorts, Reels, TikTok",
     on: (p) => !!PLATFORM_SPECS[p].needsMedia,
   },
 ];
@@ -91,7 +91,7 @@ const pick = (asked: Make | null, offered: readonly MakeKind[]): Make =>
   offered.find((m) => m.id !== "video")?.id ??
   "video";
 
-/** What he's making: a card each, the one picked outlined. Video opens Videos. */
+/** What he's making: a card each, the one picked outlined. Video opens Studio. */
 function MakePicker({
   offered,
   make,
@@ -282,7 +282,7 @@ export function WritePage(props: PageProps) {
       ) : make === "video" ? (
         <p className={cx("m-0 text-[13.5px]", QUIET)}>
           {only ? nameOf(only) : "Video"} posts start from a recording.{" "}
-          <a href={`/marketing/videos${only ? `?platform=${only}` : ""}`}>Open Videos</a>
+          <a href={`/marketing/videos${only ? `?platform=${only}` : ""}`}>Open Studio</a>
         </p>
       ) : (
         <>

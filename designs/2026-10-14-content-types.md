@@ -156,3 +156,7 @@ Each phase ships on its own.
 - 10-14: A rendered video is "waiting" (branch state `review`) but is left out of Approve all. A cut needs one look.
 - 10-14: `blog_posts.from_ref` is the one new stored link. Blog posts have no idea row, so `ref` can't carry it. This is a deliberate exception to 10-13's "no parent columns".
 - 10-14: The old by-platform day page is hidden. Today (plan) replaces it.
+
+## Build log
+
+- 10-14 C1: sidebar Today, Write, Studio, Engage, Pieces, Numbers; Studio label and about; by-platform day page hidden; Posts under More's Numbers; Pieces "Long videos" and "Best" views; "Open Studio" copy in Write, Today and the funnel picker.
