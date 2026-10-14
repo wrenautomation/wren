@@ -7,6 +7,7 @@
  */
 import {
   Button,
+  clipProps,
   cx,
   Empty,
   Input,
@@ -15,6 +16,7 @@ import {
   PAGE_TITLE,
   relative,
   showKeys,
+  tipProps,
   usePageKeys,
   usePref,
 } from "@wren/ui";
@@ -383,7 +385,7 @@ function Browse({ params }: { params: URLSearchParams }) {
             type="button"
             onClick={() => setDialog({ kind: "collection", ids: [] })}
             className="inline-flex size-8 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
-            title="New collection"
+            {...tipProps("New collection", { as: "none" })}
           >
             <FolderPlus size={16} />
             <span className="sr-only">New collection</span>
@@ -392,7 +394,7 @@ function Browse({ params }: { params: URLSearchParams }) {
             type="button"
             onClick={showKeys}
             className="hidden h-8 items-center gap-1.5 border-0 bg-transparent px-2 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) min-[901px]:inline-flex"
-            title="Keys"
+            {...tipProps("Keyboard shortcuts", { keys: "?", as: "none" })}
           >
             <Keyboard size={15} />
             <span className="sr-only">Keys</span>
@@ -594,7 +596,7 @@ function ViewToggle({ view, onPick }: { view: View; onPick: (v: View) => void })
           key={v.id}
           type="button"
           aria-pressed={view === v.id}
-          title={v.label}
+          {...tipProps(v.label, { as: "none" })}
           onClick={() => onPick(v.id)}
           className={cx(
             "inline-flex w-9 items-center justify-center border-0 transition-colors duration-150",
@@ -817,7 +819,7 @@ function Dot({ c }: { c: Card }) {
   return (
     <span
       className="mt-[0.45em] inline-block size-2 shrink-0 rounded-full bg-(--ui-live)"
-      title="New"
+      {...tipProps("New, not opened yet", { as: "none" })}
     >
       <span className="sr-only">New</span>
     </span>
@@ -913,13 +915,16 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
               href={link}
               draggable={false}
               className="line-clamp-2 text-(--ui-ink) no-underline hover:underline"
+              {...clipProps()}
             >
               {c.title}
             </a>
           </h3>
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-2)">
             <TypeMark type={c.type} size={13} label={TYPES[c.type]?.label} />
-            <span className="truncate">{sourceName(c)}</span>
+            <span className="truncate" {...clipProps()}>
+              {sourceName(c)}
+            </span>
           </p>
           <p className="m-0 text-[12.5px] text-(--ui-ink-2) tabular-nums">
             {len ? `${len} · ` : ""}
@@ -951,7 +956,7 @@ function Quick({
   return (
     <button
       type="button"
-      title={label}
+      {...tipProps(label, { as: "none" })}
       aria-label={label}
       onClick={(e) => {
         e.preventDefault();
@@ -995,6 +1000,7 @@ export function ItemMenu({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`${c.title}: more`}
+        {...tipProps("More", { as: "none" })}
         className={cx(
           "inline-flex size-8 shrink-0 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)",
           className,
@@ -1131,6 +1137,7 @@ function ListTable({
                         "truncate no-underline hover:underline",
                         c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
                       )}
+                      {...clipProps()}
                     >
                       {c.title}
                     </a>
@@ -1205,7 +1212,10 @@ function CompactRow({ c, ...r }: RowProps & { c: Card }) {
       />
       <span className="inline-flex w-2 justify-center">
         {c.status === "unread" ? (
-          <span className="size-2 rounded-full bg-(--ui-live)" title="New" />
+          <span
+            className="size-2 rounded-full bg-(--ui-live)"
+            {...tipProps("New, not opened yet")}
+          />
         ) : null}
       </span>
       <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />
@@ -1216,6 +1226,7 @@ function CompactRow({ c, ...r }: RowProps & { c: Card }) {
           "min-w-0 flex-1 truncate no-underline hover:underline",
           c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
         )}
+        {...clipProps()}
       >
         {c.title}
       </a>
@@ -1300,6 +1311,7 @@ function BulkBar({
           className={cx(btn, "ml-1")}
           onClick={clear}
           aria-label="Clear the selection"
+          {...tipProps("Clear the selection", { as: "none" })}
         >
           <X size={15} />
         </button>

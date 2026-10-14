@@ -6,6 +6,7 @@
 import {
   Alert,
   Button,
+  clipProps,
   Empty,
   Icon,
   Input,
@@ -16,6 +17,7 @@ import {
   Section,
   say,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import {
   Dialog,
@@ -71,7 +73,9 @@ function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) |
       <Icon name="note" className="mt-0.5 flex-none text-(--ui-ink-2)" />
       <a href={docPath(n.id)} className="min-w-0 flex-1 text-(--ui-ink) no-underline">
         <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="truncate text-[14.5px] font-medium">{n.name}</span>
+          <span className="truncate text-[14.5px] font-medium" {...clipProps()}>
+            {n.name}
+          </span>
           {n.kind === "dump" ? <Tag>Dump</Tag> : null}
           {n.home !== "wren" || !n.mine ? null : n.general === "workspace" ? (
             <Tag>Everyone here</Tag>
@@ -81,7 +85,10 @@ function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) |
           ) : null}
         </span>
         {n.excerpt ? (
-          <span className="mt-0.5 line-clamp-2 block text-[13px] text-(--ui-ink-2)">
+          <span
+            className="mt-0.5 line-clamp-2 block text-[13px] text-(--ui-ink-2)"
+            {...clipProps()}
+          >
             <Excerpt text={n.excerpt} />
           </span>
         ) : null}
@@ -95,6 +102,7 @@ function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) |
           type="button"
           aria-pressed={n.starred}
           aria-label={n.starred ? `Unstar ${n.name}` : `Star ${n.name}`}
+          {...tipProps(n.starred ? "Unstar" : "Star", { as: "none" })}
           onClick={onStar}
           className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
         >

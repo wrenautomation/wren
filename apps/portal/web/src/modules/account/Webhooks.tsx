@@ -15,6 +15,7 @@ import {
   PageHeader,
   Section,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
@@ -222,7 +223,7 @@ export function Webhooks(props: PageProps) {
                 <p className={cx("m-0 text-[13px]", QUIET)}>
                   Hears{" "}
                   {h.events.map((e, i) => (
-                    <span key={e} title={says(e)}>
+                    <span key={e} {...tipProps(says(e))}>
                       {i ? ", " : ""}
                       <code className="text-[12px]">{e}</code>
                     </span>

@@ -54,7 +54,7 @@ import {
   Cue,
   cueOf,
   dateOf,
-  exact,
+  dateTip,
   FieldCell,
   FieldLine,
   FieldTotal,
@@ -67,6 +67,8 @@ import {
 } from "./fields.js";
 import { linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
+import { clipProps, tipProps } from "./hint.js";
+import { Why } from "./hint-layer.js";
 import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
@@ -93,6 +95,7 @@ import {
 } from "./record-access.js";
 import { recordHead } from "./record-head.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
+import { sortTip } from "./view-says.js";
 
 /** The four record calls, bound to a workspace. */
 export interface RecordsApi {
@@ -683,7 +686,12 @@ function SortHead({
   const on = sort === field.key || sort === `-${field.key}`;
   const desc = sort === `-${field.key}`;
   const end = field.column?.align === "end";
-  if (!field.sortable) return <span className="line-clamp-2">{field.label}</span>;
+  if (!field.sortable)
+    return (
+      <span className="line-clamp-2" {...clipProps()}>
+        {field.label}
+      </span>
+    );
   // Numbers and dates start high; words and states start at the top of their order.
   const first = end ? `-${field.key}` : field.key;
   const next = on ? (desc ? field.key : `-${field.key}`) : first;
@@ -691,6 +699,7 @@ function SortHead({
   return (
     <a
       href={place.link({ sort: next, pg: null })}
+      {...tipProps(sortTip(field, sort, next))}
       className={cn(
         "inline-flex items-center gap-1 no-underline hover:text-(--ui-ink)",
         end && "flex-row-reverse",
@@ -1378,7 +1387,6 @@ function List({
                     <th
                       key={f.key}
                       scope="col"
-                      title={f.label}
                       className={cn(
                         // A long head takes two lines, so its column fits its numbers.
                         "sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) px-3 py-1 leading-tight",
@@ -1445,6 +1453,7 @@ function List({
                             {cols.map((f) => (
                               <td
                                 key={f.key}
+                                {...(narrow && f.key === meta.title ? {} : clipProps())}
                                 className={cn(
                                   "px-3",
                                   // On a phone the title takes two lines before it cuts.
@@ -1461,6 +1470,7 @@ function List({
                                 {f.key === meta.title ? (
                                   <a
                                     href={place.link({ [meta.name.one]: id, tab: null })}
+                                    {...clipProps()}
                                     className={cn(
                                       "font-medium text-(--ui-ink) no-underline",
                                       // Cut inside the link, so focusing it never scrolls the cell sideways.
@@ -1487,7 +1497,7 @@ function List({
                               <a
                                 href={place.page(id)}
                                 aria-label={`Open ${titleOf(meta, r)}'s page`}
-                                title="Open as a page"
+                                {...tipProps("Open as a page", { as: "none" })}
                                 onClick={(e) => e.stopPropagation()}
                                 className="inline-flex size-7 items-center justify-center text-(--ui-ink-3) opacity-0 group-hover:opacity-100 hover:bg-(--ui-fill) hover:text-(--ui-ink) focus:opacity-100"
                               >
@@ -1581,6 +1591,7 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label="More actions"
+        {...tipProps("More actions", { as: "none" })}
         className="inline-grid size-8 place-items-center border border-(--ui-hair) bg-transparent pointer-coarse:size-11 max-[900px]:size-11 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)"
       >
         <Ellipsis className="size-4" />
@@ -1715,11 +1726,15 @@ function RowCard({
         <a
           href={href}
           className="line-clamp-2 text-[15px] leading-snug font-medium text-(--ui-ink) no-underline wrap-anywhere"
+          {...clipProps()}
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
         </a>
         {preview ? (
-          <span className="line-clamp-2 text-[13.5px] leading-snug text-(--ui-ink-2)">
+          <span
+            className="line-clamp-2 text-[13.5px] leading-snug text-(--ui-ink-2)"
+            {...clipProps()}
+          >
             {firstWords(textOf(row[preview.key]))}
           </span>
         ) : null}
@@ -1727,7 +1742,7 @@ function RowCard({
           <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-2) [&>*]:max-w-full [&>*]:min-w-0 [&>*]:truncate">
             {fields.map((f) =>
               blank(row[f.key]) ? null : (
-                <span key={f.key} title={f.label}>
+                <span key={f.key} {...tipProps(f.label)}>
                   <FieldCell field={f} cell={row[f.key]} />
                 </span>
               ),
@@ -1886,7 +1901,7 @@ export function Panel({
           type="button"
           className={ICON}
           aria-label="Previous"
-          title="Previous (K)"
+          {...tipProps("Previous", { keys: "K", as: "none" })}
           disabled={index <= 0}
           onClick={() => step(-1)}
         >
@@ -1896,7 +1911,7 @@ export function Panel({
           type="button"
           className={ICON}
           aria-label="Next"
-          title="Next (J)"
+          {...tipProps("Next", { keys: "J", as: "none" })}
           disabled={index < 0 || index >= count - 1}
           onClick={() => step(1)}
         >
@@ -1909,7 +1924,7 @@ export function Panel({
           href={place.page(id)}
           className={cn(ICON, "ml-auto")}
           aria-label="Open as a page"
-          title="Open as a page"
+          {...tipProps("Open as a page", { as: "none" })}
         >
           <Maximize2 className="size-3.5" />
         </a>
@@ -1917,7 +1932,7 @@ export function Panel({
           href={place.link({ [meta.name.one]: null, tab: null })}
           className={cn(ICON, "max-sm:hidden")}
           aria-label="Close"
-          title="Close (Esc)"
+          {...tipProps("Close", { keys: "Esc", as: "none" })}
         >
           <X className="size-4" />
         </a>
@@ -2219,7 +2234,7 @@ export function RecordBody({
           <div className="min-w-0">
             <h2 className={PAGE_TITLE}>{titleOf(meta, row)}</h2>
             {sub ? (
-              <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)">
+              <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)" {...clipProps()}>
                 {subCue ? (
                   <span className="mr-1.5 inline-flex align-[-0.1em]">
                     <Cue state={subCue} size={15} />
@@ -2241,17 +2256,21 @@ export function RecordBody({
               )}
             >
               {shown.map((a, i) => (
-                <Button
+                <Why
                   key={a.id}
-                  tone={i === 0 ? "primary" : "secondary"}
-                  size={i === 0 ? "next" : "dense"}
-                  busy={running?.action === a.id}
-                  disabled={busy || !!blockedOf(a, row)}
-                  title={blockedOf(a, row) ?? undefined}
-                  onClick={() => runHead(a)}
+                  text={blockedOf(a, row) ?? (a.key ? a.label : undefined)}
+                  keys={blockedOf(a, row) ? undefined : a.key?.toUpperCase()}
                 >
-                  {a.label}
-                </Button>
+                  <Button
+                    tone={i === 0 ? "primary" : "secondary"}
+                    size={i === 0 ? "next" : "dense"}
+                    busy={running?.action === a.id}
+                    disabled={busy || !!blockedOf(a, row)}
+                    onClick={() => runHead(a)}
+                  >
+                    {a.label}
+                  </Button>
+                </Why>
               ))}
               {dialog}
             </div>
@@ -2559,7 +2578,7 @@ function Activity({
           >
             <time
               dateTime={d?.toISOString()}
-              title={d ? exact(d) : undefined}
+              {...(d ? dateTip(d) : {})}
               className="text-[13px] text-(--ui-ink-3)"
             >
               {d ? relative(d) : ""}

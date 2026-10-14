@@ -23,8 +23,8 @@ import {
   Button,
   cx,
   Diff,
+  dateTip,
   Empty,
-  exact,
   Icon,
   LoadFailed,
   Loading,
@@ -33,6 +33,7 @@ import {
   Section,
   say,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import {
   type DragEvent,
@@ -196,7 +197,7 @@ function FactRow({
         <button
           type="button"
           aria-label={`Drag ${label}`}
-          title="Drag to reorder"
+          {...tipProps("Drag to reorder", { as: "none" })}
           onPointerDown={() => onArm(true)}
           onPointerUp={() => onArm(false)}
           className="mt-1.5 grid h-7 w-7 cursor-grab place-items-center rounded-(--ui-radius) border-0 bg-transparent text-[12.5px] text-(--ui-ink-3) tabular-nums hover:bg-(--ui-hover) active:cursor-grabbing"
@@ -249,7 +250,7 @@ function FactRow({
             type="button"
             className={ICON_BUTTON}
             aria-label={`Move ${label} up`}
-            title="Move up (Alt+Up)"
+            {...tipProps("Move up", { keys: "⌥↑", as: "none" })}
             disabled={n === 1}
             onClick={() => onMove(-1)}
           >
@@ -259,7 +260,7 @@ function FactRow({
             type="button"
             className={ICON_BUTTON}
             aria-label={`Move ${label} down`}
-            title="Move down (Alt+Down)"
+            {...tipProps("Move down", { keys: "⌥↓", as: "none" })}
             disabled={last}
             onClick={() => onMove(1)}
           >
@@ -269,7 +270,7 @@ function FactRow({
             type="button"
             className={cx(ICON_BUTTON, "hover:text-(--ui-bad)")}
             aria-label={`Delete ${label}`}
-            title="Delete"
+            {...tipProps("Delete", { as: "none" })}
             onClick={onRemove}
           >
             <Icon name="close" size={14} />
@@ -305,7 +306,7 @@ function Change({
           <span className={QUIET}> · {factsChangeText(factsChange(before, after))}</span>
         </span>
         <span className="flex items-center gap-2">
-          <time className={cx(QUIET, "text-[13px]")} dateTime={c.at} title={exact(new Date(c.at))}>
+          <time className={cx(QUIET, "text-[13px]")} dateTime={c.at} {...dateTip(new Date(c.at))}>
             {relative(new Date(c.at))}
           </time>
           {c.undone ? (
@@ -521,7 +522,7 @@ export function FactsPage({ demo, can }: PageProps) {
       "The default list"
     ) : saved.at ? (
       <>
-        Saved <time title={exact(new Date(saved.at))}>{relative(new Date(saved.at))}</time>
+        Saved <time {...dateTip(new Date(saved.at))}>{relative(new Date(saved.at))}</time>
         {saved.by ? ` by ${byName(saved.by)}` : ""}
       </>
     ) : null;

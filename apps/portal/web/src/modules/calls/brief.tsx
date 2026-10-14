@@ -9,7 +9,7 @@
 import type { CallBrief, Cited, StoredBrief } from "@wren/channel-email/calls";
 import { CALL_OUTCOME_LABELS, type CallOutcome } from "@wren/core/calls";
 import { modelLabel } from "@wren/core/models/labels";
-import { Button, type RecordExtras, StateMark } from "@wren/ui";
+import { Button, type RecordExtras, StateMark, tipProps } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -211,7 +211,7 @@ export function BriefBody({
           {stored.saved ? "Built" : "Read just now"} {dayOf(b.built)} by{" "}
           {b.model ? (
             <>
-              code, questions by <span title={b.model}>{modelLabel(b.model)}</span>
+              code, questions by <span {...tipProps(b.model)}>{modelLabel(b.model)}</span>
             </>
           ) : (
             "code"

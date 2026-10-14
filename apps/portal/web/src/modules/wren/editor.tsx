@@ -19,6 +19,7 @@ import {
   StateMark,
   Tag,
   Textarea,
+  tipProps,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -88,7 +89,10 @@ function Item({
 }) {
   const hue = ROLE_TINT[roleOfPart(id)] ?? ROLE_TINT.logic;
   return (
-    <li>
+    <li
+      className={ready ? undefined : "cursor-not-allowed"}
+      {...tipProps(ready ? null : "In development")}
+    >
       <button
         type="button"
         draggable={ready}
@@ -99,10 +103,10 @@ function Item({
         }}
         onClick={() => onAdd(id)}
         className={cx(
-          "flex w-full cursor-grab items-start gap-2.5 border-0 bg-transparent px-2 py-2 text-left hover:bg-(--ui-hover) disabled:cursor-not-allowed disabled:opacity-55",
+          "flex w-full cursor-grab items-start gap-2.5 border-0 bg-transparent px-2 py-2 text-left hover:bg-(--ui-hover) disabled:pointer-events-none disabled:opacity-55",
           active && "bg-(--ui-hover)",
         )}
-        title={ready ? `Drag onto the canvas, or click to add` : "In development"}
+        {...tipProps(ready ? "Drag onto the canvas, or click to add" : null, { as: "none" })}
       >
         <span
           aria-hidden="true"
@@ -188,7 +192,13 @@ export function PaletteDrawer({
             className="h-8 pl-8 text-[13px]"
           />
         </span>
-        <Button tone="quiet" size="dense" onClick={onClose} aria-label="Close">
+        <Button
+          tone="quiet"
+          size="dense"
+          onClick={onClose}
+          aria-label="Close"
+          {...tipProps("Close", { as: "none" })}
+        >
           <Icon name="close" />
         </Button>
       </div>
@@ -378,7 +388,13 @@ export function PanelHead({
           }}
         />
       ) : null}
-      <Button tone="quiet" size="dense" onClick={onClose} aria-label="Close">
+      <Button
+        tone="quiet"
+        size="dense"
+        onClick={onClose}
+        aria-label="Close"
+        {...tipProps("Close", { as: "none" })}
+      >
         <Icon name="close" />
       </Button>
     </header>
@@ -1057,7 +1073,7 @@ export function RetryPick({
         value={String(value)}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        title="A failed step tries again after 5 min, 30 min, 1 h, 3 h, then 6 h"
+        {...tipProps("A failed step tries again after 5 min, 30 min, 1 h, 3 h, then 6 h")}
       >
         <option value="0">Off</option>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -1110,7 +1126,7 @@ export function HistoryMenu({
                   tone="quiet"
                   size="dense"
                   onClick={() => onOpen(v)}
-                  title="Opens it as the draft. Publish makes it live again."
+                  {...tipProps("Opens it as the draft. Publish makes it live again.")}
                 >
                   Restore
                 </Button>

@@ -82,6 +82,7 @@ export {
   Cue,
   cueOf,
   dateOf,
+  dateTip,
   exact,
   FieldCell,
   FieldFilter,
@@ -144,6 +145,8 @@ export {
   wireLines,
 } from "./graph/index.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
+export { clipProps, type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
+export { HintLayer, Why } from "./hint-layer.js";
 export { Icon, type IconName, isIconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export {
@@ -308,7 +311,7 @@ export {
   saySaved,
   saySort,
   sayView,
-  tipProps,
+  sortTip,
 } from "./view-says.js";
 export {
   PageChip,

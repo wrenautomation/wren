@@ -8,7 +8,9 @@ import type { Branch, Piece, PieceKind } from "@wren/content/pieces";
 import { PLATFORM_SPECS } from "@wren/content/write";
 import {
   Button,
+  clipProps,
   cx,
+  dateTip,
   Empty,
   Icon,
   Input,
@@ -638,7 +640,6 @@ export function WhatHappened({ items, limit = 8 }: { items: Happening[]; limit?:
       {items.length ? (
         <ul className="-my-1 m-0 list-none p-0">
           {shown.map(({ at, branch: b, piece: p }) => {
-            const s = stateOf(b);
             return (
               <li key={b.id} className={cx(ROW, "border-(--ui-hair) border-t first:border-t-0")}>
                 <span className="flex justify-center">
@@ -648,7 +649,7 @@ export function WhatHappened({ items, limit = 8 }: { items: Happening[]; limit?:
                     <Icon name="edit" />
                   )}
                 </span>
-                <p className="m-0 min-w-0 truncate text-[14px]">
+                <p className="m-0 min-w-0 truncate text-[14px]" {...clipProps()}>
                   <span className={cx(b.state === "failed" ? "text-(--ui-bad)" : "")}>
                     {b.state === "failed" ? "Failed on" : "Went live on"} {branchName(b)}:
                   </span>{" "}
@@ -657,7 +658,7 @@ export function WhatHappened({ items, limit = 8 }: { items: Happening[]; limit?:
                     <span className={QUIET}> · {b.views.toLocaleString("en-US")} views</span>
                   ) : null}
                 </p>
-                <span className={cx("text-[13px] tabular-nums", QUIET)} title={s.label}>
+                <span className={cx("text-[13px] tabular-nums", QUIET)} {...dateTip(new Date(at))}>
                   {relative(new Date(at))}
                 </span>
               </li>

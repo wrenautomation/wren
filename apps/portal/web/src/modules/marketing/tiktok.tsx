@@ -14,6 +14,7 @@ import {
   tiktokDeclaration,
   tiktokLabel,
 } from "@wren/core/content/tiktok";
+import { tipProps } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
@@ -61,7 +62,7 @@ function Check({
   pick: (on: boolean) => void;
 }) {
   return (
-    <div className="grid gap-0.5" title={off ?? undefined}>
+    <div className="grid gap-0.5" {...tipProps(off)}>
       <label
         htmlFor={id}
         className={`flex items-center gap-2.5 ${off ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}

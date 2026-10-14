@@ -13,6 +13,7 @@ import { Button, ButtonLink } from "./controls.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
+import { clipProps } from "./hint.js";
 import { GROUP_LABEL, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
@@ -354,7 +355,9 @@ function Day({
                                 <span className="block text-[12px] text-(--ui-ink-3) sm:hidden">
                                   {when}
                                 </span>
-                                <span className="block truncate">{titleOf(meta, it.row)}</span>
+                                <span className="block truncate" {...clipProps()}>
+                                  {titleOf(meta, it.row)}
+                                </span>
                                 {sub ? (
                                   <span className="block truncate text-[13px] text-(--ui-ink-2)">
                                     {sub}

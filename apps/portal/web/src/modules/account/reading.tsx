@@ -2,7 +2,7 @@
  * Your settings, Reading aloud: on or off on this device, the voice, the speed, and a sample.
  * The voice runs in the browser; the words never leave this device.
  */
-import { Button, ReadAloud, Section, useReadStatus } from "@wren/ui";
+import { Button, ReadAloud, Section, tipProps, useReadStatus } from "@wren/ui";
 import { useState } from "react";
 import { reading } from "../../reading/index.js";
 import { VOICES } from "../../reading/protocol.js";
@@ -62,7 +62,7 @@ export function Reading() {
                 <Button
                   key={voice}
                   size="dense"
-                  title={where}
+                  {...tipProps(where)}
                   aria-pressed={set.voice === voice}
                   tone={set.voice === voice ? "primary" : "secondary"}
                   onClick={() => pick({ ...set, voice })}

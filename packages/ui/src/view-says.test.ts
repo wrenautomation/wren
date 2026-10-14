@@ -10,7 +10,7 @@ import {
   saySort,
   sayView,
   sayWhere,
-  tipProps,
+  sortTip,
 } from "./view-says.js";
 
 const field = (over: Partial<FieldMeta>): FieldMeta => ({
@@ -161,10 +161,15 @@ describe("sayFilters", () => {
   });
 });
 
-describe("tipProps", () => {
-  it("is hover text and a screen-reader description, or nothing", () => {
-    expect(tipProps("Hi")).toEqual({ title: "Hi", "aria-description": "Hi" });
-    expect(tipProps("")).toEqual({});
-    expect(tipProps(undefined)).toEqual({});
+describe("sortTip", () => {
+  const seen = { key: "seen", label: "Seen", kind: "date" } as const;
+  const name = { key: "name", label: "Name", kind: "text" } as const;
+  it("says what a click does when the column is not the sort", () => {
+    expect(sortTip(seen, undefined, "-seen")).toBe("Sort by Seen, newest first");
+    expect(sortTip(name, "-seen", "name")).toBe("Sort by Name, A to Z");
+  });
+  it("says how it runs now and what the next click turns it to", () => {
+    expect(sortTip(seen, "-seen", "seen")).toBe("Sorted newest first. Click for oldest first.");
+    expect(sortTip(name, "name", "-name")).toBe("Sorted A to Z. Click for Z to A.");
   });
 });

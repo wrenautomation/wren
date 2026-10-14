@@ -10,7 +10,17 @@
  * record.
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, cx, DictateField, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
+import {
+  Button,
+  cx,
+  DictateField,
+  DraftTurns,
+  Empty,
+  Input,
+  Tag,
+  Textarea,
+  tipProps,
+} from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 
@@ -638,7 +648,7 @@ function Transcript({
           <span
             key={`${w.s}-${w.e}`}
             data-i={i}
-            title={clock(w.s)}
+            {...tipProps(clock(w.s), { as: "none" })}
             className={cx(
               w.cut === "cut" && "text-(--ui-ink-3) line-through",
               w.cut === "proposed" && "bg-(--ui-accent-wash) line-through",

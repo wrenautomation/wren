@@ -7,6 +7,7 @@ import { cn } from "cn";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { cx } from "./format.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import type { KeepApi } from "./list-bar.js";
 
@@ -198,6 +199,7 @@ export function PinnedRail({
             <button
               type="button"
               aria-label={`Unpin ${p.label}`}
+              {...tipProps("Unpin", { as: "none" })}
               className={cx(
                 QUIET,
                 "absolute right-1.5 size-6 justify-center opacity-0 group-hover/pin:opacity-100 focus-visible:opacity-100",
@@ -229,7 +231,7 @@ export function PinButton({
       type="button"
       aria-pressed={pinned}
       aria-label={compact ? label : undefined}
-      title={compact ? label : undefined}
+      {...(compact ? tipProps(label, { as: "none" }) : {})}
       className={cx(
         QUIET,
         "h-8 gap-2 rounded-(--ui-radius) px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:text-(--ui-active) pointer-coarse:h-11",
@@ -321,6 +323,7 @@ export function TilesMenu({
                 type="button"
                 className={STEP}
                 aria-label={`Move ${label} up`}
+                {...tipProps("Move up", { keys: "⌥↑", as: "none" })}
                 disabled={i === 0}
                 onClick={() => put(moved(order, i, i - 1), off)}
               >
@@ -330,6 +333,7 @@ export function TilesMenu({
                 type="button"
                 className={STEP}
                 aria-label={`Move ${label} down`}
+                {...tipProps("Move down", { keys: "⌥↓", as: "none" })}
                 disabled={i === order.length - 1}
                 onClick={() => put(moved(order, i, i + 1), off)}
               >

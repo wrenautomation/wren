@@ -6,7 +6,18 @@
 import type { Board } from "@wren/deals/console";
 import type { DealRow } from "@wren/deals/records";
 import type { Stage } from "@wren/deals/schema";
-import { Button, cx, Input, LoadFailed, Loading, money, num, PageHeader, say } from "@wren/ui";
+import {
+  Button,
+  clipProps,
+  cx,
+  Input,
+  LoadFailed,
+  Loading,
+  money,
+  num,
+  PageHeader,
+  say,
+} from "@wren/ui";
 import { type FormEvent, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -209,6 +220,7 @@ function Card({
         <a
           className="min-w-0 truncate font-medium text-(--ui-ink) no-underline hover:underline"
           href={href(`/deals/deals/${encodeURIComponent(d.id)}`, at)}
+          {...clipProps()}
         >
           {d.name}
         </a>
@@ -217,11 +229,17 @@ function Card({
         ) : null}
       </div>
       {d.contact_name || d.contact_email ? (
-        <span className="truncate text-(--ui-ink-2)">{d.contact_name ?? d.contact_email}</span>
+        <span className="truncate text-(--ui-ink-2)" {...clipProps()}>
+          {d.contact_name ?? d.contact_email}
+        </span>
       ) : null}
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-(--ui-ink-3)">
         <span>{d.days_in_stage === 0 ? "Today" : `${d.days_in_stage}d`} in stage</span>
-        {d.owner ? <span className="truncate">{d.owner}</span> : null}
+        {d.owner ? (
+          <span className="truncate" {...clipProps()}>
+            {d.owner}
+          </span>
+        ) : null}
         {d.next_on ? (
           <span className={cx(late && "font-medium text-(--ui-bad)")}>Follow up {d.next_on}</span>
         ) : null}

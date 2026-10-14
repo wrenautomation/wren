@@ -4,6 +4,7 @@
  * a time across the page. While it reads it shows moving bars and "2 of 5". The engine (which
  * voice, the speakers) is the app's, through `ReadingProvider`; without one the button hides.
  */
+
 import { cn } from "cn";
 import {
   createContext,
@@ -15,6 +16,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { tipProps } from "./hint.js";
 
 export type ReadStatus =
   | { state: "ready" }
@@ -164,7 +166,7 @@ export function ReadAloud({
         aria-pressed={active}
         aria-disabled={unavailable || undefined}
         aria-describedby={note ? tip : undefined}
-        title={unavailable ? status.why : active ? "Stop reading" : label}
+        {...tipProps(unavailable ? status.why : active ? "Stop reading" : label, { as: "none" })}
         data-read={state.kind}
         onClick={press}
         className={cn(

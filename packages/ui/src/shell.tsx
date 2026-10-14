@@ -30,6 +30,7 @@ import {
   typingAt,
   useShowKeys,
 } from "./frame.js";
+import { clipProps, tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { headed, runs, total } from "./phone-nav.js";
 import {
@@ -311,7 +312,7 @@ export function AppShell({
             )}
             href={brand.href}
             aria-label={nav ? brand.name : undefined}
-            title={folded ? workspace.current?.name : undefined}
+            {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
           >
             <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
             {nav ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
@@ -356,7 +357,11 @@ export function AppShell({
             {custom}
             {actions ? (
               <Popover>
-                <PopoverTrigger className={ICON_BUTTON} aria-label="You" title="You">
+                <PopoverTrigger
+                  className={ICON_BUTTON}
+                  aria-label="You"
+                  {...tipProps("You", { side: "right", as: "none" })}
+                >
                   <Icon name="more" />
                 </PopoverTrigger>
                 <PopoverContent
@@ -530,6 +535,8 @@ const APPMARK =
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
   "ml-auto min-w-5 in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+/** What a count in the sidebar counts, for its hover. */
+const waits = (n: number) => tipProps(`${num(n)} waiting on you`);
 /** Which sidebar areas he shut or opened, kept in this browser. */
 const SHUT_KEY = "wren:areas-shut";
 function readShut(): Record<string, boolean> {
@@ -567,7 +574,11 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const body = (
     <>
       <span className="min-w-0 text-pretty [overflow-wrap:anywhere]">{t.label}</span>
-      {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
+      {t.count !== undefined ? (
+        <span className={COUNT} {...waits(t.count)}>
+          {num(t.count)}
+        </span>
+      ) : null}
     </>
   );
   const tab = (
@@ -673,7 +684,7 @@ function AppBar({
           className={ICON_BUTTON}
           aria-pressed={!hidden}
           aria-label={hidden ? "Show pages" : "Hide pages"}
-          title={hidden ? "Show pages  ]" : "Hide pages  ]"}
+          {...tipProps(hidden ? "Show pages" : "Hide pages", { keys: "]", as: "none" })}
           onClick={() => display.set({ pagesShut: !hidden })}
         >
           <Icon name="panel" />
@@ -690,7 +701,9 @@ function AppBar({
         <span className={APPMARK} aria-hidden="true">
           <Icon name={app.icon} />
         </span>
-        <span className="min-w-0 truncate">{app.name}</span>
+        <span className="min-w-0 truncate" {...clipProps()}>
+          {app.name}
+        </span>
       </a>
       {hidden ? (
         // The pages hidden, the page's name opens them.
@@ -705,7 +718,9 @@ function AppBar({
                 "inline-flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) border-0 bg-transparent px-2 text-[15px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)",
               )}
             >
-              <span className="min-w-0 truncate">{page?.label ?? app.name}</span>
+              <span className="min-w-0 truncate" {...clipProps()}>
+                {page?.label ?? app.name}
+              </span>
               <Icon name="down" className="flex-none" />
             </PopoverTrigger>
             <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
@@ -718,7 +733,10 @@ function AppBar({
           <span className={SLASH} aria-hidden="true">
             /
           </span>
-          <span className="min-w-0 truncate px-1 text-[15px] font-medium text-(--ui-ink-2)">
+          <span
+            className="min-w-0 truncate px-1 text-[15px] font-medium text-(--ui-ink-2)"
+            {...clipProps()}
+          >
             {page.label}
           </span>
         </>
@@ -850,12 +868,16 @@ function SideNav({
           className={cx(APP_ROW, folded && FOLDED_ROW)}
           href={home.href}
           aria-current={app ? undefined : "true"}
-          title={folded ? home.label : undefined}
+          {...(folded ? tipProps(home.label, { side: "right", as: "none" }) : {})}
         >
           <Icon name="home" />
-          <span className={folded ? "sr-only" : "min-w-0 truncate"}>{home.label}</span>
+          <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
+            {home.label}
+          </span>
           {home.count ? (
-            <span className={folded ? DOT : COUNT}>{folded ? null : num(home.count)}</span>
+            <span className={folded ? DOT : COUNT} {...(folded ? {} : waits(home.count))}>
+              {folded ? null : num(home.count)}
+            </span>
           ) : null}
         </a>
       ) : null}
@@ -886,7 +908,10 @@ function SideNav({
                   {area.label}
                   <Icon name={isShut(area) ? "right" : "down"} className="size-3 opacity-70" />
                   {isShut(area) && area.apps.some((x) => x.count) ? (
-                    <span className={cx(COUNT, "[text-transform:none] tracking-normal")}>
+                    <span
+                      className={cx(COUNT, "[text-transform:none] tracking-normal")}
+                      {...waits(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
+                    >
                       {num(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
                     </span>
                   ) : null}
@@ -916,12 +941,21 @@ function SideNav({
                     )}
                     href={a.href}
                     aria-current={open ? "true" : undefined}
-                    title={folded && !hovers ? a.name : undefined}
+                    {...(folded && !hovers
+                      ? tipProps(a.count ? `${a.name}, ${num(a.count)} waiting on you` : a.name, {
+                          side: "right",
+                          as: "none",
+                        })
+                      : {})}
                   >
                     <Icon name={a.icon} className={open ? "text-(--ui-active)" : ""} />
-                    <span className={folded ? "sr-only" : "min-w-0 truncate"}>{a.name}</span>
+                    <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
+                      {a.name}
+                    </span>
                     {a.count ? (
-                      <span className={folded ? DOT : COUNT}>{folded ? null : num(a.count)}</span>
+                      <span className={folded ? DOT : COUNT} {...(folded ? {} : waits(a.count))}>
+                        {folded ? null : num(a.count)}
+                      </span>
                     ) : null}
                   </a>
                 </div>
@@ -954,7 +988,11 @@ function SideNav({
               href={hovered.href}
             >
               {hovered.name}
-              {hovered.count ? <span className={COUNT}>{num(hovered.count)}</span> : null}
+              {hovered.count ? (
+                <span className={COUNT} {...waits(hovered.count)}>
+                  {num(hovered.count)}
+                </span>
+              ) : null}
             </a>
           ) : null}
           {(hovered.pages?.length ?? 0) > 1 ? (
@@ -1091,10 +1129,14 @@ function WorkspacePick({ workspace }: { workspace: Workspace }) {
         <Skeleton className="h-3 w-[110px]" />
       </span>
     );
-  const face = <span className="truncate text-[14px] font-semibold">{current.name}</span>;
+  const face = (
+    <span className="truncate text-[14px] font-semibold" {...clipProps()}>
+      {current.name}
+    </span>
+  );
   if (options.length < 2)
     return href ? (
-      <a className={WS_PICK} href={href} title={label}>
+      <a className={WS_PICK} href={href} {...tipProps(label)}>
         {face}
       </a>
     ) : (

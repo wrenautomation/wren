@@ -35,6 +35,7 @@ import {
   readDisplay,
 } from "./display.js";
 import { cx } from "./format.js";
+import { tipProps } from "./hint.js";
 import { Icon } from "./icons.js";
 import type { KeepApi } from "./list-bar.js";
 
@@ -319,7 +320,7 @@ export function Resizer({
       aria-valuemin={range.min}
       aria-valuemax={range.max}
       tabIndex={0}
-      title={`${label}: drag, or double-click to reset`}
+      {...tipProps(`${label}: drag, or double-click to reset`, { side: "right", as: "none" })}
       className={cx(
         "group/edge absolute top-0 bottom-0 z-20 w-2.5 cursor-col-resize touch-none outline-none max-[900px]:hidden",
         className,
@@ -514,7 +515,7 @@ export function DisplayButton({
           compact && "w-8 justify-center px-0",
         )}
         aria-label={compact ? "Layout" : undefined}
-        title={compact ? "Layout" : undefined}
+        {...(compact ? tipProps("Layout", { side: "right", as: "none" }) : {})}
       >
         <Icon name="sliders" />
         {compact ? null : "Layout"}

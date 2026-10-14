@@ -15,7 +15,7 @@ import {
   ySyncPluginKey,
 } from "@tiptap/y-tiptap";
 import { Y_BODY } from "@wren/notes/types";
-import { Button, Icon, relative, say } from "@wren/ui";
+import { Button, Icon, relative, say, tipProps } from "@wren/ui";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
 import { hueOf, type NoteComments, type NotePeople, notes } from "./api.js";
@@ -593,6 +593,7 @@ export function CommentsPanel({
         <button
           type="button"
           aria-label="Close comments"
+          {...tipProps("Close comments", { as: "none" })}
           onClick={onClose}
           className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover)"
         >

@@ -4,7 +4,7 @@
  * Wren's team holds one grant for the day; a client's workspace gets one per address, for its
  * own items only, asked as its items load.
  */
-import { cx, PlatformMark } from "@wren/ui";
+import { cx, PlatformMark, tipProps } from "@wren/ui";
 import { FileText, Link, type LucideIcon, Newspaper, Podcast, Rocket } from "@wren/ui/lib/lucide";
 import { useEffect, useState } from "react";
 import { call } from "../../api.js";
@@ -193,7 +193,7 @@ export function ScoreBadge({ score, className }: { score: number | null; classNa
         : "bg-(--ui-tile) text-(--ui-ink-2)";
   return (
     <span
-      title={`Scored ${score} of 10 against your SOPs`}
+      {...tipProps(`Scored ${score} of 10 against your SOPs`)}
       className={cx(
         "inline-flex h-5 min-w-5 items-center justify-center px-1.5 font-semibold text-[11.5px] tabular-nums",
         tone,

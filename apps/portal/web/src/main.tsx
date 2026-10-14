@@ -1,5 +1,5 @@
 import "./app.css";
-import { DictationProvider, ReadingProvider } from "@wren/ui";
+import { DictationProvider, HintLayer, ReadingProvider } from "@wren/ui";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
@@ -13,6 +13,7 @@ if (root)
       <DictationProvider engine={dictation}>
         <ReadingProvider engine={reading}>
           <App />
+          <HintLayer />
         </ReadingProvider>
       </DictationProvider>
     </StrictMode>,

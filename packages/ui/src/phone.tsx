@@ -17,8 +17,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { num } from "./format.js";
+import { tipProps } from "./hint.js";
 import { rubber, settle, swipeEnd } from "./phone-nav.js";
-import { tipProps } from "./view-says.js";
 
 /** Apple's sheet curve: quick off the mark, long soft landing. */
 export const SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";

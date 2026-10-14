@@ -4,7 +4,7 @@
  * calendar, leads and messages are samples, so nothing is dialed, booked or spent. When it ends
  * the call is saved with its timed turns (`voice/saveTest`), so Calls and Latency show it.
  */
-import { Alert, Button, Facts, Input, PageHeader, Section, Tag } from "@wren/ui";
+import { Alert, Button, Facts, Input, PageHeader, Section, Tag, Why } from "@wren/ui";
 import {
   type AgentSettings,
   agentOf,
@@ -375,18 +375,21 @@ function Setup(o: {
           {modes.map(([m, label]) => {
             const off = m === "spoken" && !o.spoken.ok;
             return (
-              <Button
+              <Why
                 key={m}
-                size="dense"
-                tone={o.mode === m ? "primary" : "secondary"}
-                aria-pressed={o.mode === m}
-                disabled={off}
-                title={off && !o.spoken.ok ? o.spoken.why : undefined}
-                onClick={() => o.setMode(m)}
-                className="rounded-none first:rounded-l-(--ui-radius) last:rounded-r-(--ui-radius)"
+                text={off && !o.spoken.ok ? o.spoken.why : undefined}
+                className="[&>button]:rounded-none first:[&>button]:rounded-l-(--ui-radius) last:[&>button]:rounded-r-(--ui-radius)"
               >
-                {label}
-              </Button>
+                <Button
+                  size="dense"
+                  tone={o.mode === m ? "primary" : "secondary"}
+                  aria-pressed={o.mode === m}
+                  disabled={off}
+                  onClick={() => o.setMode(m)}
+                >
+                  {label}
+                </Button>
+              </Why>
             );
           })}
         </div>

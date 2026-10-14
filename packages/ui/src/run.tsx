@@ -13,6 +13,7 @@
 import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { flowOf, INPUT, OUTPUT } from "./flow.js";
 import { cx, hostOf, num } from "./format.js";
+import { tipProps } from "./hint.js";
 import { Icon } from "./icons.js";
 import { SiteMark } from "./work.js";
 
@@ -505,7 +506,7 @@ export function RunView({
                 <button
                   type="button"
                   className={cx(LINK, "font-[weight:inherit] text-inherit")}
-                  title={`Follow ${l.subject}`}
+                  {...tipProps(`Follow ${l.subject}`)}
                   onClick={() => setFocus({ subject: l.subject ?? "" })}
                 >
                   {l.text}
@@ -564,6 +565,7 @@ export function RunView({
             type="button"
             className="absolute top-2.5 right-2.5 grid size-7 cursor-pointer place-items-center rounded-(--ui-radius) border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
             aria-label="Close"
+            {...tipProps("Close", { as: "none" })}
             onClick={() => setOpened(null)}
           >
             <Icon name="close" size={14} />

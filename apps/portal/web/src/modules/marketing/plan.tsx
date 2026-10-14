@@ -20,6 +20,7 @@ import {
   Section,
   say,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
@@ -133,7 +134,9 @@ function PieceGoals({
               <span
                 key={g.id}
                 className={cx("inline-flex", g.done === null && "opacity-35")}
-                title={`${placeName(g.platform)}: ${g.done === null ? "can't post yet" : `${g.done} of ${g.goal} this week`}`}
+                {...tipProps(
+                  `${placeName(g.platform)}: ${g.done === null ? "can't post yet" : `${g.done} of ${g.goal} this week`}`,
+                )}
               >
                 <PlatformMark
                   mark={g.platform === "newsletter" ? "web" : g.platform}

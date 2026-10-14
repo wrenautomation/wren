@@ -5,6 +5,7 @@
  * drawing shows its start, and "Fit all" (F) shows the whole. Keys while it has focus: arrows pan,
  * + and - zoom, F fits all, 0 goes back to where it started. Phone: one finger pans, two pinch.
  */
+
 import {
   Background,
   BackgroundVariant,
@@ -20,6 +21,7 @@ import {
   useReactFlow,
   type Viewport,
 } from "@xyflow/react";
+import { tipProps } from "../hint.js";
 import "@xyflow/react/dist/base.css";
 import { cn } from "cn";
 import { Maximize, Minus, Plus } from "lucide-react";
@@ -85,7 +87,7 @@ function Controls({
       <button
         type="button"
         className={TOOL}
-        title="Zoom in (+)"
+        {...tipProps("Zoom in", { keys: "+", as: "none" })}
         aria-label="Zoom in"
         onClick={() => {
           moved();
@@ -97,7 +99,7 @@ function Controls({
       <button
         type="button"
         className={TOOL}
-        title="Zoom out (−)"
+        {...tipProps("Zoom out", { keys: "−", as: "none" })}
         aria-label="Zoom out"
         onClick={() => {
           moved();
@@ -109,7 +111,7 @@ function Controls({
       <button
         type="button"
         className={cn(TOOL, !fits && "w-auto gap-1.5 px-2.5 text-[12.5px] font-medium")}
-        title="Fit all (F). Double-click: back to the start (0)"
+        {...tipProps("Fit all. Double-click: back to the start", { keys: "F", as: "none" })}
         aria-label="Fit all"
         onClick={() => {
           moved();

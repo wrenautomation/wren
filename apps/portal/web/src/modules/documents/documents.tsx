@@ -19,7 +19,7 @@ import {
   totalsOf,
 } from "@wren/documents/lines";
 import type { Action, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, CopyButton, cx, Input, Section, Tag, Textarea } from "@wren/ui";
+import { Button, CopyButton, cx, Input, Section, Tag, Textarea, tipProps } from "@wren/ui";
 import { type FormEvent, type ReactNode, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -292,7 +292,7 @@ function Lines({
                   inputMode="decimal"
                   onChange={(e) => change(i, "qty", e.target.value)}
                   aria-label={`Line ${i + 1} quantity`}
-                  title="How many"
+                  {...tipProps("How many", { as: "none" })}
                 />
                 <input
                   className={CELL}
@@ -316,6 +316,7 @@ function Lines({
                   tone="quiet"
                   onClick={() => set(lines.filter((_, j) => j !== i))}
                   aria-label={`Remove line ${i + 1}`}
+                  {...tipProps("Remove this line", { as: "none" })}
                 >
                   Remove
                 </Button>

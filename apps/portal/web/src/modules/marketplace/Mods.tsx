@@ -3,7 +3,7 @@
  * Read only: a mod goes on from the desk (`autobrowse mods add`), never from here. The same
  * search as autobrowse's `searchMods`, from the browser.
  */
-import { Empty, LoadFailed, Loading, PageHeader, Tag } from "@wren/ui";
+import { Empty, LoadFailed, Loading, PageHeader, Tag, tipProps } from "@wren/ui";
 import { useCall } from "../../load.js";
 import { BLOCK, LIST, QUIET } from "../work/bits.js";
 
@@ -84,7 +84,7 @@ export function Mods() {
           {mods.data.map((m) => (
             <li key={m.name}>
               <span className="flex flex-wrap items-center gap-2">
-                <b className="[overflow-wrap:anywhere]" title={m.name}>
+                <b className="[overflow-wrap:anywhere]" {...tipProps(m.name)}>
                   {nameOf(m.name)}
                 </b>
                 <span className={QUIET}>v{m.version}</span>

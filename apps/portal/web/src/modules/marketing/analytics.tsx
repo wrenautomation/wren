@@ -6,7 +6,7 @@
  * Every number links to its rows. Read from the post's detail (`postAnalytics`).
  */
 import type { Row } from "@wren/core/records/serve";
-import { BarsChart, type BarsRow, num, type RecordExtras, Sparkline } from "@wren/ui";
+import { BarsChart, type BarsRow, num, type RecordExtras, Sparkline, tipProps } from "@wren/ui";
 import type { ReactNode } from "react";
 import type { ListPage } from "../../module.js";
 
@@ -148,7 +148,7 @@ function Cells({ a, activity, team }: { a: Analytics; activity: string; team: bo
                   {values.map((m) =>
                     linkOf(
                       activity,
-                      <span key={m} title={NAMES[m] ?? m}>
+                      <span key={m} {...tipProps(NAMES[m] ?? m)}>
                         {said(m, c.latest[m] as number)}
                         {values.length > 1 ? (
                           <span className={`ml-1 text-[12px] ${QUIET}`}>

@@ -14,6 +14,7 @@ import {
   Browser,
   BrowserRow,
   Button,
+  clipProps,
   DictateField,
   Diff,
   Empty,
@@ -230,7 +231,9 @@ export function Templates({ params, demo, can }: PageProps) {
                     draggable={writes}
                   >
                     <span className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[14px] font-medium">{nameLabel(r.name)}</span>
+                      <span className="truncate text-[14px] font-medium" {...clipProps()}>
+                        {nameLabel(r.name)}
+                      </span>
                       <Tag tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</Tag>
                     </span>
                     <span className={`truncate text-[12.5px] ${QUIET}`}>

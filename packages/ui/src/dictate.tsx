@@ -20,6 +20,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { caretPoint, type DictatedRun, grow, joinDictated, undoable } from "./dictate-text.js";
+import { tipProps } from "./hint.js";
 
 /** Whether dictation can run here, as the app's engine routes it. */
 export type DictateStatus =
@@ -370,7 +371,7 @@ export function Dictate({
         aria-pressed={active}
         aria-disabled={unavailable || undefined}
         aria-describedby={note ? tip : undefined}
-        title={title}
+        {...tipProps(title, { as: "none" })}
         data-dictate={state.kind}
         className={cn(
           "inline-flex h-8 min-w-8 shrink-0 cursor-pointer touch-none select-none border-0 bg-transparent items-center justify-center gap-1.5 rounded-(--ui-radius) px-2 text-(--ui-ink-2) outline-none hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)",

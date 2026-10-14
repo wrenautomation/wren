@@ -11,9 +11,11 @@ import { useEffect, useRef, useState } from "react";
 import { type Action, applies, blockedOf, sayBlocked, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { LoadFailed } from "./feedback.js";
-import { Cue, relative } from "./fields.js";
+import { Cue, dateTip, relative } from "./fields.js";
 import { num } from "./format.js";
 import { usePageKeys } from "./frame.js";
+import { clipProps, tipProps } from "./hint.js";
+import { Why } from "./hint-layer.js";
 import { PageTitle } from "./layout.js";
 import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
 import {
@@ -240,9 +242,14 @@ function Queue({
                       className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5 text-[13px] text-(--ui-ink) no-underline"
                     >
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[14px] font-medium">{titleOf(meta, r)}</span>
+                        <span className="truncate text-[14px] font-medium" {...clipProps()}>
+                          {titleOf(meta, r)}
+                        </span>
                         {dated && r[dated.key] ? (
-                          <span className="shrink-0 text-[12px] text-(--ui-ink-2)">
+                          <span
+                            className="shrink-0 text-[12px] text-(--ui-ink-2)"
+                            {...dateTip(new Date(String(r[dated.key])))}
+                          >
                             {relative(new Date(String(r[dated.key])))}
                           </span>
                         ) : null}
@@ -253,7 +260,9 @@ function Queue({
                             const cue = subtitleCue(meta, r);
                             return cue ? <Cue state={cue} /> : null;
                           })()}
-                          <span className="truncate">{subtitleOf(meta, r)}</span>
+                          <span className="truncate" {...clipProps()}>
+                            {subtitleOf(meta, r)}
+                          </span>
                         </span>
                       ) : null}
                     </a>
@@ -278,6 +287,7 @@ function Queue({
                 type="button"
                 className={NAV}
                 aria-label={`Previous ${one}`}
+                {...tipProps(`Previous ${one}`, { as: "none" })}
                 disabled={at === 0}
                 onClick={() => open(at - 1)}
               >
@@ -287,6 +297,7 @@ function Queue({
                 type="button"
                 className={NAV}
                 aria-label={`Next ${one}`}
+                {...tipProps(`Next ${one}`, { as: "none" })}
                 disabled={at >= rows.length - 1}
                 onClick={() => open(at + 1)}
               >
@@ -294,20 +305,22 @@ function Queue({
               </button>
               <span className="ml-auto flex flex-wrap items-center gap-2">
                 {here.map((a, i) => (
-                  <Button
-                    key={a.id}
-                    tone={i === 0 ? "primary" : "secondary"}
-                    size={i === 0 ? "next" : "dense"}
-                    busy={running?.action === a.id}
-                    disabled={busy || !!(row && blockedOf(a, row))}
-                    title={(row && blockedOf(a, row)) ?? undefined}
-                    onClick={() => act(a)}
-                  >
-                    {a.label}
-                    {a.key ? (
-                      <span className="ml-1.5 opacity-60 max-sm:hidden">{a.key.toUpperCase()}</span>
-                    ) : null}
-                  </Button>
+                  <Why key={a.id} text={row ? blockedOf(a, row) : null}>
+                    <Button
+                      tone={i === 0 ? "primary" : "secondary"}
+                      size={i === 0 ? "next" : "dense"}
+                      busy={running?.action === a.id}
+                      disabled={busy || !!(row && blockedOf(a, row))}
+                      onClick={() => act(a)}
+                    >
+                      {a.label}
+                      {a.key ? (
+                        <span className="ml-1.5 opacity-60 max-sm:hidden">
+                          {a.key.toUpperCase()}
+                        </span>
+                      ) : null}
+                    </Button>
+                  </Why>
                 ))}
               </span>
             </div>

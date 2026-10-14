@@ -20,6 +20,7 @@ import { cn } from "cn";
 import { Check } from "lucide-react";
 import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { duration, linkLabel, money, num } from "./format.js";
+import { tipProps, whenTip } from "./hint.js";
 import { PlatformMark, TintSwatch } from "./marks.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
@@ -43,7 +44,7 @@ export function Cue({ state, mono, size }: { state: State; mono?: boolean; size?
 /** A state as its cue and its label: a dot in its tone, a platform's mark, or a kind's tint. */
 export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap" {...tipProps(state.about)}>
       <Cue state={state} mono={mono ?? false} />
       {state.label}
     </span>
@@ -124,6 +125,10 @@ export const exact = (d: Date) =>
     ? d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
     : d.toLocaleDateString("en-US", { dateStyle: "medium" });
 
+/** A moment's hover: the full date, the time with its zone, and how long ago, "Sep 30, 2026, 5:08 PM ET · 3 days ago". */
+export const dateTip = (d: Date, now = Date.now()) =>
+  Number.isNaN(d.getTime()) ? {} : tipProps(whenTip(d, relative(d, now)));
+
 /** A rate's 95% range (Wilson), 0 to 1. */
 export function wilson(n: number, of: number): [number, number] {
   if (of <= 0) return [0, 1];
@@ -167,7 +172,7 @@ function Out({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a
       href={href}
-      title={away ? href : undefined}
+      {...(away ? tipProps(href, { as: "none" }) : {})}
       target={away ? "_blank" : undefined}
       rel={away ? "noreferrer" : undefined}
       onClick={(e) => e.stopPropagation()}
@@ -185,9 +190,9 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     if ("name" in c) return <span>{breaks(c.name)}</span>;
     if ("amount" in c) return <span>{money(c.amount, c.currency)}</span>;
     return c.of < FEW ? (
-      <span title="Too few to tell">{quiet(`${num(c.n)} of ${num(c.of)}`)}</span>
+      <span {...tipProps("Too few to tell")}>{quiet(`${num(c.n)} of ${num(c.of)}`)}</span>
     ) : (
-      <span title={`${num(c.n)} of ${num(c.of)}, likely ${range(c.n, c.of)}`}>
+      <span {...tipProps(`${num(c.n)} of ${num(c.of)}, likely ${range(c.n, c.of)}`)}>
         {pct(c.n / c.of)}
       </span>
     );
@@ -222,7 +227,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "date": {
       const d = dateOf(String(c));
       return d ? (
-        <time dateTime={d.toISOString()} title={exact(d)}>
+        <time dateTime={d.toISOString()} {...dateTip(d)}>
           {f.grain === "month" ? monthOf(d) : relative(d)}
         </time>
       ) : null;
@@ -235,7 +240,9 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       return <Actor value={String(c)} />;
     default:
       return f.words ? (
-        <span title={f.words === true ? undefined : String(c)}>{wordsOf(f.words, String(c))}</span>
+        <span {...(f.words === true ? {} : tipProps(String(c)))}>
+          {wordsOf(f.words, String(c))}
+        </span>
       ) : f.slots ? (
         <Slotted text={String(c)} slots={f.slots} />
       ) : (
@@ -261,7 +268,7 @@ export function Slotted({
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string.
             key={i}
-            title={`Filled in when it sends: ${p}`}
+            {...tipProps(`Filled in when it sends: ${p}`)}
             className="mx-px inline-block bg-(--ui-tile) px-1 text-[0.92em] text-(--ui-ink-2) ring-1 ring-(--ui-hair) ring-inset"
           >
             {label}
@@ -328,17 +335,17 @@ export function FieldTotal({
   to: (change: Record<string, string | null>) => string;
 }) {
   if (!t || !totalSays(f, t)) return null;
-  const link = (text: ReactNode, change: Record<string, string> | null, title?: string) =>
+  const link = (text: ReactNode, change: Record<string, string> | null, tip?: string) =>
     change ? (
       <a
         href={to({ ...change, pg: null })}
-        title={title}
+        {...tipProps(tip)}
         className="text-inherit no-underline hover:text-(--ui-ink) hover:underline"
       >
         {text}
       </a>
     ) : (
-      <span title={title}>{text}</span>
+      <span {...tipProps(tip)}>{text}</span>
     );
   const may = (op: Op) => f.ops.includes(op);
   if ("sum" in t)
@@ -346,7 +353,11 @@ export function FieldTotal({
   if ("newest" in t) {
     const d = dateOf(t.newest);
     return d
-      ? link(`Newest ${relative(d)}`, f.sortable ? { sort: `-${f.key}` } : null, exact(d))
+      ? link(
+          `Newest ${relative(d)}`,
+          f.sortable ? { sort: `-${f.key}` } : null,
+          whenTip(d, relative(d)),
+        )
       : null;
   }
   if ("most" in t)

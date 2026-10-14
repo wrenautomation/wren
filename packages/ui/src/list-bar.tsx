@@ -45,9 +45,10 @@ import {
 import { Button } from "./controls.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
+import { tipProps } from "./hint.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
-import { sayFilters, sayRaw, saySaved, sayView, tipProps } from "./view-says.js";
+import { sayFilters, sayRaw, saySaved, sayView } from "./view-says.js";
 
 export type { SavedViewLine };
 
@@ -492,6 +493,7 @@ function SavedMenu({
     >
       <PopoverTrigger
         aria-label={`${view.name}: options`}
+        {...tipProps("Options", { as: "none" })}
         className="inline-flex size-6 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
       >
         <MoreHorizontal className="size-3.5" />
@@ -777,6 +779,7 @@ function FilterPanel({
           <button
             type="button"
             aria-label="Back to fields"
+            {...tipProps("Back to fields", { as: "none" })}
             onClick={() => {
               setField(null);
               setText("");
@@ -956,6 +959,7 @@ function FilterPill({
       <button
         type="button"
         aria-label={`Remove ${field.label} filter`}
+        {...tipProps("Remove this filter", { as: "none" })}
         onClick={() => place.go(place.link({ [field.key]: null, pg: null }), true)}
         className="mr-1 inline-flex size-6 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-3) hover:text-(--ui-ink)"
       >

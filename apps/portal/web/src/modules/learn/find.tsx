@@ -4,7 +4,7 @@
  * a LinkedIn page or person joins the comments' follows instead (`ReachDesk.paste`), read first
  * each day. Wren's own workspace only: the search reads as Wren's accounts.
  */
-import { Button, cx, Input, say } from "@wren/ui";
+import { Button, clipProps, cx, Input, say } from "@wren/ui";
 import { type FormEvent, useState } from "react";
 import { call } from "../../api.js";
 import { changed, learn } from "./api.js";
@@ -169,6 +169,7 @@ function HitCard(props: { h: Hit; state: "busy" | "done" | undefined; onFollow: 
             target="_blank"
             rel="noreferrer"
             className="min-w-0 truncate font-medium text-[14px]"
+            {...clipProps()}
           >
             {h.name}
           </a>

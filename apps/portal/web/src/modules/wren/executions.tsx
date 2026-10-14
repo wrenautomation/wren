@@ -6,7 +6,19 @@
  */
 import { wordsOf } from "@wren/core/models/labels";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { Button, cx, Empty, Graph, Input, LoadFailed, Loading, StateMark } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Empty,
+  Graph,
+  Input,
+  LoadFailed,
+  Loading,
+  relative,
+  StateMark,
+  tipProps,
+  whenTip,
+} from "@wren/ui";
 import { useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -144,7 +156,7 @@ export function Executions({
                   )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium" title={r.subject}>
+                    <span className="truncate font-medium" {...tipProps(r.subject, { as: "none" })}>
                       {r.title}
                     </span>
                     <span className="text-[12px]">
@@ -159,7 +171,12 @@ export function Executions({
                           ? `Failed at ${nameAt(w, r.node)}`
                           : `Last at ${nameAt(w, r.node)}`}
                     </span>
-                    <span className="shrink-0 tabular-nums" title={`Entered ${when(r.entered)}`}>
+                    <span
+                      className="shrink-0 tabular-nums"
+                      {...tipProps(
+                        `Entered ${whenTip(new Date(r.entered), relative(new Date(r.entered)))}`,
+                      )}
+                    >
                       {age(r.entered)}
                     </span>
                   </span>
@@ -250,7 +267,7 @@ function OneExecution({
   return (
     <div className="grid min-w-0 gap-3">
       <p className="m-0 flex flex-wrap items-baseline gap-x-3 text-[14px]">
-        <span className="font-semibold" title={row.subject}>
+        <span className="font-semibold" {...tipProps(row.subject, { as: "none" })}>
           {row.title}
         </span>
         <span className={QUIET}>
@@ -378,7 +395,7 @@ function StepData({
         <div className="grid min-w-0 content-start gap-1">
           <span className={cx("text-[12px] font-medium", QUIET)}>Out</span>
           {s.error ? (
-            <p className="m-0 text-[13px] text-(--ui-bad)" title={s.error}>
+            <p className="m-0 text-[13px] text-(--ui-bad)" {...tipProps(s.error)}>
               It failed here: {wordsOf("reason", s.error)}
             </p>
           ) : s.due ? (

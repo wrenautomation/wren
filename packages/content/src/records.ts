@@ -83,12 +83,32 @@ const POST_FORMATS: Record<string, State> = {
 };
 
 const DRAFT_STATES: Record<DraftStatus, State> = {
-  draft: { label: "Waiting on you", tone: "warn" },
-  failed: { label: "Failed to post", tone: "bad" },
-  approved: { label: "Scheduled", tone: "good" },
-  publishing: { label: "Posting", tone: "neutral" },
-  published: { label: "Posted", tone: "good" },
-  rejected: { label: "Rejected", tone: "neutral" },
+  draft: {
+    label: "Waiting on you",
+    tone: "warn",
+    about: "Written and waiting for your yes. Approving puts it on the schedule.",
+  },
+  failed: {
+    label: "Failed to post",
+    tone: "bad",
+    about: "It did not go out. Approve it again to retry, or edit it first.",
+  },
+  approved: {
+    label: "Scheduled",
+    tone: "good",
+    about: "Approved and in the schedule. It posts at its time.",
+  },
+  publishing: {
+    label: "Posting",
+    tone: "neutral",
+    about: "Going out now. It turns to Posted when the platform takes it.",
+  },
+  published: { label: "Posted", tone: "good", about: "Live on the platform." },
+  rejected: {
+    label: "Rejected",
+    tone: "neutral",
+    about: "You said no. It stays here, closed, and never posts.",
+  },
 };
 
 export { DRAFT_CALLS };

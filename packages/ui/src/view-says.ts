@@ -85,26 +85,36 @@ export function sayWhere(
   });
 }
 
+/** How a sort by this kind of field runs, in words: "newest first", "highest first", "Z to A". */
+function runs(kind: string, down: boolean): string {
+  if (kind === "date") return down ? "newest first" : "oldest first";
+  if (NUMBERS.has(kind)) return down ? "highest first" : "lowest first";
+  return down ? "Z to A" : "A to Z";
+}
+
 /** "Sort: Received, newest first". `-` leads a descending sort. */
 export function saySort(meta: Pick<RecordMeta, "fields">, sort: string | undefined): string | null {
   if (!sort) return null;
   const down = sort.startsWith("-");
   const key = down ? sort.slice(1) : sort;
   const f = meta.fields.find((x) => x.key === key);
-  const kind = f?.kind ?? "";
-  const dir =
-    kind === "date"
-      ? down
-        ? "newest first"
-        : "oldest first"
-      : NUMBERS.has(kind)
-        ? down
-          ? "highest first"
-          : "lowest first"
-        : down
-          ? "Z to A"
-          : "A to Z";
-  return `Sort: ${f?.label ?? key}, ${dir}`;
+  return `Sort: ${f?.label ?? key}, ${runs(f?.kind ?? "", down)}`;
+}
+
+/**
+ * The hover on a sortable column head: what a click does, and when it is the sort now, how it
+ * runs and what the next click turns it to. `next` is the sort the click goes to.
+ */
+export function sortTip(
+  f: Pick<FieldMeta, "key" | "label" | "kind">,
+  sort: string | undefined,
+  next: string,
+): string {
+  const on = sort === f.key || sort === `-${f.key}`;
+  const then = runs(f.kind, next.startsWith("-"));
+  return on
+    ? `Sorted ${runs(f.kind, sort === `-${f.key}`)}. Click for ${then}.`
+    : `Sort by ${f.label}, ${then}`;
 }
 
 /** What a built-in tab shows: its `hint`, else its filters and sort. */
@@ -153,7 +163,3 @@ export function sayFilters(
   });
   return on.length ? on.join(" · ") : "Narrow the list by any field";
 }
-
-/** The props that put `text` on hover (a native tooltip) and read it aloud on focus. */
-export const tipProps = (text: string | undefined | null) =>
-  text ? ({ title: text, "aria-description": text } as const) : {};

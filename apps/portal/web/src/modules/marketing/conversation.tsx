@@ -13,6 +13,7 @@ import {
   type Copied,
   copiedIn,
   copyAndOpen,
+  dateTip,
   exact,
   Icon,
   type IconName,
@@ -135,7 +136,7 @@ function Line({ e }: { e: Entry }) {
         {e.direction === "in" ? (e.who ?? "They") : e.direction === "note" ? e.who : "Us"}
       </span>
       <span>{CHANNEL[e.channel]}</span>
-      <time dateTime={e.at} title={exact(when)}>
+      <time dateTime={e.at} {...dateTip(when)}>
         {relative(when)}
       </time>
       {e.state && STATE[e.state] ? (

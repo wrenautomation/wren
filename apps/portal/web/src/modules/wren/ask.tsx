@@ -7,8 +7,8 @@ import type { RecordsPage } from "@wren/core/records/serve";
 import {
   Button,
   DictateField,
+  dateTip,
   Empty,
-  exact,
   LoadFailed,
   Loading,
   PageHeader,
@@ -146,7 +146,7 @@ export function Ask() {
                     </a>
                   ) : null}
                   {typeof r.asked === "string" ? (
-                    <time dateTime={r.asked} title={exact(new Date(r.asked))}>
+                    <time dateTime={r.asked} {...dateTip(new Date(r.asked))}>
                       {relative(new Date(r.asked))}
                     </time>
                   ) : null}

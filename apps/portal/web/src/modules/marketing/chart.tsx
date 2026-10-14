@@ -1,6 +1,6 @@
 /** Booking clicks by first touch, a bar a week for 8 weeks: the Overview's one chart. */
 import type { RecordsStat } from "@wren/core/records/serve";
-import { num, Section } from "@wren/ui";
+import { num, Section, tipProps } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 
@@ -83,7 +83,9 @@ export function WeeklyBookings() {
                 // biome-ignore lint/suspicious/noArrayIndexKey: a week's slot is its place.
                 key={w}
                 className="flex h-full flex-1 flex-col justify-end"
-                title={`${t} in the week ${WEEKS - w === 1 ? "to today" : `${WEEKS - w} weeks back`}`}
+                {...tipProps(
+                  `${t} in the week ${WEEKS - w === 1 ? "to today" : `${WEEKS - w} weeks back`}`,
+                )}
               >
                 <span className="mb-1 text-center text-[12px] text-(--ui-ink-2)">
                   {t ? num(t) : ""}

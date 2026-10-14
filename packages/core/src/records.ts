@@ -22,6 +22,8 @@ export interface State {
   mark?: Mark;
   /** It names a kind of thing: a swatch in this of the kit's 8 tints (0 to 7), in place of the dot. */
   tint?: number;
+  /** What the state means and what moves a row on from it: the hover on its chip. */
+  about?: string;
 }
 
 /**
@@ -369,10 +371,22 @@ export const KINDS = {
 export type Kind = keyof typeof KINDS;
 
 export const VERDICTS: Readonly<Record<string, State>> = {
-  valid: { label: "Valid", tone: "good" },
-  catch_all: { label: "Catch-all", tone: "warn" },
-  risky: { label: "Risky", tone: "warn" },
-  invalid: { label: "Invalid", tone: "bad" },
+  valid: { label: "Valid", tone: "good", about: "The mailbox answered and takes mail." },
+  catch_all: {
+    label: "Catch-all",
+    tone: "warn",
+    about: "The domain accepts every address, so this one cannot be confirmed.",
+  },
+  risky: {
+    label: "Risky",
+    tone: "warn",
+    about: "The check could not say for sure. A send may bounce.",
+  },
+  invalid: {
+    label: "Invalid",
+    tone: "bad",
+    about: "The mailbox does not exist. It is not sent to.",
+  },
 };
 
 export interface Field {

@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
+import { clipProps, tipProps } from "./hint.js";
 
 export interface SnippetLine {
   id: number;
@@ -116,7 +117,7 @@ export function FavoriteStar({
       type="button"
       aria-pressed={on}
       aria-label={on ? `Unfavorite ${label}` : `Favorite ${label}`}
-      title={on ? "Favorite" : "Make it a favorite"}
+      {...tipProps(on ? "Favorite" : "Make it a favorite", { as: "none" })}
       onClick={onToggle}
       className="inline-flex size-7 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
     >
@@ -261,10 +262,15 @@ export function InsertSnippet({
                     i === at && "bg-(--ui-hover)",
                   )}
                 >
-                  <span className="truncate text-[13px] font-medium text-(--ui-ink)">
+                  <span
+                    className="truncate text-[13px] font-medium text-(--ui-ink)"
+                    {...clipProps()}
+                  >
                     {s.title}
                   </span>
-                  <span className="line-clamp-2 text-[12px] text-(--ui-ink-2)">{s.body}</span>
+                  <span className="line-clamp-2 text-[12px] text-(--ui-ink-2)" {...clipProps()}>
+                    {s.body}
+                  </span>
                 </button>
                 <FavoriteStar
                   on={fav.ids.includes(s.id)}

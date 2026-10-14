@@ -19,6 +19,7 @@ import {
   relative,
   say,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
@@ -408,7 +409,7 @@ function Doc({
               type="button"
               aria-pressed={note.starred}
               aria-label={note.starred ? "Unstar" : "Star"}
-              title={note.starred ? "Starred" : "Star it"}
+              {...tipProps(note.starred ? "Starred" : "Star it", { as: "none" })}
               onClick={() => act("star", !note.starred, note.starred ? "Unstarred." : "Starred.")}
               className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
             >
@@ -672,7 +673,7 @@ function Here({ sync }: { sync: NoteSync }) {
   }, [sync]);
   if (!who.length) return null;
   return (
-    <span className="flex items-center gap-1" title={`Here now: ${who.join(", ")}`}>
+    <span className="flex items-center gap-1" {...tipProps(`Here now: ${who.join(", ")}`)}>
       {who.slice(0, 4).map((e) => (
         <span
           key={e}

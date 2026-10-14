@@ -38,6 +38,7 @@ import {
   useState,
 } from "react";
 import { Input } from "../components/ui/input.js";
+import { clipProps, tipProps } from "../hint.js";
 import { GraphFrame } from "./frame.js";
 import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
@@ -287,11 +288,14 @@ function KitNode({ id }: NodeProps) {
             <Mark className="size-4" aria-hidden="true" />
           </span>
           <span className="grid min-w-0 flex-1">
-            <span className="kit-name truncate text-[13px] leading-4 font-semibold" title={n.label}>
+            <span
+              className="kit-name truncate text-[13px] leading-4 font-semibold"
+              {...clipProps()}
+            >
               {n.label}
             </span>
             {n.note ? (
-              <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" title={n.note}>
+              <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" {...clipProps()}>
                 {n.note}
               </span>
             ) : null}
@@ -317,7 +321,7 @@ function KitNode({ id }: NodeProps) {
                 "inline-flex shrink-0 items-center gap-1 self-start pt-0.5 text-[11px] leading-4 font-medium whitespace-nowrap before:size-2 before:rounded-full before:content-['']",
                 TONE[n.state.tone],
               )}
-              title={n.state.label}
+              {...tipProps(n.state.label, { as: "none" })}
             >
               {/* The dot says it; words only when it needs someone. */}
               {n.state.tone === "bad" || n.state.tone === "warn" ? (
@@ -333,7 +337,7 @@ function KitNode({ id }: NodeProps) {
         {n.lines?.length ? (
           <ul className="m-0 grid min-w-0 list-none p-0 text-[11.5px] leading-[18px]">
             {n.lines.slice(0, LOOK.lines).map((l) => (
-              <li key={`${l.sign}${l.text}`} className="truncate" title={l.text}>
+              <li key={`${l.sign}${l.text}`} className="truncate" {...clipProps()}>
                 {l.sign ? (
                   <span className={l.sign === "+" ? "text-(--ui-good)" : "text-(--ui-ink-3)"}>
                     {l.sign}{" "}
@@ -403,7 +407,7 @@ function Handles({
           type={type}
           position={position}
           isConnectable={live}
-          title={p ? `${p.label}${p.kind ? ` (${p.kind})` : ""}` : undefined}
+          {...tipProps(p ? `${p.label}${p.kind ? ` (${p.kind})` : ""}` : undefined)}
           data-lands={String(lands(p?.kind ?? list[0]?.kind))}
           className={cn(
             HANDLE,

@@ -4,6 +4,7 @@
  */
 import {
   ButtonLink,
+  clipProps,
   cx,
   LoadFailed,
   Loading,
@@ -11,6 +12,7 @@ import {
   relative,
   SECTION_TITLE,
   StateMark,
+  tipProps,
 } from "@wren/ui";
 import { ChevronLeft, ChevronRight, Link, Rss, Smartphone } from "@wren/ui/lib/lucide";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -129,6 +131,7 @@ function Shelves({ home }: { home: Home }) {
                 <a
                   href={`/learn/items/${s.itemId}`}
                   className="min-w-0 flex-1 truncate text-(--ui-ink) no-underline hover:underline"
+                  {...clipProps()}
                 >
                   {s.title}
                 </a>
@@ -195,6 +198,7 @@ function Shelf({
           <button
             type="button"
             aria-label="Back"
+            {...tipProps("Back", { as: "none" })}
             onClick={() => by(-1)}
             className="hidden size-8 items-center justify-center border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:text-(--ui-ink) sm:inline-flex"
           >
@@ -203,6 +207,7 @@ function Shelf({
           <button
             type="button"
             aria-label="More"
+            {...tipProps("More", { as: "none" })}
             onClick={() => by(1)}
             className="hidden size-8 items-center justify-center border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:text-(--ui-ink) sm:inline-flex"
           >
@@ -241,9 +246,15 @@ function ShelfCard({ c, tall }: { c: Card; tall: boolean }) {
       </div>
       <span className="flex gap-1.5">
         {c.status === "unread" ? (
-          <span className="mt-[0.45em] size-2 shrink-0 rounded-full bg-(--ui-live)" title="New" />
+          <span
+            className="mt-[0.45em] size-2 shrink-0 rounded-full bg-(--ui-live)"
+            {...tipProps("New, not opened yet")}
+          />
         ) : null}
-        <span className="line-clamp-2 font-semibold text-[14px] leading-snug group-hover:underline">
+        <span
+          className="line-clamp-2 font-semibold text-[14px] leading-snug group-hover:underline"
+          {...clipProps()}
+        >
           {c.title}
         </span>
       </span>

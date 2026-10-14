@@ -10,9 +10,9 @@ import type { ReactNode } from "react";
 import { Empty } from "./feedback.js";
 import { Cue } from "./fields.js";
 import { num } from "./format.js";
+import { tipProps } from "./hint.js";
 import { markName } from "./marks.js";
 import { type Place, type RecordsApi, useLoad, useTypes } from "./records.js";
-import { tipProps } from "./view-says.js";
 
 /** What counts as waiting in one record: its view, counted by the switch's field. */
 export interface SwitchWait {

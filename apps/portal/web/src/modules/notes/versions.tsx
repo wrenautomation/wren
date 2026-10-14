@@ -3,7 +3,7 @@
  * who and how much. Open one to read it, name it, restore it (a new version; nothing is lost), or
  * compare any two with each change colored by its author.
  */
-import { Button, Icon, Input, LoadFailed, Loading, say, Tag } from "@wren/ui";
+import { Button, Icon, Input, LoadFailed, Loading, say, Tag, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
 import { hueOf, type NoteCompare, type NoteVersions, notes } from "./api.js";
@@ -253,7 +253,7 @@ function Compare({ client, id, a, b }: { client: string; id: string; a: number; 
               <ins
                 // biome-ignore lint/suspicious/noArrayIndexKey: as above.
                 key={i}
-                title={`Added in ${by}`}
+                {...tipProps(`Added in ${by}`)}
                 className="no-underline"
                 style={{
                   background: `color-mix(in srgb, ${who ? hueOf(who) : "var(--ui-live)"} 26%, transparent)`,
@@ -265,7 +265,7 @@ function Compare({ client, id, a, b }: { client: string; id: string; a: number; 
               <del
                 // biome-ignore lint/suspicious/noArrayIndexKey: as above.
                 key={i}
-                title={`Removed in ${by}`}
+                {...tipProps(`Removed in ${by}`)}
                 className="text-(--ui-ink-2) decoration-(--ui-bad)"
               >
                 {p.text}
@@ -302,6 +302,7 @@ export function VersionsPanel({
         <button
           type="button"
           aria-label="Close history"
+          {...tipProps("Close history", { as: "none" })}
           onClick={onClose}
           className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover)"
         >

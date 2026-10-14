@@ -15,7 +15,7 @@ import {
   slidesHtml,
   slidesUnfit,
 } from "@wren/core/content/slides";
-import { Button, DeviceFrame, Input, type RecordAct, Textarea } from "@wren/ui";
+import { Button, DeviceFrame, Input, type RecordAct, Textarea, tipProps } from "@wren/ui";
 import { useState } from "react";
 
 export const SLIDES = "marketing.draftSlides";
@@ -227,6 +227,7 @@ export function SlidesEditor({
                       size="dense"
                       tone="quiet"
                       aria-label={`Move slide ${i + 1} up`}
+                      {...tipProps("Move up", { as: "none" })}
                       onClick={() => move(i, -1)}
                     >
                       Up
@@ -237,6 +238,7 @@ export function SlidesEditor({
                       size="dense"
                       tone="quiet"
                       aria-label={`Move slide ${i + 1} down`}
+                      {...tipProps("Move down", { as: "none" })}
                       onClick={() => move(i, 1)}
                     >
                       Down

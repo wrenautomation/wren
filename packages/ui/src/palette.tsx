@@ -17,6 +17,7 @@ import {
   CommandShortcut,
 } from "./components/ui/command.js";
 import { DictateField } from "./dictate.js";
+import { clipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { type ScopeItem, useOpened, useScoped } from "./palette-scope.js";
 
@@ -177,7 +178,9 @@ export function CommandPalette({
                   onSelect={pickFound(i)}
                 >
                   {i.icon ? <Icon name={i.icon} /> : null}
-                  <span className="truncate">{i.label}</span>
+                  <span className="truncate" {...clipProps()}>
+                    {i.label}
+                  </span>
                   <CommandShortcut>{i.hint ? `${i.group} · ${i.hint}` : i.group}</CommandShortcut>
                 </CommandItem>
               ))}

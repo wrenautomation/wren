@@ -2,7 +2,7 @@
  * The portal's bell, in the top bar of every workspace with Learn: what rang for you lately, new
  * ones counted on it. Opening it marks them seen. What the hour's limit held back waits in Today.
  */
-import { cx, FRAME_HEAD, GROUP_LABEL, relative } from "@wren/ui";
+import { cx, FRAME_HEAD, GROUP_LABEL, relative, tipProps } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import { Bell } from "@wren/ui/lib/lucide";
 import { useCallback, useEffect, useState } from "react";
@@ -63,6 +63,7 @@ export function LearnBell({ client }: { client: string }) {
     <Popover open={open} onOpenChange={onOpen}>
       <PopoverTrigger
         aria-label={unseen ? `Alerts, ${unseen} new` : "Alerts"}
+        {...tipProps(unseen ? `Alerts, ${unseen} new` : "Alerts", { as: "none" })}
         className="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
       >
         <Bell size={17} aria-hidden="true" />

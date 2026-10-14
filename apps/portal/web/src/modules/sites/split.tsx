@@ -7,7 +7,7 @@
 import type { Row } from "@wren/core/records/serve";
 import type { PageDetail } from "@wren/sites/detail";
 import type { SplitResult } from "@wren/sites/split";
-import { Button, Input, num, type RecordAct, Tag, type TagTone } from "@wren/ui";
+import { Button, clipProps, Input, num, type RecordAct, Tag, type TagTone } from "@wren/ui";
 import { useState } from "react";
 import { QUIET } from "../work/bits.js";
 import { Said, Table, useRun } from "./detail.js";
@@ -257,7 +257,7 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
             >
               <span className="font-medium">{a.label}</span>
               <span className="grid min-w-0">
-                <a className="truncate underline" href={`/sites/pages/${a.page}`}>
+                <a className="truncate underline" href={`/sites/pages/${a.page}`} {...clipProps()}>
                   {a.title}
                 </a>
                 <span className={`truncate ${HINT}`}>/o/{a.slug}</span>

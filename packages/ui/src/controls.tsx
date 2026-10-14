@@ -4,6 +4,7 @@ import { cn } from "cn";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 
 /** `primary` is the one action on a screen (the accent); `secondary` is outlined; `quiet` is text. */
@@ -160,7 +161,7 @@ export function Tag({
   children: ReactNode;
 }) {
   return (
-    <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} title={title}>
+    <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
       {children}
     </Badge>
   );

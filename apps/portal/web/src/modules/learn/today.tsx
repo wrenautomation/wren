@@ -7,6 +7,7 @@
 import {
   Button,
   ButtonLink,
+  clipProps,
   cx,
   Empty,
   LoadFailed,
@@ -15,6 +16,7 @@ import {
   relative,
   Section,
   Tag,
+  tipProps,
 } from "@wren/ui";
 import {
   Dialog,
@@ -177,7 +179,7 @@ function Line({ i }: { i: TodayLine }) {
         {i.score !== null ? (
           <ScoreBadge score={i.score} />
         ) : (
-          <span className="text-[12px] text-(--ui-ink-2)" title="Not scored yet">
+          <span className="text-[12px] text-(--ui-ink-2)" {...tipProps("Not scored yet")}>
             -
           </span>
         )}
@@ -189,6 +191,7 @@ function Line({ i }: { i: TodayLine }) {
             "line-clamp-2 text-[14.5px] text-(--ui-ink) leading-5 no-underline hover:underline",
             i.read ? "font-normal" : "font-semibold",
           )}
+          {...clipProps()}
         >
           {i.title}
         </a>

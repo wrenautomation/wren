@@ -5,7 +5,7 @@
 import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import type { NoteJson } from "@wren/notes/types";
-import { cx, Icon, Input, say } from "@wren/ui";
+import { cx, Icon, Input, say, tipProps } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -209,12 +209,15 @@ const TOOL =
 
 function Tool({
   label,
+  keys,
   on,
   run,
   children,
   disabled,
 }: {
   label: string;
+  /** The key that does the same, said on hover. */
+  keys?: string;
   on?: boolean;
   run: () => void;
   children: ReactNode;
@@ -225,7 +228,7 @@ function Tool({
       type="button"
       className={TOOL}
       aria-label={label}
-      title={label}
+      {...tipProps(label, { as: "none", ...(keys ? { keys } : {}) })}
       aria-pressed={on ?? undefined}
       disabled={disabled}
       onMouseDown={(e) => e.preventDefault()}
@@ -285,10 +288,10 @@ function Toolbar({
       aria-label="Format"
       className="flex min-h-10 items-center gap-0.5 overflow-x-auto border-b border-(--ui-hair) bg-(--ui-paper) px-2 print:hidden"
     >
-      <Tool label="Undo (⌘Z)" run={() => c().undo().run()} disabled={!s.undo}>
+      <Tool label="Undo" keys="⌘Z" run={() => c().undo().run()} disabled={!s.undo}>
         ↶
       </Tool>
-      <Tool label="Redo (⇧⌘Z)" run={() => c().redo().run()} disabled={!s.redo}>
+      <Tool label="Redo" keys="⇧⌘Z" run={() => c().redo().run()} disabled={!s.redo}>
         ↷
       </Tool>
       <Sep />
@@ -301,7 +304,7 @@ function Toolbar({
       )}
       <Sep />
       {onComment ? (
-        <Tool label="Comment (⌘⌥M)" run={onComment} disabled={!s.selected}>
+        <Tool label="Comment" keys="⌘⌥M" run={onComment} disabled={!s.selected}>
           <svg
             viewBox="0 0 16 16"
             width={16}
@@ -316,7 +319,7 @@ function Toolbar({
           </svg>
         </Tool>
       ) : null}
-      <Tool label="Find and replace (⌘F in a note)" run={onFind}>
+      <Tool label="Find and replace" keys="⌘F" run={onFind}>
         <Icon name="search" />
       </Tool>
       {mode ? (
@@ -400,13 +403,13 @@ function Formats({
         ))}
       </select>
       <Sep />
-      <Tool label="Bold (⌘B)" on={s.bold} run={() => c().toggleBold().run()}>
+      <Tool label="Bold" keys="⌘B" on={s.bold} run={() => c().toggleBold().run()}>
         <b>B</b>
       </Tool>
-      <Tool label="Italic (⌘I)" on={s.italic} run={() => c().toggleItalic().run()}>
+      <Tool label="Italic" keys="⌘I" on={s.italic} run={() => c().toggleItalic().run()}>
         <i>I</i>
       </Tool>
-      <Tool label="Underline (⌘U)" on={s.underline} run={() => c().toggleUnderline().run()}>
+      <Tool label="Underline" keys="⌘U" on={s.underline} run={() => c().toggleUnderline().run()}>
         <u>U</u>
       </Tool>
       <Tool label="Strikethrough" on={s.strike} run={() => c().toggleStrike().run()}>
@@ -415,7 +418,7 @@ function Formats({
       <Tool label="Code" on={s.code} run={() => c().toggleCode().run()}>
         <span className="font-mono text-[12px]">{"<>"}</span>
       </Tool>
-      <Tool label="Link (⌘K in a note)" on={s.link} run={onLink}>
+      <Tool label="Link" keys="⌘K" on={s.link} run={onLink}>
         <Icon name="link" />
       </Tool>
       <Sep />
@@ -526,10 +529,22 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
       <span className="w-14 text-(--ui-ink-2)" aria-live="polite">
         {q ? `${pos[0]} of ${pos[1]}` : ""}
       </span>
-      <button type="button" className={TOOL} aria-label="Previous match" onClick={() => go(-1)}>
+      <button
+        type="button"
+        className={TOOL}
+        aria-label="Previous match"
+        {...tipProps("Previous match", { as: "none" })}
+        onClick={() => go(-1)}
+      >
         <Icon name="left" />
       </button>
-      <button type="button" className={TOOL} aria-label="Next match" onClick={() => go(1)}>
+      <button
+        type="button"
+        className={TOOL}
+        aria-label="Next match"
+        {...tipProps("Next match", { as: "none" })}
+        onClick={() => go(1)}
+      >
         <Icon name="right" />
       </button>
       {editor.isEditable ? (
@@ -567,6 +582,7 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
         type="button"
         className={cx(TOOL, "ml-auto")}
         aria-label="Close find"
+        {...tipProps("Close find", { as: "none" })}
         onClick={onClose}
       >
         <Icon name="close" />
@@ -615,7 +631,13 @@ function LinkBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
       <button type="submit" className={TOOL}>
         {url.trim() ? "Apply" : "Remove link"}
       </button>
-      <button type="button" className={cx(TOOL, "ml-auto")} aria-label="Close" onClick={onClose}>
+      <button
+        type="button"
+        className={cx(TOOL, "ml-auto")}
+        aria-label="Close"
+        {...tipProps("Close", { as: "none" })}
+        onClick={onClose}
+      >
         <Icon name="close" />
       </button>
     </form>

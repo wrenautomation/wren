@@ -15,6 +15,7 @@ import {
   type RecordActs,
   RecordPanel,
   type RecordsApi,
+  tipProps,
   usePageKeys,
   useTypes,
 } from "@wren/ui";
@@ -268,18 +269,19 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
     <div className="grid gap-4">
       {got.data ? <PageLine range={got.data} /> : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button tone="secondary" size="dense" onClick={() => go({ d: null })} title="Today (T)">
+        <Button
+          tone="secondary"
+          size="dense"
+          onClick={() => go({ d: null })}
+          {...tipProps("Jump to today", { keys: "T", as: "none" })}
+        >
           Today
         </Button>
         <span className="flex">
-          <IconButton
-            label="Previous"
-            hint="Left arrow"
-            onClick={() => to_(step(view, anchor, -1))}
-          >
+          <IconButton label="Previous" hint="←" onClick={() => to_(step(view, anchor, -1))}>
             <Chevron points="10,3 5,8 10,13" />
           </IconButton>
-          <IconButton label="Next" hint="Right arrow" onClick={() => to_(step(view, anchor, 1))}>
+          <IconButton label="Next" hint="→" onClick={() => to_(step(view, anchor, 1))}>
             <Chevron points="6,3 11,8 6,13" />
           </IconButton>
         </span>
@@ -293,7 +295,7 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
               type="button"
               role="tab"
               aria-selected={v === view}
-              title={`${LABEL[v]} (${v[0]?.toUpperCase()})`}
+              {...tipProps(`${LABEL[v]} view`, { keys: v[0]?.toUpperCase() ?? "", as: "none" })}
               onClick={() => go({ v: v === "week" && !phone() ? null : v })}
               className={`h-8 border-0 px-3 text-[13px] ${
                 v === view
@@ -375,7 +377,7 @@ function IconButton({
     <button
       type="button"
       aria-label={label}
-      title={`${label} (${hint})`}
+      {...tipProps(label, { keys: hint, as: "none" })}
       onClick={onClick}
       className="inline-flex size-8 items-center justify-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
     >
@@ -497,7 +499,9 @@ function Grid({
                       key={c.id}
                       type="button"
                       onClick={() => pick(c.id)}
-                      title={`${c.name}, ${span(c)}${c.offer ? `, ${c.offer}` : ""}${note ? `, ${note}` : ""}`}
+                      {...tipProps(
+                        `${c.name}, ${span(c)}${c.offer ? `, ${c.offer}` : ""}${note ? `, ${note}` : ""}`,
+                      )}
                       aria-pressed={openId === String(c.id)}
                       className={`absolute overflow-hidden px-1.5 py-0.5 text-[12px] leading-4 ${BLOCK} ${tone(c, now)}`}
                       style={{
@@ -586,7 +590,7 @@ function Month({
             <button
               type="button"
               onClick={() => go({ v: "day", d: dayKey(d) })}
-              title="Open the day"
+              {...tipProps("Open the day")}
               className={`mb-0.5 inline-flex size-6 items-center justify-center justify-self-center rounded-full border-0 text-[12px] ${
                 dayKey(d) === today
                   ? "bg-(--ui-active) text-(--ui-on-accent)"
@@ -600,7 +604,7 @@ function Month({
                 key={c.id}
                 type="button"
                 onClick={() => pick(c.id)}
-                title={`${c.name}, ${span(c)}${flag(c) ? `, ${flag(c)}` : ""}`}
+                {...tipProps(`${c.name}, ${span(c)}${flag(c) ? `, ${flag(c)}` : ""}`)}
                 className={`truncate px-1.5 py-px text-[11.5px] leading-4 ${BLOCK} ${tone(c, now)}`}
               >
                 <span className="opacity-85">{brief(c.start)}</span>{" "}

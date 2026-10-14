@@ -11,7 +11,14 @@ import {
   X_POST_MAX,
   xLength,
 } from "@wren/core/content/thread";
-import { Button, DeviceFrame, type DraftEditor, type DraftEditorProps, Textarea } from "@wren/ui";
+import {
+  Button,
+  DeviceFrame,
+  type DraftEditor,
+  type DraftEditorProps,
+  Textarea,
+  tipProps,
+} from "@wren/ui";
 import { useRef, useState } from "react";
 
 /** `@wren/content`'s `ThreadView`: the limits, and each saved post's count and flags. */
@@ -164,6 +171,7 @@ function ThreadEditor({
                       size="dense"
                       tone="quiet"
                       aria-label={`Move post ${i + 1} up`}
+                      {...tipProps("Move up", { as: "none" })}
                       onClick={() => move(i, -1)}
                     >
                       Up
@@ -174,6 +182,7 @@ function ThreadEditor({
                       size="dense"
                       tone="quiet"
                       aria-label={`Move post ${i + 1} down`}
+                      {...tipProps("Move down", { as: "none" })}
                       onClick={() => move(i, 1)}
                     >
                       Down

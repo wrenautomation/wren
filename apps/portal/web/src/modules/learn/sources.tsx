@@ -6,6 +6,7 @@
  */
 import {
   Button,
+  clipProps,
   cx,
   Empty,
   Input,
@@ -186,6 +187,7 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
           <a
             href={`/learn/items?in=s${s.id}`}
             className="block truncate font-semibold text-[14.5px] text-(--ui-ink) no-underline hover:underline"
+            {...clipProps()}
           >
             {s.name}
           </a>
@@ -194,6 +196,7 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
             target="_blank"
             rel="noreferrer"
             className="block truncate text-[12.5px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+            {...clipProps()}
           >
             {hostOf(s.page ?? s.url)}
           </a>

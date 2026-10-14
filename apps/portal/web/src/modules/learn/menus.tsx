@@ -2,7 +2,7 @@
  * Learn's dialogs and menus: move to a collection, tag, add to an SOP, name a collection, the
  * keys. Each writes through ./api.ts, which tells every list on screen to load again.
  */
-import { Button, cx, Input, type KeySection, say } from "@wren/ui";
+import { Button, cx, Input, type KeySection, say, tipProps } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -287,7 +287,7 @@ export function TagDialog({
                       gone ? "text-(--ui-ink-2) line-through" : "text-(--ui-ink)",
                     )}
                     aria-pressed={!gone}
-                    title={gone ? "Keep this tag" : "Take this tag off"}
+                    {...tipProps(gone ? "Keep this tag" : "Take this tag off")}
                   >
                     <Hash size={12} />
                     {t}
@@ -501,6 +501,7 @@ export function CollectionMenu({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           aria-label={`${c.name}: options`}
+          {...tipProps("Options", { as: "none" })}
           className={cx(
             "inline-flex size-6 shrink-0 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)",
             className,

@@ -14,6 +14,7 @@ import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js
 import { Empty, LoadFailed } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
+import { clipProps, tipProps } from "./hint.js";
 import { FRAME, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   askOf,
@@ -509,11 +510,11 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                 )}
               >
                 <span className="grid min-w-0 flex-1 basis-40 gap-0.5">
-                  <span className="truncate font-medium">
+                  <span className="truncate font-medium" {...clipProps()}>
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
                   {line && r[line.key] ? (
-                    <span className="line-clamp-2 text-pretty text-(--ui-ink-2)">
+                    <span className="line-clamp-2 text-pretty text-(--ui-ink-2)" {...clipProps()}>
                       <FieldCell field={line} cell={r[line.key]} />
                     </span>
                   ) : null}
@@ -532,7 +533,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                     <span
                       key={f.key}
                       className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
-                      title={f.label}
+                      {...tipProps(f.label)}
                     >
                       {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}
                       {f.kind === "money" ? `${f.label}: ` : null}

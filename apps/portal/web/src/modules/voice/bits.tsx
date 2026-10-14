@@ -1,6 +1,6 @@
 /** What the Voice app's pages share: the "In development" note, tool chips and a turn's timing bar. */
 
-import { InDevelopment as Kit } from "@wren/ui";
+import { clipProps, InDevelopment as Kit, tipProps } from "@wren/ui";
 import { type Line, STAGES, type Stage, type Turn } from "@wren/voice";
 import type { ReactNode } from "react";
 
@@ -34,7 +34,7 @@ export function ToolLine({ tool, text }: { tool: string; text: string }) {
         <span aria-hidden className="size-1.5 rounded-full bg-(--ui-chart-1)" />
         {TOOL_LABEL[tool] ?? tool}
       </span>
-      <span className="min-w-0 truncate" title={toolText(text)}>
+      <span className="min-w-0 truncate" {...clipProps()}>
         {toolText(text)}
       </span>
     </li>
@@ -108,7 +108,7 @@ export function TurnBar({ turn, scale }: { turn: Turn; scale: number }) {
       className="relative h-2.5 w-full rounded-full bg-(--ui-tile)"
       role="img"
       aria-label={label}
-      title={label}
+      {...tipProps(label, { as: "none" })}
     >
       <span
         className="absolute inset-y-0 left-0 rounded-l-full bg-(--ui-hair)"
