@@ -89,7 +89,7 @@ export function DraftModels({ demo }: { demo: boolean }) {
             <p className={cx("m-0", QUIET)}>No drafts in the last 30 days.</p>
           )}
           <p className={cx("m-0", QUIET)}>
-            Last 30 days. Split by item, set with <code>wren drafts models set</code>.
+            Last 30 days. Each item is drafted by one model, the same one every time.
           </p>
         </div>
       ) : open && !error ? (
