@@ -36,6 +36,7 @@ import {
   columnOf,
   createTask,
   dueOf,
+  labelsOf,
   listTasks,
   movesOf,
   moveTask,
@@ -43,6 +44,7 @@ import {
   needsYou,
   reopenTask,
   setDue,
+  setLabels,
   type TaskRef,
   type TaskRow,
   taskById,
@@ -102,6 +104,7 @@ export const faceOut = (t: TaskRow, home: string) => ({
   assignee: t.assignee,
   agent: isAgent(t.assignee) || t.via === "agent",
   due: t.due,
+  labels: t.labels,
   closed: t.closedAt !== null,
   blocked: t.blocked,
   blocks: t.blocks,
@@ -339,6 +342,7 @@ export function boardsApi(h: Hooks) {
         title?: unknown;
         assignee?: unknown;
         due?: unknown;
+        labels?: unknown;
         blockedBy?: unknown;
         body?: unknown;
       }>,
@@ -364,6 +368,7 @@ export function boardsApi(h: Hooks) {
           ...(typeof req.column === "string" && req.column ? { column: req.column } : {}),
           ...(req.assignee !== undefined ? { assignee: req.assignee as string | null } : {}),
           ...(req.due !== undefined ? { due: req.due as string | null } : {}),
+          ...(req.labels !== undefined ? { labels: req.labels } : {}),
           ...(Array.isArray(req.blockedBy)
             ? { blockedBy: req.blockedBy.filter(isNoteId).slice(0, 20) }
             : {}),
@@ -402,12 +407,13 @@ export function boardsApi(h: Hooks) {
       };
     },
 
-    /** Owner, due day, or board: whichever are sent. */
+    /** Owner, due day, labels, or board: whichever are sent. */
     async taskEdit(
       req: Req<{
         id?: unknown;
         assignee?: unknown;
         due?: unknown;
+        labels?: unknown;
         board?: unknown;
         column?: unknown;
       }>,
@@ -417,6 +423,7 @@ export function boardsApi(h: Hooks) {
       await refuse(async () => {
         if (req.assignee !== undefined) await assignTask(db, note.id, req.assignee, { by });
         if (req.due !== undefined) await setDue(db, note.id, req.due);
+        if (req.labels !== undefined) await setLabels(db, note.id, req.labels);
         if (req.board !== undefined) {
           if (!isBoardId(req.board)) throw new PortalRefusal("no such board", 404);
           const to = await locateBoard(req, req.board, "edit");
@@ -524,6 +531,7 @@ export function boardsApi(h: Hooks) {
           column: board.columns.find((x) => x.id === c.columnId)?.name ?? c.columnId,
           owner: c.assignee ?? "",
           due: c.due ?? "",
+          labels: c.labels,
           blockedBy: waits.map((w) => nameOf(w.title, w.text)),
         });
       }
@@ -583,11 +591,21 @@ export function boardsApi(h: Hooks) {
             warn(n, `"${text(r, "due")}" isn't YYYY-MM-DD; left without a due day`);
           }
         }
+        let labels: string[] | undefined;
+        if (text(r, "labels")) {
+          try {
+            labels = labelsOf(text(r, "labels"));
+          } catch (e) {
+            if (!(e instanceof TaskRefusal)) throw e;
+            warn(n, `${e.message}; left without labels`);
+          }
+        }
         try {
           if (link && have.has(link)) {
             if (col) await moveTask(db, link, { column: col.id, by, why: "From a sheet" });
             if (owner !== undefined) await assignTask(db, link, owner, { by });
             if (due !== undefined) await setDue(db, link, due);
+            if (labels !== undefined) await setLabels(db, link, labels);
             updated++;
             rowCard.push(link);
           } else if (title) {
@@ -598,6 +616,7 @@ export function boardsApi(h: Hooks) {
               ...(col ? { column: col.id } : {}),
               ...(owner !== undefined ? { assignee: owner } : {}),
               ...(due !== undefined ? { due } : {}),
+              ...(labels !== undefined ? { labels } : {}),
             });
             byTitle.set(title.toLowerCase(), note.id);
             made++;

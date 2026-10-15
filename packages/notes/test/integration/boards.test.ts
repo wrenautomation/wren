@@ -189,6 +189,18 @@ describe("board and cards", () => {
     expect(ready.rows.map((r) => r.title).sort()).toEqual(["Gate", "Two"]);
     const mine = await api().recordsList({ viewer: ADA, record: "notes.task", view: "mine" });
     expect(mine.rows.map((r) => r.title)).toEqual(["One"]);
+    const agent = await api().taskAdd({
+      viewer: ADA,
+      title: "Agent's",
+      assignee: "agent:claude",
+      labels: ["Sales", "q4"],
+    });
+    const listed = await api().recordsList({ viewer: ADA, record: "notes.task", view: "all" });
+    expect(listed.rows.find((r) => r.id === agent.id)).toMatchObject({
+      owner: "Claude",
+      assignee: "agent:claude",
+      labels: "sales; q4",
+    });
     const csv = await api().recordsExport({ viewer: ADA, record: "notes.task", view: "all" });
     expect(csv.body).toContain("Gate");
   });
@@ -218,19 +230,24 @@ describe("sharing", () => {
           column: "Doing",
           owner: "oz@example.test",
           due: "2031-01-02",
+          labels: "Sales; Q4",
         },
         {
           title: "Paint the sign",
           column: "Nowhere",
           owner: "Sam",
           blocked: "x",
+          labels: `fine; ${"x".repeat(40)}`,
           "blocked by": "Hang the sign; Missing card",
         },
         { column: "Doing" },
       ],
     });
     expect([res.made, res.updated]).toEqual([1, 1]);
-    expect(res.warnings.map((w) => w.row).sort()).toEqual([2, 2, 2, 3]);
+    expect(res.warnings.map((w) => w.row).sort()).toEqual([2, 2, 2, 2, 3]);
+    const back = await api().taskExport({ viewer: ADA, id: board });
+    expect(back.rows.find((r) => r.id === a.id)?.labels).toEqual(["sales", "q4"]);
+    expect(back.rows.find((r) => r.title === "Paint the sign")?.labels).toEqual([]);
     const full = await api().board({ viewer: ADA, id: board });
     const named = (n: string) => full.cards.find((c) => c.name === n);
     expect(named("Order the sign")).toMatchObject({

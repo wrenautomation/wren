@@ -1130,6 +1130,10 @@ export async function notesContext(deps: NotesDeps, req: PortalRequest, q: strin
 
 const ID = z.string().max(64).describe("The note's id");
 const ON = z.boolean().describe("On or off");
+const LABELS = z
+  .array(z.string().max(60))
+  .max(20)
+  .describe("Free-text labels, lowercase; they replace the card's own. An empty list clears them");
 const NUM = z.number().int().positive();
 const ROLE = z.enum(["view", "comment", "edit"]);
 /** Each handler's input: the portal's own fields and the route's. The handlers check them again. */
@@ -1268,6 +1272,7 @@ const INPUTS = {
       .describe("A column's id or name; the first open one when left out"),
     assignee: z.string().max(200).nullable().optional().describe("An email or `agent:<name>`"),
     due: z.string().max(10).nullable().optional().describe("YYYY-MM-DD"),
+    labels: LABELS.optional(),
     blockedBy: z.array(ID).max(20).optional().describe("Cards it waits on"),
     body: z.unknown().optional().describe("Editor JSON: the card's details"),
   },
@@ -1291,6 +1296,7 @@ const INPUTS = {
       .optional()
       .describe("An email or `agent:<name>`; null takes the owner off"),
     due: z.string().max(10).nullable().optional().describe("YYYY-MM-DD; null clears it"),
+    labels: LABELS.optional(),
     board: ID.optional().describe("Move it to this board"),
     column: z.string().max(60).optional().describe("With board: the column there"),
   },
@@ -1314,7 +1320,7 @@ const INPUTS = {
       .array(z.record(z.string(), z.string().max(2000)))
       .min(1)
       .max(200)
-      .describe("Rows by field: title, column, owner, due, blocked by, link"),
+      .describe("Rows by field: title, column, owner, due, labels, blocked by, link"),
   },
 } as const satisfies Record<keyof typeof NOTES_CONSOLE_ROUTES, z.ZodRawShape>;
 const input = (route: keyof typeof INPUTS) => ({

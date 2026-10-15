@@ -4,7 +4,15 @@
  */
 
 /** What a column of a sheet can be for a card. */
-export const SHEET_FIELDS = ["title", "column", "owner", "due", "blocked by", "link"] as const;
+export const SHEET_FIELDS = [
+  "title",
+  "column",
+  "owner",
+  "due",
+  "labels",
+  "blocked by",
+  "link",
+] as const;
 export type SheetField = (typeof SHEET_FIELDS)[number];
 
 /** Rows of cells from CSV or tab-separated text (a table pasted from Sheets is tabs). */
@@ -63,6 +71,7 @@ const HEADS: Record<SheetField, readonly string[]> = {
   column: ["column", "status", "state", "stage", "list"],
   owner: ["owner", "assignee", "assigned to", "assigned", "who"],
   due: ["due", "due date", "deadline", "date"],
+  labels: ["labels", "label", "tags", "tag"],
   "blocked by": ["blocked by", "blocked", "depends on", "dependencies", "waiting on"],
   link: ["link", "url", "card", "id"],
 };

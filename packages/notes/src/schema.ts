@@ -139,6 +139,8 @@ export const notes = pgTable(
     assignee: varchar("assignee", { length: 200 }),
     due: date("due", { mode: "string" }),
     closedAt: timestamp("closed_at", { withTimezone: true }),
+    /** A card's labels: free text, lowercase, a few words each (`tasks.ts` cleans them). */
+    labels: text("labels").array().notNull().default(sql`'{}'::text[]`),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_notes" }),

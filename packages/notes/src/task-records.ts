@@ -46,6 +46,7 @@ export async function taskRows(db: Queryable, reader: Omit<Reader, "cap">) {
       owner: ownerName(c.assignee) || null,
       assignee: c.assignee,
       due: day(c.due),
+      labels: c.labels.join("; "),
       blocked: c.blocked > 0 ? "blocked" : "clear",
       ready: open && c.blocked === 0 ? "ready" : "no",
       comments: c.comments,
@@ -87,6 +88,8 @@ export function taskRecordFor(client: string | null): RecordType {
       owner: text("Owner"),
       assignee: text("Owner address", { listed: false }),
       due: date("Due"),
+      // `a; b`, so the List's own filter finds a label as text.
+      labels: text("Labels"),
       blocked: status(
         { blocked: { label: "Blocked", tone: "warn" }, clear: { label: "Clear", tone: "neutral" } },
         "Blocked",

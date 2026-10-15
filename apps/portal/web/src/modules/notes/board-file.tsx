@@ -25,7 +25,7 @@ import { docPath, notes } from "./api.js";
 import { SELECT } from "./card.js";
 import { download, fileName } from "./files.js";
 
-/** The board's cards as a CSV download: title, column, owner, due, blocked by, link. */
+/** The board's cards as a CSV download: title, column, owner, due, labels, blocked by, link. */
 export async function exportBoard(client: string, id: string) {
   try {
     const out = await notes(client, "taskExport", { id });
@@ -36,6 +36,7 @@ export async function exportBoard(client: string, id: string) {
         r.column,
         r.owner,
         r.due,
+        r.labels.join("; "),
         r.blockedBy.join("; "),
         `${location.origin}${docPath(r.id)}`,
       ]),

@@ -6,7 +6,20 @@
  * console and the CLI ask before calling these.
  */
 import { atomic, type Db, type Queryable } from "@wren/db";
-import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  arrayContains,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { Reader } from "./access.js";
 import { boardById, TaskRefusal } from "./boards.js";
 import { positionBetween } from "./position.js";
@@ -37,6 +50,30 @@ export function assigneeOf(raw: unknown): string | null {
   }
   if (!EMAIL.test(s)) throw new TaskRefusal("give an email or agent:<name>");
   return s;
+}
+
+/** Most labels a card holds, and the longest one. */
+export const LABELS_MAX = 12;
+export const LABEL_MAX = 30;
+
+/**
+ * Labels as stored: free text, trimmed, one space between words, lowercase, no repeats, in the
+ * order given. A string splits at `;`, `,` or a line break (the CSV and the CLI hand one over),
+ * so a label never holds those. None is `[]`.
+ */
+export function labelsOf(raw: unknown): string[] {
+  if (raw === null || raw === undefined || raw === "") return [];
+  const parts = (Array.isArray(raw) ? raw : [raw]).flatMap((x) => String(x ?? "").split(/[;,\n]/));
+  const out: string[] = [];
+  for (const p of parts) {
+    const label = p.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!label || out.includes(label)) continue;
+    if (label.length > LABEL_MAX)
+      throw new TaskRefusal(`a label is ${LABEL_MAX} characters at most`);
+    out.push(label);
+  }
+  if (out.length > LABELS_MAX) throw new TaskRefusal(`a card holds ${LABELS_MAX} labels at most`);
+  return out;
 }
 
 /** A due day as `YYYY-MM-DD`; none is null. */
@@ -88,6 +125,8 @@ export interface TaskRow {
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  /** Free-text tags, lowercase. */
+  labels: string[];
   /** Blockers still open. */
   blocked: number;
   /** Cards waiting on this one. */
@@ -122,6 +161,7 @@ const taskFields = {
   archivedAt: notes.archivedAt,
   createdAt: notes.createdAt,
   updatedAt: notes.updatedAt,
+  labels: notes.labels,
   blocked: openBlockers,
   blocks: blocking,
   comments: commentCount,
@@ -139,6 +179,8 @@ export interface TaskFilter {
   open?: boolean;
   /** Only blocked cards (true) or only unblocked ones (false). */
   blocked?: boolean;
+  /** Only cards that carry this label. */
+  label?: string;
   q?: string;
   /** Cards this reader may open; none lists every card (the CLI). */
   reader?: Omit<Reader, "cap">;
@@ -165,6 +207,7 @@ export async function listTasks(db: Queryable, f: TaskFilter = {}): Promise<Task
       : f.blocked
         ? sql`${openBlockers} > 0`
         : sql`${openBlockers} = 0`,
+    f.label?.trim() ? arrayContains(notes.labels, labelsOf(f.label)) : undefined,
     f.q?.trim()
       ? or(
           sql`${notes.search} @@ websearch_to_tsquery('english', ${f.q.trim()})`,
@@ -301,6 +344,8 @@ export interface NewTask {
   why?: string | null;
   /** The note's owner when not `by`. */
   owner?: string;
+  /** Free-text labels (an array, or one string split at `;` or `,`). */
+  labels?: unknown;
 }
 
 const whyOf = (why: unknown) => {
@@ -335,6 +380,7 @@ export async function createTask(db: Db, o: NewTask): Promise<Note> {
   if (!col) throw new TaskRefusal(`no column "${o.column}" on ${o.board.name}`);
   const assignee = assigneeOf(o.assignee);
   const due = dueOf(o.due);
+  const labels = labelsOf(o.labels);
   return atomic(db, async (tx) => {
     const made = await createNote(tx, {
       owner: o.owner ?? o.by,
@@ -353,6 +399,7 @@ export async function createTask(db: Db, o: NewTask): Promise<Note> {
         position,
         assignee,
         due,
+        labels,
         closedAt: col.done ? new Date() : null,
       })
       .where(eq(notes.id, made.id))
@@ -548,6 +595,18 @@ export async function setDue(db: Queryable, id: string, due: unknown): Promise<T
   await db
     .update(notes)
     .set({ due: day })
+    .where(and(eq(notes.id, id), eq(notes.kind, "task")));
+  const t = await taskById(db, id);
+  if (!t) throw new TaskRefusal("no such card", 404);
+  return t;
+}
+
+/** A card's labels, replaced by these. */
+export async function setLabels(db: Queryable, id: string, raw: unknown): Promise<TaskRow> {
+  const labels = labelsOf(raw);
+  await db
+    .update(notes)
+    .set({ labels })
     .where(and(eq(notes.id, id), eq(notes.kind, "task")));
   const t = await taskById(db, id);
   if (!t) throw new TaskRefusal("no such card", 404);

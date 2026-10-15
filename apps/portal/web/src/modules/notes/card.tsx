@@ -193,6 +193,12 @@ export function CardStrip({
           {column ? ` · ${column.name}` : ""}
         </span>
       )}
+      <LabelsEdit
+        labels={t.labels}
+        known={[...new Set(mates.flatMap((c) => c.labels))].sort()}
+        writable={w}
+        save={(labels) => edit({ labels })}
+      />
       <Links
         label="Blocked by"
         refs={t.blockedBy}
@@ -210,6 +216,77 @@ export function CardStrip({
         drop={(other) => block(id, false, other)}
       />
     </section>
+  );
+}
+
+/** A card's labels: each with a remove, and a box to add one (Enter, comma or leaving the box). */
+function LabelsEdit({
+  labels,
+  known,
+  writable,
+  save,
+}: {
+  labels: string[];
+  known: string[];
+  writable: boolean;
+  save: (labels: string[]) => unknown;
+}) {
+  const [text, setText] = useState("");
+  if (!labels.length && !writable) return null;
+  const add = () => {
+    const next = text.trim();
+    setText("");
+    if (next && !labels.includes(next.toLowerCase())) void save([...labels, next]);
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-(--ui-ink-2)">Labels</span>
+      {labels.map((l) => (
+        <span
+          key={l}
+          className="inline-flex items-center gap-1 border border-(--ui-hair) bg-(--ui-paper) px-1.5 py-0.5"
+        >
+          {l}
+          {writable ? (
+            <button
+              type="button"
+              aria-label={`Remove ${l}`}
+              onClick={() => void save(labels.filter((x) => x !== l))}
+              className="inline-flex border-0 bg-transparent p-0 text-(--ui-ink-3) hover:text-(--ui-ink)"
+            >
+              <Icon name="close" size={12} />
+            </button>
+          ) : null}
+        </span>
+      ))}
+      {writable ? (
+        <>
+          <input
+            value={text}
+            maxLength={30}
+            list="card-labels"
+            aria-label="Add a label"
+            placeholder="Add a label"
+            className={`${SELECT} w-32`}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            onBlur={add}
+          />
+          <datalist id="card-labels">
+            {known
+              .filter((l) => !labels.includes(l))
+              .map((l) => (
+                <option key={l} value={l} />
+              ))}
+          </datalist>
+        </>
+      ) : null}
+    </div>
   );
 }
 

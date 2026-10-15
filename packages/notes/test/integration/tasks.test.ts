@@ -29,8 +29,10 @@ import {
   saveBoard,
   setBoardGeneral,
   setDue,
+  setLabels,
   shareBoard,
   TaskRefusal,
+  taskById,
   unblockTask,
 } from "../../src/index.js";
 
@@ -135,6 +137,22 @@ describe("cards", () => {
     const moves = await movesOf(db(), b.id);
     expect(moves).toHaveLength(1);
     expect(moves[0]).toMatchObject({ kind: "create", from: null, to: "todo", by: ADA });
+  });
+
+  it("keeps labels clean, replaces them, and filters by one", async () => {
+    const board = await defaultBoard(db(), ADA);
+    const a = await createTask(db(), { board, title: "A", by: ADA, labels: ["Sales ", "q4"] });
+    const b = await createTask(db(), { board, title: "B", by: ADA, labels: "q4; ops" });
+    await createTask(db(), { board, title: "C", by: ADA });
+    expect(a.labels).toEqual(["sales", "q4"]);
+    expect(titles(await listTasks(db(), { label: "Q4" }))).toEqual(["A", "B"]);
+    expect(titles(await listTasks(db(), { label: "ops" }))).toEqual(["B"]);
+    expect(titles(await listTasks(db(), { label: "nope" }))).toEqual([]);
+    const after = await setLabels(db(), a.id, ["ops", "OPS", "new one"]);
+    expect(after.labels).toEqual(["ops", "new one"]);
+    expect((await setLabels(db(), b.id, [])).labels).toEqual([]);
+    await expect(setLabels(db(), a.id, ["x".repeat(40)])).rejects.toBeInstanceOf(TaskRefusal);
+    expect((await taskById(db(), a.id))?.labels).toEqual(["ops", "new one"]);
   });
 
   it("keeps cards out of Notes' lists until searched for", async () => {

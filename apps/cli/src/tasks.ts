@@ -30,6 +30,7 @@ import {
   readyTasks,
   reopenTask,
   setDue,
+  setLabels,
   type TaskRow,
   taskById,
   toMarkdown,
@@ -76,7 +77,7 @@ export function registerTasks(
   const cmd = program
     .command("tasks")
     .description(
-      "Board cards: ready, ls, show, add, move, assign, close, reopen, comment, block (agents write as agent:<name>)",
+      "Board cards: ready, ls, show, add, move, assign, label, close, reopen, comment, block (agents write as agent:<name>)",
     );
 
   /** A board by id or name; the workspace's Work board when none is named. */
@@ -111,6 +112,7 @@ export function registerTasks(
       col,
       ownerName(t.assignee) || "no owner",
       t.due ? `due ${t.due}` : "",
+      t.labels.length ? `labels ${t.labels.join(", ")}` : "",
       t.blocked ? `blocked by ${t.blocked}` : "",
     ].filter(Boolean);
     return `${t.id}  ${t.title}  (${bits.join("; ")})`;
@@ -169,6 +171,7 @@ export function registerTasks(
     .option("--board <board>", "a board's id or name (default: every board)")
     .option("--column <column>", "a column's id or name")
     .option("--owner <who>", "an email, agent name, or none")
+    .option("--label <label>", "cards with this label")
     .option("--all", "closed cards too")
     .option("--limit <n>", "at most this many (default 100)", limitOf)
     .option("--json", "rows as JSON")
@@ -178,6 +181,7 @@ export function registerTasks(
           board?: string;
           column?: string;
           owner?: string;
+          label?: string;
           all?: boolean;
           limit?: number;
         },
@@ -191,6 +195,7 @@ export function registerTasks(
             ...(board ? { board: board.id } : {}),
             ...(column ? { column: column.id } : {}),
             ...(o.owner !== undefined ? { assignee: whoOf(o.owner) } : {}),
+            ...(o.label ? { label: o.label } : {}),
             ...(o.all ? {} : { open: true }),
             limit: o.limit ?? 100,
           });
@@ -261,6 +266,7 @@ export function registerTasks(
     .option("--column <column>", "a column's id or name (default: the first)")
     .option("--owner <who>", "an email, agent name, or none")
     .option("--due <date>", "YYYY-MM-DD")
+    .option("--label <label...>", "labels (lowercase, up to 12)")
     .option("--blocked-by <id...>", "cards it waits on")
     .option("--body <markdown>", "its words, as Markdown")
     .option("--agent <name>", "write as agent:<name> (default claude)")
@@ -273,6 +279,7 @@ export function registerTasks(
           column?: string;
           owner?: string;
           due?: string;
+          label?: string[];
           blockedBy?: string[];
           body?: string;
         },
@@ -288,6 +295,7 @@ export function registerTasks(
             ...(o.column ? { column: o.column } : {}),
             ...(o.owner !== undefined ? { assignee: whoOf(o.owner) } : {}),
             ...(o.due ? { due: o.due } : {}),
+            ...(o.label?.length ? { labels: o.label } : {}),
             ...(o.body ? { body: fromMarkdown(o.body) } : {}),
             ...(o.blockedBy?.length ? { blockedBy: o.blockedBy } : {}),
           });
@@ -371,6 +379,23 @@ export function registerTasks(
         await setDue(db, id, /^(none|-)$/i.test(date) ? null : date);
       });
       console.log(`${id}  ${/^(none|-)$/i.test(date) ? "no due day" : date}`);
+    });
+
+  cmd
+    .command("label")
+    .description("Set a card's labels (replaces them), or none")
+    .argument("<id>")
+    .argument("<labels...>")
+    .action(async (id: string, labels: string[]) => {
+      const t = await withDb(async (db) => {
+        await need(db, id);
+        return setLabels(
+          db,
+          id,
+          labels.length === 1 && /^(none|-)$/i.test(labels[0] ?? "") ? [] : labels,
+        );
+      });
+      console.log(`${id}  ${t.labels.length ? t.labels.join(", ") : "no labels"}`);
     });
 
   cmd

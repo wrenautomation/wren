@@ -45,6 +45,18 @@ describe("guessMap and mapRows", () => {
       null,
     ]);
   });
+  it("reads a labels column, however it is headed", () => {
+    expect(guessMap(["Task", "Tags", "Due"])).toEqual(["title", "labels", "due"]);
+    expect(
+      mapRows(
+        [
+          ["Task", "Labels"],
+          ["Call Sam", "sales; q4"],
+        ],
+        ["title", "labels"],
+      ),
+    ).toEqual([{ title: "Call Sam", labels: "sales; q4" }]);
+  });
   it("leaves empty cells out", () => {
     expect(
       mapRows(

@@ -40,7 +40,7 @@ const LIST: ListPage = {
   label: "Cards",
   template: "list",
   record: "notes.task",
-  columns: ["title", "column", "owner", "due", "state"],
+  columns: ["title", "column", "owner", "due", "labels", "state"],
   empty: "No cards yet.",
 };
 
@@ -156,6 +156,7 @@ function BoardView({
   useEffect(() => setMoved({}), [got.data]);
   const [owner, setOwner] = useState("");
   const [about, setAbout] = useState("");
+  const [label, setLabel] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [settings, setSettings] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -201,9 +202,11 @@ function BoardView({
           ? !c.assignee
           : c.assignee === owner)) &&
     (!about || c.clients.some((x) => x.id === about)) &&
+    (!label || c.labels.includes(label)) &&
     (!blocked || (c.blocked > 0 && !c.closed));
+  const labels = [...new Set(data.cards.flatMap((c) => c.labels))].sort();
   const shown = data.cards.filter(keep);
-  const filtering = !!(owner || about || blocked);
+  const filtering = !!(owner || about || label || blocked);
 
   return (
     <>
@@ -306,6 +309,21 @@ function BoardView({
                 ))}
               </select>
             ) : null}
+            {labels.length ? (
+              <select
+                aria-label="Label"
+                className={SELECT}
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              >
+                <option value="">Any label</option>
+                {labels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <label className="flex items-center gap-1.5 text-[13px]">
               <input
                 type="checkbox"
@@ -321,6 +339,7 @@ function BoardView({
                 onClick={() => {
                   setOwner("");
                   setAbout("");
+                  setLabel("");
                   setBlocked(false);
                 }}
               >
@@ -516,10 +535,13 @@ function CardFace({
       >
         {c.name}
       </a>
-      {c.clients.length ? (
+      {c.clients.length || c.labels.length ? (
         <span className="flex flex-wrap gap-1">
           {c.clients.map((x) => (
             <Tag key={x.id}>{x.name}</Tag>
+          ))}
+          {c.labels.map((l) => (
+            <Tag key={l}>{l}</Tag>
           ))}
         </span>
       ) : null}

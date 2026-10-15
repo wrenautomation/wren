@@ -1,0 +1,1 @@
+ALTER TABLE "notes" ADD COLUMN "labels" text[] DEFAULT '{}'::text[] NOT NULL;
