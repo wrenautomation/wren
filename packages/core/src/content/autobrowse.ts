@@ -24,6 +24,19 @@ export interface SiteClient {
   via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">;
 }
 
+/**
+ * Said on a write that failed after it may have reached the platform (a timeout, a 5xx, a
+ * rerun after a crash): it may be live. A person checks before it is sent again.
+ */
+export const MAY_HAVE_POSTED = "may have gone through";
+
+/** Put before an unsure failure's text once a person was told to check it. */
+export const CHECKED = "checked: ";
+
+/** A failure whose post may be live anyway: never sent again blind. */
+export const mayHavePosted = (message: string | null | undefined): boolean =>
+  !!message && message.includes(MAY_HAVE_POSTED) && !message.startsWith(CHECKED);
+
 export class SiteCallError extends Error {
   readonly site: string;
   readonly status: number;

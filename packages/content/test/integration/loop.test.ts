@@ -10,7 +10,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
-import type { Platform, Post } from "@wren/core/content";
+import { MAY_HAVE_POSTED, type Platform, type Post } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -273,6 +273,21 @@ describe("content loop", () => {
     const again = await sync();
     expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
     expect(posted).toHaveLength(3);
+  });
+
+  it("a failure that may have posted is approved again only after a person is told to check", async () => {
+    const out = await desk().add({ text: "a note on retries" });
+    const d = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((r) => r.platform === "x");
+    if (!d) throw new Error("no x draft");
+    await pg.db
+      .update(contentDrafts)
+      .set({ status: "failed", error: `x POST /2/tweets: 504 timeout; ${MAY_HAVE_POSTED}` })
+      .where(eq(contentDrafts.id, d.id));
+    await expect(approveDrafts(pg.db, [d.id], { now: new Date() })).rejects.toThrow(
+      /may have posted on x\. Check there first/,
+    );
+    const [again] = await approveDrafts(pg.db, [d.id], { now: new Date() });
+    expect(again?.status).toBe("approved");
   });
 
   it("looks at each published post once a day and ranks the week", async () => {

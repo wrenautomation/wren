@@ -15,6 +15,8 @@ import { z } from "zod";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import {
+  MAY_HAVE_POSTED,
+  mayHavePosted,
   SiteCallError,
   type SiteClient,
   type SiteMethod,
@@ -169,8 +171,10 @@ export function restateSites(
             await ctx.sleep(attempt * CALL_PAUSE_MS);
             continue;
           }
-          e.journaled = true;
-          throw e;
+          const out =
+            safeToRepeat(method, path) || isRefusal(e) ? e : unsure(e, site, method, path);
+          out.journaled = true;
+          throw out;
         }
       }
     },
@@ -196,6 +200,14 @@ const CALL_PAUSE_MS = 30_000;
 /** Calls that change nothing a person sees: a read, or a file's upload before any post names it. */
 const safeToRepeat = (method: SiteMethod, path: string) =>
   method === "GET" || /\/upload\b/.test(path);
+
+/** A write that failed in passing: it may have reached the platform, so it says so. */
+function unsure(e: SiteCallError, site: string, method: string, path: string): SiteCallError {
+  if (mayHavePosted(e.message)) return e;
+  const prefix = `${site} ${method} ${path}: ${e.status} `;
+  const said = e.message.startsWith(prefix) ? e.message.slice(prefix.length) : e.message;
+  return new SiteCallError(site, method, path, e.status, `${said}; ${MAY_HAVE_POSTED}`);
+}
 
 /** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
 const LONG_WAIT_S = 15 * 60;
@@ -231,7 +243,9 @@ export function journaledHost(ctx: restate.Context, host: MediaHost): MediaHost 
 /**
  * A direct API client (no `sites` hop) made durable: each call is one
  * journaled step, so a retried invocation replays the answer instead of
- * calling again. A refusal ends the step for good; anything else retries.
+ * calling again. A refusal ends the step for good. A read retries; a write
+ * that failed any other way may have gone through, so it is never sent blind
+ * again: final, and said so.
  */
 export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteClient {
   return {
@@ -243,7 +257,12 @@ export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteCli
           } catch (err) {
             if (isRefusal(err))
               throw new restate.TerminalError(err.message, { errorCode: err.status });
-            throw err;
+            if (safeToRepeat(method, path) || nothingSent(err)) throw err;
+            const status = err instanceof SiteCallError ? err.status : 502;
+            const said = err instanceof Error ? err.message : String(err);
+            throw new restate.TerminalError(`${said}; ${MAY_HAVE_POSTED}`, {
+              errorCode: status >= 400 ? status : 502,
+            });
           }
         })) as never;
       } catch (err) {
@@ -253,6 +272,12 @@ export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteCli
     via: (site, method, path) => sites.via(site, method, path),
   };
 }
+
+/** The connection never opened: nothing reached the platform, so trying again is safe. */
+const nothingSent = (err: unknown): boolean =>
+  /ECONNREFUSED|ENOTFOUND|EAI_AGAIN/.test(
+    `${(err as { code?: string })?.code ?? ""} ${(err as { cause?: { code?: string } })?.cause?.code ?? ""}`,
+  );
 
 /**
  * A refusal from a channel is final for this request: terminal, so the scheduler marks the draft

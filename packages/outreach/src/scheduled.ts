@@ -6,6 +6,7 @@
  */
 
 import { warmupOf } from "@wren/channel-reddit";
+import { mayHavePosted } from "@wren/core/content";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -209,7 +210,8 @@ const SEND_FAILED = "send failed: ";
 
 /**
  * A slot's send failed for good. The row leaves the schedule so the next pass slots it again;
- * a post failing its second slot is skipped. A thread retries until it goes stale.
+ * a post failing its second slot, or one that may have posted, is skipped. A thread retries
+ * until it goes stale; its send reads the thread first, so ours never lands twice.
  */
 export async function sendFailed(
   db: Queryable,
@@ -225,7 +227,8 @@ export async function sendFailed(
     .select({ reason: reachPosts.stateReason })
     .from(reachPosts)
     .where(eq(reachPosts.id, Number(id)));
-  const again = r?.reason?.startsWith(SEND_FAILED) ?? false;
+  // One retry for a send that failed, none for one that may have posted anyway.
+  const again = (r?.reason?.startsWith(SEND_FAILED) ?? false) || mayHavePosted(why);
   await db
     .update(reachPosts)
     .set({
