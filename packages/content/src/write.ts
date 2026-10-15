@@ -3,8 +3,8 @@
  * is one text with a line of `---` between posts. Where a platform needs a title (Reddit) and none
  * is given, the first line is the title and the rest the body. Pure: the composer previews with it.
  */
-import type { Platform } from "@wren/core/content";
-import { PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
+import type { Media, Platform } from "@wren/core/content";
+import { PLATFORM_SPECS, unfitReason, wordsUnfit } from "./platforms.js";
 
 /** The prompt version on a draft no model wrote. */
 export const OWN_WORDS = "own";
@@ -17,11 +17,15 @@ export function splitPosts(text: string): string[] {
     .filter(Boolean);
 }
 
-/** One platform's version of the words, or why it can't take them. */
+/**
+ * One platform's version of the words, or why it can't take them. A platform that needs a file
+ * (TikTok's video) takes the words only with that file given.
+ */
 export function ownDraftOf(
   platform: Platform,
   text: string,
   title?: string | null,
+  media?: Media | null,
 ): { text: string; title: string | null; extra?: Record<string, unknown> } | { reason: string } {
   const spec = PLATFORM_SPECS[platform];
   if (spec.words) {
@@ -32,8 +36,12 @@ export function ownDraftOf(
       ? { reason: unfit }
       : { text: body, title: null, extra: { kind: spec.words.kind } };
   }
-  if (spec.needsMedia)
-    return { reason: `${spec.name} needs ${spec.needsMedia === "video" ? "a video" : "a file"}` };
+  if (spec.needsMedia) {
+    if (!media)
+      return { reason: `${spec.name} needs ${spec.needsMedia === "video" ? "a video" : "a file"}` };
+    const unfit = unfitReason(spec, media);
+    if (unfit) return { reason: unfit };
+  }
   let body = text.trim();
   let head = title?.trim() || null;
   if (spec.title && !head) {

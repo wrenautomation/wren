@@ -64,6 +64,7 @@ import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
 import { registerWebhooks } from "./webhooks.js";
 import { registerWorkflows } from "./workflows.js";
+import { registerWrite } from "./write.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
@@ -127,6 +128,7 @@ const CLIENT_SCOPED = new Set([
   "sites",
   "templates",
   "workflows",
+  "write",
 ]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
 const NOT_PER_CLIENT = new Set([
@@ -270,6 +272,7 @@ registerWorkflows(program, withMainDb, withClientDb, settings);
 registerEnrich(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);
+registerWrite(program, withDb, settings);
 registerDrafts(program, withMainDb);
 registerTrain(program, withMainDb, (database, fn) =>
   open(clientDatabaseUrl(settings.databaseUrl, database), fn),

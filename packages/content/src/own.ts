@@ -1,12 +1,13 @@
 /** Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`). */
 import { randomBytes } from "node:crypto";
-import type { Platform } from "@wren/core/content";
+import type { Media, Platform } from "@wren/core/content";
 import { isCarousel } from "@wren/core/content/slides";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import type { DraftResult } from "./draft.js";
 import { addIdea } from "./ideas.js";
+import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentIdea, contentDrafts, contentIdeas, type IdeaSource } from "./schema.js";
 import { OWN_WORDS, ownDraftOf } from "./write.js";
 
@@ -36,12 +37,14 @@ export async function writeOwn(
     source?: IdeaSource;
     /** What it's about (`video:<id>`): the idea's ref hangs it there. */
     from?: string | null;
+    /** The file a platform that needs one posts (TikTok's video): on the idea and each draft. */
+    media?: Media | null;
   },
 ): Promise<{ idea: ContentIdea; results: DraftResult[] }> {
-  const idea = await addIdea(db, o.text, o.source ?? "cli", null, refFrom(o.from));
+  const idea = await addIdea(db, o.text, o.source ?? "cli", o.media ?? null, refFrom(o.from));
   const results: DraftResult[] = [];
   for (const platform of o.platforms) {
-    const v = ownDraftOf(platform, o.text, o.title);
+    const v = ownDraftOf(platform, o.text, o.title, o.media);
     if ("reason" in v) {
       results.push({ platform, ok: false, reason: v.reason });
       continue;
@@ -53,6 +56,7 @@ export async function writeOwn(
         platform,
         text: v.text,
         title: v.title,
+        ...(PLATFORM_SPECS[platform].needsMedia && o.media ? { media: o.media } : {}),
         ...(v.extra ? { extra: v.extra } : {}),
         promptVersion: OWN_WORDS,
       })

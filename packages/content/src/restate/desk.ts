@@ -181,6 +181,14 @@ const WRITE = z.looseObject({
     .regex(FROM)
     .nullish()
     .describe("What it's about, video:<id>: the post hangs under that video in Pieces"),
+  media: z
+    .object({
+      kind: z.enum(["image", "video"]),
+      source: z.string().min(1),
+      title: z.string().optional(),
+    })
+    .nullish()
+    .describe("The file a platform that needs one posts (TikTok's video): s3://, or a URL"),
 });
 const STORY = z.looseObject({
   platforms: z.array(z.enum(STORY_PLATFORMS)).min(1).describe("Where the story goes"),
@@ -509,6 +517,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             adapt?: boolean | null;
             go?: WriteGo | null;
             from?: string | null;
+            media?: Media | null;
             viewer?: unknown;
           },
         ) => {
@@ -538,6 +547,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                     platforms: req.platforms,
                     by,
                     from: req.from ?? null,
+                    media: req.media ?? null,
                   });
                   return { ideaId: r.idea.id, results: r.results };
                 });

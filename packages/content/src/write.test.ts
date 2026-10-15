@@ -36,6 +36,18 @@ describe("own words", () => {
     });
   });
 
+  it("takes a video platform's words once a video comes with them", () => {
+    const video = { kind: "video" as const, source: "s3://bucket/media/a.mp4" };
+    expect(ownDraftOf("tiktok", "A caption.", null, video)).toEqual({
+      text: "A caption.",
+      title: null,
+    });
+    expect(ownDraftOf("tiktok", "A caption.", null, { ...video, kind: "image" })).toEqual({
+      reason: "tiktok needs a video, not an image",
+    });
+    expect(ownDraftOf("tiktok", "A caption.")).toEqual({ reason: "TikTok needs a video" });
+  });
+
   it("refuses what a platform can't post", () => {
     expect(ownDraftOf("instagram", "text")).toEqual({ reason: "Instagram needs a video" });
     expect(ownDraftOf("youtube", "x".repeat(5001))).toMatchObject({

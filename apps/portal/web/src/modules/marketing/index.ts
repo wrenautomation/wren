@@ -2089,6 +2089,8 @@ export const marketing: Module = {
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
+/** A client's own draft edits (its post's fields and files), saved from inside the detail. */
+const EDITS = new Set(fieldActions(OPEN).map((a) => a.id));
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
 const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
   const page = [AD_DAYS, ...SITE_PAGES, ...marketing.pages].find((p) => p.id === id) as ListPage;
@@ -2160,7 +2162,11 @@ export const clientMarketing: Module = {
     },
     REVIEWS_PAGE,
     CLIENT_APPROVE,
-    asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
+    // The draft's own settings and preview (a TikTok post's Direct Post panel), as Wren's.
+    asClient("drafts", {
+      actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id) || EDITS.has(a.id)),
+      extras: withShape(),
+    }),
     asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
     asClient("search"),

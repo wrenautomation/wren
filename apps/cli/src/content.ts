@@ -93,7 +93,7 @@ const platformsOf = (s: string | undefined): Platform[] | undefined =>
  * overrides. A laptop file goes into the media store first (the worker and
  * the box cannot read this disk); a URL or an `s3://` object is kept as is.
  */
-async function mediaOf(
+export async function mediaOf(
   o: { media?: string; kind?: string; title?: string },
   bucket: string | undefined,
 ): Promise<Media | null> {
