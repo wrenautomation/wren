@@ -384,6 +384,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../../packages/outreach
+      '@wren/studio':
+        specifier: workspace:*
+        version: link:../../packages/studio
       '@wren/worker':
         specifier: workspace:*
         version: link:../worker

@@ -104,6 +104,7 @@ import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
+import { setEdit, setLine } from "@wren/studio/edit";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -238,9 +239,9 @@ const SERVICES: Record<
           ...CALENDAR_RECORDS,
           clientRecord,
           // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
-          // companies. Videos have no media host here: no playback.
+          // companies. Videos play from the in-memory file store.
           ...marketingNumbers(media),
-          videoRecord(),
+          videoRecord(media),
           firmRecord,
           // Voice's calls and Latency, as the worker registers them.
           ...VOICE_RECORDS,
@@ -516,6 +517,32 @@ const SERVICES: Record<
 const local = SERVICES.console?.api as Record<string, (i: unknown) => Promise<unknown>>;
 local.recordsAsk = async (i) => ({ id: await local.recordsAskOpen?.(i) });
 local.workflowAsk = async (i) => ({ id: await local.workflowAskOpen?.(i) });
+/** A handler by name is Restate's; here only the video editor's saves, straight on the row. */
+local.call = async (i) => {
+  const { service, handler, input } = i as { service: string; handler: string; input: VideoIn };
+  const by = "preview@localhost";
+  try {
+    if (service === "VideoDesk" && handler === "set")
+      return pickRun(
+        await setEdit(main, input.id, input.patch, {
+          by,
+          ...(input.expect ? { expect: input.expect } : {}),
+        }),
+      );
+    if (service === "VideoDesk" && handler === "line")
+      return pickRun(await setLine(main, input.id, input as Required<VideoIn>, by));
+  } catch (err) {
+    if (err instanceof PortalRefusal) throw err;
+    throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
+  }
+  throw new PortalRefusal(`${service}/${handler} runs on Restate, not in preview.`, 404);
+};
+type VideoIn = { id: number; patch?: unknown; expect?: Record<string, unknown> } & {
+  at?: number[];
+  text?: string;
+  was?: string;
+};
+const pickRun = ({ run }: { run: string }) => ({ run });
 const as = process.argv[process.argv.indexOf("--as") + 1];
 const guarded = !demo && process.argv.includes("--as") && !!as;
 const viewer: Viewer = demo
@@ -629,7 +656,21 @@ const server = createServer(async (req, res) => {
     }
     const f = stored.get(key);
     if (!f) return res.writeHead(404).end();
+    // A video seeks by range, as from the bucket.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
+    if (range) {
+      const end = range[2] ? Math.min(Number(range[2]), f.bytes.length - 1) : f.bytes.length - 1;
+      const start = range[1] ? Number(range[1]) : 0;
+      res.writeHead(206, {
+        "content-type": f.type,
+        "accept-ranges": "bytes",
+        "content-range": `bytes ${start}-${end}/${f.bytes.length}`,
+        "content-length": end - start + 1,
+      });
+      return res.end(f.bytes.subarray(start, end + 1));
+    }
     res.writeHead(200, {
+      "accept-ranges": "bytes",
       "content-type": f.type,
       "content-disposition": `attachment; filename="${fileNameOf(key)}"`,
     });

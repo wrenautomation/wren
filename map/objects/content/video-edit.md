@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-14 @ HEAD
+verified: 2026-10-15 @ HEAD
 entity: packages/studio/src/schema.ts:85
 ---
 
@@ -32,6 +32,7 @@ The row is the edit; files are outputs beside the recording (`dir`). Every time 
 - Shorts on whole sentences (William 2026-10-14; `sentences.ts`): `setEdit` snaps every Short it's given to the nearest sentence start and end that keeps it 20-60 s once cut (`snapShorts`, within 20 s; the run's stats hold `snapped`), `setLook` snaps a look's proposals the same way, and `checkPatch` refuses a new or moved Short still mid-sentence (`shortIssues`; one kept as stored passes, `videoChecks` warns). Sentence ends come from the words' punctuation; a transcript without any ends at pauses and fillers, and `wren video words <id> --punctuate` has the gateway model punctuate it (`punctuate.ts`, text only, a `video words` run). A Short's captions open on a capital and close on a stop; its words are picked by their middles, like the snap
 - Title card (`cardOf`, `props.ts`; `TitleCard`, `remotion/index.tsx`): every Short opens with its title as a small white label near the top, from the first frame (the cover) for 2.6 s, then a 0.4 s fade. Per Short: `card: false` hides it, `cardText` (60 characters) replaces the title. Renders write `<name>.rendering.mp4` and move it in whole, since an approved YouTube draft uploads the file's path
 - After a re-render, `wren video swap <id> [--short n]` (`swapShortMedia`, `packages/content/src/video.ts`) points each approved, unpublished Short draft at the new render (YouTube the Mac file, the rest `keys.reel-<n>`); slot, words and approval stay; a `video swap` run holds the old sources
+- Finishing (designs/2026-10-15-video-finishing.md, migration 0267): `overlays` (text on the video, raw seconds, `x`/`y` 0..1 of the frame, size s/m/l), `crops` (`vertical`/`square`/`portrait` centre, unset = the face), `formats` adds `square` 1:1 and `portrait` 4:5, `captions.place` (line height per long/short). `@wren/studio/finish` is pure and shared by page and render: `cropWindow` (`finish.ts:118`), `trimCuts` (in/out as `manual` cuts, `:175`), `moveCutEdge` (`:199`), `overlaysOnCut` (`:236`), `captionLines`/`rewriteLine` (`:265`, `:296`), `formatFor` (`:340`). `setEdit` takes `expect` (the values the page opened on) and refuses a moved field with `staleRefusal` (409 `conflict`) under a row lock; `setLine` / `VideoDesk.line` rewrites one caption line's words over its span (a `video line` run). Composition `Framed` draws 9:16, 1:1 and 4:5; render uploads `source` (540p, keyframe every 10 frames), `strip` (filmstrip sprite) and `cover-<format>.jpg`. Approve picks each platform's render by `formatFor` (IG/TikTok 9:16; Facebook/LinkedIn 4:5, else 1:1; X 1:1) and sends the cover (`thumbOffset`, `coverMs`). Page: `apps/portal/web/src/modules/marketing/finish.tsx`, one section after Preview on a wide screen: player over `source` skipping cuts, timeline (filmstrip, in/out, cut edges, text bars, caption lines, cover marker), panels Text, Captions, Cover, Shapes; one `useSaved` (1.2 s pause, set on release) with Keep mine / Use theirs
 - Step 2 outputs by name (`numbered`, `longOf`, `video.ts:23`, `:35`): `long`, `short-<n>`, `thumb-<n>`, 1-based
 
 Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0244_video_rejected.sql`, `packages/db/drizzle/0122_video_edits.sql`, `packages/db/drizzle/0123_video_render.sql`, `packages/db/drizzle/0167_video_formats.sql`, `packages/db/drizzle/0169_video_stress.sql`
@@ -69,6 +70,7 @@ Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0244_video_r
 | `wren video swap <id> [--short n]` | write approved unpublished Short drafts' `media.source`, a `runs` row |
 | `wren video words <id> --punctuate [--dry]` | write `words` text (punctuation, capitals), a `runs` row |
 | `VideoDesk.set/cut/undo/ask` (Studio detail) | write the edit, a `runs` row each |
+| `VideoDesk.line` (Studio → Finish → Captions) | rewrite one caption line, a `video line` run |
 | `VideoDesk.render` (Studio → Render) | write `render`, call the desk's `studio.render` |
 | `VideoDesk.edit` (Studio → Run the agent / Ask for changes; `wren video watch` on a new recording) | a `video-edit` run; writes words, fields and cuts, then queues `render` |
 | `VideoDesk.reject` / `restore` (Studio → Reject / Bring back) | write `state` rejected and back, a `runs` row |

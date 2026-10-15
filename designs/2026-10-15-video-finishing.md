@@ -18,7 +18,7 @@ needs from the render path").
 
 ## What this adds
 
-**The edit.** Migration `0266_video_finish` (numbered past lane B's 0265):
+**The edit.** Migration `0267_video_finish` (after lane B's 0265 and 0266):
 - `overlays` jsonb: `{ text, from, to, x, y, size }[]`. Raw seconds; `x`, `y` the text's middle as
   0..1 of the output frame; `size` s, m or l. Checked in `editPatchSchema` (120 characters, inside
   the frame, inside the recording).
@@ -66,7 +66,7 @@ to Instagram's `thumbOffset` and `cover`, and TikTok's `coverMs`.
 
 ## Files
 
-- `packages/db/drizzle/0266_video_finish.sql`, `meta/_journal.json`
+- `packages/db/drizzle/0267_video_finish.sql`, `meta/_journal.json`
 - `packages/studio/src/finish.ts` (+ test), `schema.ts`, `edit.ts` (+ test), `props.ts`,
   `media.ts`, `words.ts`, `remotion.ts`, `remotion/index.tsx`, `index.ts`, `package.json`
 - `packages/content/src/restate/video-desk.ts`, `video.ts` (record `finish`, approve picks)
@@ -84,3 +84,4 @@ to Instagram's `thumbOffset` and `cover`, and TikTok's `coverMs`.
 ## Log
 
 - 2026-10-15: written.
+- 2026-10-15: built (edit, render, approve, then the portal view; migration renumbered 0267 after lane B). Tested on a local preview with synthetic media.

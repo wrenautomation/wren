@@ -332,7 +332,10 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/videoWords": (id, { wrong, right, at, text }) =>
     handlerCall("VideoDesk", "words", { id: num(id), wrong, right, at, text }),
   "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
-  "marketing/videoSet": (id, { patch }) => handlerCall("VideoDesk", "set", { id: num(id), patch }),
+  "marketing/videoSet": (id, { patch, expect }) =>
+    handlerCall("VideoDesk", "set", { id: num(id), patch, ...(expect ? { expect } : {}) }),
+  "marketing/videoLine": (id, { at, text, was }) =>
+    handlerCall("VideoDesk", "line", { id: num(id), at, text, was }),
   "marketing/videoCut": (id, { from, to, state }) =>
     handlerCall("VideoDesk", "cut", { id: num(id), from, to, state }),
   "marketing/videoAsk": (id, { message }) =>

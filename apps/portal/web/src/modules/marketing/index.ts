@@ -455,6 +455,7 @@ const VIDEO_ACTIONS: Action[] = [
       ["videoAsk", "Ask Claude"],
       ["videoUndo", "Undo"],
       ["videoWords", "Fix word"],
+      ["videoLine", "Fix caption"],
       ["videoAgent", "Ask for changes"],
     ] as const
   ).map(([id, label]) => ({

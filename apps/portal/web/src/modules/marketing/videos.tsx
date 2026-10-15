@@ -29,6 +29,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { href } from "../../route.js";
+import { Finish, type FinishData } from "./finish.js";
 
 type Word = {
   w: string;
@@ -89,6 +90,8 @@ type Video = {
   render: { state: string; why?: string } | null;
   state: string;
   turns: Turn[];
+  /** What the finishing view draws and saves (content `finishOf`). */
+  finish?: FinishData;
   /** Every video run on it, oldest first (content `videoSteps`). */
   steps?: Step[];
   /** What to look at before Approve (content `videoChecks`). */
@@ -389,12 +392,25 @@ function CaptionStyle({
   );
 }
 
-function Fields({ id, edit, act }: { id: string; edit: Edit; act: RecordAct }) {
+/** `finishing`: shapes and captions are the finishing view's, so they show there only. */
+function Fields({
+  id,
+  edit,
+  act,
+  finishing,
+}: {
+  id: string;
+  edit: Edit;
+  act: RecordAct;
+  finishing?: boolean;
+}) {
   const thumb = edit.thumbnail;
   return (
     <div className="grid gap-4">
-      <Formats video={id} formats={edit.formats} act={act} />
-      <CaptionStyle video={id} captions={edit.captions ?? { style: "word" }} act={act} />
+      {finishing ? null : <Formats video={id} formats={edit.formats} act={act} />}
+      {finishing ? null : (
+        <CaptionStyle video={id} captions={edit.captions ?? { style: "word" }} act={act} />
+      )}
       <Field
         video={id}
         label="Title"
@@ -1202,6 +1218,8 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
   const edit = EDITABLE.includes(v.state);
   const steps = v.steps ?? [];
   const narrow = isNarrow();
+  // Finishing happens at the Mac: trims, text, captions, cover and crops, before the render.
+  const finishing = edit && !narrow && !!v.finish;
   const sections: [string, ReactNode][] = [
     [
       "Preview",
@@ -1210,22 +1228,24 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
         {v.fresh && v.preview ? <Checks checks={[v.fresh]} /> : null}
       </div>,
     ],
-    // Lane D's finishing view (timeline, text on the video, captions placement, cover frame,
-    // crops) goes here, after the preview: designs/2026-10-14-saving-and-ui-audit.md, "What lane
-    // D needs from the render path".
-    [
-      narrow ? "Review" : "Editing agent",
-      <Agent
-        key="ag"
-        video={String(row.id)}
-        steps={steps}
-        checks={v.checks ?? []}
-        edit={edit}
-        act={act}
-        narrow={narrow}
-      />,
-    ],
   ];
+  if (finishing && v.finish)
+    sections.push([
+      "Finish",
+      <Finish key="fin" id={String(row.id)} data={v.finish} words={v.words} act={act} />,
+    ]);
+  sections.push([
+    narrow ? "Review" : "Editing agent",
+    <Agent
+      key="ag"
+      video={String(row.id)}
+      steps={steps}
+      checks={v.checks ?? []}
+      edit={edit}
+      act={act}
+      narrow={narrow}
+    />,
+  ]);
   // What edits the cut: in place on a wide page, folded behind Edit on a phone.
   const editing: [string, ReactNode][] = [];
   if (v.vertical)
@@ -1254,7 +1274,7 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
     edit
       ? [
           "Title, description and the rest",
-          <Fields key="f" id={String(row.id)} edit={v.edit} act={act} />,
+          <Fields key="f" id={String(row.id)} edit={v.edit} act={act} finishing={finishing} />,
         ]
       : [
           "Title and description",
