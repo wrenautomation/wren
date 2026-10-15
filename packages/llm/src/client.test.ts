@@ -78,6 +78,15 @@ describe("AiSdkLlm", () => {
     expect(usageFromRaw(res.raw)).toEqual({ input: 10, output: 4, total: 14, reasoning: 1 });
   });
 
+  it("asks for at least 2048 tokens, plus a thinking model's room", async () => {
+    const plain = textModel("x");
+    await new AiSdkLlm("groq", "m", plain).complete("hi", { maxTokens: 400 });
+    expect(plain.doGenerateCalls[0]?.maxOutputTokens).toBe(2048);
+    const thinks = textModel("x");
+    await new AiSdkLlm("gateway", "m", thinks, 4096).complete("hi", { maxTokens: 400 });
+    expect(thinks.doGenerateCalls[0]?.maxOutputTokens).toBe(2048 + 4096);
+  });
+
   it("anthropic names the bare model id", () => {
     expect(new AiSdkLlm("anthropic", "claude-test", textModel("x")).name).toBe("claude-test");
   });

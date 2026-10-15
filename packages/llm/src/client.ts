@@ -39,6 +39,10 @@ export interface LlmClient {
   complete(prompt: string, opts?: CompleteOptions): Promise<LlmResponse>;
 }
 
+/**
+ * The least any call may answer in. A budget is a ceiling against a runaway answer, never the
+ * length: the prompt says how long ("at most 4 sentences"), and a lower cap only cuts it off.
+ */
 const DEFAULT_MAX_TOKENS = 2048;
 /** The gateway's Gemini spends output tokens thinking first; 400 asked came back as 27 chars. */
 const GATEWAY_THINKING = 4096;
@@ -123,7 +127,7 @@ export class AiSdkLlm implements LlmClient {
         model: this.model,
         ...(opts.system ? { system: wellFormed(opts.system) } : {}),
         prompt: wellFormed(prompt),
-        maxOutputTokens: (opts.maxTokens ?? DEFAULT_MAX_TOKENS) + this.thinking,
+        maxOutputTokens: Math.max(opts.maxTokens ?? 0, DEFAULT_MAX_TOKENS) + this.thinking,
       });
     } catch (err) {
       const cause = rootCause(err);
