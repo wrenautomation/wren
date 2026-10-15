@@ -37,6 +37,7 @@ import {
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
 import { carouselFiles, isCarousel } from "@wren/core/content/slides";
+import { VIDEO_WAITS_MS } from "./poll.js";
 
 export interface MetaContentOptions {
   now?: () => Date;
@@ -173,10 +174,6 @@ const IG_ACCOUNT: Record<string, string> = {
   accounts_engaged: M.accountsEngaged,
 };
 
-/** A video container is polled every 10 s, for up to 5 minutes. */
-const VIDEO_POLLS = 30;
-const VIDEO_POLL_MS = 10_000;
-
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const sleep = o.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -193,8 +190,8 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
   /** Waits out a video container: FINISHED goes on, ERROR or EXPIRED stops with Graph's words. */
   const ready = async (id: string): Promise<void> => {
-    for (let n = 0; n < VIDEO_POLLS; n++) {
-      await sleep(VIDEO_POLL_MS);
+    for (const wait of VIDEO_WAITS_MS) {
+      await sleep(wait);
       const c = await sites.call<{ status_code?: string; status?: string }>(
         "meta",
         "GET",

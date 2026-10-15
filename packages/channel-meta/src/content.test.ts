@@ -89,7 +89,7 @@ describe("instagram content channel", () => {
       url: "https://www.instagram.com/p/p1/",
       fetchedWith: "api",
     });
-    expect(slept).toEqual([10_000, 10_000, 10_000]);
+    expect(slept).toEqual([10_000, 15_000, 20_000]);
     expect((await ch.list()).map((r) => r.url)).toEqual(["https://www.instagram.com/reel/x/"]);
     expect(await ch.metrics("p1")).toMatchObject({
       views: 40,
@@ -168,6 +168,22 @@ describe("instagram content channel", () => {
       media_type: "STORIES",
     });
     expect(slept).toEqual([10_000]);
+  });
+
+  it("a video stuck in progress is read 12 times over 5 minutes, then fails unposted", async () => {
+    const slept: number[] = [];
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": () => ({ id: "c1" }),
+      "GET /c1": () => ({ status_code: "IN_PROGRESS" }),
+    });
+    const ch = instagramContent(sites, { host, now, sleep: async (ms) => void slept.push(ms) });
+    await expect(
+      ch.publish({ text: "x", media: { kind: "video", source: "/mac/clip.mp4" } }),
+    ).rejects.toThrow(/still processing after 5 minutes/);
+    expect(calls.filter(([, p]) => p === "/c1")).toHaveLength(12);
+    expect(slept.reduce((a, b) => a + b, 0)).toBe(300_000);
+    expect(calls.some(([, p]) => p === "/ig9/media_publish")).toBe(false);
   });
 
   it("stops on a video Graph refused, never publishing it", async () => {

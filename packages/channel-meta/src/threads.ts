@@ -21,6 +21,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
+import { VIDEO_WAITS_MS } from "./poll.js";
 
 export interface ThreadsContentOptions {
   now?: () => Date;
@@ -30,9 +31,6 @@ export interface ThreadsContentOptions {
 }
 
 const SITE = "threads";
-/** A video container is ready within a few minutes; past this the post fails unposted. */
-const VIDEO_POLLS = 30;
-const VIDEO_POLL_MS = 10_000;
 
 interface Edge<T> {
   data?: T[];
@@ -51,8 +49,8 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
 
   /** Waits out a video container: FINISHED goes on, ERROR or EXPIRED stops with Threads' words. */
   async function ready(id: string): Promise<void> {
-    for (let n = 0; n < VIDEO_POLLS; n++) {
-      await sleep(VIDEO_POLL_MS);
+    for (const wait of VIDEO_WAITS_MS) {
+      await sleep(wait);
       const c = await sites.call<{ status?: string; error_message?: string }>(
         SITE,
         "GET",

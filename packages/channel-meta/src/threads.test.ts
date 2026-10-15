@@ -59,7 +59,7 @@ describe("threads content channel", () => {
       media_type: "VIDEO",
       video_url: "https://cdn.test/clip.mp4",
     });
-    expect(slept).toEqual([10_000, 10_000]);
+    expect(slept).toEqual([10_000, 15_000]);
 
     const bad = fakeSites({
       "POST /me/threads": () => ({ id: "c1" }),
