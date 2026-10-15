@@ -18,13 +18,13 @@ The list's address already holds its whole state, so a saved view is that addres
 ## Shape
 
 - `saved_views` (`packages/core/src/schema.ts:380`, migration 0130): workspace (a client's id or `wren`), viewer, record, name, params, shared, position
-- `viewer_prefs` (`:405`): workspace, viewer, key, value; keys `list:<record>` (`{sv, view, sort, cols}`), `views:<record>` (his tab order), `rail` (`{pins}`, page paths), `tiles:<app>.<page>` (`{order, hidden}` by tile label); `favorites:<record>` (ids, [[platform/library]]'s snippets); null deletes (Reset)
+- `viewer_prefs` (`:405`): workspace, viewer, key, value; keys `list:<record>` (`{sv, view, sort, cols, as}`, `as` rows or cards; `lastOf`, `restoreOf` in `list-bar.tsx`), `views:<record>` (his tab order), `rail` (`{pins}`, page paths), `tiles:<app>.<page>` (`{order, hidden}` by tile label); `favorites:<record>` (ids, [[platform/library]]'s snippets); null deletes (Reset)
 - `savedViewsOf`, `saveView`, `removeView`, `moveViews`, `prefsOf`, `setPref` (`packages/core/src/saved-views.ts`); a save drops `after`, `pg`, `sv`, `tab`
 - served by `ConsolePortal{savedViews,saveView,removeView,moveViews,prefs,setPref}`, need `read`; `keeper` (`packages/core/src/console.ts:1285`) scopes to Wren's apps or the client asked for, refuses the demo's writes, and sharing or changing a shared view needs `manage` there
 - drawn by `ViewTabs`, `ListBar`, `SaveView`, `FilterSheet`, `useLastUsed` (`packages/ui/src/list-bar.tsx`) in `RecordList` and `RecordQueue`; the portal binds `RecordsApi.keep` per workspace (`keepOf`, `apps/portal/web/src/records.tsx`)
 - Customize (`packages/ui/src/customize.tsx`): `PinnedRail` on every app's rail (drag or Alt+arrow to move, × unpins, Unpin all), `PinButton` at the rail's foot and in a phone's head, `PinnedRow` on Today, `TilesMenu` beside an Overview's title (tick, move, Reset to default). `usePref` changes the screen first, reads back on a failed write. A pin to a page he can't see now stays kept, unshown (`pinLines`, `apps/portal/web/src/App.tsx`)
 - Hover text: every tab, saved tab, quick-filter pill, the Filter button, a Filter sheet row and a platform chip says in plain words what it keeps (`packages/ui/src/view-says.ts`: `sayView` reads a built-in tab's `where` and `sort` the way the server runs them, a `SavedView.hint` wins; `saySaved` reads a saved tab's query string; `sayFilters`/`sayRaw` the filters set now; `tipProps` (`packages/ui/src/hint.ts`) puts it on `data-tip` for the hover layer, see portal-shell)
-- A list opens on the viewer's last view (a saved one with its filters) unless the link names a view, sort or columns; a link with only filters still gets his columns
+- A list opens on the viewer's last view (a saved one with its filters) unless the link names a view, sort or columns; a link with only filters still gets his columns; rows or cards follow him unless the link names `as` or a saved view
 
 ## Connected to
 
