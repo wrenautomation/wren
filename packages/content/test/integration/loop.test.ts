@@ -50,6 +50,8 @@ const notes: string[] = [];
 let calls = 0;
 let reportPlatforms: Platform[] = [];
 let reportReads = 0;
+/** What the loop handed `insights` as `read`, one per look. */
+const insightReads: unknown[] = [];
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
@@ -78,16 +80,23 @@ const fakeContent = restate.service({
         reactions: Math.floor(v / 10),
         comments: 1,
         shares: 0,
+        read: { seen: req.id },
         asOf: new Date().toISOString(),
         fetchedWith: "api" as const,
       };
     },
     // Deeper numbers: saves on every post, and no accounts to read.
-    insights: async (_ctx: restate.Context, req: { platform: Platform; id: string }) => ({
-      values: [{ metric: "saves", value: (views.get(req.id) ?? 0) / 50 }],
-      gaps: [{ metric: "retention", state: "needs_scope", why: "a synthetic refusal" }],
-      asOf: new Date().toISOString(),
-    }),
+    insights: async (
+      _ctx: restate.Context,
+      req: { platform: Platform; id: string; read?: unknown },
+    ) => {
+      insightReads.push(req.read);
+      return {
+        values: [{ metric: "saves", value: (views.get(req.id) ?? 0) / 50 }],
+        gaps: [{ metric: "retention", state: "needs_scope", why: "a synthetic refusal" }],
+        asOf: new Date().toISOString(),
+      };
+    },
     platforms: async () => reportPlatforms,
     accountInsights: async () => null,
     // A platform with a report that has nothing new.
@@ -288,6 +297,8 @@ describe("content loop", () => {
     expect(await pg.db.select().from(contentMetrics)).toHaveLength(2);
     // Each look keeps its day's insights with the counts beside them.
     expect(first.stats?.looked[0]).toMatchObject({ insights: 5, gaps: 1 });
+    // The counts read's answer goes on to insights, so a post is not read twice.
+    expect(insightReads).toEqual([{ seen: "linkedin-1" }, { seen: "x-2" }]);
     const saves = await pg.db
       .select({ value: postMetricDays.value })
       .from(postMetricDays)

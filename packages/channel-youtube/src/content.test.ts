@@ -59,7 +59,7 @@ describe("youtube content channel", () => {
         };
       },
       "GET /youtube/v3/videos": (i) => {
-        expect(i).toEqual({ part: "statistics", id: "v1" });
+        expect(i).toEqual({ part: "statistics,contentDetails", id: "v1" });
         return {
           items: [{ id: "v1", statistics: { viewCount: "12", likeCount: "3", commentCount: "1" } }],
         };

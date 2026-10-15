@@ -110,6 +110,36 @@ describe("x insights", () => {
   });
 });
 
+describe("x look", () => {
+  it("a post without video is read once: insights takes the counts read's answer", async () => {
+    let calls = 0;
+    const sites: SiteClient = {
+      async call() {
+        calls++;
+        return {
+          data: {
+            id: "t1",
+            public_metrics: { impression_count: 900, like_count: 9 },
+            non_public_metrics: { url_link_clicks: 7, user_profile_clicks: 2 },
+          },
+        } as never;
+      },
+      async via() {
+        return "api";
+      },
+    };
+    const ch = xContent(sites);
+    const m = await ch.metrics("t1");
+    const got = await ch.insights?.({ id: "t1", media: "image", read: m.read });
+    expect(got?.values.find((v) => v.metric === "link_clicks")?.value).toBe(7);
+    // Before: the counts and insights each read the post (2).
+    expect(calls).toBe(1);
+    // A video wants other fields: it asks again.
+    await ch.insights?.({ id: "t1", media: "video", read: m.read });
+    expect(calls).toBe(2);
+  });
+});
+
 describe("x audience", () => {
   it("reads followers from users/me", async () => {
     const sites: SiteClient = {

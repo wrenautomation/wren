@@ -60,6 +60,7 @@ interface Video {
   snippet?: { title?: string; description?: string; publishedAt?: string };
   status?: { publishAt?: string };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
+  contentDetails?: { duration?: string };
 }
 /** What `videos.update` needs back whole: title and category, plus what it holds. */
 interface Snippet {
@@ -370,7 +371,11 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         });
     },
     async metrics(id: string): Promise<Metrics> {
-      const r = await read<{ items?: Video[] }>("videos", { part: "statistics", id });
+      // The length rides along (the same one quota unit): `insights` needs it and it never changes.
+      const r = await read<{ items?: Video[] }>("videos", {
+        part: "statistics,contentDetails",
+        id,
+      });
       const s = r.items?.[0]?.statistics;
       if (!s) throw new Error(`youtube: no video ${id}`);
       return {
@@ -379,6 +384,7 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         reactions: Number(s.likeCount ?? 0),
         comments: Number(s.commentCount ?? 0),
         shares: 0,
+        read: { durationSecs: isoSeconds(r.items?.[0]?.contentDetails?.duration) },
         asOf: now().toISOString(),
         fetchedWith: await via("GET", "/youtube/v3/videos"),
       };
@@ -471,6 +477,12 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
       await readGroup(
         [M.durationSecs],
         async () => {
+          // The look's counts read already carried it: no second read.
+          const given = (q.read as { durationSecs?: unknown } | null | undefined)?.durationSecs;
+          if (typeof given === "number") {
+            duration = given;
+            return numberOf(M.durationSecs, duration);
+          }
           const r = await read<{ items?: Array<{ contentDetails?: { duration?: string } }> }>(
             "videos",
             { part: "contentDetails", id: q.id },

@@ -112,6 +112,11 @@ export interface Metrics {
   shares: number;
   /** Follows the post brought; absent where the platform doesn't say (all but Instagram). */
   follows?: number | null;
+  /**
+   * What the read answered, if `insights` can use it: the loop hands it on (`InsightsQuery.read`)
+   * so a post is not read twice in one look.
+   */
+  read?: unknown;
   asOf: string;
   fetchedWith: FetchedWith;
 }

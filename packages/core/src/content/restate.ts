@@ -533,6 +533,9 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             published: z.string().nullish().describe("ISO time it went up"),
             kind: z.string().nullish().describe("Its shape's kind: short, video, carousel"),
             media: z.enum(["image", "video"]).nullish().describe("What it carries"),
+            read: z
+              .unknown()
+              .describe("What this look's metrics read answered, if it can be reused"),
           }),
         },
         async (
@@ -543,6 +546,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             published?: string | null;
             kind?: string | null;
             media?: "image" | "video" | null;
+            read?: unknown;
           } & ForClient,
         ): Promise<Insights | null> => {
           const ch = await pick(ctx, req.platform, req.client, "content.social");
@@ -553,6 +557,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               published: req.published ?? null,
               kind: req.kind ?? null,
               media: req.media ?? null,
+              read: req.read,
             }),
           );
         },

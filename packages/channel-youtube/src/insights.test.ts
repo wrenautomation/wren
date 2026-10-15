@@ -16,14 +16,29 @@ const NOW = new Date("2026-10-07T12:00:00Z");
 function sitesWith(o: {
   analytics?: (input: Record<string, unknown>) => unknown;
   refuse?: number;
-}): { sites: SiteClient; asked: Array<Record<string, unknown>> } {
+}): {
+  sites: SiteClient;
+  asked: Array<Record<string, unknown>>;
+  videoReads: Array<Record<string, unknown>>;
+} {
   const asked: Array<Record<string, unknown>> = [];
+  const videoReads: Array<Record<string, unknown>> = [];
   return {
     asked,
+    videoReads,
     sites: {
       async call(_site, method, path, input = {}) {
-        if (path === "/youtube/v3/videos")
-          return { items: [{ contentDetails: { duration: "PT2M" } }] } as never;
+        if (path === "/youtube/v3/videos") {
+          videoReads.push(input);
+          return {
+            items: [
+              {
+                statistics: { viewCount: "9", likeCount: "1", commentCount: "0" },
+                contentDetails: { duration: "PT2M" },
+              },
+            ],
+          } as never;
+        }
         if (method === "GET" && path === ANALYTICS_PATH) {
           asked.push(input);
           if (o.refuse)
@@ -103,6 +118,21 @@ describe("youtube insights", () => {
     expect(asked.at(-1)?.filters).toBe("video==v1;insightTrafficSourceType==YT_SEARCH");
     // Impressions and CTR come from the reach report, not here.
     expect(got?.gaps).toEqual([]);
+  });
+
+  it("a look reads the video once: the counts carry the length insights needs", async () => {
+    const { sites, videoReads } = sitesWith({
+      analytics: (i) => table(String(i.metrics ?? "x").split(","), [[1, 1, 1, 1, 1, 1, 1]]),
+    });
+    const ch = youtubeContent(sites, { now: () => NOW });
+    const m = await ch.metrics("v1");
+    const got = await ch.insights?.({ id: "v1", published: null, kind: "video", read: m.read });
+    expect(got?.values.find((v) => v.metric === "duration_secs")?.value).toBe(120);
+    // Before: the counts and insights each read the video (2).
+    expect(videoReads).toHaveLength(1);
+    // Without the hand-off (a one-off insights call) it reads the length itself.
+    await ch.insights?.({ id: "v1", published: null, kind: "video" });
+    expect(videoReads).toHaveLength(2);
   });
 
   it("no scope: every analytics number is a gap with YouTube's words, asked once", async () => {

@@ -169,6 +169,14 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         reactions: t.score ?? 0,
         comments: t.num_comments ?? 0,
         shares: t.num_crossposts ?? 0,
+        // The numbers `insights` shows, so it need not read the post again.
+        read: {
+          score: t.score,
+          num_comments: t.num_comments,
+          num_crossposts: t.num_crossposts,
+          view_count: t.view_count,
+          upvote_ratio: t.upvote_ratio,
+        },
         asOf: now().toISOString(),
         fetchedWith: await via("GET", "/api/info"),
       };
@@ -241,11 +249,16 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
       await readGroup(
         [M.likes, M.comments, M.shares, M.upvoteRatio],
         async () => {
-          const r = await call<Listing>("GET", "/api/info", {
-            id: `t3_${bareId(q.id)}`,
-            raw_json: 1,
-          });
-          const t = children(r)[0];
+          // The look's counts read already answered this: no second read.
+          const t: Partial<Thing> | undefined =
+            q.read && typeof q.read === "object"
+              ? (q.read as Partial<Thing>)
+              : children(
+                  await call<Listing>("GET", "/api/info", {
+                    id: `t3_${bareId(q.id)}`,
+                    raw_json: 1,
+                  }),
+                )[0];
           if (!t) return [];
           if (typeof t.view_count !== "number")
             out.gaps.push(

@@ -51,6 +51,8 @@ export interface InsightsQuery {
   kind?: string | null;
   /** What it carries: X reads a video's watch numbers only on a post with one. */
   media?: "image" | "video" | null;
+  /** `Metrics.read` from this look's counts: what the post's own read just answered. */
+  read?: unknown;
 }
 
 /** An account's numbers per day (`day` = YYYY-MM-DD). */

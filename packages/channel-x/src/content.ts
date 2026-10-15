@@ -200,6 +200,8 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         reactions: m.like_count ?? 0,
         comments: m.reply_count ?? 0,
         shares: (m.retweet_count ?? 0) + (m.quote_count ?? 0),
+        // The whole answer: `insights` on a post without video asks the same thing.
+        read: r,
         asOf: now().toISOString(),
         fetchedWith: await via("GET", "/2/tweets/{id}"),
       };
@@ -261,12 +263,14 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
           ...(video ? [M.videoViews, M.playback] : []),
         ],
         async () => {
-          const r = await sites.call<{ data?: Tweet; includes?: { media?: XMedia[] } }>(
-            "x",
-            "GET",
-            `/2/tweets/${q.id}`,
-            video ? VIDEO_QUERY : {},
-          );
+          type Answer = { data?: Tweet; includes?: { media?: XMedia[] } };
+          // A video wants more fields than the counts read asked for; any other post
+          // takes that read's answer as it is, so a look costs one call.
+          const given =
+            !video && q.read && typeof q.read === "object" ? (q.read as Answer) : undefined;
+          const r =
+            given ??
+            (await sites.call<Answer>("x", "GET", `/2/tweets/${q.id}`, video ? VIDEO_QUERY : {}));
           const t = r.data;
           const p = t?.public_metrics ?? {};
           const own = t?.non_public_metrics;

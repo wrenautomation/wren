@@ -68,6 +68,7 @@ type ContentService = {
       published?: string | null;
       kind?: string | null;
       media?: "image" | "video" | null;
+      read?: unknown;
       client?: string | null;
     },
   ) => Promise<Insights | null>;
@@ -162,6 +163,8 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
             published: draft.publishedAt ? new Date(draft.publishedAt).toISOString() : null,
             kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
             media: draft.media?.kind ?? null,
+            // What the counts read answered: a channel reuses it rather than read the post again.
+            read: m.read,
             ...(client ? { client } : {}),
           });
         } catch (err) {
