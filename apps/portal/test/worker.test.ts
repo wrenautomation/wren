@@ -95,13 +95,17 @@ describe("pulse", () => {
       ),
       env({ APP_HOST: "app.test" } as Partial<Env>),
     );
-    const { answers } = (await res.json()) as { answers: { status: number; body: unknown }[] };
+    const { answers } = (await res.json()) as {
+      answers: { status: number; body: { route?: string } }[];
+    };
     expect(answers.map((a) => a.status)).toEqual([200, 200]);
-    expect(restate.map((r) => r.url)).toEqual([
+    // The reads run at once: the answers keep the calls' order, the requests may not.
+    expect(answers.map((a) => a.body.route)).toEqual(["recordsCounts", "me"]);
+    expect(restate.map((r) => r.url).sort()).toEqual([
       "https://restate.test:8080/ConsolePortal/recordsCounts",
       "https://restate.test:8080/DeliveryPortal/me",
     ]);
-    expect(restate[0]?.body.n).toBe(1);
+    expect(restate.find((r) => r.url.endsWith("/recordsCounts"))?.body.n).toBe(1);
   });
 
   it("refuses a batch with no sign-in answer by answer, and a malformed one outright", async () => {
