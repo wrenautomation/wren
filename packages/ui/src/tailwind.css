@@ -456,3 +456,20 @@
     }
   }
 }
+
+/* Rows to cards and back (card-grid.tsx `swapForm`): each row on screen moves into its card.
+   Only while the switch runs, so no other page change takes this timing. */
+html[data-morph="cards"]::view-transition-group(*) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ui-ease);
+}
+html[data-morph="cards"]::view-transition-image-pair(*) {
+  overflow: hidden;
+}
+html[data-morph="cards"]::view-transition-old(*),
+html[data-morph="cards"]::view-transition-new(*) {
+  animation-duration: 200ms;
+  height: 100%;
+  object-fit: cover;
+  object-position: left top;
+}

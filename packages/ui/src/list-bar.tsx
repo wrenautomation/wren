@@ -116,8 +116,8 @@ export function siteField(meta: RecordMeta): FieldMeta | null {
   return meta.fields.find((f) => f.key === key && f.states) ?? null;
 }
 
-/** The address keys a list's state rides in. */
-const STATE = ["view", "q", "sort", "group", "cols"];
+/** The address keys a list's state rides in; `as` is rows or cards (`./cards.ts`). */
+const STATE = ["view", "q", "sort", "group", "cols", "as"];
 const keysOf = (meta: RecordMeta) => [...STATE, ...filtersOf(meta).map((f) => f.key)];
 
 /** What a saved view keeps of the address, keys in order so two read the same. */
@@ -174,17 +174,52 @@ export function useSavedViews(keep: KeepApi | undefined, record: string): Saved 
   return { lines: lines ?? [], ready: lines !== null, reload: () => setRev((n) => n + 1) };
 }
 
-/** What a list remembers between visits: its tab (a saved one too), sort and columns. */
-interface LastUsed {
+/** What a list remembers between visits: its tab (a saved one too), sort, columns, rows or cards. */
+export interface LastUsed {
   sv?: number;
   view?: string;
   sort?: string;
   cols?: string;
+  as?: string;
+}
+
+/** What the address keeps for next time (`list:<record>` in his prefs). */
+export function lastOf(p: URLSearchParams): LastUsed {
+  const now: LastUsed = {};
+  const sv = Number(p.get("sv"));
+  if (Number.isSafeInteger(sv) && sv > 0) now.sv = sv;
+  for (const k of ["view", "sort", "cols", "as"] as const) {
+    const v = p.get(k);
+    if (v) now[k] = v;
+  }
+  return now;
 }
 
 /**
- * Open the list where the viewer left it, then keep where he goes. A link that names a view,
- * a sort or columns wins; one with only filters still gets his columns.
+ * Where a list opens, from what he used last and what the link names: a saved view by its id
+ * (`{sv}`), else the address's `change`, else nothing. A link that names a view, a sort or columns
+ * wins; one with only filters still gets his columns; rows or cards follow him unless the link
+ * names them (`as`) or a saved view.
+ */
+export function restoreOf(
+  last: LastUsed | undefined,
+  p: URLSearchParams,
+  filtered: boolean,
+  saved: ReadonlySet<number> = new Set(),
+): { sv: number } | { change: Record<string, string | null> } | null {
+  if (!last) return null;
+  const named = ["view", "sv", "sort", "cols"].some((k) => p.has(k));
+  const form = !p.has("as") && !p.has("sv") && last.as ? { as: last.as } : {};
+  if (named) return form.as ? { change: form } : null;
+  if (last.sv && saved.has(last.sv) && !filtered) return { sv: last.sv };
+  const change: Record<string, string | null> = filtered
+    ? { cols: last.cols ?? null, ...form }
+    : { view: last.view ?? null, sort: last.sort ?? null, cols: last.cols ?? null, ...form };
+  return Object.values(change).some(Boolean) ? { change } : null;
+}
+
+/**
+ * Open the list where the viewer left it, then keep where he goes (`restoreOf`).
  */
 export function useLastUsed(
   keep: KeepApi | undefined,
@@ -199,32 +234,22 @@ export function useLastUsed(
   useEffect(() => {
     if (!keep || !saved.ready || done.current === meta.id) return;
     done.current = meta.id;
-    if (["view", "sv", "sort", "cols"].some((k) => p.has(k))) return;
-    const filtered = keysOf(meta).some((k) => p.has(k));
+    if (p.has("sv") || (p.has("as") && ["view", "sort", "cols"].some((k) => p.has(k)))) return;
+    const filtered = keysOf(meta).some((k) => k !== "as" && p.has(k));
     keep
       .prefs([key])
       .then((prefs) => {
         const last = prefs[key] as LastUsed | undefined;
         kept.current = JSON.stringify(last ?? {});
-        if (!last) return;
-        const sv = saved.lines.find((v) => v.id === last.sv);
-        if (sv && !filtered) return place.go(savedLink(meta, place, sv), true);
-        const change: Record<string, string | null> = filtered
-          ? { cols: last.cols ?? null }
-          : { view: last.view ?? null, sort: last.sort ?? null, cols: last.cols ?? null };
-        if (Object.values(change).some(Boolean)) place.go(place.link(change), true);
+        const to = restoreOf(last, p, filtered, new Set(saved.lines.map((v) => v.id)));
+        const sv = to && "sv" in to ? saved.lines.find((v) => v.id === to.sv) : undefined;
+        if (sv) place.go(savedLink(meta, place, sv), true);
+        else if (to && "change" in to) place.go(place.link(to.change), true);
       })
       .catch(() => {});
   }, [keep, saved.ready, saved.lines, meta, key, p, place]);
 
-  const now: LastUsed = {};
-  const sv = Number(p.get("sv"));
-  if (Number.isSafeInteger(sv) && sv > 0) now.sv = sv;
-  for (const k of ["view", "sort", "cols"] as const) {
-    const v = p.get(k);
-    if (v) now[k] = v;
-  }
-  const json = JSON.stringify(now);
+  const json = JSON.stringify(lastOf(p));
   useEffect(() => {
     if (!keep || done.current !== meta.id || json === kept.current) return;
     const t = setTimeout(() => {

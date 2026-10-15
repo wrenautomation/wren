@@ -132,6 +132,7 @@ export function RowActions({
   page,
   busy,
   run,
+  still = false,
 }: {
   title: string;
   main: readonly Action[];
@@ -142,17 +143,23 @@ export function RowActions({
   page: string;
   busy: boolean;
   run: (a: Action) => void;
+  /** In place and always shown: a card's foot, not a row's hover end. */
+  still?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <div
       data-row-acts=""
       className={cn(
-        "absolute inset-y-0 right-0 z-1 flex items-center gap-0.5 pr-2 pl-8 transition-opacity duration-150",
-        "[background:linear-gradient(to_right,transparent,var(--row-ground)_1.75rem)]",
-        open
-          ? "opacity-100"
-          : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-data-cursor:pointer-events-auto group-data-cursor:opacity-100",
+        still
+          ? "flex items-center gap-0.5"
+          : cn(
+              "absolute inset-y-0 right-0 z-1 flex items-center gap-0.5 pr-2 pl-8 transition-opacity duration-150",
+              "[background:linear-gradient(to_right,transparent,var(--row-ground)_1.75rem)]",
+              open
+                ? "opacity-100"
+                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-data-cursor:pointer-events-auto group-data-cursor:opacity-100",
+            ),
       )}
     >
       {reply ? (

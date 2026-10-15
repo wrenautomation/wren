@@ -45,6 +45,8 @@ import {
   useHeld,
   useRun,
 } from "./action.js";
+import { CardHead, CardStrip, FormSwitch, GRID, morphTo, RecordCard } from "./card-grid.js";
+import { type CardOption, cardOf, type ListForm, listFormOf, listFormParam } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
@@ -242,6 +244,11 @@ export interface RecordTemplateProps {
    * under "Needs you", each edged with the wren mark, and the rest under "For info", quieter.
    */
   needs?: Needs | undefined;
+  /**
+   * The list as cards (`./cards.ts`): what each card shows beside the columns; read from the
+   * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
+   */
+  card?: CardOption | undefined;
 }
 
 /** A page's reply box under a list row, and the rows it answers. */
@@ -606,22 +613,28 @@ function columnsOf(meta: RecordMeta, params: URLSearchParams, columns?: string[]
 /**
  * How the list shows, in one popover (Linear's Display): its columns, rows grouped by platform
  * where it mixes them, and row height. A phone shows the title and one state whatever is
- * picked, so it has no columns there.
+ * picked, so it has no columns there. As cards it has no row height, and its columns pick the
+ * cards' facts only where the page leaves them to the columns.
  */
 function ListDisplay({
   meta,
   place,
   columns,
   narrow,
+  cards,
 }: {
   meta: RecordMeta;
   place: Place;
   columns: string[] | undefined;
   narrow: boolean;
+  /** As cards: whether the columns pick their facts. Null as rows. */
+  cards: boolean | null;
 }) {
-  const frame = useFrame();
+  const shell = useFrame();
+  const frame = cards === null ? shell : null;
   const site = siteField(meta);
-  const all = narrow ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
+  const all =
+    narrow || cards === false ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
   if (!frame && !site && !all.length) return null;
   const shown = new Set(columnsOf(meta, place.params, columns).map((f) => f.key));
   const fallback = columnsOf(meta, new URLSearchParams(), columns)
@@ -674,7 +687,7 @@ function ListDisplay({
         {all.length ? (
           <fieldset className="m-0 grid min-w-0 border-0 p-0">
             <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">
-              Columns
+              {cards ? "On cards" : "Columns"}
             </legend>
             {all.map((f) => (
               <label key={f.key} className={cn(label, "-mx-1.5")}>
@@ -834,7 +847,8 @@ export function NotHere() {
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts, head, title, needs, reply } = props;
+  const { record, api, place, empty, columns, extras, acts, head, title, needs, reply, card } =
+    props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
@@ -854,6 +868,7 @@ export function RecordList(props: RecordTemplateProps) {
       title={title}
       needs={needs}
       reply={reply}
+      card={card}
     />
   );
 }
@@ -1106,6 +1121,10 @@ export function shownColumns(
 /** How many fields a phone's card shows under its title. */
 const NARROW_FIELDS = 3;
 
+/** A card's place while its list loads. */
+const CARD_HOLD =
+  "grid h-36 content-start gap-2 rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-paper) p-3";
+
 export function ListSkeleton() {
   return (
     <div className={cn(ROOT, "grid gap-3")} role="status" aria-busy="true" aria-label="Loading">
@@ -1132,6 +1151,7 @@ function List({
   title,
   needs,
   reply,
+  card,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1145,6 +1165,7 @@ function List({
   title: string | undefined;
   needs: Needs | undefined;
   reply: RecordTemplateProps["reply"];
+  card: CardOption | undefined;
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -1152,12 +1173,24 @@ function List({
   const grouped = ask.group ? (meta.fields.find((f) => f.key === ask.group) ?? null) : null;
   // The page the address names: `pg` from 1, read as rows to skip.
   const at = pageAt(params.get("pg"));
+  // Rows or cards: the address's, drawn from `form` so a switch moves each row into its card.
+  const wanted = listFormOf(params, card);
+  const [form, setForm] = useState(wanted);
+  useEffect(() => setForm(wanted), [wanted]);
+  const spec = card === false ? undefined : card;
+  const pictured = form === "cards" && !!meta.thumbs && spec?.media !== null;
   const listed: ListAsk = {
     ...ask,
     limit: PAGE_SIZE,
     ...(at > 1 ? { offset: offsetOf(at) } : {}),
   };
-  const page = useLoad(JSON.stringify(listed), () => api.list(listed), api);
+  const asked: ListAsk = pictured ? { ...listed, thumbs: true } : listed;
+  const page = useLoad(JSON.stringify(asked), () => api.list(asked), api);
+  // The list dims while other rows load, not while the same rows fetch their pictures.
+  const rowsKey = JSON.stringify(listed);
+  const settledKey = useRef(rowsKey);
+  if (!page.loading) settledKey.current = rowsKey;
+  const dim = page.loading && !!page.data && settledKey.current !== rowsKey;
   // Rows set aside wait out their undo off the list; it reads again once their call lands.
   const held = useHeld(meta.name.many);
   const landed = useRef(held.landed);
@@ -1240,6 +1273,27 @@ function List({
       place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
   }, [page.data, at, pages]);
   const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
+  const cardsOn = form === "cards";
+  const parts = cardsOn
+    ? cardOf(
+        meta,
+        shownColumns(meta, columnsOf(meta, params, columns), rows, {
+          byHand: params.has("cols"),
+          narrow: false,
+        }),
+        spec,
+        rows,
+      )
+    : null;
+  const thumbs = page.data?.thumbs;
+  const switchForm = (to: ListForm) => {
+    if (to === form) return;
+    morphTo(
+      frame.current,
+      () => setForm(to),
+      () => place.go(place.link(listFormParam(to)), true),
+    );
+  };
   const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
@@ -1499,7 +1553,18 @@ function List({
           keep={api.keep}
           saved={saved}
           facets={facetsOf(api, ask)}
-          display={<ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />}
+          display={
+            <>
+              {card === false ? null : <FormSwitch form={form} onChange={switchForm} />}
+              <ListDisplay
+                meta={meta}
+                place={place}
+                columns={columns}
+                narrow={narrow}
+                cards={cardsOn ? !spec?.facts : null}
+              />
+            </>
+          }
           end={
             picked.size ? (
               <Bulk
@@ -1527,14 +1592,112 @@ function List({
         <div
           ref={frameRef}
           className={cn(
+            "transition-opacity",
             // A raised panel; its last row drops its rule, which the panel's rim draws. A phone's
-            // cards scroll with the page, not in a box of their own, clipped to its corners.
-            "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) transition-opacity [&_tbody>tr:last-child]:border-b-0",
-            narrow ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
-            page.loading && page.data && "opacity-60",
+            // rows scroll with the page, not in a box of their own, clipped to its corners. Cards
+            // are panels each, on the page's ground, and scroll with it.
+            cardsOn && rows.length
+              ? "grid gap-2"
+              : "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
+            narrow || cardsOn ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
+            dim && "opacity-60",
           )}
         >
-          {narrow ? (
+          {cardsOn && parts ? (
+            <>
+              {page.data && rows.length ? (
+                <CardStrip
+                  meta={meta}
+                  place={place}
+                  sort={sort}
+                  all={allPicked}
+                  some={picked.size > 0}
+                  onAll={() =>
+                    setPicked(allPicked ? new Set() : new Set(rows.map((r) => String(r.id))))
+                  }
+                />
+              ) : null}
+              <ul ref={cards} className={cn(GRID, page.data && !rows.length && "hidden")}>
+                {!page.data
+                  ? Array.from({ length: 8 }, (_, i) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+                      <li key={i} className={CARD_HOLD}>
+                        <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
+                        <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
+                      </li>
+                    ))
+                  : rows.map((r, i) => {
+                      const id = String(r.id);
+                      const g = grouped ? String(r[grouped.key] ?? "") : null;
+                      const waiting = waits(r);
+                      const replies = replyOn(r);
+                      const { main, more } = rowActsOf(actions, r, !!replies);
+                      return (
+                        <Fragment key={id}>
+                          {split > 0 && (i === 0 || i === split) ? (
+                            <CardHead>
+                              <TierLabel
+                                needs={i === 0}
+                                n={i === 0 ? split : rows.length - split}
+                              />
+                            </CardHead>
+                          ) : null}
+                          {grouped &&
+                          (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
+                            <CardHead>
+                              <span className="inline-flex items-center gap-1.5">
+                                <FieldCell field={grouped} cell={r[grouped.key]} />
+                              </span>
+                            </CardHead>
+                          ) : null}
+                          <RecordCard
+                            row={r}
+                            index={i}
+                            parts={parts}
+                            thumb={thumbs?.[id]}
+                            pending={pictured && !thumbs}
+                            title={titleOf(meta, r)}
+                            titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
+                            body={parts.body ? firstWords(textOf(r[parts.body.key])) : ""}
+                            quiet={waiting === false}
+                            href={place.link({ [meta.name.one]: id, tab: null })}
+                            cursor={i === cursor}
+                            open={id === openId}
+                            changed={changed.has(id) && !page.loading}
+                            picked={picked.has(id)}
+                            anyPicked={picked.size > 0}
+                            onPick={() => pick(id)}
+                            onOpen={() => {
+                              setCursor(i);
+                              openAt(i);
+                            }}
+                            onSettled={() => setChanged(new Set())}
+                            actions={
+                              main.length || more.length || replies ? (
+                                <RowActions
+                                  still
+                                  title={titleOf(meta, r)}
+                                  main={main}
+                                  more={more}
+                                  reply={replies}
+                                  page={place.page(id)}
+                                  busy={acting}
+                                  run={(a) => rowRun(a, r)}
+                                />
+                              ) : null
+                            }
+                          />
+                          {boxed?.id === id ? (
+                            <li className="col-span-full rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-wash) px-3 py-3">
+                              {boxFor(r)}
+                            </li>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
+              </ul>
+            </>
+          ) : narrow ? (
             <ul ref={cards} className={cn("list-none", page.data && !rows.length && "hidden")}>
               {!page.data
                 ? Array.from({ length: 8 }, (_, i) => (
