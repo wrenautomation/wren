@@ -67,7 +67,8 @@ export function FieldMapForm({
               readOnly={!set}
               maxLength={120}
               placeholder={usual.slice(0, 2).join(", ")}
-              onChange={(e) => set?.(mapKey(f), e.target.value.trim())}
+              // Kept as typed: the door reads it trimmed (fieldMapOfWith).
+              onChange={(e) => set?.(mapKey(f), e.target.value)}
               className="h-8 font-mono text-[12px]"
             />
           </label>

@@ -5,7 +5,7 @@
  */
 import type { MadeWorkflow } from "@wren/core/spine";
 import { Button, Input, LoadFailed, Section, say } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
@@ -25,9 +25,13 @@ export function MadeHere({ client }: { client: string | null }) {
   );
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"build" | "blank" | null>(null);
+  const starting = useRef(false);
   const build = async (how: "build" | "blank", e?: FormEvent) => {
     e?.preventDefault();
     if (how === "build" && !message.trim()) return;
+    // One build at a time: Enter twice makes one workflow.
+    if (starting.current) return;
+    starting.current = true;
     setBusy(how);
     try {
       const made = await call<{ workflow: string; ask: string | null }>("console/workflowBuild", {
@@ -38,6 +42,7 @@ export function MadeHere({ client }: { client: string | null }) {
     } catch (err) {
       say.failed(err);
       setBusy(null);
+      starting.current = false;
     }
   };
   const rows = got.data ?? [];

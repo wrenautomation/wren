@@ -6,7 +6,7 @@
 import type { Port } from "@wren/core/components";
 import { DOOR_TRIGGERS, UNTIL_WORDS, type Until, untilOf } from "@wren/core/logic";
 import { Button, cx, Tag, Textarea } from "@wren/ui";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
@@ -462,8 +462,11 @@ export function TestPanel({
   const entries = useMemo(() => entriesOf(w), [w]);
   const f = useTestForm(entries);
   const [run, setRun] = useState<Run>({ state: "idle" });
+  // Each run's number: an older run answering late never paints over a newer one.
+  const runs = useRef(0);
   const go = async () => {
     if (!f.parsed) return;
+    const mine = ++runs.current;
     setRun({ state: "busy" });
     onResult(null);
     try {
@@ -474,10 +477,11 @@ export function TestPanel({
         rules: f.rules,
         heard: f.heard ? untilsOf(w) : [],
       });
+      if (mine !== runs.current) return;
       setRun({ state: "done", ...got });
       onResult({ steps: got.steps, from: f.port });
     } catch (err) {
-      setRun(failedOf(err));
+      if (mine === runs.current) setRun(failedOf(err));
     }
   };
   return (

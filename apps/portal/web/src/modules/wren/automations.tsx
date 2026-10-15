@@ -20,7 +20,7 @@ import {
   tipProps,
   whenTip,
 } from "@wren/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -362,7 +362,9 @@ export function Automations({ params }: PageProps) {
     : "all";
   const [q, setQ] = useState(params.get("q") ?? "");
   const [nonce, setNonce] = useState(0);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Each row flipping, so two rows switched at once each keep their own busy.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const flying = useRef(new Set<string>());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const list = useCall(`automations:${view}:${q.trim()}:${nonce}`, () =>
     call<RecordsPage>("console/recordsList", {
@@ -379,8 +381,10 @@ export function Automations({ params }: PageProps) {
   const flip = async (r: AutomationRow, on: boolean) => {
     const asked = flipOf(r, on);
     if (!asked) return;
+    if (flying.current.has(r.id)) return;
     if (!on && !confirm(`Turn off ${r.name}? Nothing new starts it until it's back on.`)) return;
-    setBusy(r.id);
+    flying.current.add(r.id);
+    setBusy(new Set(flying.current));
     setErrors(({ [r.id]: _, ...rest }) => rest);
     try {
       await call(asked[0], asked[1]);
@@ -389,7 +393,8 @@ export function Automations({ params }: PageProps) {
       const why = err instanceof ApiError ? err.message : String(err);
       setErrors((e) => ({ ...e, [r.id]: why }));
     } finally {
-      setBusy(null);
+      flying.current.delete(r.id);
+      setBusy(new Set(flying.current));
     }
   };
   const all = (every.data?.rows ?? []) as unknown as AutomationRow[];
@@ -488,7 +493,7 @@ export function Automations({ params }: PageProps) {
                   <Row
                     key={r.id}
                     r={r}
-                    busy={busy === r.id}
+                    busy={busy.has(r.id)}
                     error={errors[r.id] ?? null}
                     onFlip={(next) => void flip(r, next)}
                   />
@@ -567,7 +572,11 @@ function TemplateCard({
 export function NewAutomation() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // One build at a time: a second card pressed meanwhile makes no second workflow.
+  const starting = useRef(false);
   const start = async (template: string) => {
+    if (starting.current) return;
+    starting.current = true;
     setBusy(template);
     setError(null);
     try {
@@ -576,6 +585,7 @@ export function NewAutomation() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       setBusy(null);
+      starting.current = false;
     }
   };
   return (

@@ -25,6 +25,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { shown } from "../../pulse.js";
+import { useOnce } from "../../unsaved.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
 import { boxOf, roleOfPart } from "./canvas.js";
@@ -811,6 +812,7 @@ export function AskGraph({
   const askBox = useRef<HTMLInputElement>(null);
   const [run, setRun] = useState<string | null>(pending);
   const [error, setError] = useState<string | null>(null);
+  const once = useOnce();
   useEffect(() => {
     if (!run) return;
     let live = true;
@@ -836,22 +838,25 @@ export function AskGraph({
   return (
     <form
       className="flex min-w-[280px] flex-1 items-center gap-2"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        if (!message.trim()) return;
-        setError(null);
-        try {
-          const got = await call<{ id: string }>("console/workflowAsk", {
-            workflow,
-            ...(client ? { client } : {}),
-            message: message.trim(),
-            wires: draft.wires,
-            steps: draft.steps,
-          });
-          setRun(got.id);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
-        }
+        if (!message.trim() || run) return;
+        // One ask at a time: Enter twice before the first answers asks once.
+        void once(async () => {
+          setError(null);
+          try {
+            const got = await call<{ id: string }>("console/workflowAsk", {
+              workflow,
+              ...(client ? { client } : {}),
+              message: message.trim(),
+              wires: draft.wires,
+              steps: draft.steps,
+            });
+            setRun(got.id);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        });
       }}
     >
       <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
@@ -969,23 +974,27 @@ function SaveTemplate({
       : !mayManage
         ? "Saving a template takes manage on Workflows."
         : null;
-  const save = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const got = await call<{ id: string; name: string; updated: boolean }>(
-        "console/workflowTemplateSave",
-        { workflow, name: title, blurb, ...(client ? { client } : {}) },
-      );
-      setDone(got);
-      setTitle("");
-      setBlurb("");
-      onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-    setBusy(false);
-  };
+  const once = useOnce();
+  const save = () =>
+    once(async () => {
+      setBusy(true);
+      setError(null);
+      const sent = { title, blurb };
+      try {
+        const got = await call<{ id: string; name: string; updated: boolean }>(
+          "console/workflowTemplateSave",
+          { workflow, name: sent.title, blurb: sent.blurb, ...(client ? { client } : {}) },
+        );
+        setDone(got);
+        // Cleared only if he hasn't typed on meanwhile.
+        setTitle((t) => (t === sent.title ? "" : t));
+        setBlurb((b) => (b === sent.blurb ? "" : b));
+        onSaved();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+      setBusy(false);
+    });
   return (
     <section
       aria-label="Save as template"

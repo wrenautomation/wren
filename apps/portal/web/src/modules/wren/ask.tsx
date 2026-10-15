@@ -86,8 +86,10 @@ export function Ask() {
     setBusy(true);
     setError(null);
     try {
-      await call("console/question", { question: q.trim(), page: "/ask/questions" });
-      setQ("");
+      const sent = q;
+      await call("console/question", { question: sent.trim(), page: "/ask/questions" });
+      // Cleared only if he hasn't typed on meanwhile.
+      setQ((now) => (now === sent ? "" : now));
       list.retry();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

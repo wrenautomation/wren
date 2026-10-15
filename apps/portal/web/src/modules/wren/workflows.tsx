@@ -28,11 +28,12 @@ import {
   useTypes,
 } from "@wren/ui";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { call } from "../../api.js";
+import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { shown } from "../../pulse.js";
 import { href, navigate } from "../../route.js";
+import { dropUnsaved, keepUnsaved, unsavedOf, useOnce } from "../../unsaved.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
 import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
 import {
@@ -251,6 +252,7 @@ export function Workflows({ params, team, can }: PageProps) {
           client={client}
           team={team}
           mayManage={!can || can.includes("manage")}
+          fresh={!trail.loading}
           onSaved={() => setNonce((n) => n + 1)}
         />
       )}
@@ -356,6 +358,7 @@ function Canvas({
   client,
   team,
   mayManage,
+  fresh: read,
   onSaved,
 }: {
   w: Drawn;
@@ -368,6 +371,8 @@ function Canvas({
   team: boolean;
   /** May see a door's whole token and rotate it. */
   mayManage: boolean;
+  /** This read is the server's now, not the device's last one. */
+  fresh: boolean;
   onSaved: () => void;
 }) {
   const broken = d.broken ?? [];
@@ -399,6 +404,41 @@ function Canvas({
   // Test workflow: its panel, and the steps of the last dry run, lit until the draft changes.
   const [testing, setTesting] = useState(false);
   const [tested, setTested] = useState<{ steps: readonly DryStep[]; from: string } | null>(null);
+  // The newest save the editor opened on (draft or live, 0 for none). Save, Publish and Discard
+  // send it, and the server refuses one over a save made since: a conflict, never an overwrite.
+  const base = useRef<number | null>(null);
+  const [conflict, setConflict] = useState(false);
+  // The live draft and name, for what a save sent against what he typed meanwhile.
+  const live = useRef<{ draft: Draft | null; name: string }>({ draft, name });
+  live.current = { draft, name };
+  const once = useOnce();
+  // Typing not yet saved stays on this device, so a reload or a closed tab gives it back.
+  const journal = `workflow:${client ?? ""}:${w.id}`;
+  const dirty = !!draft && (changesOf(stored, draft) > 0 || (made && name.trim() !== w.name));
+  useEffect(() => {
+    if (draft && dirty) keepUnsaved(journal, String(base.current ?? 0), { draft, name });
+  }, [draft, dirty, journal, name]);
+  /** Open the editor on `x`, or on what was typed before a reload, over the base it was typed on. */
+  const begin = (x: Draft) => {
+    const kept = unsavedOf<{ draft: Draft; name?: string }>(journal);
+    if (kept) {
+      base.current = Number(kept.base) || 0;
+      setDraftNow(kept.value.draft);
+      if (typeof kept.value.name === "string") setName(kept.value.name);
+      say.done("Your unsaved changes are back.");
+    } else {
+      base.current = Math.max(d.draft?.id ?? 0, d.versions?.[0]?.id ?? 0);
+      setDraftNow(x);
+    }
+  };
+  /** The server holds `sent` as save `id`: the base moves; the device copy goes unless he typed on. */
+  const landed = (id: number, sent: Draft) => {
+    if (id) base.current = id;
+    const now = live.current;
+    if (now.draft === sent) dropUnsaved(journal);
+    else if (now.draft) keepUnsaved(journal, String(base.current ?? 0), now);
+  };
+  const expect = () => (base.current === null ? {} : { expect: base.current });
   /** Every change to the draft goes through here, so Undo can step back. */
   const setDraft = (next: Draft) => {
     if (draft) setUndo((u) => [...u.slice(-(UNDO_MOST - 1)), draft]);
@@ -462,14 +502,18 @@ function Canvas({
 
   // `?edit=1` (a made workflow from the builder) opens on its draft, once; `?test=1` (Test run
   // on Automations) opens the tester on it too.
+  // Typing kept from before a reload opens it too. Only on the server's read, never the device's
+  // last one: that could be older than a save since.
   const opened = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: begin reads this render's journal
   useEffect(() => {
     const test = params.get("test") === "1";
-    if (opened.current || !team || (params.get("edit") !== "1" && !test)) return;
+    if (opened.current || !team || !read) return;
+    if (params.get("edit") !== "1" && !test && !unsavedOf(journal)) return;
     opened.current = true;
-    setDraftNow(stored);
+    begin(stored);
     if (test) setTesting(true);
-  }, [team, params, stored]);
+  }, [team, read, params, stored]);
 
   const back = () => {
     const last = undo.at(-1);
@@ -545,36 +589,62 @@ function Canvas({
     ...(made && name.trim() && name.trim() !== w.name ? { name: name.trim() } : {}),
   });
   /** A made workflow gone; the server refuses while it's live. */
-  const drop = async () => {
-    if (!window.confirm(`Delete ${w.name}? Its drafts go too.`)) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await call("console/workflowDelete", { workflow: w.id, ...(client ? { client } : {}) });
-      navigate(href(PAGE, { path: null, ask: null, edit: null }, params));
-    } catch (err) {
-      failed(err);
-    }
-    setBusy(false);
-  };
+  const drop = () =>
+    once(async () => {
+      if (!window.confirm(`Delete ${w.name}? Its drafts go too.`)) return;
+      setBusy(true);
+      setError(null);
+      try {
+        await call("console/workflowDelete", { workflow: w.id, ...(client ? { client } : {}) });
+        dropUnsaved(journal);
+        navigate(href(PAGE, { path: null, ask: null, edit: null }, params));
+      } catch (err) {
+        failed(err);
+      }
+      setBusy(false);
+    });
   const failed = (err: unknown) => {
+    // Saved elsewhere since he opened it: both stay, he picks.
+    if (err instanceof ApiError && err.conflict) return setConflict(true);
     const m = err instanceof Error ? err.message : String(err);
     if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
     else setError(m);
   };
-  const keep = async () => {
-    if (!draft) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await call("console/workflowSave", body(draft));
-      onSaved();
-    } catch (err) {
-      failed(err);
-    }
-    setBusy(false);
+  /** Save the draft as it is now; what he types meanwhile stays in the editor. */
+  const keep = () =>
+    once(async () => {
+      const sent = live.current.draft;
+      if (!sent) return;
+      setBusy(true);
+      setError(null);
+      setConflict(false);
+      try {
+        const out = await call<{ id: number }>("console/workflowSave", {
+          ...body(sent),
+          ...expect(),
+        });
+        landed(out.id, sent);
+        onSaved();
+      } catch (err) {
+        failed(err);
+      }
+      setBusy(false);
+    });
+  /** Changed elsewhere: his draft goes over it, as a draft he can look at before Publish. */
+  const keepMine = () => {
+    base.current = null;
+    void keep();
+  };
+  /** Changed elsewhere: his typing goes, the editor shuts on what's saved now. */
+  const takeTheirs = () => {
+    dropUnsaved(journal);
+    close();
+    onSaved();
   };
   const close = () => {
+    base.current = null;
+    setConflict(false);
+    setName(w.name);
     setDraftNow(null);
     setUndo([]);
     setProposal(null);
@@ -588,48 +658,72 @@ function Canvas({
     setTested(null);
   };
   /** Publish: kept first when it changed since, then live. A sending one asks its id typed. */
-  const publish = async (typed?: string) => {
-    if (!draft) return;
-    setBusy(true);
-    setError(null);
-    try {
-      if (!d.draft || changesOf(stored, draft) > 0) await call("console/workflowSave", body(draft));
-      const out = await call<{
-        asked?: string;
-        doors?: { node: string; token: string }[];
-      }>("console/workflowPublish", {
-        workflow: w.id,
-        ...(client ? { client } : {}),
-        ...(typed ? { confirm: typed } : {}),
-      });
-      // A client's template: it waits in To approve, not live yet.
-      if (out.asked) say.done("Asked. It goes live once approved in To approve.");
-      if (out.doors?.length) {
-        setFresh(Object.fromEntries(out.doors.map((x) => [x.node, x.token])));
-        say.done("Published. Its door URL is over the canvas.");
-      }
-      close();
-      onSaved();
-    } catch (err) {
-      failed(err);
-      onSaved();
-    }
-    setBusy(false);
-  };
-  const discard = async () => {
-    if (d.draft) {
+  // What he types while it publishes stays open as the next draft, never dropped by the close.
+  const publish = (typed?: string) =>
+    once(async () => {
+      const sent = live.current.draft;
+      if (!sent) return;
       setBusy(true);
+      setError(null);
+      setConflict(false);
       try {
-        await call("console/workflowDiscard", { workflow: w.id, ...(client ? { client } : {}) });
+        if (!d.draft || changesOf(stored, sent) > 0 || (made && name.trim() !== w.name)) {
+          const out = await call<{ id: number }>("console/workflowSave", {
+            ...body(sent),
+            ...expect(),
+          });
+          landed(out.id, sent);
+        }
+        const out = await call<{
+          id?: number;
+          asked?: string;
+          doors?: { node: string; token: string }[];
+        }>("console/workflowPublish", {
+          workflow: w.id,
+          ...(client ? { client } : {}),
+          ...expect(),
+          ...(typed ? { confirm: typed } : {}),
+        });
+        landed(out.id ?? 0, sent);
+        // A client's template: it waits in To approve, not live yet.
+        if (out.asked) say.done("Asked. It goes live once approved in To approve.");
+        if (out.doors?.length) {
+          setFresh(Object.fromEntries(out.doors.map((x) => [x.node, x.token])));
+          say.done("Published. Its door URL is over the canvas.");
+        }
+        if (live.current.draft === sent) close();
+        else {
+          setConfirm(null);
+          say.done("Published. What you changed since is still open.");
+        }
+        onSaved();
       } catch (err) {
-        setBusy(false);
-        return failed(err);
+        failed(err);
+        onSaved();
       }
       setBusy(false);
-      onSaved();
-    }
-    close();
-  };
+    });
+  const discard = () =>
+    once(async () => {
+      if (dirty && !window.confirm("Throw away your changes?")) return;
+      if (d.draft) {
+        setBusy(true);
+        try {
+          await call("console/workflowDiscard", {
+            workflow: w.id,
+            ...(client ? { client } : {}),
+            ...expect(),
+          });
+        } catch (err) {
+          setBusy(false);
+          return failed(err);
+        }
+        setBusy(false);
+        onSaved();
+      }
+      dropUnsaved(journal);
+      close();
+    });
 
   const graphEl = (
     <Graph
@@ -673,7 +767,7 @@ function Canvas({
   );
 
   if (draft) {
-    const unsaved = changesOf(stored, draft) > 0 || (made && name.trim() !== w.name);
+    const unsaved = dirty;
     const problems = [...problemsOf(draft), ...(unsaved ? [] : (d.draft?.problems ?? []))];
     const side = sel ? (
       <NodePanel
@@ -822,6 +916,19 @@ function Canvas({
           </form>
         ) : null}
         {error ? <Alert className="mb-3">{error}</Alert> : null}
+        {conflict ? (
+          <Alert className="mb-3">
+            <span className="flex flex-wrap items-center gap-2">
+              Changed elsewhere since you opened it.
+              <Button tone="secondary" size="dense" busy={busy} onClick={keepMine}>
+                Keep mine
+              </Button>
+              <Button tone="quiet" size="dense" onClick={takeTheirs}>
+                Use theirs
+              </Button>
+            </span>
+          </Alert>
+        ) : null}
         {proposal ? (
           <Proposal
             reply={proposal.reply}
@@ -941,7 +1048,7 @@ function Canvas({
             tone="secondary"
             size="dense"
             className="max-[900px]:hidden"
-            onClick={() => setDraftNow(d.draft ? (d.draft.edits ?? code) : first)}
+            onClick={() => begin(d.draft ? (d.draft.edits ?? code) : first)}
           >
             {d.draft ? "Open draft" : "Edit"}
           </Button>
