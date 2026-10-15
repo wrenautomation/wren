@@ -32,6 +32,7 @@ import {
   playbookFor,
   postMetricDays,
   pushPlaybook,
+  respreadApproved,
   slotsOf,
   tomorrowOf,
   whatWorked,
@@ -318,6 +319,29 @@ describe("content loop", () => {
     const now = new Date("2026-09-22T11:00:00Z");
     const [slotted] = await approveDrafts(pg.db, [s.id], { now, zone: "America/New_York" });
     expect(slotted?.scheduledFor?.toISOString()).toBe("2026-09-22T16:00:00.000Z");
+  });
+
+  it("respread puts a long queue onto faster slots, in the order it was due", async () => {
+    const out = await desk().add({ text: "queue", platforms: ["x"] });
+    const more = await desk().add({ text: "queue two", platforms: ["x"] });
+    const [a] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    const [b] = await listDrafts(pg.db, { ideaId: more.idea.id });
+    if (!a || !b) throw new Error("no drafts");
+    const now = new Date("2026-09-22T11:00:00Z");
+    // One a weekday: the second lands a day after the first.
+    await approveDrafts(pg.db, [a.id, b.id], { now, zone: "UTC" });
+    const twice = slotsOf({
+      x: [
+        { hour: 12, minute: 0 },
+        { hour: 18, minute: 0 },
+      ],
+    });
+    const moved = await respreadApproved(pg.db, "x", { now, zone: "UTC", slots: twice });
+    const at = async (id: string) => (await getDraft(pg.db, id)).scheduledFor?.toISOString();
+    expect(await at(a.id)).toBe("2026-09-22T12:00:00.000Z");
+    expect(await at(b.id)).toBe("2026-09-22T18:00:00.000Z");
+    expect(moved.map((m) => m.id)).toContain(b.id);
+    expect(await respreadApproved(pg.db, "x", { now, zone: "UTC", slots: twice })).toEqual([]);
   });
 
   it("an edit goes back to draft and keeps the platform's limit", async () => {

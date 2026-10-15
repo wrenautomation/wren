@@ -140,6 +140,57 @@ async function approveAll(
   return rows;
 }
 
+/**
+ * Every approved draft of `platform` again onto its slots from `now`, in the order they were
+ * due: after the slots change, a long queue takes the new pace. A draft posting now keeps its
+ * time. Each moved draft is a `scheduled` step in its record. Answers the moved drafts.
+ */
+export async function respreadApproved(
+  db: Queryable,
+  platform: Platform,
+  o: { now: Date; zone: string; slots?: Slots; by?: string },
+): Promise<ContentDraft[]> {
+  const rows = await db
+    .select()
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.platform, platform), eq(contentDrafts.status, "approved")))
+    .orderBy(asc(contentDrafts.scheduledFor), asc(contentDrafts.createdAt));
+  const taken = (
+    await db
+      .select({ at: contentDrafts.scheduledFor })
+      .from(contentDrafts)
+      .where(
+        and(
+          eq(contentDrafts.platform, platform),
+          eq(contentDrafts.status, "publishing"),
+          gte(contentDrafts.scheduledFor, o.now),
+        ),
+      )
+  ).flatMap((r) => (r.at ? [r.at] : []));
+  const moved: ContentDraft[] = [];
+  for (const d of rows) {
+    const at = nextSlot(platform, o.now, o.zone, o.slots, taken);
+    taken.push(at);
+    if (d.scheduledFor?.getTime() === at.getTime()) continue;
+    const [m] = await db
+      .update(contentDrafts)
+      .set({ scheduledFor: at })
+      .where(and(eq(contentDrafts.id, d.id), eq(contentDrafts.status, "approved")))
+      .returning();
+    if (!m) continue;
+    await recordDraft(db, {
+      item: `draft:${m.id}`,
+      platform,
+      event: "scheduled",
+      via: "person",
+      by: o.by ?? null,
+      slot: at,
+    });
+    moved.push(m);
+  }
+  return moved;
+}
+
 /** Times already given to approved or publishing drafts on the platform, from `now` on. */
 async function heldSlots(db: Queryable, platform: Platform, now: Date): Promise<Date[]> {
   const rows = await db

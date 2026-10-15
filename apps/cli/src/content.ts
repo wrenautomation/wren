@@ -36,6 +36,7 @@ import {
   planFor,
   readFunnel,
   rejectDrafts,
+  respreadApproved,
   type Slot,
   setFields,
   setFunnel,
@@ -323,6 +324,22 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
         }),
       );
       for (const d of rows) printDraftRow(d);
+    });
+
+  content
+    .command("respread <platform>")
+    .description(
+      "Put a platform's approved drafts back on its slots from now, in order (after `planner slots` changes the pace)",
+    )
+    .action(async (platform: string) => {
+      const p = platformsOf(platform)?.[0];
+      if (!p) throw new Error(`not a platform: ${platform}`);
+      const slots = slotsOf((await plannerSettings()).slots);
+      const rows = await withDb((db) =>
+        respreadApproved(db, p, { now: new Date(), zone: settings.sendTimezone, slots, by: "cli" }),
+      );
+      for (const d of rows) printDraftRow(d);
+      console.log(`${p}: ${rows.length} moved`);
     });
 
   content
