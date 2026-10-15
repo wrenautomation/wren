@@ -4,6 +4,7 @@
  * is given, the first line is the title and the rest the body. Pure: the composer previews with it.
  */
 import type { Media, Platform } from "@wren/core/content";
+import { threadPosts, threadText, threadUnfit } from "@wren/core/content/thread";
 import { PLATFORM_SPECS, unfitReason, wordsUnfit } from "./platforms.js";
 
 /** The prompt version on a draft no model wrote. */
@@ -56,5 +57,19 @@ export function ownDraftOf(
   if (spec.title && head && head.length > spec.title.maxChars)
     return { reason: `title is ${head.length} chars, over ${spec.title.maxChars}` };
   return { text: body, title: spec.title ? head : null };
+}
+
+/**
+ * An X thread in his words: the posts split on a line of `---`, 3 to 7, each inside X's 280.
+ * Checked without the link: the funnel's rides on the last post, and the yes checks it again.
+ */
+export function ownThreadOf(
+  text: string,
+): { text: string; title: null; extra: Record<string, unknown> } | { reason: string } {
+  const posts = threadPosts(text);
+  const unfit = threadUnfit(posts);
+  return unfit
+    ? { reason: unfit }
+    : { text: threadText(posts), title: null, extra: { kind: "thread" } };
 }
 export { PLATFORM_SPECS } from "./platforms.js";

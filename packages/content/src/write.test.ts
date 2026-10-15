@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownDraftOf, splitPosts } from "./write.js";
+import { ownDraftOf, ownThreadOf, splitPosts } from "./write.js";
 
 describe("own words", () => {
   it("splits a batch on a line of dashes", () => {
@@ -55,6 +55,18 @@ describe("own words", () => {
     });
     expect(ownDraftOf("linkedin", "x".repeat(3001))).toMatchObject({
       reason: expect.stringMatching(/over the 3000/),
+    });
+  });
+
+  it("makes one X thread from posts split by dashes, 3 to 7, each inside 280", () => {
+    expect(ownThreadOf("One.\n---\nTwo.\n---\nThree.")).toEqual({
+      text: "One.\n\n---\n\nTwo.\n\n---\n\nThree.",
+      title: null,
+      extra: { kind: "thread" },
+    });
+    expect(ownThreadOf("One.\n---\nTwo.")).toEqual({ reason: "a thread is 3 to 7 posts" });
+    expect(ownThreadOf(`One.\n---\n${"x".repeat(281)}\n---\nThree.`)).toMatchObject({
+      reason: expect.stringMatching(/post 2 is 281 characters/),
     });
   });
 });

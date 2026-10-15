@@ -1,6 +1,7 @@
 /** Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`). */
 import { randomBytes } from "node:crypto";
 import type { Media, Platform } from "@wren/core/content";
+import { missingFields } from "@wren/core/content/shapes";
 import { isCarousel } from "@wren/core/content/slides";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
@@ -9,7 +10,8 @@ import type { DraftResult } from "./draft.js";
 import { addIdea } from "./ideas.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentIdea, contentDrafts, contentIdeas, type IdeaSource } from "./schema.js";
-import { OWN_WORDS, ownDraftOf } from "./write.js";
+import { withSubreddit } from "./subreddit.js";
+import { OWN_WORDS, ownDraftOf, ownThreadOf } from "./write.js";
 
 export { splitPosts } from "./write.js";
 
@@ -41,12 +43,18 @@ export async function writeOwn(
     media?: Media | null;
     /** A time to post: approving keeps it while it is ahead and free (else the next slot). */
     at?: Date | null;
+    /** The words are one X thread, its posts split by `---`: only X takes it. */
+    thread?: boolean;
   },
 ): Promise<{ idea: ContentIdea; results: DraftResult[] }> {
   const idea = await addIdea(db, o.text, o.source ?? "cli", o.media ?? null, refFrom(o.from));
   const results: DraftResult[] = [];
   for (const platform of o.platforms) {
-    const v = ownDraftOf(platform, o.text, o.title, o.media);
+    const v = o.thread
+      ? platform === "x"
+        ? ownThreadOf(o.text)
+        : { reason: "a thread posts only on X" }
+      : ownDraftOf(platform, o.text, o.title, o.media);
     if ("reason" in v) {
       results.push({ platform, ok: false, reason: v.reason });
       continue;
@@ -60,7 +68,9 @@ export async function writeOwn(
         title: v.title,
         ...(o.at ? { scheduledFor: o.at } : {}),
         ...(PLATFORM_SPECS[platform].needsMedia && o.media ? { media: o.media } : {}),
-        ...(v.extra ? { extra: v.extra } : {}),
+        ...(v.extra || platform === "reddit"
+          ? { extra: await withSubreddit(db, platform, v.extra, new Date()) }
+          : {}),
         promptVersion: OWN_WORDS,
       })
       .returning();
@@ -99,6 +109,10 @@ export interface WaitingIdea {
     story: boolean;
     /** A carousel: its slides edit on the draft's page. */
     carousel: boolean;
+    /** An X thread: its posts split on lines of `---`. */
+    thread: boolean;
+    /** The required fields still unset, by label: Approve refuses until each is set. */
+    missing: string[];
   }[];
 }
 
@@ -125,6 +139,8 @@ export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingI
       own: d.promptVersion === OWN_WORDS,
       story: d.extra?.kind === "story",
       carousel: isCarousel(d),
+      thread: d.extra?.kind === "thread",
+      missing: missingFields(d.platform, d.extra, d.title),
     });
     out.set(d.ideaId, at);
   }

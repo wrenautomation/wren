@@ -4,7 +4,7 @@
  * cover, the video). Published, it is what went out, with what the platform refused after.
  */
 import type { Platform } from "@wren/core/content";
-import { type FieldView, fieldViews, kindOf } from "@wren/core/content/shapes";
+import { type FieldView, fieldViews, kindOf, missingFields } from "@wren/core/content/shapes";
 import {
   carouselUnfit,
   cleanSlides,
@@ -35,6 +35,7 @@ import {
 import { PLATFORM_SPECS } from "./platforms.js";
 import { RECORDED } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
+import { postPlaces } from "./subreddit.js";
 import type { VideoSigner } from "./video.js";
 
 export interface ShapeView {
@@ -49,6 +50,10 @@ export interface ShapeView {
   text: string;
   max: number;
   fields: FieldView[];
+  /** The required fields still unset, by label: Approve refuses until each is set. */
+  missing: string[];
+  /** Reddit: the watched subreddits that take posts, best first, to pick from. */
+  places?: string[];
   /** A link to see each stored file by its field's key; "media" is the post's own file. */
   links: Record<string, string>;
   media: { kind: "image" | "video"; name: string } | null;
@@ -169,6 +174,10 @@ export async function shapeView(
     text: d.text,
     max: spec.maxChars,
     fields,
+    missing: EDITABLE.includes(d.status) ? missingFields(d.platform, d.extra, d.title) : [],
+    ...(d.platform === "reddit" && EDITABLE.includes(d.status)
+      ? { places: (await postPlaces(db, new Date())).map((p) => p.name) }
+      : {}),
     links,
     media: d.media ? { kind: d.media.kind, name: d.media.title || nameOf(d.media.source) } : null,
     scheduled: d.scheduledFor?.toISOString() ?? null,

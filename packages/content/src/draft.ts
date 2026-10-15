@@ -25,6 +25,7 @@ import {
   contentDrafts,
   contentIdeas,
 } from "./schema.js";
+import { withSubreddit } from "./subreddit.js";
 import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 // v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. v4 (2026-10-07): the
@@ -297,7 +298,8 @@ export async function redraft(
       text: outcome.parsed.text.trim(),
       title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
       media: previous.media,
-      extra: previous.extra,
+      // A Reddit draft made before the pick gets its subreddit now.
+      extra: await withSubreddit(db, platform, previous.extra, new Date()),
       // Where it sits in the funnel and where it points: unchanged by new words.
       stage: previous.stage,
       pointsTo: previous.pointsTo,
@@ -392,6 +394,7 @@ export async function draftIdea(
         text: outcome.parsed.text.trim(),
         title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
         media: idea.media,
+        extra: await withSubreddit(db, platform, {}, new Date()),
         promptVersion: DRAFT_PROMPT_VERSION,
         playbookId: playbook?.id ?? null,
         llm: outcome.envelope(),

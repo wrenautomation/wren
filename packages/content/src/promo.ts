@@ -50,6 +50,7 @@ import { lessonsFor } from "./lessons.js";
 import { GONE, named, PLATFORM_SPECS } from "./platforms.js";
 import { playbookFor } from "./playbook.js";
 import { type ContentDraft, type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
+import { type PostPlace, postPlace } from "./subreddit.js";
 import { DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 /** Bump when a promo brief changes. */
@@ -81,13 +82,8 @@ export const RECORDED = "I recorded a walkthrough video of this.";
 /** The idea's ref: one promo idea per video. */
 export const promoRef = (videoDraft: string) => `promo:${videoDraft}`;
 
-/** A watched subreddit for the Reddit promo, as research judged it. */
-export interface PromoPlace {
-  subreddit: string;
-  name: string;
-  rules: string;
-  links: boolean;
-}
+/** A watched subreddit for the Reddit promo, as research judged it (`./subreddit.ts`). */
+export type PromoPlace = PostPlace;
 
 /** Where the promo idea stands: its idea, the video, and what each platform can carry. */
 export interface PromoBase {
@@ -127,25 +123,6 @@ export function promoShape(platform: PromoPlatform, o: { place?: PromoPlace | nu
     case "instagram":
       return "an Instagram Reel caption for a clip from a longer YouTube video: a first line that stands alone, two or three short lines on what the full video shows, then a line saying the full video is on YouTube, link in bio. Then up to five relevant hashtags on the last line. Never write a URL.";
   }
-}
-
-/** The best-fit watched subreddit that takes posts (outreach's table, read by SQL). */
-async function promoPlace(db: Queryable): Promise<PromoPlace | null> {
-  const rows = await db.execute<{
-    subreddit: string;
-    name: string;
-    rules: string | null;
-    links: boolean;
-  }>(
-    sql`select subreddit, name, judged->>'rules' rules,
-          coalesce(not (judged->>'linkOnly')::boolean, false) links
-        from reddit_places
-        where state = 'watching' and coalesce((judged->>'mayPost')::boolean, false)
-        order by fit desc nulls last, subscribers desc nulls last
-        limit 1`,
-  );
-  const r = rows[0];
-  return r ? { subreddit: r.subreddit, name: r.name, rules: r.rules ?? "", links: r.links } : null;
 }
 
 /** A YouTube video draft id from the video editor's id: its long upload, else its vertical cut. */
@@ -246,7 +223,7 @@ export async function promoBase(db: Queryable, videoDraft: string): Promise<Prom
     idea,
     video: { id: v.id, title: v.title, status: v.status, url: v.url },
     edit: editId ? Number(editId) : null,
-    place: await promoPlace(db),
+    place: await postPlace(db, new Date()),
     reel: e?.keys["reel-vertical"] ?? e?.keys["reel-1"] ?? null,
   };
 }

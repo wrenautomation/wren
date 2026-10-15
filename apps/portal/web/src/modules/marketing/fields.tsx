@@ -31,6 +31,10 @@ export type Shape = {
   text: string;
   max: number;
   fields: FieldView[];
+  /** The required fields still unset, by label; absent on a row read before it. */
+  missing?: string[];
+  /** Reddit: the watched subreddits that take posts, best first. */
+  places?: string[];
   links: Record<string, string>;
   media: { kind: "image" | "video"; name: string } | null;
   /** When it posts, once approved with a time. */
@@ -154,6 +158,7 @@ function Head({
   bad: boolean;
   count?: string | null;
 }) {
+  const needed = !said && f.required && f.default === undefined && !isSet(f);
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
       <label htmlFor={id} className={LABEL}>
@@ -162,9 +167,9 @@ function Head({
       </label>
       <span
         aria-live="polite"
-        className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
+        className={bad || needed ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
       >
-        {said ?? count ?? ""}
+        {said ?? (needed ? "Needed before Approve" : (count ?? ""))}
       </span>
     </div>
   );
@@ -181,8 +186,8 @@ const typedValue = (f: FieldView, t: string) => {
 
 type FieldProps = { f: FieldView; act: RecordAct; draftId: string };
 
-/** A line, a long text, a number or a list: saved on blur and Enter. */
-function TextField({ f, act, draftId }: FieldProps) {
+/** A line, a long text, a number or a list: saved on blur and Enter. `picks` offers values to click. */
+function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | undefined }) {
   const value = textOf(f);
   const [text, setText] = useState(value);
   const { said, bad, run, clear } = useSave(act);
@@ -243,6 +248,29 @@ function TextField({ f, act, draftId }: FieldProps) {
           }}
         />
       )}
+      {picks ? (
+        picks.values.length ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={HINT}>{picks.label}</span>
+            {picks.values.map((v) => (
+              <Button
+                key={v}
+                size="dense"
+                tone={v === text.trim() ? "primary" : "secondary"}
+                onClick={() => {
+                  if (v === value) return;
+                  setText(v);
+                  void run(FIELDS, { patch: { [f.key]: v } });
+                }}
+              >
+                {picks.show(v)}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <span className={HINT}>{picks.none}</span>
+        )
+      ) : null}
       {f.hint ? (
         <span className={HINT}>{f.input === "list" ? `Commas between. ${f.hint}` : f.hint}</span>
       ) : f.input === "list" ? (
@@ -251,6 +279,22 @@ function TextField({ f, act, draftId }: FieldProps) {
     </div>
   );
 }
+
+/** Values a line offers to click, and what to say when there are none. */
+type Picks = {
+  label: string;
+  values: readonly string[];
+  show: (v: string) => string;
+  none: string;
+};
+
+/** Reddit's subreddit: the watched ones that take posts. */
+const placePicks = (places: readonly string[]): Picks => ({
+  label: "Watched:",
+  values: places,
+  show: (v) => `r/${v}`,
+  none: "No subreddit we watch takes posts yet. Type one, or watch one under Places.",
+});
 
 /** A pick or a switch shows in the preview at once; a refused one goes back to what's saved. */
 function useChoice(f: FieldView, act: RecordAct, draftId: string) {
@@ -536,6 +580,10 @@ const isSet = (f: FieldView) =>
   f.value !== "" &&
   !(Array.isArray(f.value) && !f.value.length);
 
+/** "Title", "Title and Subreddit", "Title, Flair and Subreddit". */
+const listed = (xs: readonly string[]) =>
+  xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+
 const GROUP_HEAD =
   "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 const GRID = "grid gap-5 @min-[440px]/fields:grid-cols-2";
@@ -618,7 +666,14 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
         ) : f.input === "files" ? (
           <FilesField {...props} links={shape.links} />
         ) : (
-          <TextField {...props} />
+          <TextField
+            {...props}
+            picks={
+              shape.platform === "reddit" && f.key === "subreddit" && shape.places
+                ? placePicks(shape.places)
+                : undefined
+            }
+          />
         );
       return (
         <div key={f.key} className={wide ? "@min-[440px]/fields:col-span-2" : ""}>
@@ -659,6 +714,11 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
         className={`grid gap-4 ${shape.funnel || shape.carousel || tiktok ? "border-t border-(--ui-hair) pt-5" : ""}`}
       >
         <h3 className={GROUP_HEAD}>Basics</h3>
+        {shape.editable && shape.missing?.length ? (
+          <p role="status" className="m-0 text-[13px] text-(--ui-bad)">
+            Fill in {listed(shape.missing)} before Approve.
+          </p>
+        ) : null}
         <div className={GRID}>
           {cells(of("basics"))}
           <Schedule shape={shape} />

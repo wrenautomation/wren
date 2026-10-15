@@ -20,6 +20,7 @@ import { postedLink, refuseUnlinked } from "./funnel.js";
 import { aboutDraft, GONE, lockedWhy, named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
+import { withSubreddit } from "./subreddit.js";
 
 export interface DraftFilter {
   status?: DraftStatus;
@@ -111,6 +112,7 @@ async function approveAll(
   o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots },
 ): Promise<ContentDraft[]> {
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
+  await pickSubreddits(db, ids, o.now);
   await refuseIncomplete(db, ids);
   if (o.at || o.asap || !o.zone)
     // A time he picks, or now, moves an approved one too: a queued post rescheduled.
@@ -228,6 +230,29 @@ async function heldSlots(db: Queryable, platform: Platform, now: Date): Promise<
  * and title) and every value one its platform takes (designs/2026-10-07-post-shapes.md). A post
  * whose link points at a video needs the video up first (designs/2026-10-07-content-funnel.md).
  */
+/** A Reddit draft still without a subreddit takes the best watched place at its yes. */
+async function pickSubreddits(db: Queryable, ids: readonly string[], now: Date): Promise<void> {
+  const rows = await db
+    .select()
+    .from(contentDrafts)
+    .where(
+      and(
+        inArray(contentDrafts.id, [...ids]),
+        eq(contentDrafts.platform, "reddit"),
+        inArray(contentDrafts.status, [...APPROVABLE]),
+      ),
+    );
+  for (const r of rows) {
+    const extra = await withSubreddit(db, r.platform, r.extra, now);
+    if (extra !== r.extra)
+      await db.update(contentDrafts).set({ extra }).where(eq(contentDrafts.id, r.id));
+  }
+}
+
+/** Why a Reddit post has nowhere to go: no watched place takes posts. */
+export const NO_SUBREDDIT =
+  "no subreddit we watch takes posts. Type one in its Subreddit field, or watch one under Places";
+
 async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
   const rows = await db
@@ -245,6 +270,8 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     const clash = mediaUnfit(r.platform, r.extra, r.media);
     if (clash) return [`${named(r)}: ${clash}`];
     const missing = missingFields(r.platform, r.extra, r.title);
+    if (r.platform === "reddit" && missing.includes("Subreddit"))
+      return [`${named(r)}: ${NO_SUBREDDIT}`];
     return missing.length > 0
       ? [`${named(r)}: fill in ${missing.join(", ")} in its fields first`]
       : [];
