@@ -112,7 +112,7 @@ Shorts can crop it), or a folder with the recording and the camera file. For the
 OBS > Tools > Source Record on the camera source, same folder as the main recording. The two are
 lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and camera files, lined
 up by Cap's start times. Needs: brew install whisper-cpp, the model in ~/.cache/wren/whisper, and
-WhisperX in ~/.cache/wren/whisperx (the error says how), which re-times each word; --no-align skips it.`;
+WhisperX in ~/.cache/wren/whisperx (a warning says how), which re-times each word; --no-align skips it.`;
 
 /** What `render --only` takes: a format, or the Shorts or thumbnails alone. */
 const PARTS = RENDER_PARTS;

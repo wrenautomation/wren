@@ -130,17 +130,27 @@ for seg in req["segments"]:
 json.dump(out, open(req["out"], "w"))
 `;
 
-/** whisper's words with WhisperX's edges. Needs the venv at ALIGN_DIR (setup in the error). */
+/**
+ * whisper's words with WhisperX's edges. Without the venv at ALIGN_DIR, whisper's times stand and
+ * `warn` says how to set it up (a watched recording can't pass --no-align).
+ */
 export async function alignWords(
   wav: string,
   words: readonly Word[],
-  opts: { language?: string; python?: string } = {},
+  opts: { language?: string; python?: string; warn?: (line: string) => void } = {},
 ): Promise<Word[]> {
   if (!words.length) return [...words];
   const python = opts.python ?? ALIGN_PYTHON;
-  await access(python).catch(() => {
-    throw new Error(`no WhisperX at ${python}: ${SETUP} (or skip it with --no-align)`);
-  });
+  const ready = await access(python).then(
+    () => true,
+    () => false,
+  );
+  if (!ready) {
+    (opts.warn ?? console.warn)(
+      `no WhisperX at ${python}, keeping whisper's times. Set up: ${SETUP}`,
+    );
+    return [...words];
+  }
   const segments = alignSegments(words);
   const out = `${wav.replace(/\.wav$/, "")}.align.json`;
   const req = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AlignSegment, alignSegments, mergeAligned } from "./align.js";
+import { type AlignSegment, alignSegments, alignWords, mergeAligned } from "./align.js";
 import type { Word } from "./schema.js";
 
 const w = (text: string, s: number, e: number): Word => ({ w: text, s, e });
@@ -96,5 +96,18 @@ describe("mergeAligned", () => {
       ],
     );
     expect(out[1]).toEqual(w("b", 0.6, 0.9));
+  });
+});
+
+describe("alignWords without WhisperX", () => {
+  it("keeps whisper's times and says how to set it up", async () => {
+    const words = [{ w: " hi", s: 0, e: 0.4 }];
+    const said: string[] = [];
+    const out = await alignWords("/nowhere/a.wav", words, {
+      python: "/nowhere/python",
+      warn: (l) => said.push(l),
+    });
+    expect(out).toEqual(words);
+    expect(said[0]).toMatch(/keeping whisper's times. Set up: uv venv/);
   });
 });
