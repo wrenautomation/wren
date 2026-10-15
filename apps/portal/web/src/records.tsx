@@ -327,8 +327,12 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { key: "default", send: true },
     ),
   // A video's yes, from its page or the Inbox (`video:3`).
-  "marketing/videoApprove": (id, { privacy }) =>
-    desk("approveVideo", { id: num(id), privacy: privacy || null }),
+  "marketing/videoApprove": (id, { privacy, replace }) =>
+    desk("approveVideo", {
+      id: num(id),
+      privacy: privacy || null,
+      ...(replace === true || replace === "yes" ? { replace: true } : {}),
+    }),
   "marketing/videoApproveShort": (id, { short, privacy }) =>
     desk("approveVideo", { id: num(id), short: Number(short), privacy: privacy || null }),
   "marketing/videoApproveVertical": (id, { privacy }) =>
@@ -346,6 +350,14 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("VideoDesk", "ask", { id: num(id), message }),
   "marketing/videoUndo": (id) => handlerCall("VideoDesk", "undo", { id: num(id) }),
   "marketing/videoRender": (id) => handlerCall("VideoDesk", "render", { id: num(id) }),
+  // One part alone: a format, the Shorts or the thumbnails (`wren video render --only`).
+  "marketing/videoRenderPart": (id, { only }) =>
+    handlerCall("VideoDesk", "render", { id: num(id), only }),
+  // Approved Shorts not out yet take the new render (`wren video swap`).
+  "marketing/videoSwap": (id, { short }) =>
+    handlerCall("VideoDesk", "swap", { id: num(id), short: short ? Number(short) : null }),
+  "marketing/videoStress": (id) => handlerCall("VideoDesk", "stress", { id: num(id) }),
+  "marketing/videoPunctuate": (id) => handlerCall("VideoDesk", "punctuate", { id: num(id) }),
   // Every output again, whatever its hash says.
   "marketing/videoRenderAgain": (id) =>
     handlerCall("VideoDesk", "render", { id: num(id), again: true }),

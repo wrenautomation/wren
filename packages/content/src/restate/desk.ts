@@ -238,6 +238,10 @@ const VIDEO = z.looseObject({
     .describe("A Short, 1 for the first; none: the long video"),
   vertical: z.boolean().nullish().describe("The whole cut, 9:16, instead of the long video"),
   privacy: z.enum(VIDEO_PRIVACY).nullish().describe("Who sees the upload; none: private"),
+  replace: z
+    .boolean()
+    .nullish()
+    .describe("The long video is up already: upload this render as a new video"),
   publishAt: z
     .string()
     .nullish()
@@ -717,6 +721,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             short?: number | null;
             vertical?: boolean | null;
             privacy?: VideoPrivacy | null;
+            replace?: boolean | null;
             publishAt?: string | null;
           },
         ) => {
@@ -733,6 +738,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                 ...(req.short ? { short: req.short } : {}),
                 ...(req.vertical ? { vertical: true } : {}),
                 ...(req.privacy ? { privacy: req.privacy } : {}),
+                ...(req.replace ? { replace: true } : {}),
               }),
             ]),
           );

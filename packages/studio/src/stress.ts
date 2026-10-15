@@ -10,7 +10,8 @@
  * them. Pure: the prompt, the parser and the spacing rule; `setStress` in edit.ts writes them.
  */
 import { phrases, REEL } from "./captions.js";
-import type { Word } from "./schema.js";
+import { keepSegments, onCut, toCutTime } from "./cuts.js";
+import type { Cut, Word } from "./schema.js";
 
 export const STRESS = {
   /** Picks a model may make per minute of speech. */
@@ -265,6 +266,21 @@ export function withFallback(
       }
     },
   };
+}
+
+/**
+ * What `proposeStress` reads: each word the cut keeps, on the cut timeline, with its index in the
+ * edit's words. The CLI's `wren video stress` and the page's Propose both start here.
+ */
+export function stressCandidates(
+  e: { words: readonly Word[]; cuts: readonly Cut[]; tracks: { main: { durationS: number } } },
+  fps = 30,
+): { i: number; w: Word }[] {
+  const keep = keepSegments(e.cuts, e.tracks.main.durationS, fps);
+  return e.words.flatMap((w, i) => {
+    const s = toCutTime(w.s, keep);
+    return s === null ? [] : [{ i, w: { w: w.w, s, e: Math.max(s, onCut(w.e, keep)) } }];
+  });
 }
 
 /**

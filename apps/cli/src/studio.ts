@@ -85,9 +85,9 @@ import {
   setWords,
   shortProps,
   sourceProxy,
+  stressCandidates,
   studioWords,
   thumbnailProps,
-  toCutTime,
   toRaw,
   twelvelabsFind,
   twelvelabsLooker,
@@ -346,11 +346,7 @@ export function registerStudio(
           makeLlm(o.llm, process.env),
           o.fallback === "none" ? null : makeLlm(o.fallback, process.env),
         );
-        const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
-        const cut = e.words.flatMap((w, i) => {
-          const s = toCutTime(w.s, keep);
-          return s === null ? [] : [{ i, w: { w: w.w, s, e: Math.max(s, onCut(w.e, keep)) } }];
-        });
+        const cut = stressCandidates(e, FPS);
         // One runs row: the list it replaced (for Undo), the model and what it offered.
         const p = await proposeStress(llm, cut);
         const r = await setStress(db, e.id, p.stress, {

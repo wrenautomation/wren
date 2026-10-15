@@ -10,7 +10,9 @@
     "./finish": "./src/finish.ts",
     "./edit": "./src/edit.ts",
     "./sentences": "./src/sentences.ts",
-    "./hash": "./src/render-hash.ts"
+    "./hash": "./src/render-hash.ts",
+    "./stress": "./src/stress.ts",
+    "./punctuate": "./src/punctuate.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",

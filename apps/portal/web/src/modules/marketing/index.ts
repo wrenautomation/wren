@@ -374,7 +374,16 @@ const VIDEO_APPROVE: Action = {
   handler: "marketing/videoApprove",
   confirm: "Upload the long video to YouTube?",
   key: "a",
-  form: [PRIVACY],
+  form: [
+    PRIVACY,
+    {
+      field: "replace",
+      label: "Upload as a new video",
+      type: "switch",
+      optional: true,
+      hint: "Only when this video is up already and the new cut should replace it.",
+    },
+  ],
   when: { state: ["rendered"] },
   done: said("Approved. It uploads on the next pass."),
 };
@@ -467,6 +476,53 @@ const VIDEO_ACTIONS: Action[] = [
     when: { state: ["added", "edited", "rendered"] },
     done: said("Queued. The Mac renders it all again; it waits while the Mac is off."),
   },
+  {
+    id: "marketing.videoRenderPart",
+    label: "Render one part",
+    handler: "marketing/videoRenderPart",
+    confirm: "Render just this part on the Mac? It waits while the Mac is off.",
+    form: [
+      {
+        field: "only",
+        label: "Part",
+        type: "select",
+        options: ["long", "vertical", "square", "portrait", "shorts", "thumbs"],
+        labels: {
+          long: "Long video",
+          vertical: "Vertical",
+          square: "Square",
+          portrait: "Portrait",
+          shorts: "Shorts",
+          thumbs: "Thumbnails",
+        },
+      },
+    ],
+    when: { state: ["added", "edited", "rendered", "approved"] },
+    done: said("Queued. The Mac renders that part; it waits while the Mac is off."),
+  },
+  {
+    id: "marketing.videoSwap",
+    label: "Use new render",
+    handler: "marketing/videoSwap",
+    confirm: "Point the approved Shorts that aren't out yet at the new render?",
+    form: [
+      {
+        field: "short",
+        label: "Short",
+        type: "number",
+        optional: true,
+        hint: "Blank: every approved Short. 1 is the first.",
+      },
+    ],
+    when: { state: ["rendered", "approved", "uploaded"] },
+    done: (a) => {
+      const r = a as { swapped?: number; missing?: number };
+      const n = r.swapped ?? 0;
+      return n
+        ? `${n} Short${n === 1 ? "" : "s"} now use${n === 1 ? "s" : ""} the new render.`
+        : "Nothing to change: no approved Short waits.";
+    },
+  },
   // The page's editor runs these from inside the detail (videos.tsx), never from the head.
   ...(
     [
@@ -477,6 +533,8 @@ const VIDEO_ACTIONS: Action[] = [
       ["videoWords", "Fix word"],
       ["videoLine", "Fix caption"],
       ["videoAgent", "Ask for changes"],
+      ["videoStress", "Propose stressed words"],
+      ["videoPunctuate", "Add punctuation"],
     ] as const
   ).map(([id, label]) => ({
     id: `marketing.${id}`,

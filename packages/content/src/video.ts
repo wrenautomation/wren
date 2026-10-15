@@ -24,6 +24,7 @@ import {
   pictureOf,
 } from "@wren/studio/finish";
 import { changedSince } from "@wren/studio/hash";
+import { unpunctuated } from "@wren/studio/punctuate";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
@@ -817,7 +818,18 @@ export interface VideoView {
     | "shorts"
     | "formats"
     | "thumbnail"
-  >;
+    | "layout"
+  > & {
+    /** The face box in the main track, [x, y, w, h] pixels; null when unset. */
+    camBox: [number, number, number, number] | null;
+  };
+  /** The raw recording's length and picture, for the Shorts, layout and face box editors. */
+  durationS: number;
+  size: [number, number];
+  /** False while the transcript has no sentence ends: Add punctuation shows. */
+  punctuated: boolean;
+  /** What each look proposed (`wren video look`), newest first, raw seconds. */
+  looks: VideoLookView[];
   cuts: ReturnType<typeof cutRows>;
   finish: {
     lines: CaptionLine[];
@@ -830,6 +842,31 @@ export interface VideoView {
   checks: ReturnType<typeof videoChecks>;
   fresh: ReturnType<typeof previewCheck>;
 }
+
+/** One look's proposals as the page shows them: no provider media ids. */
+export interface VideoLookView {
+  by: string;
+  at: string;
+  summary: string;
+  shorts: { from: number; to: number; title: string }[];
+  chapters: { at: number; title: string }[];
+  thumbnails: { at: number; why: string }[];
+  moments: { at: number; why: string }[];
+}
+
+/** The looks on an edit, newest first, for the page's Suggestions. */
+export const looksOf = (e: Pick<VideoEdit, "looks">): VideoLookView[] =>
+  Object.entries(e.looks)
+    .map(([by, l]) => ({
+      by,
+      at: l.at,
+      summary: l.summary,
+      shorts: l.shorts.map(({ from, to, title }) => ({ from, to, title })),
+      chapters: l.chapters,
+      thumbnails: l.thumbnails,
+      moments: l.moments,
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
 
 export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView> {
   const steps = await videoSteps(db, e.id);
@@ -850,7 +887,13 @@ export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView>
       shorts: e.shorts,
       formats: e.formats,
       thumbnail: e.thumbnail,
+      layout: e.layout,
+      camBox: e.tracks.camBox ?? null,
     },
+    durationS: e.tracks.main.durationS,
+    size: [e.tracks.main.width, e.tracks.main.height],
+    punctuated: !unpunctuated(e.words),
+    looks: looksOf(e),
     cuts: cutRows(e),
     finish: finishEdited(e),
     render: e.render,
@@ -964,6 +1007,8 @@ export const videoRecord = (signer?: VideoSigner) => {
     actions: [
       "marketing.videoRender",
       "marketing.videoRenderAgain",
+      "marketing.videoRenderPart",
+      "marketing.videoSwap",
       "marketing.videoApprove",
       "marketing.videoApproveShort",
       "marketing.videoApproveVertical",
@@ -980,6 +1025,8 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoWords",
       "marketing.videoLine",
       "marketing.videoAgent",
+      "marketing.videoStress",
+      "marketing.videoPunctuate",
     ],
     calls: {
       "ContentDesk/approveVideo": "id",
@@ -995,6 +1042,9 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/edit": "id",
       "VideoDesk/reject": "id",
       "VideoDesk/restore": "id",
+      "VideoDesk/stress": "id",
+      "VideoDesk/punctuate": "id",
+      "VideoDesk/swap": "id",
     },
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
     load: async (db, id) => {

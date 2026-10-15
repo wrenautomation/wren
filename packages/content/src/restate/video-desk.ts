@@ -17,12 +17,28 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
-import { getEdit, setCut, setEdit, setLine, setRender, setWords } from "@wren/studio/edit";
+import {
+  getEdit,
+  setCut,
+  setEdit,
+  setLine,
+  setRender,
+  setStress,
+  setWords,
+} from "@wren/studio/edit";
+import { FPS } from "@wren/studio/finish";
 import { RENDER_PARTS } from "@wren/studio/hash";
+import { punctuate, unpunctuated } from "@wren/studio/punctuate";
 import type { VideoEdit } from "@wren/studio/schema";
+import {
+  proposeStress,
+  type StressModel,
+  stressCandidates,
+  withFallback,
+} from "@wren/studio/stress";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { videoView } from "../video.js";
+import { swapShortMedia, videoView } from "../video.js";
 import {
   applyAnswer,
   undoVideo,
@@ -81,7 +97,15 @@ const told = <T>(p: Promise<T>) =>
     throw refuse(err instanceof z.ZodError ? new Error(z.prettifyError(err)) : err);
   });
 
-export function makeVideoDesk(db: Db) {
+/** The model behind Propose stressed words and Add punctuation: the worker's (prod: the gateway). */
+export type VideoModel = StressModel & { name: string };
+
+export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
+  /** The model, or why there's none: the CLI's `--llm` here is the worker's own. */
+  const model = () => {
+    if (!o.llm) throw new Error("No model is set up for this here.");
+    return withFallback(o.llm, null);
+  };
   /** A change's answer: its run, and the page's view of the edit now, so the page patches in place. */
   const answered = async (run: string, edit: VideoEdit) => ({
     run,
@@ -195,6 +219,79 @@ export function makeVideoDesk(db: Db) {
                 const { run, n, edit } = await setWords(db, req.id, change, { by: byOf(req) });
                 return { ...(await answered(run, edit)), n };
               })(),
+            ),
+          ),
+      ),
+
+      /**
+       * The model proposes the stressed words (`wren video stress` with no --add/--drop): the
+       * whole list replaced, a `video stress` run holding the one before, so Undo puts it back.
+       */
+      stress: serviceHandler({ input: z.looseObject(ID) }, async (ctx: restate.Context, req: One) =>
+        ctx.run("stress", () =>
+          told(
+            (async () => {
+              const e = await getEdit(db, req.id);
+              const llm = model();
+              const p = await proposeStress(llm, stressCandidates(e, FPS));
+              const r = await setStress(db, e.id, p.stress, {
+                by: byOf(req),
+                stats: { asked: p.asked, offered: p.offered, model: llm.answered.join(", ") },
+              });
+              return { ...(await answered(r.run, r.edit)), n: p.stress.length };
+            })(),
+          ),
+        ),
+      ),
+
+      /**
+       * A transcript with no sentence ends punctuated by the model (`wren video words
+       * --punctuate`): text only, never times, one `video words` run.
+       */
+      punctuate: serviceHandler(
+        { input: z.looseObject(ID) },
+        async (ctx: restate.Context, req: One) =>
+          ctx.run("punctuate", () =>
+            told(
+              (async () => {
+                const e = await getEdit(db, req.id);
+                if (!unpunctuated(e.words))
+                  throw new Error("The transcript has punctuation already.");
+                const p = await punctuate(model(), e.words);
+                const r = await setWords(
+                  db,
+                  e.id,
+                  { words: p.words },
+                  { by: byOf(req), command: "video words" },
+                );
+                return { ...(await answered(r.run, r.edit)), n: p.changed };
+              })(),
+            ),
+          ),
+      ),
+
+      /**
+       * After a render: each approved Short draft not out yet points at the new file (`wren video
+       * swap`); slot, words and approval stay. `short` narrows it to one.
+       */
+      swap: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            short: z.number().int().positive().nullish().describe("Only this Short, 1 the first"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { short?: number | null }) =>
+          ctx.run("swap", () =>
+            told(
+              swapShortMedia(db, req.id, {
+                by: byOf(req),
+                ...(req.short ? { short: req.short } : {}),
+              }).then((r) => ({
+                run: r.run,
+                swapped: r.swapped.length,
+                missing: r.missing.length,
+              })),
             ),
           ),
       ),

@@ -1413,7 +1413,7 @@ export async function buildServices(
     socialPushed,
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
     makeDraftAsk(db),
-    makeVideoDesk(db),
+    makeVideoDesk(db, { llm }),
     // Reply from the Inbox on the thread's own channel, notes, assignees
     // (designs/2026-10-07-inbox-reply.md). Each send goes through that channel's desk.
     makeInboxDesk({

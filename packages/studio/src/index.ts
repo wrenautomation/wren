@@ -220,6 +220,7 @@ export {
   remapStress,
   STRESS,
   spaceStress,
+  stressCandidates,
   stressPrompt,
   withFallback,
   wordAt,

@@ -11,6 +11,7 @@ import {
   fillFooter,
   leadOf,
   longOf,
+  looksOf,
   markWords,
   numbered,
   tidy,
@@ -184,5 +185,28 @@ describe("clip captions", () => {
     expect(tidy("so i think i'll go")).toBe("So I think I'll go.");
     expect(tidy("Done?")).toBe("Done?");
     expect(excerpt("alpha beta gamma delta", 12)).toBe("alpha beta...");
+  });
+});
+
+describe("looksOf", () => {
+  it("lists each look newest first, without the provider's media ids", () => {
+    const look = (at: string, title: string) => ({
+      at,
+      summary: "s",
+      moments: [],
+      shorts: [{ from: 1, to: 20, title, card: false }],
+      chapters: [{ at: 0, title: "Intro" }],
+      thumbnails: [],
+      media: { id: "m", asset: "a", cut: "c", minutes: 3 },
+    });
+    const out = looksOf({
+      looks: {
+        gemini: look("2026-01-01T00:00:00Z", "a"),
+        twelvelabs: look("2026-01-02T00:00:00Z", "b"),
+      },
+    });
+    expect(out.map((l) => l.by)).toEqual(["twelvelabs", "gemini"]);
+    expect(out[0]?.shorts).toEqual([{ from: 1, to: 20, title: "b" }]);
+    expect(out[0]).not.toHaveProperty("media");
   });
 });

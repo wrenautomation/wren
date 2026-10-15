@@ -6,6 +6,7 @@ import {
   proposeStress,
   remapStress,
   spaceStress,
+  stressCandidates,
   stressPrompt,
   withFallback,
   wordAt,
@@ -146,5 +147,17 @@ describe("proposeStress", () => {
       /bad request/,
     );
     await expect(withFallback(free, null).complete("a")).rejects.toThrow(/spent or cooling/);
+  });
+});
+
+describe("stressCandidates", () => {
+  it("keeps only the words the cut keeps, on the cut's clock, with their edit index", () => {
+    const words = said("one two three four five");
+    // Cut 0.75-1.6 s: "three" (0.8-1.1) and "four" (1.2-1.5) go.
+    const cuts = [{ from: 0.75, to: 1.6, why: "silence" as const, state: "cut" as const }];
+    const c = stressCandidates({ words, cuts, tracks: { main: { durationS: 2 } } });
+    expect(c.map((x) => x.i)).toEqual([0, 1, 4]);
+    expect(c[2]?.w.w).toBe("five");
+    expect(c[2]?.w.s).toBeLessThan(words[4]?.s ?? 0);
   });
 });
