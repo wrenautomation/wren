@@ -270,12 +270,12 @@ const sentRows = (db: Queryable) =>
     sql`select * from (
         select 'thread:' || t.id id, 'thread' type, t.author who, 'reddit' platform,
           coalesce(nullif(t.body, ''), t.title) body, t.title post_title, t.answer draft,
-          a.handle account, t.posted_at at, t.answered_at sent, t.url
+          a.handle account, t.posted_at at, t.answered_at sent, t.url, 'r/' || t.subreddit place
         from reddit_threads t left join reach_accounts a on a.id = t.account_id
         where t.answered_at is not null and t.answer_ref is not null
         union all
         select 'onpost:' || id, 'onpost', author, platform, text, null, comment, account,
-          coalesce(posted_at, created_at), commented_at, url
+          coalesce(posted_at, created_at), commented_at, url, null
         from reach_posts where commented_at is not null
       ) s order by sent desc limit ${ACTIVITY_ROWS}`,
   );
@@ -373,6 +373,7 @@ const threadItem = (t: Row) => ({
   state: t.held ? "held" : t.send_at ? "scheduled" : "waiting",
   body: t.body || t.title,
   post_title: t.title,
+  place: t.place ?? null,
   why: t.angle ?? null,
   held: t.held ?? null,
   draft: t.draft,
@@ -411,6 +412,7 @@ const commentItem = (c: Row) => ({
   state: c.state,
   body: c.body,
   post_title: c.post_title,
+  place: c.place ?? null,
   draft: c.draft,
   account: c.account,
   at: c.at,
@@ -1016,6 +1018,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       version: text("Version", { listed: false }),
       body: prose("Words"),
       postTitle: text("Post"),
+      place: text("Where"),
       why: text("Picked for"),
       held: text("Held because"),
       sendAt: date("Sends at"),
@@ -1207,6 +1210,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       state: STATES,
       body: prose("Their words"),
       postTitle: text("Post"),
+      place: text("Where"),
       why: text("Picked for"),
       held: text("Held because"),
       draft: prose("Our draft"),
