@@ -5,7 +5,7 @@
 import { cx, FRAME_HEAD, GROUP_LABEL, relative, tipProps } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import { Bell } from "@wren/ui/lib/lucide";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { WREN } from "../../module.js";
 import { onPulse } from "../../pulse.js";
 import { type Bell as BellData, type BellLine, bell } from "./api.js";
@@ -17,17 +17,53 @@ const WHY: Record<BellLine["why"], string> = {
   saved: "Your saved link",
 };
 
+/**
+ * The bell's reads land in any order. The newest one that left stands; one that left before
+ * "seen" answered (or while it is out) counts nothing new, so a cleared badge stays clear.
+ */
+export class BellReads {
+  private n = 0;
+  private shown = -1;
+  private seenAt = -1;
+  private seeing = 0;
+  /** A read leaves: its number. */
+  leave() {
+    this.n += 1;
+    return this.n;
+  }
+  /** "Seen" is sent; call the returned function once it answers, true if it took. */
+  seen(): (ok: boolean) => void {
+    this.seeing += 1;
+    return (ok) => {
+      this.seeing -= 1;
+      this.n += 1;
+      if (ok) this.seenAt = this.n;
+    };
+  }
+  /** A read that left at `left` answered `b`: what to show, or null to keep what shows. */
+  land(left: number, b: BellData): BellData | null {
+    if (left < this.shown) return null;
+    this.shown = left;
+    if (!this.seeing && left > this.seenAt) return b;
+    return { ...b, unseen: 0, alerts: b.alerts.map((a) => ({ ...a, seen: true })) };
+  }
+}
+
 export function LearnBell({ client }: { client: string }) {
   const [data, setData] = useState<BellData | null>(null);
   const [open, setOpen] = useState(false);
-  const load = useCallback(
-    () =>
-      bell.read(client).then(
-        (b) => setData(b),
-        () => undefined,
-      ),
-    [client],
-  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each workspace's bell counts its own reads.
+  const reads = useMemo(() => new BellReads(), [client]);
+  const load = useCallback(() => {
+    const left = reads.leave();
+    return bell.read(client).then(
+      (b) => {
+        const shown = reads.land(left, b);
+        if (shown) setData(shown);
+      },
+      () => undefined,
+    );
+  }, [client, reads]);
   useEffect(() => {
     setData(null);
     // The app's one pulse (../../pulse.ts): now, each minute while the tab shows, and on return.
@@ -42,9 +78,12 @@ export function LearnBell({ client }: { client: string }) {
       );
     if (!data?.unseen) return;
     // Seen once opened: the count clears now, the dots when it closes.
+    setData((d) => (d ? { ...d, unseen: 0 } : d));
+    const answered = reads.seen();
+    // Not marked: the next read counts them again.
     void bell.seen(client).then(
-      () => setData((d) => (d ? { ...d, unseen: 0 } : d)),
-      () => undefined,
+      () => answered(true),
+      () => answered(false),
     );
   };
   const unseen = data?.unseen ?? 0;
