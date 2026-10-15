@@ -3,7 +3,7 @@
  * with a live preview on the kit's own parts and, for a brand, its contrast report. It edits
  * what `readTheme` reads and hands it to `onSave`; who may save is the caller's business.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "./components/ui/input.js";
 import { Button, Tag } from "./controls.js";
@@ -138,6 +138,14 @@ async function colorsOfImage(file: File): Promise<string[]> {
   return brandColorsOf(g.getImageData(0, 0, w, h).data);
 }
 
+/**
+ * The draft once a save of `sent` answers: `sent`, unless it changed since the save left from
+ * `from` (his newer typing stays).
+ */
+export function settledDraft(now: Look, from: Look, sent: Look): Look {
+  return now === from ? sent : now;
+}
+
 export function LookEditor({
   look,
   onSave,
@@ -191,28 +199,41 @@ export function LookEditor({
     setDraft({ ...obj(), brand: { ...(brand ?? {}), ...patch } });
   const setToken = (t: Token, v: string) => setDraft({ ...obj(), [t]: v });
 
+  /** The draft as typed now, for a save that answers after more changes. */
+  const live = useRef(draft);
+  live.current = draft;
+  /** A save is out: a second press sends nothing. */
+  const flying = useRef(false);
   const save = async (next: Look) => {
+    if (flying.current) return;
+    flying.current = true;
+    const from = live.current;
     setBusy(next === null ? "reset" : "save");
     setError(null);
     try {
       await onSave(next);
       setSaved(next);
-      setDraft(next);
+      // Changed while it saved: what he typed since stays.
+      setDraft((d) => settledDraft(d, from, next));
       toast.success(next === null ? "Back to Wren's look" : "Look saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      flying.current = false;
       setBusy(null);
     }
   };
+  /** Counts images dropped: an older one's colors that decode late don't land. */
+  const dropped = useRef(0);
   const fromImage = async (file: File | undefined) => {
     if (!file) return;
+    const mine = ++dropped.current;
     setPicks(null);
+    let got: string[] = [];
     try {
-      setPicks(await colorsOfImage(file));
-    } catch {
-      setPicks([]);
-    }
+      got = await colorsOfImage(file);
+    } catch {}
+    if (mine === dropped.current) setPicks(got);
   };
 
   return (
