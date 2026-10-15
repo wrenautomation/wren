@@ -34,8 +34,10 @@ import {
 } from "@wren/core/templates/defaults";
 import { LIBRARY_EDITS } from "@wren/core/templates/edits";
 import { clientDatabases, type Db } from "@wren/db";
+import { NICHE_NAMES } from "@wren/niches";
 import { COMPONENTS } from "@wren/worker/components";
 import type { Command } from "commander";
+import { pruneTemplates } from "./template-prune.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -84,6 +86,26 @@ export function registerTemplates(program: Command, dbs: TemplateDbs) {
       );
       const out = await withDb((db) => installDefaults(db, patterns, { by: "cli" }));
       console.log(JSON.stringify(out, null, 2));
+    });
+
+  cmd
+    .command("prune")
+    .description(
+      "Main only: a niche's email templates with no default file. Never sent: deleted. Sent: emptied into retired/. Dry run unless --apply",
+    )
+    .option("--apply", "make the changes; without it, only list them")
+    .action(async (o: { apply?: boolean }) => {
+      const files = new Set(
+        loadDefaults()
+          .filter((f) => f.ref.kind === "email")
+          .map((f) => `${f.ref.system}/${f.ref.name}`),
+      );
+      const out = await withMainDb((db) =>
+        pruneTemplates(db, { niches: NICHE_NAMES, files, apply: !!o.apply, by: BY }),
+      );
+      console.log(JSON.stringify(out, null, 2));
+      if (!o.apply && (out.delete.length || out.retire.length))
+        console.log("dry run: nothing changed; --apply to do it");
     });
 
   cmd
