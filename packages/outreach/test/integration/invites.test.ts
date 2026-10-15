@@ -336,6 +336,46 @@ describe("linkedin invites", () => {
     ]);
   });
 
+  it("an invite LinkedIn does not offer is no failure and never proposed again", async () => {
+    await person("alice-a", { title: "Founder" });
+    await person("bob-d", { title: "Director" });
+    await person("carol-e", { title: "Owner" });
+    await top();
+    await approveInvites(db(), await proposedIds(), OPEN);
+    fake.relationships.set("alice-a", "connected");
+    fake.relationships.set("bob-d", "pending");
+    const stats = { noInvite: 0, failed: 0, sent: 0 };
+    for (let i = 0; i < 3; i++) {
+      const s = await tickAt(OPEN);
+      stats.noInvite += s.noInvite;
+      stats.failed += s.failed;
+      stats.sent += s.sent;
+    }
+    expect(stats).toEqual({ noInvite: 2, failed: 0, sent: 1 });
+    expect(fake.sent.map((s) => s.handle)).toEqual(["carol-e"]);
+    expect(await contactOf("alice-a")).toMatchObject({
+      state: "connected",
+      stateReason: "already connected: no invite sent",
+    });
+    expect((await contactOf("alice-a")).connectedAt).not.toBeNull();
+    expect(await contactOf("bob-d")).toMatchObject({
+      state: "unreachable",
+      stateReason: "an invite to them is already out: no invite sent",
+    });
+    const skipped = await db()
+      .select({ state: reachMessages.state })
+      .from(reachMessages)
+      .where(eq(reachMessages.contactId, (await contactOf("bob-d")).id));
+    expect(skipped).toEqual([{ state: "skipped" }]);
+    // Neither is proposed again, and a skip spends none of the day's invites.
+    await top(SETTINGS, at(1));
+    expect(await proposedIds()).toEqual([]);
+    // Bob accepts the invite that was already out: the sweep still finds it.
+    fake.relationships.set("bob-d", "connected");
+    const swept = await sweepInvites(db(), fake, acct, SETTINGS, at(1));
+    expect(swept.accepted).toEqual([(await contactOf("bob-d")).id]);
+  });
+
   it("an invite goes bare once the month's notes are spent", async () => {
     await setTemplate(
       db(),

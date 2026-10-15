@@ -64,6 +64,32 @@ describe("linkedin outreach", () => {
     });
   });
 
+  it("connect with no invite offered answers why, sending nothing", async () => {
+    const { sites } = fakeSites({
+      "POST /in/jane-doe/connect": { sent: false, relationship: "pending" },
+      "POST /in/john-roe/connect": { sent: false, relationship: "follow-only" },
+      "POST /in/ann-poe/connect": { sent: true, note: false },
+    });
+    const ch = linkedinOutreach(sites, { account: "linkedin@wren" });
+    expect(await ch.connect?.("jane-doe", null)).toMatchObject({ noInvite: "pending" });
+    expect(await ch.connect?.("john-roe", null)).toMatchObject({ noInvite: "follow-only" });
+    expect(await ch.connect?.("ann-poe", null)).toMatchObject({ ref: null });
+    // An older autobrowse threw its "no invite dialog" refusal: the same outcome, reason unknown.
+    const old: SiteClient = {
+      async call() {
+        throw new Error(
+          "linkedin POST /in/{vanity}/connect: 502 linkedin: no invite dialog for jane-doe: already connected, invite pending, or Follow only",
+        );
+      },
+      async via() {
+        return "browser";
+      },
+    };
+    expect(
+      await linkedinOutreach(old, { account: "linkedin@wren" }).connect?.("jane-doe", null),
+    ).toMatchObject({ noInvite: "unknown" });
+  });
+
   it("replies are the unread threads that name a profile", async () => {
     const { sites } = fakeSites({
       "GET /messaging": {

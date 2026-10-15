@@ -52,6 +52,19 @@ export interface Sent {
   fetchedWith: FetchedWith;
 }
 
+/**
+ * A connect that sent nothing: LinkedIn offered no invite because they are already a connection,
+ * an invite to them is already out, or the profile offers Follow only. `unknown` = the platform
+ * did not say which.
+ */
+export type NoInviteReason = "connected" | "pending" | "follow-only" | "unknown";
+
+export interface NoInvite {
+  noInvite: NoInviteReason;
+  at: string;
+  fetchedWith: FetchedWith;
+}
+
 export interface Reply {
   /** The platform's id: the dedupe key. */
   ref: string;
@@ -117,8 +130,8 @@ export interface OutreachChannel {
   enrich(handle: string): Promise<Profile>;
   /** Absent when the platform has no connect step (Reddit). */
   relationship?(handle: string): Promise<Relationship>;
-  /** Irreversible. Absent when the platform has no connect step. */
-  connect?(handle: string, note: string | null): Promise<Sent>;
+  /** Irreversible. Absent when the platform has no connect step. `NoInvite` when nothing went out. */
+  connect?(handle: string, note: string | null): Promise<Sent | NoInvite>;
   /** Recently added connections, newest first: one read finds every accepted invite. */
   connections?(): Promise<string[]>;
   /** Irreversible. Withdraws a pending invite; anything else withdraws nothing and says what it read. */
@@ -258,6 +271,10 @@ export function fakeOutreachChannel(
           return relationships.get(handle) ?? "none";
         },
         async connect(handle, note) {
+          // LinkedIn offers no invite to a connection or to someone already invited.
+          const was = relationships.get(handle);
+          if (was === "connected" || was === "pending")
+            return { noInvite: was, at: now().toISOString(), fetchedWith: "api" as const };
           sent.push({ kind: "connect", handle, text: note });
           relationships.set(handle, "pending");
           return sentNow();

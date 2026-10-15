@@ -22,6 +22,9 @@
  * A used daily cap (a 429 whose wait is hours) holds the row, and the account's other rows on
  * that cap, until it resets; a short 429 holds the row an hour; any other 4xx fails it and ends
  * the contact as `unreachable`; anything else leaves `unknown`.
+ * An invite LinkedIn does not offer (already connected, invite pending, Follow only) sent nothing:
+ * the row is `skipped`, counts toward no cap and no failure, and the contact is never invited
+ * again (`noInvite`).
  */
 import { capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
@@ -32,7 +35,7 @@ import {
   readMessageSettings,
   tagLinks,
 } from "@wren/core/message-settings";
-import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
+import type { NoInvite, OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { healthOf } from "./accounts.js";
@@ -83,6 +86,8 @@ export interface TickStats {
   /** Due rows held: `window`, `gated` (live off), `warming` (a sequence row on a warming account), `cap`, `frozen`, `pending` (invite not accepted), `retry`. */
   held: Record<string, number>;
   failed: number;
+  /** Invites LinkedIn did not offer: already connected, invite pending, Follow only. Not failures. */
+  noInvite: number;
   reconciled: number;
   finished: number;
   unreachable: number;
@@ -109,6 +114,7 @@ export const emptyStats = (): TickStats => ({
   connected: 0,
   held: {},
   failed: 0,
+  noInvite: 0,
   reconciled: 0,
   finished: 0,
   unreachable: 0,
@@ -496,6 +502,40 @@ export async function recordSent(
   }
 }
 
+const NO_INVITE_WHY: Record<NoInvite["noInvite"], string> = {
+  connected: "already connected: no invite sent",
+  pending: "an invite to them is already out: no invite sent",
+  "follow-only": "their profile offers Follow only: no invite sent",
+  unknown: "LinkedIn offered no invite (connected, pending, or Follow only)",
+};
+
+/**
+ * Step 4a': LinkedIn offered no invite, so nothing went out. The row is `skipped` (no cap, no
+ * failure). Already connected = `connected` from now, nothing queued after (we never invited
+ * them); pending or Follow only = `unreachable`, which a later accept in the sweep still lifts.
+ * Either way the contact is out of `new` for good, so no top-up proposes them again.
+ */
+export async function recordNoInvite(
+  db: Queryable,
+  c: Candidate,
+  out: NoInvite,
+  o: Pick<TickOptions, "now">,
+  stats: TickStats,
+): Promise<void> {
+  const why = NO_INVITE_WHY[out.noInvite];
+  await db
+    .update(reachMessages)
+    .set({ state: "skipped", stateReason: why })
+    .where(eq(reachMessages.id, c.row.id));
+  if (out.noInvite === "connected")
+    await db
+      .update(reachContacts)
+      .set({ state: "connected", connectedAt: o.now, stateReason: why, endedAt: null })
+      .where(eq(reachContacts.id, c.contact.id));
+  else await setContactState(db, c.contact.id, "unreachable", { reason: why, now: o.now });
+  stats.noInvite++;
+}
+
 /** Step 4b: the platform did not take it, or we do not know. */
 export async function recordFailure(
   db: Queryable,
@@ -610,7 +650,7 @@ export async function tick(
       if (verdict.v !== "send") continue;
     }
     await run(`sending ${c.row.id}`, () => markSending(db, c.row.id));
-    let sent: Sent;
+    let sent: Sent | NoInvite;
     try {
       sent =
         c.row.kind === "connect"
@@ -633,7 +673,10 @@ export async function tick(
       await stepStats(`failed ${c.row.id}`, (s) => recordFailure(db, c, err, o.now, s));
       continue;
     }
-    await stepStats(`sent ${c.row.id}`, (s) => recordSent(db, c, sent, o, s));
+    const out = sent;
+    if ("noInvite" in out)
+      await stepStats(`no invite ${c.row.id}`, (s) => recordNoInvite(db, c, out, o, s));
+    else await stepStats(`sent ${c.row.id}`, (s) => recordSent(db, c, out, o, s));
   }
   return stats;
 }
@@ -657,6 +700,8 @@ function merge(into: TickStats, from: TickStats) {
   into.sent += from.sent;
   into.connected += from.connected;
   into.failed += from.failed;
+  // A pass journaled before the field existed replays without it.
+  into.noInvite += from.noInvite ?? 0;
   into.finished += from.finished;
   into.unreachable += from.unreachable;
   into.stepped.push(...from.stepped);

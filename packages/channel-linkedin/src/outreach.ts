@@ -7,7 +7,8 @@
  * find: people search (`founder recruiting agency`), or `company/<handle>
  * [words]` for one company's people. enrich: the profile with experience.
  * relationship: from the profile's buttons (connected, pending, none).
- * connect: an invite, with a note when given. connections: the recently
+ * connect: an invite, with a note when given; `NoInvite` when the page offers
+ * none (already connected, invite pending, Follow only). connections: the recently
  * added, which is where accepts show. withdraw: a pending invite, read first.
  * message: a 1st-degree message;
  * the loop asks `relationship` first and never messages a pending invite.
@@ -21,6 +22,8 @@ import {
   type Found,
   HANDLE_RE,
   handleOf,
+  type NoInvite,
+  type NoInviteReason,
   type OutreachChannel,
   type Profile,
   type Relationship,
@@ -29,6 +32,12 @@ import {
 } from "@wren/core/outreach";
 
 export const LINKEDIN_SITE = "linkedin";
+
+/** autobrowse's words when the invite page offers no invite. */
+const NO_DIALOG = /no invite dialog for /;
+const NO_INVITE: readonly NoInviteReason[] = ["connected", "pending", "follow-only"];
+const noInviteOf = (r: string | undefined): NoInviteReason =>
+  NO_INVITE.find((x) => x === r) ?? "unknown";
 
 export interface LinkedInOutreachOptions {
   account: string;
@@ -159,14 +168,20 @@ export function linkedinOutreach(sites: SiteClient, o: LinkedInOutreachOptions):
       return r.relationship ?? "unknown";
     },
 
-    async connect(handle, note): Promise<Sent> {
+    async connect(handle, note): Promise<Sent | NoInvite> {
       const vanity = vanityOf(handle);
-      await call("POST", `/in/${vanity}/connect`, note ? { note: note.slice(0, 200) } : {});
-      return {
-        ref: null,
-        at: now().toISOString(),
-        fetchedWith: await via("POST", "/in/{vanity}/connect"),
-      };
+      let out: { sent?: boolean; relationship?: string };
+      try {
+        out = await call("POST", `/in/${vanity}/connect`, note ? { note: note.slice(0, 200) } : {});
+      } catch (err) {
+        // An autobrowse from before 2026-10-15 says it as a failure; nothing went out either way.
+        if (!NO_DIALOG.test(err instanceof Error ? err.message : String(err))) throw err;
+        out = { sent: false, relationship: "unknown" };
+      }
+      const at = now().toISOString();
+      const fetchedWith = await via("POST", "/in/{vanity}/connect");
+      if (out?.sent === false) return { noInvite: noInviteOf(out.relationship), at, fetchedWith };
+      return { ref: null, at, fetchedWith };
     },
 
     async connections(): Promise<string[]> {
