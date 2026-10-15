@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { callOnce } from "../action.js";
 import { answersOf, onWrite, patchedSince, writeThrough } from "./cache.js";
 import { tick } from "./clock.js";
 import { readForm, writeForm } from "./journal.js";
@@ -99,7 +100,6 @@ describe("kept forms", () => {
 
 describe("callOnce (every useRun action)", () => {
   it("sends a double click on Approve once, with a requestId", async () => {
-    const { callOnce } = await import("../action.js");
     const call = vi.fn(async () => ({ done: [5] }));
     const a = callOnce(call, "Drafts/approve", [5], { ids: [5] });
     const b = callOnce(call, "Drafts/approve", [5], { ids: [5] });
