@@ -66,7 +66,7 @@ Wired: `leadRefusal` takes the contact's keys and calls it, so SMS enroll, DM en
 
 ## Portal
 
-People → People: columns name, stage, warmth, why, persona, last seen. Filters on stage, warmth, persona role, niche, size, first channel. Tabs: All, Warm, Replied, Booked, Clients (rest under More: Cold, Subscribed, With email, With phone, Merged). The person's page gets a Warmth section (stage, the line, each reason, subscriptions, first and last touch, persona) above the Timeline.
+People → People: columns name, stage, warmth, what they did (the warmth line), persona, last touch. Quick filters on stage, warmth, role, size, first channel; niche and the rest on the filter bar. Tabs: All, Warm, Replied, Booked, Clients, Cold, Subscribed, With email, With phone, Merged. The person's page gets a Warmth section (stage, the line, each reason, subscriptions, first and last touch, persona) above the Timeline.
 
 ## Open calls (mine)
 
@@ -77,4 +77,4 @@ People → People: columns name, stage, warmth, why, persona, last seen. Filters
 - Past client has no source yet; it's a mark (`lifecycle` trait) until CRM import can say it.
 - Visit and watch counts are stored as counts only; the lines stay live reads (B7).
 - Persona traits aren't mirrored: 106k trait rows for something segments can read from the table.
-- The rollup runs every 15 minutes; the warm gate never waits for it.
+- The rollup runs every 15 minutes (about 9 s over 158k profiles on prod, read only); the warm gate never waits for it (about 13 ms a profile).

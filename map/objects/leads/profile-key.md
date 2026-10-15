@@ -13,7 +13,7 @@ One address a person goes by, tied to one [[leads/profile]]. Table `profile_keys
 
 ## Why this shape
 
-An address is unique across a workspace (`uq_profile_keys_kind_value`), so it belongs to at most one profile. If a new set of keys spans two profiles, they merge. Values are normalized by `keyOf` (`packages/core/src/profiles.ts:63`) so the same address written two ways is one key: emails lowercased without `mailto:`, phones E.164 (US default), handles bare.
+An address is unique across a workspace (`uq_profile_keys_kind_value`), so it belongs to at most one profile. If a new set of keys spans two profiles, they merge. Values are normalized by `keyOf` (`packages/core/src/profiles.ts:63`) so the same address written two ways is one key: emails lowercased without `mailto:`, phones E.164 (US default), handles bare (a YouTube channel id keeps its case). Every handle we touched or that touched us gets a `handle:<platform>` key each people map pass (`keyLooseHandles`, [[leads/people-map]]).
 
 ## Shape
 

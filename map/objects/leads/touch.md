@@ -20,7 +20,7 @@ Each touch already lives in its source table (`reach_messages`, `comments`, `red
 - `social_handles`: `platform`, `handle` (normalized), `url`, `name`, `person_id`, `lead_id`, `linked_by`; unique (platform, handle) (`packages/core/src/touches-schema.ts:62`)
 - `touches`: `handle_id`, `kind`, `direction`, `account`, `url`, `text`, `at`, `response`, `response_at`, `answers` (self), `external_id`, `source`, `ref` unique (`:98`)
 - `person_touch_lines` view: the People Touches tab, keyed `li:<people.id>` and `<platform>:<handle>` (`:153`)
-- `normalizeHandle` (`packages/core/src/touches.ts:153`), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/content/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
+- `normalizeHandle` (`packages/core/src/touches.ts:161`; a bare YouTube `UC…` id keeps its case, as from a `/channel/` URL), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/content/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
 - writers per source: `packages/outreach/src/touches.ts`, `packages/content/src/touches.ts`
 
 Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.ts:432`
