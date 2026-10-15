@@ -1,7 +1,7 @@
 /**
- * Automations → All (designs/2026-10-14-automations.md): everything that runs on its own, one row
- * each: what starts it, its runs over 30 days, what failed and waits, its last and next run, its
- * last error and its switch. Every number opens the rows behind it.
+ * Automations → All (designs/2026-10-14-automations.md): everything that runs on its own, a card
+ * each in the Marketplace's look: what starts it, its runs over 30 days, what failed and waits,
+ * its last and next run, its last error and its switch. Every number opens the rows behind it.
  */
 import { AUTOMATION_TEMPLATES } from "@wren/core/automation-templates";
 import type { AutomationKind, AutomationRow, AutomationState } from "@wren/core/automations";
@@ -224,11 +224,12 @@ function StateCell({
   );
 }
 
-const COLS =
-  "grid grid-cols-[minmax(0,1fr)_128px_72px_64px_64px_104px_104px] items-center gap-x-4 max-[900px]:grid-cols-[minmax(0,1fr)_auto]";
-const HEAD = "text-[12px] font-medium text-(--ui-ink-2)";
+/** The Marketplace's grid: a card per automation, as wide as the page allows. */
+const GRID =
+  "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 p-0";
 
-function Row({
+/** One automation as a card, the Marketplace's look: name and state, what starts it, its numbers. */
+function Card({
   r,
   busy,
   error,
@@ -242,102 +243,82 @@ function Row({
   const to = linksOf(r);
   const failing = r.health === "failing";
   return (
-    <li className={cx(COLS, "border-b border-(--ui-hair) px-3 py-3 hover:bg-(--ui-hover)")}>
-      <div className="grid min-w-0 gap-0.5">
+    <li
+      className={cx(
+        "flex h-full flex-col gap-2 rounded-(--ui-radius-panel) bg-(--ui-paper) p-4 shadow-(--ui-raise) transition-[background-color,translate] duration-200 ease-(--ui-ease) hover:-translate-y-px hover:bg-(--ui-wash) motion-reduce:hover:translate-y-0",
+        failing && "ring-1 ring-(--ui-bad)/40",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
         <a
           href={to.open}
-          className="truncate text-[14.5px] font-medium text-(--ui-ink) no-underline hover:underline"
-          {...tipProps(r.name, { as: "none" })}
+          className="min-w-0 text-[15px] leading-5 font-semibold text-(--ui-ink) no-underline hover:underline"
         >
           {r.name}
         </a>
-        <span className={cx("truncate text-[13px]", QUIET)} {...tipProps(r.trigger)}>
-          {r.trigger}
-        </span>
-        {failing && r.error ? (
-          <a
-            href={to.failed ?? to.open}
-            className="line-clamp-2 text-[13px] text-(--ui-bad) no-underline hover:underline"
-          >
-            {r.error}
-          </a>
+        <StateCell r={r} busy={busy} onFlip={onFlip} />
+      </div>
+      <span
+        className="line-clamp-2 text-[13px]/[1.45] text-pretty text-(--ui-ink-2)"
+        {...tipProps(r.trigger)}
+      >
+        {r.trigger}
+      </span>
+      {failing && r.error ? (
+        <a
+          href={to.failed ?? to.open}
+          className="line-clamp-2 text-[13px] text-(--ui-bad) no-underline hover:underline"
+        >
+          {r.error}
+        </a>
+      ) : null}
+      {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
+      <span className="mt-auto flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-1 text-[12.5px] text-(--ui-ink-2)">
+        {r.runs !== null ? (
+          <span>
+            <Count
+              n={r.runs}
+              to={to.runs}
+              label={
+                r.kind === "loop"
+                  ? "Keys running: open them"
+                  : r.kind === "keyword"
+                    ? "Comments caught: open the DMs"
+                    : `Runs in the last ${DAYS} days: open them`
+              }
+            />{" "}
+            {r.kind === "loop" ? "running" : r.kind === "keyword" ? "caught" : `runs, ${DAYS}d`}
+          </span>
         ) : null}
-        {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
+        {r.failed ? (
+          <span>
+            <Count n={r.failed} to={to.failed} bad label="Open what failed" /> failed
+          </span>
+        ) : null}
+        {r.waiting ? (
+          <span>
+            <Count n={r.waiting} to={to.waiting} label="Open what waits" /> waiting
+          </span>
+        ) : null}
+        <span>
+          Last <When at={r.lastAt} empty={r.runs === null ? "–" : "never"} />
+        </span>
+        {r.nextAt ? (
+          <span>
+            Next <When at={r.nextAt} empty="" />
+          </span>
+        ) : null}
         {to.test ? (
           <a
             href={to.test}
-            className="w-fit text-[12.5px] text-(--ui-link) no-underline hover:underline"
+            className="ml-auto text-(--ui-link) no-underline hover:underline"
             {...tipProps("Walk it dry with a made-up event: nothing sends")}
           >
             Test run
           </a>
         ) : null}
-        {/* A phone has no columns: the numbers ride under the name. */}
-        <span className={cx("hidden flex-wrap gap-x-3 text-[12.5px] max-[900px]:flex", QUIET)}>
-          {r.runs !== null ? (
-            <span>
-              <Count n={r.runs} to={to.runs} label="Open the runs" />{" "}
-              {r.kind === "loop" ? "running" : r.kind === "keyword" ? "caught" : "runs"}
-            </span>
-          ) : null}
-          {r.failed ? (
-            <span>
-              <Count n={r.failed} to={to.failed} bad label="Open what failed" /> failed
-            </span>
-          ) : null}
-          {r.waiting ? (
-            <span>
-              <Count n={r.waiting} to={to.waiting} label="Open what waits" /> waiting
-            </span>
-          ) : null}
-          {r.lastAt ? (
-            <span>
-              Last <When at={r.lastAt} empty="" />
-            </span>
-          ) : null}
-        </span>
-      </div>
-      <StateCell r={r} busy={busy} onFlip={onFlip} />
-      <span className="text-right max-[900px]:hidden">
-        <Count
-          n={r.runs}
-          to={to.runs}
-          label={
-            r.kind === "loop"
-              ? "Keys running: open them"
-              : r.kind === "keyword"
-                ? "Comments caught: open the DMs"
-                : `Runs in the last ${DAYS} days: open them`
-          }
-        />
-      </span>
-      <span className="text-right max-[900px]:hidden">
-        <Count n={r.failed} to={to.failed} bad label="Open what failed" />
-      </span>
-      <span className="text-right max-[900px]:hidden">
-        <Count n={r.waiting} to={to.waiting} label="Open what waits" />
-      </span>
-      <span className="text-right text-[13px] max-[900px]:hidden">
-        <When at={r.lastAt} empty={r.runs === null ? "–" : "Never"} />
-      </span>
-      <span className="text-right text-[13px] max-[900px]:hidden">
-        <When at={r.nextAt} empty="–" />
       </span>
     </li>
-  );
-}
-
-function Head() {
-  return (
-    <div className={cx(COLS, "border-b border-(--ui-hair) px-3 pb-2 max-[900px]:hidden")}>
-      <span className={HEAD}>Automation · starts when</span>
-      <span className={HEAD}>State</span>
-      <span className={cx(HEAD, "text-right")}>Runs, {DAYS}d</span>
-      <span className={cx(HEAD, "text-right")}>Failed</span>
-      <span className={cx(HEAD, "text-right")}>Waiting</span>
-      <span className={cx(HEAD, "text-right")}>Last run</span>
-      <span className={cx(HEAD, "text-right")}>Next</span>
-    </div>
   );
 }
 
@@ -491,10 +472,9 @@ export function Automations({ params }: PageProps) {
                 <span className={cx("font-normal tabular-nums", QUIET)}>{these.length}</span>
               </h2>
               <p className={cx("mb-3 text-[13px]", QUIET)}>{g.about}</p>
-              <Head />
-              <ul className="m-0 list-none p-0">
+              <ul className={GRID}>
                 {these.map((r) => (
-                  <Row
+                  <Card
                     key={r.id}
                     r={r}
                     busy={busy.has(r.id)}
