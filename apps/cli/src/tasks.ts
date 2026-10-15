@@ -26,6 +26,7 @@ import {
   moveTask,
   moveWords,
   noteById,
+  ownerName,
   readyTasks,
   reopenTask,
   setDue,
@@ -108,7 +109,7 @@ export function registerTasks(
     const col = board?.columns.find((c) => c.id === t.columnId)?.name ?? t.columnId;
     const bits = [
       col,
-      t.assignee ?? "no owner",
+      ownerName(t.assignee) || "no owner",
       t.due ? `due ${t.due}` : "",
       t.blocked ? `blocked by ${t.blocked}` : "",
     ].filter(Boolean);
@@ -248,7 +249,7 @@ export function registerTasks(
       console.log("\nTimeline");
       for (const m of [...out.moves].reverse())
         console.log(
-          `${dayOf(m.at)}  ${m.by} ${moveWords({ ...m, to: col(m.to) }, (w) => w)}${m.why ? `  "${m.why}"` : ""}`,
+          `${dayOf(m.at)}  ${ownerName(m.by)} ${moveWords({ ...m, to: col(m.to) }, ownerName)}${m.why ? `  "${m.why}"` : ""}`,
         );
     });
 
@@ -356,7 +357,7 @@ export function registerTasks(
         return assignTask(db, id, whoOf(who), { by });
       });
       if (o.json) return console.log(JSON.stringify(t, null, 2));
-      console.log(`${id}  ${t.assignee ?? "no owner"}`);
+      console.log(`${id}  ${ownerName(t.assignee) || "no owner"}`);
     });
 
   cmd

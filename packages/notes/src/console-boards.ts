@@ -48,7 +48,7 @@ import {
   taskById,
   unblockTask,
 } from "./tasks.js";
-import { isAgent, moveWords, type NoteJson, type Role } from "./types.js";
+import { isAgent, moveWords, type NoteJson, ownerName, type Role } from "./types.js";
 
 type Req<T = object> = PortalRequest & T;
 
@@ -90,11 +90,8 @@ async function refuse<T>(run: () => Promise<T>): Promise<T> {
 
 const idOrNull = (v: unknown): string | null => (isNoteId(v) ? v : null);
 
-const person = (who: string): string => {
-  if (isAgent(who)) return who.slice("agent:".length);
-  const first = (who.split("@")[0] ?? who).split(/[._-]/)[0] ?? who;
-  return first.charAt(0).toUpperCase() + first.slice(1);
-};
+/** A Timeline name: the first name, "Claude" for an agent. */
+const person = (who: string): string => ownerName(who, true);
 
 /** A card as the board and the list draw it. */
 export const faceOut = (t: TaskRow, home: string) => ({

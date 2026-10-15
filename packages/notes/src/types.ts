@@ -32,6 +32,21 @@ export interface NoteJson {
 export const AGENT = "agent:";
 export const isAgent = (who: string | null | undefined): boolean => !!who?.startsWith(AGENT);
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * An owner as people say it, the one place that decides: `agent:claude` is "Claude"; a person is
+ * their address, or with `first` just their first name ("will@firm.com" is "Will"). Faces,
+ * filters, the List, the Timeline and the CLI all read it, and the wren mark marks an agent.
+ */
+export function ownerName(who: string | null | undefined, first = false): string {
+  if (!who) return "";
+  if (isAgent(who)) return cap(who.slice(AGENT.length));
+  if (!first) return who;
+  const local = who.split("@")[0] ?? who;
+  return cap(local.split(/[._-]/)[0] ?? local);
+}
+
 /** Body JSON for a note with nothing in it. */
 export const EMPTY: NoteJson = { type: "doc", content: [{ type: "paragraph" }] };
 

@@ -3,6 +3,7 @@
  * task strip above the title (column, owner, due, board, what it waits on and holds up) and the
  * Timeline beside Comments and History. Also the owner's mark, shared with the Board.
  */
+import { isAgent, ownerName } from "@wren/notes/types";
 import { Icon, relative, say } from "@wren/ui";
 import { useCallback, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
@@ -19,13 +20,6 @@ import {
 export const SELECT =
   "min-h-[32px] max-w-full border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none disabled:bg-(--ui-wash) disabled:text-(--ui-ink-2)";
 
-/** An owner's name as people say it: "Claude" for an agent, the first name from an email. */
-export function ownerName(who: string): string {
-  if (who.startsWith("agent:")) return who.slice(6).replace(/^./, (c) => c.toUpperCase());
-  const first = (who.split("@")[0] ?? who).split(/[._-]/)[0] ?? who;
-  return first.replace(/^./, (c) => c.toUpperCase());
-}
-
 /** Who owns a card: their initial in their hue, the wren mark for an agent, an empty ring for nobody. */
 export function Avatar({ who, size = 22 }: { who: string | null; size?: number }) {
   if (!who)
@@ -37,7 +31,7 @@ export function Avatar({ who, size = 22 }: { who: string | null; size?: number }
         style={{ width: size, height: size }}
       />
     );
-  if (who.startsWith("agent:"))
+  if (isAgent(who))
     return (
       <img
         src="/wren-icon.png"
@@ -117,7 +111,7 @@ export function CardStrip({
     done(() => notes(client, "taskBlock", { id: whose, blockedBy, on }));
 
   const w = t.canEdit;
-  const owners = [...new Set([t.assignee, ...team.map((p) => p.email)])].filter(
+  const owners = [...new Set([t.assignee, ...team.map((p) => p.email), "agent:claude"])].filter(
     (x): x is string => !!x,
   );
   const column = t.board.columns.find((c) => c.id === t.columnId);
@@ -157,10 +151,9 @@ export function CardStrip({
           <option value="">No owner</option>
           {owners.map((o) => (
             <option key={o} value={o}>
-              {o === me ? `${o} (you)` : o}
+              {o === me ? `${o} (you)` : ownerName(o)}
             </option>
           ))}
-          <option value="agent:claude">Claude</option>
         </select>
       </label>
       <label className="flex items-center gap-1.5">

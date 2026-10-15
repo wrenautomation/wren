@@ -3,6 +3,7 @@
  * search over every note the viewer can open (Postgres full text). New note, Quick note, and
  * imports: a Word or Markdown file, or a Google Doc by its link.
  */
+import { ownerName } from "@wren/notes/types";
 import {
   Alert,
   Button,
@@ -67,7 +68,7 @@ function Excerpt({ text }: { text: string }) {
 }
 
 function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) | null }) {
-  const owner = n.mine ? "You" : n.owner.startsWith("agent:") ? "Claude" : n.owner;
+  const owner = n.mine ? "You" : ownerName(n.owner);
   return (
     <li className="flex items-start gap-3 border-b border-(--ui-hair) px-3 py-3 hover:bg-(--ui-wash)">
       <Icon name="note" className="mt-0.5 flex-none text-(--ui-ink-2)" />

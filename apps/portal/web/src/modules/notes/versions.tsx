@@ -3,6 +3,7 @@
  * who and how much. Open one to read it, name it, restore it (a new version; nothing is lost), or
  * compare any two with each change colored by its author.
  */
+import { ownerName } from "@wren/notes/types";
 import { Button, Icon, Input, LoadFailed, Loading, say, Tag, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
@@ -36,7 +37,7 @@ export function Authors({ list }: { list: readonly string[] }) {
       {list.map((a) => (
         <span key={a} className="flex min-w-0 items-center gap-1">
           <Dot email={a} />
-          <span className="truncate">{a.startsWith("agent:") ? "Claude" : a}</span>
+          <span className="truncate">{ownerName(a)}</span>
         </span>
       ))}
     </span>

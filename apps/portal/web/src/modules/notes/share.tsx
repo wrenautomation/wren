@@ -3,6 +3,7 @@
  * or only those added, a new owner. At Wren a note can go to a client's people too. Only the
  * owner changes it; everyone else sees who owns it.
  */
+import { ownerName } from "@wren/notes/types";
 import { Button, Input, say } from "@wren/ui";
 import {
   Dialog,
@@ -174,9 +175,7 @@ export function ShareDialog({
           <ul className="m-0 flex list-none flex-col p-0">
             <li className="flex items-center gap-2 py-1.5 text-[13.5px]">
               <Dot email={note.owner} />
-              <span className="min-w-0 flex-1 truncate">
-                {note.owner.startsWith("agent:") ? "Claude" : note.owner}
-              </span>
+              <span className="min-w-0 flex-1 truncate">{ownerName(note.owner)}</span>
               <span className="text-[13px] text-(--ui-ink-2)">Owner</span>
             </li>
             {shares.map((s) => (

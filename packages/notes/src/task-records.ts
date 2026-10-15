@@ -4,7 +4,6 @@
  * open; with nobody signed in there are none.
  */
 import {
-  actor,
   date,
   defineRecord,
   type Me,
@@ -19,6 +18,7 @@ import type { Reader } from "./access.js";
 import { nameOf } from "./doc.js";
 import { boards } from "./schema.js";
 import { listTasks } from "./tasks.js";
+import { ownerName } from "./types.js";
 
 export const TASK = "notes.task";
 
@@ -43,7 +43,8 @@ export async function taskRows(db: Queryable, reader: Omit<Reader, "cap">) {
       board: board?.name ?? "",
       column: board?.columns.find((x) => x.id === c.columnId)?.name ?? c.columnId,
       state: open ? "open" : "closed",
-      owner: c.assignee,
+      owner: ownerName(c.assignee) || null,
+      assignee: c.assignee,
       due: day(c.due),
       blocked: c.blocked > 0 ? "blocked" : "clear",
       ready: open && c.blocked === 0 ? "ready" : "no",
@@ -82,7 +83,9 @@ export function taskRecordFor(client: string | null): RecordType {
         { open: { label: "Open", tone: "neutral" }, closed: { label: "Closed", tone: "good" } },
         "State",
       ),
-      owner: actor("Owner"),
+      // As people say it ("Claude"); `assignee` is the address `Mine` reads.
+      owner: text("Owner"),
+      assignee: text("Owner address", { listed: false }),
       due: date("Due"),
       blocked: status(
         { blocked: { label: "Blocked", tone: "warn" }, clear: { label: "Clear", tone: "neutral" } },
@@ -99,7 +102,7 @@ export function taskRecordFor(client: string | null): RecordType {
     },
     views: [
       { id: "open", label: "Open", where: { state: "open" }, sort: "-updated", at: "updated" },
-      { id: "mine", label: "Mine", where: { state: "open" }, sort: "due", mine: "owner" },
+      { id: "mine", label: "Mine", where: { state: "open" }, sort: "due", mine: "assignee" },
       { id: "ready", label: "Ready", where: { ready: "ready" }, sort: "-updated" },
       { id: "blocked", label: "Blocked", where: { blocked: "blocked", state: "open" } },
       { id: "closed", label: "Closed", where: { state: "closed" }, sort: "-updated" },

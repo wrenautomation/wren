@@ -4,6 +4,7 @@
  * phone; each move is kept in the card's Timeline by the server. The List toggle shows the same
  * cards as a record list, with saved views and CSV export.
  */
+import { ownerName } from "@wren/notes/types";
 import {
   Button,
   clipProps,
@@ -286,7 +287,7 @@ function BoardView({
                 .filter((p) => p !== data.me)
                 .map((p) => (
                   <option key={p} value={p}>
-                    {p.startsWith("agent:") ? "Claude" : p}
+                    {ownerName(p)}
                   </option>
                 ))}
             </select>
