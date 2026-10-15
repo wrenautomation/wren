@@ -48,6 +48,8 @@ const refuse = new Set<Platform>();
 const views = new Map<string, number>();
 const notes: string[] = [];
 let calls = 0;
+let reportPlatforms: Platform[] = [];
+let reportReads = 0;
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
@@ -86,9 +88,13 @@ const fakeContent = restate.service({
       gaps: [{ metric: "retention", state: "needs_scope", why: "a synthetic refusal" }],
       asOf: new Date().toISOString(),
     }),
-    platforms: async () => [] as Platform[],
+    platforms: async () => reportPlatforms,
     accountInsights: async () => null,
-    reportDays: async () => null,
+    // A platform with a report that has nothing new.
+    reportDays: async () => {
+      reportReads += 1;
+      return { rows: [], gaps: [], cursor: null, asOf: new Date().toISOString() };
+    },
   },
 });
 
@@ -299,6 +305,18 @@ describe("content loop", () => {
     expect(notes).toHaveLength(monday ? 1 : 0);
     expect(first.stats?.reported).toBe(monday);
     expect(second.stats?.reported).toBe(false);
+  });
+
+  it("reads a report that has nothing new once, not every pass", async () => {
+    reportPlatforms = ["youtube"];
+    try {
+      await look();
+      await look();
+      await look();
+      expect(reportReads).toBe(1);
+    } finally {
+      reportPlatforms = [];
+    }
   });
 
   it("holds a scheduled draft until its time and sleeps toward it", async () => {

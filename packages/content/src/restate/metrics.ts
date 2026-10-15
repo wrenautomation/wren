@@ -1,8 +1,8 @@
 /**
- * `ContentMetrics/default`: looks at each young published post once a day
- * through the `Content` service and writes a snapshot row. On the first pass
- * of a Monday it sends "what worked" for the week. Cheap and read-only on
- * the platforms, so a miss just waits for the next pass.
+ * `ContentMetrics/default`: looks at each young published post on its tier (`LOOK_TIERS`:
+ * every 6 hours at first, then daily, then weekly) through the `Content` service and writes a
+ * snapshot row. On the first pass of a Monday it sends "what worked" for the week. Cheap and
+ * read-only on the platforms, so a miss just waits for the next pass.
  *
  * `ContentMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
  * own database. No Monday report: that goes to Wren's lane.
@@ -10,7 +10,8 @@
  * Each look also reads the post's insights (designs/2026-10-07-content-analytics.md) into
  * `post_metric_days`, and once a day each account's into `account_metric_days`. A refused
  * insight is a gap row, never a failed look. Each pass also reads the platforms' new report days
- * (YouTube's reach report: impressions and CTR per video per day) from where the last left off.
+ * (YouTube's reach report: impressions and CTR per video per day) from where the last left off,
+ * unless the last read found nothing new less than 6 hours ago.
  * Monday's pass keeps the week's digest.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -43,9 +44,12 @@ const REPORTED = "reported";
 const ACCOUNTS = "accounts";
 /** Per platform, the create time of the newest report read: `reports.<platform>`. */
 const REPORTS = "reports.";
+/** Per platform, when a report read last found nothing new: `reports-quiet.<platform>`. */
+const REPORTS_QUIET = "reports-quiet.";
+const REPORTS_EVERY_MS = 6 * 60 * 60 * 1000;
 /** The week whose digest was last kept. */
 const DIGESTED = "digested";
-/** Hourly: a post in its first two days is due every hour (`LOOK_TIERS`); the rest skip. */
+/** Hourly: a pass finds the posts whose tier is due (`LOOK_TIERS`, every 6 hours at the soonest). */
 const DEFAULT_EVERY_MS = 60 * 60 * 1000;
 const REPORT_DAYS = 7;
 const MONDAY = 1;
@@ -97,7 +101,7 @@ export function withCounts(m: Metrics, i: Insights | null): Insights {
 
 export interface ContentMetricsDeps {
   db: Db;
-  /** Sleep between passes (default 6 h; each post is still looked at once a day). */
+  /** Sleep between passes (default 1 h; a post's tier decides which are looked at). */
   everyMs?: number;
   notifier?: Notifier;
   /** A client's database; absent, a client's key stops. */
@@ -183,8 +187,12 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const platforms = client ? [] : await content.platforms();
     for (const platform of platforms) {
       try {
+        // A read that found nothing new waits REPORTS_EVERY_MS: reports land once a day.
+        const quiet = await ctx.get<string>(`${REPORTS_QUIET}${platform}`);
+        if (quiet && now.getTime() - new Date(quiet).getTime() < REPORTS_EVERY_MS) continue;
         const after = await ctx.get<string>(`${REPORTS}${platform}`);
         const r = await content.reportDays({ platform, after: after ?? null });
+        if (!r?.rows.length) ctx.set(`${REPORTS_QUIET}${platform}`, now.toISOString());
         if (!r) continue;
         stats.reports ??= {};
         stats.reports[platform] = await ctx.run(`reports ${platform}`, () =>
