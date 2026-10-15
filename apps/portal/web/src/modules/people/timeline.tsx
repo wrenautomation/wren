@@ -1,10 +1,42 @@
 /**
- * A profile's warmth (where they stand, what they did toward us, who they are), its timeline
- * counted by kind, each count a link to its lines on the Timeline page, and its site visits,
- * read live from the site's log and never stored (Wren's own profiles).
+ * A profile's warmth (where they stand, what they did toward us, who they are), its newest lines
+ * on a short rail with its timeline counted by kind, each count a link to its lines on the
+ * Timeline page, and its site visits, read live from the site's log and never stored (Wren's own
+ * profiles).
  */
-import { Facts, type RecordExtras } from "@wren/ui";
+import type { State } from "@wren/core/records";
+import { Facts, type IconName, type RecordExtras, TimelineMini } from "@wren/ui";
 import { createElement, type ReactNode } from "react";
+
+/** Each timeline kind's icon on its node, here and on the Timeline page. */
+export const KIND_ICONS: Readonly<Record<string, IconName>> = {
+  email_sent: "mail",
+  email_received: "inbox",
+  text_sent: "chat",
+  text_received: "reply",
+  call_in: "phone",
+  voice_call: "mic",
+  call: "phone",
+  touch: "sparkle",
+  consent: "shield",
+  form: "doc",
+  chat: "chat",
+  booking: "calendar",
+  payment: "card",
+  workflow: "bolt",
+  trait: "edit",
+  merge: "merge",
+};
+
+interface Line {
+  id: string;
+  at: string;
+  kind: string;
+  summary: string | null;
+  link: string | null;
+  kindState: State | null;
+  channelState: State | null;
+}
 
 interface Visit {
   at: string;
@@ -37,6 +69,7 @@ interface Warmth {
 interface Detail {
   timeline: { kind: string; label: string; count: number; last: string | null; href: string }[];
   total: number;
+  lines?: Line[];
   href: string;
   visits?: Visit[] | null;
   warmth?: Warmth | null;
@@ -48,9 +81,39 @@ const isDetail = (d: unknown): d is Detail =>
 const day = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" }) : null;
 
+/** Their newest lines on a short rail, then every kind counted, each a link to its lines. */
 function Counts({ detail }: { detail: Detail }) {
   if (!detail.total)
     return <p className="text-(--ui-ink-2)">Nothing has happened with them yet.</p>;
+  const lines = detail.lines ?? [];
+  return (
+    <div className="grid gap-4">
+      {lines.length ? (
+        <TimelineMini
+          lines={lines.map((l) => ({
+            id: l.id,
+            at: l.at,
+            summary: l.summary ?? "",
+            href: `/people/timeline/${encodeURIComponent(l.id)}`,
+            source: l.link,
+            kind: l.kindState,
+            kindKey: l.kind,
+            channel: l.channelState,
+          }))}
+          icons={KIND_ICONS}
+          all={
+            detail.total > lines.length
+              ? { href: detail.href, label: `See all ${detail.total} lines` }
+              : { href: detail.href, label: "See them on the timeline" }
+          }
+        />
+      ) : null}
+      <KindCounts detail={detail} />
+    </div>
+  );
+}
+
+function KindCounts({ detail }: { detail: Detail }) {
   return (
     <Facts
       items={[

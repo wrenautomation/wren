@@ -152,6 +152,35 @@ describe("recordsStats", () => {
     expect(chi.series).toEqual([{ at: "2026-03-10T05:00:00.000Z", value: 2 }]);
   });
 
+  it("counts each day by a status field's states, the day's value their sum", async () => {
+    const s = await api.stats({ ...ask, where: usd, by: "kind" }, NOW);
+    expect(s.value).toBe(4);
+    expect(s.series[0]).toEqual({ at: "2026-03-04T00:00:00.000Z", value: 1, by: { b: 1 } });
+    expect(s.series[6]).toEqual({ at: "2026-03-10T00:00:00.000Z", value: 3, by: { a: 2, b: 1 } });
+    expect(s.series[1]).toEqual({ at: "2026-03-05T00:00:00.000Z", value: 0, by: {} });
+  });
+
+  it("until ends the period with a past day, the whole of it", async () => {
+    const s = await api.stats({ ...ask, where: usd, until: "2026-03-03", by: "kind" }, NOW);
+    expect(s.series.map((d) => d.at.slice(0, 10))).toEqual([
+      "2026-02-25",
+      "2026-02-26",
+      "2026-02-27",
+      "2026-02-28",
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+    ]);
+    // 03-03 16:00 counts: the day is over, not cut at now's hour.
+    expect([s.value, s.series[0]?.value, s.series[6]?.by]).toEqual([3, 1, { a: 2 }]);
+  });
+
+  it("refuses a by that isn't a status, a by with a sum, and an until that isn't a day", async () => {
+    await refused(api.stats({ ...ask, by: "amt" }, NOW));
+    await refused(api.stats({ ...ask, by: "kind", sum: "n" }, NOW));
+    await refused(api.stats({ ...ask, until: "march" }, NOW));
+  });
+
   it("a month so far against last month's first nine days and fifteen hours", async () => {
     const s = await api.stats({ ...ask, where: usd, period: "month" }, NOW);
     expect([s.value, s.prior, s.series.length]).toEqual([6, 0, 10]);

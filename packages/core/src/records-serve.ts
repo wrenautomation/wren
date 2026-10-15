@@ -143,6 +143,13 @@ export interface StatsAsk extends ExportAsk {
   pick?: string;
   /** The IANA zone days start in; UTC when absent. */
   zone?: string;
+  /**
+   * A bare day ("2026-03-10"): the period ends with it, in `zone`, not now. A timeline reads a
+   * stretch in the past by it.
+   */
+  until?: string;
+  /** A status field: each day's count per state (`series[].by`). Counts only. */
+  by?: string;
 }
 export interface RecordsStat {
   record: string;
@@ -151,8 +158,11 @@ export interface RecordsStat {
   value: number | null;
   /** The same stretch of the period before: last week to this hour, not all of last week. */
   prior: number | null;
-  /** Each day of this period so far, oldest first: the day's start and its value. A pick's rows. */
-  series: { at: string; value: number | null }[];
+  /**
+   * Each day of this period so far, oldest first: the day's start and its value. A pick's rows.
+   * With `by`, each day's count per state, the states with none left out.
+   */
+  series: { at: string; value: number | null; by?: Record<string, number> }[];
   /** A money sum's currency; null otherwise or with no rows. */
   currency: string | null;
   /** A median's newest row's value, by `at`; absent for counts, sums and picks. */
@@ -901,6 +911,19 @@ export function serveRecords(
         const zone =
           typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
         if (!zone) throw new BadAsk("no such time zone");
+        // The stretch ends now, or with the day `until` names (its next midnight in `zone`).
+        let end = now;
+        if (ask.until !== undefined) {
+          const m =
+            typeof ask.until === "string" ? /^(\d{4})-(\d\d)-(\d\d)$/.exec(ask.until) : null;
+          if (!m) throw new BadAsk("until takes a day: 2026-03-10");
+          end = midnight(zone, Number(m[1]), Number(m[2]), Number(m[3]) + 1);
+        }
+        const byField = ask.by === undefined ? null : fieldOf(ask.by);
+        if (byField !== null && byField?.kind !== "status")
+          throw new BadAsk(`${p.t.name.many} can't be counted by that`);
+        if (byField && (sumField || medianField || ask.pick !== undefined))
+          throw new BadAsk("by counts rows only");
         // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's. Branch on the
         // column's type: the text round trip on every row cost ~4x on timestamp columns.
         const col = ref(atField.from ?? "");
@@ -933,7 +956,7 @@ export function serveRecords(
           const currency = f.kind === "money" ? ref(f.currency ?? "") : sql`null::text`;
           const rows = await db.execute<Raw>(sql`
             select ${at} "at", ${valueSql(f)}::numeric "value", ${currency} "currency"
-            from ${from} where ${p.base} and ${p.inView} and ${at} <= ${ts(now)}
+            from ${from} where ${p.base} and ${p.inView} and ${at} < ${ts(end)}
             order by 1 desc limit ${PICKS}`);
           const series = rows
             .map((r) => ({
@@ -954,7 +977,12 @@ export function serveRecords(
           )
         )
           throw new BadAsk(`period takes 1 to ${MAX_DAYS} days or "month"`);
-        const w = statWindows(period as Period, zone, now);
+        // The windows of the day before `end`: an `until` day's last instant reads as that day.
+        const w = statWindows(
+          period as Period,
+          zone,
+          end === now ? now : new Date(end.getTime() - 1),
+        );
         const within = (a: Date, b: Date) => sql`(${at} >= ${ts(a)} and ${at} < ${ts(b)})`;
         const agg = (when: SQL) =>
           medianField
@@ -962,35 +990,48 @@ export function serveRecords(
             : sumField
               ? sql`coalesce(sum(${valueSql(sumField)}) filter (where ${when}), 0)`
               : sql`count(*) filter (where ${when})`;
-        const both = sql`(${within(w.from, now)} or ${within(w.priorFrom, w.priorTo)})`;
+        const both = sql`(${within(w.from, end)} or ${within(w.priorFrom, w.priorTo)})`;
         const currency =
           sumField?.kind === "money" ? ref(sumField.currency ?? "") : sql`null::text`;
         const [n] = await db.execute<Raw>(sql`
-          select ${agg(within(w.from, now))}::numeric "value",
+          select ${agg(within(w.from, end))}::numeric "value",
             ${agg(within(w.priorFrom, w.priorTo))}::numeric "prior",
             count(distinct ${currency}) filter (where ${both})::int "currencies",
             min(${currency}) filter (where ${both}) "currency"
           from ${from} where ${p.base} and ${p.inView}`);
         if (Number(n?.currencies ?? 0) > 1) throw new BadAsk(`${sumField?.label} mixes currencies`);
-        const days = await db.execute<Raw>(sql`
-          select width_bucket(${at}, array[${sql.join(w.days.map(ts), sql`, `)}]) "day",
-            ${agg(sql`true`)}::numeric "value"
-          from ${from} where ${p.base} and ${p.inView} and ${within(w.from, now)}
-          group by 1`);
+        const bucket = sql`width_bucket(${at}, array[${sql.join(w.days.map(ts), sql`, `)}])`;
+        const days = await db.execute<Raw>(
+          byField
+            ? sql`
+          select ${bucket} "day", ${valueSql(byField)} "state", count(*)::numeric "value"
+          from ${from} where ${p.base} and ${p.inView} and ${within(w.from, end)}
+          group by 1, 2`
+            : sql`
+          select ${bucket} "day", ${agg(sql`true`)}::numeric "value"
+          from ${from} where ${p.base} and ${p.inView} and ${within(w.from, end)}
+          group by 1`,
+        );
         // A median's day without rows has none; a count's or a sum's is 0.
         const series: RecordsStat["series"] = w.days.map((d) => ({
           at: d.toISOString(),
           value: medianField ? null : 0,
+          ...(byField ? { by: {} } : {}),
         }));
         for (const d of days) {
           const point = series[Number(d.day) - 1];
-          if (point) point.value = d.value === null ? null : Number(d.value);
+          if (!point) continue;
+          if (byField && point.by) {
+            const n = Number(d.value);
+            point.by[d.state === null ? "" : String(d.state)] = n;
+            point.value = (point.value ?? 0) + n;
+          } else point.value = d.value === null ? null : Number(d.value);
         }
         if (!medianField) return stat(n?.value ?? 0, n?.prior ?? 0, series, n?.currency);
         const v = valueSql(medianField);
         const [last] = await db.execute<Raw>(sql`
           select ${v}::numeric "value" from ${from}
-          where ${p.base} and ${p.inView} and ${within(w.from, now)} and ${v} is not null
+          where ${p.base} and ${p.inView} and ${within(w.from, end)} and ${v} is not null
           order by ${at} desc limit 1`);
         return {
           ...stat(n?.value ?? null, n?.prior ?? null, series, null),

@@ -22,7 +22,9 @@ import {
   RecordShop,
   RecordSwitch,
   type RecordsApi,
+  RecordTimeline,
   type SavedViewLine,
+  TimelineSwitch,
 } from "@wren/ui";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -876,8 +878,27 @@ export function TemplatePage({
   if (id) return <RecordPage {...shared} id={id} />;
   if (page.template === "form") return <RecordForm {...shared} />;
   if (page.template === "shop") return <RecordShop {...shared} />;
+  // A timeline page opens as its axis; `as=rows` (or cards) is the List, one switch away.
+  const listed = params.get("as") === "rows" || params.get("as") === "cards";
+  if (page.timeline && page.template === "list" && !listed)
+    return switched(
+      <RecordTimeline
+        record={page.record}
+        title={page.label}
+        api={api}
+        place={place}
+        spec={page.timeline}
+        empty={typeof page.empty === "string" ? page.empty : undefined}
+      />,
+      page.record,
+    );
+  const display = page.timeline ? <TimelineSwitch on="list" place={place} /> : undefined;
   return switched(
-    page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />,
+    page.template === "queue" ? (
+      <RecordQueue {...shared} />
+    ) : (
+      <RecordList {...shared} display={display} />
+    ),
     page.record,
   );
 }

@@ -272,6 +272,8 @@ export interface RecordTemplateProps {
    * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
    */
   card?: CardOption | undefined;
+  /** More of how the list shows, first in its bar's display: a page's Timeline or List. */
+  display?: ReactNode;
 }
 
 /** A page's reply box under a list row, and the rows it answers. */
@@ -870,8 +872,21 @@ export function NotHere() {
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts, head, title, needs, reply, card } =
-    props;
+  const {
+    record,
+    api,
+    place,
+    empty,
+    columns,
+    extras,
+    acts,
+    head,
+    title,
+    needs,
+    reply,
+    card,
+    display,
+  } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
@@ -892,6 +907,7 @@ export function RecordList(props: RecordTemplateProps) {
       needs={needs}
       reply={reply}
       card={card}
+      display={display}
     />
   );
 }
@@ -1175,6 +1191,7 @@ function List({
   needs,
   reply,
   card,
+  display,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1189,6 +1206,7 @@ function List({
   needs: Needs | undefined;
   reply: RecordTemplateProps["reply"];
   card: CardOption | undefined;
+  display: ReactNode;
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -1578,6 +1596,7 @@ function List({
           facets={facetsOf(api, ask)}
           display={
             <>
+              {display}
               {card === false ? null : <FormSwitch form={form} onChange={switchForm} />}
               <ListDisplay
                 meta={meta}

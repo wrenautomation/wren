@@ -11,7 +11,7 @@ import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
 import { addToSegment, membersPage, segmentsPage } from "./segments.js";
 import { sentPage } from "./sent.js";
-import { profileExtras } from "./timeline.js";
+import { KIND_ICONS, profileExtras } from "./timeline.js";
 
 /** The pages both apps share; each build adds its own here. */
 export const PEOPLE_PAGES: ModulePage[] = [
@@ -46,6 +46,15 @@ export const PEOPLE_PAGES: ModulePage[] = [
     record: "people.event",
     empty: "Lines show here once someone gets a message, writes back, books or fills a form.",
     columns: ["at", "who", "kind", "channel", "summary"],
+    timeline: {
+      at: "at",
+      kind: "kind",
+      channel: "channel",
+      who: "who",
+      whoLink: "profileLink",
+      link: "link",
+      icons: KIND_ICONS,
+    },
   },
   sentPage,
   segmentsPage,

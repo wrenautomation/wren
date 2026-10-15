@@ -19,6 +19,7 @@ import {
   number,
   prose,
   type RecordType,
+  type State,
   status,
   text,
 } from "./records.js";
@@ -114,10 +115,28 @@ export type VisitReader = (visitors: readonly string[]) => Promise<VisitLine[]>;
 /** The visitor keys a profile page reads, newest first. */
 export const VISITORS_MAX = 5;
 
+/** The newest lines a profile page draws on its short rail. */
+export const PROFILE_LINES = 8;
+
+/** One of a profile's newest lines, with its kind's and channel's states as the Timeline draws them. */
+export interface ProfileLine {
+  id: string;
+  /** ISO. */
+  at: string;
+  kind: string;
+  summary: string | null;
+  /** Its source's page, when it has one. */
+  link: string | null;
+  kindState: State | null;
+  channelState: State | null;
+}
+
 /** One row's lines counted by kind: the profile page's timeline, each count a link to its lines. */
 export interface ProfileDetail {
   timeline: { kind: string; label: string; count: number; last: string | null; href: string }[];
   total: number;
+  /** Its newest lines, `PROFILE_LINES` at most. */
+  lines: ProfileLine[];
   /** Every line, filtered to this profile. */
   href: string;
   /** Its site visits, read live; null where no reader is set or it has no visitor key. */
@@ -197,10 +216,33 @@ async function profileDetail(
   return {
     timeline,
     total: timeline.reduce((n, t) => n + t.count, 0),
+    lines: timeline.length ? await linesOf(db, Number(id)) : [],
     href: timelineHref(id),
     visits: visits ? await visitsOf(db, Number(id), visits) : null,
     warmth: await warmthDetail(db, Number(id)),
   };
+}
+
+async function linesOf(db: Queryable, id: number): Promise<ProfileLine[]> {
+  const rows = (await db.execute(sql`
+    select id, at, kind, channel, summary, link from profile_timeline
+    where profile_id = ${id} order by at desc, id desc limit ${PROFILE_LINES}`)) as unknown as {
+    id: string;
+    at: Date | string;
+    kind: string;
+    channel: string | null;
+    summary: string | null;
+    link: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    at: r.at instanceof Date ? r.at.toISOString() : String(r.at),
+    kind: r.kind,
+    summary: r.summary,
+    link: r.link,
+    kindState: (KINDS as Record<string, State>)[r.kind] ?? null,
+    channelState: r.channel ? ((CHANNELS as Record<string, State>)[r.channel] ?? null) : null,
+  }));
 }
 
 async function visitsOf(db: Queryable, id: number, read: VisitReader) {

@@ -2,7 +2,7 @@
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { profileRecords } from "../../src/profile-records.js";
+import { type ProfileDetail, profileRecords } from "../../src/profile-records.js";
 import { resolveProfile, setTraits } from "../../src/profiles.js";
 import { backfillProfiles, noteContacts } from "../../src/profiles-backfill.js";
 import { serveRecords } from "../../src/records-serve.js";
@@ -256,8 +256,16 @@ describe("backfill, timeline and records", () => {
         { record: "people.event", count: 4 },
       ]),
     );
-    const detail = got.detail as { total: number; timeline: { kind: string; href: string }[] };
+    const detail = got.detail as ProfileDetail;
     expect(detail.total).toBe(4);
+    // The newest lines for its short rail, newest first, each kind with its tint.
+    expect(detail.lines).toHaveLength(4);
+    const ats = detail.lines.map((l) => l.at);
+    expect([...ats].sort().reverse()).toEqual(ats);
+    const sent = detail.lines.find((l) => l.kind === "email_sent");
+    expect(sent?.summary).toBe("Quick question");
+    expect(sent?.kindState).toMatchObject({ label: "Email sent", tint: expect.any(Number) });
+    expect(sent?.channelState).toMatchObject({ label: "Email", mark: "email" });
     expect(detail.timeline.find((t) => t.kind === "email_received")?.href).toBe(
       `/people/timeline?profile=${id}..${id}&kind=email_received`,
     );

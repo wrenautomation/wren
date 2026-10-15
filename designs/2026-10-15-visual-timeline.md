@@ -39,4 +39,4 @@ Prod sizing: the busiest day had ~34k lines, most days under 100. A day can't be
 - **Filters.** Same `ViewTabs` and `ListBar` as the list: views, saved views, quick filters, search. The window's `at` overrides an `at` filter.
 - **Motion.** Only real events: a jump's landing wash, lines that arrive on Refresh wash once. No count or bar animates.
 - **Person page.** Its Timeline section shows the newest 8 lines on a short rail (`TimelineMini`), counts by kind kept as chips, and "See all" to the full page filtered to them. The lines come from the profile's own `load` (one more small query), not a second call.
-- **Phone.** One column, the time above the card, headers sticky under the phone bar, the strip scrolls sideways inside itself only.
+- **Phone.** One column, the time inside the card, headers sticky under the phone bar, the strip's bars narrow to fit the width (no sideways scroll).

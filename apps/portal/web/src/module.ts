@@ -16,6 +16,7 @@ import type {
   RecordExtras,
   ShopSections,
   SwitchWait,
+  TimelineSpec,
 } from "@wren/ui";
 import type { ComponentType, ReactNode } from "react";
 
@@ -129,6 +130,11 @@ export interface ListPage extends PageBase {
    * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.
    */
   card?: CardOption;
+  /**
+   * A list that opens as a timeline (`RecordTimeline`): its lines on an axis by day, the List one
+   * switch away (`as=rows`). Its date field and the fields each line shows.
+   */
+  timeline?: TimelineSpec;
 }
 
 /** An app's numbers first, each a link to its rows, then its top records. */
