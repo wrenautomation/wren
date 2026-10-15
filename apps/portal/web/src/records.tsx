@@ -28,6 +28,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
+import { cardFor } from "./cards.js";
 import { inLane } from "./lanes.js";
 import {
   type DayPage,
@@ -850,6 +851,7 @@ export function TemplatePage({
     sections: page.sections,
     art: page.art,
     needs: page.needs ?? page.count,
+    card: cardFor(page),
     // Every record lists the notes that @ it, after its own sections.
     extras: (detail: unknown, row: Row, act: RecordAct) => {
       const own = extras ? extras(detail, { ...props, row, act }) : {};

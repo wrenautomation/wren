@@ -6,6 +6,7 @@ import type { Row } from "@wren/core/records/serve";
 import type {
   Access,
   Action,
+  CardOption,
   DaySource,
   IconName,
   NavItem,
@@ -119,6 +120,11 @@ export interface ListPage extends PageBase {
    * under "For info": a `where` on the record. `count` when left out.
    */
   needs?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * A list's cards (Rows / Cards in its bar): what each card shows, read from `columns` when left
+   * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.
+   */
+  card?: CardOption;
 }
 
 /** An app's numbers first, each a link to its rows, then its top records. */

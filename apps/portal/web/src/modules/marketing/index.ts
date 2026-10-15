@@ -18,6 +18,7 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { AutoReplyPage } from "./auto-reply.js";
+import { APPROVAL_CARD, ASKED_REPLY_CARD, DRAFT_CARD, POST_CARD, VIDEO_CARD } from "./cards.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
@@ -1182,6 +1183,7 @@ export const APPROVAL_PAGE: ListPage = {
   about: "Drafts, replies and posts that wait on your yes before they go out.",
   template: "list",
   record: "marketing.approval",
+  card: APPROVAL_CARD,
   // New and waiting rows wait on a yes; queued ones are for info.
   needs: { state: ["new", "waiting"] },
   // Kind says what Type does, in more words.
@@ -1650,6 +1652,7 @@ export const marketing: Module = {
       about: "Every post draft: edit it, approve it, it goes out.",
       template: "list",
       record: "marketing.draft",
+      card: DRAFT_CARD,
       empty: {
         next: "Nothing waits on you or is scheduled. Make something in Studio.",
         waiting: "No draft waits on you.",
@@ -1668,6 +1671,7 @@ export const marketing: Module = {
       group: "Numbers",
       template: "list",
       record: "marketing.post",
+      card: POST_CARD,
       // The rest of its numbers sit on the post, under How it did.
       columns: [
         "title",
@@ -1714,6 +1718,7 @@ export const marketing: Module = {
       lights: "studio",
       template: "list",
       record: "marketing.video",
+      card: VIDEO_CARD,
       empty: {
         waiting: "No rendered video waits on you.",
         all: "Videos show here a minute after OBS or Cap stops recording on the Mac.",
@@ -2168,6 +2173,7 @@ const CLIENT_APPROVE: ListPage = {
   about: "Inbox replies and broadcasts that wait on a yes before they send.",
   template: "list",
   record: "marketing.asked_reply",
+  card: ASKED_REPLY_CARD,
   columns: ["who", "kind", "why", "sendAt", "held", "account", "at"],
   empty: {
     waiting: "No Inbox reply or broadcast waits on a yes.",
