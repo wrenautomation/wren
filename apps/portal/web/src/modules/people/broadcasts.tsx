@@ -663,6 +663,8 @@ export const BROADCAST_DECIDE_ACTIONS: Action[] = [
     key: "a",
     when: { state: ["waiting"] },
     sets: { state: "scheduled" },
+    // Over the words on screen: a save since refuses it.
+    expect: true,
     done: () => "Approved. It sends on its time.",
   },
   {

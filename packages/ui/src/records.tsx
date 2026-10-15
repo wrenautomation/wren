@@ -278,6 +278,22 @@ export type Load<T> = {
 };
 
 /**
+ * The version each open record draws, by type and id (`RecordBody` sets it). An action with
+ * `expect` pressed on a list or a queue sends it, so the server refuses a yes over words the
+ * person never saw.
+ */
+const SHOWN = new Map<string, string>();
+const shownKey = (record: string, id: string | number) => `${record}\u0000${id}`;
+export const shownVersion = (record: string, id: string | number): string | null =>
+  SHOWN.get(shownKey(record, id)) ?? null;
+/** The version a record's own read names: its detail's `version`, else its row's. */
+export function versionIn(detail: unknown, row?: Row | null): string | null {
+  const d = detail as { version?: unknown } | null;
+  if (d && typeof d.version === "string") return d.version;
+  return typeof row?.version === "string" ? row.version : null;
+}
+
+/**
  * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
  * `scope` (whatever `fn` asks: its api), an answer seen before shows at once while it refreshes,
  * and a save's write-through (`writeThrough(scope, patch)`) patches what's shown, what's kept and
@@ -1168,7 +1184,14 @@ function List({
     running,
     dialog,
     gone,
-  } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  } = useRun(acts?.call ?? NO_CALL, acted, meta.name, {
+    versionOf: (id) =>
+      shownVersion(meta.id, id) ??
+      versionIn(
+        null,
+        page.data?.rows.find((r) => String(r.id) === String(id)),
+      ),
+  });
   // What waits on the viewer comes first; `split` is where "For info" starts.
   const loaded = page.data?.rows;
   const { rows, split } = useMemo(
@@ -2338,7 +2361,13 @@ export function RecordBody({
     setChanged(ids.length > 0);
     onActed?.(ids);
   };
-  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name, {
+    // What this page draws: a yes names it, so one over newer words is refused.
+    versionOf: (rowId) =>
+      String(rowId) === id || String(rowId) === String(got.data?.row.id)
+        ? (versionIn(got.data?.detail, got.data?.row) ?? version.current.now)
+        : null,
+  });
   // Issues sit on every record a signed-in login reads, but not on access's own lists.
   const access =
     api.access && acts && !acts.viewer.demo && !meta.id.startsWith("access.") ? api.access : null;
@@ -2375,6 +2404,15 @@ export function RecordBody({
   const version = useRef<{ read: string | null; now: string | null }>({ read: null, now: null });
   if (state && state.version !== version.current.read)
     version.current = { read: state.version, now: state.version };
+  const drawn = got.data ? versionIn(got.data.detail, got.data.row) : null;
+  useEffect(() => {
+    if (!drawn) return;
+    const k = shownKey(meta.id, id);
+    SHOWN.set(k, drawn);
+    return () => {
+      if (SHOWN.get(k) === drawn) SHOWN.delete(k);
+    };
+  }, [meta.id, id, drawn]);
   // Changing it needs `run` here; the server checks it again.
   const mayEdit =
     !!state &&

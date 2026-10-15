@@ -102,10 +102,14 @@ export interface PeopleConsoleDeps {
 }
 
 export interface BroadcastSaveRequest extends PortalRequest, BroadcastInput {}
-/** Broadcasts picked, by id or To approve's `broadcast:<id>`; `note` is a decline's why. */
+/**
+ * Broadcasts picked, by id or To approve's `broadcast:<id>`; `note` is a decline's why. `expect`
+ * is the version the person saw, for one broadcast: a change since refuses the yes.
+ */
 export interface BroadcastIdsRequest extends PortalRequest {
   ids?: (string | number)[];
   note?: string;
+  expect?: string;
 }
 /** One copy to `to`: the broadcast by `id`, or the one picked (`ids`). */
 export interface BroadcastTestRequest extends PortalRequest {
@@ -336,8 +340,10 @@ export function peopleConsoleApi({
       if (!(await approves(req, w.client)))
         throw new PortalRefusal("your role can't approve here", 403);
       const runs: BroadcastRun[] = [];
-      for (const id of broadcastIds(req)) {
-        const got = await decideBroadcast(w.db, id, true, by(req), now());
+      const ids = broadcastIds(req);
+      const expect = ids.length === 1 ? (req.expect ?? null) : null;
+      for (const id of ids) {
+        const got = await decideBroadcast(w.db, id, true, by(req), now(), null, expect);
         if (got.startAt)
           runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
       }

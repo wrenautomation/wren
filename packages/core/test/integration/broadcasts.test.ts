@@ -219,7 +219,19 @@ describe("an email broadcast", () => {
     await expect(decideBroadcast(pg.db, b.id, true, BY, NOW)).rejects.toThrow(/isn't waiting/);
     await askBroadcast(pg.db, b.id, BY, T(11));
     expect((await waitingBroadcasts(pg.db)).map((w) => w.name)).toEqual(["October news"]);
-    const yes = await decideBroadcast(pg.db, b.id, true, "approver@wren.example", NOW);
+    // A yes over words the approver never saw is refused: he opened it, then it was saved.
+    const seen = (await broadcastById(pg.db, b.id))?.updatedAt.toISOString() ?? "";
+    await saveBroadcast(
+      pg.db,
+      { id: b.id, body: "Hi {first_name|there}, see https://example.test/news" },
+      BY,
+      T(11, 13),
+    );
+    await expect(
+      decideBroadcast(pg.db, b.id, true, "approver@wren.example", NOW, null, seen),
+    ).rejects.toMatchObject({ status: 409, code: "conflict" });
+    const now = (await broadcastById(pg.db, b.id))?.updatedAt.toISOString() ?? "";
+    const yes = await decideBroadcast(pg.db, b.id, true, "approver@wren.example", NOW, null, now);
     expect(yes.startAt).toEqual(NOW);
     expect(yes.broadcast.state).toBe("scheduled");
 

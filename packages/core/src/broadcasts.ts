@@ -346,8 +346,12 @@ export async function decideBroadcast(
   by: string,
   now: Date,
   note: string | null = null,
+  /** The version the person saw (its `updatedAt`): a change since refuses the yes. */
+  expect: string | null = null,
 ): Promise<{ broadcast: Broadcast; startAt: Date | null }> {
   const b = await mustHave(db, id);
+  const seen = expect ? versionOf(expect) : null;
+  if (seen && b.updatedAt.toISOString() !== seen) throw staleRefusal("broadcast");
   if (b.state !== "waiting")
     throw new PortalRefusal(
       b.state === "scheduled" ? "already approved" : "it isn't waiting on a yes",
@@ -366,9 +370,21 @@ export async function decideBroadcast(
       note: yes ? null : note?.trim() || null,
       updatedAt: now,
     })
-    .where(and(eq(broadcasts.id, id), eq(broadcasts.state, "waiting")))
+    .where(
+      and(
+        eq(broadcasts.id, id),
+        eq(broadcasts.state, "waiting"),
+        // Over the words he saw: a save in between refuses this yes.
+        seen
+          ? sql`date_trunc('milliseconds', ${broadcasts.updatedAt}) = ${seen}::timestamptz`
+          : undefined,
+      ),
+    )
     .returning();
-  if (!got) throw new PortalRefusal("it changed meanwhile: open it again", 409);
+  if (!got)
+    throw seen
+      ? staleRefusal("broadcast")
+      : new PortalRefusal("it changed meanwhile: open it again", 409);
   return { broadcast: got, startAt: yes ? startOf(got, now) : null };
 }
 

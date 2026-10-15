@@ -32,6 +32,7 @@ import {
   RecordBody,
   type RecordTemplateProps,
   ROOT,
+  shownVersion,
   startOf,
   subtitleCue,
   subtitleOf,
@@ -39,6 +40,7 @@ import {
   typing,
   useLoad,
   useTypes,
+  versionIn,
   walkKey,
 } from "./records.js";
 
@@ -94,6 +96,15 @@ function Queue({
     acts?.call ?? (() => Promise.reject()),
     acted,
     meta.name,
+    {
+      // The open item's version, as its body draws it: a yes over newer words is refused.
+      versionOf: (id) =>
+        shownVersion(meta.id, id) ??
+        versionIn(
+          null,
+          page.data?.rows.find((r) => String(r.id) === String(id)),
+        ),
+    },
   );
   // An optimistic action's items leave at once; a refusal brings them back.
   const rows = (page.data?.rows ?? []).filter((r) => !gone.has(String(r.id)));
