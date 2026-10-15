@@ -263,6 +263,18 @@ describe("who may write", () => {
       note: "Drop the 2019 contacts.",
     });
     expect(d.status).toBe("changes");
+    // A page that didn't see that answer can't flip it; the same answer again is fine.
+    expect(
+      await refused(
+        api.decide({ viewer: AMY, deliverableId: acmeDeliverable, decision: "approved" }),
+      ),
+    ).toBe(409);
+    await api.decide({
+      viewer: AMY,
+      deliverableId: acmeDeliverable,
+      decision: "changes",
+      note: "Drop the 2019 contacts.",
+    });
     for (const write of [
       () => api.post({ viewer: AMY, body: "hi" }),
       () => api.deliver({ viewer: AMY, title: "t", kind: "link", url: "https://x.example.com" }),

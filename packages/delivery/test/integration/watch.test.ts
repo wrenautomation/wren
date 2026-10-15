@@ -382,6 +382,8 @@ describe("moments, reviews and reminders (D13)", () => {
       words: "Booked in week 2.",
       mayQuote: "named",
     });
+    // The star pressed again sends no words: the words and consent stay.
+    await api.review({ viewer: AMY, ...at, score: 5 });
     await api.review({ viewer: { email: "cal@acme.example" }, ...at, score: null });
     await pass("2026-10-14T12:00:00Z");
     // A quotable 5 is an opportunity, for tomorrow's digest; the 4 it replaced is gone.

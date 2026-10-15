@@ -7,7 +7,7 @@
  */
 import { usageLines } from "@wren/books/schema";
 import { CHANNELS, type Channel, clients } from "@wren/core/clients";
-import { PortalRefusal } from "@wren/core/refusal";
+import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { VENDORS } from "@wren/core/vendors";
 import { type Queryable, setAuditActor } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
@@ -389,10 +389,23 @@ export async function decideDeliverable(
       decidedAt: new Date(),
       decisionNote: input.note?.trim() ? textIn(input.note, "the note", 4000) : null,
     })
-    .where(and(eq(deliverables.id, input.id), ofClient(db, deliverables.engagementId, clientId)))
+    // Only a waiting one, or the same answer again (a second press): a decision someone else
+    // made meanwhile is never overwritten by a page that didn't see it.
+    .where(
+      and(
+        eq(deliverables.id, input.id),
+        ofClient(db, deliverables.engagementId, clientId),
+        inArray(deliverables.status, ["waiting", input.decision]),
+      ),
+    )
     .returning();
-  if (!d) throw missing("deliverable");
-  return d;
+  if (d) return d;
+  const [was] = await db
+    .select({ id: deliverables.id })
+    .from(deliverables)
+    .where(and(eq(deliverables.id, input.id), ofClient(db, deliverables.engagementId, clientId)));
+  if (!was) throw missing("deliverable");
+  throw staleRefusal("deliverable");
 }
 
 /** What a comment hangs under: an update the client can see, or a deliverable. */
@@ -639,19 +652,21 @@ export async function recordReview(
     throw bad("a review is 1 to 5");
   const mayQuote = (input.mayQuote ?? "private") as QuoteConsent;
   if (!QUOTE_CONSENTS.includes(mayQuote)) throw bad(`may quote is ${QUOTE_CONSENTS.join(", ")}`);
-  const row = {
-    score: input.score,
-    words: input.words?.trim() ? textIn(input.words, "the review", 4000) : null,
-    mayQuote,
-    at: new Date(),
-    toldAt: null,
-  };
+  const words = input.words?.trim() ? textIn(input.words, "the review", 4000) : null;
+  const row = { score: input.score, words, mayQuote, at: new Date(), toldAt: null };
+  // Again replaces it, but only what was sent: a new star keeps the words and consent given.
   await db
     .insert(reviews)
     .values({ engagementId: e.id, moment: input.moment, email: input.email, ...row })
     .onConflictDoUpdate({
       target: [reviews.engagementId, reviews.moment, reviews.email],
-      set: row,
+      set: {
+        score: row.score,
+        at: row.at,
+        toldAt: null,
+        ...(input.words !== undefined ? { words } : {}),
+        ...(input.mayQuote !== undefined ? { mayQuote } : {}),
+      },
     });
 }
 
