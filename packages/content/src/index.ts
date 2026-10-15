@@ -52,4 +52,5 @@ export {
   videoSlug,
   withFooter,
 } from "./video.js";
+export { undoVideo } from "./video-ask.js";
 export * from "./voice.js";

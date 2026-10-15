@@ -340,8 +340,16 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/videoWords": (id, { wrong, right, at, text }) =>
     handlerCall("VideoDesk", "words", { id: num(id), wrong, right, at, text }),
   "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
-  "marketing/videoSet": (id, { patch, expect }) =>
-    handlerCall("VideoDesk", "set", { id: num(id), patch, ...(expect ? { expect } : {}) }),
+  "marketing/videoSet": (id, { patch, expect, proposal }) =>
+    handlerCall("VideoDesk", "set", {
+      id: num(id),
+      patch,
+      ...(expect ? { expect } : {}),
+      ...(proposal ? { proposal } : {}),
+    }),
+  // A change said in a sentence on the storyboard: a proposal only; Apply is videoSet.
+  "marketing/videoPropose": (id, { sentence, beat }) =>
+    handlerCall("VideoDesk", "propose", { id: num(id), sentence, beat: beat || null }),
   "marketing/videoLine": (id, { at, text, was }) =>
     handlerCall("VideoDesk", "line", { id: num(id), at, text, was }),
   "marketing/videoCut": (id, { from, to, state }) =>

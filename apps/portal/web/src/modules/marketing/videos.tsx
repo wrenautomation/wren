@@ -9,6 +9,8 @@
  * `VideoDesk` on the record's inline actions. Render is the head action; its state shows on the
  * record.
  */
+
+import type { Storyboard as Board } from "@wren/studio/storyboard";
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
@@ -31,6 +33,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
+import { EditorTabs, StoryboardView } from "./storyboard.js";
 import { VIEWED } from "./video-patch.js";
 
 type Word = {
@@ -110,6 +113,8 @@ type Video = {
   punctuated?: boolean;
   /** What each look proposed, newest first (content `looksOf`). */
   looks?: Look[];
+  /** The edit as frames (studio `storyboardOf`). */
+  storyboard?: Board;
 };
 type Look = {
   by: string;
@@ -1468,12 +1473,70 @@ const EditFold = ({ sections }: { sections: [string, ReactNode][] }) => (
   </details>
 );
 
-export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row, readAt }) => {
+export const videoExtras: NonNullable<ListPage["extras"]> = (
+  detail,
+  { act, row, readAt, params },
+) => {
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
   const steps = v.steps ?? [];
   const narrow = isNarrow();
+  // The storyboard opens first (designs/2026-10-15-storyboard.md); the timeline is a tab away.
+  if (v.storyboard) {
+    const timeline = params.get("editor") === "timeline";
+    const top = <EditorTabs params={params} timeline={timeline} />;
+    if (!timeline)
+      return {
+        top,
+        sections: [
+          [
+            "Storyboard",
+            <StoryboardView
+              key="sb"
+              id={String(row.id)}
+              board={v.storyboard}
+              data={v.finish}
+              words={v.words}
+              editable={edit}
+              act={act}
+            />,
+          ],
+        ],
+        ...polled(v, steps),
+      };
+    return { ...timelineExtras(v, { act, row, readAt, edit, steps, narrow }), top };
+  }
+  return timelineExtras(v, { act, row, readAt, edit, steps, narrow });
+};
+
+/** Read again soon while Claude works; now and then while the Mac renders (or is off). */
+const polled = (v: Video, steps: Step[]): Pick<RecordExtras, "poll"> =>
+  v.turns.some((t) => t.state === "thinking") || steps.some((t) => t.state === "running")
+    ? { poll: POLL_MS }
+    : v.render && v.render.state !== "failed"
+      ? { poll: RENDER_POLL_MS }
+      : {};
+
+/** The editor itself: preview, finish, agent, fields, cuts, transcript and the rest. */
+function timelineExtras(
+  v: Video,
+  {
+    act,
+    row,
+    readAt,
+    edit,
+    steps,
+    narrow,
+  }: {
+    act: RecordAct;
+    row: { id: unknown };
+    readAt: number | undefined;
+    edit: boolean;
+    steps: Step[];
+    narrow: boolean;
+  },
+): RecordExtras {
   // Finishing happens at the Mac: trims, text, captions, cover and crops, before the render.
   const finishing = edit && !narrow && !!v.finish;
   // Before a render the finish below is the preview: no empty box above it.
@@ -1574,12 +1637,8 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row,
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
   if (steps.length) sections.push(["Steps", <Steps key="st" steps={steps} />]);
-  const out: RecordExtras = { sections };
+  const out: RecordExtras = { sections, ...polled(v, steps) };
   if (v.render?.state === "failed" && v.render.why)
     out.facts = [["Why the render failed", v.render.why]];
-  // While Claude works, read again soon; while the Mac renders (or is off), now and then.
-  if (v.turns.some((t) => t.state === "thinking") || steps.some((t) => t.state === "running"))
-    out.poll = POLL_MS;
-  else if (v.render && v.render.state !== "failed") out.poll = RENDER_POLL_MS;
   return out;
-};
+}

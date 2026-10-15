@@ -37,7 +37,7 @@ import {
   connectorsConsoleApi,
 } from "@wren/connectors";
 import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-routes";
-import { swapShortMedia, waitingIdeas } from "@wren/content";
+import { swapShortMedia, undoVideo, waitingIdeas } from "@wren/content";
 import {
   liveFrom,
   type OwnSites,
@@ -93,6 +93,7 @@ import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/document
 import { learnConsoleApi } from "@wren/learn/console";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { googleDrive } from "@wren/notes/drive";
@@ -107,7 +108,9 @@ import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
+import { proposeChange } from "@wren/studio/change";
 import { setEdit, setLine, setWords } from "@wren/studio/edit";
+import { withFallback } from "@wren/studio/stress";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -550,8 +553,17 @@ local.call = async (i) => {
         await setEdit(main, input.id, input.patch, {
           by,
           ...(input.expect ? { expect: input.expect } : {}),
+          ...(input.proposal ? { stats: { proposal: input.proposal } } : {}),
         }),
       );
+    if (service === "VideoDesk" && handler === "undo")
+      return pickRun(await undoVideo(main, input.id, by));
+    // A storyboard change: the preview's model is the CLI's (--llm gateway, no paid fallback).
+    if (service === "VideoDesk" && handler === "propose")
+      return await proposeChange(main, input.id, input.sentence ?? "", previewModel(), {
+        by,
+        beat: input.beat ?? null,
+      });
     if (service === "VideoDesk" && handler === "line")
       return pickRun(await setLine(main, input.id, input as Required<VideoIn>, by));
     if (service === "VideoDesk" && handler === "words" && input.wrong && input.right)
@@ -576,7 +588,19 @@ local.call = async (i) => {
   }
   throw new PortalRefusal(`${service}/${handler} runs on Restate, not in preview.`, 404);
 };
-type VideoIn = { id: number; patch?: unknown; expect?: Record<string, unknown> } & {
+/** The model a storyboard change asks: `WREN_PREVIEW_LLM` (default the gateway), keys as the CLI loads them. */
+const previewModel = () => {
+  loadLlmEnv(settings.llmEnvPath, rootDir);
+  return withFallback(makeLlm(process.env.WREN_PREVIEW_LLM ?? "gateway", process.env), null);
+};
+type VideoIn = {
+  id: number;
+  patch?: unknown;
+  expect?: Record<string, unknown>;
+  proposal?: string;
+  sentence?: string;
+  beat?: string | null;
+} & {
   at?: number[];
   text?: string;
   was?: string;

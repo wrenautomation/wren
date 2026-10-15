@@ -378,6 +378,9 @@ importers:
       '@wren/experiments':
         specifier: workspace:*
         version: link:../../packages/experiments
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers

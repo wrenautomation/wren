@@ -63,6 +63,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",
+    "@wren/llm": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/outreach": "workspace:*",
     "@wren/studio": "workspace:*",

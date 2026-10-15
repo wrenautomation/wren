@@ -26,6 +26,7 @@ import {
 import { changedSince } from "@wren/studio/hash";
 import { unpunctuated } from "@wren/studio/punctuate";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
+import { type Storyboard, storyboardOf } from "@wren/studio/storyboard";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
@@ -847,6 +848,8 @@ export interface VideoView {
   steps: VideoStep[];
   checks: ReturnType<typeof videoChecks>;
   fresh: ReturnType<typeof previewCheck>;
+  /** The edit as frames, one per beat (designs/2026-10-15-storyboard.md). */
+  storyboard: Storyboard;
 }
 
 /** One look's proposals as the page shows them: no provider media ids. */
@@ -896,6 +899,7 @@ export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView>
       layout: e.layout,
       camBox: e.tracks.camBox ?? null,
     },
+    storyboard: storyboardOf(e),
     durationS: e.tracks.main.durationS,
     size: [e.tracks.main.width, e.tracks.main.height],
     punctuated: !unpunctuated(e.words),
@@ -1033,6 +1037,8 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoAgent",
       "marketing.videoStress",
       "marketing.videoPunctuate",
+      // A change said in a sentence on the storyboard; Apply is videoSet.
+      "marketing.videoPropose",
     ],
     calls: {
       "ContentDesk/approveVideo": "id",
@@ -1051,6 +1057,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/stress": "id",
       "VideoDesk/punctuate": "id",
       "VideoDesk/swap": "id",
+      "VideoDesk/propose": "id",
     },
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
     load: async (db, id) => {

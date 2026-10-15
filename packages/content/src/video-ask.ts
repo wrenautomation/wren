@@ -7,8 +7,9 @@ import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
 import type { Queryable } from "@wren/db";
+import { withCutChanges } from "@wren/studio/change";
 import { setEdit, setWords } from "@wren/studio/edit";
-import type { Cut, VideoEdit } from "@wren/studio/schema";
+import type { VideoEdit } from "@wren/studio/schema";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -85,26 +86,6 @@ export function videoAnswerOf(text: string): z.infer<typeof ANSWER> {
     // Not JSON: said in words.
   }
   return { reply: text.trim(), patch: null };
-}
-
-const CUT_CHANGES = z.array(
-  z.object({ from: z.number(), to: z.number(), state: z.enum(["cut", "kept"]) }),
-);
-
-/**
- * Cut changes onto the cuts: the cut with the same ends (to the ms) takes the state, else a new
- * manual cut. Checked by `setEdit` after.
- */
-export function withCutChanges(cuts: readonly Cut[], changes: unknown): Cut[] {
-  const out = [...cuts];
-  for (const c of CUT_CHANGES.parse(changes)) {
-    const i = out.findIndex(
-      (x) => Math.abs(x.from - c.from) < 0.001 && Math.abs(x.to - c.to) < 0.001,
-    );
-    if (i >= 0) out[i] = { ...(out[i] as Cut), state: c.state };
-    else if (c.state === "cut") out.push({ from: c.from, to: c.to, why: "manual", state: "cut" });
-  }
-  return out;
 }
 
 /** Claude's patch, cut changes merged in, written by `setEdit` on the ask's own run. */

@@ -402,6 +402,54 @@ export function stressOnCut(
   ).map((b) => `stress: ${b} (once cut)`);
 }
 
+const issuesOf = (err: z.ZodError) => err.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+
+/**
+ * A patch as `setEdit` writes it, checked against the edit: parsed, cuts and stressed words in
+ * order, every Short snapped to whole sentences, then `checkPatch`. `patch` is null when it
+ * doesn't parse. Saving and a storyboard change's preview both run this one.
+ */
+export function readyPatch(
+  now: VideoEdit,
+  input: unknown,
+): { patch: EditPatch | null; snapped: Moved[]; issues: string[] } {
+  const parsed = editPatchSchema.safeParse(input);
+  if (!parsed.success) return { patch: null, snapped: [], issues: issuesOf(parsed.error) };
+  const patch = { ...parsed.data };
+  if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
+  if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
+  // Every Short set or proposed starts and ends on a whole sentence.
+  const snap = patch.shorts
+    ? snapShorts(
+        { words: now.words, cuts: patch.cuts ?? now.cuts, durationS: now.tracks.main.durationS },
+        patch.shorts,
+      )
+    : null;
+  if (snap) patch.shorts = snap.shorts;
+  const issues = checkPatch(
+    patch,
+    now.tracks.main.durationS,
+    now.cuts,
+    now.words,
+    now.tracks.main,
+    now.shorts,
+  );
+  return { patch, snapped: snap?.moved ?? [], issues };
+}
+
+/** The edit as it reads with `patch` written (`camBox` goes on the tracks), nothing saved. */
+export function withPatch(now: VideoEdit, patch: EditPatch): VideoEdit {
+  const { camBox, ...columns } = patch;
+  return {
+    ...now,
+    ...columns,
+    ...(camBox !== undefined ? { tracks: withCamBox(now.tracks, camBox) } : {}),
+  } as VideoEdit;
+}
+
+/** A field's value on the edit as a patch names it: what an `expect` holds. */
+export const editField = fieldOf;
+
 /** The tracks with the face box set, or taken off for `null`. */
 function withCamBox(tracks: VideoEdit["tracks"], box: [number, number, number, number] | null) {
   const { camBox: _old, ...rest } = tracks;
@@ -426,36 +474,17 @@ export async function setEdit(
   },
 ): Promise<{ run: string; edit: VideoEdit; snapped: Moved[] }> {
   const parsed = editPatchSchema.safeParse(input);
-  if (!parsed.success)
-    throw new Error(
-      `Not saved: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
-    );
-  const patch = { ...parsed.data };
-  if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
+  if (!parsed.success) throw new Error(`Not saved: ${issuesOf(parsed.error).join("; ")}`);
   return atomic(db, async (tx) => {
     const now = o.expect ? await lockedEdit(tx, id) : await getEdit(tx, id);
     if (o.expect)
       for (const [k, v] of Object.entries(o.expect))
         if (k in editPatchSchema.shape && !sameJson(fieldOf(now, k), v))
           throw staleRefusal("video", k);
-    if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
-    // Every Short set or proposed starts and ends on a whole sentence.
-    const snap = patch.shorts
-      ? snapShorts(
-          { words: now.words, cuts: patch.cuts ?? now.cuts, durationS: now.tracks.main.durationS },
-          patch.shorts,
-        )
-      : null;
-    if (snap) patch.shorts = snap.shorts;
-    const bad = checkPatch(
-      patch,
-      now.tracks.main.durationS,
-      now.cuts,
-      now.words,
-      now.tracks.main,
-      now.shorts,
-    );
-    if (bad.length) throw new Error(`Not saved: ${bad.join("; ")}`);
+    const ready = readyPatch(now, parsed.data);
+    if (ready.issues.length || !ready.patch)
+      throw new Error(`Not saved: ${ready.issues.join("; ")}`);
+    const { patch, snapped } = ready;
     const before = Object.fromEntries(Object.keys(patch).map((k) => [k, fieldOf(now, k)]));
     const { camBox, ...columns } = patch;
     const [edit] = await tx
@@ -476,7 +505,6 @@ export async function setEdit(
           argv: { id, fields: Object.keys(patch), by: o.by },
         })
       ).id;
-    const snapped = snap?.moved ?? [];
     await finishRun(tx, run, {
       ...o.stats,
       fields: Object.keys(patch),

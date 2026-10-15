@@ -122,8 +122,9 @@ const SAVE_DELAY_MS = 1200;
 /** The tallest the stage gets, so a 9:16 view leaves the timeline on screen. */
 const STAGE_MAX_H = 520;
 const ZOOMS = [1, 2, 4, 8, 16, 32] as const;
-const STRIP_ACROSS = 10;
-const STRIP_FRAMES = 60;
+/** The filmstrip sprite: frames across a row, and in all (content `finishMedia`). */
+export const STRIP_ACROSS = 10;
+export const STRIP_FRAMES = 60;
 
 const VIEWS: [Format, string][] = [
   ["long", "16:9"],
@@ -177,7 +178,8 @@ const normal = (e: FinishEdit): FinishEdit => ({
   overlays: e.overlays ?? [],
   cuts: [...e.cuts].sort((a, b) => a.from - b.from || a.to - b.to),
 });
-const shownOn = (c: Captions, which: "long" | "short") =>
+/** Whether a format burns its captions in (the storyboard's frames draw them the same). */
+export const shownOn = (c: Captions, which: "long" | "short") =>
   which === "long"
     ? c.long === "screen"
     : (c.short ?? (c.on === false ? "track" : "screen")) === "screen";
@@ -1039,7 +1041,15 @@ function Stage({
 }
 
 /** A caption line in its style, word by word, as the render draws it (`captionWordLook`). */
-function ShownCaption({ line, style, size }: { line: ShownLine; style: string; size: number }) {
+export function ShownCaption({
+  line,
+  style,
+  size,
+}: {
+  line: ShownLine;
+  style: string;
+  size: number;
+}) {
   const words = line.words.map((x, i) => {
     const st = wordState(style, x, line.t, line.words[i + 1]?.s ?? line.end, { first: i === 0 });
     const { word, fill } = captionWordLook(style, st, {
@@ -1065,7 +1075,8 @@ function ShownCaption({ line, style, size }: { line: ShownLine; style: string; s
   return <div style={pillLook(size, CAPTION_LOOK.foreground)}>{words}</div>;
 }
 
-function OverlayText({
+/** Text on the video as the render draws it; without `onDown` it's a picture, not a handle. */
+export function OverlayText({
   o,
   at,
   faint,
@@ -1076,13 +1087,14 @@ function OverlayText({
   at: NonNullable<ReturnType<typeof overlayAt>>;
   faint: boolean;
   selected: boolean;
-  onDown: (e: ReactPointerEvent) => void;
+  onDown?: (e: ReactPointerEvent) => void;
 }) {
   return (
     <div
       onPointerDown={onDown}
       className={cx(
-        "absolute cursor-move rounded-md text-center font-extrabold text-white select-none [text-shadow:0_2px_6px_rgb(0_0_0/0.55),0_8px_30px_rgb(0_0_0/0.35)] [text-wrap:balance]",
+        "absolute rounded-md text-center font-extrabold text-white select-none [text-shadow:0_2px_6px_rgb(0_0_0/0.55),0_8px_30px_rgb(0_0_0/0.35)] [text-wrap:balance]",
+        onDown ? "cursor-move" : "pointer-events-none",
         selected && "outline-2 outline-offset-4 outline-white/80 outline-dashed",
       )}
       style={{

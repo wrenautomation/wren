@@ -6,7 +6,8 @@
  * Mac's `studio.render` (`wren video render <id> --cut` there); while the Mac is off it waits in
  * Restate. Nothing renders here and nothing uploads. `edit` is the editing agent's whole pass
  * (designs/2026-10-13-video-review.md): word fixes, fields, cuts, notes, then a render when it
- * changed something; `reject` and `restore` are his no and its undo.
+ * changed something; `reject` and `restore` are his no and its undo. `propose` is a change said in a
+ * sentence on the storyboard (designs/2026-10-15-storyboard.md); Apply is `set` with its patch.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -17,6 +18,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
+import { CHANGE, proposeChange } from "@wren/studio/change";
 import {
   getEdit,
   setCut,
@@ -127,18 +129,48 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
               .record(z.string(), z.unknown())
               .optional()
               .describe("The fields as they were when the page opened them"),
+            proposal: z
+              .string()
+              .max(64)
+              .optional()
+              .describe("The `video propose` run this applies, when it does"),
           }),
         },
         async (
           ctx: restate.Context,
-          req: One & { patch: unknown; expect?: Record<string, unknown> },
+          req: One & { patch: unknown; expect?: Record<string, unknown>; proposal?: string },
         ) =>
           ctx.run("set", () =>
             told(
               setEdit(db, req.id, req.patch, {
                 by: byOf(req),
                 ...(req.expect ? { expect: req.expect } : {}),
+                ...(req.proposal ? { stats: { proposal: req.proposal } } : {}),
               }).then(({ run, edit }) => answered(run, edit)),
+            ),
+          ),
+      ),
+
+      /**
+       * A change said in a sentence, on the storyboard (designs/2026-10-15-storyboard.md): the
+       * model's patch, checked as `set` checks it, and the board as it would be after. Nothing is
+       * saved but a `video propose` run; Apply sends the patch to `set` with its `expect`.
+       */
+      propose: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            sentence: z.string().min(1).max(CHANGE.maxChars).describe("What to change"),
+            beat: z.string().max(40).nullish().describe("The frame it was said on, by key"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { sentence: string; beat?: string | null }) =>
+          ctx.run("propose", () =>
+            told(
+              proposeChange(db, req.id, req.sentence, model(), {
+                by: byOf(req),
+                beat: req.beat ?? null,
+              }),
             ),
           ),
       ),

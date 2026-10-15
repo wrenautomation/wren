@@ -103,6 +103,7 @@ import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
+import { registerVideoAsk } from "./video-ask.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -309,6 +310,15 @@ export function registerStudio(
         console.log(`short ${m.n}: snapped to whole sentences (start ${m.from}s, end ${m.to}s)`);
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
+
+  // The storyboard and a change in a sentence: the page's Storyboard, from here.
+  registerVideoAsk(video, withDb, (o) => {
+    loadLlmEnv(settings.llmEnvPath, rootDir);
+    return withFallback(
+      makeLlm(o.llm, process.env),
+      o.fallback === "none" ? null : makeLlm(o.fallback, process.env),
+    );
+  });
 
   video
     .command("stress <id>")

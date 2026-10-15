@@ -536,6 +536,7 @@ const VIDEO_ACTIONS: Action[] = [
       ["videoAgent", "Ask for changes"],
       ["videoStress", "Propose stressed words"],
       ["videoPunctuate", "Add punctuation"],
+      ["videoPropose", "Propose change"],
     ] as const
   ).map(([id, label]) => ({
     id: `marketing.${id}`,

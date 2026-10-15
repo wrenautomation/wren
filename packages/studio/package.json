@@ -9,6 +9,8 @@
     "./cuts": "./src/cuts.ts",
     "./finish": "./src/finish.ts",
     "./edit": "./src/edit.ts",
+    "./change": "./src/change.ts",
+    "./storyboard": "./src/storyboard.ts",
     "./sentences": "./src/sentences.ts",
     "./hash": "./src/render-hash.ts",
     "./stress": "./src/stress.ts",
