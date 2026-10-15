@@ -6,6 +6,7 @@ import { draftTurns } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import { recordOfPage } from "@wren/core/draft-record";
 import {
+  accountField,
   cued,
   date,
   defineRecord,
@@ -20,6 +21,7 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
+import { accountPickFor } from "@wren/outreach";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { postAnalytics } from "./analytics/records.js";
 import { DRAFT_CALLS } from "./draft-calls.js";
@@ -157,6 +159,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
     view: "marketing_draft_records",
     key: "id",
     title: "title",
+    account: "account",
     subtitle: "platform",
     fields: {
       title: text("Post"),
@@ -190,6 +193,8 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       due: date("Due", { listed: false }),
       // Its words hashed: Approve sends the one on screen, so a change since refuses it.
       version: text("Version", { listed: false }),
+      // The login a person picked on the draft box; empty posts as the platform's default.
+      account: accountField("Account"),
     },
     views: [
       {
@@ -254,6 +259,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       ask: await draftTurns(db, "draft", id),
       record: await recordOfPage(db, "draft", id),
       siblings: await siblingsOf(db, id),
+      accounts: await accountPickFor(db, `draft:${id}`),
     }),
   });
 
@@ -267,6 +273,7 @@ export const postRecordOf = (signer?: VideoSigner) =>
     view: "marketing_post_records",
     key: "id",
     title: "title",
+    account: "account",
     subtitle: "platform",
     fields: {
       title: text("Post"),
@@ -312,6 +319,8 @@ export const postRecordOf = (signer?: VideoSigner) =>
         "When",
         { listed: false },
       ),
+      // The login a person picked to post it as; empty went out as the platform's default.
+      account: accountField("Account"),
     },
     views: [
       { id: "all", label: "All", sort: "-published", at: "published" },

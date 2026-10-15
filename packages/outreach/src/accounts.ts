@@ -5,6 +5,7 @@
  * today's caps.
  */
 import type { AccountHealth, OutreachChannel } from "@wren/core/outreach";
+import { accountLabel, type RecordAccount } from "@wren/core/record-accounts";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { fleetDay, type ReachPolicy, type Standing, standingOf } from "./policy.js";
@@ -73,6 +74,31 @@ export async function listAccounts(
     .from(reachAccounts)
     .where(platform ? eq(reachAccounts.platform, platform) : undefined)
     .orderBy(asc(reachAccounts.platform), asc(reachAccounts.createdAt));
+}
+
+/**
+ * Every account a record can be on (`@wren/core/record-accounts`): ours, retired ones too since
+ * old rows still name them, and each key a comment on someone's post was sent as (`x@wren`).
+ */
+export async function recordAccountsOf(db: Queryable): Promise<RecordAccount[]> {
+  const ours = await listAccounts(db);
+  const out = new Map<string, RecordAccount>(
+    ours.map((a) => [
+      a.account,
+      {
+        key: a.account,
+        platform: a.platform,
+        label: accountLabel(a.platform, a.account, a.handle),
+      },
+    ]),
+  );
+  const sent = (await db.execute(
+    sql`select distinct platform, account from reach_posts where account is not null`,
+  )) as unknown as Array<{ platform: string; account: string }>;
+  for (const r of sent)
+    if (!out.has(r.account))
+      out.set(r.account, { key: r.account, platform: r.platform, label: r.account });
+  return [...out.values()];
 }
 
 /**

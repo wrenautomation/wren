@@ -487,6 +487,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
   measured: timestamp("measured", { withTimezone: true }),
   url: text("url"),
   recent: text("recent"),
+  account: text("account"),
 }).as(sql`
   select concat_ws('/', d.idea_id, d.platform, d.id) id, d.platform::text platform,
     coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title,
@@ -502,7 +503,8 @@ export const marketingPostRecords = pgView("marketing_post_records", {
     coalesce(l.revenue_last, 0) / 100.0 revenue_last, 'USD'::text currency,
     coalesce(c.theirs, 0) theirs, coalesce(c.answered, 0) answered,
     m.as_of measured, d.url::text url,
-    case when d.published_at >= now() - interval '7 days' then 'recent' else 'earlier' end recent
+    case when d.published_at >= now() - interval '7 days' then 'recent' else 'earlier' end recent,
+    (select a.account from draft_accounts a where a.item = 'draft:' || d.id::text)::text account
   from content_drafts d
   join content_ideas idea on idea.id = d.idea_id
   left join lateral (
@@ -809,6 +811,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   created: timestamp("created", { withTimezone: true }),
   due: timestamp("due", { withTimezone: true }),
   version: text("version"),
+  account: text("account"),
 }).as(sql`
   select d.id::text id, d.platform::text platform,
     coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
@@ -828,7 +831,9 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
       end missing,
     d.scheduled_for scheduled, d.created_at created,
     coalesce(d.scheduled_for, d.created_at) due,
-    left(md5(d.text), 12) version
+    left(md5(d.text), 12) version,
+    -- The login a person picked to post it as; null = the platform's default.
+    (select a.account from draft_accounts a where a.item = 'draft:' || d.id::text)::text account
   from content_drafts d
   where d.status <> 'published'`);
 

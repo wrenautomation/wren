@@ -117,6 +117,7 @@ import {
   enrichContact,
   listContacts,
 } from "../contacts.js";
+import { pickedAccount } from "../draft-accounts.js";
 import { draftScorecard, parseSince } from "../draft-models.js";
 import {
   contactsToDraft,
@@ -1586,7 +1587,11 @@ export function makeReachDesk(deps: ReachDeps) {
           const settings = await ctx.run("settings", () =>
             commentsSettings(deps.db, post.platform),
           );
-          const account = settings.account || null;
+          // A person's pick on the draft, else the comments settings' account.
+          const picked = await ctx.run("account", () =>
+            pickedAccount(deps.db, `onpost:${post.id}`),
+          );
+          const account = picked || settings.account || null;
           const acts = postActs(post, settings, body);
           const sites = deps.sitesFor(ctx);
           try {

@@ -25,6 +25,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
+import { pickedReachAccount } from "../draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "../draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { passedOn, passKey } from "../passes.js";
@@ -483,8 +484,13 @@ export async function planThreadComment(
   // The sub's own floor (karma, age, an unknown gate): held, not dropped. Another account that
   // qualifies sends instead.
   const gate = (await gatesFor(db, [thread.subreddit], now)).get(thread.subreddit);
-  if (gate && !gate.ok) throw new ThreadHeld(gate.reason ?? `r/${thread.subreddit} is held`);
-  const account = await accountById(db, gate?.accountId ?? place?.accountId ?? thread.accountId);
+  // A person's pick goes out as picked: its karma or age shortfall was warned on the picker. A
+  // sub that removed our last comment without saying why still holds every account.
+  const picked = await pickedReachAccount(db, `thread:${id}`);
+  if (gate && !gate.ok && (!picked || gate.hold))
+    throw new ThreadHeld(gate.reason ?? `r/${thread.subreddit} is held`);
+  const account =
+    picked ?? (await accountById(db, gate?.accountId ?? place?.accountId ?? thread.accountId));
   if (!account)
     throw new ReachRefusal(`r/${thread.subreddit} has no account yet: pick one on Places`);
   if (account.state === "paused" || account.state === "retired")

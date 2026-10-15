@@ -135,6 +135,25 @@ export const reachAccounts = pgTable(
   ],
 );
 
+/**
+ * The account a draft goes out as, when a person picked one (designs/2026-10-15-accounts-first-class.md):
+ * one row per draft item (`thread:<id>`, `comment:<id>`, `dm:<id>`, `onpost:<id>`, `draft:<id>`).
+ * No row: the item's own account (its place's, the one they spoke to). Every send reads it.
+ */
+export const draftAccounts = pgTable(
+  "draft_accounts",
+  {
+    item: varchar("item", { length: 120 }).notNull(),
+    /** The login's key (`reddit@alt`, `linkedin@wren`). */
+    account: varchar("account", { length: 120 }).notNull(),
+    /** Who picked it: an email, or null for the console. */
+    by: varchar("by", { length: 255 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.item], name: "pk_draft_accounts" })],
+);
+export type DraftAccount = typeof draftAccounts.$inferSelect;
+
 /** Why an invite was proposed: the person, their firm's size and how they found us. */
 export interface InviteFit {
   /** One line: "Founder at Acme, 51-200 people. Reacted to our post." */

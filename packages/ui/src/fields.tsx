@@ -19,6 +19,7 @@ import { codeLabel } from "@wren/core/templates/labels";
 import { cn } from "cn";
 import { Check } from "lucide-react";
 import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { AccountBadge } from "./accounts.js";
 import { duration, linkLabel, money, num } from "./format.js";
 import { tipProps, whenTip } from "./hint.js";
 import { PlatformMark, TintSwatch } from "./marks.js";
@@ -67,7 +68,8 @@ export function widthOf(f: FieldMeta, title = false): number {
   const states = Object.values(f.states ?? {}).map((s) => s.label.length + 2);
   const chars = Math.max(f.label.length + 2, f.kind === "date" ? 14 : 0, ...states);
   const preset = Math.round(WIDTH[f.column?.width ?? "m"] * (title ? 1.2 : 1));
-  return Math.max(preset, Math.ceil(chars * 7.2) + 24);
+  // An account's badge draws its platform's mark before the name.
+  return Math.max(preset, Math.ceil(chars * 7.2) + 24 + (f.account ? 20 : 0));
 }
 
 const stateOf = (f: FieldMeta, c: string): State =>
@@ -197,6 +199,8 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       </span>
     );
   }
+  // The record's account: one badge everywhere a row shows it.
+  if (f.account) return <AccountBadge field={f} value={String(c)} />;
   switch (f.kind) {
     case "status":
     case "verdict":

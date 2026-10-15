@@ -5,9 +5,11 @@
  * the people we can write to from Marketing → People (`marketing.person`).
  */
 
+import { warmupOf } from "@wren/channel-reddit";
 import { draftTurns } from "@wren/core/ask";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
+  accountField,
   cued,
   date,
   defineRecord,
@@ -20,10 +22,15 @@ import {
   text,
 } from "@wren/core/records";
 import { inArray, sql } from "drizzle-orm";
-import { accountById, listAccounts } from "./accounts.js";
+import { z } from "zod";
+import { accountById, listAccounts, recordAccountsOf, viewOf } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
+import { movePlace } from "./discovery/places.js";
 import { gatesFor } from "./discovery/requirements.js";
+import { commentsToday } from "./discovery/threads.js";
+import { accountPickFor, pickedAccounts, pickedReachAccount } from "./draft-accounts.js";
 import { VANITY } from "./invites.js";
+import { DEFAULT_POLICY, type ReachPolicy } from "./policy.js";
 import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
 import {
   MESSAGE_MAX,
@@ -34,6 +41,7 @@ import {
 } from "./sequences.js";
 import { listTemplates } from "./store.js";
 import { getThread, listThreads } from "./threads.js";
+import { sentToday } from "./tick.js";
 
 /** ponytail: rows, not a view: reach holds a few hundred threads at most; a view past that. */
 const THREAD_ROWS = 500;
@@ -72,12 +80,17 @@ export const dmRecord = defineRecord({
         : []
       ).map((p) => [p.handle, personLine(p)]),
     );
+    // A reply picked to go out as another account shows as that one.
+    const picks = await pickedAccounts(
+      db,
+      threads.map((t) => `dm:${t.contact.id}`),
+    );
     return threads.map((t) => ({
       id: t.contact.id,
       who: t.contact.name ?? t.contact.handle,
       headline: t.contact.headline ?? about.get(t.contact.handle.toLowerCase()) ?? null,
       platform: t.contact.platform,
-      account: t.account,
+      account: picks.get(`dm:${t.contact.id}`) ?? t.account,
       state: t.contact.state,
       last_body: t.last?.body ?? null,
       last_at: t.last?.sentAt ?? t.last?.createdAt ?? null,
@@ -88,6 +101,7 @@ export const dmRecord = defineRecord({
   },
   key: "id",
   title: "who",
+  account: "account",
   subtitle: "headline",
   fields: {
     who: name("Who"),
@@ -102,7 +116,7 @@ export const dmRecord = defineRecord({
       }),
       "Site",
     ),
-    account: text("From"),
+    account: accountField("From"),
     state: status({
       new: neutral("Found"),
       enrolled: neutral("Messaging"),
@@ -145,9 +159,13 @@ export const dmRecord = defineRecord({
   /** The thread oldest first, and the preview's app, sender and cap for a reply. */
   load: async (db, id) => {
     const t = await getThread(db, Number(id));
-    const from = t.contact.accountId
-      ? ((await accountById(db, t.contact.accountId)).handle ?? null)
-      : null;
+    // The preview's sender: the account picked for the reply, else the thread's.
+    const picked = await pickedReachAccount(db, `dm:${id}`).catch(() => null);
+    const from = picked
+      ? (picked.handle ?? null)
+      : t.contact.accountId
+        ? ((await accountById(db, t.contact.accountId)).handle ?? null)
+        : null;
     return {
       messages: t.messages.map((m) => ({
         id: m.id,
@@ -159,6 +177,7 @@ export const dmRecord = defineRecord({
         state: m.state,
       })),
       dm: { site: SITES[t.contact.platform], from, max: MESSAGE_MAX },
+      accounts: await accountPickFor(db, `dm:${id}`),
       ask: await draftTurns(db, "dm", id),
       record: await recordOfPage(db, "dm", id),
     };
@@ -191,12 +210,13 @@ export const commentRecord = defineRecord({
       (await db.execute(sql`
       select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post_title, c.body,
         c.sort, c.why, c.draft, c.state, c.answer, c.at, c.answered_at, c.url,
-        coalesce(a.handle, 'Wren') account,
+        coalesce(da.account, a.account) account,
         c.contact_id, p.read p_read, p.fit p_fit, p.site p_site,
         -- The way into their DMs (dmDoorOf): the button shows only where there is one.
         case when c.account_id is not null then 'reach'
           when c.platform in ('instagram', 'facebook') then 'private_reply' end door
       from comments c left join reach_accounts a on a.id = c.account_id
+      left join draft_accounts da on da.item = 'comment:' || c.id
       left join reddit_people p on c.platform = 'reddit' and p.handle = lower(c.author)
       order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
     ).map(({ p_read, p_fit, p_site, ...r }) => ({
@@ -209,6 +229,7 @@ export const commentRecord = defineRecord({
     })),
   key: "id",
   title: "who",
+  account: "account",
   subtitle: "body",
   fields: {
     who: name("Who"),
@@ -246,7 +267,8 @@ export const commentRecord = defineRecord({
       dropped: neutral("Dropped"),
     }),
     answer: prose("Our answer"),
-    account: text("On"),
+    // Our own post's comments have none: the content channel answers them.
+    account: accountField("On"),
     at: date("When"),
     url: link("Open"),
   },
@@ -275,6 +297,7 @@ export const commentRecord = defineRecord({
   ],
   /** Ask Claude's thread on the draft answer. */
   load: async (db, id) => ({
+    accounts: await accountPickFor(db, `comment:${id}`),
     ask: await draftTurns(db, "comment", id),
     record: await recordOfPage(db, "comment", id),
   }),
@@ -371,13 +394,13 @@ export const placeRecord = defineRecord({
     return (
       (await db.execute(sql`
       select p.subreddit id, 'r/' || p.name place, p.fit, p.judged, p.subscribers, p.found_by,
-        p.state, a.handle account, p.read_at, p.raw->>'error' error,
+        p.state, a.account account, p.read_at, p.raw->>'error' error,
         count(t.*) filter (where t.state = 'commented') commented,
         round(avg(t.score) filter (where t.score is not null), 1) avg_score
       from reddit_places p
       left join reach_accounts a on a.id = p.account_id
       left join reddit_threads t on t.subreddit = p.subreddit
-      group by p.subreddit, a.handle
+      group by p.subreddit, a.account
       order by p.fit desc nulls last, p.subscribers desc nulls last
       limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
     ).map(({ judged, ...r }) => {
@@ -400,6 +423,7 @@ export const placeRecord = defineRecord({
   },
   key: "id",
   title: "place",
+  account: "account",
   subtitle: "why",
   fields: {
     place: text("Subreddit"),
@@ -426,7 +450,7 @@ export const placeRecord = defineRecord({
       watching: { label: "Watching", tone: "good" },
       skipped: neutral("Skipped"),
     }),
-    account: text("Account"),
+    account: accountField("Account", { platforms: ["reddit"] }),
     commented: number("Our comments"),
     avgScore: number("Avg score"),
     foundBy: text("Found by"),
@@ -446,6 +470,30 @@ export const placeRecord = defineRecord({
     "marketing.placeMove",
     "marketing.discoveryRead",
   ],
+  // Reassign: pick another of our Reddit accounts in place; its threads go out from that one.
+  edits: {
+    fields: ["account"],
+    patch: z
+      .object({ account: z.string().trim().min(1).max(120) })
+      .partial()
+      .strict(),
+    about: "which of our Reddit accounts comments in this subreddit",
+    read: async (db, id) => {
+      const [r] = (await db.execute(sql`
+        select a.account from reddit_places p left join reach_accounts a on a.id = p.account_id
+        where p.subreddit = ${id}`)) as unknown as Array<{ account: string | null }>;
+      return r ? { account: r.account ?? "" } : null;
+    },
+    check: async (patch, _now, db) => {
+      if (patch.account === undefined) return null;
+      const a = (await listAccounts(db, "reddit")).find((x) => x.account === patch.account);
+      if (!a) return `${String(patch.account)} is not one of our Reddit accounts`;
+      return a.state === "retired" ? `${a.account} is retired` : null;
+    },
+    write: async (db, id, patch) => {
+      if (patch.account !== undefined) await movePlace(db, id, String(patch.account));
+    },
+  },
 });
 
 /** New posts in watched places: ranked, the day's best queued with a draft. */
@@ -460,9 +508,10 @@ export const threadRecord = defineRecord({
       (await db.execute(sql`
       select t.id, t.subreddit, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
         t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
-        t.posted_at, t.send_at, t.url, a.handle account, p.read op_read, p.fit op_fit, p.site op_site
+        t.posted_at, t.send_at, t.url, coalesce(da.account, a.account) account, p.read op_read, p.fit op_fit, p.site op_site
       from reddit_threads t
       left join reach_accounts a on a.id = t.account_id
+      left join draft_accounts da on da.item = 'thread:' || t.id
       left join reddit_people p on p.handle = lower(t.author)
       where t.state <> 'dropped' or t.created_at > now() - interval '2 days'
       order by t.posted_at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
@@ -489,6 +538,7 @@ export const threadRecord = defineRecord({
   },
   key: "id",
   title: "title",
+  account: "account",
   subtitle: "angle",
   fields: {
     place: text("Subreddit"),
@@ -525,7 +575,7 @@ export const threadRecord = defineRecord({
     answer: prose("Our comment"),
     score: number("Score"),
     comments: number("Comments"),
-    account: text("From"),
+    account: accountField("From", { platforms: ["reddit"] }),
     postedAt: date("Posted"),
     url: link("Open"),
   },
@@ -552,6 +602,7 @@ export const threadRecord = defineRecord({
   ],
   /** Ask Claude's thread on the draft comment. */
   load: async (db, id) => ({
+    accounts: await accountPickFor(db, `thread:${id}`),
     ask: await draftTurns(db, "thread", id),
     record: await recordOfPage(db, "thread", id),
   }),
@@ -570,12 +621,13 @@ export const inviteRecord = defineRecord({
     (
       (await db.execute(sql`
       select i.contact_id id, coalesce(i.name, i.handle) who, i.headline, i.niche, i.status,
-        i.state_reason, i.note, a.account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
+        i.state_reason, i.note, coalesce(da.account, a.account) account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
         i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days,
         c.draft, i.fit->>'why' why, i.fit->>'company' company, i.fit->>'size' size
       from reach_invites i
       join reach_contacts c on c.id = i.contact_id
       left join reach_accounts a on a.id = i.account_id
+      left join draft_accounts da on da.item = 'invite:' || i.contact_id
       order by coalesce(i.connected_at, i.withdrawn_at, i.sent_at, i.queued_at) desc
       limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
     ).map((r) => ({
@@ -588,6 +640,7 @@ export const inviteRecord = defineRecord({
     })),
   key: "id",
   title: "who",
+  account: "account",
   subtitle: "headline",
   fields: {
     who: name("Who"),
@@ -609,7 +662,7 @@ export const inviteRecord = defineRecord({
     size: text("People"),
     stateReason: text("Why"),
     note: prose("Note"),
-    account: text("From"),
+    account: accountField("From", { platforms: ["linkedin"] }),
     days: number("Days pending"),
     queuedAt: date("Queued"),
     sentAt: date("Sent"),
@@ -650,6 +703,7 @@ export const inviteRecord = defineRecord({
     "marketing.draftUndo",
   ],
   load: async (db, id) => ({
+    accounts: await accountPickFor(db, `invite:${id}`),
     ask: await draftTurns(db, "invite", id),
     record: await recordOfPage(db, "invite", id),
   }),
@@ -784,3 +838,148 @@ export const personRecord = defineRecord({
     "marketing.personFollow",
   ],
 });
+
+const ACCOUNT_STATES = {
+  active: { label: "Active", tone: "good" as const },
+  warming: { label: "Warming up", tone: "warn" as const },
+  paused: { label: "Paused", tone: "bad" as const },
+  retired: neutral("Retired"),
+  // A login we post or read with that has no reach row (`x@wren` on others' posts).
+  login: neutral("Posting login"),
+};
+const HEALTH_STATES = {
+  ok: { label: "Fine", tone: "good" as const },
+  frozen: { label: "Frozen", tone: "bad" as const },
+  suspended: { label: "Suspended", tone: "bad" as const },
+  unread: { label: "Not read yet", tone: "warn" as const },
+};
+
+/**
+ * Every account we speak as, one place (designs/2026-10-15-accounts-first-class.md): its state,
+ * health and warm-up, karma and age, what it sent today against its caps, the subreddits it
+ * comments in and when it last sent. Read from the database only: health is the last stored
+ * read, never a platform call. Its places, threads and replies open from the record.
+ */
+export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
+  defineRecord({
+    id: "marketing.account",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "account", many: "accounts" },
+    rows: async (db) => {
+      const now = new Date();
+      const reach = await listAccounts(db);
+      const all = await recordAccountsOf(db);
+      const ids = reach.map((a) => a.id);
+      const today = ids.length ? await sentToday(db, ids, now) : new Map();
+      const places = (await db.execute(sql`
+        select a.account, string_agg('r/' || p.name, ', ' order by p.name) places,
+          count(*)::int n
+        from reddit_places p join reach_accounts a on a.id = p.account_id
+        where p.state = 'watching' group by a.account`)) as unknown as Array<{
+        account: string;
+        places: string;
+        n: number;
+      }>;
+      const placeBy = new Map(places.map((p) => [p.account, p]));
+      const last = (await db.execute(sql`
+        select account, max(at) at from (
+          select a.account, m.sent_at at from reach_messages m
+            join reach_accounts a on a.id = m.account_id
+            where m.direction = 'out' and m.sent_at is not null
+          union all select a.account, c.answered_at from comments c
+            join reach_accounts a on a.id = c.account_id where c.answered_at is not null
+          union all select a.account, t.answered_at from reddit_threads t
+            join reach_accounts a on a.id = t.account_id where t.answered_at is not null
+          union all select account, commented_at from reach_posts where commented_at is not null
+        ) s group by account`)) as unknown as Array<{ account: string; at: Date | string }>;
+      const lastBy = new Map(last.map((r) => [r.account, new Date(r.at).toISOString()]));
+      const byKey = new Map(reach.map((a) => [a.account, a]));
+      return await Promise.all(
+        all.map(async (k) => {
+          const a = byKey.get(k.key);
+          const base = {
+            id: k.key,
+            name: k.label,
+            account: k.key,
+            platform: k.platform,
+            places: placeBy.get(k.key)?.places ?? null,
+            placeCount: placeBy.get(k.key)?.n ?? 0,
+            lastSent: lastBy.get(k.key) ?? null,
+          };
+          if (!a) return { ...base, state: "login" };
+          const v = viewOf(a, policy, now);
+          const h = v.health;
+          const w = a.platform === "reddit" && h ? warmupOf(h, now) : null;
+          const sent = today.get(a.id) ?? { connects: 0, messages: 0 };
+          const used =
+            a.platform === "reddit"
+              ? `${await commentsToday(db, a.id, now)} of ${w?.caps.comments ?? 0} comments · ${sent.messages} of ${v.standing.caps.messages} DMs`
+              : `${sent.connects} of ${v.standing.caps.connects} invites · ${sent.messages} of ${v.standing.caps.messages} messages`;
+          return {
+            ...base,
+            reachId: a.id,
+            state: a.state,
+            why: a.pausedReason ?? null,
+            // Only Reddit's standing is read; elsewhere there is nothing to say.
+            health: h?.suspended
+              ? "suspended"
+              : v.standing.frozen && h
+                ? "frozen"
+                : h
+                  ? "ok"
+                  : a.platform === "reddit"
+                    ? "unread"
+                    : null,
+            stage: v.standing.frozen
+              ? `${v.standing.stage}: ${v.standing.frozen}`
+              : v.standing.stage,
+            karma: h?.karma ?? null,
+            ageDays: w?.ageDays ?? null,
+            today: used,
+            healthAt: h?.asOf ?? null,
+            since: a.startedOn,
+          };
+        }),
+      );
+    },
+    key: "id",
+    title: "name",
+    account: "account",
+    subtitle: "stage",
+    fields: {
+      name: name("Account"),
+      // The login's key, drawn as its badge: the Account filter's field.
+      account: accountField("Login", { listed: false }),
+      platform: status(PLATFORM_LABELS, "Site"),
+      state: status(ACCOUNT_STATES, "State"),
+      health: status(HEALTH_STATES, "Health"),
+      stage: text("Warm-up"),
+      karma: number("Karma"),
+      ageDays: number("Age in days"),
+      today: text("Sent today"),
+      placeCount: number("Places"),
+      places: text("Subreddits"),
+      lastSent: date("Last sent"),
+      healthAt: date("Health read"),
+      why: text("Paused because"),
+      since: text("Started", { listed: false }),
+      reachId: text("Reach id", { listed: false }),
+    },
+    views: [
+      {
+        id: "live",
+        label: "In use",
+        where: { state: ["active", "warming", "paused"] },
+        sort: "platform",
+      },
+      { id: "all", label: "All", sort: "platform" },
+    ],
+    // Its places (reassigned there, in place), its threads and its replies, filtered to it.
+    related: [
+      { record: "marketing.place", by: "account" },
+      { record: "marketing.thread", by: "account" },
+      { record: "marketing.engage", by: "account" },
+    ],
+  });
+export const accountRecord = accountRecordOf();

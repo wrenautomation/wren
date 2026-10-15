@@ -13,6 +13,7 @@ import {
 } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { pickedAccount } from "./draft-accounts.js";
 import {
   type Comment,
   comments,
@@ -161,7 +162,8 @@ export async function touchFromAnswer(db: Queryable, id: number) {
     handle: authorOf(c.platform, c.author),
     kind: "reply",
     direction: "ours",
-    account: await ownAccount(db, c),
+    // The account a person picked for the answer, else the one they spoke to.
+    account: (await pickedAccount(db, `comment:${id}`)) ?? (await ownAccount(db, c)),
     url: c.url || null,
     text: c.answer,
     at: c.answeredAt,

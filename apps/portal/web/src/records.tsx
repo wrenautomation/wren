@@ -510,8 +510,13 @@ function drafting(page: string, record: string | null) {
       ? { record, id }
       : { record: id.slice(0, id.indexOf(":")), id: id.slice(id.indexOf(":") + 1) };
   return {
-    [`marketing/${page}Set`]: (id: string, { text, expect }: Input) =>
-      handlerCall("DraftAsk", "set", { ...item(id), text, expect }),
+    // His words, or the account it sends as (the draft box's picker), saved with the draft.
+    [`marketing/${page}Set`]: (id: string, { text, expect, account }: Input) =>
+      handlerCall("DraftAsk", "set", {
+        ...item(id),
+        ...(text !== undefined ? { text, expect } : {}),
+        ...(account !== undefined ? { account } : {}),
+      }),
     [`marketing/${page}Ask`]: (id: string, { message }: Input) =>
       handlerCall("DraftAsk", "ask", { ...item(id), message }),
     [`marketing/${page}Undo`]: (id: string) => handlerCall("DraftAsk", "undo", item(id)),

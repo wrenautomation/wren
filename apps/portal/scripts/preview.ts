@@ -99,6 +99,7 @@ import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-ro
 import { googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
+import { pickAccount } from "@wren/outreach";
 import { paymentsConsoleApi } from "@wren/payments/console";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
@@ -578,6 +579,21 @@ local.call = async (i) => {
       });
       return { run: r.run, swapped: r.swapped.length, missing: r.missing.length };
     }
+    // A draft's account pick (no words): kept as the desk keeps it, so the picker works here.
+    const pick = input as unknown as {
+      record?: string;
+      id?: string;
+      text?: string;
+      account?: string | null;
+    };
+    if (service === "DraftAsk" && handler === "set" && pick.text === undefined && "account" in pick)
+      return {
+        accounts: await pickAccount(main, {
+          item: `${pick.record}:${pick.id}`,
+          account: pick.account ?? null,
+          by,
+        }),
+      };
     // Studio's reads: what waits on him, and every piece with where it went.
     if (service === "ContentDesk" && handler === "waiting")
       return { ideas: await waitingIdeas(main) };

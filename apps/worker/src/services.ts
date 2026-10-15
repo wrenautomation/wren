@@ -2409,7 +2409,7 @@ export async function buildServices(
         ...CALENDAR_RECORDS,
         ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
-        ...marketingNumbers(mediaSigner),
+        ...marketingNumbers(mediaSigner, reachPolicyFrom(settings)),
         // Replays: read live from the lander, chunks signed from the files bucket. Heatmaps draw
         // on the newest one; without them, their counts still show.
         ...(sessions ? [sessionRecord(sessions), surveyAnswerRecord(sessions.site)] : []),
@@ -2636,39 +2636,56 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
       // With the Page id too, no `me/accounts` read before a post, list or inbox pass.
       ...(settings.metaIgId ? { igId: settings.metaIgId } : {}),
     };
-    const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt, ...arm });
+    const base = restateSites(ctx, { caller: "wren:content", ...sitesAt, ...arm });
+    // A person's pick on the draft (`reddit@alt`): that platform's channel posts as it.
+    const picked = (platform: string) =>
+      o?.account?.startsWith(`${platform}@`) ? o.account : null;
+    const as = (platform: string, s: SiteClient) => {
+      const account = picked(platform);
+      return account ? asAccount(s, account) : s;
+    };
     return {
       // Wren's own login (William, 10-06): bare `linkedin` is his personal account, never used here.
       ...(on.includes("linkedin")
-        ? { linkedin: linkedinContent(asAccount(sites, "linkedin@wren"), host ? { host } : {}) }
+        ? {
+            linkedin: linkedinContent(
+              asAccount(base, picked("linkedin") ?? "linkedin@wren"),
+              host ? { host } : {},
+            ),
+          }
         : {}),
+      // A picked Reddit account posts through the desk's browser: the API token is one user's.
       ...(reddit
         ? {
             reddit: redditContent(
-              reddit === "desk"
-                ? restateSites(ctx, { caller: "wren:content", service: DESK, ...arm })
+              reddit === "desk" || picked("reddit")
+                ? as("reddit", restateSites(ctx, { caller: "wren:content", service: DESK, ...arm }))
                 : journaledSites(ctx, reddit),
             ),
           }
         : {}),
-      ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
-      ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
+      ...(on.includes("youtube")
+        ? { youtube: youtubeContent(as("youtube", base), host ? { host } : {}) }
+        : {}),
+      ...(on.includes("x") ? { x: xContent(as("x", base), host ? { host } : {}) } : {}),
       // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);
       // until both exist the browser composer posts, fetching the signed URL itself.
       ...(on.includes("instagram")
         ? {
             instagram:
               host && settings.metaPageId
-                ? instagramContent(sites, meta)
-                : instagramWebContent(sites, host ? { host } : {}),
+                ? instagramContent(as("instagram", base), meta)
+                : instagramWebContent(as("instagram", base), host ? { host } : {}),
           }
         : {}),
-      ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
-      ...(on.includes("threads") ? { threads: threadsContent(sites, host ? { host } : {}) } : {}),
+      ...(on.includes("facebook") ? { facebook: facebookContent(as("facebook", base), meta) } : {}),
+      ...(on.includes("threads")
+        ? { threads: threadsContent(as("threads", base), host ? { host } : {}) }
+        : {}),
       // Studio in the box's browser posts public; the API waits on TikTok's audit (WREN_TIKTOK_POST_VIA).
       ...(on.includes("tiktok")
         ? {
-            tiktok: tiktokContent(sites, {
+            tiktok: tiktokContent(as("tiktok", base), {
               ...(host ? { host } : {}),
               postVia: settings.tiktokPostVia,
             }),

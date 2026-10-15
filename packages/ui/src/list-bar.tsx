@@ -34,6 +34,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { AccountFilter, accountFieldOf } from "./accounts.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import {
   Sheet,
@@ -101,14 +102,25 @@ const QUICK_STATES = 12;
 export function quickFilters(meta: RecordMeta): FieldMeta[] {
   const filters = filtersOf(meta);
   const byKey = new Map(filters.map((f) => [f.key, f]));
-  if (meta.quick) return meta.quick.flatMap((k) => byKey.get(k) ?? []);
+  // A declared account leads: which login a row is on is the first thing narrowed by.
+  const account = meta.account ? byKey.get(meta.account) : undefined;
+  if (meta.quick)
+    return [
+      ...(account ? [account] : []),
+      ...meta.quick.flatMap((k) => (k === meta.account ? [] : (byKey.get(k) ?? []))),
+    ];
   const site =
     typeof meta.channel === "object" && meta.channel ? byKey.get(meta.channel.field) : undefined;
   const picks = filters.filter((f) => {
     const n = Object.keys(f.states ?? {}).length;
-    return f !== site && filterShape(f) === "states" && n >= 2 && n <= QUICK_STATES;
+    return (
+      f !== site && f !== account && filterShape(f) === "states" && n >= 2 && n <= QUICK_STATES
+    );
   });
-  return [...(site ? [site] : []), ...picks].slice(0, QUICK);
+  return [...(account ? [account] : []), ...(site ? [site] : []), ...picks].slice(
+    0,
+    QUICK + (account ? 1 : 0),
+  );
 }
 
 /** The field holding a row's platform, when the list mixes them: what Group by Site groups on. */
@@ -1039,6 +1051,12 @@ export function ListBar({
   const searchable = meta.fields.some((f) => f.searchable);
   const many = meta.name.many;
   const on = filters.filter((f) => params.get(f.key));
+  // The record's account has its own chip on the bar; its filter shows there, not as a pill.
+  const account = accountFieldOf(meta);
+  const accountChip =
+    account && Object.keys(account.states ?? {}).length >= 2 ? (
+      <AccountFilter meta={meta} place={place} />
+    ) : null;
   const first = useMemo(() => new Set(quickFilters(meta).map((f) => f.key)), [meta]);
   const narrowed = !!params.get("q") || on.length > 0;
   const [picker, setPicker] = useState(false);
@@ -1101,15 +1119,17 @@ export function ListBar({
       </PopoverContent>
     </Popover>
   );
-  const pills = on.map((f) => (
-    <FilterPill
-      key={f.key}
-      field={f}
-      place={place}
-      onOpen={narrow ? () => openSheet(f) : undefined}
-      panel={(close) => panel(f, close)}
-    />
-  ));
+  const pills = on
+    .flatMap((f) => (accountChip && f.key === account?.key ? [] : [f]))
+    .map((f) => (
+      <FilterPill
+        key={f.key}
+        field={f}
+        place={place}
+        onOpen={narrow ? () => openSheet(f) : undefined}
+        panel={(close) => panel(f, close)}
+      />
+    ));
   const clear = narrowed ? (
     <a
       href={place.link({
@@ -1137,6 +1157,7 @@ export function ListBar({
     return (
       <div className="flex flex-wrap items-center gap-2">
         {search}
+        {accountChip}
         {filter}
         {pills}
         {clear}
@@ -1148,6 +1169,7 @@ export function ListBar({
     <div className="grid gap-2">
       {search}
       <div className="flex flex-wrap items-center gap-2">
+        {accountChip}
         {filter}
         {save}
         {clear}

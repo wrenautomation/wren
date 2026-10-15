@@ -6,7 +6,7 @@
  * meanwhile is never written over.
  */
 import type { AskTurn, ChangeLine, EditState, Values } from "@wren/core/edits";
-import type { FieldMeta, RecordMeta } from "@wren/core/records";
+import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import { cn } from "cn";
 import { Pencil } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
@@ -45,6 +45,17 @@ const when = (at: string) =>
   });
 
 /** A value as words: a list joined, a state by its label, anything else as JSON; empty is "". */
+
+/**
+ * A pick list's choices. An account field offers the accounts on the same platform as the one
+ * it holds (a Reddit place moves to another Reddit account), each by its label.
+ */
+export function choicesOf(field: FieldMeta, now: string): [string, State][] {
+  const all = Object.entries(field.states ?? {});
+  const mark = field.account ? field.states?.[now]?.mark : undefined;
+  return mark ? all.filter(([, s]) => s.mark === mark) : all;
+}
+
 export function valueText(v: unknown, field?: FieldMeta): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string") return field?.states?.[v]?.label ?? v;
@@ -211,7 +222,7 @@ export function EditField({
             className="min-h-28 text-[14px] leading-[1.6]"
           />
         </DictateField>
-      ) : field.kind === "status" ? (
+      ) : field.kind === "status" || field.kind === "choice" ? (
         <select
           id={id}
           value={typed}
@@ -220,7 +231,7 @@ export function EditField({
           aria-label={field.label}
           className={FIELD}
         >
-          {Object.entries(field.states ?? {}).map(([k, s]) => (
+          {choicesOf(field, String(value ?? "")).map(([k, s]) => (
             <option key={k} value={k}>
               {s.label}
             </option>

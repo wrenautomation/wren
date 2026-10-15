@@ -10,6 +10,7 @@ import type { Queryable } from "@wren/db";
 import type { ZodType } from "zod";
 import { APPS, isChannel, type Permission } from "./access.js";
 import { type Words, wordsOf } from "./model-labels.js";
+import { accountChoices, recordAccount } from "./record-accounts.js";
 import { codeLabel } from "./template-labels.js";
 
 /** good green, warn amber, bad red, neutral gray. */
@@ -401,6 +402,8 @@ export interface Field {
    * through `nameParts`) is in it.
    */
   choices?: () => Readonly<Record<string, string>>;
+  /** An account field: only accounts on these platforms (a Reddit-only list offers no LinkedIn). */
+  platforms?: readonly string[];
   /** company: the column with its domain. */
   domain?: string;
   /** money: the column with each row's currency code. */
@@ -456,6 +459,12 @@ export const choice = (
   label?: string,
   opts: Opts = {},
 ) => kind("choice")(label, { choices, ...opts });
+/**
+ * The account a row is on (the login it was sent from or reached): its key, shown as the
+ * account's label ("u/<handle>"). A record names this field in `account`.
+ */
+export const accountField = (label = "Account", opts: Opts = {}) =>
+  choice(accountChoices, label, opts);
 /**
  * Text that names something in code (a service, a stage, a niche key): shown and exported as
  * words ("ComposeScheduler" reads "Compose scheduler"), searched and filtered as stored.
@@ -549,6 +558,8 @@ export const EDITABLE: ReadonlySet<Kind> = new Set<Kind>([
   "number",
   "money",
   "status",
+  // A pick list: an account field's reassign (a place to another of our accounts).
+  "choice",
   "tags",
   "link",
   "date",
@@ -583,6 +594,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
    * platform field first, then a few short pick lists.
    */
   quick?: readonly string[];
+  /**
+   * The field holding the account each row is on (`accountField`): the bar's Account filter,
+   * its column and Group by account. Every record that has an account declares it here.
+   */
+  account?: keyof F & string;
   /** Records that point at this one: `by` is their view's column holding this key. */
   related?: readonly { record: string; by: string }[];
   /**
@@ -775,6 +791,11 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
   }
   for (const k of [decl.title, decl.subtitle])
     if (k !== undefined && !Object.hasOwn(fields, k)) throw new Error(`${decl.id}: no field ${k}`);
+  if (decl.account !== undefined) {
+    const f = Object.hasOwn(fields, decl.account) ? fields[decl.account] : undefined;
+    if (f?.kind !== "choice" || f.choices !== accountChoices)
+      throw new Error(`${decl.id}: its account ${decl.account} must be an accountField`);
+  }
   if (!decl.views.length) throw new Error(`${decl.id}: needs a view`);
   if (new Set(decl.views.map((v) => v.id)).size !== decl.views.length)
     throw new Error(`${decl.id}: view ids repeat`);
@@ -854,6 +875,8 @@ export interface FieldMeta {
   searchable: boolean;
   column: KindFacts["column"];
   group?: string;
+  /** The record's declared account field: drawn as an account badge, filtered first. */
+  account?: true;
 }
 export interface RecordMeta {
   id: string;
@@ -879,6 +902,8 @@ export interface RecordMeta {
   editNeeds?: "manage";
   /** The filters always on the bar; absent = picked by the web. */
   quick?: readonly string[];
+  /** The field holding each row's account, when it has one: filter, column, group by. */
+  account?: string;
   /** Where its rows sit, for access checks on the web: the app, and the channel or its field. */
   app: string;
   channel: RecordChannel;
@@ -912,6 +937,21 @@ const statesOf = (labels: Readonly<Record<string, string>>): Record<string, Stat
     ),
   );
 
+/** An account field's labels, each with its platform's mark. */
+const accountStates = (
+  labels: Readonly<Record<string, string>>,
+  platforms?: readonly string[],
+): Record<string, State> =>
+  Object.fromEntries(
+    Object.entries(labels)
+      .filter(([k]) => !platforms || platforms.includes(recordAccount(k)?.platform ?? ""))
+      .map(([k, label]) => {
+        const mark = markOf(recordAccount(k)?.platform ?? "");
+        const s: State = { label, tone: "neutral" };
+        return [k, mark ? { ...s, mark } : { ...s, tint: tintOf(k) }];
+      }),
+  );
+
 export function metaOf(type: RecordType, demo: boolean): RecordMeta {
   return {
     id: type.id,
@@ -920,7 +960,11 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     subtitle: type.subtitle ?? null,
     fields: Object.entries(type.fields).map(([key, f]) => {
       const may = allowed(f, demo);
-      const states = f.choices ? statesOf(f.choices()) : f.states;
+      const states = f.choices
+        ? key === type.account
+          ? accountStates(f.choices(), f.platforms)
+          : statesOf(f.choices())
+        : f.states;
       return {
         key,
         kind: f.kind,
@@ -933,10 +977,12 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
         ...may,
         column: f.listed === false ? null : KINDS[f.kind].column,
         ...(f.group ? { group: f.group } : {}),
+        ...(key === type.account ? { account: true as const } : {}),
       };
     }),
     views: type.views,
     ...(type.quick ? { quick: type.quick } : {}),
+    ...(type.account ? { account: type.account } : {}),
     related: (type.related ?? []).map((r) => ({ record: r.record })),
     actions: type.actions ?? [],
     activity: !!type.activity,

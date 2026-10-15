@@ -29,6 +29,7 @@ import {
   stoppedPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { pickedAccount } from "@wren/outreach";
 import { clientContent } from "../clients.js";
 import { postedLinks } from "../funnel.js";
 import { postOf } from "../platforms.js";
@@ -43,11 +44,17 @@ const MAX_PER_PASS = 10;
 type ContentService = {
   publish: (
     ctx: restate.Context,
-    req: { platform: Platform; post: Post; client?: string | null },
+    req: { platform: Platform; post: Post; client?: string | null; account?: string | null },
   ) => Promise<Published>;
   reply: (
     ctx: restate.Context,
-    req: { platform: Platform; commentId: string; text: string; client?: string | null },
+    req: {
+      platform: Platform;
+      commentId: string;
+      text: string;
+      client?: string | null;
+      account?: string | null;
+    },
   ) => Promise<void>;
 };
 
@@ -123,11 +130,16 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         ? { text: null, comment: null }
         : await ctx.run(`link ${draft.id}`, () => postedLinks(o.db, claimed));
       const link = links.text ?? links.comment;
+      // A person's pick on the draft posts it as that login; none, the platform's default.
+      const account = o.client
+        ? null
+        : await ctx.run(`account ${draft.id}`, () => pickedAccount(o.db, `draft:${draft.id}`));
       try {
         const published = await content.publish({
           platform: draft.platform,
           post: postOf(claimed, links.text),
           ...(o.client ? { client: o.client } : {}),
+          ...(account ? { account } : {}),
         });
         await ctx.run(`published ${draft.id}`, () =>
           markPublished(o.db, draft.id, published, link),
@@ -137,7 +149,12 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
           // The post is up either way: a comment that fails is noted on the draft, never retried
           // into a second one.
           const commented = await content
-            .reply({ platform: draft.platform, commentId: published.id, text: links.comment })
+            .reply({
+              platform: draft.platform,
+              commentId: published.id,
+              text: links.comment,
+              ...(account ? { account } : {}),
+            })
             .then(
               () => null,
               (err: unknown) => errorText(err),

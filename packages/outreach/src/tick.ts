@@ -141,7 +141,7 @@ export async function reconcile(db: Queryable, now: Date): Promise<number> {
 }
 
 /** Today's sends from each account, by kind (fleet day). */
-async function sentToday(
+export async function sentToday(
   db: Queryable,
   accountIds: readonly string[],
   now: Date,

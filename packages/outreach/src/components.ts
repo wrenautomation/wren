@@ -26,7 +26,7 @@ export const OUTREACH_COMPONENTS = [
     provides: {
       services: ["ReachSender", "ReachWatch", "ReachDesk", "CommentProofs"],
       loops: ["ReachSender", "ReachWatch"],
-      records: ["marketing.person"],
+      records: ["marketing.person", "marketing.account"],
     },
     clientLoops: (client) => [
       { service: "ReachSender", key: clientKey(client, SENDER_UNIT) },

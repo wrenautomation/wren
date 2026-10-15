@@ -17,7 +17,10 @@ import {
   type VideoSigner,
 } from "@wren/content/records";
 import { factsRecord } from "@wren/core/facts";
+import { accountSource } from "@wren/core/record-accounts";
+import { type ReachPolicy, recordAccountsOf } from "@wren/outreach";
 import {
+  accountRecordOf,
   commentRecord,
   dmRecord,
   inviteRecord,
@@ -26,8 +29,14 @@ import {
   threadRecord,
 } from "@wren/outreach/records";
 
-/** `signer` links a draft's stored files (thumbnail, cover) in its field editor. */
-export const marketingNumbers = (signer?: VideoSigner) => [
+// The accounts a record can be on: the Account filter's labels, read before records are served.
+accountSource(recordAccountsOf);
+
+/**
+ * `signer` links a draft's stored files (thumbnail, cover) in its field editor; `policy` is the
+ * reach caps the Accounts page counts today's sends against.
+ */
+export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => [
   ...contentRecords(signer),
   ...ANALYTICS_RECORDS,
   adDayRecord,
@@ -39,6 +48,8 @@ export const marketingNumbers = (signer?: VideoSigner) => [
   threadRecord,
   inviteRecord,
   personRecord,
+  // Every account we speak as: Marketing → Accounts.
+  accountRecordOf(policy),
   ...socialRecords(signer),
   reviewRecord,
   // The facts every draft may claim, edited on Marketing → Facts.

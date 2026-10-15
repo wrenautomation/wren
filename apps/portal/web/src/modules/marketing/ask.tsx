@@ -6,6 +6,7 @@
  */
 import type { DraftTurn } from "@wren/core/ask";
 import type { DraftRecordView } from "@wren/core/draft-record";
+import type { AccountPick } from "@wren/core/record-accounts";
 import type { Row } from "@wren/core/records/serve";
 import {
   type Action,
@@ -107,6 +108,8 @@ export const withDraft =
         undo: DRAFT_UNDO,
         send: d.send,
         editor: d.editor?.(detail) ?? undefined,
+        // Which account it sends as, where its platform has two or more (`accountPickFor`).
+        accounts: (detail as { accounts?: AccountPick | null } | null)?.accounts ?? null,
       },
       ...(turns.some((t) => t.state === "thinking") ? { poll: POLL_MS } : {}),
     };

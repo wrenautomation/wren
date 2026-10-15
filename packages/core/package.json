@@ -113,6 +113,7 @@
     "./keys": "./src/keys.ts",
     "./key-refs": "./src/key-refs.ts",
     "./keys-schema": "./src/keys-schema.ts",
+    "./record-accounts": "./src/record-accounts.ts",
     "./records": "./src/records.ts",
     "./records/serve": "./src/records-serve.ts",
     "./records/delta": "./src/records-delta.ts",

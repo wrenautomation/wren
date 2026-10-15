@@ -30,6 +30,8 @@ import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { MESSAGE_DEFAULTS } from "@wren/core/message-settings";
 import { profileRecords } from "@wren/core/profile-records";
+import { setRecordAccounts } from "@wren/core/record-accounts";
+import { metaOf } from "@wren/core/records";
 import { handlerForm } from "@wren/core/restate";
 import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { SENT_RECORDS } from "@wren/core/sent/records";
@@ -397,5 +399,56 @@ describe("workflows and hypotheses", () => {
       // A scaffold may show its app, records and test buttons (the voice agent); no loop runs.
       expect(c.provides.loops, c.id).toEqual([]);
     }
+  });
+});
+
+/**
+ * Accounts are first class (designs/2026-10-15-accounts-first-class.md): a record with an
+ * account field declares it (`account:`), so its list gets the Account filter, column and
+ * grouping. A field over the account registry, or one named or labelled as an account, that
+ * isn't the declared one fails here.
+ */
+describe("account fields", () => {
+  /** Not a login we send as: a spend's chart-of-accounts bucket; the Accounts page's own name. */
+  const NOT_SENDERS = new Set(["books.spend:account", "marketing.account:name"]);
+  const NAMED = /^(account|accounts|sentAs|fromAccount)$/;
+  const LABELLED = new Set(["Account", "Sent as", "From account", "Send as"]);
+
+  it("every record with an account field declares it", () => {
+    // One per platform: a field limited to one platform (`platforms`) still lists its own.
+    const PLATFORMS = ["reddit", "linkedin", "x", "youtube", "instagram", "tiktok", "facebook"];
+    setRecordAccounts(
+      PLATFORMS.map((p) => ({ key: `${p}@lint`, platform: p, label: `lint on ${p}` })),
+    );
+    const isAccount = (states?: Record<string, unknown>) =>
+      PLATFORMS.some((p) => states?.[`${p}@lint`]);
+    const wrong: string[] = [];
+    for (const t of RECORD_TYPES) {
+      const meta = metaOf(t, false);
+      for (const f of meta.fields) {
+        if (f.key === meta.account || NOT_SENDERS.has(`${t.id}:${f.key}`)) continue;
+        if (isAccount(f.states) || NAMED.test(f.key) || LABELLED.has(f.label))
+          wrong.push(`${t.id}:${f.key}`);
+      }
+      if (meta.account) {
+        const f = meta.fields.find((x) => x.key === meta.account);
+        if (!f?.account || !isAccount(f.states))
+          wrong.push(`${t.id}:${meta.account} (not an accountField)`);
+      }
+    }
+    setRecordAccounts([]);
+    expect(wrong).toEqual([]);
+  });
+
+  it("the records that are on an account all declare one", () => {
+    const declared = RECORD_TYPES.filter((t) => t.account).map((t) => t.id);
+    for (const id of [
+      "marketing.dm",
+      "marketing.comment",
+      "marketing.place",
+      "marketing.thread",
+      "marketing.account",
+    ])
+      expect(declared, id).toContain(id);
   });
 });

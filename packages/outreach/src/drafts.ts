@@ -20,6 +20,7 @@ import { and, desc, eq, gt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { contactById } from "./contacts.js";
 import { personLine } from "./discovery/people.js";
+import { pickedReachAccount } from "./draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { ReachRefusal } from "./refusal.js";
 import {
@@ -263,7 +264,11 @@ export async function queueDraft(
   const words = (body ?? contact.draft ?? "").trim();
   if (!words) throw new ReachRefusal("the message is empty");
   const { record } = await dmContext(db, contact.id);
-  const msg = await queueManual(db, { contact, body: words, subject, now });
+  // A person's pick on the draft sends it; else the account the thread is on.
+  const picked = await pickedReachAccount(db, `${record}:${contact.id}`);
+  const from =
+    picked && picked.platform === contact.platform ? { ...contact, accountId: picked.id } : contact;
+  const msg = await queueManual(db, { contact: from, body: words, subject, now });
   await keepSentEdit(db, {
     record,
     id: String(contact.id),

@@ -6,6 +6,8 @@
  * ⌘Enter saves and runs the record's send action (its confirm still asks). A line under it asks
  * Claude; the turns show above that line, with Undo beside the newest change.
  */
+
+import type { AccountPick } from "@wren/core/record-accounts";
 import {
   createContext,
   type KeyboardEvent,
@@ -18,6 +20,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
+import { AccountPicker } from "./accounts.js";
 import { type Action, type Call, callOnce, useLastWrite } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
@@ -77,6 +80,11 @@ export interface RecordDraft {
   send?: string | undefined;
   /** Draws the words its own way; the box keeps saving, asking and undoing. */
   editor?: DraftEditor | undefined;
+  /**
+   * Which account it goes out as, where its platform has two or more: picked above the words and
+   * saved through `save` as `{ ids, account }`.
+   */
+  accounts?: AccountPick | null | undefined;
 }
 
 // "draft-ask", "video-ask"; "draft-undo", "video undo"; the rest are edits.
@@ -302,6 +310,53 @@ export function DraftBox({
     }
   };
 
+  // The account it sends as: picked here, kept in the edits store until the server holds it (a
+  // reload or a failed save gives it back and sends it again), saved through the draft's own save.
+  type Picked = { accounts?: AccountPick | null } | undefined;
+  const [picking, setPicking] = useState(false);
+  const [pick, setPick] = useState(draft.accounts ?? null);
+  useEffect(() => setPick(draft.accounts ?? null), [draft.accounts]);
+  const held = pick?.picked ? (pick.current ?? "") : "";
+  const chosen = useEdit(pick ? `${key}:account` : null, held);
+  const pickNow = async (account: string | null) => {
+    if (!save || picking) return;
+    const want = account ?? "";
+    chosen.set(want);
+    setPicking(true);
+    try {
+      const got = (await callOnce(
+        call,
+        save.handler,
+        [id],
+        { ids: [id], account: want },
+        {
+          label: "Send as",
+        },
+      )) as Picked & { answer?: Picked };
+      // The page's call answers per record (`answer`); a bare handler answers itself.
+      const out = got?.answer && "accounts" in got.answer ? got.answer : got;
+      if (out && "accounts" in out) setPick(out.accounts ?? null);
+      chosen.saved(want);
+      changed([id]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPicking(false);
+    }
+  };
+  // A pick that came back from before (a reload, another page) goes again once.
+  const resent = useRef(false);
+  useEffect(() => {
+    if (resent.current || !pick || !chosen.dirty || chosen.conflict) return;
+    resent.current = true;
+    void pickNow(chosen.value || null);
+  });
+  /** What the picker shows: the pick still going or not yet saved over the server's. */
+  const shown =
+    pick && chosen.dirty
+      ? { ...pick, current: chosen.value || pick.fallback, picked: chosen.value !== "" }
+      : pick;
+
   // The keys only where there is a keyboard to press them.
   const hint = send ? "Saves as you type · ⌘↵ sends" : "Saves as you type";
 
@@ -313,6 +368,9 @@ export function DraftBox({
         </label>
         {save ? <SaveStatus state={s} onRetry={() => void s.retry()} idle={hint} /> : null}
       </div>
+      {shown && save ? (
+        <AccountPicker pick={shown} onPick={pickNow} busy={picking} unsaved={chosen.dirty} />
+      ) : null}
       <SendStatus write={sent} />
       {s.conflict ? (
         <SaveConflict

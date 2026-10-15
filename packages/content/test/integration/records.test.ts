@@ -121,6 +121,8 @@ describe("marketing.draft", () => {
         text: "a draft post",
         published: null,
       }),
+      // One X login in the test: nothing to pick.
+      accounts: null,
       ask: [],
       record: null,
       // The same idea's other drafts, a click apart in the editor.
@@ -270,6 +272,7 @@ describe("marketing.approval: what we'd send", () => {
     expect(inbox.some((r) => outbound.includes(String(r.type)))).toBe(false);
     expect(await approvalRecord.load?.(pg.db, `draft:${d!.id}`)).toEqual({
       shape: expect.objectContaining({ draftId: d!.id, editable: true }),
+      accounts: null,
       ask: [],
       record: null,
     });

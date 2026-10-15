@@ -135,6 +135,7 @@ import {
   teamSeat,
   whoIs,
 } from "./portal.js";
+import { refreshRecordAccounts } from "./record-accounts.js";
 import {
   choice,
   cued,
@@ -2348,6 +2349,7 @@ export function consoleApi({
   ): Promise<T> => {
     if (req.record !== COMPONENT && !isAccess(req.record)) team(req);
     const all = await typesFor(req);
+    await refreshRecordAccounts(main);
     return snapshot(main, (tx) => use(serveRecords(all, tx, undefined, fenceOf(req), meOf(req))));
   };
   /**
@@ -2635,6 +2637,7 @@ export function consoleApi({
 
     recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
       const fence = fenceOf(req);
+      await refreshRecordAccounts(main);
       return (await typesFor(req)).filter((t) => opens(t, fence(t))).map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>

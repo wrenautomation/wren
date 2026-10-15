@@ -462,7 +462,7 @@ describe("SocialWatch", () => {
     expect(inbox.find((r) => r.type === "comment")).toMatchObject({
       platform: "linkedin",
       channel: "content",
-      account: "Wren",
+      account: null,
       state: "new",
     });
     const acts = (await activityRecord.rows?.(pg.db)) ?? [];

@@ -24,7 +24,7 @@ describe("client mail in the Inbox", () => {
       ('ann@acme.example', 'm3', 't3', '', 'y@client.example', 'Thanks', null, 'show', now(), null, 'mail', now()),
       ('me@wren.example', 'w1', 'tw', '', 'z@vendor.example', 'Invoice', null, 'show', now(), null, 'monitor', null)`);
     const rows = ((await inboxRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "mail");
-    expect(rows.map((r) => [r.who, r.state, r.account])).toEqual(
+    expect(rows.map((r) => [r.who, r.state, r.mailbox])).toEqual(
       expect.arrayContaining([
         ["Lee", "waiting", "ann@acme.example"],
         ["x@news.example", "seen", "ann@acme.example"],
@@ -55,7 +55,7 @@ describe("client mail in the Inbox", () => {
         now(), 'mail', now()),
       ('bob@acme.example', 'a4', 'ta', 'Kim', 'kim@x.example', 'Other box', null, 'show', now(), 'mail', null)`);
     const rows = ((await inboxRecord.rows?.(pg.db)) ?? []).filter((r) => r.type === "mail");
-    expect(rows.map((r) => [r.who, r.state, r.account, r.body])).toEqual(
+    expect(rows.map((r) => [r.who, r.state, r.mailbox, r.body])).toEqual(
       expect.arrayContaining([
         ["Lee (3)", "waiting", "ann@acme.example", "Thanks"],
         ["Kim", "waiting", "bob@acme.example", "Other box"],

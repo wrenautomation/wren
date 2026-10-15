@@ -8,12 +8,14 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
-import { byOf, CLAUDE, type ClaudeService, draftAnswerOf } from "@wren/core/ask";
+import { byOf, CLAUDE, type ClaudeService, type DraftTurn, draftAnswerOf } from "@wren/core/ask";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";
+import type { AccountPick } from "@wren/core/record-accounts";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
+import { pickAccount } from "@wren/outreach";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -40,8 +42,13 @@ const ASK_INPUT = z.looseObject({
 
 const SET_INPUT = z.looseObject({
   ...ITEM,
-  text: z.string().describe("The whole draft; empty clears it"),
+  text: z.string().optional().describe("The whole draft; empty clears it; absent keeps it"),
   expect: z.string().nullish().describe("The draft his box started from; null = none"),
+  account: z
+    .string()
+    .max(120)
+    .nullish()
+    .describe("The login it goes out as (`reddit@alt`); empty = its default; absent keeps it"),
 });
 
 type Item = { record: string; id: string; viewer?: unknown };
@@ -94,10 +101,35 @@ export function makeDraftAsk(db: Db) {
        */
       set: serviceHandler(
         { input: SET_INPUT },
-        async (ctx: restate.Context, req: Item & { text: string; expect?: string | null }) => {
-          const text = typeof req.text === "string" ? req.text.trim() : "";
-          return ctx.run("set", () =>
-            writeDraft(db, `${req.record}:${req.id}`, text || null, {
+        async (
+          ctx: restate.Context,
+          req: Item & { text?: string; expect?: string | null; account?: string | null },
+        ): Promise<{
+          run?: string;
+          turn?: DraftTurn | null;
+          version?: string | null;
+          accounts?: AccountPick | null;
+        }> => {
+          const item = `${req.record}:${req.id}`;
+          // The account it goes out as: kept with the draft, the send reads it.
+          const accounts =
+            req.account === undefined
+              ? undefined
+              : await ctx.run("account", () =>
+                  pickAccount(db, { item, account: req.account ?? null, by: whoOf(req) }).catch(
+                    (err) => {
+                      throw refuse(err, 400);
+                    },
+                  ),
+                );
+          if (req.text === undefined) {
+            if (accounts === undefined)
+              throw new restate.TerminalError("say the text or the account", { errorCode: 400 });
+            return { accounts };
+          }
+          const text = req.text.trim();
+          const saved = await ctx.run("set", () =>
+            writeDraft(db, item, text || null, {
               command: "draft-set",
               by: whoOf(req),
               ...(req.expect !== undefined ? { expect: req.expect } : {}),
@@ -108,6 +140,7 @@ export function makeDraftAsk(db: Db) {
                 throw refuse(err, 400);
               }),
           );
+          return accounts === undefined ? saved : { ...saved, accounts };
         },
       ),
 

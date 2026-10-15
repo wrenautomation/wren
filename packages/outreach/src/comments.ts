@@ -22,6 +22,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
+import { pickedReachAccount } from "./draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
 import { passedOn, passKey } from "./passes.js";
@@ -352,7 +353,8 @@ export async function planAnswer(db: Queryable, id: number, now: Date): Promise<
   if (comment.state === "answered") throw new ReachRefusal("already answered");
   if (comment.sort === "ours") throw new ReachRefusal("that one is ours");
   if (comment.channel === "content") return { comment, account: null, others: [] };
-  const account = await accountOf(db, comment);
+  // A person's pick on the draft, else the account they spoke to.
+  const account = (await pickedReachAccount(db, `comment:${id}`)) ?? (await accountOf(db, comment));
   if (account.state === "paused" || account.state === "retired")
     throw new ReachRefusal(`${account.account} is ${account.state}`);
   if (account.platform === "reddit" && account.health) {

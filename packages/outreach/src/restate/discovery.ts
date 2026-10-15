@@ -510,13 +510,9 @@ export function discoveryHandlers(deps: ReachDeps) {
     ),
     movePlace: serviceHandler(
       { input: MOVE },
-      async (
-        ctx: restate.Context,
-        req: { subreddit: string; accountId: string },
-      ): Promise<void> => {
-        await ctx.run("move", () =>
-          terminal(() => movePlace(deps.db, req.subreddit, req.accountId)),
-        );
+      async (ctx: restate.Context, req: { subreddit: string; account: string }): Promise<void> => {
+        // The input names it `account` (MOVE); `accountId` was always undefined here.
+        await ctx.run("move", () => terminal(() => movePlace(deps.db, req.subreddit, req.account)));
       },
     ),
     /** Comment in a queued thread from its place's account. Sent now: the click is the yes. */

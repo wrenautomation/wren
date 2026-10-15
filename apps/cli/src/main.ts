@@ -27,6 +27,7 @@ import {
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { registerAccounts } from "./accounts.js";
 import { registerAds } from "./ads.js";
 import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
@@ -291,6 +292,7 @@ registerTasks(program, { withDb, client: () => program.opts<{ client?: string }>
 registerAds(program, withMainDb, settings);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
+registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
 registerLearn(

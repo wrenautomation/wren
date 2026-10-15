@@ -308,7 +308,14 @@ async function orFallBack<T>(work: Promise<T>): Promise<T> {
  * Build the channels for one invocation from its context (the `sites` calls need it). `arm`:
  * channels whose writes arm the browser instead of sending (`SitesHost.arm`).
  */
-export type ChannelsFor = (ctx: restate.Context, o?: { arm?: boolean }) => Channels;
+/**
+ * Wren's channels for one invocation. `account`: post as that login (`reddit@alt`), a person's
+ * pick on the draft (designs/2026-10-15-accounts-first-class.md); absent, each platform's default.
+ */
+export type ChannelsFor = (
+  ctx: restate.Context,
+  o?: { arm?: boolean; account?: string | null },
+) => Channels;
 
 /** What a client's part is doing on its channels: posting, or reading (`content.social`). */
 export type ContentPart = "content.posting" | "content.social";
@@ -359,6 +366,12 @@ const ACTIVITY_QUERY = z
 /** A client's id: its own logins, not Wren's. Empty: Wren's. */
 const CLIENT = z.string().nullish().describe("A client's id; empty = Wren's own channels");
 type ForClient = { client?: string | null };
+const ACCOUNT = z
+  .string()
+  .max(120)
+  .nullish()
+  .describe("Wren's login to post as (`reddit@alt`); empty = the platform's default");
+type AsAccount = { account?: string | null };
 const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string(), client: CLIENT });
 const REPLY = z.looseObject({
   platform: PLATFORM,
@@ -384,13 +397,14 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
     platform: Platform,
     client: string | null | undefined,
     part: ContentPart = "content.posting",
+    account?: string | null,
   ): Promise<ContentChannel> => {
     if (client && !clients)
       throw new restate.TerminalError("no client channels here", { errorCode: 404 });
     const ch =
       client && clients
         ? (await clients.channels(ctx, client, part))[platform]
-        : channelsFor(ctx)[platform];
+        : channelsFor(ctx, account ? { account } : undefined)[platform];
     if (!ch)
       throw new restate.TerminalError(
         client
@@ -417,10 +431,13 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         },
       ),
       publish: serviceHandler(
-        { input: PUBLISH.extend({ client: CLIENT }), effect: "posts" },
-        async (ctx: restate.Context, req: { platform: Platform; post: Post } & ForClient) => {
+        { input: PUBLISH.extend({ client: CLIENT, account: ACCOUNT }), effect: "posts" },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; post: Post } & ForClient & AsAccount,
+        ) => {
           await sending(ctx, req.client);
-          const ch = await pick(ctx, req.platform, req.client);
+          const ch = await pick(ctx, req.platform, req.client, "content.posting", req.account);
           return refusalsFinal(
             Promise.resolve()
               .then(() => fieldsOf(req.platform, req.post.extra))
@@ -497,7 +514,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           ),
       ),
       reply: serviceHandler(
-        { input: REPLY, effect: "posts" },
+        { input: REPLY.extend({ account: ACCOUNT }), effect: "posts" },
         async (
           ctx: restate.Context,
           req: {
@@ -505,10 +522,11 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             commentId: string;
             postId?: string | null;
             text: string;
-          } & ForClient,
+          } & ForClient &
+            AsAccount,
         ) => {
           await sending(ctx, req.client);
-          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          const ch = await pick(ctx, req.platform, req.client, "content.social", req.account);
           if (!ch.reply)
             throw new restate.TerminalError(`${req.platform} cannot reply here`, {
               errorCode: 501,

@@ -128,8 +128,8 @@ describe("reddit discovery", () => {
     const rows = (await placeRecord.rows?.(db())) ?? [];
     const byPlace = Object.fromEntries(rows.map((r) => [r.place, [r.state, r.account]]));
     expect(byPlace).toEqual({
-      "r/Agency": ["watching", "WrenAutomation"],
-      "r/smallbusiness": ["watching", "WrenAutomation"],
+      "r/Agency": ["watching", "reddit@wren"],
+      "r/smallbusiness": ["watching", "reddit@wren"],
       "r/nocomments": ["skipped", null],
     });
     expect(String(rows.find((r) => r.place === "r/Agency")?.why)).toMatch(
@@ -203,7 +203,7 @@ describe("reddit discovery", () => {
     await keepScores(db(), [{ ref: "t1_ours", score: 7 }], NOW);
     const rows = (await threadRecord.rows?.(db())) ?? [];
     const ours = rows.find((r) => r.id === first);
-    expect(ours).toMatchObject({ state: "commented", score: 7, account: "WrenAutomation" });
+    expect(ours).toMatchObject({ state: "commented", score: 7, account: "reddit@wren" });
     const [place] = await db().select().from(redditPlaces);
     expect(place?.state).toBe("watching");
   });

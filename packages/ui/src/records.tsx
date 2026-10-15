@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
+import { accountFieldOf } from "./accounts.js";
 import {
   type Action,
   applies,
@@ -564,7 +565,9 @@ export const ROOT =
 /** Which columns show: the address's `cols`, else the page's, else every field that has one. */
 function columnsOf(meta: RecordMeta, params: URLSearchParams, columns?: string[]): FieldMeta[] {
   const all = meta.fields.filter((f) => f.column);
-  const picked = params.get("cols")?.split(",") ?? columns;
+  const cols = params.get("cols")?.split(",");
+  // A page's own columns always carry the record's declared account; a viewer may take it off.
+  const picked = cols ?? (columns && meta.account ? [...columns, meta.account] : columns);
   if (!picked) return all;
   return all.filter((f) => f.key === meta.title || picked.includes(f.key));
 }
@@ -594,7 +597,10 @@ function ListDisplay({
   const site = siteField(meta);
   const all =
     narrow || cards === false ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
-  if (!frame && !site && !all.length) return null;
+  const account = accountFieldOf(meta);
+  // Group by its platform, or by the account each row is on: one at a time.
+  const groups = [site, account].flatMap((f) => (f?.states ? [f] : []));
+  if (!frame && !groups.length && !all.length) return null;
   const shown = new Set(columnsOf(meta, place.params, columns).map((f) => f.key));
   const fallback = columnsOf(meta, new URLSearchParams(), columns)
     .map((f) => f.key)
@@ -607,7 +613,7 @@ function ListDisplay({
       .join(",");
     place.go(place.link({ cols: next === fallback ? null : next || "none" }), true);
   };
-  const grouping = !!site && place.params.get("group") === site.key;
+  const grouping = groups.some((f) => place.params.get("group") === f.key);
   const label =
     "flex h-8 pointer-coarse:h-11 cursor-pointer items-center gap-2.5 px-1.5 text-[13px] hover:bg-(--ui-hover)";
   return (
@@ -630,19 +636,20 @@ function ListDisplay({
             onChange={(density) => frame.set({ density })}
           />
         ) : null}
-        {site ? (
-          <label className={cn(label, "-mx-1.5")}>
-            <input
-              type="checkbox"
-              checked={grouping}
-              onChange={() =>
-                place.go(place.link({ group: grouping ? null : site.key, pg: null }), true)
-              }
-              className="size-3.5 accent-(--ui-ink)"
-            />
-            Group by {site.label.toLowerCase()}
-          </label>
-        ) : null}
+        {groups.map((g) => {
+          const on = place.params.get("group") === g.key;
+          return (
+            <label key={g.key} className={cn(label, "-mx-1.5")}>
+              <input
+                type="checkbox"
+                checked={on}
+                onChange={() => place.go(place.link({ group: on ? null : g.key, pg: null }), true)}
+                className="size-3.5 accent-(--ui-ink)"
+              />
+              Group by {g.label.toLowerCase()}
+            </label>
+          );
+        })}
         {all.length ? (
           <fieldset className="m-0 grid min-w-0 border-0 p-0">
             <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">
@@ -1084,9 +1091,10 @@ export function shownColumns(
   const state = states.find(tells) ?? states[0];
   // A card: the title, the state, then the next fields, up to three; a state the same on every
   // row says nothing.
-  const rest = filled.filter(
-    (f) => f.key !== meta.title && f !== state && (f.kind !== "status" || tells(f)),
-  );
+  // The account a row is on comes first after its state: on a phone it says who sends.
+  const rest = filled
+    .filter((f) => f.key !== meta.title && f !== state && (f.kind !== "status" || tells(f)))
+    .sort((a, b) => Number(b.key === meta.account) - Number(a.key === meta.account));
   const lead = filled.filter((f) => f.key === meta.title);
   return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
 }

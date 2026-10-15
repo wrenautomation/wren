@@ -61,6 +61,7 @@ import {
 } from "@wren/outreach/restate";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { pickFor } from "./accounts.js";
 import { longCallKey, pollOutput } from "./poll.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -610,9 +611,11 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .command("comment <id>")
     .description("Your yes: post the draft (or --body) under their post from Wren's account")
     .option("--body <text>")
-    .action(async (id: string, o: { body?: string }) =>
-      json(await desk().commentPost({ id: Number(id), ...(o.body ? { body: o.body } : {}) })),
-    );
+    .option("--account <key>", "comment as this login (x@wren); kept with the draft")
+    .action(async (id: string, o: { body?: string; account?: string }) => {
+      if (o.account) await withDb((db) => pickFor(db, `onpost:${id}`, o.account ?? ""));
+      json(await desk().commentPost({ id: Number(id), ...(o.body ? { body: o.body } : {}) }));
+    });
   for (const act of ["like", "follow"] as const)
     posts
       .command(`${act} <id>`)
@@ -735,15 +738,17 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .description("Queue a message on a thread (out on the next tick, from the contact's account)")
     .requiredOption("--body <text>")
     .option("--subject <text>", "Reddit only")
-    .action(async (contactId: string, o: { body: string; subject?: string }) =>
+    .option("--account <key>", "send as this account (reddit@alt); kept with the draft")
+    .action(async (contactId: string, o: { body: string; subject?: string; account?: string }) => {
+      if (o.account) await withDb((db) => pickFor(db, `dm:${contactId}`, o.account ?? ""));
       json(
         await desk().reply({
           contactId: Number(contactId),
           body: o.body,
           subject: o.subject ?? null,
         }),
-      ),
-    );
+      );
+    });
   cmd
     .command("stats")
     .option("--platform <p>", PLATFORMS.join(" | "))

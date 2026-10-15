@@ -217,7 +217,7 @@ describe("a client's own threads", () => {
     expect(sent).toEqual([]);
     const waiting = (await askedReplyRecord.rows?.(kappa)) ?? [];
     expect(waiting).toHaveLength(1);
-    expect(waiting[0]).toMatchObject({ platform: "sms", account: AMY, state: "waiting" });
+    expect(waiting[0]).toMatchObject({ platform: "sms", asked_by: AMY, state: "waiting" });
     expect(await askedReplyRecord.rows?.(lambda)).toEqual([]);
     expect(await askedReplyRecord.rows?.(pg.db)).toEqual([]);
   });

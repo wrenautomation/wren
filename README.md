@@ -143,6 +143,20 @@ wren drafts edits --type dm --limit 5        # how William changed drafts, befor
 node scripts/prod-wren.mjs drafts list       # on prod
 ```
 
+## Accounts
+
+Every account we post and reply as, the same rows as Marketing → Accounts. A draft on a platform
+with two or more accounts has a Send as picker; the pick is kept with the draft and the send uses
+it. A pick that misses a sub's karma or age rule gets a warning and still sends.
+
+```bash
+wren accounts [--platform reddit]       # key, site, state, health, sent today, places
+wren accounts show reddit@alt           # one in full, with its last 10 sends
+wren accounts assign smallbusiness reddit@alt   # move a subreddit to another account
+wren accounts pick thread:t3_x reddit@alt       # send this draft as it; `default` clears
+wren reach reply 12 --body "..." --account reddit@alt
+```
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a

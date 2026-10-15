@@ -104,9 +104,9 @@ describe("comments", () => {
     expect(ours).toMatchObject({ sort: "ours", state: "dropped" });
     const rows = (await commentRecord.rows?.(db())) ?? [];
     expect(rows.map((r) => [r.who, r.account, r.state])).toEqual([
-      ["reader1", "WrenAutomation", "new"],
-      ["reader2", "WrenAutomation", "new"],
-      ["Ok_Crow", "WrenAutomation", "dropped"],
+      ["reader1", "reddit@wren", "new"],
+      ["reader2", "reddit@wren", "new"],
+      ["Ok_Crow", "reddit@wren", "dropped"],
     ]);
   });
 

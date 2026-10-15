@@ -12,6 +12,7 @@ import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
+  accountField,
   actor,
   cued,
   date,
@@ -29,6 +30,7 @@ import { installApprovalId, waitingInstalls } from "@wren/core/templates/install
 import type { Queryable } from "@wren/db";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
+import { accountPickFor } from "@wren/outreach";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
@@ -215,7 +217,7 @@ const mailState = (m: Record<string, unknown>) =>
 const draftRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, platform, title, text, format, missing, scheduled, created, version
+    sql`select id, platform, title, text, format, missing, scheduled, created, version, account
       from marketing_draft_records
       where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
   );
@@ -233,8 +235,10 @@ const acceptedRows = (db: Queryable) =>
   rowsOf(
     db,
     sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.connected_at at, c.draft, c.url,
-        a.handle account, (c.read_at is null or c.read_at < c.connected_at) unread
+        coalesce(da.account, a.account) account,
+        (c.read_at is null or c.read_at < c.connected_at) unread
       from reach_contacts c left join reach_accounts a on a.id = c.account_id
+      left join draft_accounts da on da.item = 'invite:' || c.id
       where c.connected_at is not null and c.state not in ('opted_out', 'blocked')
         and not exists (select 1 from reach_messages m where m.contact_id = c.id
           and (m.direction = 'in' or m.kind <> 'connect'))
@@ -246,7 +250,7 @@ const connectRows = (db: Queryable) =>
   rowsOf(
     db,
     sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.fit->>'why' why,
-        c.fit->>'company' company, c.url, a.handle account, m.created_at at, m.body note
+        c.fit->>'company' company, c.url, a.account account, m.created_at at, m.body note
       from reach_messages m join reach_contacts c on c.id = m.contact_id
       left join reach_accounts a on a.id = m.account_id
       where m.kind = 'connect' and m.direction = 'out' and m.state = 'proposed'
@@ -257,10 +261,12 @@ const connectRows = (db: Queryable) =>
 const onPostRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, platform, author, text, why, draft, url, account, coalesce(posted_at, created_at) at,
-        queued_at, send_at
-      from reach_posts where state = 'queued'
-      order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
+    sql`select p.id, p.platform, p.author, p.text, p.why, p.draft, p.url,
+        coalesce(da.account, p.account) account, coalesce(p.posted_at, p.created_at) at,
+        p.queued_at, p.send_at
+      from reach_posts p left join draft_accounts da on da.item = 'onpost:' || p.id
+      where p.state = 'queued'
+      order by p.fit desc nulls last, p.id limit ${ACTIVITY_ROWS}`,
   );
 
 /** Our comments sent on their ground, newest first: Engage's Posted. */
@@ -270,7 +276,7 @@ const sentRows = (db: Queryable) =>
     sql`select * from (
         select 'thread:' || t.id id, 'thread' type, t.author who, 'reddit' platform,
           coalesce(nullif(t.body, ''), t.title) body, t.title post_title, t.answer draft,
-          a.handle account, t.posted_at at, t.answered_at sent, t.url, 'r/' || t.subreddit place
+          a.account account, t.posted_at at, t.answered_at sent, t.url, 'r/' || t.subreddit place
         from reddit_threads t left join reach_accounts a on a.id = t.account_id
         where t.answered_at is not null and t.answer_ref is not null
         union all
@@ -540,7 +546,8 @@ export const inboxRecord = defineRecord({
         body: m.words,
         post_title: m.subject,
         draft: null,
-        account: m.mailbox,
+        account: null,
+        mailbox: m.mailbox,
         at: m.at,
         due: m.at,
         url: m.open,
@@ -566,6 +573,7 @@ export const inboxRecord = defineRecord({
   },
   key: "id",
   title: "who",
+  account: "account",
   subtitle: "body",
   fields: {
     who: name("Who"),
@@ -632,7 +640,8 @@ export const inboxRecord = defineRecord({
     body: prose("Their words"),
     postTitle: text("Post"),
     draft: prose("Draft reply"),
-    account: text("On"),
+    account: accountField("On"),
+    mailbox: text("Mailbox"),
     at: date("When"),
     due: date("Due"),
     url: link("Open"),
@@ -713,6 +722,7 @@ export const inboxRecord = defineRecord({
     const ask = {
       ask: await draftTurns(db, type, rest),
       record: await recordOfPage(db, type, rest),
+      accounts: await accountPickFor(db, id),
       conversation,
     };
     return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
@@ -736,7 +746,8 @@ const replyItem = (r: InboxReply) => ({
   held: r.state === "queued" ? r.detail : null,
   send_at: r.state === "queued" ? r.sendAt : null,
   draft: null,
-  account: r.askedBy,
+  account: null,
+  asked_by: r.askedBy,
   at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
   due: r.state === "queued" ? (r.sendAt ?? r.askedAt) : r.askedAt,
   // Our email thread they never answered has no Inbox row to open.
@@ -795,7 +806,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           body: p.text,
           post_title: null,
           draft: null,
-          account: null,
+          account: p.account,
           at: p.created,
           due: p.scheduled ?? p.created,
           url: null,
@@ -924,7 +935,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           post_title: w.live ? `Now: ${w.live}` : null,
           why: w.why,
           draft: null,
-          account: w.by,
+          account: null,
+          asked_by: w.by,
           at: w.at,
           due: w.at,
           url: w.url,
@@ -965,6 +977,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
     },
     key: "id",
     title: "who",
+    account: "account",
     subtitle: "body",
     fields: {
       who: name("Item"),
@@ -1023,7 +1036,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       held: text("Held because"),
       sendAt: date("Sends at"),
       draft: prose("Our draft"),
-      account: text("On"),
+      account: accountField("On"),
+      askedBy: text("Asked by"),
       at: date("When"),
       due: date("Due"),
       url: link("Open"),
@@ -1156,6 +1170,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const ask = {
         ask: await draftTurns(db, type, rest),
         record: await recordOfPage(db, type, rest),
+        accounts: await accountPickFor(db, id),
       };
       if (type === "draft") return { shape: await shapeView(db, rest, signer), ...ask };
       return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
@@ -1194,6 +1209,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
     },
     key: "id",
     title: "who",
+    account: "account",
     subtitle: "body",
     fields: {
       who: name("Who"),
@@ -1214,7 +1230,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       why: text("Picked for"),
       held: text("Held because"),
       draft: prose("Our draft"),
-      account: text("On"),
+      account: accountField("On"),
       at: date("When"),
       due: date("Due"),
       sendAt: date("Sends"),
@@ -1464,7 +1480,8 @@ function broadcastItem(b: Awaited<ReturnType<typeof waitingBroadcasts>>[number])
     body: `${broadcastLine(b)}\n\n${b.subject ? `Subject: ${b.subject}\n\n` : ""}${b.body}`,
     post_title: b.subject,
     draft: null,
-    account: b.by,
+    account: null,
+    asked_by: b.by,
     at: b.askedAt,
     due: b.sendAt ?? b.askedAt,
     send_at: b.sendAt,
@@ -1494,7 +1511,7 @@ export const askedReplyRecord = defineRecord({
       why: r.why,
       held: r.state === "queued" ? r.detail : null,
       send_at: r.state === "queued" ? r.sendAt : null,
-      account: r.askedBy,
+      asked_by: r.askedBy,
       at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
       url: `/marketing/inbox/${encodeURIComponent(r.thread)}`,
     })),
@@ -1520,7 +1537,7 @@ export const askedReplyRecord = defineRecord({
     why: text("Why it waits"),
     held: text("Held because"),
     sendAt: date("Sends at"),
-    account: text("Asked by"),
+    askedBy: text("Asked by"),
     at: date("When"),
     url: link("Open the thread"),
   },
