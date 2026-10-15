@@ -113,6 +113,7 @@ import { answersOf, onWrite, patchedSince, rememberRead, writeThrough } from "./
 import { tick } from "./save/clock.js";
 import { SaveScope, useSavePage } from "./save/react.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
+import { TabBar } from "./tab-bar.js";
 import { sortTip } from "./view-says.js";
 
 /** The four record calls, bound to a workspace. */
@@ -2534,6 +2535,7 @@ export function RecordBody({
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
   /** An action changed this record: its states wash once they are read again. */
   const [changed, setChanged] = useState(false);
+  const sections = useRef<HTMLElement>(null);
   const acted = (ids: (string | number)[]) => {
     got.retry();
     setChanged(ids.length > 0);
@@ -2904,9 +2906,11 @@ export function RecordBody({
       {more.top}
 
       <nav
-        className="flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
+        ref={sections}
+        className="relative flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
         aria-label="Sections"
       >
+        <TabBar nav={sections} on={tab} row={`sections:${meta.id}`} />
         {tabs.map((t) => (
           <a
             key={t.id}
@@ -2915,7 +2919,7 @@ export function RecordBody({
             className={cn(
               TAB,
               tab === t.id
-                ? "border-(--ui-ink) text-(--ui-ink)"
+                ? "border-transparent text-(--ui-ink)"
                 : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)",
             )}
           >

@@ -15,8 +15,9 @@ import {
   PAGE_TITLE,
   relative,
   say,
+  TabBar,
 } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -33,8 +34,10 @@ type Tab = (typeof TABS)[number][0];
 
 /** The three views, as links: Explore is a list page of its own. */
 export function FeedTabs({ on }: { on: Tab }) {
+  const row = useRef<HTMLElement>(null);
   return (
-    <nav aria-label="Feed" className="flex gap-1 border-(--ui-hair) border-b">
+    <nav ref={row} aria-label="Feed" className="relative flex gap-1 border-(--ui-hair) border-b">
+      <TabBar nav={row} on={on} row="feed" />
       {TABS.map(([id, label, href]) => (
         <a
           key={id}
@@ -42,7 +45,7 @@ export function FeedTabs({ on }: { on: Tab }) {
           aria-current={id === on ? "page" : undefined}
           className={cx(
             "-mb-px border-transparent border-b-2 px-3 py-2 font-medium text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
-            "aria-[current=page]:border-(--ui-active) aria-[current=page]:text-(--ui-ink)",
+            "aria-[current=page]:text-(--ui-ink)",
           )}
         >
           {label}

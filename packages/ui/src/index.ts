@@ -347,6 +347,7 @@ export {
   useSourcePick,
 } from "./sources.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
+export { TabBar } from "./tab-bar.js";
 export {
   applyTheme,
   BASE,

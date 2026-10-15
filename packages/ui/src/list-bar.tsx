@@ -48,6 +48,7 @@ import { num } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
+import { TabBar } from "./tab-bar.js";
 import { sayFilters, sayRaw, saySaved, sayView } from "./view-says.js";
 
 export type { SavedViewLine };
@@ -264,7 +265,7 @@ const TAB =
   "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
 const tabTone = (on: boolean) =>
   on
-    ? "border-(--ui-ink) text-(--ui-ink)"
+    ? "border-transparent text-(--ui-ink)"
     : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)";
 
 /** How many views show as tabs; the rest wait under More. */
@@ -372,6 +373,7 @@ export function ViewTabs({
   const sv = place.params.get("sv");
   const lines = saved?.lines ?? [];
   const narrow = useNarrow();
+  const row = useRef<HTMLElement>(null);
   if (!meta.views.length && !lines.length) return null;
   const all: (MoreView & { saved?: SavedViewLine; at?: number })[] = [
     ...meta.views.map((v, i) => ({
@@ -423,7 +425,12 @@ export function ViewTabs({
       </div>
     );
   return (
-    <nav className="flex gap-6 overflow-x-auto border-b border-(--ui-hair)" aria-label="Views">
+    <nav
+      ref={row}
+      className="relative flex gap-6 overflow-x-auto border-b border-(--ui-hair)"
+      aria-label="Views"
+    >
+      <TabBar nav={row} on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
           <span key={v.id} className={cn(TAB, "gap-1", tabTone(v.on))}>
