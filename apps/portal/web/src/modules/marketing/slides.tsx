@@ -28,6 +28,7 @@ import {
   useSaved,
 } from "@wren/ui";
 import { useState } from "react";
+import { SHAPED } from "./draft-patch.js";
 
 export const SLIDES = "marketing.draftSlides";
 
@@ -154,7 +155,7 @@ export function SlidesEditor({
       const clean = cleanOf(next);
       const unfit = slidesUnfit(clean);
       if (unfit) throw new Error(unfit);
-      await act(SLIDES, { slides: clean, requestId: request });
+      await act(SLIDES, { slides: clean, requestId: request }, SHAPED);
       return { value: next };
     },
   });

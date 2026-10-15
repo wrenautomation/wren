@@ -97,6 +97,57 @@ export interface CarouselView {
   unfit: string | null;
 }
 
+type DraftRow = typeof contentDrafts.$inferSelect;
+
+/**
+ * What a fields save moves on the page (the parts of `ShapeView` it changes), from the saved
+ * row: the desk answers it, so the page patches itself instead of reading the draft again.
+ */
+export interface FieldsSaved {
+  title: string | null;
+  status: DraftStatus;
+  editable: boolean;
+  fields: FieldView[];
+  missing: string[];
+}
+export const fieldsSaved = (d: DraftRow): FieldsSaved => {
+  const editable = EDITABLE.includes(d.status);
+  return {
+    title: d.title,
+    status: d.status,
+    editable,
+    fields: fieldViews(d.platform, d.extra, d.title),
+    missing: editable ? missingFields(d.platform, d.extra, d.title) : [],
+  };
+};
+
+/**
+ * What a slides save moves: the draft's fields, its carousel's set and whether the drawn files
+ * still show it (a change drops them), and the status of each draft sharing the set.
+ */
+export interface SlidesSaved extends FieldsSaved {
+  carousel: Pick<CarouselView, "slides" | "fresh" | "drawn" | "unfit">;
+  shares: { id: string; status: DraftStatus }[];
+}
+export function slidesSaved(id: string, rows: readonly DraftRow[]): SlidesSaved | null {
+  const d = rows.find((r) => r.id === id);
+  if (!d) return null;
+  const slides = cleanSlides(d.extra?.slides);
+  const drawn = d.extra?.rendered as { images?: string[]; of?: string; at?: string } | undefined;
+  return {
+    ...fieldsSaved(d),
+    carousel: {
+      slides,
+      fresh: Boolean(
+        drawn?.of && drawn.of === slidesKey(slides) && drawn.images?.length === slides.length,
+      ),
+      drawn: drawn?.at ?? null,
+      unfit: carouselUnfit(d),
+    },
+    shares: rows.map((r) => ({ id: r.id, status: r.status })),
+  };
+}
+
 /** YouTube videos a post may point at: the newest not turned down, Shorts left out. */
 export function pickableVideos(db: Queryable, except?: string): Promise<FunnelVideo[]> {
   return db

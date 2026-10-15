@@ -65,6 +65,7 @@ import {
   VARIANT_FIELDS,
   type VariantField,
 } from "../schema.js";
+import { fieldsSaved, type SlidesSaved, slidesSaved } from "../shape-view.js";
 import { slotsOf } from "../slots.js";
 import { STORY_PLATFORMS, type StoryPlatform, storyClips, writeStory } from "../story.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
@@ -395,9 +396,18 @@ const verdictOf = async <T>(f: () => Promise<T>): Promise<T> => {
  * A verdict the review refuses (not waiting, over the cap) is the person's to fix, so it fails
  * the call instead of retrying. ponytail: a database blip fails it too; the person clicks again.
  */
-const verdict = async (f: () => Promise<{ id: string }[]>): Promise<{ done: string[] }> => {
+const verdict = (f: () => Promise<{ id: string }[]>): Promise<{ done: string[] }> =>
+  verdictSaved(f, () => undefined);
+
+/** A verdict that also answers what the save moved (`saved`), so the page patches itself. */
+const verdictSaved = async <T extends { id: string }, S>(
+  f: () => Promise<T[]>,
+  saved: (rows: T[]) => S,
+): Promise<{ done: string[]; saved?: NonNullable<S> }> => {
   try {
-    return { done: (await f()).map((d) => d.id) };
+    const rows = await f();
+    const moved = saved(rows);
+    return { done: rows.map((d) => d.id), ...(moved == null ? {} : { saved: moved as NonNullable<S> }) };
   } catch (err) {
     // A coded refusal (words that moved since the page drew them) keeps its code.
     if (err instanceof PortalRefusal) throw terminalOf(err);
@@ -826,15 +836,18 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         ) => {
           const { db } = await scopeOf(ctx);
           return ctx.run("fields", () =>
-            verdict(async () => {
-              const d = await getDraft(db, req.draftId);
-              for (const [k, v] of Object.entries(req.patch)) {
-                const f = SHAPES[d.platform].fields.find((x) => x.key === k);
-                if ((f?.input === "image" || f?.input === "captions") && v !== null && v !== "")
-                  throw new Error(aboutDraft(d, `${f.label} takes a file. Use Upload beside it`));
-              }
-              return [await setFields(db, req.draftId, req.patch, { by: byOf(req) })];
-            }),
+            verdictSaved(
+              async () => {
+                const d = await getDraft(db, req.draftId);
+                for (const [k, v] of Object.entries(req.patch)) {
+                  const f = SHAPES[d.platform].fields.find((x) => x.key === k);
+                  if ((f?.input === "image" || f?.input === "captions") && v !== null && v !== "")
+                    throw new Error(aboutDraft(d, `${f.label} takes a file. Use Upload beside it`));
+                }
+                return [await setFields(db, req.draftId, req.patch, { by: byOf(req) })];
+              },
+              ([row]) => (row ? fieldsSaved(row) : null),
+            ),
           );
         },
       ),
@@ -962,12 +975,15 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             draw?: boolean | null;
             viewer?: unknown;
           },
-        ): Promise<{ done: string[] }> => {
+        ): Promise<{ done: string[]; saved?: SlidesSaved }> => {
           const s = await scopeOf(ctx);
           const set = req.slides;
           const saved = set
             ? await ctx.run("slides", () =>
-                verdict(() => saveSlides(s.db, req.draftId, set, { by: byOf(req) })),
+                verdictSaved(
+                  () => saveSlides(s.db, req.draftId, set, { by: byOf(req) }),
+                  (rows) => slidesSaved(req.draftId, rows),
+                ),
               )
             : { done: [] };
           if (!req.draw) return saved;

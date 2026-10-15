@@ -23,6 +23,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { SELECT } from "../work/bits.js";
+import { SHAPED } from "./draft-patch.js";
 import { type Funnel, FunnelFields } from "./funnel.js";
 import { postLooks } from "./posts.js";
 import { PlatformPreview, type Typed } from "./shape-preview.js";
@@ -142,7 +143,10 @@ function useSave(act: RecordAct) {
     try {
       // One press, one call: a second while it's out gets the first's answer.
       const key = `${action}:${String(input.field ?? "")}:${String(input.name ?? "")}:${JSON.stringify(input.patch ?? null)}`;
-      await ACTIONS.run(key, (requestId) => act(action, { ...input, requestId }));
+      // A fields save patches the page from its answer; a file's upload reads it again.
+      await ACTIONS.run(key, (requestId) =>
+        act(action, { ...input, requestId }, action === FIELDS ? SHAPED : {}),
+      );
       setSaid("Saved");
       return true;
     } catch (err) {
@@ -242,7 +246,7 @@ function useFieldSaved<T>(
       ? { same: (a: T, b: T) => String(a).trim() === String(b).trim() }
       : {}),
     save: async (v, { request }) => {
-      await act(FIELDS, { patch: { [f.key]: value(v) }, requestId: request });
+      await act(FIELDS, { patch: { [f.key]: value(v) }, requestId: request }, SHAPED);
       return { value: v };
     },
   });
@@ -712,7 +716,7 @@ function TikTokFields({ shape, act }: { shape: Shape; act: RecordAct }) {
         const now = (v as Record<string, unknown>)[k] ?? null;
         if (now !== ((base as Record<string, unknown>)[k] ?? null)) patch[k] = now;
       }
-      if (Object.keys(patch).length) await act(FIELDS, { patch, requestId: request });
+      if (Object.keys(patch).length) await act(FIELDS, { patch, requestId: request }, SHAPED);
       return { value: v };
     },
   });
