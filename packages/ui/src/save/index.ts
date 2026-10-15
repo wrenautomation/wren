@@ -58,7 +58,15 @@
  * `LATEST.write(key, value, send)`: a pref, a playback position, a select. One write per key at
  * a time; a newer value replaces one still waiting, so the server ends on the last one set.
  */
-export { answersOf, onWrite, type Patch, patchedSince, remember, writeThrough } from "./cache.js";
+export {
+  answersOf,
+  onWrite,
+  type Patch,
+  patchedSince,
+  remember,
+  rememberRead,
+  writeThrough,
+} from "./cache.js";
 export { tick } from "./clock.js";
 export {
   type Conflict,

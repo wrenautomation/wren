@@ -107,7 +107,7 @@ import {
 import { recordHead } from "./record-head.js";
 import { patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
-import { answersOf, onWrite, patchedSince, remember } from "./save/cache.js";
+import { answersOf, onWrite, patchedSince, rememberRead } from "./save/cache.js";
 import { tick } from "./save/clock.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { sortTip } from "./view-says.js";
@@ -358,7 +358,8 @@ export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): L
         (got) => {
           // Saves that landed while this read was out apply over it.
           const data = (scope ? patchedSince(scope, key, got, left) : got) as T;
-          if (seen) remember(seen, key, data);
+          // Kept only if no read that left later is kept already: older answers lose.
+          if (scope) rememberRead(scope, key, data, left);
           if (live) setState({ data, error: null, loading: false, at: left });
         },
         (err: unknown) =>

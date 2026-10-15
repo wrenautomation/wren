@@ -1,5 +1,5 @@
 /** Loading a portal call into a component. */
-import { onWrite, type Patch, useLoad, writeThrough } from "@wren/ui";
+import { onWrite, type Patch, patchedSince, tick, useLoad, writeThrough } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError, device, deviceOwner, viewing } from "./api.js";
 import { readSnapshot, writeSnapshot } from "./snapshot.js";
@@ -34,11 +34,25 @@ const kept = new Map<string, unknown>(
         return d ? readSnapshot(d, deviceOwner(), Date.now()) : [];
       })(),
 );
-function keep(key: string, data: unknown) {
+/** When the read behind each kept answer left: an older read that lands late never replaces it. */
+const keptLeft = new Map<string, number>();
+/**
+ * Keep a read of `key` that left at tick `left`, with the saves made since applied, unless a
+ * newer read is kept already.
+ */
+export function keep(key: string, data: unknown, left: number) {
+  if ((keptLeft.get(key) ?? -1) > left) return;
+  keptLeft.set(key, left);
   kept.delete(key);
-  kept.set(key, data);
-  if (kept.size > KEPT_MAX) kept.delete(kept.keys().next().value as string);
+  kept.set(key, patchedSince(PORTAL, key, data, left));
+  if (kept.size > KEPT_MAX) {
+    const old = kept.keys().next().value as string;
+    kept.delete(old);
+    keptLeft.delete(old);
+  }
 }
+/** What the device keeps for `key` (tests). */
+export const keptOf = (key: string) => kept.get(key);
 function save() {
   const d = device();
   const who = deviceOwner();
@@ -66,10 +80,11 @@ if (typeof addEventListener === "function") {
 export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
   const load = useLoad(
     key,
-    () =>
-      fn().then(
+    () => {
+      const left = tick();
+      return fn().then(
         (data) => {
-          keep(key, data);
+          keep(key, data, left);
           return data;
         },
         (err: unknown) => {
@@ -77,7 +92,8 @@ export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
           if (e.status === 401 || e.status === 403 || e.status === 404) kept.delete(key);
           throw e;
         },
-      ),
+      );
+    },
     PORTAL,
   ) as Load<T>;
   if (load.data !== null || !kept.has(key)) return load;
