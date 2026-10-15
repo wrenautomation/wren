@@ -14,6 +14,7 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  recordPatch,
   relative,
   Tag,
   type TagTone,
@@ -22,7 +23,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
-import { useCall, useSettled } from "../../load.js";
+import { patchCalls, useCall, useSettled } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
@@ -361,14 +362,14 @@ export function Automations({ params }: PageProps) {
     ? (params.get("view") as string)
     : "all";
   const [q, setQ] = useState(params.get("q") ?? "");
-  const [nonce, setNonce] = useState(0);
   // Each row flipping, so two rows switched at once each keep their own busy.
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const flying = useRef(new Set<string>());
   const [errors, setErrors] = useState<Record<string, string>>({});
   // A read per pause in the search box, not per key.
   const asked = useSettled(q.trim());
-  const list = useCall(`automations:${view}:${asked}:${nonce}`, () =>
+  // One key per list: a flip patches the row in both, then re-reads this one for its tab counts.
+  const list = useCall(`automations:${view}:${asked}`, () =>
     call<RecordsPage>("console/recordsList", {
       record: "console.automation",
       view,
@@ -377,7 +378,7 @@ export function Automations({ params }: PageProps) {
     }),
   );
   // The head's figures are over everything, whichever tab is open.
-  const every = useCall(`automations:all:${nonce}`, () =>
+  const every = useCall("automations:all", () =>
     call<RecordsPage>("console/recordsList", { record: "console.automation", limit: 200 }),
   );
   const flip = async (r: AutomationRow, on: boolean) => {
@@ -390,7 +391,8 @@ export function Automations({ params }: PageProps) {
     setErrors(({ [r.id]: _, ...rest }) => rest);
     try {
       await call(asked[0], asked[1]);
-      setNonce((n) => n + 1);
+      patchCalls(recordPatch("console.automation", r.id, { state: on ? "on" : "off" }));
+      list.retry();
     } catch (err) {
       const why = err instanceof ApiError ? err.message : String(err);
       setErrors((e) => ({ ...e, [r.id]: why }));

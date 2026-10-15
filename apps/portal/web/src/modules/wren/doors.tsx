@@ -78,9 +78,12 @@ export function FieldMapForm({
   );
 }
 
-/** The doors into a workflow, read once per open and after each change. */
-export function useDoors(workflow: string, client: string | null, nonce = 0) {
-  return useCall(`doors:${client ?? ""}:${workflow}:${nonce}`, () =>
+/**
+ * The doors into a workflow, read once per open and again after each change (`retry`): one key,
+ * so an older answer never repaints a rotated door.
+ */
+export function useDoors(workflow: string, client: string | null) {
+  return useCall(`doors:${client ?? ""}:${workflow}`, () =>
     call<Door[]>("console/workflowDoors", { workflow, ...(client ? { client } : {}) }),
   );
 }
@@ -226,8 +229,7 @@ export function DoorBlock({
   mayManage: boolean;
   fresh?: Fresh;
 }) {
-  const [nonce, setNonce] = useState(0);
-  const got = useDoors(workflow, client, nonce);
+  const got = useDoors(workflow, client);
   if (got.error) return <LoadFailed error={got.error} onRetry={got.retry} what="door" />;
   if (!got.data) return <p className={QUIET}>Reading…</p>;
   const door = got.data.find((d) => d.node === node);
@@ -242,7 +244,7 @@ export function DoorBlock({
       client={client}
       mayManage={mayManage}
       fresh={fresh?.[node]}
-      onRotated={() => setNonce((n) => n + 1)}
+      onRotated={got.retry}
     />
   );
 }
@@ -261,8 +263,7 @@ export function DoorStrip({
   mayManage: boolean;
   fresh?: Fresh;
 }) {
-  const [nonce, setNonce] = useState(0);
-  const got = useDoors(workflow, client, nonce);
+  const got = useDoors(workflow, client);
   const doors = (got.data ?? []).filter((d) => nodes.some((n) => n.id === d.node));
   if (!doors.length) return null;
   return (
@@ -281,7 +282,7 @@ export function DoorStrip({
             client={client}
             mayManage={mayManage}
             fresh={fresh?.[d.node]}
-            onRotated={() => setNonce((n) => n + 1)}
+            onRotated={got.retry}
           />
         </div>
       ))}

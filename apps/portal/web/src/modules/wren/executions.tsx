@@ -91,11 +91,11 @@ export function Executions({
   const view = params.get("runs") ?? "all";
   const picked = params.get("run");
   const [q, setQ] = useState(params.get("q") ?? "");
-  const [nonce, setNonce] = useState(0);
   const here = location.pathname;
   // A read per pause in the search box, not per key.
   const asked = useSettled(q.trim());
-  const list = useCall(`executions:${w.id}:${view}:${asked}:${nonce}`, () =>
+  // One key per list: a replay re-reads it (`retry`), so an older answer never repaints it.
+  const list = useCall(`executions:${w.id}:${view}:${asked}`, () =>
     call<RecordsPage>("console/recordsList", {
       record: "console.execution",
       view,
@@ -139,7 +139,7 @@ export function Executions({
           className="h-8 text-[13px]"
         />
         {view === "failed" && rows.length && mayRetry(can) ? (
-          <ReplayAll ids={rows.map((r) => r.id)} onDone={() => setNonce((n) => n + 1)} />
+          <ReplayAll ids={rows.map((r) => r.id)} onDone={list.retry} />
         ) : null}
         {list.error && !list.data ? (
           <LoadFailed error={list.error} onRetry={list.retry} />
@@ -193,13 +193,7 @@ export function Executions({
         )}
       </div>
       {open ? (
-        <OneExecution
-          key={open}
-          id={open}
-          w={w}
-          can={can}
-          onRetried={() => setNonce((n) => n + 1)}
-        />
+        <OneExecution key={open} id={open} w={w} can={can} onRetried={list.retry} />
       ) : (
         <p className={cx("text-[14px]", QUIET)}>Open one to see its path.</p>
       )}
@@ -258,8 +252,7 @@ function OneExecution({
   can: readonly string[] | undefined;
   onRetried: () => void;
 }) {
-  const [nonce, setNonce] = useState(0);
-  const got = useCall(`execution:${id}:${nonce}`, () =>
+  const got = useCall(`execution:${id}`, () =>
     call<RecordAnswer>("console/recordsGet", { record: "console.execution", id }),
   );
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
@@ -281,7 +274,7 @@ function OneExecution({
         steps={steps}
         can={can}
         onRetried={() => {
-          setNonce((n) => n + 1);
+          got.retry();
           onRetried();
         }}
       />

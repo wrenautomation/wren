@@ -8,7 +8,7 @@ vi.mock("./api.js", () => ({
   viewing: null,
 }));
 
-const { tick } = await import("@wren/ui");
+const { recordPatch, tick } = await import("@wren/ui");
 const { keep, keptOf, patchCalls } = await import("./load.js");
 
 describe("keep", () => {
@@ -25,5 +25,19 @@ describe("keep", () => {
     patchCalls((k, d) => (k === "deal:9" ? { ...(d as object), name: "Saved" } : d));
     keep("deal:9", { name: "Before" }, left);
     expect(keptOf("deal:9")).toEqual({ name: "Saved" });
+  });
+
+  it("a switch flip patches its row in every kept list, so neither key reads again", () => {
+    const page = (state: string) => ({
+      record: "console.automation",
+      rows: [
+        { id: "made:7", state },
+        { id: "kw:2", state: "on" },
+      ],
+    });
+    keep("automations:all", page("off"), tick());
+    keep("automations:off:", page("off"), tick());
+    patchCalls(recordPatch("console.automation", "made:7", { state: "on" }));
+    for (const k of ["automations:all", "automations:off:"]) expect(keptOf(k)).toEqual(page("on"));
   });
 });

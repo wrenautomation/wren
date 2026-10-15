@@ -148,8 +148,8 @@ export function Workflows({ params, team, can }: PageProps) {
   const client = params.get("client") || null;
   const canvasAt = (p: readonly string[]) =>
     `/workflows/canvas?path=${p.join("/")}${client ? `&client=${encodeURIComponent(client)}` : ""}`;
-  const [nonce, setNonce] = useState(0);
-  const trail = useCall(`workflows:${client ?? ""}:${path.join("/")}:${nonce}`, () =>
+  // One key per path: a save re-reads it (`retry`), so an older answer never repaints it.
+  const trail = useCall(`workflows:${client ?? ""}:${path.join("/")}`, () =>
     Promise.all(
       path.map((id) =>
         call<RecordAnswer>("console/recordsGet", {
@@ -257,7 +257,7 @@ export function Workflows({ params, team, can }: PageProps) {
           client={client}
           team={team}
           mayManage={!can || can.includes("manage")}
-          onSaved={() => setNonce((n) => n + 1)}
+          onSaved={trail.retry}
         />
       )}
     </>

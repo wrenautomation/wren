@@ -48,16 +48,16 @@ export function PersonAccess({
   email: string;
   role: string;
 }) {
-  const [nonce, setNonce] = useState(0);
   const me = useCall("me", () => call<Me>("delivery/me"));
   const [adding, setAdding] = useState(false);
   const [history, setHistory] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const roles = useCall(`access-roles:${client}:${nonce}`, () =>
+  // One key per read: a change re-reads the grants under it (roles never change here).
+  const roles = useCall(`access-roles:${client}`, () =>
     consoleIn<RecordsPage>(client, "recordsList", { record: "access.role", limit: 200 }),
   );
-  const grants = useCall(`access-grants:${client}:${email}:${nonce}`, () =>
+  const grants = useCall(`access-grants:${client}:${email}`, () =>
     consoleIn<RecordsPage>(client, "recordsList", {
       record: "access.grant",
       where: { email },
@@ -70,7 +70,7 @@ export function PersonAccess({
     setError(null);
     try {
       await consoleIn(client, handler, body);
-      setNonce((n) => n + 1);
+      grants.retry();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
