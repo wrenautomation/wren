@@ -32,6 +32,7 @@ import {
   type SocialPlatform,
 } from "./platforms.js";
 import { type SocialConnectionRow, socialConnections, socialGrants } from "./schema.js";
+import type { TikTokNumbers } from "./tiktok-numbers.js";
 
 export type SocialApps = Partial<Record<SocialApp, SocialAppKeys>>;
 
@@ -87,6 +88,8 @@ export interface ConnectionView {
   id: number;
   name: string | null;
   handle: string | null;
+  /** Its picture at the platform's CDN; the browser loads it there, never through the Worker. */
+  avatarUrl: string | null;
   state: "connected" | "broken";
   why: string | null;
   connectedAt: string;
@@ -94,6 +97,8 @@ export interface ConnectionView {
   expiresAt: string | null;
   /** Its sign-in lapses within a week (LinkedIn's 60 days). */
   expiring: boolean;
+  /** A connected TikTok's numbers, read as the page opened (`SocialAccess.social`). */
+  numbers?: TikTokNumbers | null;
 }
 
 export interface PlatformView {
@@ -129,6 +134,7 @@ export function platformStates(
         id: c.id,
         name: c.name,
         handle: c.handle,
+        avatarUrl: c.extra.avatarUrl ?? null,
         state: c.state,
         why: c.why,
         connectedAt: c.connectedAt.toISOString(),
@@ -417,7 +423,13 @@ export function socialAccess(deps: SocialDeps) {
         const who = await whoAmI(deps.fetch, c.platform, token, c.extra);
         await main
           .update(socialConnections)
-          .set({ checkedAt: now(), name: who.name ?? c.name, handle: who.handle ?? c.handle })
+          .set({
+            checkedAt: now(),
+            name: who.name ?? c.name,
+            handle: who.handle ?? c.handle,
+            // A fresh avatar address (TikTok's expire); a connection made before it was read gets one.
+            ...(who.extra ? { extra: { ...c.extra, ...who.extra } } : {}),
+          })
           .where(eq(socialConnections.id, c.id));
       } catch (err) {
         if (err instanceof OAuthError && err.revoked)

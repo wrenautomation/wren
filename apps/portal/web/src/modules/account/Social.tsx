@@ -22,6 +22,7 @@ import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 import { OwnSocial } from "./OwnSocial.js";
 import { socialTag } from "./setups.js";
+import { AccountFace, TikTokNumbersView } from "./social-bits.js";
 
 type View = Extract<SocialPageView, { wren: false }>;
 type Platform = View["platforms"][number];
@@ -66,14 +67,20 @@ function AccountLine({ c, mayAct, act }: { c: Connection; mayAct: boolean; act: 
   const who = c.handle ? `@${c.handle}` : (c.name ?? "Account");
   return (
     <div className="grid gap-1">
-      <p className="flex flex-wrap items-center gap-2">
-        <b className="font-medium break-all">{who}</b>
-        {c.handle && c.name && c.name !== c.handle ? <span className={QUIET}>{c.name}</span> : null}
-      </p>
+      <div className="flex items-center gap-3">
+        <AccountFace url={c.avatarUrl} name={c.name ?? who} />
+        <p className="flex min-w-0 flex-wrap items-center gap-2">
+          <b className="font-medium break-all">{who}</b>
+          {c.handle && c.name && c.name !== c.handle ? (
+            <span className={QUIET}>{c.name}</span>
+          ) : null}
+        </p>
+      </div>
       {c.state === "broken" && c.why ? <p>{c.why}</p> : null}
       {c.expiring && c.expiresAt ? (
         <p>Its sign-in ends {day(c.expiresAt)}. Connect again before then.</p>
       ) : null}
+      {c.numbers ? <TikTokNumbersView n={c.numbers} /> : null}
       <p className={QUIET}>
         Connected {day(c.connectedAt)}
         {c.checkedAt ? `, checked ${day(c.checkedAt)}` : ""}

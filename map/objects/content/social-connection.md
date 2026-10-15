@@ -3,8 +3,8 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-09 @ 1727a859
-entity: packages/content/src/connect/schema.ts:68
+verified: 2026-10-15 @ a26df44f
+entity: packages/content/src/connect/schema.ts:73
 ---
 
 # social connection (a client's own social account)
@@ -18,20 +18,21 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 ## Shape
 
 - `social_grants` (`schema.ts:30`): one-time OAuth `state` + PKCE verifier, 30 min, spent by `SocialCallback/land`
-- `social_connections` (`schema.ts:68`): client, platform, external id, name, handle, scopes, `token_ref`, `expires_at` (LinkedIn's 60 days), `extra` (Page id, IG user id, company page URN, Business Profile location), state connected/broken with `why`
+- `social_connections` (`schema.ts:73`): client, platform, external id, name, handle, scopes, `token_ref`, `expires_at` (LinkedIn's 60 days), `extra` (Page id, IG user id, company page URN, Business Profile location, TikTok `avatarUrl`), state connected/broken with `why`
 - Platforms (`platforms.ts`): `SOCIAL` spec per platform (app, scopes, PKCE, dms, comments, what review gates, what works before it, self-serve and done-for-you copy); `liveFrom(WREN_SOCIAL_LIVE)`, X and LinkedIn profile always live. A company page (`linkedin_page`) is its own app, `linkedin_pages`, on the `linkedin` channel. Import-free: the portal Worker reads it
-- OAuth (`oauth.ts`): `connectUrl`, `landCode` (Meta: code, long-lived user token, Page token kept), `refreshToken` (X and TikTok rotate), `whoAmI`. Errors carry the platform's code and first line, never a body
-- Access (`access.ts`): `socialAccess` (`:178`) connect, land, check, disconnect, `tokenOf` (memory cache, key store rotate), `broke`; `platformStates` (`:123`): not_connected, waiting_review, connected, broken; `liveConnections` (`:477`)
+- OAuth (`oauth.ts`): `connectUrl`, `landCode` (Meta: code, long-lived user token, Page token kept), `refreshToken` (X and TikTok rotate), `whoAmI` (TikTok's also returns its https avatar, kept in `extra`; each check refreshes it, since TikTok's CDN links expire). Errors carry the platform's code and first line, never a body
+- Access (`access.ts`): `socialAccess` (`:179`) connect, land, check, disconnect, `tokenOf` (memory cache, key store rotate), `broke`; `platformStates` (`:123`): not_connected, waiting_review, connected, broken; `liveConnections` (`:484`); `ConnectionView` carries `avatarUrl`
 - Calls (`sites.ts`): `socialSites` is a `SiteClient` per platform on the client's token; 401 or Meta code 190 marks it broken. An X video uploads in 4 MB chunks (initialize, append, finalize, STATUS until processed); TikTok's `scope_not_authorized` is a 403 that leaves the connection up; a client's TikTok asks `user.info.stats` for followers; a Business Profile reaches only its own location's `/v4` paths
 - Business Profile (`business.ts`): `businessProfileContent` posts local posts, reads reviews as comments on the location (`ContentChannel.reviews`), answers a review
 - `clientContent` gives each channel's `connected` account (a company page ahead of a profile), and which channels read `comments` and `reviews`; SocialWatch reads only those, and connected accounts don't wait on `WREN_CONTENT_CHANNELS`
 - DMs (`dms.ts`): Facebook, Instagram, X. `readDms` + `keepDms` into the client's `reach_contacts`/`reach_messages` (a `theirs` touch each); `planDm` (Meta's 24 h window, opt-outs), `sendDm`, `sentDm` (an `ours` touch, draft log)
 - Wren's own channels (`own.ts`): in Wren's workspace, for the team only, `SocialAccess.social` returns `own`, one row per `WREN_CONTENT_CHANNELS` channel: account, how it posts (setting names only, never values), token lapse and last renewal from `sites renew` runs, last post (`content_drafts`) and last failure (`draft_events`). `ownCheck` runs autobrowse's site check (`sites/status`, then one GET of its probe) on the box or desk; read only
-- Services: `SocialAccess` (`console.ts:179`, routes `console-routes.ts`; `connect` refuses the View as sandbox client, 403), `SocialCallback/land` (`console.ts:266`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
+- TikTok numbers (`tiktok-numbers.ts`): `tiktokNumbers` reads followers, likes and video count (`user.info.stats`) and the 5 newest videos with views (`video.list`) on `social:<id>`, only for granted scopes, each part capped at 4 s; a refusal or a missing scope is a `gaps` line. `SocialAccess.social` adds it to each connected TikTok when `SocialConsoleDeps.sites` is set (the Worker passes `socialApi`)
+- Services: `SocialAccess` (`console.ts:209`, routes `console-routes.ts`; `connect` refuses the View as sandbox client, 403), `SocialCallback/land` (`console.ts:296`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
 - Setup: `setup.social`, check `social.token` hourly (`setups.ts`)
-- App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`
+- App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`. Every callback is on `PORTAL` (app.wrenautomation.com), so TikTok's screencast is recorded there; its post step uses a client's Post now on Marketing → Drafts, shown only where the `post_now` portal flag is on
 
-Citations: `packages/content/src/connect/schema.ts:30`, `:68`; `packages/content/src/connect/access.ts:123`, `:178`; `apps/worker/src/services.ts:433`
+Citations: `packages/content/src/connect/schema.ts:30`, `:73`; `packages/content/src/connect/access.ts:123`, `:179`; `packages/content/src/connect/console.ts:94`; `apps/worker/src/services.ts:549`
 
 ## Connected to
 
@@ -48,7 +49,7 @@ Citations: `packages/content/src/connect/schema.ts:30`, `:68`; `packages/content
 
 | Surface | Role |
 |---|---|
-| Account → Social (client owners and admins; Wren's team for any client) | reads, writes (connect, check, turn off) |
+| Account → Social (client owners and admins; Wren's team for any client) | reads (each account's avatar; a TikTok's numbers and newest videos, live from TikTok), writes (connect, check, turn off) |
 | Account → Social in Wren's workspace (team only) | reads Wren's own channels; Check probes one through autobrowse |
 | `/oauth/social/<platform>` (portal Worker) | writes (lands a grant) |
 | SetupWatch, `social.token` hourly | checks, marks broken |

@@ -6,7 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
-import type { Platform } from "@wren/core/content";
+import type { Platform, SiteClient } from "@wren/core/content";
 import type { SitesHost } from "@wren/core/content/restate";
 import { noRawKeys } from "@wren/core/key-refs";
 import {
@@ -40,6 +40,7 @@ import {
 } from "./own.js";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "./platforms.js";
 import { SOCIAL_SETUP } from "./setups.js";
+import { type TikTokNumbers, tiktokNumbers } from "./tiktok-numbers.js";
 
 export interface SocialConsoleDeps {
   main: Db;
@@ -53,6 +54,11 @@ export interface SocialConsoleDeps {
    * preview passes `sites`, a stand-in, instead of a host.
    */
   own?: { switches: OwnSwitches; known: readonly Platform[]; box?: SitesHost; sites?: OwnSites };
+  /**
+   * The clients' accounts as a `SiteClient` (`socialSites`): a connected TikTok's numbers are read
+   * through it when the page opens. Absent, the page shows none.
+   */
+  sites?: SiteClient;
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
@@ -84,6 +90,19 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
     );
     return ownView(channels, rows, known);
   };
+  /** Each connected TikTok's numbers, read now; none without the accounts' `SiteClient`. */
+  const numbersOf = async (client: string): Promise<Map<number, TikTokNumbers>> => {
+    const sites = deps.sites;
+    if (!sites) return new Map();
+    const tiktoks = (await access.connectionsOf(client)).filter(
+      (r) => r.platform === "tiktok" && r.state === "connected",
+    );
+    return new Map(
+      await Promise.all(
+        tiktoks.map(async (r) => [r.id, await tiktokNumbers(sites, r, { now: now() })] as const),
+      ),
+    );
+  };
   const mine = async (client: string, id: number) => {
     const c = await access.connection(Number(id));
     if (!c || c.client !== client) throw new PortalRefusal("no such account", 404);
@@ -106,12 +125,23 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
         };
       }
       const c = await owner(req);
-      const v = await access.view(c.id);
+      const [v, numbers] = await Promise.all([access.view(c.id), numbersOf(c.id)]);
       return {
         owner: { id: c.id, name: c.name },
         wren: false as const,
         mayAct: await mayAct(req, c.id),
         ...v,
+        platforms: v.platforms.map((p) =>
+          p.platform === "tiktok"
+            ? {
+                ...p,
+                connections: p.connections.map((x) => ({
+                  ...x,
+                  numbers: numbers.get(x.id) ?? null,
+                })),
+              }
+            : p,
+        ),
       };
     },
 

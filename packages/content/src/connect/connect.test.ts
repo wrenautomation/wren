@@ -83,6 +83,19 @@ describe("tiktok who", () => {
     expect(asked[0]?.url).not.toContain("username");
     expect(who).toMatchObject({ externalId: "o1", name: "Wren", handle: null });
   });
+
+  it("keeps the avatar (user.info.basic) in extra, https only", async () => {
+    const answer = (avatar_url: string) =>
+      fakeFetch(() =>
+        Response.json({ data: { user: { open_id: "o1", display_name: "Wren", avatar_url } } }),
+      );
+    const ok = answer("https://p16.tiktokcdn.example/a.jpeg");
+    const who = await whoAmI(ok.fetch, "tiktok", "tok", {});
+    expect(ok.asked[0]?.url).toContain("avatar_url");
+    expect(who.extra).toEqual({ avatarUrl: "https://p16.tiktokcdn.example/a.jpeg" });
+    const plain = await whoAmI(answer("http://p16.example/a.jpeg").fetch, "tiktok", "tok", {});
+    expect(plain.extra).toBeUndefined();
+  });
 });
 
 describe("landCode", () => {
@@ -406,6 +419,18 @@ describe("platformStates", () => {
       blocking: "Access was taken back.",
     });
     expect(of(v, "linkedin").connections[0]?.expiring).toBe(true);
+  });
+
+  it("a connection's avatar from its extra; none is null", () => {
+    const v = platformStates(
+      [
+        conn({ platform: "tiktok", extra: { avatarUrl: "https://p16.tiktokcdn.example/a.jpeg" } }),
+        conn({ id: 8, platform: "x" }),
+      ],
+      { apps: all, live: liveFrom("tiktok"), ready: true, now: NOW },
+    );
+    expect(of(v, "tiktok").connections[0]?.avatarUrl).toBe("https://p16.tiktokcdn.example/a.jpeg");
+    expect(of(v, "x").connections[0]?.avatarUrl).toBeNull();
   });
 
   it("without the key store or origin: In development", () => {

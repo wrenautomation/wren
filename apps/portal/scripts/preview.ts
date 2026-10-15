@@ -56,6 +56,7 @@ import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
+import type { SiteClient } from "@wren/core/content";
 import { KEY_STAGE_PATH, REF_ROUTES, rawKeyAt } from "@wren/core/key-refs";
 import { intakeKey, pgKeyStore, throwawayRing } from "@wren/core/keys";
 import {
@@ -140,6 +141,25 @@ const standInSites: OwnSites = {
   read: async () => ({ data: { username: "wren_preview" } }),
   renewDry: async () => ({ due: [], next: null }),
   now: async () => Date.now(),
+};
+/** A client's TikTok as the stand-ins answer it: made-up numbers and two videos. */
+const standInTikTok: SiteClient = {
+  call: async <T>(_site: string, _method: string, path: string): Promise<T> =>
+    (path === "/v2/user/info/"
+      ? { data: { user: { follower_count: 1280, likes_count: 20450, video_count: 2 } } }
+      : {
+          data: {
+            videos: [1, 2].map((i) => ({
+              id: `preview-video-${i}`,
+              title: `Preview video ${i}`,
+              view_count: 900 * i,
+              like_count: 40 * i,
+              comment_count: 3 * i,
+              create_time: Math.floor(Date.now() / 1000) - i * 86_400,
+            })),
+          },
+        }) as T,
+  via: async () => "api",
 };
 const main = createDb(settings.databaseUrl, { max: 2 }).db;
 /** The key store with a key pair made at start: keys saved in an earlier run won't open. */
@@ -337,6 +357,7 @@ const SERVICES: Record<
         known: CONTENT_CHANNELS,
         ...(standIns ? { sites: standInSites } : {}),
       },
+      ...(standIns ? { sites: standInTikTok } : {}),
       access: socialAccess({
         main,
         apps:

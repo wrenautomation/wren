@@ -62,6 +62,11 @@ export interface SocialExtra {
   orgUrn?: string;
   /** `accounts/<a>/locations/<l>`: the Business Profile it posts as and reads reviews of. */
   location?: string;
+  /**
+   * The account's picture at the platform's CDN (TikTok's `avatar_url`), read on connect and on
+   * each hourly check: TikTok's addresses expire, so the check keeps it fresh.
+   */
+  avatarUrl?: string;
 }
 
 /** A connected account: who it is on the platform and where its token is kept. */

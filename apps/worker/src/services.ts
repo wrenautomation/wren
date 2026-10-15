@@ -2302,6 +2302,8 @@ export async function buildServices(
     makeSocialAccess({
       main: db,
       access: clientSocial,
+      // A connected TikTok's numbers on the page, read on the client's own token.
+      sites: socialApi,
       // Wren's own channels on its Account → Social: config as `contentFor` reads it.
       own: {
         switches: ownSwitchesOf(settings),

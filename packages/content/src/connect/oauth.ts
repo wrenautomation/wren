@@ -139,6 +139,9 @@ const basic = (app: SocialAppKeys) => ({
   authorization: `Basic ${Buffer.from(`${app.id}:${app.secret}`).toString("base64")}`,
 });
 const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+/** A picture's address, https only and of a sane length; anything else is no picture. */
+const https = (v: unknown) =>
+  typeof v === "string" && v.startsWith("https://") && v.length <= 2000 ? v : null;
 const scopesOf = (v: unknown, sep = /[\s,]+/) =>
   String(v ?? "")
     .split(sep)
@@ -397,14 +400,17 @@ export async function whoAmI(
       const b = await json(
         fetch,
         // `username` needs user.info.profile, a scope Wren does not ask for: asking 401s the connect.
-        `${TIKTOK_API}/v2/user/info/?fields=open_id,display_name`,
+        // The avatar is user.info.basic's, kept so Account → Social shows who is connected.
+        `${TIKTOK_API}/v2/user/info/?fields=open_id,display_name,avatar_url`,
         bearer(access),
       );
       const u = ((b.data as Json | undefined)?.user as Json | undefined) ?? {};
+      const avatarUrl = https(u.avatar_url);
       return {
         externalId: String(u.open_id),
         name: str(u.display_name),
         handle: null,
+        ...(avatarUrl ? { extra: { avatarUrl } } : {}),
       };
     }
     case "linkedin_page": {
