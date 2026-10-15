@@ -10,6 +10,7 @@ import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import type { KeepApi } from "./list-bar.js";
+import { Latest } from "./save/latest.js";
 
 /** The rail's pins: page paths ("/inbox/replies"), in his order. */
 export const RAIL_PREF = "rail";
@@ -36,15 +37,35 @@ export interface Pref<T> {
   set: (value: T | null) => void;
 }
 
-/** One pref, read once and changed in place; a failed write reads it back. */
+/** Each viewer's pref writes, one at a time per key, the last one set last. */
+const PREF_WRITES = new WeakMap<KeepApi, Latest>();
+const writesOf = (keep: KeepApi) => {
+  let w = PREF_WRITES.get(keep);
+  if (!w) {
+    w = new Latest();
+    PREF_WRITES.set(keep, w);
+  }
+  return w;
+};
+
+/**
+ * One pref, read once and changed in place. Its writes go one at a time, the newest last, so a
+ * quick second change never lands before the first. A read that left before a change is ignored;
+ * a failed write reads it back, unless a newer one is on its way.
+ */
 export function usePref<T>(keep: KeepApi | undefined, key: string): Pref<T> {
   const [value, setValue] = useState<T | undefined>(undefined);
   const [ready, setReady] = useState(false);
+  /** Counts his changes: a read that left before the newest one can't say what he picked. */
+  const changes = useRef(0);
   const read = useCallback(() => {
     if (!keep) return;
+    const left = changes.current;
     keep
       .prefs([key])
-      .then((p) => setValue(p[key] as T | undefined))
+      .then((p) => {
+        if (changes.current === left) setValue(p[key] as T | undefined);
+      })
       .catch(() => {})
       .finally(() => setReady(true));
   }, [keep, key]);
@@ -56,8 +77,14 @@ export function usePref<T>(keep: KeepApi | undefined, key: string): Pref<T> {
   const set = useCallback(
     (next: T | null) => {
       if (!keep) return;
+      changes.current += 1;
       setValue(next ?? undefined);
-      keep.setPref(key, next).catch(read);
+      const writes = writesOf(keep);
+      void writes
+        .write(key, next, (v) => keep.setPref(key, v))
+        .then((r) => {
+          if (r.status === "failed" && !writes.busy(key)) read();
+        });
     },
     [keep, key, read],
   );

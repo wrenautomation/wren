@@ -52,6 +52,11 @@
  * first's answer; the id stays until an answer, so a retry after a lost answer is one action.
  * `callOnce(call, handler, ids, input)` does it with `requestId` in the input; `useRun` sends
  * every action through it. `useKeptForm(key, base)` keeps a dialog's typing until it is sent.
+ *
+ * ## A value only the newest of matters for
+ *
+ * `LATEST.write(key, value, send)`: a pref, a playback position, a select. One write per key at
+ * a time; a newer value replaces one still waiting, so the server ends on the last one set.
  */
 export { answersOf, onWrite, type Patch, patchedSince, remember, writeThrough } from "./cache.js";
 export { tick } from "./clock.js";
@@ -71,6 +76,7 @@ export {
   type Status as SaveStatusName,
 } from "./engine.js";
 export type { Locks, PageEvent, SaveEnv, Store } from "./env.js";
+export { LATEST, Latest, type Wrote } from "./latest.js";
 export { ACTIONS, Once } from "./once.js";
 export {
   forgetForm,

@@ -253,6 +253,8 @@ export {
   failureKind,
   forgetForm,
   type KeptFormState,
+  LATEST,
+  Latest,
   Once,
   onWrite,
   type Patch,
@@ -274,6 +276,7 @@ export {
   tick,
   useKeptForm,
   useSaved,
+  type Wrote,
   writeThrough,
 } from "./save/index.js";
 export {
