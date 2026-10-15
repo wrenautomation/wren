@@ -1332,7 +1332,7 @@ const REVIEWS_PAGE: ListPage = {
 
 /**
  * Marketing's pages (designs/2026-10-13-primitives-first.md, 2026-10-14-content-types.md): Today
- * (what to make, what waits, what went out), Write, Studio (id `videos`: recordings, the editing
+ * (what to make, what waits, what went out), Drafts (every post draft, edit and approve), Write, Studio (id `videos`: recordings, the editing
  * agent's work, designs/2026-10-13-video-review.md), Engage, Pieces (each thing made, with
  * everywhere it went), Numbers, and More,
  * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
@@ -1340,6 +1340,7 @@ const REVIEWS_PAGE: ListPage = {
  */
 const MAIN: Readonly<Record<string, string>> = {
   plan: "Today",
+  drafts: "Drafts",
   write: "Write",
   videos: "Studio",
   engage: "Engage",
@@ -1601,12 +1602,11 @@ export const marketing: Module = {
       wide: true,
     },
     EXPLORE_PAGE,
-    // Write lists what waits; this keeps draft links landing.
+    // Every post draft in one list: edit, approve, out.
     {
       id: "drafts",
       label: "Drafts",
-      about: "Post drafts waiting for you to approve or reject.",
-      hidden: true,
+      about: "Every post draft: edit it, approve it, it goes out.",
       template: "list",
       record: "marketing.draft",
       empty: {

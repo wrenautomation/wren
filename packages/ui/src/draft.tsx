@@ -1,6 +1,8 @@
 /**
  * A draft finished in place (designs/2026-10-06-content-desk.md, 6): the record declares its draft
- * (`RecordExtras.draft`) and the detail shows it as a box, not a dialog. Blur and ⌘S save it,
+ * (`RecordExtras.draft`) and the detail shows it as a box, not a dialog. It saves as he types, on
+ * blur, on ⌘S and when the tab hides; unsaved words stay on the device until they save, so a
+ * reload gives them back.
  * ⌘Enter saves and runs the record's send action (its confirm still asks). A line under it asks
  * Claude; the turns show above that line, with Undo beside the newest change.
  */
@@ -20,8 +22,12 @@ import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
+import { keepDraft, keptDraft } from "./draft-keep.js";
 import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 import { InsertSnippet } from "./snippets.js";
+
+/** Quiet this long after the last key, the words save. */
+const AUTOSAVE_MS = 1_200;
 
 /** One turn on a draft, oldest first (`@wren/core/ask` DraftTurn). */
 export interface DraftTurnLine {
@@ -167,9 +173,12 @@ export function DraftBox({
   const ask = actions.find((a) => a.id === draft.ask);
   const undo = actions.find((a) => a.id === draft.undo);
   const server = draft.text ?? "";
+  /** Where this box's unsaved words wait on the device, so a reload gives them back. */
+  const keyOf = `${draft.save ?? draft.label}:${id}`;
   /** What the server held when the box last matched it: a save writes only over this. */
   const [base, setBase] = useState(server);
-  const [text, setText] = useState(server);
+  const [restored] = useState(() => keptDraft(keyOf, server));
+  const [text, setText] = useState(restored ?? server);
   const [saved, setSaved] = useState<Saved>("idle");
   const [message, setMessage] = useState("");
   const [asking, setAsking] = useState(false);
@@ -182,6 +191,10 @@ export function DraftBox({
   const told = useRef(onText);
   told.current = onText;
   useEffect(() => told.current?.(text), [text]);
+  useEffect(() => keepDraft(keyOf, base, text), [keyOf, base, text]);
+  useEffect(() => {
+    if (restored) toast("Your unsaved words are back. They save now.");
+  }, [restored]);
 
   // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
   const live = useRef({ dirty, server });
@@ -226,6 +239,30 @@ export function DraftBox({
     }
   };
   if (handle) handle.current = { flush: () => flush() };
+  const flushNow = useRef(flush);
+  flushNow.current = flush;
+
+  // It saves as he types, and when the tab hides or closes. A failed save waits for his ⌘S:
+  // its words would land over someone else's change.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each key restarts the wait.
+  useEffect(() => {
+    if (!save || !dirty || saved === "failed" || saved === "saving") return;
+    const t = setTimeout(() => void flushNow.current(), AUTOSAVE_MS);
+    return () => clearTimeout(t);
+  }, [save, dirty, saved, text]);
+  useEffect(() => {
+    if (!save) return;
+    const away = () => {
+      if (document.visibilityState === "hidden") void flushNow.current();
+    };
+    const gone = () => void flushNow.current();
+    document.addEventListener("visibilitychange", away);
+    addEventListener("pagehide", gone);
+    return () => {
+      document.removeEventListener("visibilitychange", away);
+      removeEventListener("pagehide", gone);
+    };
+  }, [save]);
 
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!(e.metaKey || e.ctrlKey)) return;
@@ -283,7 +320,7 @@ export function DraftBox({
           ? "Saved"
           : null;
   // The keys only where there is a keyboard to press them.
-  const hint = send ? "⌘S saves · ⌘↵ sends" : "⌘S saves";
+  const hint = send ? "Saves as you type · ⌘↵ sends" : "Saves as you type";
 
   return (
     <section className="grid min-w-0 gap-3" aria-label={draft.label}>
