@@ -6,7 +6,7 @@
 import { LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { patchCalls, useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
 import { ERROR, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
 
@@ -44,8 +44,9 @@ const ask = (client: string, set?: { channel: string; mode: Mode }) =>
     : call<Modes>(set ? "marketing/inboxAutoSet" : "marketing/inboxAuto", { client, ...set });
 
 export function AutoReplyPage(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`auto-reply:${props.client}:${nonce}`, () => ask(props.client));
+  // One key for every read; a set's answer is the new modes, patched in, never read again.
+  const key = `auto-reply:${props.client}`;
+  const load = useCall(key, () => ask(props.client));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const data = load.data;
@@ -53,8 +54,8 @@ export function AutoReplyPage(props: PageProps) {
     setBusy(true);
     setError(null);
     try {
-      await ask(props.client, { channel, mode });
-      setNonce((n) => n + 1);
+      const now = await ask(props.client, { channel, mode });
+      patchCalls((k, data) => (k === key ? now : data));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {

@@ -29,6 +29,7 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  recordPatch,
   relative,
   Section,
   say,
@@ -44,7 +45,7 @@ import {
   useState,
 } from "react";
 import { call, viewingAs } from "../../api.js";
-import { useCall } from "../../load.js";
+import { patchCalls, useCall } from "../../load.js";
 import type { ListPage, PageProps } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 
@@ -78,6 +79,7 @@ export const factsDropped =
 
 const RECORD = "marketing.facts";
 const ID = "wren";
+const FACTS_KEY = "facts";
 /** The count shows once a fact is this close to the cap, or while it's being typed. */
 const NEAR = 40;
 
@@ -350,8 +352,8 @@ function Change({
 }
 
 export function FactsPage({ demo, can }: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const got = useCall(`facts:${nonce}`, () =>
+  // One key for every read: a save patches its answer, an undo reads it again.
+  const got = useCall(FACTS_KEY, () =>
     call<RecordAnswer>("console/recordsGet", { record: RECORD, id: ID }),
   );
   const saved = got.data ? savedOf(got.data) : null;
@@ -391,7 +393,7 @@ export function FactsPage({ demo, can }: PageProps) {
     el.setSelectionRange(at, at);
   });
 
-  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  const reload = got.retry;
 
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!saved || !rows || !base)
@@ -443,7 +445,30 @@ export function FactsPage({ demo, can }: PageProps) {
       });
       start(out.version, listOf(out.values.facts));
       say.done("Facts saved. The next draft uses them.");
-      reload();
+      // The page shows it now, History line too: a save never reads the facts again.
+      const facts = typeof out.values.facts === "string" ? out.values.facts : factsText(list);
+      const at = new Date().toISOString();
+      const change: ChangeLine | null =
+        out.change === null
+          ? null
+          : {
+              id: out.change,
+              at,
+              by: "you",
+              via: "person",
+              before: { facts: factsText(base?.facts ?? saved.facts) },
+              after: { facts },
+              undoes: null,
+              undone: false,
+            };
+      patchCalls(
+        recordPatch(
+          RECORD,
+          ID,
+          { facts, updatedAt: at, updatedBy: "you" },
+          { version: out.version, change },
+        ),
+      );
     } catch (err) {
       say.failed(err);
     } finally {

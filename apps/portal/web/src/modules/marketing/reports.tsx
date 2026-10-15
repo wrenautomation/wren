@@ -323,12 +323,12 @@ function ReportSection({ r, view, act }: { r: Report; view: View; act: Act }) {
 }
 
 export function ReportsPage(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
   const wren = props.client === WREN.id;
-  const load = useCall(`reports:${props.client}:${nonce}`, () =>
+  // One key for every read: a reload replaces the kept answer, never adds a new one.
+  const load = useCall(`reports:${props.client}`, () =>
     wren ? Promise.resolve(null) : call<View>("marketing/reports", { client: props.client }),
   );
-  const act = useReportAct(props.client, () => setNonce((n) => n + 1));
+  const act = useReportAct(props.client, load.retry);
   const [adding, setAdding] = useState(false);
   const data = load.data;
   return (

@@ -29,7 +29,7 @@ import {
   useKeptForm,
   useSaved,
 } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -622,11 +622,16 @@ function Version({ platform, v }: { platform: Platform; v: ReturnType<typeof own
 
 /** Every draft that waits on a yes, an idea a row, its platforms side by side. */
 function WaitingBoard(props: PageProps & { nonce: number }) {
-  const [again, setAgain] = useState(0);
-  const load = useCall(`studio-waiting:${props.nonce}:${again}`, () =>
-    desk<{ ideas: Waiting[] }>("waiting", {}),
-  );
-  const reload = () => setAgain((n) => n + 1);
+  // One key for every read: a reload replaces the kept answer, never adds a new one.
+  const load = useCall("studio-waiting", () => desk<{ ideas: Waiting[] }>("waiting", {}));
+  const reload = load.retry;
+  // Something made above: read the board again.
+  const made = useRef(props.nonce);
+  useEffect(() => {
+    if (made.current === props.nonce) return;
+    made.current = props.nonce;
+    reload();
+  }, [props.nonce, reload]);
   const only = chosen(props.params);
   const ideas = load.data?.ideas
     .map((i) => ({ ...i, drafts: i.drafts.filter((d) => !only || d.platform === only) }))
