@@ -161,3 +161,8 @@ closed app's pages show on hover as now. Same information, one sidebar's width.
   draft save is `staleRefusal`, and its answer carries the new "Edited by" line. The sandbox
   can't connect a social account. Left: the record head flushes only the draft box before Approve,
   not fields or slides; a record act still reads the record again after a save.
+- 2026-10-15: lane B, from ui-races. Draft rows carry a version (their words hashed); Approve,
+  Schedule and Post now send it, and words written since are refused by name. A save patches the
+  new version into its row. Facts, Auto-reply, Reports and Studio's waiting board keep one read
+  key. Left: typing on one page and approving from another list before it reloads is refused
+  with "Read it again".
