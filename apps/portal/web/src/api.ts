@@ -69,10 +69,28 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** The input a refusal is about, when it names one (`subreddit`, `title`). */
+    readonly field?: string,
   ) {
     super(message);
   }
+  /** A save over a version that changed meanwhile: show both, never drop either. */
+  get conflict(): boolean {
+    return this.status === 409;
+  }
 }
+
+type Refused = { message?: string; error?: string; metadata?: { field?: unknown } } | null;
+
+/** A refusal's answer as an ApiError: its words, its status, the field it names. */
+const refusalOf = (d: Refused, status: number): ApiError => {
+  const field = d?.metadata?.field;
+  return new ApiError(
+    d?.message ?? d?.error ?? `Something went wrong (${status}).`,
+    status,
+    typeof field === "string" ? field : undefined,
+  );
+};
 
 /** Where sign-in lives, or null on a host that needs none. */
 export const AUTH_ORIGIN = location.hostname.startsWith("app.")
@@ -335,10 +353,7 @@ async function flush(all: Queued[]) {
         if (!a || a.status === 401 || a.status === 0) return alone(q);
         tellAutotrack(q.path, q.body, a.status);
         if (a.status >= 200 && a.status < 300) return q.ok(a.body);
-        const d = a.body as { message?: string; error?: string } | null;
-        return q.fail(
-          new ApiError(d?.message ?? d?.error ?? `Something went wrong (${a.status}).`, a.status),
-        );
+        return q.fail(refusalOf(a.body as Refused, a.status));
       }),
     );
   }
@@ -393,13 +408,7 @@ async function sendNow<T>(
   } catch {
     // Not JSON: an error page from the edge.
   }
-  if (!res.ok) {
-    const d = data as { message?: string; error?: string } | null;
-    throw new ApiError(
-      d?.message ?? d?.error ?? `Something went wrong (${res.status}).`,
-      res.status,
-    );
-  }
+  if (!res.ok) throw refusalOf(data as Refused, res.status);
   return data as T;
 }
 

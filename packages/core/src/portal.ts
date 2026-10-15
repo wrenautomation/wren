@@ -444,13 +444,19 @@ export async function portalMe(
   };
 }
 
+/** A refusal as Restate's terminal error: its status, and its field in the metadata the ingress returns. */
+export const terminalOf = (err: PortalRefusal): restate.TerminalError =>
+  new restate.TerminalError(err.message, {
+    errorCode: err.status,
+    ...(err.field ? { metadata: { field: err.field } } : {}),
+  });
+
 /** Run a handler; a refusal becomes Restate's terminal error with the status the Worker returns. */
 export async function answer<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (err instanceof PortalRefusal)
-      throw new restate.TerminalError(err.message, { errorCode: err.status });
+    if (err instanceof PortalRefusal) throw terminalOf(err);
     throw err;
   }
 }
