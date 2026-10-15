@@ -14,6 +14,7 @@ import {
   markWords,
   numbered,
   tidy,
+  tiktokFields,
   VIDEO_FOOTERS,
   type VideoFooter,
   videoRef,
@@ -151,6 +152,16 @@ describe("clip captions", () => {
       "A point\n\nFirst paragraph of the video.",
     );
     expect(alsoText("facebook", "A point", "")).toBe("A point");
+  });
+
+  it("drafts TikTok public with interactions on through Studio, private and off by the API", () => {
+    expect(tiktokFields("web")).toMatchObject({
+      privacy: "PUBLIC_TO_EVERYONE",
+      allowComment: true,
+      allowDuet: true,
+      allowStitch: true,
+    });
+    expect(tiktokFields("api")).toEqual({ privacy: "SELF_ONLY" });
   });
 
   it("reads a clip's own words on the cut timeline, cut at a sentence", () => {

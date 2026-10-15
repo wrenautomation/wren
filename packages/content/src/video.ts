@@ -166,6 +166,8 @@ export interface ApproveVideo {
   at?: Date;
   /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
   replace?: boolean;
+  /** How Wren's TikTok posts go out (`tiktokPostVia`): `web` drafts public with every interaction on. Default `api`. */
+  tiktokVia?: "web" | "api";
   source: IdeaSource;
   now?: Date;
 }
@@ -336,6 +338,7 @@ export async function approveVideo(
       video: id,
       short: reels,
       funnel,
+      tiktokVia: o.tiktokVia ?? "api",
     });
     if (reel) return { ...out, reel: { id: reel.id, again: true }, also };
     const caption = withFooter([title, about], fillFooter(footers.reel, e), IG_CAPTION);
@@ -415,10 +418,24 @@ export function alsoText(platform: AlsoPlatform, title: string, description: str
   return [title, leadOf(description)].filter(Boolean).join("\n\n");
 }
 
-/** The fields each takes; TikTok's privacy waits on his pick in To approve (the sandbox app posts only to him). */
-const alsoFields = (platform: AlsoPlatform) =>
+/**
+ * TikTok's fields for a clip. Studio (`web`) posts public with comments, duet and stitch on, the
+ * way a post goes out by default; the unaudited API posts only to him, so `api` drafts private
+ * with them off.
+ */
+export function tiktokFields(via: "web" | "api") {
+  return fieldsOf(
+    "tiktok",
+    via === "web"
+      ? { privacy: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: true, allowStitch: true }
+      : { privacy: "SELF_ONLY" },
+  );
+}
+
+/** The fields each takes. */
+const alsoFields = (platform: AlsoPlatform, tiktokVia: "web" | "api") =>
   platform === "tiktok"
-    ? fieldsOf("tiktok", { privacy: "SELF_ONLY" })
+    ? tiktokFields(tiktokVia)
     : platform === "x"
       ? fieldsOf("x", {})
       : platform === "facebook"
@@ -440,6 +457,7 @@ async function alsoDrafts(
     video: number;
     short: number | "vertical";
     funnel: { stage: "reach" | "trust"; pointsTo: "video" | "site"; videoDraft?: string | null };
+    tiktokVia: "web" | "api";
   },
 ): Promise<{ platform: AlsoPlatform; id: string }[]> {
   const made: { platform: AlsoPlatform; id: string }[] = [];
@@ -454,7 +472,7 @@ async function alsoDrafts(
         text,
         title: o.title,
         media: { kind: "video", source: o.stored, title: o.title },
-        extra: alsoFields(platform),
+        extra: alsoFields(platform, o.tiktokVia),
         status: "draft",
         promptVersion: "video",
         ...o.funnel,

@@ -1331,6 +1331,7 @@ export async function buildServices(
       platforms: settings.contentChannels,
       zone: settings.sendTimezone,
       tracer,
+      tiktokVia: settings.tiktokPostVia,
       // A client's drafts: its database, the watch's model metered on its own gate, or its own
       // model key from the store.
       clients: { clientDb, llm: watchLlm, keys },

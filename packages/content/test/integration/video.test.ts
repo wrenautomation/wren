@@ -177,6 +177,45 @@ describe("marketing.video", () => {
     expect(detail.video.thumbnails.map((t) => t.picked)).toEqual([false, true]);
   });
 
+  it("drafts TikTok private with interactions off by the API, public with them on through Studio", async () => {
+    const make = async (title: string) => {
+      const [v] = await pg.db
+        .insert(videoEdits)
+        .values({
+          title,
+          state: "rendered",
+          dir: "/rec",
+          tracks: { main: track },
+          shorts: [{ from: 0, to: 30, title }],
+          files: { "short-1": "/rec/out/short-1.mp4" },
+          keys: { "short-1": "s3://media/s-540.mp4", "reel-1": "s3://media/s.mp4" },
+        })
+        .returning();
+      if (!v) throw new Error("no video");
+      return v.id;
+    };
+    const tiktok = async (id: string | undefined) => {
+      if (!id) throw new Error("no tiktok draft");
+      const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
+      return d?.extra;
+    };
+    const api = await approveVideo(pg.db, await make("By the API"), { source: "cli", short: 1 });
+    expect(await tiktok(api.also?.find((x) => x.platform === "tiktok")?.id)).toEqual({
+      privacy: "SELF_ONLY",
+    });
+    const web = await approveVideo(pg.db, await make("Through Studio"), {
+      source: "cli",
+      short: 1,
+      tiktokVia: "web",
+    });
+    expect(await tiktok(web.also?.find((x) => x.platform === "tiktok")?.id)).toMatchObject({
+      privacy: "PUBLIC_TO_EVERYONE",
+      allowComment: true,
+      allowDuet: true,
+      allowStitch: true,
+    });
+  });
+
   it("a Short rendered before Reels uploaded says to render again, and still goes to YouTube", async () => {
     const [v] = await pg.db
       .insert(videoEdits)
