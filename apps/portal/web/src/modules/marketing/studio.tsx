@@ -15,12 +15,16 @@ import {
   ACTIONS,
   Button,
   cx,
+  DeviceFrame,
   Empty,
+  FeedPost,
   Input,
   LoadFailed,
   Loading,
   PageHeader,
   type Patch,
+  PHONE_WIDTH,
+  PlatformMark,
   patchRecord,
   SaveConflict,
   SaveStatus,
@@ -44,6 +48,7 @@ import { contentDesk, deskCall } from "./desk.js";
 import { PieceCard, usePieces } from "./pieces.js";
 import { goalsOf, MakeList, toMakeLine, usePlan } from "./plan.js";
 import { StoryBox } from "./story-box.js";
+import { StudioVideo, VideoShelf } from "./video-shelf.js";
 
 /** The platforms that post words alone (YouTube as a community post); videos start from a recording. */
 const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_SPECS[p].words);
@@ -251,6 +256,13 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
 }
 
 export function StudioPage(props: PageProps) {
+  // A video opened from the shelf: its editor takes the page, Studio is one link back.
+  const video = props.params.get("video");
+  if (video) return <StudioVideo key={video} {...props} id={video} />;
+  return <StudioHome {...props} />;
+}
+
+function StudioHome(props: PageProps) {
   // Feed's Use as idea opens here with the post it came from.
   // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
   const idea = props.params.get("idea") ?? "";
@@ -334,6 +346,7 @@ export function StudioPage(props: PageProps) {
     <>
       <PageHeader title="Studio" lede="Make something new, or finish what waits on you." />
       <ToMake />
+      <VideoShelf params={props.params} />
       <Section title="New">
         <MakePicker offered={offered} make={make} pick={setMake} />
       </Section>
@@ -348,7 +361,12 @@ export function StudioPage(props: PageProps) {
           {...(about ? { fromTitle: about.title } : {})}
         />
       ) : make === "video" ? (
-        <Recordings />
+        <Section>
+          <p className={cx("m-0 max-w-[70ch] text-[13.5px]", QUIET)}>
+            A video starts from a recording. Record with OBS or Cap on the Mac. It shows in Videos
+            above a minute after you stop, and the editor cuts it for you to review.
+          </p>
+        </Section>
       ) : (
         <>
           <Section>
@@ -515,42 +533,6 @@ function ToMake() {
         <Loading lines={3} />
       ) : (
         <MakeList goals={goals} reload={load.retry} />
-      )}
-    </Section>
-  );
-}
-
-/** A video starts from a recording: the newest ones, each with where it went. */
-function Recordings() {
-  const load = usePieces();
-  const videos = (load.data?.pieces ?? []).filter((p) => p.kind === "long");
-  const SHOWN = 4;
-  return (
-    <Section
-      title="Recordings"
-      note={videos.length ? `${videos.length}` : undefined}
-      actions={
-        <a className={cx("text-[13px] underline", QUIET)} href="/marketing/videos">
-          All recordings
-        </a>
-      }
-    >
-      <p className={cx("m-0 mb-3 max-w-[70ch] text-[13.5px]", QUIET)}>
-        A video starts from a recording. Record with OBS or Cap on the Mac. It shows here a minute
-        after you stop, and the editor cuts it for you to review.
-      </p>
-      {load.error && !load.data ? (
-        <LoadFailed error={load.error} onRetry={load.retry} />
-      ) : !load.data ? (
-        <Loading lines={3} />
-      ) : videos.length === 0 ? (
-        <Empty>No recording yet.</Empty>
-      ) : (
-        <div className="grid gap-3">
-          {videos.slice(0, SHOWN).map((p) => (
-            <PieceCard key={p.id} piece={p} reload={load.retry} />
-          ))}
-        </div>
       )}
     </Section>
   );
@@ -787,6 +769,10 @@ function DraftCard({
       })()
     : null;
   const missing = d.missing ?? [];
+  // The card leads with the post as a phone's feed shows it; the words open under it.
+  const looks = !d.story && !d.carousel;
+  const [editing, setEditing] = useState(false);
+  const open = !looks || editing || s.dirty || !!s.conflict || !!unfit || text.length > max;
 
   const act = async (what: Act) => {
     setBusy(what);
@@ -816,7 +802,8 @@ function DraftCard({
     <div className="grid content-start gap-2 rounded-(--ui-radius) bg-(--ui-paper) p-3 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">
-          <Tag>{nameOf(d.platform)}</Tag>
+          <PlatformMark mark={d.platform} size={16} />
+          <span className="text-[13.5px] font-semibold">{nameOf(d.platform)}</span>
           {d.state === "failed" ? <Tag tone="warn">Failed</Tag> : null}
           {d.story ? (
             <Tag tone="accent">Story</Tag>
@@ -845,11 +832,34 @@ function DraftCard({
           </span>
         )}
       </div>
-      {d.title ? <b className="text-[14px]">{d.title}</b> : null}
+      {looks ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={`Edit the ${nameOf(d.platform)} draft`}
+          className="block w-full cursor-text border-0 bg-transparent p-0 text-left"
+        >
+          <DeviceFrame width={PHONE_WIDTH}>
+            <FeedPost
+              from="Wren Automation"
+              title={d.title}
+              body={d.thread ? (threadPosts(text)[0] ?? text) : text}
+              lines={PLATFORM_SPECS[d.platform].feed.phone}
+              size={15}
+            />
+          </DeviceFrame>
+        </button>
+      ) : d.title ? (
+        <b className="text-[14px]">{d.title}</b>
+      ) : null}
       {d.story ? (
         <p className={cx("m-0 text-[13.5px]", QUIET)}>
           A story: the photo or clip goes as is, with no words.
         </p>
+      ) : !open ? (
+        <Button size="dense" tone="quiet" className="w-fit" onClick={() => setEditing(true)}>
+          Edit the words
+        </Button>
       ) : (
         <>
           <Textarea

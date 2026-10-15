@@ -41,6 +41,10 @@ describe("videoPicture", () => {
       source: "k/long.mp4",
       kind: "video",
     });
+    expect(videoPicture({ files: {}, keys: { source: "k/source.mp4" } })).toEqual({
+      source: "k/source.mp4",
+      kind: "video",
+    });
     expect(videoPicture({ files: {}, keys: {} })).toBeNull();
   });
 });

@@ -50,7 +50,13 @@ type CutRow = {
   before: string;
   after: string;
 };
-type Short = { from: number; to: number; title: string };
+type Short = {
+  from: number;
+  to: number;
+  title: string;
+  card?: boolean | undefined;
+  cardText?: string | undefined;
+};
 type Format = "long" | "vertical";
 /** `long`/`short`: burned in (`screen`) or not; `on` is a row from before per-format captions. */
 type Captions = {
@@ -100,6 +106,19 @@ type Video = {
   checks?: Check[];
   /** Beside the preview: whether it shows the last change. */
   fresh?: Check | null;
+  /** False while the transcript has no sentence ends. */
+  punctuated?: boolean;
+  /** What each look proposed, newest first (content `looksOf`). */
+  looks?: Look[];
+};
+type Look = {
+  by: string;
+  at: string;
+  summary: string;
+  shorts: { from: number; to: number; title: string }[];
+  chapters: { at: number; title: string }[];
+  thumbnails: { at: number; why: string }[];
+  moments: { at: number; why: string }[];
 };
 type Step = {
   id: string;
@@ -129,6 +148,8 @@ const ASK = "marketing.videoAsk";
 const UNDO = "marketing.videoUndo";
 const AGENT = "marketing.videoAgent";
 const WORDS = "marketing.videoWords";
+const STRESS = "marketing.videoStress";
+const PUNCTUATE = "marketing.videoPunctuate";
 const POLL_MS = 4000;
 const RENDER_POLL_MS = 15_000;
 /** Before this it renders; after, the cut file and its upload are settled. */
@@ -457,7 +478,7 @@ function Fields({
         act={act}
         patch={(t) => ({ chapters: chaptersOf(t) })}
       />
-      {edit.shorts.map((s, i) => (
+      {(finishing ? [] : edit.shorts).map((s, i) => (
         <Field
           video={id}
           key={`${s.from}-${s.to}`}
@@ -1195,6 +1216,234 @@ function WriteAbout({ id, title }: { id: string; title: string }) {
   );
 }
 
+/**
+ * The model's passes on the words (`wren video stress`, `wren video words --punctuate`): one
+ * press each, Undo puts the words or the stress back.
+ */
+function ModelTools({ act, punctuated }: { act: RecordAct; punctuated: boolean }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
+  const run = async (action: string, done: (n: number) => string) => {
+    setBusy(action);
+    setSaid(null);
+    try {
+      const r = answerIn(await once(act, action)) as { n?: number } | undefined;
+      setSaid({ text: done(r?.n ?? 0), bad: false });
+    } catch (err) {
+      setSaid({ text: errorOf(err), bad: true });
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {punctuated ? null : (
+        <Button
+          size="dense"
+          tone="quiet"
+          busy={busy === PUNCTUATE}
+          disabled={!!busy}
+          {...tipProps("The transcript has no full stops. A model adds them; the words stay.")}
+          onClick={() =>
+            void run(PUNCTUATE, (n) => `Punctuated ${n} ${n === 1 ? "word" : "words"}.`)
+          }
+        >
+          Add punctuation
+        </Button>
+      )}
+      <Button
+        size="dense"
+        tone="quiet"
+        busy={busy === STRESS}
+        disabled={!!busy}
+        {...tipProps(
+          "A model picks the few words a minute that carry the point. Undo puts yours back.",
+        )}
+        onClick={() =>
+          void run(STRESS, (n) => `${n} stressed ${n === 1 ? "word" : "words"} picked.`)
+        }
+      >
+        Propose stressed words
+      </Button>
+      {said ? (
+        <span
+          aria-live="polite"
+          className={said.bad ? "text-[13px] text-(--ui-bad)" : "text-[13px] text-(--ui-ink-2)"}
+        >
+          {said.text}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * What a look proposed (`wren video look`): Shorts, chapters and cover frames, each with Use,
+ * which saves it into the edit as `wren video set` would. Moments are for reading.
+ */
+function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: RecordAct }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
+  const use = async (key: string, patch: Partial<Edit>, expect: Partial<Edit>, done: string) => {
+    setBusy(key);
+    setSaid(null);
+    try {
+      await once(act, SET, { patch, expect });
+      setSaid({ text: done, bad: false });
+    } catch (err) {
+      setSaid({ text: errorOf(err), bad: true });
+    } finally {
+      setBusy(null);
+    }
+  };
+  const has = (x: { from: number; to: number }) =>
+    edit.shorts.some((s) => Math.abs(s.from - x.from) < 1 && Math.abs(s.to - x.to) < 1);
+  const NAME: Record<string, string> = { gemini: "Gemini", twelvelabs: "TwelveLabs" };
+  return (
+    <div className="grid gap-5">
+      {looks.map((l) => (
+        <div key={l.by} className="grid gap-3">
+          <p className="m-0 text-[13px] text-(--ui-ink-2)">
+            {NAME[l.by] ?? l.by}, {at(l.at)}
+            {l.summary ? `: ${l.summary}` : ""}
+          </p>
+          {l.shorts.length ? (
+            <div className="grid gap-1.5">
+              <h5 className="m-0 text-[13px] font-semibold">Shorts</h5>
+              <ul className="m-0 grid list-none gap-1 p-0">
+                {l.shorts.map((x) => (
+                  <li
+                    key={`${x.from}-${x.to}`}
+                    className="flex flex-wrap items-center gap-2 text-[13.5px]"
+                  >
+                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+                      {clock(x.from)} to {clock(x.to)}
+                    </span>
+                    <span className="min-w-0 flex-1">{x.title}</span>
+                    {has(x) ? (
+                      <Tag tone="green">In the edit</Tag>
+                    ) : (
+                      <Button
+                        size="dense"
+                        tone="quiet"
+                        busy={busy === `s${x.from}`}
+                        disabled={!!busy}
+                        onClick={() =>
+                          void use(
+                            `s${x.from}`,
+                            { shorts: [...edit.shorts, x] },
+                            { shorts: edit.shorts },
+                            "Added as a Short.",
+                          )
+                        }
+                      >
+                        Use
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {l.chapters.length ? (
+            <div className="grid gap-1.5">
+              <div className="flex items-center gap-2">
+                <h5 className="m-0 text-[13px] font-semibold">Chapters</h5>
+                <Button
+                  size="dense"
+                  tone="quiet"
+                  busy={busy === `c${l.by}`}
+                  disabled={!!busy}
+                  onClick={() =>
+                    void use(
+                      `c${l.by}`,
+                      { chapters: l.chapters },
+                      { chapters: edit.chapters },
+                      "Chapters replaced.",
+                    )
+                  }
+                >
+                  Use these chapters
+                </Button>
+              </div>
+              <ul className="m-0 grid list-none gap-0.5 p-0 text-[13.5px]">
+                {l.chapters.map((c) => (
+                  <li key={c.at}>
+                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+                      {clock(c.at)}
+                    </span>{" "}
+                    {c.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {l.thumbnails.length ? (
+            <div className="grid gap-1.5">
+              <h5 className="m-0 text-[13px] font-semibold">Thumbnail frames</h5>
+              <ul className="m-0 grid list-none gap-1 p-0">
+                {l.thumbnails.map((x) => (
+                  <li key={x.at} className="flex flex-wrap items-center gap-2 text-[13.5px]">
+                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+                      {clock(x.at)}
+                    </span>
+                    <span className="min-w-0 flex-1">{x.why}</span>
+                    {edit.thumbnail && Math.abs(edit.thumbnail.at - x.at) < 0.5 ? (
+                      <Tag tone="green">In use</Tag>
+                    ) : (
+                      <Button
+                        size="dense"
+                        tone="quiet"
+                        busy={busy === `t${x.at}`}
+                        disabled={!!busy}
+                        onClick={() =>
+                          void use(
+                            `t${x.at}`,
+                            { thumbnail: { at: x.at, text: edit.thumbnail?.text ?? "" } },
+                            { thumbnail: edit.thumbnail },
+                            "Thumbnail frame set. Render the thumbnails to see it.",
+                          )
+                        }
+                      >
+                        Use
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {l.moments.length ? (
+            <details>
+              <summary className="w-fit cursor-pointer text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
+                {l.moments.length} moments it noticed
+              </summary>
+              <ul className="m-0 mt-1 grid list-none gap-0.5 p-0 text-[13.5px]">
+                {l.moments.map((m) => (
+                  <li key={m.at}>
+                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+                      {clock(m.at)}
+                    </span>{" "}
+                    {m.why}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ))}
+      {said ? (
+        <span
+          aria-live="polite"
+          className={said.bad ? "text-[13px] text-(--ui-bad)" : "text-[13px] text-(--ui-ink-2)"}
+        >
+          {said.text}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 /** Below this width the record is a phone's: review first, editing folded (C5). */
 const NARROW = "(max-width: 899px)";
 const isNarrow = () => typeof window !== "undefined" && !!window.matchMedia?.(NARROW).matches;
@@ -1227,15 +1476,19 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row,
   const narrow = isNarrow();
   // Finishing happens at the Mac: trims, text, captions, cover and crops, before the render.
   const finishing = edit && !narrow && !!v.finish;
-  const sections: [string, ReactNode][] = [
-    [
-      "Preview",
-      <div key="p" className="grid gap-2">
-        <Player src={v.preview} />
-        {v.fresh && v.preview ? <Checks checks={[v.fresh]} /> : null}
-      </div>,
-    ],
-  ];
+  // Before a render the finish below is the preview: no empty box above it.
+  const sections: [string, ReactNode][] =
+    finishing && !v.preview
+      ? []
+      : [
+          [
+            "Preview",
+            <div key="p" className="grid gap-2">
+              <Player src={v.preview} />
+              {v.fresh && v.preview ? <Checks checks={[v.fresh]} /> : null}
+            </div>,
+          ],
+        ];
   if (finishing && v.finish)
     sections.push([
       "Finish",
@@ -1301,8 +1554,13 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row,
   if (edit) editing.push(["Cuts", <Cuts key="c" cuts={v.cuts} act={act} />]);
   editing.push([
     "Transcript",
-    <Transcript key="t" words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />,
+    <div key="t" className="grid gap-2">
+      {edit ? <ModelTools act={act} punctuated={v.punctuated !== false} /> : null}
+      <Transcript words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />
+    </div>,
   ]);
+  if (edit && v.looks?.length)
+    editing.push(["Suggestions", <Suggestions key="sg" looks={v.looks} edit={v.edit} act={act} />]);
   if (edit)
     editing.push(["Ask Claude", <Ask key="a" video={String(row.id)} turns={v.turns} act={act} />]);
   if (!narrow) sections.push(...editing);

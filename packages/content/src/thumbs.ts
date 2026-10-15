@@ -83,7 +83,8 @@ export function videoPicture(e: {
   if (still) return { source: still, kind: "image" };
   const cover = Object.entries(e.keys).find(([k]) => k.startsWith("cover-"))?.[1];
   if (cover) return { source: cover, kind: "image" };
-  const preview = e.keys.long ?? e.keys.preview;
+  // A recording not rendered yet: its playback copy, so Studio's shelf has a first frame.
+  const preview = e.keys.long ?? e.keys.preview ?? e.keys.source;
   return preview ? { source: preview, kind: "video" } : null;
 }
 

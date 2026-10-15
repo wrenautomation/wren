@@ -51,6 +51,7 @@ import { StudioPage, WritePage } from "./studio.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 import { threadEditorOf } from "./thread.js";
+import { studioVideos } from "./video-shelf.js";
 import { videoExtras } from "./videos.js";
 
 const said = (line: string) => () => line;
@@ -1790,8 +1791,8 @@ export const marketing: Module = {
       actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
       extras: withDraft(COMMENT_DRAFT),
     },
-    // Every recording; Studio's Video shows the newest. A video opens here in its editor.
-    {
+    // Every recording; Studio's Videos shows the newest and opens each in this page's editor.
+    studioVideos({
       id: "videos",
       label: "Recordings",
       about: "Recordings: the agent edits, you review, they go out as videos and Shorts.",
@@ -1807,7 +1808,7 @@ export const marketing: Module = {
       },
       actions: VIDEO_ACTIONS,
       extras: videoExtras,
-    },
+    }),
     {
       id: "topics",
       label: "Topics",

@@ -50,7 +50,8 @@ export type MessageKind =
 // Gmail in a laptop window with its nav open; iPhone 15's width.
 const LAPTOP = 960;
 const LAPTOP_ZOOM = 0.72;
-const PHONE = 393;
+/** iPhone 15's width: a phone frame's. */
+export const PHONE = 393;
 // LinkedIn's feed column; the other apps' are within a few dozen pixels.
 const FEED = 555;
 // LinkedIn's and Reddit's conversation list on a laptop.
@@ -407,7 +408,7 @@ const cutOf = (lines: number | null) =>
       : `, ${lines} lines then more`;
 
 /** A post in a feed: who, its title, its text cut at `lines` (null: all of it, 0: none). */
-function FeedPost({
+export function FeedPost({
   from,
   title,
   body,

@@ -60,6 +60,14 @@ import {
   useState,
 } from "react";
 import { wrenRecords } from "../../records.js";
+import {
+  type CamBox,
+  LayoutPanel,
+  type LayoutRange,
+  PartsLane,
+  type Short,
+  ShortsPanel,
+} from "./finish-parts.js";
 import { VIEWED } from "./video-patch.js";
 
 type Format = "long" | CroppedFormat;
@@ -93,11 +101,13 @@ export type FinishData = {
   strip: string | null;
   picture: { source: "main" | "cam"; centre: Point };
   /** What the long video shows when (raw seconds): his face in the corner, alone, or the screen. */
-  layout?: { from: number; to: number; show: "corner" | "cam" | "screen" }[];
+  layout?: LayoutRange[];
   lines: CaptionLine[];
   rendered: Format[];
   /** The Shorts, in order (their number is the crop key); `face` = there is a face to crop. */
-  shorts: { n: number; from: number; to: number; title: string }[];
+  shorts: (Short & { n: number })[];
+  /** The face box in a recording with the camera in it, [x, y, w, h] pixels. */
+  camBox?: CamBox | null;
   face: boolean;
   /** The renders the edit has since changed, by output name; null when that can't be told. */
   stale: string[] | null;
@@ -248,7 +258,7 @@ type Picked =
   | { kind: "cut"; i: number }
   | { kind: "line"; i: number }
   | null;
-type Panel = "text" | "captions" | "cover" | "shapes";
+type Panel = "text" | "captions" | "cover" | "shapes" | "shorts" | "layout";
 
 export function Finish({
   id,
@@ -437,6 +447,27 @@ export function Finish({
   };
 
   const overlay = picked?.kind === "overlay" ? draw.overlays[picked.i] : undefined;
+  const shorts = useMemo(() => data.shorts.map(({ n: _n, ...x }) => x), [data.shorts]);
+  const [shortSaid, setShortSaid] = useState<string | null>(null);
+  /** The picked part as a new Short, saved at once (`wren video set shorts`). */
+  const makeShort = async () => {
+    if (!range) return;
+    setShortSaid(null);
+    try {
+      await act(
+        SET,
+        {
+          patch: { shorts: [...shorts, { from: range[0], to: range[1], title: "" }] },
+          expect: { shorts },
+        },
+        VIEWED,
+      );
+      setRange(null);
+      setPanel("shorts");
+    } catch (err) {
+      setShortSaid(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   // The keys work once he has pressed somewhere in this view, until he presses outside it.
   const keys = useRef(onKey);
@@ -541,6 +572,13 @@ export function Finish({
         draw={draw}
         io={io}
         lines={data.lines}
+        shorts={shorts}
+        layout={data.layout ?? []}
+        onShort={(i) => {
+          if (playing) pause();
+          seek(shorts[i]?.from ?? 0);
+          setPanel("shorts");
+        }}
         strip={data.strip}
         size={data.size}
         words={words}
@@ -568,9 +606,16 @@ export function Finish({
           <Button size="sm" onClick={cutRange}>
             Cut this part
           </Button>
+          <Button size="sm" tone="quiet" onClick={() => void makeShort()}>
+            Make a Short
+          </Button>
+          <Button size="sm" tone="quiet" onClick={() => setPanel("layout")}>
+            Set the layout
+          </Button>
           <Button size="sm" tone="quiet" onClick={() => setRange(null)}>
             Clear
           </Button>
+          {shortSaid ? <span className="text-(--ui-bad)">{shortSaid}</span> : null}
         </Bar>
       ) : picked?.kind === "cut" && draw.cuts[picked.i] ? (
         <Bar>
@@ -599,7 +644,7 @@ export function Finish({
 
       <p className="m-0 text-[12px] text-(--ui-ink-3)">
         Space plays. Arrows move a frame, with Shift a second. I and O set the start and end. Drag
-        across the filmstrip to cut a part.
+        across the filmstrip to pick a part: cut it, make it a Short, or set what it shows.
       </p>
 
       <div className="grid gap-3 rounded-xl border border-(--ui-hair) bg-(--ui-paper) p-3">
@@ -610,6 +655,8 @@ export function Finish({
               ["captions", "Captions"],
               ["cover", "Cover"],
               ["shapes", "Shapes"],
+              ["shorts", "Shorts"],
+              ["layout", "Layout"],
             ] as const
           ).map(([p, label]) => (
             <button
@@ -655,6 +702,28 @@ export function Finish({
             />
           ) : panel === "cover" ? (
             <CoverPanel draw={draw} t={t} covers={data.covers} onSeek={seek} commit={commit} />
+          ) : panel === "shorts" ? (
+            <ShortsPanel
+              shorts={shorts}
+              dur={dur}
+              t={t}
+              range={range}
+              onSeek={(at) => {
+                if (playing) pause();
+                seek(at);
+              }}
+              act={act}
+            />
+          ) : panel === "layout" ? (
+            <LayoutPanel
+              layout={data.layout ?? []}
+              camBox={data.camBox ?? null}
+              size={data.size}
+              dur={dur}
+              t={t}
+              range={range}
+              act={act}
+            />
           ) : (
             <ShapesPanel
               draw={draw}
@@ -1041,6 +1110,9 @@ function Timeline({
   draw,
   io,
   lines,
+  shorts,
+  layout,
+  onShort,
   strip,
   size,
   words,
@@ -1058,6 +1130,9 @@ function Timeline({
   draw: FinishEdit;
   io: { in: number; out: number };
   lines: readonly CaptionLine[];
+  shorts: readonly Short[];
+  layout: readonly LayoutRange[];
+  onShort: (i: number) => void;
   strip: string | null;
   size: [number, number];
   words: readonly { s: number; e: number }[];
@@ -1366,6 +1441,9 @@ function Timeline({
               );
             })}
           </div>
+
+          {/* The Shorts, and what the long video shows when. */}
+          <PartsLane shorts={shorts} layout={layout} x={x} onShort={onShort} />
 
           {/* The playhead, over every row. */}
           <span

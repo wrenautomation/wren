@@ -2504,19 +2504,33 @@ function SheetDone() {
 }
 
 /** The Record template as its own page: back to the list, then the record. */
-export function RecordPage({ id, ...props }: RecordTemplateProps & { id: string }) {
+export function RecordPage({
+  id,
+  back,
+  wide = false,
+  ...props
+}: RecordTemplateProps & {
+  id: string;
+  /** Where the back link leads, when not the list: a record opened inside another page. */
+  back?: { href: string; label: string } | undefined;
+  /** The page's whole width, not a reading column: an editor. */
+  wide?: boolean | undefined;
+}) {
   const types = useTypes(props.api);
   const meta = types.data?.find((t) => t.id === props.record);
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!meta || !types.data) return <ListSkeleton />;
   return (
-    <div className={cn(ROOT, "mx-auto grid max-w-[880px] gap-4")}>
+    <div className={cn(ROOT, "mx-auto grid gap-4", wide ? "max-w-none" : "max-w-[880px]")}>
       {/* A phone's bar at the top leads back there instead. */}
       <a
-        href={props.place.list}
-        className="w-fit text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) max-[900px]:in-data-[phone-nav]:hidden"
+        href={back?.href ?? props.place.list}
+        className={cn(
+          "w-fit text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
+          !back && "max-[900px]:in-data-[phone-nav]:hidden",
+        )}
       >
-        ← {cap(meta.name.many)}
+        ← {back?.label ?? cap(meta.name.many)}
       </a>
       <RecordBody
         meta={meta}

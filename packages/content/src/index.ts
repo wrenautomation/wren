@@ -20,7 +20,7 @@ export * from "./ideas.js";
 export * from "./lessons.js";
 export * from "./media.js";
 export * from "./metrics.js";
-export { writeOwn } from "./own.js";
+export { waitingIdeas, writeOwn } from "./own.js";
 export * from "./pieces.js";
 export * from "./plan.js";
 export * from "./platforms.js";

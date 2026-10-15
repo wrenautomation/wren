@@ -37,6 +37,7 @@ import {
   connectorsConsoleApi,
 } from "@wren/connectors";
 import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-routes";
+import { swapShortMedia, waitingIdeas } from "@wren/content";
 import {
   liveFrom,
   type OwnSites,
@@ -48,6 +49,7 @@ import {
   socialAppsFrom,
   socialConsoleApi,
 } from "@wren/content/connect";
+import { pieceRows, piecesOf } from "@wren/content/pieces";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
@@ -105,7 +107,7 @@ import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
-import { setEdit, setLine } from "@wren/studio/edit";
+import { setEdit, setLine, setWords } from "@wren/studio/edit";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -552,6 +554,22 @@ local.call = async (i) => {
       );
     if (service === "VideoDesk" && handler === "line")
       return pickRun(await setLine(main, input.id, input as Required<VideoIn>, by));
+    if (service === "VideoDesk" && handler === "words" && input.wrong && input.right)
+      return pickRun(
+        await setWords(main, input.id, { wrong: input.wrong, right: input.right }, { by }),
+      );
+    if (service === "VideoDesk" && handler === "swap") {
+      const r = await swapShortMedia(main, input.id, {
+        by,
+        ...(input.short ? { short: input.short } : {}),
+      });
+      return { run: r.run, swapped: r.swapped.length, missing: r.missing.length };
+    }
+    // Studio's reads: what waits on him, and every piece with where it went.
+    if (service === "ContentDesk" && handler === "waiting")
+      return { ideas: await waitingIdeas(main) };
+    if (service === "Pieces" && handler === "list")
+      return { pieces: piecesOf(await pieceRows(main, "localhost")) };
   } catch (err) {
     if (err instanceof PortalRefusal) throw err;
     throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
@@ -562,6 +580,9 @@ type VideoIn = { id: number; patch?: unknown; expect?: Record<string, unknown> }
   at?: number[];
   text?: string;
   was?: string;
+  wrong?: string;
+  right?: string;
+  short?: number | null;
 };
 const pickRun = ({ run }: { run: string }) => ({ run });
 const as = process.argv[process.argv.indexOf("--as") + 1];

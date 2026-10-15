@@ -755,12 +755,19 @@ export function TemplatePage({
   path,
   id,
   app,
+  at,
+  back,
+  wide,
   ...props
 }: PageProps & {
   page: ListPage | OverviewPage | DayPage;
   path: string;
   id: string | undefined;
   app: string;
+  /** The address it sits on, when another page shows the record: Studio's video editor. */
+  at?: string;
+  back?: { href: string; label: string };
+  wide?: boolean;
 }) {
   const { params } = props;
   const flags = useFlags();
@@ -799,7 +806,7 @@ export function TemplatePage({
     );
   }
 
-  const here = id ? `${path}/${encodeURIComponent(id)}` : path;
+  const here = at ?? (id ? `${path}/${encodeURIComponent(id)}` : path);
   const place: Place = {
     params,
     link: (change) => href(here, change, params),
@@ -887,7 +894,7 @@ export function TemplatePage({
     // The page's head sees whose page it is, as its extras do.
     head: head && ((meta: HeadMeta, reload: () => void) => head(meta, reload, props)),
   };
-  if (id) return <RecordPage {...shared} id={id} />;
+  if (id) return <RecordPage {...shared} id={id} back={back} wide={wide} />;
   if (page.template === "form") return <RecordForm {...shared} />;
   if (page.template === "shop") return <RecordShop {...shared} />;
   // A timeline page opens as its axis; `as=rows` (or cards) is the List, one switch away.

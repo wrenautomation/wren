@@ -773,12 +773,7 @@ async function finishOf(
     sourceCam: await sign(e.keys["source-cam"]),
     strip: await sign(e.keys.strip),
     picture: pictureOf(e.tracks),
-    // What the long video shows when: the preview draws the corner camera as the render does.
-    layout: e.layout,
     rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
-    shorts: e.shorts.map((s, i) => ({ n: i + 1, from: s.from, to: s.to, title: s.title })),
-    // Is there a face to crop a Short on (a camera file, or a box in the recording)?
-    face: !!(cam || e.tracks.camBox),
     covers: Object.fromEntries(covers.filter(([, url]) => url)),
     ...finishEdited(e),
   };
@@ -786,6 +781,13 @@ async function finishOf(
 
 /** What a change to the edit moves in the finishing view: its caption lines and saved fields. */
 const finishEdited = (e: VideoEdit): VideoView["finish"] => ({
+  // What the long video shows when: the preview draws the corner camera as the render does.
+  layout: e.layout,
+  // Whole, so the Shorts panel saves card and cardText back as they were.
+  shorts: e.shorts.map((s, i) => ({ n: i + 1, ...s })),
+  camBox: e.tracks.camBox ?? null,
+  // Is there a face to crop a Short on (a camera file, or a box in the recording)?
+  face: !!(e.tracks.cam || e.tracks.camBox),
   lines: captionLines(e.words, e.cuts, e.tracks.main.durationS),
   // Which formats' renders the edit has since changed; null when the renders predate hashes.
   stale: staleOf(e),
@@ -832,6 +834,10 @@ export interface VideoView {
   looks: VideoLookView[];
   cuts: ReturnType<typeof cutRows>;
   finish: {
+    layout: VideoEdit["layout"];
+    shorts: (VideoEdit["shorts"][number] & { n: number })[];
+    camBox: [number, number, number, number] | null;
+    face: boolean;
     lines: CaptionLine[];
     stale: string[] | null;
     saved: Pick<VideoEdit, "cuts" | "overlays" | "crops" | "captions" | "thumbnail" | "formats">;

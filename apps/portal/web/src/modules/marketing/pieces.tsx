@@ -134,7 +134,9 @@ function didOf(b: Branch): string | null {
 
 /** Where a branch opens in the portal: its draft, or the recording in Studio. */
 function hrefOf(b: Branch): string | null {
-  if (b.platform === "editor") return `/marketing/videos/${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
+  // A recording opens in Studio's editor.
+  if (b.platform === "editor")
+    return `/marketing/studio?video=${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
   if (b.id.startsWith("blog:")) return "/marketing/studio?make=blog";
   return `/marketing/drafts/${b.id}`;
 }
