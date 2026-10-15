@@ -51,7 +51,6 @@ import {
   dropPipeline,
   type Moved,
   moveDeals,
-  pipelineById,
   pipelinesOf,
   saveDeal,
   savePipeline,
@@ -89,13 +88,16 @@ export interface PipelineRequest extends PortalRequest {
   id?: string | null;
   name: string;
   stages: unknown;
+  /** The version its editor opened on; a change since refuses. */
+  expect?: string | null;
 }
 export interface PipelineDropRequest extends PortalRequest {
   id: string;
 }
 
 export interface Board {
-  pipelines: Pick<DealPipeline, "id" | "name" | "stages">[];
+  /** `version`: what its editor sends back as `expect`. */
+  pipelines: (Pick<DealPipeline, "id" | "name" | "stages"> & { version: string })[];
   pipeline: string;
   deals: DealRow[];
 }
@@ -222,7 +224,12 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
       const pipe = (req.pipeline && pipes.find((p) => p.id === req.pipeline)) || pipes[0];
       if (!pipe) throw new PortalRefusal("no pipeline", 404);
       return {
-        pipelines: pipes.map((p) => ({ id: p.id, name: p.name, stages: p.stages })),
+        pipelines: pipes.map((p) => ({
+          id: p.id,
+          name: p.name,
+          stages: p.stages,
+          version: p.updatedAt.toISOString(),
+        })),
         pipeline: pipe.id,
         deals: await dealRows(main, owner, pipes, { pipeline: pipe.id }),
       };
@@ -264,18 +271,16 @@ export function dealsConsoleApi(deps: DealsConsoleDeps) {
 
     pipelineSave: async (req: PipelineRequest) => {
       const owner = await ownerFor(req, "act");
-      if (req.id) {
-        const p = await pipelineById(main, req.id);
-        if (!p || p.client !== owner) throw new PortalRefusal("no such pipeline", 404);
-      }
+      // savePipeline checks the owner inside its transaction; no read here first.
       const p = await savePipeline(main, {
         owner,
         id: req.id ?? null,
         name: req.name,
         stages: req.stages,
         by: who(req),
+        expect: req.expect ?? null,
       });
-      return { id: p.id, name: p.name, stages: p.stages };
+      return { id: p.id, name: p.name, stages: p.stages, version: p.updatedAt.toISOString() };
     },
     pipelineDrop: async (req: PipelineDropRequest) => {
       const owner = await ownerFor(req, "act");

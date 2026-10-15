@@ -5,8 +5,8 @@
  */
 import type { Board } from "@wren/deals/console";
 import type { Stage, StageKind } from "@wren/deals/schema";
-import { Button, Input, LoadFailed, Loading, PageHeader, Section, say } from "@wren/ui";
-import { useState } from "react";
+import { ACTIONS, Button, Input, LoadFailed, Loading, PageHeader, Section, say } from "@wren/ui";
+import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -24,6 +24,7 @@ const KIND_LABELS: Record<StageKind, string> = { open: "Open", won: "Won", lost:
 const FRESH: Pipe = {
   id: "",
   name: "",
+  version: "",
   stages: [
     { key: "", label: "New", kind: "open" },
     { key: "", label: "Won", kind: "won" },
@@ -100,15 +101,22 @@ function PipeForm({
       if (s) next.splice(i + by, 0, s);
       return next;
     });
+  // One action at a time; a retry after a lost answer is the same action (its request id).
+  const flying = useRef(false);
   const run = async (path: string, body: Record<string, unknown>, done: string) => {
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
     try {
-      await call(path, { ...at, ...body });
+      await ACTIONS.run(`${path}:${pipe.id || "new"}`, (requestId) =>
+        call(path, { ...at, ...body, requestId }),
+      );
       say.done(done);
       onDone();
     } catch (err) {
       say.failed(err);
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -187,7 +195,7 @@ function PipeForm({
               run(
                 "deals/pipelineSave",
                 {
-                  ...(pipe.id ? { id: pipe.id } : {}),
+                  ...(pipe.id ? { id: pipe.id, expect: pipe.version } : {}),
                   name,
                   stages: stages.map((s) => ({
                     ...(s.key ? { key: s.key } : {}),

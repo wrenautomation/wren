@@ -7,6 +7,7 @@ import type { Board } from "@wren/deals/console";
 import type { DealRow } from "@wren/deals/records";
 import type { Stage } from "@wren/deals/schema";
 import {
+  ACTIONS,
   Button,
   clipProps,
   cx,
@@ -18,7 +19,7 @@ import {
   PageHeader,
   say,
 } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
@@ -41,9 +42,21 @@ export function DealBoard(props: PageProps) {
   const got = useCall(`deals-board:${props.client}:${pipeline ?? ""}`, () =>
     call<Board>("deals/board", { ...at, pipeline }),
   );
-  // A move shows at once; the next read replaces it.
+  // A move shows at once and holds until a read agrees, so an older read never drags it back.
   const [moved, setMoved] = useState<Record<string, string>>({});
+  // One move per deal at a time, in the order he made them: the last one lands last.
+  const queue = useRef(new Map<string, Promise<void>>());
   const [adding, setAdding] = useState(false);
+  const deals = got.data?.deals;
+  useEffect(() => {
+    if (!deals) return;
+    setMoved((m) => {
+      const left = Object.fromEntries(
+        Object.entries(m).filter(([id, stage]) => deals.find((d) => d.id === id)?.stage !== stage),
+      );
+      return Object.keys(left).length === Object.keys(m).length ? m : left;
+    });
+  }, [deals]);
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={6} />;
   const b = got.data;
@@ -52,20 +65,28 @@ export function DealBoard(props: PageProps) {
   const rows = b.deals.map((d) => (moved[d.id] ? { ...d, stage: moved[d.id] as string } : d));
   const write = !props.demo;
 
-  const move = async (id: string, stage: string) => {
+  const move = (id: string, stage: string) => {
     const was = rows.find((d) => d.id === id);
     if (!was || was.stage === stage) return;
     setMoved((m) => ({ ...m, [id]: stage }));
-    try {
-      await call("deals/move", { ...at, ids: [id], stage });
-      got.retry();
-    } catch (err) {
-      setMoved((m) => {
-        const { [id]: _, ...rest } = m;
-        return rest;
-      });
-      say.failed(err);
-    }
+    const before = queue.current.get(id) ?? Promise.resolve();
+    const next = before.then(async () => {
+      try {
+        await ACTIONS.run(`deal-move:${id}:${stage}`, (requestId) =>
+          call("deals/move", { ...at, ids: [id], stage, requestId }),
+        );
+        if (queue.current.get(id) === next) got.retry();
+      } catch (err) {
+        // Back to where the server has it, unless a later move took over.
+        setMoved((m) => {
+          if (m[id] !== stage) return m;
+          const { [id]: _, ...rest } = m;
+          return rest;
+        });
+        say.failed(err);
+      }
+    });
+    queue.current.set(id, next);
   };
 
   return (
@@ -275,26 +296,33 @@ function NewDeal({
   const [value, setValue] = useState("");
   const [contact, setContact] = useState("");
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
     try {
-      await call("deals/create", {
-        ...at,
-        pipeline,
-        name,
-        ...(value.trim() ? { value } : {}),
-        ...(contact.trim()
-          ? contact.includes("@")
-            ? { contactEmail: contact }
-            : { contactName: contact }
-          : {}),
-      });
+      await ACTIONS.run(`deal-create:${pipeline}`, (requestId) =>
+        call("deals/create", {
+          ...at,
+          pipeline,
+          name,
+          ...(value.trim() ? { value } : {}),
+          ...(contact.trim()
+            ? contact.includes("@")
+              ? { contactEmail: contact }
+              : { contactName: contact }
+            : {}),
+          requestId,
+        }),
+      );
       say.done("Added to the first stage.");
       onDone();
     } catch (err) {
       say.failed(err);
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

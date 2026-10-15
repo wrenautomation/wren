@@ -3,7 +3,7 @@
  * for Wren. Every stage change goes through `moveDeals`, which keeps the move and says what fired.
  */
 
-import { PortalRefusal } from "@wren/core/refusal";
+import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
@@ -98,8 +98,18 @@ const nameOf = (raw: unknown, what: string, max: number) => {
 /** A new pipeline, or one's name and stages saved. A stage with deals in it can't go. */
 export async function savePipeline(
   db: Db,
-  p: { owner: string | null; id?: string | null; name: unknown; stages: unknown; by: string },
+  p: {
+    owner: string | null;
+    id?: string | null;
+    name: unknown;
+    stages: unknown;
+    by: string;
+    /** The `updatedAt` its editor opened on (ISO); a change since refuses. */
+    expect?: string | null;
+  },
 ): Promise<DealPipeline> {
+  if (p.expect && Number.isNaN(Date.parse(p.expect)))
+    throw new DealRefusal("expect is a version", 400, "expect");
   const name = nameOf(p.name, "a pipeline", 80);
   const stages = stagesOf(p.stages);
   return serializable(db, async (tx) => {
@@ -119,6 +129,8 @@ export async function savePipeline(
     }
     const was = await pipelineById(tx, p.id);
     if (!was || was.client !== p.owner) throw new DealRefusal("no such pipeline", 404);
+    if (p.expect && was.updatedAt.toISOString() !== new Date(p.expect).toISOString())
+      throw staleRefusal("pipeline");
     const keys = new Set(stages.map((s) => s.key));
     const held = await tx
       .select({ stage: deals.stage, n: sql<number>`count(*)::int` })
