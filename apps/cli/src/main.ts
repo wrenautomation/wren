@@ -57,6 +57,7 @@ import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
 import { registerSop } from "./sop.js";
 import { registerStudy } from "./study.js";
+import { registerTasks } from "./tasks.js";
 import { registerTemplates } from "./templates.js";
 import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
@@ -282,6 +283,7 @@ registerNotes(program, {
   withMainDb,
   client: () => program.opts<{ client?: string }>().client,
 });
+registerTasks(program, { withDb, client: () => program.opts<{ client?: string }>().client });
 registerAds(program, withMainDb, settings);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
