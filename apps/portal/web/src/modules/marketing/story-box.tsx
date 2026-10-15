@@ -6,7 +6,7 @@
  */
 
 import type { Platform } from "@wren/core/content";
-import { Button, cx, PlatformMark, Section } from "@wren/ui";
+import { ACTIONS, Button, cx, PlatformMark, Section } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -117,11 +117,15 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
     setError(null);
     setLines([]);
     try {
-      const out = await desk<{ posts: { results: Result[] }[] }>("story", {
-        platforms: where,
-        ...(photo ? { photo: { name: photo.name, data: photo.data } } : { clip }),
-        go,
-      });
+      // One press, one story: a second while it's out gets the first's answer.
+      const out = (await ACTIONS.run(`studio:story:${go}`, (requestId) =>
+        desk<{ posts: { results: Result[] }[] }>("story", {
+          platforms: where,
+          ...(photo ? { photo: { name: photo.name, data: photo.data } } : { clip }),
+          go,
+          requestId,
+        }),
+      )) as { posts: { results: Result[] }[] };
       setLines(
         said(
           out.posts.flatMap((p) => p.results),

@@ -15,7 +15,18 @@ import {
   slidesHtml,
   slidesUnfit,
 } from "@wren/core/content/slides";
-import { Button, DeviceFrame, Input, type RecordAct, Textarea, tipProps } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  DeviceFrame,
+  Input,
+  type RecordAct,
+  SaveConflict,
+  SaveStatus,
+  Textarea,
+  tipProps,
+  useSaved,
+} from "@wren/ui";
 import { useState } from "react";
 
 export const SLIDES = "marketing.draftSlides";
@@ -112,9 +123,17 @@ function Strip({ slides, pick }: { slides: Slide[]; pick?: (i: number) => void }
 const blank = (): Slide => ({ title: "", lines: [] });
 const linesOf = (t: string) => t.split("\n");
 
+/** The slides as they save: trimmed, empty lines out. */
+const cleanOf = (slides: readonly Slide[]): Slide[] =>
+  slides.map((s) => ({
+    title: s.title.trim(),
+    lines: s.lines.map((l) => l.trim()).filter(Boolean),
+  }));
+
 /**
- * The slide set: each slide's title and lines, moved, added and taken out, then saved on every
- * draft that shares it and drawn to images and a PDF.
+ * The slide set: each slide's title and lines, moved, added and taken out, saved through the
+ * engine on every draft that shares it (after a pause, on blur, on leaving), and drawn to images
+ * and a PDF on Draw.
  */
 export function SlidesEditor({
   draftId,
@@ -127,18 +146,25 @@ export function SlidesEditor({
   editable: boolean;
   act: RecordAct;
 }) {
-  const [slides, setSlides] = useState<Slide[]>(carousel.slides);
+  const s = useSaved<Slide[]>({
+    key: editable ? `slides:${draftId}` : null,
+    server: carousel.slides,
+    same: (a, b) => JSON.stringify(cleanOf(a)) === JSON.stringify(cleanOf(b)),
+    save: async (next, { request }) => {
+      const clean = cleanOf(next);
+      const unfit = slidesUnfit(clean);
+      if (unfit) throw new Error(unfit);
+      await act(SLIDES, { slides: clean, requestId: request });
+      return { value: next };
+    },
+  });
+  const slides = s.value;
   const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  const saved = JSON.stringify(carousel.slides);
-  const [base, setBase] = useState(saved);
-  if (saved !== base) {
-    setBase(saved);
-    setSlides(carousel.slides);
-  }
-  const changed = JSON.stringify(slides) !== saved;
+  const changed = s.dirty;
   const set = (next: Slide[]) => {
-    setSlides(next);
+    s.set(next);
+    setSaid(null);
     typeSlides(draftId, next);
   };
   const edit = (i: number, s: Partial<Slide>) =>
@@ -149,18 +175,19 @@ export function SlidesEditor({
     [next[i], next[j]] = [next[j] ?? blank(), next[i] ?? blank()];
     set(next);
   };
-  const clean = slides.map((s) => ({
-    title: s.title.trim(),
-    lines: s.lines.map((l) => l.trim()).filter(Boolean),
-  }));
+  const clean = cleanOf(slides);
   const unfit = slidesUnfit(clean);
-  const run = async (draw: boolean) => {
+  /** Draw: what's typed saves first, then one draw per press. */
+  const draw = async () => {
     if (unfit) return setSaid({ text: unfit, bad: true });
+    if (!(await s.flush())) return;
     setBusy(true);
-    setSaid({ text: draw ? "Saving and drawing…" : "Saving…", bad: false });
+    setSaid({ text: "Drawing…", bad: false });
     try {
-      await act(SLIDES, { slides: clean, ...(draw ? { draw: true } : {}) });
-      setSaid({ text: draw ? "Saved and drawn" : "Saved", bad: false });
+      await ACTIONS.run(`slides:draw:${draftId}`, (requestId) =>
+        act(SLIDES, { slides: clean, draw: true, requestId }),
+      );
+      setSaid({ text: "Drawn", bad: false });
     } catch (err) {
       setSaid({ text: errorOf(err), bad: true });
     } finally {
@@ -274,26 +301,24 @@ export function SlidesEditor({
             size="dense"
             tone="secondary"
             busy={busy}
-            disabled={!changed}
-            onClick={() => void run(false)}
-          >
-            Save slides
-          </Button>
-          <Button
-            size="dense"
-            tone="secondary"
-            busy={busy}
             disabled={!changed && carousel.fresh}
-            onClick={() => void run(true)}
+            onClick={() => void draw()}
           >
-            {changed ? "Save and draw" : "Draw"}
+            Draw
           </Button>
           {said ? (
             <span className={`text-[12px] ${said.bad ? "text-(--ui-bad)" : "text-(--ui-ink-2)"}`}>
               {said.text}
             </span>
-          ) : changed ? (
-            <span className={HINT}>Not saved</span>
+          ) : (
+            <SaveStatus state={s} onRetry={s.retry} />
+          )}
+          {s.conflict ? (
+            <SaveConflict
+              conflict={s.conflict}
+              onKeepMine={s.keepMine}
+              onTakeTheirs={s.takeTheirs}
+            />
           ) : null}
         </div>
       ) : null}

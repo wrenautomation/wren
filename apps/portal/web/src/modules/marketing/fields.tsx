@@ -8,7 +8,18 @@
 import type { FieldView } from "@wren/core/content/shapes";
 import type { TikTokCreator } from "@wren/core/content/tiktok";
 import type { RecordAct, RecordExtras } from "@wren/ui";
-import { Button, Input, Tag, Textarea } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  Input,
+  SaveConflict,
+  type Saved,
+  SaveStatus,
+  statusWords,
+  Tag,
+  Textarea,
+  useSaved,
+} from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { SELECT } from "../work/bits.js";
@@ -129,7 +140,9 @@ function useSave(act: RecordAct) {
     setSaid("Saving…");
     setBad(false);
     try {
-      await act(action, input);
+      // One press, one call: a second while it's out gets the first's answer.
+      const key = `${action}:${String(input.field ?? "")}:${String(input.name ?? "")}:${JSON.stringify(input.patch ?? null)}`;
+      await ACTIONS.run(key, (requestId) => act(action, { ...input, requestId }));
       setSaid("Saved");
       return true;
     } catch (err) {
@@ -148,29 +161,41 @@ function useSave(act: RecordAct) {
 function Head({
   f,
   id,
-  said,
-  bad,
+  said = null,
+  bad = false,
+  saved,
   count,
+  over = false,
 }: {
   f: FieldView;
   id: string;
-  said: string | null;
-  bad: boolean;
+  said?: string | null;
+  bad?: boolean;
+  /** The field's save, when it saves through the engine: its status line shows here. */
+  saved?: Saved<unknown> | Saved<string> | undefined;
   count?: string | null;
+  over?: boolean;
 }) {
-  const needed = !said && f.required && f.default === undefined && !isSet(f);
+  const status = saved ? statusWords(saved.status, saved.error) : null;
+  const needed = !said && !status && f.required && f.default === undefined && !isSet(f);
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
       <label htmlFor={id} className={LABEL}>
         {f.label}
         {f.required ? <span className="text-(--ui-bad)"> *</span> : null}
       </label>
-      <span
-        aria-live="polite"
-        className={bad || needed ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
-      >
-        {said ?? (needed ? "Needed before Approve" : (count ?? ""))}
-      </span>
+      {saved && status ? (
+        <SaveStatus state={saved} onRetry={saved.retry} />
+      ) : (
+        <span
+          aria-live="polite"
+          className={
+            bad || needed || over ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"
+          }
+        >
+          {said ?? (needed ? "Needed before Approve" : (count ?? ""))}
+        </span>
+      )}
     </div>
   );
 }
@@ -186,26 +211,50 @@ const typedValue = (f: FieldView, t: string) => {
 
 type FieldProps = { f: FieldView; act: RecordAct; draftId: string };
 
+/** The field's value from what's typed: null clears it. Throws the words when it can't be one. */
+const fieldValue = (f: FieldView, text: string): unknown => {
+  const t = text.trim();
+  if (t === "") return null;
+  if (f.input === "list") return listOf(t);
+  if (f.input === "number") {
+    if (Number.isNaN(Number(t))) throw new Error(`${f.label}: type a number.`);
+    return Number(t);
+  }
+  return t;
+};
+
+/**
+ * One field's save through the engine: journaled as he types, sent on blur, Enter or a pick (a
+ * field has no autosave, so a half-typed value never lands), patched in place after.
+ */
+function useFieldSaved<T>(
+  f: FieldView,
+  draftId: string,
+  server: T,
+  act: RecordAct,
+  value: (v: T) => unknown,
+) {
+  return useSaved<T>({
+    key: `field:${draftId}:${f.key}`,
+    server,
+    delay: null,
+    ...(typeof server === "string"
+      ? { same: (a: T, b: T) => String(a).trim() === String(b).trim() }
+      : {}),
+    save: async (v, { request }) => {
+      await act(FIELDS, { patch: { [f.key]: value(v) }, requestId: request });
+      return { value: v };
+    },
+  });
+}
+
 /** A line, a long text, a number or a list: saved on blur and Enter. `picks` offers values to click. */
 function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | undefined }) {
   const value = textOf(f);
-  const [text, setText] = useState(value);
-  const { said, bad, run, clear } = useSave(act);
-  const dirty = text !== value;
-  const live = useRef(dirty);
-  live.current = dirty;
-  useEffect(() => {
-    if (!live.current) setText(value);
-  }, [value]);
+  const s = useFieldSaved(f, draftId, value, act, (t) => fieldValue(f, t));
+  const text = s.value;
   useEffect(() => typeIn(draftId, f.key, typedValue(f, text)), [draftId, f, text]);
-  const save = async () => {
-    if (text.trim() === value.trim()) return;
-    const t = text.trim();
-    const v =
-      t === "" ? null : f.input === "list" ? listOf(t) : f.input === "number" ? Number(t) : t;
-    if (f.input === "number" && typeof v === "number" && Number.isNaN(v)) return;
-    await run(FIELDS, { patch: { [f.key]: v } });
-  };
+  const save = () => void s.flush();
   const id = `field-${f.key}`;
   const n = f.input === "list" ? listOf(text) : null;
   const count =
@@ -219,21 +268,19 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
         ? `${[...text].length} of ${f.max}`
         : null;
   const over = f.max && f.input !== "list" && [...text].length > f.max;
+  const bad = s.status === "failed";
   const common = {
     id,
     value: text,
     placeholder: f.default !== undefined ? String(f.default) : "",
-    onBlur: () => void save(),
-    onChange: (e: { target: { value: string } }) => {
-      setText(e.target.value);
-      clear();
-    },
+    onBlur: save,
+    onChange: (e: { target: { value: string } }) => s.set(e.target.value),
     "aria-invalid": over || bad ? true : undefined,
     className: "text-[14px]",
   };
   return (
     <div className="grid min-w-0 gap-1.5">
-      <Head f={f} id={id} said={said} bad={bad || !!over} count={count} />
+      <Head f={f} id={id} saved={s} count={count} over={!!over} />
       {f.input === "long" ? (
         <Textarea {...common} rows={3} />
       ) : (
@@ -243,11 +290,14 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              void save();
+              save();
             }
           }}
         />
       )}
+      {s.conflict ? (
+        <SaveConflict conflict={s.conflict} onKeepMine={s.keepMine} onTakeTheirs={s.takeTheirs} />
+      ) : null}
       {picks ? (
         picks.values.length ? (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -258,9 +308,8 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
                 size="dense"
                 tone={v === text.trim() ? "primary" : "secondary"}
                 onClick={() => {
-                  if (v === value) return;
-                  setText(v);
-                  void run(FIELDS, { patch: { [f.key]: v } });
+                  s.set(v);
+                  save();
                 }}
               >
                 {picks.show(v)}
@@ -296,30 +345,30 @@ const placePicks = (places: readonly string[]): Picks => ({
   none: "No subreddit we watch takes posts yet. Type one, or watch one under Places.",
 });
 
-/** A pick or a switch shows in the preview at once; a refused one goes back to what's saved. */
+/** A pick or a switch: shows in the preview at once, saved through the engine as it's made. */
 function useChoice(f: FieldView, act: RecordAct, draftId: string) {
-  const save = useSave(act);
-  useEffect(() => typeIn(draftId, f.key, f.value), [draftId, f.key, f.value]);
-  const choose = async (v: unknown) => {
-    typeIn(draftId, f.key, v ?? undefined);
-    if (!(await save.run(FIELDS, { patch: { [f.key]: v } }))) typeIn(draftId, f.key, f.value);
+  const s = useFieldSaved<unknown>(f, draftId, f.value ?? null, act, (v) => v);
+  useEffect(() => typeIn(draftId, f.key, s.value ?? undefined), [draftId, f.key, s.value]);
+  const choose = (v: unknown) => {
+    s.set(v);
+    void s.flush();
   };
-  return { ...save, choose };
+  return { s, value: s.value, choose };
 }
 
 /** One of a list: saved when picked. */
 function PickField({ f, act, draftId }: FieldProps) {
-  const { said, bad, choose } = useChoice(f, act, draftId);
+  const { s, value: v, choose } = useChoice(f, act, draftId);
   const id = `field-${f.key}`;
-  const value = typeof f.value === "string" ? f.value : "";
+  const value = typeof v === "string" ? v : "";
   return (
     <div className="grid min-w-0 gap-1.5">
-      <Head f={f} id={id} said={said} bad={bad} />
+      <Head f={f} id={id} saved={s} />
       <select
         id={id}
         className={SELECT}
         value={value}
-        onChange={(e) => void choose(e.target.value || null)}
+        onChange={(e) => choose(e.target.value || null)}
       >
         <option value="">
           {f.default !== undefined
@@ -339,9 +388,9 @@ function PickField({ f, act, draftId }: FieldProps) {
 
 /** On or off: saved when clicked. */
 function SwitchField({ f, act, draftId }: FieldProps) {
-  const { said, bad, choose } = useChoice(f, act, draftId);
+  const { s, value, choose } = useChoice(f, act, draftId);
   const id = `field-${f.key}`;
-  const on = typeof f.value === "boolean" ? f.value : f.default === true;
+  const on = typeof value === "boolean" ? value : f.default === true;
   return (
     <div className="grid min-w-0 gap-1">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -350,7 +399,7 @@ function SwitchField({ f, act, draftId }: FieldProps) {
             id={id}
             type="checkbox"
             checked={on}
-            onChange={(e) => void choose(e.target.checked)}
+            onChange={(e) => choose(e.target.checked)}
             className="size-4 accent-(--ui-active)"
           />
           <span className="text-[14px]">
@@ -358,12 +407,7 @@ function SwitchField({ f, act, draftId }: FieldProps) {
             {f.required ? <span className="text-(--ui-bad)"> *</span> : null}
           </span>
         </label>
-        <span
-          aria-live="polite"
-          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
-        >
-          {said ?? ""}
-        </span>
+        <SaveStatus state={s} onRetry={s.retry} />
       </div>
       {f.hint ? <span className={`${HINT} pl-6.5`}>{f.hint}</span> : null}
     </div>
@@ -611,28 +655,38 @@ function Schedule({ shape }: { shape: Shape }) {
 
 /** TikTok's settings in their own panel (`./tiktok.tsx`), each choice saved as it's made. */
 function TikTokFields({ shape, act }: { shape: Shape; act: RecordAct }) {
-  const typed = useTyped(shape.draftId);
-  const values: TikTokValues = {};
+  const server: TikTokValues = {};
   for (const f of shape.fields)
-    if (TIKTOK_PANEL_KEYS.has(f.key)) {
-      const t = typed(f.key);
-      const v = t.has ? t.value : f.value;
-      if (v !== null && v !== undefined) (values as Record<string, unknown>)[f.key] = v;
-    }
+    if (TIKTOK_PANEL_KEYS.has(f.key) && f.value !== null && f.value !== undefined)
+      (server as Record<string, unknown>)[f.key] = f.value;
+  // The panel's choices are one value saved through the engine: in order, one save at a time,
+  // only the keys that moved since the server's copy.
+  const s = useSaved<TikTokValues>({
+    key: `tiktok:${shape.draftId}`,
+    server,
+    delay: null,
+    save: async (v, { base, request }) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of TIKTOK_PANEL_KEYS) {
+        const now = (v as Record<string, unknown>)[k] ?? null;
+        if (now !== ((base as Record<string, unknown>)[k] ?? null)) patch[k] = now;
+      }
+      if (Object.keys(patch).length) await act(FIELDS, { patch, requestId: request });
+      return { value: v };
+    },
+  });
+  const live = useRef(s.value);
+  live.current = s.value;
   const choose = async (key: keyof TikTokValues, value: unknown) => {
-    const was = shape.fields.find((f) => f.key === key)?.value;
     typeIn(shape.draftId, key, value ?? undefined);
-    try {
-      await act(FIELDS, { patch: { [key]: value } });
-      return null;
-    } catch (err) {
-      typeIn(shape.draftId, key, was ?? undefined);
-      return errorOf(err);
-    }
+    const next = { ...live.current, [key]: value ?? undefined };
+    live.current = next;
+    s.set(next);
+    return (await s.flush()) ? null : "Not saved. Pick it again, or reload.";
   };
   return (
     <TikTokPanel
-      values={values}
+      values={s.value}
       choose={choose}
       tiktok={shape.tiktok}
       video={shape.links.media ?? null}

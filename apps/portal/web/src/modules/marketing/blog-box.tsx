@@ -5,10 +5,10 @@
  * wants one. `Blog/wren` through the console.
  */
 
-import { Button, cx, Input, Section, Tag, Textarea } from "@wren/ui";
+import { ACTIONS, Button, cx, Input, Section, Tag, Textarea, useKeptForm } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { patchCalls, useCall } from "../../load.js";
 import { ERROR, QUIET, SELECT, TOOLS } from "../work/bits.js";
 import { usePieces } from "./pieces.js";
 
@@ -50,9 +50,6 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
   const work = usePieces();
   const [from, setFrom] = useState(props.from ?? "");
   const [slug, setSlug] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [body, setBody] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [sure, setSure] = useState<"publish" | "email" | null>(null);
   const [lines, setLines] = useState<string[]>([]);
@@ -64,12 +61,21 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
   const site = list.data?.site ?? "";
   const open = posts.find((p) => p.slug === slug) ?? null;
   const off = list.data ? !list.data.on : false;
+  // What he types stays on the device until it's saved, per post; it comes back only over the
+  // same saved post. Saving commits to the site, so it never saves on its own.
+  const kept = useKeptForm(
+    props.demo ? null : `studio:blog:${slug ?? "new"}`,
+    open ? JSON.stringify([open.title, open.description, open.body]) : "",
+  );
+  const title = kept.values.title ?? open?.title ?? "";
+  const description = kept.values.description ?? open?.description ?? "";
+  const body = kept.values.body ?? open?.body ?? "";
+  const setTitle = (t: string) => kept.set("title", t);
+  const setDescription = (t: string) => kept.set("description", t);
+  const setBody = (t: string) => kept.set("body", t);
 
   const load = (p: Post | null) => {
     setSlug(p?.slug ?? null);
-    setTitle(p?.title ?? "");
-    setDescription(p?.description ?? "");
-    setBody(p?.body ?? "");
     setFrom(p ? (p.fromRef ?? "") : (props.from ?? ""));
     setSure(null);
     setLines([]);
@@ -93,13 +99,24 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
     if (publish && !sure) return setSure("publish");
     setSure(null);
     void run(publish ? "publish" : "draft", async () => {
-      const out = await blog<{ post: Post; url: string }>("save", {
-        ...(slug ? { slug } : {}),
-        title,
-        description,
-        body,
-        publish,
-        from: from || null,
+      const out = (await ACTIONS.run(`studio:blog:${slug ?? "new"}:${publish}`, (requestId) =>
+        blog<{ post: Post; url: string }>("save", {
+          ...(slug ? { slug } : {}),
+          title,
+          description,
+          body,
+          publish,
+          from: from || null,
+          requestId,
+        }),
+      )) as { post: Post; url: string };
+      kept.clear();
+      // The list shows the saved post at once: patched in place, never read again.
+      patchCalls((key, data) => {
+        if (key !== "blog-posts" || !data || typeof data !== "object") return data;
+        const d = data as { posts?: Post[] };
+        const rest = (d.posts ?? []).filter((p) => p.slug !== out.post.slug);
+        return { ...d, posts: [out.post, ...rest] };
       });
       setSlug(out.post.slug);
       setLines([
@@ -107,7 +124,6 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
           ? `Published. It's up at ${out.url} in a few minutes.`
           : "Saved as a draft. It stays off the site.",
       ]);
-      list.retry();
     });
   };
 

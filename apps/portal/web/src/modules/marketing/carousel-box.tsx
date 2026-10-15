@@ -7,7 +7,7 @@
 
 import { PLATFORM_SPECS } from "@wren/content/write";
 import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/core/content/slides";
-import { Button, cx, PlatformMark, Section, Textarea } from "@wren/ui";
+import { ACTIONS, Button, cx, PlatformMark, Section, Textarea, useKeptForm } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
@@ -62,8 +62,12 @@ function said(results: Result[], go: Go): string[] {
 }
 
 export function CarouselBox(props: { demo?: boolean; only: string | null; made: () => void }) {
-  const [typed, setTyped] = useState("");
-  const [caption, setCaption] = useState("");
+  // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
+  const kept = useKeptForm(props.demo ? null : "studio:carousel");
+  const typed = kept.values.slides ?? "";
+  const caption = kept.values.caption ?? "";
+  const setTyped = (t: string) => kept.set("slides", t);
+  const setCaption = (t: string) => kept.set("caption", t);
   const [where, setWhere] = useState<Where[]>(() =>
     props.only === "linkedin"
       ? ["linkedin"]
@@ -99,20 +103,23 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
     setError(null);
     setLines([]);
     try {
-      const out = await desk<{ posts: { results: Result[] }[] }>("carousel", {
-        slides,
-        text: caption,
-        platforms: where,
-        go,
-      });
+      // One press, one carousel: a second while it's out gets the first's answer.
+      const out = (await ACTIONS.run(`studio:carousel:${go}`, (requestId) =>
+        desk<{ posts: { results: Result[] }[] }>("carousel", {
+          slides,
+          text: caption,
+          platforms: where,
+          go,
+          requestId,
+        }),
+      )) as { posts: { results: Result[] }[] };
       setLines(
         said(
           out.posts.flatMap((p) => p.results),
           go,
         ),
       );
-      setTyped("");
-      setCaption("");
+      kept.clear();
       props.made();
     } catch (err) {
       setError(message(err));
