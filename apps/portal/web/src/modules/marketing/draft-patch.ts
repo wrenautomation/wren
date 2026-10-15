@@ -2,7 +2,8 @@
  * A post's fields and slides saves patch their page from the answer (ContentDesk `fields` and
  * `slides` answer `saved`, the parts of the shape they moved): no read of the draft again after a
  * save. A save that moved the draft's status (a re-ask, or slides on an approved draft) reads
- * again, so its lists and head actions follow.
+ * again, so its lists and head actions follow. A TikTok pick also moves the row's `missing`, which
+ * holds Approve, Schedule and Post now in the head.
  */
 import { type ActPatch, answerIn } from "@wren/ui";
 
@@ -10,6 +11,7 @@ type Field = { key: string; value?: unknown };
 type Share = { id: string; status: string };
 type Carousel = Record<string, unknown> & { shares?: Share[] };
 type Shape = Record<string, unknown> & {
+  platform?: string;
   status?: string;
   fields?: Field[];
   links?: Record<string, string>;
@@ -52,6 +54,18 @@ export function keptLinks(
   return out;
 }
 
+/**
+ * A TikTok draft's row `missing` from its fields, as `marketing_draft_records` reads it from
+ * `extra`: who can see it first, then a disclosure with neither choice; null when nothing holds it.
+ */
+export function tiktokMissing(fields: readonly Field[]): "privacy" | "disclosure" | null {
+  const v = new Map(fields.map((f) => [f.key, f.value]));
+  const on = (k: string) => String(v.get(k) ?? "") === "true";
+  if (String(v.get("privacy") ?? "") === "") return "privacy";
+  if (on("disclose") && !on("yourBrand") && !on("brandedContent")) return "disclosure";
+  return null;
+}
+
 /** The detail's `shape` with a save's `saved` over it; null reads the draft again. */
 export const shapePatch: ActPatch = (detail, answer) => {
   const saved = (answerIn(answer) as { saved?: Saved } | null)?.saved;
@@ -84,6 +98,7 @@ export const shapePatch: ActPatch = (detail, answer) => {
         carousel: nextCarousel,
       },
     },
+    ...(shape.platform === "tiktok" ? { row: { missing: tiktokMissing(saved.fields) } } : {}),
   };
 };
 

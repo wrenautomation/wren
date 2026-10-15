@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keptLinks, shapePatch } from "./draft-patch.js";
+import { keptLinks, shapePatch, tiktokMissing } from "./draft-patch.js";
 
 const shape = {
   draftId: "d1",
@@ -83,5 +83,42 @@ describe("keptLinks", () => {
     const f = [{ key: "cover", value: "x" }];
     expect(keptLinks({ cover: "L" }, f, f)).toEqual({ cover: "L" });
     expect(keptLinks({ cover: "L" }, f, [{ key: "cover", value: "y" }])).toEqual({});
+  });
+
+  it("moves a TikTok row's missing with the picks, so Post now frees without a reload", () => {
+    const tiktok = { ...shape, platform: "tiktok", fields: [], missing: ["Who can see it"] };
+    const picked = (fields: { key: string; value: unknown }[]) =>
+      shapePatch({ shape: tiktok }, saved({ fields })) as { row?: Record<string, unknown> };
+    expect(picked([{ key: "privacy", value: null }]).row).toEqual({ missing: "privacy" });
+    expect(
+      picked([
+        { key: "privacy", value: "SELF_ONLY" },
+        { key: "disclose", value: true },
+      ]).row,
+    ).toEqual({ missing: "disclosure" });
+    expect(
+      picked([
+        { key: "privacy", value: "SELF_ONLY" },
+        { key: "disclose", value: true },
+        { key: "yourBrand", value: true },
+      ]).row,
+    ).toEqual({ missing: null });
+    // Other platforms leave the row alone: their row never holds a pick.
+    expect((shapePatch({ shape }, saved()) as { row?: unknown }).row).toBeUndefined();
+  });
+});
+
+describe("tiktokMissing", () => {
+  it("reads the picks the way marketing_draft_records does", () => {
+    expect(tiktokMissing([])).toBe("privacy");
+    expect(tiktokMissing([{ key: "privacy", value: "" }])).toBe("privacy");
+    expect(tiktokMissing([{ key: "privacy", value: "PUBLIC_TO_EVERYONE" }])).toBeNull();
+    expect(
+      tiktokMissing([
+        { key: "privacy", value: "SELF_ONLY" },
+        { key: "disclose", value: true },
+        { key: "brandedContent", value: true },
+      ]),
+    ).toBeNull();
   });
 });
