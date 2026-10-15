@@ -1,8 +1,8 @@
 /**
  * A draft finished in place (designs/2026-10-06-content-desk.md, 6): the record declares its draft
- * (`RecordExtras.draft`) and the detail shows it as a box, not a dialog. It saves as he types, on
- * blur, on ⌘S and when the tab hides; unsaved words stay on the device until they save, so a
- * reload gives them back.
+ * (`RecordExtras.draft`) and the detail shows it as a box, not a dialog. It saves through the save
+ * engine (./save): as he types, on blur, on ⌘S, when the tab hides and on leaving; unsaved words
+ * stay on the device until they save, so a reload gives them back.
  * ⌘Enter saves and runs the record's send action (its confirm still asks). A line under it asks
  * Claude; the turns show above that line, with Undo beside the newest change.
  */
@@ -15,19 +15,19 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
-import type { Action, Call } from "./action.js";
+import { type Action, type Call, callOnce } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
-import { keepDraft, keptDraft } from "./draft-keep.js";
+import { draftSaving, type LiveText } from "./draft-save.js";
 import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
+import { readEntry, writeEntry } from "./save/journal.js";
+import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
 import { InsertSnippet } from "./snippets.js";
-
-/** Quiet this long after the last key, the words save. */
-const AUTOSAVE_MS = 1_200;
 
 /** One turn on a draft, oldest first (`@wren/core/ask` DraftTurn). */
 export interface DraftTurnLine {
@@ -131,17 +131,50 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
   );
 }
 
-/** What's typed in the record's draft box now, unsaved too: a preview beside it reads it live. */
-export const DraftText = createContext<string | null>(null);
+/**
+ * What's typed in the record's draft box now, unsaved too: a preview beside it reads it live.
+ * A store, not a value, so only its readers draw again on each key, never the page.
+ */
+export const DraftText = createContext<LiveText | null>(null);
+const NO_TEXT = () => null;
+const NO_SUB = () => () => {};
 /** The draft box's words as typed, or null where the record holds no box. */
-export const useDraftText = () => useContext(DraftText);
+export const useDraftText = () => {
+  const live = useContext(DraftText);
+  return useSyncExternalStore(
+    live?.subscribe ?? NO_SUB,
+    live?.get ?? NO_TEXT,
+    live?.get ?? NO_TEXT,
+  );
+};
 
-type Saved = "idle" | "saving" | "saved" | "failed";
+/** Words kept by the box before the save engine (`wren.draft:<key>`), moved into its journal once. */
+function adoptKept(old: string, key: string) {
+  try {
+    const store = globalThis.localStorage;
+    const raw = store?.getItem(`wren.draft:${old}`);
+    if (!raw) return;
+    store.removeItem(`wren.draft:${old}`);
+    const k = JSON.parse(raw) as { base?: unknown; text?: unknown; at?: unknown };
+    if (typeof k.base !== "string" || typeof k.text !== "string") return;
+    if (readEntry(store, key, Date.now())) return;
+    writeEntry(store, key, {
+      base: k.base,
+      version: null,
+      value: k.text,
+      at: Number(k.at),
+      tab: "",
+    });
+  } catch {
+    // Storage blocked: nothing was kept.
+  }
+}
 
 /**
  * The box. `actions` are the record's inline actions that apply to this row and this viewer: the
- * box offers only what is among them. `changed` reads the record again after a write; `send`
- * runs the send action (after the box saved).
+ * box offers only what is among them. `changed` reads the record again after Claude or an undo
+ * wrote, or on a conflict; a save of his words never does: `wrote` patches them into the page
+ * instead. `send` runs the send action (after the box saved).
  */
 export function DraftBox({
   draft,
@@ -149,6 +182,8 @@ export function DraftBox({
   actions,
   call,
   changed,
+  wrote,
+  at,
   send,
   handle,
   between,
@@ -160,6 +195,10 @@ export function DraftBox({
   actions: readonly Action[];
   call: Call;
   changed: (ids: (string | number)[]) => void;
+  /** The server holds `text` now: show it wherever the page shows this draft (write-through). */
+  wrote?: ((text: string) => void) | undefined;
+  /** The tick when the read of `draft.text` left (`useLoad`'s `at`): older reads never land. */
+  at?: number | undefined;
   send?: (() => void) | undefined;
   handle?: { current: DraftHandle | null } | undefined;
   /** The record's own fields, drawn under the words and above Ask Claude. */
@@ -174,130 +213,43 @@ export function DraftBox({
   const undo = actions.find((a) => a.id === draft.undo);
   const server = draft.text ?? "";
   /** Where this box's unsaved words wait on the device, so a reload gives them back. */
-  const keyOf = `${draft.save ?? draft.label}:${id}`;
-  /** What the server held when the box last matched it: a save writes only over this. */
-  const [base, setBase] = useState(server);
-  const [restored] = useState(() => keptDraft(keyOf, server));
-  const [text, setText] = useState(restored ?? server);
-  const [saved, setSaved] = useState<Saved>("idle");
+  const old = `${draft.save ?? draft.label}:${id}`;
+  const key = `draft:${old}`;
+  useState(() => adoptKept(old, key));
+  const s = useSaved<string>(
+    draftSaving({
+      handler: save?.handler ?? null,
+      id,
+      key,
+      server,
+      at,
+      call,
+      changed,
+      wrote,
+    }),
+  );
+  const text = s.value;
+  const dirty = s.dirty;
   const [message, setMessage] = useState("");
   const [asking, setAsking] = useState(false);
   const [undoing, setUndoing] = useState(false);
-  const pending = useRef<Promise<boolean> | null>(null);
   const boxId = useId();
   const box = useRef<HTMLTextAreaElement>(null);
   const askBox = useRef<HTMLInputElement>(null);
-  const dirty = text.trim() !== base.trim();
   const told = useRef(onText);
   told.current = onText;
   useEffect(() => told.current?.(text), [text]);
-  useEffect(() => keepDraft(keyOf, base, text), [keyOf, base, text]);
+  const [restored] = useState(() => s.restored && !s.conflict);
   useEffect(() => {
     if (restored) toast("Your unsaved words are back. They save now.");
   }, [restored]);
 
-  // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
-  const live = useRef({ dirty, server });
-  live.current = { dirty, server };
-  /** The words and the saved base as they are now, not as a render saw them: a save queued behind another must start from where that one left off. */
-  const textNow = useRef(text);
-  textNow.current = text;
-  const baseNow = useRef(base);
-  /** Saved texts this box wrote over: a read that left before the save and lands after it is old, never shown. */
-  const passed = useRef(new Set<string>());
-  /** Saves the page hasn't read back yet: told on leaving the box, not on each pause. */
-  const unread = useRef(false);
-  const rebase = (b: string) => {
-    baseNow.current = b;
-    setBase(b);
+  /** Save what's typed, or `next` set first: true once the server holds it. */
+  const flush = (next?: string) => {
+    if (next !== undefined) s.set(next);
+    return s.flush();
   };
-  // Only a new server text resets the box, and only the words that differ: trailing spaces he typed stay.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `rebase` only sets a ref and a state.
-  useEffect(() => {
-    if (live.current.dirty || passed.current.has(server.trim())) return;
-    rebase(server);
-    setText((t) => (t.trim() === server.trim() ? t : server));
-  }, [server]);
-
-  /** Save what's typed. Quiet saves (a pause, the tab hiding) don't make the page read it again. */
-  const flush = async (next?: string, quiet = false): Promise<boolean> => {
-    if (pending.current) await pending.current;
-    const now = next ?? textNow.current;
-    const from = baseNow.current;
-    if (!save || now.trim() === from.trim()) {
-      if (!quiet && unread.current) {
-        unread.current = false;
-        changed([id]);
-      }
-      return true;
-    }
-    const words = now.trim();
-    const job = (async () => {
-      setSaved("saving");
-      try {
-        await call(save.handler, { ids: [id], text: words, expect: from.trim() ? from : null });
-        passed.current.add(from.trim());
-        passed.current.delete(words);
-        rebase(words);
-        setSaved("saved");
-        if (quiet) unread.current = true;
-        else {
-          unread.current = false;
-          changed([id]);
-        }
-        return true;
-      } catch (err) {
-        setSaved("failed");
-        // Someone (Claude) changed it meanwhile: his words stay in the box, a second save keeps them.
-        rebase(live.current.server);
-        toast.error(
-          `${err instanceof Error ? err.message : String(err)}. Your words are still in the box.`,
-        );
-        changed([]);
-        return false;
-      }
-    })();
-    pending.current = job;
-    try {
-      return await job;
-    } finally {
-      pending.current = null;
-    }
-  };
-  if (handle) handle.current = { flush: () => flush() };
-  const flushNow = useRef(flush);
-  flushNow.current = flush;
-  const tellPage = useRef(changed);
-  tellPage.current = changed;
-  // Leaving the record: what saved quietly is read once, so the list shows it.
-  useEffect(
-    () => () => {
-      if (unread.current) tellPage.current([id]);
-    },
-    [id],
-  );
-
-  // It saves as he types, and when the tab hides or closes. A failed save waits for his ⌘S:
-  // its words would land over someone else's change.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each key restarts the wait.
-  useEffect(() => {
-    if (!save || !dirty || saved === "failed" || saved === "saving") return;
-    const t = setTimeout(() => void flushNow.current(undefined, true), AUTOSAVE_MS);
-    return () => clearTimeout(t);
-  }, [save, dirty, saved, text]);
-  useEffect(() => {
-    if (!save) return;
-    const away = () => {
-      if (document.visibilityState === "hidden") void flushNow.current(undefined, true);
-    };
-    const gone = () => void flushNow.current(undefined, true);
-    document.addEventListener("visibilitychange", away);
-    addEventListener("pagehide", gone);
-    return () => {
-      document.removeEventListener("visibilitychange", away);
-      removeEventListener("pagehide", gone);
-    };
-  }, [save]);
+  if (handle) handle.current = { flush: () => s.flush() };
 
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!(e.metaKey || e.ctrlKey)) return;
@@ -317,7 +269,7 @@ export function DraftBox({
     try {
       // Claude reads the saved draft: what he typed goes first.
       if (!(await flush())) return;
-      await call(ask.handler, { ids: [id], message: said });
+      await callOnce(call, ask.handler, [id], { ids: [id], message: said });
       setMessage("");
       changed([id]);
     } catch (err) {
@@ -331,11 +283,11 @@ export function DraftBox({
   const last = turns.findLast((t) => t.state === "done" && t.draft !== null);
   const undoNow = async () => {
     // Unsaved typing goes first: back to what was saved.
-    if (dirty) return void setText(base);
+    if (dirty) return void s.set(s.base);
     if (!undo) return;
     setUndoing(true);
     try {
-      await call(undo.handler, { ids: [id] });
+      await callOnce(call, undo.handler, [id], { ids: [id] });
       changed([id]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -344,16 +296,6 @@ export function DraftBox({
     }
   };
 
-  const status =
-    saved === "saving"
-      ? "Saving…"
-      : dirty
-        ? saved === "failed"
-          ? "Not saved"
-          : "Edited"
-        : saved === "saved"
-          ? "Saved"
-          : null;
   // The keys only where there is a keyboard to press them.
   const hint = send ? "Saves as you type · ⌘↵ sends" : "Saves as you type";
 
@@ -363,32 +305,20 @@ export function DraftBox({
         <label htmlFor={boxId} className="text-[13px] font-medium text-(--ui-ink-2)">
           {draft.label}
         </label>
-        {save ? (
-          <span
-            aria-live="polite"
-            className={
-              saved === "failed" && dirty
-                ? "text-[12px] text-(--ui-bad)"
-                : status
-                  ? "text-[12px] text-(--ui-ink-2)"
-                  : "text-[12px] text-(--ui-ink-3) max-sm:hidden"
-            }
-          >
-            {status ?? hint}
-          </span>
-        ) : null}
+        {save ? <SaveStatus state={s} onRetry={() => void s.retry()} idle={hint} /> : null}
       </div>
+      {s.conflict ? (
+        <SaveConflict
+          conflict={s.conflict}
+          onKeepMine={() => void s.keepMine()}
+          onTakeTheirs={s.takeTheirs}
+        />
+      ) : null}
       {draft.editor ? (
         draft.editor({
           text,
-          setText: (next) => {
-            setText(next);
-            if (saved !== "saving") setSaved("idle");
-          },
-          flush: (next) => {
-            if (next !== undefined) setText(next);
-            return flush(next);
-          },
+          setText: s.set,
+          flush,
           editable: Boolean(save),
         })
       ) : save ? (
@@ -397,10 +327,7 @@ export function DraftBox({
             ref={box}
             id={boxId}
             value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              if (saved !== "saving") setSaved("idle");
-            }}
+            onChange={(e) => s.set(e.target.value)}
             onBlur={() => void flush()}
             onKeyDown={keys}
             rows={5}
@@ -415,15 +342,7 @@ export function DraftBox({
       )}
       {save && !draft.editor ? (
         <div className="-mt-1.5 flex">
-          <InsertSnippet
-            box={box}
-            value={text}
-            onChange={(next) => {
-              setText(next);
-              if (saved !== "saving") setSaved("idle");
-            }}
-            channel={draft.preview?.kind}
-          />
+          <InsertSnippet box={box} value={text} onChange={s.set} channel={draft.preview?.kind} />
         </div>
       ) : null}
       {draft.preview && text.trim() && !draft.editor ? (

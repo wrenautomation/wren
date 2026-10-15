@@ -1,5 +1,5 @@
 /** Loading a portal call into a component. */
-import { useLoad } from "@wren/ui";
+import { onWrite, type Patch, useLoad, writeThrough } from "@wren/ui";
 import { ApiError, device, deviceOwner, viewingAs } from "./api.js";
 import { readSnapshot, writeSnapshot } from "./snapshot.js";
 
@@ -8,10 +8,20 @@ export type Load<T> = {
   error: ApiError | null;
   loading: boolean;
   retry: () => void;
+  /** The tick when the read now shown left: hand it to `useSaved` as `at`. */
+  at: number;
 };
 
 /** Every portal call's last answers; each key names its client. */
 const PORTAL = {};
+
+/**
+ * A save landed: patch every portal call's answer (`patch(key, data)` returns `data` itself when
+ * it isn't touched), on screen, kept, and any read still out, instead of reading them again.
+ */
+export function patchCalls(patch: Patch) {
+  writeThrough(PORTAL, patch);
+}
 
 /** Answers kept on the device: the last load's, then this one's (never under View as). */
 const KEPT_MAX = 200;
@@ -34,6 +44,12 @@ function save() {
   if (!d || !who || viewingAs) return;
   writeSnapshot(d, who, Date.now(), [...kept]);
 }
+onWrite(PORTAL, (patch) => {
+  for (const [k, v] of kept) {
+    const next = patch(k, v);
+    if (next !== v) kept.set(k, next);
+  }
+});
 if (typeof addEventListener === "function") {
   addEventListener("pagehide", save);
   addEventListener("visibilitychange", () => {

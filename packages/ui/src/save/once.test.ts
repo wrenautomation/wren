@@ -96,3 +96,18 @@ describe("kept forms", () => {
     expect(readForm(s, "deals:new", "", 4)).toBeNull();
   });
 });
+
+describe("callOnce (every useRun action)", () => {
+  it("sends a double click on Approve once, with a requestId", async () => {
+    const { callOnce } = await import("../action.js");
+    const call = vi.fn(async () => ({ done: [5] }));
+    const a = callOnce(call, "Drafts/approve", [5], { ids: [5] });
+    const b = callOnce(call, "Drafts/approve", [5], { ids: [5] });
+    expect(await a).toEqual(await b);
+    expect(call).toHaveBeenCalledOnce();
+    expect(call).toHaveBeenCalledWith("Drafts/approve", {
+      ids: [5],
+      requestId: expect.any(String),
+    });
+  });
+});

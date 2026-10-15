@@ -44,6 +44,8 @@ export interface Conflict<T> {
 
 export interface SaveState<T> {
   value: T;
+  /** What the server holds, as far as this saver knows: Undo of unsaved typing goes back to it. */
+  base: T;
   status: Status;
   error: string | null;
   conflict: Conflict<T> | null;
@@ -122,7 +124,10 @@ export function conflictOf(err: unknown): boolean {
 }
 
 /** How a failed save goes on: tried again, a conflict, or a refusal for him to read. */
-export function failureKind(err: unknown, conflict: (err: unknown) => boolean = conflictOf): Failure {
+export function failureKind(
+  err: unknown,
+  conflict: (err: unknown) => boolean = conflictOf,
+): Failure {
   if (conflict(err)) return "conflict";
   if (err instanceof SaveTimeout || err instanceof TypeError) return "transient";
   const s = statusOf(err);
@@ -234,6 +239,7 @@ export class Saver<T> {
   private build(): SaveState<T> {
     return {
       value: this.value,
+      base: this.base,
       status: this.status,
       error: this.error,
       conflict: this.conflict,

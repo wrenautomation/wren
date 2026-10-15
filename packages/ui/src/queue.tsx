@@ -17,7 +17,7 @@ import { usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
 import { PageTitle } from "./layout.js";
-import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
+import { ListBar, useLastUsed, useSavedViews, ViewTabs } from "./list-bar.js";
 import {
   actionKeys,
   actsOf,
@@ -74,7 +74,7 @@ function Queue({
   const actions = actsOf(meta, acts);
   const dated = meta.fields.find((f) => f.kind === "date");
   const list = useRef<HTMLUListElement>(null);
-  const saved = useSaved(api.keep, meta.id);
+  const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
 
   const open = (i: number) => {

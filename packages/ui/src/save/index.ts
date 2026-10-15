@@ -40,16 +40,18 @@
  *
  * ## Read caches
  *
- * `useLoad` (and the portal's `useCall`) answer `{ data, at, patch }`. `writeThrough(scope, fn)`
- * patches every cached answer in a scope, every mounted read and any read still out;
- * `patchRecord(api, record, id, fields)` does it for a record's row in its detail and lists.
+ * `useLoad` (and the portal's `useCall`) answer `{ data, at }`: `at` is the tick its read left,
+ * for `useSaved`'s `at`. `writeThrough(scope, fn)` patches every cached answer in a scope, every
+ * mounted read and any read still out; `patchRecord(api, record, id, fields)` does it for a
+ * record's row in its detail and lists, `patchCalls(fn)` for the portal's calls. A save never
+ * reads the page again.
  *
  * ## Actions
  *
  * `ACTIONS.run(key, (requestId) => call(...))`: a second press while the first is out gets the
  * first's answer; the id stays until an answer, so a retry after a lost answer is one action.
- * `useRun` sends every action through it, with `requestId` in the input. `useKeptForm(key, base)`
- * keeps a dialog's typing until it is sent.
+ * `callOnce(call, handler, ids, input)` does it with `requestId` in the input; `useRun` sends
+ * every action through it. `useKeptForm(key, base)` keeps a dialog's typing until it is sent.
  */
 export { answersOf, onWrite, type Patch, patchedSince, remember, writeThrough } from "./cache.js";
 export { tick } from "./clock.js";
@@ -71,6 +73,7 @@ export {
 export type { Locks, PageEvent, SaveEnv, Store } from "./env.js";
 export { ACTIONS, Once } from "./once.js";
 export {
+  forgetForm,
   type KeptFormState,
   SaveConflict,
   type Saved,

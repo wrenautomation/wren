@@ -5,7 +5,7 @@
  */
 
 import type { Target } from "@wren/core/access";
-import type { EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
+import type { ChangeLine, EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
@@ -48,6 +48,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
+import { type LiveText, liveText } from "./draft-save.js";
 import {
   ASK_FOCUS,
   ASK_POLL_MS,
@@ -88,7 +89,7 @@ import {
   siteField,
   useLastUsed,
   useNarrow,
-  useSaved,
+  useSavedViews,
   ViewTabs,
 } from "./list-bar.js";
 import { PageBar } from "./page-bar.js";
@@ -104,7 +105,10 @@ import {
   rowTarget,
 } from "./record-access.js";
 import { recordHead } from "./record-head.js";
+import { patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
+import { answersOf, onWrite, patchedSince, remember } from "./save/cache.js";
+import { tick } from "./save/clock.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { sortTip } from "./view-says.js";
 
@@ -264,41 +268,47 @@ export function tiersOf(rows: Row[], needs: Needs | undefined, keep: boolean) {
   return { rows: [...first, ...rows.filter((r) => !waitsOn(needs, r))], split: first.length };
 }
 
-type Load<T> = { data: T | null; error: Error | null; loading: boolean; retry: () => void };
-
-/**
- * Last answers per workspace (`scope`, its api) and key, in this tab only: a page seen before
- * draws at once, then refreshes. Signing out reloads the page, so nothing outlives the person.
- */
-const SEEN = new WeakMap<object, Map<string, unknown>>();
-const SEEN_MAX = 200;
-function seenIn(scope: object) {
-  let m = SEEN.get(scope);
-  if (!m) {
-    m = new Map();
-    SEEN.set(scope, m);
-  }
-  return m;
-}
-/** Keep `data` as the newest answer; the oldest goes past `max`. */
-export function remember(seen: Map<string, unknown>, key: string, data: unknown, max = SEEN_MAX) {
-  seen.delete(key);
-  seen.set(key, data);
-  if (seen.size > max) seen.delete(seen.keys().next().value as string);
-}
+export type Load<T> = {
+  data: T | null;
+  error: Error | null;
+  loading: boolean;
+  retry: () => void;
+  /** The tick (`tick()`) when the read now shown left; 0 for an answer kept from before. */
+  at: number;
+};
 
 /**
  * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
- * `scope` (whatever `fn` asks: its api), an answer seen before shows at once while it refreshes.
+ * `scope` (whatever `fn` asks: its api), an answer seen before shows at once while it refreshes,
+ * and a save's write-through (`writeThrough(scope, patch)`) patches what's shown, what's kept and
+ * any read still out, so the page never reads again to show a save. Answers last this tab only;
+ * signing out reloads the page, so nothing outlives the person.
  */
 export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): Load<T> {
-  const seen = scope ? seenIn(scope) : null;
+  const seen = scope ? answersOf(scope) : null;
   const [state, setState] = useState<Omit<Load<T>, "retry">>(() => ({
     data: (seen?.get(key) as T | undefined) ?? null,
     error: null,
     loading: true,
+    at: 0,
   }));
   const [attempt, setAttempt] = useState(0);
+  const keyNow = useRef(key);
+  keyNow.current = key;
+  // A save's write-through lands in what's on screen now.
+  useEffect(
+    () =>
+      scope
+        ? onWrite(scope, (patch) =>
+            setState((s) => {
+              if (s.data === null) return s;
+              const data = patch(keyNow.current, s.data) as T;
+              return data === s.data ? s : { ...s, data };
+            }),
+          )
+        : undefined,
+    [scope],
+  );
   // A phone's pull to refresh reads it again, and waits for the answer.
   const answered = useRef<(() => void) | null>(null);
   useEffect(
@@ -324,17 +334,21 @@ export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): L
       data: seen?.has(key) ? (seen.get(key) as T) : s.data,
       error: null,
       loading: true,
+      at: seen?.has(key) ? 0 : s.at,
     }));
+    const left = tick();
     fn()
       .then(
-        (data) => {
+        (got) => {
+          // Saves that landed while this read was out apply over it.
+          const data = (scope ? patchedSince(scope, key, got, left) : got) as T;
           if (seen) remember(seen, key, data);
-          if (live) setState({ data, error: null, loading: false });
+          if (live) setState({ data, error: null, loading: false, at: left });
         },
         (err: unknown) =>
           live &&
           setState((s) => ({
-            data: s.data,
+            ...s,
             error: err instanceof Error ? err : new Error(String(err)),
             loading: false,
           })),
@@ -1202,7 +1216,7 @@ function List({
       place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
   }, [page.data, at, pages]);
   const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
-  const saved = useSaved(api.keep, meta.id);
+  const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
   const narrowed = !!ask.q || !!ask.where;
@@ -2336,7 +2350,7 @@ export function RecordBody({
   /** The draft box, when the record holds one: what's typed is saved before any head action. */
   const draftBox = useRef<DraftHandle | null>(null);
   /** What's typed in that box now, for a live preview beside it; this record's only. */
-  const [typed, setTyped] = useState<{ id: string; text: string } | null>(null);
+  const [typed] = useState(liveText);
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
@@ -2354,6 +2368,13 @@ export function RecordBody({
   // A type with no `load` still gets its extras, with no detail.
   const more = got.data && extras ? extras(got.data.detail, got.data.row, act) : {};
   const state = got.data?.edit ?? null;
+  /**
+   * The version the next edit names: a save's answer moves it at once, before the page draws
+   * that answer, so two saves in a row never send the same one. A new read moves it too.
+   */
+  const version = useRef<{ read: string | null; now: string | null }>({ read: null, now: null });
+  if (state && state.version !== version.current.read)
+    version.current = { read: state.version, now: state.version };
   // Changing it needs `run` here; the server checks it again.
   const mayEdit =
     !!state &&
@@ -2367,10 +2388,29 @@ export function RecordBody({
               record: meta.id,
               id,
               patch,
-              expect: state.version,
+              expect: version.current.now ?? state.version,
               ...(run ? { run } : {}),
             });
-            acted(out.change === null ? [] : [id]);
+            version.current = { read: out.version, now: out.version };
+            // The page shows it now, History line too: a save never reads the record again.
+            const keys = Object.keys(patch);
+            const fields = Object.fromEntries(
+              keys.map((k) => [k, k in out.values ? out.values[k] : patch[k]]),
+            );
+            const change: ChangeLine | null =
+              out.change === null
+                ? null
+                : {
+                    id: out.change,
+                    at: new Date().toISOString(),
+                    by: "You",
+                    via: run ? "claude" : "person",
+                    before: Object.fromEntries(keys.map((k) => [k, state.values[k] ?? null])),
+                    after: fields,
+                    undoes: null,
+                    undone: false,
+                  };
+            patchRecord(api, meta.id, id, fields, { version: out.version, change });
             return out.change;
           },
           undo: async (change) => {
@@ -2700,7 +2740,7 @@ export function RecordBody({
       ) : relatedType ? (
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
       ) : (
-        <Beside aside={more.aside} text={typed?.id === id ? typed.text : null}>
+        <Beside aside={more.aside} text={typed}>
           {/* What a draft answers (their words, the thread so far) reads before it. */}
           {more.lead}
           {box ? null : more.form}
@@ -2708,6 +2748,8 @@ export function RecordBody({
             <>
               <EditFields
                 meta={meta}
+                id={id}
+                at={got.at}
                 state={state}
                 editing={editing}
                 read={(f) =>
@@ -2735,11 +2777,15 @@ export function RecordBody({
               actions={inline}
               call={acts?.call ?? NO_CALL}
               changed={acted}
+              wrote={(text) =>
+                patchRecord(api, meta.id, row.id as string | number, { [box.field]: text })
+              }
+              at={got.at}
               send={sendAction ? () => runHead(sendAction) : undefined}
               handle={draftBox}
               between={more.form}
               framed={!more.aside}
-              onText={more.aside ? (text) => setTyped({ id, text }) : undefined}
+              onText={more.aside ? typed.set : undefined}
             />
           ) : null}
           {rest.some((f) => !f.group) || more.facts?.length ? (
@@ -2789,7 +2835,7 @@ function Beside({
   children,
 }: {
   aside: ReactNode;
-  text: string | null;
+  text: LiveText;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);

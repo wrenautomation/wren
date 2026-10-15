@@ -17,6 +17,8 @@ import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
 import { DictateField } from "./dictate.js";
 import { GROUP_LABEL } from "./layout.js";
+import type { SaverOptions } from "./save/engine.js";
+import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
@@ -71,37 +73,74 @@ function typedValue(f: FieldMeta, typed: string): unknown {
 const FIELD =
   "w-full rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] outline-none focus-visible:border-(--ui-ink-3)";
 
-/** One field, its value until pressed, then its input: Enter (⌘S in long text) saves, Esc doesn't. */
+/**
+ * How one field saves: what's typed, compared as the value it makes, saved only on Save, Enter or
+ * ⌘S (no autosave), kept on the device under `key` until then.
+ */
+export function fieldSaving(
+  field: FieldMeta,
+  value: unknown,
+  save: (v: unknown) => Promise<void>,
+  key: string | null,
+  at?: number,
+): SaverOptions<string> {
+  return {
+    key,
+    server: inputOf(field, value),
+    at,
+    delay: null,
+    same: (a, b) =>
+      JSON.stringify(typedValue(field, a) ?? "") === JSON.stringify(typedValue(field, b) ?? ""),
+    save: async (typed) => {
+      await save(typedValue(field, typed));
+    },
+  };
+}
+
+/**
+ * One field, its value until pressed, then its input: Enter (⌘S in long text) saves, Esc
+ * doesn't. What's typed is kept on the device until it saves (a reload opens the field with it);
+ * someone's change meanwhile asks Keep mine or Use theirs; offline, it saves once back.
+ */
 export function EditField({
   field,
   value,
   save,
+  saveKey = null,
+  at,
   children,
 }: {
   field: FieldMeta;
   value: unknown;
-  save: (v: unknown) => Promise<boolean>;
+  /** Saves the value; throws what the server refused. */
+  save: (v: unknown) => Promise<void>;
+  /** Where its typing waits on the device (`edit:<type>:<id>:<field>`); null keeps none. */
+  saveKey?: string | null | undefined;
+  /** The tick when the read of `value` left (`useLoad`'s `at`). */
+  at?: number | undefined;
   /** How the value reads when not editing; its words when left out. */
   children?: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState(() => inputOf(field, value));
-  const [busy, setBusy] = useState(false);
+  const s = useSaved<string>(fieldSaving(field, value, save, saveKey, at));
+  // Typing a reload gave back opens the field with it.
+  const [open, setOpen] = useState(() => s.restored);
+  const typed = s.value;
+  const setTyped = s.set;
+  const busy = s.status === "saving";
   const id = useId();
   const area = useRef<HTMLTextAreaElement>(null);
   const long = field.kind === "prose";
-  const begin = () => {
-    setTyped(inputOf(field, value));
-    setOpen(true);
+  const begin = () => setOpen(true);
+  /** Esc and Cancel: back to what's saved, nothing kept. */
+  const cancel = () => {
+    if (s.conflict) s.takeTheirs();
+    else s.set(s.base);
+    setOpen(false);
   };
   const commit = async () => {
     if (busy) return;
-    const next = typedValue(field, typed);
-    if (JSON.stringify(next ?? "") === JSON.stringify(value ?? "")) return void setOpen(false);
-    setBusy(true);
-    const ok = await save(next);
-    setBusy(false);
-    if (ok) setOpen(false);
+    if (!s.dirty && !s.conflict) return void setOpen(false);
+    if (await s.flush()) setOpen(false);
   };
   // The input takes focus as it opens.
   useEffect(() => {
@@ -111,7 +150,7 @@ export function EditField({
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      setOpen(false);
+      cancel();
     } else if (
       (e.key === "Enter" && !long && !e.nativeEvent.isComposing) ||
       ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "Enter"))
@@ -194,17 +233,30 @@ export function EditField({
           placeholder={field.kind === "tags" ? "Comma between each" : undefined}
         />
       )}
-      <div className="flex items-center gap-2">
+      {s.conflict ? (
+        <SaveConflict
+          conflict={s.conflict}
+          show={(theirs) => valueText(typedValue(field, theirs), field) || "Empty"}
+          onKeepMine={() => void s.keepMine().then((ok) => ok && setOpen(false))}
+          onTakeTheirs={() => {
+            s.takeTheirs();
+            setOpen(false);
+          }}
+        />
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
         <Button tone="primary" size="dense" busy={busy} onClick={() => void commit()}>
           Save
         </Button>
-        <Button size="dense" tone="quiet" disabled={busy} onClick={() => setOpen(false)}>
+        <Button size="dense" tone="quiet" disabled={busy} onClick={cancel}>
           Cancel
         </Button>
         {long ? <InsertSnippet box={area} value={typed} onChange={setTyped} /> : null}
-        <span className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
-          {long ? "⌘S saves · Esc cancels" : "Enter saves · Esc cancels"}
-        </span>
+        <SaveStatus
+          state={s}
+          onRetry={() => void commit()}
+          idle={long ? "⌘S saves · Esc cancels" : "Enter saves · Esc cancels"}
+        />
       </div>
     </div>
   );
@@ -215,11 +267,17 @@ const DL = "grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-4 text-[14px]";
 /** The fields a person changes here, each in place; long text as its own section. */
 export function EditFields({
   meta,
+  id,
+  at,
   state,
   editing,
   read,
 }: {
   meta: RecordMeta;
+  /** The record's id: each field keeps its unsaved typing under it. */
+  id?: string | number | undefined;
+  /** The tick when the read of `state` left (`useLoad`'s `at`). */
+  at?: number | undefined;
   state: EditState;
   editing: Editing;
   /** A field's value as the page draws it (a state as its tag); its words when it gives none. */
@@ -227,28 +285,27 @@ export function EditFields({
 }) {
   const fields = (meta.edits ?? []).flatMap((k) => meta.fields.filter((f) => f.key === k));
   const saveOf = (f: FieldMeta) => async (v: unknown) => {
-    try {
-      const change = await editing.save({ [f.key]: v });
-      if (change !== null)
-        toast.success(`${f.label} saved`, {
-          duration: UNDO_MS,
-          action: {
-            label: "Undo",
-            onClick: () =>
-              void editing.undo(change).then(
-                () => toast.success("Undone"),
-                (err: unknown) => toast.error(err instanceof Error ? err.message : String(err)),
-              ),
-          },
-        });
-      return true;
-    } catch (err) {
-      toast.error(
-        `${err instanceof Error ? err.message : String(err)}. What you typed is still there.`,
-      );
-      return false;
-    }
+    const change = await editing.save({ [f.key]: v });
+    if (change !== null)
+      toast.success(`${f.label} saved`, {
+        duration: UNDO_MS,
+        action: {
+          label: "Undo",
+          onClick: () =>
+            void editing.undo(change).then(
+              () => toast.success("Undone"),
+              (err: unknown) => toast.error(err instanceof Error ? err.message : String(err)),
+            ),
+        },
+      });
   };
+  const fieldOf = (f: FieldMeta) => ({
+    field: f,
+    value: state.values[f.key],
+    save: saveOf(f),
+    saveKey: id === undefined ? null : `edit:${meta.id}:${id}:${f.key}`,
+    at,
+  });
   const short = fields.filter((f) => f.kind !== "prose");
   return (
     <>
@@ -257,7 +314,7 @@ export function EditFields({
         .map((f) => (
           <section key={f.key} className="grid gap-1.5">
             <h3 className={GROUP_LABEL}>{f.label}</h3>
-            <EditField field={f} value={state.values[f.key]} save={saveOf(f)} />
+            <EditField {...fieldOf(f)} />
           </section>
         ))}
       {short.length ? (
@@ -268,9 +325,7 @@ export function EditFields({
                 {f.label}
               </dt>
               <dd className="min-w-0 border-b border-(--ui-hair) py-2">
-                <EditField field={f} value={state.values[f.key]} save={saveOf(f)}>
-                  {read?.(f)}
-                </EditField>
+                <EditField {...fieldOf(f)}>{read?.(f)}</EditField>
               </dd>
             </div>
           ))}

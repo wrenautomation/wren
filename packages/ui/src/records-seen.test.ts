@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { remember } from "./records.js";
+import { remember } from "./save/cache.js";
 
 describe("remember", () => {
   it("keeps the newest answers, dropping the least recently answered past the cap", () => {

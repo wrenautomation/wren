@@ -156,7 +156,7 @@ export interface Saved {
 }
 
 /** The viewer's saved views of a list, read once per list and again after a change. */
-export function useSaved(keep: KeepApi | undefined, record: string): Saved {
+export function useSavedViews(keep: KeepApi | undefined, record: string): Saved {
   const [lines, setLines] = useState<SavedViewLine[] | null>(keep ? null : []);
   const [rev, setRev] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new rev reads them again.

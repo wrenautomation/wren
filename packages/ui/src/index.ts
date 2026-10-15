@@ -8,6 +8,7 @@ export {
   type Action,
   type Call,
   type Copied,
+  callOnce,
   copiedIn,
   copyAndOpen,
   type FormField,
@@ -205,7 +206,9 @@ export {
   useReadStatus,
 } from "./read-aloud.js";
 export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";
+export { patchRecord, recordPatch } from "./record-patch.js";
 export {
+  type Load,
   type Needs,
   Panel as RecordPanel,
   type Place,
@@ -248,6 +251,7 @@ export {
   conflictOf,
   type Failure,
   failureKind,
+  forgetForm,
   type KeptFormState,
   Once,
   onWrite,

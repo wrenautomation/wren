@@ -30,7 +30,7 @@ One edit path, so no page builds its own save, history or undo. Every write is c
 - **owns:** `changes`
 - **owned-by:** [[platform/records]]
 - **joins:** [[ledger/run]] (Claude's asks), [[email/template]] (the copy writes publish through the template store)
-- **looks-like-but-is-not:** `audit_changes` / `console.change` ([[platform/audit-log]]): row-level trigger audit of every table, not per-record edits; `DraftAsk` (drafts' own Save/Ask/Undo, not yet moved)
+- **looks-like-but-is-not:** `audit_changes` / `console.change` ([[platform/audit-log]]): row-level trigger audit of every table, not per-record edits; `DraftAsk` (drafts' own Save/Ask/Undo, not yet moved); [[platform/save]] is how the fields save
 
 ## If you change this
 

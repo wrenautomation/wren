@@ -26,6 +26,8 @@ import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
+import { ACTIONS } from "./save/once.js";
+import { forgetForm, useKeptForm } from "./save/react.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** A box a form action asks for, required unless `optional`. */
@@ -467,6 +469,24 @@ function PickBox({
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** One press's key: the handler and the rows it acts on. */
+const pressOf = (handler: string, ids: readonly (string | number)[]) =>
+  `${handler}:${ids.map(String).join(",")}`;
+
+/**
+ * `call` once per press: a second press while the first is out gets the first's answer, and
+ * the input carries a `requestId` that stays the same across a retry after a lost answer, so
+ * the server can tell a retry from a second action.
+ */
+export function callOnce(
+  call: Call,
+  handler: string,
+  ids: readonly (string | number)[],
+  input: Record<string, unknown>,
+) {
+  return ACTIONS.run(pressOf(handler, ids), (requestId) => call(handler, { ...input, requestId }));
+}
+
 /**
  * Runs a record's actions on ids: one with `undo` at once, with an undo toast for 10 seconds;
  * any other asks first. One that `ask`s always asks, its text starting from `start` (an edit's
@@ -497,8 +517,17 @@ export function useRun(
     ids: (string | number)[];
     start: string;
   } | null>(null);
-  const [text, setText] = useState("");
-  const [typed, setTyped] = useState<Record<string, string>>({});
+  // What's typed in the dialog stays on the device until it is sent: closing it, or a
+  // reload, gives it back when the same action opens on the same rows.
+  const keptKey = asked
+    ? `${names.many}:${asked.action.id}:${asked.ids.map(String).join(",")}`
+    : null;
+  const askKept = useKeptForm(keptKey && `${keptKey}:ask`, asked?.start ?? "");
+  const formKept = useKeptForm(keptKey && `${keptKey}:form`);
+  const text = askKept.values.text ?? asked?.start ?? "";
+  const setText = (t: string) => askKept.set("text", t);
+  const typed = formKept.values;
+  const setTyped = (field: string, t: string) => formKept.set(field, t);
   const [files, setFiles] = useState<Record<string, File>>({});
   const [running, setRunning] = useState<{ action: string; ids: (string | number)[] } | null>(null);
   const [shown, setShown] = useState<MessageKind | null>(null);
@@ -520,7 +549,7 @@ export function useRun(
     toast.success(action.optimistic);
     after([]);
     try {
-      await call(action.handler, input);
+      await callOnce(call, action.handler, ids, input);
       after(ids);
     } catch (err) {
       setGone((g) => new Set([...g].filter((k) => !keys.includes(k))));
@@ -543,7 +572,7 @@ export function useRun(
     };
     function commit() {
       if (!settle()) return;
-      void call(action.handler, { ids }).then(
+      void callOnce(call, action.handler, ids, { ids }).then(
         () => {
           heldSet([], true, true);
           after(ids);
@@ -586,13 +615,18 @@ export function useRun(
       await goAhead(action, ids, input);
       return true;
     }
+    // A second press while the first is out: the first's answer is the one.
+    if (ACTIONS.busy(pressOf(action.handler, ids))) return false;
+    // Sent: what the dialog kept goes once it works, even if the dialog closed first.
+    const kept = [askKept.key, formKept.key];
     if (!action.form) setAsked(null);
     setRunning({ action: action.id, ids });
     let changed: (string | number)[] = [];
     let ok = false;
     try {
-      const answer = await call(action.handler, input);
+      const answer = await callOnce(call, action.handler, ids, input);
       ok = true;
+      for (const k of kept) forgetForm(k);
       setAsked(null);
       const line = action.done?.(answer) ?? `${action.label}: done`;
       const undo = action.undo;
@@ -611,7 +645,7 @@ export function useRun(
           action: {
             label: "Undo",
             onClick: () =>
-              void call(undo, { ids: done }).then(
+              void callOnce(call, undo, done, { ids: done }).then(
                 (back) => {
                   const undone = doneOf(back, []);
                   if (undone.length) toast.success("Undone");
@@ -634,8 +668,6 @@ export function useRun(
     if ((!ids.length && (!action.form || action.each)) || busy) return;
     if (held(action)) return hold(action, ids);
     if (action.undo && !action.ask && !action.form) return void go(action, ids, { ids });
-    setText(start);
-    setTyped({});
     setFiles({});
     setAsked({ action, ids, start });
     const preview = action.ask?.preview;
@@ -716,7 +748,7 @@ export function useRun(
               f={f}
               id={`${textId}-${f.field}`}
               value={values[f.field] ?? ""}
-              onText={(text) => setTyped((t) => ({ ...t, [f.field]: text }))}
+              onText={(text) => setTyped(f.field, text)}
               onFile={(file) =>
                 setFiles(({ [f.field]: _, ...rest }) =>
                   file ? { ...rest, [f.field]: file } : rest,

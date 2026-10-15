@@ -153,6 +153,8 @@ export function SaveConflict<T>({
 }
 
 export interface KeptFormState {
+  /** Where the values are kept; null keeps nothing. */
+  key: string | null;
   values: Record<string, string>;
   /** The values came back from before (a closed dialog, a reload). */
   restored: boolean;
@@ -181,6 +183,7 @@ export function useKeptForm(key: string | null, base = ""): KeptFormState {
   const live = useRef(now);
   live.current = now;
   return {
+    key: now.key,
     values: now.values,
     restored: now.restored,
     set: (field, text) => {
@@ -199,4 +202,9 @@ export function useKeptForm(key: string | null, base = ""): KeptFormState {
       setS(next);
     },
   };
+}
+
+/** Forget what's kept under `key` (it was sent after its dialog closed). */
+export function forgetForm(key: string | null) {
+  if (key) writeForm(browserEnv().storage, key, null, "", Date.now());
 }
