@@ -1,0 +1,1 @@
+ALTER TABLE "reddit_places" ADD COLUMN "joined_at" timestamp with time zone;

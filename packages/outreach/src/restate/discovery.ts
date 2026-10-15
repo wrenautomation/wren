@@ -32,12 +32,14 @@ import {
   addPlaces,
   discoverySettingsSchema,
   failPlace,
+  joined,
   judgePlace,
   keepPlace,
   movePlace,
   PLACE_FRESH_MS,
   placesDue,
   placesOfPeople,
+  placesToJoin,
   placesToRead,
   skipPlace,
   threadsRead,
@@ -84,6 +86,11 @@ const PLACES_PER_PASS = 3;
 /** Watched places whose threads a pass reads, in listings of SUBS_PER_READ. */
 const PLACES_MAX = 100;
 const DRAFTS_PER_PASS = 5;
+/**
+ * Joins a pass: a watched place's account joins it, so its comments come from a member. Passes
+ * run each half hour, so a day's joins stay under the desk's 10 per account.
+ */
+const JOINS_PER_PASS = 1;
 /** Commenters on our posts and DM contacts read a pass: 3 reads each. */
 const PEOPLE_PER_PASS = 5;
 /** More waiting: come back soon; else every half hour. */
@@ -120,6 +127,8 @@ export interface DiscoveryStats {
   capped: boolean;
   /** A client's vendor gate said no: why. Its reads end for the pass, as on a cap. */
   stopped: string | null;
+  /** Watched places their account joined this pass. */
+  joined?: number;
   /** Drafted threads put on spaced slots this pass (`autoSend`). */
   scheduled?: number;
   errors: string[];
@@ -380,6 +389,23 @@ async function readsPass(
     });
 
   // Learn: our comments' scores two days on.
+  for (const p of await step("to join", () => placesToJoin(db, JOINS_PER_PASS)))
+    try {
+      await deps
+        .sitesFor(ctx)
+        .call(
+          "reddit",
+          "POST",
+          "/api/subscribe",
+          { sr_name: p.subreddit, action: "sub" },
+          p.account,
+        );
+      await step(`joined r/${p.subreddit}`, () => joined(db, p.subreddit, now));
+      s.joined = (s.joined ?? 0) + 1;
+    } catch (err) {
+      s.errors.push(`join r/${p.subreddit}: ${errorText(err)}`);
+    }
+
   const toScore = await step("to score", () => threadsToScore(db, now));
   if (toScore.length)
     await reading("scores", async () => {

@@ -1891,6 +1891,13 @@
       "when": 1792069442820,
       "tag": "0269_boards_labels",
       "breakpoints": true
+    },
+    {
+      "idx": 270,
+      "version": "7",
+      "when": 1792072298989,
+      "tag": "0270_reddit_places_joined",
+      "breakpoints": true
     }
   ]
 }

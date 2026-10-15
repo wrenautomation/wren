@@ -13,6 +13,7 @@ import {
   addPlaces,
   draftThread,
   expireStale,
+  joined,
   keepPerson,
   keepPlace,
   keepScores,
@@ -22,6 +23,7 @@ import {
   type PlaceRead,
   type Post,
   peopleToRead,
+  placesToJoin,
   planThreadComment,
   queueThreads,
   rankThreads,
@@ -133,6 +135,13 @@ describe("reddit discovery", () => {
     expect(String(rows.find((r) => r.place === "r/Agency")?.why)).toMatch(
       /^Rules changed 2026-10-06/,
     );
+    // Watched places wait for their account to join, oldest first; a joined one is done.
+    expect(await placesToJoin(db(), 5)).toEqual([
+      { subreddit: "agency", account: "reddit@wren" },
+      { subreddit: "smallbusiness", account: "reddit@wren" },
+    ]);
+    await joined(db(), "agency", NOW);
+    expect((await placesToJoin(db(), 5)).map((p) => p.subreddit)).toEqual(["smallbusiness"]);
   });
 
   it("threads: filtered, ranked, queued to the cap, drafted, guarded, commented, scored", async () => {

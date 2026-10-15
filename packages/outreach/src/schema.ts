@@ -501,6 +501,8 @@ export const redditPlaces = pgTable(
     accountId: uuid("account_id"),
     readAt: timestamp("read_at", { withTimezone: true }),
     threadsAt: timestamp("threads_at", { withTimezone: true }),
+    /** When its account joined it on Reddit; null until then. Joined subs read as a member's. */
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

@@ -351,6 +351,27 @@ export async function placesDue(db: Queryable, now: Date, everyMs: number, limit
     .limit(limit);
 }
 
+/** Watched places their account hasn't joined yet, oldest watched first, with the account. */
+export async function placesToJoin(db: Queryable, limit: number) {
+  return db
+    .select({ subreddit: redditPlaces.subreddit, account: reachAccounts.account })
+    .from(redditPlaces)
+    .innerJoin(reachAccounts, eq(reachAccounts.id, redditPlaces.accountId))
+    .where(
+      and(
+        eq(redditPlaces.state, "watching"),
+        isNull(redditPlaces.joinedAt),
+        eq(reachAccounts.platform, "reddit"),
+      ),
+    )
+    .orderBy(asc(redditPlaces.createdAt), asc(redditPlaces.subreddit))
+    .limit(limit);
+}
+
+export async function joined(db: Queryable, sub: string, now: Date): Promise<void> {
+  await db.update(redditPlaces).set({ joinedAt: now }).where(eq(redditPlaces.subreddit, sub));
+}
+
 export async function threadsRead(db: Queryable, sub: string, now: Date): Promise<void> {
   await db.update(redditPlaces).set({ threadsAt: now }).where(eq(redditPlaces.subreddit, sub));
 }
