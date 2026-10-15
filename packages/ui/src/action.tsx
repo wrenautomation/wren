@@ -128,6 +128,11 @@ export interface Action {
    * key or a palette line.
    */
   inline?: true;
+  /**
+   * It sends the version of the record the person sees as `expect`, so the server refuses it
+   * (409, `code: "conflict"`) when the record changed since: Approve on words he never read.
+   */
+  expect?: true;
 }
 
 /** Calls a portal handler ("email/pause") with its input; rejects with the refusal's words. */
@@ -487,17 +492,313 @@ export function callOnce(
   return ACTIONS.run(pressOf(handler, ids), (requestId) => call(handler, { ...input, requestId }));
 }
 
+/** The rows an action acts on, as a list of ids. */
+type Ids = (string | number)[];
+
+/** The dialog open now: the action, its rows, where its text starts, and why it last failed. */
+export interface Asked {
+  action: Action;
+  ids: Ids;
+  start: string;
+  /** The refusal of the last try: the dialog stays open and says it. */
+  error?: string | null;
+}
+
+export interface RunState {
+  asked: Asked | null;
+  /** The action at work and its ids, for its button. */
+  running: { action: string; ids: Ids } | null;
+  /** Records an optimistic action took out of the list while its call runs. */
+  gone: ReadonlySet<string>;
+}
+
+/** What a toast needs: sonner's `toast`, or a fake in tests. */
+export interface ToastFns {
+  success: (line: string | undefined, opts?: Parameters<typeof toast.success>[1]) => unknown;
+  error: (line: string) => unknown;
+}
+
+export interface RunnerDeps {
+  call: Call;
+  /** Runs once each call settles, with the ids it changed, so the page reads again. */
+  after: (changed: Ids) => void;
+  /** The records' plural name: the held set and the dialog's kept typing are under it. */
+  many: string;
+  /**
+   * The version of a record the person sees now (`RecordBody`'s live version, a row's `version`).
+   * An action with `expect` sends it, so the server refuses one over words he never saw.
+   */
+  versionOf?: ((id: string | number) => string | null | undefined) | undefined;
+  /** The dialog's typing is sent: forget what the device kept of it. */
+  forget?: ((action: Action, ids: Ids) => void) | undefined;
+  toast?: ToastFns | undefined;
+}
+
+const wordsOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
 /**
- * Runs a record's actions on ids: one with `undo` at once, with an undo toast for 10 seconds;
- * any other asks first. One that `ask`s always asks, its text starting from `start` (an edit's
- * current value). `after` runs once each call settles, with the ids it changed, so the page
- * reads again and can show what moved. `running` is the action at work and its ids, for its
- * button.
+ * The input with the record's version as `expect`, when the action asks for it and acts on one
+ * record whose version is known. An `expect` already in the input stands.
+ */
+export function withExpect(
+  action: Action,
+  ids: readonly (string | number)[],
+  input: Record<string, unknown>,
+  versionOf?: (id: string | number) => string | null | undefined,
+): Record<string, unknown> {
+  const [id] = ids;
+  if (!action.expect || ids.length !== 1 || id === undefined || "expect" in input) return input;
+  const v = versionOf?.(id);
+  return v ? { ...input, expect: v } : input;
+}
+
+/**
+ * A record's actions, plain TypeScript (`useRun` draws it). One action per press: a second
+ * press, a second submit or Enter while one is out does nothing. A dialog stays open while its
+ * call runs, closes once it worked, and says the refusal if it didn't. One with `undo` runs at
+ * once with an undo toast; a set-aside one (`held`) leaves at once and goes when its toast does,
+ * or when the tab closes.
+ */
+export class Runner {
+  private state: RunState = { asked: null, running: null, gone: new Set() };
+  private readonly seen = new Set<() => void>();
+  /** Presses whose call is out, optimistic ones too. */
+  private readonly flying = new Set<string>();
+  /** Counts dialogs opened, so a preview that loads late knows it's stale. */
+  opened = 0;
+
+  constructor(private deps: RunnerDeps) {}
+
+  /** Take the newest callbacks (a render's `call` and `after` close over its props). */
+  update(deps: RunnerDeps) {
+    this.deps = deps;
+  }
+
+  readonly subscribe = (fn: () => void) => {
+    this.seen.add(fn);
+    return () => void this.seen.delete(fn);
+  };
+  readonly snapshot = (): RunState => this.state;
+  private set(patch: Partial<RunState>) {
+    this.state = { ...this.state, ...patch };
+    for (const f of [...this.seen]) f();
+  }
+  private get toast(): ToastFns {
+    return this.deps.toast ?? toast;
+  }
+  get busy() {
+    return this.state.running !== null;
+  }
+  /** The dialog open now is this action on these rows. */
+  private isAsked(action: Action, ids: Ids) {
+    const a = this.state.asked;
+    return !!a && a.action.id === action.id && pressOf("", a.ids) === pressOf("", ids);
+  }
+
+  /** A press: held, run at once, or asked first. "asked" when its dialog opened. */
+  run(action: Action, ids: Ids, start = ""): "asked" | "held" | "sent" | null {
+    if ((!ids.length && (!action.form || action.each)) || this.busy) return null;
+    if (this.flying.has(pressOf(action.handler, ids))) return null;
+    if (held(action)) return this.hold(action, ids) ? "held" : null;
+    if (action.undo && !action.ask && !action.form) {
+      void this.go(action, ids, { ids });
+      return "sent";
+    }
+    this.opened += 1;
+    this.set({ asked: { action, ids, start } });
+    return "asked";
+  }
+
+  /** Cancel, Esc or a click outside: the dialog closes; a call already out goes on. */
+  close() {
+    if (this.state.asked) this.set({ asked: null });
+  }
+
+  /** The dialog's submit, with the input its boxes make. Once per press. */
+  submit(input: Record<string, unknown>): Promise<boolean> {
+    const a = this.state.asked;
+    if (!a || this.busy) return Promise.resolve(false);
+    return this.go(a.action, a.ids, input);
+  }
+
+  /** The dialog's input could not be made (a bad number): it says why and stays open. */
+  refuse(why: string) {
+    const a = this.state.asked;
+    if (a) this.set({ asked: { ...a, error: why } });
+  }
+
+  /** Run it with this input, no dialog (a row's own box): true once it worked. */
+  send(action: Action, ids: Ids, input: Record<string, unknown>): Promise<boolean> {
+    return this.busy ? Promise.resolve(false) : this.go(action, ids, input);
+  }
+
+  async go(action: Action, ids: Ids, given: Record<string, unknown>): Promise<boolean> {
+    const press = pressOf(action.handler, ids);
+    // A second press while the first is out: the first's answer is the one.
+    if (this.flying.has(press) || ACTIONS.busy(press)) return false;
+    const input = withExpect(action, ids, given, this.deps.versionOf);
+    if (action.optimistic && !action.form && !action.undo)
+      return this.goAhead(action, ids, input, press);
+    if (this.busy) return false;
+    this.flying.add(press);
+    const asked = this.isAsked(action, ids) ? this.state.asked : null;
+    this.set({
+      running: { action: action.id, ids },
+      ...(asked ? { asked: { ...asked, error: null } } : {}),
+    });
+    let changed: Ids = [];
+    let ok = false;
+    try {
+      const answer = await callOnce(this.deps.call, action.handler, ids, input);
+      ok = true;
+      this.deps.forget?.(action, ids);
+      if (this.isAsked(action, ids)) this.set({ asked: null });
+      changed = doneOf(answer, ids);
+      this.told(action, answer, changed);
+    } catch (err) {
+      // The dialog stays with its words; closed already, the toast says it.
+      if (this.isAsked(action, ids)) {
+        const a = this.state.asked as Asked;
+        this.set({ asked: { ...a, error: wordsOf(err) } });
+      } else this.toast.error(wordsOf(err));
+    } finally {
+      this.flying.delete(press);
+      this.set({ running: null });
+      this.deps.after(changed);
+    }
+    return ok;
+  }
+
+  /** The toast after it worked: its line, with Undo when it can be undone. */
+  private told(action: Action, answer: unknown, done: Ids) {
+    const line = action.done?.(answer) ?? `${action.label}: done`;
+    const undo = action.undo;
+    const copied = copiedIn(answer);
+    if (copied)
+      this.toast.success("Marked answered. Now paste it on Google.", {
+        duration: Number.POSITIVE_INFINITY,
+        action: { label: "Copy and open", onClick: () => copyAndOpen(copied) },
+      });
+    else if (!undo || !done.length) this.toast.success(line);
+    else
+      this.toast.success(line, {
+        duration: UNDO_MS,
+        action: {
+          label: "Undo",
+          onClick: () =>
+            void callOnce(this.deps.call, undo, done, { ids: done }).then(
+              (back) => {
+                const undone = doneOf(back, []);
+                if (undone.length) this.toast.success("Undone");
+                else this.toast.error("Too late to undo.");
+                this.deps.after(undone);
+              },
+              (err: unknown) => this.toast.error(wordsOf(err)),
+            ),
+        },
+      });
+  }
+
+  /**
+   * Out of the list now, the toast now; back with the refusal's words if it fails. A dialog with
+   * typing in it opens again with them (what was typed is still on the device).
+   */
+  private async goAhead(
+    action: Action,
+    ids: Ids,
+    input: Record<string, unknown>,
+    press: string,
+  ): Promise<boolean> {
+    const keys = ids.map(String);
+    const asked = this.isAsked(action, ids) ? this.state.asked : null;
+    this.flying.add(press);
+    this.set({ asked: null, gone: new Set([...this.state.gone, ...keys]) });
+    this.toast.success(action.optimistic);
+    this.deps.after([]);
+    try {
+      await callOnce(this.deps.call, action.handler, ids, input);
+      this.deps.forget?.(action, ids);
+      this.deps.after(ids);
+      return true;
+    } catch (err) {
+      this.set({ gone: new Set([...this.state.gone].filter((k) => !keys.includes(k))) });
+      if (asked && (action.ask || action.form) && !this.state.asked)
+        this.set({ asked: { ...asked, error: wordsOf(err) } });
+      else this.toast.error(`${action.label} failed: ${wordsOf(err)}`);
+      this.deps.after([]);
+      return false;
+    } finally {
+      this.flying.delete(press);
+    }
+  }
+
+  /** Out of the list now with an undo toast; the call goes when the toast does. */
+  private hold(action: Action, ids: Ids): boolean {
+    const keys = ids.map((id) => heldKey(this.deps.many, id));
+    // Already set aside and waiting: a second press is the same one.
+    if (keys.some((k) => HELD.has(k))) return false;
+    this.set({ asked: null });
+    heldSet(keys, true);
+    let settled = false;
+    const settle = () => {
+      if (settled) return false;
+      settled = true;
+      clearTimeout(timer);
+      PENDING.delete(commit);
+      return true;
+    };
+    const commit = () => {
+      if (!settle()) return;
+      void callOnce(this.deps.call, action.handler, ids, { ids }).then(
+        () => {
+          heldSet([], true, true);
+          this.deps.after(ids);
+          // Out of the held set once the list has read again without them.
+          setTimeout(() => heldSet(keys, false), 4000);
+        },
+        (err: unknown) => {
+          heldSet(keys, false);
+          this.toast.error(`${action.label} failed: ${wordsOf(err)}`);
+        },
+      );
+    };
+    const timer = setTimeout(commit, UNDO_MS);
+    PENDING.add(commit);
+    let line = `${action.label}: done`;
+    try {
+      line = action.done?.(undefined) ?? line;
+    } catch {}
+    this.toast.success(line, {
+      duration: UNDO_MS,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (!settle()) return void this.toast.error("Too late to undo.");
+          heldSet(keys, false);
+          this.toast.success("Undone");
+        },
+      },
+    });
+    return true;
+  }
+}
+
+/** Where a dialog's typing waits on the device, for this action on these rows. */
+const keptKeyOf = (many: string, action: Action, ids: readonly (string | number)[]) =>
+  `${many}:${action.id}:${ids.map(String).join(",")}`;
+
+/**
+ * Runs a record's actions on ids (`Runner`): one with `undo` at once, with an undo toast for 10
+ * seconds; any other asks first. One that `ask`s always asks, its text starting from `start` (an
+ * edit's current value). `after` runs once each call settles, with the ids it changed, so the
+ * page reads again and can show what moved. `running` is the action at work and its ids, for its
+ * button. `versionOf` is the version of a record the person sees, for actions with `expect`.
  */
 export function useRun(
   call: Call,
   after: (changed: (string | number)[]) => void,
   names: { one: string; many: string },
+  opts: { versionOf?: (id: string | number) => string | null | undefined } = {},
 ): {
   run: (action: Action, ids: (string | number)[], start?: string) => void;
   /** Runs it with this input, no dialog (a row's own box): true once it worked. */
@@ -512,16 +813,29 @@ export function useRun(
   /** Records an optimistic action took out of the list while its call runs. */
   gone: ReadonlySet<string>;
 } {
-  const [asked, setAsked] = useState<{
-    action: Action;
-    ids: (string | number)[];
-    start: string;
-  } | null>(null);
+  const deps: RunnerDeps = {
+    call,
+    after,
+    many: names.many,
+    versionOf: opts.versionOf,
+    forget: (action, ids) => {
+      const k = keptKeyOf(names.many, action, ids);
+      forgetForm(`${k}:ask`);
+      forgetForm(`${k}:form`);
+    },
+  };
+  const ref = useRef<Runner | null>(null);
+  if (!ref.current) ref.current = new Runner(deps);
+  const runner = ref.current;
+  runner.update(deps);
+  const { asked, running, gone } = useSyncExternalStore(
+    runner.subscribe,
+    runner.snapshot,
+    runner.snapshot,
+  );
   // What's typed in the dialog stays on the device until it is sent: closing it, or a
   // reload, gives it back when the same action opens on the same rows.
-  const keptKey = asked
-    ? `${names.many}:${asked.action.id}:${asked.ids.map(String).join(",")}`
-    : null;
+  const keptKey = asked ? keptKeyOf(names.many, asked.action, asked.ids) : null;
   const askKept = useKeptForm(keptKey && `${keptKey}:ask`, asked?.start ?? "");
   const formKept = useKeptForm(keptKey && `${keptKey}:form`);
   const text = askKept.values.text ?? asked?.start ?? "";
@@ -529,153 +843,20 @@ export function useRun(
   const typed = formKept.values;
   const setTyped = (field: string, t: string) => formKept.set(field, t);
   const [files, setFiles] = useState<Record<string, File>>({});
-  const [running, setRunning] = useState<{ action: string; ids: (string | number)[] } | null>(null);
   const [shown, setShown] = useState<MessageKind | null>(null);
-  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
-  const opened = useRef(0);
   const busy = running !== null;
   const textId = useId();
   const textBox = useRef<HTMLTextAreaElement>(null);
 
-  /** Out of the list now, the toast now; back with the refusal's words if it fails. */
-  const goAhead = async (
-    action: Action,
-    ids: (string | number)[],
-    input: Record<string, unknown>,
-  ) => {
-    const keys = ids.map(String);
-    setAsked(null);
-    setGone((g) => new Set([...g, ...keys]));
-    toast.success(action.optimistic);
-    after([]);
-    try {
-      await callOnce(call, action.handler, ids, input);
-      after(ids);
-    } catch (err) {
-      setGone((g) => new Set([...g].filter((k) => !keys.includes(k))));
-      toast.error(`${action.label} failed: ${err instanceof Error ? err.message : String(err)}`);
-      after([]);
-    }
-  };
-  /** Out of the list now with an undo toast; the call goes when the toast does. */
-  const hold = (action: Action, ids: (string | number)[]) => {
-    const keys = ids.map((id) => heldKey(names.many, id));
-    setAsked(null);
-    heldSet(keys, true);
-    let settled = false;
-    const settle = () => {
-      if (settled) return false;
-      settled = true;
-      clearTimeout(timer);
-      PENDING.delete(commit);
-      return true;
-    };
-    function commit() {
-      if (!settle()) return;
-      void callOnce(call, action.handler, ids, { ids }).then(
-        () => {
-          heldSet([], true, true);
-          after(ids);
-          // Out of the held set once the list has read again without them.
-          setTimeout(() => heldSet(keys, false), 4000);
-        },
-        (err: unknown) => {
-          heldSet(keys, false);
-          toast.error(
-            `${action.label} failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        },
-      );
-    }
-    const timer = setTimeout(commit, UNDO_MS);
-    PENDING.add(commit);
-    let line = `${action.label}: done`;
-    try {
-      line = action.done?.(undefined) ?? line;
-    } catch {}
-    toast.success(line, {
-      duration: UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          if (!settle()) return void toast.error("Too late to undo.");
-          heldSet(keys, false);
-          toast.success("Undone");
-        },
-      },
-    });
-  };
-  // A form stays open until it works, so a refusal doesn't lose what was typed.
-  const go = async (
-    action: Action,
-    ids: (string | number)[],
-    input: Record<string, unknown>,
-  ): Promise<boolean> => {
-    if (action.optimistic && !action.form && !action.undo) {
-      await goAhead(action, ids, input);
-      return true;
-    }
-    // A second press while the first is out: the first's answer is the one.
-    if (ACTIONS.busy(pressOf(action.handler, ids))) return false;
-    // Sent: what the dialog kept goes once it works, even if the dialog closed first.
-    const kept = [askKept.key, formKept.key];
-    if (!action.form) setAsked(null);
-    setRunning({ action: action.id, ids });
-    let changed: (string | number)[] = [];
-    let ok = false;
-    try {
-      const answer = await callOnce(call, action.handler, ids, input);
-      ok = true;
-      for (const k of kept) forgetForm(k);
-      setAsked(null);
-      const line = action.done?.(answer) ?? `${action.label}: done`;
-      const undo = action.undo;
-      const done = doneOf(answer, ids);
-      changed = done;
-      const copied = copiedIn(answer);
-      if (copied)
-        toast.success("Marked answered. Now paste it on Google.", {
-          duration: Number.POSITIVE_INFINITY,
-          action: { label: "Copy and open", onClick: () => copyAndOpen(copied) },
-        });
-      else if (!undo || !done.length) toast.success(line);
-      else
-        toast.success(line, {
-          duration: UNDO_MS,
-          action: {
-            label: "Undo",
-            onClick: () =>
-              void callOnce(call, undo, done, { ids: done }).then(
-                (back) => {
-                  const undone = doneOf(back, []);
-                  if (undone.length) toast.success("Undone");
-                  else toast.error("Too late to undo.");
-                  after(undone);
-                },
-                (err: unknown) => toast.error(err instanceof Error ? err.message : String(err)),
-              ),
-          },
-        });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setRunning(null);
-      after(changed);
-    }
-    return ok;
-  };
   const run = (action: Action, ids: (string | number)[], start = "") => {
-    if ((!ids.length && (!action.form || action.each)) || busy) return;
-    if (held(action)) return hold(action, ids);
-    if (action.undo && !action.ask && !action.form) return void go(action, ids, { ids });
+    if (runner.run(action, ids, start) !== "asked") return;
     setFiles({});
-    setAsked({ action, ids, start });
     const preview = action.ask?.preview;
-    const mine = ++opened.current;
+    const mine = runner.opened;
     setShown(typeof preview === "function" ? null : (preview ?? null));
     if (typeof preview === "function" && ids[0] !== undefined)
       void preview(ids[0]).then(
-        (kind) => mine === opened.current && setShown(kind),
+        (kind) => mine === runner.opened && setShown(kind),
         () => undefined,
       );
   };
@@ -684,7 +865,7 @@ export function useRun(
   const values = form ? valuesOf(form, typed) : {};
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!asked) return;
+    if (!asked || busy) return;
     const { action, ids, start } = asked;
     let input: Record<string, unknown>;
     try {
@@ -694,14 +875,14 @@ export function useRun(
           ? inputOf(action, { ids, [ask.field]: start }, text)
           : { ids };
     } catch (err) {
-      return void toast.error(err instanceof Error ? err.message : String(err));
+      return runner.refuse(wordsOf(err));
     }
-    void go(action, ids, input);
+    void runner.submit(input);
   };
 
   const n = asked?.ids.length ?? 0;
   const dialog = (
-    <Dialog open={!!asked} onOpenChange={(open) => !open && setAsked(null)}>
+    <Dialog open={!!asked} onOpenChange={(open) => !open && runner.close()}>
       <DialogContent
         className={
           ask?.preview ? "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl" : undefined
@@ -757,8 +938,13 @@ export function useRun(
               autoFocus={i === 0}
             />
           ))}
+          {asked?.error ? (
+            <p role="alert" className="m-0 text-sm text-(--ui-bad)">
+              {asked.error}
+            </p>
+          ) : null}
           <DialogFooter>
-            <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>
+            <Button tone="quiet" size="dense" onClick={() => runner.close()}>
               Cancel
             </Button>
             <Button tone="primary" size="dense" type="submit" busy={busy}>
@@ -770,7 +956,7 @@ export function useRun(
     </Dialog>
   );
   const send = (action: Action, ids: (string | number)[], input: Record<string, unknown>) =>
-    busy ? Promise.resolve(false) : go(action, ids, input);
+    runner.send(action, ids, input);
   return { run, send, busy, running, dialog, gone };
 }
 
