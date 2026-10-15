@@ -124,6 +124,8 @@ export const payAccounts = pgTable(
     how: varchar("how", { length: 8 }),
     /** Stripe's livemode on the key: false is a test key. */
     live: boolean("live"),
+    /** What reconcile found wrong with the endpoint's events that it couldn't fix, for the client. */
+    note: text("note"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: text("updated_by").notNull(),
   },

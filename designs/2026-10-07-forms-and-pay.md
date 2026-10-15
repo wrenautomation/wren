@@ -323,6 +323,10 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
   ends access only when it covers the payment.
 - 2026-10-14: reconcile reads Stripe and heals through the same steps as a webhook. Drift
   (paid here, nothing on Stripe) is said on the link, never fixed by code.
+- 2026-10-14: reconcile widens a client's pasted endpoint too, found by its URL, adding events and
+  never dropping the client's own. A key that can't read or change endpoints leaves a plain note in
+  the Stripe panel (`pay_accounts.note`): which events to add, and the read access a restricted
+  key needs. It clears once the endpoint hears them all.
 - 2026-10-14: delivery invoices stay Wise and manual. Stripe invoices or subscriptions for Wren's
   own billing are William's call (money). A refunded setup invoice doesn't pause an engagement;
   that reverse gate isn't built.

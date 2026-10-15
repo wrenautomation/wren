@@ -25,6 +25,8 @@ export const STRIPE_EVENTS = [
   "charge.dispute.updated",
   "charge.dispute.closed",
 ] as const;
+/** What a restricted key must be able to read for reconcile to hold links against Stripe. */
+export const READ_ACCESS = "Checkout Sessions, Payment Intents, Charges and Disputes";
 /** How old a signed event may be: Stripe's own default. */
 export const TOLERANCE_S = 300;
 /** Retries the SDK makes on a dropped connection, a 409 lock or a 5xx; Restate retries after. */
@@ -179,6 +181,15 @@ export function stripeApi(key: string, fetchFn: Fetch, base = STRIPE_API, retrie
     /** The events an endpoint hears now. */
     webhookEvents: (id: string) =>
       call(async () => (await s.webhookEndpoints.retrieve(id)).enabled_events),
+    /** The account's webhook endpoints, where each posts and what it hears: a pasted secret has no id. */
+    webhookEndpoints: () =>
+      call(async () =>
+        (await s.webhookEndpoints.list({ limit: 100 })).data.map((e) => ({
+          id: e.id,
+          url: e.url,
+          events: [...e.enabled_events] as string[],
+        })),
+      ),
     /** An endpoint made before refunds and disputes: hear every event we read now. */
     setWebhookEvents: (id: string, events: readonly string[]) =>
       call(async () => {

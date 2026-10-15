@@ -513,6 +513,15 @@ export async function payAccountOf(main: Queryable, client: string): Promise<Pay
   return row ?? null;
 }
 
+/** What reconcile found about the endpoint's events: a note for the client, or null once it's fine. */
+export async function keepWebhookNote(
+  main: Queryable,
+  client: string,
+  note: string | null,
+): Promise<void> {
+  await main.update(payAccounts).set({ note }).where(eq(payAccounts.client, client));
+}
+
 export async function savePayAccount(
   main: Db,
   a: {
@@ -521,6 +530,8 @@ export async function savePayAccount(
     secretName?: string | null;
     how?: "api" | "pasted" | null;
     live?: boolean | null;
+    /** Reconcile's note on the endpoint's events; a new key or secret clears it (null). */
+    note?: string | null;
     by: string;
   },
 ): Promise<void> {
@@ -529,6 +540,7 @@ export async function savePayAccount(
     ...(a.secretName !== undefined ? { secretName: a.secretName } : {}),
     ...(a.how !== undefined ? { how: a.how } : {}),
     ...(a.live !== undefined ? { live: a.live } : {}),
+    ...(a.note !== undefined ? { note: a.note } : {}),
     updatedAt: new Date(),
     updatedBy: a.by,
   };

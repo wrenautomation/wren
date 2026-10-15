@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-14 @ ab9feb64
+verified: 2026-10-14 @ e629cd17
 entity: packages/payments/src/schema.ts:39
 ---
 
@@ -18,11 +18,11 @@ Links live in main with a `client` column, so To approve and the webhook read on
 ## Shape
 
 - `pay_links`: `client`, `contact`, `email`, `name`, `channel` sms|email, `description`, `amount_cents`, `quantity`, `currency`, `status` waiting|sending|sent|processing|unpaid|paid|refunded|declined|failed, `why`, `stripe_link`, `url`, `message`, `paid_cents`, `paid_at`, `session`, `intent`, `refunded_cents`, `refunded_at`, `dispute` open|won|lost, `dispute_at`, `checked_at`, `told` (changes the spine heard), `live`, `created_*`, `approved_*`. Migration `0259_pay_money` adds the money columns.
-- `pay_accounts`: per client, the webhook endpoint id, the signing secret's key-store name (never the secret), `how` api|pasted, `live`.
+- `pay_accounts`: per client, the webhook endpoint id, the signing secret's key-store name (never the secret), `how` api|pasted, `live`, `note` (what reconcile found wrong with the endpoint's events that it couldn't fix; shown in the Stripe panel, cleared by a new key or secret or once the endpoint hears everything; migration `0261_pay_webhook_note`).
 - `pay_events`: one row per Stripe event id, trimmed (ids, amount, status, email), `result` paid|processing|unpaid|refunded|disputed|stale|unknown|ignored|drift. Reconcile's own rows have `recon:<link>:…` ids. An `unknown` refund or dispute is applied once its checkout names the PaymentIntent (`applyEvent`, `packages/payments/src/store.ts:334`).
 - `sms_contacts.paid_cents`, `paid_at`; `sms_messages.kind` `pay` (in `ANSWER_KINDS`, `packages/channel-sms/src/schema.ts:127`: held for the asked window, 20:00 cutoff). Migration `0183_payments`.
 - Webhook: `POST app.<host>/__pay/stripe/<client>` (`apps/portal/src/pay.ts:33`, Restate idempotency key = SHA-256 of body and signature) → `Payments/stripe` → `takeWebhook` (`packages/payments/src/service.ts:231`), signature by the SDK in `verifySignature` (`packages/payments/src/stripe.ts:241`, 5 min either way). Events: `STRIPE_EVENTS` (`packages/payments/src/stripe.ts:19`). Then `settleLink` (thread paid mark net of refunds, cleared at zero; timeline line) and `tellChanges` (each of paid, refunded, failed fires `trigger.payment` once, claimed in `told`). Webhooks out: `payment.received`, `payment.refunded`, `payment.failed`.
-- `PayReconcile/all` (`packages/payments/src/reconcile.ts:213`): daily, links of 120 days per connected client, 50 a pass; heals missed facts as `recon:` events, keeps drift (paid here, nothing on Stripe) as one event and the link's `why`; adds missing events to endpoints Wren registered. Off until started (`node scripts/ingress.mjs PayReconcile/all/start`).
+- `PayReconcile/all` (`packages/payments/src/reconcile.ts:256`): daily, links of 120 days per connected client, 50 a pass; heals missed facts as `recon:` events, keeps drift (paid here, nothing on Stripe) as one event and the link's `why`; adds missing `STRIPE_EVENTS` to the client's endpoint, Wren's (by id) or a pasted one (found in the account by its URL), keeping the events the client chose. A key that can't read or change endpoints gets `pay_accounts.note` instead: which events to add, and that a restricted key needs read on Checkout Sessions, Payment Intents, Charges and Disputes (`holdEndpoint`). Off until started (`node scripts/ingress.mjs PayReconcile/all/start`).
 - Ask again (`payments.again`): an `unpaid` link (bank payment failed) gets a new link with the same ask, once.
 - Setup `setup.stripe` (`packages/payments/src/setups.ts:12`): key, then webhook (registered by API when the key allows, else pasted secret). Keys: the browser stages them (`/api/keys/stage`), `connect` takes `keyRef` and `secretRef`; the worker reads them from `pgKeyStore`.
 

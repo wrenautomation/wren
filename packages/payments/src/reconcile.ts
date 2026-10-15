@@ -4,16 +4,18 @@
  * is the floor under them. A missed or dropped event heals as reconcile's own event (a
  * deterministic `recon:` id, applied by the same steps); what no event explains is kept as
  * drift and said on the link for a person. It reads Stripe only, and makes nothing there except
- * adding events an endpoint Wren registered is missing.
+ * adding events an endpoint is missing: one Wren registered, or one the client pasted (found by
+ * its URL). Where the key can't, the client gets a note in their payments settings.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
-import type { PayLink } from "./schema.js";
-import { type PaymentsDeps, settleLink, stripeKeyOf, tellChanges } from "./service.js";
+import type { PayAccount, PayLink } from "./schema.js";
+import { type PaymentsDeps, settleLink, stripeKeyOf, tellChanges, webhookUrl } from "./service.js";
 import { step } from "./states.js";
 import {
   applyEvent,
+  keepWebhookNote,
   linksToCheck,
   markChecked,
   moneyOf,
@@ -23,6 +25,7 @@ import {
 } from "./store.js";
 import {
   kindOf,
+  READ_ACCESS,
   STRIPE_EVENTS,
   type StripeApi,
   StripeError,
@@ -153,17 +156,61 @@ export interface ReconcileStats {
   checked: number;
   healed: number;
   drift: number;
-  /** Endpoints Wren made that now hear refunds and disputes too. */
+  /** Endpoints, Wren's or a client's, that now hear refunds and disputes too. */
   endpoints: number;
+  /** Clients whose endpoint we couldn't widen or read: each has a note in its settings. */
+  noted: number;
   /** Clients skipped: no key, or Stripe refused it (`why`). */
   skipped: { client: string; why: string }[];
   /** Links a fix touched: their thread mark and the spine follow after the pass. */
   touched: string[];
 }
 
+const sameUrl = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+
+/** In a client's words: what their endpoint lacks, and what a restricted key needs to read. */
+const lacks = (url: string, events: readonly string[]) =>
+  `Your Stripe webhook at ${url} doesn't send ${events.join(", ")}, so refunds and disputes can reach Wren late. In Stripe, open that endpoint and add them. A restricted key also needs read access to ${READ_ACCESS}.`;
+const unread = (url: string) =>
+  `Wren can't read which events your Stripe webhook at ${url} sends with this key. Make sure it sends ${STRIPE_EVENTS.join(", ")}. A restricted key needs read access to Webhook Endpoints and to ${READ_ACCESS}.`;
+
+/**
+ * Holds the client's endpoint to every event we read. Wren's own is known by its id; a pasted
+ * one is found in the account by its URL. Widens it (never drops an event the client chose);
+ * a key that can't read or write endpoints leaves a note for the client instead, cleared when
+ * the endpoint is fine. An endpoint we can't find says nothing.
+ */
+async function holdEndpoint(
+  d: Pick<PaymentsDeps, "main" | "portal">,
+  api: StripeApi,
+  acct: PayAccount,
+): Promise<{ widened: boolean; noted: boolean }> {
+  const url = webhookUrl(d.portal, acct.client);
+  let missing: string[] | null = null;
+  let widened = false;
+  let note: string | null = null;
+  try {
+    const mine =
+      acct.how === "api" && acct.endpoint
+        ? { id: acct.endpoint, events: await api.webhookEvents(acct.endpoint) }
+        : (await api.webhookEndpoints()).find((e) => sameUrl(e.url, url));
+    if (!mine) return { widened: false, noted: false };
+    missing = STRIPE_EVENTS.filter((e) => !mine.events.includes(e) && !mine.events.includes("*"));
+    if (missing.length) {
+      await api.setWebhookEvents(mine.id, [...new Set([...mine.events, ...STRIPE_EVENTS])]);
+      widened = true;
+    }
+  } catch (err) {
+    if (!(err instanceof StripeError && err.denied)) throw err;
+    note = missing?.length ? lacks(url, missing) : unread(url);
+  }
+  if (note !== acct.note) await keepWebhookNote(d.main, acct.client, note);
+  return { widened, noted: note !== null };
+}
+
 /** One pass over every connected client. A client's trouble is its line; the rest go on. */
 export async function reconcileAll(
-  d: Pick<PaymentsDeps, "main" | "open" | "keys" | "fetch" | "stripeBase">,
+  d: Pick<PaymentsDeps, "main" | "open" | "keys" | "fetch" | "stripeBase" | "portal">,
   now: Date,
 ): Promise<ReconcileStats> {
   const stats: ReconcileStats = {
@@ -172,6 +219,7 @@ export async function reconcileAll(
     healed: 0,
     drift: 0,
     endpoints: 0,
+    noted: 0,
     skipped: [],
     touched: [],
   };
@@ -180,14 +228,9 @@ export async function reconcileAll(
     try {
       const key = await stripeKeyOf(d, acct.client, "reconcile pay links");
       const api = stripeApi(key, d.fetch, d.stripeBase);
-      if (acct.how === "api" && acct.endpoint) {
-        const hears = await api.webhookEvents(acct.endpoint);
-        const missing = STRIPE_EVENTS.filter((e) => !hears.includes(e) && !hears.includes("*"));
-        if (missing.length) {
-          await api.setWebhookEvents(acct.endpoint, [...new Set([...hears, ...STRIPE_EVENTS])]);
-          stats.endpoints += 1;
-        }
-      }
+      const hold = await holdEndpoint(d, api, acct);
+      if (hold.widened) stats.endpoints += 1;
+      if (hold.noted) stats.noted += 1;
       for (const l of await linksToCheck(d.main, acct.client, now, PER_CLIENT)) {
         const r = await checkLink(d.main, api, l, now);
         stats.checked += 1;

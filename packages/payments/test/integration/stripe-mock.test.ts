@@ -61,7 +61,7 @@ describe.skipIf(!hasDocker)("Stripe's spec takes every call", () => {
     expect(link.url).toMatch(/^https:\/\//);
   });
 
-  it("the webhook: made on our version with every event, read, and widened", async () => {
+  it("the webhook: made on our version with every event, read, listed, and widened", async () => {
     const e = await api().registerWebhook({
       client: "acme",
       url: "https://app.wren.test/__pay/stripe/acme",
@@ -69,6 +69,12 @@ describe.skipIf(!hasDocker)("Stripe's spec takes every call", () => {
     });
     expect(e.id).toMatch(/^we_/);
     expect(Array.isArray(await api().webhookEvents(e.id))).toBe(true);
+    // A pasted endpoint is found by listing the account's: each has an id, a URL and events.
+    for (const w of await api().webhookEndpoints()) {
+      expect(w.id).toMatch(/^we_/);
+      expect(typeof w.url).toBe("string");
+      expect(Array.isArray(w.events)).toBe(true);
+    }
     await api().setWebhookEvents(e.id, STRIPE_EVENTS);
   });
 

@@ -193,6 +193,8 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
             : null,
         managed: "In development",
         approves: await approves(req, client),
+        /** What reconcile found wrong with the webhook's events that it couldn't fix, in plain words. */
+        note: acct?.note ?? null,
         /** Links reconcile found disagreeing with Stripe lately: each says why on its row. */
         drift: Number(
           (
@@ -357,6 +359,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
           client: client.id,
           secretName: s.ref,
           how: "pasted",
+          note: null,
           by: viewer.email,
         });
         if (!keyAt) return { connected: true, webhook: "pasted" as const, last4: null };
@@ -382,7 +385,12 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         ref: mode === "live" ? "Stripe" : "Stripe (test mode)",
         by: viewer.email,
       });
-      await savePayAccount(main, { client: client.id, live: mode === "live", by: viewer.email });
+      await savePayAccount(main, {
+        client: client.id,
+        live: mode === "live",
+        note: null,
+        by: viewer.email,
+      });
       const last4 = saved.last4;
       if (secretAt) return { connected: true, webhook: "pasted" as const, last4 };
       const url = webhookUrl(deps.portal, client.id);

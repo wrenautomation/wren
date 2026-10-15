@@ -20,6 +20,8 @@ interface Status {
   approves: boolean;
   /** Links reconcile found disagreeing with Stripe in the last month. */
   drift?: number;
+  /** What reconcile found wrong with the webhook's events that it couldn't fix. */
+  note?: string | null;
 }
 interface Connected {
   connected: boolean;
@@ -110,6 +112,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
           </Button>
         ) : null}
       </div>
+      {s.note ? <span className="text-[13px] text-(--ui-bad)">{s.note}</span> : null}
       {!s.keyStore && s.approves ? (
         <span className={LINE}>
           Saving a Stripe key isn't turned on yet. Wren's team can do it.

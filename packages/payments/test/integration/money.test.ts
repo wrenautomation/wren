@@ -15,7 +15,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";
 import { reconcileAll } from "../../src/reconcile.js";
-import { payEvents, payLinks } from "../../src/schema.js";
+import { payAccounts, payEvents, payLinks } from "../../src/schema.js";
 import { settleLink, takeWebhook } from "../../src/service.js";
 import {
   claimChanges,
@@ -25,7 +25,7 @@ import {
   linkIdFor,
   markSent,
 } from "../../src/store.js";
-import { type Fetch, signFor } from "../../src/stripe.js";
+import { type Fetch, STRIPE_EVENTS, signFor } from "../../src/stripe.js";
 
 let pg: TestPostgres;
 let acme: Db;
@@ -43,7 +43,9 @@ interface World {
   sessions: Record<string, unknown[]>;
   intents: Record<string, unknown>;
   disputes: Record<string, unknown[]>;
-  endpoint: { id: string; enabled_events: string[] };
+  endpoint: { id: string; url: string; enabled_events: string[] };
+  /** Webhook endpoints the key may not read or change (a restricted key): Stripe answers 403. */
+  deny: { list: boolean; update: boolean };
 }
 let world: World;
 let calls: { method: string; path: string }[] = [];
@@ -53,9 +55,17 @@ const fakeStripe: Fetch = async (url, init) => {
   calls.push({ method, path: u.pathname });
   const list = (data: unknown[]) =>
     Response.json({ object: "list", data, has_more: false, url: u.pathname });
+  const denied = () =>
+    Response.json(
+      { error: { type: "invalid_request_error", message: "This key lacks permission." } },
+      { status: 403 },
+    );
   if (u.pathname === "/v1/webhook_endpoints" && method === "POST")
     return Response.json({ id: "we_test_1", secret: SECRET, livemode: false });
+  if (u.pathname === "/v1/webhook_endpoints")
+    return world.deny.list ? denied() : list([{ object: "webhook_endpoint", ...world.endpoint }]);
   if (u.pathname === `/v1/webhook_endpoints/${world.endpoint.id}`) {
+    if (method === "POST" && world.deny.update) return denied();
     if (method === "POST") {
       const body = new URLSearchParams(String(init.body));
       world.endpoint.enabled_events = [...body.entries()]
@@ -81,8 +91,10 @@ const fakeStripe: Fetch = async (url, init) => {
     return list(world.disputes[u.searchParams.get("payment_intent") ?? ""] ?? []);
   return Response.json({ error: { type: "invalid_request_error", message: "?" } }, { status: 404 });
 };
-const deps = () => ({ main: pg.db, open, keys, fetch: fakeStripe });
-const api = () => paymentsConsoleApi({ ...deps(), portal: "https://app.wren.test" });
+const PORTAL = "https://app.wren.test";
+const OURS = `${PORTAL}/__pay/stripe/acme`;
+const deps = () => ({ main: pg.db, open, keys, fetch: fakeStripe, portal: PORTAL });
+const api = () => paymentsConsoleApi(deps());
 
 /** Stripe's events, as the webhook body carries them. */
 let seq = 0;
@@ -168,7 +180,8 @@ beforeAll(async () => {
     sessions: {},
     intents: {},
     disputes: {},
-    endpoint: { id: "we_test_1", enabled_events: ["checkout.session.completed"] },
+    endpoint: { id: "we_test_1", url: OURS, enabled_events: ["checkout.session.completed"] },
+    deny: { list: false, update: false },
   };
   const keyRef = (
     await keys.stage({
@@ -351,29 +364,29 @@ describe("a bank payment that fails", () => {
   });
 });
 
-describe("reconcile", () => {
-  const sessionOf = (plink: string, o: Record<string, unknown> = {}) => ({
-    id: `cs_test_${plink}`,
-    object: "checkout.session",
-    status: "complete",
-    payment_status: "paid",
-    amount_total: 4900,
-    currency: "usd",
-    payment_intent: `pi_test_${plink}`,
-    customer_details: { email: "sam@example.test" },
-    created: 1_790_000_000,
-    livemode: false,
-    ...o,
-  });
-  const intentOf = (plink: string, o: Record<string, unknown> = {}, charge = {}) => ({
-    id: `pi_test_${plink}`,
-    object: "payment_intent",
-    status: "succeeded",
-    amount_received: 4900,
-    latest_charge: { id: `ch_test_${plink}`, amount_refunded: 0, disputed: false, ...charge },
-    ...o,
-  });
+const sessionOf = (plink: string, o: Record<string, unknown> = {}) => ({
+  id: `cs_test_${plink}`,
+  object: "checkout.session",
+  status: "complete",
+  payment_status: "paid",
+  amount_total: 4900,
+  currency: "usd",
+  payment_intent: `pi_test_${plink}`,
+  customer_details: { email: "sam@example.test" },
+  created: 1_790_000_000,
+  livemode: false,
+  ...o,
+});
+const intentOf = (plink: string, o: Record<string, unknown> = {}, charge = {}) => ({
+  id: `pi_test_${plink}`,
+  object: "payment_intent",
+  status: "succeeded",
+  amount_received: 4900,
+  latest_charge: { id: `ch_test_${plink}`, amount_refunded: 0, disputed: false, ...charge },
+  ...o,
+});
 
+describe("reconcile", () => {
   it("heals what dropped webhooks missed: paid, refunded, a dispute lost; once", async () => {
     const id = await linkOut("plink_missed");
     world.sessions.plink_missed = [sessionOf("plink_missed")];
@@ -457,5 +470,105 @@ describe("reconcile", () => {
     const s = await reconcileAll(deps(), NOW);
     world.endpoint.id = saved;
     expect(s.skipped).toEqual([{ client: "acme", why: expect.any(String) }]);
+  });
+});
+
+describe("reconcile: the endpoint's events", () => {
+  /** The account as the client set it up: Wren's endpoint, or a pasted secret with no endpoint id. */
+  const setup = (how: "api" | "pasted") =>
+    pg.db
+      .update(payAccounts)
+      .set({ how, endpoint: how === "api" ? "we_test_1" : null, note: null })
+      .where(eq(payAccounts.client, "acme"));
+  const noteOf = async () => (await api().status(ADA)).note;
+  const wrote = () =>
+    calls.filter((c) => c.method === "POST" && c.path === "/v1/webhook_endpoints/we_test_1");
+  beforeEach(async () => {
+    world.deny = { list: false, update: false };
+    world.endpoint = {
+      id: "we_test_1",
+      url: OURS,
+      enabled_events: ["checkout.session.completed"],
+    };
+    await setup("pasted");
+  });
+  afterAll(() => setup("api"));
+
+  it("widens a pasted endpoint it finds by its URL, keeping the events the client chose", async () => {
+    world.endpoint.enabled_events = ["checkout.session.completed", "invoice.paid"];
+    const s = await reconcileAll(deps(), NOW);
+    expect(s).toMatchObject({ endpoints: 1, noted: 0, skipped: [] });
+    expect(world.endpoint.enabled_events).toEqual(
+      expect.arrayContaining([...STRIPE_EVENTS, "invoice.paid"]),
+    );
+    expect(await noteOf()).toBeNull();
+    // Heard now: the next pass leaves it be.
+    calls = [];
+    expect((await reconcileAll(deps(), NOW)).endpoints).toBe(0);
+    expect(wrote()).toHaveLength(0);
+  });
+
+  it("a key that can't change endpoints: a plain note for the client, and the pass goes on", async () => {
+    world.deny.update = true;
+    const id = await linkOut("plink_noted");
+    world.sessions.plink_noted = [sessionOf("plink_noted")];
+    world.intents.pi_test_plink_noted = intentOf("plink_noted");
+    await hook(checkout("plink_noted"));
+    const s = await reconcileAll(deps(), NOW);
+    expect(s).toMatchObject({ endpoints: 0, noted: 1, checked: 1, skipped: [] });
+    expect((await linkById(pg.db, id))?.checkedAt).toEqual(NOW);
+    const note = await noteOf();
+    expect(note).toContain("charge.refunded");
+    expect(note).toContain("charge.dispute.closed");
+    expect(note).not.toContain("checkout.session.completed");
+    expect(note).toContain(OURS);
+    expect(note).toContain("Checkout Sessions, Payment Intents, Charges and Disputes");
+    // The client adds them in Stripe; the next pass clears the note.
+    world.endpoint.enabled_events = [...STRIPE_EVENTS];
+    expect(await reconcileAll(deps(), NOW)).toMatchObject({ endpoints: 0, noted: 0 });
+    expect(await noteOf()).toBeNull();
+  });
+
+  it("a key that can't read endpoints: says which events to add, once the key can it clears", async () => {
+    world.deny.list = true;
+    expect((await reconcileAll(deps(), NOW)).noted).toBe(1);
+    const note = await noteOf();
+    for (const e of STRIPE_EVENTS) expect(note).toContain(e);
+    expect(note).toContain("Webhook Endpoints");
+    world.deny.list = false;
+    world.endpoint.enabled_events = [...STRIPE_EVENTS];
+    await reconcileAll(deps(), NOW);
+    expect(await noteOf()).toBeNull();
+  });
+
+  it("leaves alone an account whose endpoint isn't at our URL", async () => {
+    world.endpoint.url = "https://elsewhere.example.test/hook";
+    const s = await reconcileAll(deps(), NOW);
+    expect(s).toMatchObject({ endpoints: 0, noted: 0, skipped: [] });
+    expect(wrote()).toHaveLength(0);
+    expect(await noteOf()).toBeNull();
+  });
+
+  it("Wren's own endpoint the key can no longer change gets the note too", async () => {
+    await setup("api");
+    world.deny.update = true;
+    expect(await reconcileAll(deps(), NOW)).toMatchObject({ endpoints: 0, noted: 1, skipped: [] });
+    expect(await noteOf()).toContain("charge.refunded");
+  });
+
+  it("a new key or secret clears the note", async () => {
+    world.deny.update = true;
+    await reconcileAll(deps(), NOW);
+    expect(await noteOf()).not.toBeNull();
+    const keyRef = (
+      await keys.stage({
+        client: "acme",
+        name: "STRIPE_SECRET_KEY",
+        value: KEY,
+        by: "ada@example.test",
+      })
+    ).ref;
+    await api().connect({ ...ADA, keyRef }, NOW);
+    expect(await noteOf()).toBeNull();
   });
 });
