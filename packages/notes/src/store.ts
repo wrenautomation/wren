@@ -6,7 +6,8 @@ import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
 import * as Y from "yjs";
-import { clientWho, noteRole, type Reader, TEAM } from "./access.js";
+import { bestRole, clientWho, noteRole, type Reader, TEAM } from "./access.js";
+import { boardById, boardSharesOf, boardVisible } from "./boards.js";
 import {
   appendBody,
   docOf,
@@ -83,7 +84,7 @@ export interface NewNote {
 }
 
 /** A new note, its first update and version. A child copies its parent's sharing. */
-export async function createNote(db: Db, o: NewNote): Promise<Note> {
+export async function createNote(db: Queryable, o: NewNote): Promise<Note> {
   const doc = docOf(o.body ?? { type: "doc", content: [] }, o.title ?? "");
   const state = Y.encodeStateAsUpdate(doc);
   const body = readBody(doc);
@@ -438,13 +439,21 @@ export async function noteById(db: Queryable, id: string): Promise<Note | null> 
 export const sharesOf = (db: Queryable, id: string) =>
   db.select().from(noteShares).where(eq(noteShares.noteId, id)).orderBy(asc(noteShares.at));
 
-/** The note's role for a reader, from its rows. */
+/**
+ * The note's role for a reader, from its rows. A card also takes its board's role, never above
+ * edit: whoever may open the board may open its cards.
+ */
 export async function roleOn(
   db: Queryable,
   note: Note,
   r: Omit<Reader, "cap">,
 ): Promise<Role | null> {
-  return noteRole(note, await sharesOf(db, note.id), r);
+  const own = noteRole(note, await sharesOf(db, note.id), r);
+  if (!note.boardId) return own;
+  const board = await boardById(db, note.boardId);
+  if (!board) return own;
+  const onBoard = noteRole(board, await boardSharesOf(db, board.id), r);
+  return bestRole(own, onBoard === "owner" ? "edit" : onBoard);
 }
 
 /** Which notes a reader may open, as SQL on `notes`. */
@@ -461,6 +470,8 @@ export function visible(r: Omit<Reader, "cap">): SQL {
       sql`, `,
     )}))`,
     r.inWorkspace ? eq(notes.general, "workspace") : sql`false`,
+    // A card is open to whoever may open its board.
+    sql`exists (select 1 from boards b where b.id = ${notes.boardId} and ${boardVisible(r, "b")})`,
   ) as SQL;
 }
 
@@ -475,6 +486,8 @@ export interface ListOpts {
   /** Every note, whoever's: the CLI without `--as`, as it reads every table. */
   everything?: boolean;
   parentId?: string | null;
+  /** Cards too: they stay out of lists unless searched for or asked for. */
+  tasks?: boolean;
 }
 
 /** A list row: enough for Notes' home and the CLI. */
@@ -518,6 +531,7 @@ export async function listNotes(
         : visible(r),
     o.view === "archived" ? isNotNull(notes.archivedAt) : isNull(notes.archivedAt),
   ];
+  if (!q && !o.tasks) where.push(ne(notes.kind, "task"));
   if (o.view === "mine") where.push(sql`lower(${notes.owner}) = ${email}`);
   if (o.view === "shared") where.push(sql`lower(${notes.owner}) <> ${email}`);
   if (o.view === "starred") where.push(isNotNull(noteStars.at));
@@ -585,6 +599,10 @@ export function backlinks(db: Queryable, r: Omit<Reader, "cap">, target: string)
       owner: notes.owner,
       updatedAt: notes.updatedAt,
       label: noteLinks.label,
+      kind: notes.kind,
+      boardId: notes.boardId,
+      columnId: notes.columnId,
+      closedAt: notes.closedAt,
     })
     .from(noteLinks)
     .innerJoin(notes, eq(notes.id, noteLinks.noteId))

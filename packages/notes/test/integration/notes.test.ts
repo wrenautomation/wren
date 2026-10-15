@@ -31,6 +31,10 @@ import { SUGGEST_ADD } from "../../src/types.js";
 let pg: TestPostgres;
 let acme: DbHandle;
 const TABLES = [
+  "task_moves",
+  "task_blocks",
+  "board_shares",
+  "boards",
   "note_mentions",
   "note_comments",
   "note_updates",

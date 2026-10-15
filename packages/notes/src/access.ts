@@ -7,7 +7,7 @@ import { isAgent, ROLES, type Role, type ShareRole } from "./types.js";
 /** Lowest first; owner above edit. */
 const RANK: Record<Role, number> = { view: 1, comment: 2, edit: 3, owner: 4 };
 export const atLeast = (r: Role | null, need: Role): boolean => !!r && RANK[r] >= RANK[need];
-const best = (a: Role | null, b: Role | null): Role | null =>
+export const bestRole = (a: Role | null, b: Role | null): Role | null =>
   !a ? b : !b ? a : RANK[a] >= RANK[b] ? a : b;
 
 /** The person asking, as notes sees them. */
@@ -51,9 +51,9 @@ export function noteRole(
       s.who.toLowerCase() === email ||
       (s.who === TEAM && r.team) ||
       (r.client !== null && s.who === clientWho(r.client));
-    if (hit) role = best(role, s.role);
+    if (hit) role = bestRole(role, s.role);
   }
-  if (note.general === "workspace" && r.inWorkspace) role = best(role, note.generalRole);
+  if (note.general === "workspace" && r.inWorkspace) role = bestRole(role, note.generalRole);
   if (role === "edit" && isAgent(note.owner)) return "owner";
   return role;
 }

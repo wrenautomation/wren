@@ -1842,6 +1842,13 @@
       "when": 1792029330784,
       "tag": "0262_invoice_reversals",
       "breakpoints": true
+    },
+    {
+      "idx": 263,
+      "version": "7",
+      "when": 1792031346021,
+      "tag": "0263_boards",
+      "breakpoints": true
     }
   ]
 }

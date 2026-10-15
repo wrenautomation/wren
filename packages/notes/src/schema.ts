@@ -8,13 +8,18 @@
  * - `note_versions`: the timeline. An `auto` version is one person's editing session.
  * - `note_shares`, `note_stars`, `note_seen`, `note_links`, `notes_settings`.
  * - `note_comments` (threads anchored to a range) and `note_mentions` (who was `@`ed, and seen).
+ * - Boards (designs/2026-10-14-boards.md): a card is a note of kind `task`, on a `boards` row, in
+ *   one of its columns. `board_shares` share a board; `task_blocks` order cards; `task_moves` is
+ *   each card's history.
  */
 import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
   check,
   customType,
+  date,
   foreignKey,
   index,
   integer,
@@ -29,9 +34,11 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import {
+  type BoardColumn,
   type CommentAnchor,
   GENERAL,
   KINDS,
+  MOVE_KINDS,
   type NoteJson,
   ROLES,
   VERSION_KINDS,
@@ -45,12 +52,63 @@ const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
 });
 const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
 
+/**
+ * A kanban board. Its `columns` are ordered; a `done` column closes the cards that land in it.
+ * `is_default`: the workspace's Work board, made on first open (one per database).
+ */
+export const boards = pgTable(
+  "boards",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    columns: jsonb("columns").$type<BoardColumn[]>().notNull(),
+    /** An email, or `agent:<name>`. */
+    owner: varchar("owner", { length: 200 }).notNull(),
+    general: varchar("general", { length: 12, enum: GENERAL }).notNull().default("private"),
+    generalRole: varchar("general_role", { length: 8, enum: ROLES }).notNull().default("view"),
+    isDefault: boolean("is_default").notNull().default(false),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_boards" }),
+    oneOf("ck_boards_general", t.general, GENERAL),
+    oneOf("ck_boards_general_role", t.generalRole, ROLES),
+    index("ix_boards_owner").on(t.owner),
+    uniqueIndex("uq_boards_default").on(t.isDefault).where(sql`is_default`),
+  ],
+);
+export type Board = typeof boards.$inferSelect;
+
+/** Who else may open a board: an email, `team`, or `client:<id>`, as `note_shares`. */
+export const boardShares = pgTable(
+  "board_shares",
+  {
+    boardId: uuid("board_id").notNull(),
+    who: varchar("who", { length: 200 }).notNull(),
+    role: varchar("role", { length: 8, enum: ROLES }).notNull(),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.boardId, t.who], name: "pk_board_shares" }),
+    foreignKey({
+      columns: [t.boardId],
+      foreignColumns: [boards.id],
+      name: "fk_board_shares_board",
+    }).onDelete("cascade"),
+    oneOf("ck_board_shares_role", t.role, ROLES),
+    index("ix_board_shares_who").on(t.who),
+  ],
+);
+
 export const notes = pgTable(
   "notes",
   {
     id: uuid("id").defaultRandom().notNull(),
     parentId: uuid("parent_id"),
-    /** `dump`: a person's capture note, one per person per workspace. */
+    /** `dump`: a person's capture note, one per person per workspace. `task`: a board's card. */
     kind: varchar("kind", { length: 8, enum: KINDS }).notNull().default("note"),
     title: varchar("title", { length: 300 }).notNull().default(""),
     body: jsonb("body").$type<NoteJson>().notNull().default({ type: "doc", content: [] }),
@@ -73,9 +131,21 @@ export const notes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     editedBy: varchar("edited_by", { length: 200 }),
+    // A card (kind `task`): the board it's on, its column's id, its place in that column (a
+    // fractional key, sorted as bytes), who works it (an email or `agent:<name>`), and when.
+    boardId: uuid("board_id"),
+    columnId: varchar("column_id", { length: 40 }),
+    position: varchar("position", { length: 64 }),
+    assignee: varchar("assignee", { length: 200 }),
+    due: date("due", { mode: "string" }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_notes" }),
+    foreignKey({ columns: [t.boardId], foreignColumns: [boards.id], name: "fk_notes_board" }),
+    check("ck_notes_board_task", sql`${t.boardId} is null or ${t.kind}::text = 'task'`),
+    index("ix_notes_board").on(t.boardId, t.columnId),
+    index("ix_notes_assignee").on(t.assignee).where(sql`${t.assignee} is not null`),
     foreignKey({ columns: [t.parentId], foreignColumns: [t.id], name: "fk_notes_parent" }).onDelete(
       "set null",
     ),
@@ -351,3 +421,61 @@ export const noteMentions = pgTable(
   ],
 );
 export type NoteMention = typeof noteMentions.$inferSelect;
+
+/** A card waits on another: `task_id` is blocked while `blocked_by` is open. */
+export const taskBlocks = pgTable(
+  "task_blocks",
+  {
+    taskId: uuid("task_id").notNull(),
+    blockedBy: uuid("blocked_by").notNull(),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.blockedBy], name: "pk_task_blocks" }),
+    foreignKey({
+      columns: [t.taskId],
+      foreignColumns: [notes.id],
+      name: "fk_task_blocks_task",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.blockedBy],
+      foreignColumns: [notes.id],
+      name: "fk_task_blocks_blocked_by",
+    }).onDelete("cascade"),
+    check("ck_task_blocks_self", sql`${t.taskId} <> ${t.blockedBy}`),
+    index("ix_task_blocks_blocked_by").on(t.blockedBy),
+  ],
+);
+
+/**
+ * A card's history: made, moved, given, closed, reopened, each with who, when and an optional
+ * line why. Never updated or deleted.
+ */
+export const taskMoves = pgTable(
+  "task_moves",
+  {
+    id: bigserial("id", { mode: "number" }).notNull(),
+    taskId: uuid("task_id").notNull(),
+    kind: varchar("kind", { length: 8, enum: MOVE_KINDS }).notNull(),
+    /** Column ids. `from` is null when the card was made. */
+    from: varchar("from_column", { length: 40 }),
+    to: varchar("to_column", { length: 40 }),
+    /** Who it went to, on an assign (and what it had on every other move). */
+    assignee: varchar("assignee", { length: 200 }),
+    by: varchar("by", { length: 200 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    why: varchar("why", { length: 300 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_task_moves" }),
+    foreignKey({
+      columns: [t.taskId],
+      foreignColumns: [notes.id],
+      name: "fk_task_moves_task",
+    }).onDelete("cascade"),
+    oneOf("ck_task_moves_kind", t.kind, MOVE_KINDS),
+    index("ix_task_moves_task_at").on(t.taskId, t.at),
+  ],
+);
+export type TaskMove = typeof taskMoves.$inferSelect;

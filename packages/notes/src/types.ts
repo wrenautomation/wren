@@ -1,6 +1,6 @@
 /** Notes' shared words: no imports, so the web bundles it alone. */
 
-export const KINDS = ["note", "dump"] as const;
+export const KINDS = ["note", "dump", "task"] as const;
 export type NoteKind = (typeof KINDS)[number];
 
 export const VIA = ["person", "agent"] as const;
@@ -55,3 +55,47 @@ export const SUGGEST_DEL = "suggestDel";
 /** A comment's longest body, and the quote it keeps. */
 export const COMMENT_MAX = 10_000;
 export const QUOTE_MAX = 500;
+
+// ---- Boards (designs/2026-10-14-boards.md) ----
+
+/** A board's column: `done` ones close the cards that land in them. */
+export interface BoardColumn {
+  id: string;
+  name: string;
+  done: boolean;
+}
+
+/** The columns a new board starts with. */
+export const DEFAULT_COLUMNS: readonly BoardColumn[] = [
+  { id: "todo", name: "To do", done: false },
+  { id: "doing", name: "Doing", done: false },
+  { id: "done", name: "Done", done: true },
+];
+export const DEFAULT_BOARD = "Work";
+
+/** What a `task_moves` row records. */
+export const MOVE_KINDS = ["create", "move", "assign", "close", "reopen"] as const;
+export type MoveKind = (typeof MOVE_KINDS)[number];
+
+/** A card's line in the Timeline, in plain words ("moved it to Doing"). */
+export function moveWords(
+  m: { kind: MoveKind; to: string | null; assignee: string | null; why: string | null },
+  nameOfPerson: (who: string) => string = (w) => w,
+): string {
+  const to = m.to ?? "";
+  const why = m.why ? `: ${m.why}` : "";
+  switch (m.kind) {
+    case "create":
+      return `made it in ${to}`;
+    case "move":
+      return `moved it to ${to}${why}`;
+    case "assign":
+      return m.assignee
+        ? `gave it to ${nameOfPerson(m.assignee)}${why}`
+        : `took the owner off${why}`;
+    case "close":
+      return `closed it${to ? ` (${to})` : ""}${why}`;
+    case "reopen":
+      return `reopened it${to ? ` in ${to}` : ""}${why}`;
+  }
+}
