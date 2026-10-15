@@ -6,11 +6,13 @@ import { cutKnobsSchema } from "@wren/studio/cuts";
 import { z } from "zod";
 
 /**
- * The client logins posting runs on now (one is enough), and the channels that wait on their apps
- * (designs/2026-10-07-per-client-runs.md): those say "In development".
+ * The client logins posting runs on (one is enough; designs/2026-10-07-per-client-runs.md), and
+ * the sites a social account connected by signing in posts on (designs/2026-10-07-client-social.md):
+ * the Shop counts that connection as the site's account (`withConnected` in @wren/core/installs).
  */
 const CHANNEL_ACCOUNTS = ["linkedin", "reddit"] as const;
-const SOON_ACCOUNTS = ["youtube", "linkedin_page", "x", "tiktok", "instagram"] as const;
+const CONNECTED_ACCOUNTS = ["youtube", "linkedin_page", "x", "tiktok", "instagram"] as const;
+export const POSTING_ACCOUNTS = [...CHANNEL_ACCOUNTS, ...CONNECTED_ACCOUNTS] as const;
 
 /** A client's posts and reads: `ContentScheduler/<c>/posts`, `ContentMetrics/<c>/posts`, `SocialWatch/<c>/social`. */
 export const POSTS_UNIT = "posts";
@@ -44,8 +46,7 @@ export const CONTENT_COMPONENTS = [
     icon: "play",
     for: "client",
     ready: true,
-    requires: { anyAccount: [...CHANNEL_ACCOUNTS] },
-    soon: [...SOON_ACCOUNTS],
+    requires: { anyAccount: [...POSTING_ACCOUNTS] },
     provides: {
       services: [
         "Content",

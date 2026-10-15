@@ -21,7 +21,7 @@ import {
   type LoopKey,
 } from "./components.js";
 import { ensureDoors } from "./doors.js";
-import { accountsLacking, blockOf, has, installCheck } from "./installs.js";
+import { accountsLacking, blockOf, has, installCheck, withConnected } from "./installs.js";
 import { PortalRefusal } from "./portal.js";
 import {
   hooks,
@@ -501,7 +501,9 @@ export async function readPlan(
   files: readonly DefaultFile[] = defaultsOnce(),
   setups: readonly Setup[] = [],
 ): Promise<Plan> {
-  const c = await getClient(main, client);
+  const found = await getClient(main, client);
+  // A social account connected by signing in counts as that site's account.
+  const c = found ? await withConnected(main, found) : found;
   return planOf(t, {
     client: c,
     row: await installOf(main, client, t.id),
@@ -568,12 +570,13 @@ export async function installTemplate(
   const out = await serializable(main, async (tx) => {
     await setAuditActor(tx, ask.by);
     // Read again inside: a change since the plan is seen, never written over.
-    const [client] = await tx
+    const [locked] = await tx
       .select()
       .from(clients)
       .where(eq(clients.id, ask.client))
       .for("update");
-    if (!client) throw new PortalRefusal("no such client", 404);
+    if (!locked) throw new PortalRefusal("no such client", 404);
+    const client = await withConnected(tx, locked);
     const row = await installOf(tx, client.id, t.id);
     // A client's workflow follows one template: a saved one shares its code's workflow.
     const holder = await installOnWorkflow(tx, client.id, t.workflow.id);

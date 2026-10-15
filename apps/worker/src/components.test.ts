@@ -258,6 +258,14 @@ describe("the component inventory", () => {
     }
   });
 
+  it("posting takes any connected posting account, TikTok's sign-in among them", () => {
+    const posting = COMPONENTS.find((c) => c.id === "content.posting");
+    expect(posting?.requires.anyAccount).toEqual(
+      expect.arrayContaining(["linkedin", "reddit", "tiktok", "youtube", "x", "instagram"]),
+    );
+    expect(posting?.soon).toEqual([]);
+  });
+
   it("not ready says what's missing; ready says nothing is", () => {
     for (const c of COMPONENTS) expect(c.missing.length > 0, c.id).toBe(!c.ready);
   });

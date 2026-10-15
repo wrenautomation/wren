@@ -2,12 +2,37 @@
  * The Shop's install check, one path for a part on its own and for each part a template
  * installs (designs/2026-10-07-template-install.md). Pure: the caller writes the block.
  */
+import type { Queryable } from "@wren/db";
+import { and, eq } from "drizzle-orm";
 import type { Client } from "./clients/index.js";
-import type { Component } from "./components.js";
+import { ACCOUNT_SITES, type Component } from "./components.js";
 import { PortalRefusal } from "./portal.js";
+import { clientAccounts } from "./setup-schema.js";
 
 export const has = (client: Pick<Client, "products">, id: string) =>
   Object.hasOwn(client.products, id);
+
+/**
+ * The client as the Shop reads its accounts: a social account it connected by signing in
+ * (`client_accounts` site `social`, role the platform: a TikTok, a YouTube channel) counts as that
+ * site's account, under any value typed in on the Shop. Read only: never written back to
+ * `clients.accounts`, which holds the logins autobrowse posts with.
+ */
+export async function withConnected<C extends Pick<Client, "id" | "accounts">>(
+  main: Queryable,
+  client: C,
+): Promise<C> {
+  const rows = await main
+    .select({ role: clientAccounts.role, ref: clientAccounts.ref })
+    .from(clientAccounts)
+    .where(and(eq(clientAccounts.client, client.id), eq(clientAccounts.site, "social")));
+  const sites = rows.filter((r) => (ACCOUNT_SITES as readonly string[]).includes(r.role));
+  if (!sites.length) return client;
+  return {
+    ...client,
+    accounts: { ...Object.fromEntries(sites.map((r) => [r.role, r.ref])), ...client.accounts },
+  };
+}
 
 /** The accounts `client` hasn't connected for `c`: each one it needs, then one of its any. */
 export const accountsLacking = (c: Component, client: Pick<Client, "accounts">): string[] => {

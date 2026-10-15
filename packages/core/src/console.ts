@@ -107,7 +107,7 @@ import {
 import { addFlag, type EdgePush, type FlagInput, flagRecord, removeFlags } from "./flag-store.js";
 import { roleFits, roleRefusal, spendGrant } from "./grants.js";
 import { inHouseOfPart } from "./in-house.js";
-import { accountsLacking, blockOf, has, installCheck, lacking } from "./installs.js";
+import { accountsLacking, blockOf, has, installCheck, lacking, withConnected } from "./installs.js";
 import {
   addSnippet,
   removeSnippet,
@@ -2254,7 +2254,9 @@ export function consoleApi({
   const typesFor = async (req: PortalRequest): Promise<RecordType[]> => {
     const internal = seesInternal(req);
     const client =
-      (req.client && req.client !== WREN) || !internal ? await pickClient(main, req) : null;
+      (req.client && req.client !== WREN) || !internal
+        ? await withConnected(main, await pickClient(main, req))
+        : null;
     // A planned part (`planned: true`, no code runs it) is in no list, palette or map: only its
     // own page, asked for by id (Voice reads its agent's settings that way).
     const byId =
@@ -2497,8 +2499,9 @@ export function consoleApi({
   ) => {
     team(req);
     const c = componentOf(req);
-    // An operator may pick any client, the demo too: its apps come from its components.
-    const client = await pickClient(main, req);
+    // An operator may pick any client, the demo too: its apps come from its components. A social
+    // account it connected by signing in (a TikTok) counts toward what a part needs.
+    const client = await withConnected(main, await pickClient(main, req));
     const block = check(c, client);
     const by = (req.viewer as SignedViewer).email;
     const run = await openRun(main, {

@@ -616,6 +616,48 @@ describe("install, configure, uninstall", () => {
     expect((await pg.db.select().from(runs)).map((r) => r.command)).toContain("console connect x");
   });
 
+  it("a social account connected by signing in counts as that site's account", async () => {
+    const row = async (id: string) =>
+      (
+        await api().recordsList({ viewer: ops, client: "acme", record: "console.component" })
+      ).rows.find((r) => r.id === id);
+    await expect(go("posts")).rejects.toMatchObject({
+      status: 409,
+      message: "needs first: one of youtube, x",
+    });
+    // A platform the part doesn't post on is no help.
+    await addAccount(pg.db, {
+      client: "acme",
+      site: "social",
+      ref: "facebook:100",
+      role: "facebook",
+      by: "ops@wren.example",
+    });
+    await expect(go("posts")).rejects.toMatchObject({ status: 409 });
+    await addAccount(pg.db, {
+      client: "acme",
+      site: "social",
+      ref: "youtube:UC000",
+      role: "youtube",
+      by: "ops@wren.example",
+    });
+    expect(await row("posts")).toMatchObject({ ready: "ready" });
+    const got = await api().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "posts",
+    });
+    expect((got.detail as { accounts: Record<string, unknown>[] }).accounts[0]).toMatchObject({
+      site: "youtube",
+      has: true,
+    });
+    await go("posts");
+    expect(await productsOf()).toHaveProperty("posts");
+    // Read only: the connection never lands in the logins autobrowse posts with.
+    expect((await findClient(pg.db, "acme"))?.accounts).not.toHaveProperty("youtube");
+  });
+
   it("a fact a setup makes reads as an account until it holds; setups stay out of the Shop", async () => {
     const setup = defineSetup({
       id: "setup.t_watch",
