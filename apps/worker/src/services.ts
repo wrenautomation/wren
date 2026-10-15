@@ -306,6 +306,7 @@ import { PortalRefusal } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { SEGMENT_RECORDS } from "@wren/core/segment-records";
+import { segmentStep } from "@wren/core/segment-step";
 import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -2195,6 +2196,8 @@ export async function buildServices(
         "logic.webhook": webhookStep(),
         // Set field: one custom field on the subject's record (designs/2026-10-09-custom-fields.md).
         "logic.set_field": setFieldStep(db),
+        // In segment: yes or no by a People segment now (designs/2026-10-15-channel-stats.md).
+        "logic.segment": segmentStep(db, clientDb),
         // Send message and Notify me (designs/2026-10-14-automations.md): one person's broadcast,
         // gated and sent like one, in the workspace's own database; a line to Wren's team on the
         // main lane.

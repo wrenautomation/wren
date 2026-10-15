@@ -636,6 +636,28 @@ export const LOGIC: readonly LogicPart[] = [
     says: (w) => (text(w.field) ? `Set ${text(w.field)}` : "Pick a field"),
   },
   {
+    id: "logic.segment",
+    name: "In segment",
+    blurb:
+      "Checks if the person is in a People segment now. A live one is checked by its rule. No person found leaves by skip.",
+    icon: "people",
+    group: "logic",
+    ready: true,
+    settings: [
+      { field: "segment", label: "Segment (its number in People → Segments)", type: "number" },
+      KIND,
+    ],
+    ports: (w) => ({
+      in: [one("in", "in", kindOf(w))],
+      out: [
+        one("yes", "yes", kindOf(w)),
+        one("no", "no", kindOf(w)),
+        one("skip", "skip", kindOf(w)),
+      ],
+    }),
+    says: (w) => `In segment ${text(w.segment) || "?"}?`,
+  },
+  {
     id: "trigger.hook",
     name: "Webhook",
     blurb: "Events posted to a door URL enter here.",
@@ -1018,6 +1040,11 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     out.push(`${at}: Split's share is 1 to 99`);
   if (l.id === "logic.set_field" && !/^[a-z][a-z0-9_]{0,39}$/.test(text(w.field)))
     out.push(`${at}: Set field names a field key, like roof_age`);
+  if (
+    l.id === "logic.segment" &&
+    !(Number.isSafeInteger(Number(w.segment)) && Number(w.segment) > 0)
+  )
+    out.push(`${at}: In segment names a segment's number`);
   if (l.id === "logic.code") out.push(...codeProblems(text(w.code)).map((p) => `${at}: ${p}`));
   if (l.id === "logic.webhook") {
     // Slots may fill the URL's path and query; its host must read as written.

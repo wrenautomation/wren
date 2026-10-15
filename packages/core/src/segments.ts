@@ -18,6 +18,7 @@ import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
 import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
+import { FUNNEL_STEP_NAMES, FUNNEL_STEPS, type FunnelStep } from "./channel-stats-schema.js";
 import { TIMELINE_KIND_NAMES, TIMELINE_KINDS, type TimelineKind } from "./profiles-schema.js";
 import { PortalRefusal, staleRefusal } from "./refusal.js";
 import type { SegmentKind, SegmentState, SegmentUse } from "./segments-schema.js";
@@ -39,6 +40,7 @@ export const TRAIT_OPS = {
   after: "is after",
   in_next: "falls in the next (days)",
   in_last: "fell in the last (days)",
+  one_of: "is one of",
 } as const;
 export type TraitOp = keyof typeof TRAIT_OPS;
 
@@ -59,7 +61,18 @@ export type MessageState = keyof typeof MESSAGE_STATES;
 const MESSAGE_STATE_KEYS = Object.keys(MESSAGE_STATES) as [MessageState, ...MessageState[]];
 
 /** The channels a message condition may name; `any` is all of them. */
-export const MESSAGE_CHANNELS = ["any", "email", "sms", "linkedin", "reddit", "x"] as const;
+export const MESSAGE_CHANNELS = [
+  "any",
+  "email",
+  "sms",
+  "linkedin",
+  "reddit",
+  "x",
+  "instagram",
+  "youtube",
+  "tiktok",
+  "facebook",
+] as const;
 export const CONSENT_CHANNELS = ["email", "sms"] as const;
 /** A consent row's state, and a phone that texted STOP (`sms_contacts`). */
 export const CONSENT_CONDITION_STATES = ["confirmed", "pending", "withdrawn", "opted_out"] as const;
@@ -68,9 +81,19 @@ export const CONSENT_CONDITION_STATES = ["confirmed", "pending", "withdrawn", "o
 export const RULE_MOST = { conditions: 30, depth: 4 } as const;
 
 const not = z.boolean().optional();
-const count = z.number().int().min(1).max(100_000).default(1);
+/** At least this many; 0 only beside `atMost` ("at most 2", "never"). */
+const count = z.number().int().min(0).max(100_000).default(1);
+const most = z.number().int().min(0).max(100_000).optional();
 /** Days back; null or left out is ever. */
 const days = z.number().int().min(1).max(3650).nullable().default(null);
+/** A channel as the timeline names it: email, sms, linkedin, site, calendar. */
+export const CHANNEL_NAME = /^[a-z][a-z0-9_]{0,23}$/;
+const channel = z.string().regex(CHANNEL_NAME, "a channel, like email or reddit").optional();
+/** Words a line's summary or link holds: a subject, a post's address, a campaign. */
+const words = z.string().trim().min(1).max(200).optional();
+/** Another timeline line a count is read before or after: the person's first one. */
+export const anchorSchema = z.strictObject({ event: z.enum(TIMELINE_KINDS), channel });
+export type Anchor = z.infer<typeof anchorSchema>;
 
 export const traitCondition = z.strictObject({
   kind: z.literal("trait"),
@@ -82,8 +105,13 @@ export const traitCondition = z.strictObject({
 export const eventCondition = z.strictObject({
   kind: z.literal("event"),
   event: z.enum(TIMELINE_KINDS),
+  channel,
+  match: words,
   atLeast: count,
+  atMost: most,
   days,
+  after: anchorSchema.optional(),
+  before: anchorSchema.optional(),
   not,
 });
 export const consentCondition = z.strictObject({
@@ -96,7 +124,18 @@ export const messageCondition = z.strictObject({
   kind: z.literal("message"),
   state: z.enum(MESSAGE_STATE_KEYS),
   channel: z.enum(MESSAGE_CHANNELS).default("any"),
+  campaign: words,
   atLeast: count,
+  atMost: most,
+  days,
+  not,
+});
+/** A funnel step on a channel, from `profile_steps` (designs/2026-10-15-channel-stats.md). */
+export const stepCondition = z.strictObject({
+  kind: z.literal("step"),
+  step: z.enum(FUNNEL_STEPS),
+  channel,
+  source: words,
   days,
   not,
 });
@@ -110,12 +149,14 @@ export type TraitCondition = z.infer<typeof traitCondition>;
 export type EventCondition = z.infer<typeof eventCondition>;
 export type ConsentCondition = z.infer<typeof consentCondition>;
 export type MessageCondition = z.infer<typeof messageCondition>;
+export type StepCondition = z.infer<typeof stepCondition>;
 export type SegmentCondition = z.infer<typeof segmentCondition>;
 export type Condition =
   | TraitCondition
   | EventCondition
   | ConsentCondition
   | MessageCondition
+  | StepCondition
   | SegmentCondition;
 export interface Group {
   kind: "group";
@@ -141,6 +182,7 @@ export const nodeSchema: z.ZodType<Node> = z.lazy(() =>
     eventCondition,
     consentCondition,
     messageCondition,
+    stepCondition,
     segmentCondition,
     groupSchema,
   ]),
@@ -178,7 +220,11 @@ export function dataOf(c: Condition): string[] {
     case "trait":
       return [`trait:${c.key}`];
     case "event":
-      return [`event:${c.event}`];
+      return [
+        ...new Set(
+          [c.event, c.after?.event, c.before?.event].flatMap((k) => (k ? [`event:${k}`] : [])),
+        ),
+      ];
     case "consent":
       return ["event:consent"];
     case "message":
@@ -189,6 +235,12 @@ export function dataOf(c: Condition): string[] {
           : c.channel === "any"
             ? ["event:email_sent", "event:text_sent", "event:touch"]
             : ["event:touch"];
+    case "step":
+      return c.step === "booked"
+        ? ["event:booking"]
+        : c.step === "paid"
+          ? ["event:payment"]
+          : ["event:email_sent", "event:text_sent", "event:touch", "event:form"];
     case "segment":
       return [];
   }
@@ -214,11 +266,18 @@ export function ruleProblems(rule: Rule): string[] {
       else if ((c.op === "gt" || c.op === "lt") && !isNum(v)) out.push(`${named} needs a number`);
       else if ((c.op === "before" || c.op === "after") && !isDay(v))
         out.push(`${named} needs a date like 2026-12-31`);
+      else if (c.op === "one_of" && !listOf(v).length) out.push(`${named} needs values`);
       else if (
         (c.op === "in_next" || c.op === "in_last") &&
         !(Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 3650)
       )
         out.push(`${named} needs 0 to 3650 days`);
+    }
+    if (c.kind === "event" || c.kind === "message") {
+      const named = c.kind === "event" ? `"${c.event}"` : `"message ${c.state}"`;
+      if (c.atMost === undefined && c.atLeast < 1) out.push(`${named}: at least 1, or say at most`);
+      if (c.atMost !== undefined && c.atMost < c.atLeast)
+        out.push(`${named}: at most is under at least`);
     }
     if (c.kind === "consent" && c.state === "opted_out" && c.channel !== "sms")
       out.push("only a phone opts out; email consent is withdrawn");
@@ -246,6 +305,19 @@ export const dayOf = (now: Date) => now.toISOString().slice(0, 10);
 const since = (now: Date, d: number | null) =>
   d === null ? null : new Date(now.getTime() - d * DAY_MS).toISOString();
 
+const inList = (xs: readonly (string | number)[]) =>
+  sql.join(
+    xs.map((x) => sql`${x}`),
+    sql`, `,
+  );
+
+/** A comma list's values, trimmed, empties dropped: `one_of`'s value. */
+export const listOf = (v: unknown): string[] =>
+  String(v ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
 /** A trait's test on `t.value` (a `profile_traits` row). */
 function traitTest(c: TraitCondition, now: Date): SQL {
   const v = c.value;
@@ -270,14 +342,10 @@ function traitTest(c: TraitCondition, now: Date): SQL {
       return sql`segment_date(t.value) between ${today}::date and ${today}::date + ${Number(v)}::int`;
     case "in_last":
       return sql`segment_date(t.value) between ${today}::date - ${Number(v)}::int and ${today}::date`;
+    case "one_of":
+      return sql`lower(t.value #>> '{}') in (${inList(listOf(v).map((x) => x.toLowerCase()))})`;
   }
 }
-
-const inList = (xs: readonly (string | number)[]) =>
-  sql.join(
-    xs.map((x) => sql`${x}`),
-    sql`, `,
-  );
 
 /** One condition as a test on `p.id`. */
 function conditionSql(c: Condition, now: Date): SQL {
@@ -286,10 +354,24 @@ function conditionSql(c: Condition, now: Date): SQL {
       where t.key = ${c.key} and ${traitTest(c, now)})`;
   if (c.kind === "event") {
     const from = since(now, c.days);
-    return sql`p.id in (select l.profile_id from profile_timeline l
-      where l.kind = ${c.event} and l.at <= ${now.toISOString()}::timestamptz
+    const at = now.toISOString();
+    const first = (a: Anchor) => sql`(select min(a.at) from profile_timeline a
+      where a.profile_id = l.profile_id and a.kind = ${a.event} and a.at <= ${at}::timestamptz
+        ${a.channel ? sql`and a.channel = ${a.channel}` : sql``})`;
+    const lines = sql`select l.profile_id from profile_timeline l
+      where l.kind = ${c.event} and l.at <= ${at}::timestamptz
         ${from ? sql`and l.at >= ${from}::timestamptz` : sql``}
-      group by l.profile_id having count(*) >= ${c.atLeast})`;
+        ${c.channel ? sql`and l.channel = ${c.channel}` : sql``}
+        ${
+          c.match
+            ? sql`and (strpos(lower(coalesce(l.summary, '')), lower(${c.match})) > 0
+              or strpos(lower(coalesce(l.link, '')), lower(${c.match})) > 0)`
+            : sql``
+        }
+        ${c.after ? sql`and l.at > ${first(c.after)}` : sql``}
+        ${c.before ? sql`and l.at < coalesce(${first(c.before)}, 'infinity'::timestamptz)` : sql``}
+      group by l.profile_id`;
+    return counted(lines, c.atLeast, c.atMost);
   }
   if (c.kind === "consent") {
     if (c.state === "opted_out")
@@ -303,15 +385,57 @@ function conditionSql(c: Condition, now: Date): SQL {
   }
   if (c.kind === "message") {
     const from = since(now, c.days);
-    return sql`p.id in (select k.profile_id from profile_keys k
+    return counted(
+      sql`select k.profile_id from profile_keys k
       join sent_records s on s.key_kind = k.kind and s.key_value = k.value
       where s.state in (${inList(MESSAGE_STATES[c.state])})
         ${c.channel === "any" ? sql`` : sql`and s.channel = ${c.channel}`}
+        ${c.campaign ? sql`and strpos(lower(coalesce(s.campaign, '')), lower(${c.campaign})) > 0` : sql``}
         ${from ? sql`and s.at >= ${from}::timestamptz` : sql``}
-      group by k.profile_id having count(*) >= ${c.atLeast})`;
+      group by k.profile_id`,
+      c.atLeast,
+      c.atMost,
+    );
   }
+  if (c.kind === "step") return stepSql(c, now);
   return sql`p.id in (select m.profile_id from segment_members m
     where m.segment_id = ${c.segment})`;
+}
+
+/**
+ * Who has between `least` and `most` of `lines` (a select of `profile_id` grouped by it). At least
+ * 0 is everyone but those past `most`, so "at most 0" is never.
+ */
+function counted(lines: SQL, least: number, most: number | undefined): SQL {
+  if (least < 1) return sql`p.id not in (${lines} having count(*) > ${most ?? 0})`;
+  return sql`p.id in (${lines} having count(*) >= ${least}
+    ${most === undefined ? sql`` : sql`and count(*) <= ${most}`})`;
+}
+
+/**
+ * A funnel step as a test on `p.id`. Booked and paid carry no channel: on one, it's a booking
+ * after their first reach there (`any` attribution, as `channelStats` reads it by default).
+ */
+function stepSql(c: StepCondition, now: Date): SQL {
+  const from = since(now, c.days);
+  const at = now.toISOString();
+  const window = sql`and s.at <= ${at}::timestamptz
+    ${from ? sql`and s.at >= ${from}::timestamptz` : sql``}`;
+  const where = (alias: string) => {
+    const a = sql.raw(alias);
+    return sql`${c.channel ? sql`and ${a}.channel = ${c.channel}` : sql``}
+      ${c.source ? sql`and strpos(lower(${a}.source), lower(${c.source})) > 0` : sql``}`;
+  };
+  if (c.step !== "booked" && c.step !== "paid")
+    return sql`p.id in (select s.profile_id from profile_steps s
+      where s.step = ${c.step} ${window} ${where("s")})`;
+  const reached =
+    c.channel || c.source
+      ? sql`and exists (select 1 from profile_steps r where r.profile_id = s.profile_id
+          and r.step = 'reached' and r.at <= s.at ${where("r")})`
+      : sql``;
+  return sql`p.id in (select s.profile_id from profile_steps s
+    where s.step = ${c.step} ${window} ${reached})`;
 }
 
 /**
@@ -341,20 +465,43 @@ const q = (s: string) => `"${s}"`;
 export function conditionWords(c: Condition, names: ReadonlyMap<number, string> = new Map()) {
   const no = c.not ? "not " : "";
   const window = (d: number | null) => (d === null ? "ever" : `in the last ${d} days`);
-  const times = (n: number) => (n === 1 ? "" : ` at least ${n} times`);
+  const times = (n: number, m?: number) =>
+    m === undefined
+      ? n === 1
+        ? ""
+        : ` at least ${n} times`
+      : m === 0
+        ? " never"
+        : n > 0
+          ? ` ${n} to ${m} times`
+          : ` at most ${m} times`;
+  const on = (ch?: string) => (ch ? ` on ${ch}` : "");
+  /** "never ever" reads as just "never". */
+  const span = (m: number | undefined, d: number | null) =>
+    m === 0 && d === null ? "" : ` ${window(d)}`;
   if (c.kind === "trait") {
     if (c.op === "exists") return `${c.key} is ${no}set`;
     const v = typeof c.value === "number" ? String(c.value) : q(String(c.value ?? ""));
     return `${c.key} ${c.not ? "not " : ""}${TRAIT_OPS[c.op]} ${v}`;
   }
-  if (c.kind === "event")
-    return `${c.not ? "no " : ""}${TIMELINE_KIND_NAMES[c.event as TimelineKind].toLowerCase()}${times(c.atLeast)} ${window(c.days)}`;
+  if (c.kind === "event") {
+    const name = (k: string) => TIMELINE_KIND_NAMES[k as TimelineKind].toLowerCase();
+    const anchor = (w: string, a?: Anchor) => (a ? ` ${w} ${name(a.event)}${on(a.channel)}` : "");
+    const matching = c.match ? ` matching ${q(c.match)}` : "";
+    return `${c.not ? "no " : ""}${name(c.event)}${on(c.channel)}${matching}${times(c.atLeast, c.atMost)}${span(c.atMost, c.days)}${anchor("after", c.after)}${anchor("before", c.before)}`;
+  }
   if (c.kind === "consent")
     return c.state === "opted_out"
       ? `${no}opted out of texts`
       : `${c.channel === "sms" ? "text" : "email"} consent ${no}${c.state}`;
-  if (c.kind === "message")
-    return `${c.not ? "no " : ""}${c.channel === "any" ? "message" : c.channel} ${c.state}${times(c.atLeast)} ${window(c.days)}`;
+  if (c.kind === "message") {
+    const campaign = c.campaign ? ` in campaign ${q(c.campaign)}` : "";
+    return `${c.not ? "no " : ""}${c.channel === "any" ? "message" : c.channel} ${c.state}${campaign}${times(c.atLeast, c.atMost)}${span(c.atMost, c.days)}`;
+  }
+  if (c.kind === "step") {
+    const source = c.source ? ` from ${q(c.source)}` : "";
+    return `${c.not ? "not " : ""}${FUNNEL_STEP_NAMES[c.step as FunnelStep].toLowerCase()}${on(c.channel)}${source} ${window(c.days)}`;
+  }
   return `${no}in ${q(names.get(c.segment) ?? `segment ${c.segment}`)}`;
 }
 
@@ -387,6 +534,8 @@ export interface Segment {
   createdAt: string;
   /** Its last save, archive or restore: the version an editor saves over. */
   updatedAt: string;
+  /** Saves so far (`segmentVersions`). */
+  version: number;
 }
 
 type Row = Record<string, unknown>;
@@ -411,10 +560,11 @@ const segmentOf = (r: Row): Segment => ({
   by: String(r.by),
   createdAt: iso(r.created_at) as string,
   updatedAt: iso(r.updated_at) as string,
+  version: Number(r.version ?? 1),
 });
 const rows = async (db: Queryable, q: SQL) => (await db.execute(q)) as unknown as Row[];
 const COLS = sql.raw(
-  "id, name, kind, rule, words, state, size, computed_at, uses, used_at, archived_at, by, created_at, updated_at",
+  "id, name, kind, rule, words, state, size, computed_at, uses, used_at, archived_at, by, created_at, updated_at, version",
 );
 
 export async function segmentById(db: Queryable, id: number): Promise<Segment | null> {
@@ -725,16 +875,49 @@ export async function saveSegment(
       : await rows(
           db,
           sql`update segments set name = ${name}, rule = ${ruleJson}::jsonb,
-              words = ${words}, used_at = ${at}::timestamptz, updated_at = ${at}::timestamptz
+              words = ${words}, used_at = ${at}::timestamptz, updated_at = ${at}::timestamptz,
+              version = version + 1
             where id = ${id} and date_trunc('milliseconds', updated_at) = ${was?.updatedAt}::timestamptz
             returning id`,
         );
   if (!row) throw staleRefusal("segment");
   const sid = Number(row?.id);
+  await db.execute(sql`insert into segment_versions (segment_id, version, name, kind, rule, words, by, at)
+    select id, version, name, kind, rule, words, ${by}, ${at}::timestamptz from segments
+    where id = ${sid}`);
   // A snapshot is taken once, when made; "take again" retakes it.
   const change =
     kind === "live" || (kind === "snapshot" && id === null) ? await recompute(db, sid, now) : null;
   return { segment: (await segmentById(db, sid)) as Segment, change };
+}
+
+export interface SegmentVersion {
+  version: number;
+  name: string;
+  kind: SegmentKind;
+  rule: Rule | null;
+  words: string | null;
+  by: string;
+  at: string;
+}
+
+/** A segment's saves, newest first. */
+export async function segmentVersions(db: Queryable, id: number): Promise<SegmentVersion[]> {
+  if (!Number.isSafeInteger(id)) return [];
+  const got = await rows(
+    db,
+    sql`select version, name, kind, rule, words, by, at from segment_versions
+      where segment_id = ${id} order by version desc limit 200`,
+  );
+  return got.map((r) => ({
+    version: Number(r.version),
+    name: String(r.name),
+    kind: r.kind as SegmentKind,
+    rule: (r.rule as Rule | null) ?? null,
+    words: (r.words as string | null) ?? null,
+    by: String(r.by),
+    at: iso(r.at) as string,
+  }));
 }
 
 /** A snapshot taken again now. */
@@ -869,6 +1052,47 @@ export async function previewRule(db: Queryable, raw: unknown, now: Date): Promi
 // Describe
 
 /** The model seam, by shape: `@wren/llm`'s client, metered or not. */
+/**
+ * Is this person in the segment now? A merged profile answers as the one it merged into. A live
+ * segment (or a bare rule) is checked by its rule, for this one person, at `now`; a manual or
+ * snapshot one by its members. The spine's In segment step asks this.
+ */
+export async function inSegment(
+  db: Queryable,
+  profileId: number,
+  of: number | Segment | Rule,
+  now: Date,
+): Promise<boolean> {
+  if (!Number.isSafeInteger(profileId)) return false;
+  const [who] = await rows(
+    db,
+    sql`with recursive up(id, next, n) as (
+        select id, merged_into, 0 from profiles where id = ${profileId}
+        union all select p.id, p.merged_into, up.n + 1 from profiles p join up on p.id = up.next
+          where up.n < 20)
+      select id from up where next is null limit 1`,
+  );
+  if (!who) return false;
+  const id = Number(who.id);
+  const seg = typeof of === "number" ? await segmentById(db, of) : of.kind !== "group" ? of : null;
+  if (typeof of === "number" && !seg) return false;
+  const rule: Rule | null = seg ? (seg.kind === "live" ? seg.rule : null) : (of as Rule);
+  if (seg && !rule) {
+    const [m] = await rows(
+      db,
+      sql`select 1 from segment_members where segment_id = ${seg.id} and profile_id = ${id}`,
+    );
+    return !!m;
+  }
+  if (!rule) return false;
+  const [hit] = await rows(
+    db,
+    sql`select 1 from profiles p where p.id = ${id} and p.merged_into is null
+      and ${compileRule(rule, now)}`,
+  );
+  return !!hit;
+}
+
 export interface SegmentModel {
   complete(
     prompt: string,
@@ -886,10 +1110,11 @@ export interface DescribeContext {
 
 const SHAPE = `A rule is JSON: {"kind":"group","match":"all"|"any","of":[...]}. Each item in "of" is a group or one condition. Any item may have "not": true.
 Conditions:
-- {"kind":"trait","key":"<trait key>","op":"is"|"contains"|"gt"|"lt"|"exists"|"before"|"after"|"in_next"|"in_last","value":<string or number>}. "exists" has no value. gt/lt take a number. before/after take "YYYY-MM-DD". in_next/in_last take whole days.
-- {"kind":"event","event":"<timeline kind>","atLeast":<n>,"days":<n or null for ever>}
+- {"kind":"trait","key":"<trait key>","op":"is"|"contains"|"one_of"|"gt"|"lt"|"exists"|"before"|"after"|"in_next"|"in_last","value":<string or number>}. "exists" has no value. one_of takes "a, b, c". gt/lt take a number. before/after take "YYYY-MM-DD". in_next/in_last take whole days.
+- {"kind":"event","event":"<timeline kind>","channel":"<optional: email, sms, linkedin, reddit, x, site...>","match":"<optional words its line holds>","atLeast":<n>,"atMost":<optional n; 0 is never>,"days":<n or null for ever>,"after":<optional {"event":"<kind>","channel":"<optional>"}>,"before":<optional, same>}
 - {"kind":"consent","channel":"email"|"sms","state":"confirmed"|"pending"|"withdrawn"|"opted_out"}. opted_out is sms only.
-- {"kind":"message","state":"sent"|"delivered"|"opened"|"clicked"|"replied"|"bounced"|"failed","channel":"any"|"email"|"sms"|"linkedin"|"reddit"|"x","atLeast":<n>,"days":<n or null>}
+- {"kind":"message","state":"sent"|"delivered"|"opened"|"clicked"|"replied"|"bounced"|"failed","channel":"any"|"email"|"sms"|"linkedin"|"reddit"|"x"|"instagram"|"youtube"|"tiktok"|"facebook","campaign":"<optional words>","atLeast":<n>,"atMost":<optional n>,"days":<n or null>}
+- {"kind":"step","step":"reached"|"saw"|"engaged"|"replied"|"booked"|"paid","channel":"<optional channel>","source":"<optional campaign, post or link words>","days":<n or null>}
 - {"kind":"segment","segment":<segment id>}`;
 
 /** The prompt `describeSegment` sends: the shape, what the workspace has, and the words. */

@@ -11,6 +11,7 @@ import { CODE_STEPS } from "./code-step.js";
 import type { Component, Effect, Port } from "./components.js";
 import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
 import { messageWould, notifyLine } from "./message-step.js";
+import { segmentWould } from "./segment-step.js";
 import {
   type Arrival,
   resume,
@@ -201,6 +202,12 @@ export async function dryWalk(o: {
           `Would set ${String(w.field ?? "")} to "${fillText(String(w.value ?? ""), e)}" on ${e.subject}`,
         );
         return [{ port: "out", event: e }];
+      };
+    // In segment reads nothing in a test: it says what it would check, and goes on by yes.
+    if (n.uses === "logic.segment")
+      return async (_port, e, at) => {
+        would.set(`${at.node}|${e.subject}`, segmentWould(n.with ?? {}, e));
+        return [{ port: "yes", event: e }];
       };
     if (n.uses && logicOf(n.uses)) return logic[n.uses] ?? (async () => []);
     const part = n.uses ? o.parts.get(n.uses) : undefined;

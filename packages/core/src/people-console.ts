@@ -35,6 +35,8 @@ import {
   restoreBroadcast,
   saveBroadcast,
 } from "./broadcasts.js";
+import { channelPeople, channelStats, type StatsQuery } from "./channel-stats.js";
+import type { FunnelStep } from "./channel-stats-schema.js";
 import type { Client } from "./clients/schema.js";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "./people-console-routes.js";
 import {
@@ -72,15 +74,29 @@ import {
   describeSegment,
   listSegments,
   previewRule,
+  readRule,
   removeMembers,
   restoreSegment,
   retake,
   type SegmentInput,
   type SegmentModel,
   saveSegment,
+  segmentNames,
+  segmentVersions,
   traitKeys,
 } from "./segments.js";
+import { parseRule, ruleText } from "./segments-text.js";
 import { SENT_RECORDS } from "./sent-records.js";
+
+/** A stats ask's own fields, nothing else of the request. */
+const statsQueryOf = (r: StatsQuery): StatsQuery => ({
+  by: r.by ?? "channel",
+  channel: r.channel ?? null,
+  days: r.days === undefined || r.days === null ? null : Number(r.days),
+  segment: r.segment ? Number(r.segment) : null,
+  rule: r.rule ?? null,
+  attribution: r.attribution ?? "any",
+});
 
 /** The record types a client's People serves. Each build adds its own here. */
 export const PEOPLE_RECORDS = [...SENT_RECORDS, ...SEGMENT_RECORDS, ...BROADCAST_RECORDS];
@@ -220,6 +236,37 @@ export function peopleConsoleApi({
     segmentPreview: async (req: PortalRequest & { rule?: unknown }) => {
       const w = await workspace(req, "read");
       return previewRule(w.db, req.rule, now());
+    },
+    /** A rule as text (`rule`), or text read back as a rule (`text`). Saves nothing. */
+    segmentText: async (req: PortalRequest & { rule?: unknown; text?: string }) => {
+      const w = await workspace(req, "read");
+      const names = await segmentNames(w.db);
+      if (typeof req.text === "string") {
+        const byName = new Map([...names].map(([id, name]) => [name, id]));
+        return parseRule(req.text, byName);
+      }
+      const got = readRule(req.rule);
+      return "problems" in got ? got : { text: ruleText(got.rule, names) };
+    },
+    /** A segment's saves, newest first. */
+    segmentVersions: async (req: PortalRequest & { id?: number }) => {
+      const w = await workspace(req, "read");
+      return { versions: await segmentVersions(w.db, Number(req.id)) };
+    },
+    /** The funnel per channel, source or trait value (designs/2026-10-15-channel-stats.md). */
+    channelStats: async (req: PortalRequest & StatsQuery) => {
+      const w = await workspace(req, "read");
+      return channelStats(w.db, statsQueryOf(req), now());
+    },
+    /** The people behind one of its numbers. */
+    channelPeople: async (req: PortalRequest & StatsQuery & { key?: string; step?: string }) => {
+      const w = await workspace(req, "read");
+      const people = await channelPeople(
+        w.db,
+        { ...statsQueryOf(req), key: String(req.key ?? ""), step: req.step as FunnelStep },
+        now(),
+      );
+      return { people };
     },
     /** Plain words as a rule, by the model, shown for a yes. Saves nothing. */
     segmentDescribe: async (req: PortalRequest & { words?: string }) => {
@@ -470,6 +517,24 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
         RECORDS,
         (_: restate.Context, req: PortalRequest & { rule?: unknown }) =>
           answer(() => api.segmentPreview(req)),
+      ),
+      segmentText: serviceHandler(
+        RECORDS,
+        (_: restate.Context, req: PortalRequest & { rule?: unknown; text?: string }) =>
+          answer(() => api.segmentText(req)),
+      ),
+      segmentVersions: serviceHandler(
+        RECORDS,
+        (_: restate.Context, req: PortalRequest & { id?: number }) =>
+          answer(() => api.segmentVersions(req)),
+      ),
+      channelStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsQuery) =>
+        answer(() => api.channelStats(req)),
+      ),
+      channelPeople: serviceHandler(
+        RECORDS,
+        (_: restate.Context, req: PortalRequest & StatsQuery & { key?: string; step?: string }) =>
+          answer(() => api.channelPeople(req)),
       ),
       segmentDescribe: serviceHandler(
         RECORDS,

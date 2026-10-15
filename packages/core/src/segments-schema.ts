@@ -46,6 +46,8 @@ export const segments = pgTable(
     /** The plain words it was described in, when it was. */
     words: text("words"),
     state: varchar("state", { length: 16 }).$type<SegmentState>().default("active").notNull(),
+    /** Saves so far: each one keeps a `segment_versions` row. */
+    version: integer("version").default(1).notNull(),
     /** Members at the last count. */
     size: integer("size").default(0).notNull(),
     /** When its members were last worked out (a snapshot: when it was taken). */
@@ -63,6 +65,29 @@ export const segments = pgTable(
     primaryKey({ columns: [t.id], name: "pk_segments" }),
     unique("uq_segments_name").on(t.name),
     index("ix_segments_state").on(t.state, t.kind),
+  ],
+);
+
+/** Each save of a segment, as it was saved: its name, rule and words then. Append only. */
+export const segmentVersions = pgTable(
+  "segment_versions",
+  {
+    segmentId: integer("segment_id").notNull(),
+    version: integer("version").notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    kind: varchar("kind", { length: 16 }).$type<SegmentKind>().notNull(),
+    rule: jsonb("rule"),
+    words: text("words"),
+    by: varchar("by", { length: 320 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.segmentId, t.version], name: "pk_segment_versions" }),
+    foreignKey({
+      columns: [t.segmentId],
+      foreignColumns: [segments.id],
+      name: "fk_segment_versions_segment_id_segments",
+    }),
   ],
 );
 

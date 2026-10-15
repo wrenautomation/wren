@@ -323,6 +323,8 @@ describe("segment triggers", () => {
     expect(problems("trigger.trait", { trait: "Not A Key" })).toMatch(/trait key/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: 400 })).toMatch(/-365 to 365/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: -7 })).toBe("");
+    expect(problems("logic.segment", {})).toMatch(/segment's number/);
+    expect(problems("logic.segment", { segment: 3 })).toBe("");
   });
 
   it("reads what flows hear and which use each segment", () => {
@@ -338,7 +340,9 @@ describe("segment triggers", () => {
         edges: [],
       },
       { id: "w2", name: "Nudge", nodes: [node("trigger.segment", { segment: 2 })], edges: [] },
+      { id: "w3", name: "Check", nodes: [node("logic.segment", { segment: 5 })], edges: [] },
     ] as unknown as Workflow[];
+    expect(workflowUses(flows).get(5)).toEqual([{ kind: "workflow", id: "w3", name: "Check" }]);
     expect(workflowUses(flows).get(2)).toEqual([
       { kind: "workflow", id: "w1", name: "Welcome trial" },
       { kind: "workflow", id: "w2", name: "Nudge" },

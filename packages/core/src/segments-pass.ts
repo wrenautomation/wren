@@ -50,12 +50,12 @@ export interface SegmentCursor {
   dated: string | null;
 }
 
-/** Each segment's workflows: the ones with a Segment trigger naming it. */
+/** Each segment's workflows: the ones with a Segment trigger or an In segment step naming it. */
 export function workflowUses(flows: readonly Workflow[]): Map<number, SegmentUse[]> {
   const out = new Map<number, SegmentUse[]>();
   for (const f of flows)
     for (const n of f.nodes) {
-      if (n.uses !== "trigger.segment") continue;
+      if (n.uses !== "trigger.segment" && n.uses !== "logic.segment") continue;
       const id = Number(n.with?.segment);
       if (!Number.isSafeInteger(id) || id < 1) continue;
       const has = out.get(id) ?? [];
