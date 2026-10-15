@@ -24,6 +24,8 @@ export type Funnel = {
   allowed: boolean;
   link: string | null;
   posts: string | null;
+  /** Posted as the first comment instead (a LinkedIn video). */
+  comment?: string | null;
   note: string | null;
   videos: FunnelVideo[];
   pages: FunnelPage[];
@@ -139,7 +141,8 @@ function LinkLine({
   editable: boolean;
 }) {
   const { said, bad, run } = useSave(act);
-  const shown = funnel.posts ?? funnel.link;
+  const goes = funnel.posts ?? funnel.comment ?? null;
+  const shown = goes ?? funnel.link;
   // Through the lander to the video: say where it lands, since the link reads as our site.
   const hop =
     funnel.to === "video" && Boolean(shown && funnel.video?.url && shown !== funnel.video.url);
@@ -155,7 +158,7 @@ function LinkLine({
             href={shown}
             target="_blank"
             rel="noreferrer"
-            className={`min-w-0 max-w-full truncate text-[14px] underline-offset-2 hover:underline ${funnel.posts ? "" : "text-(--ui-ink-3) line-through"}`}
+            className={`min-w-0 max-w-full truncate text-[14px] underline-offset-2 hover:underline ${goes ? "" : "text-(--ui-ink-3) line-through"}`}
           >
             {shown.replace(/^https:\/\//, "")}
           </a>
@@ -163,9 +166,14 @@ function LinkLine({
           <span className="text-[14px] text-(--ui-ink-3)">Fills in once the target has a link</span>
         )}
         {funnel.posts ? <Tag tone="green">In the post</Tag> : null}
+        {funnel.comment ? <Tag tone="green">First comment</Tag> : null}
       </div>
       {funnel.note ? (
         <span className={HINT}>{funnel.note}</span>
+      ) : funnel.comment ? (
+        <span className={HINT}>
+          Posted as the first comment: a link in a LinkedIn video shows it to fewer people.
+        </span>
       ) : hop ? (
         <span className={HINT}>Counts the click, then opens the video on YouTube.</span>
       ) : null}

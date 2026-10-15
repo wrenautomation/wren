@@ -47,7 +47,7 @@ Citations: `designs/2026-10-07-content-funnel.md`
 
 ## If you change this
 
-- **Hits:** the scheduler's link (`restate/scheduler.ts`), approve's refusal (`review.ts`), the editor (`apps/portal/web/src/modules/marketing/fields.tsx`), the lander's `/go/` channels (`lander/src/data/links.json`) and its `?v=` hop (`lander/functions/go/[[path]].ts`; deploy it before promos post, or `?v=` lands on the home page), the site rollups (a hop row counts as a visit)
+- **Hits:** the scheduler's link (`restate/scheduler.ts`; `postedLinks`: a LinkedIn video's link goes in its first comment through `Content.reply`, a failed comment noted on the draft, never retried), approve's refusal (`review.ts`), the editor (`apps/portal/web/src/modules/marketing/fields.tsx`), the lander's `/go/` channels (`lander/src/data/links.json`) and its `?v=` hop (`lander/functions/go/[[path]].ts`; deploy it before promos post, or `?v=` lands on the home page), the site rollups (a hop row counts as a visit)
 - **Does not hit:** a video's footer templates (they carry their own links)
 
 ## Surfaces

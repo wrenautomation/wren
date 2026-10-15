@@ -183,6 +183,8 @@ const ACTIVITY_OF: Partial<Record<LiNotification["kind"], ActivityKind>> = {
 
 /** A comment's URN: `urn:li:comment:(<post URN>,<id>)`. */
 const COMMENT_URN = /^urn:li:comment:\((.+),[^,]+\)$/;
+/** A post (`/rest/posts` answers a share or ugcPost URN): a comment on it names it as `object`. */
+const POST_URN = /^urn:li:(share|ugcPost|activity):\d+$/;
 
 export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -298,7 +300,9 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         `/rest/socialActions/${encodeURIComponent(id)}/comments`,
         { count: Math.min(q.limit ?? 100, 100) },
       );
-      // A page's comments go by URN, which an answer needs, and say which are the page's own.
+      // A page's comments go by URN, which an answer needs. Ours (the page's or the member's,
+      // like the funnel link under a video) say so.
+      const self = org ?? (await me());
       const rows = (out.elements ?? []).map((c, i) => ({
         id: (org ? (c.commentUrn ?? c.$URN) : null) ?? c.id ?? String(i),
         postId: id,
@@ -306,12 +310,13 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         text: c.message?.text ?? "",
         at: iso(c.created?.time),
         ...(org && c.parentComment ? { parentId: c.parentComment } : {}),
-        ...(org && c.actor === org ? { mine: true } : {}),
+        ...(c.actor === self ? { mine: true } : {}),
       }));
       return pageOf(rows, q);
     },
     async reply(commentId: string, text: string): Promise<void> {
-      // An answer to a comment names its post and the comment as its parent.
+      // An answer to a comment names its post and the comment as its parent; a comment on a
+      // post (the funnel link under a video) names the post.
       const nested = COMMENT_URN.exec(commentId);
       await sites.call(
         "linkedin",
@@ -319,7 +324,11 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         `/rest/socialActions/${encodeURIComponent(commentId)}/comments`,
         {
           actor: await me(),
-          ...(nested ? { object: nested[1], parentComment: commentId } : {}),
+          ...(nested
+            ? { object: nested[1], parentComment: commentId }
+            : POST_URN.test(commentId)
+              ? { object: commentId }
+              : {}),
           message: { text },
         },
       );

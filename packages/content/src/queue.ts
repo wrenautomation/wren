@@ -89,6 +89,16 @@ export async function markPublished(
   });
 }
 
+/** A note on a published draft (its error line, where he sees it), after what's there. */
+export async function noteOnDraft(db: Queryable, id: string, note: string): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({
+      error: sql`left(concat_ws('; ', ${contentDrafts.error}, ${note.slice(0, 500)}::text), 1000)`,
+    })
+    .where(eq(contentDrafts.id, id));
+}
+
 export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {
   const [d] = await db
     .update(contentDrafts)

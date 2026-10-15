@@ -29,6 +29,17 @@ const video = {
 };
 
 describe("funnel links", () => {
+  it("a LinkedIn video's link goes in the first comment, a text post's in the post", () => {
+    const vid = { ...base, media: { kind: "video" as const, source: "s3://x/v.mp4" } };
+    const f = funnelOf(vid, ctx);
+    expect(f.posts).toBeNull();
+    expect(f.comment).toBe("https://wrenautomation.com/go/li/reach/3f2a9c1e");
+    expect(funnelLine(f)).toContain("(first comment)");
+    expect(funnelOf(base, ctx)).toMatchObject({ posts: f.comment, comment: null });
+    // Off is off, in the comment too.
+    expect(funnelOf({ ...vid, linked: false }, ctx).comment).toBeNull();
+  });
+
   it("site, booking and video all go through the lander with the stage", () => {
     expect(targetLink(base, null)).toBe("https://wrenautomation.com/go/li/reach/3f2a9c1e");
     expect(targetLink({ ...base, pointsTo: "booking", stage: "convert" }, null)).toBe(

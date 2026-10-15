@@ -45,6 +45,8 @@ import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/re
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 
 const posted: { platform: Platform; post: Post }[] = [];
+/** Comments the scheduler left under posts (a LinkedIn video's funnel link). */
+const replied: { platform: Platform; commentId: string; text: string }[] = [];
 const refuse = new Set<Platform>();
 const views = new Map<string, number>();
 const notes: string[] = [];
@@ -74,6 +76,12 @@ const fakeContent = restate.service({
         publishedAt: new Date().toISOString(),
         fetchedWith: "api" as const,
       };
+    },
+    reply: async (
+      _ctx: restate.Context,
+      req: { platform: Platform; commentId: string; text: string },
+    ) => {
+      replied.push(req);
     },
     metricsMany: async (
       _ctx: restate.Context,
@@ -193,6 +201,7 @@ beforeEach(async () => {
     "reach_accounts",
   ]);
   posted.length = 0;
+  replied.length = 0;
   notes.length = 0;
   prompts.length = 0;
   views.clear();
@@ -293,9 +302,15 @@ describe("content loop", () => {
       publishedId: expect.stringMatching(/^linkedin-/),
       url: expect.stringContaining("linkedin.test"),
     });
-    expect(posted.find((p) => p.platform === "linkedin")?.post.text).toMatch(
-      new RegExp(`\\n\\nhttps://wrenautomation\\.com/go/li/reach/${li?.id.slice(0, 8)}$`),
-    );
+    // A LinkedIn video carries no link in its text: it goes in the first comment.
+    expect(posted.find((p) => p.platform === "linkedin")?.post.text).not.toContain("/go/");
+    expect(replied).toEqual([
+      {
+        platform: "linkedin",
+        commentId: li?.publishedId,
+        text: `https://wrenautomation.com/go/li/reach/${li?.id.slice(0, 8)}`,
+      },
+    ]);
     const x = after.find((d) => d.platform === "x");
     if (!x) throw new Error("no x draft");
     expect(x.status).toBe("failed");

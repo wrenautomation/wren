@@ -30,9 +30,9 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { clientContent } from "../clients.js";
-import { postedLink } from "../funnel.js";
+import { postedLinks } from "../funnel.js";
 import { postOf } from "../platforms.js";
-import { claim, dueDrafts, markFailed, markPublished, nextDue } from "../queue.js";
+import { claim, dueDrafts, markFailed, markPublished, nextDue, noteOnDraft } from "../queue.js";
 
 export const SCHEDULER_KEY = "default";
 const DEFAULT_IDLE_MS = 15 * 60 * 1000;
@@ -45,6 +45,10 @@ type ContentService = {
     ctx: restate.Context,
     req: { platform: Platform; post: Post; client?: string | null },
   ) => Promise<Published>;
+  reply: (
+    ctx: restate.Context,
+    req: { platform: Platform; commentId: string; text: string; client?: string | null },
+  ) => Promise<void>;
 };
 
 export interface ContentSchedulerDeps {
@@ -113,20 +117,36 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     for (const draft of batch) {
       const claimed = await ctx.run(`claim ${draft.id}`, () => claim(o.db, draft.id));
       if (!claimed) continue;
-      // A client's posts carry no Wren link; Wren's carry their funnel's.
-      const link = o.client
-        ? null
-        : await ctx.run(`link ${draft.id}`, () => postedLink(o.db, claimed));
+      // A client's posts carry no Wren link; Wren's carry their funnel's, in the text or
+      // as the first comment.
+      const links = o.client
+        ? { text: null, comment: null }
+        : await ctx.run(`link ${draft.id}`, () => postedLinks(o.db, claimed));
+      const link = links.text ?? links.comment;
       try {
         const published = await content.publish({
           platform: draft.platform,
-          post: postOf(claimed, link),
+          post: postOf(claimed, links.text),
           ...(o.client ? { client: o.client } : {}),
         });
         await ctx.run(`published ${draft.id}`, () =>
           markPublished(o.db, draft.id, published, link),
         );
         stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
+        if (links.comment) {
+          // The post is up either way: a comment that fails is noted on the draft, never retried
+          // into a second one.
+          const commented = await content
+            .reply({ platform: draft.platform, commentId: published.id, text: links.comment })
+            .then(
+              () => null,
+              (err: unknown) => errorText(err),
+            );
+          if (commented)
+            await ctx.run(`comment failed ${draft.id}`, () =>
+              noteOnDraft(o.db, draft.id, `First comment with the link failed: ${commented}`),
+            );
+        }
         deps.posted?.(ctx, draft.platform, o.client);
       } catch (err) {
         // A terminal refusal (no channel, the platform said no) is this draft's

@@ -40,7 +40,8 @@ export const BOOKING_PATH = "/book/reactivation";
 type FunnelRow = Pick<
   ContentDraft,
   "id" | "platform" | "text" | "extra" | "stage" | "pointsTo" | "videoDraft" | "sitePage" | "linked"
->;
+> &
+  Partial<Pick<ContentDraft, "media">>;
 
 /** The YouTube draft a post points at. */
 export interface FunnelVideo {
@@ -84,12 +85,17 @@ export interface FunnelView {
   link: string | null;
   /** What the post will end with; null: nothing appended. */
   posts: string | null;
+  /** Posted as the post's first comment instead, right after it goes up (a LinkedIn video). */
+  comment: string | null;
   /** Why it carries no link, in a few words. */
   note: string | null;
 }
 
 const isShort = (d: Pick<ContentDraft, "platform" | "extra">) =>
   d.platform === "youtube" && d.extra?.kind === "short";
+/** A LinkedIn video: an outside link in it costs reach, so the link goes in the first comment. */
+const inComment = (d: Pick<FunnelRow, "platform" | "media">) =>
+  d.platform === "linkedin" && d.media?.kind === "video";
 /** A YouTube upload with links in its description: not a Short, not a community post. */
 const isLong = (d: Pick<ContentDraft, "platform" | "extra">) =>
   d.platform === "youtube" && kindOf(d.extra) === "video";
@@ -215,6 +221,8 @@ export function funnelOf(d: FunnelRow, ctx: FunnelContext): FunnelView {
               : inText
                 ? "Already in the text"
                 : null;
+  // Same checks; only where the link goes differs.
+  const comment = note === null && inComment(d) ? link : null;
   return {
     stage: d.stage,
     to: d.pointsTo,
@@ -224,7 +232,8 @@ export function funnelOf(d: FunnelRow, ctx: FunnelContext): FunnelView {
     chosen: d.linked !== null,
     allowed: rule.allowed,
     link,
-    posts: note === null ? link : null,
+    posts: note === null && !comment ? link : null,
+    comment,
     note,
   };
 }
@@ -291,6 +300,15 @@ export async function readFunnel(db: Queryable, d: FunnelRow): Promise<FunnelVie
 /** The link the post goes out with, or null: what the scheduler appends. */
 export async function postedLink(db: Queryable, d: FunnelRow): Promise<string | null> {
   return (await readFunnel(db, d)).posts;
+}
+
+/** Where the scheduler puts the link: appended to the text, or as the post's first comment. */
+export async function postedLinks(
+  db: Queryable,
+  d: FunnelRow,
+): Promise<{ text: string | null; comment: string | null }> {
+  const f = await readFunnel(db, d);
+  return { text: f.posts, comment: f.comment };
 }
 
 export interface FunnelPatch {
@@ -402,5 +420,7 @@ export async function refuseUnlinked(db: Queryable, rows: readonly FunnelRow[]):
 }
 
 /** Stage, target and link in one line, for the CLI. */
-export const funnelLine = (f: Pick<FunnelView, "stage" | "to" | "posts" | "note">): string =>
-  `${STAGE_LABELS[f.stage]} → ${TARGET_LABELS[f.to]}${f.posts ? `  ${f.posts}` : f.note ? `  (no link: ${f.note})` : ""}`;
+export const funnelLine = (
+  f: Pick<FunnelView, "stage" | "to" | "posts" | "comment" | "note">,
+): string =>
+  `${STAGE_LABELS[f.stage]} → ${TARGET_LABELS[f.to]}${f.posts ? `  ${f.posts}` : f.comment ? `  ${f.comment} (first comment)` : f.note ? `  (no link: ${f.note})` : ""}`;
