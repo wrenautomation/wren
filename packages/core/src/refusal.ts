@@ -11,6 +11,8 @@ export class PortalRefusal extends Error {
     readonly status: RefusalStatus = 400,
     /** The input it is about (`subreddit`, `title`), so the page can mark that box. */
     readonly field?: string,
+    /** What kind of no, for code to act on: `conflict` is a save over a version that moved. */
+    readonly code?: "conflict",
   ) {
     super(message);
     this.name = new.target.name;
@@ -22,7 +24,7 @@ export class PortalRefusal extends Error {
  * it. 409, which the web shows as "Changed elsewhere" with Keep mine / Use theirs.
  */
 export const staleRefusal = (what: string, field?: string): PortalRefusal =>
-  new PortalRefusal(`This ${what} changed since you opened it. Look again.`, 409, field);
+  new PortalRefusal(`This ${what} changed since you opened it. Look again.`, 409, field, "conflict");
 
 /** A part of setup this place lacks (the key store, the portal's address): said as in development. */
 export function setUp<T>(v: T | null | undefined, what: string): asserts v is T {

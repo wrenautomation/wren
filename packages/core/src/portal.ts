@@ -448,7 +448,14 @@ export async function portalMe(
 export const terminalOf = (err: PortalRefusal): restate.TerminalError =>
   new restate.TerminalError(err.message, {
     errorCode: err.status,
-    ...(err.field ? { metadata: { field: err.field } } : {}),
+    ...(err.field || err.code
+      ? {
+          metadata: {
+            ...(err.field ? { field: err.field } : {}),
+            ...(err.code ? { code: err.code } : {}),
+          },
+        }
+      : {}),
   });
 
 /** Run a handler; a refusal becomes Restate's terminal error with the status the Worker returns. */

@@ -51,12 +51,12 @@ describe("through the ingress", () => {
     });
   });
 
-  it("a stale save is a 409 in plain words", async () => {
+  it("a stale save is a 409 in plain words, coded conflict", async () => {
     const res = await post("stale");
     expect(res.status).toBe(409);
     const body = (await res.json()) as { message: string; metadata?: unknown };
     expect(body.message).toBe("This page changed since you opened it. Look again.");
-    expect(body.metadata ?? {}).toEqual({});
+    expect(body.metadata).toEqual({ code: "conflict" });
   });
 
   it("the same idempotency key runs once and answers the same", async () => {

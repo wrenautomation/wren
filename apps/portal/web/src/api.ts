@@ -71,24 +71,32 @@ export class ApiError extends Error {
     readonly status: number,
     /** The input a refusal is about, when it names one (`subreddit`, `title`). */
     readonly field?: string,
+    /** What kind of no: `conflict` is a save over a version that moved (the save engine reads it). */
+    readonly code?: string,
   ) {
     super(message);
   }
   /** A save over a version that changed meanwhile: show both, never drop either. */
   get conflict(): boolean {
-    return this.status === 409;
+    return this.code === "conflict";
   }
 }
 
-type Refused = { message?: string; error?: string; metadata?: { field?: unknown } } | null;
+type Refused = {
+  message?: string;
+  error?: string;
+  metadata?: { field?: unknown; code?: unknown };
+} | null;
 
 /** A refusal's answer as an ApiError: its words, its status, the field it names. */
 const refusalOf = (d: Refused, status: number): ApiError => {
   const field = d?.metadata?.field;
+  const code = d?.metadata?.code;
   return new ApiError(
     d?.message ?? d?.error ?? `Something went wrong (${status}).`,
     status,
     typeof field === "string" ? field : undefined,
+    typeof code === "string" ? code : undefined,
   );
 };
 
