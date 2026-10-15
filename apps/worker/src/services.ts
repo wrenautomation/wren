@@ -2184,8 +2184,12 @@ export async function buildServices(
         // Set field: one custom field on the subject's record (designs/2026-10-09-custom-fields.md).
         "logic.set_field": setFieldStep(db),
         // Send message and Notify me (designs/2026-10-14-automations.md): one person's broadcast,
-        // gated like one; a line to Wren's team on the main lane.
-        "logic.message": messageStep(db, { mail: (client, cdb) => mailOf(client, cdb) }),
+        // gated and sent like one, in the workspace's own database; a line to Wren's team on the
+        // main lane.
+        "logic.message": messageStep(db, {
+          mail: (client, cdb) => mailOf(client, cdb),
+          open: clientDb,
+        }),
         "logic.notify": notifyStep((client) =>
           settings.notify === "none" ? null : client ? namedFor(notifier, client) : notifier,
         ),

@@ -1,9 +1,10 @@
 /**
  * Send message and Notify me on the spine (designs/2026-10-14-automations.md, Templates). Send
  * message is one person's broadcast: the same consent, suppression and cap gate (`mayMarket`),
- * the same words and fills, email through Wren's marketing mailer with its footer and one-click
- * unsubscribe, a text queued (kind `broadcast`) on their existing thread for the texts sender.
- * Wren's own workflows only for now; a client's leaves by `skipped`.
+ * the same words and fills, email through the workspace's mailer (`MailOf`) with its footer and
+ * one-click unsubscribe, a text queued (kind `broadcast`) on their existing thread for the texts
+ * sender. A client's runs in its own database and sends from the mailbox it picked in Account →
+ * Messaging, as its broadcasts do. One with no mailer yet fails the step with why; a retry sends.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Queryable } from "@wren/db";
@@ -70,13 +71,19 @@ export function messageWould(w: StepAt["with"], e: SpineEvent): string {
     : `Would text ${to} on ${topic}, if they said yes to it`;
 }
 
-/** The Send message node's step. */
-export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
+/**
+ * The Send message node's step. `main` is Wren's database; a client's workflow reads and writes
+ * the client's own (`open`), where its consents, topics and threads live.
+ */
+export function messageStep(
+  main: Queryable,
+  deps: { mail: MailOf; open: (client: string) => Queryable },
+): Step {
   return async (_port, e, at) => {
     const skip = (why: string) => [
       { port: "skipped", event: { ...e, data: { ...e.data, skipped: why } } },
     ];
-    if (at.client) return skip("Send message runs on Wren's own workflows for now");
+    const db = at.client ? deps.open(at.client) : main;
     const w = at.with;
     const channel = channelOf(w);
     let words: { subject: string | null; body: string };
@@ -87,7 +94,7 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
         throw new restate.TerminalError(`Send message: ${err.message}`);
       throw err;
     }
-    const [topic] = await main
+    const [topic] = await db
       .select()
       .from(topics)
       .where(and(eq(topics.name, text(w.topic)), eq(topics.channel, channel)));
@@ -103,11 +110,11 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
       return skip("Their address doesn't read");
     }
     const key = sentKey(at, e);
-    const already = (await main.execute(sql`select 1 from consent_events
+    const already = (await db.execute(sql`select 1 from consent_events
       where kind = 'sent' and evidence @> ${JSON.stringify(key)}::jsonb limit 1`)) as unknown as Row[];
     if (already.length) return [{ port: "sent", event: e }];
     const now = new Date();
-    const v = await mayMarket(main, { channel, address, topic: topic.name, now });
+    const v = await mayMarket(db, { channel, address, topic: topic.name, now });
     if (!v.send) return skip(VERDICT_WORDS[v.why] ?? v.why);
     const copy = renderFor(
       { id: 0, channel, subject: words.subject, body: words.body },
@@ -118,7 +125,7 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
     const sent = { ...e, data: { ...e.data, message: { channel, to: address } } };
 
     if (channel === "sms") {
-      const contacts = (await main.execute(
+      const contacts = (await db.execute(
         sql`select id, number_id, state from sms_contacts where e164 = ${address} order by id desc`,
       )) as unknown as Row[];
       if (contacts.some((c) => TEXTS_ENDED.has(String(c.state))))
@@ -126,7 +133,7 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
       const c = contacts.find((x) => x.number_id);
       if (!c) return skip("No texts thread with them yet");
       const ref = `wf:${at.workflow}:${at.node}`.slice(0, 64);
-      await atomic(main, async (tx) => {
+      await atomic(db, async (tx) => {
         await tx.execute(sql`insert into sms_messages
             (contact_id, direction, kind, ref, number_id, to_e164, body, state, due_at, created_at)
           values (${Number(c.id)}, 'out', 'broadcast', ${ref}, ${String(c.number_id)}::uuid,
@@ -146,12 +153,12 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
       return [{ port: "sent", event: sent }];
     }
 
-    const mail = await deps.mail(null, main);
+    const mail = await deps.mail(at.client, db);
     if (isUnset(mail)) throw new restate.TerminalError(`Send message: ${mail.unset}`);
     // Kept first, with its Message-ID, so a retry after a cut-off send never sends twice and a
     // bounce finds it; a failed send takes it back.
     const messageId = mintMessageId(mail.domain);
-    await recordMarketingSend(main, {
+    await recordMarketingSend(db, {
       consentId: v.consent.id,
       by: `workflow:${at.workflow}`,
       evidence: key,
@@ -169,7 +176,7 @@ export function messageStep(main: Queryable, deps: { mail: MailOf }): Step {
         messageId,
       });
     } catch (err) {
-      await main.execute(sql`delete from consent_events
+      await db.execute(sql`delete from consent_events
         where kind = 'sent' and evidence @> ${JSON.stringify(key)}::jsonb`);
       throw err;
     }

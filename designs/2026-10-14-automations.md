@@ -97,7 +97,7 @@ New action parts:
   - A text queues on the person's existing text thread. Email goes through `BroadcastMail` with the topic's footer and one-click unsubscribe.
   - Records the send on the consent.
   - Ports: sent, skipped (with why).
-  - Wren's own workflows only for now. On a client's it leaves by skipped.
+  - A client's runs in its own database and sends through its own mailer (`MailOf`: the mailbox and postal address in Account → Messaging), as its broadcasts do. With none set, the step fails with why and a retry sends.
   - Email claims its send on the consent first, so a retry never sends twice. A failed send takes the claim back.
 - **Notify me** (`logic.notify`): a line to the operator lane, with a link to the run.
 
