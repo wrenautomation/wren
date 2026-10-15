@@ -269,7 +269,12 @@ function Formats({ video, formats, act }: { video: string; formats: Format[]; ac
   const s = useChoiceSaved(`video:${video}:formats`, formats, act, (formats) => ({ formats }));
   const [none, setNone] = useState(false);
   const flip = (f: Format, on: boolean) => {
-    const next = FORMATS.map(([x]) => x).filter((x) => (x === f ? on : s.value.includes(x)));
+    // Square and 4:5 are the finishing view's; a flip here keeps them.
+    const kept = s.value.filter((x) => !FORMATS.some(([y]) => y === x));
+    const next = [
+      ...FORMATS.map(([x]) => x).filter((x) => (x === f ? on : s.value.includes(x))),
+      ...kept,
+    ];
     setNone(!next.length);
     if (next.length) s.set(next);
   };
