@@ -71,6 +71,31 @@ with a conflict code; Approve, Send and Post are idempotent on the request id; w
 `@wren/db` helpers (atomic/snapshot/serializable); refusals carry `{message, field?}` in plain
 words, never an id.
 
+### Studio is where content gets made (lane B, then lane D)
+
+William: "studio experience needs to be way better. full control over content, writing, etc.
+editing. feels almost like the write tab needs to be folded into the studio experience."
+
+- Write folds into Studio. Studio opens on what to make or finish today (from the plan's
+  commitments) and a New button: words post, thread, carousel, story, blog, video. Write's id
+  stays as a redirect into Studio's New, so old links land.
+- Every piece opens in Studio's one editor, wherever it was clicked (Today, Drafts, Pieces, To
+  approve): its words for each platform side by side with the live per-platform check, media,
+  the platform's fields (required ones marked), the funnel link, slides, schedule, Ask Claude /
+  Redraft with a note, versions, and Approve / Schedule / Post now. Everything saves through the
+  engine. Drafts stays the list; a row opens the editor.
+- Videos keep today's tools (fields, cuts, transcript fixes, caption style, formats, editing agent,
+  promos, Write about) in the same editor, plus a finishing view (lane D, after lane A lands): the
+  player with a timeline under it, drag a cut's edges, add and move text on the video, place and
+  style captions, pick the cover frame, see each format's crop, render the changed parts. Each
+  change is an edit to the video's cut list the render path already reads.
+
+### One sidebar (main session)
+
+William: "not sure about the nested sidebar experience, it's taking up too much width." The pages
+column beside the sidebar goes. The open app's pages fold out under its row in the sidebar; a
+closed app's pages show on hover as now. Same information, one sidebar's width.
+
 ## Rules for every lane
 
 - Test with synthetic data locally. Never scan or screenshot the live portal (Worker request cap);
@@ -84,4 +109,5 @@ words, never an id.
 
 ## Log
 
-- 2026-10-14: written; lanes A, B, C started.
+- 2026-10-14: written; lanes A, B, C started on Sonnet, restarted on Opus for this wave (William).
+  Studio and sidebar added; lane D (video finishing view) starts when lane A lands.
