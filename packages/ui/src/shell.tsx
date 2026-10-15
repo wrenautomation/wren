@@ -802,6 +802,41 @@ function AppColumn({
   );
 }
 
+/**
+ * An app's pages under its row, folded shut unless it's the open app. Every app keeps its pages
+ * mounted, so switching apps slides one shut while the next slides open instead of jumping.
+ */
+function Fold({ app, open, shown }: { app: NavApp; open: OpenApp | null; shown: boolean }) {
+  const tabs = open?.tabs ?? app.pages ?? [];
+  if (tabs.length < 2) return null;
+  return (
+    <div
+      className={cx(
+        "grid transition-[grid-template-rows,opacity] duration-200 ease-(--ui-ease)",
+        shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}
+      inert={!shown}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div className="mt-0.5 mb-1.5 ml-[18px] border-l border-(--ui-hair) pl-1.5">
+          <AppTabs
+            app={
+              open ?? {
+                name: app.name,
+                icon: app.icon,
+                href: app.href,
+                tabs,
+                // On its way in, its first page is the one lit.
+                current: shown ? (tabs.find((t) => t.href === app.href)?.id ?? "") : "",
+              }
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** A mouse or trackpad: hover flyouts. Touch never gets them. */
 const FINE_POINTER = "(hover: hover) and (pointer: fine)";
 
@@ -841,6 +876,18 @@ function SideNav({
         ]
       : [];
   const openId = app ? (app.id ?? "") : null;
+  // The app row just clicked: lit and folded open at once, before its page has loaded.
+  const [going, setGoing] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a landed page ends the wait.
+  useEffect(() => {
+    setGoing(null);
+  }, [openId, app?.current]);
+  useEffect(() => {
+    if (going === null) return;
+    const t = setTimeout(() => setGoing(null), 4000);
+    return () => clearTimeout(t);
+  }, [going]);
+  const lit = (a: NavApp) => (going !== null ? a.id === going : !!app && a.id === openId);
   const [shutPref, setShutPref] = useState<Readonly<Record<string, boolean>>>(readShut);
   const isShut = (a: NavArea) =>
     !folded && (shutPref[a.id] ?? !!a.shut) && !a.apps.some((x) => x.id === openId);
@@ -958,7 +1005,11 @@ function SideNav({
                       hovered?.id === a.id && "bg-(--ui-hover)",
                     )}
                     href={a.href}
-                    aria-current={open ? "true" : undefined}
+                    aria-current={lit(a) ? "true" : undefined}
+                    onClick={(e) => {
+                      if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey)
+                        setGoing(a.id);
+                    }}
                     {...(folded && !hovers
                       ? tipProps(a.count ? `${a.name}, ${num(a.count)} waiting on you` : a.name, {
                           side: "right",
@@ -966,7 +1017,7 @@ function SideNav({
                         })
                       : {})}
                   >
-                    <Icon name={a.icon} className={open ? "text-(--ui-active)" : ""} />
+                    <Icon name={a.icon} className={lit(a) ? "text-(--ui-active)" : ""} />
                     <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
                       {a.name}
                     </span>
@@ -976,10 +1027,8 @@ function SideNav({
                       </span>
                     ) : null}
                   </a>
-                  {open && pages && !folded && !drawer && open.tabs.length > 1 ? (
-                    <div className="mt-0.5 mb-1.5 ml-[18px] border-l border-(--ui-hair) pl-1.5">
-                      <AppTabs app={open} />
-                    </div>
+                  {pages && !folded && !drawer ? (
+                    <Fold app={a} open={open || null} shown={lit(a)} />
                   ) : null}
                 </div>
               );

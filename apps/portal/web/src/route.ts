@@ -3,7 +3,7 @@
  * reload and shared links all land on the same screen. Links are plain <a href>; a click on one
  * inside the app moves without a reload.
  */
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 
 export interface Route {
   /** "/reactivation/people" -> ["reactivation", "people"]. */
@@ -75,7 +75,8 @@ function inApp(e: MouseEvent): string | null {
 export function useRoute(): Route {
   const [route, setRoute] = useState(read);
   useEffect(() => {
-    const moved = () => setRoute(read());
+    // A transition: the sidebar's answer to the click paints first, the next page renders after.
+    const moved = () => startTransition(() => setRoute(read()));
     const click = (e: MouseEvent) => {
       const to = inApp(e);
       if (to === null) return;
