@@ -1,7 +1,7 @@
 /**
- * Parts we need and haven't built, shown as in development. Each has the ports and the knobs it
- * will ship with, so workflows wire it now (designs/2026-10-05-workflows.md). Built, it moves to
- * its package under the same id, and its knobs become settings.
+ * Parts we need and haven't built: designs, not catalog. `planned: true` keeps each out of the
+ * Shop, the map, the canvas palette and every shipped workflow (designs/2026-10-15-template-tidy.md).
+ * Built, it moves to its package under the same id, drops the flag, and its knobs become settings.
  */
 import { defineComponent } from "@wren/core/components";
 

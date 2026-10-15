@@ -256,7 +256,6 @@ const copyOf = (w: { nodes: WorkflowNode[] }) =>
     n.template ? [`${n.template.kind}:${n.template.system}/${n.template.name}`] : [],
   );
 
-const LATER = ["voice.dialer", "voice.voicemail"];
 const SENDS_ON = "sends from the channel's own sender";
 
 export const FOLLOW_COMPONENTS = [
@@ -276,7 +275,6 @@ export const FOLLOW_COMPONENTS = [
     provides: { templates: copyOf(FOLLOW_UP_INSIDE) },
     liveSwitch: true,
     effects: ["sends"],
-    later: LATER,
     in: [{ id: "leads", label: "leads who went quiet", kind: "lead" }],
     out: [
       { id: "replied", label: "replies", kind: "reply" },
@@ -313,7 +311,6 @@ export const FOLLOW_COMPONENTS = [
     provides: { templates: copyOf(NURTURE_INSIDE) },
     liveSwitch: true,
     effects: ["sends"],
-    later: LATER,
     in: [{ id: "leads", label: "not yet", kind: "lead" }],
     out: [
       { id: "replied", label: "replies", kind: "reply" },

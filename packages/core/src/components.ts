@@ -260,8 +260,9 @@ export interface Component {
   ready: boolean;
   missing: string[];
   /**
-   * Not built yet: its ports and the knobs its hypothesis names are the design, so workflows wire
-   * it now and keep working once it's built. Never ready.
+   * Not built yet: no code runs it. Its ports and knobs are the design. Hidden from the Shop, the
+   * map and the canvas palette (only its own page, by id, still opens), and no workflow may use
+   * it (`checkWorkflows`). Never ready.
    */
   planned: boolean;
   /** Parses its block in `clients.products`; `{}` is valid. */
@@ -311,8 +312,6 @@ export interface Component {
   liveSwitch: boolean;
   /** Accounts it will take once their run is built: the part page says "In development". */
   soon: AccountSite[];
-  /** Planned parts it will run as steps once they're built (calls): also "In development". */
-  later: string[];
   /** What it takes in and hands on; a workflow wires these. */
   in: Port[];
   out: Port[];
@@ -360,7 +359,6 @@ export const defineComponent = (c: Input): Component => ({
   effects: c.effects ?? [],
   liveSwitch: c.liveSwitch ?? false,
   soon: c.soon ?? [],
-  later: c.later ?? [],
   in: c.in ?? [],
   out: c.out ?? [],
   inside: c.inside ?? null,

@@ -2024,8 +2024,7 @@ export const componentRecord = (
         // Read-only: only an admin turns a client's sends on, from the CLI.
         sends: client && c.liveSwitch ? sendsWords(client, c.id) : null,
         // Channels it will post on once their apps exist.
-        // And the steps it will take once their parts are built (calls, voicemail).
-        soon: [...c.soon.map((site) => ACCOUNTS[site].label), ...c.later.map(named)],
+        soon: c.soon.map((site) => ACCOUNTS[site].label),
         installed,
         in: c.in,
         out: c.out,
@@ -2188,7 +2187,7 @@ export function consoleApi({
     const prompt = workflowAskPrompt({
       w: withEdits(w, draft),
       draft,
-      parts: components.filter((c) => w.for === "wren" || c.for === "client"),
+      parts: components.filter((c) => !c.planned && (w.for === "wren" || c.for === "client")),
       flows,
       message,
     });
@@ -2257,7 +2256,15 @@ export function consoleApi({
     const internal = seesInternal(req);
     const client =
       (req.client && req.client !== WREN) || !internal ? await pickClient(main, req) : null;
-    const shown = internal ? components : components.filter((c) => c.for === "client");
+    // A planned part (`planned: true`, no code runs it) is in no list, palette or map: only its
+    // own page, asked for by id (Voice reads its agent's settings that way).
+    const byId =
+      (req as { record?: unknown; id?: unknown }).record === COMPONENT
+        ? (req as { id?: unknown }).id
+        : undefined;
+    const shown = components.filter(
+      (c) => (internal || c.for === "client") && (!c.planned || c.id === byId),
+    );
     // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`) in its
     // app. Which rows, and whether any, is the fence's (`read`).
     const allowed = internal

@@ -317,6 +317,8 @@ describe("install, configure, uninstall", () => {
       missing: ["per client db"],
     }),
     defineComponent({ ...base, id: "books", name: "Books", for: "wren" }),
+    // Designed, not built: in no list, but its own page opens.
+    defineComponent({ ...base, id: "idea", name: "Idea", ready: false, planned: true }),
     // Posts on whichever channel the client connects: one account is enough.
     defineComponent({
       ...base,
@@ -556,6 +558,16 @@ describe("install, configure, uninstall", () => {
     // Built only for Wren reads "In development" to a client, the same as not built.
     expect(await row(ops, "soon")).toMatchObject({ ready: "coming" });
     expect(await row(owner, "soon")).toMatchObject({ ready: "planned" });
+    // A planned part lists for no one; asked by id, it opens.
+    expect(await row(ops, "idea")).toBeUndefined();
+    expect(await row(owner, "idea")).toBeUndefined();
+    const idea = await api().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "idea",
+    });
+    expect(idea.row).toMatchObject({ id: "idea", ready: "planned" });
     const got = await api().recordsGet({
       viewer: owner,
       client: "acme",

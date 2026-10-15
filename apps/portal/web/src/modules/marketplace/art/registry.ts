@@ -18,7 +18,6 @@ const ART: Record<string, Spec> = {
   "research.signals": { scene: "sheet", v: "signals" },
   "research.social": { scene: "post", v: "scan", on: "linkedin" },
   "signals.triggers": { scene: "sheet", v: "signals" },
-  "signals.visitors": { scene: "page", v: "visitors" },
   signals: { scene: "flow", via: ["globe", "search", "flag"] },
 
   // Reach: email, texts, calls, socials, pages, ads.
@@ -34,8 +33,6 @@ const ART: Record<string, Spec> = {
   "sms.follow_up": { scene: "cadence", via: ["chat"], days: [0, 1, 3] },
   "content.whatsapp": { scene: "texts", on: "whatsapp" },
   "voice.call_now": { scene: "call", v: "now" },
-  "voice.dialer": { scene: "call", v: "dial" },
-  "voice.voicemail": { scene: "call", v: "voicemail" },
   "voice.agent": { scene: "call" },
   "reach.outreach": { scene: "connect", on: "linkedin" },
   "linkedin.invites": { scene: "connect", on: "linkedin" },

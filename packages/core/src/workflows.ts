@@ -201,6 +201,8 @@ export function checkWorkflows(
       if (!n.uses === !n.own) out.push(`${w.id}.${n.id}: needs uses or own, not both`);
       else if (!portsOf(n, parts, flows))
         out.push(`${w.id}.${n.id}: uses ${n.uses}, which isn't one`);
+      else if (n.uses && parts.get(n.uses)?.planned)
+        out.push(`${w.id}.${n.id}: uses ${n.uses}, which isn't built yet`);
       if (n.own && !/^(https:\/\/\S+|[a-z][a-z0-9_.]*)$/.test(n.own.run))
         out.push(`${w.id}.${n.id}: run is no step name or https URL`);
       out.push(...logicProblems(`${w.id}.${n.id}`, n));

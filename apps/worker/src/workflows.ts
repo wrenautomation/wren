@@ -24,16 +24,14 @@ const BLOCKS = [
     id: "signals",
     stage: "find",
     name: "Trigger leads",
-    blurb: "Site visitors and buying signals, each turned into a lead with its reason.",
+    blurb: "Buying signals, each turned into a lead with its reason.",
     icon: "pulse",
     for: "client",
     out: [{ id: "leads", label: "leads with a reason", kind: "lead" }],
     nodes: [
-      { id: "visitors", uses: "signals.visitors" },
       { id: "triggers", uses: "signals.triggers" },
     ],
     wires: [
-      { from: "visitors.leads", to: "out.leads", via: "events" },
       { from: "triggers.leads", to: "out.leads", via: "events" },
     ],
   }),

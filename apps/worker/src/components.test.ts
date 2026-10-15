@@ -360,10 +360,11 @@ describe("workflows and hypotheses", () => {
     });
   });
 
-  it("a part's later steps are parts still in development", () => {
-    for (const c of COMPONENTS)
-      for (const id of c.later)
-        expect(COMPONENTS.find((x) => x.id === id)?.planned, `${c.id} later ${id}`).toBe(true);
+  it("no shipped workflow runs a planned part", () => {
+    const planned = new Set(COMPONENTS.filter((c) => c.planned).map((c) => c.id));
+    for (const w of WORKFLOWS)
+      for (const n of w.nodes)
+        expect(planned.has(n.uses ?? ""), `${w.id}.${n.id} uses ${n.uses}`).toBe(false);
   });
 
   it("follow-up and nurture ship every copy their touches send, as default files", () => {
