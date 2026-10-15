@@ -255,10 +255,11 @@ describe("SocialWatch", () => {
     expect(undated?.at.getTime()).toBeGreaterThan(Date.now() - 600_000);
     expect(await pg.db.select().from(socialDays)).toHaveLength(1);
 
-    // A second pass keeps nothing, reads the old post not at all, and says nothing.
+    // A second pass keeps nothing, says nothing, and reads neither post: LinkedIn's comments wait
+    // 2 hours (its page read is capped), the old YouTube post as long.
     li.follow(130);
     const second = await sync();
-    expect(second.stats).toMatchObject({ posts: 1, comments: 0, activity: 0, audience: [] });
+    expect(second.stats).toMatchObject({ posts: 0, comments: 0, activity: 0, audience: [] });
     expect(ytReads).toEqual(["yt-p1"]);
     expect(pings).toHaveLength(1);
     const days = () => pg.db.select().from(socialDays).where(eq(socialDays.platform, "linkedin"));
@@ -277,6 +278,45 @@ describe("SocialWatch", () => {
     // An undated row comes back every read, whatever the since; it is kept once.
     yc.activity = async () => [follow("f3", null)];
     expect((await sync()).stats?.activity).toBe(0);
+  });
+
+  it("reads a post's comments again only when its count moved; a failed count reads as before", async () => {
+    await published("youtube", "yt-p4", 1);
+    const counts: Record<string, number> = { "yt-p4": 0 };
+    let down = false;
+    const base = channels.youtube as ContentChannel;
+    channels.youtube = {
+      ...base,
+      commentCounts: async (ids) => {
+        if (down) throw new Error("counts down");
+        return Object.fromEntries(
+          ids.flatMap((id) => (counts[id] === undefined ? [] : [[id, counts[id] as number]])),
+        );
+      },
+    };
+    // Never read: read in full.
+    expect((await sync()).stats).toMatchObject({ posts: 1, skipped: 0 });
+    expect(ytReads).toEqual(["yt-p4"]);
+    // The count held: due, but nothing to read.
+    expect((await sync()).stats).toMatchObject({ posts: 0, skipped: 1 });
+    expect(ytReads).toHaveLength(1);
+    // A comment came in: the count moved, so the post is read and the comment kept.
+    yt.receive({ id: "yt-c4", postId: "yt-p4", author: "Ed", text: "Great", at: iso(1000) });
+    counts["yt-p4"] = 1;
+    expect((await sync()).stats).toMatchObject({ posts: 1, skipped: 0, comments: 1 });
+    expect((await sync()).stats).toMatchObject({ posts: 0, skipped: 1, comments: 0 });
+    expect(ytReads).toHaveLength(2);
+    // The count read fails: said in `missed`, not a failed pass, and the post is read as before.
+    down = true;
+    const failed = await sync();
+    expect(failed.stats).toMatchObject({ posts: 1, skipped: 0 });
+    expect(failed.stats?.missed).toEqual(["youtube comment counts: counts down"]);
+    expect(failed.error).toBeNull();
+    // A post the count read leaves out is read too.
+    down = false;
+    delete counts["yt-p4"];
+    expect((await sync()).stats).toMatchObject({ posts: 1, skipped: 0 });
+    expect(ytReads).toHaveLength(4);
   });
 
   it("Inbox lists every type; mark seen; followers per platform", async () => {

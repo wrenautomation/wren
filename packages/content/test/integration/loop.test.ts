@@ -53,6 +53,12 @@ let reportPlatforms: Platform[] = [];
 let reportReads = 0;
 /** What the loop handed `insights` as `read`, one per look. */
 const insightReads: unknown[] = [];
+/** Whether the stand-in channels have a batch read, the batches asked, and the posts read alone. */
+let batching = false;
+let batchFails = false;
+const leftOut = new Set<string>();
+const batches: { platform: Platform; ids: string[] }[] = [];
+const singles: string[] = [];
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
@@ -69,7 +75,28 @@ const fakeContent = restate.service({
         fetchedWith: "api" as const,
       };
     },
+    metricsMany: async (
+      _ctx: restate.Context,
+      req: { platform: Platform; posts: { id: string }[] },
+    ) => {
+      if (!batching) return null;
+      if (batchFails) throw new restate.TerminalError("batch down");
+      batches.push({ platform: req.platform, ids: req.posts.map((p) => p.id) });
+      return req.posts
+        .filter((p) => !leftOut.has(p.id))
+        .map((p) => ({
+          id: p.id,
+          views: views.get(p.id) ?? 0,
+          reactions: 0,
+          comments: 0,
+          shares: 0,
+          read: { batch: p.id },
+          asOf: new Date().toISOString(),
+          fetchedWith: "api" as const,
+        }));
+    },
     metrics: async (_ctx: restate.Context, req: { platform: Platform; id: string }) => {
+      singles.push(req.id);
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
@@ -170,6 +197,11 @@ beforeEach(async () => {
   prompts.length = 0;
   views.clear();
   refuse.clear();
+  batching = false;
+  batchFails = false;
+  leftOut.clear();
+  batches.length = 0;
+  singles.length = 0;
   calls = 0;
 });
 
@@ -332,6 +364,78 @@ describe("content loop", () => {
     expect(notes).toHaveLength(monday ? 1 : 0);
     expect(first.stats?.reported).toBe(monday);
     expect(second.stats?.reported).toBe(false);
+  });
+
+  it("reads a platform's due posts in one batch, and a post the batch left out alone", async () => {
+    const a = await desk().add({ text: "first x post", platforms: ["x"] });
+    const b = await desk().add({ text: "second x post", platforms: ["x"] });
+    const c = await desk().add({ text: "a linkedin post", platforms: ["linkedin"] });
+    const drafts = [
+      ...(await listDrafts(pg.db, { ideaId: a.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: b.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: c.idea.id })),
+    ];
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    const ids = posted.map((p, i) => `${p.platform}-${i + 1}`);
+    expect(ids).toHaveLength(3);
+    batching = true;
+    const left = ids.find((id) => id.startsWith("x-")) as string;
+    leftOut.add(left);
+    insightReads.length = 0;
+    const pass = await look();
+    // One batch a platform, each with all its due posts; nothing else read until the leftover.
+    expect(batches.map((x) => x.platform).sort()).toEqual(["linkedin", "x"]);
+    expect(batches.find((x) => x.platform === "x")?.ids.sort()).toEqual(
+      ids.filter((id) => id.startsWith("x-")).sort(),
+    );
+    expect(singles).toEqual([left]);
+    expect(pass.stats?.looked).toHaveLength(3);
+    expect(pass.stats?.failed).toEqual([]);
+    // A batched look hands its own answer to insights, as a single one does.
+    expect(insightReads).toContainEqual({ batch: ids.find((id) => id.startsWith("linkedin-")) });
+    expect(await pg.db.select().from(contentMetrics)).toHaveLength(3);
+  });
+
+  it("a batch that fails is read post by post, and the look still lands", async () => {
+    const a = await desk().add({ text: "first x post", platforms: ["x"] });
+    const b = await desk().add({ text: "second x post", platforms: ["x"] });
+    const drafts = [
+      ...(await listDrafts(pg.db, { ideaId: a.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: b.idea.id })),
+    ];
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    batching = true;
+    batchFails = true;
+    const pass = await look();
+    expect(batches).toEqual([]);
+    expect(singles.sort()).toEqual(posted.map((p, i) => `${p.platform}-${i + 1}`).sort());
+    expect(pass.stats?.looked).toHaveLength(2);
+    expect(pass.stats?.failed).toEqual([]);
+  });
+
+  it("a platform with no batch read is read post by post, as before", async () => {
+    const out = await desk().add({ text: "one post", platforms: ["linkedin"] });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    const pass = await look();
+    expect(batches).toEqual([]);
+    expect(singles).toEqual(["linkedin-1"]);
+    expect(pass.stats?.looked).toHaveLength(1);
   });
 
   it("reads a report that has nothing new once, not every pass", async () => {

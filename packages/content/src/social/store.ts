@@ -13,12 +13,13 @@ import { keepLive } from "../analytics/store.js";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
 import { linkCommentAuthors, touchFromActivity } from "../touches.js";
 
-const DAY = 86_400_000;
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
 /** Posts this young are read for comments. */
 export const RECENT_DAYS = 14;
 /** Older than this, a post is read every `SLOW_EVERY_MS`, not every pass. */
 export const FRESH_DAYS = 3;
-export const SLOW_EVERY_MS = 2 * 60 * 60 * 1000;
+export const SLOW_EVERY_MS = 2 * HOUR;
 
 export interface RecentPost {
   platform: Platform;
@@ -71,10 +72,13 @@ export async function recentPosts(
 
 /**
  * How often a post's comments are read: young, then older. TikTok's come off its page in a
- * browser, 24 a day, so its posts are read every 6 hours while young and daily after.
+ * browser, 24 a day, so its posts are read every 6 hours while young and daily after. LinkedIn's
+ * come off its page too, 60 a day: 2 hours while young, 8 after (an every-pass read spent the day's
+ * 60 by mid-morning and read nothing after).
  */
 const EVERY: Partial<Record<Platform, { fresh: number; slow: number }>> = {
-  tiktok: { fresh: 6 * 60 * 60 * 1000, slow: DAY },
+  tiktok: { fresh: 6 * HOUR, slow: DAY },
+  linkedin: { fresh: 2 * HOUR, slow: 8 * HOUR },
 };
 
 /** Young posts every pass; older ones once per `SLOW_EVERY_MS` since their last read. */
@@ -84,6 +88,36 @@ export const isDue = (p: RecentPost, lastRead: number | undefined, now: Date): b
   const every = EVERY[p.platform];
   if (every) return since >= (young ? every.fresh : every.slow);
   return young || since >= SLOW_EVERY_MS;
+};
+
+/**
+ * How long a held comment count is trusted. A count can lie (a held or deleted comment moves
+ * nothing), so a post is read in full this often anyway: young, then older. X and TikTok read
+ * through a capped page, so they sweep less often.
+ */
+const SWEEP: Partial<Record<Platform, { fresh: number; slow: number }>> = {
+  x: { fresh: 12 * HOUR, slow: 2 * DAY },
+  tiktok: { fresh: 12 * HOUR, slow: 2 * DAY },
+};
+const SWEEP_DEFAULT = { fresh: 6 * HOUR, slow: DAY };
+
+/**
+ * A due post whose comments need no read: its count (`probed`, from one `commentCounts` read for
+ * the platform) is the one kept at its last full read (`stored`), and that read is inside the
+ * sweep. Any missing number reads the post, as before.
+ */
+export const canSkip = (
+  p: RecentPost,
+  probed: number | undefined,
+  stored: number | undefined,
+  lastFull: number | undefined,
+  now: Date,
+): boolean => {
+  if (probed === undefined || stored === undefined || lastFull === undefined) return false;
+  if (probed !== stored) return false;
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  const sweep = SWEEP[p.platform] ?? SWEEP_DEFAULT;
+  return now.getTime() - lastFull < (young ? sweep.fresh : sweep.slow);
 };
 
 export type KeptComment = Pick<Comment, "id" | "platform" | "author" | "post"> & {

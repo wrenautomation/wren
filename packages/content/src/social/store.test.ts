@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nextPassAt } from "../restate/social.js";
-import { isDue, pingOf, type RecentPost } from "./store.js";
+import { canSkip, isDue, pingOf, type RecentPost } from "./store.js";
 
 const HOUR = 3_600_000;
 const NOW = new Date("2026-10-06T16:00:00Z"); // 12:00 New York
@@ -39,6 +39,39 @@ describe("social store", () => {
     expect(isDue(tt(5), NOW.getTime() - 23 * HOUR, NOW)).toBe(false);
     expect(isDue(tt(5), NOW.getTime() - 24 * HOUR, NOW)).toBe(true);
     expect(isDue(tt(5), undefined, NOW)).toBe(true);
+  });
+
+  it("isDue: a LinkedIn post every 2 hours while young, every 8 after (its page read is capped)", () => {
+    const li = (d: number): RecentPost => ({ ...post(d), platform: "linkedin" });
+    expect(isDue(li(1), NOW.getTime() - HOUR, NOW)).toBe(false);
+    expect(isDue(li(1), NOW.getTime() - 2 * HOUR, NOW)).toBe(true);
+    expect(isDue(li(5), NOW.getTime() - 7 * HOUR, NOW)).toBe(false);
+    expect(isDue(li(5), NOW.getTime() - 8 * HOUR, NOW)).toBe(true);
+  });
+
+  it("canSkip: a held count inside the sweep skips the read; anything missing or moved reads", () => {
+    const at = (hoursAgo: number) => NOW.getTime() - hoursAgo * HOUR;
+    // Young: a held count is trusted for 6 hours, then the post is read in full.
+    expect(canSkip(post(1), 4, 4, at(5), NOW)).toBe(true);
+    expect(canSkip(post(1), 4, 4, at(6), NOW)).toBe(false);
+    // Older: 24 hours.
+    expect(canSkip(post(5), 0, 0, at(23), NOW)).toBe(true);
+    expect(canSkip(post(5), 0, 0, at(24), NOW)).toBe(false);
+    // A moved count, no probe, no kept count or no full read yet: read.
+    expect(canSkip(post(1), 5, 4, at(1), NOW)).toBe(false);
+    expect(canSkip(post(1), undefined, 4, at(1), NOW)).toBe(false);
+    expect(canSkip(post(1), 4, undefined, at(1), NOW)).toBe(false);
+    expect(canSkip(post(1), 4, 4, undefined, NOW)).toBe(false);
+  });
+
+  it("canSkip: X and TikTok sweep every 12 hours young, every 2 days older", () => {
+    for (const platform of ["x", "tiktok"] as const) {
+      const p = (d: number): RecentPost => ({ ...post(d), platform });
+      expect(canSkip(p(1), 2, 2, NOW.getTime() - 11 * HOUR, NOW)).toBe(true);
+      expect(canSkip(p(1), 2, 2, NOW.getTime() - 12 * HOUR, NOW)).toBe(false);
+      expect(canSkip(p(5), 2, 2, NOW.getTime() - 47 * HOUR, NOW)).toBe(true);
+      expect(canSkip(p(5), 2, 2, NOW.getTime() - 48 * HOUR, NOW)).toBe(false);
+    }
   });
 
   it("nextPassAt: 30 minutes on inside 07:00-23:00 New York, else the next 07:00", () => {

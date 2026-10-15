@@ -27,7 +27,7 @@ import {
   type Platform,
   type SiteClient,
 } from "@wren/core/content";
-import { DESK } from "@wren/core/content/restate";
+import { DESK, MANY_POSTS } from "@wren/core/content/restate";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -47,6 +47,7 @@ import { clientContent } from "../clients.js";
 import { MAPS_EVERY_MS, readMapsReviews } from "../social/maps-reviews.js";
 import { ringLowReviews } from "../social/review-ring.js";
 import {
+  canSkip,
   hasDay,
   isDue,
   type KeptComment,
@@ -68,8 +69,12 @@ export const SOCIAL_KEY = "wren";
 export const SOCIAL_EVERY_MS = 30 * 60 * 1000;
 const FIRST_HOUR = 7;
 const LAST_HOUR = 23;
-/** Object state: each post's last comment read, ms, by `platform:id`. */
+/** Object state: each post's last check, ms, by `platform:id`: a read, or a count that held. */
 const READS = "reads";
+/** Object state: each post's comment count at its last full read, by `platform:id`. */
+const COUNTS = "counts";
+/** Object state: each post's last full comment read, ms, by `platform:id`. */
+const FULL_READS = "fullReads";
 /** Object state: each platform's last activity read, ms. */
 const ACTIVITY_READS = "activityReads";
 /** Object state: the last Google Maps review read, ms. */
@@ -101,6 +106,11 @@ type ContentReads = {
     ctx: restate.Context,
     req: { platform: Platform; q?: ActivityQuery } & ForClient,
   ) => Promise<CommentRow[] | null>;
+  /** Comment counts by post id in one read; null when the channel has to read to count. */
+  commentCounts: (
+    ctx: restate.Context,
+    req: { platform: Platform; ids: string[] } & ForClient,
+  ) => Promise<Record<string, number> | null>;
 };
 /** A client's DMs through its connected accounts (`makeSocialInbox`). */
 type SocialInboxRead = {
@@ -151,7 +161,10 @@ type DeskWatch = {
 const LEASE_SLACK_MS = 45 * 60_000;
 
 export interface SocialStats {
+  /** Posts whose comments were read. */
   posts: number;
+  /** Due posts left unread: their comment count had not moved since the last full read. */
+  skipped: number;
   comments: number;
   /** New reviews of a client's Business Profile: in `comments` too. */
   reviews: number;
@@ -233,6 +246,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     );
     const stats: SocialStats = {
       posts: 0,
+      skipped: 0,
       comments: 0,
       reviews: 0,
       asked: 0,
@@ -250,25 +264,64 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const read = platforms.filter((p) => commented.includes(p));
     const posts = await ctx.run("posts", () => recentPosts(db, read, now));
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};
+    const countsBefore = (await ctx.get<Record<string, number>>(COUNTS)) ?? {};
+    const fullBefore = (await ctx.get<Record<string, number>>(FULL_READS)) ?? {};
     const reads: Record<string, number> = {};
+    const counts: Record<string, number> = {};
+    const fulls: Record<string, number> = {};
+    const due: { p: (typeof posts)[number]; key: string; wasPushed: boolean }[] = [];
     for (const p of posts) {
       const key = `${p.platform}:${p.id}`;
       const last = before[key];
       if (last !== undefined) reads[key] = last;
+      const count = countsBefore[key];
+      if (count !== undefined) counts[key] = count;
+      const full = fullBefore[key];
+      if (full !== undefined) fulls[key] = full;
       const wasPushed = pushedPosts.has(key) || pushedPosts.has(`${p.platform}:${postTail(p.id)}`);
-      if (!wasPushed && !isDue(p, last, now)) continue;
+      if (wasPushed || isDue(p, last, now)) due.push({ p, key, wasPushed });
+    }
+    // One count read per platform for every due post: a post whose count held needs no comment
+    // read (designs/2026-10-15-fetch-budget.md). A probe that fails or has no answer reads as before.
+    const probed: Record<string, number> = {};
+    for (const platform of new Set(due.filter((d) => !d.wasPushed).map((d) => d.p.platform))) {
+      const ids = due.filter((d) => d.p.platform === platform).map((d) => d.p.id);
+      for (let i = 0; i < ids.length; i += MANY_POSTS)
+        try {
+          const got = await content.commentCounts({
+            platform,
+            ids: ids.slice(i, i + MANY_POSTS),
+            ...mine,
+          });
+          for (const [id, n] of Object.entries(got ?? {})) probed[`${platform}:${id}`] = n;
+        } catch (err) {
+          stats.missed.push(`${platform} comment counts: ${errorText(err)}`);
+        }
+    }
+    for (const { p, key, wasPushed } of due) {
+      const n = probed[key];
+      if (!wasPushed && canSkip(p, n, countsBefore[key], fullBefore[key], now)) {
+        reads[key] = now.getTime();
+        stats.skipped += 1;
+        continue;
+      }
       reads[key] = now.getTime();
       stats.posts += 1;
       try {
         const got = await content.comments({ platform: p.platform, id: p.id, ...mine });
         const rows = await ctx.run(`comments ${key}`, () => keepPostComments(db, p, got));
         kept.push(...rows);
+        fulls[key] = now.getTime();
+        if (n === undefined) delete counts[key];
+        else counts[key] = n;
       } catch (err) {
         stats.errors.push(`${key}: ${errorText(err)}`);
       }
     }
     // Posts past the window drop out of state.
     ctx.set(READS, reads);
+    ctx.set(COUNTS, counts);
+    ctx.set(FULL_READS, fulls);
     // A comment that says a keyword gets its DM (designs/2026-10-11-comment-keywords.md).
     try {
       stats.keywordDms = await catchKeywordDms(
