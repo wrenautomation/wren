@@ -28,12 +28,8 @@ const BLOCKS = [
     icon: "pulse",
     for: "client",
     out: [{ id: "leads", label: "leads with a reason", kind: "lead" }],
-    nodes: [
-      { id: "triggers", uses: "signals.triggers" },
-    ],
-    wires: [
-      { from: "triggers.leads", to: "out.leads", via: "events" },
-    ],
+    nodes: [{ id: "triggers", uses: "signals.triggers" }],
+    wires: [{ from: "triggers.leads", to: "out.leads", via: "events" }],
   }),
   defineWorkflow({
     id: "keep_warm",
