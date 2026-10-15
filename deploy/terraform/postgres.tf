@@ -212,34 +212,39 @@ data "aws_kms_alias" "ssm" {
   name = "alias/aws/ssm"
 }
 
+locals {
+  pg_parameters = concat(
+    [aws_ssm_parameter.pg_password.arn],
+    aws_ssm_parameter.browser_token[*].arn,
+    # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
+    [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.keystore.arn],
+    [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
+    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn],
+  )
+}
+
 data "aws_iam_policy_document" "pg" {
-  # The wallet's backup (/wallet): William's cards, off every machine role. The managed
-  # SSM core policy grants GetParameter on "*" and this role decrypts with the SSM key,
-  # so without this Deny a shell on the box could read a card.
+  # Every parameter but the box's own. The managed SSM core policy grants GetParameter on "*"
+  # and this role decrypts with the SSM key, which also seals autobrowse's logins and the wallet
+  # (William's cards): without this Deny a shell on the box could read them all (10-15).
   statement {
-    sid    = "NeverTheWallet"
+    sid    = "OnlyOwnParameters"
     effect = "Deny"
     actions = [
       "ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath",
       "ssm:GetParameterHistory", "ssm:PutParameter", "ssm:DeleteParameter",
       "ssm:DeleteParameters", "ssm:LabelParameterVersion",
     ]
-    resources = [
-      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/wallet",
-      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/wallet/*",
-    ]
+    not_resources = concat(
+      local.pg_parameters,
+      # The voice agent's, once it's installed (deploy/voice/wren-voice.service).
+      ["arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/wren/prod/voice"],
+    )
   }
   statement {
-    sid     = "ReadOwnSecrets"
-    actions = ["ssm:GetParameter"]
-    resources = concat(
-      [aws_ssm_parameter.pg_password.arn],
-      aws_ssm_parameter.browser_token[*].arn,
-      # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
-      [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.keystore.arn],
-      [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
-      [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn],
-    )
+    sid       = "ReadOwnSecrets"
+    actions   = ["ssm:GetParameter"]
+    resources = local.pg_parameters
   }
   statement {
     sid       = "ReadWorkerBundle"
