@@ -36,7 +36,8 @@ function Siblings({ rows }: { rows: Sibling[] }) {
               className="flex min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2 py-1.5 text-[13.5px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
             >
               <PlatformMark mark={r.platform} size={15} label={nameOf(r.platform)} />
-              <span className="min-w-0 flex-1 truncate">{r.title}</span>
+              {/* w-0: a long title never widens the sheet; it truncates. */}
+              <span className="w-0 min-w-0 flex-1 truncate">{r.title}</span>
               <span className={cx("shrink-0 text-[12.5px]", QUIET)}>{nameOf(r.platform)}</span>
               <Tag tone={s.tone}>{s.label}</Tag>
             </a>

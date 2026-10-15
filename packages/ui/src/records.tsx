@@ -2609,8 +2609,10 @@ export function RecordBody({
     <article className="grid gap-5 max-[900px]:pb-(--dock-h,0px)">
       <header className="grid gap-3">
         {more.hero}
-        <div className="flex items-start justify-between gap-3 max-sm:flex-col">
-          <div className="min-w-0">
+        {/* The title keeps a readable width: when the actions don't fit beside it, they wrap
+            under it (a sheet with five actions). */}
+        <div className="flex flex-wrap items-start justify-between gap-3 max-sm:flex-col">
+          <div className="min-w-0 sm:flex-[1_1_16rem]">
             <h2 className={PAGE_TITLE}>{titleOf(meta, row)}</h2>
             {sub ? (
               <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)" {...clipProps()}>

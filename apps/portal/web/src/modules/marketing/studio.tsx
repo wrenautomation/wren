@@ -133,8 +133,11 @@ export function studioHref(params: URLSearchParams): string {
 
 /** Marketing → Write folded into Studio: its links land in Studio's New. */
 export function WritePage(props: PageProps) {
+  // After this commit's effects: on a first load the router's listener mounts after this page's
+  // effect, and a move sent before it would be missed (a blank page).
   useEffect(() => {
-    navigate(studioHref(props.params), true);
+    const to = studioHref(props.params);
+    queueMicrotask(() => navigate(to, true));
   }, [props.params]);
   return null;
 }
