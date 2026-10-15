@@ -212,6 +212,7 @@ export function DraftBox({
     setBase(b);
   };
   // Only a new server text resets the box, and only the words that differ: trailing spaces he typed stay.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `rebase` only sets a ref and a state.
   useEffect(() => {
     if (live.current.dirty || passed.current.has(server.trim())) return;
     rebase(server);
