@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { findCreators, handleIn, markFollowed, sameAddress } from "./creator-search.js";
 
@@ -103,6 +103,22 @@ describe("creator search", () => {
     ]);
     expect(out.failed).toEqual([{ site: "x", why: "x: 429" }]);
     expect(calls.find((c) => c.path === "/search/results/people")?.account).toBe("linkedin@wren");
+  });
+
+  it("a used X search cap says when it resets", async () => {
+    const { sites } = sitesOf({
+      "x /2/tweets/search/recent": () => {
+        throw new SiteCallError(
+          "x",
+          "GET",
+          "/2/tweets/search/recent",
+          429,
+          "search cap is used (50/50 today); retry after 9000s",
+        );
+      },
+    });
+    const out = await findCreators(sites, "words", { only: ["x"], accounts: { x: "x@wren" } });
+    expect(out.failed).toEqual([{ site: "x", why: "today's x search cap is used; back in 3h" }]);
   });
 
   it("no X account: X is skipped with the reason; `only` picks sites", async () => {

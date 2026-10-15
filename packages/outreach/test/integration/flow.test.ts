@@ -383,6 +383,41 @@ describe("failures", () => {
     expect((await tickAt(at(0.12))).sent).toBe(0);
   });
 
+  it("a used daily cap holds the account's invites until it resets, with no failure", async () => {
+    await account("linkedin", "linkedin@alt", at(-30));
+    const a = await addContact(db(), { platform: "linkedin", handle: "person-a" });
+    const b = await addContact(db(), { platform: "linkedin", handle: "person-b" });
+    await enroll(db(), { sequence: LINKEDIN, sender: "William", limit: 10, now: OPEN });
+    const li = fakeOf("linkedin@alt");
+    const ok = li.connect;
+    if (!ok) throw new Error("no connect");
+    let asked = 0;
+    li.connect = async () => {
+      asked++;
+      throw new SiteCallError(
+        "linkedin",
+        "POST",
+        "/in/person-a/connect",
+        429,
+        "connect cap is used (20/20 today); retry after 72000s",
+      );
+    };
+    const capped = await tickAt(OPEN);
+    expect(capped.held).toEqual({ cap: 1, gap: 1 });
+    expect(capped.failed).toBe(0);
+    const reset = OPEN.getTime() + 72_000_000;
+    for (const id of [a.id, b.id]) {
+      const [row] = await messagesOf(id);
+      expect([row?.state, row?.dueAt?.getTime()]).toEqual(["queued", reset]);
+    }
+    for (const h of [1, 2, 6]) await tickAt(new Date(OPEN.getTime() + h * 3_600_000));
+    expect(asked).toBe(1);
+
+    li.connect = ok;
+    expect((await tickAt(new Date(reset))).sent).toBe(1);
+    expect(li.sent.map((s) => s.kind)).toEqual(["connect"]);
+  });
+
   it("a stale sending row becomes unknown and is never resent", async () => {
     await account("reddit", "reddit@alt");
     const c = await addContact(db(), { platform: "reddit", handle: "lost" });

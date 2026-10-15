@@ -2,10 +2,17 @@
  * `CommentProofs` (designs/2026-10-14-comment-proof.md): each sent comment checked at 2 minutes,
  * an hour and a day (`scheduleProofs`, called by the send handlers), or now by hand. A check
  * reads through the desk (`siteProof`), keeps its shot, overwrites the item's `comment_proofs`
- * row and appends to its checks. The hour's check that is not live goes to Discord once.
+ * row and appends to its checks. The hour's check that is not live goes to Discord once. A used
+ * daily cap on the public read keeps nothing: the check comes back once the cap resets.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type KeepShot, type Proof, type SiteClient, siteProof } from "@wren/core/content";
+import {
+  capWaitMs,
+  type KeepShot,
+  type Proof,
+  type SiteClient,
+  siteProof,
+} from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -61,12 +68,34 @@ export function makeCommentProofs(deps: ProofsDeps) {
           if (!target) throw new restate.TerminalError(`${req.item} was never sent`);
           const at = new Date(await ctx.date.now());
           const keep = deps.keep;
-          const proof = await siteProof({
-            sites: deps.sitesFor(ctx),
-            now: () => at,
-            ...(keep ? { keep: (b: Uint8Array) => ctx.run("keep shot", () => keep(b)) } : {}),
-            ...(deps.linkedinAccount ? { linkedinAccount: deps.linkedinAccount } : {}),
-          }).check(target);
+          let proof: Proof;
+          try {
+            proof = await siteProof({
+              sites: deps.sitesFor(ctx),
+              now: () => at,
+              ...(keep ? { keep: (b: Uint8Array) => ctx.run("keep shot", () => keep(b)) } : {}),
+              ...(deps.linkedinAccount ? { linkedinAccount: deps.linkedinAccount } : {}),
+            }).check(target);
+          } catch (err) {
+            // The public read's daily cap is used: nothing read, nothing kept. A scheduled check
+            // comes back once it resets; one by hand says when.
+            const wait = capWaitMs(err);
+            if (wait === null) throw err;
+            if (round !== HAND_ROUND)
+              ctx
+                .serviceSendClient<ProofsClient>(PROOFS_SERVICE)
+                .check(
+                  { item: req.item, round },
+                  restate.rpc.sendOpts<ProofCheck>({ delay: wait }),
+                );
+            return {
+              state: "pending",
+              checkedAt: at.toISOString(),
+              url: target.url,
+              shot: null,
+              note: `the public read cap is used; it resets in ${Math.ceil(wait / 3_600_000)}h`,
+            };
+          }
           const kept = await ctx.run("keep", () =>
             keepProof(deps.db, req.item, target.platform, proof, round),
           );

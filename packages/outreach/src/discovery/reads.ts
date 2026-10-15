@@ -4,7 +4,7 @@
  * them (one every 6 to 9 seconds, 400 a day).
  */
 import { type Listing, REDDIT_SITE, redditOutreach, type Thing } from "@wren/channel-reddit";
-import type { SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/content";
 import type { Profile } from "@wren/core/outreach";
 
 export const PUBLIC_SITE = "reddit-public";
@@ -99,7 +99,8 @@ export function reader(sites: SiteClient, as?: string): Reader {
     : signedOut(sites);
   const call = <T>(path: string, input: Record<string, unknown> = {}) =>
     out.call<T>(REDDIT_SITE, "GET", path, { raw_json: 1, ...input });
-  const asPeople = redditOutreach(out, { account: as ?? PUBLIC_SITE });
+  // Signed out, Reddit refuses every card read (403 since 2026-10-13): people are read without.
+  const asPeople = redditOutreach(out, { account: as ?? PUBLIC_SITE, cards: Boolean(as) });
   return {
     person: (handle) => asPeople.enrich(handle),
     async searchPlaces(topic) {
@@ -123,11 +124,18 @@ export function reader(sites: SiteClient, as?: string): Reader {
     },
     async place(sub) {
       // Signed out, about and rules answer 403 since 2026-10-13 (no RSS twin): read as unknown.
+      // A used cap is no unknown: it ends the read.
+      const unless =
+        <T>(fallback: T) =>
+        (err: unknown): T => {
+          if (capWaitMs(err) !== null) throw err;
+          return fallback;
+        };
       const about = await call<{ data?: SubredditAbout }>(`/r/${sub}/about`).then(
         (a) => dataOf(a),
-        (): SubredditAbout => ({ display_name: sub }),
+        unless<SubredditAbout>({ display_name: sub }),
       );
-      const rules = await call<unknown>(`/r/${sub}/about/rules`).catch(() => null);
+      const rules = await call<unknown>(`/r/${sub}/about/rules`).catch(unless(null));
       const top = itemsOf<Post>(await call<Listing>(`/r/${sub}/top`, { t: "week", limit: 25 }));
       const latest = itemsOf<Post>(await call<Listing>(`/r/${sub}/new`, { limit: 25 }));
       return { about, rules, top, latest };

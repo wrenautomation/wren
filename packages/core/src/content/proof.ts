@@ -7,7 +7,7 @@
  * `GET /comments/{article}`; LinkedIn `GET /rest/socialActions/{urn}/comments`). The shot is
  * autobrowse's `web GET /proof/shot`, signed out, kept by `keep`.
  */
-import type { SiteClient } from "./autobrowse.js";
+import { capWaitMs, type SiteClient } from "./autobrowse.js";
 
 export const PROOF_STATES = ["live", "hidden", "missing", "pending"] as const;
 export type ProofState = (typeof PROOF_STATES)[number];
@@ -224,6 +224,8 @@ export function siteProof(deps: ProofDeps): CommentProof {
     try {
       open = await info("reddit-public");
     } catch (e) {
+      // A used daily cap is the caller's to wait out, not a check that read nothing.
+      if (capWaitMs(e) !== null) throw e;
       return pending(t, `the public read failed: ${message(e)}`);
     }
     const a = article(t.post ?? t.parent) ?? article(open?.link_id);

@@ -9,7 +9,12 @@ import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import { type ActivityRow, type ContentChannel, fakeContentChannel } from "@wren/core/content";
+import {
+  type ActivityRow,
+  type ContentChannel,
+  fakeContentChannel,
+  SiteCallError,
+} from "@wren/core/content";
 import { makeContent } from "@wren/core/content/restate";
 import type { Notifier } from "@wren/core/notify";
 import { fakeOutreachChannel } from "@wren/core/outreach";
@@ -484,6 +489,32 @@ describe("SocialWatch", () => {
         now: new Date(),
       }),
     ).rejects.toThrow(/Content.reply/);
+  });
+
+  // Last here: the hold outlives the test, on the loop's state.
+  it("a used daily cap holds the platform's comment reads until it resets: no error", async () => {
+    await published("youtube", "yt-p5", 0);
+    let asked = 0;
+    channels.youtube = {
+      ...(channels.youtube as ContentChannel),
+      comments: async () => {
+        asked++;
+        throw new SiteCallError(
+          "youtube",
+          "GET",
+          "/comments",
+          429,
+          "search cap is used (50/50 today); retry after 7200s",
+        );
+      },
+    };
+    const capped = await sync();
+    expect(capped.error).toBeNull();
+    expect(capped.stats).toMatchObject({ posts: 0, held: ["youtube comments"], errors: [] });
+    const again = await sync();
+    expect(again.error).toBeNull();
+    expect(again.stats?.held).toEqual(["youtube comments"]);
+    expect(asked).toBe(1);
   });
 });
 

@@ -25,10 +25,11 @@ import { byOf, keepSentEdit } from "@wren/core/ask";
 import { sendsOn } from "@wren/core/clients";
 import {
   type Platform as ContentPlatform,
+  capWaitMs,
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
-import { capWaitMs, isRefusal } from "@wren/core/content/restate";
+import { isRefusal } from "@wren/core/content/restate";
 import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
@@ -607,7 +608,7 @@ async function postsFor(
     ...(deps.drafts?.ours ? { ours: deps.drafts.ours } : {}),
     now,
     step: (name, fn) => ctx.run(name, fn),
-    capped: (err) => err instanceof SiteCallError && err.status === 429,
+    capped: (err) => capWaitMs(err) !== null,
   });
   if (!settings.autoSend) return stats;
   const slots = await ctx.run(`schedule ${platform}`, () =>

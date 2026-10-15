@@ -4,11 +4,13 @@
  * monthly, judge the unread ones, read each watched place's new posts every 2 hours (filter,
  * rank, queue), draft the queue with research (thread, OP, our SOPs), read back our comments'
  * scores. Reddit reads are journaled calls in the handler; the model and the table in `ctx.run`.
- * A 429 (the desk's daily cap) ends the pass's reads until the next one.
+ * A used daily cap (the desk's 429 waiting hours) holds that identity's reads until it resets, on
+ * the object's state: no pass asks it before then, and it is no error. Signed out held, drafts read
+ * signed in as the thread's account.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
-import { SiteCallError } from "@wren/core/content";
+import { type CapHolds, capHeld, holdCap, liveHolds } from "@wren/core/content";
 import { isVendorStop } from "@wren/core/metered";
 import type { OurPost } from "@wren/core/our-posts";
 import {
@@ -47,7 +49,7 @@ import {
   WREN_ABOUT,
   watchPlace,
 } from "../discovery/places.js";
-import { reader, SUBS_PER_READ } from "../discovery/reads.js";
+import { PUBLIC_SITE, reader, SUBS_PER_READ } from "../discovery/reads.js";
 import { ThreadHeld } from "../discovery/requirements.js";
 import {
   draftThread,
@@ -97,6 +99,8 @@ const PEOPLE_PER_PASS = 5;
 const BUSY_MS = 2 * 60_000;
 const IDLE_MS = 30 * 60_000;
 const FOUND_AT = "foundAt";
+/** Object state: reads a used daily cap holds, until it resets (ms): `reddit-public`, or an account. */
+const CAP_HOLDS = "capHolds";
 
 export interface DiscoveryDeps {
   llm: LlmClient | null;
@@ -124,6 +128,7 @@ export interface DiscoveryStats {
   drafted: number;
   people: number;
   scored: number;
+  /** The signed-out daily cap is used: no signed-out read until it resets. No error. */
   capped: boolean;
   /** A client's vendor gate said no: why. Its reads end for the pass, as on a cap. */
   stopped: string | null;
@@ -133,8 +138,6 @@ export interface DiscoveryStats {
   scheduled?: number;
   errors: string[];
 }
-
-const capped = (err: unknown) => err instanceof SiteCallError && err.status === 429;
 
 /** A client's drafts until its own voice is a setting: plain, as the business's own account. */
 export const CLIENT_VOICE =
@@ -214,13 +217,22 @@ async function readsPass(
     stopped: null,
     errors: [],
   };
-  /** One unit of reads; a cap stops the rest of the pass, anything else is noted and passed. */
+  const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());
+  /** `who`'s cap is used (`reddit-public`, or an account): held until it resets. */
+  const held = (who: string) => capHeld(holds, who, now.getTime());
+  /** `err` used `who`'s daily cap: hold it, no error. */
+  const spent = (who: string, err: unknown) => holdCap(holds, who, err, now.getTime());
+  s.capped = held(PUBLIC_SITE);
+  /** One unit of signed-out reads; a used cap stops the rest, anything else is noted and passed. */
   const reading = async (what: string, fn: () => Promise<void>) => {
     if (s.capped) return;
     try {
       await fn();
     } catch (err) {
-      if (capped(err)) s.capped = true;
+      if (spent(PUBLIC_SITE, err)) {
+        s.capped = true;
+        return;
+      }
       if (isVendorStop(err)) s.stopped ??= err.why;
       s.errors.push(`${what}: ${errorText(err)}`);
     }
@@ -228,7 +240,7 @@ async function readsPass(
 
   // Places: found once a month, each judged when unread or a month old.
   const foundAt = (await ctx.get<number>(FOUND_AT)) ?? 0;
-  if (now.getTime() - foundAt >= PLACE_FRESH_MS) {
+  if (!s.capped && now.getTime() - foundAt >= PLACE_FRESH_MS) {
     const topics = await step("topics", () => topicsOf(d.llm, audience));
     const found: { name: string; foundBy: string; subscribers?: number }[] =
       audience.subreddits.map((n) => ({ name: n, foundBy: "named" }));
@@ -266,7 +278,7 @@ async function readsPass(
         );
         s.judged++;
       } catch (err) {
-        if (capped(err)) throw err;
+        if (spent(PUBLIC_SITE, err)) throw err;
         await step(`fail r/${p.subreddit}`, () => failPlace(db, p.subreddit, errorText(err), now));
         throw err;
       }
@@ -332,8 +344,9 @@ async function readsPass(
     const posts = d.ours
       ? await step("our posts", async () => [...((await d.ours?.()) ?? [])])
       : [];
-    // A spent signed-out cap doesn't hold drafts: the thread is read signed in as the account
-    // that will comment there (its own read cap), and the author's card is left out.
+    // A used signed-out cap doesn't hold drafts: the thread is read signed in as the account
+    // that will comment there (its own read cap), and the author's card is left out. A thread
+    // with no account waits for the reset.
     const accounts = new Map(
       await step("draft accounts", async () =>
         (
@@ -346,12 +359,20 @@ async function readsPass(
     );
     for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS, now))) {
       const as = t.accountId ? accounts.get(t.accountId) : undefined;
+      const signedIn = as && !held(as) ? as : null;
+      if (s.capped && !signedIn) continue;
       try {
-        const read = await r.thread(t.id).catch((err) => {
-          if (!capped(err) || !as) throw err;
-          s.capped = true;
-          return reader(deps.sitesFor(ctx), as).thread(t.id);
-        });
+        let read = s.capped
+          ? null
+          : await r.thread(t.id).catch((err) => {
+              if (!spent(PUBLIC_SITE, err)) throw err;
+              s.capped = true;
+              return null;
+            });
+        if (!read) {
+          if (!signedIn) continue;
+          read = await reader(deps.sitesFor(ctx), signedIn).thread(t.id);
+        }
         const op =
           t.author === "[deleted]" || s.capped
             ? null
@@ -360,7 +381,7 @@ async function readsPass(
                 now,
                 step,
               }).catch((err) => {
-                if (capped(err)) s.capped = true;
+                if (spent(PUBLIC_SITE, err)) s.capped = true;
                 return null;
               });
         const out = await step(`draft ${t.id}`, () =>
@@ -368,9 +389,9 @@ async function readsPass(
         );
         if (out === "drafted") s.drafted++;
       } catch (err) {
+        if (as && spent(as, err)) continue;
         if (isVendorStop(err)) s.stopped ??= err.why;
         s.errors.push(`draft ${t.id}: ${errorText(err)}`);
-        if (capped(err)) break;
       }
     }
   }
@@ -415,6 +436,7 @@ async function readsPass(
       s.scored = scores.length;
     });
 
+  ctx.set(CAP_HOLDS, holds);
   const more =
     !s.capped &&
     (toRead.length === PLACES_PER_PASS ||
@@ -430,7 +452,7 @@ async function readsPass(
     stats: s,
     error,
     failures: error ? (previous?.failures ?? 0) + 1 : 0,
-    delayMs: s.capped ? 6 * HOUR : more ? BUSY_MS : IDLE_MS,
+    delayMs: more ? BUSY_MS : IDLE_MS,
     now: now.toISOString(),
   };
   await setLastPass(ctx, outcome);

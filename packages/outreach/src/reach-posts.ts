@@ -1264,7 +1264,7 @@ export interface PostsStats {
   queued: number;
   /** Drafts put on spaced slots this pass (`autoSend`). */
   scheduled?: number;
-  /** autobrowse's day's cap answered 429: reads end for the pass. */
+  /** autobrowse's day's cap is used (a 429 waiting hours): reads end for the pass, no error. */
   capped: boolean;
   /** The search words this pass planned, and his own that rest for finding nothing on target. */
   topics: string[];
@@ -1396,8 +1396,9 @@ export async function postsPass(
       out.kept += kept.found.length;
       out.dropped += kept.dropped;
     } catch (err) {
+      // A used daily cap ends the pass's reads, no error: the next day's pass is past its reset.
       if (o.capped?.(err)) out.capped = true;
-      out.errors.push(`${r.foundBy}: ${err instanceof Error ? err.message : String(err)}`);
+      else out.errors.push(`${r.foundBy}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   if (!llm || need <= 0) return out;

@@ -301,6 +301,16 @@ describe("reddit outreach enrich", () => {
     expect(count("/user/ann/about") + count("/user/bob/about")).toBe(1);
   });
 
+  it("with cards off (signed out), no card is asked for: the person comes from the overview", async () => {
+    const { sites, calls } = reddit(() => overview());
+    const ch = redditOutreach(sites, { account: "reddit-public", now, cards: false });
+    ch.learn([{ handle: "ann", id: "t2_ann" }]);
+    const ann = await ch.enrich("ann");
+    expect(ann.raw).toEqual({ about: null });
+    expect(ann.recent).toHaveLength(2);
+    expect(calls.map(([p]) => p)).toEqual(["/user/ann/overview"]);
+  });
+
   it("any other failure of the card read is still a failure", async () => {
     const { sites } = reddit((path) => {
       if (path.endsWith("/about"))

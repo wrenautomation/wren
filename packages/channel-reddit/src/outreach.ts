@@ -30,6 +30,11 @@ import { answerOf, type Listing, REDDIT_SITE, redditUrl, type Thing } from "./co
 export interface RedditOutreachOptions {
   account: string;
   now?: () => Date;
+  /**
+   * Read people's cards (age, karma) in `enrich`. Off for a signed-out reader: Reddit answers
+   * 403 for every card read signed out since 2026-10-13, and each refusal spends a desk read.
+   */
+  cards?: boolean;
 }
 
 interface UserAbout {
@@ -167,6 +172,7 @@ export function redditOutreach(
     }
   };
   const cardOf = async (h: string): Promise<UserAbout | null> => {
+    if (o.cards === false) return null;
     const k = h.toLowerCase();
     const kept = cards.get(k);
     if (kept) return kept;

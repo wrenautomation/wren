@@ -12,7 +12,7 @@
  *   business discovery.
  * - TikTok: accounts in Exa's results.
  */
-import type { SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/content";
 import { reader, signedOut } from "./discovery/reads.js";
 
 export const CREATOR_SITES = ["youtube", "reddit", "linkedin", "x", "instagram", "tiktok"] as const;
@@ -385,7 +385,16 @@ export async function findCreators(
     try {
       out.hits.push(...(await finders[site](sites, words, o.accounts ?? {})));
     } catch (err) {
-      out.failed.push({ site, why: err instanceof Error ? err.message : String(err) });
+      const wait = capWaitMs(err);
+      out.failed.push({
+        site,
+        why:
+          wait === null
+            ? err instanceof Error
+              ? err.message
+              : String(err)
+            : `today's ${site} search cap is used; back in ${Math.ceil(wait / 3_600_000)}h`,
+      });
     }
   }
   return out;

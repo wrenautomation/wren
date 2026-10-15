@@ -19,10 +19,11 @@
  * and queues the next (`touch`). After the last, the contact is `finished`.
  * The live gate off holds every sequence and follow-up row; a manual row is William's own yes and
  * goes, from an active or a warming account (its rung's caps still apply).
- * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
- * it and ends the contact as `unreachable`; anything else leaves `unknown`.
+ * A used daily cap (a 429 whose wait is hours) holds the row, and the account's other rows on
+ * that cap, until it resets; a short 429 holds the row an hour; any other 4xx fails it and ends
+ * the contact as `unreachable`; anything else leaves `unknown`.
  */
-import { mayHavePosted, SiteCallError } from "@wren/core/content";
+import { capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import {
   campaignOfRef,
@@ -504,6 +505,32 @@ export async function recordFailure(
   stats: TickStats,
 ): Promise<void> {
   const text = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+  const wait = capWaitMs(err);
+  if (wait !== null) {
+    // A used daily cap: this row and the account's other rows on the same cap (invites, or
+    // messages) wait past its reset, so none of them asks before then.
+    const until = new Date(now.getTime() + wait);
+    await db
+      .update(reachMessages)
+      .set({ state: "queued", dueAt: until, stateReason: text })
+      .where(eq(reachMessages.id, c.row.id));
+    await db
+      .update(reachMessages)
+      .set({ dueAt: until })
+      .where(
+        and(
+          eq(reachMessages.accountId, c.account.id),
+          eq(reachMessages.state, "queued"),
+          eq(reachMessages.direction, "out"),
+          c.row.kind === "connect"
+            ? eq(reachMessages.kind, "connect")
+            : sql`${reachMessages.kind} <> 'connect'`,
+          or(isNull(reachMessages.dueAt), lt(reachMessages.dueAt, until)),
+        ),
+      );
+    hold(stats, "cap");
+    return;
+  }
   if (err instanceof SiteCallError && err.status === 429) {
     await db
       .update(reachMessages)

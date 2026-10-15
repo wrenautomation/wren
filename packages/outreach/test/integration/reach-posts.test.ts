@@ -388,17 +388,23 @@ describe("the daily pass", () => {
     expect(calls).toEqual([]);
   });
 
-  it("a 429 ends the reads for the pass", async () => {
+  it("a used daily cap ends the reads for the pass, with no error", async () => {
     await settings({
       account: "linkedin@wren",
       topics: ["a topic", "another"],
       people: false,
     });
     routes["/search/results/content"] = () => {
-      throw new SiteCallError("linkedin", "GET", "/search/results/content", 429, "posts: cap");
+      throw new SiteCallError(
+        "linkedin",
+        "GET",
+        "/search/results/content",
+        429,
+        "search cap is used (30/30 today); retry after 36000s",
+      );
     };
     const out = statsOf(await sync())?.posts[0];
-    expect(out).toMatchObject({ reads: 0, capped: true, queued: 0 });
+    expect(out).toMatchObject({ reads: 0, capped: true, queued: 0, errors: [] });
     expect(calls.filter((c) => c.path === "/search/results/content")).toHaveLength(1);
   });
 });

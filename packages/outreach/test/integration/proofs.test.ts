@@ -7,7 +7,7 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import type { Proof, SiteClient } from "@wren/core/content";
+import { type Proof, SiteCallError, type SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -23,6 +23,8 @@ const ACCOUNT = "00000000-0000-4000-8000-000000000001";
 /** Strangers see `open`; the account sees `own`. */
 let open = "[deleted]";
 let own = "Ask which step they drop at.";
+/** The signed-out read's daily cap is used. */
+let publicCapped = false;
 const calls: string[] = [];
 const thing = (body: string) => ({
   name: "t1_c1",
@@ -35,6 +37,8 @@ const listing = (body: string) => ({ data: { children: [{ kind: "t1", data: thin
 const sites: SiteClient = {
   async call<T>(site: string, method: string, path: string, _i?: unknown, account?: string) {
     calls.push(`${site} ${method} ${path}${account ? ` as ${account}` : ""}`);
+    if (publicCapped && site === "reddit-public")
+      throw new SiteCallError(site, method, path, 429, "reads cap is used; retry after 7200s");
     if (path === "/api/info") return listing(site === "reddit" ? own : open) as T;
     if (path === "/comments/p1") return [listing("x"), listing(open)] as T;
     if (path === "/proof/shot")
@@ -93,6 +97,7 @@ beforeEach(async () => {
   warned.length = 0;
   open = "[deleted]";
   own = "Ask which step they drop at.";
+  publicCapped = false;
   await db().execute(sql`insert into reach_accounts (id, platform, account, handle, state, started_on)
     values (${ACCOUNT}, 'reddit', 'reddit@one', 'one_handle', 'active', '2026-09-01')`);
   await db().execute(sql`insert into reddit_places (subreddit, name, found_by)
@@ -122,6 +127,18 @@ describe("comment proofs", () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toBe("thread:t3_p1");
     expect(await sentSince(db(), new Date("2026-10-14T00:00:00Z"))).toEqual([]);
+  });
+
+  it("a used public read cap keeps nothing and warns no one; the check waits for the reset", async () => {
+    publicCapped = true;
+    const p = (await proofs().check({ item: "thread:t3_p1", round: 2 })) as Proof;
+    expect(p).toMatchObject({
+      state: "pending",
+      note: "the public read cap is used; it resets in 2h",
+    });
+    expect(calls).toEqual(["reddit-public GET /api/info"]);
+    expect(await proofOf(db(), "thread:t3_p1")).toBeNull();
+    expect(warned).toEqual([]);
   });
 
   it("is hidden when only the account sees it; the hour's check warns once", async () => {

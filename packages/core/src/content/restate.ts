@@ -15,6 +15,7 @@ import { z } from "zod";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import {
+  capWaitMs,
   MAY_HAVE_POSTED,
   mayHavePosted,
   SiteCallError,
@@ -210,27 +211,6 @@ function unsure(e: SiteCallError, site: string, method: string, path: string): S
   return new SiteCallError(site, method, path, e.status, `${said}; ${MAY_HAVE_POSTED}`);
 }
 
-/** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
-const LONG_WAIT_S = 15 * 60;
-
-/** The wait a 429 names ("retry after 9910s"), or null. */
-const waitOf = (message: string) => {
-  const m = /retry after (\d+)s/.exec(message);
-  return m ? Number(m[1]) : null;
-};
-
-/**
- * How long a used daily cap holds (a 429 whose wait is hours, as `sites` or a terminal error
- * carrying its message says it), or null for anything else. A poller waits it out instead of
- * asking again and calling the refusal an error.
- */
-export function capWaitMs(err: unknown): number | null {
-  const message = err instanceof Error ? err.message : String(err);
-  if (!/\b429\b/.test(message)) return null;
-  const wait = waitOf(message);
-  return wait !== null && wait > LONG_WAIT_S ? wait * 1000 : null;
-}
-
 /**
  * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
  * a short 429 can; a 429 whose wait is hours (a used daily cap) cannot, and retrying it would
@@ -241,7 +221,7 @@ export const isRefusal = (err: unknown): err is SiteCallError =>
   err instanceof SiteCallError &&
   ((err.status >= 400 && err.status < 500) || err.status === 501) &&
   err.status !== 408 &&
-  (err.status !== 429 || (waitOf(err.message) ?? 0) > LONG_WAIT_S);
+  (err.status !== 429 || capWaitMs(err) !== null);
 
 /**
  * A media host made durable: each source is signed once, in a journaled step,

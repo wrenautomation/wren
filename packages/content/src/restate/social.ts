@@ -21,8 +21,12 @@ import {
   type ActivityQuery,
   type ActivityRow,
   type Audience,
+  type CapHolds,
   type CommentRow,
+  capHeld,
+  holdCap,
   type ListQuery,
+  liveHolds,
   PLATFORMS,
   type Platform,
   type SiteClient,
@@ -77,6 +81,11 @@ const COUNTS = "counts";
 const FULL_READS = "fullReads";
 /** Object state: each platform's last activity read, ms. */
 const ACTIVITY_READS = "activityReads";
+/**
+ * Object state: reads a used daily cap holds, until it resets (ms), by `<platform> comments` or
+ * `<platform> counts`: no pass asks them before then (X's search cap is 50 a day).
+ */
+const CAP_HOLDS = "capHolds";
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
@@ -178,6 +187,8 @@ export interface SocialStats {
   audience: Platform[];
   /** Follower counts that failed this pass, said here, not a failed pass: the next pass asks again. */
   missed: string[];
+  /** Reads a used daily cap holds until it resets (`x comments`): no error, asked after the reset. */
+  held: string[];
   errors: string[];
 }
 
@@ -255,6 +266,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       keywordDms: 0,
       audience: [],
       missed: [],
+      held: [],
       errors: [],
     };
     const kept: KeptComment[] = [];
@@ -266,6 +278,14 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};
     const countsBefore = (await ctx.get<Record<string, number>>(COUNTS)) ?? {};
     const fullBefore = (await ctx.get<Record<string, number>>(FULL_READS)) ?? {};
+    const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());
+    /** `key` waits on a used cap, or `err` just used one: said in `held`, never an error. */
+    const held = (key: string, err?: unknown): boolean => {
+      const t = now.getTime();
+      const yes = err === undefined ? capHeld(holds, key, t) : holdCap(holds, key, err, t);
+      if (yes && !stats.held.includes(key)) stats.held.push(key);
+      return yes;
+    };
     const reads: Record<string, number> = {};
     const counts: Record<string, number> = {};
     const fulls: Record<string, number> = {};
@@ -286,7 +306,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const probed: Record<string, number> = {};
     for (const platform of new Set(due.filter((d) => !d.wasPushed).map((d) => d.p.platform))) {
       const ids = due.filter((d) => d.p.platform === platform).map((d) => d.p.id);
-      for (let i = 0; i < ids.length; i += MANY_POSTS)
+      for (let i = 0; i < ids.length && !held(`${platform} counts`); i += MANY_POSTS)
         try {
           const got = await content.commentCounts({
             platform,
@@ -295,7 +315,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
           });
           for (const [id, n] of Object.entries(got ?? {})) probed[`${platform}:${id}`] = n;
         } catch (err) {
-          stats.missed.push(`${platform} comment counts: ${errorText(err)}`);
+          if (!held(`${platform} counts`, err))
+            stats.missed.push(`${platform} comment counts: ${errorText(err)}`);
         }
     }
     for (const { p, key, wasPushed } of due) {
@@ -305,6 +326,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         stats.skipped += 1;
         continue;
       }
+      // A used cap: the post stays due, read once the cap resets.
+      if (held(`${p.platform} comments`)) continue;
       reads[key] = now.getTime();
       stats.posts += 1;
       try {
@@ -315,9 +338,14 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         if (n === undefined) delete counts[key];
         else counts[key] = n;
       } catch (err) {
-        stats.errors.push(`${key}: ${errorText(err)}`);
+        if (held(`${p.platform} comments`, err)) {
+          stats.posts -= 1;
+          if (before[key] === undefined) delete reads[key];
+          else reads[key] = before[key];
+        } else stats.errors.push(`${key}: ${errorText(err)}`);
       }
     }
+    ctx.set(CAP_HOLDS, holds);
     // Posts past the window drop out of state.
     ctx.set(READS, reads);
     ctx.set(COUNTS, counts);

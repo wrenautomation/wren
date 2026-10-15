@@ -4,11 +4,12 @@
  * gate; two clients never mix; no login or a gate saying no stops them; a sort uses the client's
  * database. Synthetic logins and threads only.
  */
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
@@ -43,6 +44,8 @@ import { REACH_SEQUENCES } from "../../src/sequences.js";
 import type { TickStats } from "../../src/tick.js";
 
 const calls: { site: string; path: string; account: string | undefined }[] = [];
+/** The signed-out daily cap is used: every `reddit-public` read answers 429 until noon. */
+let publicCapped = false;
 const NOW_S = Math.floor(Date.parse("2026-10-07T15:00:00Z") / 1000);
 
 /** The desk, faked: one comment in every inbox, a small public subreddit. */
@@ -55,6 +58,14 @@ const sites: SiteClient = {
     account?: string,
   ) {
     calls.push({ site, path, account });
+    if (publicCapped && site === "reddit-public")
+      throw new SiteCallError(
+        site,
+        "GET",
+        path,
+        429,
+        "reads cap is used (240/240 today); retry after 21600s",
+      );
     const label = account?.split("@")[1] ?? "public";
     const out: unknown =
       path === "/connections"
@@ -121,6 +132,14 @@ beforeAll(async () => {
   });
   await addClient(pg.db, pg.url, { id: "mu", name: "Mu", products: { "comments.read": {} } });
   await addClient(pg.db, pg.url, {
+    id: "xi",
+    name: "Xi",
+    accounts: { reddit: "reddit@xi" },
+    products: {
+      "reddit.discovery": { about: "Vets who run a clinic", subreddits: ["vets"], exaSearches: 0 },
+    },
+  });
+  await addClient(pg.db, pg.url, {
     id: "omicron",
     name: "Omicron",
     accounts: { linkedin: "linkedin@omicron" },
@@ -152,7 +171,14 @@ beforeAll(async () => {
     // Journaled like the desk's calls: a replay reads the journal, not the desk again.
     sitesFor: (ctx) => ({
       call: <T>(...a: Parameters<SiteClient["call"]>) =>
-        ctx.run(`site ${a[2]}`, () => sites.call(...a)) as Promise<T>,
+        ctx.run(`site ${a[2]}`, () =>
+          sites.call(...a).catch((err) => {
+            // A refusal ends the step for good, as `journaledSites` does.
+            if (err instanceof SiteCallError)
+              throw new restate.TerminalError(err.message, { errorCode: err.status });
+            throw err;
+          }),
+        ) as Promise<T>,
       via: sites.via,
     }),
     clients: { clientDb: open, llm: null },
@@ -301,6 +327,30 @@ describe("Reddit discovery per client", () => {
       .from(vendorUsage)
       .where(eq(vendorUsage.part, "reddit.discovery"));
     expect(used.length).toBe(calls.length);
+  });
+
+  it("a used signed-out cap holds its reads until it resets: asked once, no error", async () => {
+    await setManaged(pg.db, {
+      client: "xi",
+      vendor: "reddit",
+      perDay: 100,
+      capCents: 0,
+      by: "test",
+    });
+    publicCapped = true;
+    try {
+      calls.length = 0;
+      const first = await reads("xi/daily");
+      expect(first.error).toBeNull();
+      expect(first.stats).toMatchObject({ capped: true, judged: 0, errors: [] });
+      expect(calls.filter((c) => c.site === "reddit-public")).toHaveLength(1);
+      calls.length = 0;
+      const second = await reads("xi/daily");
+      expect(second.stats).toMatchObject({ capped: true, errors: [] });
+      expect(calls.filter((c) => c.site === "reddit-public")).toEqual([]);
+    } finally {
+      publicCapped = false;
+    }
   });
 
   it("never reads for Wren's buyers: no About, no pass", async () => {

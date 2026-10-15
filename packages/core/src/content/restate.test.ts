@@ -1,10 +1,19 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
-import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./autobrowse.js";
+import {
+  asAccount,
+  autobrowseSites,
+  type CapHolds,
+  capHeld,
+  capWaitMs,
+  holdCap,
+  liveHolds,
+  SiteCallError,
+  type SiteClient,
+} from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
 import {
   ArmedStop,
-  capWaitMs,
   DESK,
   isRefusal,
   journaledHost,
@@ -524,6 +533,22 @@ describe("capWaitMs", () => {
       null,
     );
     expect(capWaitMs(new SiteCallError("x", "GET", "/s", 500, "retry after 9999s"))).toBeNull();
+    const terminal = new restate.TerminalError("x search cap is used; retry after 7200s", {
+      errorCode: 429,
+    });
+    expect(capWaitMs(terminal)).toBe(7_200_000);
+  });
+
+  it("holds a key until its cap resets; anything else holds nothing", () => {
+    const holds: CapHolds = {};
+    const cap = new SiteCallError("x", "GET", "/s", 429, "search cap is used; retry after 3600s");
+    expect(holdCap(holds, "x:comments", cap, 1_000)).toBe(true);
+    expect(holds).toEqual({ "x:comments": 3_601_000 });
+    expect(holdCap(holds, "x:comments", new Error("boom"), 1_000)).toBe(false);
+    expect(capHeld(holds, "x:comments", 3_600_999)).toBe(true);
+    expect(capHeld(holds, "x:comments", 3_601_000)).toBe(false);
+    expect(capHeld(holds, "reddit", 0)).toBe(false);
+    expect(liveHolds(holds, 3_601_000)).toEqual({});
   });
 });
 

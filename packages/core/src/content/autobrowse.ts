@@ -53,6 +53,48 @@ export class SiteCallError extends Error {
   }
 }
 
+/** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
+const LONG_WAIT_S = 15 * 60;
+
+/**
+ * How long a used daily cap holds (a 429 whose wait is hours, as `sites` or a terminal error
+ * carrying its message says it), or null for anything else. A caller waits it out instead of
+ * asking again and calling the refusal an error.
+ */
+export function capWaitMs(err: unknown): number | null {
+  const message = err instanceof Error ? err.message : String(err);
+  const is429 =
+    err instanceof SiteCallError
+      ? err.status === 429
+      : (err as { code?: unknown } | null)?.code === 429 || /\b429\b/.test(message);
+  if (!is429) return null;
+  const m = /retry after (\d+)s/.exec(message);
+  const wait = m ? Number(m[1]) : null;
+  return wait !== null && wait > LONG_WAIT_S ? wait * 1000 : null;
+}
+
+/**
+ * Routes a loop saw capped, each until its cap resets (epoch ms by the loop's own key): kept in
+ * the loop's state, so no pass asks a used route again before the reset.
+ */
+export type CapHolds = Record<string, number>;
+
+/** `key` still waits on a used cap at `now` (ms). */
+export const capHeld = (holds: CapHolds, key: string, now: number): boolean =>
+  (holds[key] ?? 0) > now;
+
+/** A used cap holds `key` until it resets: true. Anything else changes nothing: false. */
+export function holdCap(holds: CapHolds, key: string, err: unknown, now: number): boolean {
+  const wait = capWaitMs(err);
+  if (wait === null) return false;
+  holds[key] = Math.max(holds[key] ?? 0, now + wait);
+  return true;
+}
+
+/** The holds still running at `now`: what a loop keeps. */
+export const liveHolds = (holds: CapHolds, now: number): CapHolds =>
+  Object.fromEntries(Object.entries(holds).filter(([, until]) => until > now));
+
 /** The part of autobrowse's site status this side reads. */
 export interface SiteStatus {
   routes: Array<{ method: string; path: string; via: "api" | "browser" | "none" }>;
