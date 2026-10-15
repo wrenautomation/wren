@@ -469,7 +469,9 @@ function ColumnView({
       }}
     >
       <header className="flex items-baseline justify-between gap-2 px-1">
-        <h2 className={cx("m-0 text-[13.5px] font-semibold", column.done && "text-(--ui-good-ink)")}>
+        <h2
+          className={cx("m-0 text-[13.5px] font-semibold", column.done && "text-(--ui-good-ink)")}
+        >
           {column.name}
           <span className="ml-1.5 font-normal text-(--ui-ink-3)">{num(cards.length)}</span>
         </h2>
