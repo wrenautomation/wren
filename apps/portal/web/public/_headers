@@ -5,10 +5,11 @@
 # wasm is ours (/ort/), and 'wasm-unsafe-eval' compiles it. frame-src: the session player is ours
 # (/replay); Learn plays YouTube (no-cookie), Instagram, TikTok and X posts in their own embeds.
 # Learn's thumbnails and audio come through our /media (src/media.ts), so img-src stays put.
+# A connected TikTok account's avatar is TikTok's own CDN; a post's video preview is a signed S3 link (media-src).
 # style-src hashes: the stylesheets of a site page's and a slide's preview, srcdoc frames that keep
 # this policy (test/preview-styles.test.ts names a changed one).
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.s3.us-east-1.amazonaws.com; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.s3.us-east-1.amazonaws.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com; media-src 'self' https://*.s3.us-east-1.amazonaws.com; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex
