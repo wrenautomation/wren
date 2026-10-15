@@ -290,7 +290,7 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
   "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
   "marketing/scheduleDraft": (id, { day, time }) =>
-    desk("approve", { ids: [bare(id)], at: atOf(day, time) }),
+    desk("approve", { ids: [bare(id)], at: localTime(day, time) }),
   "marketing/postNow": (id) => desk("approve", { ids: [bare(id)], now: true }),
   "marketing/rejectDraft": (id, { reason, note }) =>
     desk("reject", { ids: [bare(id)], reason, note }),
@@ -516,20 +516,6 @@ const handlerCall = (
 ): [string, Input] => ["console/call", { service, handler, input, ...more }];
 const desk = (handler: string, input: Input) =>
   handlerCall("ContentDesk", handler, input, { key: "default" });
-/** A day and a time ("15:00", blank 9:00) on the browser's clock, as the instant they name. */
-export const atOf = (day: unknown, time: unknown): string => {
-  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day ?? "").trim());
-  const t = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? "").trim() || "9:00");
-  if (!d) throw new Error("Pick a day.");
-  if (!t || Number(t[1]) > 23 || Number(t[2]) > 59) throw new Error("Type the time like 15:00.");
-  return new Date(
-    Number(d[1]),
-    Number(d[2]) - 1,
-    Number(d[3]),
-    Number(t[1]),
-    Number(t[2]),
-  ).toISOString();
-};
 /** Handlers that are another's route with a set input: they need what that route needs. */
 const ROUTE_OF: Record<string, string> = {
   "marketing/scheduleDraft": "marketing/approveDraft",
@@ -598,7 +584,7 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
   "marketing/approveDraft": (id) => ["marketing/approveDraft", { ids: [bare(id)] }],
   "marketing/scheduleDraft": (id, { day, time }) => [
     "marketing/approveDraft",
-    { ids: [bare(id)], at: atOf(day, time) },
+    { ids: [bare(id)], at: localTime(day, time) },
   ],
   "marketing/postNow": (id) => ["marketing/approveDraft", { ids: [bare(id)], now: true }],
   "marketing/rejectDraft": (id, { reason, note }) => [
