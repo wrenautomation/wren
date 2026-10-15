@@ -3,6 +3,7 @@
  * live words a preview beside the box reads without the page drawing again on each key.
  */
 import type { Call } from "./action.js";
+import type { DraftTurnLine } from "./draft.js";
 import { SAVE_DELAY_MS, type SaverOptions } from "./save/engine.js";
 
 export const trimmed = (a: string, b: string) => a.trim() === b.trim();
@@ -19,7 +20,24 @@ export interface DraftSaving {
   changed: (ids: (string | number)[]) => void;
   /** Write-through: the server holds `text` now. */
   wrote?: ((text: string) => void) | undefined;
+  /** The save's own line in the draft's thread ("Edited by"), when its answer carries one. */
+  turned?: ((turn: DraftTurnLine) => void) | undefined;
 }
+
+/** The thread line a save answers with (`DraftAsk.set`'s `turn`), if any. */
+export const turnOf = (out: unknown): DraftTurnLine | null => {
+  const t = (out as { turn?: unknown } | null)?.turn;
+  return t && typeof t === "object" && typeof (t as DraftTurnLine).id === "string"
+    ? (t as DraftTurnLine)
+    : null;
+};
+
+/** The read's turns, then the ones saves added since that the read doesn't hold yet. */
+export const withTurns = (read: readonly DraftTurnLine[], mine: readonly DraftTurnLine[]) => {
+  const seen = new Set(read.map((t) => t.id));
+  const more = mine.filter((t) => !seen.has(t.id));
+  return more.length ? [...read, ...more] : read;
+};
 
 /**
  * One draft's save: trimmed words, `expect` the text it started from, a request id per try. A
@@ -37,12 +55,14 @@ export function draftSaving(o: DraftSaving): SaverOptions<string> {
       if (!handler) return;
       const words = text.trim();
       const from = String(ctx.expect ?? "");
-      await o.call(handler, {
+      const out = await o.call(handler, {
         ids: [o.id],
         text: words,
         expect: from.trim() ? from : null,
         requestId: ctx.request,
       });
+      const turn = turnOf(out);
+      if (turn) o.turned?.(turn);
       return { value: words };
     },
     onSaved: (text) => o.wrote?.(text),

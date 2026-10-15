@@ -168,7 +168,7 @@ describe("DraftAsk", () => {
         by: "console",
         expect: "Draft one.",
       }),
-    ).rejects.toThrow(/changed since/);
+    ).rejects.toMatchObject({ code: "conflict", message: expect.stringMatching(/changed since/) });
     expect((await readDraft(pg.db, `draft:${id}`)).draft).toBe("His own words.");
   });
 
@@ -195,9 +195,17 @@ describe("drafts from a terminal", () => {
       `comment:${c}`,
     ]);
 
-    await writeDraft(pg.db, `comment:${c}`, "Start with the daily task.", {
+    const wrote = await writeDraft(pg.db, `comment:${c}`, "Start with the daily task.", {
       command: "draft-set",
       by: "cli",
+    });
+    // The save answers with its own "Edited by" line, so the page adds it without a read.
+    expect(wrote.turn).toMatchObject({
+      id: String(wrote.run),
+      command: "draft-set",
+      by: "cli",
+      state: "done",
+      draft: "Start with the daily task.",
     });
     const [row] = await pg.db
       .select()
@@ -281,7 +289,11 @@ describe("his edits", () => {
     });
     await expect(
       desk().set({ record: "comment", id: c, text: "x", expect: "Something else." }),
-    ).rejects.toThrow(/changed since/);
+      // Coded conflict on the wire: the page shows both, Keep mine or Use theirs.
+    ).rejects.toMatchObject({
+      status: 409,
+      responseText: expect.stringContaining('"code":"conflict"'),
+    });
     // A send whose words differ from the draft; an unchanged one keeps nothing.
     await keepSentEdit(pg.db, {
       record: "dm",

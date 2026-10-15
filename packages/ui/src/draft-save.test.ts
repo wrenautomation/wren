@@ -5,7 +5,8 @@
 import type { FieldMeta } from "@wren/core/records";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Call } from "./action.js";
-import { draftSaving, liveText } from "./draft-save.js";
+import type { DraftTurnLine } from "./draft.js";
+import { draftSaving, liveText, turnOf, withTurns } from "./draft-save.js";
 import { fieldSaving } from "./edits.js";
 import { forgetSaves, Saver } from "./save/engine.js";
 import { fakeEnv, memoryStore } from "./save/test-kit.js";
@@ -182,5 +183,29 @@ describe("the live words beside the box", () => {
     for (const ch of WORDS) live.set((live.get() ?? "") + ch);
     live.set(WORDS);
     expect(reader).toHaveBeenCalledTimes(WORDS.length);
+  });
+});
+
+describe("the line a save adds to the thread", () => {
+  const line = (id: string): DraftTurnLine => ({
+    id,
+    command: "draft-set",
+    by: "a@example.com",
+    message: null,
+    at: "2026-10-15T00:00:00Z",
+    state: "done",
+    reply: null,
+    draft: "words",
+    error: null,
+  });
+
+  it("takes the save's turn, and shows it once a read holds it too", () => {
+    expect(turnOf({ run: "7", turn: line("7") })?.id).toBe("7");
+    expect(turnOf({ run: "7" })).toBeNull();
+    expect(turnOf(null)).toBeNull();
+    const read = [line("5")];
+    expect(withTurns(read, []).map((t) => t.id)).toEqual(["5"]);
+    expect(withTurns(read, [line("7")]).map((t) => t.id)).toEqual(["5", "7"]);
+    expect(withTurns([line("5"), line("7")], [line("7")]).map((t) => t.id)).toEqual(["5", "7"]);
   });
 });

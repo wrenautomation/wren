@@ -20,6 +20,7 @@ import {
   askPrompt,
   DRAFT_ASK_REF,
   readDraft,
+  StaleDraft,
   undoDraft,
   writeDraft,
 } from "../draft-ask.js";
@@ -50,7 +51,10 @@ type DraftAskService = { answer: (ctx: restate.Context, req: { id: string }) => 
 const whoOf = byOf;
 /** A refusal is the person's to fix: it fails the call instead of retrying. */
 const refuse = (err: unknown, code = 409) =>
-  new restate.TerminalError((err as Error).message, { errorCode: code });
+  err instanceof StaleDraft
+    ? // A save over words that moved: the page shows both (Keep mine / Use theirs).
+      new restate.TerminalError(err.message, { errorCode: 409, metadata: { code: err.code } })
+    : new restate.TerminalError((err as Error).message, { errorCode: code });
 
 export function makeDraftAsk(db: Db) {
   return restate.service({
@@ -98,9 +102,10 @@ export function makeDraftAsk(db: Db) {
               by: whoOf(req),
               ...(req.expect !== undefined ? { expect: req.expect } : {}),
             })
-              .then(({ run }) => ({ run }))
+              .then(({ run, turn }) => ({ run, turn }))
               .catch((err) => {
-                throw refuse(err);
+                // Over the cap, or gone: words to fix, never a conflict.
+                throw refuse(err, 400);
               }),
           );
         },

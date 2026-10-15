@@ -23,7 +23,7 @@ import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
-import { draftSaving, type LiveText } from "./draft-save.js";
+import { draftSaving, type LiveText, withTurns } from "./draft-save.js";
 import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 import { readEntry, writeEntry } from "./save/journal.js";
 import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
@@ -216,6 +216,8 @@ export function DraftBox({
   const old = `${draft.save ?? draft.label}:${id}`;
   const key = `draft:${old}`;
   useState(() => adoptKept(old, key));
+  /** Lines his saves added to the thread, shown until a read holds them. */
+  const [mine, setMine] = useState<DraftTurnLine[]>([]);
   const s = useSaved<string>(
     draftSaving({
       handler: save?.handler ?? null,
@@ -226,6 +228,7 @@ export function DraftBox({
       call,
       changed,
       wrote,
+      turned: (t) => setMine((m) => [...m, t]),
     }),
   );
   const text = s.value;
@@ -279,7 +282,7 @@ export function DraftBox({
     }
   };
 
-  const turns = draft.turns ?? [];
+  const turns = withTurns(draft.turns ?? [], mine);
   const last = turns.findLast((t) => t.state === "done" && t.draft !== null);
   const undoNow = async () => {
     // Unsaved typing goes first: back to what was saved.
