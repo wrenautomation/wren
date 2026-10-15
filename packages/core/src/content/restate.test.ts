@@ -4,8 +4,8 @@ import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./au
 import { fakeContentChannel } from "./index.js";
 import {
   ArmedStop,
-  DESK,
   capWaitMs,
+  DESK,
   isRefusal,
   journaledHost,
   journaledSites,
@@ -517,7 +517,9 @@ describe("capWaitMs", () => {
   it("reads a used daily cap's wait, from the site error or a terminal error's message", () => {
     const msg = "linkedin inbox cap for a@b.test is used (48/48 today); retry after 25138s";
     expect(capWaitMs(new SiteCallError("linkedin", "GET", "/messaging", 429, msg))).toBe(25138000);
-    expect(capWaitMs(new Error(`SiteCallError: linkedin GET /messaging: 429 ${msg}`))).toBe(25138000);
+    expect(capWaitMs(new Error(`SiteCallError: linkedin GET /messaging: 429 ${msg}`))).toBe(
+      25138000,
+    );
     expect(capWaitMs(new SiteCallError("x", "GET", "/s", 429, "slow down; retry after 30s"))).toBe(
       null,
     );
