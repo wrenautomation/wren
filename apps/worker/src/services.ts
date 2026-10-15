@@ -17,6 +17,7 @@ import {
   BOOKS_CONSOLE_VIEWS,
   bankOfCanada,
   billsStep,
+  cloudTrailDecrypts,
   dirStore,
   s3Store,
 } from "@wren/books";
@@ -1474,6 +1475,7 @@ export async function buildServices(
         : dirStore(resolve(rootDir, ".books")),
       rates: bankOfCanada(),
       aws: settings.booksAwsUsage ? awsCostExplorer() : null,
+      decrypts: settings.booksAwsUsage ? cloudTrailDecrypts() : null,
       since: settings.booksSince,
       ...notify,
     }),

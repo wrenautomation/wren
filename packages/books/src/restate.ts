@@ -5,7 +5,8 @@
  * on the Mac's desk, and waiting there costs nothing.
  *
  * A bill the Monitor reads runs `sync` at once (designs/2026-10-06-mail-push.md): the same pass,
- * but AWS Cost Explorer bills per call, so its spend is taken in once a day at most.
+ * but AWS Cost Explorer bills per call, so its spend (and the KMS decrypt count beside it)
+ * is taken in once a day at most.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
@@ -37,7 +38,7 @@ export function makeBooks(deps: BooksDeps) {
     const outcome = (await runPass<BooksDay>(ctx, deps.db, now, {
       name: "day",
       ledger: { command: BOOKS_COMMAND, argv: { daemon: true, ...settings } },
-      body: (runId) => booksDay(awsDue ? deps : { ...deps, aws: null }, now, runId),
+      body: (runId) => booksDay(awsDue ? deps : { ...deps, aws: null, decrypts: null }, now, runId),
       delayAfter: () => BOOKS_EVERY_MS,
       retryMs: BOOKS_RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

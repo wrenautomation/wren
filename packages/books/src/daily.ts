@@ -20,6 +20,7 @@ import {
 } from "./card.js";
 import { seedBooks } from "./chart.js";
 import { shiftDay, today } from "./day.js";
+import { type DecryptFeed, decryptSpikes } from "./decrypts.js";
 import type { Mailbox } from "./mailbox.js";
 import { type Posted, post } from "./post.js";
 import type { RateFeed } from "./rates.js";
@@ -37,6 +38,8 @@ export interface BooksDayDeps {
   rates: RateFeed;
   /** AWS spend; null = not tracked. */
   aws: UsageFeed | null;
+  /** KMS decrypts per principal, checked beside AWS spend; null or absent = not watched. */
+  decrypts?: DecryptFeed | null;
   /** The first day of the books: every search covers from here, so a new vendor rule finds old mail too. */
   since: string;
   log?: (line: string) => void;
@@ -55,6 +58,31 @@ export interface BooksDay {
   usageLines: { month: string; lines: number; amountCents: number }[];
   /** Newly raised alerts' messages, for the one notice a pass sends. */
   raised: string[];
+}
+
+/** Yesterday's KMS decrypts against the day before; a failed count is itself told. */
+async function decryptConditions(feed: DecryptFeed, on: string): Promise<Condition[]> {
+  const day = (d: string) => new Date(`${d}T00:00:00Z`);
+  const yesterday = shiftDay(on, -1);
+  try {
+    const spikes = decryptSpikes(
+      await feed(day(yesterday), day(on)),
+      await feed(day(shiftDay(on, -2)), day(yesterday)),
+    );
+    return spikes.map((s) => ({
+      key: `spike:kms:${s.principal}:${yesterday}`,
+      kind: "spike",
+      message: `KMS decrypts by ${s.principal} on ${yesterday}: ${s.count}, ${s.before} the day before`,
+    }));
+  } catch (err) {
+    return [
+      {
+        key: "spike:kms:count",
+        kind: "spike",
+        message: `could not count KMS decrypts: ${errorText(err)}`,
+      },
+    ];
+  }
 }
 
 export async function booksDay(
@@ -119,6 +147,7 @@ export async function booksDay(
         kind: "spike",
         message: `AWS ${s.service} on ${s.on}: ${s.amount.toFixed(2)} ${s.currency}, usually ${s.usual.toFixed(2)} a day`,
       });
+    if (deps.decrypts) open.push(...(await decryptConditions(deps.decrypts, on)));
   }
   // Last month's drafts keep updating until a person puts them on an invoice.
   const lastMonth = monthOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)));

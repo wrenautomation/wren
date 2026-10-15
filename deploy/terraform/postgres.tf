@@ -285,6 +285,12 @@ data "aws_iam_policy_document" "pg" {
     actions   = ["ce:GetCostAndUsage"]
     resources = ["*"]
   }
+  # ...and counts KMS decrypts per principal from CloudTrail's event history (free).
+  statement {
+    sid       = "ReadTrail"
+    actions   = ["cloudtrail:LookupEvents"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "pg" {
