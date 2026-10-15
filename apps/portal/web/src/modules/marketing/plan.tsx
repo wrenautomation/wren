@@ -59,14 +59,17 @@ const makeAt = (piece: string, gs: readonly Goal[]): { href: string; label: stri
   const g = gs[0];
   if (piece === "story")
     return {
-      href: `/marketing/write?platform=${g?.platform ?? "instagram"}&story=1`,
+      href: `/marketing/studio?make=story&platform=${g?.platform ?? "instagram"}`,
       label: "Make a story",
     };
-  if (piece === "newsletter") return { href: "/marketing/write?blog=1", label: "Write a post" };
+  if (piece === "newsletter") return { href: "/marketing/studio?make=blog", label: "Write a post" };
   if (piece === "replies") return { href: "/marketing/engage", label: "Answer threads" };
   if (g?.starts === "video")
-    return { href: "/marketing/videos", label: piece === "long" ? "Open Studio" : "Cut clips" };
-  return { href: "/marketing/write", label: "Write" };
+    return {
+      href: piece === "long" ? "/marketing/studio?make=video" : "/marketing/videos",
+      label: piece === "long" ? "Record" : "Cut clips",
+    };
+  return { href: "/marketing/studio", label: "Write" };
 };
 
 const counted = (gs: readonly Goal[]) => gs.filter((g) => g.done !== null);
@@ -197,6 +200,16 @@ function PieceGoals({
   );
 }
 
+/** "To make this week: 2 clips, 3 posts." or that every goal is on track. */
+export function toMakeLine(goals: Goal[]): string {
+  const left = byPiece(goals)
+    .map((p) => ({ name: p.name, n: toMake(p.goals) }))
+    .filter((p) => p.n > 0);
+  return left.length
+    ? `To make this week: ${left.map((p) => `${p.n} ${p.name.toLowerCase()}`).join(", ")}.`
+    : "Every goal is on track.";
+}
+
 export function PlanPage(_props: PageProps) {
   const load = usePlan();
   const work = usePieces();
@@ -204,15 +217,8 @@ export function PlanPage(_props: PageProps) {
   const pieces = work.data?.pieces ?? [];
   const waiting = pieces.filter((p) => allWaiting(p).length);
   const drafts = waiting.flatMap(allWaiting).length;
-  const left = byPiece(goals)
-    .map((p) => ({ name: p.name, n: toMake(p.goals) }))
-    .filter((p) => p.n > 0);
   const lede = [
-    load.data
-      ? left.length
-        ? `To make this week: ${left.map((p) => `${p.n} ${p.name.toLowerCase()}`).join(", ")}.`
-        : "Every goal is on track."
-      : null,
+    load.data ? toMakeLine(goals) : null,
     work.data ? (drafts ? `${drafts} drafts wait on you.` : "Nothing waits on you.") : null,
   ]
     .filter(Boolean)

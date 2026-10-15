@@ -171,7 +171,7 @@ function FeedItem({ c, onMuted }: { c: Card; onMuted: () => void }) {
       setBusy(null);
     }
   };
-  const idea = `/marketing/write?idea=${encodeURIComponent(`${c.title}\n${c.url}\n\n`)}`;
+  const idea = `/marketing/studio?idea=${encodeURIComponent(`${c.title}\n${c.url}\n\n`)}`;
   return (
     <li className="flex gap-3 border border-(--ui-hair) bg-(--ui-paper) p-4">
       <Avatar url={c.source?.avatar ?? null} name={c.source?.name ?? c.title} size={32} />

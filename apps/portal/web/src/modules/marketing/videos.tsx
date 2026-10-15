@@ -1150,10 +1150,10 @@ function WriteAbout({ id, title }: { id: string; title: string }) {
   const link = "text-[14px] text-(--ui-ink) underline underline-offset-2";
   return (
     <p className="m-0 flex flex-wrap gap-x-5 gap-y-1">
-      <a className={link} href={href("/marketing/write", about)}>
+      <a className={link} href={href("/marketing/studio", about)}>
         Write a post about it
       </a>
-      <a className={link} href={href("/marketing/write", { ...about, make: "blog" })}>
+      <a className={link} href={href("/marketing/studio", { ...about, make: "blog" })}>
         Write a blog post about it
       </a>
     </p>

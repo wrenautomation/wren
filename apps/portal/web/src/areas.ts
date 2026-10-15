@@ -64,10 +64,10 @@ export interface DockPick {
   icon?: IconName;
 }
 
-/** What Wren's team opens every day, at a phone's thumb: approve, write, reply. */
+/** What Wren's team opens every day, at a phone's thumb: approve, make, reply. */
 export const DOCK: readonly DockPick[] = [
   { app: "inbox" },
-  { app: "marketing", page: "write", label: "Write", icon: "write" },
+  { app: "marketing", page: "studio", label: "Studio", icon: "write" },
   { app: "marketing", page: "engage", label: "Engage", icon: "reply" },
 ];
 
@@ -107,7 +107,7 @@ export interface TabPick {
 export const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
   marketing: [
     { page: "plan", icon: "calendar" },
-    { page: "write", icon: "write" },
+    { page: "studio", icon: "write" },
     { page: "engage", icon: "reply" },
   ],
   inbox: [

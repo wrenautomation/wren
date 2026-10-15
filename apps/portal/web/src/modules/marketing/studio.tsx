@@ -1,14 +1,18 @@
 /**
- * Marketing → Write: posts in his own words, one or a batch, on the platforms he picks. Each
- * platform's version shows as he types, checked by the server's own rules (`@wren/content/write`).
- * Save as drafts, schedule at the next slots, or post on the next pass. Under it, every draft that
- * waits, its platforms side by side: edit in place, rewrite with a note, approve or post now.
- * Wren's own: ContentDesk through the console.
+ * Marketing → Studio (designs/2026-10-14-saving-and-ui-audit.md): where content gets made. It
+ * opens on what the plan still asks for this week, then New: a post in his own words (one or a
+ * batch, on the platforms he picks, each platform's version checked as he types by the server's
+ * own rules in `@wren/content/write`), an X thread, a carousel, a story, a blog post, or a video
+ * (from a recording). Under it, every draft that waits, its platforms side by side: edit in place,
+ * rewrite with a note, approve, post now, or open it in the draft's editor. Write's old address
+ * lands here (`WritePage`). Wren's own: ContentDesk through the console.
  */
 
-import { ownDraftOf, PLATFORM_SPECS, splitPosts } from "@wren/content/write";
+import { ownDraftOf, ownThreadOf, PLATFORM_SPECS, splitPosts } from "@wren/content/write";
 import { PLATFORMS, type Platform } from "@wren/core/content";
+import { THREAD_MAX, THREAD_MIN, threadPosts, X_POST_MAX } from "@wren/core/content/thread";
 import {
+  ACTIONS,
   Button,
   cx,
   Empty,
@@ -16,24 +20,32 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  type Patch,
+  SaveConflict,
+  SaveStatus,
   Section,
   Tag,
   Textarea,
+  useKeptForm,
+  useSaved,
 } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError, call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { patchCalls, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { DRAFT_SET } from "./ask.js";
 import { BlogBox } from "./blog-box.js";
 import { CarouselBox } from "./carousel-box.js";
+import { PieceCard, usePieces } from "./pieces.js";
+import { goalsOf, MakeList, toMakeLine, usePlan } from "./plan.js";
 import { StoryBox } from "./story-box.js";
 
-/** The platforms that post words alone (YouTube as a community post); videos go through Studio. */
+/** The platforms that post words alone (YouTube as a community post); videos start from a recording. */
 const TEXT = PLATFORMS.filter((p) => !PLATFORM_SPECS[p].needsMedia || PLATFORM_SPECS[p].words);
 const nameOf = (p: Platform) => PLATFORM_SPECS[p].name;
-/** What Write makes there: "YouTube post" for YouTube. */
+/** What a words post is there: "YouTube post" for YouTube. */
 const targetOf = (p: Platform) => PLATFORM_SPECS[p].words?.name ?? nameOf(p);
 /**
  * What a post is about (`?from=video:<id>`, Studio's "Write a post about it"): it hangs under that
@@ -49,7 +61,7 @@ const chosen = (params: URLSearchParams): Platform | null => {
   return PLATFORMS.find((x) => x === p) ?? null;
 };
 
-type Make = "post" | "carousel" | "story" | "blog" | "video";
+type Make = "post" | "thread" | "carousel" | "story" | "blog" | "video";
 interface MakeKind {
   id: Make;
   name: string;
@@ -58,13 +70,19 @@ interface MakeKind {
   /** Whether it goes to this platform. */
   on: (p: Platform) => boolean;
 }
-/** What Write makes, in the order he reaches for them. A video starts in Studio. */
+/** What Studio makes, in the order he reaches for them. */
 const MAKES: readonly MakeKind[] = [
   {
     id: "post",
     name: "Post",
     where: TEXT.map(targetOf).join(", "),
     on: (p) => TEXT.includes(p),
+  },
+  {
+    id: "thread",
+    name: "Thread",
+    where: `X, ${THREAD_MIN} to ${THREAD_MAX} posts`,
+    on: (p) => p === "x",
   },
   {
     id: "carousel",
@@ -82,7 +100,7 @@ const MAKES: readonly MakeKind[] = [
   {
     id: "video",
     name: "Video",
-    where: "Opens Studio: YouTube, Shorts, Reels, TikTok",
+    where: "From a recording: YouTube, Shorts, Reels, TikTok",
     on: (p) => !!PLATFORM_SPECS[p].needsMedia,
   },
 ];
@@ -94,13 +112,34 @@ const makeOf = (params: URLSearchParams): Make | null => {
   if (params.has("story")) return "story";
   return null;
 };
-/** The asked kind when it's offered, else the first offered that's made here. */
+/** The asked kind when it's offered, else the first offered. */
 const pick = (asked: Make | null, offered: readonly MakeKind[]): Make =>
-  offered.find((m) => m.id === asked && m.id !== "video")?.id ??
-  offered.find((m) => m.id !== "video")?.id ??
-  "video";
+  offered.find((m) => m.id === asked)?.id ?? offered[0]?.id ?? "post";
 
-/** What he's making: a card each, the one picked outlined. Video opens Studio. */
+/**
+ * Write's old address in Studio's terms: `?blog=1` and `?story=1` become `?make=`; the rest
+ * (`from`, `about`, `platform`, `idea`) rides along.
+ */
+export function studioHref(params: URLSearchParams): string {
+  const q = new URLSearchParams(params);
+  for (const kind of ["blog", "story"] as const)
+    if (q.has(kind)) {
+      q.delete(kind);
+      if (!q.has("make")) q.set("make", kind);
+    }
+  const rest = q.toString();
+  return `/marketing/studio${rest ? `?${rest}` : ""}`;
+}
+
+/** Marketing → Write folded into Studio: its links land in Studio's New. */
+export function WritePage(props: PageProps) {
+  useEffect(() => {
+    navigate(studioHref(props.params), true);
+  }, [props.params]);
+  return null;
+}
+
+/** What he's making: a card each, the one picked outlined. */
 function MakePicker({
   offered,
   make,
@@ -124,11 +163,7 @@ function MakePicker({
             <span className={cx("text-[12.5px] leading-snug", QUIET)}>{m.where}</span>
           </>
         );
-        return m.id === "video" ? (
-          <a key={m.id} href="/marketing/videos" className={cx(card, "border-(--ui-hair)")}>
-            {inner}
-          </a>
-        ) : (
+        return (
           <button
             key={m.id}
             type="button"
@@ -172,11 +207,18 @@ interface Waiting {
     own: boolean;
     story?: boolean;
     carousel?: boolean;
+    thread?: boolean;
+    missing?: string[];
   }[];
 }
 
-const desk = <T,>(handler: string, input: Record<string, unknown>) =>
-  call<T>("console/call", { service: "ContentDesk", handler, key: "default", input });
+const desk = <T,>(handler: string, input: Record<string, unknown>, requestId?: string) =>
+  call<T>("console/call", {
+    service: "ContentDesk",
+    handler,
+    key: "default",
+    input: requestId ? { ...input, requestId } : input,
+  });
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const when = (at: string) =>
   new Date(at).toLocaleString(undefined, {
@@ -207,10 +249,15 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
   return lines;
 }
 
-export function WritePage(props: PageProps) {
+export function StudioPage(props: PageProps) {
   // Feed's Use as idea opens here with the post it came from.
-  const [text, setText] = useState(() => props.params.get("idea") ?? "");
-  const [title, setTitle] = useState("");
+  // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
+  const idea = props.params.get("idea") ?? "";
+  const kept = useKeptForm("studio:new", idea);
+  const text = kept.values.text ?? idea;
+  const title = kept.values.title ?? "";
+  const setText = (t: string) => kept.set("text", t);
+  const setTitle = (t: string) => kept.set("title", t);
   // A platform chip on top picks it alone; a video platform's posts start in Videos.
   const only = chosen(props.params);
   const [picked, setPicked] = useState<Platform[]>(["linkedin", "x"]);
@@ -234,18 +281,21 @@ export function WritePage(props: PageProps) {
   }, [asked, only]);
   const made = () => setNonce((n) => n + 1);
 
-  const posts = splitPosts(text);
-  const batch = posts.length > 1;
+  const thread = make === "thread";
+  const posts = thread ? (text.trim() ? [text] : []) : splitPosts(text);
+  const batch = !thread && posts.length > 1;
   const titled = picked.some((p) => PLATFORM_SPECS[p].title && !PLATFORM_SPECS[p].words);
+  const where: Platform[] = thread ? ["x"] : picked;
   const versions = posts.map((p) =>
-    picked.map((platform) => ({
+    where.map((platform) => ({
       platform,
-      v: ownDraftOf(platform, p, batch ? null : title),
+      v: thread ? ownThreadOf(p) : ownDraftOf(platform, p, batch ? null : title),
     })),
   );
-  const fits = adapt || versions.some((post) => post.some(({ v }) => !("reason" in v)));
-  const count = adapt
-    ? posts.length * picked.length
+  const ai = adapt && !thread;
+  const fits = ai || versions.some((post) => post.some(({ v }) => !("reason" in v)));
+  const count = ai
+    ? posts.length * where.length
     : versions.flat().filter(({ v }) => !("reason" in v)).length;
 
   const send = async (go: Go) => {
@@ -260,15 +310,17 @@ export function WritePage(props: PageProps) {
     try {
       const out = await desk<{ posts: { results: WriteResult[] }[] }>("write", {
         text,
-        platforms: picked,
-        ...(title && !batch ? { title } : {}),
-        ...(adapt ? { adapt: true } : {}),
+        platforms: where,
+        ...(title && !batch && !thread ? { title } : {}),
+        ...(ai ? { adapt: true } : {}),
+        ...(thread ? { thread: true } : {}),
         ...(about ? { from: about.from } : {}),
         go,
       });
       setSaid(summary(out.posts, go));
-      setText("");
-      setTitle("");
+      kept.clear();
+      // Sent: the idea it opened with is spent too.
+      if (idea) navigate(href("/marketing/studio", { idea: "" }, props.params), true);
       setNonce((n) => n + 1);
     } catch (err) {
       setError(message(err));
@@ -279,11 +331,11 @@ export function WritePage(props: PageProps) {
 
   return (
     <>
-      <PageHeader
-        title="Write"
-        lede="Pick what you're making, write it once, and choose where it goes."
-      />
-      <MakePicker offered={offered} make={make} pick={setMake} />
+      <PageHeader title="Studio" lede="Make something new, or finish what waits on you." />
+      <ToMake />
+      <Section title="New">
+        <MakePicker offered={offered} make={make} pick={setMake} />
+      </Section>
       {make === "carousel" ? (
         <CarouselBox demo={props.demo} only={only} made={made} />
       ) : make === "story" ? (
@@ -295,10 +347,7 @@ export function WritePage(props: PageProps) {
           {...(about ? { fromTitle: about.title } : {})}
         />
       ) : make === "video" ? (
-        <p className={cx("m-0 text-[13.5px]", QUIET)}>
-          {only ? nameOf(only) : "Video"} posts start from a recording.{" "}
-          <a href={`/marketing/videos${only ? `?platform=${only}` : ""}`}>Open Studio</a>
-        </p>
+        <Recordings />
       ) : (
         <>
           <Section>
@@ -312,7 +361,7 @@ export function WritePage(props: PageProps) {
                     tone="quiet"
                     onClick={() =>
                       navigate(
-                        href("/marketing/write", { from: "", about: "" }, props.params),
+                        href("/marketing/studio", { from: "", about: "" }, props.params),
                         true,
                       )
                     }
@@ -325,41 +374,47 @@ export function WritePage(props: PageProps) {
                 aria-label="Your post"
                 rows={batch ? 14 : 8}
                 value={text}
-                placeholder="What do you want to say? For several posts, put a line of --- between them."
+                placeholder={
+                  thread
+                    ? `Your thread, ${THREAD_MIN} to ${THREAD_MAX} posts. Put a line of --- between posts.`
+                    : "What do you want to say? For several posts, put a line of --- between them."
+                }
                 disabled={props.demo}
                 onChange={(e) => {
                   setText(e.target.value);
                   setSure(false);
                 }}
               />
-              <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
-                <legend className="sr-only">Platforms</legend>
-                {TEXT.map((p) => {
-                  const on = picked.includes(p);
-                  return (
-                    <Button
-                      key={p}
-                      size="dense"
-                      tone={on ? "primary" : "secondary"}
-                      aria-pressed={on}
-                      onClick={() =>
-                        setPicked((now) => (on ? now.filter((x) => x !== p) : [...now, p]))
-                      }
-                    >
-                      {targetOf(p)}
-                    </Button>
-                  );
-                })}
-                <label className={cx("ml-2 flex items-center gap-2 text-[13.5px]", QUIET)}>
-                  <input
-                    type="checkbox"
-                    checked={adapt}
-                    onChange={(e) => setAdapt(e.target.checked)}
-                  />
-                  AI writes each platform's version
-                </label>
-              </fieldset>
-              {titled && !batch && !adapt ? (
+              {thread ? null : (
+                <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
+                  <legend className="sr-only">Platforms</legend>
+                  {TEXT.map((p) => {
+                    const on = picked.includes(p);
+                    return (
+                      <Button
+                        key={p}
+                        size="dense"
+                        tone={on ? "primary" : "secondary"}
+                        aria-pressed={on}
+                        onClick={() =>
+                          setPicked((now) => (on ? now.filter((x) => x !== p) : [...now, p]))
+                        }
+                      >
+                        {targetOf(p)}
+                      </Button>
+                    );
+                  })}
+                  <label className={cx("ml-2 flex items-center gap-2 text-[13.5px]", QUIET)}>
+                    <input
+                      type="checkbox"
+                      checked={adapt}
+                      onChange={(e) => setAdapt(e.target.checked)}
+                    />
+                    AI writes each platform's version
+                  </label>
+                </fieldset>
+              )}
+              {titled && !batch && !adapt && !thread ? (
                 <Input
                   aria-label="Reddit title"
                   value={title}
@@ -370,7 +425,11 @@ export function WritePage(props: PageProps) {
             </div>
           </Section>
 
-          {posts.length > 0 && picked.length > 0 && !adapt ? (
+          {thread && posts[0] ? (
+            <Section title="How it reads">
+              <ThreadPreview text={posts[0]} />
+            </Section>
+          ) : posts.length > 0 && picked.length > 0 && !adapt ? (
             <Section title={batch ? `${posts.length} posts` : "How it reads"}>
               <div className="grid gap-4">
                 {versions.map((post, n) => (
@@ -393,7 +452,7 @@ export function WritePage(props: PageProps) {
               <Button
                 size="dense"
                 tone="secondary"
-                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                disabled={!fits || !!busy || props.demo || where.length === 0}
                 onClick={() => void send("draft")}
               >
                 {busy === "draft" ? "Saving…" : "Save as drafts"}
@@ -401,7 +460,7 @@ export function WritePage(props: PageProps) {
               <Button
                 size="dense"
                 tone="secondary"
-                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                disabled={!fits || !!busy || props.demo || where.length === 0}
                 onClick={() => void send("slot")}
               >
                 {busy === "slot" ? "Scheduling…" : "Schedule"}
@@ -409,7 +468,7 @@ export function WritePage(props: PageProps) {
               <Button
                 tone="primary"
                 size="dense"
-                disabled={!fits || !!busy || props.demo || picked.length === 0}
+                disabled={!fits || !!busy || props.demo || where.length === 0}
                 onClick={() => void send("now")}
               >
                 {busy === "now" ? "Posting…" : sure ? `Post ${count} now?` : "Post now"}
@@ -436,6 +495,101 @@ export function WritePage(props: PageProps) {
   );
 }
 
+/** "a thread is 3 to 7 posts" as a sentence. */
+const sentence = (s: string) =>
+  `${s.charAt(0).toUpperCase()}${s.slice(1)}${/[.!?]$/.test(s) ? "" : "."}`;
+const listed = (xs: readonly string[]) =>
+  xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+
+/** What the plan still asks for this week, each with where it gets made. */
+function ToMake() {
+  const load = usePlan();
+  const goals = goalsOf(load.data?.rows);
+  if (load.data && goals.length === 0) return null;
+  return (
+    <Section title="To make" note={load.data ? toMakeLine(goals) : undefined}>
+      {load.error && !load.data ? (
+        <LoadFailed error={load.error} onRetry={load.retry} />
+      ) : !load.data ? (
+        <Loading lines={3} />
+      ) : (
+        <MakeList goals={goals} reload={load.retry} />
+      )}
+    </Section>
+  );
+}
+
+/** A video starts from a recording: the newest ones, each with where it went. */
+function Recordings() {
+  const load = usePieces();
+  const videos = (load.data?.pieces ?? []).filter((p) => p.kind === "long");
+  const SHOWN = 4;
+  return (
+    <Section
+      title="Recordings"
+      note={videos.length ? `${videos.length}` : undefined}
+      actions={
+        <a className={cx("text-[13px] underline", QUIET)} href="/marketing/videos">
+          All recordings
+        </a>
+      }
+    >
+      <p className={cx("m-0 mb-3 max-w-[70ch] text-[13.5px]", QUIET)}>
+        A video starts from a recording. Record with OBS or Cap on the Mac. It shows here a minute
+        after you stop, and the editor cuts it for you to review.
+      </p>
+      {load.error && !load.data ? (
+        <LoadFailed error={load.error} onRetry={load.retry} />
+      ) : !load.data ? (
+        <Loading lines={3} />
+      ) : videos.length === 0 ? (
+        <Empty>No recording yet.</Empty>
+      ) : (
+        <div className="grid gap-3">
+          {videos.slice(0, SHOWN).map((p) => (
+            <PieceCard key={p.id} piece={p} reload={load.retry} />
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/** An X thread as it will post: each post with its count, or why it can't go yet. */
+function ThreadPreview({ text }: { text: string }) {
+  const posts = threadPosts(text);
+  const v = ownThreadOf(text);
+  return (
+    <div className="grid gap-2">
+      {"reason" in v ? <p className={ERROR}>{sentence(v.reason)}</p> : null}
+      <ol className="m-0 grid list-none gap-2 p-0">
+        {posts.map((post, n) => (
+          <li
+            // biome-ignore lint/suspicious/noArrayIndexKey: a post's place in the thread is its name.
+            key={n}
+            className="grid gap-1.5 rounded-(--ui-radius) bg-(--ui-paper) p-3 shadow-[inset_0_0_0_1px_var(--ui-hair)]"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Tag>
+                {n + 1} of {posts.length}
+              </Tag>
+              <span
+                className={cx(
+                  "text-[12px] [font-variant-numeric:tabular-nums]",
+                  post.length > X_POST_MAX ? "text-(--ui-bad)" : QUIET,
+                )}
+              >
+                {post.length} / {X_POST_MAX}
+              </span>
+            </div>
+            <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap">{post}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /** One platform's version of what's typed: the words as they'll post, or why not. */
 function Version({ platform, v }: { platform: Platform; v: ReturnType<typeof ownDraftOf> }) {
   const max = PLATFORM_SPECS[platform].maxChars;
@@ -450,7 +604,7 @@ function Version({ platform, v }: { platform: Platform; v: ReturnType<typeof own
         )}
       </div>
       {"reason" in v ? (
-        <p className={ERROR}>{v.reason}</p>
+        <p className={ERROR}>{sentence(v.reason)}</p>
       ) : (
         <>
           {v.title ? <b className="text-[14px]">{v.title}</b> : null}
@@ -466,7 +620,7 @@ function Version({ platform, v }: { platform: Platform; v: ReturnType<typeof own
 /** Every draft that waits on a yes, an idea a row, its platforms side by side. */
 function WaitingBoard(props: PageProps & { nonce: number }) {
   const [again, setAgain] = useState(0);
-  const load = useCall(`write-waiting:${props.nonce}:${again}`, () =>
+  const load = useCall(`studio-waiting:${props.nonce}:${again}`, () =>
     desk<{ ideas: Waiting[] }>("waiting", {}),
   );
   const reload = () => setAgain((n) => n + 1);
@@ -477,12 +631,18 @@ function WaitingBoard(props: PageProps & { nonce: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ids = ideas?.flatMap((i) => i.drafts.map((d) => d.id)) ?? [];
+  const [flushers] = useState<Flushers>(() => new Set());
 
   const all = async () => {
     setBusy(true);
     setError(null);
     try {
-      await desk("approve", { ids });
+      // Every card's typing lands before the yes reads it.
+      const saved = await Promise.all([...flushers].map((f) => f()));
+      if (saved.includes(false)) throw new Error("A draft didn't save. Fix it, then try again.");
+      await ACTIONS.run(`studio:all:${ids.join(",")}`, (requestId) =>
+        desk("approve", { ids }, requestId),
+      );
       reload();
     } catch (err) {
       setError(message(err));
@@ -521,7 +681,14 @@ function WaitingBoard(props: PageProps & { nonce: number }) {
               <p className={cx("m-0 line-clamp-2 text-[13px]", QUIET)}>{idea.idea}</p>
               <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
                 {idea.drafts.map((d) => (
-                  <DraftCard key={d.id} d={d} demo={props.demo} onDone={reload} />
+                  <DraftCard
+                    key={d.id}
+                    d={d}
+                    at={load.at}
+                    demo={props.demo}
+                    flushers={flushers}
+                    onDone={reload}
+                  />
                 ))}
               </div>
             </li>
@@ -533,38 +700,102 @@ function WaitingBoard(props: PageProps & { nonce: number }) {
   );
 }
 
-type Act = "save" | "approve" | "now" | "rewrite" | "reject";
+type Act = "approve" | "now" | "rewrite" | "reject";
+/** Each card's flush, so a yes on the whole board saves every card's typing first. */
+type Flushers = Set<() => Promise<boolean>>;
+
+/** The board's answer with one draft's words as the server now holds them. */
+const wroteWords =
+  (id: string, text: string): Patch =>
+  (key, data) => {
+    if (!key.startsWith("studio-waiting:") || !data || typeof data !== "object") return data;
+    const ideas = (data as { ideas?: Waiting[] }).ideas;
+    if (!ideas?.some((i) => i.drafts.some((x) => x.id === id))) return data;
+    return {
+      ...data,
+      ideas: ideas.map((i) => ({
+        ...i,
+        drafts: i.drafts.map((x) => (x.id === id ? { ...x, text, edited: true } : x)),
+      })),
+    };
+  };
 
 /** One waiting draft: its words to edit in place, and what can be done with it. */
 function DraftCard({
   d,
+  at,
   demo,
+  flushers,
   onDone,
 }: {
   d: Waiting["drafts"][number];
+  /** When the board's read left: an older read never lands over his typing. */
+  at: number;
   demo: boolean;
+  flushers: Flushers;
   onDone: () => void;
 }) {
-  const [text, setText] = useState(d.text);
+  // The same journal and save as the draft's own page (DraftBox): typing there or here is one
+  // draft's words, saved a pause after the last key, never per key, and never read back.
+  const s = useSaved<string>({
+    key: d.story ? null : `draft:${DRAFT_SET}:${d.id}`,
+    server: d.text,
+    at,
+    same: (a, b) => a.trim() === b.trim(),
+    save: async (words, { expect, request }) => {
+      const text = words.trim();
+      const from = String(expect ?? "");
+      await call("console/call", {
+        service: "DraftAsk",
+        handler: "set",
+        input: {
+          record: "draft",
+          id: d.id,
+          text,
+          expect: from.trim() ? from : null,
+          requestId: request,
+        },
+      });
+      return { value: text };
+    },
+    onSaved: (text) => patchCalls(wroteWords(d.id, text)),
+    onConflict: onDone,
+  });
+  useEffect(() => {
+    flushers.add(s.flush);
+    return () => void flushers.delete(s.flush);
+  }, [flushers, s.flush]);
+  const text = s.value;
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState<Act | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const changed = text.trim() !== d.text.trim();
   const max = PLATFORM_SPECS[d.platform].maxChars;
+  // The same check the yes runs: a thread's posts, else the platform's length.
+  const unfit = d.thread
+    ? (() => {
+        const v = ownThreadOf(text);
+        return "reason" in v ? sentence(v.reason) : null;
+      })()
+    : null;
+  const missing = d.missing ?? [];
 
   const act = async (what: Act) => {
     setBusy(what);
     setError(null);
     try {
-      if (what === "rewrite") {
-        await desk("redraft", { draftId: d.id, note: note ?? "" });
-      } else if (what === "reject") {
-        await desk("reject", { ids: [d.id] });
-      } else {
-        // Approving what he changed saves it first: the yes is on the words he sees.
-        if (changed) await desk("edit", { draftId: d.id, text });
-        if (what !== "save") await desk("approve", { ids: [d.id], now: what === "now" });
+      // Every act reads the saved words: his typing lands first, or nothing goes on.
+      if (!(await s.flush())) {
+        setBusy(null);
+        return;
       }
+      // One press, one act: a second press while it's out gets the first's answer.
+      await ACTIONS.run(`studio:${what}:${d.id}`, (requestId) =>
+        what === "rewrite"
+          ? desk("redraft", { draftId: d.id, note: note ?? "" }, requestId)
+          : what === "reject"
+            ? desk("reject", { ids: [d.id] }, requestId)
+            : desk("approve", { ids: [d.id], now: what === "now" }, requestId),
+      );
       onDone();
     } catch (err) {
       setError(message(err));
@@ -582,13 +813,19 @@ function DraftCard({
             <Tag tone="accent">Story</Tag>
           ) : d.carousel ? (
             <Tag tone="accent">Carousel</Tag>
+          ) : d.thread ? (
+            <Tag tone="accent">Thread</Tag>
           ) : d.own ? (
             <Tag tone="accent">Yours</Tag>
           ) : d.edited ? (
             <Tag>Edited</Tag>
           ) : null}
         </span>
-        {d.story ? null : (
+        {d.story ? null : d.thread ? (
+          <span className={cx("text-[12px] [font-variant-numeric:tabular-nums]", QUIET)}>
+            {threadPosts(text).length} posts
+          </span>
+        ) : (
           <span
             className={cx(
               "text-[12px] [font-variant-numeric:tabular-nums]",
@@ -605,19 +842,37 @@ function DraftCard({
           A story: the photo or clip goes as is, with no words.
         </p>
       ) : (
-        <Textarea
-          aria-label={`${nameOf(d.platform)} draft`}
-          rows={Math.min(14, Math.max(4, Math.ceil(text.length / 48)))}
-          value={text}
-          disabled={demo || !!busy}
-          onChange={(e) => setText(e.target.value)}
-        />
+        <>
+          <Textarea
+            aria-label={`${nameOf(d.platform)} draft`}
+            rows={Math.min(14, Math.max(4, Math.ceil(text.length / 48)))}
+            value={text}
+            disabled={demo || !!busy}
+            onChange={(e) => s.set(e.target.value)}
+            onBlur={() => void s.flush()}
+          />
+          <SaveStatus state={s} onRetry={s.retry} />
+          {s.conflict ? (
+            <SaveConflict
+              conflict={s.conflict}
+              onKeepMine={s.keepMine}
+              onTakeTheirs={s.takeTheirs}
+            />
+          ) : null}
+        </>
       )}
-      {d.carousel ? (
-        <a className="text-[13px]" href={`/marketing/drafts/${d.id}`}>
-          See and edit the slides
-        </a>
+      {unfit ? <p className={ERROR}>{unfit}</p> : null}
+      {missing.length ? (
+        <p className={ERROR}>
+          Fill in {listed(missing)} before Approve.{" "}
+          <a href={`/marketing/drafts/${d.id}`}>Open it</a> to pick.
+        </p>
       ) : null}
+      <a className="text-[13px]" href={`/marketing/drafts/${d.id}`}>
+        {d.carousel
+          ? "Open the slides, fields and versions"
+          : "Open for fields, media and versions"}
+      </a>
       {d.error ? <p className={ERROR}>{d.error}</p> : null}
       {note !== null ? (
         <div className="grid gap-2">
@@ -642,16 +897,6 @@ function DraftCard({
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {changed ? (
-            <Button
-              size="dense"
-              tone="secondary"
-              disabled={!!busy || demo}
-              onClick={() => void act("save")}
-            >
-              {busy === "save" ? "Saving…" : "Save"}
-            </Button>
-          ) : null}
           <Button
             tone="primary"
             size="dense"

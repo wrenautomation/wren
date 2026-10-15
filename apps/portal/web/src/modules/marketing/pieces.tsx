@@ -135,7 +135,7 @@ function didOf(b: Branch): string | null {
 /** Where a branch opens in the portal: its draft, or the recording in Studio. */
 function hrefOf(b: Branch): string | null {
   if (b.platform === "editor") return `/marketing/videos/${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
-  if (b.id.startsWith("blog:")) return "/marketing/write?blog=1";
+  if (b.id.startsWith("blog:")) return "/marketing/studio?make=blog";
   return `/marketing/drafts/${b.id}`;
 }
 
@@ -516,7 +516,7 @@ export function PiecesPage(props: PageProps) {
             : "Everything you made, each with everywhere it went."
         }
         actions={
-          <a href="/marketing/write" className="text-[13.5px]">
+          <a href="/marketing/studio" className="text-[13.5px]">
             Make something
           </a>
         }
@@ -610,7 +610,7 @@ export function PiecesPage(props: PageProps) {
             <>
               Nothing fits these.{" "}
               {what === "carousel" ? (
-                <a href="/marketing/write?make=carousel">Make a carousel</a>
+                <a href="/marketing/studio?make=carousel">Make a carousel</a>
               ) : null}
             </>
           ) : (

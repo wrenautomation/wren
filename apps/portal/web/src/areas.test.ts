@@ -27,9 +27,9 @@ describe("areas", () => {
     const wren = [
       { id: "notes", pages: pages("home") },
       { id: "inbox", pages: pages("overview") },
-      { id: "marketing", pages: pages("plan", "write", "engage") },
+      { id: "marketing", pages: pages("plan", "studio", "engage") },
     ];
-    expect(dockOf(wren).map((d) => d.pick.page ?? d.app.id)).toEqual(["inbox", "write", "engage"]);
+    expect(dockOf(wren).map((d) => d.pick.page ?? d.app.id)).toEqual(["inbox", "studio", "engage"]);
     const client = [
       { id: "notes", pages: pages("home") },
       { id: "money", pages: pages("x") },
@@ -47,11 +47,11 @@ describe("phoneTabsOf", () => {
     ...(count !== undefined ? { count } : {}),
   });
   it("leads with an app's picks, then a tab per page or group", () => {
-    const tabs = [t("pieces"), t("plan"), t("write"), t("engage"), t("a", "G", 2), t("b", "G", 3)];
+    const tabs = [t("pieces"), t("plan"), t("studio"), t("engage"), t("a", "G", 2), t("b", "G", 3)];
     const out = phoneTabsOf("marketing", tabs);
     expect(out.map((x) => [x.id, x.label, x.holds])).toEqual([
       ["plan", "plan", ["plan"]],
-      ["write", "write", ["write"]],
+      ["studio", "studio", ["studio"]],
       ["engage", "engage", ["engage"]],
       ["pieces", "pieces", ["pieces"]],
       ["a", "G", ["a", "b"]],

@@ -36,11 +36,11 @@ import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
 import { withSiblings } from "./siblings.js";
 import { SLIDES } from "./slides.js";
+import { StudioPage, WritePage } from "./studio.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 import { threadEditorOf } from "./thread.js";
 import { videoExtras } from "./videos.js";
-import { WritePage } from "./write.js";
 
 const said = (line: string) => () => line;
 
@@ -1612,12 +1612,21 @@ export const marketing: Module = {
       Page: PiecesPage,
     },
     {
+      id: "studio",
+      label: "Studio",
+      about: "Make posts, threads, carousels, stories, blog posts and videos, and finish drafts.",
+      group: "Content",
+      Page: StudioPage,
+      wide: true,
+    },
+    // Write folded into Studio; its old links land in Studio's New.
+    {
       id: "write",
       label: "Write",
-      about: "Write a post once and pick where it goes.",
-      group: "Content",
+      about: "Opens Studio's New.",
+      hidden: true,
+      lights: "studio",
       Page: WritePage,
-      wide: true,
     },
     ENGAGE_PAGE,
     {
@@ -1637,7 +1646,7 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.draft",
       empty: {
-        next: "Nothing waits on you or is scheduled. Make something in Write.",
+        next: "Nothing waits on you or is scheduled. Make something in Studio.",
         waiting: "No draft waits on you.",
         scheduled: "Nothing is scheduled.",
         rejected: "Nothing was turned down.",
@@ -1690,11 +1699,14 @@ export const marketing: Module = {
       actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
       extras: withDraft(COMMENT_DRAFT),
     },
+    // Every recording; Studio's Video shows the newest. A video opens here in its editor.
     {
       id: "videos",
-      label: "Studio",
+      label: "Recordings",
       about: "Recordings: the agent edits, you review, they go out as videos and Shorts.",
       group: "Content",
+      hidden: true,
+      lights: "studio",
       template: "list",
       record: "marketing.video",
       empty: {
