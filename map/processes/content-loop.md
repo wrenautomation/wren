@@ -12,7 +12,7 @@ An idea in William's words becomes one draft per platform, a person approves, th
 
 ## Input → Movement → Output
 
-An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `ContentScheduler` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `ContentMetrics` snapshots young posts daily and says what worked on Mondays; `ContentPlanner` says tomorrow's shortfall and, with `draft` on, fills each open slot first: ideas from `nextIdea` (undrafted ideas, a reader's question, a video chapter; the build log retired 10-14), drafted through `ContentDesk.draft`, each new row given its slot (O5).
+An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `ContentScheduler` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `ContentMetrics` snapshots posts on a tier (every 6 h at first, then daily, then weekly to day 30) and says what worked on Mondays; `ContentPlanner` says tomorrow's shortfall and, with `draft` on, fills each open slot first: ideas from `nextIdea` (undrafted ideas, a reader's question, a video chapter; the build log retired 10-14), drafted through `ContentDesk.draft`, each new row given its slot (O5).
 
 ## Why this shape
 
