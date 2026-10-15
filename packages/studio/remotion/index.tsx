@@ -8,7 +8,7 @@
  * Remotion compositions (designs/2026-10-06-video-editor.md, Composition). One file: Remotion's
  * bundler resolves no `.js` specifiers, so the value imports (Wren's look, for Studio's
  * placeholder, the line breakers, the caption styles) name their `.ts` files; the rest is types.
- * Props come from `longProps`, `shortProps`, `verticalProps` and `thumbnailProps` through
+ * Props come from `longProps`, `shortProps`, `framedProps` and `thumbnailProps` through
  * `--props`; the cut files are served from the edit's folder.
  */
 import {
@@ -34,6 +34,7 @@ import {
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
+import { CAPTION_Y, overlayAt, type TextOverlay } from "../src/finish-look.ts";
 import type { PromoProps, TimedScene } from "../src/promo.js";
 import {
   cameraAt,
@@ -51,10 +52,10 @@ import type {
   BehindWord,
   TitleCard as Card,
   Face,
+  FramedProps,
   LongProps,
   ShortProps,
   ThumbnailProps,
-  VerticalProps,
 } from "../src/props.js";
 import { verticalRect } from "../src/safe-zones.ts";
 
@@ -192,14 +193,15 @@ const CaptionLine: FC<{
   );
 };
 
-/** The long video's lower-third line, in the edit's caption style. */
+/** The long video's lower-third line, in the edit's caption style; its middle at `y` when he moved it. */
 const Captions: FC<{
   words: Word[];
   look: Look;
   t: number;
   style: string;
   stress: ReadonlySet<number>;
-}> = ({ words, look, t, style, stress }) => {
+  y?: number | undefined;
+}> = ({ words, look, t, style, stress, y }) => {
   const all = useMemo(() => {
     let n = 0;
     return pages(words).map((p) => {
@@ -219,8 +221,12 @@ const Captions: FC<{
   const page = all[i];
   if (!page) return null;
   const last = page.words.at(-1) as Word;
+  const at: CSSProperties =
+    y === undefined
+      ? { justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }
+      : { top: y - 120, height: 240, justifyContent: "center", alignItems: "center" };
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }}>
+    <AbsoluteFill style={at}>
       <div
         style={{
           maxWidth: 1180,
@@ -349,8 +355,47 @@ const Behind: FC<{
   );
 };
 
-/** Where a full-frame caption line's middle sits: 66% down. */
-const REEL_Y = Math.round(1920 * 0.66);
+/** Where a full-frame caption line's middle sits in an `h` tall frame: 66% down unless he moved it. */
+const reelY = (h: number, place: LongProps["captions"]["place"]) =>
+  Math.round(h * (place?.short ?? CAPTION_Y.short));
+
+/**
+ * Text on the video (finish-look.ts): white, heavy, a soft shadow so it reads over anything,
+ * centred on its spot, faded in and out.
+ */
+const Overlays: FC<{ items: TextOverlay[]; t: number; look: Look }> = ({ items, t, look }) => {
+  const { width, height } = useVideoConfig();
+  return (
+    <>
+      {items.map((o, i) => {
+        const at = overlayAt(o, t, width, height);
+        if (!at) return null;
+        return (
+          <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: overlays repeat text; position is the identity
+            key={i}
+            style={{
+              position: "absolute",
+              left: at.x,
+              top: at.y,
+              width: at.width,
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              font: `800 ${at.size}px/1.12 ${look.font}`,
+              letterSpacing: -at.size * 0.02,
+              color: "#fff",
+              textWrap: "balance",
+              textShadow: "0 2px 6px rgba(0,0,0,0.55), 0 8px 30px rgba(0,0,0,0.35)",
+              opacity: at.opacity,
+            }}
+          >
+            {o.text}
+          </div>
+        );
+      })}
+    </>
+  );
+};
 
 const CORNER: CSSProperties = {
   position: "absolute",
@@ -371,10 +416,11 @@ export const Long: FC<LongProps> = ({
   captions,
   stress,
   behind,
+  overlays,
   look,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, height } = useVideoConfig();
   const t = frame / fps;
   const show = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
   const fill: CSSProperties = { width: "100%", height: "100%", objectFit: "cover" };
@@ -404,8 +450,16 @@ export const Long: FC<LongProps> = ({
         )}
       />
       {onScreen(captions, "long") ? (
-        <Captions words={words} look={look} t={t} style={captions.style} stress={stressed} />
+        <Captions
+          words={words}
+          look={look}
+          t={t}
+          style={captions.style}
+          stress={stressed}
+          y={captions.place?.long === undefined ? undefined : captions.place.long * height}
+        />
       ) : null}
+      <Overlays items={overlays ?? []} t={t} look={look} />
     </AbsoluteFill>
   );
 };
@@ -500,6 +554,7 @@ export const Short: FC<ShortProps> = ({
   captions,
   stress,
   behind,
+  overlays,
   look,
   card,
 }) => {
@@ -552,28 +607,31 @@ export const Short: FC<ShortProps> = ({
           words={words}
           look={look}
           t={t}
-          y={half ? 960 : REEL_Y}
+          y={half ? 960 : reelY(1920, captions.place)}
           style={captions.style}
           stress={stressed}
         />
       ) : null}
+      <Overlays items={overlays ?? []} t={t} look={look} />
       {card ? <TitleCard card={card} t={t} look={look} /> : null}
     </AbsoluteFill>
   );
 };
 
 /**
- * The whole cut, 9:16 (step 5): the picture's window fills the frame (a portrait recording all of
- * it; a landscape one cropped on his face). The recording carries the sound, under the camera file
- * when that is the picture.
+ * The whole cut cropped to 9:16, 1:1 or 4:5 (`framedProps`): the picture's window fills the frame
+ * (on his face unless he moved it). The recording carries the sound, under the camera file when
+ * that is the picture.
  */
-export const Vertical: FC<VerticalProps> = ({
+export const Framed: FC<FramedProps> = ({
   main,
   picture,
+  frame: size,
   words,
   captions,
   stress,
   behind,
+  overlays,
   look,
 }) => {
   const frame = useCurrentFrame();
@@ -581,13 +639,13 @@ export const Vertical: FC<VerticalProps> = ({
   const t = frame / fps;
   const stressed = useMemo(() => new Set(stress), [stress]);
   const own = picture.file === main;
-  const [left, top, width, height] = verticalRect(picture);
+  const [left, top, width, height] = verticalRect(picture, size);
   const place: CSSProperties = { position: "absolute", left, top, width, height, maxWidth: "none" };
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <OffthreadVideo src={staticFile(picture.file)} muted={!own} style={place} />
       {own ? null : <Audio src={staticFile(main)} />}
-      {/* verticalProps keeps only mattes cut from the picture, so each lines up with it. */}
+      {/* framedProps keeps only mattes cut from the picture, so each lines up with it. */}
       <Behind
         items={behind}
         t={t}
@@ -599,11 +657,12 @@ export const Vertical: FC<VerticalProps> = ({
           words={words}
           look={look}
           t={t}
-          y={REEL_Y}
+          y={reelY(size[1], captions.place)}
           style={captions.style}
           stress={stressed}
         />
       ) : null}
+      <Overlays items={overlays ?? []} t={t} look={look} />
     </AbsoluteFill>
   );
 };
@@ -1158,6 +1217,7 @@ const PLACEHOLDER: LongProps = {
   captions: { style: "word", long: "screen" },
   stress: [],
   behind: [],
+  overlays: [],
   look: DEFAULT_LOOK,
 };
 
@@ -1192,19 +1252,23 @@ const Root: FC = () => (
       })}
     />
     <Composition
-      id="Vertical"
-      component={Vertical}
+      id="Framed"
+      component={Framed}
       width={1080}
       height={1920}
       fps={30}
       durationInFrames={300}
       defaultProps={{
         ...PLACEHOLDER,
+        format: "vertical" as const,
+        frame: [1080, 1920] as [number, number],
         picture: { file: PLACEHOLDER.main, size: [1920, 1080], window: [656, 0, 608, 1080] },
       }}
       calculateMetadata={({ props }) => ({
         durationInFrames: props.durationInFrames,
         fps: props.fps,
+        width: props.frame[0],
+        height: props.frame[1],
       })}
     />
     <Composition

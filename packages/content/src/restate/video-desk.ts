@@ -11,11 +11,13 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService } from "@wren/core/ask";
+import { terminalOf } from "@wren/core/portal";
+import { PortalRefusal } from "@wren/core/refusal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
-import { getEdit, setCut, setEdit, setRender, setWords } from "@wren/studio/edit";
+import { getEdit, setCut, setEdit, setLine, setRender, setWords } from "@wren/studio/edit";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -59,9 +61,11 @@ type Self = {
   rendering: (ctx: restate.Context, req: { id: number }) => Promise<void>;
 };
 
-/** A refusal is the person's to fix: it fails the call instead of retrying. */
+/** A refusal is the person's to fix: it fails the call instead of retrying (a conflict keeps its code). */
 const refuse = (err: unknown, code = 409) =>
-  new restate.TerminalError((err as Error).message, { errorCode: code });
+  err instanceof PortalRefusal
+    ? terminalOf(err)
+    : new restate.TerminalError((err as Error).message, { errorCode: code });
 /** A bad patch says which field and why, in words. */
 const told = <T>(p: Promise<T>) =>
   p.catch((err) => {
@@ -72,17 +76,52 @@ export function makeVideoDesk(db: Db) {
   return restate.service({
     name: VIDEO_DESK.name,
     handlers: {
-      /** Fields of the edit, as the page saves them: title, description, tags and the rest. */
+      /**
+       * Fields of the edit, as the page saves them: title, description, tags and the rest. With
+       * `expect` (the fields as the page opened them), one that moved since refuses (409 conflict).
+       */
       set: serviceHandler(
         {
           input: z.looseObject({
             ...ID,
             patch: z.record(z.string(), z.unknown()).describe("The fields to write"),
+            expect: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe("The fields as they were when the page opened them"),
           }),
         },
-        async (ctx: restate.Context, req: One & { patch: unknown }) =>
+        async (
+          ctx: restate.Context,
+          req: One & { patch: unknown; expect?: Record<string, unknown> },
+        ) =>
           ctx.run("set", () =>
-            told(setEdit(db, req.id, req.patch, { by: byOf(req) }).then(({ run }) => ({ run }))),
+            told(
+              setEdit(db, req.id, req.patch, {
+                by: byOf(req),
+                ...(req.expect ? { expect: req.expect } : {}),
+              }).then(({ run }) => ({ run })),
+            ),
+          ),
+      ),
+
+      /** One caption line's words rewritten (`at`: their indexes; `was`: the line as he saw it). */
+      line: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            at: z.array(z.number().int().nonnegative()).min(1).max(40),
+            text: z.string().max(400),
+            was: z.string().max(400),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { at: number[]; text: string; was: string }) =>
+          ctx.run("line", () =>
+            told(
+              setLine(db, req.id, { at: req.at, text: req.text, was: req.was }, byOf(req)).then(
+                ({ run }) => ({ run }),
+              ),
+            ),
           ),
       ),
 

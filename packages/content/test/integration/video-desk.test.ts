@@ -141,6 +141,48 @@ describe("VideoDesk", () => {
     });
   });
 
+  it("finishing: saves against what the page opened, refuses a stale save, rewrites a caption line", async () => {
+    const id = await video();
+    const opened = await getEdit(pg.db, id);
+    const overlays = [{ text: "Three steps", from: 1, to: 3, x: 0.5, y: 0.2, size: "m" }];
+    const cuts = [...opened.cuts, { from: 110, to: 120, why: "manual", state: "cut" }];
+    await desk().set({
+      id,
+      patch: { overlays, cuts, crops: { square: { x: 0.3, y: 0.5 } } },
+      expect: { overlays: opened.overlays, cuts: opened.cuts, crops: opened.crops },
+    });
+    const saved = await getEdit(pg.db, id);
+    expect(saved).toMatchObject({ overlays, crops: { square: { x: 0.3, y: 0.5 } } });
+    // A render landing between (setRendered bumps the row) is no conflict: only the fields count.
+    await setRendered(pg.db, id, { long: "/rec/out/long.mp4" }, {});
+    await desk().set({ id, patch: { overlays: [] }, expect: { overlays } });
+    // A second tab still holding the first overlays: refused, with the conflict code.
+    const stale = Promise.resolve(desk().set({ id, patch: { overlays }, expect: { overlays } }));
+    await expect(stale).rejects.toThrow(/changed since you opened it/);
+    expect((await getEdit(pg.db, id)).overlays).toEqual([]);
+    await expect(
+      desk().set({ id, patch: { overlays: [{ ...overlays[0], text: "" }] } }),
+    ).rejects.toThrow(/overlays/);
+
+    // Caption lines as the render breaks them; one rewritten with a word more, then undone.
+    const rec = videoRecord();
+    const detail = (await rec.load?.(pg.db, String(id))) as {
+      video: { finish: { lines: { at: number[]; text: string }[]; saved: { overlays: unknown } } };
+    };
+    expect(detail.video.finish.saved.overlays).toEqual([]);
+    const line = detail.video.finish.lines.find((l) => l.text.includes("works")) as {
+      at: number[];
+      text: string;
+    };
+    await desk().line({ id, at: line.at, text: "this works well", was: line.text });
+    expect((await getEdit(pg.db, id)).words.map((w) => w.w)).toContain("well");
+    await expect(desk().line({ id, at: line.at, text: "again", was: line.text })).rejects.toThrow(
+      /changed since/,
+    );
+    await desk().undo({ id });
+    expect((await getEdit(pg.db, id)).words.map((w) => w.w)).not.toContain("well");
+  });
+
   it("asks Claude, checks the patch it answers and writes it; a bad one writes nothing", async () => {
     const id = await video();
     answers.push(

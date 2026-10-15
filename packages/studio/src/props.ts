@@ -7,6 +7,14 @@ import { DEFAULT_LOOK, type Look } from "@wren/video";
 import type { Captions } from "./caption-styles.js";
 import { srt } from "./captions.js";
 import { keepSegments, onCut, toCutTime } from "./cuts.js";
+import {
+  type CroppedFormat,
+  cropWindow,
+  FRAME,
+  overlaysOnCut,
+  type Point,
+  type TextOverlay,
+} from "./finish.js";
 import type { MatteWindow } from "./matte.js";
 import { cutSize, FPS, portrait } from "./media.js";
 import { fitRect, placeWord, type Rect, verticalRect, type Zone } from "./safe-zones.js";
@@ -27,6 +35,8 @@ export type LongProps = {
   stress: number[];
   /** Stressed words drawn behind the speaker, each over its matte (`captions.behind`). */
   behind: BehindWord[];
+  /** Text on the video (finish.ts), cut-timeline seconds. */
+  overlays: TextOverlay[];
   look: Look;
 };
 
@@ -55,6 +65,8 @@ type Unplaced = Omit<BehindWord, "place"> & { zone?: Zone | undefined };
 export const BIG = {
   long: { frame: [1920, 1080], size: 260, y: 430 },
   vertical: { frame: [1080, 1920], size: 220, y: 620 },
+  square: { frame: [1080, 1080], size: 200, y: 400 },
+  portrait: { frame: [1080, 1350], size: 210, y: 470 },
   short: { frame: [1080, 1920], size: 220, y: 620 },
   /** A Short with no face shows the recording; the word sits higher. */
   shortScreen: { frame: [1080, 1920], size: 220, y: 660 },
@@ -177,6 +189,7 @@ function longBase(
       to: r(onCut(l.to, keep)),
     })),
     captions: edit.captions,
+    overlays: overlaysOnCut(edit.overlays ?? [], keep),
     look: DEFAULT_LOOK,
   };
 }
@@ -234,58 +247,78 @@ export type ThumbnailProps = {
   look: Look;
 };
 
-export type VerticalProps = Omit<LongProps, "cam" | "layout"> & {
-  /** What fills the 9:16 frame: a file in the public dir, its size, the window shown of it. */
+export type FramedProps = Omit<LongProps, "cam" | "layout"> & {
+  format: CroppedFormat;
+  /** The output frame in pixels. */
+  frame: [number, number];
+  /** What fills the frame: a file in the public dir, its size, the window shown of it. */
   picture: { file: string; size: [number, number]; window: [number, number, number, number] };
 };
+/** The whole cut as 9:16. */
+export type VerticalProps = FramedProps;
 
 /**
  * The window of a `w` x `h` picture a 9:16 frame shows: all of a portrait one (cropped to 9:16 at
  * its centre), else full height and 9:16 wide, centred on `cx` (his face) and kept inside.
  */
-export function verticalWindow(w: number, h: number, cx = w / 2): [number, number, number, number] {
-  const r = 9 / 16;
-  if (w / h <= r) {
-    const wh = Math.round(w / r);
-    return [0, Math.round((h - wh) / 2), w, wh];
-  }
-  const ww = Math.round(h * r);
-  return [Math.round(Math.min(w - ww, Math.max(0, cx - ww / 2))), 0, ww, h];
-}
+export const verticalWindow = (w: number, h: number, cx = w / 2) =>
+  cropWindow(w, h, FRAME.vertical, { x: cx / w, y: 0.5 });
 
 /**
- * The whole cut as 9:16 (step 5). A portrait recording fills it. A landscape one is cropped to a
- * 9:16 window on his face: the camera file's centre when there is one, the cam box's centre in a
- * one-file recording, else the frame's centre. The recording always carries the sound.
+ * Which picture fills a cropped format and where its crop sits unless he moved it: a portrait
+ * recording or one with no camera file is the recording itself (centred on the cam box when there
+ * is one); else the camera file, centred. The page shows the crop on the same picture.
  */
-export function verticalProps(
-  edit: VideoEdit,
-  mattes: readonly Matte[] = [],
-  o: { skip?: OnSkip } = {},
-): VerticalProps {
-  const { cam: _c, layout: _l, raw, ...long } = longBase(edit, mattes);
+export function framedPicture(edit: VideoEdit): {
+  source: "main" | "cam";
+  size: [number, number];
+  centre: Point;
+} {
   const face = faceOf(edit);
-  // A portrait recording is the picture; else the camera file, else the recording.
   const own = portrait(edit.tracks.main) || !face.file || !!face.box;
   const [w, h] = own ? cutSize(edit.tracks.main) : face.size;
   const cx = own && face.box ? face.box[0] + face.box[2] / 2 : w / 2;
-  const file = own ? long.main : (face.file as string);
-  const picture: VerticalProps["picture"] = {
+  return { source: own ? "main" : "cam", size: [w, h], centre: { x: cx / w, y: 0.5 } };
+}
+
+/**
+ * The whole cut cropped to `format` (9:16, 1:1 or 4:5). The window sits where `crops` puts it,
+ * else on his face (`framedPicture`). The recording always carries the sound.
+ */
+export function framedProps(
+  edit: VideoEdit,
+  format: CroppedFormat,
+  mattes: readonly Matte[] = [],
+  o: { skip?: OnSkip } = {},
+): FramedProps {
+  const { cam: _c, layout: _l, raw, ...long } = longBase(edit, mattes);
+  const at = framedPicture(edit);
+  const file = at.source === "main" ? long.main : (faceOf(edit).file as string);
+  const frame: [number, number] = [...FRAME[format]];
+  const [w, h] = at.size;
+  const picture: FramedProps["picture"] = {
     file,
     size: [w, h],
-    window: verticalWindow(w, h, cx),
+    window: cropWindow(w, h, frame, edit.crops?.[format] ?? at.centre),
   };
   // A matte lines up only with the picture it was cut out of.
-  const rect = verticalRect(picture);
+  const rect = verticalRect(picture, frame);
   const behind = placeAll(
     raw,
-    BIG.vertical,
+    BIG[format],
     (b) => (b.matte.src === file ? rect : null),
-    "vertical",
+    format,
     o.skip,
   );
-  return { ...long, behind, picture };
+  return { ...long, format, frame, behind, picture };
 }
+
+/** The whole cut as 9:16 (step 5). */
+export const verticalProps = (
+  edit: VideoEdit,
+  mattes: readonly Matte[] = [],
+  o: { skip?: OnSkip } = {},
+) => framedProps(edit, "vertical", mattes, o);
 
 /** Where `face`'s file sits when its face (box, else the whole file) covers a `w` x `h` box. */
 export function faceRect(face: Face, w: number, h: number): Rect {
@@ -373,6 +406,13 @@ export function shortProps(
     layout: long.layout
       .filter((l) => l.to > start && l.from < end)
       .map((l) => ({ ...l, from: r(Math.max(0, l.from - start)), to: r(l.to - start) })),
+    overlays: long.overlays
+      .filter((x) => x.to > start && x.from < end)
+      .map((x) => ({
+        ...x,
+        from: r(Math.max(0, x.from - start)),
+        to: r(Math.min(end, x.to) - start),
+      })),
     title: short.title,
     card: cardOf(short, end - start),
   };

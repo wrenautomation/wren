@@ -8,9 +8,10 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { CroppedFormat } from "./finish.js";
 import { normalizeLoudness } from "./loudness.js";
 import type { PromoProps } from "./promo.js";
-import type { LongProps, ShortProps, ThumbnailProps, VerticalProps } from "./props.js";
+import type { FramedProps, LongProps, ShortProps, ThumbnailProps } from "./props.js";
 
 const ENTRY = "remotion/index.tsx";
 
@@ -106,8 +107,7 @@ export async function renderStills(
       files[name] = file;
     };
     if (job.long) await still("long", "Long", job.long, Math.round(atS * job.long.fps));
-    if (job.vertical)
-      await still("vertical", "Vertical", job.vertical, Math.round(atS * job.vertical.fps));
+    for (const [name, p] of framedOf(job)) await still(name, "Framed", p, Math.round(atS * p.fps));
     for (const [n, p] of job.shorts ?? []) {
       const f = Math.round(atS * p.fps) - p.startFrame;
       if (f >= 0 && f < p.durationInFrames) await still(`short-${n}`, "Short", p, f);
@@ -118,15 +118,19 @@ export async function renderStills(
 
 export interface RenderJob {
   long?: LongProps;
-  /** The whole cut, 9:16. */
-  vertical?: VerticalProps;
+  /** The whole cut cropped: 9:16 (`vertical`), 1:1 (`square`), 4:5 (`portrait`). */
+  framed?: { [F in CroppedFormat]?: FramedProps | undefined };
   /** By 1-based number. */
   shorts?: Map<number, ShortProps>;
   thumbnails?: ThumbnailProps[];
 }
 
+const framedOf = (job: Pick<RenderJob, "framed">) =>
+  Object.entries(job.framed ?? {}).filter((e): e is [CroppedFormat, FramedProps] => !!e[1]);
+
 /**
- * Render what the job names to `<dir>/out/`: long.mp4, vertical.mp4, short-<n>.mp4, thumb-<n>.jpg.
+ * Render what the job names to `<dir>/out/`: long.mp4, vertical.mp4 (square.mp4, portrait.mp4),
+ * short-<n>.mp4, thumb-<n>.jpg.
  * One bundle for all of them; h264 on VideoToolbox (Remotion's `--hardware-acceleration`, which needs a
  * bitrate, not a CRF). Each video's audio is then leveled to -14 LUFS (loudness.ts). Answers the
  * files by name and the seconds each took.
@@ -165,7 +169,7 @@ export async function renderAll(
       files[name] = file;
     };
     if (job.long) await video("long", "Long", job.long, "12M");
-    if (job.vertical) await video("vertical", "Vertical", job.vertical, "10M");
+    for (const [name, p] of framedOf(job)) await video(name, "Framed", p, "10M");
     for (const [n, p] of job.shorts ?? []) await video(`short-${n}`, "Short", p, "10M");
     for (const p of job.thumbnails ?? []) {
       const name = `thumb-${p.variant}`;

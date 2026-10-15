@@ -33,6 +33,8 @@ export interface Captions {
   short?: CaptionShow | undefined;
   behind?: boolean | undefined;
   on?: boolean | undefined;
+  /** Where each format's line sits, 0..1 from the top (finish.ts `CAPTION_Y` unset). */
+  place?: { long?: number | undefined; short?: number | undefined } | undefined;
 }
 
 /** Are this format's captions burned in? */

@@ -14,6 +14,7 @@ import {
   type Span,
   silenceCuts,
 } from "./cuts.js";
+import { FPS } from "./finish.js";
 import type { Cut, Track, Tracks, Word } from "./schema.js";
 
 const run = promisify(execFile);
@@ -21,8 +22,9 @@ const run = promisify(execFile);
 const ffprobeOf = (ffmpeg: string) =>
   ffmpeg.includes("/") ? join(dirname(ffmpeg), "ffprobe") : "ffprobe";
 
-/** Every output frame rate; the Long composition runs at the same. */
-export const FPS = 30;
+/** Every output frame rate (finish.ts); the compositions run at the same. */
+export { FPS };
+
 /** Audio fade at each cut, so no click. */
 const FADE_S = 0.01;
 
@@ -288,6 +290,80 @@ export async function preview(input: string, out: string, ffmpeg: string): Promi
     ...["-v", "error", "-y", "-i", input, "-vf", width >= height ? "scale=-2:540" : "scale=540:-2"],
     ...["-c:v", "h264_videotoolbox", "-b:v", "1500k", "-c:a", "aac", "-b:a", "96k"],
     ...["-movflags", "+faststart", out],
+  ]);
+  return out;
+}
+
+/**
+ * The finishing view's playback copy (designs/2026-10-15-video-finishing.md): the raw track at 540
+ * on its short side, 30 fps on the edit's frame grid, a keyframe every 10 frames so the page seeks
+ * to any frame fast. `shiftS` puts a camera file on main's clock (camera time = main time + shift),
+ * as the cut pass does; that copy has no sound.
+ */
+export async function sourceProxy(
+  input: string,
+  out: string,
+  ffmpeg: string,
+  o: { shiftS?: number; audio?: boolean } = {},
+): Promise<string> {
+  const { width, height } = await probe(input, ffmpeg);
+  const shift = o.shiftS ?? 0;
+  const align =
+    shift > 0
+      ? `trim=start=${shift.toFixed(3)},setpts=PTS-STARTPTS,`
+      : shift < 0
+        ? `tpad=start_duration=${(-shift).toFixed(3)}:start_mode=clone,`
+        : "";
+  const scale = width >= height ? "scale=-2:540" : "scale=540:-2";
+  const audio = o.audio ?? true;
+  await run(
+    ffmpeg,
+    [
+      ...["-v", "error", "-y", "-i", input, "-vf", `${align}fps=${FPS},${scale},format=yuv420p`],
+      ...["-c:v", "libx264", "-preset", "veryfast", "-crf", "27", "-g", "10", "-keyint_min", "10"],
+      ...["-sc_threshold", "0"],
+      ...(audio ? ["-c:a", "aac", "-b:a", "96k"] : ["-an"]),
+      ...["-movflags", "+faststart", out],
+    ],
+    { maxBuffer: 64 * 1024 * 1024 },
+  );
+  return out;
+}
+
+/** The timeline's filmstrip: STRIP.n frames evenly through the clip, 10 across, in one JPEG. */
+export const STRIP = { n: 60, across: 10, width: 160 } as const;
+export async function filmstrip(
+  input: string,
+  out: string,
+  durationS: number,
+  ffmpeg: string,
+): Promise<string> {
+  const every = Math.max(1 / FPS, durationS / STRIP.n);
+  const rows = Math.ceil(STRIP.n / STRIP.across);
+  await run(ffmpeg, [
+    ...["-v", "error", "-y", "-i", input],
+    ...["-vf", `fps=1/${every.toFixed(4)},scale=${STRIP.width}:-2,tile=${STRIP.across}x${rows}`],
+    ...["-frames:v", "1", "-q:v", "5", out],
+  ]);
+  return out;
+}
+
+/**
+ * One frame of `input` at `atS` (on its own clock, on the frame grid) as a JPEG. ffmpeg starts at
+ * the first frame at or after the seek, so it seeks half a frame early: the same frame whatever
+ * the rounding of `atS`.
+ */
+export async function frameAt(
+  input: string,
+  atS: number,
+  out: string,
+  ffmpeg: string,
+): Promise<string> {
+  const n = Math.max(0, Math.round(atS * FPS));
+  const ss = n ? (n - 0.5) / FPS : 0;
+  await run(ffmpeg, [
+    ...["-v", "error", "-y", "-ss", ss.toFixed(5), "-i", input],
+    ...["-frames:v", "1", "-q:v", "2", out],
   ]);
   return out;
 }

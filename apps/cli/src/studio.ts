@@ -24,13 +24,19 @@ import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   addVideo,
   CAPTION_STYLES,
+  CROPPED,
+  type CroppedFormat,
   cutKnobs,
   cutTracks,
   cutTranscript,
   editMattes,
+  type Format,
   FPS,
+  filmstrip,
   findCapProjects,
   findRecordings,
+  frameAt,
+  framedProps,
   fromCutTime,
   geminiLooker,
   getEdit,
@@ -63,6 +69,7 @@ import {
   setCutKnobs,
   setEdit,
   setFiles,
+  setKeys,
   setLook,
   setRender,
   setRendered,
@@ -70,6 +77,7 @@ import {
   setStudioWords,
   setWords,
   shortProps,
+  sourceProxy,
   studioWords,
   thumbnailProps,
   toCutTime,
@@ -79,7 +87,6 @@ import {
   twelvelabsMinutes,
   unpunctuated,
   type VideoEdit,
-  verticalProps,
   videoEdits,
   withFallback,
   wordAt,
@@ -100,7 +107,8 @@ lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and came
 up by Cap's start times. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
 
 /** What `render --only` takes: a format, or the Shorts or thumbnails alone. */
-const PARTS = ["long", "vertical", "shorts", "thumbs"] as const;
+const PARTS = ["long", "vertical", "square", "portrait", "shorts", "thumbs"] as const;
+const isFormat = (p: string) => p === "long" || (CROPPED as readonly string[]).includes(p);
 
 const id = (v: string) => {
   const n = Number.parseInt(v, 10);
@@ -128,7 +136,7 @@ type RenderOpts = {
 function rendered(out: string, job: RenderJob): Record<string, string> {
   const videos = [
     ...(job.long ? ["long"] : []),
-    ...(job.vertical ? ["vertical"] : []),
+    ...Object.keys(job.framed ?? {}),
     ...[...(job.shorts?.keys() ?? [])].map((n) => `short-${n}`),
   ].map((n) => [n, join(out, `${n}.mp4`)] as const);
   const thumbs = (job.thumbnails ?? []).map(
@@ -189,6 +197,13 @@ export function registerStudio(
         console.log(
           `video ${e.id}: ${e.words.length} words, ${cut.length} silence cuts (${cut.reduce((n, c) => n + c.to - c.from, 0).toFixed(1)}s), ${e.cuts.length - cut.length} proposals${e.tracks.cam ? `, camera offset ${e.tracks.cam.offsetS}s` : ""}`,
         );
+        // The page's finishing view plays and scrubs these; a failed upload only waits for render.
+        if (settings.mediaBucket)
+          await withDb((db) => finishMedia(db, e, settings.mediaBucket as string)).catch((err) =>
+            console.log(
+              `finishing view media not uploaded (${err instanceof Error ? err.message : err}): wren video source ${e.id}`,
+            ),
+          );
         console.log(
           `files go to ${e.dir}\nnext: wren video cuts ${e.id}, then wren video cut ${e.id}`,
         );
@@ -227,7 +242,7 @@ export function registerStudio(
   video
     .command("set <id>")
     .description(
-      "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, formats, thumbnail",
+      "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, formats, thumbnail, overlays, crops",
     )
     .option("--file <f>", "read the JSON from this file; else stdin")
     .option("--captions-style <s>", `no JSON: the caption style, ${CAPTION_STYLES.join(", ")}`)
@@ -562,7 +577,7 @@ export function registerStudio(
   video
     .command("render <id>")
     .description(
-      "Remotion render to <dir>/out: the edit's formats (long 16:9, vertical 9:16), Shorts 9:16, 3 thumbnails; previews and stills to S3",
+      "Remotion render to <dir>/out: the edit's formats (long 16:9, vertical 9:16, square 1:1, portrait 4:5), Shorts 9:16, 3 thumbnails; previews and stills to S3",
     )
     .option("--short <n>", "only Short n", id)
     .option(
@@ -620,9 +635,7 @@ export function registerStudio(
       e.dir,
       {
         ...(e.formats.includes("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
-        ...(e.formats.includes("vertical")
-          ? { vertical: verticalProps(e, mattes, { skip: unread }) }
-          : {}),
+        framed: framedJob(e, mattes, (f) => e.formats.includes(f)),
         shorts: new Map(
           e.shorts.map((_, i) => [i + 1, shortProps(e, i + 1, mattes, { skip: unread })]),
         ),
@@ -632,6 +645,59 @@ export function registerStudio(
     );
     for (const f of Object.values(files)) console.log(f);
   }
+
+  /** The whole cut in each cropped format `want` names. */
+  const framedJob = (e: VideoEdit, mattes: Matte[], want: (f: CroppedFormat) => boolean) =>
+    Object.fromEntries(
+      CROPPED.filter(want).map((f) => [f, framedProps(e, f, mattes, { skip: unread })]),
+    ) as NonNullable<RenderJob["framed"]>;
+
+  /**
+   * The finishing view's media (designs/2026-10-15-video-finishing.md), each made and uploaded
+   * once: the raw recording's playback copy, the camera file's on main's clock, the filmstrip.
+   */
+  async function finishMedia(db: Db, e: VideoEdit, bucket: string, force = false) {
+    const dir = join(e.dir, "finish");
+    await mkdir(dir, { recursive: true });
+    const keys: Record<string, string> = {};
+    const { main, cam } = e.tracks;
+    if (force || !e.keys.source)
+      keys.source = await uploadMedia(
+        await sourceProxy(main.path, join(dir, "source.mp4"), settings.ffmpeg),
+        { bucket },
+      );
+    if (cam && (force || !e.keys["source-cam"]))
+      keys["source-cam"] = await uploadMedia(
+        await sourceProxy(cam.path, join(dir, "source-cam.mp4"), settings.ffmpeg, {
+          shiftS: cam.offsetS,
+          audio: false,
+        }),
+        { bucket },
+      );
+    if (force || !e.keys.strip)
+      keys.strip = await uploadMedia(
+        await filmstrip(main.path, join(dir, "strip.jpg"), main.durationS, settings.ffmpeg),
+        { bucket },
+      );
+    await setKeys(db, e.id, keys);
+    return Object.keys(keys);
+  }
+
+  video
+    .command("source <id>")
+    .description(
+      "make and upload the finishing view's playback copy and filmstrip (add and render do it too)",
+    )
+    .option("--again", "make them again even if uploaded")
+    .action((v: string, o: { again?: boolean }) =>
+      withDb(async (db) => {
+        const bucket = settings.mediaBucket;
+        if (!bucket) throw new Error("WREN_MEDIA_BUCKET unset: nowhere to upload");
+        await checkMediaStore({ bucket });
+        const made = await finishMedia(db, await getEdit(db, id(v)), bucket, !!o.again);
+        console.log(made.length ? `uploaded ${made.join(", ")}` : "already uploaded");
+      }),
+    );
 
   async function renderOne(db: Db, v: string, o: RenderOpts) {
     if (o.upload && o.cut) throw new Error("--upload uploads what is rendered; drop --cut");
@@ -644,16 +710,16 @@ export function registerStudio(
     const part = o.short ? "shorts" : o.only;
     // With no --only: the formats the edit lists, its Shorts and thumbnails.
     const want = (p: string) =>
-      part ? part === p : p === "long" || p === "vertical" ? e.formats.includes(p) : true;
+      part ? part === p : isFormat(p) ? e.formats.includes(p as Format) : true;
     const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
     const thumbs = want("thumbs") ? thumbnailProps(e) : null;
     if (want("thumbs") && !thumbs)
       console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
-    const videos = want("long") || want("vertical") || want("shorts");
+    const videos = want("long") || CROPPED.some(want) || want("shorts");
     const mattes = videos && !o.upload ? await mattesFor(e) : [];
     const job: RenderJob = {
       ...(want("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
-      ...(want("vertical") ? { vertical: verticalProps(e, mattes, { skip: unread }) } : {}),
+      framed: framedJob(e, mattes, want),
       ...(want("shorts")
         ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n, mattes, { skip: unread })])) }
         : {}),
@@ -686,11 +752,26 @@ export function registerStudio(
                 : file;
               keys[name] = await uploadMedia(up, { bucket });
               const short = /^short-(\d+)$/.exec(name);
-              if (short || name === "vertical")
-                keys[reelKey(short ? Number(short[1]) : "vertical")] = await uploadMedia(file, {
-                  bucket,
-                });
+              const framed = CROPPED.find((f) => f === name);
+              if (short || framed)
+                keys[reelKey(short ? Number(short[1]) : (framed as CroppedFormat))] =
+                  await uploadMedia(file, { bucket });
+              // His cover frame, exactly as the render drew it (Reels' cover picture).
+              if (framed && e.thumbnail) {
+                const at = onCut(
+                  e.thumbnail.at,
+                  keepSegments(e.cuts, e.tracks.main.durationS, FPS),
+                );
+                const jpg = await frameAt(
+                  file,
+                  at,
+                  join(e.dir, "out", `cover-${name}.jpg`),
+                  settings.ffmpeg,
+                );
+                keys[`cover-${name}`] = await uploadMedia(jpg, { bucket });
+              }
             }
+            await finishMedia(db, e, bucket);
           } catch (err) {
             // The render is good and stays in out/: only the upload needs doing again.
             const why = err instanceof Error ? err.message : String(err);

@@ -299,6 +299,52 @@ describe("marketing.video", () => {
     expect(s.reel).toEqual({ missing: expect.stringMatching(/--only vertical/) });
   });
 
+  it("sends the whole cut to each feed in its shape, with his cover frame", async () => {
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Every shape",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        formats: ["long", "vertical", "square", "portrait"],
+        cuts: [{ from: 0, to: 2, why: "manual", state: "cut" }],
+        thumbnail: { at: 12.5, text: "" },
+        files: { long: "/rec/out/long.mp4", vertical: "/rec/out/vertical.mp4" },
+        keys: {
+          "reel-vertical": "s3://media/v.mp4",
+          "reel-square": "s3://media/sq.mp4",
+          "reel-portrait": "s3://media/p.mp4",
+          "cover-vertical": "s3://media/cover.jpg",
+        },
+      })
+      .returning();
+    if (!v) throw new Error("no video");
+    const r = await approveVideo(pg.db, v.id, { source: "cli", vertical: true });
+    const drafts = await pg.db.select().from(contentDrafts);
+    const of = (id: string | undefined) => drafts.find((d) => d.id === id);
+    const media = Object.fromEntries(
+      (r.also ?? []).map((a) => [
+        a.platform,
+        (of(a.id)?.media as { source?: string } | undefined)?.source,
+      ]),
+    );
+    expect(media).toEqual({
+      tiktok: "s3://media/v.mp4",
+      x: "s3://media/sq.mp4",
+      facebook: "s3://media/p.mp4",
+      linkedin: "s3://media/p.mp4",
+    });
+    // 12.5 s raw is 10.5 s once the first 2 s are cut.
+    const tiktok = of(r.also?.find((a) => a.platform === "tiktok")?.id);
+    expect(tiktok?.extra).toMatchObject({ coverMs: 10500 });
+    if (!r.reel || !("id" in r.reel)) throw new Error("no reel draft");
+    expect(of(r.reel.id)?.extra).toMatchObject({
+      thumbOffset: 10500,
+      cover: "s3://media/cover.jpg",
+    });
+  });
+
   it("fixes a misheard word, times kept, and Undo puts it back", async () => {
     const words = [
       { w: "we", s: 1, e: 1.2 },

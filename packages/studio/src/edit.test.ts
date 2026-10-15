@@ -181,14 +181,15 @@ describe("formats", () => {
     expect(formatsFor({ width: 1080, height: 1080 })).toEqual(["long"]);
   });
 
-  it("set takes one or both, each once", () => {
+  it("set takes any of the four, each once", () => {
     expect(editPatchSchema.parse({ formats: ["long", "vertical"] }).formats).toEqual([
       "long",
       "vertical",
     ]);
     expect(editPatchSchema.safeParse({ formats: [] }).success).toBe(false);
     expect(editPatchSchema.safeParse({ formats: ["long", "long"] }).success).toBe(false);
-    expect(editPatchSchema.safeParse({ formats: ["square"] }).success).toBe(false);
+    expect(editPatchSchema.safeParse({ formats: ["square", "portrait"] }).success).toBe(true);
+    expect(editPatchSchema.safeParse({ formats: ["wide"] }).success).toBe(false);
   });
 });
 

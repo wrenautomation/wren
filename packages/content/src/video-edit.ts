@@ -223,6 +223,8 @@ export function stepWhat(
         : `Fixed a word at ${argv.at ?? "?"} s`;
     case "video set":
       return list ? `Changed ${list}` : "Saved";
+    case "video line":
+      return `Fixed a caption: "${String(argv.text ?? "").slice(0, 60)}"`;
     case "video cut":
       return `Cut the files${argv.segments ? ` (${argv.segments} pieces)` : ""}`;
     case "video render":

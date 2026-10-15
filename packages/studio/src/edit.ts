@@ -8,8 +8,9 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { finishRun, openRun, recordedRun } from "@wren/core";
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { recordDraft } from "@wren/core/draft-record";
+import { staleRefusal } from "@wren/core/refusal";
 import { atomic, type Queryable } from "@wren/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { capMeta, capTracks, isCap } from "./cap.js";
 import { CAPTION_SHOWS, CAPTION_STYLES } from "./caption-styles.js";
@@ -23,6 +24,13 @@ import {
   toCutTime,
   withSilence,
 } from "./cuts.js";
+import {
+  captionLines,
+  captionPlaceSchema,
+  cropsSchema,
+  overlaysSchema,
+  rewriteLine,
+} from "./finish.js";
 import { FPS, pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
 import { CARD, SHORT_COUNT, SHORT_S } from "./props.js";
 import {
@@ -213,6 +221,34 @@ export async function getEdit(db: Queryable, id: number): Promise<VideoEdit> {
   return row;
 }
 
+/** The edit, locked for this transaction: a save's check and its write see the same row. */
+async function lockedEdit(db: Queryable, id: number): Promise<VideoEdit> {
+  const [row] = await db.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
+  if (!row) throw new Error(`no video ${id}`);
+  return row;
+}
+
+/** Same JSON, whatever the key order (jsonb sorts keys its own way). */
+export function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a))
+    return (
+      a.length === (b as unknown[]).length && a.every((x, i) => sameJson(x, (b as unknown[])[i]))
+    );
+  const ka = Object.keys(a).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
+  const kb = Object.keys(b).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
+  return (
+    ka.length === kb.length &&
+    ka.every((k) => sameJson((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]))
+  );
+}
+
+/** A field's value on the edit as a patch names it (`camBox` lives on the tracks). */
+const fieldOf = (edit: VideoEdit, k: string): unknown =>
+  k === "camBox" ? (edit.tracks.camBox ?? null) : edit[k as keyof VideoEdit];
+
 const sec = z.number().min(0);
 const span = { from: sec, to: sec };
 
@@ -233,6 +269,7 @@ export const editPatchSchema = z
         behind: z.boolean().optional(),
         // A row from before per-format captions: its `on` becomes `short` and goes.
         on: z.boolean().optional(),
+        place: captionPlaceSchema.optional(),
       })
       .strict()
       .transform(({ on, ...c }) =>
@@ -258,6 +295,10 @@ export const editPatchSchema = z
       .object({ at: sec, text: z.string().max(60) })
       .strict()
       .nullable(),
+    /** Text on the video (finish.ts). */
+    overlays: overlaysSchema,
+    /** Each cropped format's middle on the picture. */
+    crops: cropsSchema,
     /** Where his face sits in the main track, [x, y, w, h] in its pixels; null clears it. A one-file recording of him alone: a 9:16 window on him, with `layout` `cam`, fills a Short. */
     camBox: z
       .tuple([
@@ -295,6 +336,7 @@ export function checkPatch(
   ranges("cuts", patch.cuts);
   ranges("layout", patch.layout);
   ranges("shorts", patch.shorts);
+  ranges("overlays", patch.overlays);
   for (const [name, at] of [
     ...(patch.chapters ?? []).map((c, i) => [`chapters[${i}]`, c.at] as const),
     ...(patch.thumbnail ? [["thumbnail", patch.thumbnail.at] as const] : []),
@@ -369,7 +411,14 @@ export async function setEdit(
   db: Queryable,
   id: number,
   input: unknown,
-  o: { by: string; command?: string; run?: string; stats?: object },
+  o: {
+    by: string;
+    command?: string;
+    run?: string;
+    stats?: object;
+    /** The fields' values the editor opened on: any that moved since refuses the save (409). */
+    expect?: Record<string, unknown>;
+  },
 ): Promise<{ run: string; edit: VideoEdit; snapped: Moved[] }> {
   const parsed = editPatchSchema.safeParse(input);
   if (!parsed.success)
@@ -379,7 +428,11 @@ export async function setEdit(
   const patch = { ...parsed.data };
   if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
   return atomic(db, async (tx) => {
-    const now = await getEdit(tx, id);
+    const now = o.expect ? await lockedEdit(tx, id) : await getEdit(tx, id);
+    if (o.expect)
+      for (const [k, v] of Object.entries(o.expect))
+        if (k in editPatchSchema.shape && !sameJson(fieldOf(now, k), v))
+          throw staleRefusal("video", k);
     if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
     // Every Short set or proposed starts and ends on a whole sentence.
     const snap = patch.shorts
@@ -398,12 +451,7 @@ export async function setEdit(
       now.shorts,
     );
     if (bad.length) throw new Error(`Not saved: ${bad.join("; ")}`);
-    const before = Object.fromEntries(
-      Object.keys(patch).map((k) => [
-        k,
-        k === "camBox" ? (now.tracks.camBox ?? null) : now[k as keyof VideoEdit],
-      ]),
-    );
+    const before = Object.fromEntries(Object.keys(patch).map((k) => [k, fieldOf(now, k)]));
     const { camBox, ...columns } = patch;
     const [edit] = await tx
       .update(videoEdits)
@@ -536,6 +584,51 @@ export async function setWords(
   });
 }
 
+/**
+ * Rewrite one caption line (`captionLines`, `at` its words' indexes) as `text`. `was` is the
+ * line's text as the editor showed it: a transcript changed since refuses (409). Stressed words
+ * move with their words; a stressed word inside a line that changes count is dropped.
+ */
+export async function setLine(
+  db: Queryable,
+  id: number,
+  line: { at: number[]; text: string; was: string },
+  by: string,
+): Promise<{ run: string; edit: VideoEdit }> {
+  return atomic(db, async (tx) => {
+    const now = await lockedEdit(tx, id);
+    // The line as the transcript breaks it now: the same words, reading the same.
+    const shown = linesOf(now).find((l) => l.at.join() === line.at.join());
+    if (shown?.text !== line.was) throw staleRefusal("video", "words");
+    const words = rewriteLine(now.words, line.at, line.text);
+    const first = line.at[0] as number;
+    const last = line.at.at(-1) as number;
+    const shift = words.length - now.words.length;
+    const stress = now.stress.flatMap((i) =>
+      i < first ? [i] : i > last ? [i + shift] : shift === 0 ? [i] : [],
+    );
+    const [edit] = await tx
+      .update(videoEdits)
+      .set({ words, stress, updatedAt: new Date() })
+      .where(eq(videoEdits.id, id))
+      .returning();
+    const { id: run } = await openRun(tx, {
+      command: "video line",
+      argv: { id, by, at: line.at, text: line.text },
+    });
+    await finishRun(tx, run, {
+      fields: ["words", "stress"],
+      n: 1,
+      before: { words: now.words, stress: now.stress },
+    });
+    return { run, edit: edit as VideoEdit };
+  });
+}
+
+/** The caption lines as the vertical and Shorts break them (finish.ts), for the page. */
+export const linesOf = (e: Pick<VideoEdit, "words" | "cuts" | "tracks">) =>
+  captionLines(e.words, e.cuts, e.tracks.main.durationS);
+
 /** Undo cut `n` (1-based, as `wren video cuts` numbers them). */
 export async function keepCut(db: Queryable, id: number, n: number, by: string) {
   const { cuts } = await getEdit(db, id);
@@ -602,6 +695,15 @@ export async function setRendered(
       render: null,
       updatedAt: new Date(),
     })
+    .where(eq(videoEdits.id, id));
+}
+
+/** Media bucket keys the Mac uploaded, merged in one statement (no read-then-write race). */
+export async function setKeys(db: Queryable, id: number, keys: Record<string, string>) {
+  if (!Object.keys(keys).length) return;
+  await db
+    .update(videoEdits)
+    .set({ keys: sql`${videoEdits.keys} || ${JSON.stringify(keys)}::jsonb` })
     .where(eq(videoEdits.id, id));
 }
 

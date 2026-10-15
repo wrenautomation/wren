@@ -6,6 +6,7 @@
 import { oneOf } from "@wren/db/columns";
 import { jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import type { Captions } from "./caption-styles.js";
+import type { Crops, TextOverlay } from "./finish.js";
 
 /** `rejected`: he said no on the page (designs/2026-10-13-video-review.md); its files stay. */
 export const EDIT_STATES = [
@@ -23,8 +24,11 @@ export const CUT_WHYS = ["silence", "filler", "retake", "manual"] as const;
 /** cut: applied. proposed: struck through, waits for a yes. kept: undone (`wren video keep`). */
 export const CUT_STATES = ["cut", "proposed", "kept"] as const;
 export const LAYOUTS = ["corner", "cam", "screen"] as const;
-/** What one recording renders as: the 16:9 long video, the whole cut 9:16, or both. */
-export const FORMATS = ["long", "vertical"] as const;
+/**
+ * What one recording renders as: the 16:9 long video, and the whole cut cropped to 9:16
+ * (`vertical`), 1:1 (`square`) or 4:5 (`portrait`) (designs/2026-10-15-video-finishing.md).
+ */
+export const FORMATS = ["long", "vertical", "square", "portrait"] as const;
 export type Format = (typeof FORMATS)[number];
 
 export interface Word {
@@ -123,7 +127,12 @@ export const videoEdits = pgTable(
     description: text("description").notNull().default(""),
     chapters: jsonb("chapters").$type<Chapter[]>().notNull().default([]),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    /** The cover frame (`at`, raw seconds) and the thumbnail's words. */
     thumbnail: jsonb("thumbnail").$type<{ at: number; text: string }>(),
+    /** Text on the video (finish.ts), raw seconds. */
+    overlays: jsonb("overlays").$type<TextOverlay[]>().notNull().default([]),
+    /** Each cropped format's middle on the picture; unset: on his face. */
+    crops: jsonb("crops").$type<Crops>().notNull().default({}),
     /** Keyed by provider: gemini, twelvelabs. */
     looks: jsonb("looks").$type<Record<string, Look>>().notNull().default({}),
     /** Local outputs by name: cutMain, cutCam, then (step 2) long, shorts, thumbnails. */

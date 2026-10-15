@@ -77,16 +77,17 @@ export function fitRect(
   return [(box[0] - w) / 2, (box[1] - h) / 2, w, h];
 }
 
-/** Where a 9:16 picture sits: its `window` of a `size` picture scaled to cover 1080 x 1920. */
-export function verticalRect(picture: {
-  size: [number, number];
-  window: [number, number, number, number];
-}): Rect {
+/** Where a cropped picture sits: its `window` of a `size` picture scaled to cover `frame` (9:16 unset). */
+export function verticalRect(
+  picture: { size: [number, number]; window: [number, number, number, number] },
+  frame: readonly [number, number] = [1080, 1920],
+): Rect {
   const [x, y, w, h] = picture.window;
-  const k = Math.max(1080 / w, 1920 / h);
+  const [fw, fh] = frame;
+  const k = Math.max(fw / w, fh / h);
   return [
-    (1080 - w * k) / 2 - x * k,
-    (1920 - h * k) / 2 - y * k,
+    (fw - w * k) / 2 - x * k,
+    (fh - h * k) / 2 - y * k,
     picture.size[0] * k,
     picture.size[1] * k,
   ];

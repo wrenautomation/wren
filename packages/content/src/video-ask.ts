@@ -19,6 +19,7 @@ const CHANGES = [
   "video keep",
   "video cut-words",
   "video words",
+  "video line",
   "video stress",
   VIDEO_ASK,
   "video undo",

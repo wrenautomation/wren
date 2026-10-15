@@ -46,11 +46,15 @@ export {
   formatsFor,
   getEdit,
   keepCut,
+  linesOf,
   redoSilence,
+  sameJson,
   setCut,
   setCutKnobs,
   setEdit,
   setFiles,
+  setKeys,
+  setLine,
   setLook,
   setRender,
   setRendered,
@@ -62,6 +66,21 @@ export {
   twelvelabsMinutes,
   type WordsFix,
 } from "./edit.js";
+export {
+  ASPECT,
+  type CaptionLine,
+  CROPPED,
+  type CroppedFormat,
+  type Crops,
+  coverMs,
+  cropWindow,
+  FRAME,
+  formatFor,
+  isCropped,
+  overlaysOnCut,
+  type Point,
+  type TextOverlay,
+} from "./finish.js";
 export {
   cutTranscript,
   geminiLooker,
@@ -94,7 +113,19 @@ export {
   type Pick,
   planMattes,
 } from "./matte.js";
-export { cutSize, cutTracks, FPS, portrait, preview, proxy360, scaleFilter } from "./media.js";
+export {
+  cutSize,
+  cutTracks,
+  FPS,
+  filmstrip,
+  frameAt,
+  portrait,
+  preview,
+  proxy360,
+  STRIP,
+  scaleFilter,
+  sourceProxy,
+} from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
   type PromoProps,
@@ -108,7 +139,10 @@ export {
   type BehindWord,
   BIG,
   bigText,
+  type FramedProps,
   faceRect,
+  framedPicture,
+  framedProps,
   type LongProps,
   longProps,
   longSrt,

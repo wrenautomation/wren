@@ -14,6 +14,14 @@ import type { TemplateRef } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
+import {
+  CROPPED,
+  type CroppedFormat,
+  captionLines,
+  coverMs,
+  formatFor,
+  pictureOf,
+} from "@wren/studio/finish";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
@@ -339,10 +347,21 @@ export async function approveVideo(
             : `Short ${o.short} has no Reel upload: render it again (wren video render ${id} --short ${o.short})`,
         },
       };
+    // The whole cut's cover (finish.ts): his frame, on the cut timeline, and its picture.
+    const cover =
+      vertical && e.thumbnail
+        ? {
+            ms: coverMs(e.thumbnail.at, keepSegments(e.cuts, e.tracks.main.durationS, 30)),
+            file: e.keys["cover-vertical"] ?? null,
+          }
+        : null;
     const also = await alsoDrafts(tx, {
       ideaId,
       have: new Set(had.map((d) => d.platform)),
       stored,
+      // The whole cut goes to each feed in its shape: LinkedIn and Facebook 4:5, X 1:1, when rendered.
+      ...(vertical ? { framed: framedStored(e) } : {}),
+      ...(cover ? { coverMs: cover.ms } : {}),
       title,
       description: about,
       video: id,
@@ -360,7 +379,10 @@ export async function approveVideo(
         text: caption,
         title,
         media: { kind: "video", source: stored, title },
-        extra: fieldsOf("instagram", { shareToFeed: true }),
+        extra: fieldsOf("instagram", {
+          shareToFeed: true,
+          ...(cover ? { thumbOffset: cover.ms, ...(cover.file ? { cover: cover.file } : {}) } : {}),
+        }),
         // Waits in To approve; his Approve gives it the next Instagram slot.
         status: "draft",
         promptVersion: "video",
@@ -442,10 +464,10 @@ export function tiktokFields(via: "web" | "api") {
   );
 }
 
-/** The fields each takes. */
-const alsoFields = (platform: AlsoPlatform, tiktokVia: "web" | "api") =>
+/** The fields each takes; `coverMs` the cover frame, TikTok's only. */
+const alsoFields = (platform: AlsoPlatform, tiktokVia: "web" | "api", cover?: number) =>
   platform === "tiktok"
-    ? tiktokFields(tiktokVia)
+    ? { ...tiktokFields(tiktokVia), ...(cover !== undefined ? { coverMs: cover } : {}) }
     : platform === "x"
       ? fieldsOf("x", {})
       : platform === "facebook"
@@ -468,12 +490,17 @@ async function alsoDrafts(
     short: number | "vertical";
     funnel: { stage: "reach" | "trust"; pointsTo: "video" | "site"; videoDraft?: string | null };
     tiktokVia: "web" | "api";
+    /** The whole cut's renders by format, uploaded (`framedStored`): each platform takes its shape. */
+    framed?: Partial<Record<CroppedFormat, string>>;
+    coverMs?: number;
   },
 ): Promise<{ platform: AlsoPlatform; id: string }[]> {
   const made: { platform: AlsoPlatform; id: string }[] = [];
   for (const platform of ALSO_PLATFORMS) {
     if (o.have.has(platform)) continue;
     const text = alsoText(platform, o.title, o.description);
+    const shape = o.framed ? formatFor(platform, new Set(Object.keys(o.framed))) : null;
+    const source = (shape && o.framed?.[shape]) || o.stored;
     const [d] = await db
       .insert(contentDrafts)
       .values({
@@ -481,8 +508,8 @@ async function alsoDrafts(
         platform,
         text,
         title: o.title,
-        media: { kind: "video", source: o.stored, title: o.title },
-        extra: alsoFields(platform, o.tiktokVia),
+        media: { kind: "video", source, title: o.title },
+        extra: alsoFields(platform, o.tiktokVia, o.coverMs),
         status: "draft",
         promptVersion: "video",
         ...o.funnel,
@@ -545,8 +572,17 @@ async function keepUpload(
     });
 }
 
-/** The full-size Short (or vertical) in the media bucket, for its Reel: `wren video render` uploads it. */
-export const reelKey = (short: number | "vertical") => `reel-${short}`;
+/**
+ * The full-size Short (or the whole cut in a format) in the media bucket, for its Reel and the
+ * other feeds: `wren video render` uploads it.
+ */
+export const reelKey = (short: number | CroppedFormat) => `reel-${short}`;
+
+/** The whole cut's full renders in the media bucket, by format. */
+export const framedStored = (e: Pick<VideoEdit, "keys">) =>
+  Object.fromEntries(
+    CROPPED.flatMap((f) => (e.keys[reelKey(f)] ? [[f, e.keys[reelKey(f)] as string]] : [])),
+  ) as Partial<Record<CroppedFormat, string>>;
 
 export interface SwappedDraft {
   id: string;
@@ -701,6 +737,42 @@ export const cutRows = (e: Pick<VideoEdit, "cuts" | "words">) =>
     after: r.after,
   }));
 
+/**
+ * What the finishing view edits (designs/2026-10-15-video-finishing.md): the raw recording's
+ * playback copies and filmstrip, the fields it saves as they are stored (its `expect`), the
+ * caption lines as the render breaks them, and each cropped format's cover and render.
+ */
+async function finishOf(
+  e: VideoEdit,
+  sign: (key: string | null | undefined) => Promise<string | null>,
+) {
+  const { main, cam } = e.tracks;
+  const covers = await Promise.all(
+    CROPPED.map(async (f) => [f, await sign(e.keys[`cover-${f}`])] as const),
+  );
+  return {
+    fps: 30,
+    durationS: main.durationS,
+    size: [main.width, main.height] as [number, number],
+    camSize: cam ? ([cam.width, cam.height] as [number, number]) : null,
+    source: await sign(e.keys.source),
+    sourceCam: await sign(e.keys["source-cam"]),
+    strip: await sign(e.keys.strip),
+    picture: pictureOf(e.tracks),
+    lines: captionLines(e.words, e.cuts, main.durationS),
+    rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
+    covers: Object.fromEntries(covers.filter(([, url]) => url)),
+    saved: {
+      cuts: e.cuts,
+      overlays: e.overlays,
+      crops: e.crops,
+      captions: e.captions,
+      thumbnail: e.thumbnail,
+      formats: e.formats,
+    },
+  };
+}
+
 /** The long video's draft, by its ref: uploading, on YouTube, or failed. */
 const UPLOAD: Partial<Record<DraftStatus, string>> = {
   published: "uploaded",
@@ -815,6 +887,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoAsk",
       "marketing.videoUndo",
       "marketing.videoWords",
+      "marketing.videoLine",
       "marketing.videoAgent",
     ],
     calls: {
@@ -826,6 +899,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/ask": "id",
       "VideoDesk/undo": "id",
       "VideoDesk/words": "id",
+      "VideoDesk/line": "id",
       "VideoDesk/render": "id",
       "VideoDesk/edit": "id",
       "VideoDesk/reject": "id",
@@ -879,6 +953,7 @@ export const videoRecord = (signer?: VideoSigner) => {
               }
             : null,
           cuts: cutRows(e),
+          finish: await finishOf(e, sign),
           promos: upload ? await promosOf(db, upload) : null,
           render: e.render,
           state: e.state,
