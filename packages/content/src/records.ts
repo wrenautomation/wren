@@ -188,6 +188,8 @@ export const draftRecordOf = (signer?: VideoSigner) =>
     drafts: (id) => [`draft:${id}`],
     actions: [
       "marketing.approveDraft",
+      "marketing.scheduleDraft",
+      "marketing.postNow",
       "marketing.redraft",
       "marketing.rejectDraft",
       "marketing.draftSet",

@@ -175,6 +175,10 @@ const WRITE = z.looseObject({
   title: z.string().nullish().describe("Reddit's title; else the first line"),
   platforms: z.array(z.enum(PLATFORMS)).min(1).describe("Where each post goes"),
   adapt: z.boolean().nullish().describe("The model writes each platform's version from the words"),
+  thread: z
+    .boolean()
+    .nullish()
+    .describe("The text is one X thread, its posts split by a line of ---; X only"),
   go: z
     .enum(WRITE_GO)
     .nullish()
@@ -248,6 +252,7 @@ const IDS = z.looseObject({
 });
 const APPROVE = IDS.extend({
   now: z.boolean().nullish().describe("On the next pass instead of the next slot"),
+  at: z.iso.datetime({ offset: true }).nullish().describe("Post at this time instead (ISO)"),
 });
 const SWAP = z.looseObject({
   draftId: z.string().describe("A published post's draft id"),
@@ -518,6 +523,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             title?: string | null;
             platforms: Platform[];
             adapt?: boolean | null;
+            thread?: boolean | null;
             go?: WriteGo | null;
             from?: string | null;
             media?: Media | null;
@@ -526,7 +532,8 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         ) => {
           const s = await scopeOf(ctx);
           const by = byOf(req);
-          const posts = splitPosts(req.text);
+          // A thread is one post whose parts the `---` lines split.
+          const posts = req.thread ? [req.text.trim()].filter(Boolean) : splitPosts(req.text);
           if (posts.length === 0)
             throw new restate.TerminalError("Nothing to post.", { errorCode: 400 });
           if (posts.length > 1 && req.title)
@@ -535,25 +542,27 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             });
           const out: { ideaId: string; results: WriteResult[] }[] = [];
           for (const [n, text] of posts.entries()) {
-            const made = req.adapt
-              ? await (async () => {
-                  const idea = await ctx.run(`idea ${n}`, () =>
-                    addIdea(s.db, text, "cli", null, refFrom(req.from)),
-                  );
-                  const r = await draft(ctx, { ideaId: idea.id, platforms: req.platforms });
-                  return { ideaId: idea.id, results: r.results };
-                })()
-              : await ctx.run(`write ${n}`, async () => {
-                  const r = await writeOwn(s.db, {
-                    text,
-                    title: req.title ?? null,
-                    platforms: req.platforms,
-                    by,
-                    from: req.from ?? null,
-                    media: req.media ?? null,
+            const made =
+              req.adapt && !req.thread
+                ? await (async () => {
+                    const idea = await ctx.run(`idea ${n}`, () =>
+                      addIdea(s.db, text, "cli", null, refFrom(req.from)),
+                    );
+                    const r = await draft(ctx, { ideaId: idea.id, platforms: req.platforms });
+                    return { ideaId: idea.id, results: r.results };
+                  })()
+                : await ctx.run(`write ${n}`, async () => {
+                    const r = await writeOwn(s.db, {
+                      text,
+                      title: req.title ?? null,
+                      platforms: req.platforms,
+                      by,
+                      from: req.from ?? null,
+                      media: req.media ?? null,
+                      ...(req.thread ? { thread: true } : {}),
+                    });
+                    return { ideaId: r.idea.id, results: r.results };
                   });
-                  return { ideaId: r.idea.id, results: r.results };
-                });
             out.push({ ideaId: made.ideaId, results: made.results.map(written) });
           }
           await goOn(ctx, s.db, out, req.go ?? "draft", by);
@@ -649,20 +658,25 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         { input: APPROVE },
         async (
           ctx: restate.ObjectContext,
-          req: { ids: string[]; now?: boolean | null; viewer?: unknown },
+          req: { ids: string[]; now?: boolean | null; at?: string | null; viewer?: unknown },
         ) => {
           const { db } = await scopeOf(ctx);
           const slots = await slotsHere(ctx);
           return ctx.run("approve", () =>
-            verdict(() =>
-              approveDrafts(db, req.ids, {
-                now: new Date(),
+            verdict(() => {
+              const now = new Date();
+              const at = req.at ? new Date(req.at) : null;
+              if (at && at.getTime() <= now.getTime())
+                throw new Error("That time has passed. Pick a later one.");
+              return approveDrafts(db, req.ids, {
+                now,
                 zone: deps.zone,
                 slots,
                 asap: req.now === true,
+                ...(at ? { at } : {}),
                 by: byOf(req),
-              }),
-            ),
+              });
+            }),
           );
         },
       ),

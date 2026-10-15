@@ -187,6 +187,32 @@ const DRAFT_ACTIONS: Action[] = [
     done: said("Scheduled at its next slot"),
   },
   {
+    id: "marketing.scheduleDraft",
+    label: "Schedule",
+    handler: "marketing/scheduleDraft",
+    form: [
+      { field: "day", label: "Day", type: "date" },
+      { field: "time", label: "Time", hint: "Your time, like 15:00. Blank: 9:00.", optional: true },
+    ],
+    each: true,
+    when: OPEN,
+    blocked: {
+      missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
+    },
+    done: said("Scheduled"),
+  },
+  {
+    id: "marketing.postNow",
+    label: "Post now",
+    handler: "marketing/postNow",
+    confirm: "Post this on the next pass, within a few minutes?",
+    when: OPEN,
+    blocked: {
+      missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
+    },
+    done: said("Posting on the next pass"),
+  },
+  {
     id: "marketing.redraft",
     label: "Redraft",
     handler: "marketing/redraft",

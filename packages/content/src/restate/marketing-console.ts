@@ -101,6 +101,11 @@ export interface DraftsRequest extends PortalRequest {
   /** Draft ids, as the record shows them. */
   ids: string[];
 }
+/** A yes: at the next slot, at a time he picked, or on the next pass. */
+export interface ApproveRequest extends DraftsRequest {
+  at?: string | null;
+  now?: boolean | null;
+}
 export interface RejectRequest extends DraftsRequest {
   reason?: string | null;
   note?: string | null;
@@ -313,10 +318,12 @@ const idsOf = (v: unknown): string[] => {
 };
 
 const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
-const IDS = {
+const APPROVE = {
   input: z.looseObject({
     ...PORTAL_FIELDS,
     ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
+    at: z.iso.datetime({ offset: true }).nullish().describe("Post at this time (ISO)"),
+    now: z.boolean().nullish().describe("Post on the next pass"),
   }),
 };
 const REJECT = {
@@ -440,11 +447,18 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
           answer(() => ctx.run("run", () => answer(() => api.reportRun(req)))),
       ),
       /** Yes on the client's drafts: each takes its platform's next slot; posting waits on its live flag. */
-      approveDraft: serviceHandler(IDS, (ctx: restate.Context, req: DraftsRequest) =>
+      approveDraft: serviceHandler(APPROVE, (ctx: restate.Context, req: ApproveRequest) =>
         answer(async () => {
           const ids = idsOf(req.ids);
           const key = await ctx.run("check", () => answer(() => api.deciding(req)));
-          return desk(() => deskOf(ctx, key).approve({ ids, viewer: req.viewer }));
+          return desk(() =>
+            deskOf(ctx, key).approve({
+              ids,
+              viewer: req.viewer,
+              ...(req.at ? { at: req.at } : {}),
+              ...(req.now ? { now: true } : {}),
+            }),
+          );
         }),
       ),
       /** No on the client's drafts, with an optional why for the draft record. */
