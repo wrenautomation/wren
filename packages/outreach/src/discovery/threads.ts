@@ -23,7 +23,7 @@ import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { armMeta, guardBy, modelFor } from "../draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
@@ -220,20 +220,32 @@ const capOf = (a: ReachAccount | null, now: Date) =>
   a?.health ? warmupOf(a.health as AccountHealth, now).caps.comments : a ? 0 : NO_ACCOUNT_CAP;
 
 /**
- * Move the place's best ranked threads to the queue, up to its account's comment cap for the day
- * (counting what's queued or sent today). Queued threads past a day and a half go stale.
+ * Threads past a day and a half that never got a send time go stale, in every sub, each pass: a
+ * sub not read again must not keep its queue forever.
  */
-export async function queueThreads(db: Queryable, sub: string, now: Date): Promise<string[]> {
-  await db
+export async function expireStale(db: Queryable, now: Date): Promise<number> {
+  const gone = await db
     .update(redditThreads)
     .set({ state: "skipped", dropped: "went stale" })
     .where(
       and(
-        eq(redditThreads.subreddit, sub),
         inArray(redditThreads.state, ["new", "queued"]),
+        isNull(redditThreads.sendAt),
         lt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
       ),
-    );
+    )
+    .returning({ id: redditThreads.id });
+  return gone.length;
+}
+
+/**
+ * Move the place's best ranked threads to the queue. With an account, the queue holds at most
+ * its comment cap for the day across every sub it works (queued, plus what it sent today), so
+ * eight subs never queue eight caps; the cap rises as its warm-up rung does. With none, each sub
+ * shows a few a day to read.
+ */
+export async function queueThreads(db: Queryable, sub: string, now: Date): Promise<string[]> {
+  await expireStale(db, now);
   const [place] = await db.select().from(redditPlaces).where(eq(redditPlaces.subreddit, sub));
   if (place?.state !== "watching") return [];
   const account = await accountById(db, place.accountId);
@@ -241,11 +253,22 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
     .select({ n: sql<number>`count(*)::int` })
     .from(redditThreads)
     .where(
-      and(
-        eq(redditThreads.subreddit, sub),
-        inArray(redditThreads.state, ["queued", "commented"]),
-        gte(redditThreads.createdAt, dayStart(now)),
-      ),
+      account
+        ? and(
+            eq(redditThreads.accountId, account.id),
+            or(
+              eq(redditThreads.state, "queued"),
+              and(
+                eq(redditThreads.state, "commented"),
+                gte(redditThreads.answeredAt, dayStart(now)),
+              ),
+            ),
+          )
+        : and(
+            eq(redditThreads.subreddit, sub),
+            inArray(redditThreads.state, ["queued", "commented"]),
+            gte(redditThreads.createdAt, dayStart(now)),
+          ),
     );
   const room = capOf(account, now) - (q?.n ?? 0);
   if (room <= 0) return [];

@@ -6,12 +6,13 @@
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
   addPlaces,
   draftThread,
+  expireStale,
   keepPerson,
   keepPlace,
   keepScores,
@@ -225,6 +226,36 @@ describe("reddit discovery", () => {
       await markCommented(db(), id, { body: "x", ref: null, accountId: a.id, now: NOW });
     await db().update(redditThreads).set({ state: "queued" }).where(eq(redditThreads.id, "t3_p4"));
     await expect(planThreadComment(db(), "t3_p4", NOW)).rejects.toThrow(/3 comments a day/);
+  });
+
+  it("the queue holds the account's cap across its subs; stale threads expire in every sub", async () => {
+    await account("reddit@wren", "WrenAutomation", 5, 2); // comment rung: 3 a day
+    for (const sub of ["agency", "smallbusiness"]) {
+      await addPlaces(db(), [{ name: sub, foundBy: "named" }]);
+      await keepPlace(db(), sub, read(sub), judged(), NOW);
+      await watchPlace(db(), sub, NOW);
+    }
+    const o = { now: NOW, ours: [], judged: judged() };
+    for (const sub of ["agency", "smallbusiness"]) {
+      const posts = [1, 2, 3].map((n) => post(n, { id: `${sub}${n}`, name: `t3_${sub}${n}` }));
+      const ids = await keepThreads(db(), sub, posts, o);
+      await db()
+        .update(redditThreads)
+        .set({ state: "ranked", fit: 8 })
+        .where(inArray(redditThreads.id, ids));
+    }
+    expect(await queueThreads(db(), "agency", NOW)).toHaveLength(3);
+    // Same account, its cap already queued: the second sub queues none.
+    expect(await queueThreads(db(), "smallbusiness", NOW)).toEqual([]);
+    // Two days on, nothing was slotted: every queued thread goes stale, read again or not.
+    const later = new Date(NOW.getTime() + 2 * DAY);
+    expect(await expireStale(db(), later)).toBe(3);
+    const left = await db().select().from(redditThreads);
+    expect(left.filter((t) => t.dropped === "went stale").map((t) => t.subreddit)).toEqual([
+      "agency",
+      "agency",
+      "agency",
+    ]);
   });
 
   it("people to read: commenters and Reddit DM contacts, not ours, not fresh", async () => {
