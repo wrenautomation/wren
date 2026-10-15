@@ -15,7 +15,7 @@ import { redraft } from "../../src/draft.js";
 import { readFunnel, setFunnel } from "../../src/funnel.js";
 import { postOf } from "../../src/platforms.js";
 import { promosOf, promoteVideo, videoDraftOf } from "../../src/promo.js";
-import { approveDrafts } from "../../src/review.js";
+import { approveDrafts, FAN_GAP_MS } from "../../src/review.js";
 import { contentDrafts, contentIdeas } from "../../src/schema.js";
 import { shapeView } from "../../src/shape-view.js";
 import { approveVideo } from "../../src/video.js";
@@ -158,6 +158,28 @@ describe("funnel", () => {
     expect(await readFunnel(pg.db, x)).toMatchObject({ allowed: true, linked: false, posts: null });
     const r = await post("reddit", { subreddit: "r/SomeSub" });
     expect(await readFunnel(pg.db, r)).toMatchObject({ allowed: false, posts: null });
+  });
+
+  it("fans a Reddit post out to its Also post to subreddits, each a gap after the last", async () => {
+    const d = await post("reddit", {
+      subreddit: "SomeSub",
+      alsoTo: ["OtherSub", "r/ThirdSub", "somesub", "othersub"],
+    });
+    await pg.db.update(contentDrafts).set({ title: "Cut the demo" }).where(eq(contentDrafts.id, d.id));
+    const at = new Date("2030-01-02T15:00:00Z");
+    const rows = await approveDrafts(pg.db, [d.id], { now: new Date(), at });
+    expect(rows).toHaveLength(3);
+    const all = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.ideaId, d.ideaId));
+    const by = new Map(all.map((r) => [String((r.extra as { subreddit?: string }).subreddit), r]));
+    expect([...by.keys()].sort()).toEqual(["OtherSub", "SomeSub", "ThirdSub"]);
+    for (const r of all) {
+      expect(r.status).toBe("approved");
+      expect(r.extra).not.toHaveProperty("alsoTo");
+      expect(r.title).toBe("Cut the demo");
+    }
+    expect(by.get("SomeSub")?.scheduledFor?.toISOString()).toBe(at.toISOString());
+    expect(by.get("OtherSub")?.scheduledFor?.getTime()).toBe(at.getTime() + FAN_GAP_MS);
+    expect(by.get("ThirdSub")?.scheduledFor?.getTime()).toBe(at.getTime() + 2 * FAN_GAP_MS);
   });
 
   it("points a Short's Reel at its long video and promotes the video per platform", async () => {

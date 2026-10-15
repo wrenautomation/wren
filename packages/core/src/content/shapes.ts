@@ -419,6 +419,8 @@ const youtube = shape({
 });
 
 const SUBREDDIT = /^(r\/)?[A-Za-z0-9_]{2,21}$|^u[_/][A-Za-z0-9_-]{3,20}$/;
+/** The most subreddits one Reddit draft fans out to past its own. */
+export const REDDIT_ALSO_MAX = 9;
 const reddit = shape({
   subreddit: line(
     "Subreddit",
@@ -426,6 +428,20 @@ const reddit = shape({
     { required: true, hint: "Its name, like startups, or u_YourName for the profile" },
     SUBREDDIT,
   ),
+  // More subreddits for the same post: Approve makes one draft each, spaced (content `splitSubreddits`).
+  alsoTo: {
+    zod: z
+      .array(z.string().trim().regex(SUBREDDIT, "Also post to: subreddit names, like startups"))
+      .max(REDDIT_ALSO_MAX, `Also post to: up to ${REDDIT_ALSO_MAX}`)
+      .optional(),
+    ui: {
+      label: "Also post to",
+      input: "list" as const,
+      status: "sent" as const,
+      max: REDDIT_ALSO_MAX,
+      hint: "More subreddits. Approve makes one post each, a few hours apart",
+    },
+  },
   title: line("Title", 300, { required: true, column: "title" }),
   url: url("Link", { hint: "Set it to make a link post; the body is dropped" }),
   sendReplies: flag("Replies to inbox", { default: true }),

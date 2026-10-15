@@ -300,22 +300,22 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
       ) : null}
       {picks ? (
         picks.values.length ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={HINT}>{picks.label}</span>
-            {picks.values.map((v) => (
-              <Button
-                key={v}
-                size="dense"
-                tone={v === text.trim() ? "primary" : "secondary"}
-                onClick={() => {
-                  s.set(v);
-                  save();
-                }}
-              >
-                {picks.show(v)}
-              </Button>
-            ))}
-          </div>
+          <PickRow
+            picks={picks}
+            on={(v) => (n ? n.some((x) => x.toLowerCase() === v.toLowerCase()) : v === text.trim())}
+            choose={(v) => {
+              // A list toggles the pick in or out; a line takes it.
+              s.set(
+                n
+                  ? (n.some((x) => x.toLowerCase() === v.toLowerCase())
+                      ? n.filter((x) => x.toLowerCase() !== v.toLowerCase())
+                      : [...n, v]
+                    ).join(", ")
+                  : v,
+              );
+              save();
+            }}
+          />
         ) : (
           <span className={HINT}>{picks.none}</span>
         )
@@ -324,6 +324,47 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
         <span className={HINT}>{f.input === "list" ? `Commas between. ${f.hint}` : f.hint}</span>
       ) : f.input === "list" ? (
         <span className={HINT}>Commas between.</span>
+      ) : null}
+    </div>
+  );
+}
+
+/** Past this many picks, a search box finds the rest. */
+const PICKS_SHOWN = 8;
+
+/** The picks as buttons: the first few, or what the search matches, chosen ones always shown. */
+function PickRow(props: { picks: Picks; on: (v: string) => boolean; choose: (v: string) => void }) {
+  const { picks, on, choose } = props;
+  const [q, setQ] = useState("");
+  const find = q.trim().toLowerCase().replace(/^r\//, "");
+  const many = picks.values.length > PICKS_SHOWN;
+  const shown = find
+    ? picks.values.filter((v) => v.toLowerCase().includes(find))
+    : picks.values.filter((v, i) => i < PICKS_SHOWN || on(v));
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={HINT}>{picks.label}</span>
+      {many ? (
+        <Input
+          aria-label={`Search ${picks.values.length} ${picks.label.replace(/:$/, "").toLowerCase()}`}
+          placeholder={`Search ${picks.values.length}`}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="h-7 w-36 text-[13px]"
+        />
+      ) : null}
+      {shown.slice(0, find ? 24 : undefined).map((v) => (
+        <Button
+          key={v}
+          size="dense"
+          tone={on(v) ? "primary" : "secondary"}
+          onClick={() => choose(v)}
+        >
+          {picks.show(v)}
+        </Button>
+      ))}
+      {find && shown.length === 0 ? (
+        <span className={HINT}>None we watch. Type it in the box above.</span>
       ) : null}
     </div>
   );
@@ -723,7 +764,9 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
           <TextField
             {...props}
             picks={
-              shape.platform === "reddit" && f.key === "subreddit" && shape.places
+              shape.platform === "reddit" &&
+              (f.key === "subreddit" || f.key === "alsoTo") &&
+              shape.places
                 ? placePicks(shape.places)
                 : undefined
             }

@@ -141,21 +141,34 @@ export async function approveDrafts(
 
 async function approveAll(
   db: Queryable,
-  ids: readonly string[],
+  asked: readonly string[],
   o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots },
 ): Promise<ContentDraft[]> {
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
-  await pickSubreddits(db, ids, o.now);
+  await pickSubreddits(db, asked, o.now);
+  const fanned = await splitSubreddits(db, asked);
+  const ids = [...asked, ...fanned.flatMap((f) => f.copies)];
   await refuseIncomplete(db, ids);
-  if (o.at || o.asap || !o.zone)
+  if (o.at || o.asap || !o.zone) {
     // A time he picks, or now, moves an approved one too: a queued post rescheduled.
-    return moveAll(
+    const rows = await moveAll(
       db,
       ids,
       o.at || o.asap ? [...APPROVABLE, "approved"] : APPROVABLE,
       { ...base, scheduledFor: o.at ?? null },
       "be approved",
     );
+    // Each copy a gap after its original, so one account never posts them all at once.
+    const start = o.at ?? o.now;
+    for (const f of fanned)
+      for (const [i, id] of f.copies.entries()) {
+        const at = new Date(start.getTime() + (i + 1) * FAN_GAP_MS);
+        await db.update(contentDrafts).set({ scheduledFor: at }).where(eq(contentDrafts.id, id));
+        const r = rows.find((x) => x.id === id);
+        if (r) r.scheduledFor = at;
+      }
+    return rows;
+  }
   const zone = o.zone;
   // One read of the drafts and one of each platform's held slots; each
   // approval then holds its slot in memory for the next.
@@ -280,6 +293,69 @@ async function pickSubreddits(db: Queryable, ids: readonly string[], now: Date):
     if (extra !== r.extra)
       await db.update(contentDrafts).set({ extra }).where(eq(contentDrafts.id, r.id));
   }
+}
+
+/** Between one subreddit's copy of a post and the next: Reddit's own post cap is 3 a day. */
+export const FAN_GAP_MS = 4 * 3_600_000;
+
+/**
+ * A Reddit draft's "Also post to" made real: one new draft per extra subreddit, same words and
+ * idea, each with that one sub and an empty list, so each posts, shows and is checked on its own.
+ * The original keeps its own sub. Answers the copies made, per original, in list order.
+ */
+export async function splitSubreddits(
+  db: Queryable,
+  ids: readonly string[],
+): Promise<{ id: string; copies: string[] }[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select()
+    .from(contentDrafts)
+    .where(
+      and(
+        inArray(contentDrafts.id, [...ids]),
+        eq(contentDrafts.platform, "reddit"),
+        inArray(contentDrafts.status, [...APPROVABLE]),
+      ),
+    );
+  const out: { id: string; copies: string[] }[] = [];
+  for (const r of rows) {
+    const extra = (r.extra ?? {}) as Record<string, unknown>;
+    const own = String(extra.subreddit ?? "")
+      .replace(/^r\//i, "")
+      .toLowerCase();
+    const also = (Array.isArray(extra.alsoTo) ? extra.alsoTo : [])
+      .map((v) => String(v).trim().replace(/^r\//i, ""))
+      .filter(
+        (v, i, all) =>
+          v &&
+          v.toLowerCase() !== own &&
+          all.findIndex((w) => w.toLowerCase() === v.toLowerCase()) === i,
+      );
+    const { alsoTo: _, ...kept } = extra;
+    await db.update(contentDrafts).set({ extra: kept }).where(eq(contentDrafts.id, r.id));
+    if (also.length === 0) continue;
+    const { id: __, createdAt: ___, ...copy } = r;
+    const made = await db
+      .insert(contentDrafts)
+      .values(
+        also.map((sub) => ({
+          ...copy,
+          extra: { ...kept, subreddit: sub },
+          status: "draft" as const,
+          scheduledFor: null,
+          approvedAt: null,
+          publishedAt: null,
+          publishedId: null,
+          url: null,
+          error: null,
+          note: `Also to r/${sub}, from ${r.id}`,
+        })),
+      )
+      .returning({ id: contentDrafts.id });
+    out.push({ id: r.id, copies: made.map((m) => m.id) });
+  }
+  return out;
 }
 
 /** Why a Reddit post has nowhere to go: no watched place takes posts. */

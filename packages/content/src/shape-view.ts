@@ -176,7 +176,7 @@ export async function shapeView(
     fields,
     missing: EDITABLE.includes(d.status) ? missingFields(d.platform, d.extra, d.title) : [],
     ...(d.platform === "reddit" && EDITABLE.includes(d.status)
-      ? { places: (await postPlaces(db, new Date())).map((p) => p.name) }
+      ? { places: (await postPlaces(db, new Date(), 100)).map((p) => p.name) }
       : {}),
     links,
     media: d.media ? { kind: d.media.kind, name: d.media.title || nameOf(d.media.source) } : null,
