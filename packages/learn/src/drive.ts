@@ -530,13 +530,19 @@ export async function mark(
     read: { openedAt: now },
     unread: { openedAt: null },
   }[m];
-  // Setting a mark that's already set leaves its time alone.
+  // Setting a mark that's already set leaves its time alone; clearing one that isn't set does
+  // nothing. Either way the ids answered are only those it changed, so an undo touches no other.
   const unset = {
     star: isNull(items.starredAt),
+    unstar: isNotNull(items.starredAt),
     pin: isNull(items.pinnedAt),
+    unpin: isNotNull(items.pinnedAt),
     later: isNull(items.laterAt),
+    unlater: isNotNull(items.laterAt),
     archive: isNull(items.archivedAt),
+    unarchive: isNotNull(items.archivedAt),
     read: isNull(items.openedAt),
+    unread: isNotNull(items.openedAt),
   } as Partial<Record<Mark, SQL>>;
   const rows = await db
     .update(items)

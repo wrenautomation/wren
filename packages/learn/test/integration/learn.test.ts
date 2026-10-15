@@ -674,6 +674,9 @@ describe("Learn", () => {
     expect((await api.browse({ ...viewer, place: "later" })).total).toBe(1);
     expect((await api.browse({ ...viewer, place: "archived" })).total).toBe(2);
     expect((await api.mark({ ...viewer, ids: [v2], mark: "archive" })).done).toEqual([]);
+    // Clearing answers only what it changed: undo of an unstar stars no other.
+    expect((await api.mark({ ...viewer, ids: [v1, ep], mark: "unstar" })).done).toEqual([v1]);
+    expect((await api.mark({ ...viewer, ids: [v1], mark: "star" })).done).toEqual([v1]);
 
     // Collections nest like folders; never inside themselves; deleting keeps the items.
     const top = await api.collectionAdd({ ...viewer, name: "Deliverability" });

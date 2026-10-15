@@ -66,23 +66,47 @@ const MARK_LINES: Record<Mark, string> = {
   unread: "Marked unread",
 };
 
+/**
+ * The undo of a mark: the opposite, on only the items it changed (one already starred isn't
+ * unstarred by Star's undo), once. Null when there is nothing to undo.
+ */
+export function undoOf(mark: Mark, done: readonly (string | number)[]) {
+  const back = UNDO[mark];
+  if (!back || !done.length) return null;
+  let used = false;
+  return {
+    back,
+    ids: done.map(Number),
+    /** True the first time only: a second press of Undo does nothing. */
+    take: () => {
+      if (used) return false;
+      used = true;
+      return true;
+    },
+  };
+}
+
 /** Mark items, with an undo for ten seconds. */
 export async function markItems(ids: number[], mark: Mark): Promise<void> {
   if (!ids.length) return;
+  let done: string[];
   try {
-    await learn.mark(ids, mark);
+    ({ done } = await learn.mark(ids, mark));
   } catch (err) {
     say.failed(err);
     return;
   }
-  const back = UNDO[mark];
   const line = ids.length > 1 ? `${MARK_LINES[mark]}: ${many(ids.length)}` : MARK_LINES[mark];
-  if (!back) return void toast.success(line);
+  const undo = undoOf(mark, done ?? []);
+  if (!undo) return void toast.success(line);
   toast.success(line, {
     duration: 10_000,
     action: {
       label: "Undo",
-      onClick: () => void learn.mark(ids, back).then(() => toast.success("Undone"), say.failed),
+      onClick: () => {
+        if (!undo.take()) return;
+        void learn.mark(undo.ids, undo.back).then(() => toast.success("Undone"), say.failed);
+      },
     },
   });
 }
