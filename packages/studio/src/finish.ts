@@ -5,7 +5,7 @@
  * Every time is seconds on the raw main track, like the rest of the edit.
  */
 import { z } from "zod";
-import { type Line, reelLines } from "./captions.js";
+import { type Line, lineAt, pageLines, reelLines } from "./captions.js";
 import { keepSegments, onCut, type Span, toCutTime } from "./cuts.js";
 import { CAPTION_Y, OVERLAY, OVERLAY_SIZES, type TextOverlay } from "./finish-look.js";
 import type { Cut, Format, Tracks, Word } from "./schema.js";
@@ -40,12 +40,21 @@ export type Crops = { [F in CroppedFormat]?: Point | undefined } & {
   shorts?: Record<string, Point> | undefined;
 };
 
+export { onScreen, wordState } from "./caption-styles.js";
+export { REEL } from "./captions.js";
 export {
+  CAPTION_LOOK,
   CAPTION_Y,
+  captionWordLook,
+  cornerCam,
+  longCaption,
   OVERLAY,
   OVERLAY_SIZES,
   type OverlaySize,
   overlayAt,
+  pillLook,
+  reelCaption,
+  reelY,
   type TextOverlay,
 } from "./finish-look.js";
 
@@ -303,6 +312,50 @@ export function captionLines(
       e: (words[at.at(-1) as number] as Word).e,
     };
   });
+}
+
+/** A caption word on the cut timeline, as the render draws it: stressed or not. */
+export interface ShownWord extends Word {
+  stressed: boolean;
+}
+/** The caption line on screen: its words, when its last word's state ends, the time on the cut. */
+export interface ShownLine {
+  words: ShownWord[];
+  end: number;
+  t: number;
+}
+
+/**
+ * The captions a format burns in, on the cut timeline, broken as the render breaks them: the long
+ * video's pages, or the Reels lines. `words` carry `stress` (marked words); `cuts` may be a draft.
+ */
+export function captionTrack(
+  words: readonly (Word & { stress?: boolean })[],
+  cuts: readonly Cut[],
+  durationS: number,
+  which: "long" | "short",
+): { keep: Span[]; lines: (Line & { words: ShownWord[] })[]; which: "long" | "short" } {
+  const keep = keepSegments(cuts, durationS, FPS);
+  const r = (x: number) => Math.round(x * 1000) / 1000;
+  const kept = words.flatMap((w): ShownWord[] => {
+    const s = toCutTime(w.s, keep);
+    if (s === null) return [];
+    return [{ w: w.w, s: r(s), e: r(Math.max(s, onCut(w.e, keep))), stressed: !!w.stress }];
+  });
+  // reelLines groups the words it is given, so its lines hold these same words.
+  const lines =
+    which === "long" ? pageLines(kept) : (reelLines(kept) as (Line & { words: ShownWord[] })[]);
+  return { keep, which, lines };
+}
+
+/** The line on screen at raw `t`, as the render shows it then. */
+export function captionShown(track: ReturnType<typeof captionTrack>, t: number): ShownLine | null {
+  const at = onCut(t, track.keep);
+  const hit = lineAt(track.lines, at);
+  if (!hit) return null;
+  const line = hit.line as Line & { words: ShownWord[] };
+  const last = line.words.at(-1) as ShownWord;
+  return { words: line.words, end: track.which === "long" ? last.e + 0.3 : line.e, t: at };
 }
 
 /**

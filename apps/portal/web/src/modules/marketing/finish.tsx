@@ -13,16 +13,22 @@
 import { keepSegments } from "@wren/studio/cuts";
 import {
   addCut,
+  CAPTION_LOOK,
   type CaptionLine,
   type CroppedFormat,
   type Crops,
+  captionShown,
+  captionTrack,
+  captionWordLook,
   captionY,
+  cornerCam,
   cropCentre,
   cropWindow,
   FPS,
   FRAME,
   inOut,
   isCropped,
+  longCaption,
   moveCutEdge,
   newOverlay,
   OVERLAY,
@@ -30,12 +36,18 @@ import {
   type OverlaySize,
   overlayAt,
   type Point,
+  pillLook,
   playFrom,
+  REEL,
+  reelCaption,
+  reelY,
+  type ShownLine,
   shortCrop,
   snapFrame,
   snapTime,
   type TextOverlay,
   trimCuts,
+  wordState,
 } from "@wren/studio/finish";
 import type { Cut } from "@wren/studio/schema";
 import { ACTIONS, Button, cx, type RecordAct, SaveConflict, SaveStatus, useSaved } from "@wren/ui";
@@ -51,6 +63,8 @@ import { wrenRecords } from "../../records.js";
 import { VIEWED } from "./video-patch.js";
 
 type Format = "long" | CroppedFormat;
+/** A transcript word as the page has it: `stress` marks a stressed word. */
+type Word = { w: string; s: number; e: number; stress?: boolean };
 type Captions = {
   style: string;
   long?: "screen" | "track";
@@ -78,6 +92,8 @@ export type FinishData = {
   sourceCam: string | null;
   strip: string | null;
   picture: { source: "main" | "cam"; centre: Point };
+  /** What the long video shows when (raw seconds): his face in the corner, alone, or the screen. */
+  layout?: { from: number; to: number; show: "corner" | "cam" | "screen" }[];
   lines: CaptionLine[];
   rendered: Format[];
   /** The Shorts, in order (their number is the crop key); `face` = there is a face to crop. */
@@ -243,7 +259,7 @@ export function Finish({
 }: {
   id: string;
   data: FinishData;
-  words: readonly { s: number; e: number }[];
+  words: readonly Word[];
   act: RecordAct;
   /** When the page's read of `data` left: a read from before his newest save never lands. */
   at?: number | undefined;
@@ -315,6 +331,8 @@ export function Finish({
   const [t, setT] = useState(() => io.in);
   const [playing, setPlaying] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
+  // The camera file in the long video's corner, kept on the recording's clock.
+  const camVideo = useRef<HTMLVideoElement | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
   const keepRef = useRef(keep);
@@ -325,6 +343,15 @@ export function Finish({
   const useCam = cropped && data.picture.source === "cam" && !!data.sourceCam && !!data.camSize;
   const [src, renew] = useSteadyUrl(useCam ? data.sourceCam : data.source);
   const pic: [number, number] = useCam ? (data.camSize as [number, number]) : data.size;
+  const [camSrc, renewCam] = useSteadyUrl(view === "long" ? data.sourceCam : null);
+
+  // Paused, the corner camera shows the frame the recording shows.
+  useEffect(() => {
+    const cam = camVideo.current;
+    if (!cam || playing) return;
+    cam.pause();
+    if (Math.abs(cam.currentTime - t) > 0.5 / FPS) cam.currentTime = t + 0.5 / FPS;
+  }, [t, playing]);
 
   const seek = (to: number) => {
     const at = clamp(snapFrame(to), 0, snapFrame(dur));
@@ -363,6 +390,11 @@ export function Finish({
         return;
       }
       if (next - now > 0.5 / FPS) el.currentTime = next;
+      const cam = camVideo.current;
+      if (cam) {
+        if (Math.abs(cam.currentTime - next) > 0.15) cam.currentTime = next;
+        if (cam.paused) cam.play().catch(() => {});
+      }
       setT(next);
       raf = requestAnimationFrame(step);
     };
@@ -462,6 +494,10 @@ export function Finish({
             : null
         }
         videoRef={video}
+        camSrc={camSrc}
+        camRef={camVideo}
+        onCamError={renewCam}
+        words={words}
         onError={renew}
         picked={overlay ? picked : null}
         showCaptionSpot={panel === "captions"}
@@ -713,6 +749,10 @@ function Stage({
   centre,
   shortNo,
   videoRef,
+  camSrc,
+  camRef,
+  onCamError,
+  words,
   onError,
   onLoaded,
   picked,
@@ -731,6 +771,11 @@ function Stage({
   /** The Short whose own crop a drag writes (9:16 only); null writes the format's crop. */
   shortNo: number | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  /** The camera file's playback copy, for the long video's corner (null in other shapes). */
+  camSrc: string | null;
+  camRef: React.RefObject<HTMLVideoElement | null>;
+  onCamError: () => void;
+  words: readonly Word[];
   onError: () => void;
   onLoaded: () => void;
   picked: Picked;
@@ -783,10 +828,24 @@ function Stage({
     );
   };
 
-  const line = data.lines.find((l) => t >= l.s && t < l.e + 0.15);
+  // The captions as the render breaks and times them, on the cut this view draws.
+  const track = useMemo(
+    () => captionTrack(words, draw.cuts, data.durationS, which),
+    [words, draw.cuts, data.durationS, which],
+  );
+  const line = captionShown(track, t);
   const capY = captionY(cap.place, which);
   const capOn = shownOn(cap, which);
-  const capSize = Math.round(Math.min(w, h) * (which === "long" ? 0.045 : 0.06));
+  const chars = line ? line.words.reduce((n, x) => n + x.w.length, line.words.length - 1) : 16;
+  const capLook =
+    which === "long"
+      ? longCaption(w, h, cap.place?.long, CAPTION_LOOK.font)
+      : (() => {
+          const r = reelCaption(w, reelY(h, cap.place), chars, REEL.maxChars, CAPTION_LOOK.font);
+          return { box: r.box, text: {}, size: r.size };
+        })();
+  // What the long video shows now: the camera in the corner, alone, or not at all.
+  const show = data.layout?.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
 
   const dragCaption = (e: ReactPointerEvent) => {
     const y0 = e.clientY;
@@ -829,6 +888,44 @@ function Stage({
             Playback shows here after the next render.
           </p>
         )}
+        {view === "long" && camSrc && show !== "screen" ? (
+          <div
+            className="pointer-events-none"
+            style={show === "cam" ? { position: "absolute", inset: 0 } : cornerCam(w, h)}
+          >
+            <video
+              key={camSrc.split("?")[0]}
+              ref={camRef}
+              src={camSrc}
+              muted
+              preload="auto"
+              playsInline
+              onError={onCamError}
+              onLoadedMetadata={(e) => {
+                e.currentTarget.currentTime = t + 0.5 / FPS;
+              }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+        ) : null}
+        {capOn && (line || showCaptionSpot) ? (
+          <div className="pointer-events-none" style={capLook.box}>
+            <div
+              onPointerDown={dragCaption}
+              className={cx(
+                "pointer-events-auto cursor-ns-resize select-none",
+                !line && "rounded-lg opacity-60 outline-1 outline-white/60 outline-dashed",
+              )}
+              style={capLook.text}
+            >
+              {line ? (
+                <ShownCaption line={line} style={cap.style} size={capLook.size} />
+              ) : (
+                "Captions sit here"
+              )}
+            </div>
+          </div>
+        ) : null}
         {draw.overlays.map((o, i) => {
           const sel = picked?.kind === "overlay" && picked.i === i;
           const at =
@@ -864,24 +961,39 @@ function Stage({
             />
           );
         })}
-        {capOn && (line || showCaptionSpot) ? (
-          <div
-            onPointerDown={dragCaption}
-            className={cx(
-              "absolute left-1/2 max-w-[86%] -translate-x-1/2 -translate-y-1/2 cursor-ns-resize rounded-lg px-2 text-center font-extrabold text-white select-none [text-shadow:0_2px_6px_rgb(0_0_0/0.6)] [text-wrap:balance]",
-              !line && "opacity-60 outline-1 outline-white/60 outline-dashed",
-            )}
-            style={{ top: capY * h, fontSize: capSize, lineHeight: 1.15 }}
-          >
-            {line?.text ?? "Captions sit here"}
-          </div>
-        ) : null}
       </div>
       {centre ? (
         <p className="m-0 mt-2 text-[12px] text-(--ui-ink-3)">Drag the picture to frame it.</p>
       ) : null}
     </div>
   );
+}
+
+/** A caption line in its style, word by word, as the render draws it (`captionWordLook`). */
+function ShownCaption({ line, style, size }: { line: ShownLine; style: string; size: number }) {
+  const words = line.words.map((x, i) => {
+    const st = wordState(style, x, line.t, line.words[i + 1]?.s ?? line.end, { first: i === 0 });
+    const { word, fill } = captionWordLook(style, st, {
+      stressed: x.stressed,
+      size,
+      accent: CAPTION_LOOK.accent,
+    });
+    return fill ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
+      <span key={i} style={word}>
+        <span style={fill} />
+        <span style={{ position: "relative" }}>{x.w}</span>
+      </span>
+    ) : (
+      // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
+      <span key={i} style={word}>
+        {x.w}
+      </span>
+    );
+  });
+  // No spaces between words: each word's padding spaces them, as in the render.
+  if (style !== "pill") return <div>{words}</div>;
+  return <div style={pillLook(size, CAPTION_LOOK.foreground)}>{words}</div>;
 }
 
 function OverlayText({

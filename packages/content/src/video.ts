@@ -772,6 +772,8 @@ async function finishOf(
     sourceCam: await sign(e.keys["source-cam"]),
     strip: await sign(e.keys.strip),
     picture: pictureOf(e.tracks),
+    // What the long video shows when: the preview draws the corner camera as the render does.
+    layout: e.layout,
     rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
     shorts: e.shorts.map((s, i) => ({ n: i + 1, from: s.from, to: s.to, title: s.title })),
     // Is there a face to crop a Short on (a camera file, or a box in the recording)?

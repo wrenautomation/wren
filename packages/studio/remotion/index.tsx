@@ -33,8 +33,18 @@ import {
 } from "remotion";
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
-import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
-import { CAPTION_Y, coverRect, overlayAt, type TextOverlay } from "../src/finish-look.ts";
+import { lineAt, pageLines, REEL, reelLines } from "../src/captions.ts";
+import {
+  captionWordLook,
+  cornerCam,
+  coverRect,
+  longCaption,
+  overlayAt,
+  pillLook,
+  reelCaption,
+  reelY,
+  type TextOverlay,
+} from "../src/finish-look.ts";
 import type { PromoProps, TimedScene } from "../src/promo.js";
 import {
   cameraAt,
@@ -62,12 +72,9 @@ import { verticalRect } from "../src/safe-zones.ts";
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
 
-/** The second, heavier face of the `stress` style: a system serif, so renders stay offline. */
-const STRESS_FONT = 'Georgia, "Times New Roman", serif';
-
 /**
- * One caption word in its style at `t` (`wordState`). `until`: when the next word of its line
- * starts. `size`: the line's font size, for the `stress` face and the pads.
+ * One caption word in its style at `t` (`wordState`, drawn by `captionWordLook`, as the Finish
+ * preview draws it). `until`: when the next word of its line starts. `size`: the line's font size.
  */
 const CaptionWord: FC<{
   w: Word;
@@ -80,73 +87,14 @@ const CaptionWord: FC<{
   size: number;
 }> = ({ w, t, until, first, style, stressed, look, size }) => {
   const st = wordState(style, w, t, until, { first });
-  const pad = Math.round(size * 0.15);
-  const base: CSSProperties = {
-    display: "inline-block",
-    position: "relative",
-    padding: `0 ${pad}px`,
-    borderRadius: Math.round(size * 0.16),
-  };
-  switch (style) {
-    case "pill":
-      return (
-        <span style={{ ...base, color: `rgba(255,255,255,${0.42 + 0.58 * st.lit})` }}>{w.w}</span>
-      );
-    case "sweep":
-      return (
-        <span style={base}>
-          <span
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: base.borderRadius,
-              background: look.accent,
-              opacity: st.fill,
-              transform: `scaleX(${st.fillScaleX})`,
-              transformOrigin: "0% 50%",
-            }}
-          />
-          <span style={{ position: "relative" }}>{w.w}</span>
-        </span>
-      );
-    case "pop":
-      return (
-        <span style={{ ...base, opacity: st.opacity, transform: `scaleX(${st.scaleX})` }}>
-          {w.w}
-        </span>
-      );
-    case "wipe":
-      return (
-        <span
-          style={{ ...base, opacity: st.opacity, clipPath: `inset(-20% ${st.clip * 100}% -20% 0)` }}
-        >
-          {w.w}
-        </span>
-      );
-    case "stress":
-      return (
-        <span
-          style={{
-            ...base,
-            opacity: st.opacity,
-            transform: `scale(${st.scale})`,
-            transformOrigin: "0% 100%",
-            ...(stressed
-              ? {
-                  font: `italic 800 ${Math.round(size * 1.4)}px/1 ${STRESS_FONT}`,
-                  verticalAlign: "baseline",
-                }
-              : {}),
-          }}
-        >
-          {w.w}
-        </span>
-      );
-    default:
-      return (
-        <span style={{ ...base, background: st.fill ? look.accent : "transparent" }}>{w.w}</span>
-      );
-  }
+  const { word, fill } = captionWordLook(style, st, { stressed, size, accent: look.accent });
+  if (!fill) return <span style={word}>{w.w}</span>;
+  return (
+    <span style={word}>
+      <span style={fill} />
+      <span style={{ position: "relative" }}>{w.w}</span>
+    </span>
+  );
 };
 
 /** A line of caption words; pill wraps it in its dark pill. */
@@ -176,21 +124,7 @@ const CaptionLine: FC<{
     />
   ));
   if (style !== "pill") return <div>{line}</div>;
-  return (
-    <div
-      style={{
-        display: "inline-block",
-        padding: `${Math.round(size * 0.22)}px ${Math.round(size * 0.5)}px`,
-        borderRadius: Math.round(size * 0.36),
-        background: `${look.foreground}d9`,
-        boxShadow: "0 4px 18px rgba(0,0,0,0.25)",
-        textShadow: "none",
-        WebkitTextStroke: "0",
-      }}
-    >
-      {line}
-    </div>
-  );
+  return <div style={pillLook(size, look.foreground)}>{line}</div>;
 };
 
 /** The long video's lower-third line, in the edit's caption style; its middle at `y` when he moved it. */
@@ -200,51 +134,33 @@ const Captions: FC<{
   t: number;
   style: string;
   stress: ReadonlySet<number>;
-  y?: number | undefined;
-}> = ({ words, look, t, style, stress, y }) => {
+  place?: number | undefined;
+}> = ({ words, look, t, style, stress, place }) => {
+  const { width, height } = useVideoConfig();
   const all = useMemo(() => {
     let n = 0;
-    return pages(words).map((p) => {
-      const at = p.map((_, i) => n + i);
-      n += p.length;
-      return { words: p, at };
+    return pageLines(words).map((p) => {
+      const at = p.words.map((_, i) => n + i);
+      n += p.words.length;
+      return { ...p, at };
     });
   }, [words]);
-  const i = all.findIndex((p, k) => {
-    const first = p.words[0] as Word;
-    const next = all[k + 1]?.words[0];
-    return (
-      t >= first.s &&
-      t < Math.min(next?.s ?? Number.POSITIVE_INFINITY, (p.words.at(-1) as Word).e + 0.8)
-    );
-  });
-  const page = all[i];
+  const page = lineAt(all, t)?.line as (typeof all)[number] | undefined;
   if (!page) return null;
   const last = page.words.at(-1) as Word;
-  const at: CSSProperties =
-    y === undefined
-      ? { justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }
-      : { top: y - 120, height: 240, justifyContent: "center", alignItems: "center" };
+  const { box, text, size } = longCaption(width, height, place, look.font);
   return (
-    <AbsoluteFill style={at}>
-      <div
-        style={{
-          maxWidth: 1180,
-          textAlign: "center",
-          font: `700 54px/1.25 ${look.font}`,
-          color: "#fff",
-          textShadow: "0 2px 12px rgba(0,0,0,0.7)",
-        }}
-      >
+    <AbsoluteFill style={box}>
+      <div style={text}>
         <CaptionLine
           words={page.words}
           at={page.at}
-          end={Math.max(last.e + 0.3, last.e)}
+          end={last.e + 0.3}
           t={t}
           style={style}
           stress={stress}
           look={look}
-          size={54}
+          size={size}
         />
       </div>
     </AbsoluteFill>
@@ -264,6 +180,7 @@ const ReelCaptions: FC<{
   style: string;
   stress: ReadonlySet<number>;
 }> = ({ words, look, t, y, style, stress }) => {
+  const { width } = useVideoConfig();
   const lines = useMemo(() => reelLines(words), [words]);
   const first = useMemo(() => {
     const index = new Map(words.map((w, i) => [w, i]));
@@ -274,26 +191,9 @@ const ReelCaptions: FC<{
   const k = lines.indexOf(at.line);
   const len = at.line.words.reduce((n, w) => n + w.w.length, at.line.words.length - 1);
   // A line past what fits shrinks rather than wrapping.
-  const size = Math.round(80 * Math.max(0.6, Math.min(1, REEL.maxChars / len)));
+  const { box, size } = reelCaption(width, y, len, REEL.maxChars, look.font);
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: 108,
-        right: 162,
-        top: y - 120,
-        height: 240,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        font: `800 ${size}px/1.15 ${look.font}`,
-        color: "#fff",
-        WebkitTextStroke: "10px rgba(0,0,0,0.85)",
-        paintOrder: "stroke fill",
-        textShadow: "0 4px 18px rgba(0,0,0,0.55)",
-      }}
-    >
+    <div style={box}>
       <CaptionLine
         words={at.line.words}
         at={at.line.words.map((_, i) => (first[k] as number) + i)}
@@ -355,10 +255,6 @@ const Behind: FC<{
   );
 };
 
-/** Where a full-frame caption line's middle sits in an `h` tall frame: 66% down unless he moved it. */
-const reelY = (h: number, place: LongProps["captions"]["place"]) =>
-  Math.round(h * (place?.short ?? CAPTION_Y.short));
-
 /**
  * Text on the video (finish-look.ts): white, heavy, a soft shadow so it reads over anything,
  * centred on its spot, faded in and out.
@@ -397,17 +293,6 @@ const Overlays: FC<{ items: TextOverlay[]; t: number; look: Look }> = ({ items, 
   );
 };
 
-const CORNER: CSSProperties = {
-  position: "absolute",
-  right: 40,
-  bottom: 40,
-  width: 340,
-  height: 340,
-  borderRadius: 28,
-  overflow: "hidden",
-  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-};
-
 export const Long: FC<LongProps> = ({
   main,
   cam,
@@ -420,7 +305,7 @@ export const Long: FC<LongProps> = ({
   look,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
   const show = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
   const fill: CSSProperties = { width: "100%", height: "100%", objectFit: "cover" };
@@ -430,7 +315,7 @@ export const Long: FC<LongProps> = ({
       {/* The recording carries the sound, so it plays under every layout. */}
       <OffthreadVideo src={staticFile(main)} style={{ ...fill, objectFit: "contain" }} />
       {cam && show !== "screen" ? (
-        <div style={show === "cam" ? { position: "absolute", inset: 0 } : CORNER}>
+        <div style={show === "cam" ? { position: "absolute", inset: 0 } : cornerCam(width, height)}>
           <OffthreadVideo src={staticFile(cam)} muted style={fill} />
         </div>
       ) : null}
@@ -456,7 +341,7 @@ export const Long: FC<LongProps> = ({
           t={t}
           style={captions.style}
           stress={stressed}
-          y={captions.place?.long === undefined ? undefined : captions.place.long * height}
+          place={captions.place?.long}
         />
       ) : null}
       <Overlays items={overlays ?? []} t={t} look={look} />

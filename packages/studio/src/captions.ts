@@ -140,6 +140,27 @@ export function pages<W extends Word>(words: readonly W[]): W[][] {
   return out;
 }
 
+/** How long a long-video page stays after its last word, if the next doesn't start first. */
+export const PAGE_HOLD_S = 0.8;
+
+/**
+ * The long video's pages as lines on screen: from the first word until the next page starts or
+ * `PAGE_HOLD_S` after the last word. `lineAt` finds the one at a time.
+ */
+export function pageLines<W extends Word>(words: readonly W[]): (Line & { words: W[] })[] {
+  const all = pages(words);
+  return all.map((p, k) => {
+    const first = p[0] as W;
+    const last = p.at(-1) as W;
+    const next = all[k + 1]?.[0];
+    return {
+      words: p,
+      s: first.s,
+      e: Math.min(next?.s ?? Number.POSITIVE_INFINITY, last.e + PAGE_HOLD_S),
+    };
+  });
+}
+
 /**
  * The English subtitles YouTube shows as CC: one line of up to 42 characters (the broadcast
  * limit), broken like the Reels lines, on screen from its first word to its last and no longer.
