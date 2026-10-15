@@ -22,7 +22,7 @@ import {
   Trash2,
 } from "@wren/ui/lib/lucide";
 import { toast } from "@wren/ui/lib/toast";
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { navigate } from "../../route.js";
 import { type Collection, clientOf, learn, type Mark } from "./api.js";
 
@@ -137,6 +137,8 @@ export function MoveDialog({
 }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  /** One new collection at a time, whatever the render says. */
+  const flying = useRef(false);
   const tree = useMemo(() => treeOf(collections), [collections]);
   const shown = q.trim()
     ? tree.filter((c) => c.path.toLowerCase().includes(q.trim().toLowerCase()))
@@ -153,7 +155,8 @@ export function MoveDialog({
   const create = async (e: FormEvent) => {
     e.preventDefault();
     const name = q.trim();
-    if (!name || busy) return;
+    if (!name || flying.current) return;
+    flying.current = true;
     setBusy(true);
     try {
       const made = await learn.collectionAdd(name, null);
@@ -161,6 +164,8 @@ export function MoveDialog({
     } catch (err) {
       say.failed(err);
       setBusy(false);
+    } finally {
+      flying.current = false;
     }
   };
   const exact = tree.some((c) => c.name.toLowerCase() === q.trim().toLowerCase());

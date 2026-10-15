@@ -5,7 +5,7 @@
  * the result is a row in the list below. The head asks `importPreview` again on each change; only
  * the button writes (`importRun`). Loading people sends nothing.
  */
-import { Button, Tag } from "@wren/ui";
+import { ACTIONS, Button, Tag } from "@wren/ui";
 import { useRef, useState } from "react";
 import { ApiError, call, type ImportPreview, type ImportResult } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -113,6 +113,8 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
   const input = useRef<HTMLInputElement>(null);
   // A late answer to an older ask never overwrites a newer one.
   const asked = useRef(0);
+  /** An import running: one at a time, and nothing asked meanwhile hides what it did. */
+  const importing = useRef(false);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [format, setFormat] = useState("crm-generic");
   const [columns, setColumns] = useState<Record<string, string>>({});
@@ -135,6 +137,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
 
   /** Read the file with this format and these columns (none: the guess). */
   const look = async (p: Picked, fmt: string, cols: Record<string, string> | null) => {
+    if (importing.current) return;
     const mine = ++asked.current;
     setBusy("preview");
     setError(null);
@@ -183,25 +186,28 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
   };
 
   const load = async () => {
-    if (!picked || !preview || busy) return;
+    if (!picked || !preview || busy || importing.current) return;
+    importing.current = true;
     const mine = ++asked.current;
     setBusy("import");
     setError(null);
     try {
-      const got = await call<ImportResult>("reactivation/importRun", {
-        client,
-        file: picked.file,
-        name: picked.name,
-        format,
-        columns,
-      });
-      if (mine !== asked.current) return;
-      setResult(got);
-      setPreview(null);
+      // The same file and columns again is the same import: a retry never loads them twice.
+      const body = { client, file: picked.file, name: picked.name, format, columns };
+      const got = await ACTIONS.run(
+        `import:${client}:${picked.name}:${picked.file.length}:${format}:${JSON.stringify(columns)}`,
+        (requestId) => call<ImportResult>("reactivation/importRun", { ...body, requestId }),
+      );
+      // What it did always shows, unless he started over meanwhile.
+      if (mine === asked.current) {
+        setResult(got);
+        setPreview(null);
+      }
       reload();
     } catch (err) {
       if (mine === asked.current) setError(said(err));
     } finally {
+      importing.current = false;
       if (mine === asked.current) setBusy(null);
     }
   };

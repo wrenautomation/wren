@@ -8,7 +8,7 @@
 
 import type { BroadcastDetail } from "@wren/core/broadcast-records";
 import type { Action } from "@wren/ui";
-import { Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
+import { ACTIONS, Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -52,6 +52,8 @@ interface Start {
   body: string;
   sendAt: string | null;
   local: boolean;
+  /** The version opened on: a save over a newer one is refused. */
+  version?: string;
 }
 interface MonthItem {
   id: number;
@@ -96,6 +98,8 @@ function BroadcastEditor({
   const [busy, setBusy] = useState<"draft" | "ask" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const asked = useRef(0);
+  /** One save at a time, whatever the render says. */
+  const flying = useRef(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per workspace
   useEffect(() => {
@@ -158,15 +162,22 @@ function BroadcastEditor({
   }, [channel, segmentId, topic, subject, body]);
 
   const save = async (ask: boolean) => {
-    if (busy) return;
+    if (flying.current) return;
+    flying.current = true;
     setBusy(ask ? "ask" : "draft");
     setError(null);
     try {
-      await send({ ...input(), ask });
+      const body = { ...input(), ask, ...(start.version ? { expect: start.version } : {}) };
+      // A new one is made once: a retry of the same words is the same broadcast.
+      await ACTIONS.run(`broadcast-save:${client}:${JSON.stringify(body)}`, (requestId) =>
+        send({ ...body, requestId }),
+      );
       onDone(true);
     } catch (e) {
       setError(said(e));
       setBusy(null);
+    } finally {
+      flying.current = false;
     }
   };
 
@@ -603,10 +614,12 @@ function TestSend({ row, act }: { row: Record<string, unknown>; act: RecordAct }
 function EditSection({
   client,
   row,
+  version,
   act,
 }: {
   client: string;
   row: Record<string, unknown>;
+  version: string | undefined;
   act: RecordAct;
 }) {
   const [editing, setEditing] = useState(false);
@@ -632,6 +645,7 @@ function EditSection({
         body: String(row.body ?? ""),
         sendAt: (row.sendAt as string | null) ?? null,
         local: row.local === true,
+        ...(version ? { version } : {}),
       }}
       onDone={() => setEditing(false)}
       send={(input) => act("people.broadcastSave", input)}
@@ -727,7 +741,7 @@ export const broadcastsPage: ListPage = {
       if (editable)
         sections.push([
           "Change it",
-          <EditSection key="edit" client={at.client} row={row} act={at.act} />,
+          <EditSection key="edit" client={at.client} row={row} version={d?.version} act={at.act} />,
         ]);
     }
     return { sections } satisfies RecordExtras;

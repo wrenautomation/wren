@@ -325,6 +325,8 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const box = useRef<HTMLDivElement>(null);
+  /** One Book at a time: a second press while the first is out does nothing. */
+  const flying = useRef(false);
   const human = useHuman(start ? page?.human : undefined, box);
 
   const slots = () => ask<Slots>(at.base, "slots", at.tag ? { tag: at.tag } : {});
@@ -347,6 +349,8 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
     if (!name.trim()) return setError("Add your name.");
     if (!looksLikeEmail(email)) return setError("That email doesn't look right.");
     if (page?.human && !human.token) return setError("Finish the check below first.");
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
     setError(null);
     const got = await bookOrReload(
@@ -363,6 +367,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
         }),
       slots,
     );
+    flying.current = false;
     setBusy(false);
     if ("booked" in got) return setDone(got.booked);
     human.reset();

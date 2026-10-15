@@ -3,6 +3,7 @@
  * says so on the window, so every list, rail and shelf on screen loads again. Every call is in
  * the workspace on screen: Wren's names no client, a client's names its own.
  */
+import { ACTIONS } from "@wren/ui";
 import { call as post } from "../../api.js";
 import { WREN } from "../../module.js";
 
@@ -335,11 +336,15 @@ export const learn = {
     write("tag", { ids: ids.map(String), add, remove }),
   toSop: (ids: number[], sop: string) => write("toSop", { ids: ids.map(String), sop }),
   readAgain: (ids: number[]) => write("readAgain", { ids: ids.map(String) }),
+  /** Made once per name: a second press or a retry gives back the same collection. */
   collectionAdd: (name: string, parent: number | null) =>
-    write<{ id: string; name: string }>("collectionAdd", {
-      name,
-      parent: parent === null ? null : String(parent),
-    }),
+    ACTIONS.run(`learn-collection:${parent ?? ""}:${name}`, (requestId) =>
+      write<{ id: string; name: string }>("collectionAdd", {
+        name,
+        parent: parent === null ? null : String(parent),
+        requestId,
+      }),
+    ),
   collectionEdit: (id: number, p: { name?: string; parent?: number | null }) =>
     write("collectionEdit", {
       id: String(id),

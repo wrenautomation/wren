@@ -634,8 +634,14 @@ async function eachOf(
   const skipped: (string | number)[] = [];
   // One record's call keeps its answer: a suggestion's words, whether a reply sent or asked.
   let answer: unknown = null;
-  for (const id of ids) {
-    const [handler, body] = one(String(id), input);
+  // The action's request id goes with each record's call, one apiece, so a retry of the action
+  // runs each of them once (and two records never share one).
+  const request = typeof input.requestId === "string" ? input.requestId : null;
+  for (const [i, id] of ids.entries()) {
+    const [handler, made] = one(String(id), input);
+    const body = request
+      ? { ...made, requestId: ids.length === 1 ? request : `${request}-${i}` }
+      : made;
     try {
       answer = await call(handler, client ? { client, ...body } : body);
       done.push(id);

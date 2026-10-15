@@ -20,7 +20,7 @@ import {
   TRAIT_OPS,
 } from "@wren/core/segments";
 import type { Action } from "@wren/ui";
-import { Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
+import { ACTIONS, Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { type ListPage, WREN } from "../../module.js";
@@ -56,6 +56,8 @@ export interface Start {
   kind: Kind;
   rule: Rule | null;
   words: string | null;
+  /** The version opened on: a save over a newer one is refused. */
+  version?: string;
 }
 
 const KINDS: Record<Kind, string> = {
@@ -435,6 +437,8 @@ export function SegmentEditor({
   const [busy, setBusy] = useState<"describe" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const asked = useRef(0);
+  /** One save at a time, whatever the render says. */
+  const saving = useRef(false);
   const ruled = kind !== "manual";
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per workspace
@@ -485,21 +489,29 @@ export function SegmentEditor({
   };
 
   const save = async () => {
-    if (busy) return;
+    if (saving.current || busy) return;
+    saving.current = true;
     setBusy("save");
     setError(null);
     try {
-      await send({
+      const body = {
         ...(start.id ? { id: start.id } : {}),
         name: name.trim(),
         kind,
         ...(ruled ? { rule: pruned(rule) } : {}),
         words: words.trim() || null,
-      });
+        ...(start.version ? { expect: start.version } : {}),
+      };
+      // A new one is made once: a retry of the same rule is the same segment.
+      await ACTIONS.run(`segment-save:${client}:${JSON.stringify(body)}`, (requestId) =>
+        send({ ...body, requestId }),
+      );
       onDone(true);
     } catch (e) {
       setError(said(e));
       setBusy(null);
+    } finally {
+      saving.current = false;
     }
   };
 
@@ -695,6 +707,7 @@ function RuleSection({
           kind: row.kind as Kind,
           rule: d.rule,
           words: (row.words as string | null) ?? null,
+          version: d.version,
         }}
         onDone={() => setEditing(false)}
         // The record's own action, so the page reads it again after.
