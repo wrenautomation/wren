@@ -19,7 +19,7 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoTurns } from "./video-ask.js";
-import { renderTimes, videoChecks, videoSteps } from "./video-edit.js";
+import { renderTimes, videoChecks, videoName, videoState, videoSteps } from "./video-edit.js";
 
 /** The idea's ref: one draft per video, per Short and per vertical cut, ever. */
 export const videoRef = (id: number, short?: number | "vertical") =>
@@ -30,6 +30,7 @@ export const videoRef = (id: number, short?: number | "vertical") =>
       : `video:${id}`;
 
 const YT_DESCRIPTION = 5000;
+const VIDEO_GONE = "That video isn't here any more. Reload the page to see what's left.";
 
 /**
  * The footer under each upload's words: `post` templates (packages/templates/defaults/post),
@@ -203,11 +204,11 @@ export async function approveVideo(
   o: ApproveVideo,
 ): Promise<ApprovedVideo> {
   if (o.publishAt && o.publishAt.getTime() <= (o.now ?? new Date()).getTime() + 15 * 60_000)
-    throw new Error("pick a time at least 15 minutes from now");
+    throw new Error("Pick a time at least 15 minutes from now.");
   const footers = await videoFooters(db);
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
-    if (!e) throw new Error(`no video ${id}`);
+    if (!e) throw new Error(VIDEO_GONE);
     // A vertical-only recording: his yes (the Inbox's too) is on the vertical cut.
     const vertical = !o.short && (o.vertical || !e.formats.includes("long"));
     const reels = vertical ? ("vertical" as const) : o.short;
@@ -229,7 +230,9 @@ export async function approveVideo(
         .set({ ref: `${ref}~${uploaded.id.slice(0, 8)}` })
         .where(eq(contentIdeas.id, uploaded.ideaId));
     if (!yt && !["rendered", "approved", "uploaded"].includes(e.state))
-      throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
+      throw new Error(
+        `${videoName(e)} is ${videoState(e.state)}, so there's no file to post yet: render it first, then approve.`,
+      );
     const { file, title, thumbnail } = target(e, reels);
     // The funnel (designs/2026-10-07-content-funnel.md): the long upload builds trust, its footer
     // links the site; a Short or Reel reaches, pointing at the long upload when there is one.
@@ -559,10 +562,12 @@ export async function swapShortMedia(
 ): Promise<{ run: string; swapped: SwappedDraft[]; missing: string[] }> {
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id));
-    if (!e) throw new Error(`no video ${id}`);
+    if (!e) throw new Error(VIDEO_GONE);
     const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
     if (o.short && !e.shorts[o.short - 1])
-      throw new Error(`video ${id} has ${e.shorts.length} shorts; no ${o.short}`);
+      throw new Error(
+        `${videoName(e)} has ${e.shorts.length} Shorts, so there's no Short ${o.short}.`,
+      );
     const swapped: SwappedDraft[] = [];
     const missing: string[] = [];
     for (const n of numbers) {
@@ -610,27 +615,32 @@ export async function swapShortMedia(
   });
 }
 
+const NO_TITLE = "This video has no title. Type one in its fields, then approve.";
+
 /** What Approve uploads: the file, its title and (the long video only) its thumbnail. */
 function target(e: VideoEdit, short?: number | "vertical") {
   if (short === "vertical") {
     const file = e.files.vertical;
     if (!file)
-      throw new Error(`video ${e.id} has no rendered vertical (wren video render ${e.id})`);
-    if (!e.title.trim()) throw new Error(`video ${e.id} has no title (wren video set)`);
+      throw new Error(`${videoName(e)} has no vertical cut yet. Press Render, then approve.`);
+    if (!e.title.trim()) throw new Error(NO_TITLE);
     // Dropped by approveVideo when YouTube files it as a Short.
     const thumbnail = e.files.thumbnailPick ?? numbered(e.files, "thumb")[0] ?? null;
     return { file, title: e.title.trim().slice(0, 100), thumbnail };
   }
   if (!short) {
     const file = longOf(e.files);
-    if (!file) throw new Error(`video ${e.id} has no rendered long file`);
-    if (!e.title.trim()) throw new Error(`video ${e.id} has no title (wren video set)`);
+    if (!file) throw new Error(`${videoName(e)} has no long cut yet. Press Render, then approve.`);
+    if (!e.title.trim()) throw new Error(NO_TITLE);
     const thumbnail = e.files.thumbnailPick ?? numbered(e.files, "thumb")[0] ?? null;
     return { file, title: e.title.trim().slice(0, 100), thumbnail };
   }
   const file = e.files[`short-${short}`];
   const s = e.shorts[short - 1];
-  if (!file || !s) throw new Error(`video ${e.id} has no rendered Short ${short}`);
+  if (!file || !s)
+    throw new Error(
+      `${videoName(e)} has no Short ${short} rendered yet. Press Render, then approve.`,
+    );
   // Custom thumbnails don't apply to Shorts: YouTube picks a frame.
   return { file, title: (s.title || e.title).trim().slice(0, 100), thumbnail: null };
 }
@@ -639,9 +649,9 @@ function target(e: VideoEdit, short?: number | "vertical") {
 export async function pickThumbnail(db: Queryable, id: number, n: number): Promise<string> {
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
-    if (!e) throw new Error(`no video ${id}`);
+    if (!e) throw new Error(VIDEO_GONE);
     const file = e.files[`thumb-${n}`];
-    if (!file) throw new Error(`video ${id} has no rendered thumbnail ${n}`);
+    if (!file) throw new Error(`${videoName(e)} has no thumbnail ${n}. Press Render to draw them.`);
     await tx
       .update(videoEdits)
       .set({ files: { ...e.files, thumbnailPick: file }, updatedAt: new Date() })

@@ -35,7 +35,7 @@ import {
   redditThreads,
 } from "@wren/outreach";
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { GONE, PLATFORM_SPECS } from "./platforms.js";
 import { commentGuide, dmGuide, playbookFor } from "./playbook.js";
 import { editDraft } from "./review.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
@@ -147,7 +147,7 @@ const post: DraftKind = {
     };
   },
   write: async (db, id, text) => {
-    if (text === null) throw new Error("a post can't be empty");
+    if (text === null) throw new Error("The post can't be empty. Type it in, or Reject it.");
     await editDraft(db, id, { text });
   },
   waiting: async (db, limit) =>
@@ -205,7 +205,8 @@ const comment: DraftKind = {
       .set({ draft: text })
       .where(and(eq(comments.id, Number(id)), inArray(comments.state, COMMENT_OPEN)))
       .returning({ id: comments.id });
-    if (!done.length) throw new Error(`comment ${id} is answered or dropped`);
+    if (!done.length)
+      throw new Error("That comment is answered or dropped already, so its answer can't change.");
   },
   waiting: async (db, limit) =>
     (
@@ -253,7 +254,10 @@ const thread: DraftKind = {
       .set({ draft: text })
       .where(and(eq(redditThreads.id, id), inArray(redditThreads.state, THREAD_OPEN)))
       .returning({ id: redditThreads.id });
-    if (!done.length) throw new Error(`thread ${id} is commented, skipped or dropped`);
+    if (!done.length)
+      throw new Error(
+        "That thread is commented, skipped or dropped already, so its comment can't change.",
+      );
   },
   waiting: async (db, limit) =>
     (
@@ -303,7 +307,10 @@ const onpost: DraftKind = {
       .set({ draft: text })
       .where(and(eq(reachPosts.id, Number(id)), inArray(reachPosts.state, ["found", "queued"])))
       .returning({ id: reachPosts.id });
-    if (!done.length) throw new Error(`post ${id} is commented, skipped or dropped`);
+    if (!done.length)
+      throw new Error(
+        "That post is commented, skipped or dropped already, so its comment can't change.",
+      );
   },
   waiting: async (db, limit) =>
     (
@@ -364,7 +371,7 @@ const reach = (type: "dm" | "invite"): DraftKind => ({
       })
       .where(and(eq(reachContacts.id, Number(id)), notInArray(reachContacts.state, STOPPED)))
       .returning({ id: reachContacts.id });
-    if (!done.length) throw new Error(`contact ${id} asked us to stop`);
+    if (!done.length) throw new Error("They asked us to stop, so nothing more goes to them.");
   },
   waiting: async (db, limit) =>
     (
@@ -416,7 +423,7 @@ export function itemOf(item: string): { record: string; id: string; kind: DraftK
 export async function readDraft(db: Queryable, item: string) {
   const { kind, id, record } = itemOf(item);
   const got = await kind.read(db, id);
-  if (!got) throw new Error(`no ${record} ${id}`);
+  if (!got) throw new Error(GONE);
   const examples =
     got.about !== undefined ? await examplesFor(db, COMMENT_KINDS_LEARNED, got.about) : "";
   return { ...got, edits: await editsFor(db, editRecords(record)), examples };
@@ -466,11 +473,15 @@ export async function writeDraft(
   const { kind, record, id } = itemOf(item);
   return atomic(db, async (tx) => {
     const now = await kind.read(tx, id);
-    if (!now) throw new Error(`no ${record} ${id}`);
+    if (!now) throw new Error(GONE);
     if (o.expect !== undefined && now.draft !== o.expect)
-      throw new Error("the draft changed since; nothing written");
+      throw new Error(
+        "This draft changed since you opened it, so nothing was saved. Reload it and type your change again.",
+      );
     if (text && text.length > now.max)
-      throw new Error(`${text.length} characters, over ${now.max} for a ${now.what}`);
+      throw new Error(
+        `"${now.title}": it is ${text.length} characters, over the ${now.max} it can take. Cut it down.`,
+      );
     await kind.write(tx, id, text);
     const run =
       o.run ??

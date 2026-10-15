@@ -40,6 +40,7 @@ import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
 import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
+import { aboutDraft } from "../platforms.js";
 import {
   draftCarousel,
   draftPromo,
@@ -802,7 +803,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               for (const [k, v] of Object.entries(req.patch)) {
                 const f = SHAPES[d.platform].fields.find((x) => x.key === k);
                 if ((f?.input === "image" || f?.input === "captions") && v !== null && v !== "")
-                  throw new Error(`${f.label}: upload a file`);
+                  throw new Error(aboutDraft(d, `${f.label} takes a file. Use Upload beside it`));
               }
               return [await setFields(db, req.draftId, req.patch, { by: byOf(req) })];
             }),

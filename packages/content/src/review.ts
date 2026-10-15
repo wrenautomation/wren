@@ -17,7 +17,7 @@ import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { postedLink, refuseUnlinked } from "./funnel.js";
-import { named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
+import { aboutDraft, GONE, lockedWhy, named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 
@@ -43,7 +43,7 @@ export function listDrafts(db: Queryable, f: DraftFilter = {}): Promise<ContentD
 
 export async function getDraft(db: Queryable, id: string): Promise<ContentDraft> {
   const [row] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id)).limit(1);
-  if (!row) throw new Error(`no draft ${id}`);
+  if (!row) throw new Error(GONE);
   return row;
 }
 
@@ -52,12 +52,16 @@ const APPROVABLE: readonly DraftStatus[] = ["draft", "failed"];
 const REJECTABLE: readonly DraftStatus[] = ["draft", "approved", "failed"];
 const EDITABLE: readonly DraftStatus[] = ["draft", "approved", "failed"];
 
+/**
+ * Move each draft from one of `from` to `set`. One already where it's going (a second click on
+ * Approve, Reject in two tabs) is left as it is, not refused; one past it is refused by name.
+ */
 async function moveAll(
   db: Queryable,
   ids: readonly string[],
   from: readonly DraftStatus[],
   set: Partial<typeof contentDrafts.$inferInsert>,
-  verb: string,
+  doing: string,
 ): Promise<ContentDraft[]> {
   if (ids.length === 0) return [];
   const rows = await db
@@ -67,10 +71,14 @@ async function moveAll(
     .returning();
   const moved = new Set(rows.map((r) => r.id));
   const missed = ids.filter((id) => !moved.has(id));
-  if (missed.length > 0)
-    throw new Error(
-      `cannot ${verb} ${missed.join(", ")}: not ${from.join("/")} (or no such draft)`,
-    );
+  if (missed.length === 0) return rows;
+  const left = await db.select().from(contentDrafts).where(inArray(contentDrafts.id, missed));
+  const why = missed.flatMap((id) => {
+    const r = left.find((x) => x.id === id);
+    if (!r) return [GONE];
+    return r.status === set.status ? [] : [lockedWhy(r, doing)];
+  });
+  if (why.length > 0) throw new Error([...new Set(why)].join(" "));
   return rows;
 }
 
@@ -105,7 +113,14 @@ async function approveAll(
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
   await refuseIncomplete(db, ids);
   if (o.at || o.asap || !o.zone)
-    return moveAll(db, ids, APPROVABLE, { ...base, scheduledFor: o.at ?? null }, "approve");
+    // A time he picks, or now, moves an approved one too: a queued post rescheduled.
+    return moveAll(
+      db,
+      ids,
+      o.at || o.asap ? [...APPROVABLE, "approved"] : APPROVABLE,
+      { ...base, scheduledFor: o.at ?? null },
+      "be approved",
+    );
   const zone = o.zone;
   // One read of the drafts and one of each platform's held slots; each
   // approval then holds its slot in memory for the next.
@@ -121,7 +136,9 @@ async function approveAll(
   const rows: ContentDraft[] = [];
   for (const id of ids) {
     const draft = drafts.get(id);
-    if (!draft) throw new Error(`cannot approve ${id}: no such draft`);
+    if (!draft) throw new Error(GONE);
+    // Approved already (a second click): left on its slot.
+    if (draft.status === "approved") continue;
     let slots = held.get(draft.platform);
     if (!slots) {
       slots = await heldSlots(db, draft.platform, o.now);
@@ -133,7 +150,7 @@ async function approveAll(
       own && own > o.now && !slots.some((t) => t.getTime() === own.getTime())
         ? own
         : nextSlot(draft.platform, o.now, zone, o.slots, slots);
-    const moved = await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve");
+    const moved = await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "be approved");
     for (const m of moved) if (m.scheduledFor) slots.push(m.scheduledFor);
     rows.push(...moved);
   }
@@ -221,7 +238,7 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     try {
       fieldsOf(r.platform, r.extra);
     } catch (err) {
-      return [`${named(r)}: ${(err as Error).message}`];
+      return [`${named(r)}: ${shapeWhy(err)}; fix it in its fields`];
     }
     const unfit = isCarousel(r) ? carouselUnfit(r) : null;
     if (unfit) return [`${named(r)}: the carousel ${unfit}`];
@@ -254,12 +271,16 @@ export async function setFields(
   who?: { by: string; via?: DraftVia },
 ): Promise<ContentDraft> {
   const current = await getDraft(db, id);
-  if (!EDITABLE.includes(current.status))
-    throw new Error(`cannot change ${id}: it is ${current.status}`);
-  const next = patchFields(current.platform, current.extra, patch);
+  if (!EDITABLE.includes(current.status)) throw new Error(lockedWhy(current, "be changed"));
+  let next: ReturnType<typeof patchFields>;
+  try {
+    next = patchFields(current.platform, current.extra, patch);
+  } catch (err) {
+    throw new Error(aboutDraft(current, shapeWhy(err)));
+  }
   const retitled = next.title !== undefined && next.title !== current.title;
   if (retitled && !next.title && PLATFORM_SPECS[current.platform].title)
-    throw new Error(`${current.platform} needs a title`);
+    throw new Error(aboutDraft(current, "it needs a title. Type one in"));
   const changed = Object.keys(next.changed).length > 0;
   if (!retitled && !changed) return current;
   // The yes covers TikTok's settings: a change waits on another (designs/2026-10-07-client-social.md).
@@ -273,7 +294,7 @@ export async function setFields(
     })
     .where(eq(contentDrafts.id, id))
     .returning();
-  if (!row) throw new Error(`no draft ${id}`);
+  if (!row) throw new Error(GONE);
   if (who)
     await recordDraft(db, {
       item: `draft:${id}`,
@@ -293,6 +314,10 @@ export async function setFields(
   return row;
 }
 
+/** A shape's refusal without the platform's code in front ("reddit: Subreddit ..."). */
+const shapeWhy = (err: unknown) =>
+  (err instanceof Error ? err.message : String(err)).replace(/^[a-z_]+: /, "");
+
 /** No, with an optional quick pick and note for the draft record. */
 export async function rejectDrafts(
   db: Queryable,
@@ -304,7 +329,7 @@ export async function rejectDrafts(
     ids,
     REJECTABLE,
     { status: "rejected", scheduledFor: null },
-    "reject",
+    "be rejected",
   );
   for (const r of rows)
     await recordDraft(db, {
@@ -332,25 +357,30 @@ export async function editDraft(
   who?: { by: string; via?: DraftVia },
 ): Promise<ContentDraft> {
   const current = await getDraft(db, id);
-  if (!EDITABLE.includes(current.status))
-    throw new Error(`cannot edit ${id}: it is ${current.status}`);
+  if (!EDITABLE.includes(current.status)) throw new Error(lockedWhy(current, "be edited"));
   const spec = PLATFORM_SPECS[current.platform];
   const text = change.text.trim();
-  if (text.length === 0) throw new Error("text is empty");
+  if (text.length === 0)
+    throw new Error(aboutDraft(current, "the post can't be empty. Type it in"));
   const unfit = wordsUnfit(current, text);
-  if (unfit) throw new Error(unfit);
+  if (unfit) throw new Error(aboutDraft(current, unfit));
   const title = change.title === undefined ? current.title : (change.title?.trim() ?? null);
   if (spec.title) {
-    if (!title) throw new Error(`${current.platform} needs a title`);
+    if (!title) throw new Error(aboutDraft(current, "it needs a title. Type one in"));
     if (title.length > spec.title.maxChars)
-      throw new Error(`title is ${title.length} chars, over ${spec.title.maxChars}`);
+      throw new Error(
+        aboutDraft(
+          current,
+          `its title is ${title.length} characters, over the ${spec.title.maxChars} ${spec.name} takes`,
+        ),
+      );
   }
   const [row] = await db
     .update(contentDrafts)
     .set({ text, title, edited: true, status: "draft", error: null })
     .where(eq(contentDrafts.id, id))
     .returning();
-  if (!row) throw new Error(`no draft ${id}`);
+  if (!row) throw new Error(GONE);
   if (who)
     await recordDraft(db, {
       item: `draft:${id}`,

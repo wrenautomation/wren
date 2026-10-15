@@ -9,7 +9,7 @@ import { kindOf } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
-import { named, PLATFORM_SPECS } from "./platforms.js";
+import { aboutDraft, GONE, lockedWhy, named, PLATFORM_SPECS } from "./platforms.js";
 import {
   type ContentDraft,
   contentDrafts,
@@ -317,23 +317,27 @@ export async function setFunnel(
   who?: { by: string },
 ): Promise<ContentDraft> {
   const [d] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id)).limit(1);
-  if (!d) throw new Error(`no draft ${id}`);
-  if (!EDITABLE.includes(d.status)) throw new Error(`cannot change ${id}: it is ${d.status}`);
+  if (!d) throw new Error(GONE);
+  if (!EDITABLE.includes(d.status)) throw new Error(lockedWhy(d, "be changed"));
   if (patch.stage !== undefined && !FUNNEL_STAGES.includes(patch.stage))
-    throw new Error(`stage is one of ${FUNNEL_STAGES.join(", ")}`);
+    throw new Error(aboutDraft(d, `pick a stage: ${FUNNEL_STAGES.join(", ")}`));
   if (patch.to !== undefined && !FUNNEL_TARGETS.includes(patch.to))
-    throw new Error(`points to one of ${FUNNEL_TARGETS.join(", ")}`);
+    throw new Error(aboutDraft(d, `pick where it points: ${FUNNEL_TARGETS.join(", ")}`));
   if (patch.video) {
-    if (patch.video === id) throw new Error("a post can't point at itself");
+    if (patch.video === id)
+      throw new Error(aboutDraft(d, "a post can't point at itself. Pick another video"));
     const [v] = await db
       .select({ platform: contentDrafts.platform, extra: contentDrafts.extra })
       .from(contentDrafts)
       .where(eq(contentDrafts.id, patch.video))
       .limit(1);
-    if (!v || !isLong(v)) throw new Error(`${patch.video} isn't a YouTube video`);
+    if (!v || !isLong(v))
+      throw new Error(aboutDraft(d, "that isn't a YouTube video. Pick one from the list"));
   }
   if (patch.page && !(await pageOf(db, patch.page)))
-    throw new Error(`${patch.page} isn't one of Wren's Sites pages`);
+    throw new Error(
+      aboutDraft(d, "that page isn't one of Wren's Sites pages. Pick one from the list"),
+    );
   const next = {
     stage: patch.stage ?? d.stage,
     pointsTo: patch.to ?? d.pointsTo,
@@ -350,7 +354,7 @@ export async function setFunnel(
     .set(next)
     .where(eq(contentDrafts.id, id))
     .returning();
-  if (!row) throw new Error(`no draft ${id}`);
+  if (!row) throw new Error(GONE);
   if (who)
     await recordDraft(db, {
       item: `draft:${id}`,

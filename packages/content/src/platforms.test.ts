@@ -38,7 +38,7 @@ describe("x caps", () => {
     expect(PLATFORM_SPECS.x.maxChars).toBe(25_000);
     const single = { platform: "x" as const, extra: {} };
     expect(wordsUnfit(single, "a".repeat(2000))).toBeNull();
-    expect(wordsUnfit(single, "a".repeat(25_001))).toMatch(/over 25000/);
+    expect(wordsUnfit(single, "a".repeat(25_001))).toMatch(/over the 25000/);
     const thread = { platform: "x" as const, extra: { kind: "thread" } };
     expect(wordsUnfit(thread, ["a".repeat(281), "b", "c"].join("\n\n---\n\n"))).toMatch(/over 280/);
   });

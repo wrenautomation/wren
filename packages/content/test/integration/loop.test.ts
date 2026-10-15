@@ -4,6 +4,7 @@
  * the scheduler posts through a stand-in `Content` service and stamps the row;
  * a refusal lands on the row as `failed`; a scheduled draft waits its turn.
  */
+import { randomUUID } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
@@ -389,7 +390,7 @@ describe("content loop", () => {
       approvedAt: expect.any(Date),
     });
     await expect(editDraft(pg.db, row.id, { text: "a".repeat(X_MAX + 1) })).rejects.toThrow(
-      new RegExp(`over ${X_MAX}`),
+      new RegExp(`over the ${X_MAX}`),
     );
     expect((await getDraft(pg.db, row.id)).text).toBe("new text");
   });
@@ -404,11 +405,38 @@ describe("content loop", () => {
     expect(await desk().approve({ ids: [row.id] })).toEqual({ done: [row.id] });
     expect((await getDraft(pg.db, row.id)).scheduledFor).toEqual(expect.any(Date));
     await expect(desk().edit({ draftId: row.id, text: "a".repeat(X_MAX + 1) })).rejects.toThrow(
-      new RegExp(`over ${X_MAX}`),
+      new RegExp(`over the ${X_MAX}`),
     );
     expect(await desk().edit({ draftId: row.id, text: "new" })).toEqual({ done: [row.id] });
     expect(await desk().reject({ ids: [row.id] })).toEqual({ done: [row.id] });
     expect((await getDraft(pg.db, row.id)).status).toBe("rejected");
+  });
+
+  it("a second click is no refusal, and a refusal names the post, never its id", async () => {
+    const idea = await addIdea(pg.db, "click twice", "cli");
+    const [row] = await pg.db
+      .insert(contentDrafts)
+      .values({ ideaId: idea.id, platform: "x", text: "Twice is once", promptVersion: "v1" })
+      .returning();
+    if (!row) throw new Error("no row");
+    expect(await desk().approve({ ids: [row.id] })).toEqual({ done: [row.id] });
+    const slot = (await getDraft(pg.db, row.id)).scheduledFor;
+    expect(await desk().approve({ ids: [row.id] })).toEqual({ done: [] });
+    expect((await getDraft(pg.db, row.id)).scheduledFor).toEqual(slot);
+    await pg.db
+      .update(contentDrafts)
+      .set({ status: "published" })
+      .where(eq(contentDrafts.id, row.id));
+    const said = await desk()
+      .reject({ ids: [row.id] })
+      .then(
+        () => "",
+        (err: Error) => err.message,
+      );
+    // Through ingress the words come back as JSON, their quotes escaped.
+    expect(said).toMatch(/Twice is once\\?" on X is already posted, so it can't be rejected\./);
+    expect(said).not.toContain(row.id);
+    await expect(desk().approve({ ids: [randomUUID()] })).rejects.toThrow(/isn't here any more/);
   });
 
   it("a redraft takes the note, supersedes the old row, and links back", async () => {

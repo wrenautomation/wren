@@ -209,7 +209,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
 
 export async function getEdit(db: Queryable, id: number): Promise<VideoEdit> {
   const [row] = await db.select().from(videoEdits).where(eq(videoEdits.id, id));
-  if (!row) throw new Error(`no video ${id}`);
+  if (!row) throw new Error("That video isn't here any more. Reload the page to see what's left.");
   return row;
 }
 
@@ -374,7 +374,7 @@ export async function setEdit(
   const parsed = editPatchSchema.safeParse(input);
   if (!parsed.success)
     throw new Error(
-      `not set: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
+      `Not saved: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
     );
   const patch = { ...parsed.data };
   if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
@@ -397,7 +397,7 @@ export async function setEdit(
       now.tracks.main,
       now.shorts,
     );
-    if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
+    if (bad.length) throw new Error(`Not saved: ${bad.join("; ")}`);
     const before = Object.fromEntries(
       Object.keys(patch).map((k) => [
         k,
@@ -511,7 +511,10 @@ export async function setWords(
         : "wrong" in change
           ? fixWords(now.words, change.wrong, change.right)
           : fixWordAt(now.words, change.at, change.text);
-    if (!r.n) throw new Error(`no "${"wrong" in change ? change.wrong : ""}" in the transcript`);
+    if (!r.n)
+      throw new Error(
+        `The transcript has no "${"wrong" in change ? change.wrong : ""}". Check the spelling, or click the word to fix it.`,
+      );
     // A fix that merges or splits words moves the stressed words with them.
     const stress =
       "words" in change && change.stress !== undefined
@@ -536,7 +539,7 @@ export async function setWords(
 /** Undo cut `n` (1-based, as `wren video cuts` numbers them). */
 export async function keepCut(db: Queryable, id: number, n: number, by: string) {
   const { cuts } = await getEdit(db, id);
-  if (!cuts[n - 1]) throw new Error(`video ${id} has ${cuts.length} cuts; no ${n}`);
+  if (!cuts[n - 1]) throw new Error(`This video has ${cuts.length} cuts, so there's no cut ${n}.`);
   const next = cuts.map((c, i) => (i === n - 1 ? { ...c, state: "kept" as const } : c));
   return setEdit(db, id, { cuts: next }, { by, command: "video keep" });
 }
@@ -555,7 +558,8 @@ export async function setCut(
   const { cuts } = await getEdit(db, id);
   const same = (a: number, b: number) => Math.abs(a - b) < 0.001;
   const i = cuts.findIndex((c) => same(c.from, span.from) && same(c.to, span.to));
-  if (i < 0 && state === "kept") throw new Error("no cut there to keep");
+  if (i < 0 && state === "kept")
+    throw new Error("There's no cut there to keep. Pick the cut words first.");
   const next =
     i < 0
       ? [...cuts, { from: span.from, to: span.to, why: "manual" as const, state }]

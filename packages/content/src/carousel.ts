@@ -24,7 +24,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { DraftResult } from "./draft.js";
 import { addIdea } from "./ideas.js";
 import { type MediaStoreOptions, putMedia } from "./media.js";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { aboutDraft, GONE, lockedWhy, PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
 import { OWN_WORDS } from "./write.js";
 
@@ -59,9 +59,9 @@ export async function deckOf(db: Queryable, d: ContentDraft): Promise<ContentDra
 
 async function carouselOf(db: Queryable, id: string): Promise<ContentDraft> {
   const [d] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id)).limit(1);
-  if (!d) throw new Error(`no draft ${id}`);
-  if (!isCarousel(d)) throw new Error(`${id} isn't a carousel`);
-  if (!EDITABLE.includes(d.status)) throw new Error(`cannot change ${id}: it is ${d.status}`);
+  if (!d) throw new Error(GONE);
+  if (!isCarousel(d)) throw new Error(aboutDraft(d, "it isn't a carousel, so it has no slides"));
+  if (!EDITABLE.includes(d.status)) throw new Error(lockedWhy(d, "be changed"));
   return d;
 }
 
@@ -79,7 +79,7 @@ export async function saveSlides(
   const d = await carouselOf(db, id);
   const next = cleanSlides(slides);
   const bad = slidesUnfit(next);
-  if (bad) throw new Error(bad);
+  if (bad) throw new Error(aboutDraft(d, bad));
   const before = cleanSlides(d.extra?.slides);
   if (slidesKey(before) === slidesKey(next)) return [d];
   const out: ContentDraft[] = [];
@@ -122,7 +122,7 @@ export async function slidesToDraw(
   const d = await carouselOf(db, id);
   const slides = cleanSlides(d.extra?.slides);
   const bad = slidesUnfit(slides);
-  if (bad) throw new Error(bad);
+  if (bad) throw new Error(aboutDraft(d, bad));
   return { slides, html: slidesHtml(slides, by ? { by } : {}) };
 }
 
@@ -157,7 +157,7 @@ export async function keepSlideFiles(
 ): Promise<ContentDraft[]> {
   const d = await carouselOf(db, id);
   if (slidesKey(cleanSlides(d.extra?.slides)) !== files.of)
-    throw new Error("the slides changed while they drew: draw them again");
+    throw new Error(aboutDraft(d, "the slides changed while they drew. Draw them again"));
   const out: ContentDraft[] = [];
   for (const r of await deckOf(db, d)) {
     if (!EDITABLE.includes(r.status)) continue;

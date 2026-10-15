@@ -51,10 +51,10 @@ describe("own words", () => {
   it("refuses what a platform can't post", () => {
     expect(ownDraftOf("instagram", "text")).toEqual({ reason: "Instagram needs a video" });
     expect(ownDraftOf("youtube", "x".repeat(5001))).toMatchObject({
-      reason: expect.stringMatching(/over 5000/),
+      reason: expect.stringMatching(/over the 5000/),
     });
     expect(ownDraftOf("linkedin", "x".repeat(3001))).toMatchObject({
-      reason: expect.stringMatching(/over 3000/),
+      reason: expect.stringMatching(/over the 3000/),
     });
   });
 });

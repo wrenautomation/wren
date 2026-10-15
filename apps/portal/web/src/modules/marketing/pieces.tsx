@@ -198,10 +198,18 @@ function BranchRow({ b }: { b: Branch }) {
   );
 }
 
-/** Yes on each waiting draft: each takes its platform's next slot. */
+/**
+ * Yes on each waiting draft: each takes its platform's next slot. Wren's own desk, as the Drafts
+ * page's Approve: `marketing/approveDraft` alone is a client's, and would land on its database.
+ */
 async function approveAll(ids: string[], done: () => void) {
   try {
-    await call("marketing/approveDraft", { ids });
+    await call("console/call", {
+      service: "ContentDesk",
+      handler: "approve",
+      key: "default",
+      input: { ids },
+    });
     say.done(
       ids.length > 1
         ? `Approved ${ids.length}. Each takes its next slot.`

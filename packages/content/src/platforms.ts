@@ -153,7 +153,9 @@ export function wordsUnfit(
 ): string | null {
   if (isThread(d)) return threadUnfit(threadPosts(text));
   const max = PLATFORM_SPECS[d.platform].maxChars;
-  return text.length > max ? `text is ${text.length} chars, over ${max} for ${d.platform}` : null;
+  return text.length > max
+    ? `it is ${text.length} characters, over the ${max} ${PLATFORM_SPECS[d.platform].name} takes. Cut it down`
+    : null;
 }
 
 /**
@@ -196,4 +198,33 @@ export function named(r: { title?: string | null; text: string; platform: string
   const short = words.length > 60 ? `${words.slice(0, 57)}…` : words;
   const where = PLATFORM_SPECS[r.platform as Platform]?.name ?? r.platform;
   return short ? `"${short}" on ${where}` : `The ${where} draft`;
+}
+
+/** A draft gone from the list since it was read: deleted, or another tab moved it. */
+export const GONE = "That draft isn't here any more. Reload the page to see what's left.";
+
+/**
+ * Why a draft can't `doing` ("be changed", "be approved") in the state it's in, naming it and
+ * saying what to do. Draft, approved and failed are open; the rest are past changing.
+ */
+export function lockedWhy(
+  r: { title?: string | null; text: string; platform: string; status: string },
+  doing: string,
+): string {
+  const who = named(r);
+  if (r.status === "publishing")
+    return `${who} is posting now, so it can't ${doing}. Reload in a minute.`;
+  if (r.status === "published") return `${who} is already posted, so it can't ${doing}.`;
+  if (r.status === "rejected")
+    return `${who} was rejected, so it can't ${doing}. Draft it again from its idea to use it.`;
+  return `${who} can't ${doing} right now. Reload the page and try again.`;
+}
+
+/** A refusal about one draft: its name, then why, as one sentence ending in a stop. */
+export function aboutDraft(
+  r: { title?: string | null; text: string; platform: string },
+  why: string,
+): string {
+  const said = why.trim().replace(/[.]+$/, "");
+  return `${named(r)}: ${said}.`;
 }

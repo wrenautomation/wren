@@ -148,12 +148,30 @@ export async function applyPass(
   }
 }
 
+/** A video as a person knows it, for what a refusal says: its title, never its id. */
+export function videoName(e: Pick<VideoEdit, "title">): string {
+  const t = e.title.replace(/\s+/g, " ").trim();
+  return t ? `"${t.length > 60 ? `${t.slice(0, 57)}…` : t}"` : "This video";
+}
+
+/** A video's state as words: "approved", "posted on YouTube". */
+const STATE_WORDS: Record<string, string> = {
+  added: "still being edited",
+  edited: "edited but not rendered",
+  rendered: "rendered",
+  approved: "approved",
+  uploaded: "posted on YouTube",
+  rejected: "rejected",
+};
+export const videoState = (state: string) => STATE_WORDS[state] ?? state;
+
 /** Why a render can't be queued now, or null when it can. */
 export function renderRefusal(
   e: Pick<VideoEdit, "state" | "render">,
   now = Date.now(),
 ): string | null {
-  if (!RENDERABLE.includes(e.state)) return `it is ${e.state}; an approved video keeps its render`;
+  if (!RENDERABLE.includes(e.state))
+    return `it is ${videoState(e.state)}, so its render stays as it is`;
   const r = e.render;
   if (r?.state === "waiting") return "it is waiting for the Mac already";
   if (r?.state === "rendering" && now - Date.parse(r.at) < RENDER_STALE_MS)
@@ -381,7 +399,9 @@ export async function rejectVideo(
   return atomic(db, async (tx) => {
     const e = await getEdit(tx, id);
     if (!REJECTABLE.includes(e.state))
-      throw new Error(`it is ${e.state}; only a video not yet approved can be rejected`);
+      throw new Error(
+        `${videoName(e)} is ${videoState(e.state)} already, so it can't be rejected. Only a video not yet approved can be.`,
+      );
     await tx
       .update(videoEdits)
       .set({ state: "rejected", updatedAt: new Date() })
@@ -400,7 +420,10 @@ export async function rejectVideo(
 export async function restoreVideo(db: Queryable, id: number, o: { by: string }) {
   return atomic(db, async (tx) => {
     const e = await getEdit(tx, id);
-    if (e.state !== "rejected") throw new Error(`it is ${e.state}, not rejected`);
+    if (e.state !== "rejected")
+      throw new Error(
+        `${videoName(e)} is ${videoState(e.state)}, not rejected, so there's nothing to bring back.`,
+      );
     const state = e.files.long || e.files.vertical ? "rendered" : "edited";
     await tx.update(videoEdits).set({ state, updatedAt: new Date() }).where(eq(videoEdits.id, id));
     const { id: run } = await openRun(tx, { command: "video restore", argv: { id, by: o.by } });

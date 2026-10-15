@@ -176,7 +176,7 @@ describe("DraftAsk", () => {
     const id = await comment("answered", "Thanks!");
     await expect(desk().ask({ record: "comment", id, message: " " })).rejects.toThrow(/say what/);
     await expect(desk().ask({ record: "comment", id: "999", message: "x" })).rejects.toThrow(
-      /no comment 999/,
+      /isn't here any more/,
     );
     await expect(desk().ask({ record: "comment", id, message: "warmer" })).rejects.toThrow(
       /sent or closed/,
@@ -206,7 +206,7 @@ describe("drafts from a terminal", () => {
     expect(row?.draft).toBe("Start with the daily task.");
     await expect(
       writeDraft(pg.db, `comment:${c}`, "x".repeat(1251), { command: "draft-set", by: "cli" }),
-    ).rejects.toThrow(/over 1250/);
+    ).rejects.toThrow(/over the 1250/);
     await expect(
       writeDraft(pg.db, "nope:1", "x", { command: "draft-set", by: "cli" }),
     ).rejects.toThrow(/say a draft as/);

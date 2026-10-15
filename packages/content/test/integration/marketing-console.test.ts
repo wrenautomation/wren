@@ -175,10 +175,10 @@ describe("a draft's verdict", () => {
     expect(out).toEqual({ done: [id] });
     expect(await states(kappa)).toEqual(["Kappa cut denials by a third: approved"]);
     expect(await states(lambda)).toEqual(["Lambda closed its books in a day: draft"]);
-    // Twice: the desk's refusal is the viewer's answer.
-    await expect(
-      svc().approveDraft({ ...operator, client: "kappa", ids: [String(id)] }),
-    ).rejects.toThrow();
+    // Twice (a double click): nothing more moves, and nothing is refused.
+    expect(await svc().approveDraft({ ...operator, client: "kappa", ids: [String(id)] })).toEqual({
+      done: [],
+    });
   });
 
   it("a client that approves its own: its login decides, Wren's team doesn't", async () => {

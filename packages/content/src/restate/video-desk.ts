@@ -38,6 +38,8 @@ import {
   VIDEO_EDIT,
   VIDEO_EDIT_REF,
   VIDEO_NOTE_MAX,
+  videoName,
+  videoState,
 } from "../video-edit.js";
 
 export const VIDEO_DESK = { name: "VideoDesk" } as const;
@@ -136,7 +138,7 @@ export function makeVideoDesk(db: Db) {
                     : req.at != null && req.text
                       ? { at: req.at, text: req.text }
                       : null;
-                if (!change) throw new Error("say the wrong word and the right one");
+                if (!change) throw new Error("Say the wrong word and the right one.");
                 const { run, n } = await setWords(db, req.id, change, { by: byOf(req) });
                 return { run, n };
               })(),
@@ -179,7 +181,7 @@ export function makeVideoDesk(db: Db) {
               (async () => {
                 const e = await getEdit(db, req.id);
                 const no = renderRefusal(e);
-                if (no) throw new Error(no);
+                if (no) throw new Error(`${videoName(e)} ${no.replace(/^it /, "")}.`);
                 await setRender(db, e.id, {
                   state: "waiting",
                   at: new Date().toISOString(),
@@ -213,7 +215,11 @@ export function makeVideoDesk(db: Db) {
           const run = await ctx.run("open run", async () => {
             const e = await told(getEdit(db, req.id));
             if (e.state === "rejected" || e.state === "approved" || e.state === "uploaded")
-              throw refuse(new Error(`it is ${e.state}; the agent edits a video before Approve`));
+              throw refuse(
+                new Error(
+                  `${videoName(e)} is ${videoState(e.state)}, so the editing agent can't change it. It edits a video before Approve.`,
+                ),
+              );
             const argv: Passed = { id: req.id, by: byOf(req), note: note || null };
             return (await openRun(db, { command: VIDEO_EDIT, argv, model: "claude-code:sonnet" }))
               .id;

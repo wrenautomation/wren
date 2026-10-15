@@ -47,7 +47,7 @@ import {
   unfitProposal,
 } from "./draft.js";
 import { lessonsFor } from "./lessons.js";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { GONE, named, PLATFORM_SPECS } from "./platforms.js";
 import { playbookFor } from "./playbook.js";
 import { type ContentDraft, type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
@@ -163,7 +163,10 @@ export async function videoDraftOf(db: Queryable, video: number): Promise<string
   const long =
     rows.find((r) => r.ref === `video:${video}`) ??
     rows.find((r) => (r.extra?.kind ?? "video") === "video");
-  if (!long) throw new Error(`video ${video} isn't approved for YouTube yet: approve it first`);
+  if (!long)
+    throw new Error(
+      "This video isn't approved for YouTube yet: approve it first, then promote it.",
+    );
   return long.id;
 }
 
@@ -187,11 +190,15 @@ export async function promotable(db: Queryable, videoDraft: string) {
     .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
     .where(eq(contentDrafts.id, videoDraft))
     .limit(1);
-  if (v?.platform !== "youtube") throw new Error(`${videoDraft} isn't a YouTube draft`);
+  if (!v) throw new Error(GONE);
+  if (v.platform !== "youtube")
+    throw new Error(`${named(v)} isn't a YouTube draft, so there's no video to promote.`);
   if (v.extra?.kind === "short")
-    throw new Error("a Short can't be promoted: promote its long video");
+    throw new Error(`${named(v)} is a Short, so it can't be promoted. Promote its long video.`);
   if (!(PROMOTABLE as readonly string[]).includes(v.status))
-    throw new Error(`the video is ${v.status}: approve it for YouTube first`);
+    throw new Error(
+      `${named(v)} is ${v.status === "draft" ? "still waiting" : v.status}: approve it for YouTube first, then promote it.`,
+    );
   return v;
 }
 
@@ -216,7 +223,7 @@ export async function promoBase(db: Queryable, videoDraft: string): Promise<Prom
   const title = e?.title || v.title || "";
   const about = e?.description || withoutFooter(v.text);
   if (!`${title}${about}`.trim())
-    throw new Error("the video has no title or description to promote");
+    throw new Error(`${named(v)} has no title or description to promote. Type them in first.`);
   const ref = promoRef(v.id);
   const [had] = await db.select().from(contentIdeas).where(eq(contentIdeas.ref, ref)).limit(1);
   const idea =

@@ -28,6 +28,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
+import { inLane } from "./lanes.js";
 import {
   type DayPage,
   type ListPage,
@@ -657,9 +658,12 @@ async function eachOf(
 const callOf =
   (client: string | null) =>
   async (handler: string, input: Input): Promise<unknown> => {
-    const sent = await uploaded(client, input);
     const one = (client && CLIENT_ONE[handler]) || ONE[handler];
-    if (one) return eachOf(one, sent, client);
+    if (one)
+      return inLane(handler, input, draftOf, async () =>
+        eachOf(one, await uploaded(client, input), client),
+      );
+    const sent = await uploaded(client, input);
     const form = FORM[handler];
     if (form) return call(...form(sent));
     const [to, add] = AS[handler] ?? [handler, {}];

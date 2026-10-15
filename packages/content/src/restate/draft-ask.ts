@@ -71,7 +71,10 @@ export function makeDraftAsk(db: Db) {
             const d = await readDraft(db, item).catch((err) => {
               throw refuse(err, 404);
             });
-            if (!d.open) throw refuse(new Error(`this ${d.what} is sent or closed`));
+            if (!d.open)
+              throw refuse(
+                new Error("This draft is sent or closed already, so Claude can't change it."),
+              );
             const argv: Asked = { record: req.record, id: req.id, by: whoOf(req), message };
             return (await openRun(db, { command: COMMAND, argv, model: "claude-code:sonnet" })).id;
           });
