@@ -8,7 +8,6 @@ import {
   PageHeader,
   Section,
 } from "@wren/ui";
-import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { DisplaySection } from "../settings/Display.js";
@@ -27,9 +26,8 @@ const MAIL: [MailLevel, string, string][] = [
 const unTapped = (text: string) => text.replace(/&e=\d+&pulse=\d+/g, "");
 
 export function You(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const people = usePeople(props, nonce);
-  const act = useAct(props, () => setNonce((n) => n + 1));
+  const people = usePeople(props);
+  const act = useAct(props, people.retry);
   const mail = people.data?.mail ?? null;
   const recap = useRecap(props);
 

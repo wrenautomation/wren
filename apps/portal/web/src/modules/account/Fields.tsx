@@ -187,11 +187,10 @@ function FieldRow({
 
 export function Fields(props: PageProps) {
   const [record, setRecord] = useState<string | undefined>(undefined);
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`fields:${props.client}:${record}:${nonce}`, () =>
+  const load = useCall(`fields:${props.client}:${record}`, () =>
     consoleIn<FieldsView>(props.client, "customFields", record ? { record } : {}),
   );
-  const write = useWrite(props.client, () => setNonce((n) => n + 1));
+  const write = useWrite(props.client, load.retry);
   const [kind, setKind] = useState("text");
   const data = load.data;
   const here = data?.record ?? null;
@@ -319,11 +318,10 @@ export function Fields(props: PageProps) {
 }
 
 export function Facts(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`facts:${props.client}:${nonce}`, () =>
+  const load = useCall(`facts:${props.client}`, () =>
     consoleIn<CustomValue[]>(props.client, "businessFacts", {}),
   );
-  const write = useWrite(props.client, () => setNonce((n) => n + 1));
+  const write = useWrite(props.client, load.retry);
   const [copied, setCopied] = useState<string | null>(null);
   const facts = load.data;
 

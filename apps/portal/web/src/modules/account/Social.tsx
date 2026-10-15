@@ -180,11 +180,10 @@ function WhatsAppRow() {
 }
 
 export function Social(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`social:${props.client}:${nonce}`, () =>
+  const load = useCall(`social:${props.client}`, () =>
     call<SocialPageView>("social/social", { client: props.client, asClient: !props.team }),
   );
-  const act = useSocialAct(props.client, () => setNonce((n) => n + 1));
+  const act = useSocialAct(props.client, load.retry);
   const data = load.data;
   const view = data && !data.wren ? (data as View) : null;
   const own = data?.wren ? data.own : null;

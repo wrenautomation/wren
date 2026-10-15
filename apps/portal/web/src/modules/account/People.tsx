@@ -22,9 +22,8 @@ const BUILT_IN: Record<string, string> = { owner: "Owner", viewer: "Viewer" };
 
 /** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
 export function People(props: PageProps & { bare?: boolean }) {
-  const [nonce, setNonce] = useState(0);
-  const people = usePeople(props, nonce);
-  const act = useAct(props, () => setNonce((n) => n + 1));
+  const people = usePeople(props);
+  const act = useAct(props, people.retry);
   const manage = people.data?.canManage ?? false;
   // Built-ins first, then the account's own roles; a role's name by its id for the tags.
   const roles = people.data?.roles?.length

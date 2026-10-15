@@ -159,11 +159,10 @@ export function Secret({
 }
 
 export function Webhooks(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`webhooks:${props.client}:${props.team}:${nonce}`, () =>
+  const load = useCall(`webhooks:${props.client}:${props.team}`, () =>
     call<Hooks>("delivery/webhooks", { client: props.client, asClient: !props.team }),
   );
-  const act = useRun(props, () => setNonce((n) => n + 1));
+  const act = useRun(props, load.retry);
   const [secret, setSecret] = useState<string | null>(null);
   const [tested, setTested] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
@@ -372,7 +371,7 @@ export function Webhooks(props: PageProps) {
                       id={d.id}
                       canManage={data.canManage}
                       props={props}
-                      onSent={() => setNonce((n) => n + 1)}
+                      onSent={load.retry}
                     />
                   ) : null}
                 </li>
@@ -413,8 +412,7 @@ function OneDelivery({
   props: PageProps;
   onSent: () => void;
 }) {
-  const [nonce, setNonce] = useState(0);
-  const got = useCall(`webhook:${id}:${nonce}`, () =>
+  const got = useCall(`webhook:${id}`, () =>
     call<Delivery & { payload: unknown; tries: Try[] }>("delivery/webhookDelivery", {
       client: props.client,
       asClient: !props.team,
@@ -422,7 +420,7 @@ function OneDelivery({
     }),
   );
   const act = useRun(props, () => {
-    setNonce((n) => n + 1);
+    got.retry();
     onSent();
   });
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;

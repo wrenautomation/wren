@@ -263,11 +263,10 @@ function OrgCard({ o, view, act }: { o: Org; view: View; act: Act }) {
 }
 
 export function Mail(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`mail:${props.client}:${nonce}`, () =>
+  const load = useCall(`mail:${props.client}`, () =>
     call<MailPageView>("mail/mail", { client: props.client, asClient: !props.team }),
   );
-  const act = useMailAct(props.client, () => setNonce((n) => n + 1));
+  const act = useMailAct(props.client, load.retry);
   const data = load.data;
   const view = data && !data.wren ? (data as View) : null;
   return (

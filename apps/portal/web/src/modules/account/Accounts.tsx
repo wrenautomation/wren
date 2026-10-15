@@ -351,14 +351,13 @@ function AddAccount({ sites, act }: { sites: AccountsView["sites"]; act: Act }) 
 }
 
 export function Accounts(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`accounts:${props.client}:${props.team}:${nonce}`, () =>
+  const load = useCall(`accounts:${props.client}:${props.team}`, () =>
     call<AccountsView>("accounts/accounts", {
       client: ownerOf(props.client),
       asClient: !props.team,
     }),
   );
-  const act = useAccountsAct(props.client, () => setNonce((n) => n + 1));
+  const act = useAccountsAct(props.client, load.retry);
   const d = load.data;
   const team = !!d?.team;
   return (

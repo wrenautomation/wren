@@ -14,7 +14,7 @@ import {
   Section,
   Tag,
 } from "@wren/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -76,17 +76,19 @@ function stateOf(d: DomainView): string {
 
 /** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
 export function Domain(props: PageProps & { bare?: boolean }) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`domains:${props.client}:${props.team}:${nonce}`, () =>
+  const load = useCall(`domains:${props.client}:${props.team}`, () =>
     call<Domains>("delivery/domains", { client: props.client, asClient: !props.team }),
   );
-  const act = useAct(props, () => setNonce((n) => n + 1));
+  const act = useAct(props, load.retry);
   const data = load.data;
   const waiting = data?.domains.some((d) => !d.live) ?? false;
+  // The poll re-reads the same key, so the device keeps one answer, not one per tick.
+  const retry = useRef(load.retry);
+  retry.current = load.retry;
 
   useEffect(() => {
     if (!waiting) return;
-    const t = setInterval(() => shown() && setNonce((n) => n + 1), POLL_MS);
+    const t = setInterval(() => shown() && retry.current(), POLL_MS);
     return () => clearInterval(t);
   }, [waiting]);
 

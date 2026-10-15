@@ -27,7 +27,7 @@ export function ClientLook({ client }: { client: string }) {
 }
 
 export function Look(props: PageProps) {
-  const people = usePeople(props, 0);
+  const people = usePeople(props);
   return (
     <>
       <PageHeader

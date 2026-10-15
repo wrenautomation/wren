@@ -169,14 +169,13 @@ function AppRow({ a, mayAct, act }: { a: App; mayAct: boolean; act: Act }) {
 }
 
 export function Connectors(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`connectors:${props.client}:${nonce}`, () =>
+  const load = useCall(`connectors:${props.client}`, () =>
     call<ConnectorsPageView>("connectors/connectors", {
       client: props.client,
       asClient: !props.team,
     }),
   );
-  const act = useConnectorAct(props.client, () => setNonce((n) => n + 1));
+  const act = useConnectorAct(props.client, load.retry);
   const data = load.data;
   const view = data && !data.wren ? (data as View) : null;
   return (

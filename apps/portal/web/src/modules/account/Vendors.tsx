@@ -225,14 +225,13 @@ function Vendor({ v, d, act }: { v: VendorRow; d: VendorsView; act: Act }) {
 }
 
 export function Vendors(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const load = useCall(`vendors:${props.client}:${props.team}:${nonce}`, () =>
+  const load = useCall(`vendors:${props.client}:${props.team}`, () =>
     call<VendorsView>("accounts/vendors", {
       client: ownerOf(props.client),
       asClient: !props.team,
     }),
   );
-  const act = useAccountsAct(props.client, () => setNonce((n) => n + 1));
+  const act = useAccountsAct(props.client, load.retry);
   const d = load.data;
   return (
     <>

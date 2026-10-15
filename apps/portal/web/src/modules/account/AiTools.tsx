@@ -58,10 +58,9 @@ const PRE =
   "m-0 overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap break-all";
 
 export function AiTools(props: PageProps) {
-  const [nonce, setNonce] = useState(0);
   // The team's page asks as the operator; a client's Account pins to that client.
   const where = props.team ? {} : { client: props.client, asClient: true };
-  const load = useCall(`tokens:${props.client}:${props.team}:${nonce}`, () =>
+  const load = useCall(`tokens:${props.client}:${props.team}`, () =>
     call<Token[]>("console/tokens", where),
   );
   const [busy, setBusy] = useState(false);
@@ -79,7 +78,7 @@ export function AiTools(props: PageProps) {
         `console/${route}:${props.client}:${JSON.stringify(body)}`,
         (requestId) => call<T>(`console/${route}`, { ...where, ...body, requestId }),
       );
-      setNonce((n) => n + 1);
+      load.retry();
       return got;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
