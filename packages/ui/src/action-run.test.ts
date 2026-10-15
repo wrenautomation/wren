@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Action, Runner, type RunnerDeps, withExpect } from "./action.js";
+import { fakeWriteEnv } from "./save/test-kit.js";
+import { Writes } from "./save/writes.js";
 
 /** A server the test answers by hand: each call waits until `ok` or `fail`. */
 function server() {
@@ -21,8 +23,9 @@ function runner(over: Partial<RunnerDeps> = {}) {
   const toast = { success: vi.fn(), error: vi.fn() };
   const after = vi.fn();
   const forget = vi.fn();
-  const r = new Runner({ call: s.call, after, many: "drafts", toast, forget, ...over });
-  return { r, s, toast, after, forget };
+  const writes = new Writes(fakeWriteEnv());
+  const r = new Runner({ call: s.call, after, many: "drafts", toast, forget, writes, ...over });
+  return { r, s, toast, after, forget, writes };
 }
 
 const APPROVE: Action = {
@@ -71,13 +74,13 @@ describe("Runner: one action per press", () => {
   });
 
   it("an optimistic press is guarded too, and doesn't block another record", async () => {
-    const { r, s } = runner();
+    const { r, s, writes } = runner();
     void r.go(SEND, [1], { ids: [1] });
     void r.go(SEND, [1], { ids: [1] });
     void r.go(SEND, [2], { ids: [2] });
     await settle();
     expect(s.calls.map((c) => c.input.ids)).toEqual([[1], [2]]);
-    expect([...r.snapshot().gone]).toEqual(["1", "2"]);
+    expect([...writes.hiddenIn("drafts")]).toEqual(["1", "2"]);
   });
 });
 
@@ -121,15 +124,15 @@ describe("Runner: a dialog closes once it worked", () => {
   });
 
   it("an optimistic one leaves at once, and opens again with the words if it fails", async () => {
-    const { r, s } = runner();
+    const { r, s, writes } = runner();
     r.run(SEND, [5], "hi");
     const done = r.submit({ ids: [5], body: "hello" });
     expect(r.snapshot().asked).toBeNull();
-    expect(r.snapshot().gone.has("5")).toBe(true);
+    expect(writes.hiddenIn("drafts").has("5")).toBe(true);
     await settle();
     s.calls[0]?.fail(new Error("Mailbox full"));
     expect(await done).toBe(false);
-    expect(r.snapshot().gone.has("5")).toBe(false);
+    expect(writes.hiddenIn("drafts").has("5")).toBe(false);
     expect(r.snapshot().asked).toMatchObject({ ids: [5], error: "Mailbox full" });
   });
 });
@@ -164,5 +167,21 @@ describe("Runner: a set-aside press", () => {
     expect(r.run(DELETE, [1])).toBe("held");
     expect(r.run(DELETE, [1])).toBeNull();
     expect(toast.success).toHaveBeenCalledOnce();
+  });
+
+  it("leaves at once, goes when its deadline passes on a return, and lands once", async () => {
+    const { r, s, writes, after } = runner({ many: "notes-held" });
+    const DROP: Action = { id: "drop", label: "Drop", handler: "notes/drop" };
+    expect(r.run(DROP, [2])).toBe("held");
+    expect(writes.hiddenIn("notes-held").has("2")).toBe(true);
+    expect(s.calls).toHaveLength(0);
+    // The page goes inside the window: it goes now.
+    writes.gone();
+    await settle();
+    expect(s.calls).toHaveLength(1);
+    expect(typeof s.calls[0]?.input.requestId).toBe("string");
+    s.calls[0]?.ok();
+    await settle();
+    expect(after).toHaveBeenCalledWith([2]);
   });
 });

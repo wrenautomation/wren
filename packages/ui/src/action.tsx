@@ -25,9 +25,17 @@ import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { DictateField } from "./dictate.js";
+import { refreshAll } from "./phone.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
-import { ACTIONS } from "./save/once.js";
 import { forgetForm, useKeptForm } from "./save/react.js";
+import {
+  type PressOptions,
+  recordKey,
+  stableKey,
+  WRITES,
+  type Write,
+  type Writes,
+} from "./save/writes.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** A box a form action asks for, required unless `optional`. */
@@ -228,43 +236,51 @@ export const setsAside = (label: string) => ASIDE.test(label);
 export const held = (a: Action) =>
   !a.undo && !a.form && !a.ask && !a.optimistic && ASIDE.test(a.label);
 
-/** Records set aside and waiting out their undo, by `many` and id; `landed` counts calls made. */
-const HELD = new Set<string>();
-let heldNow: { keys: ReadonlySet<string>; landed: number } = { keys: new Set(), landed: 0 };
-const heldSeen = new Set<() => void>();
-const heldKey = (many: string, id: string | number) => `${many}\u0000${id}`;
-function heldSet(keys: readonly string[], on: boolean, landed = false) {
-  for (const k of keys) on ? HELD.add(k) : HELD.delete(k);
-  heldNow = { keys: new Set(HELD), landed: heldNow.landed + (landed ? 1 : 0) };
-  for (const f of heldSeen) f();
+/**
+ * The ids of `many` out of lists now (set aside and waiting out their undo, or gone ahead of an
+ * optimistic call), and a count that moves each time one of those writes lands (a list reads
+ * again). Both come from `WRITES`: a hidden tab, a remount or a reload keeps them.
+ */
+export function useHeld(
+  many: string,
+  writes: Writes = WRITES,
+): { ids: ReadonlySet<string>; landed: number } {
+  const snap = useSyncExternalStore(writes.subscribe, writes.snapshot, writes.snapshot);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `snap` is what moves them.
+  return useMemo(
+    () => ({ ids: writes.hiddenIn(many), landed: writes.landed() }),
+    [snap, many, writes],
+  );
 }
-const heldWatch = (f: () => void) => {
-  heldSeen.add(f);
-  return () => void heldSeen.delete(f);
-};
-/** Calls still inside their undo window: a closing tab makes them now. */
-const PENDING = new Set<() => void>();
-if (typeof addEventListener === "function")
-  addEventListener("pagehide", () => {
-    for (const go of [...PENDING]) go();
-  });
 
 /**
- * The ids of `many` set aside now (a list leaves them out), and a count that moves each time a
- * held call lands (a list reads again).
+ * The newest press on a record (of these actions when named), live: a box shows from it that
+ * its words are still going, went, or were refused and why, after a remount or a reload too.
  */
-export function useHeld(many: string): { ids: ReadonlySet<string>; landed: number } {
-  const now = useSyncExternalStore(
-    heldWatch,
-    () => heldNow,
-    () => heldNow,
+export function useLastWrite(
+  record: string | null | undefined,
+  what?: readonly string[],
+  writes: Writes = WRITES,
+): Write | null {
+  const snap = useSyncExternalStore(writes.subscribe, writes.snapshot, writes.snapshot);
+  const names = what?.join("|");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `snap` is what moves it; `names` is `what`.
+  return useMemo(
+    () => (record ? writes.lastOn(record, what) : null),
+    [snap, record, names, writes],
   );
-  const ids = useMemo(() => {
-    const at = heldKey(many, "");
-    return new Set([...now.keys].filter((k) => k.startsWith(at)).map((k) => k.slice(at.length)));
-  }, [now.keys, many]);
-  return { ids, landed: now.landed };
 }
+
+// How a write that settled out of sight went, said when the tab shows; the page reads again.
+WRITES.use({
+  reread: refreshAll,
+  tell: (w) =>
+    w.status === "failed"
+      ? void toast.error(`${w.label ?? "A change"} didn't go through: ${w.error ?? "it failed."}`, {
+          duration: Number.POSITIVE_INFINITY,
+        })
+      : void toast.success(w.label ? `${w.label}: done` : "Your change went through."),
+});
 
 /** A form's values: each field as typed, else as its `from` makes it. */
 export function valuesOf(form: readonly FormField[], typed: Record<string, string>) {
@@ -479,17 +495,23 @@ const pressOf = (handler: string, ids: readonly (string | number)[]) =>
   `${handler}:${ids.map(String).join(",")}`;
 
 /**
- * `call` once per press: a second press while the first is out gets the first's answer, and
- * the input carries a `requestId` that stays the same across a retry after a lost answer, so
- * the server can tell a retry from a second action.
+ * `call` once per press, through `WRITES`: a second press while the first is out gets the
+ * first's answer, and the input carries a `requestId` that stays the same across a retry after
+ * a lost answer and a resend after a reload, so the server runs it once. `press` says what it
+ * is (the action, its label, its records, its words) for a box that shows how it goes.
  */
 export function callOnce(
   call: Call,
   handler: string,
   ids: readonly (string | number)[],
   input: Record<string, unknown>,
+  press: Omit<PressOptions, "key"> = {},
+  writes: Writes = WRITES,
 ) {
-  return ACTIONS.run(pressOf(handler, ids), (requestId) => call(handler, { ...input, requestId }));
+  return writes.press(
+    { key: `${pressOf(handler, ids)} ${stableKey(input)}`, ...press },
+    (requestId) => call(handler, { ...input, requestId }),
+  );
 }
 
 /** The rows an action acts on, as a list of ids. */
@@ -508,8 +530,6 @@ export interface RunState {
   asked: Asked | null;
   /** The action at work and its ids, for its button. */
   running: { action: string; ids: Ids } | null;
-  /** Records an optimistic action took out of the list while its call runs. */
-  gone: ReadonlySet<string>;
 }
 
 /** What a toast needs: sonner's `toast`, or a fake in tests. */
@@ -532,6 +552,8 @@ export interface RunnerDeps {
   /** The dialog's typing is sent: forget what the device kept of it. */
   forget?: ((action: Action, ids: Ids) => void) | undefined;
   toast?: ToastFns | undefined;
+  /** Where its writes go: `WRITES`, or a test's own. */
+  writes?: Writes | undefined;
 }
 
 const wordsOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -560,7 +582,7 @@ export function withExpect(
  * or when the tab closes.
  */
 export class Runner {
-  private state: RunState = { asked: null, running: null, gone: new Set() };
+  private state: RunState = { asked: null, running: null };
   private readonly seen = new Set<() => void>();
   /** Presses whose call is out, optimistic ones too. */
   private readonly flying = new Set<string>();
@@ -585,6 +607,19 @@ export class Runner {
   }
   private get toast(): ToastFns {
     return this.deps.toast ?? toast;
+  }
+  private get writes(): Writes {
+    return this.deps.writes ?? WRITES;
+  }
+  /** What a press says in `WRITES`: its action, label and records. */
+  private pressed(action: Action, ids: Ids, input?: Record<string, unknown>, hide = false) {
+    return {
+      what: action.id,
+      label: action.label,
+      records: ids.map((id) => recordKey(this.deps.many, id)),
+      input: input && (action.ask || action.form) ? input : null,
+      hide,
+    };
   }
   get busy() {
     return this.state.running !== null;
@@ -635,7 +670,7 @@ export class Runner {
   async go(action: Action, ids: Ids, given: Record<string, unknown>): Promise<boolean> {
     const press = pressOf(action.handler, ids);
     // A second press while the first is out: the first's answer is the one.
-    if (this.flying.has(press) || ACTIONS.busy(press)) return false;
+    if (this.flying.has(press)) return false;
     const input = withExpect(action, ids, given, this.deps.versionOf);
     if (action.optimistic && !action.form && !action.undo)
       return this.goAhead(action, ids, input, press);
@@ -649,18 +684,26 @@ export class Runner {
     let changed: Ids = [];
     let ok = false;
     try {
-      const answer = await callOnce(this.deps.call, action.handler, ids, input);
+      const answer = await callOnce(
+        this.deps.call,
+        action.handler,
+        ids,
+        input,
+        this.pressed(action, ids, input),
+        this.writes,
+      );
       ok = true;
       this.deps.forget?.(action, ids);
       if (this.isAsked(action, ids)) this.set({ asked: null });
       changed = doneOf(answer, ids);
       this.told(action, answer, changed);
     } catch (err) {
-      // The dialog stays with its words; closed already, the toast says it.
+      // The dialog stays with its words; closed already, the toast says it (out of sight,
+      // `WRITES` says it when the tab shows).
       if (this.isAsked(action, ids)) {
         const a = this.state.asked as Asked;
         this.set({ asked: { ...a, error: wordsOf(err) } });
-      } else this.toast.error(wordsOf(err));
+      } else if (this.writes.showing()) this.toast.error(wordsOf(err));
     } finally {
       this.flying.delete(press);
       this.set({ running: null });
@@ -686,7 +729,14 @@ export class Runner {
         action: {
           label: "Undo",
           onClick: () =>
-            void callOnce(this.deps.call, undo, done, { ids: done }).then(
+            void callOnce(
+              this.deps.call,
+              undo,
+              done,
+              { ids: done },
+              { label: "Undo" },
+              this.writes,
+            ).then(
               (back) => {
                 const undone = doneOf(back, []);
                 if (undone.length) this.toast.success("Undone");
@@ -709,22 +759,29 @@ export class Runner {
     input: Record<string, unknown>,
     press: string,
   ): Promise<boolean> {
-    const keys = ids.map(String);
     const asked = this.isAsked(action, ids) ? this.state.asked : null;
     this.flying.add(press);
-    this.set({ asked: null, gone: new Set([...this.state.gone, ...keys]) });
+    this.set({ asked: null });
+    // Out of the list while it goes: `WRITES` holds that, not this page, so a remount keeps it.
+    const going = callOnce(
+      this.deps.call,
+      action.handler,
+      ids,
+      input,
+      this.pressed(action, ids, input, true),
+      this.writes,
+    );
     this.toast.success(action.optimistic);
     this.deps.after([]);
     try {
-      await callOnce(this.deps.call, action.handler, ids, input);
+      await going;
       this.deps.forget?.(action, ids);
       this.deps.after(ids);
       return true;
     } catch (err) {
-      this.set({ gone: new Set([...this.state.gone].filter((k) => !keys.includes(k))) });
       if (asked && (action.ask || action.form) && !this.state.asked)
         this.set({ asked: { ...asked, error: wordsOf(err) } });
-      else this.toast.error(`${action.label} failed: ${wordsOf(err)}`);
+      else if (this.writes.showing()) this.toast.error(`${action.label} failed: ${wordsOf(err)}`);
       this.deps.after([]);
       return false;
     } finally {
@@ -732,38 +789,23 @@ export class Runner {
     }
   }
 
-  /** Out of the list now with an undo toast; the call goes when the toast does. */
+  /**
+   * Out of the list now with an undo toast. The call goes when its deadline passes: checked by
+   * `WRITES` on a return, a reminder and as the page goes, so a hidden tab can't stall it.
+   */
   private hold(action: Action, ids: Ids): boolean {
-    const keys = ids.map((id) => heldKey(this.deps.many, id));
+    const { call, after } = this.deps;
+    const h = this.writes.hold(
+      { key: `held ${pressOf(action.handler, ids)}`, ...this.pressed(action, ids), ms: UNDO_MS },
+      (requestId) =>
+        call(action.handler, { ids, requestId }).then((answer) => {
+          after(ids);
+          return answer;
+        }),
+    );
     // Already set aside and waiting: a second press is the same one.
-    if (keys.some((k) => HELD.has(k))) return false;
+    if (!h) return false;
     this.set({ asked: null });
-    heldSet(keys, true);
-    let settled = false;
-    const settle = () => {
-      if (settled) return false;
-      settled = true;
-      clearTimeout(timer);
-      PENDING.delete(commit);
-      return true;
-    };
-    const commit = () => {
-      if (!settle()) return;
-      void callOnce(this.deps.call, action.handler, ids, { ids }).then(
-        () => {
-          heldSet([], true, true);
-          this.deps.after(ids);
-          // Out of the held set once the list has read again without them.
-          setTimeout(() => heldSet(keys, false), 4000);
-        },
-        (err: unknown) => {
-          heldSet(keys, false);
-          this.toast.error(`${action.label} failed: ${wordsOf(err)}`);
-        },
-      );
-    };
-    const timer = setTimeout(commit, UNDO_MS);
-    PENDING.add(commit);
     let line = `${action.label}: done`;
     try {
       line = action.done?.(undefined) ?? line;
@@ -773,8 +815,7 @@ export class Runner {
       action: {
         label: "Undo",
         onClick: () => {
-          if (!settle()) return void this.toast.error("Too late to undo.");
-          heldSet(keys, false);
+          if (!h.undo()) return void this.toast.error("Too late to undo.");
           this.toast.success("Undone");
         },
       },
@@ -810,8 +851,6 @@ export function useRun(
   busy: boolean;
   running: { action: string; ids: (string | number)[] } | null;
   dialog: ReactNode;
-  /** Records an optimistic action took out of the list while its call runs. */
-  gone: ReadonlySet<string>;
 } {
   const deps: RunnerDeps = {
     call,
@@ -828,7 +867,7 @@ export function useRun(
   if (!ref.current) ref.current = new Runner(deps);
   const runner = ref.current;
   runner.update(deps);
-  const { asked, running, gone } = useSyncExternalStore(
+  const { asked, running } = useSyncExternalStore(
     runner.subscribe,
     runner.snapshot,
     runner.snapshot,
@@ -957,14 +996,19 @@ export function useRun(
   );
   const send = (action: Action, ids: (string | number)[], input: Record<string, unknown>) =>
     runner.send(action, ids, input);
-  return { run, send, busy, running, dialog, gone };
+  return { run, send, busy, running, dialog };
 }
 
 /** The one place toasts show; an app mounts it once. */
 /** A line at the bottom of the screen after a hand-drawn page's write: done, or why not. */
+/**
+ * A line for the person. Out of sight it says nothing: a write's outcome is said by `WRITES`
+ * when the tab shows, and a read reads again then.
+ */
 export const say = {
-  done: (line: string) => void toast.success(line),
-  failed: (err: unknown) => void toast.error(err instanceof Error ? err.message : String(err)),
+  done: (line: string) => void (WRITES.showing() && toast.success(line)),
+  failed: (err: unknown) =>
+    void (WRITES.showing() && toast.error(err instanceof Error ? err.message : String(err))),
 };
 
 export function Toasts() {

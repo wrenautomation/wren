@@ -15,6 +15,7 @@ import {
   copyAndOpen,
   dateTip,
   exact,
+  forgetForm,
   Icon,
   type IconName,
   InsertSnippet,
@@ -27,6 +28,8 @@ import {
   relative,
   say,
   Textarea,
+  useKeptForm,
+  useLastWrite,
 } from "@wren/ui";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { WREN } from "../../module.js";
@@ -240,6 +243,8 @@ const SELECT =
 type Replied = { sent: boolean; asked: number | null; why: string | null; copy?: Copied | null };
 const answerOf = <T,>(out: unknown): T | null =>
   ((out as { answer?: T } | null)?.answer ?? null) as T | null;
+/** The presses whose state this box shows. */
+const SENDS = ["inbox.reply", "inbox.ask"] as const;
 
 function ReplyBox({
   options,
@@ -259,10 +264,32 @@ function ReplyBox({
   const first = options.find((o) => o.own && !o.off) ?? options.find((o) => !o.off) ?? null;
   const [pick, setPick] = useState(first ? `${first.channel}|${first.target}` : "");
   const option = options.find((o) => `${o.channel}|${o.target}` === pick) ?? null;
-  const [text, setText] = useState(option?.own ? draft : "");
+  // The words stay on the device until the server took them: switching threads, a hidden tab
+  // or a reload gives them back (designs/2026-10-15-one-write-path.md).
+  const base = option?.own ? draft : "";
+  const kept = useKeptForm(act.record ? `reply:${act.record}:${pick}` : null, base);
+  /** The last send on this thread, from `WRITES`: going, gone, or refused and why. */
+  const last = useLastWrite(act.record, SENDS);
+  const going =
+    !!last && (last.status === "sending" || last.status === "unsure" || last.status === "held");
+  const [cleared, setCleared] = useState<string | null>(null);
+  const refused = last?.status === "failed" && last.id !== cleared ? last : null;
+  const lostWords = refused && typeof refused.input?.body === "string" ? refused.input.body : null;
+  const text = kept.values.text ?? lostWords ?? base;
+  const setText = (t: string) => {
+    if (refused) setCleared(refused.id);
+    kept.set("text", t);
+  };
   const [busy, setBusy] = useState<"send" | "suggest" | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const [copied, setCopied] = useState<Copied | null>(null);
+  // Sent while this box was away (another thread, a hidden tab): it says so when it's back.
+  const landed =
+    !busy && !said && last?.status === "sent"
+      ? last.what === "inbox.ask"
+        ? "Asked. It waits in To approve."
+        : "Sent."
+      : null;
   if (!options.length)
     return (
       <p className="text-[14px] text-(--ui-ink-2)">
@@ -271,15 +298,19 @@ function ReplyBox({
     );
   const where = option ? { channel: option.channel, target: option.target } : null;
   const go = async () => {
-    if (!where || !text.trim() || busy) return;
+    if (!where || !text.trim() || busy || going) return;
     setBusy("send");
     setSaid(null);
     setCopied(null);
+    if (refused) setCleared(refused.id);
+    const keptAt = kept.key;
     try {
       const out = answerOf<Replied>(
         await act(send ? "inbox.reply" : "inbox.ask", { ...where, body: text.trim() }),
       );
-      setText("");
+      // The server has them: the device lets go, even if this box is gone by now.
+      forgetForm(keptAt);
+      if (kept.key === keptAt) kept.clear();
       const copy = copiedIn(out);
       if (out?.sent === false || !send)
         setSaid(`Asked. It waits in To approve.${out?.why ? ` ${out.why}` : ""}`);
@@ -358,10 +389,10 @@ function ReplyBox({
         <Button
           size="dense"
           tone="primary"
-          disabled={!option || !text.trim() || !!busy}
+          disabled={!option || !text.trim() || !!busy || going}
           onClick={() => void go()}
         >
-          {busy === "send"
+          {busy === "send" || going
             ? send
               ? "Sending"
               : "Asking"
@@ -391,9 +422,21 @@ function ReplyBox({
           ⌘ Enter to {send ? "send" : "ask"}
         </span>
       </div>
-      {said ? (
+      {going && last?.status === "unsure" ? (
         <p role="status" className="text-[13px] text-(--ui-ink-2)">
-          {said}
+          Not sure it went yet: {last.error}. It goes again, once, when you're back online.
+        </p>
+      ) : going && last?.accepted ? (
+        <p role="status" className="text-[13px] text-(--ui-ink-2)">
+          On its way. It sends even if you leave this page.
+        </p>
+      ) : refused && !busy ? (
+        <p role="alert" className="text-[13px] text-(--ui-bad)">
+          Not sent: {refused.error}
+        </p>
+      ) : said || landed ? (
+        <p role="status" className="text-[13px] text-(--ui-ink-2)">
+          {said ?? landed}
         </p>
       ) : null}
       {copied ? (

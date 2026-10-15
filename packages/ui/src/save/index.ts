@@ -88,7 +88,7 @@ export {
 } from "./engine.js";
 export type { Locks, PageEvent, SaveEnv, Store } from "./env.js";
 export { LATEST, Latest, type Wrote } from "./latest.js";
-export { ACTIONS, Once } from "./once.js";
+export { ACTIONS } from "./once.js";
 export { type Flushable, SavePage } from "./page.js";
 export {
   forgetForm,
@@ -102,3 +102,17 @@ export {
   useSaved,
   useSavePage,
 } from "./react.js";
+export {
+  type PressOptions,
+  RECENT_MS,
+  recordKey,
+  stableKey,
+  type WireCall,
+  type WireState,
+  WRITES,
+  type Write,
+  type WriteEnv,
+  type WriteHooks,
+  type WriteStatus,
+  Writes,
+} from "./writes.js";

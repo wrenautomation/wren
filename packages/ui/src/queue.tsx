@@ -8,7 +8,7 @@ import type { RecordMeta } from "@wren/core/records";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { type Action, applies, blockedOf, sayBlocked, useRun } from "./action.js";
+import { type Action, applies, blockedOf, sayBlocked, useHeld, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { LoadFailed } from "./feedback.js";
 import { Cue, dateTip, relative } from "./fields.js";
@@ -92,7 +92,7 @@ function Queue({
     setRev((n) => n + 1);
     setPicked(new Set());
   };
-  const { run, busy, running, dialog, gone } = useRun(
+  const { run, busy, running, dialog } = useRun(
     acts?.call ?? (() => Promise.reject()),
     acted,
     meta.name,
@@ -106,8 +106,9 @@ function Queue({
         ),
     },
   );
-  // An optimistic action's items leave at once; a refusal brings them back.
-  const rows = (page.data?.rows ?? []).filter((r) => !gone.has(String(r.id)));
+  // An optimistic or set-aside action's items leave at once; a refusal brings them back.
+  const held = useHeld(meta.name.many);
+  const rows = (page.data?.rows ?? []).filter((r) => !held.ids.has(String(r.id)));
   const asked = params.get(one);
   const at = Math.max(
     0,

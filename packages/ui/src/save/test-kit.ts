@@ -1,5 +1,6 @@
 /** Fakes for the save engine's tests: storage, locks, page events, a server that answers by hand. */
 import type { Locks, PageEvent, SaveEnv, Store } from "./env.js";
+import type { WriteEnv } from "./writes.js";
 
 export function memoryStore(): Store & { map: Map<string, string> } {
   const map = new Map<string, string>();
@@ -91,4 +92,20 @@ export function handServer<V, C>() {
 /** An error as the portal's `call` throws it. */
 export function refusal(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
+}
+
+/** A tab for `Writes`: always showing, never leaving, ids req-1, req-2... */
+export function fakeWriteEnv(storage: Store | null = memoryStore()): WriteEnv {
+  let n = 0;
+  return {
+    storage,
+    now: () => Date.now(),
+    id: () => {
+      n += 1;
+      return `req-${n}`;
+    },
+    visible: () => true,
+    listen: () => () => undefined,
+    remind: () => undefined,
+  };
 }

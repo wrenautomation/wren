@@ -363,6 +363,8 @@ const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string(), client: CLI
 const REPLY = z.looseObject({
   platform: PLATFORM,
   commentId: z.string(),
+  /** The post the comment is on: LinkedIn's bare comment ids need it. */
+  postId: z.string().nullish(),
   text: z.string(),
   client: CLIENT,
 });
@@ -498,7 +500,12 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         { input: REPLY, effect: "posts" },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; commentId: string; text: string } & ForClient,
+          req: {
+            platform: Platform;
+            commentId: string;
+            postId?: string | null;
+            text: string;
+          } & ForClient,
         ) => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client, "content.social");
@@ -506,7 +513,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             throw new restate.TerminalError(`${req.platform} cannot reply here`, {
               errorCode: 501,
             });
-          await refusalsFinal(ch.reply(req.commentId, req.text));
+          await refusalsFinal(ch.reply(req.commentId, req.text, { postId: req.postId ?? null }));
         },
       ),
       /**
@@ -517,12 +524,17 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         { input: REPLY },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; commentId: string; text: string } & ForClient,
+          req: {
+            platform: Platform;
+            commentId: string;
+            postId?: string | null;
+            text: string;
+          } & ForClient,
         ): Promise<{ armed: boolean }> => {
           const ch = req.client ? null : channelsFor(ctx, { arm: true })[req.platform];
           if (!ch?.reply) return { armed: false };
           try {
-            await ch.reply(req.commentId, req.text);
+            await ch.reply(req.commentId, req.text, { postId: req.postId ?? null });
           } catch (err) {
             return { armed: err instanceof ArmedStop };
           }

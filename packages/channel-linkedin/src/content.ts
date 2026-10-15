@@ -186,6 +186,17 @@ const COMMENT_URN = /^urn:li:comment:\((.+),[^,]+\)$/;
 /** A post (`/rest/posts` answers a share or ugcPost URN): a comment on it names it as `object`. */
 const POST_URN = /^urn:li:(share|ugcPost|activity):\d+$/;
 
+/**
+ * What an answer is posted under: a comment's URN as given, a post's, or a member comment's bare
+ * id made into `urn:li:comment:(<post>,<id>)`. Null when none of those can be made.
+ */
+export function commentUrnOf(commentId: string, postId: string | null): string | null {
+  if (COMMENT_URN.test(commentId) || POST_URN.test(commentId)) return commentId;
+  if (/^\d+$/.test(commentId) && postId && POST_URN.test(postId))
+    return `urn:li:comment:(${postId},${commentId})`;
+  return null;
+}
+
 export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const org = o.organization ?? null;
@@ -314,21 +325,23 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       }));
       return pageOf(rows, q);
     },
-    async reply(commentId: string, text: string): Promise<void> {
+    async reply(commentId: string, text: string, on = {}): Promise<void> {
       // An answer to a comment names its post and the comment as its parent; a comment on a
-      // post (the funnel link under a video) names the post.
-      const nested = COMMENT_URN.exec(commentId);
+      // post (the funnel link under a video) names the post. A member's comment is listed by its
+      // bare id: its URN is made from the post it's on.
+      const urn = commentUrnOf(commentId, on.postId ?? null);
+      if (!urn)
+        throw new Error(
+          `A LinkedIn answer needs the comment's URN, or its post: got ${JSON.stringify(commentId)}.`,
+        );
+      const nested = COMMENT_URN.exec(urn);
       await sites.call(
         "linkedin",
         "POST",
-        `/rest/socialActions/${encodeURIComponent(commentId)}/comments`,
+        `/rest/socialActions/${encodeURIComponent(urn)}/comments`,
         {
           actor: await me(),
-          ...(nested
-            ? { object: nested[1], parentComment: commentId }
-            : POST_URN.test(commentId)
-              ? { object: commentId }
-              : {}),
+          ...(nested ? { object: nested[1], parentComment: urn } : { object: urn }),
           message: { text },
         },
       );

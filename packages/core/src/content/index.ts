@@ -207,8 +207,12 @@ export interface ContentChannel {
    */
   commentCounts?(ids: string[]): Promise<Record<string, number>>;
   comments(id: string, q?: ListQuery): Promise<CommentRow[]>;
-  /** Absent when the platform gives no way to answer (LinkedIn without the partner API). */
-  reply?(commentId: string, text: string): Promise<void>;
+  /**
+   * Absent when the platform gives no way to answer (LinkedIn without the partner API). `postId`
+   * is the post the comment is on, as `comments` listed it: a platform whose comment ids are
+   * bare (LinkedIn's member comments) needs it to name the comment.
+   */
+  reply?(commentId: string, text: string, on?: { postId?: string | null }): Promise<void>;
   /**
    * One DM to a comment's author, sent as a reply to their comment (Meta's Private Replies: once
    * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.

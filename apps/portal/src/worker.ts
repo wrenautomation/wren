@@ -55,15 +55,14 @@ import {
 import { oauthLanding } from "./oauth-landing.js";
 import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
-import { bodyLimit, SERVICES } from "./services.js";
+import { bodyLimit, isSend, SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
+import { REQUEST_ID, WRITE_STATUS_PATH, writeKey, writeStatus } from "./writes.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
 export { NoteRoom };
 
 const MAX_BODY = 16 * 1024;
-/** What a request id may be: the web's own (a UUID), or any short token. */
-const REQUEST_ID = /^[A-Za-z0-9_-]{8,100}$/;
 const DEMO_CACHE_SECONDS = 300;
 /** The run feed changes by the second: a few seconds of cache, or a live run looks stuck. */
 const RUN_CACHE_SECONDS = 2;
@@ -164,17 +163,20 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
     };
     // A client's host shows that client only, as the client sees it.
     const pin = site.kind === "client" ? { client: site.client, asClient: true } : {};
-    // Restate keeps the first answer a day. The key names who asked, so another login's id is theirs alone.
+    // Restate runs a write once per id; `writes/status` reads how it went under the same key.
     const once =
       requestId && svc.writes.has(route)
-        ? `portal:${await sha256(`${viewer.email}\n${"client" in pin ? pin.client : ""}\n${requestId}`)}`
+        ? await writeKey(viewer.email, site, String(requestId))
         : undefined;
-    return forward(
-      env,
-      target,
-      JSON.stringify({ ...(input as object), ...pin, viewer, origin }),
-      once,
-    );
+    const sent = JSON.stringify({ ...(input as object), ...pin, viewer, origin });
+    // A send: Restate takes it and runs it whatever the tab does; the answer says only that.
+    if (isSend(`${name}/${route}`, input)) {
+      if (!once) return json({ error: "A send needs its request id." }, 400);
+      const took = await forward(env, `${target}/send`, sent, once);
+      if (!took.ok) return took;
+      return json({ accepted: true, state: "queued", requestId: String(requestId) }, 202);
+    }
+    return forward(env, target, sent, once);
   }
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
   // The service refuses too; this keeps a demo write out of the cache and off the wire.
@@ -347,6 +349,11 @@ export default {
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);
     if (pathname === PULSE_PATH) return pulseRoute(req, env, site, ctx);
+    if (pathname === WRITE_STATUS_PATH)
+      return writeStatus(req, env, site, async (r) => {
+        const v = await viewerOf(r, env);
+        return v instanceof Response ? v : "demo" in v ? json({ error: "Sign in." }, 401) : v;
+      });
     if (pathname.startsWith("/api/"))
       return api(req, env, pathname.slice("/api/".length), site, ctx);
     const booking = await bookRoute(req, env, site);

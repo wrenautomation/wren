@@ -367,6 +367,43 @@ describe("the app host", () => {
     for (const r of restate) expect(r.body).not.toHaveProperty("requestId");
   });
 
+  it("a send is accept-then-track: given to Restate's /send under its key, answered at once", async () => {
+    const auth = { authorization: `Bearer ${await token({})}` };
+    const res = await worker.fetch(
+      post("app.test", "marketing/inboxReply", { body: "Thanks", requestId: "req-0009" }, auth),
+      env(),
+    );
+    expect(res.status).toBe(202);
+    expect(await res.json()).toEqual({ accepted: true, state: "queued", requestId: "req-0009" });
+    expect(restate[0]?.url).toBe("https://restate.test:8080/MarketingConsole/inboxReply/send");
+    expect(restate[0]?.key).toMatch(/^portal:[0-9a-f]{64}$/);
+    // With no request id it can't be tracked: refused before Restate.
+    const bare = await worker.fetch(
+      post("app.test", "marketing/inboxReply", { body: "Thanks" }, auth),
+      env(),
+    );
+    expect(bare.status).toBe(400);
+    expect(restate).toHaveLength(1);
+    // A reply by the handler's name is a send too.
+    const named = await worker.fetch(
+      post(
+        "app.test",
+        "console/call",
+        {
+          service: "InboxDesk",
+          handler: "reply",
+          input: { thread: "comment:1", body: "Thanks" },
+          confirm: "reply",
+          requestId: "req-0010",
+        },
+        auth,
+      ),
+      env(),
+    );
+    expect(named.status).toBe(202);
+    expect(restate[1]?.url).toBe("https://restate.test:8080/ConsolePortal/call/send");
+  });
+
   it("refuses a request id that isn't a short token", async () => {
     const auth = { authorization: `Bearer ${await token({})}` };
     for (const requestId of ["short", "has space here", "x".repeat(101), 12])
@@ -374,6 +411,51 @@ describe("the app host", () => {
         (await worker.fetch(post("app.test", "documents/send", { requestId }, auth), env())).status,
       ).toBe(400);
     expect(restate).toEqual([]);
+  });
+
+  it("writes/status reads a write's state from Restate under the same key it ran under", async () => {
+    const auth = { authorization: `Bearer ${await token({})}` };
+    await worker.fetch(
+      post("app.test", "documents/send", { id: "d1", requestId: "req-0002" }, auth),
+      env(),
+    );
+    const sentKey = restate[0]?.key as string;
+    const asked: { url: string; method: string }[] = [];
+    let answer: Response = new Response(null, { status: 470 });
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `${AUTH}/api/auth/jwks`) {
+        const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
+        return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
+      }
+      asked.push({ url, method: init?.method ?? "GET" });
+      return answer.clone();
+    });
+    const status = async (body: unknown, a = auth) => {
+      const res = await worker.fetch(post("app.test", "writes/status", body, a), env());
+      return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+    };
+    const ask = { path: "documents/send", requestId: "req-0002" };
+    expect((await status(ask)).body).toEqual({ state: "sending" });
+    expect(asked[0]?.method).toBe("GET");
+    expect(asked[0]?.url).toBe(
+      `https://restate.test:8080/restate/invocation/DocumentsConsole/send/${encodeURIComponent(sentKey)}/output`,
+    );
+    answer = Response.json({ done: ["d1"] });
+    expect((await status(ask)).body).toEqual({ state: "sent", answer: { done: ["d1"] } });
+    answer = Response.json({ message: "That document was voided." }, { status: 409 });
+    expect((await status(ask)).body).toEqual({
+      state: "failed",
+      error: "That document was voided.",
+    });
+    answer = new Response("not found", { status: 404 });
+    expect((await status(ask)).body).toEqual({ state: "unknown" });
+    // A read, a bad id, no sign-in: refused before Restate.
+    const before = asked.length;
+    expect((await status({ path: "documents/templates", requestId: "req-0002" })).status).toBe(400);
+    expect((await status({ path: "documents/send", requestId: "bad id" })).status).toBe(400);
+    expect((await status(ask, {} as { authorization: string })).status).toBe(401);
+    expect(asked.length).toBe(before);
   });
 
   it("a save over a moved edit keeps its 409 and code: conflict, so the page asks Keep mine", async () => {

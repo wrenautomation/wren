@@ -3,7 +3,7 @@
 # suspends `set -e` inside functions called from an && list.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation && drift; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation && writes && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
@@ -11,6 +11,15 @@ isolation() {
   echo "==> isolation levels" &&
     ! git grep --untracked -n '\.transaction(' -- 'packages/*.ts' 'packages/*.tsx' 'apps/*.ts' 'apps/*.tsx' \
       ':!packages/db/*' ':!*/test/*' ':!*.test.ts' ':!*.test.tsx'
+}
+# Every portal write goes through `WRITES` (designs/2026-10-15-one-write-path.md). The web's one
+# door to /api is api.ts's `call`, which sends each write through it; a raw fetch to /api elsewhere
+# fails here (dictation posts audio, not a write), and so does a record action that skips `callOnce`.
+writes() {
+  echo "==> one write path" &&
+    ! git grep --untracked -nE "fetch\([^)]*[\`'\"]/api/" -- 'apps/portal/web/src' 'packages/ui/src' \
+      ':!apps/portal/web/src/api.ts' ':!apps/portal/web/src/dictation/server.ts' ':!*.test.ts' ':!*.test.tsx' &&
+    ! git grep --untracked -nE "acts\.call\(|deps\.call\(" -- 'packages/ui/src' ':!*.test.ts' ':!*.test.tsx'
 }
 # Drizzle's schema matches the migrations: generating into a copy of drizzle/ makes nothing new.
 # A schema.ts change shipped without `pnpm db:generate` breaks its inserts on prod (0224).

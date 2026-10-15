@@ -60,8 +60,15 @@ describe("linkedin content channel", () => {
           },
         ],
       }),
-      "POST /rest/socialActions/urn:li:comment:9/comments": (i) => {
-        expect(i).toEqual({ actor: "urn:li:person:abc", message: { text: "thanks" } });
+      // A member comment's bare id, made into its URN with the post: LinkedIn refuses an
+      // answer with no `object` (400 Invalid input).
+      "POST /rest/socialActions/urn:li:comment:(urn:li:share:1,9)/comments": (i) => {
+        expect(i).toEqual({
+          actor: "urn:li:person:abc",
+          object: "urn:li:share:1",
+          parentComment: "urn:li:comment:(urn:li:share:1,9)",
+          message: { text: "thanks" },
+        });
         return {};
       },
     });
@@ -91,8 +98,16 @@ describe("linkedin content channel", () => {
         at: "1970-01-01T00:00:00.001Z",
       },
     ]);
-    await ch.reply?.("urn:li:comment:9", "thanks");
+    await ch.reply?.("9", "thanks", { postId: "urn:li:share:1" });
     expect(calls.filter(([, p]) => p === "/v2/userinfo")).toHaveLength(1);
+  });
+
+  it("refuses an answer it can't name, before anything sends", async () => {
+    const { sites, calls } = fakeSites({ "GET /v2/userinfo": () => ({ sub: "abc" }) });
+    const ch = linkedinContent(sites);
+    await expect(ch.reply?.("9", "thanks")).rejects.toThrow(/needs the comment's URN/);
+    await expect(ch.reply?.("9", "thanks", { postId: "not-a-post" })).rejects.toThrow();
+    expect(calls.filter(([m]) => m === "POST")).toEqual([]);
   });
 
   it("refuses a local file with no host before anything sends", async () => {

@@ -39,6 +39,7 @@ import {
   applies,
   blockedOf,
   type Call,
+  callOnce,
   inputOf,
   runs,
   sayBlocked,
@@ -120,6 +121,7 @@ import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
 import { answersOf, onWrite, patchedSince, rememberRead, writeThrough } from "./save/cache.js";
 import { tick } from "./save/clock.js";
 import { SaveScope, useSavePage } from "./save/react.js";
+import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { TabBar } from "./tab-bar.js";
 import { sortTip } from "./view-says.js";
@@ -206,17 +208,47 @@ export interface RecordExtras {
  * Run one of the record's `inline` actions from its extras (a video's editor): its handler on
  * this record with `input`, then the record read again. With `patch`, the action's answer
  * patches the page instead (`patch(detail, answer)` answers the new detail and row fields, or
- * null to read again). It throws what the handler refused.
+ * null to read again). It throws what the handler refused. Each press is a write in `WRITES`
+ * with its own request id, under `record`: a box reads how its press went from there
+ * (`useLastWrite(act.record)`), after a remount or a reload too.
  */
-export type RecordAct = (
+export type RecordAct = ((
   action: string,
   input?: Record<string, unknown>,
   o?: { patch?: ActPatch | undefined },
-) => Promise<unknown>;
+) => Promise<unknown>) & {
+  /** This record's key in `WRITES`. */
+  readonly record?: string;
+};
 export type ActPatch = (
   detail: unknown,
   answer: unknown,
 ) => { detail?: unknown; row?: Record<string, unknown> } | null;
+
+/**
+ * A record's own action, pressed (a reply box's Send, an editor's button): one write in
+ * `WRITES` with its own request id, its words kept with it until the server answers.
+ */
+function pressAct(
+  call: Call,
+  a: Action,
+  id: string | number,
+  record: string,
+  input: Record<string, unknown>,
+) {
+  return callOnce(
+    call,
+    a.handler,
+    [id],
+    { ids: [id], ...input },
+    {
+      what: a.id,
+      label: a.label,
+      records: [record],
+      input: Object.keys(input).length ? input : null,
+    },
+  );
+}
 
 /** Actions a record's head may show, by the ids its type lists. */
 export interface RecordActs {
@@ -1259,7 +1291,6 @@ function List({
     busy: acting,
     running,
     dialog,
-    gone,
   } = useRun(acts?.call ?? NO_CALL, acted, meta.name, {
     versionOf: (id) =>
       shownVersion(meta.id, id) ??
@@ -1273,11 +1304,11 @@ function List({
   const { rows, split } = useMemo(
     () =>
       tiersOf(
-        (loaded ?? []).filter((r) => !held.ids.has(String(r.id)) && !gone.has(String(r.id))),
+        (loaded ?? []).filter((r) => !held.ids.has(String(r.id))),
         needs,
         !!grouped || !!ask.sort,
       ),
-    [loaded, needs, grouped, ask.sort, held.ids, gone],
+    [loaded, needs, grouped, ask.sort, held.ids],
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
@@ -2173,13 +2204,17 @@ function RowReply({
   const got = useLoad(`${meta.id}:${id}:reply`, () => api.get({ record: meta.id, id }), api);
   const here: Target = rowTarget(meta, row, api.access?.client ?? "");
   if (!api.access) delete here.client;
-  const act: RecordAct = async (action, input = {}) => {
-    const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
-    if (!a || !acts) throw new Error("You can't do that here.");
-    const out = await acts.call(a.handler, { ids: [row.id], ...input });
-    acted([row.id]);
-    return out;
-  };
+  const record = recordKey(meta.name.many, id);
+  const act: RecordAct = Object.assign(
+    async (action: string, input: Record<string, unknown> = {}) => {
+      const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
+      if (!a || !acts) throw new Error("You can't do that here.");
+      const out = await pressAct(acts.call, a, row.id, record, input);
+      acted([row.id]);
+      return out;
+    },
+    { record },
+  );
   return (
     <ReplyFrame close={close}>
       {got.data ? (
@@ -2608,21 +2643,29 @@ export function RecordBody({
   if (!api.access) delete here.client;
   /** Every box on this record: a head action saves them all first. */
   const boxes = useSavePage();
-  const act: RecordAct = async (action, input = {}, o = {}) => {
-    const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
-    if (!a || !acts || !got.data) throw new Error("You can't do that here.");
-    const rowId = got.data.row.id as string | number;
-    const out = await acts.call(a.handler, { ids: [rowId], ...input });
-    const patch = o.patch;
-    // The answer says what changed: the page shows it with no read again.
-    if (patch && patch(got.data.detail, out))
-      writeThrough(
-        api,
-        detailPatch(meta.id, rowId, (detail) => patch(detail, out)),
-      );
-    else acted([rowId]);
-    return out;
-  };
+  const record = recordKey(meta.name.many, id);
+  const act: RecordAct = Object.assign(
+    async (
+      action: string,
+      input: Record<string, unknown> = {},
+      o: { patch?: ActPatch | undefined } = {},
+    ) => {
+      const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
+      if (!a || !acts || !got.data) throw new Error("You can't do that here.");
+      const rowId = got.data.row.id as string | number;
+      const out = await pressAct(acts.call, a, rowId, record, input);
+      const patch = o.patch;
+      // The answer says what changed: the page shows it with no read again.
+      if (patch?.(got.data.detail, out))
+        writeThrough(
+          api,
+          detailPatch(meta.id, rowId, (detail) => patch(detail, out)),
+        );
+      else acted([rowId]);
+      return out;
+    },
+    { record },
+  );
   // A type with no `load` still gets its extras, with no detail.
   const more = got.data && extras ? extras(got.data.detail, got.data.row, act, got.at) : {};
   const state = got.data?.edit ?? null;

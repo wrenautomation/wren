@@ -9,7 +9,8 @@
     "build": "vite build web",
     "dev": "vite build web && wrangler dev",
     "deploy": "vite build web && wrangler deploy",
-    "preview": "vite build web && tsx scripts/preview.ts"
+    "preview": "vite build web && tsx scripts/preview.ts",
+    "e2e:writes": "tsx scripts/writes-e2e.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.1",

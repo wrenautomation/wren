@@ -6,6 +6,8 @@
  * need none.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
+import { type WireState, WRITES } from "@wren/ui";
+import { isWrite } from "../../src/services.js";
 import { tellAutotrack } from "./autotrack.js";
 import { dropSnapshot } from "./snapshot.js";
 
@@ -324,11 +326,17 @@ const shared = new Map<string, Promise<unknown>>();
 // A saved look or a changed install can change what is served: read again.
 if (typeof addEventListener === "function") addEventListener(ME_CHANGED, () => shared.clear());
 
+/**
+ * Every portal call. A write (`isWrite`: the route changes something) goes through `WRITES`
+ * (designs/2026-10-15-one-write-path.md): it carries a request id, kept until the server
+ * answers, so a hidden tab, a reload or a lost answer never loses it or runs it twice.
+ */
 export function call<T>(
   path: string,
   body: Record<string, unknown> = {},
   retried = false,
 ): Promise<T> {
+  if (isWrite(path)) return WRITES.call(path, body, (b) => send<T>(path, b, retried));
   if (!SHARED.test(path)) return send<T>(path, body, retried);
   const key = `${path}:${JSON.stringify(body)}`;
   let got = shared.get(key) as Promise<T> | undefined;
@@ -467,6 +475,14 @@ async function sendNow<T>(
   if (!res.ok) throw refusalOf(data as Refused, res.status);
   return data as T;
 }
+
+// The write path's wire: a lost call goes again under its id, and a long one asks the Worker how
+// it went (`/api/writes/status`, Restate's own record). Calls a previous load left go now.
+WRITES.use({
+  send: (path, body) => sendNow(path, body, false),
+  status: (path, requestId) => sendNow<WireState>("writes/status", { path, requestId }, false),
+});
+WRITES.start();
 
 /** Straight to the private bucket on a signed PUT; the portal only signs (D11). Answers its key. */
 export async function uploadFile(client: string | undefined, file: File): Promise<string> {

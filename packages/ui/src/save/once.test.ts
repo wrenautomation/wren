@@ -3,30 +3,32 @@ import { callOnce } from "../action.js";
 import { answersOf, onWrite, patchedSince, writeThrough } from "./cache.js";
 import { tick } from "./clock.js";
 import { readForm, writeForm } from "./journal.js";
-import { Once } from "./once.js";
-import { memoryStore, refusal } from "./test-kit.js";
+import { fakeWriteEnv, memoryStore, refusal } from "./test-kit.js";
+import { Writes } from "./writes.js";
 
-const ids = () => {
-  let n = 0;
-  return () => {
-    n += 1;
-    return `req-${n}`;
+/** A press in a tab of its own, its ids req-1, req-2... */
+const pressing = () => {
+  const w = new Writes(fakeWriteEnv());
+  return {
+    run: <R>(key: string, fn: (r: string) => Promise<R>) => w.press({ key }, fn),
+    busy: (key: string) => w.busy(key),
   };
 };
 
 describe("one action per press", () => {
   it("sends a double click once, and both presses get its answer", async () => {
-    const once = new Once(ids());
+    const once = pressing();
     const call = vi.fn(async (requestId: string) => ({ done: [1], requestId }));
     const first = once.run("approve:1", call);
     const second = once.run("approve:1", call);
     expect(call).toHaveBeenCalledOnce();
     expect(await first).toEqual(await second);
+    await Promise.resolve();
     expect(once.busy("approve:1")).toBe(false);
   });
 
   it("keeps the request id across a lost answer, and starts a new one after an answer", async () => {
-    const once = new Once(ids());
+    const once = pressing();
     const seen: string[] = [];
     await once
       .run("send:1", async (r) => {
@@ -40,7 +42,7 @@ describe("one action per press", () => {
   });
 
   it("starts a new request id after a refusal (he changes the input and sends again)", async () => {
-    const once = new Once(ids());
+    const once = pressing();
     const seen: string[] = [];
     await once
       .run("send:1", async (r) => {

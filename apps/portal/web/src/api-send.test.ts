@@ -69,3 +69,22 @@ describe("a call sent as the tab closes", () => {
     expect(sent[0]?.init.keepalive).toBeUndefined();
   });
 });
+
+describe("every write goes through WRITES", () => {
+  it("a write with no request id gets one; a read gets none", async () => {
+    serve(200, 200);
+    await call("people/broadcastApprove", { ids: [5] });
+    await call("notes/home", {});
+    expect(JSON.parse(String(sent[0]?.init.body)).requestId).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+    expect(JSON.parse(String(sent[1]?.init.body))).not.toHaveProperty("requestId");
+  });
+
+  it("a double send of the same write while it's out is one request", async () => {
+    serve(200);
+    await Promise.all([
+      call("people/broadcastApprove", { ids: [6], requestId: "r-6x" }),
+      call("people/broadcastApprove", { ids: [6], requestId: "r-6x" }),
+    ]);
+    expect(sent).toHaveLength(1);
+  });
+});

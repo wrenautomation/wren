@@ -127,6 +127,7 @@ import { WORKFLOWS } from "../../worker/src/workflows.js";
 import { type DictateEnv, dictate } from "../src/dictate.js";
 import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "../src/media.js";
 import { PULSE_PATH, pulseCalls } from "../src/pulse.js";
+import { isSend, isWrite, WRITE_STATUS_PATH } from "../src/services.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -710,6 +711,13 @@ const TYPES: Record<string, string> = {
 
 const previewMediaKey = mediaKey(crypto.randomUUID());
 
+/** Writes by request id, and how each went: preview's Restate idempotency. */
+type Ran = {
+  out: { status: number; body: unknown } | null;
+  done: Promise<{ status: number; body: unknown }>;
+};
+const once = new Map<string, Ran>();
+
 const server = createServer(async (req, res) => {
   const path = new URL(req.url ?? "/", "http://x").pathname;
   if (path.startsWith("/files/")) {
@@ -889,12 +897,40 @@ const server = createServer(async (req, res) => {
       );
       return send(200, { answers });
     }
+    // How a write went, by its request id: as the Worker reads Restate's record of it.
+    if (path === WRITE_STATUS_PATH) {
+      const ran = once.get(`${body.path}\n${body.requestId}`);
+      if (!ran) return send(200, { state: "unknown" });
+      if (!ran.out) return send(200, { state: "sending" });
+      const b = ran.out.body as { message?: string } | null;
+      return send(
+        200,
+        ran.out.status === 200
+          ? { state: "sent", answer: ran.out.body }
+          : { state: "failed", error: b?.message ?? `It failed (${ran.out.status}).` },
+      );
+    }
     const [name = "", call = ""] = route.split("/");
     const svc = SERVICES[name];
     if (!svc?.routes.includes(call)) return send(404, { error: "not found" });
     if (REF_ROUTES.includes(`${name}/${call}`) && rawKeyAt(body))
       return send(400, { error: "Send a saved key's reference, never the key" });
-    const out = await callApi(name, call, { ...body, viewer });
+    // A write runs once per request id, as Restate's idempotency key makes it in prod.
+    const { requestId, ...input } = body as { requestId?: unknown } & Record<string, unknown>;
+    const id = typeof requestId === "string" && isWrite(route) ? `${route}\n${requestId}` : null;
+    let ran = id ? once.get(id) : undefined;
+    if (!ran) {
+      const fresh: Ran = { out: null, done: callApi(name, call, { ...input, viewer }) };
+      void fresh.done.then((o) => {
+        fresh.out = o;
+      });
+      ran = fresh;
+      if (id) once.set(id, fresh);
+    }
+    // A send answers that it has it at once; the tab reads its outcome from writes/status.
+    if (id && isSend(route, input))
+      return send(202, { accepted: true, state: "queued", requestId: String(requestId) });
+    const out = await ran.done;
     return send(out.status, out.body);
   }
   const file = normalize(join(dist, path === "/" ? "index.html" : path));

@@ -43,7 +43,7 @@ import { gate } from "@wren/core/vendors";
 type ContentReply = {
   reply: (
     ctx: restate.Context,
-    req: { platform: ContentPlatform; commentId: string; text: string },
+    req: { platform: ContentPlatform; commentId: string; postId?: string | null; text: string },
   ) => Promise<void>;
   privateReply: (
     ctx: restate.Context,
@@ -51,7 +51,7 @@ type ContentReply = {
   ) => Promise<{ ref: string | null }>;
   arm: (
     ctx: restate.Context,
-    req: { platform: ContentPlatform; commentId: string; text: string },
+    req: { platform: ContentPlatform; commentId: string; postId?: string | null; text: string },
   ) => Promise<{ armed: boolean }>;
 };
 
@@ -1382,9 +1382,13 @@ export function makeReachDesk(deps: ReachDeps) {
             });
           if (!plan.account) {
             // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
-            await ctx
-              .serviceClient<ContentReply>({ name: "Content" })
-              .reply({ platform: plan.comment.platform, commentId: plan.comment.ref, text: body });
+            await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+              platform: plan.comment.platform,
+              commentId: plan.comment.ref,
+              // LinkedIn names a member comment by its post and its bare id.
+              postId: plan.comment.post,
+              text: body,
+            });
             await answered(null);
             scheduleProofs(ctx, `comment:${req.id}`);
             return { ref: null };
@@ -1422,9 +1426,12 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           const text = (req.body ?? plan?.comment.draft ?? "").trim();
           if (!plan || plan.account || !text) return { armed: false };
-          return ctx
-            .serviceClient<ContentReply>({ name: "Content" })
-            .arm({ platform: plan.comment.platform, commentId: plan.comment.ref, text });
+          return ctx.serviceClient<ContentReply>({ name: "Content" }).arm({
+            platform: plan.comment.platform,
+            commentId: plan.comment.ref,
+            postId: plan.comment.post,
+            text,
+          });
         },
       ),
       /**
