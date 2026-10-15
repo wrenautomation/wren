@@ -1,7 +1,9 @@
 /**
  * The one write path in a real browser (designs/2026-10-15-one-write-path.md): a send, a draft
  * then a send, and a set-aside with undo, each with the tab hidden mid-write, a row switch or a
- * reload, must end with the page matching the server.
+ * reload, must end with the page matching the server. Then the data layer: the retry reason
+ * shown, unsent words kept across pages and reloads, a moved draft shown beside them, the list
+ * painted from the device copy, and a write in one tab read again in another.
  *
  *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_writes_e2e tsx ../../packages/content/test/inbox-preview.ts
  *   PORT=8792 WREN_DATABASE_URL=... pnpm preview      # then, in another shell:
@@ -41,6 +43,7 @@ interface Run {
   state: "sending" | "sent" | "failed";
   answer?: unknown;
   error?: string;
+  retry?: { count: number; reason: string };
 }
 
 /** Restate as the portal sees it: one run per request id; a send's outcome read by its id. */
@@ -94,7 +97,7 @@ class FakeRestate {
         ? { state: "sent", answer: run.answer }
         : run.state === "failed"
           ? { state: "failed", error: run.error }
-          : { state: "sending" };
+          : { state: "sending", ...(run.retry ? { retry: run.retry } : {}) };
     return route.fulfill({ status: 200, json });
   }
 
@@ -133,6 +136,30 @@ async function fresh(browser: Browser) {
     if (/\/api\/console\/records(List|Get)$/.test(r.url())) reads.push(r.url());
   });
   return { context, page, fake, reads };
+}
+
+/**
+ * The server's draft on every inbox row, as `draft.value` says (null: as the server has it).
+ * Reads go out without row hashes so each answer carries the rows whole.
+ */
+async function serveDraft(page: Page, draft: { value: string | null }) {
+  await page.route(/\/api\/console\/records(List|Get)$/, async (route) => {
+    if (draft.value === null) return route.fallback();
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    delete body.known;
+    const res = await route.fetch({ postData: JSON.stringify(body) });
+    const json = (await res.json()) as unknown;
+    const walk = (v: unknown) => {
+      if (Array.isArray(v)) v.forEach(walk);
+      else if (v && typeof v === "object") {
+        const o = v as Record<string, unknown>;
+        if ("draft" in o && "id" in o) o.draft = draft.value;
+        Object.values(o).forEach(walk);
+      }
+    };
+    walk(json);
+    return route.fulfill({ response: res, json });
+  });
 }
 
 const inboxComment = async (page: Page) => {
@@ -184,15 +211,16 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
       await sendButton(page).click();
       const run = await fake.waitFor("InboxDesk/reply");
       await hide(page);
+      // Reads after it landed count, hidden or back.
+      const before = reads.length;
       run.state = "sent";
       run.answer = { sent: true };
       await page.waitForTimeout(1500);
-      const before = reads.length;
       await show(page);
       await page.getByText("Sent.", { exact: true }).waitFor({ timeout: 5000 });
       assert.equal(await replyBox(page).inputValue(), "");
       await page.waitForTimeout(500);
-      assert.ok(reads.length > before, "the page read again on return");
+      assert.ok(reads.length > before, "the page read again after it landed");
       assert.equal(run.posts, 1);
       await context.close();
     },
@@ -236,13 +264,13 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
         "the save landed before the send",
       );
       await hide(page);
+      const before = reads.length;
       run.state = "sent";
       run.answer = { queued: true };
       await page.waitForTimeout(1500);
-      const before = reads.length;
       await show(page);
       await page.waitForTimeout(1500);
-      assert.ok(reads.length > before, "the page read again on return");
+      assert.ok(reads.length > before, "the page read again after it landed");
       assert.equal(run.posts, 1);
       assert.equal(fake.of("ReachDesk/reply").length, 1);
       await context.close();
@@ -278,7 +306,7 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
       await page.clock.install();
       await openEngage(page, "Does this work for a two-truck shop?");
       const drop = () =>
-        page.locator("aside").last().getByRole("button", { name: "Drop", exact: true }).click();
+        page.locator("aside").last().getByRole("button", { name: "Skip", exact: true }).click();
       const undo = page.locator("[data-sonner-toast]").getByRole("button", { name: "Undo" });
       await drop();
       await undo.first().click();
@@ -287,7 +315,7 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
       assert.equal(fake.of("ReachDesk/dropComment").length, 0, "undo sent nothing");
       // Back on the list; again, and the tab hides past the deadline (its timers may not run).
       const row = page.getByText("Does this work for a two-truck shop?").first();
-      if (!(await page.locator("aside").last().getByRole("button", { name: "Drop" }).isVisible()))
+      if (!(await page.locator("aside").last().getByRole("button", { name: "Skip" }).isVisible()))
         await row.click();
       await drop();
       await hide(page);
@@ -297,6 +325,116 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
       await page.waitForTimeout(500);
       assert.equal(fake.of("ReachDesk/dropComment").length, 1);
       assert.equal(fake.of("ReachDesk/dropComment")[0]?.posts, 1);
+      await context.close();
+    },
+  ],
+  [
+    "Restate retrying a send: why shows under the box until it lands",
+    async (browser) => {
+      const { context, page, fake } = await fresh(browser);
+      await inboxComment(page);
+      await replyBox(page).fill("Back to you soon");
+      await sendButton(page).click();
+      const run = await fake.waitFor("InboxDesk/reply");
+      run.retry = { count: 2, reason: "LinkedIn answered 429: slow down" };
+      await page
+        .getByText(
+          "Trying again (2): LinkedIn answered 429: slow down. It keeps trying even if you leave this page.",
+        )
+        .waitFor({ timeout: 8000 });
+      run.state = "sent";
+      run.answer = { sent: true };
+      await page.getByText("Sent.", { exact: true }).waitFor({ timeout: 8000 });
+      assert.equal(run.posts, 1);
+      await context.close();
+    },
+  ],
+  [
+    "unsent words: back after another app, and after a reload",
+    async (browser) => {
+      const { context, page, fake } = await fresh(browser);
+      await inboxComment(page);
+      await replyBox(page).fill("Half a thought");
+      await page.goto(`${url}/marketing/engage`);
+      await page.getByRole("heading", { name: "Engage" }).waitFor();
+      await inboxComment(page);
+      assert.equal(await replyBox(page).inputValue(), "Half a thought", "back after another app");
+      await page.waitForTimeout(300);
+      await page.reload();
+      await page.getByText("Comment", { exact: true }).first().click();
+      await page.getByText("Reply by").waitFor();
+      assert.equal(await replyBox(page).inputValue(), "Half a thought", "back after a reload");
+      assert.equal(fake.of("InboxDesk/reply").length, 0, "nothing sent");
+      await context.close();
+    },
+  ],
+  [
+    "the draft moved on the server under unsent words: both shown, he picks, nothing lost",
+    async (browser) => {
+      const { context, page } = await fresh(browser);
+      const draft = { value: "First draft" as string | null };
+      await serveDraft(page, draft);
+      await inboxComment(page);
+      assert.equal(await replyBox(page).inputValue(), "First draft");
+      await replyBox(page).fill("My own words");
+      await page.goto(`${url}/marketing/engage`);
+      await page.getByRole("heading", { name: "Engage" }).waitFor();
+      draft.value = "Their new draft";
+      await inboxComment(page);
+      const conflict = page.locator("[data-edit-conflict]");
+      await conflict.waitFor({ timeout: 8000 });
+      await conflict.getByText("My own words").waitFor();
+      await conflict.getByText("Their new draft").waitFor();
+      assert.equal(await replyBox(page).inputValue(), "My own words", "his words stay in the box");
+      await conflict.getByRole("button", { name: "Keep mine" }).click();
+      await conflict.waitFor({ state: "detached" });
+      assert.equal(await replyBox(page).inputValue(), "My own words");
+      await context.close();
+    },
+  ],
+  [
+    "the list paints from the device copy before the read answers",
+    async (browser) => {
+      const { context, page } = await fresh(browser);
+      await page.goto(`${url}/inbox/waiting`);
+      await page.getByText("Comment", { exact: true }).first().waitFor();
+      // The copy is written at most every 2 s.
+      await page.waitForTimeout(2600);
+      let held = 0;
+      await page.route(/\/api\/console\/recordsList$/, async (route) => {
+        held += 1;
+        await new Promise((r) => setTimeout(r, 6000));
+        await route.fallback().catch(() => undefined);
+      });
+      await page.reload();
+      await page.getByText("Comment", { exact: true }).first().waitFor({ timeout: 3000 });
+      assert.ok(held > 0, "the list was still being read");
+      await context.close();
+    },
+  ],
+  [
+    "a send that lands in one tab: the other tab reads again",
+    async (browser) => {
+      const { context, page, fake } = await fresh(browser);
+      const other = await context.newPage();
+      other.setDefaultTimeout(T);
+      const otherReads: string[] = [];
+      other.on("request", (r) => {
+        if (/\/api\/console\/records(List|Get)$/.test(r.url())) otherReads.push(r.url());
+      });
+      await other.goto(`${url}/inbox/waiting`);
+      await other.getByText("Comment", { exact: true }).first().waitFor();
+      await inboxComment(page);
+      await replyBox(page).fill("See you then");
+      await sendButton(page).click();
+      const run = await fake.waitFor("InboxDesk/reply");
+      await other.waitForTimeout(500);
+      const before = otherReads.length;
+      run.state = "sent";
+      run.answer = { sent: true };
+      await page.getByText("Sent.", { exact: true }).waitFor({ timeout: 8000 });
+      for (let i = 0; i < 30 && otherReads.length === before; i++) await other.waitForTimeout(100);
+      assert.ok(otherReads.length > before, "the other tab read again");
       await context.close();
     },
   ],

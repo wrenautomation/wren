@@ -4,7 +4,16 @@
  * runs until Publish.
  */
 import type { MadeWorkflow } from "@wren/core/spine";
-import { Button, Input, LoadFailed, Section, say } from "@wren/ui";
+import {
+  Button,
+  EditConflict,
+  Input,
+  LoadFailed,
+  Section,
+  say,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
 import { type FormEvent, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -23,7 +32,8 @@ export function MadeHere({ client }: { client: string | null }) {
   const got = useCall(`workflows-made:${client ?? ""}`, () =>
     call<MadeWorkflow[]>("console/workflowsMade", client ? { client } : {}),
   );
-  const [message, setMessage] = useState("");
+  const draft = useEdit(`workflow:new:${client ?? "own"}:message`, "");
+  const message = draft.value;
   const [busy, setBusy] = useState<"build" | "blank" | null>(null);
   const starting = useRef(false);
   const build = async (how: "build" | "blank", e?: FormEvent) => {
@@ -38,6 +48,7 @@ export function MadeHere({ client }: { client: string | null }) {
         ...(client ? { client } : {}),
         ...(how === "build" ? { message: message.trim() } : {}),
       });
+      if (how === "build") draft.saved(message);
       navigate(madeAt(made.workflow, client, made.ask));
     } catch (err) {
       say.failed(err);
@@ -52,12 +63,17 @@ export function MadeHere({ client }: { client: string | null }) {
         <label className="grid gap-1 text-[13px] font-medium text-(--ui-ink-2)">
           New workflow
           <Input
-            value={message}
+            {...draft.field}
             maxLength={MOST}
             placeholder="When a form comes in, text them in 5 minutes; if no reply in a day, email."
-            onChange={(e) => setMessage(e.target.value)}
           />
         </label>
+        <EditConflict
+          conflict={draft.conflict}
+          onKeepMine={draft.keepMine}
+          onTakeTheirs={draft.takeTheirs}
+          what="The description"
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Button
             tone="primary"
@@ -78,6 +94,7 @@ export function MadeHere({ client }: { client: string | null }) {
             Start blank
           </Button>
           <span className={QUIET}>Claude draws a draft. Nothing runs until you publish it.</span>
+          <UnsavedMark edit={draft} />
         </div>
       </form>
       {got.error && !got.data ? <LoadFailed error={got.error} onRetry={got.retry} /> : null}

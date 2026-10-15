@@ -4,11 +4,13 @@
  * picking several states of one ORs them, and facets AND together. A card opens beside the
  * grid, like the List's. The address holds every pick, so a filtered shop is a link.
  */
+
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
-import type { Row } from "@wren/core/records/serve";
+import type { RecordsPage, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { type ReactNode, useState } from "react";
 import { Button } from "./controls.js";
+import { listChanged } from "./data/delta.js";
 import { LoadFailed } from "./feedback.js";
 import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
 import { num } from "./format.js";
@@ -57,7 +59,11 @@ function Shop({
   const { params } = place;
   // ponytail: one page of 200; a cursor when a catalog outgrows it.
   const ask = { ...askOf(meta, params), facets: true, limit: 200 };
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
+  const page = useLoad<RecordsPage>(
+    JSON.stringify(ask),
+    (before) => listChanged((a) => api.list(a), ask, before),
+    api,
+  );
   const [rev, setRev] = useState(0);
   const [sideOpen, setSideOpen] = useState(false);
   const rows = page.data?.rows ?? [];

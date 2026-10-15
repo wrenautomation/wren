@@ -535,6 +535,7 @@ function Browse({ params }: { params: URLSearchParams }) {
       ) : dialog?.kind === "collection" ? (
         <NameDialog
           title="New collection"
+          editKey="collection:new:name"
           action="Create"
           onSave={(name) =>
             learn.collectionAdd(name, null).then((made) => navigate(`/learn/items?in=c${made.id}`))
@@ -569,6 +570,7 @@ function SearchBox({
         className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-(--ui-ink-2)"
       />
       <Input
+        // edit-ok: search box
         ref={inputRef}
         type="search"
         value={v}

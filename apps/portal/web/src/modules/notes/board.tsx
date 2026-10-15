@@ -18,6 +18,8 @@ import {
   PageHeader,
   say,
   Tag,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
@@ -603,7 +605,10 @@ function Adder({
   done: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
+  // The title is kept as typed; words kept from before open the box again.
+  const edit = useEdit(`card-new:${board}:${column.id}:title`, "");
+  const title = edit.value;
+  const shown = open || edit.dirty;
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLInputElement>(null);
   const submit = async (e: FormEvent) => {
@@ -611,8 +616,9 @@ function Adder({
     if (!title.trim() || busy) return;
     setBusy(true);
     try {
-      await notes(client, "taskAdd", { board, column: column.id, title });
-      setTitle("");
+      const sent = title;
+      await notes(client, "taskAdd", { board, column: column.id, title: sent });
+      edit.saved(sent);
       done();
       box.current?.focus();
     } catch (err) {
@@ -621,7 +627,7 @@ function Adder({
       setBusy(false);
     }
   };
-  if (!open)
+  if (!shown)
     return (
       <button
         type="button"
@@ -636,22 +642,22 @@ function Adder({
     <form onSubmit={submit}>
       <Input
         ref={box}
-        autoFocus
-        value={title}
+        autoFocus={open}
+        {...edit.field}
         maxLength={300}
         aria-label={`New card in ${column.name}`}
         placeholder="Title, then Enter"
-        onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             setOpen(false);
-            setTitle("");
+            edit.discard();
           }
         }}
         onBlur={() => {
           if (!title.trim()) setOpen(false);
         }}
       />
+      <UnsavedMark edit={edit} />
     </form>
   );
 }

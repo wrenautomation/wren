@@ -217,6 +217,7 @@ export function InsertSnippet({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] gap-0 p-1.5">
         <input
+          // edit-ok: search box
           value={q}
           onChange={(e) => {
             setQ(e.target.value);

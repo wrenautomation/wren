@@ -19,6 +19,7 @@ import {
   Icon,
   type IconName,
   InsertSnippet,
+  KeptConflict,
   type MessageKind,
   MessagePreview,
   PlatformMark,
@@ -26,6 +27,7 @@ import {
   type RecordAct,
   type RecordExtras,
   relative,
+  SendStatus,
   say,
   Textarea,
   useKeptForm,
@@ -376,6 +378,7 @@ function ReplyBox({
         aria-label="Your reply"
         placeholder={option ? `Reply by ${option.label.toLowerCase()}` : "Pick a channel"}
         disabled={!option}
+        data-edit={kept.key ?? ""}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -385,6 +388,7 @@ function ReplyBox({
         }}
         className="text-[14px] leading-[1.55]"
       />
+      <KeptConflict kept={kept} field="text" what="The draft" />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="dense"
@@ -422,18 +426,8 @@ function ReplyBox({
           ⌘ Enter to {send ? "send" : "ask"}
         </span>
       </div>
-      {going && last?.status === "unsure" ? (
-        <p role="status" className="text-[13px] text-(--ui-ink-2)">
-          Not sure it went yet: {last.error}. It goes again, once, when you're back online.
-        </p>
-      ) : going && last?.accepted ? (
-        <p role="status" className="text-[13px] text-(--ui-ink-2)">
-          On its way. It sends even if you leave this page.
-        </p>
-      ) : refused && !busy ? (
-        <p role="alert" className="text-[13px] text-(--ui-bad)">
-          Not sent: {refused.error}
-        </p>
+      {going || (refused && !busy) ? (
+        <SendStatus write={last} />
       ) : said || landed ? (
         <p role="status" className="text-[13px] text-(--ui-ink-2)">
           {said ?? landed}

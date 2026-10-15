@@ -8,7 +8,18 @@
 
 import type { BroadcastDetail } from "@wren/core/broadcast-records";
 import type { Action } from "@wren/ui";
-import { ACTIONS, Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  EditConflict,
+  Input,
+  type RecordAct,
+  type RecordExtras,
+  Tag,
+  Textarea,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -68,6 +79,19 @@ const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_Yo
 const pad = (n: number) => String(n).padStart(2, "0");
 const timeOf = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
+/** Are there words kept for this broadcast that the server doesn't hold? */
+function useKeptWords(
+  id: number | "new",
+  start: { name: string; subject: string; body: string },
+  version: string | null,
+): boolean {
+  const at = `broadcast:${id}`;
+  const a = useEdit(`${at}:name`, start.name, { version });
+  const b = useEdit(`${at}:subject`, start.subject, { version });
+  const c = useEdit(`${at}:body`, start.body, { version });
+  return a.dirty || b.dirty || c.dirty;
+}
+
 /** Write one, or change a draft: who, the words, when. Saves a draft or asks for the yes. */
 function BroadcastEditor({
   client,
@@ -82,12 +106,18 @@ function BroadcastEditor({
 }) {
   const at = atOf(client);
   const [ctx, setCtx] = useState<Context | null>(null);
-  const [name, setName] = useState(start.name);
+  // The words are kept as typed until saved or cancelled, on this device.
+  const kept = `broadcast:${start.id ?? "new"}`;
+  const version = start.version ?? null;
+  const nameEdit = useEdit(`${kept}:name`, start.name, { version });
+  const subjectEdit = useEdit(`${kept}:subject`, start.subject, { version });
+  const bodyEdit = useEdit(`${kept}:body`, start.body, { version });
+  const { value: name } = nameEdit;
+  const { value: subject } = subjectEdit;
+  const { value: body } = bodyEdit;
   const [channel, setChannel] = useState<Channel>(start.channel);
   const [segmentId, setSegmentId] = useState<number | null>(start.segmentId);
   const [topic, setTopic] = useState<string | null>(start.topic);
-  const [subject, setSubject] = useState(start.subject);
-  const [body, setBody] = useState(start.body);
   const picked = start.sendAt ? new Date(start.sendAt) : null;
   const [later, setLater] = useState(!!picked);
   const [day, setDay] = useState(picked ? dayKey(picked) : dayKey(addDays(new Date(), 1)));
@@ -166,12 +196,16 @@ function BroadcastEditor({
     flying.current = true;
     setBusy(ask ? "ask" : "draft");
     setError(null);
+    const sent = { name, subject, body };
     try {
-      const body = { ...input(), ask, ...(start.version ? { expect: start.version } : {}) };
+      const out = { ...input(), ask, ...(start.version ? { expect: start.version } : {}) };
       // A new one is made once: a retry of the same words is the same broadcast.
-      await ACTIONS.run(`broadcast-save:${client}:${JSON.stringify(body)}`, (requestId) =>
-        send({ ...body, requestId }),
+      await ACTIONS.run(`broadcast-save:${client}:${JSON.stringify(out)}`, (requestId) =>
+        send({ ...out, requestId }),
       );
+      nameEdit.saved(sent.name);
+      subjectEdit.saved(sent.subject);
+      bodyEdit.saved(sent.body);
       onDone(true);
     } catch (e) {
       setError(said(e));
@@ -203,10 +237,15 @@ function BroadcastEditor({
           Name
           <Input
             className="w-64 max-sm:w-full"
-            value={name}
+            {...nameEdit.field}
             maxLength={120}
             placeholder="October check-in"
-            onChange={(e) => setName(e.target.value)}
+          />
+          <EditConflict
+            conflict={nameEdit.conflict}
+            onKeepMine={nameEdit.keepMine}
+            onTakeTheirs={nameEdit.takeTheirs}
+            what="The name"
           />
         </label>
         <label className={FIELD}>
@@ -262,20 +301,31 @@ function BroadcastEditor({
       {channel === "email" ? (
         <label className="flex flex-col gap-1 text-[13px] text-(--ui-ink-2)">
           Subject
-          <Input value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} />
+          <Input {...subjectEdit.field} maxLength={200} />
+          <EditConflict
+            conflict={subjectEdit.conflict}
+            onKeepMine={subjectEdit.keepMine}
+            onTakeTheirs={subjectEdit.takeTheirs}
+            what="The subject"
+          />
         </label>
       ) : null}
       <label className="flex flex-col gap-1 text-[13px] text-(--ui-ink-2)">
         {channel === "email" ? "Email" : "Text"}
         <Textarea
           rows={channel === "email" ? 8 : 4}
-          value={body}
+          {...bodyEdit.field}
           placeholder={
             channel === "email"
               ? "Hi {first_name|there},\n\n"
               : "Hi {first_name|there}, ... Reply STOP to stop."
           }
-          onChange={(e) => setBody(e.target.value)}
+        />
+        <EditConflict
+          conflict={bodyEdit.conflict}
+          onKeepMine={bodyEdit.keepMine}
+          onTakeTheirs={bodyEdit.takeTheirs}
+          what="The words"
         />
       </label>
       <p className={`m-0 text-[13px] ${QUIET}`}>
@@ -368,9 +418,24 @@ function BroadcastEditor({
         >
           Save draft
         </Button>
-        <Button size="dense" tone="quiet" onClick={() => onDone(false)}>
+        <Button
+          size="dense"
+          tone="quiet"
+          onClick={() => {
+            nameEdit.discard();
+            subjectEdit.discard();
+            bodyEdit.discard();
+            onDone(false);
+          }}
+        >
           Cancel
         </Button>
+        <UnsavedMark
+          edit={{
+            dirty: nameEdit.dirty || subjectEdit.dirty || bodyEdit.dirty,
+            conflict: null,
+          }}
+        />
         <span className="text-[13px] text-(--ui-ink-3)">Nothing sends before To approve.</span>
       </div>
     </div>
@@ -487,22 +552,25 @@ function Month({ client }: { client: string }) {
 /** The list's head: New broadcast opens the editor; Month the calendar. */
 function BroadcastsHead({ client, reload }: { client: string; reload: () => void }) {
   const [open, setOpen] = useState<"new" | "month" | null>(null);
+  // Words kept from before open the editor again.
+  const kept = useKeptWords("new", { name: "", subject: "", body: "" }, null);
+  const shown = open ?? (kept ? "new" : null);
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <Button tone="primary" size="dense" onClick={() => setOpen(open === "new" ? null : "new")}>
+        <Button tone="primary" size="dense" onClick={() => setOpen(shown === "new" ? null : "new")}>
           New broadcast
         </Button>
         <Button
           size="dense"
           tone="quiet"
-          aria-pressed={open === "month"}
-          onClick={() => setOpen(open === "month" ? null : "month")}
+          aria-pressed={shown === "month"}
+          onClick={() => setOpen(shown === "month" ? null : "month")}
         >
           Month
         </Button>
       </div>
-      {open === "new" ? (
+      {shown === "new" ? (
         <BroadcastEditor
           client={client}
           start={{
@@ -520,7 +588,7 @@ function BroadcastsHead({ client, reload }: { client: string; reload: () => void
             if (saved) reload();
           }}
         />
-      ) : open === "month" ? (
+      ) : shown === "month" ? (
         <Month client={client} />
       ) : null}
     </>
@@ -568,7 +636,8 @@ function Results({ d }: { d: NonNullable<BroadcastDetail["results"]> }) {
 
 /** One copy to one address, marked [test]: ours for email, the operator's phone for a text. */
 function TestSend({ row, act }: { row: Record<string, unknown>; act: RecordAct }) {
-  const [to, setTo] = useState(String(row.testedTo ?? ""));
+  const toEdit = useEdit(`broadcast:${String(row.id)}:test-to`, String(row.testedTo ?? ""));
+  const to = toEdit.value;
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const run = async () => {
@@ -589,9 +658,8 @@ function TestSend({ row, act }: { row: Record<string, unknown>; act: RecordAct }
         <Input
           aria-label="Send a test to"
           className="w-72 max-sm:w-full"
-          value={to}
+          {...toEdit.field}
           placeholder={row.channel === "sms" ? "+1..." : "you@ourdomain"}
-          onChange={(e) => setTo(e.target.value)}
         />
         <Button size="dense" tone="quiet" busy={busy} disabled={!to.trim() || busy} onClick={run}>
           Send test
@@ -623,7 +691,17 @@ function EditSection({
   act: RecordAct;
 }) {
   const [editing, setEditing] = useState(false);
-  if (!editing)
+  // Words kept from before open the editor again.
+  const kept = useKeptWords(
+    Number(row.id),
+    {
+      name: String(row.name ?? ""),
+      subject: String(row.subject ?? ""),
+      body: String(row.body ?? ""),
+    },
+    version ?? null,
+  );
+  if (!editing && !kept)
     return (
       <div>
         <Button size="dense" tone="quiet" onClick={() => setEditing(true)}>

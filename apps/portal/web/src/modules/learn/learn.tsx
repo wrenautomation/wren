@@ -14,6 +14,7 @@ import {
   PageHeader,
   relative,
   Tag,
+  useEdit,
 } from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
@@ -46,7 +47,9 @@ const savedLine = (s: Saved) =>
 
 /** The Save a link box above Saved: paste a link, it's kept and read. */
 export function SaveBox({ reload }: { reload?: () => void }) {
-  const [url, setUrl] = useState("");
+  // A link pasted and not saved yet stays put: another page and back gives it again.
+  const link = useEdit("learn:save-link", "");
+  const url = link.value;
   const [busy, setBusy] = useState(false);
   const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
@@ -59,7 +62,7 @@ export function SaveBox({ reload }: { reload?: () => void }) {
     const sent = url;
     try {
       const s = await call<Saved>("learn/save", { url: url.trim() });
-      setUrl((v) => (v === sent ? "" : v));
+      link.saved(sent);
       setSaid({ ok: true, line: savedLine(s) });
       reload?.();
     } catch (err) {
@@ -77,8 +80,7 @@ export function SaveBox({ reload }: { reload?: () => void }) {
       <div className="flex min-w-0 gap-2">
         <Input
           type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          {...link.field}
           className="min-w-0 flex-1"
           placeholder="Paste a link"
           aria-label="Save a link"
@@ -195,6 +197,7 @@ function SearchBody({ params }: { params: URLSearchParams }) {
       />
       <form onSubmit={submit} className="mb-6 flex max-w-xl gap-2">
         <Input
+          // edit-ok: search box
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}

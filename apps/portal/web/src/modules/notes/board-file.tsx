@@ -12,7 +12,7 @@ import {
   type SheetField,
   toCsv,
 } from "@wren/notes/sheet";
-import { Button, say } from "@wren/ui";
+import { Button, say, useEdit } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +62,9 @@ export function ImportDialog({
   onOpenChange: (o: boolean) => void;
   onDone: () => void;
 }) {
-  const [text, setText] = useState("");
+  // The pasted table stays until it is imported, so closing the dialog by accident loses nothing.
+  const paste = useEdit(`board-import:${board}:table`, "");
+  const text = paste.value;
   const [header, setHeader] = useState(true);
   const [map, setMap] = useState<(SheetField | null)[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,7 +83,7 @@ export function ImportDialog({
     if (!f) return;
     if (f.size > MAX_FILE) return say.failed(new Error("Files go up to 2 MB."));
     setMap(null);
-    setText(await f.text());
+    paste.set(await f.text());
   };
   const run = async () => {
     setBusy(true);
@@ -93,7 +95,7 @@ export function ImportDialog({
       setWarnings(out.warnings);
       onDone();
       if (!out.warnings.length) {
-        setText("");
+        paste.saved(text);
         onOpenChange(false);
       }
     } catch (err) {
@@ -122,14 +124,14 @@ export function ImportDialog({
             onChange={(e) => void read(e.target.files?.[0])}
           />
           <textarea
-            value={text}
+            {...paste.field}
             aria-label="Pasted table"
             placeholder="Or paste rows here, with the headings on top"
             rows={5}
             className="w-full border border-(--ui-hair) bg-(--ui-paper) p-2 text-[13px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none"
             onChange={(e) => {
               setMap(null);
-              setText(e.target.value);
+              paste.set(e.target.value);
             }}
           />
           {table.length ? (

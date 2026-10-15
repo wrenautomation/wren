@@ -4,7 +4,18 @@
  * compare any two with each change colored by its author.
  */
 import { ownerName } from "@wren/notes/types";
-import { Button, Icon, Input, LoadFailed, Loading, say, Tag, tipProps } from "@wren/ui";
+import {
+  Button,
+  Icon,
+  Input,
+  LoadFailed,
+  Loading,
+  say,
+  Tag,
+  tipProps,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
 import { hueOf, type NoteCompare, type NoteVersions, notes } from "./api.js";
@@ -117,7 +128,9 @@ export function VersionOpen({
   const v = list.find((x) => x.number === number) as Version | undefined;
   const [against, setAgainst] = useState<number | null>(null);
   const [naming, setNaming] = useState(false);
-  const [name, setName] = useState(v?.name ?? "");
+  // The name is kept as typed until it is saved; words kept from before open the box again.
+  const nameEdit = useEdit(`note:${id}:version-name:${number}`, v?.name ?? "");
+  const name = nameEdit.value;
   const [busy, setBusy] = useState(false);
   const one = useCall(`notes:version:${client}:${id}:${number}`, () =>
     notes(client, "version", { id, number }),
@@ -132,13 +145,16 @@ export function VersionOpen({
       .catch(say.failed)
       .finally(() => setBusy(false));
   };
-  const saveName = () =>
-    notes(client, "nameVersion", { id, number, name: name.trim() || null })
+  const saveName = () => {
+    const sent = name;
+    return notes(client, "nameVersion", { id, number, name: sent.trim() || null })
       .then(() => {
+        nameEdit.saved(sent);
         setNaming(false);
         onNamed();
       })
       .catch(say.failed);
+  };
   return (
     <div className="flex min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-(--ui-hair) bg-(--ui-tile) px-3 py-2 text-[13px] print:hidden">
@@ -181,7 +197,7 @@ export function VersionOpen({
           ) : null}
         </span>
       </div>
-      {naming ? (
+      {naming || nameEdit.dirty ? (
         <form
           className="flex items-center gap-2 border-b border-(--ui-hair) px-3 py-2"
           onSubmit={(e) => {
@@ -190,17 +206,17 @@ export function VersionOpen({
           }}
         >
           <Input
-            value={name}
-            autoFocus
+            {...nameEdit.field}
+            autoFocus={naming}
             maxLength={200}
             aria-label="Version name"
             placeholder="Sent to Ana"
             className="h-8 w-64"
-            onChange={(e) => setName(e.target.value)}
           />
           <Button tone="primary" size="dense" type="submit">
             Save
           </Button>
+          <UnsavedMark edit={nameEdit} />
         </form>
       ) : null}
       {against !== null ? (

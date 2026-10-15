@@ -16,9 +16,11 @@ import {
   Button,
   cx,
   DeviceFrame,
+  EditConflict,
   Empty,
   FeedPost,
   Input,
+  KeptConflict,
   LoadFailed,
   Loading,
   PageHeader,
@@ -31,6 +33,7 @@ import {
   Section,
   Tag,
   Textarea,
+  useEdit,
   useKeptForm,
   useSaved,
 } from "@wren/ui";
@@ -45,7 +48,6 @@ import { DRAFT_SET } from "./ask.js";
 import { BlogBox } from "./blog-box.js";
 import { CarouselBox } from "./carousel-box.js";
 import { contentDesk, deskCall } from "./desk.js";
-import { PieceCard, usePieces } from "./pieces.js";
 import { goalsOf, MakeList, toMakeLine, usePlan } from "./plan.js";
 import { StoryBox } from "./story-box.js";
 import { StudioVideo, VideoShelf } from "./video-shelf.js";
@@ -389,8 +391,10 @@ function StudioHome(props: PageProps) {
                   </Button>
                 </p>
               ) : null}
+              <KeptConflict kept={kept} field="text" what="The post" />
               <Textarea
                 aria-label="Your post"
+                data-edit={kept.key ?? ""}
                 rows={batch ? 14 : 8}
                 value={text}
                 placeholder={
@@ -436,6 +440,7 @@ function StudioHome(props: PageProps) {
               {titled && !batch && !adapt && !thread ? (
                 <Input
                   aria-label="Reddit title"
+                  data-edit={kept.key ?? ""}
                   value={title}
                   placeholder="Reddit title (else your first line)"
                   onChange={(e) => setTitle(e.target.value)}
@@ -725,8 +730,9 @@ function DraftCard({
 }) {
   // The same journal and save as the draft's own page (DraftBox): typing there or here is one
   // draft's words, saved a pause after the last key, never per key, and never read back.
+  const savedKey = d.story ? null : `draft:${DRAFT_SET}:${d.id}`;
   const s = useSaved<string>({
-    key: d.story ? null : `draft:${DRAFT_SET}:${d.id}`,
+    key: savedKey,
     server: d.text,
     at,
     same: (a, b) => a.trim() === b.trim(),
@@ -757,7 +763,9 @@ function DraftCard({
     return () => void flushers.delete(s.flush);
   }, [flushers, s.flush]);
   const text = s.value;
-  const [note, setNote] = useState<string | null>(null);
+  // What to change, kept until the rewrite goes: another page and back gives it again.
+  const note = useEdit(`draft:${d.id}:rewrite-note`, "");
+  const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState<Act | null>(null);
   const [error, setError] = useState<string | null>(null);
   const max = PLATFORM_SPECS[d.platform].maxChars;
@@ -777,6 +785,7 @@ function DraftCard({
   const act = async (what: Act) => {
     setBusy(what);
     setError(null);
+    const sent = note.value;
     try {
       // Every act reads the saved words: his typing lands first, or nothing goes on.
       if (!(await s.flush())) {
@@ -786,11 +795,15 @@ function DraftCard({
       // One press, one act: a second press while it's out gets the first's answer.
       await ACTIONS.run(`studio:${what}:${d.id}`, (requestId) =>
         what === "rewrite"
-          ? desk("redraft", { draftId: d.id, note: note ?? "" }, requestId)
+          ? desk("redraft", { draftId: d.id, note: note.value }, requestId)
           : what === "reject"
             ? desk("reject", { ids: [d.id] }, requestId)
             : desk("approve", { ids: [d.id], now: what === "now" }, requestId),
       );
+      if (what === "rewrite") {
+        note.saved(sent);
+        setAsking(false);
+      }
       onDone();
     } catch (err) {
       setError(message(err));
@@ -864,6 +877,7 @@ function DraftCard({
         <>
           <Textarea
             aria-label={`${nameOf(d.platform)} draft`}
+            data-edit={savedKey ?? ""}
             rows={Math.min(14, Math.max(4, Math.ceil(text.length / 48)))}
             value={text}
             disabled={demo || !!busy}
@@ -893,23 +907,35 @@ function DraftCard({
           : "Open for fields, media and versions"}
       </a>
       {d.error ? <p className={ERROR}>{d.error}</p> : null}
-      {note !== null ? (
+      {asking || note.dirty ? (
         <div className="grid gap-2">
           <Input
             aria-label="What to change"
-            value={note}
+            {...note.field}
             placeholder="What to change: shorter, lead with the number…"
-            onChange={(e) => setNote(e.target.value)}
+          />
+          <EditConflict
+            what="The note"
+            conflict={note.conflict}
+            onKeepMine={note.keepMine}
+            onTakeTheirs={note.takeTheirs}
           />
           <div className="flex flex-wrap gap-2">
             <Button
               size="dense"
-              disabled={!note.trim() || !!busy}
+              disabled={!note.value.trim() || !!busy}
               onClick={() => void act("rewrite")}
             >
               {busy === "rewrite" ? "Rewriting…" : "Rewrite"}
             </Button>
-            <Button size="dense" tone="quiet" onClick={() => setNote(null)}>
+            <Button
+              size="dense"
+              tone="quiet"
+              onClick={() => {
+                note.discard();
+                setAsking(false);
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -933,7 +959,12 @@ function DraftCard({
             {busy === "now" ? "Posting…" : "Post now"}
           </Button>
           {d.story || d.carousel ? null : (
-            <Button size="dense" tone="quiet" disabled={!!busy || demo} onClick={() => setNote("")}>
+            <Button
+              size="dense"
+              tone="quiet"
+              disabled={!!busy || demo}
+              onClick={() => setAsking(true)}
+            >
               Rewrite with AI
             </Button>
           )}

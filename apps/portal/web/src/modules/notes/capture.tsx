@@ -2,7 +2,7 @@
  * Quick capture: N on any page (or ⌘K "Note: …") puts a thought down without leaving. It goes at
  * the end of the person's Dump note, timestamped, or opens as a note of its own. The mic types it.
  */
-import { Button, DictateField, say, Textarea } from "@wren/ui";
+import { Button, DictateField, say, Textarea, UnsavedMark, useEdit } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -37,13 +37,16 @@ export function QuickNote({
   onOpenChange: (o: boolean) => void;
   onSaved?: () => void;
 }) {
-  const [words, setWords] = useState("");
+  // Kept as typed: closing the box by accident or leaving the page gives the words back.
+  const edit = useEdit("note-capture:new:words", "");
+  const words = edit.value;
   const [busy, setBusy] = useState<"dump" | "note" | null>(null);
   // The "Card" switch: the words become a card on the Work board instead.
   const [asCard, setAsCard] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const save = (asNote: boolean) => {
     if (!words.trim()) return;
+    const sent = words;
     setBusy(asNote ? "note" : "dump");
     if (asCard) {
       // The first line is the title; any more become its details.
@@ -64,7 +67,7 @@ export function QuickNote({
           : {}),
       })
         .then((c) => {
-          setWords("");
+          edit.saved(sent);
           onOpenChange(false);
           onSaved?.();
           if (asNote) navigate(docPath(c.id));
@@ -76,7 +79,7 @@ export function QuickNote({
     }
     notes(client, "capture", { words, open: asNote })
       .then((r) => {
-        setWords("");
+        edit.saved(sent);
         onOpenChange(false);
         onSaved?.();
         if (r.dump) say.done("Added to your Dump note.");
@@ -106,12 +109,11 @@ export function QuickNote({
           <DictateField target={box} label="Dictate the note">
             <Textarea
               ref={box}
-              value={words}
+              {...edit.field}
               autoFocus
               rows={5}
               aria-label="The note"
               placeholder="Call the venue back about Thursday."
-              onChange={(e) => setWords(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault();
@@ -120,6 +122,7 @@ export function QuickNote({
               }}
             />
           </DictateField>
+          <UnsavedMark edit={edit} />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="mr-auto flex items-center gap-1.5 text-[13px]">
               <input

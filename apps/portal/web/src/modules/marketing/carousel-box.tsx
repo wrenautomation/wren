@@ -139,6 +139,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
             <span className="text-[13px] font-medium text-(--ui-ink-2)">Slides</span>
             <Textarea
               aria-label="Slides"
+              data-edit={kept.key ?? ""}
               rows={16}
               value={typed}
               placeholder={START}
@@ -169,6 +170,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
             <span className="text-[13px] font-medium text-(--ui-ink-2)">Caption</span>
             <Textarea
               aria-label="Caption"
+              data-edit={kept.key ?? ""}
               rows={4}
               value={caption}
               placeholder="What goes under it"

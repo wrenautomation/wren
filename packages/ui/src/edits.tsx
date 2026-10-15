@@ -15,6 +15,7 @@ import { UNDO_MS } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
+import { useEdit } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
 import { GROUP_LABEL } from "./layout.js";
 import type { SaverOptions } from "./save/engine.js";
@@ -202,6 +203,7 @@ export function EditField({
             ref={area}
             id={id}
             value={typed}
+            data-edit={saveKey ?? undefined}
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={keys}
             rows={6}
@@ -228,6 +230,7 @@ export function EditField({
         <Input
           id={id}
           value={typed}
+          data-edit={saveKey ?? undefined}
           onChange={(e) => setTyped(e.target.value)}
           onKeyDown={keys}
           aria-label={field.label}
@@ -521,14 +524,18 @@ export function History({
 /** Ask Claude about this record: the turns oldest first, each patch as a diff with Accept. */
 export function AskClaude({
   meta,
+  id,
   turns,
   editing,
 }: {
   meta: RecordMeta;
+  /** The record's id: the question waits under it until it's asked. */
+  id: string | number;
   turns: readonly AskTurn[];
   editing: Editing;
 }) {
-  const [message, setMessage] = useState("");
+  const asked = useEdit(`ask:${meta.id}:${id}`, "");
+  const message = asked.value;
   const [asking, setAsking] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const box = useRef<HTMLInputElement>(null);
@@ -539,7 +546,7 @@ export function AskClaude({
     setAsking(true);
     try {
       await editing.ask?.(said);
-      setMessage("");
+      asked.saved(message);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -635,8 +642,7 @@ export function AskClaude({
       <DictateField target={box} line label="Dictate to Claude">
         <Input
           ref={box}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          {...asked.field}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();

@@ -435,6 +435,7 @@ function Composer({ transport, onHangUp }: { transport: TextTransport; onHangUp(
   return (
     <div className="grid gap-3">
       <form onSubmit={submit} className="flex items-center gap-2">
+        {/* edit-ok: one line of a test call, sent at once; the call itself isn't kept */}
         <Input
           ref={input}
           value={text}

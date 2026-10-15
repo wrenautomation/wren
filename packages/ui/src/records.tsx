@@ -58,6 +58,8 @@ import {
 } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
+import { listChanged } from "./data/delta.js";
+import { type Load, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
 import { type LiveText, liveText } from "./draft-save.js";
 import {
@@ -106,7 +108,7 @@ import {
 import { PageBar } from "./page-bar.js";
 import { offsetOf, PAGE_SIZE, pageAt, pagesOf } from "./pager.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
-import { BottomSheet, onRefresh, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
+import { BottomSheet, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
 import {
   type AccessApi,
@@ -118,8 +120,6 @@ import {
 import { recordHead } from "./record-head.js";
 import { detailPatch, patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
-import { answersOf, onWrite, patchedSince, rememberRead, writeThrough } from "./save/cache.js";
-import { tick } from "./save/clock.js";
 import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
@@ -332,14 +332,8 @@ export function tiersOf(rows: Row[], needs: Needs | undefined, keep: boolean) {
   return { rows: [...first, ...rows.filter((r) => !waitsOn(needs, r))], split: first.length };
 }
 
-export type Load<T> = {
-  data: T | null;
-  error: Error | null;
-  loading: boolean;
-  retry: () => void;
-  /** The tick (`tick()`) when the read now shown left; 0 for an answer kept from before. */
-  at: number;
-};
+export type { Load } from "./data/query.js";
+export { useLoad };
 
 /**
  * The version each open record draws, by type and id (`RecordBody` sets it). An action with
@@ -355,98 +349,6 @@ export function versionIn(detail: unknown, row?: Row | null): string | null {
   const d = detail as { version?: unknown } | null;
   if (d && typeof d.version === "string") return d.version;
   return typeof row?.version === "string" ? row.version : null;
-}
-
-/**
- * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
- * `scope` (whatever `fn` asks: its api), an answer seen before shows at once while it refreshes,
- * and a save's write-through (`writeThrough(scope, patch)`) patches what's shown, what's kept and
- * any read still out, so the page never reads again to show a save. Answers last this tab only;
- * signing out reloads the page, so nothing outlives the person.
- */
-export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): Load<T> {
-  const seen = scope ? answersOf(scope) : null;
-  const [state, setState] = useState<Omit<Load<T>, "retry">>(() => ({
-    data: (seen?.get(key) as T | undefined) ?? null,
-    error: null,
-    loading: true,
-    at: 0,
-  }));
-  const [attempt, setAttempt] = useState(0);
-  const keyNow = useRef(key);
-  keyNow.current = key;
-  // A save's write-through lands in what's on screen now.
-  useEffect(
-    () =>
-      scope
-        ? onWrite(scope, (patch) =>
-            setState((s) => {
-              if (s.data === null) return s;
-              const data = patch(keyNow.current, s.data) as T;
-              return data === s.data ? s : { ...s, data };
-            }),
-          )
-        : undefined,
-    [scope],
-  );
-  // A phone's pull to refresh reads it again, and waits for the answer.
-  const answered = useRef<(() => void) | null>(null);
-  useEffect(
-    () =>
-      onRefresh(
-        () =>
-          new Promise<void>((done) => {
-            answered.current?.();
-            answered.current = done;
-            setAttempt((n) => n + 1);
-          }),
-      ),
-    [],
-  );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads.
-  useEffect(() => {
-    let live = true;
-    const settled = () => {
-      answered.current?.();
-      answered.current = null;
-    };
-    setState((s) => ({
-      data: seen?.has(key) ? (seen.get(key) as T) : s.data,
-      error: null,
-      loading: true,
-      at: seen?.has(key) ? 0 : s.at,
-    }));
-    const left = tick();
-    fn()
-      .then(
-        (got) => {
-          // Saves that landed while this read was out apply over it.
-          const data = (scope ? patchedSince(scope, key, got, left) : got) as T;
-          // Kept only if no read that left later is kept already: older answers lose.
-          if (scope) rememberRead(scope, key, data, left);
-          if (live) setState({ data, error: null, loading: false, at: left });
-        },
-        (err: unknown) =>
-          live &&
-          setState((s) => ({
-            ...s,
-            error: err instanceof Error ? err : new Error(String(err)),
-            loading: false,
-          })),
-      )
-      .finally(settled);
-    return () => {
-      live = false;
-    };
-  }, [key, attempt]);
-  return {
-    ...state,
-    // Loading from this render on, so what reads it never paints the old data as new.
-    retry: () => {
-      setState((s) => ({ ...s, loading: true }));
-      setAttempt((n) => n + 1);
-    },
-  };
 }
 
 const TYPES = new WeakMap<RecordsApi, Promise<RecordMeta[]>>();
@@ -1259,7 +1161,11 @@ function List({
     ...(at > 1 ? { offset: offsetOf(at) } : {}),
   };
   const asked: ListAsk = pictured ? { ...listed, thumbs: true } : listed;
-  const page = useLoad(JSON.stringify(asked), () => api.list(asked), api);
+  const page = useLoad<RecordsPage>(
+    JSON.stringify(asked),
+    (before) => listChanged((a) => api.list(a), asked, before),
+    api,
+  );
   // The list dims while other rows load, not while the same rows fetch their pictures.
   const rowsKey = JSON.stringify(listed);
   const settledKey = useRef(rowsKey);
@@ -1409,6 +1315,7 @@ function List({
       <AskBox
         action={a}
         start={start}
+        keep={`ask:${meta.id}:${String(r.id)}:${a.id}`}
         close={close}
         send={(text) => {
           const field = a.ask?.field ?? "text";
@@ -3073,7 +2980,9 @@ export function RecordBody({
                   ) : null
                 }
               />
-              {editing.ask ? <AskClaude meta={meta} turns={state.asks} editing={editing} /> : null}
+              {editing.ask ? (
+                <AskClaude meta={meta} id={id} turns={state.asks} editing={editing} />
+              ) : null}
             </>
           ) : null}
           {cited.map((f) => (
@@ -3100,6 +3009,14 @@ export function RecordBody({
               }
               at={got.at}
               send={sendAction ? () => runHead(sendAction) : undefined}
+              sending={
+                sendAction
+                  ? {
+                      record: recordKey(meta.name.many, row.id as string | number),
+                      what: sendAction.id,
+                    }
+                  : undefined
+              }
               between={more.form}
               framed={!more.aside}
               onText={more.aside ? typed.set : undefined}
@@ -3274,7 +3191,11 @@ function Related({
 }) {
   const sort = meta.views[0]?.sort;
   const ask: ListAsk = { record: meta.id, of, limit: 25, ...(sort ? { sort } : {}) };
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
+  const page = useLoad<RecordsPage>(
+    JSON.stringify(ask),
+    (before) => listChanged((a) => api.list(a), ask, before),
+    api,
+  );
   if (page.error && !page.data) return <LoadFailed error={page.error} onRetry={page.retry} />;
   if (!page.data) return <div className="h-24 w-full animate-pulse bg-(--ui-wash)" />;
   if (!page.data.rows.length)

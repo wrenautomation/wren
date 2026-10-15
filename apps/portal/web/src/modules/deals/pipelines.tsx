@@ -5,17 +5,27 @@
  */
 import type { Board } from "@wren/deals/console";
 import type { Stage, StageKind } from "@wren/deals/schema";
-import { ACTIONS, Button, Input, LoadFailed, Loading, PageHeader, Section, say } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  EditConflict,
+  Input,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  say,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
 import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { useEditJson } from "../people/edit-json.js";
 import { atOf } from "./board.js";
 
 type Pipe = Board["pipelines"][number];
-type Line = Stage & { line: number };
-let lines = 0;
-const lineOf = (s: Stage): Line => ({ ...s, line: ++lines });
 
 const SELECT =
   "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[14px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
@@ -76,7 +86,7 @@ export function Pipelines(props: PageProps) {
 }
 
 function PipeForm({
-  at,
+  at: where,
   pipe,
   write,
   drop,
@@ -88,19 +98,26 @@ function PipeForm({
   drop?: boolean;
   onDone: () => void;
 }) {
-  const [name, setName] = useState(pipe.name);
-  // Each line keeps its own id while its label and place change.
-  const [stages, setStages] = useState<Line[]>(() => pipe.stages.map(lineOf));
+  // The name and the stages are kept as typed until saved, on this device.
+  const at = `pipeline:${pipe.id || "new"}`;
+  const version = pipe.version || null;
+  const nameEdit = useEdit(`${at}:name`, pipe.name, { version });
+  const stagesEdit = useEditJson<Stage[]>(`${at}:stages`, pipe.stages, {
+    version,
+    show: (all) => all.map((s) => s.label || "(no name)").join(", "),
+  });
+  const name = nameEdit.value;
+  const stages = stagesEdit.value;
+  const setStages = stagesEdit.set;
   const [busy, setBusy] = useState(false);
-  const put = (i: number, s: Partial<Line>) =>
-    setStages((all) => all.map((x, j) => (j === i ? { ...x, ...s } : x)));
-  const shift = (i: number, by: -1 | 1) =>
-    setStages((all) => {
-      const next = [...all];
-      const [s] = next.splice(i, 1);
-      if (s) next.splice(i + by, 0, s);
-      return next;
-    });
+  const put = (i: number, s: Partial<Stage>) =>
+    setStages(stages.map((x, j) => (j === i ? { ...x, ...s } : x)));
+  const shift = (i: number, by: -1 | 1) => {
+    const next = [...stages];
+    const [s] = next.splice(i, 1);
+    if (s) next.splice(i + by, 0, s);
+    setStages(next);
+  };
   // One action at a time; a retry after a lost answer is the same action (its request id).
   const flying = useRef(false);
   const run = async (path: string, body: Record<string, unknown>, done: string) => {
@@ -109,8 +126,11 @@ function PipeForm({
     setBusy(true);
     try {
       await ACTIONS.run(`${path}:${pipe.id || "new"}`, (requestId) =>
-        call(path, { ...at, ...body, requestId }),
+        call(path, { ...where, ...body, requestId }),
       );
+      // Saved or deleted: the typed words are done with.
+      nameEdit.saved();
+      stagesEdit.saved();
       say.done(done);
       onDone();
     } catch (err) {
@@ -124,15 +144,23 @@ function PipeForm({
     <div className="grid gap-3">
       <label className="grid max-w-[360px] gap-1 text-[13px] font-medium text-(--ui-ink-2)">
         Name
-        <Input value={name} disabled={!write} onChange={(e) => setName(e.target.value)} />
+        <Input {...nameEdit.field} disabled={!write} />
       </label>
+      <EditConflict
+        conflict={nameEdit.conflict}
+        onKeepMine={nameEdit.keepMine}
+        onTakeTheirs={nameEdit.takeTheirs}
+        what="The name"
+      />
       <ol className="m-0 grid list-none gap-2 p-0">
         {stages.map((s, i) => (
-          <li key={s.line} className="flex flex-wrap items-center gap-2">
+          // biome-ignore lint/suspicious/noArrayIndexKey: stages are plain values; place is their id.
+          <li key={i} className="flex flex-wrap items-center gap-2">
             <span className="w-5 text-right text-[12.5px] text-(--ui-ink-3)">{i + 1}</span>
             <Input
               aria-label={`Stage ${i + 1}`}
               className="w-[200px]"
+              data-edit={stagesEdit.key}
               value={s.label}
               disabled={!write}
               onChange={(e) => put(i, { label: e.target.value })}
@@ -166,7 +194,7 @@ function PipeForm({
                 <Button
                   size="sm"
                   tone="quiet"
-                  onClick={() => setStages((all) => all.filter((_, j) => j !== i))}
+                  onClick={() => setStages(stages.filter((_, j) => j !== i))}
                 >
                   Remove
                 </Button>
@@ -176,14 +204,18 @@ function PipeForm({
           </li>
         ))}
       </ol>
+      <EditConflict
+        conflict={stagesEdit.conflict}
+        onKeepMine={stagesEdit.keepMine}
+        onTakeTheirs={stagesEdit.takeTheirs}
+        what="The stages"
+      />
       {write ? (
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             tone="quiet"
-            onClick={() =>
-              setStages((all) => [...all, lineOf({ key: "", label: "", kind: "open" })])
-            }
+            onClick={() => setStages([...stages, { key: "", label: "", kind: "open" }])}
           >
             Add a stage
           </Button>
@@ -209,6 +241,7 @@ function PipeForm({
           >
             Save
           </Button>
+          <UnsavedMark edit={{ dirty: nameEdit.dirty || stagesEdit.dirty, conflict: null }} />
           {pipe.id && drop ? (
             <Button
               size="sm"

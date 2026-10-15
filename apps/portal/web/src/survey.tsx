@@ -2,7 +2,7 @@
  * A client login's portal survey (`console/surveysDue`): one question in the corner, answered
  * once. Not now hides it for this visit; it asks again next sign-in until answered.
  */
-import { Button } from "@wren/ui";
+import { Button, UnsavedMark, useEdit } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { call } from "./api.js";
 
@@ -30,7 +30,6 @@ const hide = (key: string) => {
 
 export function SurveyCard({ client }: { client: string }) {
   const [due, setDue] = useState<Due | null>(null);
-  const [text, setText] = useState("");
   const [state, setState] = useState<"ask" | "busy" | "thanks">("ask");
 
   useEffect(() => {
@@ -48,6 +47,8 @@ export function SurveyCard({ client }: { client: string }) {
     };
   }, [client]);
 
+  const reply = useEdit(due ? `survey:${due.key}:answer` : null, "");
+  const text = reply.value;
   if (!due) return null;
   const close = () => {
     hide(due.key);
@@ -58,6 +59,7 @@ export function SurveyCard({ client }: { client: string }) {
     call("console/surveyAnswer", { client, survey: due.key, value })
       .then(() => {
         hide(due.key);
+        if (due.kind === "text") reply.saved(value);
         setState("thanks");
         setTimeout(() => setDue(null), 1800);
       })
@@ -126,15 +128,15 @@ export function SurveyCard({ client }: { client: string }) {
               }}
             >
               <input
-                value={text}
+                {...reply.field}
                 maxLength={500}
-                onChange={(e) => setText(e.target.value)}
                 aria-label="Your answer"
                 className="min-w-0 flex-1 rounded-(--ui-radius) border border-(--ui-hair) bg-transparent px-2 py-1"
               />
               <Button type="submit" tone="primary" size="sm" busy={busy} disabled={!text.trim()}>
                 Send
               </Button>
+              <UnsavedMark edit={reply} />
             </form>
           )}
         </>

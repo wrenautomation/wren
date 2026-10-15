@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { callOnce } from "../action.js";
-import { answersOf, onWrite, patchedSince, writeThrough } from "./cache.js";
+import { keyOf, patchedSince, QUERIES, writeThrough } from "../data/query.js";
 import { tick } from "./clock.js";
-import { readForm, writeForm } from "./journal.js";
+import { readForm, readKept, writeForm } from "./journal.js";
 import { fakeWriteEnv, memoryStore, refusal } from "./test-kit.js";
 import { Writes } from "./writes.js";
 
@@ -61,19 +61,17 @@ describe("write-through", () => {
     return a.rows ? { rows: a.rows.map((r) => (r.id === 1 ? { ...r, text } : r)) } : d;
   };
 
-  it("patches what's cached and what's mounted, untouched answers stay the same object", () => {
+  it("patches every cached answer in the scope, untouched answers stay the same object", () => {
     const scope = {};
-    const answers = answersOf(scope);
     const other = { total: 3 };
-    answers.set("list", { rows: [{ id: 1, text: "old" }] });
-    answers.set("stats", other);
-    const told = vi.fn();
-    const off = onWrite(scope, told);
+    QUERIES.setQueryData(keyOf(scope, "list"), { rows: [{ id: 1, text: "old" }] });
+    QUERIES.setQueryData(keyOf(scope, "stats"), other);
+    const elsewhere = { rows: [{ id: 1, text: "old" }] };
+    QUERIES.setQueryData(keyOf({}, "list"), elsewhere);
     writeThrough(scope, rowText("new"));
-    expect(answers.get("list")).toEqual({ rows: [{ id: 1, text: "new" }] });
-    expect(answers.get("stats")).toBe(other);
-    expect(told).toHaveBeenCalledOnce();
-    off();
+    expect(QUERIES.getQueryData(keyOf(scope, "list"))).toEqual({ rows: [{ id: 1, text: "new" }] });
+    expect(QUERIES.getQueryData(keyOf(scope, "stats"))).toBe(other);
+    expect(elsewhere.rows[0]?.text).toBe("old");
   });
 
   it("gives a read that left before the patch the patch too", () => {
@@ -88,13 +86,17 @@ describe("write-through", () => {
 });
 
 describe("kept forms", () => {
-  it("come back over the same base, drop over another, and clear when sent", () => {
+  it("come back over the same base, are kept over another (a conflict), and clear when sent", () => {
     const s = memoryStore();
     writeForm(s, "deals:new", { name: "Acme" }, "", 1);
     expect(readForm(s, "deals:new", "", 2)).toEqual({ name: "Acme" });
     writeForm(s, "approve:1", { text: "edited" }, "Claude's draft", 1);
     expect(readForm(s, "approve:1", "a new draft", 2)).toBeNull();
-    expect(s.map.has("wren.form:approve:1")).toBe(false);
+    // Never dropped silently: the words wait, with the base they were typed over.
+    expect(readKept(s, "approve:1", 2)).toEqual({
+      values: { text: "edited" },
+      base: "Claude's draft",
+    });
     writeForm(s, "deals:new", null, "", 3);
     expect(readForm(s, "deals:new", "", 4)).toBeNull();
   });

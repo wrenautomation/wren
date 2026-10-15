@@ -7,8 +7,19 @@
 import type { Row } from "@wren/core/records/serve";
 import type { PageDetail } from "@wren/sites/detail";
 import type { SplitResult } from "@wren/sites/split";
-import { Button, clipProps, Input, num, type RecordAct, Tag, type TagTone } from "@wren/ui";
+import {
+  Button,
+  clipProps,
+  EditConflict,
+  Input,
+  num,
+  type RecordAct,
+  Tag,
+  type TagTone,
+  UnsavedMark,
+} from "@wren/ui";
 import { useState } from "react";
+import { useEditJson } from "../people/edit-json.js";
 import { QUIET } from "../work/bits.js";
 import { Said, Table, useRun } from "./detail.js";
 
@@ -33,7 +44,16 @@ const goalOf = (s: SplitResult, a: SplitResult["arms"][number]) =>
 /** The running split: the call, each version's numbers, weights, stop and ship. */
 function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct }) {
   const { said, busy, run } = useRun(act);
-  const [weights, setWeights] = useState(() => s.split.arms.map((a) => String(a.weight)));
+  const wk = `split:${id}:weights`;
+  const edit = useEditJson(
+    wk,
+    s.split.arms.map((a) => String(a.weight)),
+    {
+      version: new Date(s.split.updatedAt as unknown as string).toISOString(),
+      show: (w) => s.split.arms.map((a, i) => `${a.label} ${w[i] ?? ""}`).join(", "),
+    },
+  );
+  const weights = edit.value;
   const shipping = s.split.state === "shipping";
   const goal = s.split.goal as Goal;
   const total = s.split.arms.reduce((n, a) => n + a.weight, 0);
@@ -103,9 +123,10 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
               <Input
                 className="w-[72px]"
                 inputMode="numeric"
+                data-edit={edit.key}
                 value={weights[i] ?? ""}
                 onChange={(e) =>
-                  setWeights((w) => w.map((x, j) => (j === i ? e.target.value.trim() : x)))
+                  edit.set(weights.map((x, j) => (j === i ? e.target.value.trim() : x)))
                 }
               />
             </label>
@@ -114,23 +135,33 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
             tone="primary"
             disabled={!valid || !changed}
             busy={busy === "weights"}
-            onClick={() =>
-              void run(
+            onClick={async () => {
+              const sent = weights;
+              const ok = await run(
                 "weights",
                 "sites.splitWeights",
                 {
                   id,
-                  weights: weights.map(Number),
+                  weights: sent.map(Number),
                   expect: new Date(s.split.updatedAt as unknown as string).toISOString(),
                 },
                 "Weights saved. New visitors get them; others keep their version.",
-              )
-            }
+              );
+              if (ok) edit.saved(sent);
+            }}
           >
             Save weights
           </Button>
         </div>
-        <span className={HINT}>1 to 100 each. Even is 1 and 1.</span>
+        <EditConflict
+          conflict={edit.conflict}
+          onKeepMine={edit.keepMine}
+          onTakeTheirs={edit.takeTheirs}
+          what="The weights"
+        />
+        <span className={HINT}>
+          1 to 100 each. Even is 1 and 1. <UnsavedMark edit={edit} />
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-(--ui-hair) pt-4">
         {s.split.arms

@@ -360,6 +360,7 @@ function InstallBox({ d, name, client }: { d: TemplateDetail; name: string; clie
                 It {plan.effects.map((e) => EFFECT[e] ?? e).join(" and ")} once live. Type{" "}
                 <b className="font-medium">{plan.confirm}</b> to {verb.toLowerCase()}.
               </span>
+              {/* edit-ok: type-to-confirm word, a guard not a draft */}
               <input
                 id={uid}
                 className={SELECT}

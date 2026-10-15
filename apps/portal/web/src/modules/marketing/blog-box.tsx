@@ -5,7 +5,18 @@
  * wants one. `Blog/wren` through the console.
  */
 
-import { ACTIONS, Button, cx, Input, Section, Tag, Textarea, useKeptForm } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  cx,
+  EditConflict,
+  Input,
+  Section,
+  Tag,
+  Textarea,
+  useEdit,
+  useKeptForm,
+} from "@wren/ui";
 import { useState } from "react";
 import { ApiError } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
@@ -56,7 +67,9 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
   const [lines, setLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [audience, setAudience] = useState<Audience | null>(null);
-  const [test, setTest] = useState("");
+  // The test address stays between visits: he sends tests to the same one.
+  const testEdit = useEdit(props.demo ? null : "studio:blog:test-address", "");
+  const test = testEdit.value;
 
   const posts = list.data?.posts ?? [];
   const site = list.data?.site ?? "";
@@ -74,6 +87,19 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
   const setTitle = (t: string) => kept.set("title", t);
   const setDescription = (t: string) => kept.set("description", t);
   const setBody = (t: string) => kept.set("body", t);
+  // The post moved under his words: all three fields show as one, he picks.
+  const moved = kept.conflict
+    ? {
+        mine: [
+          kept.conflict.values.title ?? "",
+          kept.conflict.values.description ?? "",
+          kept.conflict.values.body ?? "",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        theirs: open ? [open.title, open.description, open.body].filter(Boolean).join("\n\n") : "",
+      }
+    : null;
 
   const load = (p: Post | null) => {
     setSlug(p?.slug ?? null);
@@ -212,8 +238,15 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
             ))}
           </select>
         </label>
+        <EditConflict
+          what="This post"
+          conflict={moved}
+          onKeepMine={kept.keepMine}
+          onTakeTheirs={kept.takeTheirs}
+        />
         <Input
           aria-label="Title"
+          data-edit={kept.key ?? ""}
           value={title}
           placeholder="Title"
           disabled={props.demo}
@@ -222,6 +255,7 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
         <div className="grid gap-1">
           <Input
             aria-label="One line under the title"
+            data-edit={kept.key ?? ""}
             value={description}
             placeholder="One line under the title. Search shows it too."
             disabled={props.demo}
@@ -238,6 +272,7 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
         </div>
         <Textarea
           aria-label="The post, in Markdown"
+          data-edit={kept.key ?? ""}
           rows={18}
           value={body}
           placeholder={
@@ -320,10 +355,9 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   aria-label="Test address"
-                  value={test}
+                  {...testEdit.field}
                   placeholder="you@wrenautomation.com"
                   className="max-w-[260px]"
-                  onChange={(e) => setTest(e.target.value)}
                 />
                 <Button
                   size="dense"

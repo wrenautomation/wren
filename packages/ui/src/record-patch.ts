@@ -2,7 +2,7 @@
  * Write-through for records: a save that landed patches the row in every answer the workspace
  * holds (its detail, each list it sits in), so the page shows it without reading it again.
  */
-import { type Patch, writeThrough } from "./save/cache.js";
+import { type Patch, writeThrough } from "./data/query.js";
 
 interface Shaped {
   record?: unknown;

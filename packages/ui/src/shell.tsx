@@ -19,6 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
+import { WritesIndicator } from "./data/status.js";
 import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
 import { cx, num } from "./format.js";
 import {
@@ -447,6 +448,13 @@ export function AppShell({
             >
               <FrameProvider value={display ?? null}>{children}</FrameProvider>
             </main>
+            {/* Offline, or writes not yet answered: one mark for the whole portal. */}
+            <WritesIndicator
+              className={cx(
+                "fixed bottom-3 left-3 z-40 rounded-full border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1 shadow-(--ui-raise)",
+                nav && "max-[900px]:bottom-[calc(72px+env(safe-area-inset-bottom))]",
+              )}
+            />
           </div>
         </div>
       </div>

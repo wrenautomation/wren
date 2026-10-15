@@ -2,8 +2,9 @@
  * The app's one pulse. What the shell keeps fresh (the sidebar's counts, Learn's bell) joins here
  * instead of running its own timer. Once a minute, only while the tab shows and the window has
  * focus, every beat runs and their reads go out as one request (`batched`). Coming back to the
- * tab or window runs them once more. A hidden tab sends nothing.
+ * tab runs them once more (the data layer's `focusManager`). A hidden tab sends nothing.
  */
+import { focusManager } from "@wren/ui";
 import { batched } from "./api.js";
 
 const EVERY_MS = 60_000;
@@ -12,6 +13,7 @@ const SETTLE_MS = 1_000;
 
 const beats = new Set<() => unknown>();
 let timer: ReturnType<typeof setInterval> | undefined;
+let offBack: (() => void) | undefined;
 let last = 0;
 
 /** A poll that isn't on the pulse asks only while the tab shows. */
@@ -52,15 +54,14 @@ export function onPulse(beat: () => unknown): () => void {
   }
   if (beats.size === 1) {
     timer = setInterval(tick, EVERY_MS);
-    document.addEventListener("visibilitychange", back);
-    addEventListener("focus", back);
+    // The data layer's own return to the tab (one listener for the whole app).
+    offBack = focusManager.subscribe((focused) => focused && back());
   }
   return () => {
     beats.delete(beat);
     if (beats.size === 0) {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", back);
-      removeEventListener("focus", back);
+      offBack?.();
     }
   };
 }

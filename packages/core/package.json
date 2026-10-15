@@ -115,6 +115,7 @@
     "./keys-schema": "./src/keys-schema.ts",
     "./records": "./src/records.ts",
     "./records/serve": "./src/records-serve.ts",
+    "./records/delta": "./src/records-delta.ts",
     "./saved-views": "./src/saved-views.ts",
     "./schema": "./src/schema.ts",
     "./slots": "./src/slots/index.ts",

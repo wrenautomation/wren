@@ -2,7 +2,7 @@
  * Learn's dialogs and menus: move to a collection, tag, add to an SOP, name a collection, the
  * keys. Each writes through ./api.ts, which tells every list on screen to load again.
  */
-import { Button, cx, Input, type KeySection, say, tipProps } from "@wren/ui";
+import { Button, cx, EditConflict, Input, type KeySection, say, tipProps, useEdit } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -159,7 +159,9 @@ export function MoveDialog({
   /** Done is true after a save: the caller drops its selection. */
   onClose: (done?: boolean) => void;
 }) {
-  const [q, setQ] = useState("");
+  // Words typed to find or name a collection stay until one is picked or made.
+  const find = useEdit("learn:move:collection", "");
+  const q = find.value;
   const [busy, setBusy] = useState(false);
   /** One new collection at a time, whatever the render says. */
   const flying = useRef(false);
@@ -174,7 +176,10 @@ export function MoveDialog({
       to === null ? `Took ${many(ids.length)} out of its collection` : `Moved to ${name}`,
     );
     setBusy(false);
-    if (ok) onClose(true);
+    if (ok) {
+      find.discard();
+      onClose(true);
+    }
   };
   const create = async (e: FormEvent) => {
     e.preventDefault();
@@ -203,8 +208,7 @@ export function MoveDialog({
         <form onSubmit={create}>
           <Input
             autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            {...find.field}
             placeholder="Find or name a collection"
             aria-label="Find or name a collection"
           />
@@ -266,7 +270,9 @@ export function TagDialog({
   /** Done is true after a save: the caller drops its selection. */
   onClose: (done?: boolean) => void;
 }) {
-  const [text, setText] = useState("");
+  // Tags typed and not saved stay: closing the dialog, another page or a reload gives them back.
+  const add = useEdit(`learn:tag:${ids.length > 1 ? `${ids[0]}+${ids.length}` : ids[0]}`, "");
+  const text = add.value;
   const [off, setOff] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const typed = text
@@ -277,13 +283,17 @@ export function TagDialog({
   const save = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!typed.length && !off.length) return onClose();
+    const sent = text;
     setBusy(true);
     const ok = await act(
       learn.tag(ids, typed, off),
       typed.length ? `Tagged ${many(ids.length)}` : "Tags saved",
     );
     setBusy(false);
-    if (ok) onClose(true);
+    if (ok) {
+      add.saved(sent);
+      onClose(true);
+    }
   };
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
@@ -297,8 +307,7 @@ export function TagDialog({
         <form onSubmit={save} className="flex flex-col gap-3">
           <Input
             autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            {...add.field}
             placeholder="deliverability, hooks"
             aria-label="Tags to add"
           />
@@ -332,7 +341,7 @@ export function TagDialog({
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setText(typed.length ? `${typed.join(", ")}, ${t}` : t)}
+                  onClick={() => add.set(typed.length ? `${typed.join(", ")}, ${t}` : t)}
                   className="inline-flex h-7 items-center gap-1 border-0 bg-(--ui-tile) px-2 text-[12.5px] text-(--ui-ink-2) hover:text-(--ui-ink)"
                 >
                   <Hash size={12} />
@@ -342,7 +351,14 @@ export function TagDialog({
             </div>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button size="dense" tone="secondary" onClick={() => onClose()}>
+            <Button
+              size="dense"
+              tone="secondary"
+              onClick={() => {
+                add.discard();
+                onClose();
+              }}
+            >
               Cancel
             </Button>
             <Button tone="primary" size="dense" type="submit" busy={busy}>
@@ -361,12 +377,14 @@ export function TagDialog({
  */
 export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: boolean) => void }) {
   const notes = clientOf() !== null;
-  const [sop, setSop] = useState("");
+  const name = useEdit("learn:sop:name", "");
+  const sop = name.value;
   const [busy, setBusy] = useState(false);
   const ok = /^[a-z0-9][a-z0-9-]*$/.test(sop.trim());
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!ok) return;
+    const sent = sop;
     setBusy(true);
     const done = await act(
       learn.toSop(ids, sop.trim()),
@@ -375,7 +393,10 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
         : "Asked. The Mac adds it on its next read.",
     );
     setBusy(false);
-    if (done) onClose(true);
+    if (done) {
+      name.saved(sent);
+      onClose(true);
+    }
   };
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
@@ -391,13 +412,20 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
         <form onSubmit={save} className="flex flex-col gap-3">
           <Input
             autoFocus
-            value={sop}
-            onChange={(e) => setSop(e.target.value.toLowerCase())}
+            {...name.field}
+            onChange={(e) => name.set(e.target.value.toLowerCase())}
             placeholder={notes ? "onboarding" : "email-infra"}
             aria-label="SOP name"
           />
           <div className="flex justify-end gap-2">
-            <Button size="dense" tone="secondary" onClick={() => onClose()}>
+            <Button
+              size="dense"
+              tone="secondary"
+              onClick={() => {
+                name.discard();
+                onClose();
+              }}
+            >
               Cancel
             </Button>
             <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!ok}>
@@ -413,25 +441,31 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
 /** Name a new collection, or rename one. */
 export function NameDialog({
   title,
+  editKey,
   initial = "",
   action,
   onSave,
   onClose,
 }: {
   title: string;
+  /** Where the typed name waits until it is saved, such as `collection:4:name`. */
+  editKey: string;
   initial?: string;
   action: string;
   onSave: (name: string) => Promise<unknown>;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(initial);
+  const edit = useEdit(editKey, initial);
+  const name = edit.value;
   const [busy, setBusy] = useState(false);
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || edit.conflict) return;
+    const sent = name;
     setBusy(true);
     try {
       await onSave(name.trim());
+      edit.saved(sent);
       onClose();
     } catch (err) {
       say.failed(err);
@@ -447,17 +481,35 @@ export function NameDialog({
         <form onSubmit={save} className="flex flex-col gap-3">
           <Input
             autoFocus
-            value={name}
+            {...edit.field}
             maxLength={80}
-            onChange={(e) => setName(e.target.value)}
             aria-label="Name"
             placeholder="Cold email"
           />
+          <EditConflict
+            what="The name"
+            conflict={edit.conflict}
+            onKeepMine={edit.keepMine}
+            onTakeTheirs={edit.takeTheirs}
+          />
           <div className="flex justify-end gap-2">
-            <Button size="dense" tone="secondary" onClick={() => onClose()}>
+            <Button
+              size="dense"
+              tone="secondary"
+              onClick={() => {
+                edit.discard();
+                onClose();
+              }}
+            >
               Cancel
             </Button>
-            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!name.trim()}>
+            <Button
+              tone="primary"
+              size="dense"
+              type="submit"
+              busy={busy}
+              disabled={!name.trim() || !!edit.conflict}
+            >
               {action}
             </Button>
           </div>
@@ -573,6 +625,7 @@ export function CollectionMenu({
       {dialog === "new" ? (
         <NameDialog
           title={`New collection in ${c.name}`}
+          editKey={`collection:${c.id}:new-child`}
           action="Create"
           onSave={(name) =>
             learn.collectionAdd(name, c.id).then((made) => navigate(`/learn/items?in=c${made.id}`))
@@ -582,6 +635,7 @@ export function CollectionMenu({
       ) : dialog === "rename" ? (
         <NameDialog
           title="Rename collection"
+          editKey={`collection:${c.id}:name`}
           initial={c.name}
           action="Rename"
           onSave={(name) => learn.collectionEdit(c.id, { name })}

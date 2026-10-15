@@ -6,6 +6,11 @@ export interface Env {
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;
+  /**
+   * Restate's admin API, for why a write is being tried again (./writes.ts). Unset: Cloud's
+   * :9070 on the ingress host, else `/admin` on the ingress origin (the box's Caddy).
+   */
+  RESTATE_ADMIN_URL?: string;
   /** Our sign-in, e.g. https://auth.wrenautomation.com: it signs the tokens and publishes the keys. Unset = no sign-in yet. */
   AUTH_ORIGIN?: string;
   /** Our app's host, e.g. app.wrenautomation.com. Set: any other host is a client's own (./hosts.ts). */
@@ -27,6 +32,8 @@ export interface Env {
   DICTATE_KEY?: string;
   /** Live notes' rooms, one Durable Object per note (./live.ts). Unset = notes sync over HTTP. */
   NOTE_ROOM?: DurableObjectNamespace;
+  /** Each person's open writes, told to their tabs over a socket (./watch.ts). Unset = tabs poll. */
+  WRITE_WATCH?: DurableObjectNamespace;
   /** The cap on public posts per visitor (./limit.ts). Unset = no cap. */
   PUBLIC_LIMIT?: RateLimit;
 }

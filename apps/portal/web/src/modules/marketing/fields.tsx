@@ -276,6 +276,7 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
   const common = {
     id,
     value: text,
+    "data-edit": `field:${draftId}:${f.key}`,
     placeholder: f.default !== undefined ? String(f.default) : "",
     onBlur: save,
     onChange: (e: { target: { value: string } }) => s.set(e.target.value),
@@ -350,6 +351,7 @@ function PickRow(props: { picks: Picks; on: (v: string) => boolean; choose: (v: 
       <span className={HINT}>{picks.label}</span>
       {many ? (
         <Input
+          // edit-ok: search box
           aria-label={`Search ${picks.values.length} ${picks.label.replace(/:$/, "").toLowerCase()}`}
           placeholder={`Search ${picks.values.length}`}
           value={q}

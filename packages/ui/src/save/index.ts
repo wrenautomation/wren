@@ -25,7 +25,7 @@
  * What it promises:
  * - The input shows `value`. Only `set`, `takeTheirs` and a newer read over a clean box change
  *   it; a save's answer never does. A read that left before the newest save answered is ignored.
- * - Each `set` is journaled to localStorage synchronously (`wren.unsaved:<key>`). On open, a
+ * - Each `set` is journaled to the edits store synchronously (`wren.unsaved:<key>`, `../data/edits.ts`). On open, a
  *   journal over the same base (or version) comes back and saves; over a moved one it opens a
  *   conflict with both values.
  * - Saves for a key run one at a time across tabs (Web Locks; this tab only without them),
@@ -40,9 +40,10 @@
  *
  * ## Read caches
  *
- * `useLoad` (and the portal's `useCall`) answer `{ data, at }`: `at` is the tick its read left,
- * for `useSaved`'s `at`. `writeThrough(scope, fn)` patches every cached answer in a scope, every
- * mounted read and any read still out; `patchRecord(api, record, id, fields)` does it for a
+ * `useLoad` (and the portal's `useCall`) are TanStack Query reads (`../data/query.ts`); they
+ * answer `{ data, at }`: `at` is the tick its read left, for `useSaved`'s `at`.
+ * `writeThrough(scope, fn)` patches every cached answer in a scope (this tab, the device copy,
+ * the other tabs) and any read still out; `patchRecord(api, record, id, fields)` does it for a
  * record's row in its detail and lists, `patchCalls(fn)` for the portal's calls. A save never
  * reads the page again.
  *
@@ -61,15 +62,7 @@
  * `LATEST.write(key, value, send)`: a pref, a playback position, a select. One write per key at
  * a time; a newer value replaces one still waiting, so the server ends on the last one set.
  */
-export {
-  answersOf,
-  onWrite,
-  type Patch,
-  patchedSince,
-  remember,
-  rememberRead,
-  writeThrough,
-} from "./cache.js";
+export { type Patch, patchedSince, writeThrough } from "../data/query.js";
 export { tick } from "./clock.js";
 export {
   type Conflict,
@@ -105,6 +98,7 @@ export {
 export {
   type PressOptions,
   RECENT_MS,
+  type Retry,
   recordKey,
   stableKey,
   type WireCall,

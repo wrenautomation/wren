@@ -440,6 +440,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
                 Name
+                {/* edit-ok: public page, no sign-in to keep words under */}
                 <Input
                   name="name"
                   autoComplete="name"
@@ -452,6 +453,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
               </label>
               <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
                 Email
+                {/* edit-ok: public page, no sign-in to keep words under */}
                 <Input
                   name="email"
                   type="email"
@@ -606,6 +608,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
           <div className="grid gap-4">
             <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
               Anything they should know? (optional)
+              {/* edit-ok: public page, no sign-in to keep words under */}
               <Textarea
                 value={reason}
                 maxLength={500}

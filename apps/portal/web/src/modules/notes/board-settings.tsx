@@ -2,7 +2,7 @@
  * Board dialogs: a new board, and a board's settings (its name and columns, who it is shared with,
  * archive). Sharing is the note's: a person, the team, or at Wren a client.
  */
-import { Button, Input, say } from "@wren/ui";
+import { Button, EditConflict, Input, say, UnsavedMark, useEdit } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 } from "@wren/ui/components/ui/dialog";
 import { type FormEvent, useEffect, useState } from "react";
 import { WREN } from "../../module.js";
+import { useEditJson } from "../people/edit-json.js";
 import { type BoardInfo, notes, ROLE_LABEL, type ShareRole } from "./api.js";
 import { SELECT } from "./card.js";
 
@@ -34,14 +35,16 @@ export function NewBoard({
   onOpenChange: (o: boolean) => void;
   onMade: (id: string) => void;
 }) {
-  const [name, setName] = useState("");
+  const nameEdit = useEdit("board:new:name", "");
+  const name = nameEdit.value;
   const [busy, setBusy] = useState(false);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      const b = await notes(client, "boardCreate", { name });
-      setName("");
+      const sent = name;
+      const b = await notes(client, "boardCreate", { name: sent });
+      nameEdit.saved(sent);
       onOpenChange(false);
       onMade(b.id);
     } catch (err) {
@@ -61,13 +64,13 @@ export function NewBoard({
         </DialogHeader>
         <form className="flex flex-col gap-3" onSubmit={submit}>
           <Input
-            value={name}
+            {...nameEdit.field}
             autoFocus
             maxLength={80}
             aria-label="Board name"
             placeholder="Launch plan"
-            onChange={(e) => setName(e.target.value)}
           />
+          <UnsavedMark edit={nameEdit} />
           <div className="flex justify-end">
             <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!name.trim()}>
               Make board
@@ -95,12 +98,20 @@ export function BoardDialog({
   onGone: () => void;
 }) {
   const owner = board.role === "owner";
-  const [name, setName] = useState(board.name);
-  const [columns, setColumns] = useState<Column[]>(board.columns.length ? board.columns : FIRST);
+  const nameEdit = useEdit(`board:${board.id}:name`, board.name);
+  const colsEdit = useEditJson<Column[]>(
+    `board:${board.id}:columns`,
+    board.columns.length ? board.columns : FIRST,
+    { show: (cs) => cs.map((c) => c.name).join(", ") },
+  );
+  const whoEdit = useEdit(`board:${board.id}:share`, "");
+  const name = nameEdit.value;
+  const columns = colsEdit.value;
+  const who = whoEdit.value;
+  const setColumns = (f: (cs: Column[]) => Column[]) => colsEdit.set(f(colsEdit.value));
   const [busy, setBusy] = useState(false);
   const [shares, setShares] = useState<{ who: string; role: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [who, setWho] = useState("");
   const [role, setRole] = useState<ShareRole>("edit");
 
   const readShares = () =>
@@ -131,12 +142,18 @@ export function BoardDialog({
     e.preventDefault();
     setBusy(true);
     try {
+      const sentName = name;
+      const sentCols = columns;
       await notes(client, "boardSave", {
         id: board.id,
-        name,
+        name: sentName,
         // A new column has no id yet; the server makes one from its name.
-        columns: columns.map((c) => (c.id.startsWith("new-") ? { name: c.name, done: c.done } : c)),
+        columns: sentCols.map((c) =>
+          c.id.startsWith("new-") ? { name: c.name, done: c.done } : c,
+        ),
       });
+      nameEdit.saved(sentName);
+      colsEdit.saved(sentCols);
       say.done("Saved.");
       onChanged();
       onOpenChange(false);
@@ -148,8 +165,9 @@ export function BoardDialog({
   };
   const share = async (w: string, r: ShareRole | null) => {
     try {
+      const typed = whoEdit.value;
       await notes(client, "boardShare", { id: board.id, who: w, role: r });
-      setWho("");
+      whoEdit.saved(typed);
       await readShares();
       onChanged();
     } catch (err) {
@@ -187,18 +205,21 @@ export function BoardDialog({
         <form className="flex flex-col gap-3" onSubmit={save}>
           <label className="grid gap-1 text-[13px]">
             Name
-            <Input
-              value={name}
-              maxLength={80}
-              disabled={board.isDefault}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input {...nameEdit.field} maxLength={80} disabled={board.isDefault} />
           </label>
+          <UnsavedMark edit={nameEdit} />
+          <EditConflict
+            conflict={nameEdit.conflict}
+            onKeepMine={nameEdit.keepMine}
+            onTakeTheirs={nameEdit.takeTheirs}
+            what="The name"
+          />
           <fieldset className="m-0 grid gap-1.5 border-0 p-0">
             <legend className="mb-1 p-0 text-[13px]">Columns, left to right</legend>
             {columns.map((c, i) => (
               <div key={c.id} className="flex items-center gap-1.5">
                 <Input
+                  data-edit={colsEdit.key}
                   value={c.name}
                   maxLength={40}
                   aria-label={`Column ${i + 1}`}
@@ -264,6 +285,13 @@ export function BoardDialog({
                 </Button>
               </div>
             ) : null}
+            <UnsavedMark edit={colsEdit} />
+            <EditConflict
+              conflict={colsEdit.conflict}
+              onKeepMine={colsEdit.keepMine}
+              onTakeTheirs={colsEdit.takeTheirs}
+              what="The columns"
+            />
           </fieldset>
           <div className="flex justify-end">
             <Button tone="primary" size="dense" type="submit" busy={busy}>
@@ -317,12 +345,11 @@ export function BoardDialog({
               }}
             >
               <Input
-                value={who}
+                {...whoEdit.field}
                 list="board-who"
                 aria-label="Share with"
                 placeholder="An email, team, or a client"
                 className="min-w-0 flex-1"
-                onChange={(e) => setWho(e.target.value)}
               />
               <datalist id="board-who">
                 <option value="team" />

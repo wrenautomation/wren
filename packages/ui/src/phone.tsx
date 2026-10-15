@@ -4,6 +4,7 @@
  * move tracks a real touch and settles on transform alone. Reduced motion keeps the gestures and
  * drops the travel: the stylesheet strips transform transitions, so everything lands at once.
  */
+
 import { cn } from "cn";
 import {
   createContext,
@@ -16,6 +17,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { refreshAll } from "./data/query.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
 import { rubber, settle, swipeEnd } from "./phone-nav.js";
@@ -570,19 +572,6 @@ export const toneOf = (label: string, first: boolean): SwipeAct["tone"] =>
       : "ink";
 
 // --- Pull to refresh ------------------------------------------------------------------------
-
-/** Every loader on screen, asked again; each answers when its fresh read lands. */
-const REFRESHERS = new Set<() => Promise<void>>();
-export function onRefresh(fn: () => Promise<void>) {
-  REFRESHERS.add(fn);
-  return () => {
-    REFRESHERS.delete(fn);
-  };
-}
-/** Read everything on screen again; done when every read has answered. */
-export async function refreshAll(): Promise<void> {
-  await Promise.allSettled([...REFRESHERS].map((f) => f()));
-}
 
 /** Where a touch landed: a sheet, a dialog, or something that scrolls itself. */
 const ownScroll = (t: EventTarget | null) => {

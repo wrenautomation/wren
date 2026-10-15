@@ -18,10 +18,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
-import { type Action, type Call, callOnce } from "./action.js";
+import { type Action, type Call, callOnce, useLastWrite } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { SendStatus } from "./data/status.js";
+import { useEdit } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
 import { draftSaving, type LiveText, withTurns } from "./draft-save.js";
 import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
@@ -179,6 +181,7 @@ export function DraftBox({
   wrote,
   at,
   send,
+  sending,
   between,
   framed = true,
   onText,
@@ -196,6 +199,8 @@ export function DraftBox({
   /** The tick when the read of `draft.text` left (`useLoad`'s `at`): older reads never land. */
   at?: number | undefined;
   send?: (() => void) | undefined;
+  /** The record (`recordKey`) and send action whose last send the line under the box tells. */
+  sending?: { record: string; what: string } | undefined;
   /** The record's own fields, drawn under the words and above Ask Claude. */
   between?: ReactNode;
   /** False when the preview sits beside the box: the box keeps only the counts. */
@@ -228,7 +233,11 @@ export function DraftBox({
   );
   const text = s.value;
   const dirty = s.dirty;
-  const [message, setMessage] = useState("");
+  /** Its last send, from `WRITES`: going, trying again and why, sent, refused and why. */
+  const sent = useLastWrite(sending?.record ?? null, sending ? [sending.what] : undefined);
+  /** The question to Claude waits on the device until it's asked. */
+  const question = useEdit(`${key}:ask`, "");
+  const message = question.value;
   const [asking, setAsking] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const boxId = useId();
@@ -267,7 +276,7 @@ export function DraftBox({
       // Claude reads the saved draft: what he typed goes first.
       if (!(await flush())) return;
       await callOnce(call, ask.handler, [id], { ids: [id], message: said });
-      setMessage("");
+      question.saved(message);
       changed([id]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -304,6 +313,7 @@ export function DraftBox({
         </label>
         {save ? <SaveStatus state={s} onRetry={() => void s.retry()} idle={hint} /> : null}
       </div>
+      <SendStatus write={sent} />
       {s.conflict ? (
         <SaveConflict
           conflict={s.conflict}
@@ -324,6 +334,7 @@ export function DraftBox({
             ref={box}
             id={boxId}
             value={text}
+            data-edit={key}
             onChange={(e) => s.set(e.target.value)}
             onBlur={() => void flush()}
             onKeyDown={keys}
@@ -359,8 +370,7 @@ export function DraftBox({
             <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
               <Input
                 ref={askBox}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                {...question.field}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     e.preventDefault();

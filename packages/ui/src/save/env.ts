@@ -1,3 +1,5 @@
+import { EDITS } from "../data/edits.js";
+
 /**
  * What the save engine touches outside itself, in one place so a test hands in fakes: the
  * device's storage, the browser's locks, the page's events, ids and the clock.
@@ -24,14 +26,6 @@ export interface SaveEnv {
   /** A fresh request id. */
   id(): string;
   now(): number;
-}
-
-function local(): Store | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null;
-  }
 }
 
 function webLocks(): Locks | null {
@@ -70,10 +64,11 @@ export function newId(): string {
   }
 }
 
-/** The browser's, read when asked (a test can swap `localStorage` before). */
+/** The browser's, read when asked. */
 export function browserEnv(): SaveEnv {
   return {
-    storage: local(),
+    // The one edits store, under the client shown now (`../data/edits.ts`).
+    storage: EDITS.view(),
     locks: webLocks(),
     listen: listenPage,
     id: newId,

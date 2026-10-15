@@ -18,6 +18,8 @@ import {
   num,
   PageHeader,
   say,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -292,9 +294,12 @@ function NewDeal({
   pipeline: string;
   onDone: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [value, setValue] = useState("");
-  const [contact, setContact] = useState("");
+  const nameEdit = useEdit(`deal:new:${pipeline}:name`, "");
+  const valueEdit = useEdit(`deal:new:${pipeline}:value`, "");
+  const contactEdit = useEdit(`deal:new:${pipeline}:contact`, "");
+  const { value: name } = nameEdit;
+  const { value } = valueEdit;
+  const { value: contact } = contactEdit;
   const [busy, setBusy] = useState(false);
   const flying = useRef(false);
   const submit = async (e: FormEvent) => {
@@ -302,6 +307,7 @@ function NewDeal({
     if (flying.current) return;
     flying.current = true;
     setBusy(true);
+    const sent = { name, value, contact };
     try {
       await ACTIONS.run(`deal-create:${pipeline}`, (requestId) =>
         call("deals/create", {
@@ -317,6 +323,9 @@ function NewDeal({
           requestId,
         }),
       );
+      nameEdit.saved(sent.name);
+      valueEdit.saved(sent.value);
+      contactEdit.saved(sent.contact);
       say.done("Added to the first stage.");
       onDone();
     } catch (err) {
@@ -333,28 +342,20 @@ function NewDeal({
     >
       <label className="grid gap-1 text-[13px]">
         Deal
-        <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+        <Input {...nameEdit.field} required autoFocus />
       </label>
       <label className="grid w-[120px] gap-1 text-[13px]">
         Value
-        <Input
-          value={value}
-          inputMode="decimal"
-          placeholder="1200"
-          onChange={(e) => setValue(e.target.value)}
-        />
+        <Input {...valueEdit.field} inputMode="decimal" placeholder="1200" />
       </label>
       <label className="grid gap-1 text-[13px]">
         Contact
-        <Input
-          value={contact}
-          placeholder="A name or an email"
-          onChange={(e) => setContact(e.target.value)}
-        />
+        <Input {...contactEdit.field} placeholder="A name or an email" />
       </label>
       <Button tone="primary" type="submit" size="sm" busy={busy} disabled={!name.trim()}>
         Add
       </Button>
+      <UnsavedMark edit={nameEdit} />
     </form>
   );
 }

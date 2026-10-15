@@ -11,6 +11,7 @@ import {
   type KeepApi,
   type LocalRecords,
   localRecords,
+  nameScope,
   type Place,
   type RecordAct,
   RecordDay,
@@ -82,7 +83,8 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
           : {}),
       access: accessOf(client, scope),
     };
-    APIS.set(key, api);
+    // Named: its reads are kept on the device and paint the next load at once.
+    APIS.set(key, nameScope(api, `records:${key}`));
   }
   return api;
 }

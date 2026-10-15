@@ -6,7 +6,7 @@ Object.assign(globalThis, {
   location: Object.assign(new URL("https://app.example.test/home"), { assign }),
 });
 vi.mock("./autotrack.js", () => ({ tellAutotrack: () => undefined }));
-vi.mock("./snapshot.js", () => ({ dropSnapshot: () => undefined }));
+vi.mock("./write-socket.js", () => ({ startWriteSocket: () => null }));
 
 /** A token the auth host hands out, good for an hour. */
 const jwt = () =>

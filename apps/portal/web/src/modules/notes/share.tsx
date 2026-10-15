@@ -4,7 +4,7 @@
  * owner changes it; everyone else sees who owns it.
  */
 import { ownerName } from "@wren/notes/types";
-import { Button, Input, say } from "@wren/ui";
+import { Button, Input, say, UnsavedMark, useEdit } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +75,9 @@ export function ShareDialog({
   const owner = note.role === "owner";
   const wren = client === WREN.id;
   const [shares, setShares] = useState<NoteShare[]>(note.shares);
-  const [who, setWho] = useState("");
+  // Who is being added is kept as typed until it is added.
+  const whoEdit = useEdit(`note:${note.id}:share-who`, "");
+  const who = whoEdit.value;
   const [role, setRole] = useState<ShareRole>("edit");
   const [general, setGeneral] = useState(note.general);
   const [generalRole, setGeneralRole] = useState<ShareRole>(note.generalRole as ShareRole);
@@ -100,8 +102,12 @@ export function ShareDialog({
       .then((out) => {
         setShares(out.shares);
         onChanged();
+        return true;
       })
-      .catch(say.failed);
+      .catch((err: unknown) => {
+        say.failed(err);
+        return false;
+      });
   const setAccess = (g: "private" | "workspace", r: ShareRole) => {
     setGeneral(g);
     setGeneralRole(r);
@@ -112,7 +118,10 @@ export function ShareDialog({
   const add = () => {
     const w = who.trim().toLowerCase();
     if (!w) return;
-    void share(w, role).then(() => setWho(""));
+    const typed = who;
+    void share(w, role).then((ok) => {
+      if (ok) whoEdit.saved(typed);
+    });
   };
   const copy = () =>
     navigator.clipboard
@@ -148,12 +157,11 @@ export function ShareDialog({
             }}
           >
             <Input
-              value={who}
+              {...whoEdit.field}
               list={list}
               aria-label="Add a person or group"
               placeholder={wren ? "Email, Wren's team or a client" : "Email"}
               className="h-8 min-w-0 flex-1"
-              onChange={(e) => setWho(e.target.value)}
             />
             <datalist id={list}>
               {options.map(([v, l]) => (
@@ -166,6 +174,7 @@ export function ShareDialog({
             <Button tone="primary" size="dense" type="submit" disabled={!who.trim()}>
               Add
             </Button>
+            <UnsavedMark edit={whoEdit} />
           </form>
         ) : null}
         <section className="grid gap-1">

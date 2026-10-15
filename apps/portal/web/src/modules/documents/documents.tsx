@@ -229,7 +229,16 @@ const previewLines = (ls: LineDraft[]): DocLine[] =>
     }));
 
 /** The words box and its slot picker: a slot goes in where the cursor is. */
-function Words({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function Words({
+  value,
+  onChange,
+  editKey,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  /** Where the typing is kept (the form's save key). */
+  editKey: string;
+}) {
   const box = useRef<HTMLTextAreaElement | null>(null);
   const put = (slot: string) => {
     const el = box.current;
@@ -263,6 +272,7 @@ function Words({ value, onChange }: { value: string; onChange: (v: string) => vo
       <Textarea
         ref={box}
         rows={10}
+        data-edit={editKey}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="The terms, the scope, what happens next. Slots fill in when it's sent."
@@ -278,10 +288,13 @@ function Lines({
   lines,
   set,
   currency,
+  editKey,
 }: {
   lines: LineDraft[];
   set: (ls: LineDraft[]) => void;
   currency: string;
+  /** Where the typing is kept (the form's save key). */
+  editKey: string;
 }) {
   const change = (i: number, k: keyof LineDraft, v: string) =>
     set(lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
@@ -298,6 +311,7 @@ function Lines({
               <div className="grid grid-cols-[1fr_4.5rem_6.5rem_4.5rem_auto] gap-1.5 max-[560px]:grid-cols-[1fr_1fr_1fr]">
                 <input
                   className={cx(CELL, "max-[560px]:col-span-3")}
+                  data-edit={editKey}
                   value={l.name}
                   onChange={(e) => change(i, "name", e.target.value)}
                   placeholder="What it is"
@@ -305,6 +319,7 @@ function Lines({
                 />
                 <input
                   className={CELL}
+                  data-edit={editKey}
                   value={l.qty}
                   inputMode="decimal"
                   onChange={(e) => change(i, "qty", e.target.value)}
@@ -313,6 +328,7 @@ function Lines({
                 />
                 <input
                   className={CELL}
+                  data-edit={editKey}
                   value={l.price}
                   inputMode="decimal"
                   onChange={(e) => change(i, "price", e.target.value)}
@@ -321,6 +337,7 @@ function Lines({
                 />
                 <input
                   className={CELL}
+                  data-edit={editKey}
                   value={l.tax}
                   inputMode="decimal"
                   onChange={(e) => change(i, "tax", e.target.value)}
@@ -340,6 +357,7 @@ function Lines({
               </div>
               <input
                 className={cx(CELL, "text-[13px]")}
+                data-edit={editKey}
                 value={l.detail}
                 onChange={(e) => change(i, "detail", e.target.value)}
                 placeholder="Detail, if any"
@@ -567,6 +585,7 @@ function DocForm({
           <Input
             required
             maxLength={200}
+            data-edit={keyOf}
             value={f.title}
             onChange={(e) => put({ title: e.target.value })}
             placeholder="Kitchen repaint"
@@ -589,12 +608,18 @@ function DocForm({
         </label>
         <label className={cx(FIELD, "grow basis-[180px]")}>
           <span>Name</span>
-          <Input value={f.name} onChange={(e) => put({ name: e.target.value })} maxLength={200} />
+          <Input
+            data-edit={keyOf}
+            value={f.name}
+            onChange={(e) => put({ name: e.target.value })}
+            maxLength={200}
+          />
         </label>
         <label className={cx(FIELD, "grow basis-[220px]")}>
           <span>Email</span>
           <Input
             type="email"
+            data-edit={keyOf}
             value={f.email}
             onChange={(e) => put({ email: e.target.value })}
             placeholder={f.channel === "email" ? "Required to send by email" : "Optional"}
@@ -610,6 +635,7 @@ function DocForm({
               <span>Mobile</span>
               <Input
                 type="tel"
+                data-edit={keyOf}
                 value={f.phone}
                 onChange={(e) => put({ phone: e.target.value })}
                 placeholder="A number you've texted"
@@ -619,20 +645,21 @@ function DocForm({
         ) : null}
       </fieldset>
 
-      <Words value={f.body} onChange={(body) => put({ body })} />
+      <Words value={f.body} onChange={(body) => put({ body })} editKey={keyOf} />
       {left.length ? (
         <p className={cx("text-[12.5px]", QUIET)}>
           Not a slot we know: {left.join(", ")}. It stays as typed.
         </p>
       ) : null}
 
-      <Lines lines={f.lines} set={(lines) => put({ lines })} currency={currency} />
+      <Lines lines={f.lines} set={(lines) => put({ lines })} currency={currency} editKey={keyOf} />
 
       <div className="flex flex-wrap gap-3">
         <label className={FIELD}>
           <span>Deposit %</span>
           <Input
             inputMode="numeric"
+            data-edit={keyOf}
             value={f.deposit}
             onChange={(e) => put({ deposit: e.target.value })}
             placeholder="None"
@@ -643,6 +670,7 @@ function DocForm({
           <span>Expires after (days)</span>
           <Input
             inputMode="numeric"
+            data-edit={keyOf}
             value={f.expires}
             onChange={(e) => put({ expires: e.target.value })}
             className="w-28"
@@ -1105,6 +1133,7 @@ function TemplateForm({
           <Input
             required
             maxLength={120}
+            data-edit={keyOf}
             value={name}
             onChange={(e) => put({ name: e.target.value })}
           />
@@ -1127,6 +1156,7 @@ function TemplateForm({
           <span>Deposit %</span>
           <Input
             inputMode="numeric"
+            data-edit={keyOf}
             value={deposit}
             onChange={(e) => put({ deposit: e.target.value })}
             placeholder="None"
@@ -1137,14 +1167,15 @@ function TemplateForm({
           <span>Expires after (days)</span>
           <Input
             inputMode="numeric"
+            data-edit={keyOf}
             value={expires}
             onChange={(e) => put({ expires: e.target.value })}
             className="w-28"
           />
         </label>
       </div>
-      <Words value={body} onChange={(v) => put({ body: v })} />
-      <Lines lines={lines} set={(v) => put({ lines: v })} currency="usd" />
+      <Words value={body} onChange={(v) => put({ body: v })} editKey={keyOf} />
+      <Lines lines={lines} set={(v) => put({ lines: v })} currency="usd" editKey={keyOf} />
       {kept.restored && kept.dirty ? (
         <p className={cx("text-[13px]", QUIET)}>Your unsaved changes are back.</p>
       ) : null}

@@ -5,11 +5,13 @@
  */
 
 import type { RecordMeta } from "@wren/core/records";
+import type { RecordsPage } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { type Action, applies, blockedOf, sayBlocked, useHeld, useRun } from "./action.js";
 import { Button } from "./controls.js";
+import { listChanged } from "./data/delta.js";
 import { LoadFailed } from "./feedback.js";
 import { Cue, dateTip, relative } from "./fields.js";
 import { num } from "./format.js";
@@ -70,7 +72,11 @@ function Queue({
   const { params } = place;
   const one = meta.name.one;
   const ask = askOf(meta, params);
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
+  const page = useLoad<RecordsPage>(
+    JSON.stringify(ask),
+    (before) => listChanged((a) => api.list(a), ask, before),
+    api,
+  );
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [rev, setRev] = useState(0);
   const actions = actsOf(meta, acts);

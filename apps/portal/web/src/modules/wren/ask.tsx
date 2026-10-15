@@ -8,6 +8,7 @@ import {
   Button,
   DictateField,
   dateTip,
+  EditConflict,
   Empty,
   LoadFailed,
   Loading,
@@ -15,6 +16,8 @@ import {
   relative,
   Tag,
   Textarea,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -69,7 +72,8 @@ export function Ask() {
   const list = useCall("console.ask", () =>
     call<RecordsPage>("console/recordsList", { record: "console.ask", view: "all", limit: 50 }),
   );
-  const [q, setQ] = useState("");
+  const ask = useEdit("ask:new:question", "");
+  const q = ask.value;
   const box = useRef<HTMLTextAreaElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +93,7 @@ export function Ask() {
       const sent = q;
       await call("console/question", { question: sent.trim(), page: "/ask/questions" });
       // Cleared only if he hasn't typed on meanwhile.
-      setQ((now) => (now === sent ? "" : now));
+      ask.saved(sent);
       list.retry();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -107,8 +111,7 @@ export function Ask() {
         <DictateField target={box} label="Dictate your question">
           <Textarea
             ref={box}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            {...ask.field}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(e);
             }}
@@ -117,10 +120,17 @@ export function Ask() {
             aria-label="Your question"
           />
         </DictateField>
+        <EditConflict
+          conflict={ask.conflict}
+          onKeepMine={ask.keepMine}
+          onTakeTheirs={ask.takeTheirs}
+          what="The question"
+        />
         <div className="flex items-center gap-3">
           <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!q.trim()}>
             Ask
           </Button>
+          <UnsavedMark edit={ask} />
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       </form>

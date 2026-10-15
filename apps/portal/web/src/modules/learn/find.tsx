@@ -99,6 +99,7 @@ export function FindCreators() {
     <div className="flex max-w-4xl flex-col gap-3">
       <form onSubmit={search} className="flex flex-col gap-2 sm:flex-row">
         <Input
+          // edit-ok: search box
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find people to follow: a name, a handle or a topic"

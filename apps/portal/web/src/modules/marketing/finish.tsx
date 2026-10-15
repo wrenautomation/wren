@@ -50,7 +50,17 @@ import {
   wordState,
 } from "@wren/studio/finish";
 import type { Cut } from "@wren/studio/schema";
-import { ACTIONS, Button, cx, type RecordAct, SaveConflict, SaveStatus, useSaved } from "@wren/ui";
+import {
+  ACTIONS,
+  Button,
+  cx,
+  EditConflict,
+  type RecordAct,
+  SaveConflict,
+  SaveStatus,
+  useEdit,
+  useSaved,
+} from "@wren/ui";
 import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
@@ -676,6 +686,7 @@ export function Finish({
         <div key={panel} className="animate-[finish-in_160ms_var(--ui-ease)]">
           {panel === "text" ? (
             <TextPanel
+              editKey={`video-finish:${id}`}
               draw={draw}
               t={t}
               dur={dur}
@@ -706,6 +717,7 @@ export function Finish({
             <CoverPanel draw={draw} t={t} covers={data.covers} onSeek={seek} commit={commit} />
           ) : panel === "shorts" ? (
             <ShortsPanel
+              id={id}
               shorts={shorts}
               dur={dur}
               t={t}
@@ -718,6 +730,7 @@ export function Finish({
             />
           ) : panel === "layout" ? (
             <LayoutPanel
+              id={id}
               layout={data.layout ?? []}
               camBox={data.camBox ?? null}
               size={data.size}
@@ -1552,6 +1565,7 @@ function Choice<T extends string>({
 const SIZE_NAMES: Record<OverlaySize, string> = { s: "Small", m: "Medium", l: "Large" };
 
 function TextPanel({
+  editKey,
   draw,
   t,
   dur,
@@ -1559,6 +1573,8 @@ function TextPanel({
   onPick,
   commit,
 }: {
+  /** The finishing save's key: the words ride on its kept edits. */
+  editKey: string;
   draw: FinishEdit;
   t: number;
   dur: number;
@@ -1609,6 +1625,7 @@ function TextPanel({
                 </button>
                 <input
                   value={o.text}
+                  data-edit={editKey}
                   maxLength={OVERLAY.maxChars}
                   aria-label="Text"
                   onFocus={() => onPick(i)}
@@ -1795,20 +1812,20 @@ function LineRow({
   onSeek: (t: number) => void;
   act: RecordAct;
 }) {
-  const [text, setText] = useState(line.text);
+  // The words stay until they are saved: another page and back gives them again.
+  const edit = useEdit(`video:${id}:line:${line.at.join()}`, line.text);
+  const text = edit.value;
   const [said, setSaid] = useState<{ bad: boolean; words: string } | null>(null);
   const send = async () => {
     const next = text.trim().replace(/\s+/g, " ");
-    if (next === line.text) return;
-    if (!next) {
-      setText(line.text);
-      return;
-    }
+    if (next === line.text || !next) return edit.discard();
+    if (edit.conflict) return;
     setSaid({ bad: false, words: "Saving…" });
     try {
       await ACTIONS.run(`video-line:${id}:${line.at.join()}:${next}`, (requestId) =>
         act(LINE, { at: line.at, text: next, was: line.text, requestId }, VIEWED),
       );
+      edit.saved(text);
       setSaid(null);
     } catch (err) {
       setSaid({ bad: true, words: err instanceof Error ? err.message : String(err) });
@@ -1818,7 +1835,7 @@ function LineRow({
     <li
       data-line={i}
       className={cx(
-        "flex items-center gap-2 rounded-md px-1.5 transition-colors duration-150",
+        "flex flex-wrap items-center gap-2 rounded-md px-1.5 transition-colors duration-150",
         lit ? "bg-(--ui-fill)" : "",
       )}
     >
@@ -1830,16 +1847,15 @@ function LineRow({
         {short(line.s)}
       </button>
       <input
-        value={text}
+        {...edit.field}
         aria-label={`Caption at ${short(line.s)}`}
-        onChange={(e) => setText(e.target.value)}
         onFocus={() => onSeek(line.s)}
         onBlur={() => void send()}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
             void send();
-          } else if (e.key === "Escape") setText(line.text);
+          } else if (e.key === "Escape") edit.discard();
         }}
         className="h-7 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1.5 text-[13px] outline-none hover:border-(--ui-hair) focus:border-(--ui-focus) focus:bg-(--ui-paper)"
       />
@@ -1852,6 +1868,16 @@ function LineRow({
         >
           {said.words}
         </span>
+      ) : null}
+      {edit.conflict ? (
+        <div className="w-full">
+          <EditConflict
+            what="This caption"
+            conflict={edit.conflict}
+            onKeepMine={edit.keepMine}
+            onTakeTheirs={edit.takeTheirs}
+          />
+        </div>
       ) : null}
     </li>
   );

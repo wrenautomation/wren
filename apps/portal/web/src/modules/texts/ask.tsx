@@ -3,14 +3,17 @@
  * template (`sms/askReview`). The ask goes out under the same rules as any other: texting hours,
  * opt-outs, once per customer, the client's sends switch.
  */
-import { ACTIONS, Button, Input, Tag } from "@wren/ui";
+import { ACTIONS, Button, Input, Tag, useEdit } from "@wren/ui";
 import { type FormEvent, useRef, useState } from "react";
 import { call } from "../../api.js";
 
 export function AskReview({ client, reload }: { client: string; reload: () => void }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const nameEdit = useEdit("review-ask:new:name", "");
+  const phoneEdit = useEdit("review-ask:new:phone", "");
+  const emailEdit = useEdit("review-ask:new:email", "");
+  const { value: name } = nameEdit;
+  const { value: phone } = phoneEdit;
+  const { value: email } = emailEdit;
   const any = !!(phone.trim() || email.trim());
   const [busy, setBusy] = useState(false);
   const flying = useRef(false);
@@ -33,9 +36,9 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
         }),
       );
       // Clear what was sent; anything typed meanwhile stays.
-      setName((v) => (v === sent.name ? "" : v));
-      setPhone((v) => (v === sent.phone ? "" : v));
-      setEmail((v) => (v === sent.email ? "" : v));
+      nameEdit.saved(sent.name);
+      phoneEdit.saved(sent.phone);
+      emailEdit.saved(sent.email);
       setSaid({ ok: true, line: "Asked. It shows here in a moment." });
       setTimeout(reload, 1500);
     } catch (err) {
@@ -52,24 +55,21 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
     >
       <div className="flex min-w-0 flex-wrap gap-2">
         <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          {...nameEdit.field}
           className="min-w-0 flex-1 basis-32"
           placeholder="Name"
           aria-label="Customer's name"
         />
         <Input
           type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          {...phoneEdit.field}
           className="min-w-0 flex-1 basis-32"
           placeholder="Mobile"
           aria-label="Customer's mobile"
         />
         <Input
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          {...emailEdit.field}
           className="min-w-0 flex-1 basis-32"
           placeholder="Email"
           aria-label="Customer's email"

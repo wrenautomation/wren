@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { patchedSince, writeThrough } from "./cache.js";
+import { patchedSince, writeThrough } from "../data/query.js";
 import { tick } from "./clock.js";
 import { forgetSaves, type SaveContext, Saver, type SaverOptions } from "./engine.js";
 import { TAB } from "./journal.js";

@@ -36,6 +36,7 @@ import {
   sortOf,
   type Thumb,
 } from "./records.js";
+import { changedOnly, knownIn } from "./records-delta.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 import { jsonl, type TrainRecord, trainRecords } from "./train.js";
 
@@ -63,6 +64,8 @@ export interface ListAsk {
   facets?: boolean;
   /** Also each row's picture, where the type has them: a card view. */
   thumbs?: boolean;
+  /** The hashes of the rows the reader holds: those come back as stubs (`./records-delta.ts`). */
+  known?: string[];
 }
 export interface RecordsPage {
   record: string;
@@ -81,6 +84,10 @@ export interface RecordsPage {
   facets?: Record<string, Record<string, number>>;
   /** Asked for: the rows' pictures by id, those that have one (`RecordType.thumbs`). */
   thumbs?: Record<string, Thumb>;
+  /** Each row's change mark, in order (`rowHash`). */
+  hashes?: string[];
+  /** Rows the reader said it holds, sent as stubs: their places in `rows`. */
+  same?: number[];
 }
 /**
  * A list column's footer: money sums (one currency), a rate pools n of m, a verdict is valid of
@@ -803,25 +810,28 @@ export function serveRecords(
                 .catch(() => ({}))
             : undefined;
         const last = raw.length > limit ? page.at(-1) : undefined;
-        return {
-          record: p.t.id,
-          view: p.view?.id ?? null,
-          rows: page.map((r) => rowOf(p.t, r)),
-          total: Number(n?.__total ?? 0),
-          counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
-          totals: n ? totals.read(n) : {},
-          ...(facets ? { facets } : {}),
-          ...(thumbs ? { thumbs } : {}),
-          next: last
-            ? encode([
-                p.sortKey,
-                last.__sort === null,
-                (last.__sort as string | null) ?? null,
-                String(last.__key),
-                String(last.__group ?? ""),
-              ])
-            : null,
-        };
+        return changedOnly(
+          {
+            record: p.t.id,
+            view: p.view?.id ?? null,
+            rows: page.map((r) => rowOf(p.t, r)),
+            total: Number(n?.__total ?? 0),
+            counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
+            totals: n ? totals.read(n) : {},
+            ...(facets ? { facets } : {}),
+            ...(thumbs ? { thumbs } : {}),
+            next: last
+              ? encode([
+                  p.sortKey,
+                  last.__sort === null,
+                  (last.__sort as string | null) ?? null,
+                  String(last.__key),
+                  String(last.__group ?? ""),
+                ])
+              : null,
+          },
+          knownIn(ask.known),
+        );
       }),
 
     get: (ask: GetAsk): Promise<RecordAnswer> =>

@@ -24,8 +24,10 @@ import { Input } from "./components/ui/input.js";
 import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { tellTabsLanded } from "./data/local.js";
+import { refreshAll } from "./data/query.js";
+import { KeptConflict } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
-import { refreshAll } from "./phone.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
 import { forgetForm, useKeptForm } from "./save/react.js";
 import {
@@ -274,6 +276,8 @@ export function useLastWrite(
 // How a write that settled out of sight went, said when the tab shows; the page reads again.
 WRITES.use({
   reread: refreshAll,
+  // The other tabs of this person read again too.
+  landed: () => tellTabsLanded(),
   tell: (w) =>
     w.status === "failed"
       ? void toast.error(`${w.label ?? "A change"} didn't go through: ${w.error ?? "it failed."}`, {
@@ -360,6 +364,7 @@ export function FormBox({
   onText,
   onFile,
   autoFocus,
+  edit,
 }: {
   f: FormField;
   id: string;
@@ -367,6 +372,8 @@ export function FormBox({
   onText: (text: string) => void;
   onFile?: ((file: File | undefined) => void) | undefined;
   autoFocus?: boolean | undefined;
+  /** Where the form keeps its words (its `useKeptForm` key); left out, the owner says why not. */
+  edit?: string | null | undefined;
 }) {
   const required = !f.optional;
   const longBox = useRef<HTMLTextAreaElement>(null);
@@ -403,6 +410,7 @@ export function FormBox({
           ref={longBox}
           id={id}
           value={value}
+          data-edit={edit ?? undefined}
           onChange={(e) => onText(e.target.value)}
           required={required}
           autoFocus={autoFocus}
@@ -417,7 +425,7 @@ export function FormBox({
         type={f.type ?? "text"}
         {...(f.type === "file"
           ? { onChange: (e) => onFile?.(e.target.files?.[0]) }
-          : { value, onChange: (e) => onText(e.target.value) })}
+          : { value, "data-edit": edit ?? undefined, onChange: (e) => onText(e.target.value) })}
         required={required}
         autoFocus={autoFocus}
         {...(f.type === "number" ? { step: "any" } : {})}
@@ -955,10 +963,12 @@ export function useRun(
                   ref={textBox}
                   id={textId}
                   value={text}
+                  data-edit={askKept.key ?? undefined}
                   onChange={(e) => setText(e.target.value)}
                   rows={6}
                 />
               </DictateField>
+              <KeptConflict kept={askKept} field="text" />
               {shown && text.trim() ? <MessagePreview message={shown} body={text} /> : null}
             </div>
           ) : null}
@@ -968,6 +978,7 @@ export function useRun(
               f={f}
               id={`${textId}-${f.field}`}
               value={values[f.field] ?? ""}
+              edit={formKept.key}
               onText={(text) => setTyped(f.field, text)}
               onFile={(file) =>
                 setFiles(({ [f.field]: _, ...rest }) =>

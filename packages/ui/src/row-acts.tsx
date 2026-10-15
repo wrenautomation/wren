@@ -47,6 +47,7 @@ import { type Action, runs, setsAside } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { useEdit } from "./data/use-edit.js";
 import { tipProps } from "./hint.js";
 
 /** An action's icon by what its label says it does; first match wins. */
@@ -233,15 +234,19 @@ export function RowActions({
 export function AskBox({
   action,
   start,
+  keep,
   send,
   close,
 }: {
   action: Action;
   start: string;
+  /** Where the words wait until sent (record, row and action); closing the box keeps them. */
+  keep: string;
   send: (text: string) => Promise<boolean>;
   close: () => void;
 }) {
-  const [text, setText] = useState(start);
+  const words = useEdit(keep, start);
+  const text = words.value;
   const [busy, setBusy] = useState(false);
   const label = action.ask?.label ?? action.label;
   const go = async (e?: FormEvent) => {
@@ -250,7 +255,10 @@ export function AskBox({
     setBusy(true);
     const ok = await send(text);
     setBusy(false);
-    if (ok) close();
+    if (ok) {
+      words.saved(text);
+      close();
+    }
   };
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
@@ -267,7 +275,8 @@ export function AskBox({
         value={text}
         aria-label={label}
         placeholder={label}
-        onChange={(e) => setText(e.target.value)}
+        onChange={words.field.onChange}
+        data-edit={words.field["data-edit"]}
         onKeyDown={keys}
         className="bg-(--ui-paper) text-[14px] leading-[1.55]"
       />

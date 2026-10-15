@@ -24,6 +24,7 @@ import {
   cx,
   Diff,
   dateTip,
+  EditConflict,
   Empty,
   Icon,
   LoadFailed,
@@ -35,6 +36,7 @@ import {
   say,
   Tag,
   tipProps,
+  useEdit,
 } from "@wren/ui";
 import {
   type DragEvent,
@@ -79,6 +81,7 @@ export const factsDropped =
 
 const RECORD = "marketing.facts";
 const ID = "wren";
+const EDIT_KEY = `facts:${ID}:list`;
 const FACTS_KEY = "facts";
 /** The count shows once a fact is this close to the cap, or while it's being typed. */
 const NEAR = 40;
@@ -128,6 +131,16 @@ const whoLine = (c: ChangeLine) => {
   return c.by === "cli" ? line.charAt(0).toUpperCase() + line.slice(1) : line;
 };
 const listOf = (v: unknown) => factsOf(typeof v === "string" ? v : "");
+/** The unsaved list is kept as a JSON array of the facts. */
+const keptJson = (rows: readonly Row[]) => JSON.stringify(kept(rows));
+const fromJson = (v: string): string[] => {
+  try {
+    const a: unknown = JSON.parse(v);
+    return Array.isArray(a) ? a.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
 
 const ICON_BUTTON =
   "grid size-7 place-items-center rounded-(--ui-radius) border-0 sm:size-8 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:bg-(--ui-hover) focus-visible:text-(--ui-ink) focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30";
@@ -140,6 +153,7 @@ function FactRow({
   writes,
   over,
   armed,
+  editKey,
   onText,
   onKey,
   onMove,
@@ -157,6 +171,8 @@ function FactRow({
   /** A drag hovers here, from above ("below") or below ("above"). */
   over: "above" | "below" | null;
   armed: boolean;
+  /** Where the list's unsaved words are kept (the page holds them). */
+  editKey: string;
   onText: (t: string) => void;
   onKey: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   onMove: (by: -1 | 1) => void;
@@ -220,6 +236,7 @@ function FactRow({
             aria-invalid={long || undefined}
             rows={1}
             value={row.text}
+            data-edit={editKey}
             placeholder="One thing that is true, in your words"
             onChange={(e) => onText(e.target.value.replace(/\r?\n/g, " "))}
             onKeyDown={onKey}
@@ -362,6 +379,11 @@ export function FactsPage({ demo, can }: PageProps) {
   const [rows, setRows] = useState<Row[] | null>(null);
   /** The version his rows started from, and its facts: what Save names and what dirty means. */
   const [base, setBase] = useState<{ version: string; facts: string[] } | null>(null);
+  // The list he is changing stays on this device until it is saved or discarded: another page,
+  // a reload or a closed tab gives it back. If the saved list moved meanwhile, he picks.
+  const edit = useEdit(writes ? EDIT_KEY : null, JSON.stringify(saved?.facts ?? []), {
+    version: saved?.version,
+  });
   const [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false);
   const [armed, setArmed] = useState<number | null>(null);
@@ -370,16 +392,24 @@ export function FactsPage({ demo, can }: PageProps) {
   const refs = useRef(new Map<number, HTMLTextAreaElement>());
   const focusKey = useRef<{ key: number; at: "end" | "start" } | null>(null);
 
-  const start = useCallback((version: string, facts: string[]) => {
-    setRows(rowsOf(facts));
+  const start = useCallback((version: string, facts: string[], mine?: string[] | null) => {
+    setRows(rowsOf(mine ?? facts));
     setBase({ version, facts });
   }, []);
   // A fresh read replaces the list, unless he has changes of his own on it: then Save names the
   // version he started from, and a save made meanwhile is refused, never written over.
   const dirty = !!rows && !!base && !same(kept(rows), base.facts);
+  const wordsBack = edit.dirty ? edit.value : null;
   useEffect(() => {
-    if (saved && !dirty && base?.version !== saved.version) start(saved.version, saved.facts);
-  }, [saved, base, dirty, start]);
+    if (saved && !dirty && base?.version !== saved.version)
+      start(saved.version, saved.facts, !base && wordsBack !== null ? fromJson(wordsBack) : null);
+  }, [saved, base, dirty, start, wordsBack]);
+  // Every change goes to the store as it is made.
+  const words = rows ? keptJson(rows) : null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `edit` is new each render; only a change of the list writes
+  useEffect(() => {
+    if (writes && base && words !== null) edit.set(words);
+  }, [words, writes, base]);
 
   // After a row is added, moved or removed, the caret goes where it was asked to.
   useEffect(() => {
@@ -434,7 +464,7 @@ export function FactsPage({ demo, can }: PageProps) {
   };
 
   const save = async () => {
-    if (!dirty || problem || busy) return;
+    if (!dirty || problem || busy || edit.conflict) return;
     setBusy(true);
     try {
       const out = await call<Edited>("console/recordsEdit", {
@@ -444,6 +474,7 @@ export function FactsPage({ demo, can }: PageProps) {
         expect: base?.version ?? saved.version,
       });
       start(out.version, listOf(out.values.facts));
+      edit.saved(keptJson(rows));
       say.done("Facts saved. The next draft uses them.");
       // The page shows it now, History line too: a save never reads the facts again.
       const facts = typeof out.values.facts === "string" ? out.values.facts : factsText(list);
@@ -475,7 +506,18 @@ export function FactsPage({ demo, can }: PageProps) {
       setBusy(false);
     }
   };
-  const discard = () => start(saved.version, saved.facts);
+  const discard = () => {
+    start(saved.version, saved.facts);
+    edit.discard();
+  };
+  const theirs = () => {
+    start(saved.version, saved.facts);
+    edit.takeTheirs();
+  };
+  const conflict = edit.conflict && {
+    mine: factsText(fromJson(edit.conflict.mine)),
+    theirs: factsText(fromJson(edit.conflict.theirs)),
+  };
   const undo = async (change: number) => {
     try {
       await call<Edited>("console/recordsUndo", { record: RECORD, id: ID, change });
@@ -603,6 +645,17 @@ export function FactsPage({ demo, can }: PageProps) {
         </Section>
       ) : null}
 
+      {conflict ? (
+        <div className="mb-6">
+          <EditConflict
+            what="The facts list"
+            conflict={conflict}
+            onKeepMine={edit.keepMine}
+            onTakeTheirs={theirs}
+          />
+        </div>
+      ) : null}
+
       <Section>
         <p className={cx(QUIET, "mb-2 flex flex-wrap gap-x-3 text-[13px]")}>
           <span>{count} facts</span>
@@ -626,6 +679,7 @@ export function FactsPage({ demo, can }: PageProps) {
                     : null
                 }
                 armed={armed === r.key}
+                editKey={EDIT_KEY}
                 onArm={(on) => setArmed(on ? r.key : null)}
                 onText={(text) =>
                   change((rs) => rs.map((x) => (x.key === r.key ? { ...x, text } : x)))
@@ -684,7 +738,7 @@ export function FactsPage({ demo, can }: PageProps) {
               tone="primary"
               size="dense"
               busy={busy}
-              disabled={!!problem}
+              disabled={!!problem || !!edit.conflict}
               onClick={() => void save()}
             >
               Save

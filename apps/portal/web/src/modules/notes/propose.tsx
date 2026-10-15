@@ -127,6 +127,7 @@ export function ProposeCards({
                     onChange={(e) => set(i, { on: e.target.checked })}
                   />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    {/* edit-ok: Claude's proposal, made fresh each time this opens; nothing saved to keep */}
                     <Input
                       value={p.title}
                       maxLength={300}

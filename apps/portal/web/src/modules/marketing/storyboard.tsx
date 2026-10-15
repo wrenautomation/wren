@@ -37,6 +37,8 @@ import {
   Segmented,
   Tag,
   Textarea,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { href } from "../../route.js";
@@ -301,6 +303,7 @@ function Poster({
 
 /** One frame: the picture, when, what's said, what's on screen, what it shows, what's cut. */
 function Frame({
+  id,
   beat,
   data,
   draw,
@@ -310,6 +313,8 @@ function Frame({
   asking,
   onAsk,
 }: {
+  /** The video's id: where a half-written change is kept. */
+  id: string;
   beat: Beat;
   data: FinishData | undefined;
   draw: Draw | null;
@@ -319,9 +324,12 @@ function Frame({
   asking: boolean;
   onAsk: (sentence: string) => Promise<boolean>;
 }) {
-  const [said, setSaid] = useState("");
+  // The sentence stays until it is sent: another page and back gives it again.
+  const change = useEdit(`video:${id}:change:${beat.key}`, "");
+  const said = change.value;
   const send = async () => {
-    if (said.trim() && (await onAsk(said.trim()))) setSaid("");
+    const sent = said;
+    if (sent.trim() && (await onAsk(sent.trim()))) change.saved(sent);
   };
   return (
     <article
@@ -375,8 +383,7 @@ function Frame({
       ) : null}
       {editable ? (
         <Input
-          value={said}
-          onChange={(e) => setSaid(e.target.value)}
+          {...change.field}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();
@@ -476,7 +483,13 @@ export function StoryboardView({
   const [busy, setBusy] = useState<"apply" | "undo" | null>(null);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [said, setSaid] = useState("");
+  // The sentence stays until it is sent: another page and back gives it again.
+  const change = useEdit(`video:${id}:change`, "");
+  const said = change.value;
+  const sendAll = () => {
+    const sent = said;
+    if (sent.trim()) void ask(sent.trim(), null).then((ok) => ok && change.saved(sent));
+  };
 
   const ask = async (sentence: string, beat: string | null) => {
     setAsking(beat ?? "all");
@@ -574,6 +587,7 @@ export function StoryboardView({
         {shown.beats.map((b) => (
           <Frame
             key={b.key}
+            id={id}
             beat={b}
             data={data}
             draw={draw}
@@ -593,6 +607,7 @@ export function StoryboardView({
             {shown.shorts.map((b) => (
               <Frame
                 key={b.key}
+                id={id}
                 beat={b}
                 data={data}
                 draw={draw}
@@ -624,12 +639,11 @@ export function StoryboardView({
       ) : editable ? (
         <div className="grid min-w-0 gap-2">
           <Textarea
-            value={said}
-            onChange={(e) => setSaid(e.target.value)}
+            {...change.field}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                if (said.trim()) void ask(said.trim(), null).then((ok) => ok && setSaid(""));
+                sendAll();
               }
             }}
             disabled={!!asking}
@@ -644,7 +658,7 @@ export function StoryboardView({
               tone="primary"
               busy={asking === "all"}
               disabled={!said.trim() || !!asking}
-              onClick={() => void ask(said.trim(), null).then((ok) => ok && setSaid(""))}
+              onClick={sendAll}
             >
               Propose
             </Button>
@@ -656,6 +670,7 @@ export function StoryboardView({
             <span className="text-[12.5px] text-(--ui-ink-3)">
               You see it before anything saves.
             </span>
+            <UnsavedMark edit={change} />
           </div>
         </div>
       ) : null}

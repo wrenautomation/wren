@@ -12,6 +12,7 @@ import {
   Button,
   cx,
   DictateField,
+  EditConflict,
   GRAPH_DROP,
   type GraphNode,
   Icon,
@@ -21,6 +22,8 @@ import {
   Tag,
   Textarea,
   tipProps,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -180,6 +183,7 @@ export function PaletteDrawer({
             size={14}
             className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-(--ui-ink-3)"
           />
+          {/* edit-ok: search box */}
           <Input
             ref={box}
             type="search"
@@ -263,13 +267,23 @@ export function EditBar({
 }
 
 /** A wire's rule and wait, as the panel and the wire list edit them. */
-function WireFields({ x, set }: { x: Wire; set: (k: "when" | "wait", v: string) => void }) {
+function WireFields({
+  x,
+  set,
+  editKey,
+}: {
+  x: Wire;
+  set: (k: "when" | "wait", v: string) => void;
+  /** The draft's save key: the draft keeps these words. */
+  editKey: string;
+}) {
   const bad = !!x.wait && !WAIT.test(x.wait.trim());
   return (
     <div className="grid gap-2">
       <label className={FIELD}>
         <span>Only if (in words)</span>
         <Input
+          data-edit={editKey}
           value={x.when ?? ""}
           maxLength={300}
           placeholder="Every event"
@@ -279,6 +293,7 @@ function WireFields({ x, set }: { x: Wire; set: (k: "when" | "wait", v: string) 
       <label className={FIELD}>
         <span>Wait</span>
         <Input
+          data-edit={editKey}
           value={x.wait ?? ""}
           maxLength={40}
           placeholder="None"
@@ -311,6 +326,7 @@ export function WirePanel({
   from,
   to,
   onClose,
+  editKey,
 }: {
   w: Drawn;
   draft: Draft;
@@ -318,6 +334,8 @@ export function WirePanel({
   from: string;
   to: string;
   onClose: () => void;
+  /** The draft's save key. */
+  editKey: string;
 }) {
   const at = draft.wires
     .map((x, i) => [x, i] as const)
@@ -339,7 +357,7 @@ export function WirePanel({
           key={`${x.from}>${x.to}`}
           title={`${endText(w, x.from, "from")} → ${endText(w, x.to, "to")}`}
         >
-          <WireFields x={x} set={(k, v) => setDraft(wireSet(draft, i, k, v))} />
+          <WireFields x={x} set={(k, v) => setDraft(wireSet(draft, i, k, v))} editKey={editKey} />
           <span>
             <Button
               tone="quiet"
@@ -620,6 +638,7 @@ export function NodePanel({
   test,
   mayManage = false,
   fresh,
+  editKey,
 }: {
   w: Drawn;
   id: string;
@@ -637,6 +656,8 @@ export function NodePanel({
   mayManage?: boolean;
   /** Tokens the last publish made, shown once. */
   fresh?: Fresh;
+  /** The draft's save key. */
+  editKey: string;
 }) {
   const n = w.nodes.find((x) => x.id === id);
   if (!n) return null;
@@ -758,7 +779,11 @@ export function NodePanel({
                 <span className="text-[13px] font-medium">
                   {endText(w, x.from, "from")} → {endText(w, x.to, "to")}
                 </span>
-                <WireFields x={x} set={(k, v) => setDraft(wireSet(draft, i, k, v))} />
+                <WireFields
+                  x={x}
+                  set={(k, v) => setDraft(wireSet(draft, i, k, v))}
+                  editKey={editKey}
+                />
               </div>
             ))
           ) : (
@@ -808,14 +833,18 @@ export function AskGraph({
   /** An ask already open (the builder's first): its answer is waited on at once. */
   pending?: string | null;
 }) {
-  const [message, setMessage] = useState("");
+  const ask = useEdit(`workflow-ask:${client ?? "own"}:${workflow}:message`, "");
+  const message = ask.value;
+  // Read live by the poll below, which must not restart on every render.
+  const asked = useRef(ask.saved);
+  asked.current = ask.saved;
   const askBox = useRef<HTMLInputElement>(null);
   const [run, setRun] = useState<string | null>(pending);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!run) return;
     let live = true;
-    const ask = async () => {
+    const poll = async () => {
       const a = await call<Answer>("console/workflowAnswer", { id: run }).catch((e: Error) => ({
         state: "failed" as const,
         error: e.message,
@@ -824,11 +853,11 @@ export function AskGraph({
       setRun(null);
       if (a.state === "failed") setError(a.error);
       else {
-        setMessage("");
+        asked.current();
         onAnswer(a.reply, a.patch);
       }
     };
-    const timer = setInterval(() => shown() && void ask(), 2000);
+    const timer = setInterval(() => shown() && void poll(), 2000);
     return () => {
       live = false;
       clearInterval(timer);
@@ -861,8 +890,7 @@ export function AskGraph({
       <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
         <Input
           ref={askBox}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          {...ask.field}
           maxLength={2000}
           disabled={!!run}
           placeholder="Ask Claude: add a text 2 days after the second email if no reply"
@@ -961,8 +989,11 @@ function SaveTemplate({
   onSaved: () => void;
 }) {
   const base = useId();
-  const [title, setTitle] = useState("");
-  const [blurb, setBlurb] = useState("");
+  const at = `workflow-template:${client ?? "own"}:${workflow}`;
+  const nameEdit = useEdit(`${at}:name`, "");
+  const blurbEdit = useEdit(`${at}:blurb`, "");
+  const title = nameEdit.value;
+  const blurb = blurbEdit.value;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; name: string; updated: boolean } | null>(null);
@@ -991,8 +1022,8 @@ function SaveTemplate({
         );
         setDone(got);
         // Cleared only if he hasn't typed on meanwhile.
-        setTitle((t) => (t === sent.title ? "" : t));
-        setBlurb((b) => (b === sent.blurb ? "" : b));
+        nameEdit.saved(sent.title);
+        blurbEdit.saved(sent.blurb);
         onSaved();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -1017,22 +1048,22 @@ function SaveTemplate({
             <span className="text-[12.5px] text-(--ui-ink-2)">Name</span>
             <Input
               id={`${base}-name`}
-              value={title}
+              {...nameEdit.field}
               maxLength={80}
               placeholder={name}
-              onChange={(e) => setTitle(e.target.value)}
               className="h-8"
+            />
+            <EditConflict
+              conflict={nameEdit.conflict}
+              onKeepMine={nameEdit.keepMine}
+              onTakeTheirs={nameEdit.takeTheirs}
+              what="The name"
             />
           </label>
           <label htmlFor={`${base}-blurb`} className="grid gap-1">
             <span className="text-[12.5px] text-(--ui-ink-2)">What it does (optional)</span>
-            <Input
-              id={`${base}-blurb`}
-              value={blurb}
-              maxLength={300}
-              onChange={(e) => setBlurb(e.target.value)}
-              className="h-8"
-            />
+            <Input id={`${base}-blurb`} {...blurbEdit.field} maxLength={300} className="h-8" />
+            <UnsavedMark edit={blurbEdit} />
           </label>
           <span>
             <Button

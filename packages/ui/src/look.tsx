@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "./components/ui/input.js";
 import { Button, Tag } from "./controls.js";
+import { EditConflict, useEdit } from "./data/use-edit.js";
 import {
   type BrandInput,
   brandColorsOf,
@@ -162,7 +163,10 @@ export function LookEditor({
     ...(showcase ? (Object.keys(SHOWCASE) as ShowcaseName[]) : []),
   ];
   const [saved, setSaved] = useState(() => lookOf(look));
-  const [draft, setDraft] = useState<Look>(saved);
+  // The look being made waits on the device until it's saved (a reload or another page keeps it).
+  const kept = useEdit("look:draft", JSON.stringify(saved));
+  const draft = useMemo(() => lookOf(JSON.parse(kept.value)), [kept.value]);
+  const setDraft = (d: Look) => kept.set(JSON.stringify(d));
   /** Which button's save is running: the new look, or the reset (null). */
   const [busy, setBusy] = useState<"save" | "reset" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -214,7 +218,8 @@ export function LookEditor({
       await onSave(next);
       setSaved(next);
       // Changed while it saved: what he typed since stays.
-      setDraft((d) => settledDraft(d, from, next));
+      if (settledDraft(live.current, from, next) === next) kept.discard();
+      else kept.saved(JSON.stringify(next));
       toast.success(next === null ? "Back to Wren's look" : "Look saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -395,6 +400,12 @@ export function LookEditor({
             </Button>
             {changed ? <span className="text-[13px] text-(--ui-ink-2)">Not saved yet</span> : null}
           </div>
+          <EditConflict
+            conflict={kept.conflict}
+            onKeepMine={kept.keepMine}
+            onTakeTheirs={kept.takeTheirs}
+            what="The saved look"
+          />
           {error ? <p className="text-[13.5px] text-(--ui-bad)">{error}</p> : null}
         </div>
 
@@ -455,6 +466,7 @@ function ColorBox({
         />
         <Input
           value={value}
+          data-edit="look:draft"
           spellCheck={false}
           onChange={(e) => onChange(e.target.value)}
           className="font-mono"

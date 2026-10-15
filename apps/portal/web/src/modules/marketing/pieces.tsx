@@ -540,6 +540,7 @@ export function PiecesPage(props: PageProps) {
         />
         <div className="flex flex-wrap items-center gap-2">
           <Input
+            // edit-ok: search box
             aria-label="Find a piece"
             type="search"
             value={q}

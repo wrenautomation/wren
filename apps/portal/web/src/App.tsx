@@ -15,6 +15,7 @@ import {
   can,
   type DockItem,
   dropPreloadedLook,
+  EDITS,
   Empty,
   Gate,
   LOOK_PREF,
@@ -435,6 +436,8 @@ export function App() {
     team,
     `${route.path.join("/")}?${route.params}`,
   );
+  // Words typed from here on wait under the client on screen (set before its boxes read them).
+  EDITS.setClient(current?.id ?? null);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Today" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;

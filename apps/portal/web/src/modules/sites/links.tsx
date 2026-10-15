@@ -5,7 +5,7 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import { qrMatrix, qrPath } from "@wren/sites/qr";
-import { Button, CopyButton, Input, num, type RecordExtras, Section } from "@wren/ui";
+import { Button, CopyButton, Input, num, type RecordExtras, Section, useEdit } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
@@ -116,8 +116,10 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
   const [t, setT] = useState<Targets | null>(null);
   const [page, setPage] = useState("");
   const [place, setPlace] = useState("ads");
-  const [campaign, setCampaign] = useState("");
-  const [content, setContent] = useState("");
+  const campaignEdit = useEdit("link:new:campaign", "");
+  const contentEdit = useEdit("link:new:content", "");
+  const campaign = campaignEdit.value;
+  const content = contentEdit.value;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [made, setMade] = useState<Made | null>(null);
@@ -152,6 +154,8 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
         "sites/linkCreate",
         body({ page, link: place, campaign: campaign || null, content: content || null }),
       );
+      campaignEdit.saved(campaign);
+      contentEdit.saved(content);
       setMade(r);
       reload();
     } catch (e) {
@@ -238,24 +242,14 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
               <span className={LABEL}>
                 Campaign <span className={HINT}>(optional)</span>
               </span>
-              <Input
-                value={campaign}
-                maxLength={80}
-                placeholder={slug || "spring-promo"}
-                onChange={(e) => setCampaign(e.target.value)}
-              />
+              <Input {...campaignEdit.field} maxLength={80} placeholder={slug || "spring-promo"} />
               <span className={HINT}>Left empty, the page's name.</span>
             </label>
             <label className="grid gap-1.5">
               <span className={LABEL}>
                 Post or ad id <span className={HINT}>(optional)</span>
               </span>
-              <Input
-                value={content}
-                maxLength={80}
-                placeholder="120211234567890"
-                onChange={(e) => setContent(e.target.value)}
-              />
+              <Input {...contentEdit.field} maxLength={80} placeholder="120211234567890" />
             </label>
           </div>
           <div className="flex flex-wrap items-center gap-3">

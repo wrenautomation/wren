@@ -4,14 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { memoryStore, refusal } from "./test-kit.js";
-import {
-  recordKey,
-  type TabNews,
-  type WireState,
-  type WriteEnv,
-  type WritePageEvent,
-  Writes,
-} from "./writes.js";
+import { recordKey, type WireState, type WriteEnv, type WritePageEvent, Writes } from "./writes.js";
 
 /** One browser tab: its clock, its visibility, its session storage, its reminders. */
 function tab(storage = memoryStore()) {
@@ -527,32 +520,72 @@ describe("a send (accept, then track)", () => {
   });
 });
 
-describe("other tabs", () => {
-  it("a write that lands in one tab makes the others read again", async () => {
-    const heard = new Set<(m: TabNews) => void>();
-    const tabs = {
-      post: (m: TabNews) => {
-        for (const f of heard) f(m);
+describe("pushed outcomes and retries", () => {
+  it("an outcome pushed over the socket settles the send without asking", async () => {
+    const t = tab();
+    const s = sendServer();
+    let asked = 0;
+    const { w, go } = sendStore(t, s);
+    w.use({
+      status: async (p, id) => {
+        asked += 1;
+        return s.status(p, id);
       },
-      listen: (fn: (m: TabNews) => void) => {
-        heard.add(fn);
-        return () => void heard.delete(fn);
-      },
-    };
-    const a = tab();
-    const b = tab();
-    a.env.tabs = tabs;
-    b.env.tabs = tabs;
-    const s = server();
-    const one = store(a, s);
-    const two = store(b, s);
+    });
+    w.pushed(true);
+    const p = go("hello");
     await flush();
-    const before = two.reads();
-    const p = press(one.w, s, "hello");
+    w.heard("req-0001", { state: "sent", answer: { sent: true } });
+    expect(await p).toEqual({ sent: true });
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sent");
+    expect(asked).toBe(0);
+  });
+
+  it("while the server retries, the box has the reason; it clears when it lands", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    const p = go("hello");
     await flush();
-    s.calls[0]?.ok({ sent: true });
+    w.heard("req-0001", {
+      state: "sending",
+      retry: { count: 2, reason: "LinkedIn answered 503." },
+    });
+    expect(w.lastOn(recordKey("threads", "t1"))?.retry).toEqual({
+      count: 2,
+      reason: "LinkedIn answered 503.",
+    });
+    s.finish("req-0001", { answer: { sent: true } });
+    t.pass(400);
     await p;
+    const last = w.lastOn(recordKey("threads", "t1"));
+    expect(last?.status).toBe("sent");
+    expect(last?.retry).toBeNull();
+  });
+
+  it("the socket closing asks about every open send at once", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    w.pushed(true);
+    const p = go("hello");
     await flush();
-    expect(two.reads()).toBeGreaterThan(before);
+    s.finish("req-0001", { answer: { sent: true } });
+    w.pushed(false);
+    await flush();
+    expect(await p).toEqual({ sent: true });
+  });
+
+  it("a landed write is handed to the data layer with its records", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    const landed: string[][] = [];
+    w.use({ landed: (r) => landed.push(r) });
+    const p = go("hello");
+    await flush();
+    w.heard("req-0001", { state: "sent", answer: {} });
+    await p;
+    expect(landed).toEqual([[recordKey("threads", "t1")]]);
   });
 });

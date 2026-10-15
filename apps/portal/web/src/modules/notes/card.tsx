@@ -4,7 +4,7 @@
  * Timeline beside Comments and History. Also the owner's mark, shared with the Board.
  */
 import { isAgent, ownerName } from "@wren/notes/types";
-import { Icon, relative, say } from "@wren/ui";
+import { Icon, relative, say, useEdit } from "@wren/ui";
 import { useCallback, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import {
@@ -194,6 +194,7 @@ export function CardStrip({
         </span>
       )}
       <LabelsEdit
+        id={id}
         labels={t.labels}
         known={[...new Set(mates.flatMap((c) => c.labels))].sort()}
         writable={w}
@@ -221,21 +222,25 @@ export function CardStrip({
 
 /** A card's labels: each with a remove, and a box to add one (Enter, comma or leaving the box). */
 function LabelsEdit({
+  id,
   labels,
   known,
   writable,
   save,
 }: {
+  id: string;
   labels: string[];
   known: string[];
   writable: boolean;
   save: (labels: string[]) => unknown;
 }) {
-  const [text, setText] = useState("");
+  // A label typed and not yet added is kept, so leaving the page doesn't lose it.
+  const edit = useEdit(`card:${id}:label-new`, "");
+  const text = edit.value;
   if (!labels.length && !writable) return null;
   const add = () => {
     const next = text.trim();
-    setText("");
+    edit.saved(text);
     if (next && !labels.includes(next.toLowerCase())) void save([...labels, next]);
   };
   return (
@@ -262,13 +267,12 @@ function LabelsEdit({
       {writable ? (
         <>
           <input
-            value={text}
+            {...edit.field}
             maxLength={30}
             list="card-labels"
             aria-label="Add a label"
             placeholder="Add a label"
             className={`${SELECT} w-32`}
-            onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === ",") {
                 e.preventDefault();

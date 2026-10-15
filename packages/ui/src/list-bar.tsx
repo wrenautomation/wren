@@ -43,6 +43,7 @@ import {
   SheetTitle,
 } from "./components/ui/sheet.js";
 import { Button } from "./controls.js";
+import { useEdit } from "./data/use-edit.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
@@ -487,7 +488,8 @@ function SavedMenu({
   saved: Saved;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(view.name);
+  const named = useEdit(`view:${view.id}:name`, view.name);
+  const name = named.value;
   const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const run = async (fn: () => Promise<unknown>, close = true) => {
@@ -515,10 +517,7 @@ function SavedMenu({
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (o) {
-          setName(view.name);
-          setSaid(null);
-        }
+        if (o) setSaid(null);
       }}
     >
       <PopoverTrigger
@@ -534,16 +533,13 @@ function SavedMenu({
           onSubmit={(e) => {
             e.preventDefault();
             if (name.trim() && name.trim() !== view.name)
-              void run(() => keep.save({ id: view.id, record: meta.id, name: name.trim() }));
+              void run(async () => {
+                await keep.save({ id: view.id, record: meta.id, name: name.trim() });
+                named.saved(name);
+              });
           }}
         >
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={60}
-            aria-label="View name"
-            className={INPUT}
-          />
+          <input {...named.field} maxLength={60} aria-label="View name" className={INPUT} />
         </form>
         <button
           type="button"
@@ -606,7 +602,8 @@ function SaveView({
   saved: Saved;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+  const named = useEdit(`view:new:${meta.id}:name`, "");
+  const name = named.value;
   const [shared, setShared] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -634,7 +631,6 @@ function SaveView({
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          setName("");
           setShared(false);
           setSaid(null);
         }
@@ -660,14 +656,20 @@ function SaveView({
           onSubmit={(e) => {
             e.preventDefault();
             if (name.trim())
-              void go(() =>
-                keep.save({ record: meta.id, name: name.trim(), params: kept, shared }),
-              );
+              void go(async () => {
+                const v = await keep.save({
+                  record: meta.id,
+                  name: name.trim(),
+                  params: kept,
+                  shared,
+                });
+                named.saved(name);
+                return v;
+              });
           }}
         >
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            {...named.field}
             maxLength={60}
             placeholder={sv ? "Or save as a new view" : "Name this view"}
             aria-label="View name"
@@ -840,6 +842,7 @@ function FilterPanel({
       <label className="flex h-10 items-center gap-2 border-b border-(--ui-hair) px-3">
         <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
         <input
+          // edit-ok: search box
           // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
           autoFocus={!phone}
           role="combobox"
@@ -1217,6 +1220,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     <label className="relative flex h-8 pointer-coarse:h-11 w-full items-center sm:w-64">
       <Search className="pointer-events-none absolute left-2.5 size-3.5 text-(--ui-ink-3)" />
       <input
+        // edit-ok: search box
         type="search"
         value={text}
         onChange={(e) => {

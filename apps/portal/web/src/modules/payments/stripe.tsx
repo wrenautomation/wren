@@ -127,6 +127,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
       {open ? (
         <form onSubmit={submit} className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xl">
           <div className="flex min-w-0 flex-wrap gap-2">
+            {/* edit-ok: a secret, never kept on the device */}
             <Input
               type="password"
               autoComplete="off"
@@ -136,6 +137,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
               placeholder="Stripe restricted key"
               aria-label="Stripe key"
             />
+            {/* edit-ok: a secret, never kept on the device */}
             <Input
               type="password"
               autoComplete="off"

@@ -18,8 +18,10 @@ import {
   clipProps,
   DictateField,
   Diff,
+  EditConflict,
   Empty,
   Input,
+  KeptConflict,
   LoadFailed,
   Loading,
   type MessageKind,
@@ -31,6 +33,7 @@ import {
   type TagTone,
   Textarea,
   useCopy,
+  useEdit,
   useKeptForm,
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -171,6 +174,7 @@ export function Templates({ params, demo, can }: PageProps) {
           head={
             <>
               <Input
+                // edit-ok: search box
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -287,17 +291,27 @@ function RenameFolder({
   onDone: () => void;
   params: URLSearchParams;
 }) {
-  const [to, setTo] = useState<string | null>(null);
+  const rename = useEdit(`template-folder:${folder}:name`, folder);
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  if (to === null)
+  // Open by his hand, or while a half-typed name waits.
+  if (!open && !rename.dirty)
     return (
-      <Button tone="quiet" size="dense" onClick={() => setTo(folder)}>
+      <Button tone="quiet" size="dense" onClick={() => setOpen(true)}>
         Rename
       </Button>
     );
+  const to = rename.value;
   const save = async () => {
+    const sent = to;
     const name = to.trim().replace(/^\/+|\/+$/g, "");
-    if (!name || name === folder) return setTo(null);
+    if (!name || name === folder || rename.conflict) {
+      if (!rename.conflict) {
+        rename.discard();
+        setOpen(false);
+      }
+      return;
+    }
     setBusy(true);
     try {
       const got = await call<{ moved: number }>("templates/renameFolder", {
@@ -305,7 +319,8 @@ function RenameFolder({
         to: name,
       });
       say.done(`Renamed. ${got.moved} moved with it.`);
-      setTo(null);
+      rename.saved(sent);
+      setOpen(false);
       onDone();
       go(PATH, { folder: name }, params);
     } catch (err) {
@@ -316,25 +331,39 @@ function RenameFolder({
   };
   return (
     <form
-      className="flex min-w-0 items-center gap-1.5"
+      className="flex min-w-0 flex-wrap items-center gap-1.5"
       onSubmit={(e) => {
         e.preventDefault();
         void save();
       }}
     >
       <Input
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
+        {...rename.field}
         aria-label="Folder name"
         className="h-8 min-w-0 text-[13px]"
         autoFocus
       />
-      <Button tone="primary" size="dense" type="submit" busy={busy}>
+      <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!!rename.conflict}>
         Rename
       </Button>
-      <Button tone="quiet" size="dense" onClick={() => setTo(null)}>
+      <Button
+        tone="quiet"
+        size="dense"
+        onClick={() => {
+          rename.discard();
+          setOpen(false);
+        }}
+      >
         Cancel
       </Button>
+      <div className="w-full empty:hidden">
+        <EditConflict
+          what="The folder name"
+          conflict={rename.conflict}
+          onKeepMine={rename.keepMine}
+          onTakeTheirs={rename.takeTheirs}
+        />
+      </div>
     </form>
   );
 }
@@ -481,7 +510,8 @@ function Controls({
 }) {
   const [ask, setAsk] = useState<"publish" | "reset" | "move" | null>(null);
   const [busy, setBusy] = useState(false);
-  const [to, setTo] = useState(d.folder);
+  const moveTo = useEdit(`template:${d.ref}:folder`, d.folder);
+  const to = moveTo.value;
   const draft = d.draft && d.draft.number !== d.live?.number ? d.draft : null;
   const canPublish = !!draft && d.waiting?.number !== draft.number;
   const run = async (fn: () => Promise<unknown>, done: string) => {
@@ -544,19 +574,23 @@ function Controls({
           onNo={() => setAsk(null)}
         />
       ) : null}
-      {ask === "move" ? (
+      {ask === "move" || (ask === null && moveTo.dirty) ? (
         <form
           className="flex flex-wrap items-center gap-2 border border-(--ui-hair) p-3"
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => onMove(to.trim().replace(/^\/+|\/+$/g, "")), "Moved.");
+            if (moveTo.conflict) return;
+            const sent = to;
+            void run(async () => {
+              await onMove(sent.trim().replace(/^\/+|\/+$/g, ""));
+              moveTo.saved(sent);
+            }, "Moved.");
           }}
         >
           <label className="grid min-w-0 flex-1 gap-1 text-[13px]">
             <span className={QUIET}>Type a new name to make a new folder.</span>
             <Input
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
+              {...moveTo.field}
               list="template-folders"
               className="h-8 text-[13.5px]"
               autoFocus
@@ -568,12 +602,33 @@ function Controls({
             </datalist>
           </label>
           <div className="flex gap-2 self-end">
-            <Button tone="primary" size="dense" type="submit" busy={busy}>
+            <Button
+              tone="primary"
+              size="dense"
+              type="submit"
+              busy={busy}
+              disabled={!!moveTo.conflict}
+            >
               Move
             </Button>
-            <Button tone="quiet" size="dense" onClick={() => setAsk(null)}>
+            <Button
+              tone="quiet"
+              size="dense"
+              onClick={() => {
+                moveTo.discard();
+                setAsk(null);
+              }}
+            >
               Cancel
             </Button>
+          </div>
+          <div className="w-full empty:hidden">
+            <EditConflict
+              what="The folder"
+              conflict={moveTo.conflict}
+              onKeepMine={moveTo.keepMine}
+              onTakeTheirs={moveTo.takeTheirs}
+            />
           </div>
         </form>
       ) : null}
@@ -654,7 +709,9 @@ function Editor({
     kept.clear();
   };
   const wordsBox = useRef<HTMLTextAreaElement>(null);
-  const [why, setWhy] = useState("");
+  // The one-line why waits with the words, until they are saved.
+  const whyEdit = useEdit(mayWrite ? `template-why:${d.ref}` : null, "");
+  const why = whyEdit.value;
   const [busy, setBusy] = useState(false);
   const flying = useRef(false);
   const [conflict, setConflict] = useState<Head | null>(null);
@@ -701,7 +758,7 @@ function Editor({
       setConflict(null);
       // Only what was sent is done with: typing since stays, and stays kept.
       if (live.current.words === sent.words) kept.clear();
-      if (live.current.why === sent.why) setWhy("");
+      whyEdit.saved(sent.why);
       say.done(`Saved as version ${n}. Nothing sends until it's live.`);
       onSaved();
     } catch (err) {
@@ -711,8 +768,8 @@ function Editor({
       setBusy(false);
     }
   };
-  const live = useRef({ words, why });
-  live.current = { words, why };
+  const live = useRef({ words });
+  live.current = { words };
   const reload = () => {
     if (!conflict) return;
     setBase({ number: conflict.number, words: conflict.source });
@@ -766,6 +823,22 @@ function Editor({
           app that sends it.
         </p>
       ) : null}
+      <KeptConflict
+        kept={{
+          ...kept,
+          keepMine: () => {
+            const mine = kept.conflict?.values.words;
+            kept.keepMine();
+            if (mine !== undefined) setShown(mine);
+          },
+          takeTheirs: () => {
+            kept.takeTheirs();
+            setShown(base.words);
+          },
+        }}
+        field="words"
+        what="These words"
+      />
       <label className="grid min-w-0 gap-1.5">
         <span className={`text-[13px] ${QUIET}`}>
           {opened ? `Version ${opened.number}` : "No words yet"}
@@ -774,6 +847,7 @@ function Editor({
         <DictateField target={wordsBox} off={!mayWrite}>
           <Textarea
             ref={wordsBox}
+            data-edit={kept.key ?? ""}
             value={words}
             onChange={(e) => setWords(e.target.value)}
             readOnly={!mayWrite}
@@ -793,8 +867,7 @@ function Editor({
           <label className="grid min-w-0 flex-1 basis-56 gap-1 text-[13px]">
             <span className={QUIET}>Why (one line)</span>
             <Input
-              value={why}
-              onChange={(e) => setWhy(e.target.value)}
+              {...whyEdit.field}
               placeholder="Shorter opener"
               maxLength={500}
               className="h-8 text-[13.5px]"
@@ -815,6 +888,7 @@ function Editor({
               size="dense"
               onClick={() => {
                 showWords(base.words);
+                whyEdit.discard();
                 setConflict(null);
               }}
             >

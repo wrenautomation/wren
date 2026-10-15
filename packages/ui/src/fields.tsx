@@ -841,6 +841,7 @@ function StatesFilter({
     <>
       <div className="p-1 pb-0">
         <input
+          // edit-ok: search box for the options
           // biome-ignore lint/a11y/noAutofocus: the editor opened to type in this.
           autoFocus
           value={text}
@@ -1044,6 +1045,7 @@ function WordsFilter({
   return (
     <div className="p-2">
       <input
+        // edit-ok: filter box
         // biome-ignore lint/a11y/noAutofocus: the editor opened to type in this.
         autoFocus
         className={INPUT}

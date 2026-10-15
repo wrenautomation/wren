@@ -28,11 +28,26 @@ import {
 } from "@wren/core/segments";
 import { parseRule, ruleText } from "@wren/core/segments-text";
 import type { Action } from "@wren/ui";
-import { ACTIONS, Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
-import { useEffect, useRef, useState } from "react";
+import {
+  ACTIONS,
+  Button,
+  EditConflict,
+  Input,
+  type RecordAct,
+  type RecordExtras,
+  Tag,
+  Textarea,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { type ListPage, WREN } from "../../module.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
+import { useEditJson } from "./edit-json.js";
+
+/** The save key of the rule being edited, for the boxes deep in its tree. */
+const RuleKey = createContext("");
 
 /** Whose segments a call is about: none named is Wren's own. */
 export const atOf = (client: string): Record<string, string> =>
@@ -240,11 +255,13 @@ function Words({
   placeholder: string;
   set: (v: string | undefined) => void;
 }) {
+  const editKey = useContext(RuleKey);
   return (
     <Input
       aria-label={label}
       className="w-36 max-sm:w-full"
       placeholder={placeholder}
+      data-edit={editKey}
       value={value ?? ""}
       onChange={(e) => set(e.target.value.trim() ? e.target.value : undefined)}
     />
@@ -263,6 +280,7 @@ function ConditionRow({
   onChange: (c: Condition) => void;
   onRemove: () => void;
 }) {
+  const editKey = useContext(RuleKey);
   const set = (p: Partial<Condition>) => onChange({ ...c, ...p } as Condition);
   const traits = Object.fromEntries(
     [...new Set([...ctx.traits, ...(c.kind === "trait" && c.key ? [c.key] : [])])].map((t) => [
@@ -293,6 +311,7 @@ function ConditionRow({
               aria-label="Trait"
               className="w-36 max-sm:w-full"
               placeholder="plan"
+              data-edit={editKey}
               value={c.key}
               onChange={(e) => set({ key: e.target.value.trim() })}
             />
@@ -303,6 +322,7 @@ function ConditionRow({
               aria-label="Value"
               className="w-40 max-sm:w-full"
               type={["gt", "lt", "in_next", "in_last"].includes(c.op) ? "number" : "text"}
+              data-edit={editKey}
               placeholder={
                 ["before", "after"].includes(c.op)
                   ? "2026-12-31"
@@ -543,6 +563,19 @@ function GroupBox({
   );
 }
 
+/** Are there words or a rule kept for this segment that the server doesn't hold? */
+function useKeptSegment(
+  id: number | "new",
+  start: { name: string; words: string | null; rule: Rule | null },
+  version: string | null,
+): boolean {
+  const at = `segment:${id}`;
+  const a = useEdit(`${at}:name`, start.name, { version });
+  const b = useEdit(`${at}:words`, start.words ?? "", { version });
+  const c = useEditJson<Rule>(`${at}:rule`, start.rule ?? EMPTY, { version });
+  return a.dirty || b.dirty || c.dirty;
+}
+
 /**
  * Make or change a segment: words to a rule (the model), the rule by hand, a live count, then
  * a save that says how many it matches before it's pressed.
@@ -561,10 +594,23 @@ export function SegmentEditor({
 }) {
   const at = atOf(client);
   const [ctx, setCtx] = useState<Context | null>(null);
-  const [name, setName] = useState(start.name);
+  // Name, words and rule are kept as typed until saved or cancelled, on this device.
+  const kept = `segment:${start.id ?? "new"}`;
+  const version = start.version ?? null;
+  const nameEdit = useEdit(`${kept}:name`, start.name, { version });
+  const wordsEdit = useEdit(`${kept}:words`, start.words ?? "", { version });
+  const ruleEdit = useEditJson<Rule>(`${kept}:rule`, start.rule ?? EMPTY, {
+    version,
+    show: (r) => ruleText(pruned(r), new Map((ctx?.segments ?? []).map((s) => [s.id, s.name]))),
+  });
+  // The rule's text while edited that way: kept too, without a version (it starts empty).
+  const textEdit = useEdit(`${kept}:rule-text`, "");
+  const [textOn, setTextOn] = useState(false);
   const [kind, setKind] = useState<Kind>(start.kind);
-  const [rule, setRule] = useState<Rule>(start.rule ?? EMPTY);
-  const [words, setWords] = useState(start.words ?? "");
+  const name = nameEdit.value;
+  const words = wordsEdit.value;
+  const rule = ruleEdit.value;
+  const setRule = ruleEdit.set;
   const [described, setDescribed] = useState<Described | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   /** What the rule still needs before it can be counted: a hint, not an error. */
@@ -572,7 +618,7 @@ export function SegmentEditor({
   const [busy, setBusy] = useState<"describe" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** The rule as text while it's edited that way; null shows the boxes. */
-  const [text, setText] = useState<string | null>(null);
+  const text = textOn || textEdit.dirty ? textEdit.value : null;
   const [textProblems, setTextProblems] = useState<string[]>([]);
   const asked = useRef(0);
   /** One save at a time, whatever the render says. */
@@ -631,6 +677,7 @@ export function SegmentEditor({
     saving.current = true;
     setBusy("save");
     setError(null);
+    const sent = { name, words, rule };
     try {
       const body = {
         ...(start.id ? { id: start.id } : {}),
@@ -644,6 +691,10 @@ export function SegmentEditor({
       await ACTIONS.run(`segment-save:${client}:${JSON.stringify(body)}`, (requestId) =>
         send({ ...body, requestId }),
       );
+      nameEdit.saved(sent.name);
+      wordsEdit.saved(sent.words);
+      ruleEdit.saved(sent.rule);
+      textEdit.discard();
       onDone(true);
     } catch (e) {
       setError(said(e));
@@ -670,11 +721,12 @@ export function SegmentEditor({
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-0 flex-col gap-1 text-[13px] text-(--ui-ink-2) max-sm:basis-full">
           Name
-          <Input
-            className="w-64 max-sm:w-full"
-            value={name}
-            maxLength={120}
-            onChange={(e) => setName(e.target.value)}
+          <Input className="w-64 max-sm:w-full" {...nameEdit.field} maxLength={120} />
+          <EditConflict
+            conflict={nameEdit.conflict}
+            onKeepMine={nameEdit.keepMine}
+            onTakeTheirs={nameEdit.takeTheirs}
+            what="The name"
           />
         </label>
         <div className="flex min-w-0 flex-col gap-1 text-[13px] text-(--ui-ink-2) max-sm:basis-full">
@@ -695,9 +747,14 @@ export function SegmentEditor({
                 Describe who's in it
                 <Textarea
                   rows={2}
-                  value={words}
+                  {...wordsEdit.field}
                   placeholder="People who opened an email in the last 30 days but never booked"
-                  onChange={(e) => setWords(e.target.value)}
+                />
+                <EditConflict
+                  conflict={wordsEdit.conflict}
+                  onKeepMine={wordsEdit.keepMine}
+                  onTakeTheirs={wordsEdit.takeTheirs}
+                  what="The description"
                 />
               </label>
               <div className="flex flex-wrap items-center gap-2">
@@ -730,7 +787,7 @@ export function SegmentEditor({
                       size="dense"
                       onClick={() => {
                         setRule(described.rule);
-                        if (!name.trim()) setName(described.name);
+                        if (!name.trim()) nameEdit.set(described.name);
                         setDescribed(null);
                       }}
                     >
@@ -746,16 +803,23 @@ export function SegmentEditor({
           ) : null}
           <fieldset className="m-0 min-w-0 border-0 p-0">
             <legend className="mb-2 p-0 text-[13px] font-medium">Rule</legend>
+            <EditConflict
+              conflict={ruleEdit.conflict}
+              onKeepMine={ruleEdit.keepMine}
+              onTakeTheirs={ruleEdit.takeTheirs}
+              what="The rule"
+            />
             {text === null ? (
-              <GroupBox g={rule} ctx={others} depth={0} total={n} onChange={setRule} />
+              <RuleKey.Provider value={ruleEdit.key}>
+                <GroupBox g={rule} ctx={others} depth={0} total={n} onChange={setRule} />
+              </RuleKey.Provider>
             ) : (
               <div className="flex min-w-0 flex-col gap-2">
                 <Textarea
                   aria-label="Rule as text"
                   rows={Math.min(14, text.split("\n").length + 2)}
                   className="font-mono text-[13px]"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  {...textEdit.field}
                 />
                 {textProblems.length ? (
                   <ul className={`m-0 list-none p-0 ${ERROR}`} role="alert">
@@ -772,7 +836,8 @@ export function SegmentEditor({
                   size="dense"
                   tone="quiet"
                   onClick={() => {
-                    setText(
+                    setTextOn(true);
+                    textEdit.set(
                       ruleText(pruned(rule), new Map(ctx.segments.map((s) => [s.id, s.name]))),
                     );
                     setTextProblems([]);
@@ -788,13 +853,21 @@ export function SegmentEditor({
                       const got = parseRule(text, new Map(ctx.segments.map((s) => [s.name, s.id])));
                       if ("problems" in got) return setTextProblems(got.problems);
                       setRule(got.rule);
-                      setText(null);
+                      setTextOn(false);
+                      textEdit.discard();
                       setTextProblems([]);
                     }}
                   >
                     Use this text
                   </Button>
-                  <Button size="dense" tone="quiet" onClick={() => setText(null)}>
+                  <Button
+                    size="dense"
+                    tone="quiet"
+                    onClick={() => {
+                      setTextOn(false);
+                      textEdit.discard();
+                    }}
+                  >
                     Back to boxes
                   </Button>
                 </>
@@ -844,9 +917,25 @@ export function SegmentEditor({
           {start.id ? "Save changes" : "Save segment"}
           {ruled && preview ? ` (${preview.size})` : ""}
         </Button>
-        <Button size="dense" tone="quiet" onClick={() => onDone(false)}>
+        <Button
+          size="dense"
+          tone="quiet"
+          onClick={() => {
+            nameEdit.discard();
+            wordsEdit.discard();
+            ruleEdit.discard();
+            textEdit.discard();
+            onDone(false);
+          }}
+        >
           Cancel
         </Button>
+        <UnsavedMark
+          edit={{
+            dirty: nameEdit.dirty || wordsEdit.dirty || ruleEdit.dirty || textEdit.dirty,
+            conflict: null,
+          }}
+        />
         <span className="text-[13px] text-(--ui-ink-3)">Nobody is messaged.</span>
       </div>
     </div>
@@ -856,7 +945,9 @@ export function SegmentEditor({
 /** The list's head: New segment opens the editor. */
 function SegmentsHead({ client, reload }: { client: string; reload: () => void }) {
   const [open, setOpen] = useState(false);
-  if (!open)
+  // Words kept from before open the editor again.
+  const kept = useKeptSegment("new", { name: "", words: null, rule: null }, null);
+  if (!open && !kept)
     return (
       <Button tone="primary" size="dense" onClick={() => setOpen(true)}>
         New segment
@@ -888,7 +979,13 @@ function RuleSection({
 }) {
   const [editing, setEditing] = useState(false);
   const active = row.state === "active";
-  if (editing)
+  // Words kept from before open the editor again.
+  const kept = useKeptSegment(
+    Number(row.id),
+    { name: String(row.name ?? ""), words: (row.words as string | null) ?? null, rule: d.rule },
+    d.version,
+  );
+  if (editing || kept)
     return (
       <SegmentEditor
         client={client}

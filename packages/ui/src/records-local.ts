@@ -54,7 +54,9 @@ export function localRecords(server: RecordsApi): LocalRecords {
       return { ...got, row: patch(ask.record, got.row) };
     },
     async list(ask: ListAsk) {
-      const page = await server.list(ask);
+      // Rows here are patched in this tab: never a change-only read, never row hashes.
+      const { known: _, ...whole } = ask;
+      const { hashes: __, same: ___, ...page } = await server.list(whole);
       const rows = page.rows.map((r) => patch(ask.record, r));
       if (ask.of || !changed(ask.record).length) return { ...page, rows };
       const meta = await metaOf(ask.record);

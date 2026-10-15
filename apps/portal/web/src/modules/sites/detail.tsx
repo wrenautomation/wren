@@ -36,9 +36,19 @@ import {
   Tag,
   Textarea,
   TrendChart,
+  useEdit,
   useSaved,
 } from "@wren/ui";
-import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Split } from "./split.js";
@@ -62,16 +72,24 @@ export function useRun(act: RecordAct) {
   const [busy, setBusy] = useState<string | null>(null);
   // One action at a time, held in a ref: a double click (or Enter on a busy button) runs once.
   const flying = useRef(false);
-  const run = async (name: string, action: string, input: Record<string, unknown>, ok: string) => {
-    if (flying.current) return;
+  /** True once the server did it. */
+  const run = async (
+    name: string,
+    action: string,
+    input: Record<string, unknown>,
+    ok: string,
+  ): Promise<boolean> => {
+    if (flying.current) return false;
     flying.current = true;
     setBusy(name);
     setSaid(null);
     try {
       await act(action, input);
       setSaid({ text: ok, bad: false });
+      return true;
     } catch (err) {
       setSaid({ text: errorOf(err), bad: true });
+      return false;
     } finally {
       flying.current = false;
       setBusy(null);
@@ -90,6 +108,9 @@ export function Said({ said }: { said: { text: string; bad: boolean } | null }) 
     </span>
   );
 }
+
+/** The save key of the copy being edited: the boxes inside mark it, the engine keeps the words. */
+const CopyKey = createContext("");
 
 /** A new section's id: short, lowercase, unique enough on one page. */
 const newSectionId = () => crypto.randomUUID().slice(0, 8);
@@ -221,6 +242,7 @@ function FieldBox({
   value: Content[string] | undefined;
   onChange: (v: Content[string]) => void;
 }) {
+  const editKey = useContext(CopyKey);
   if (f.kind === "sections") return <SectionsBox id={id} f={f} value={value} onChange={onChange} />;
   if (f.kind === "items") {
     const items = (Array.isArray(value) ? value : []) as ItemValue[];
@@ -276,6 +298,7 @@ function FieldBox({
         <Textarea
           id={id}
           rows={many ? 4 : 3}
+          data-edit={editKey}
           value={text}
           onChange={(e) => onChange(many ? e.target.value.split("\n") : e.target.value)}
         />
@@ -283,6 +306,7 @@ function FieldBox({
         <Input
           id={id}
           type={f.kind === "url" ? "url" : "text"}
+          data-edit={editKey}
           value={text}
           maxLength={f.max}
           onChange={(e) => onChange(e.target.value)}
@@ -360,19 +384,24 @@ function CopyEditor({
   client: boolean;
 }) {
   const draft = d.draft;
-  const [why, setWhy] = useState("");
-  const [angle, setAngle] = useState("");
+  // The note, the angle and the ask are kept as typed too, until used.
+  const whyEdit = useEdit(`site-copy:${id}:why`, "");
+  const angleEdit = useEdit(`site-copy:${id}:angle`, "");
+  const askEdit = useEdit(`site-copy:${id}:ask`, "");
+  const { value: why } = whyEdit;
+  const { value: angle } = angleEdit;
+  const { value: ask } = askEdit;
   const [part, setPart] = useState("");
-  const [ask, setAsk] = useState("");
   const { said, busy, run, setSaid } = useRun(act);
   const whyNow = useRef(why);
   whyNow.current = why;
+  const copyKey = `site-copy:${id}`;
   // The copy as he types it, through the save engine: kept on this device as he goes (a reload
   // or a closed tab gives it back) and saved on Save as a new version over the one he opened.
   // A version saved since (his other tab, Claude's) is a conflict, never an overwrite; one saved
   // while nothing is typed just shows.
   const copy = useSaved<Content>({
-    key: draft ? `site-copy:${id}` : null,
+    key: draft ? copyKey : null,
     server: draft?.content ?? NO_CONTENT,
     version: String(draft?.number ?? 0),
     delay: null,
@@ -385,7 +414,7 @@ function CopyEditor({
         ...(typeof expect === "string" ? { expect: Number(expect) } : {}),
         requestId: request,
       })) as { draft?: number | null } | undefined;
-      setWhy((w) => (w === sentWhy ? "" : w));
+      whyEdit.saved(sentWhy);
       return { version: out?.draft ? String(out.draft) : null };
     },
   });
@@ -437,19 +466,21 @@ function CopyEditor({
         </span>{" "}
         <span className={QUIET}>{state}</span>
       </p>
-      {groupsOf(template.fields).map(([legend, fields]) => (
-        <Fieldset key={legend} legend={legend}>
-          {fields.map((f) => (
-            <FieldBox
-              key={f.key}
-              id={`copy-${f.key}`}
-              f={f}
-              value={content[f.key]}
-              onChange={(v) => edit({ ...content, [f.key]: v })}
-            />
-          ))}
-        </Fieldset>
-      ))}
+      <CopyKey.Provider value={copyKey}>
+        {groupsOf(template.fields).map(([legend, fields]) => (
+          <Fieldset key={legend} legend={legend}>
+            {fields.map((f) => (
+              <FieldBox
+                key={f.key}
+                id={`copy-${f.key}`}
+                f={f}
+                value={content[f.key]}
+                onChange={(v) => edit({ ...content, [f.key]: v })}
+              />
+            ))}
+          </Fieldset>
+        ))}
+      </CopyKey.Provider>
       <Fieldset
         legend="Save and publish"
         note={
@@ -462,12 +493,7 @@ function CopyEditor({
           <label htmlFor="copy-why" className={LABEL}>
             What changed <span className={HINT}>(optional)</span>
           </label>
-          <Input
-            id="copy-why"
-            value={why}
-            maxLength={500}
-            onChange={(e) => setWhy(e.target.value)}
-          />
+          <Input id="copy-why" {...whyEdit.field} maxLength={500} />
         </div>
         {problem ? <p className="text-[13px] text-(--ui-bad)">{problem}</p> : null}
         <div className="flex flex-wrap items-center gap-2">
@@ -529,21 +555,22 @@ function CopyEditor({
               aria-label="Angle"
               className="max-w-[320px]"
               placeholder="Angle, or leave empty"
-              value={angle}
+              {...angleEdit.field}
               maxLength={120}
-              onChange={(e) => setAngle(e.target.value)}
             />
             <Button
               disabled={changed || closed}
               busy={busy === "draft"}
-              onClick={() =>
-                void run(
+              onClick={async () => {
+                const sent = angle;
+                const ok = await run(
                   "draft",
                   "sites.draft",
-                  { id, angle: angle.trim() || null },
+                  { id, angle: sent.trim() || null },
                   "Claude saved a new version. Read it before you ask.",
-                )
-              }
+                );
+                if (ok) angleEdit.saved(sent);
+              }}
             >
               Ask Claude
             </Button>
@@ -570,21 +597,22 @@ function CopyEditor({
                 aria-label="What to change"
                 className="max-w-[420px]"
                 placeholder="What to change: shorter, warmer, lead with speed"
-                value={ask}
+                {...askEdit.field}
                 maxLength={500}
-                onChange={(e) => setAsk(e.target.value)}
               />
               <Button
                 disabled={changed || closed || !ask.trim() || !partKey}
                 busy={busy === "rewrite"}
-                onClick={() =>
-                  void run(
+                onClick={async () => {
+                  const sent = ask;
+                  const ok = await run(
                     "rewrite",
                     "sites.rewrite",
-                    { id, part: partKey, ask: ask.trim() },
+                    { id, part: partKey, ask: sent.trim() },
                     "Claude saved a new version with that part rewritten. Read it before you ask.",
-                  )
-                }
+                  );
+                  if (ok) askEdit.saved(sent);
+                }}
               >
                 Rewrite
               </Button>
@@ -973,6 +1001,7 @@ function Notes({ id, d, act }: { id: string; d: PageDetail; act: RecordAct }) {
       <Textarea
         aria-label="Notes"
         rows={3}
+        data-edit={`site-notes:${id}`}
         value={notes.value}
         maxLength={4000}
         placeholder="What it's testing, what we learned."

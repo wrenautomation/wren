@@ -19,6 +19,8 @@ import {
   say,
   Tag,
   tipProps,
+  UnsavedMark,
+  useEdit,
 } from "@wren/ui";
 import {
   Dialog,
@@ -219,6 +221,7 @@ export function NotesHome({ client, params, demo }: PageProps) {
               </a>
             ))}
           </nav>
+          {/* edit-ok: search box */}
           <Input
             type="search"
             value={typed}
@@ -298,7 +301,9 @@ function Training({
 
 /** A Google Doc by its link: Wren reads it as its service account, or as anyone with the link. */
 function FromDrive({ client, onClose }: { client: string; onClose: () => void }) {
-  const [link, setLink] = useState("");
+  // The link is kept as typed until the import goes through.
+  const edit = useEdit("note-import:drive:link", "");
+  const link = edit.value;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const who = useCall(`notes:settings:${client}`, () => notes(client, "settings", {}));
@@ -307,8 +312,10 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
     if (!link.trim()) return;
     setBusy(true);
     setFailed(null);
+    const sent = link;
     importDrive(client, link.trim())
       .then((id) => {
+        edit.saved(sent);
         onClose();
         navigate(docPath(id));
       })
@@ -332,12 +339,12 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
           }}
         >
           <Input
-            value={link}
+            {...edit.field}
             autoFocus
             aria-label="The doc's link"
             placeholder="https://docs.google.com/document/d/…"
-            onChange={(e) => setLink(e.target.value)}
           />
+          <UnsavedMark edit={edit} />
           {failed ? <Alert>{failed}</Alert> : null}
           <p className="m-0 text-[12.5px] text-(--ui-ink-2)">
             {sa ? (
@@ -351,7 +358,15 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
             Word files in Drive work too, up to 4 MB.
           </p>
           <div className="flex justify-end gap-2">
-            <Button tone="secondary" size="dense" type="button" onClick={onClose}>
+            <Button
+              tone="secondary"
+              size="dense"
+              type="button"
+              onClick={() => {
+                edit.discard();
+                onClose();
+              }}
+            >
               Cancel
             </Button>
             <Button

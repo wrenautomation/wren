@@ -44,6 +44,16 @@ class_name = "NoteRoom"
 tag = "v1"
 new_sqlite_classes = ["NoteRoom"]
 
+# Sends told live: one watch per signed-in person and site (src/watch.ts). It keeps each open
+# write's last state, so a tab that connects late hears it.
+[[durable_objects.bindings]]
+name = "WRITE_WATCH"
+class_name = "WriteWatch"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["WriteWatch"]
+
 # One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts).
 [[ratelimits]]
 name = "PUBLIC_LIMIT"

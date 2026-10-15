@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { canAt, type Viewer } from "./access.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
+import { useEdit } from "./data/use-edit.js";
 import { GROUP_LABEL } from "./layout.js";
 
 export interface IssueLine {
@@ -93,7 +94,8 @@ export function RecordIssues({
   const at = rowTarget(meta, row, access.client);
   const mayRaise = !access.readOnly && canAt(viewer, "comment", at);
   const mayResolve = !access.readOnly && canAt(viewer, "act", at);
-  const [body, setBody] = useState("");
+  const issue = useEdit(`issue:${meta.id}:${String(row.id)}:body`, "");
+  const body = issue.value;
   const [busy, setBusy] = useState<string | null>(null);
   const id = useId();
   const raise = async () => {
@@ -108,7 +110,7 @@ export function RecordIssues({
         title,
         channel: at.channel ?? null,
       });
-      setBody("");
+      issue.saved(body);
       toast.success("Issue raised");
       reload();
     } catch (err) {
@@ -175,7 +177,8 @@ export function RecordIssues({
             maxLength={1000}
             rows={3}
             placeholder="What's wrong? Whoever can fix it sees it in their Inbox."
-            onChange={(e) => setBody(e.target.value)}
+            onChange={issue.field.onChange}
+            data-edit={issue.field["data-edit"]}
           />
           <div>
             <Button
@@ -224,7 +227,8 @@ export function AskAccess({
   const [verb, setVerb] = useState<Permission>("act");
   const [where, setWhere] = useState<"record" | "channel">("record");
   const [days, setDays] = useState("7");
-  const [reason, setReason] = useState("");
+  const why = useEdit(`access-ask:${meta.id}:${String(row.id)}:reason`, "");
+  const reason = why.value;
   const [busy, setBusy] = useState(false);
   const id = useId();
   if (access.readOnly || !canAt(viewer, "read", at) || canAt(viewer, "act", at)) return null;
@@ -244,7 +248,7 @@ export function AskAccess({
       });
       toast.success("Asked. You'll hear back in your Inbox.");
       setOpen(false);
-      setReason("");
+      why.saved(reason);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -313,7 +317,8 @@ export function AskAccess({
         rows={2}
         maxLength={500}
         value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        onChange={why.field.onChange}
+        data-edit={why.field["data-edit"]}
       />
       <div className="flex gap-2">
         <Button

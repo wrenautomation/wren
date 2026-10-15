@@ -8,6 +8,7 @@
  *   the email. The token marks Wren's operators: they see every client.
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
+ * - `/api/live/writes`: a person's sends as they go, a WebSocket to their `WriteWatch` (./watch.ts).
  * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
  *   for an operator, or for a client's login on its own items.
  * - `/api/agent`: Wren for AI tools (the CLI and skill under `/agent/`), by a `wren_` access
@@ -57,10 +58,11 @@ import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
 import { bodyLimit, isSend, SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
+import { WRITES_LIVE_PATH, WriteWatch, watchWrite, writesSocketRoute } from "./watch.js";
 import { REQUEST_ID, WRITE_STATUS_PATH, writeKey, writeStatus } from "./writes.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
-export { NoteRoom };
+export { NoteRoom, WriteWatch };
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
@@ -174,6 +176,10 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
       if (!once) return json({ error: "A send needs its request id." }, 400);
       const took = await forward(env, `${target}/send`, sent, once);
       if (!took.ok) return took;
+      // Its tabs hear how it goes over their socket (./watch.ts); without one they poll.
+      ctx?.waitUntil(
+        watchWrite(env, viewer.email, site, { requestId: String(requestId), path, key: once }),
+      );
       return json({ accepted: true, state: "queued", requestId: String(requestId) }, 202);
     }
     return forward(env, target, sent, once);
@@ -330,6 +336,8 @@ export default {
         },
       });
     if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
+    if (pathname === WRITES_LIVE_PATH)
+      return writesSocketRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === MEDIA_GRANT_PATH) return mediaGrant(req, env, site);
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
     if (pathname === MEDIA_PATH) {

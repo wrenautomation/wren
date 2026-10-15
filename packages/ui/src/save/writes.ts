@@ -19,7 +19,9 @@
  * - A send (a reply, a DM, a comment) is accept-then-track: the server answers at once that it
  *   has it (`{ accepted: true }`), and its outcome comes from the server's own record of it
  *   (`status`), asked on reminders and on every return. Nothing waits on a held-open request.
- * - Another tab of the portal hears each write that landed and reads again (BroadcastChannel).
+ * - The server pushes a send's outcome over the portal's socket (`heard`); asking `status` is the
+ *   fallback, slower while the socket is open. While Restate retries a send, why shows (`retry`).
+ * - A write that landed is handed to `landed`: the data layer reads again here and in other tabs.
  */
 import { failureKind, wordsOf } from "./engine.js";
 import { newId, type Store } from "./env.js";
@@ -38,6 +40,14 @@ export interface WireCall {
   at: number;
   /** The server took it (a send): its outcome is read from the server, not waited for. */
   accepted?: boolean;
+  /** The server is trying it again, and why. */
+  retry?: Retry | null;
+}
+
+/** A send the server keeps trying: how many times so far, and why the last try failed. */
+export interface Retry {
+  count: number;
+  reason: string;
 }
 
 /** A press: what the person did, and how it went. */
@@ -73,6 +83,8 @@ export interface Write {
   retried: boolean;
   /** The server has it and runs it whatever this tab does (a send it accepted). */
   accepted: boolean;
+  /** The server is trying it again, and why (a send it accepted). */
+  retry?: Retry | null;
   calls: WireCall[];
 }
 
@@ -88,7 +100,7 @@ export const isAccepted = (v: unknown): v is Accepted =>
 
 /** What the server says of a request id it was sent. */
 export type WireState =
-  | { state: "sending" }
+  | { state: "sending"; retry?: Retry }
   | { state: "sent"; answer?: unknown }
   | { state: "failed"; error: string }
   | { state: "unknown" };
@@ -103,6 +115,8 @@ export interface WriteHooks {
   reread?: () => Promise<void>;
   /** Say how a press went, when the person couldn't see it happen. */
   tell?: (w: Write) => void;
+  /** A write landed on these records (the data layer tells the other tabs). */
+  landed?: (records: string[]) => void;
 }
 
 export type WritePageEvent = "back" | "hidden" | "gone";
@@ -117,13 +131,6 @@ export interface WriteEnv {
   listen: (fn: (e: WritePageEvent) => void) => () => void;
   /** A reminder at `ms` from now; never decides anything by itself. */
   remind: (ms: number, fn: () => void) => void;
-  /** The portal's other tabs: told when a write lands here, telling when one lands there. */
-  tabs?: { post: (m: TabNews) => void; listen: (fn: (m: TabNews) => void) => () => void } | null;
-}
-
-/** What one tab tells the others: a write landed on these records. */
-export interface TabNews {
-  landed: string[];
 }
 
 const STORE_KEY = "wren.writes";
@@ -135,6 +142,8 @@ const KEEP_MAX = 48_000;
 /** How soon a send the server took is asked about, then each time twice as late, to this. */
 const FOLLOW_FIRST_MS = 400;
 const FOLLOW_MAX_MS = 5_000;
+/** The same, while the server pushes outcomes over the socket: asking is only the fallback. */
+const FOLLOW_PUSHED_MS = 20_000;
 
 /** A record's key in a write: its scope (the type's plural, a page's name) and its id. */
 export const recordKey = (scope: string, id: string | number) => `${scope}\u0000${id}`;
@@ -210,6 +219,8 @@ export class Writes {
   >();
   /** This page load. */
   private readonly page = Math.random().toString(36).slice(2, 10);
+  /** The socket that pushes outcomes is open. */
+  private pushing = false;
 
   constructor(private readonly env: WriteEnv) {
     this.list = this.load();
@@ -229,12 +240,7 @@ export class Writes {
       else if (e === "hidden") this.hiddenAt ??= this.env.now();
       else this.gone();
     });
-    // Another tab's write landed: what this one shows may be old.
-    const tabs = this.env.tabs?.listen(() => void this.reread()) ?? (() => {});
-    this.unlisten = () => {
-      page();
-      tabs();
-    };
+    this.unlisten = page;
     if (!this.env.visible()) this.hiddenAt = this.env.now();
     void this.back(true);
   }
@@ -619,10 +625,35 @@ export class Writes {
     });
   }
 
+  /**
+   * The socket that pushes outcomes opened (true) or closed. While it's open, asking `status`
+   * is a slow fallback; when it closes, every send is asked about at once.
+   */
+  pushed(on: boolean) {
+    if (this.pushing === on) return;
+    this.pushing = on;
+    if (!on) for (const id of [...this.following.keys()]) void this.askFollowing(id);
+  }
+
+  /** The server says how the call under `id` goes (pushed over the socket). */
+  heard(id: string, got: WireState) {
+    if (this.following.has(id)) return void this.apply(id, got);
+    // A call this page didn't send (an earlier load's) and isn't asking about: settle it here.
+    const w = this.ownerOf(id) ?? this.byId(id);
+    const c = w?.calls.find((x) => x.id === id);
+    if (!w || !c || c.status === "sent" || c.status === "failed") return;
+    if (got.state === "sent") this.wireDone(id, "sent", null);
+    else if (got.state === "failed") this.wireDone(id, "failed", got.error);
+    else if (got.state === "sending") this.retrying(id, got.retry ?? null);
+  }
+
   private remindFollowing(id: string) {
     const f = this.following.get(id);
     if (!f) return;
-    const ms = Math.min(FOLLOW_FIRST_MS * 2 ** f.tries, FOLLOW_MAX_MS);
+    const ms = Math.min(
+      FOLLOW_FIRST_MS * 2 ** f.tries,
+      this.pushing ? FOLLOW_PUSHED_MS : FOLLOW_MAX_MS,
+    );
     f.tries += 1;
     this.env.remind(ms, () => void this.askFollowing(id));
   }
@@ -632,27 +663,45 @@ export class Writes {
     const f = this.following.get(id);
     if (!f || f.asking) return;
     f.asking = true;
-    let again = true;
     try {
       const got = await this.hooks.status?.(f.path, id);
-      if (got?.state === "sent") {
-        this.following.delete(id);
-        again = false;
-        f.resolve(got.answer ?? null);
-      } else if (got?.state === "failed") {
-        this.following.delete(id);
-        again = false;
-        f.reject(new Error(got.error));
-      } else if (got?.state === "unknown" && f.body && this.hooks.send) {
-        // Taken, yet the server has no record (it keeps them a day): give it again, same id.
-        await this.hooks.send(f.path, { ...f.body, requestId: id });
-      }
+      if (got) await this.apply(id, got);
     } catch {
       // The server can't say now: ask again on the next reminder or return.
     } finally {
       f.asking = false;
     }
-    if (again) this.remindFollowing(id);
+    if (this.following.has(id)) this.remindFollowing(id);
+  }
+
+  /** What the server said of a taken send (asked or pushed). */
+  private async apply(id: string, got: WireState) {
+    const f = this.following.get(id);
+    if (!f) return;
+    if (got.state === "sent") {
+      this.following.delete(id);
+      f.resolve(got.answer ?? null);
+    } else if (got.state === "failed") {
+      this.following.delete(id);
+      f.reject(new Error(got.error));
+    } else if (got.state === "sending") this.retrying(id, got.retry ?? null);
+    else if (got.state === "unknown" && f.body && this.hooks.send) {
+      // Taken, yet the server has no record (it keeps them a day): give it again, same id.
+      await this.hooks.send(f.path, { ...f.body, requestId: id });
+    }
+  }
+
+  /** The server is still at it: keep why it is trying again, if it is. */
+  private retrying(id: string, retry: Retry | null) {
+    const w = this.ownerOf(id) ?? this.byId(id);
+    const c = w?.calls.find((x) => x.id === id);
+    if (!w || !c) return;
+    const was = c.retry ?? null;
+    if (was === retry || (was && retry && was.count === retry.count && was.reason === retry.reason))
+      return;
+    c.retry = retry;
+    w.retry = w.calls.find((x) => x.retry)?.retry ?? null;
+    this.changed();
   }
 
   private wireDone(id: string, status: WireCall["status"], error: string | null) {
@@ -686,12 +735,13 @@ export class Writes {
       waited && this.showing() && w.page === this.page && !(w.accepted && status === "failed");
     this.changed();
     if (!w.told && this.env.visible()) this.tellUntold();
+    w.retry = null;
     if (w.hide && status === "sent") void this.reread(w);
     if (status === "sent" && w.records.length)
       try {
-        this.env.tabs?.post({ landed: [...w.records] });
+        this.hooks.landed?.([...w.records]);
       } catch {
-        // No other tabs to tell.
+        // Nobody to tell.
       }
   }
 
@@ -786,27 +836,6 @@ function session(): Store | null {
   }
 }
 
-/** The portal's other tabs in this browser, or null where there's no BroadcastChannel. */
-function otherTabs(): NonNullable<WriteEnv["tabs"]> | null {
-  if (typeof BroadcastChannel === "undefined") return null;
-  let ch: BroadcastChannel | null = null;
-  const open = () => {
-    ch ??= new BroadcastChannel(STORE_KEY);
-    return ch;
-  };
-  return {
-    post: (m) => open().postMessage(m),
-    listen: (fn) => {
-      const on = (e: MessageEvent) => {
-        const m = e.data as TabNews | null;
-        if (m && Array.isArray(m.landed)) fn(m);
-      };
-      open().addEventListener("message", on);
-      return () => open().removeEventListener("message", on);
-    },
-  };
-}
-
 function listenPage(fn: (e: WritePageEvent) => void): () => void {
   if (typeof addEventListener !== "function" || typeof document === "undefined") return () => {};
   const vis = () => fn(document.visibilityState === "hidden" ? "hidden" : "back");
@@ -837,7 +866,6 @@ export function browserWriteEnv(): WriteEnv {
     visible: () => typeof document === "undefined" || document.visibilityState !== "hidden",
     listen: listenPage,
     remind: (ms, fn) => void setTimeout(fn, ms),
-    tabs: otherTabs(),
   };
 }
 

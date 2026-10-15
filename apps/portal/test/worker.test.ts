@@ -404,6 +404,46 @@ describe("the app host", () => {
     expect(restate[1]?.url).toBe("https://restate.test:8080/ConsolePortal/call/send");
   });
 
+  it("a send it accepted is watched for its tabs, under the same key, after the answer", async () => {
+    const auth = { authorization: `Bearer ${await token({})}` };
+    const watched: { name: string; body: unknown }[] = [];
+    const ns = {
+      idFromName: (n: string) => n,
+      get: (name: string) => ({
+        fetch: async (req: Request) => {
+          watched.push({ name, body: await req.json() });
+          return Response.json({ watching: true });
+        },
+      }),
+    } as unknown as DurableObjectNamespace;
+    const later: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: (p: Promise<unknown>) => later.push(p),
+    } as unknown as ExecutionContext;
+    const res = await worker.fetch(
+      post("app.test", "marketing/inboxReply", { body: "Thanks", requestId: "req-0011" }, auth),
+      env({ WRITE_WATCH: ns }),
+      ctx,
+    );
+    expect(res.status).toBe(202);
+    await Promise.all(later);
+    expect(watched).toEqual([
+      {
+        name: "owner@client.example\napp",
+        body: { requestId: "req-0011", path: "marketing/inboxReply", key: restate[0]?.key },
+      },
+    ]);
+    // A refused send isn't watched.
+    restateStatus = 500;
+    await worker.fetch(
+      post("app.test", "marketing/inboxReply", { body: "Thanks", requestId: "req-0012" }, auth),
+      env({ WRITE_WATCH: ns }),
+      ctx,
+    );
+    await Promise.all(later);
+    expect(watched).toHaveLength(1);
+  });
+
   it("refuses a request id that isn't a short token", async () => {
     const auth = { authorization: `Bearer ${await token({})}` };
     for (const requestId of ["short", "has space here", "x".repeat(101), 12])

@@ -16,7 +16,7 @@ import {
 import { Button } from "../controls.js";
 import { type Conflict, Saver, type SaverOptions, type SaveState, type Status } from "./engine.js";
 import { browserEnv } from "./env.js";
-import { readForm, writeForm } from "./journal.js";
+import { readKept, writeForm } from "./journal.js";
 import { SavePage } from "./page.js";
 
 const PageBoxes = createContext<SavePage | null>(null);
@@ -182,24 +182,40 @@ export function SaveConflict<T>({
 export interface KeptFormState {
   /** Where the values are kept; null keeps nothing. */
   key: string | null;
+  /** What the form starts from now. */
+  base: string;
   values: Record<string, string>;
   /** The values came back from before (a closed dialog, a reload). */
   restored: boolean;
+  /**
+   * What the form starts from moved since the values were typed (`base`): both show until the
+   * person picks (`keepMine`, `takeTheirs`). Never dropped silently.
+   */
+  conflict: { values: Record<string, string>; base: string } | null;
   set: (field: string, text: string) => void;
   /** Sent: forget them. */
   clear: () => void;
+  keepMine: () => void;
+  takeTheirs: () => void;
 }
 
 /**
- * A dialog's typing, kept on the device under `key` until it is sent, so closing the dialog or
- * reloading gives it back. `base` is what the form started from: the values come back only
- * over the same. A null key keeps nothing.
+ * A dialog's typing, kept in the edits store under `key` until it is sent, so closing the dialog,
+ * another page or a reload gives it back. `base` is what the form started from: values typed over
+ * another base come back as a conflict for the person to settle. A null key keeps nothing.
  */
 export function useKeptForm(key: string | null, base = ""): KeptFormState {
   const env = useMemo(() => browserEnv(), []);
   const load = (k: string | null) => {
-    const got = k ? readForm(env.storage, k, base, env.now()) : null;
-    return { key: k, base, values: got ?? {}, restored: !!got };
+    const got = k ? readKept(env.storage, k, env.now()) : null;
+    const over = got && got.base === base;
+    return {
+      key: k,
+      base,
+      values: over ? got.values : {},
+      restored: !!over,
+      conflict: got && !over ? got : null,
+    };
   };
   const [s, setS] = useState(() => load(key));
   let now = s;
@@ -209,24 +225,39 @@ export function useKeptForm(key: string | null, base = ""): KeptFormState {
   }
   const live = useRef(now);
   live.current = now;
+  const put = (next: typeof now) => {
+    live.current = next;
+    setS(next);
+  };
   return {
     key: now.key,
-    values: now.values,
+    base: now.base,
+    values: now.conflict ? now.conflict.values : now.values,
     restored: now.restored,
+    conflict: now.conflict,
     set: (field, text) => {
       const cur = live.current;
-      const values = { ...cur.values, [field]: text };
-      if (cur.key) writeForm(env.storage, cur.key, values, cur.base, env.now());
-      const next = { ...cur, values };
-      live.current = next;
-      setS(next);
+      // Typing over a conflict keeps it: the words stay on their own base until picked.
+      const on = cur.conflict ? cur.conflict.base : cur.base;
+      const values = { ...(cur.conflict?.values ?? cur.values), [field]: text };
+      if (cur.key) writeForm(env.storage, cur.key, values, on, env.now());
+      put(cur.conflict ? { ...cur, conflict: { values, base: on } } : { ...cur, values });
     },
     clear: () => {
       const cur = live.current;
       if (cur.key) writeForm(env.storage, cur.key, null, cur.base, env.now());
-      const next = { ...cur, values: {}, restored: false };
-      live.current = next;
-      setS(next);
+      put({ ...cur, values: {}, restored: false, conflict: null });
+    },
+    keepMine: () => {
+      const cur = live.current;
+      if (!cur.conflict) return;
+      if (cur.key) writeForm(env.storage, cur.key, cur.conflict.values, cur.base, env.now());
+      put({ ...cur, values: cur.conflict.values, restored: true, conflict: null });
+    },
+    takeTheirs: () => {
+      const cur = live.current;
+      if (cur.key) writeForm(env.storage, cur.key, null, cur.base, env.now());
+      put({ ...cur, values: {}, restored: false, conflict: null });
     },
   };
 }

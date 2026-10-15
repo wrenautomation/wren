@@ -524,6 +524,7 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
   const go = (step: number) => setPos(find(editor, q, step));
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-(--ui-hair) bg-(--ui-tile) px-3 py-2 text-[13px] print:hidden">
+      {/* edit-ok: search box */}
       <Input
         ref={box}
         value={q}
@@ -565,6 +566,7 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
       </button>
       {editor.isEditable ? (
         <>
+          {/* edit-ok: find and replace tool, applied to the page at once */}
           <Input
             value={by}
             aria-label="Replace with"
@@ -635,6 +637,7 @@ function LinkBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
         save();
       }}
     >
+      {/* edit-ok: one-shot toolbar entry, applied to the selection at once */}
       <Input
         ref={box}
         value={url}

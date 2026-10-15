@@ -437,6 +437,7 @@ export function Automations({ params }: PageProps) {
             </a>
           ))}
         </div>
+        {/* edit-ok: search box */}
         <Input
           type="search"
           value={q}

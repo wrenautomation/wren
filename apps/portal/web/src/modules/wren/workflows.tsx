@@ -411,8 +411,9 @@ function Canvas({
   const version = String(Math.max(d.draft?.id ?? 0, d.versions?.[0]?.id ?? 0));
   // The newest save this editor made: Publish and Discard name it until the read catches up.
   const savedAs = useRef(0);
+  const keptKey = team ? `workflow:${client ?? ""}:${w.id}` : null;
   const kept = useSaved<Kept>({
-    key: team ? `workflow:${client ?? ""}:${w.id}` : null,
+    key: keptKey,
     server,
     version,
     delay: null,
@@ -760,6 +761,7 @@ function Canvas({
         test={<TestStep w={shown} workflow={w.id} client={client} draft={draft} node={sel} />}
         mayManage={mayManage}
         fresh={fresh}
+        editKey={keptKey ?? ""}
       />
     ) : picked ? (
       <WirePanel
@@ -769,6 +771,7 @@ function Canvas({
         from={picked.from}
         to={picked.to}
         onClose={() => setPicked(null)}
+        editKey={keptKey ?? ""}
       />
     ) : null;
     return (
@@ -833,6 +836,7 @@ function Canvas({
               <Input
                 aria-label="Workflow name"
                 className="w-[200px]"
+                data-edit={keptKey ?? ""}
                 value={name}
                 maxLength={60}
                 onChange={(e) => setName(e.target.value)}
@@ -879,6 +883,7 @@ function Canvas({
                 {confirm.asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type {w.id} to make
                 it live.
               </span>
+              {/* edit-ok: type-to-confirm word, a guard not a draft */}
               <Input
                 value={confirm.typed}
                 onChange={(e) => setConfirm({ ...confirm, typed: e.target.value })}

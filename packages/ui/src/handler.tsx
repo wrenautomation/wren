@@ -166,6 +166,7 @@ export function HandlerForm({
               </DialogDescription>
             </DialogHeader>
             <Input
+              // edit-ok: type-to-confirm, never kept on purpose
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               aria-label={`Type ${name}`}

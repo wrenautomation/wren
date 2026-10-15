@@ -6,10 +6,10 @@
  * need none.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
-import { type WireState, WRITES } from "@wren/ui";
+import { dropLocalCopy, readTogether, startLocalCopy, type WireState, WRITES } from "@wren/ui";
 import { isWrite } from "../../src/services.js";
 import { tellAutotrack } from "./autotrack.js";
-import { dropSnapshot } from "./snapshot.js";
+import { startWriteSocket } from "./write-socket.js";
 
 export type {
   AccessView,
@@ -199,9 +199,15 @@ export function forgetDevice() {
   held = null;
   store(HELD_KEY, null);
   store(OWNER_KEY, null);
-  const d = device();
-  if (d) dropSnapshot(d);
+  void dropLocalCopy();
 }
+
+/**
+ * Keep this login's reads on the device and share them with its other tabs (`@wren/ui` data
+ * layer). None under View as. Resolves once the last load's copy is back on screen.
+ */
+export const openLocalCopy = (): Promise<void> =>
+  startLocalCopy({ owner: viewing ? null : deviceOwner() });
 
 // Sign-out is a plain link to the sign-in host: wipe the device on the click, before it leaves.
 if (signOutUrl && typeof addEventListener === "function")
@@ -256,11 +262,11 @@ async function fresh(url: string): Promise<string | null> {
   const { token: t } = (await res.json()) as { token: string };
   const claims = JSON.parse(atob(t.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? ""));
   held = { token: t, until: Number(claims.exp) * 1000 - 60_000 };
-  // Someone else signed in here: the last login's snapshot isn't theirs.
+  // Someone else signed in here: the last login's local copy isn't theirs.
   const who = String(claims.email ?? "").toLowerCase() || null;
-  const d = device();
-  if (d && who !== stored(OWNER_KEY)) dropSnapshot(d);
+  const was = stored(OWNER_KEY);
   store(OWNER_KEY, who);
+  if (who !== was) void dropLocalCopy().then(openLocalCopy);
   store(HELD_KEY, JSON.stringify(held));
   return t;
 }
@@ -483,6 +489,10 @@ WRITES.use({
   status: (path, requestId) => sendNow<WireState>("writes/status", { path, requestId }, false),
 });
 WRITES.start();
+// The server pushes how each send goes; asking above is the fallback.
+if (TOKEN_URL) startWriteSocket({ token, writes: WRITES });
+// Reads the data layer starts together (a return to the tab, the network back) go as one.
+readTogether(batched);
 
 /** Straight to the private bucket on a signed PUT; the portal only signs (D11). Answers its key. */
 export async function uploadFile(client: string | undefined, file: File): Promise<string> {

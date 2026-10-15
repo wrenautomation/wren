@@ -7,11 +7,12 @@
  */
 
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
-import type { ListAsk, RecordsStat, Row } from "@wren/core/records/serve";
+import type { ListAsk, RecordsPage, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, ExternalLink, GitCommitVertical, Rows3 } from "lucide-react";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "./controls.js";
+import { listChanged } from "./data/delta.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
@@ -684,7 +685,11 @@ function DayLines({
     limit: DAY_PAGE,
   };
   const key = JSON.stringify(ask);
-  const first = useLoad(`tl:${key}`, () => api.list(ask), api);
+  const first = useLoad<RecordsPage>(
+    `tl:${key}`,
+    (before) => listChanged((a) => api.list(a), ask, before),
+    api,
+  );
   const [more, setMore] = useState<{ key: string; rows: Row[]; next: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<Error | null>(null);

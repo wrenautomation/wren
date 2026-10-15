@@ -17,6 +17,7 @@ import {
   relative,
   SECTION_TITLE,
   say,
+  useEdit,
 } from "@wren/ui";
 import {
   Dialog,
@@ -116,7 +117,9 @@ export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }
 }
 
 function Follow() {
-  const [url, setUrl] = useState("");
+  // An address typed and not followed yet stays put: another page and back gives it again.
+  const address = useEdit("learn:follow-address", "");
+  const url = address.value;
   const [tell, setTell] = useState("top");
   const [busy, setBusy] = useState(false);
   const flying = useRef(false);
@@ -128,7 +131,7 @@ function Follow() {
     const sent = url;
     try {
       const f = await learn.follow(url.trim(), tell);
-      setUrl((v) => (v === sent ? "" : v));
+      address.saved(sent);
       say.done(
         `Following ${f.name}. ${f.items ? `Its last ${f.items} posts are in Archived; new ones` : "Its next posts"} land in your Inbox.`,
       );
@@ -143,8 +146,7 @@ function Follow() {
     <form onSubmit={submit} className="flex max-w-2xl flex-col gap-2 sm:flex-row">
       <Input
         type="url"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        {...address.field}
         placeholder="A channel, podcast, blog, or a creator's profile"
         aria-label="Address to follow"
         className="min-w-0 flex-1"

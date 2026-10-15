@@ -34,9 +34,10 @@ import {
   Tag,
   Textarea,
   TrendChart,
+  useEdit,
   useSaved,
 } from "@wren/ui";
-import { type ReactNode, useRef, useState } from "react";
+import { createContext, type ReactNode, useContext, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Said, Table, useRun } from "./detail.js";
@@ -46,6 +47,9 @@ const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
   "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
+
+/** The save key of the form being built: the boxes inside mark it, the engine keeps the words. */
+const FormKey = createContext("");
 
 const HAS_RULES = new Set<FieldKind>(["text", "long"]);
 const HAS_OPTIONS = new Set<FieldKind>(["select", "multi"]);
@@ -62,6 +66,7 @@ function ShowRow({
   above: FormField[];
   set: (f: FormField) => void;
 }) {
+  const editKey = useContext(FormKey);
   const sources = above.filter((a) => a.kind !== "step");
   const { show: _s, ...rest } = f;
   const put = (show: ShowRule | null) => set(show ? { ...rest, show } : rest);
@@ -144,6 +149,7 @@ function ShowRow({
           <span className={HINT}>Answers that count, one per line (any case)</span>
           <Textarea
             rows={2}
+            data-edit={editKey}
             value={(rule.values ?? []).join("\n")}
             onChange={(e) => put({ ...rule, values: e.target.value.split("\n") })}
           />
@@ -172,6 +178,7 @@ function FieldRow({
   drop: () => void;
 }) {
   const id = `ff-${i}`;
+  const editKey = useContext(FormKey);
   const kind = (k: FieldKind) => {
     if (k === "step") return set({ key: f.key, kind: k, label: "" });
     const next: FormField = { key: f.key, kind: k, label: f.label };
@@ -203,6 +210,7 @@ function FieldRow({
             id={`${id}-label`}
             aria-label="Consent words"
             rows={4}
+            data-edit={editKey}
             value={f.label}
             maxLength={1000}
             onChange={(e) => set({ ...f, label: e.target.value })}
@@ -212,6 +220,7 @@ function FieldRow({
             id={`${id}-label`}
             aria-label="Step heading"
             placeholder="Step heading (optional): A few more details"
+            data-edit={editKey}
             value={f.label}
             maxLength={200}
             onChange={(e) => set({ ...f, label: e.target.value })}
@@ -221,6 +230,7 @@ function FieldRow({
             id={`${id}-label`}
             aria-label={f.kind === "hidden" ? "Query key" : "Label"}
             placeholder={f.kind === "hidden" ? "utm_source" : "Label"}
+            data-edit={editKey}
             value={f.kind === "hidden" ? f.key : f.label}
             maxLength={200}
             onChange={(e) =>
@@ -236,6 +246,7 @@ function FieldRow({
           <span className={HINT}>Choices, one per line</span>
           <Textarea
             rows={3}
+            data-edit={editKey}
             value={(f.options ?? []).join("\n")}
             onChange={(e) => set({ ...f, options: e.target.value.split("\n") })}
           />
@@ -526,8 +537,9 @@ function Editor({
   act: RecordAct;
 }) {
   // Typing is kept on this device until saved; a save goes over the version it opened on.
+  const formKey = `site-form:${id}:${test ? "B" : "A"}`;
   const kept = useSaved<FormSpec>({
-    key: `site-form:${id}:${test ? "B" : "A"}`,
+    key: formKey,
     server: base,
     version,
     delay: null,
@@ -597,6 +609,7 @@ function Editor({
           <label className="grid gap-1.5 sm:col-span-2">
             <span className={LABEL}>Title</span>
             <Input
+              data-edit={formKey}
               value={spec.title}
               maxLength={200}
               onChange={(e) => put({ title: e.target.value })}
@@ -608,6 +621,7 @@ function Editor({
             </span>
             <Textarea
               rows={2}
+              data-edit={formKey}
               value={spec.intro ?? ""}
               maxLength={1000}
               onChange={(e) => put({ intro: e.target.value })}
@@ -616,6 +630,7 @@ function Editor({
           <label className="grid gap-1.5">
             <span className={LABEL}>Button</span>
             <Input
+              data-edit={formKey}
               value={spec.button}
               maxLength={60}
               onChange={(e) => put({ button: e.target.value })}
@@ -624,19 +639,21 @@ function Editor({
         </div>
         <div className="grid gap-4">
           <span className={LABEL}>Fields</span>
-          {spec.fields.map((f, i) => (
-            <FieldRow
-              // biome-ignore lint/suspicious/noArrayIndexKey: fields reorder; position is the key.
-              key={i}
-              f={f}
-              i={i}
-              above={spec.fields.slice(0, i)}
-              last={i === spec.fields.length - 1}
-              set={(next) => setField(i, next)}
-              move={(by) => move(i, by)}
-              drop={() => put({ fields: spec.fields.filter((_, j) => j !== i) })}
-            />
-          ))}
+          <FormKey.Provider value={formKey}>
+            {spec.fields.map((f, i) => (
+              <FieldRow
+                // biome-ignore lint/suspicious/noArrayIndexKey: fields reorder; position is the key.
+                key={i}
+                f={f}
+                i={i}
+                above={spec.fields.slice(0, i)}
+                last={i === spec.fields.length - 1}
+                set={(next) => setField(i, next)}
+                move={(by) => move(i, by)}
+                drop={() => put({ fields: spec.fields.filter((_, j) => j !== i) })}
+              />
+            ))}
+          </FormKey.Provider>
           <div>
             <Button size="sm" disabled={spec.fields.length >= 30} onClick={add}>
               Add field
@@ -681,6 +698,7 @@ function Editor({
           {spec.after.kind === "thanks" ? (
             <Input
               aria-label="Message"
+              data-edit={formKey}
               value={spec.after.text}
               maxLength={500}
               onChange={(e) => put({ after: { kind: "thanks", text: e.target.value } })}
@@ -689,6 +707,7 @@ function Editor({
             <Input
               aria-label="Page address"
               placeholder="https://example.com/thanks"
+              data-edit={formKey}
               value={spec.after.url}
               maxLength={500}
               onChange={(e) => put({ after: { kind: "redirect", url: e.target.value } })}
@@ -703,6 +722,7 @@ function Editor({
             <Input
               aria-label="Booking link"
               placeholder="/book"
+              data-edit={formKey}
               value={spec.booking?.url ?? ""}
               maxLength={500}
               onChange={(e) =>
@@ -719,6 +739,7 @@ function Editor({
             <Input
               aria-label="Booking button"
               placeholder="Pick a time"
+              data-edit={formKey}
               value={spec.booking?.label ?? ""}
               maxLength={60}
               disabled={!spec.booking?.url}
@@ -826,7 +847,10 @@ const day = (at: unknown) => new Date(String(at)).toLocaleDateString("en-CA");
 function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
   const { said, busy, run } = useRun(act);
   const test = d.splits[0]?.state === "running" ? d.splits[0] : null;
-  const [share, setShare] = useState(String(test?.weight ?? 50));
+  // B's share is kept as typed until it is used.
+  const shareEdit = useEdit(`site-form:${id}:share`, String(test?.weight ?? 50));
+  const share = shareEdit.value;
+  const setShare = shareEdit.set;
   const valid = /^\d{1,2}$/.test(share) && +share >= 1 && +share <= 99;
   const past = d.splits.filter((s) => s.state !== "running");
   if (!test)
@@ -846,6 +870,7 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
                 <Input
                   className="w-[80px]"
                   inputMode="numeric"
+                  data-edit={shareEdit.field["data-edit"]}
                   value={share}
                   onChange={(e) => setShare(e.target.value.trim())}
                 />
@@ -854,14 +879,16 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
                 tone="primary"
                 disabled={!valid}
                 busy={busy === "start"}
-                onClick={() =>
-                  void run(
+                onClick={async () => {
+                  const sent = share;
+                  const ok = await run(
                     "start",
                     "sites.formSplitStart",
-                    { id, weight: Number(share) },
+                    { id, weight: Number(sent) },
                     "Test started. Pick B at the top to change it.",
-                  )
-                }
+                  );
+                  if (ok) shareEdit.saved(sent);
+                }}
               >
                 Start a test
               </Button>
@@ -930,6 +957,7 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
           <Input
             className="w-[80px]"
             inputMode="numeric"
+            data-edit={shareEdit.field["data-edit"]}
             value={share}
             onChange={(e) => setShare(e.target.value.trim())}
           />
@@ -938,14 +966,16 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
           tone="primary"
           disabled={!valid || Number(share) === test.weight}
           busy={busy === "share"}
-          onClick={() =>
-            void run(
+          onClick={async () => {
+            const sent = share;
+            const ok = await run(
               "share",
               "sites.formSplitSave",
-              { id: test.id, weight: Number(share) },
+              { id: test.id, weight: Number(sent) },
               "Saved. New visitors get it; others keep their version.",
-            )
-          }
+            );
+            if (ok) shareEdit.saved(sent);
+          }}
         >
           Save share
         </Button>

@@ -111,6 +111,7 @@ function TestFields({
       </label>
       <label htmlFor={`${base}-data`} className={cx(FIELD, "min-w-0")}>
         <span>Its data</span>
+        {/* edit-ok: sample data for a dry run, never saved */}
         <Textarea
           id={`${base}-data`}
           className="min-h-[96px] w-full min-w-0 font-mono text-[12px]"
@@ -412,6 +413,7 @@ function TestTrigger({
     <div className="grid gap-3">
       <label htmlFor={`${base}-post`} className={cx(FIELD, "min-w-0")}>
         <span>{door ? "What the form posts" : "Its data"}</span>
+        {/* edit-ok: sample data for a dry run, never saved */}
         <Textarea
           id={`${base}-post`}
           className="min-h-[120px] w-full min-w-0 font-mono text-[12px]"

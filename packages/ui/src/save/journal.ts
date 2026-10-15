@@ -86,19 +86,33 @@ export interface KeptForm {
   at: number;
 }
 
+/**
+ * The values kept under `key`, over the base they were typed on. A stale or broken entry is
+ * dropped; one over another base comes back with that base, for the person to pick.
+ */
+export function readKept(
+  store: Store | null,
+  key: string,
+  now: number,
+): { values: Record<string, string>; base: string } | null {
+  const e = readRaw(store, FORM + key) as Partial<KeptForm> | null;
+  if (!e?.values || typeof e.values !== "object") return null;
+  if (now - Number(e.at ?? 0) >= JOURNAL_MS) {
+    writeRaw(store, FORM + key, null);
+    return null;
+  }
+  return { values: e.values, base: typeof e.base === "string" ? e.base : "" };
+}
+
+/** The values kept under `key` over `base`, or null (none, or over another base). */
 export function readForm(
   store: Store | null,
   key: string,
   base: string,
   now: number,
 ): Record<string, string> | null {
-  const e = readRaw(store, FORM + key) as Partial<KeptForm> | null;
-  if (!e?.values || typeof e.values !== "object") return null;
-  if (e.base !== base || now - Number(e.at ?? 0) >= JOURNAL_MS) {
-    writeRaw(store, FORM + key, null);
-    return null;
-  }
-  return e.values;
+  const e = readKept(store, key, now);
+  return e && e.base === base ? e.values : null;
 }
 
 export function writeForm(

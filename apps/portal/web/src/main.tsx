@@ -3,6 +3,7 @@ import { DictationProvider, HintLayer, ReadingProvider } from "@wren/ui";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
+import { openLocalCopy } from "./api.js";
 import { dictation } from "./dictation/index.js";
 import { reading } from "./reading/index.js";
 import { reloadOnce } from "./stale.js";
@@ -11,15 +12,18 @@ import { reloadOnce } from "./stale.js";
 // The error still reaches the page, which says so if the reload was spent (contained.tsx).
 window.addEventListener("vite:preloadError", () => reloadOnce());
 
-const root = document.getElementById("root");
-if (root)
-  createRoot(root).render(
-    <StrictMode>
-      <DictationProvider engine={dictation}>
-        <ReadingProvider engine={reading}>
-          <App />
-          <HintLayer />
-        </ReadingProvider>
-      </DictationProvider>
-    </StrictMode>,
-  );
+// The last load's copy paints first if it's back quickly; the reads go behind it either way.
+void Promise.race([openLocalCopy(), new Promise((r) => setTimeout(r, 250))]).then(() => {
+  const root = document.getElementById("root");
+  if (root)
+    createRoot(root).render(
+      <StrictMode>
+        <DictationProvider engine={dictation}>
+          <ReadingProvider engine={reading}>
+            <App />
+            <HintLayer />
+          </ReadingProvider>
+        </DictationProvider>
+      </StrictMode>,
+    );
+});

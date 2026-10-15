@@ -26,6 +26,7 @@ import {
   Tag,
   Textarea,
   tipProps,
+  useEdit,
   useKeptForm,
   useSaved,
 } from "@wren/ui";
@@ -225,6 +226,7 @@ function Field({
   const id = `video-${label.toLowerCase().replaceAll(" ", "-")}`;
   const common = {
     id,
+    "data-edit": `video:${video}:${label}`,
     value: s.value,
     maxLength: max,
     onBlur: () => void s.flush(),
@@ -608,11 +610,14 @@ function Cuts({ cuts, act }: { cuts: CutRow[]; act: RecordAct }) {
  * the bar under it says how many and from when.
  */
 function Transcript({
+  video,
   words,
   act,
   edit,
   stress = [],
 }: {
+  /** The video's id: a half-typed fix is kept per word. */
+  video: string;
   words: Word[];
   act: RecordAct;
   edit: boolean;
@@ -675,14 +680,15 @@ function Transcript({
     }
   };
   // One word picked: fix it to what he said.
-  const [fix, setFix] = useState("");
+  const fix = useEdit(first ? `video:${video}:fix:${first.s}` : null, "");
   const fixOne = async () => {
-    if (!first || !fix.trim()) return;
+    const sent = fix.value;
+    if (!first || !sent.trim()) return;
     setBusy(true);
     setError(null);
     try {
-      await once(act, WORDS, { at: (first.s + first.e) / 2, text: fix.trim() });
-      setFix("");
+      await once(act, WORDS, { at: (first.s + first.e) / 2, text: sent.trim() });
+      fix.saved(sent);
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
@@ -730,8 +736,7 @@ function Transcript({
           {n === 1 ? (
             <span className="flex min-w-0 items-center gap-2">
               <Input
-                value={fix}
-                onChange={(e) => setFix(e.target.value)}
+                {...fix.field}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     e.preventDefault();
@@ -751,15 +756,17 @@ function Transcript({
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       ) : null}
-      {edit ? <FixEvery act={act} /> : null}
+      {edit ? <FixEvery video={video} act={act} /> : null}
     </div>
   );
 }
 
 /** Whisper's mishearing fixed everywhere it says it: "drug fooding" to "dogfooding". */
-function FixEvery({ act }: { act: RecordAct }) {
-  const [wrong, setWrong] = useState("");
-  const [right, setRight] = useState("");
+function FixEvery({ video, act }: { video: string; act: RecordAct }) {
+  const wrongEdit = useEdit(`video:${video}:fix-every:wrong`, "");
+  const rightEdit = useEdit(`video:${video}:fix-every:right`, "");
+  const wrong = wrongEdit.value;
+  const right = rightEdit.value;
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [bad, setBad] = useState(false);
@@ -773,8 +780,8 @@ function FixEvery({ act }: { act: RecordAct }) {
         | { n?: number }
         | undefined;
       setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
-      setWrong("");
-      setRight("");
+      wrongEdit.saved(wrong);
+      rightEdit.saved(right);
     } catch (err) {
       setSaid(errorOf(err));
       setBad(true);
@@ -789,16 +796,14 @@ function FixEvery({ act }: { act: RecordAct }) {
       </summary>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Input
-          value={wrong}
-          onChange={(e) => setWrong(e.target.value)}
+          {...wrongEdit.field}
           placeholder="What it wrote"
           aria-label="What it wrote"
           maxLength={60}
           className="w-44 text-[14px]"
         />
         <Input
-          value={right}
-          onChange={(e) => setRight(e.target.value)}
+          {...rightEdit.field}
           placeholder="What you said"
           aria-label="What you said"
           maxLength={60}
@@ -946,6 +951,7 @@ function Agent({
           <DictateField target={box} label="Dictate changes">
             <Textarea
               ref={box}
+              data-edit={kept.key ?? ""}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               disabled={busy || running}
@@ -1044,6 +1050,7 @@ function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordA
         <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
           <Input
             ref={askBox}
+            data-edit={kept.key ?? ""}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -1619,7 +1626,13 @@ function timelineExtras(
     "Transcript",
     <div key="t" className="grid gap-2">
       {edit ? <ModelTools act={act} punctuated={v.punctuated !== false} /> : null}
-      <Transcript words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />
+      <Transcript
+        video={String(row.id)}
+        words={v.words}
+        act={act}
+        edit={edit}
+        stress={v.edit.stress ?? []}
+      />
     </div>,
   ]);
   if (edit && v.looks?.length)

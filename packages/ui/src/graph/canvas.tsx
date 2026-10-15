@@ -851,6 +851,7 @@ export default function GraphCanvas({
       {tools ? (
         <div className="flex flex-wrap items-center gap-2">
           <Input
+            // edit-ok: search box
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}

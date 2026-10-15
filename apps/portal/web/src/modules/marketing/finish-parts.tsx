@@ -5,8 +5,17 @@
  * refuses instead of being overwritten; the server snaps a Short to whole sentences. Every time
  * is raw seconds on the recording.
  */
-import { Button, cx, Input, type RecordAct } from "@wren/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  Button,
+  cx,
+  EditConflict,
+  type EditConflictState,
+  Input,
+  type RecordAct,
+  UnsavedMark,
+  useEdit,
+} from "@wren/ui";
+import { type ReactNode, useState } from "react";
 import { VIEWED } from "./video-patch.js";
 
 export type Short = {
@@ -130,15 +139,19 @@ const Hint = ({ children }: { children: ReactNode }) => (
 const TimeBox = ({
   label,
   value,
+  editKey,
   onChange,
 }: {
   label: string;
   value: string;
+  /** Where the rows' unsaved words are kept. */
+  editKey: string;
   onChange: (v: string) => void;
 }) => (
   <Input
     aria-label={label}
     value={value}
+    data-edit={editKey}
     onChange={(e) => onChange(e.target.value)}
     inputMode="decimal"
     className={cx(
@@ -148,27 +161,70 @@ const TimeBox = ({
   />
 );
 
-/** Rows that follow the server until he edits; Save or Undo changes then. */
-function useRows<T extends { from: number; to: number }>(server: readonly T[]) {
-  const key = JSON.stringify(server);
-  const [rows, setRows] = useState<Draft<T>[]>(() => drafted(server));
-  const [dirty, setDirty] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the server rows by value.
-  useEffect(() => {
-    if (!dirty) setRows(drafted(server));
-  }, [key]);
-  const change = (next: Draft<T>[]) => {
-    setRows(next);
-    setDirty(true);
+/** Rows as the boxes hold them, from the kept JSON. */
+function rowsFrom<T extends { from: number; to: number }>(json: string, server: readonly T[]) {
+  try {
+    const a: unknown = JSON.parse(json);
+    if (Array.isArray(a)) return a as Draft<T>[];
+  } catch {
+    // Not rows: the saved ones show.
+  }
+  return drafted(server);
+}
+
+/**
+ * Rows that follow the server until he edits. His changes stay on this device until Save or Undo:
+ * another page, a reload or a closed tab gives them back, and if the server moved meanwhile he
+ * picks. `says` writes a row in words for that pick.
+ */
+function useRows<T extends { from: number; to: number }>(
+  server: readonly T[],
+  editKey: string,
+  says: (r: Draft<T>) => string,
+) {
+  const edit = useEdit(editKey, JSON.stringify(drafted(server)));
+  const rows = rowsFrom(edit.value, server);
+  const words = (json: string) => rowsFrom(json, server).map(says).join("\n");
+  return {
+    editKey,
+    rows,
+    value: edit.value,
+    dirty: edit.dirty,
+    restored: edit.restored,
+    conflict: edit.conflict && {
+      mine: words(edit.conflict.mine),
+      theirs: words(edit.conflict.theirs),
+    },
+    change: (next: Draft<T>[]) => edit.set(JSON.stringify(next)),
+    reset: edit.discard,
+    done: (sent?: string) => edit.saved(sent),
+    edit,
   };
-  const reset = () => {
-    setRows(drafted(server));
-    setDirty(false);
+}
+
+/** The pick between his rows and the saved ones, when they moved apart. */
+function RowsConflict({
+  r,
+  what,
+}: {
+  r: {
+    conflict: EditConflictState | null;
+    edit: { keepMine: () => void; takeTheirs: () => void };
   };
-  return { rows, dirty, change, reset, done: () => setDirty(false) };
+  what: string;
+}) {
+  return (
+    <EditConflict
+      what={what}
+      conflict={r.conflict}
+      onKeepMine={r.edit.keepMine}
+      onTakeTheirs={r.edit.takeTheirs}
+    />
+  );
 }
 
 export function ShortsPanel({
+  id,
   shorts,
   dur,
   t,
@@ -176,6 +232,8 @@ export function ShortsPanel({
   onSeek,
   act,
 }: {
+  /** The video's id: where the unsaved Shorts are kept. */
+  id: string;
   shorts: readonly Short[];
   dur: number;
   t: number;
@@ -183,7 +241,11 @@ export function ShortsPanel({
   onSeek: (t: number) => void;
   act: RecordAct;
 }) {
-  const r = useRows(shorts);
+  const r = useRows(
+    shorts,
+    `video:${id}:shorts`,
+    (x) => `${x.fromText} to ${x.toText}${x.title ? `, ${x.title}` : ""}`,
+  );
   const s = useSave(act);
   const set = (i: number, part: Partial<Draft<Short>>) =>
     r.change(r.rows.map((x, j) => (j === i ? { ...x, ...part } : x)));
@@ -196,7 +258,8 @@ export function ShortsPanel({
   const bad = spanProblem(out, dur);
   const submit = async () => {
     if (bad) return s.setSaid({ text: bad, bad: true });
-    if (await s.save({ shorts: out }, { shorts })) r.done();
+    const sent = r.value;
+    if (await s.save({ shorts: out }, { shorts })) r.done(sent);
   };
   return (
     <div className="grid gap-3">
@@ -204,6 +267,7 @@ export function ShortsPanel({
         Each Short is a part of the recording, made 9:16. The ends snap to whole sentences when you
         save.
       </Hint>
+      <RowsConflict r={r} what="The Shorts" />
       {r.rows.length ? (
         <ol className="m-0 grid list-none gap-2 p-0">
           {r.rows.map((x, i) => (
@@ -216,12 +280,14 @@ export function ShortsPanel({
                 <span className="w-16 text-[13px] font-semibold">Short {i + 1}</span>
                 <TimeBox
                   label={`Short ${i + 1} start`}
+                  editKey={r.editKey}
                   value={x.fromText}
                   onChange={(v) => set(i, { fromText: v })}
                 />
                 <span className="text-[12.5px] text-(--ui-ink-3)">to</span>
                 <TimeBox
                   label={`Short ${i + 1} end`}
+                  editKey={r.editKey}
                   value={x.toText}
                   onChange={(v) => set(i, { toText: v })}
                 />
@@ -260,6 +326,7 @@ export function ShortsPanel({
                 aria-label={`Short ${i + 1} title`}
                 placeholder="Title"
                 value={x.title}
+                data-edit={r.editKey}
                 maxLength={100}
                 onChange={(e) => set(i, { title: e.target.value })}
                 className="text-[13.5px]"
@@ -278,6 +345,7 @@ export function ShortsPanel({
                     aria-label={`Short ${i + 1} on-screen title`}
                     placeholder="Same as the title"
                     value={x.cardText ?? ""}
+                    data-edit={r.editKey}
                     maxLength={CARD_MAX}
                     onChange={(e) => set(i, { cardText: e.target.value })}
                     className="min-w-0 flex-1 text-[13px]"
@@ -306,6 +374,7 @@ export function ShortsPanel({
             Undo changes
           </Button>
         ) : null}
+        <UnsavedMark edit={r.edit} />
         <Said said={s.said} />
       </div>
     </div>
@@ -313,6 +382,7 @@ export function ShortsPanel({
 }
 
 export function LayoutPanel({
+  id,
   layout,
   camBox,
   size,
@@ -321,6 +391,8 @@ export function LayoutPanel({
   range,
   act,
 }: {
+  /** The video's id: where the unsaved ranges and face box are kept. */
+  id: string;
   layout: readonly LayoutRange[];
   camBox: CamBox | null;
   size: [number, number];
@@ -329,7 +401,11 @@ export function LayoutPanel({
   range: [number, number] | null;
   act: RecordAct;
 }) {
-  const r = useRows(layout);
+  const r = useRows(
+    layout,
+    `video:${id}:layout`,
+    (x) => `${x.fromText} to ${x.toText}: ${LAYOUT_NAMES[x.show]}`,
+  );
   const s = useSave(act);
   const set = (i: number, part: Partial<Draft<LayoutRange>>) =>
     r.change(r.rows.map((x, j) => (j === i ? { ...x, ...part } : x)));
@@ -337,7 +413,8 @@ export function LayoutPanel({
   const bad = spanProblem(out, dur);
   const submit = async () => {
     if (bad) return s.setSaid({ text: bad, bad: true });
-    if (await s.save({ layout: out }, { layout })) r.done();
+    const sent = r.value;
+    if (await s.save({ layout: out }, { layout })) r.done(sent);
   };
   const add = (show: LayoutShow) => {
     const span = range ?? [t, Math.min(dur, t + 10)];
@@ -349,6 +426,7 @@ export function LayoutPanel({
         <Hint>
           The long video shows your face in the corner unless a range here says otherwise.
         </Hint>
+        <RowsConflict r={r} what="The layout" />
         {r.rows.length ? (
           <ol className="m-0 grid list-none gap-2 p-0">
             {r.rows.map((x, i) => (
@@ -359,12 +437,14 @@ export function LayoutPanel({
               >
                 <TimeBox
                   label={`Range ${i + 1} start`}
+                  editKey={r.editKey}
                   value={x.fromText}
                   onChange={(v) => set(i, { fromText: v })}
                 />
                 <span className="text-[12.5px] text-(--ui-ink-3)">to</span>
                 <TimeBox
                   label={`Range ${i + 1} end`}
+                  editKey={r.editKey}
                   value={x.toText}
                   onChange={(v) => set(i, { toText: v })}
                 />
@@ -417,10 +497,11 @@ export function LayoutPanel({
               Undo changes
             </Button>
           ) : null}
+          <UnsavedMark edit={r.edit} />
           <Said said={s.said} />
         </div>
       </div>
-      <FaceBox camBox={camBox} size={size} act={act} />
+      <FaceBox id={id} camBox={camBox} size={size} act={act} />
     </div>
   );
 }
@@ -440,26 +521,44 @@ export function boxProblem(box: readonly number[], size: [number, number]) {
 
 /** Where his face is in a recording with the camera in it: what the Shorts crop on. */
 function FaceBox({
+  id,
   camBox,
   size,
   act,
 }: {
+  id: string;
   camBox: CamBox | null;
   size: [number, number];
   act: RecordAct;
 }) {
   const server = camBox ? camBox.map(String) : ["", "", "", ""];
-  const [box, setBox] = useState<string[]>(server);
+  // His numbers stay until they are saved: another page and back gives them again.
+  const edit = useEdit(`video:${id}:camBox`, JSON.stringify(server));
+  const box = (() => {
+    try {
+      const a: unknown = JSON.parse(edit.value);
+      if (Array.isArray(a) && a.length === 4) return a.map(String);
+    } catch {
+      // Not a box: the saved one shows.
+    }
+    return server;
+  })();
   const s = useSave(act);
-  const key = JSON.stringify(camBox);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the saved box by value.
-  useEffect(() => setBox(camBox ? camBox.map(String) : ["", "", "", ""]), [key]);
   const nums = box.map((v) => Number(v.trim()));
   const dirty = box.some((v, i) => v.trim() !== server[i]);
   const submit = async () => {
     const bad = boxProblem(nums, size);
     if (bad) return s.setSaid({ text: bad, bad: true });
-    await s.save({ camBox: nums }, { camBox });
+    const sent = edit.value;
+    if (await s.save({ camBox: nums }, { camBox })) edit.saved(sent);
+  };
+  const says = (json: string) => {
+    try {
+      const a: unknown = JSON.parse(json);
+      return Array.isArray(a) ? a.map(String).join(", ") : "";
+    } catch {
+      return "";
+    }
   };
   return (
     <div className="grid gap-2 border-t border-(--ui-hair) pt-3">
@@ -476,7 +575,10 @@ function FaceBox({
               placeholder={label}
               inputMode="numeric"
               value={box[i] ?? ""}
-              onChange={(e) => setBox(box.map((v, j) => (j === i ? e.target.value : v)))}
+              data-edit={`video:${id}:camBox`}
+              onChange={(e) =>
+                edit.set(JSON.stringify(box.map((v, j) => (j === i ? e.target.value : v))))
+              }
               className="w-20 text-[13px] [font-variant-numeric:tabular-nums]"
             />
           </label>
@@ -489,13 +591,24 @@ function FaceBox({
             size="sm"
             tone="quiet"
             busy={s.busy}
-            onClick={() => void s.save({ camBox: null }, { camBox })}
+            onClick={() =>
+              void s.save({ camBox: null }, { camBox }).then((ok) => ok && edit.discard())
+            }
           >
             Clear
           </Button>
         ) : null}
+        <UnsavedMark edit={edit} />
         <Said said={s.said} />
       </div>
+      {edit.conflict ? (
+        <EditConflict
+          what="The face box"
+          conflict={{ mine: says(edit.conflict.mine), theirs: says(edit.conflict.theirs) }}
+          onKeepMine={edit.keepMine}
+          onTakeTheirs={edit.takeTheirs}
+        />
+      ) : null}
     </div>
   );
 }

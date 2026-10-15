@@ -3,7 +3,7 @@
  * invites still waiting. A subreddit or an account gets watched, a thread or a post gets a reply
  * drafted, all by `ReachDesk.paste`; the result shows here and the row joins the queue.
  */
-import { Button, cx, Input } from "@wren/ui";
+import { Button, cx, Input, useEdit } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { ERROR, QUIET } from "../work/bits.js";
@@ -22,7 +22,9 @@ const INVITES = {
 };
 
 export function EngageHead(props: { reload: () => void; demo: boolean }) {
-  const [url, setUrl] = useState("");
+  // The link stays until it is added: another page and back gives it again.
+  const link = useEdit(props.demo ? null : "engage:paste:link", "");
+  const url = link.value;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [said, setSaid] = useState<{ n: number; text: string }[]>([]);
@@ -37,18 +39,18 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
   }, [props.demo]);
 
   const paste = async () => {
-    const link = url.trim();
-    if (!link) return;
+    const sent = url.trim();
+    if (!sent) return;
     setBusy(true);
     setError(null);
     try {
       const out = await call<Pasted>("console/call", {
         service: "ReachDesk",
         handler: "paste",
-        input: { url: link },
+        input: { url: sent },
       });
       setSaid((s) => [{ n: (s[0]?.n ?? 0) + 1, text: out.said }, ...s].slice(0, 5));
-      setUrl("");
+      link.saved(url);
       props.reload();
     } catch (err) {
       setError(message(err));
@@ -70,9 +72,8 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
         <Input
           aria-label="Paste a link"
           className="min-w-0 flex-1 basis-[320px] max-sm:basis-0"
-          value={url}
+          {...link.field}
           placeholder="Paste a subreddit, thread, post or account (Reddit, LinkedIn, X, Instagram)"
-          onChange={(e) => setUrl(e.target.value)}
         />
         <Button
           tone="primary"
