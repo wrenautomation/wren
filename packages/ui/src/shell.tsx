@@ -378,7 +378,16 @@ export function AppShell({
         ) : null}
       </header>
 
-      {nav ? <SideNav app={app} home={home} areas={areas} pins={pins} folded={folded} /> : null}
+      {nav ? (
+        <SideNav
+          app={app}
+          home={home}
+          areas={areas}
+          pins={pins}
+          folded={folded}
+          pages={!d.pagesShut}
+        />
+      ) : null}
       {nav && display ? (
         <Resizer
           label="Sidebar"
@@ -405,7 +414,10 @@ export function AppShell({
       >
         {app ? <AppBar app={app} pins={pins} display={display} /> : null}
         <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
-          {app && !d.pagesShut ? <AppColumn app={app} display={display} host={host} /> : null}
+          {/* With a sidebar, the open app's pages fold out under its row there instead. */}
+          {app && !nav && !d.pagesShut ? (
+            <AppColumn app={app} display={display} host={host} />
+          ) : null}
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
             className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-(--ui-ground) [scrollbar-width:thin] max-[900px]:overflow-visible"
@@ -663,7 +675,8 @@ function AppTabs({ app }: { app: OpenApp }) {
 
 /**
  * The open app on a computer, across the window's top: its name, the page on screen, its one
- * button and the pin. Its pages run down the left edge under it (`AppColumn`).
+ * button and the pin. Its pages fold out under its row in the sidebar (`SideNav`), or run down
+ * the left edge under it without one (`AppColumn`).
  */
 function AppBar({
   app,
@@ -676,10 +689,11 @@ function AppBar({
 }) {
   const page = app.tabs.find((t) => t.id === app.current);
   const paged = app.tabs.length > 1;
-  const hidden = !!display?.display.pagesShut && paged;
+  // Pages hidden, or the sidebar folded to icons: the page's name opens them.
+  const hidden = !!(display?.display.pagesShut || display?.display.sideShut) && paged;
   return (
     <div className="flex h-[52px] flex-none items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) pr-3 pl-3 max-[900px]:hidden">
-      {display && paged ? (
+      {display && paged && !display.display.sideShut ? (
         <button
           type="button"
           className={ICON_BUTTON}
@@ -801,6 +815,7 @@ function SideNav({
   areas,
   pins,
   folded,
+  pages = false,
   drawer = false,
 }: {
   app: OpenApp | null;
@@ -809,6 +824,8 @@ function SideNav({
   pins: RailPins | undefined;
   /** Icons alone: every app's name and pages show beside it on hover. */
   folded: boolean;
+  /** The open app's pages folded out under its row, one sidebar's width. */
+  pages?: boolean;
   /** In a phone's Menu: rows a finger can hit, clear of the notch and the home bar. */
   drawer?: boolean;
 }) {
@@ -959,6 +976,11 @@ function SideNav({
                       </span>
                     ) : null}
                   </a>
+                  {open && pages && !folded && !drawer && open.tabs.length > 1 ? (
+                    <div className="mt-0.5 mb-1.5 ml-[18px] border-l border-(--ui-hair) pl-1.5">
+                      <AppTabs app={open} />
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
