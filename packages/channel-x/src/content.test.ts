@@ -156,4 +156,60 @@ describe("x content channel", () => {
     };
     expect(await xContent(sites).comments("t1")).toEqual([]);
   });
+  describe("batch reads", () => {
+    const page = {
+      data: [
+        {
+          id: "300",
+          public_metrics: { impression_count: 90, like_count: 4, reply_count: 3, retweet_count: 1 },
+        },
+        { id: "200", public_metrics: { impression_count: 40, reply_count: 0, quote_count: 2 } },
+        { id: "150", public_metrics: { impression_count: 7, reply_count: 9 } },
+      ],
+    };
+    it("reads several posts' numbers in one timeline read since just before the oldest", async () => {
+      const { sites, calls } = fakeSites({
+        "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+        "GET /2/users/u1/tweets": () => page,
+      });
+      const got = await xContent(sites, { now }).metricsMany?.([{ id: "200" }, { id: "300" }]);
+      const reads = calls.filter((c) => c[1] === "/2/users/u1/tweets");
+      expect(reads).toEqual([
+        [
+          "GET",
+          "/2/users/u1/tweets",
+          { max_results: 100, since_id: "199", exclude: "replies,retweets" },
+        ],
+      ]);
+      // Only the posts asked about; "150" came back too and is ignored.
+      expect(got?.map((m) => [m.id, m.views, m.comments, m.shares])).toEqual([
+        ["300", 90, 3, 1],
+        ["200", 40, 0, 2],
+      ]);
+      // `insights` takes the post's own tweet as its read, so a look costs no second call.
+      expect(got?.[0]?.read).toEqual({ data: page.data[0] });
+    });
+    it("leaves a post the page doesn't hold out, for the caller to read alone", async () => {
+      const { sites } = fakeSites({
+        "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+        "GET /2/users/u1/tweets": () => page,
+      });
+      const got = await xContent(sites, { now }).metricsMany?.([{ id: "300" }, { id: "999" }]);
+      expect(got?.map((m) => m.id)).toEqual(["300"]);
+    });
+    it("counts replies for every post from the same read, in one call", async () => {
+      const { sites, calls } = fakeSites({
+        "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+        "GET /2/users/u1/tweets": () => page,
+      });
+      const counts = await xContent(sites, { now }).commentCounts?.(["150", "300", "200", "x1"]);
+      expect(counts).toEqual({ "150": 9, "300": 3, "200": 0 });
+      expect(calls.filter((c) => c[1] === "/2/users/u1/tweets")).toHaveLength(1);
+    });
+    it("makes no call for ids that are not X ids", async () => {
+      const { sites, calls } = fakeSites({});
+      expect(await xContent(sites, { now }).commentCounts?.(["abc"])).toEqual({});
+      expect(calls).toHaveLength(0);
+    });
+  });
 });

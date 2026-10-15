@@ -143,4 +143,34 @@ describe("tiktok content channel", () => {
     });
     await expect(tiktokContent(sites).audience?.()).rejects.toThrow(/user.info.stats/);
   });
+  describe("batch reads", () => {
+    const idsOf = (i?: Record<string, unknown>) =>
+      ((i ?? {}).filters as { video_ids: string[] }).video_ids;
+    const videos = (i?: Record<string, unknown>) => ({
+      data: {
+        videos: idsOf(i)
+          .filter((id) => id !== "gone")
+          .map((id) => ({ id, view_count: 9, like_count: 3, comment_count: 2, share_count: 1 })),
+      },
+    });
+    it("reads 20 videos a call: 45 posts take 3 calls", async () => {
+      const { sites, calls } = fakeSites({ "POST /v2/video/query/": videos });
+      const ids = Array.from({ length: 45 }, (_, i) => `7${i}`);
+      const got = await tiktokContent(sites).metricsMany?.(ids.map((id) => ({ id })));
+      expect(got).toHaveLength(45);
+      expect(calls.map((c) => idsOf(c[2]).length)).toEqual([20, 20, 5]);
+      expect(got?.[0]).toMatchObject({ id: "70", views: 9, reactions: 3, comments: 2, shares: 1 });
+    });
+    it("leaves out a video TikTok doesn't know", async () => {
+      const { sites } = fakeSites({ "POST /v2/video/query/": videos });
+      const got = await tiktokContent(sites).metricsMany?.([{ id: "71" }, { id: "gone" }]);
+      expect(got?.map((m) => m.id)).toEqual(["71"]);
+    });
+    it("counts comments from the same query, so the capped page read waits for a change", async () => {
+      const { sites, calls } = fakeSites({ "POST /v2/video/query/": videos });
+      const counts = await tiktokContent(sites).commentCounts?.(["71", "72", "gone"]);
+      expect(counts).toEqual({ "71": 2, "72": 2 });
+      expect(calls).toHaveLength(1);
+    });
+  });
 });

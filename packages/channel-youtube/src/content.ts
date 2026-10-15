@@ -210,12 +210,43 @@ export function holdAt(
   return best.watch;
 }
 
+/** `videos.list` takes up to 50 ids in one call. */
+const VIDEOS_PER_READ = 50;
+
 export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("youtube", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const read = <T>(resource: string, query: Record<string, unknown>) =>
     sites.call<T>("youtube", "GET", `/youtube/v3/${resource}`, query);
+  /**
+   * Counts and lengths for these videos, at most `VIDEOS_PER_READ` to a call. The length rides
+   * along (the same one quota unit): `insights` needs it and it never changes.
+   */
+  const statistics = async (ids: string[]): Promise<Video[]> => {
+    const out: Video[] = [];
+    for (let i = 0; i < ids.length; i += VIDEOS_PER_READ) {
+      const r = await read<{ items?: Video[] }>("videos", {
+        part: "statistics,contentDetails",
+        id: ids.slice(i, i + VIDEOS_PER_READ).join(","),
+      });
+      out.push(...(r.items ?? []));
+    }
+    return out;
+  };
+  const metricsOf = (v: Video, fetchedWith: FetchedWith): Metrics => {
+    const s = v.statistics ?? {};
+    return {
+      id: v.id,
+      views: Number(s.viewCount ?? 0),
+      reactions: Number(s.likeCount ?? 0),
+      comments: Number(s.commentCount ?? 0),
+      shares: 0,
+      read: { durationSecs: isoSeconds(v.contentDetails?.duration) },
+      asOf: now().toISOString(),
+      fetchedWith,
+    };
+  };
   let uploads: Promise<string> | null = null;
   const uploadsPlaylist = () => {
     uploads ??= read<{
@@ -371,23 +402,23 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         });
     },
     async metrics(id: string): Promise<Metrics> {
-      // The length rides along (the same one quota unit): `insights` needs it and it never changes.
-      const r = await read<{ items?: Video[] }>("videos", {
-        part: "statistics,contentDetails",
-        id,
-      });
-      const s = r.items?.[0]?.statistics;
-      if (!s) throw new Error(`youtube: no video ${id}`);
-      return {
-        id,
-        views: Number(s.viewCount ?? 0),
-        reactions: Number(s.likeCount ?? 0),
-        comments: Number(s.commentCount ?? 0),
-        shares: 0,
-        read: { durationSecs: isoSeconds(r.items?.[0]?.contentDetails?.duration) },
-        asOf: now().toISOString(),
-        fetchedWith: await via("GET", "/youtube/v3/videos"),
-      };
+      const v = (await statistics([id]))[0];
+      if (!v?.statistics) throw new Error(`youtube: no video ${id}`);
+      return metricsOf({ ...v, id }, await via("GET", "/youtube/v3/videos"));
+    },
+    /** One `videos.list` per 50 ids (its limit), where a post was one call each. */
+    async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
+      const items = (await statistics(posts.map((p) => p.id))).filter((v) => v.statistics);
+      if (!items.length) return [];
+      const fetchedWith = await via("GET", "/youtube/v3/videos");
+      return items.map((v) => metricsOf(v, fetchedWith));
+    },
+    /** The same read gives every video's comment count; a video with comments off has none. */
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      const out: Record<string, number> = {};
+      for (const v of await statistics(ids))
+        if (v.statistics?.commentCount !== undefined) out[v.id] = Number(v.statistics.commentCount);
+      return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       const r: { items?: CommentThread[] } = await read<{ items?: CommentThread[] }>(

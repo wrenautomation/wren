@@ -193,6 +193,19 @@ export interface ContentChannel {
   publish(post: Post): Promise<Published>;
   list(q?: ListQuery): Promise<PublishedRow[]>;
   metrics(id: string): Promise<Metrics>;
+  /**
+   * These posts' numbers in as few reads as the platform allows (one listing, one batch query).
+   * `kind` is the post's shape (short, video, carousel) where the platform reads it differently.
+   * A post it can't answer is left out; the caller reads that one with `metrics`. Absent = one
+   * `metrics` per post.
+   */
+  metricsMany?(posts: { id: string; kind?: string | null }[]): Promise<Metrics[]>;
+  /**
+   * Comment counts for these posts in one cheap read, by id. A post it can't count is left out.
+   * The social loop reads a post's comments only when its count moved (or a sweep is due).
+   * Absent = every post's comments are read each time.
+   */
+  commentCounts?(ids: string[]): Promise<Record<string, number>>;
   comments(id: string, q?: ListQuery): Promise<CommentRow[]>;
   /** Absent when the platform gives no way to answer (LinkedIn without the partner API). */
   reply?(commentId: string, text: string): Promise<void>;

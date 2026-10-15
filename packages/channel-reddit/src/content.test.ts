@@ -224,4 +224,49 @@ describe("reddit content channel", () => {
     });
     await expect(redditContent(sites, { now }).audience?.()).rejects.toThrow(/no profile/);
   });
+  describe("batch reads", () => {
+    const info = (i?: Record<string, unknown>) =>
+      listing(
+        "t3",
+        String(i?.id)
+          .split(",")
+          .filter((n) => n !== "t3_gone")
+          .map((name) => ({
+            id: name.slice(3),
+            name,
+            score: 5,
+            num_comments: name === "t3_b" ? 0 : 3,
+            num_crossposts: 1,
+          })),
+      );
+    it("reads the posts with one comma list of fullnames", async () => {
+      const { sites, calls } = fakeSites({ "GET /api/info": info });
+      const got = await redditContent(sites, { now }).metricsMany?.([
+        { id: "a" },
+        { id: "t3_b" },
+        { id: "gone" },
+      ]);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.[2]).toMatchObject({ id: "t3_a,t3_b,t3_gone" });
+      // Each answer keeps the id the caller used; the post Reddit doesn't know is left out.
+      expect(got?.map((m) => [m.id, m.reactions, m.comments])).toEqual([
+        ["a", 5, 3],
+        ["t3_b", 5, 0],
+      ]);
+      expect(got?.[0]?.read).toMatchObject({ score: 5, num_comments: 3 });
+    });
+    it("takes 100 fullnames a read", async () => {
+      const { sites, calls } = fakeSites({ "GET /api/info": info });
+      const ids = Array.from({ length: 230 }, (_, i) => ({ id: `p${i}` }));
+      const got = await redditContent(sites, { now }).metricsMany?.(ids);
+      expect(got).toHaveLength(230);
+      expect(calls).toHaveLength(3);
+    });
+    it("counts comments from the same read", async () => {
+      const { sites, calls } = fakeSites({ "GET /api/info": info });
+      const counts = await redditContent(sites, { now }).commentCounts?.(["a", "b", "gone"]);
+      expect(counts).toEqual({ a: 3, b: 0 });
+      expect(calls).toHaveLength(1);
+    });
+  });
 });

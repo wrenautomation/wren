@@ -113,11 +113,37 @@ interface WebComment {
   likes?: number;
 }
 
+/** `video/query` takes up to 20 ids (autobrowse's schema holds the same cap). */
+const VIDEOS_PER_QUERY = 20;
+
 export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("tiktok", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const at = (v: Video) => new Date((v.create_time ?? 0) * 1000).toISOString();
+  /** These videos' counts, at most `VIDEOS_PER_QUERY` to a call. A video it doesn't know is absent. */
+  const query = async (ids: string[]): Promise<Video[]> => {
+    const out: Video[] = [];
+    for (let i = 0; i < ids.length; i += VIDEOS_PER_QUERY) {
+      const r = await sites.call<{ data?: { videos?: Video[] } }>(
+        "tiktok",
+        "POST",
+        "/v2/video/query/",
+        { filters: { video_ids: ids.slice(i, i + VIDEOS_PER_QUERY) } },
+      );
+      out.push(...(r.data?.videos ?? []));
+    }
+    return out;
+  };
+  const metricsOf = (v: Video, fetchedWith: FetchedWith): Metrics => ({
+    id: v.id,
+    views: v.view_count ?? 0,
+    reactions: v.like_count ?? 0,
+    comments: v.comment_count ?? 0,
+    shares: v.share_count ?? 0,
+    asOf: now().toISOString(),
+    fetchedWith,
+  });
   // Studio sets what the form shows: a field it can't set fails, never drops.
   async function publishWeb(post: Post, source: string, f: FieldsOf<"tiktok">): Promise<Published> {
     const privacy = f.privacy ? WEB_AUDIENCE[f.privacy] : undefined;
@@ -241,23 +267,26 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
       );
     },
     async metrics(id: string): Promise<Metrics> {
-      const r = await sites.call<{ data?: { videos?: Video[] } }>(
-        "tiktok",
-        "POST",
-        "/v2/video/query/",
-        { filters: { video_ids: [id] } },
-      );
-      const v = r.data?.videos?.[0];
+      const v = (await query([id]))[0];
       if (!v) throw new Error(`tiktok: no video ${id}`);
-      return {
-        id,
-        views: v.view_count ?? 0,
-        reactions: v.like_count ?? 0,
-        comments: v.comment_count ?? 0,
-        shares: v.share_count ?? 0,
-        asOf: now().toISOString(),
-        fetchedWith: await via("POST", "/v2/video/query/"),
-      };
+      return metricsOf({ ...v, id }, await via("POST", "/v2/video/query/"));
+    },
+    /** `video/query` takes 20 ids a call, where a post was one call each. */
+    async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
+      const videos = await query(posts.map((p) => p.id));
+      if (!videos.length) return [];
+      const fetchedWith = await via("POST", "/v2/video/query/");
+      return videos.map((v) => metricsOf(v, fetchedWith));
+    },
+    /**
+     * Counts from the same query. Comments themselves come off the page in a browser, a capped
+     * read: a post is opened only when its count moved.
+     */
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      const out: Record<string, number> = {};
+      for (const v of await query(ids))
+        if (typeof v.comment_count === "number") out[v.id] = v.comment_count;
+      return out;
     },
     // Newest first, as the page lists them; ours (the creator's) come back marked.
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {

@@ -145,6 +145,20 @@ interface Insight {
 }
 const insightValue = (i: Insight | undefined) => i?.total_value?.value ?? i?.values?.[0]?.value;
 
+/** A post's insights answer kept for `insights`: the metrics it asked for, and what came back. */
+interface IgRead {
+  igMetrics: string[];
+  data: Insight[];
+}
+/** The answer a look's counts read kept, if it asked for exactly `names`. */
+function igReadOf(read: unknown, names: string[]): Insight[] | undefined {
+  const r = read as Partial<IgRead> | null | undefined;
+  if (!r || !Array.isArray(r.igMetrics) || !Array.isArray(r.data)) return undefined;
+  return r.igMetrics.length === names.length && r.igMetrics.every((n, i) => n === names[i])
+    ? r.data
+    : undefined;
+}
+
 /** Graph's names to ours, with a scale (watch time comes in milliseconds). */
 const IG_METRICS: Record<string, [string, number]> = {
   reach: [M.reach, 1],
@@ -188,6 +202,26 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const inbox = async () =>
     sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
+  const fetchInsights = (id: string, metric: string[]) =>
+    sites.call<Edge<Insight>>("meta", "GET", `/${id}/insights`, { metric: metric.join(",") });
+  const igMetrics = (
+    id: string,
+    data: Insight[] | undefined,
+    read: IgRead | undefined,
+    fetchedWith: FetchedWith,
+  ): Metrics => {
+    const val = (name: string) => Number(insightValue(data?.find((m) => m.name === name))) || 0;
+    return {
+      id,
+      views: val("reach"),
+      reactions: val("likes"),
+      comments: val("comments"),
+      shares: val("shares"),
+      ...(read ? { read } : {}),
+      asOf: now().toISOString(),
+      fetchedWith,
+    };
+  };
   /** Waits out a video container: FINISHED goes on, ERROR or EXPIRED stops with Graph's words. */
   const ready = async (id: string): Promise<void> => {
     for (const wait of VIDEO_WAITS_MS) {
@@ -324,23 +358,46 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
       );
     },
     async metrics(id: string): Promise<Metrics> {
-      const r = await sites.call<Edge<{ name: string; values?: Array<{ value?: number }> }>>(
+      const r = await sites.call<Edge<Insight>>("meta", "GET", `/${id}/insights`, {
+        metric: "reach,likes,comments,shares",
+      });
+      // No `follows` here: a Reel refuses it, and `insights` reads it for a feed post.
+      return igMetrics(id, r.data, undefined, await via("GET", "/{mediaId}/insights"));
+    },
+    /**
+     * One insights call a post, not two: the kind's whole metric list is asked once, its counts
+     * are the look's and the answer rides on as `read` for `insights`. A post whose list is
+     * refused (a kind it doesn't fit) is left out, and the caller's `metrics` + `insights` read
+     * it the careful way.
+     */
+    async metricsMany(posts: { id: string; kind?: string | null }[]): Promise<Metrics[]> {
+      const out: Metrics[] = [];
+      for (const p of posts) {
+        const names = igMetricsFor(p.kind);
+        let data: Insight[] | undefined;
+        try {
+          data = (await fetchInsights(p.id, names)).data;
+        } catch {
+          continue;
+        }
+        const read: IgRead = { igMetrics: names, data: data ?? [] };
+        out.push(igMetrics(p.id, data, read, await via("GET", "/{mediaId}/insights")));
+      }
+      return out;
+    },
+    /** The newest 100 media with their comment counts, in one listing. */
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      const r = await sites.call<Edge<{ id: string; comments_count?: number }>>(
         "meta",
         "GET",
-        `/${id}/insights`,
-        { metric: "reach,likes,comments,shares" },
+        `/${await igUser()}/media`,
+        { fields: "id,comments_count", limit: 100 },
       );
-      const val = (name: string) => r.data?.find((m) => m.name === name)?.values?.[0]?.value ?? 0;
-      // No `follows` here: a Reel refuses it, and `insights` reads it for a feed post.
-      return {
-        id,
-        views: val("reach"),
-        reactions: val("likes"),
-        comments: val("comments"),
-        shares: val("shares"),
-        asOf: now().toISOString(),
-        fetchedWith: await via("GET", "/{mediaId}/insights"),
-      };
+      const want = new Set(ids);
+      const out: Record<string, number> = {};
+      for (const m of r.data ?? [])
+        if (want.has(m.id) && typeof m.comments_count === "number") out[m.id] = m.comments_count;
+      return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       const r = await sites.call<
@@ -391,13 +448,13 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async insights(q: InsightsQuery): Promise<Insights> {
       const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
       const names = igMetricsFor(q.kind);
+      // This look's counts read may already hold the whole list (`metricsMany`).
+      const given = igReadOf(q.read, names);
       const ask = async (metric: string[]) => {
-        const r = await sites.call<Edge<Insight>>("meta", "GET", `/${q.id}/insights`, {
-          metric: metric.join(","),
-        });
+        const data = given && metric === names ? given : (await fetchInsights(q.id, metric)).data;
         return metric.flatMap((n) => {
           const [ours, scale] = IG_METRICS[n] as [string, number];
-          const v = Number(insightValue(r.data?.find((d) => d.name === n)));
+          const v = Number(insightValue(data?.find((d) => d.name === n)));
           return Number.isFinite(v) ? numberOf(ours, v * scale) : [];
         });
       };
@@ -444,12 +501,41 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
   };
 }
 
+interface FbPost {
+  shares?: { count?: number };
+  likes?: { summary?: { total_count?: number } };
+  comments?: { summary?: { total_count?: number } };
+  insights?: Edge<{ name: string; values?: Array<{ value?: number }> }>;
+}
+/** What a look reads of a Page post; the Page's listing takes the same fields. */
+const FB_STATS =
+  "shares,likes.summary(true),comments.summary(true),insights.metric(post_impressions)";
+
 export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const { page } = pageOf_(sites, o);
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const urlOf = (postId: string) => `https://www.facebook.com/${postId}`;
+  const fbMetrics = (id: string, r: FbPost, fetchedWith: FetchedWith): Metrics => ({
+    id,
+    views: r.insights?.data?.find((m) => m.name === "post_impressions")?.values?.[0]?.value ?? 0,
+    reactions: r.likes?.summary?.total_count ?? 0,
+    comments: r.comments?.summary?.total_count ?? 0,
+    shares: r.shares?.count ?? 0,
+    asOf: now().toISOString(),
+    fetchedWith,
+  });
+  /** The Page's newest posts (100 is a page) with the numbers a look reads. */
+  const recent = async (): Promise<Array<FbPost & { id: string }>> => {
+    const r = await sites.call<Edge<FbPost & { id: string }>>(
+      "meta",
+      "GET",
+      `/${(await page()).id}/posts`,
+      { fields: `id,${FB_STATS}`, limit: 100 },
+    );
+    return r.data ?? [];
+  };
   return {
     platform: "facebook",
     async publish(post: Post): Promise<Published> {
@@ -518,26 +604,32 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       );
     },
     async metrics(id: string): Promise<Metrics> {
-      interface PostFields {
-        shares?: { count?: number };
-        likes?: { summary?: { total_count?: number } };
-        comments?: { summary?: { total_count?: number } };
-        insights?: Edge<{ name: string; values?: Array<{ value?: number }> }>;
-      }
-      const r = await sites.call<PostFields>("meta", "GET", `/${id}`, {
-        fields:
-          "shares,likes.summary(true),comments.summary(true),insights.metric(post_impressions)",
-      });
-      return {
-        id,
-        views:
-          r.insights?.data?.find((m) => m.name === "post_impressions")?.values?.[0]?.value ?? 0,
-        reactions: r.likes?.summary?.total_count ?? 0,
-        comments: r.comments?.summary?.total_count ?? 0,
-        shares: r.shares?.count ?? 0,
-        asOf: now().toISOString(),
-        fetchedWith: await via("GET", "/{objectId}"),
-      };
+      const r = await sites.call<FbPost>("meta", "GET", `/${id}`, { fields: FB_STATS });
+      return fbMetrics(id, r, await via("GET", "/{objectId}"));
+    },
+    /**
+     * The Page's newest 100 posts with the same numbers `metrics` asks for, in one listing. A
+     * post the page doesn't hold (a video's id is not its post's) is left out for `metrics`.
+     */
+    async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
+      const want = new Set(posts.map((p) => p.id));
+      const fetchedWith = await via("GET", "/{pageId}/posts");
+      return (await recent())
+        .filter((m) => want.has(m.id))
+        .map((m) => fbMetrics(m.id, m, fetchedWith));
+    },
+    /**
+     * Counts from the same listing, but only where `comments` reads anything: a Page whose token
+     * can't read comments reads none, so every post counts 0 without a call.
+     */
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      if (!o.pageComments) return Object.fromEntries(ids.map((id) => [id, 0]));
+      const want = new Set(ids);
+      const out: Record<string, number> = {};
+      for (const m of await recent())
+        if (want.has(m.id) && typeof m.comments?.summary?.total_count === "number")
+          out[m.id] = m.comments.summary.total_count;
+      return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       // Page comments need `pages_read_user_content`: a connected Page's token has it.

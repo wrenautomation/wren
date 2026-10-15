@@ -349,4 +349,43 @@ describe("youtube comments", () => {
     );
     await expect(ch.comments("v1")).rejects.toThrow("quotaExceeded");
   });
+  describe("batch reads", () => {
+    const ids = Array.from({ length: 120 }, (_, i) => `v${i}`);
+    const videos = (i?: Record<string, unknown>) => ({
+      items: String(i?.id)
+        .split(",")
+        .map((id) => ({
+          id,
+          statistics: {
+            viewCount: "10",
+            likeCount: "2",
+            ...(id === "v1" ? {} : { commentCount: "4" }),
+          },
+          contentDetails: { duration: "PT1M30S" },
+        })),
+    });
+    it("reads up to 50 videos a call: 120 posts take 3 reads, not 120", async () => {
+      const { sites, calls } = fakeSites({ "GET /youtube/v3/videos": videos });
+      const got = await youtubeContent(sites).metricsMany?.(ids.map((id) => ({ id })));
+      expect(got).toHaveLength(120);
+      expect(calls.map((c) => String(c[2]?.id).split(",").length)).toEqual([50, 50, 20]);
+      expect(calls[0]?.[2]).toMatchObject({ part: "statistics,contentDetails" });
+      // The length rides in `read`, as the single read does for `insights`.
+      expect(got?.[0]).toMatchObject({ id: "v0", views: 10, reactions: 2, comments: 4 });
+      expect(got?.[0]?.read).toEqual({ durationSecs: 90 });
+    });
+    it("leaves out a video the read didn't return", async () => {
+      const { sites } = fakeSites({
+        "GET /youtube/v3/videos": () => ({ items: [{ id: "a", statistics: { viewCount: "1" } }] }),
+      });
+      const got = await youtubeContent(sites).metricsMany?.([{ id: "a" }, { id: "gone" }]);
+      expect(got?.map((m) => m.id)).toEqual(["a"]);
+    });
+    it("counts comments from the same read; comments off has no count", async () => {
+      const { sites, calls } = fakeSites({ "GET /youtube/v3/videos": videos });
+      const counts = await youtubeContent(sites).commentCounts?.(["v0", "v1", "v2"]);
+      expect(counts).toEqual({ v0: 4, v2: 4 });
+      expect(calls).toHaveLength(1);
+    });
+  });
 });

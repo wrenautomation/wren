@@ -48,6 +48,8 @@ export interface Thing {
   selftext?: string;
   body?: string;
   author?: string;
+  /** The author's `t2_` id; a signed-out feed does not carry it. */
+  author_fullname?: string;
   permalink?: string;
   created_utc?: number;
   score?: number;
@@ -88,6 +90,9 @@ export function answerOf<T>(path: string, a: JsonAnswer<T>): T {
   return a.json.data;
 }
 
+/** `/api/info` answers up to 100 fullnames in one read. */
+const INFO_FULLNAMES = 100;
+
 export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const call = <T>(
@@ -97,6 +102,33 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
   ): Promise<T> => sites.call<T>(REDDIT_SITE, method, path, input);
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via(REDDIT_SITE, method, path).then((v) => (v === "browser" ? "browser" : "api"));
+  /** These posts by bare id, at most `INFO_FULLNAMES` to a read. */
+  const things = async (ids: string[]): Promise<Map<string, Thing>> => {
+    const out = new Map<string, Thing>();
+    for (let i = 0; i < ids.length; i += INFO_FULLNAMES) {
+      const names = ids.slice(i, i + INFO_FULLNAMES).map((id) => `t3_${bareId(id)}`);
+      const r = await call<Listing>("GET", "/api/info", { id: names.join(","), raw_json: 1 });
+      for (const t of children(r)) out.set(t.id, t);
+    }
+    return out;
+  };
+  const metricsOf = (id: string, t: Thing, fetchedWith: FetchedWith): Metrics => ({
+    id,
+    views: t.view_count ?? 0,
+    reactions: t.score ?? 0,
+    comments: t.num_comments ?? 0,
+    shares: t.num_crossposts ?? 0,
+    // The numbers `insights` shows, so it need not read the post again.
+    read: {
+      score: t.score,
+      num_comments: t.num_comments,
+      num_crossposts: t.num_crossposts,
+      view_count: t.view_count,
+      upvote_ratio: t.upvote_ratio,
+    },
+    asOf: now().toISOString(),
+    fetchedWith,
+  });
   let me: Promise<string> | null = null;
   const whoami = () => {
     me ??= call<{ name?: string }>("GET", "/api/v1/me").then((r) => {
@@ -160,26 +192,28 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
       );
     },
     async metrics(id: string): Promise<Metrics> {
-      const r = await call<Listing>("GET", "/api/info", { id: `t3_${bareId(id)}`, raw_json: 1 });
-      const t = children(r)[0];
+      const t = (await things([id])).get(bareId(id));
       if (!t) throw new Error(`reddit: no post ${id}`);
-      return {
-        id,
-        views: t.view_count ?? 0,
-        reactions: t.score ?? 0,
-        comments: t.num_comments ?? 0,
-        shares: t.num_crossposts ?? 0,
-        // The numbers `insights` shows, so it need not read the post again.
-        read: {
-          score: t.score,
-          num_comments: t.num_comments,
-          num_crossposts: t.num_crossposts,
-          view_count: t.view_count,
-          upvote_ratio: t.upvote_ratio,
-        },
-        asOf: now().toISOString(),
-        fetchedWith: await via("GET", "/api/info"),
-      };
+      return metricsOf(id, t, await via("GET", "/api/info"));
+    },
+    /** `/api/info` takes a comma list of fullnames (100 at most): the posts in one read. */
+    async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
+      const found = await things(posts.map((p) => p.id));
+      if (!found.size) return [];
+      const fetchedWith = await via("GET", "/api/info");
+      return posts.flatMap((p) => {
+        const t = found.get(bareId(p.id));
+        return t ? [metricsOf(p.id, t, fetchedWith)] : [];
+      });
+    },
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      const found = await things(ids);
+      const out: Record<string, number> = {};
+      for (const id of ids) {
+        const n = found.get(bareId(id))?.num_comments;
+        if (typeof n === "number") out[id] = n;
+      }
+      return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       const r = await call<[Listing, Listing]>("GET", `/comments/${bareId(id)}`, {

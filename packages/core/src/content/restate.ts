@@ -33,6 +33,7 @@ import type {
   Insights,
   ListQuery,
   MediaHost,
+  Metrics,
   Platform,
   Post,
   PostPatch,
@@ -299,6 +300,19 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
 }
 
 /**
+ * A read that only saves calls (`metricsMany`, `commentCounts`): any failure is final for the
+ * call, never a retry, so its caller moves on to the one-by-one read it would have made.
+ */
+async function orFallBack<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await refusalsFinal(work);
+  } catch (err) {
+    if (err instanceof restate.TerminalError) throw err;
+    throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
  * Build the channels for one invocation from its context (the `sites` calls need it). `arm`:
  * channels whose writes arm the browser instead of sending (`SitesHost.arm`).
  */
@@ -313,6 +327,9 @@ export interface ContentClients {
   /** May a post or a reply leave for this client: its live flag and the global gate. */
   sends: (client: string) => Promise<boolean>;
 }
+
+/** Most posts one `metricsMany` or `commentCounts` asks about; a listing page is 100. */
+export const MANY_POSTS = 100;
 
 export const SENDS_OFF = "Sends off. An admin turns them on.";
 
@@ -426,6 +443,51 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         { input: ONE_POST },
         async (ctx: restate.Context, req: { platform: Platform; id: string } & ForClient) =>
           refusalsFinal((await pick(ctx, req.platform, req.client)).metrics(req.id)),
+      ),
+      /**
+       * Several posts' numbers in as few platform reads as the channel can. Null when it has no
+       * batch read; a post missing from the answer is for the caller to read with `metrics`.
+       */
+      metricsMany: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            posts: z
+              .array(
+                z.looseObject({
+                  id: z.string(),
+                  kind: z.string().nullish().describe("Its shape's kind: short, video, carousel"),
+                }),
+              )
+              .min(1)
+              .max(MANY_POSTS),
+            client: CLIENT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; posts: { id: string; kind?: string | null }[] } & ForClient,
+        ): Promise<Metrics[] | null> => {
+          const ch = await pick(ctx, req.platform, req.client);
+          return ch.metricsMany ? orFallBack(ch.metricsMany(req.posts)) : null;
+        },
+      ),
+      /** Comment counts by post id in one read. Null when the channel can't count without reading. */
+      commentCounts: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            ids: z.array(z.string()).min(1).max(MANY_POSTS),
+            client: CLIENT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; ids: string[] } & ForClient,
+        ): Promise<Record<string, number> | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          return ch.commentCounts ? orFallBack(ch.commentCounts(req.ids)) : null;
+        },
       ),
       comments: serviceHandler(
         { input: ONE_POST.extend({ q: QUERY }) },

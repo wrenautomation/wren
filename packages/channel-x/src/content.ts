@@ -102,6 +102,9 @@ export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[]
   return out.length ? out : null;
 }
 
+/** A timeline page is 100 posts: the most one read can hold. */
+const TIMELINE_PAGE = 100;
+
 export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
@@ -115,6 +118,37 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
     return me;
   };
   const urlOf = (username: string, id: string) => `https://x.com/${username}/status/${id}`;
+  const metricsOf = (
+    id: string,
+    m: NonNullable<Tweet["public_metrics"]>,
+    read: unknown,
+    fetchedWith: FetchedWith,
+  ): Metrics => ({
+    id,
+    views: m.impression_count ?? 0,
+    reactions: m.like_count ?? 0,
+    comments: m.reply_count ?? 0,
+    shares: (m.retweet_count ?? 0) + (m.quote_count ?? 0),
+    read,
+    asOf: now().toISOString(),
+    fetchedWith,
+  });
+  /** The newest `TIMELINE_PAGE` own posts since just before the oldest of `ids`, with their numbers. */
+  const recent = async (ids: string[]): Promise<{ tweets: Tweet[]; fetchedWith: FetchedWith }> => {
+    const numeric = ids.filter((i) => /^\d+$/.test(i));
+    const oldest = numeric.reduce<bigint | null>(
+      (a, i) => (a === null || BigInt(i) < a ? BigInt(i) : a),
+      null,
+    );
+    if (oldest === null) return { tweets: [], fetchedWith: "browser" };
+    const { id } = await whoami();
+    const r = await sites.call<{ data?: Tweet[] }>("x", "GET", `/2/users/${id}/tweets`, {
+      max_results: TIMELINE_PAGE,
+      since_id: String(oldest - 1n),
+      exclude: "replies,retweets",
+    });
+    return { tweets: r.data ?? [], fetchedWith: await via("GET", "/2/users/{id}/tweets") };
+  };
   return {
     platform: "x",
     async publish(post: Post): Promise<Published> {
@@ -194,17 +228,29 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
       const r = await sites.call<{ data?: Tweet }>("x", "GET", `/2/tweets/${id}`, {});
       const m = r.data?.public_metrics;
       if (!m) throw new Error(`x: no post ${id}`);
-      return {
-        id,
-        views: m.impression_count ?? 0,
-        reactions: m.like_count ?? 0,
-        comments: m.reply_count ?? 0,
-        shares: (m.retweet_count ?? 0) + (m.quote_count ?? 0),
-        // The whole answer: `insights` on a post without video asks the same thing.
-        read: r,
-        asOf: now().toISOString(),
-        fetchedWith: await via("GET", "/2/tweets/{id}"),
-      };
+      // The whole answer is `read`: `insights` on a post without video asks the same thing.
+      return metricsOf(id, m, r, await via("GET", "/2/tweets/{id}"));
+    },
+    /**
+     * One timeline read for all of them: the account's newest 100 posts since just before the
+     * oldest asked about, numbers included. A post the page doesn't hold (a reply, a page past
+     * 100) is left out for `metrics`.
+     */
+    async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
+      const { tweets, fetchedWith } = await recent(posts.map((p) => p.id));
+      const want = new Set(posts.map((p) => p.id));
+      return tweets
+        .filter((t) => want.has(t.id) && t.public_metrics)
+        .map((t) => metricsOf(t.id, t.public_metrics ?? {}, { data: t }, fetchedWith));
+    },
+    async commentCounts(ids: string[]): Promise<Record<string, number>> {
+      const { tweets } = await recent(ids);
+      const want = new Set(ids);
+      const out: Record<string, number> = {};
+      for (const t of tweets)
+        if (want.has(t.id) && typeof t.public_metrics?.reply_count === "number")
+          out[t.id] = t.public_metrics.reply_count;
+      return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
       let r: { data?: Tweet[]; includes?: { users?: { id: string; username: string }[] } };
