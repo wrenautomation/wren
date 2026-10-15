@@ -415,12 +415,24 @@ function send<T>(path: string, body: Record<string, unknown>, retried: boolean):
   return sendNow<T>(path, body, retried);
 }
 
+/** Browsers take at most 64 KB of keepalive bodies at once; leave room for the headers. */
+const KEEPALIVE_MAX = 48_000;
+/**
+ * The tab is going (hidden fires before pagehide): a call sent now, such as a set-aside action's
+ * flush, outlives the page. Small bodies only.
+ */
+export const outlives = (json: string) =>
+  typeof document !== "undefined" &&
+  document.visibilityState === "hidden" &&
+  json.length <= KEEPALIVE_MAX;
+
 async function sendNow<T>(
   path: string,
   body: Record<string, unknown>,
   retried: boolean,
 ): Promise<T> {
   const t = await token();
+  const json = JSON.stringify(viewed(body));
   let res: Response;
   try {
     res = await fetch(`/api/${path}`, {
@@ -429,13 +441,16 @@ async function sendNow<T>(
         "content-type": "application/json",
         ...(t ? { authorization: `Bearer ${t}` } : {}),
       },
-      body: JSON.stringify(viewed(body)),
+      body: json,
+      ...(outlives(json) ? { keepalive: true } : {}),
     });
   } catch {
     tellAutotrack(path, body, 0);
     throw new ApiError("You're offline, or the portal is.", 0);
   }
-  // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
+  // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in. The
+  // Worker checks the token before anything runs, so a write didn't happen; the retry sends the
+  // same body, its requestId too, so even if it had, the server's idempotency key dedupes it.
   if (res.status === 401 && TOKEN_URL) {
     held = null;
     store(HELD_KEY, null);
