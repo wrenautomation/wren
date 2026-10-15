@@ -141,6 +141,8 @@ export function reader(sites: SiteClient, as?: string): Reader {
           { limit: PAGE, ...(after ? { after } : {}) },
         );
         const posts = itemsOf<Post>(l);
+        // Their authors' cards then come in one batched read, not one `about` each.
+        asPeople.learn(posts.map((p) => ({ handle: p.author, id: p.author_fullname })));
         out.push(...posts);
         after = l?.data?.after ?? undefined;
         const oldest = (posts.at(-1)?.created_utc ?? 0) * 1000;
@@ -161,6 +163,7 @@ export function reader(sites: SiteClient, as?: string): Reader {
         }
       };
       walk(tree, 0);
+      asPeople.learn(comments.map((c) => ({ handle: c.author, id: c.author_fullname })));
       const [post] = itemsOf<Post>(head);
       if (!post) throw new Error(`reddit: no post ${id}`);
       return { post, comments };

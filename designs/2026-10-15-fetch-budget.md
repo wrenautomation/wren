@@ -75,9 +75,8 @@ reads, then came back next pass, since a failed read stores nothing. Now the per
 without a card (30 days fresh), so the retry stops too.
 
 Batching needs ids. `find` keeps each author's `author_fullname`, and `learn()` takes more. The
-discovery loop reads its listings in `reads.ts` (not touched), so it learns nothing yet: one
-`asPeople.learn(...)` after `latest()` there turns the batch on. Signed out, feeds carry no ids
-either, so the batch waits for `.json` or a signed-in reader.
+discovery loop's `latest()` and `thread()` in `reads.ts` learn their authors too. Signed out,
+feeds carry no ids, so the batch waits for `.json` or a signed-in reader.
 
 ## API
 
