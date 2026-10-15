@@ -288,6 +288,13 @@ describe("live, manual and snapshot segments", () => {
     ).rejects.toThrow(/keeps its kind/);
     // A reads before B: one pass sees B's fresh members.
     expect((await recomputeLive(pg.db, NOW)).map((c) => c.segment)).toEqual([a.id, b.id]);
+    // A save over the version it opened on; one opened before a later save is refused.
+    const opened = a.updatedAt;
+    const later = new Date(NOW.getTime() + 1000);
+    const again = { id: a.id, name: "A", kind: "live" as const, rule: a.rule, expect: opened };
+    await saveSegment(pg.db, again, "t", later);
+    await expect(saveSegment(pg.db, again, "t", later)).rejects.toThrow(/changed since/);
+    expect((await segmentDetail(pg.db, String(a.id)))?.version).toBe(later.toISOString());
   });
 
   it("a manual one takes people by hand; a live one doesn't", async () => {

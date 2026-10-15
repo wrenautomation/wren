@@ -24,7 +24,7 @@ import {
 } from "./broadcasts-schema.js";
 import { addressOf, marketingRoomAt, mayMarket, recordMarketingSend } from "./marketing.js";
 import { readMessageSettings, slugOf, tagLinks } from "./message-settings.js";
-import { PortalRefusal } from "./refusal.js";
+import { PortalRefusal, staleRefusal } from "./refusal.js";
 import { topics } from "./schema.js";
 import { segmentById, segmentMembers } from "./segments.js";
 import type { SegmentUse } from "./segments-schema.js";
@@ -183,11 +183,20 @@ export interface BroadcastInput {
   zone?: string;
   /** Straight to To approve. */
   ask?: boolean;
+  /** The version the editor opened on (its `updatedAt`); a change since refuses the save. */
+  expect?: string | null;
 }
 
 export async function broadcastById(db: Queryable, id: number): Promise<Broadcast | null> {
   const [b] = await db.select().from(broadcasts).where(eq(broadcasts.id, id));
   return b ?? null;
+}
+
+/** An `expect` as the ISO time it names; one that isn't a time is refused. */
+function versionOf(expect: string): string {
+  const at = new Date(expect);
+  if (Number.isNaN(at.getTime())) throw new PortalRefusal("expect is a version", 400, "expect");
+  return at.toISOString();
 }
 
 async function mustHave(db: Queryable, id: number): Promise<Broadcast> {
@@ -218,6 +227,8 @@ export async function saveBroadcast(
   now: Date,
 ): Promise<Broadcast> {
   const was = input.id ? await mustHave(db, Number(input.id)) : null;
+  if (was && input.expect && was.updatedAt.toISOString() !== versionOf(input.expect))
+    throw staleRefusal("broadcast");
   if (was && !OPEN.includes(was.state))
     throw new PortalRefusal(
       was.state === "canceled" ? "restore it first" : "it already went: make a new one",
@@ -279,9 +290,16 @@ export async function saveBroadcast(
     const [b] = await db
       .update(broadcasts)
       .set(values)
-      .where(and(eq(broadcasts.id, was.id), inArray(broadcasts.state, [...OPEN])))
+      // Over what was read: a save or a yes in between refuses this one.
+      .where(
+        and(
+          eq(broadcasts.id, was.id),
+          inArray(broadcasts.state, [...OPEN]),
+          sql`date_trunc('milliseconds', ${broadcasts.updatedAt}) = ${was.updatedAt.toISOString()}::timestamptz`,
+        ),
+      )
       .returning();
-    if (!b) throw new PortalRefusal("it changed meanwhile: open it again", 409);
+    if (!b) throw staleRefusal("broadcast");
     return b;
   }
   const [b] = await db

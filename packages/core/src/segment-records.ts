@@ -38,6 +38,8 @@ export interface SegmentDetail {
   ruleWords: string | null;
   /** Entries and exits in the last 7 and 30 days before its last count. */
   moves: { entered7: number; left7: number; entered30: number; left30: number };
+  /** When it last changed: its editor saves over this one only. */
+  version: string;
 }
 
 export async function segmentDetail(db: Queryable, id: string): Promise<SegmentDetail | null> {
@@ -65,6 +67,7 @@ export async function segmentDetail(db: Queryable, id: string): Promise<SegmentD
       entered30: Number(m?.entered30 ?? 0),
       left30: Number(m?.left30 ?? 0),
     },
+    version: s.updatedAt,
   };
 }
 

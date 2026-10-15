@@ -47,12 +47,17 @@ export const RECIPIENT_STATE_STATES = cued({
 /** What a broadcast's page shows past the row: its results on the sent log's ladder. */
 export interface BroadcastDetail {
   results: BroadcastResults | null;
+  /** When it last changed: its editor saves over this one only. */
+  version: string;
 }
 
 export async function broadcastDetail(db: Queryable, id: string): Promise<BroadcastDetail | null> {
   const b = await broadcastById(db, Number(id));
   if (!b) return null;
-  return { results: b.startedAt ? await broadcastResults(db, b.id) : null };
+  return {
+    results: b.startedAt ? await broadcastResults(db, b.id) : null,
+    version: b.updatedAt.toISOString(),
+  };
 }
 
 /** The handlers a broadcast's buttons call; Save is its editor's. */

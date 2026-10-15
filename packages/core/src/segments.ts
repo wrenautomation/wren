@@ -19,7 +19,7 @@ import { atomic } from "@wren/db/isolation";
 import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TIMELINE_KIND_NAMES, TIMELINE_KINDS, type TimelineKind } from "./profiles-schema.js";
-import { PortalRefusal } from "./refusal.js";
+import { PortalRefusal, staleRefusal } from "./refusal.js";
 import type { SegmentKind, SegmentState, SegmentUse } from "./segments-schema.js";
 
 /** A trait key, as `./profiles.ts` keeps them. */
@@ -385,6 +385,8 @@ export interface Segment {
   archivedAt: string | null;
   by: string;
   createdAt: string;
+  /** Its last save, archive or restore: the version an editor saves over. */
+  updatedAt: string;
 }
 
 type Row = Record<string, unknown>;
@@ -408,10 +410,11 @@ const segmentOf = (r: Row): Segment => ({
   archivedAt: iso(r.archived_at),
   by: String(r.by),
   createdAt: iso(r.created_at) as string,
+  updatedAt: iso(r.updated_at) as string,
 });
 const rows = async (db: Queryable, q: SQL) => (await db.execute(q)) as unknown as Row[];
 const COLS = sql.raw(
-  "id, name, kind, rule, words, state, size, computed_at, uses, used_at, archived_at, by, created_at",
+  "id, name, kind, rule, words, state, size, computed_at, uses, used_at, archived_at, by, created_at, updated_at",
 );
 
 export async function segmentById(db: Queryable, id: number): Promise<Segment | null> {
@@ -641,6 +644,8 @@ export interface SegmentInput {
   /** A live or snapshot segment's rule; a manual one has none. */
   rule?: unknown;
   words?: string | null;
+  /** The version the editor opened on; a change since refuses the save. */
+  expect?: string | null;
 }
 
 /** Why `rule`, saved on segment `id`, would read itself; null when it wouldn't. */
@@ -693,6 +698,10 @@ export async function saveSegment(
   if (id !== null && !was) throw new PortalRefusal("no such segment", 404);
   if (was && was.kind !== kind) throw new PortalRefusal("a segment keeps its kind; make a new one");
   if (was?.state === "archived") throw new PortalRefusal("restore it first", 409);
+  const expect = input.expect ? new Date(input.expect) : null;
+  if (expect && Number.isNaN(expect.getTime()))
+    throw new PortalRefusal("expect is a version", 400, "expect");
+  if (was && expect && was.updatedAt !== expect.toISOString()) throw staleRefusal("segment");
   if (rule) {
     const cycle = await cycleOf(db, id, rule);
     if (cycle) throw new PortalRefusal(cycle, 422);
@@ -717,8 +726,10 @@ export async function saveSegment(
           db,
           sql`update segments set name = ${name}, rule = ${ruleJson}::jsonb,
               words = ${words}, used_at = ${at}::timestamptz, updated_at = ${at}::timestamptz
-            where id = ${id} returning id`,
+            where id = ${id} and date_trunc('milliseconds', updated_at) = ${was?.updatedAt}::timestamptz
+            returning id`,
         );
+  if (!row) throw staleRefusal("segment");
   const sid = Number(row?.id);
   // A snapshot is taken once, when made; "take again" retakes it.
   const change =

@@ -243,6 +243,7 @@ export function peopleConsoleApi({
           kind: req.kind ?? "live",
           rule: req.rule,
           words: req.words ?? null,
+          expect: req.expect ?? null,
         },
         by(req),
         now(),

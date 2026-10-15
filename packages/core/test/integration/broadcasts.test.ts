@@ -457,6 +457,12 @@ describe("times, cancel and restore", () => {
     };
     // Never started: back to a draft, to be asked again.
     const a = await saveBroadcast(pg.db, { ...input, name: "First" }, BY, T(10));
+    // A save over the version it opened on; one opened before a later save is refused.
+    const opened = a.updatedAt.toISOString();
+    await saveBroadcast(pg.db, { id: a.id, body: "Mine.", expect: opened }, BY, T(10, 13));
+    await expect(
+      saveBroadcast(pg.db, { id: a.id, body: "Late.", expect: opened }, BY, T(10, 14)),
+    ).rejects.toThrow(/changed since/);
     await cancelBroadcast(pg.db, a.id, BY, NOW);
     await expect(saveBroadcast(pg.db, { id: a.id, body: "Changed." }, BY, NOW)).rejects.toThrow(
       /restore/,
