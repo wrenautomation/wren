@@ -4,6 +4,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type FormSplitDetail, formSplitDetail, formSplitsOf } from "./form-split.js";
@@ -11,7 +12,7 @@ import { defaultSpec, FormProblem, type FormSpec, parseSpec } from "./forms.js";
 import { embedSnippets } from "./kit.js";
 import { formUrl, type PageStatus, SLUG, SLUG_MAX, slugOf, WREN_SITE } from "./model.js";
 import { type SiteFormDef, siteFormDefs, siteForms } from "./schema.js";
-import { SitesRefusal, UUID } from "./store.js";
+import { SitesRefusal, stillAt, UUID } from "./store.js";
 
 /** The words' version: the first 12 hex of their SHA-256. Same words, same version. */
 export const consentVersion = (text: string) =>
@@ -113,7 +114,7 @@ export async function createForm(
 /** A form's spec saved (checked first), and its name when given. */
 export async function saveForm(
   db: Db,
-  f: { id: string; spec: unknown; name?: string | null; by: string },
+  f: { id: string; spec: unknown; name?: string | null; by: string; expect?: unknown },
 ): Promise<SiteFormDef> {
   let spec: FormSpec;
   try {
@@ -130,10 +131,12 @@ export async function saveForm(
       updatedAt: new Date(),
       updatedBy: f.by,
     })
-    .where(eq(siteFormDefs.id, f.id))
+    // One statement, over the version the builder opened on.
+    .where(and(eq(siteFormDefs.id, f.id), ...stillAt(siteFormDefs.updatedAt, f.expect)))
     .returning();
-  if (!row) throw new SitesRefusal("no such form", 404);
-  return row;
+  if (row) return row;
+  if (!(await formById(db, f.id))) throw new SitesRefusal("no such form", 404);
+  throw staleRefusal("form");
 }
 
 /** Live, back to draft, or retired (its URL answers gone, its numbers stay). */
@@ -212,6 +215,8 @@ export interface FormDetail {
   status: string;
   owner: string;
   spec: FormSpec;
+  /** What the builder sends back as `expect`. */
+  version: string;
   url: string;
   embed: ReturnType<typeof embedSnippets>;
   days: FormDayNumbers[];
@@ -258,6 +263,7 @@ export async function formDetail(db: Queryable, id: string): Promise<FormDetail 
     status: f.status,
     owner: f.client ?? "wren",
     spec: f.spec,
+    version: f.updatedAt.toISOString(),
     url: formUrl(host, f.slug),
     embed: embedSnippets({ origin: `https://${host}`, slug: f.slug, title: f.name }),
     days,

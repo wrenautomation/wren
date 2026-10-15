@@ -29,11 +29,14 @@ import {
   num,
   type RecordAct,
   type RecordExtras,
+  SaveConflict,
+  SaveStatus,
   Tag,
   Textarea,
   TrendChart,
+  useSaved,
 } from "@wren/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Said, Table, useRun } from "./detail.js";
@@ -460,7 +463,7 @@ type FormSplit = FormDetail["splits"][number];
 function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
   const test = d.splits[0]?.state === "running" ? d.splits[0] : null;
   const [arm, setArm] = useState<"A" | "B">("A");
-  if (!test) return <Editor id={id} d={d} base={d.spec} act={act} />;
+  if (!test) return <Editor id={id} d={d} base={d.spec} version={d.version} act={act} />;
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
@@ -473,18 +476,42 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
         ))}
       </div>
       {arm === "A" ? (
-        <Editor key="A" id={id} d={d} base={d.spec} act={act} />
+        <Editor key="A" id={id} d={d} base={d.spec} version={d.version} act={act} />
       ) : (
-        <Editor key="B" id={id} d={d} base={test.b} test={test} act={act} />
+        <Editor key="B" id={id} d={d} base={test.b} version={test.version} test={test} act={act} />
       )}
     </div>
   );
 }
 
+/**
+ * Keys follow labels for fields a person named; hidden fields keep the key they typed. A show
+ * rule follows its field's key when that changes.
+ */
+const savedSpec = (spec: FormSpec): FormSpec => {
+  const renamed = new Map<string, string>();
+  const fields = spec.fields.map((f) => {
+    if (f.kind === "hidden" || f.kind === "consent" || f.kind === "step") return f;
+    if (!/^question_\d+$/.test(f.key)) return f;
+    const key = keyOf(f.label) || f.key;
+    renamed.set(f.key, key);
+    return { ...f, key };
+  });
+  return {
+    ...spec,
+    fields: fields.map((f) =>
+      f.show && renamed.has(f.show.key)
+        ? { ...f, show: { ...f.show, key: renamed.get(f.show.key) as string } }
+        : f,
+    ),
+  };
+};
+
 function Editor({
   id,
   d,
   base,
+  version,
   test,
   act,
 }: {
@@ -492,14 +519,46 @@ function Editor({
   d: FormDetail;
   /** The spec this edits: the form's, or B's. */
   base: FormSpec;
+  /** Its version, sent back as `expect`. */
+  version: string;
   /** Set when this edits B: saves go to the test. */
   test?: FormSplit;
   act: RecordAct;
 }) {
-  const [spec, setSpec] = useState<FormSpec>(() => structuredClone(base));
-  const { said, busy, run } = useRun(act);
-  const changed = JSON.stringify(spec) !== JSON.stringify(base);
-  const put = (patch: Partial<FormSpec>) => setSpec((s) => ({ ...s, ...patch }));
+  // Typing is kept on this device until saved; a save goes over the version it opened on.
+  const kept = useSaved<FormSpec>({
+    key: `site-form:${id}:${test ? "B" : "A"}`,
+    server: base,
+    version,
+    delay: null,
+    same: (a, b) => JSON.stringify(savedSpec(a)) === JSON.stringify(savedSpec(b)),
+    save: async (v, { expect, request }) => {
+      const out = (await act(test ? "sites.formSplitSave" : "sites.formSave", {
+        id: test ? test.id : id,
+        spec: savedSpec(v),
+        expect,
+        requestId: request,
+      })) as { version?: string } | undefined;
+      return out?.version ? { value: v, version: out.version } : { value: v };
+    },
+  });
+  const spec = kept.value;
+  const { said, busy, run, setSaid } = useRun(act);
+  const changed = kept.dirty;
+  const live = useRef(spec);
+  live.current = spec;
+  const put = (patch: Partial<FormSpec>) => {
+    live.current = { ...live.current, ...patch };
+    kept.set(live.current);
+  };
+  const save = async () => {
+    setSaid(null);
+    if (await kept.flush())
+      setSaid({
+        text: test ? "Saved. B's visitors see it on their next visit." : "Saved.",
+        bad: false,
+      });
+  };
   const setField = (i: number, f: FormField) =>
     put({ fields: spec.fields.map((x, j) => (j === i ? f : x)) });
   const move = (i: number, by: -1 | 1) => {
@@ -516,42 +575,13 @@ function Editor({
       fields: [...spec.fields, { key: `question_${n}`, kind: "text", label: `Question ${n}` }],
     });
   };
-  /**
-   * Keys follow labels for fields a person named; hidden fields keep the key they typed. A show
-   * rule follows its field's key when that changes.
-   */
-  const toSave = (): FormSpec => {
-    const renamed = new Map<string, string>();
-    const fields = spec.fields.map((f) => {
-      if (f.kind === "hidden" || f.kind === "consent" || f.kind === "step") return f;
-      if (!/^question_\d+$/.test(f.key)) return f;
-      const key = keyOf(f.label) || f.key;
-      renamed.set(f.key, key);
-      return { ...f, key };
-    });
-    return {
-      ...spec,
-      fields: fields.map((f) =>
-        f.show && renamed.has(f.show.key)
-          ? { ...f, show: { ...f.show, key: renamed.get(f.show.key) as string } }
-          : f,
-      ),
-    };
-  };
   return (
     <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <form
         className="grid min-w-0 content-start gap-5"
         onSubmit={(e) => {
           e.preventDefault();
-          void (test
-            ? run(
-                "save",
-                "sites.formSplitSave",
-                { id: test.id, spec: toSave() },
-                "Saved. B's visitors see it on their next visit.",
-              )
-            : run("save", "sites.formSave", { id, spec: toSave() }, "Saved."));
+          void save();
         }}
       >
         <p className={`text-[13.5px] ${QUIET}`}>
@@ -707,7 +737,12 @@ function Editor({
           <span className={HINT}>Shown after the thanks, with their name and email filled in.</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" tone="primary" disabled={!changed} busy={busy === "save"}>
+          <Button
+            type="submit"
+            tone="primary"
+            disabled={!changed || kept.status === "saving"}
+            busy={kept.status === "saving"}
+          >
             Save
           </Button>
           {test ? null : d.status !== "live" ? (
@@ -733,7 +768,18 @@ function Editor({
             </Button>
           )}
           <Said said={said} />
+          <SaveStatus state={kept} onRetry={() => void kept.retry()} />
         </div>
+        {kept.restored && kept.dirty ? (
+          <p className={`text-[13px] ${QUIET}`}>Your unsaved changes are back.</p>
+        ) : null}
+        {kept.conflict ? (
+          <SaveConflict
+            conflict={kept.conflict}
+            onKeepMine={() => void kept.keepMine()}
+            onTakeTheirs={kept.takeTheirs}
+          />
+        ) : null}
       </form>
       <Preview spec={spec} />
     </div>

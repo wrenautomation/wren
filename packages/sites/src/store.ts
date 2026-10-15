@@ -13,7 +13,7 @@ import {
 import { PortalRefusal } from "@wren/core/refusal";
 import { hooks } from "@wren/core/schema";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { type AnyColumn, and, asc, desc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import { STEPS_MAX } from "./forms.js";
 import {
   type Channel,
@@ -50,6 +50,19 @@ export class SitesRefusal extends PortalRefusal {}
 
 export const newPreviewToken = () => randomBytes(32).toString("base64url");
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * An editor's `expect` (the row's `updatedAt` as it read it) as a WHERE term: the row still holds
+ * that version. None sent: no check.
+ */
+export function stillAt(column: AnyColumn, expect: unknown): SQL[] {
+  if (expect === undefined || expect === null) return [];
+  if (typeof expect !== "string" || Number.isNaN(Date.parse(expect)))
+    throw new SitesRefusal("expect is a version", 400, "expect");
+  return [
+    sql`date_trunc('milliseconds', ${column}) = ${new Date(expect).toISOString()}::timestamptz`,
+  ];
+}
 const ownerIs = (client: string | null) =>
   client === null ? isNull(sitePages.client) : eq(sitePages.client, client);
 
@@ -199,7 +212,7 @@ export async function saveVersion(
     if (!page) throw new SitesRefusal("no such page", 404);
     if (page.source !== "data") throw new SitesRefusal("a code page changes in code", 409);
     if (v.expect !== undefined && v.expect !== null && v.expect !== page.draftVersion)
-      throw new SitesRefusal("someone saved a newer draft; open it again", 409);
+      throw new SitesRefusal("This page changed since you opened it. Look again.", 409);
     const content = checked(page.template, v.content);
     const [top] = await tx
       .select({ n: sql<number>`coalesce(max(${sitePageVersions.number}), 0)::int` })

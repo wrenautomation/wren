@@ -112,8 +112,16 @@ describe("splits", () => {
     const direct = await pub().serve({ slug: b.slug });
     expect(direct.split).toBeNull();
 
-    await api().splitWeights({ viewer: ADA, id: a.id, weights: [1, 1] });
+    const opened = (await api().detail({ viewer: ADA, id: a.id })).split!.split.updatedAt;
+    const expect0 = new Date(opened).toISOString();
+    await api().splitWeights({ viewer: ADA, id: a.id, weights: [1, 1], expect: expect0 });
     expect((await pub().serve({ slug: a.slug, roll: 0.4 })).split?.label).toBe("A");
+    // Another tab saved over the weights it read: plain words, no change.
+    const late = (await api()
+      .splitWeights({ viewer: ADA, id: a.id, weights: [9, 1], expect: expect0 })
+      .catch((e: unknown) => e)) as PortalRefusal;
+    expect(late.status).toBe(409);
+    expect(late.message).toBe("This split changed since you opened it. Look again.");
     await api().splitStop({ viewer: ADA, id: a.id });
     expect((await pub().serve({ slug: a.slug, roll: 0.9 })).split).toBeNull();
   });
@@ -231,6 +239,9 @@ describe("splits", () => {
     expect(d.split!.split).toMatchObject({ state: "running", winner: null });
 
     const again = await api().splitShip({ viewer: ADA, id: a.id, label: "B" });
+    // A second press finds it shipping: no second copy waits.
+    await refused(api().splitShip({ viewer: ADA, id: a.id, label: "B" }), 409);
+    expect((await waitingPages(pg.db)).filter((w) => w.id === a.id)).toHaveLength(1);
     await api().approve({ viewer: ADA, ids: [pageApprovalId(a.id, again.waiting)] });
     d = await api().detail({ viewer: ADA, id: a.id });
     expect(d.split!.split).toMatchObject({ state: "shipped", winner: "B" });

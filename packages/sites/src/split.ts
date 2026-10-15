@@ -7,12 +7,22 @@
  * Built on the experiments engine's beta-binomial (`split-call.ts`), not on its `flags` tables:
  * those are Wren's lander only, have no owner, and move shares by bandit.
  */
+
+import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable, snapshot } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { ARM_LABELS, type ArmLabel, SPLIT_GOALS, type SplitGoal } from "./model.js";
 import { type SitePage, type SiteSplit, sitePages, siteSplitArms, siteSplits } from "./schema.js";
 import { type ArmCount, type SplitCall, splitCall } from "./split-call.js";
-import { askPublish, pageById, SitesRefusal, saveVersion, UUID, versionOf } from "./store.js";
+import {
+  askPublish,
+  pageById,
+  SitesRefusal,
+  saveVersion,
+  stillAt,
+  UUID,
+  versionOf,
+} from "./store.js";
 import type { Content } from "./templates/types.js";
 
 /** Visitors' arm sticks this long: a month, so a returning visitor sees what they saw. */
@@ -170,18 +180,31 @@ export async function setSplitWeights(
   db: Db,
   id: string,
   weights: readonly number[],
+  expect?: unknown,
 ): Promise<SplitWithArms> {
   const s = await splitById(db, id);
   if (!s) throw new SitesRefusal("no such split", 404);
   if (s.state !== "running") throw new SitesRefusal("this split isn't running", 409);
   const w = weightsOf(s.arms.length, weights);
   await serializable(db, async (tx) => {
+    // Still running, and still as he read it: a stop or another save meanwhile refuses.
+    const held = await tx
+      .update(siteSplits)
+      .set({ updatedAt: sql`now()` })
+      .where(
+        and(
+          eq(siteSplits.id, id),
+          eq(siteSplits.state, "running"),
+          ...stillAt(siteSplits.updatedAt, expect),
+        ),
+      )
+      .returning({ id: siteSplits.id });
+    if (!held.length) throw staleRefusal("split");
     for (const [i, arm] of s.arms.entries())
       await tx
         .update(siteSplitArms)
         .set({ weight: w[i] as number })
         .where(and(eq(siteSplitArms.split, id), eq(siteSplitArms.label, arm.label)));
-    await tx.update(siteSplits).set({ updatedAt: sql`now()` }).where(eq(siteSplits.id, id));
   });
   return (await splitById(db, id)) as SplitWithArms;
 }
@@ -221,21 +244,35 @@ export async function shipSplit(
   const v = winPage?.liveVersion ? await versionOf(db, win.page, winPage.liveVersion) : null;
   if (!v) throw new SitesRefusal(`${win.slug} has no live copy`, 409);
   const why = `won the split${sure ? `, ${Math.min(99, Math.floor(sure * 100))}% sure` : ""}: copy of ${win.slug} v${v.number}`;
-  const saved = await saveVersion(db, s.page, {
-    content: v.content as Content,
-    origin: "copy",
-    why,
-    by,
-  });
-  const number = saved.draftVersion as number;
-  const page = await askPublish(db, s.page, { by, number });
-  const moved = await db
+  // Claim it first: a second press (or another tab) finds it shipping and stops here, so A
+  // never gets two copies waiting for a yes.
+  const claimed = await db
     .update(siteSplits)
-    .set({ state: "shipping", winner: win.label, shipVersion: number, updatedAt: sql`now()` })
+    .set({ state: "shipping", winner: win.label, updatedAt: sql`now()` })
     .where(and(eq(siteSplits.id, id), eq(siteSplits.state, "running")))
     .returning({ id: siteSplits.id });
-  if (!moved.length) throw new SitesRefusal("this split changed; open it again", 409);
-  return { split: (await splitById(db, id)) as SplitWithArms, page, number };
+  if (!claimed.length) throw staleRefusal("split");
+  try {
+    const saved = await saveVersion(db, s.page, {
+      content: v.content as Content,
+      origin: "copy",
+      why,
+      by,
+    });
+    const number = saved.draftVersion as number;
+    const page = await askPublish(db, s.page, { by, number });
+    await db
+      .update(siteSplits)
+      .set({ shipVersion: number, updatedAt: sql`now()` })
+      .where(eq(siteSplits.id, id));
+    return { split: (await splitById(db, id)) as SplitWithArms, page, number };
+  } catch (err) {
+    await db
+      .update(siteSplits)
+      .set({ state: "running", winner: null, updatedAt: sql`now()` })
+      .where(and(eq(siteSplits.id, id), eq(siteSplits.state, "shipping")));
+    throw err;
+  }
 }
 
 /**

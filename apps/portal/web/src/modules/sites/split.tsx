@@ -118,7 +118,11 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
               void run(
                 "weights",
                 "sites.splitWeights",
-                { id, weights: weights.map(Number) },
+                {
+                  id,
+                  weights: weights.map(Number),
+                  expect: new Date(s.split.updatedAt as unknown as string).toISOString(),
+                },
                 "Weights saved. New visitors get them; others keep their version.",
               )
             }

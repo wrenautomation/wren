@@ -4,6 +4,8 @@
  * their arm. Start copies A as B; ship makes B the form; stop keeps A. All direct: a form only
  * collects, so no To approve. A page's form section always shows A.
  */
+
+import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable, snapshot } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { FormProblem, type FormSpec, parseSpec } from "./forms.js";
@@ -11,7 +13,7 @@ import type { FormArm } from "./model.js";
 import { type SiteFormDef, type SiteFormSplit, siteFormDefs, siteFormSplits } from "./schema.js";
 import { SPLIT_COOKIE } from "./split.js";
 import { type SplitCall, splitCall } from "./split-call.js";
-import { SitesRefusal, UUID } from "./store.js";
+import { SitesRefusal, stillAt, UUID } from "./store.js";
 
 /** The split running on a form; null when none. */
 export async function runningFormSplit(db: Queryable, form: string): Promise<SiteFormSplit | null> {
@@ -83,7 +85,7 @@ export async function startFormSplit(
 /** B's spec or its share changed, on a running split. B's spec is checked as a form's is. */
 export async function saveFormSplit(
   db: Db,
-  f: { id: string; spec?: unknown; weight?: unknown; by: string },
+  f: { id: string; spec?: unknown; weight?: unknown; by: string; expect?: unknown },
 ): Promise<SiteFormSplit> {
   const b = f.spec === undefined || f.spec === null ? undefined : specOf(f.spec);
   const weight = f.weight === undefined || f.weight === null ? undefined : weightOf(f.weight);
@@ -95,10 +97,18 @@ export async function saveFormSplit(
       updatedAt: new Date(),
       updatedBy: f.by,
     })
-    .where(and(eq(siteFormSplits.id, f.id), eq(siteFormSplits.state, "running")))
+    .where(
+      and(
+        eq(siteFormSplits.id, f.id),
+        eq(siteFormSplits.state, "running"),
+        ...stillAt(siteFormSplits.updatedAt, f.expect),
+      ),
+    )
     .returning();
-  if (!row) throw new SitesRefusal("no running split", 404);
-  return row;
+  if (row) return row;
+  if (f.expect != null && (await formSplitById(db, f.id))?.state === "running")
+    throw staleRefusal("test");
+  throw new SitesRefusal("no running split", 404);
 }
 
 /** A running split ended: `stopped` keeps A; `shipped` makes B the form's spec, in one step. */
@@ -176,6 +186,8 @@ export interface FormArmNumbers {
 
 export interface FormSplitDetail extends Omit<SiteFormSplit, "b"> {
   b: FormSpec;
+  /** What B's editor sends back as `expect`. */
+  version: string;
   arms: FormArmNumbers[];
   call: SplitCall;
 }
@@ -202,6 +214,7 @@ export async function formSplitDetail(
   }));
   return {
     ...split,
+    version: split.updatedAt.toISOString(),
     arms,
     call: splitCall(arms.map((a) => ({ label: a.label, visits: a.views, goals: a.submits }))),
   };

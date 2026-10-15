@@ -270,7 +270,12 @@ describe("hosted forms", () => {
       api().formSave({ viewer: ADA, id: made.id, spec: { title: "x", fields: [] } }),
       400,
     );
-    await api().formSave({ viewer: ADA, id: made.id, spec });
+    const opened = (await api().formDetail({ viewer: ADA, id: made.id })).version;
+    const saved = await api().formSave({ viewer: ADA, id: made.id, spec, expect: opened });
+    expect(saved.version).not.toBe(opened);
+    // A save over the version another tab replaced refuses; the newer one saves.
+    await refused(api().formSave({ viewer: ADA, id: made.id, spec, expect: opened }), 409);
+    await api().formSave({ viewer: ADA, id: made.id, spec, expect: saved.version });
 
     // A draft serves nothing; live serves; retired is gone.
     expect((await pub().serveForm({ slug: made.slug })).status).toBe(404);

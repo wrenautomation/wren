@@ -31,11 +31,14 @@ import {
   num,
   type RecordAct,
   type RecordExtras,
+  SaveConflict,
+  SaveStatus,
   Tag,
   Textarea,
   TrendChart,
+  useSaved,
 } from "@wren/ui";
-import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Split } from "./split.js";
@@ -51,12 +54,17 @@ const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(e
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 const usd = (n: number) => (n ? money(n, "USD") : "");
 const day = (at: string) => new Date(at).toLocaleDateString("en-CA");
+const NO_CONTENT: Content = {};
 
 /** A line under a control: working, done, or why not. */
 export function useRun(act: RecordAct) {
   const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // One action at a time, held in a ref: a double click (or Enter on a busy button) runs once.
+  const flying = useRef(false);
   const run = async (name: string, action: string, input: Record<string, unknown>, ok: string) => {
+    if (flying.current) return;
+    flying.current = true;
     setBusy(name);
     setSaid(null);
     try {
@@ -65,10 +73,11 @@ export function useRun(act: RecordAct) {
     } catch (err) {
       setSaid({ text: errorOf(err), bad: true });
     } finally {
+      flying.current = false;
       setBusy(null);
     }
   };
-  return { said, busy, run };
+  return { said, busy, run, setSaid };
 }
 
 export function Said({ said }: { said: { text: string; bad: boolean } | null }) {
@@ -351,22 +360,46 @@ function CopyEditor({
   client: boolean;
 }) {
   const draft = d.draft;
-  const [content, setContent] = useState<Content>(() => ({ ...(draft?.content ?? {}) }));
   const [why, setWhy] = useState("");
   const [angle, setAngle] = useState("");
   const [part, setPart] = useState("");
   const [ask, setAsk] = useState("");
-  const { said, busy, run } = useRun(act);
+  const { said, busy, run, setSaid } = useRun(act);
+  const whyNow = useRef(why);
+  whyNow.current = why;
+  // The copy as he types it, through the save engine: kept on this device as he goes (a reload
+  // or a closed tab gives it back) and saved on Save as a new version over the one he opened.
+  // A version saved since (his other tab, Claude's) is a conflict, never an overwrite; one saved
+  // while nothing is typed just shows.
+  const copy = useSaved<Content>({
+    key: draft ? `site-copy:${id}` : null,
+    server: draft?.content ?? NO_CONTENT,
+    version: String(draft?.number ?? 0),
+    delay: null,
+    save: async (content, { expect, request }) => {
+      const sentWhy = whyNow.current;
+      const out = (await act("sites.save", {
+        id,
+        content,
+        why: sentWhy.trim() || null,
+        ...(typeof expect === "string" ? { expect: Number(expect) } : {}),
+        requestId: request,
+      })) as { draft?: number | null } | undefined;
+      setWhy((w) => (w === sentWhy ? "" : w));
+      return { version: out?.draft ? String(out.draft) : null };
+    },
+  });
+  const content = copy.value;
   useEffect(() => () => setTyping(id, null), [id]);
   if (!d.template || !draft) return null;
   const template = d.template;
   const parts = partsOf(templateOf(template.id), draft.content ?? {});
   const partKey = parts.some((p) => p.key === part) ? part : (parts[0]?.key ?? "");
   const edit = (next: Content) => {
-    setContent(next);
+    copy.set(next);
     setTyping(id, JSON.stringify(next) === JSON.stringify(draft.content) ? null : next);
   };
-  const changed = JSON.stringify(content) !== JSON.stringify(draft.content);
+  const changed = copy.dirty;
   const problem = changed ? problemOf(template.id, content) : null;
   const asked = d.waiting === draft.number;
   const live = d.live === draft.number;
@@ -385,12 +418,17 @@ function CopyEditor({
       className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        void run(
-          "save",
-          "sites.save",
-          { id, content, why: why.trim() || null, expect: draft.number },
-          "Saved as a new version. Ask to publish when it's right.",
-        );
+        if (copy.status === "saving") return;
+        setSaid(null);
+        void copy.flush().then((ok) => {
+          if (ok) {
+            setTyping(id, null);
+            setSaid({
+              text: "Saved as a new version. Ask to publish when it's right.",
+              bad: false,
+            });
+          }
+        });
       }}
     >
       <p className="text-[13.5px]">
@@ -436,8 +474,8 @@ function CopyEditor({
           <Button
             type="submit"
             tone="primary"
-            disabled={!changed || !!problem || closed}
-            busy={busy === "save"}
+            disabled={!changed || !!problem || closed || copy.status === "saving"}
+            busy={copy.status === "saving"}
           >
             Save
           </Button>
@@ -449,7 +487,8 @@ function CopyEditor({
               void run(
                 "ask",
                 "sites.ask",
-                { id },
+                // The version he's looking at, never a newer one saved meanwhile.
+                { id, number: draft.number },
                 client ? "Asked. It goes live on a yes." : "Asked. It waits in To approve.",
               )
             }
@@ -459,14 +498,25 @@ function CopyEditor({
           {changed ? (
             <Button
               tone="quiet"
-              onClick={() => edit({ ...(draft.content ?? {}) })}
+              onClick={() => {
+                if (window.confirm("Throw away your changes?")) edit({ ...(draft.content ?? {}) });
+              }}
               disabled={busy !== null}
             >
               Undo changes
             </Button>
           ) : null}
           <Said said={said} />
+          <SaveStatus state={copy} onRetry={() => void copy.retry()} />
         </div>
+        {copy.conflict ? (
+          <SaveConflict
+            conflict={copy.conflict}
+            show={() => "A newer version was saved since you opened this one."}
+            onKeepMine={() => void copy.keepMine()}
+            onTakeTheirs={copy.takeTheirs}
+          />
+        ) : null}
       </Fieldset>
       {client ? null : (
         <Fieldset
@@ -906,30 +956,37 @@ function Versions({ d }: { d: PageDetail }) {
   );
 }
 
+/** The page's notes: saved as he types, kept on this device until the server holds them. */
 function Notes({ id, d, act }: { id: string; d: PageDetail; act: RecordAct }) {
-  const [text, setText] = useState(d.notes ?? "");
-  const { said, busy, run } = useRun(act);
+  const notes = useSaved<string>({
+    key: `site-notes:${id}`,
+    server: d.notes ?? "",
+    // The server keeps them trimmed: a trailing space he typed is no change.
+    same: (a, b) => a.trim() === b.trim(),
+    save: async (text, { expect, request }) => {
+      await act("sites.notes", { id, notes: text, expect, requestId: request });
+      return {};
+    },
+  });
   return (
     <div className="grid gap-2">
       <Textarea
         aria-label="Notes"
         rows={3}
-        value={text}
+        value={notes.value}
         maxLength={4000}
         placeholder="What it's testing, what we learned."
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => notes.set(e.target.value)}
+        onBlur={() => void notes.flush()}
       />
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          disabled={text === (d.notes ?? "")}
-          busy={busy === "notes"}
-          onClick={() => void run("notes", "sites.notes", { id, notes: text }, "Saved")}
-        >
-          Save notes
-        </Button>
-        <Said said={said} />
-      </div>
+      <SaveStatus state={notes} onRetry={() => void notes.retry()} />
+      {notes.conflict ? (
+        <SaveConflict
+          conflict={notes.conflict}
+          onKeepMine={() => void notes.keepMine()}
+          onTakeTheirs={notes.takeTheirs}
+        />
+      ) : null}
     </div>
   );
 }
@@ -963,27 +1020,16 @@ function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolea
     sections.push(["Variants", framed(<Variants key="v" vs={d.variants} here={id} />)]);
   if (d.versions.length) sections.push(["Versions", framed(<Versions key="h" d={d} />)]);
   if (!client)
-    sections.push([
-      "Notes",
-      framed(<Notes key={`notes-${d.notes ?? ""}`} id={id} d={d} act={act} />),
-    ]);
+    sections.push(["Notes", framed(<Notes key={`notes-${id}`} id={id} d={d} act={act} />)]);
   if (d.source === "code")
     return client ? { sections } : { top: <InCode d={d} url={url} />, sections };
   const retired = row.status === "retired";
   return {
-    // Keyed by version: a new one (a save, Claude's) opens fresh.
+    // Keyed by page only: a new version (his save, Claude's) flows in without a remount.
     ...(retired
       ? {}
       : {
-          form: (
-            <CopyEditor
-              key={`${id}:${d.draft?.number ?? 0}`}
-              id={id}
-              d={d}
-              act={act}
-              client={client}
-            />
-          ),
+          form: <CopyEditor key={id} id={id} d={d} act={act} client={client} />,
         }),
     ...(d.draft
       ? { aside: <Preview key={`${id}:${d.draft.number}`} id={id} d={d} slug={slug} act={act} /> }

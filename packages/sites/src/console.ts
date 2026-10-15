@@ -39,10 +39,11 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
+import { staleRefusal } from "@wren/core/refusal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, offerFor } from "@wren/offers";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PageDetail, pageDetail } from "./detail.js";
@@ -157,6 +158,8 @@ export interface SplitStartRequest extends IdRequest {
 }
 export interface SplitWeightsRequest extends IdRequest {
   weights: number[];
+  /** The split's `updatedAt` as read: a change since refuses. */
+  expect?: unknown;
 }
 export interface SplitShipRequest extends IdRequest {
   /** The arm to make the page: "B". */
@@ -667,7 +670,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     },
 
     /** The builder's save: the whole spec, checked. Live forms change on the next load. */
-    async formSave(req: IdRequest & { spec?: unknown; name?: string | null }) {
+    async formSave(req: IdRequest & { spec?: unknown; name?: string | null; expect?: unknown }) {
       const name = who(req);
       await formFor(req, "act");
       const form = await saveForm(db, {
@@ -675,8 +678,9 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
         spec: req.spec,
         name: req.name ?? null,
         by: name,
+        expect: req.expect,
       });
-      return { id: form.id, status: form.status };
+      return { id: form.id, status: form.status, version: form.updatedAt.toISOString() };
     },
 
     /** Make forms live at once: no To approve, a form only collects. */
@@ -694,15 +698,18 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     },
 
     /** B's fields or B's share, on a running split. */
-    async formSplitSave(req: IdRequest & { spec?: unknown; weight?: number | null }) {
+    async formSplitSave(
+      req: IdRequest & { spec?: unknown; weight?: number | null; expect?: unknown },
+    ) {
       await formSplitFor(req);
       const s = await saveFormSplit(db, {
         id: String(req.id),
         spec: req.spec ?? null,
         weight: req.weight ?? null,
         by: who(req),
+        expect: req.expect,
       });
-      return { id: s.id };
+      return { id: s.id, version: s.updatedAt.toISOString() };
     },
 
     /** End a split, keeping A. */
@@ -753,7 +760,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
     async splitWeights(req: SplitWeightsRequest) {
       who(req);
       const s = await splitOn(req, "act");
-      const out = await setSplitWeights(db, s.id, req.weights ?? []);
+      const out = await setSplitWeights(db, s.id, req.weights ?? [], req.expect);
       return { split: out.id, arms: out.arms.map((a) => ({ label: a.label, weight: a.weight })) };
     },
 
@@ -774,9 +781,18 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
       return { id: out.page.id, waiting: out.number };
     },
 
-    /** The page's notes, its stage and angle: what the team keeps about it. */
+    /**
+     * The page's notes, its stage and angle: what the team keeps about it. `expect`, when given,
+     * is the notes the editor opened on: notes changed since refuse, so two editors never
+     * overwrite each other.
+     */
     async notes(
-      req: IdRequest & { notes?: string | null; stage?: string | null; angle?: string | null },
+      req: IdRequest & {
+        notes?: string | null;
+        stage?: string | null;
+        angle?: string | null;
+        expect?: string | null;
+      },
     ) {
       const name = who(req);
       await pageFor(req, "act");
@@ -784,7 +800,8 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
         req.stage && (PAGE_STAGES as readonly string[]).includes(req.stage)
           ? (req.stage as PageStage)
           : undefined;
-      await db
+      const opened = typeof req.expect === "string" ? req.expect.trim().slice(0, 4000) : null;
+      const done = await db
         .update(sitePages)
         .set({
           ...(req.notes !== undefined ? { notes: req.notes?.trim().slice(0, 4000) || null } : {}),
@@ -793,7 +810,16 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
           updatedAt: sql`now()`,
           updatedBy: name,
         })
-        .where(eq(sitePages.id, String(req.id)));
+        .where(
+          opened === null
+            ? eq(sitePages.id, String(req.id))
+            : and(
+                eq(sitePages.id, String(req.id)),
+                sql`coalesce(${sitePages.notes}, '') = ${opened}`,
+              ),
+        )
+        .returning({ id: sitePages.id });
+      if (!done.length) throw staleRefusal("page's notes");
       return { ok: true };
     },
   };
@@ -978,6 +1004,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             id: FORM_ID,
             spec: z.record(z.string(), z.unknown()),
             name: z.string().max(200).nullish(),
+            expect: z.string().max(40).nullish().describe("the version it opened on"),
           }),
         },
         write("formSave", api.formSave),
@@ -1005,6 +1032,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             id: FORM_SPLIT_ID,
             spec: z.record(z.string(), z.unknown()).nullish().describe("B's fields"),
             weight: SHARE,
+            expect: z.string().max(40).nullish().describe("the version it opened on"),
           }),
         },
         write("formSplitSave", api.formSplitSave),
@@ -1061,6 +1089,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             notes: z.string().max(4000).nullish(),
             stage: z.string().max(8).nullish(),
             angle: z.string().max(120).nullish(),
+            expect: z.string().max(4000).nullish().describe("The notes the editor opened on"),
           }),
         },
         write("notes", api.notes),
