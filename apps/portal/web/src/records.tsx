@@ -857,8 +857,8 @@ export function TemplatePage({
     needs: page.needs ?? page.count,
     card: cardFor(page),
     // Every record lists the notes that @ it, after its own sections.
-    extras: (detail: unknown, row: Row, act: RecordAct) => {
-      const own = extras ? extras(detail, { ...props, row, act }) : {};
+    extras: (detail: unknown, row: Row, act: RecordAct, readAt: number) => {
+      const own = extras ? extras(detail, { ...props, row, act, readAt }) : {};
       const notes = notesSection(props, page.record, String(row.id));
       return notes ? { ...own, sections: [...(own.sections ?? []), notes] } : own;
     },

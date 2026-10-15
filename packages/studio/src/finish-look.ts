@@ -34,6 +34,29 @@ export const OVERLAY = {
   maxWidth: 0.86,
 } as const;
 
+/**
+ * Where a `size` picture sits (left, top, width, height, in the frame's pixels) so that `box` of
+ * it (default the whole picture) covers a `w` x `h` frame. Without a `centre` the frame centres on
+ * the box; with one (0..1 of the picture) it centres there, kept inside the picture. The render
+ * and the Finish preview place a face the same way.
+ */
+export function coverRect(
+  size: readonly [number, number],
+  box: readonly [number, number, number, number] | null,
+  w: number,
+  h: number,
+  centre?: { x: number; y: number } | null,
+): [number, number, number, number] {
+  const [fw, fh] = size;
+  const [bx, by, bw, bh] = box ?? [0, 0, fw, fh];
+  const k = Math.max(w / bw, h / bh);
+  // The picture is at least as big as the frame, so these keep it covering the frame.
+  const keep = (at: number, span: number, frame: number) => Math.min(0, Math.max(frame - span, at));
+  const left = centre ? keep(w / 2 - centre.x * fw * k, fw * k, w) : (w - bw * k) / 2 - bx * k;
+  const top = centre ? keep(h / 2 - centre.y * fh * k, fh * k, h) : (h - bh * k) / 2 - by * k;
+  return [left, top, fw * k, fh * k];
+}
+
 /** Where a caption line's middle sits when the edit doesn't say, 0..1 from the top. */
 export const CAPTION_Y = { long: 0.885, short: 0.66 } as const;
 

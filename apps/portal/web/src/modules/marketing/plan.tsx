@@ -210,17 +210,30 @@ export function toMakeLine(goals: Goal[]): string {
     : "Every goal is on track.";
 }
 
+/** "2 drafts and 1 video": a rendered cut to review counts as a video. */
+export function waitCount(branches: { platform: string; state: string }[]): string {
+  const videos = branches.filter((b) => b.platform === "editor" && b.state === "review").length;
+  const drafts = branches.length - videos;
+  const n = (k: number, one: string) => `${k} ${one}${k === 1 ? "" : "s"}`;
+  return [drafts ? n(drafts, "draft") : null, videos ? n(videos, "video") : null]
+    .filter(Boolean)
+    .join(" and ");
+}
+
+/** "2 drafts and 1 video wait on you." */
+export function waitLine(branches: { platform: string; state: string }[]): string {
+  if (!branches.length) return "Nothing waits on you.";
+  return `${waitCount(branches)} ${branches.length === 1 ? "waits" : "wait"} on you.`;
+}
+
 export function PlanPage(_props: PageProps) {
   const load = usePlan();
   const work = usePieces();
   const goals = goalsOf(load.data?.rows);
   const pieces = work.data?.pieces ?? [];
   const waiting = pieces.filter((p) => allWaiting(p).length);
-  const drafts = waiting.flatMap(allWaiting).length;
-  const lede = [
-    load.data ? toMakeLine(goals) : null,
-    work.data ? (drafts ? `${drafts} drafts wait on you.` : "Nothing waits on you.") : null,
-  ]
+  const open = waiting.flatMap(allWaiting);
+  const lede = [load.data ? toMakeLine(goals) : null, work.data ? waitLine(open) : null]
     .filter(Boolean)
     .join(" ");
   const SHOWN = 4;
@@ -238,7 +251,7 @@ export function PlanPage(_props: PageProps) {
       </Section>
       <Section
         title="Waiting on you"
-        note={waiting.length ? `${waiting.length} pieces, ${drafts} drafts` : undefined}
+        note={waiting.length ? `${waiting.length} pieces, ${waitCount(open)}` : undefined}
         actions={
           waiting.length > SHOWN ? (
             <a className={cx("text-[13px] underline", QUIET)} href="/marketing/pieces?show=waiting">

@@ -13,8 +13,10 @@ import {
   FRAME,
   overlaysOnCut,
   type Point,
+  shortCrop,
   type TextOverlay,
 } from "./finish.js";
+import { coverRect } from "./finish-look.js";
 import type { MatteWindow } from "./matte.js";
 import { cutSize, FPS, portrait } from "./media.js";
 import { fitRect, placeWord, type Rect, verticalRect, type Zone } from "./safe-zones.js";
@@ -206,6 +208,8 @@ export type Face = {
 
 export type ShortProps = Omit<LongProps, "cam"> & {
   face: Face;
+  /** Where the frame centres on his picture (`shortCrop`); null = the face box's middle. */
+  crop: Point | null;
   /** Where the clip starts on the cut file, in frames. */
   startFrame: number;
   title: string;
@@ -321,12 +325,8 @@ export const verticalProps = (
 ) => framedProps(edit, "vertical", mattes, o);
 
 /** Where `face`'s file sits when its face (box, else the whole file) covers a `w` x `h` box. */
-export function faceRect(face: Face, w: number, h: number): Rect {
-  const [fw, fh] = face.size;
-  const [bx, by, bw, bh] = face.box ?? [0, 0, fw, fh];
-  const k = Math.max(w / bw, h / bh);
-  return [(w - bw * k) / 2 - bx * k, (h - bh * k) / 2 - by * k, fw * k, fh * k];
-}
+export const faceRect = (face: Face, w: number, h: number, crop: Point | null = null): Rect =>
+  coverRect(face.size, face.box, w, h, crop);
 
 /** Shorts run 20 to 60 s on the cut timeline, 2 to 12 of them (or none): a 20 minute video yields a dozen. */
 export const SHORT_S = { min: 20, max: 60 } as const;
@@ -360,6 +360,7 @@ export function shortProps(
   if (!short) throw new Error(`video ${edit.id} has ${edit.shorts.length} shorts; no ${n}`);
   const { cam: _c, raw, ...long } = longBase(edit, mattes);
   const face = faceOf(edit);
+  const crop = shortCrop(edit.crops, n);
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   const start = onCut(short.from, keep);
   const end = onCut(short.to, keep);
@@ -373,6 +374,7 @@ export function shortProps(
   return {
     ...long,
     face,
+    crop,
     startFrame: Math.round(start * FPS),
     durationInFrames: Math.max(1, Math.round((end - start) * FPS)),
     words: inside.map((j, k) => {
@@ -396,6 +398,7 @@ export function shortProps(
           matte: { ...b.matte, fromFrame: b.matte.fromFrame - Math.round(start * FPS) },
         })),
       face,
+      crop,
       long.main,
       long.layout
         .filter((l) => l.to > start && l.from < end)
@@ -425,13 +428,14 @@ export function shortProps(
 function shortBehind(
   raw: Unplaced[],
   face: Face,
+  crop: Point | null,
   main: string,
   layout: LayoutRange[],
   format: string,
   skip?: OnSkip,
 ): BehindWord[] {
   const noFace = !face.file && !face.box;
-  const full = faceRect(face, 1080, 1920);
+  const full = faceRect(face, 1080, 1920, crop);
   const screen = fitRect(face.size, [1080, 1920], "contain");
   const camAt = (t: number) =>
     (layout.find((l) => t >= l.from && t < l.to)?.show ?? "corner") === "cam";

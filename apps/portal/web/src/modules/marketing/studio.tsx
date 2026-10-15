@@ -21,6 +21,7 @@ import {
   Loading,
   PageHeader,
   type Patch,
+  patchRecord,
   SaveConflict,
   SaveStatus,
   Section,
@@ -30,14 +31,16 @@ import {
   useSaved,
 } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { ApiError } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { wrenRecords } from "../../records.js";
 import { href, navigate } from "../../route.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 import { DRAFT_SET } from "./ask.js";
 import { BlogBox } from "./blog-box.js";
 import { CarouselBox } from "./carousel-box.js";
+import { contentDesk, deskCall } from "./desk.js";
 import { PieceCard, usePieces } from "./pieces.js";
 import { goalsOf, MakeList, toMakeLine, usePlan } from "./plan.js";
 import { StoryBox } from "./story-box.js";
@@ -216,12 +219,7 @@ interface Waiting {
 }
 
 const desk = <T,>(handler: string, input: Record<string, unknown>, requestId?: string) =>
-  call<T>("console/call", {
-    service: "ContentDesk",
-    handler,
-    key: "default",
-    input: requestId ? { ...input, requestId } : input,
-  });
+  contentDesk<T>(handler, requestId ? { ...input, requestId } : input);
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const when = (at: string) =>
   new Date(at).toLocaleString(undefined, {
@@ -753,20 +751,23 @@ function DraftCard({
     save: async (words, { expect, request }) => {
       const text = words.trim();
       const from = String(expect ?? "");
-      await call("console/call", {
-        service: "DraftAsk",
-        handler: "set",
-        input: {
-          record: "draft",
-          id: d.id,
-          text,
-          expect: from.trim() ? from : null,
-          requestId: request,
-        },
+      const out = await deskCall<{ version?: string | null } | null>("DraftAsk", "set", {
+        record: "draft",
+        id: d.id,
+        text,
+        expect: from.trim() ? from : null,
+        requestId: request,
       });
-      return { value: text };
+      return { value: text, version: out?.version ?? null };
     },
-    onSaved: (text) => patchCalls(wroteWords(d.id, text)),
+    onSaved: (text, { version }) => {
+      patchCalls(wroteWords(d.id, text));
+      // Drafts and To approve hold the same words and version: a yes there names these.
+      patchRecord(wrenRecords("marketing"), "marketing.draft", d.id, {
+        text,
+        ...(version ? { version } : {}),
+      });
+    },
     onConflict: onDone,
   });
   useEffect(() => {

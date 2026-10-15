@@ -15,6 +15,7 @@ import { liveOrDefault } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
 import {
+  type CaptionLine,
   CROPPED,
   type CroppedFormat,
   captionLines,
@@ -32,6 +33,7 @@ import { videoTurns } from "./video-ask.js";
 import {
   previewCheck,
   renderTimes,
+  type VideoStep,
   videoChecks,
   videoName,
   videoState,
@@ -770,19 +772,91 @@ async function finishOf(
     sourceCam: await sign(e.keys["source-cam"]),
     strip: await sign(e.keys.strip),
     picture: pictureOf(e.tracks),
-    lines: captionLines(e.words, e.cuts, main.durationS),
     rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
-    // Which formats' renders the edit has since changed; null when the renders predate hashes.
-    stale: staleOf(e),
+    shorts: e.shorts.map((s, i) => ({ n: i + 1, from: s.from, to: s.to, title: s.title })),
+    // Is there a face to crop a Short on (a camera file, or a box in the recording)?
+    face: !!(cam || e.tracks.camBox),
     covers: Object.fromEntries(covers.filter(([, url]) => url)),
-    saved: {
-      cuts: e.cuts,
-      overlays: e.overlays,
-      crops: e.crops,
+    ...finishEdited(e),
+  };
+}
+
+/** What a change to the edit moves in the finishing view: its caption lines and saved fields. */
+const finishEdited = (e: VideoEdit): VideoView["finish"] => ({
+  lines: captionLines(e.words, e.cuts, e.tracks.main.durationS),
+  // Which formats' renders the edit has since changed; null when the renders predate hashes.
+  stale: staleOf(e),
+  saved: {
+    cuts: e.cuts,
+    overlays: e.overlays,
+    crops: e.crops,
+    captions: e.captions,
+    thumbnail: e.thumbnail,
+    formats: e.formats,
+  },
+});
+
+/**
+ * What a change to the edit moves on its page, with no links to sign: VideoDesk's saves answer
+ * it, so the page patches itself in place instead of reading the video again.
+ */
+export interface VideoView {
+  title: VideoEdit["title"];
+  description: VideoEdit["description"];
+  words: ReturnType<typeof markWords>;
+  edit: Pick<
+    VideoEdit,
+    | "captions"
+    | "stress"
+    | "title"
+    | "description"
+    | "tags"
+    | "chapters"
+    | "shorts"
+    | "formats"
+    | "thumbnail"
+  >;
+  cuts: ReturnType<typeof cutRows>;
+  finish: {
+    lines: CaptionLine[];
+    stale: string[] | null;
+    saved: Pick<VideoEdit, "cuts" | "overlays" | "crops" | "captions" | "thumbnail" | "formats">;
+  };
+  render: VideoEdit["render"];
+  state: VideoEdit["state"];
+  steps: VideoStep[];
+  checks: ReturnType<typeof videoChecks>;
+  fresh: ReturnType<typeof previewCheck>;
+}
+
+export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView> {
+  const steps = await videoSteps(db, e.id);
+  const chaptersShown = chapterLines(e)
+    .split("\n")
+    .filter((l) => l.trim()).length;
+  return {
+    title: e.title,
+    description: e.description,
+    words: markWords(e.words, e.cuts, e.stress),
+    edit: {
       captions: e.captions,
-      thumbnail: e.thumbnail,
+      stress: e.stress,
+      title: e.title,
+      description: e.description,
+      tags: e.tags,
+      chapters: e.chapters,
+      shorts: e.shorts,
       formats: e.formats,
+      thumbnail: e.thumbnail,
     },
+    cuts: cutRows(e),
+    finish: finishEdited(e),
+    render: e.render,
+    state: e.state,
+    steps,
+    checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e) }),
+    // The line beside the preview: whether it shows the last change.
+    fresh: previewCheck(e, { ...renderTimes(steps), stale: staleOf(e) }),
   };
 }
 
@@ -939,43 +1013,20 @@ export const videoRecord = (signer?: VideoSigner) => {
       // Its promos (designs/2026-10-07-content-funnel.md): one draft per platform, pointing at it.
       const upload = await videoDraftOf(db, e.id).catch(() => null);
       // What the agent and he did, and what to look at before Approve (designs/2026-10-13-video-review.md).
-      const steps = await videoSteps(db, e.id);
-      const chaptersShown = chapterLines(e)
-        .split("\n")
-        .filter((l) => l.trim()).length;
+      const view = await videoView(db, e);
       return {
         video: {
-          title: e.title,
-          description: e.description,
+          ...view,
           preview: await sign(longOf(e.keys)),
-          words: markWords(e.words, e.cuts, e.stress),
-          edit: {
-            captions: e.captions,
-            stress: e.stress,
-            title: e.title,
-            description: e.description,
-            tags: e.tags,
-            chapters: e.chapters,
-            shorts: e.shorts,
-            formats: e.formats,
-            thumbnail: e.thumbnail,
-          },
           vertical: e.files.vertical
             ? {
                 preview: await sign(e.keys.vertical),
                 upload: drafts.find((d) => d.ref === videoRef(e.id, "vertical")) ?? null,
               }
             : null,
-          cuts: cutRows(e),
           finish: await finishOf(e, sign),
           promos: upload ? await promosOf(db, upload) : null,
-          render: e.render,
-          state: e.state,
           turns: await videoTurns(db, e.id),
-          steps,
-          checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e) }),
-          // The line beside the preview: whether it shows the last change.
-          fresh: previewCheck(e, { ...renderTimes(steps), stale: staleOf(e) }),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,

@@ -76,6 +76,7 @@ export {
   type RecordDraft,
   useDraftText,
 } from "./draft.js";
+export { answerIn } from "./draft-save.js";
 export {
   Alert,
   Callout,
@@ -214,8 +215,15 @@ export {
   useReadStatus,
 } from "./read-aloud.js";
 export { type AccessApi, type IssueLine, rowTarget } from "./record-access.js";
-export { patchRecord, recordPatch } from "./record-patch.js";
 export {
+  detailPatch,
+  patchRecord,
+  recordPatch,
+  type Twin,
+  twinRecord,
+} from "./record-patch.js";
+export {
+  type ActPatch,
   type Load,
   type Needs,
   Panel as RecordPanel,
@@ -274,8 +282,10 @@ export {
   type Saved,
   type SaveEnv,
   type SaveFn,
+  SavePage,
   Saver,
   type SaverOptions,
+  SaveScope,
   type SaveState,
   SaveStatus,
   type SaveStatusName,
@@ -284,6 +294,7 @@ export {
   tick,
   useKeptForm,
   useSaved,
+  useSavePage,
   type Wrote,
   writeThrough,
 } from "./save/index.js";

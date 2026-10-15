@@ -50,6 +50,9 @@
  *
  * `ACTIONS.run(key, (requestId) => call(...))`: a second press while the first is out gets the
  * first's answer; the id stays until an answer, so a retry after a lost answer is one action.
+ * A page's boxes: `const page = useSavePage()`, `<SaveScope page={page}>`; every `useSaved`
+ * inside joins it, and `await page.flush()` saves each dirty one before a head action.
+ *
  * `callOnce(call, handler, ids, input)` does it with `requestId` in the input; `useRun` sends
  * every action through it. `useKeptForm(key, base)` keeps a dialog's typing until it is sent.
  *
@@ -86,13 +89,16 @@ export {
 export type { Locks, PageEvent, SaveEnv, Store } from "./env.js";
 export { LATEST, Latest, type Wrote } from "./latest.js";
 export { ACTIONS, Once } from "./once.js";
+export { type Flushable, SavePage } from "./page.js";
 export {
   forgetForm,
   type KeptFormState,
   SaveConflict,
   type Saved,
+  SaveScope,
   SaveStatus,
   statusWords,
   useKeptForm,
   useSaved,
+  useSavePage,
 } from "./react.js";

@@ -9,8 +9,9 @@ import { PLATFORM_SPECS } from "@wren/content/write";
 import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/core/content/slides";
 import { ACTIONS, Button, cx, PlatformMark, Section, Textarea, useKeptForm } from "@wren/ui";
 import { useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { ApiError } from "../../api.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { contentDesk } from "./desk.js";
 import { CarouselPreview } from "./slides.js";
 
 type Go = "draft" | "slot" | "now";
@@ -40,8 +41,7 @@ A line
 What to do next
 Comment GUIDE and I'll send it`;
 
-const desk = <T,>(handler: string, input: Record<string, unknown>) =>
-  call<T>("console/call", { service: "ContentDesk", handler, key: "default", input });
+const desk = contentDesk;
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 
 function said(results: Result[], go: Go): string[] {

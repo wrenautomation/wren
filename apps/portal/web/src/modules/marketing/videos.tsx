@@ -12,6 +12,7 @@
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
+  answerIn,
   Button,
   cx,
   DictateField,
@@ -30,6 +31,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
+import { VIEWED } from "./video-patch.js";
 
 type Word = {
   w: string;
@@ -146,7 +148,7 @@ const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(e
  */
 const once = (act: RecordAct, action: string, input: Record<string, unknown> = {}) =>
   ACTIONS.run(`video:${action}:${JSON.stringify(input)}`, (requestId) =>
-    act(action, { ...input, requestId }),
+    act(action, { ...input, requestId }, VIEWED),
   );
 
 const Player = ({ src }: { src: string | null }) =>
@@ -190,7 +192,7 @@ function Field({
     delay: null,
     save: async (text, { request }) => {
       const words = text.trim();
-      await act(SET, { patch: patch(words), requestId: request });
+      await act(SET, { patch: patch(words), requestId: request }, VIEWED);
       return { value: words };
     },
   });
@@ -259,7 +261,7 @@ function useChoiceSaved<T>(key: string, server: T, act: RecordAct, patch: (v: T)
     server,
     delay: 600,
     save: async (value, { request }) => {
-      await act(SET, { patch: patch(value), requestId: request });
+      await act(SET, { patch: patch(value), requestId: request }, VIEWED);
       return { value };
     },
   });
@@ -741,7 +743,7 @@ function FixEvery({ act }: { act: RecordAct }) {
     setSaid(null);
     setBad(false);
     try {
-      const r = (await once(act, WORDS, { wrong: wrong.trim(), right: right.trim() })) as
+      const r = answerIn(await once(act, WORDS, { wrong: wrong.trim(), right: right.trim() })) as
         | { n?: number }
         | undefined;
       setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
@@ -1217,7 +1219,7 @@ const EditFold = ({ sections }: { sections: [string, ReactNode][] }) => (
   </details>
 );
 
-export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row }) => {
+export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row, readAt }) => {
   const v = (detail as { video?: Video | null } | null)?.video;
   if (!v) return {};
   const edit = EDITABLE.includes(v.state);
@@ -1237,7 +1239,14 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
   if (finishing && v.finish)
     sections.push([
       "Finish",
-      <Finish key="fin" id={String(row.id)} data={v.finish} words={v.words} act={act} />,
+      <Finish
+        key="fin"
+        id={String(row.id)}
+        data={v.finish}
+        words={v.words}
+        act={act}
+        at={readAt}
+      />,
     ]);
   sections.push([
     narrow ? "Review" : "Editing agent",

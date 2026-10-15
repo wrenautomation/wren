@@ -77,12 +77,6 @@ export interface RecordDraft {
   editor?: DraftEditor | undefined;
 }
 
-/** What the box's owner holds: save what's typed first, then send. */
-export interface DraftHandle {
-  /** Saves what's typed; false when it couldn't. */
-  flush: () => Promise<boolean>;
-}
-
 // "draft-ask", "video-ask"; "draft-undo", "video undo"; the rest are edits.
 const said = (t: DraftTurnLine) =>
   t.command.endsWith("ask")
@@ -185,7 +179,6 @@ export function DraftBox({
   wrote,
   at,
   send,
-  handle,
   between,
   framed = true,
   onText,
@@ -203,7 +196,6 @@ export function DraftBox({
   /** The tick when the read of `draft.text` left (`useLoad`'s `at`): older reads never land. */
   at?: number | undefined;
   send?: (() => void) | undefined;
-  handle?: { current: DraftHandle | null } | undefined;
   /** The record's own fields, drawn under the words and above Ask Claude. */
   between?: ReactNode;
   /** False when the preview sits beside the box: the box keeps only the counts. */
@@ -255,7 +247,6 @@ export function DraftBox({
     if (next !== undefined) s.set(next);
     return s.flush();
   };
-  if (handle) handle.current = { flush: () => s.flush() };
 
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!(e.metaKey || e.ctrlKey)) return;

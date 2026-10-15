@@ -100,7 +100,11 @@ export interface ListPage extends PageBase {
   /** A Shop card's art, across its top: what the record does, drawn. */
   art?: (row: Row) => ReactNode;
   /** Lines and sources a record's detail adds under its fields. */
-  extras?: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => RecordExtras;
+  /** `readAt`: the tick the detail's read left, for a box's `useSaved` `at`. */
+  extras?: (
+    detail: unknown,
+    at: PageProps & { row: Row; act: RecordAct; readAt?: number | undefined },
+  ) => RecordExtras;
   /**
    * Its own reply box, opened under a list row by Reply: a conversation's, which picks the
    * channel. `when` names the rows it answers, as field → states.

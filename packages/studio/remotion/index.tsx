@@ -34,7 +34,7 @@ import {
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
-import { CAPTION_Y, overlayAt, type TextOverlay } from "../src/finish-look.ts";
+import { CAPTION_Y, coverRect, overlayAt, type TextOverlay } from "../src/finish-look.ts";
 import type { PromoProps, TimedScene } from "../src/promo.js";
 import {
   cameraAt,
@@ -473,11 +473,11 @@ const FaceBox: FC<{
   from: number;
   /** A matte cut out of the face's file, drawn in its place. */
   matte?: string;
-}> = ({ face, main, w, h, from, matte }) => {
+  /** Where the box centres on his picture (0..1); unset = the face box's middle. */
+  crop?: { x: number; y: number } | null;
+}> = ({ face, main, w, h, from, matte, crop }) => {
   const file = matte ?? face.file ?? main;
-  const [fw, fh] = face.size;
-  const [bx, by, bw, bh] = face.box ?? [0, 0, fw, fh];
-  const k = Math.max(w / bw, h / bh);
+  const [left, top, width, height] = coverRect(face.size, face.box, w, h, crop);
   return (
     <div style={{ position: "relative", width: w, height: h, overflow: "hidden" }}>
       <OffthreadVideo
@@ -487,10 +487,10 @@ const FaceBox: FC<{
         trimBefore={from}
         style={{
           position: "absolute",
-          left: (w - bw * k) / 2 - bx * k,
-          top: (h - bh * k) / 2 - by * k,
-          width: fw * k,
-          height: fh * k,
+          left,
+          top,
+          width,
+          height,
           maxWidth: "none",
         }}
       />
@@ -548,6 +548,7 @@ const TitleCard: FC<{ card: Card; t: number; look: Look }> = ({ card, t, look })
 export const Short: FC<ShortProps> = ({
   main,
   face,
+  crop,
   startFrame,
   words,
   layout,
@@ -576,7 +577,14 @@ export const Short: FC<ShortProps> = ({
       </div>
       {show !== "screen" ? (
         <div style={{ position: "absolute", left: 0, top: 0 }}>
-          <FaceBox face={face} main={main} w={1080} h={half ? 960 : 1920} from={startFrame} />
+          <FaceBox
+            face={face}
+            main={main}
+            w={1080}
+            h={half ? 960 : 1920}
+            from={startFrame}
+            crop={crop}
+          />
         </div>
       ) : null}
       {/* A matte lines up with his face full frame, or the whole recording when there's no face. */}
@@ -587,7 +595,15 @@ export const Short: FC<ShortProps> = ({
         draw={(file, src) =>
           show === "cam" && (face.file === src || (face.box && src === main)) ? (
             <div style={{ position: "absolute", left: 0, top: 0 }}>
-              <FaceBox face={face} main={main} w={1080} h={1920} from={0} matte={file} />
+              <FaceBox
+                face={face}
+                main={main}
+                w={1080}
+                h={1920}
+                from={0}
+                matte={file}
+                crop={crop}
+              />
             </div>
           ) : show === "screen" && !face.file && !face.box && src === main ? (
             <AbsoluteFill>
@@ -1245,7 +1261,14 @@ const Root: FC = () => (
       height={1920}
       fps={30}
       durationInFrames={300}
-      defaultProps={{ ...PLACEHOLDER, face: NO_FACE, startFrame: 0, title: "", card: null }}
+      defaultProps={{
+        ...PLACEHOLDER,
+        face: NO_FACE,
+        crop: null,
+        startFrame: 0,
+        title: "",
+        card: null,
+      }}
       calculateMetadata={({ props }) => ({
         durationInFrames: props.durationInFrames,
         fps: props.fps,

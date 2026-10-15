@@ -121,6 +121,22 @@ describe("outputHashes", () => {
     expect(changed(base(), { crops: { vertical: { x: 0.3, y: 0.5 } } })).toContain("vertical");
   });
 
+  it("changes the Short whose own crop moved, and every Short for the vertical one", () => {
+    const own = { shorts: { "2": { x: 0.3, y: 0.5 } } };
+    expect(changed(base(), { crops: own })).toEqual(["short-2"]);
+    expect(changed(base(), { crops: { vertical: { x: 0.3, y: 0.5 } } }).sort()).toEqual([
+      "short-1",
+      "short-2",
+      "vertical",
+    ]);
+    // A Short with its own crop doesn't follow the vertical one.
+    const withOwn = { ...base(), crops: own } as VideoEdit;
+    expect(changed(withOwn, { crops: { ...own, vertical: { x: 0.3, y: 0.5 } } }).sort()).toEqual([
+      "short-1",
+      "vertical",
+    ]);
+  });
+
   it("changes the one Short a pick changes", () => {
     const e = base();
     const shorts = [e.shorts[0], { ...e.shorts[1], to: 85 }] as VideoEdit["shorts"];
@@ -247,7 +263,14 @@ describe("changedSince", () => {
     expect(hasHashes(e.files)).toBe(true);
     expect(changedSince(e)).toEqual([]);
     const moved = { ...e, crops: { vertical: { x: 0.2, y: 0.5 } } } as VideoEdit;
-    expect(changedSince(moved)).toEqual(["vertical"]);
+    // The Shorts follow the vertical crop unless they have their own.
+    expect(changedSince(moved)).toEqual(["vertical", "short-1", "short-2"]);
+    const square = {
+      ...e,
+      formats: ["long", "vertical", "square"],
+      crops: { square: { x: 0.2, y: 0.5 } },
+    };
+    expect(changedSince(square as VideoEdit)).toEqual(["square"]);
     const reshort = {
       ...e,
       shorts: [e.shorts[0], { ...e.shorts[1], to: 90 }],
@@ -271,7 +294,7 @@ describe("changedSince", () => {
       crops: { vertical: { x: 0.2, y: 0.5 } },
     } as VideoEdit;
     expect(isWanted(changedFormat, "vertical")).toBe(false);
-    expect(changedSince(changedFormat)).toEqual([]);
+    expect(changedSince(changedFormat)).toEqual(["short-1", "short-2"]);
   });
 });
 

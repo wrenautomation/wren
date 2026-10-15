@@ -376,6 +376,35 @@ describe("the app host", () => {
     expect(restate).toEqual([]);
   });
 
+  it("a save over a moved edit keeps its 409 and code: conflict, so the page asks Keep mine", async () => {
+    // As Restate answers VideoDesk.set's refusal (terminalOf): 409, the code in metadata.
+    const refusal = {
+      message: "The finish changed since you opened it.",
+      metadata: { code: "conflict" },
+    };
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `${AUTH}/api/auth/jwks`) {
+        const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
+        return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
+      }
+      restate.push({ url, body: JSON.parse(String(init?.body)), key: null });
+      return Response.json(refusal, { status: 409 });
+    });
+    const auth = { authorization: `Bearer ${await token({})}` };
+    const body = {
+      service: "VideoDesk",
+      handler: "set",
+      input: { id: 1, patch: { overlays: [] }, expect: { overlays: [] } },
+      requestId: "req-00000001",
+    };
+    const res = await worker.fetch(post("app.test", "console/call", body, auth), env());
+    expect(res.status).toBe(409);
+    const got = (await res.json()) as typeof refusal;
+    // What the page's ApiError reads as `conflict` (web/src/api.ts refusalOf).
+    expect(got).toEqual(refusal);
+  });
+
   it("passes Restate's refusal through", async () => {
     restateStatus = 403;
     const t = await token({});

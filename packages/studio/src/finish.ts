@@ -35,7 +35,10 @@ export const isCropped = (f: Format): f is CroppedFormat =>
 
 /** A crop's middle, as 0..1 of the picture across and down. */
 export type Point = { x: number; y: number };
-export type Crops = { [F in CroppedFormat]?: Point | undefined };
+export type Crops = { [F in CroppedFormat]?: Point | undefined } & {
+  /** A Short's own crop, by its number (1-based, as text): else the vertical crop. */
+  shorts?: Record<string, Point> | undefined;
+};
 
 export {
   CAPTION_Y,
@@ -71,8 +74,22 @@ export const overlaySchema = z
   });
 export const overlaysSchema = z.array(overlaySchema).max(OVERLAY.max);
 export const cropsSchema = z
-  .object({ vertical: point.optional(), square: point.optional(), portrait: point.optional() })
+  .object({
+    vertical: point.optional(),
+    square: point.optional(),
+    portrait: point.optional(),
+    shorts: z
+      .record(z.string().regex(/^([1-9]|1[0-2])$/, "a Short's number, 1 to 12"), point)
+      .optional(),
+  })
   .strict();
+
+/**
+ * Where Short `n` (1-based) is centred on his picture: its own crop, else the vertical crop, else
+ * null (the face as the render finds it). The render and the Finish preview read the same.
+ */
+export const shortCrop = (crops: Crops | undefined, n: number): Point | null =>
+  crops?.shorts?.[String(n)] ?? crops?.vertical ?? null;
 /** Where each format's caption line sits: its middle, 0..1 from the top. */
 export const captionPlaceSchema = z
   .object({

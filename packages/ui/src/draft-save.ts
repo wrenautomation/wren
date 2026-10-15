@@ -24,9 +24,18 @@ export interface DraftSaving {
   turned?: ((turn: DraftTurnLine) => void) | undefined;
 }
 
+/**
+ * A record action's own answer. A call per record (the portal's) answers `{ done, skipped,
+ * answer }`, the handler's answer inside; any other call answers it as is.
+ */
+export const answerIn = (out: unknown): unknown => {
+  const o = out as { done?: unknown; answer?: unknown } | null;
+  return o && typeof o === "object" && Array.isArray(o.done) && "answer" in o ? o.answer : out;
+};
+
 /** The thread line a save answers with (`DraftAsk.set`'s `turn`), if any. */
 export const turnOf = (out: unknown): DraftTurnLine | null => {
-  const t = (out as { turn?: unknown } | null)?.turn;
+  const t = (answerIn(out) as { turn?: unknown } | null)?.turn;
   return t && typeof t === "object" && typeof (t as DraftTurnLine).id === "string"
     ? (t as DraftTurnLine)
     : null;
@@ -34,7 +43,7 @@ export const turnOf = (out: unknown): DraftTurnLine | null => {
 
 /** The record's version a save answers with (a post's words hashed), if any. */
 export const versionOfAnswer = (out: unknown): string | null => {
-  const v = (out as { version?: unknown } | null)?.version;
+  const v = (answerIn(out) as { version?: unknown } | null)?.version;
   return typeof v === "string" && v ? v : null;
 };
 

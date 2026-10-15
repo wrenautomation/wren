@@ -21,8 +21,39 @@ export interface EditMoved {
   change?: unknown;
 }
 
-/** The patch: `fields` over row `id` of `record`; `edit` moves its edit state. */
+/**
+ * Another record that lists the same thing under its own id (a post draft is `draft:3` in To
+ * approve): what a patch of `record` writes there, or null.
+ */
+export type Twin = (
+  id: string,
+  fields: Record<string, unknown>,
+) => { record: string; id: string; fields: Record<string, unknown> } | null;
+const TWINS = new Map<string, Twin[]>();
+
+/** Patches of `record` patch its twin too, so a list elsewhere names the same words and version. */
+export function twinRecord(record: string, twin: Twin) {
+  const all = TWINS.get(record) ?? [];
+  if (!all.includes(twin)) TWINS.set(record, [...all, twin]);
+}
+
+/** The patch: `fields` over row `id` of `record`, and over its twins; `edit` moves its edit state. */
 export function recordPatch(
+  record: string,
+  id: string | number,
+  fields: Record<string, unknown>,
+  edit: EditMoved = {},
+): Patch {
+  const own = onePatch(record, id, fields, edit);
+  const twins = (TWINS.get(record) ?? []).flatMap((t) => {
+    const got = t(String(id), fields);
+    return got && Object.keys(got.fields).length ? [onePatch(got.record, got.id, got.fields)] : [];
+  });
+  if (!twins.length) return own;
+  return (key, data) => twins.reduce((d, p) => p(key, d), own(key, data));
+}
+
+function onePatch(
   record: string,
   id: string | number,
   fields: Record<string, unknown>,
@@ -53,6 +84,30 @@ export function recordPatch(
 function pick(fields: Record<string, unknown>, values: Record<string, unknown> | undefined) {
   if (!values) return {};
   return Object.fromEntries(Object.entries(fields).filter(([k]) => k in values));
+}
+
+/**
+ * One record's own read (`get`'s answer) through `fn`: an action's answer patches what the page
+ * shows (a video's edit after a save) with no read again. `fn` answers the new detail and any
+ * row fields, or null to leave it.
+ */
+export function detailPatch(
+  record: string,
+  id: string | number,
+  fn: (detail: unknown) => { detail?: unknown; row?: Record<string, unknown> } | null,
+): Patch {
+  const want = String(id);
+  return (_key, data) => {
+    const d = data as (Shaped & { detail?: unknown }) | null;
+    if (!d || typeof d !== "object" || d.record !== record || !isRow(d.row, want)) return data;
+    const got = fn(d.detail);
+    if (!got) return data;
+    return {
+      ...d,
+      ...("detail" in got ? { detail: got.detail } : {}),
+      ...(got.row ? { row: { ...d.row, ...got.row } } : {}),
+    };
+  };
 }
 
 /** Patch row `id` of `record` in every answer under `api` (the workspace's records api). */

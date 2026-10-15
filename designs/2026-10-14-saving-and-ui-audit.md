@@ -166,3 +166,8 @@ closed app's pages show on hover as now. Same information, one sidebar's width.
   new version into its row. Facts, Auto-reply, Reports and Studio's waiting board keep one read
   key. Left: typing on one page and approving from another list before it reloads is refused
   with "Read it again".
+- 2026-10-15: lane B, Studio finish. Approve, Schedule and Post now save every dirty box on the
+  page first (`SavePage`), not just the draft. Video edits patch from their answer, no re-read.
+  Studio's desk calls send `requestId` where the Worker keys on it. A draft's new version patches
+  its To approve row too, so approving from that list after typing works. Finish passes its read
+  time to its save. A 409 `code: "conflict"` survives the Worker (test). Phone dock actions wrap.

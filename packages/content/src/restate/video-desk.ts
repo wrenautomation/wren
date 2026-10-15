@@ -19,8 +19,10 @@ import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
 import { getEdit, setCut, setEdit, setLine, setRender, setWords } from "@wren/studio/edit";
 import { RENDER_PARTS } from "@wren/studio/hash";
+import type { VideoEdit } from "@wren/studio/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { videoView } from "../video.js";
 import {
   applyAnswer,
   undoVideo,
@@ -74,6 +76,11 @@ const told = <T>(p: Promise<T>) =>
   });
 
 export function makeVideoDesk(db: Db) {
+  /** A change's answer: its run, and the page's view of the edit now, so the page patches in place. */
+  const answered = async (run: string, edit: VideoEdit) => ({
+    run,
+    view: await videoView(db, edit),
+  });
   return restate.service({
     name: VIDEO_DESK.name,
     handlers: {
@@ -101,7 +108,7 @@ export function makeVideoDesk(db: Db) {
               setEdit(db, req.id, req.patch, {
                 by: byOf(req),
                 ...(req.expect ? { expect: req.expect } : {}),
-              }).then(({ run }) => ({ run })),
+              }).then(({ run, edit }) => answered(run, edit)),
             ),
           ),
       ),
@@ -120,7 +127,7 @@ export function makeVideoDesk(db: Db) {
           ctx.run("line", () =>
             told(
               setLine(db, req.id, { at: req.at, text: req.text, was: req.was }, byOf(req)).then(
-                ({ run }) => ({ run }),
+                ({ run, edit }) => answered(run, edit),
               ),
             ),
           ),
@@ -143,7 +150,7 @@ export function makeVideoDesk(db: Db) {
           ctx.run("cut", () =>
             told(
               setCut(db, req.id, { from: req.from, to: req.to }, req.state, byOf(req)).then(
-                ({ run }) => ({ run }),
+                ({ run, edit }) => answered(run, edit),
               ),
             ),
           ),
@@ -179,8 +186,8 @@ export function makeVideoDesk(db: Db) {
                       ? { at: req.at, text: req.text }
                       : null;
                 if (!change) throw new Error("Say the wrong word and the right one.");
-                const { run, n } = await setWords(db, req.id, change, { by: byOf(req) });
-                return { run, n };
+                const { run, n, edit } = await setWords(db, req.id, change, { by: byOf(req) });
+                return { ...(await answered(run, edit)), n };
               })(),
             ),
           ),
@@ -188,7 +195,9 @@ export function makeVideoDesk(db: Db) {
 
       /** Put back what the newest change replaced. */
       undo: serviceHandler({ input: z.looseObject(ID) }, async (ctx: restate.Context, req: One) =>
-        ctx.run("undo", () => told(undoVideo(db, req.id, byOf(req)).then(({ run }) => ({ run })))),
+        ctx.run("undo", () =>
+          told(undoVideo(db, req.id, byOf(req)).then(({ run, edit }) => answered(run, edit))),
+        ),
       ),
 
       /** Open the ask's row and hand it to `answer`; the page polls its turns. */

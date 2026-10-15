@@ -7,9 +7,10 @@
 
 import { ACTIONS, Button, cx, Input, Section, Tag, Textarea, useKeptForm } from "@wren/ui";
 import { useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { ApiError } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
 import { ERROR, QUIET, SELECT, TOOLS } from "../work/bits.js";
+import { deskCall } from "./desk.js";
 import { usePieces } from "./pieces.js";
 
 interface Post {
@@ -32,7 +33,7 @@ interface Audience {
 }
 
 const blog = <T,>(handler: string, input: Record<string, unknown> = {}) =>
-  call<T>("console/call", { service: "Blog", handler, key: "wren", input });
+  deskCall<T>("Blog", handler, input, "wren");
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const SNIPPET = 155;
 

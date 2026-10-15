@@ -104,7 +104,12 @@ async function settled(id: number) {
 describe("VideoDesk", () => {
   it("saves fields and cuts with what they replaced, refuses a bad patch, and undoes", async () => {
     const id = await video();
-    await desk().set({ id, patch: { title: "A clear title", tags: ["demo", "crm"] } });
+    const saved = await desk().set({
+      id,
+      patch: { title: "A clear title", tags: ["demo", "crm"] },
+    });
+    // The page patches from this answer instead of reading again.
+    expect(saved.view).toMatchObject({ title: "A clear title", state: "edited" });
     expect(await getEdit(pg.db, id)).toMatchObject({
       title: "A clear title",
       tags: ["demo", "crm"],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { recordPatch } from "./record-patch.js";
+import { detailPatch, recordPatch, twinRecord } from "./record-patch.js";
 
 const detail = {
   record: "posts",
@@ -44,5 +44,41 @@ describe("record write-through", () => {
     const people = { ...detail, record: "people" };
     expect(recordPatch("posts", 7, { text: "new" })("x", people)).toBe(people);
     expect(recordPatch("posts", 7, { text: "new" })("types", [1, 2])).toEqual([1, 2]);
+  });
+});
+
+twinRecord("t.draft", (id, f) => ({
+  record: "t.approval",
+  id: `draft:${id}`,
+  fields: "text" in f ? { body: f.text, version: f.version } : {},
+}));
+
+describe("recordPatch twins", () => {
+  it("patches the same row in its twin's list", () => {
+    const p = recordPatch("t.draft", "3", { text: "new", version: "v2" });
+    const list = { record: "t.approval", rows: [{ id: "draft:3", body: "old", version: "v1" }] };
+    expect(p("k", list)).toEqual({
+      record: "t.approval",
+      rows: [{ id: "draft:3", body: "new", version: "v2" }],
+    });
+    const own = { record: "t.draft", rows: [{ id: "3", text: "old" }] };
+    expect((p("k", own) as typeof own).rows[0]?.text).toBe("new");
+  });
+});
+
+describe("detailPatch", () => {
+  it("writes the detail and row fields of one record only", () => {
+    const p = detailPatch("t.video", 5, (d) => ({
+      detail: { ...(d as object), x: 2 },
+      row: { title: "T" },
+    }));
+    const read = { record: "t.video", row: { id: 5, title: "old" }, detail: { x: 1 } };
+    expect(p("k", read)).toEqual({
+      record: "t.video",
+      row: { id: 5, title: "T" },
+      detail: { x: 2 },
+    });
+    const other = { record: "t.video", row: { id: 6 }, detail: { x: 1 } };
+    expect(p("k", other)).toBe(other);
   });
 });

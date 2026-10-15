@@ -31,6 +31,7 @@ import {
   overlayAt,
   type Point,
   playFrom,
+  shortCrop,
   snapFrame,
   snapTime,
   type TextOverlay,
@@ -47,6 +48,7 @@ import {
   useState,
 } from "react";
 import { wrenRecords } from "../../records.js";
+import { VIEWED } from "./video-patch.js";
 
 type Format = "long" | CroppedFormat;
 type Captions = {
@@ -78,6 +80,9 @@ export type FinishData = {
   picture: { source: "main" | "cam"; centre: Point };
   lines: CaptionLine[];
   rendered: Format[];
+  /** The Shorts, in order (their number is the crop key); `face` = there is a face to crop. */
+  shorts: { n: number; from: number; to: number; title: string }[];
+  face: boolean;
   /** The renders the edit has since changed, by output name; null when that can't be told. */
   stale: string[] | null;
   covers: Partial<Record<CroppedFormat, string>>;
@@ -234,11 +239,14 @@ export function Finish({
   data,
   words,
   act,
+  at,
 }: {
   id: string;
   data: FinishData;
   words: readonly { s: number; e: number }[];
   act: RecordAct;
+  /** When the page's read of `data` left: a read from before his newest save never lands. */
+  at?: number | undefined;
 }) {
   const dur = data.durationS;
   const serverJson = stable(data.saved);
@@ -249,6 +257,7 @@ export function Finish({
   const s = useSaved<FinishEdit>({
     key: `video-finish:${id}`,
     server: fresh && fresh.over === serverJson ? fresh.value : server,
+    at,
     same,
     delay: SAVE_DELAY_MS,
     save: async (value, { base, request }) => {
@@ -261,7 +270,8 @@ export function Finish({
           patch[k] = value[k];
           expect[k] = base[k];
         }
-      if (Object.keys(patch).length) await act(SET, { patch, expect, requestId: request });
+      // The answer patches the page: the video isn't read again after a save.
+      if (Object.keys(patch).length) await act(SET, { patch, expect, requestId: request }, VIEWED);
       return { value };
     },
     onConflict: () => {
@@ -296,6 +306,9 @@ export function Finish({
   const keptS = keep.reduce((n, k) => n + k.e - k.s, 0);
 
   const [view, setView] = useState<Format>(() => (draw.formats[0] as Format) ?? "long");
+  // The Short whose own crop the 9:16 view shows (null: the whole cut's 9:16 crop).
+  const [pickedShort, setPickedShort] = useState<number | null>(null);
+  const shortView = view === "vertical" ? pickedShort : null;
   const [panel, setPanel] = useState<Panel>("text");
   const [picked, setPicked] = useState<Picked>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
@@ -415,7 +428,14 @@ export function Finish({
   return (
     <div ref={root} className="grid min-w-0 gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <ViewSwitch view={view} formats={draw.formats} onView={setView} />
+        <ViewSwitch
+          view={view}
+          formats={draw.formats}
+          onView={(f) => {
+            setView(f);
+            setPickedShort(null);
+          }}
+        />
         <SaveStatus state={s} onRetry={() => void s.retry()} idle="Changes save as you go" />
       </div>
       {s.conflict ? (
@@ -434,9 +454,10 @@ export function Finish({
         t={t}
         src={src}
         pic={pic}
+        shortNo={shortView}
         centre={
           cropped
-            ? (draw.crops[view as CroppedFormat] ??
+            ? ((shortView ? shortCrop(draw.crops, shortView) : draw.crops[view as CroppedFormat]) ??
               (useCam ? { x: 0.5, y: 0.5 } : data.picture.centre))
             : null
         }
@@ -603,8 +624,17 @@ export function Finish({
               draw={draw}
               rendered={data.rendered}
               stale={data.stale}
+              shorts={data.face ? data.shorts : []}
+              shortNo={shortView}
+              onShort={(n) => {
+                setPickedShort(n);
+                if (n) setView("vertical");
+              }}
               view={view}
-              onView={setView}
+              onView={(f) => {
+                setView(f);
+                setPickedShort(null);
+              }}
               commit={commit}
             />
           )}
@@ -681,6 +711,7 @@ function Stage({
   src,
   pic,
   centre,
+  shortNo,
   videoRef,
   onError,
   onLoaded,
@@ -697,6 +728,8 @@ function Stage({
   src: string | null;
   pic: [number, number];
   centre: Point | null;
+  /** The Short whose own crop a drag writes (9:16 only); null writes the format's crop. */
+  shortNo: number | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onError: () => void;
   onLoaded: () => void;
@@ -739,7 +772,12 @@ function Stage({
         const dx = ((ev.clientX - x0) * cw) / w / pic[0];
         const dy = ((ev.clientY - y0) * ch) / h / pic[1];
         const next = cropCentre(pic[0], pic[1], FRAME[f], { x: centre.x - dx, y: centre.y - dy });
-        preview({ ...draw, crops: { ...draw.crops, [f]: next } });
+        preview({
+          ...draw,
+          crops: shortNo
+            ? { ...draw.crops, shorts: { ...draw.crops.shorts, [String(shortNo)]: next } }
+            : { ...draw.crops, [f]: next },
+        });
       },
       () => release(),
     );
@@ -1567,7 +1605,7 @@ function LineRow({
     setSaid({ bad: false, words: "Saving…" });
     try {
       await ACTIONS.run(`video-line:${id}:${line.at.join()}:${next}`, (requestId) =>
-        act(LINE, { at: line.at, text: next, was: line.text, requestId }),
+        act(LINE, { at: line.at, text: next, was: line.text, requestId }, VIEWED),
       );
       setSaid(null);
     } catch (err) {
@@ -1680,6 +1718,9 @@ function ShapesPanel({
   draw,
   rendered,
   stale,
+  shorts,
+  shortNo,
+  onShort,
   view,
   onView,
   commit,
@@ -1687,6 +1728,9 @@ function ShapesPanel({
   draw: FinishEdit;
   rendered: readonly Format[];
   stale: readonly string[] | null;
+  shorts: FinishData["shorts"];
+  shortNo: number | null;
+  onShort: (n: number | null) => void;
   view: Format;
   onView: (f: Format) => void;
   commit: (v: FinishEdit) => void;
@@ -1754,6 +1798,77 @@ function ShapesPanel({
           );
         })}
       </ul>
+      {shorts.length ? (
+        <ShortCrops
+          draw={draw}
+          shorts={shorts}
+          shortNo={shortNo}
+          onShort={onShort}
+          commit={commit}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** Pick a Short to place its own crop: drag the 9:16 picture. Unmoved, it follows the 9:16 crop. */
+function ShortCrops({
+  draw,
+  shorts,
+  shortNo,
+  onShort,
+  commit,
+}: {
+  draw: FinishEdit;
+  shorts: FinishData["shorts"];
+  shortNo: number | null;
+  onShort: (n: number | null) => void;
+  commit: (v: FinishEdit) => void;
+}) {
+  const own = (n: number) => !!draw.crops.shorts?.[String(n)];
+  return (
+    <div className="grid gap-2">
+      <Hint>
+        Place a Short on its own. Pick one, then drag the picture. One you leave follows the 9:16
+        crop.
+      </Hint>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {shorts.map((x) => (
+          <button
+            key={x.n}
+            type="button"
+            aria-pressed={shortNo === x.n}
+            title={x.title}
+            onClick={() => onShort(shortNo === x.n ? null : x.n)}
+            className={cx(
+              "min-h-8 cursor-pointer rounded-md border px-3 text-[13px] font-medium transition-colors duration-150",
+              shortNo === x.n
+                ? "border-(--ui-active) bg-(--ui-paper) text-(--ui-ink)"
+                : "border-(--ui-hair) bg-transparent text-(--ui-ink-2) hover:text-(--ui-ink)",
+            )}
+          >
+            Short {x.n}
+            {own(x.n) ? <span className="text-(--ui-ink-3)"> · moved</span> : null}
+          </button>
+        ))}
+        {shortNo && own(shortNo) ? (
+          <Button
+            size="sm"
+            tone="quiet"
+            onClick={() => {
+              const rest = { ...draw.crops.shorts };
+              delete rest[String(shortNo)];
+              const { shorts: _gone, ...crops } = draw.crops;
+              commit({
+                ...draw,
+                crops: Object.keys(rest).length ? { ...crops, shorts: rest } : crops,
+              });
+            }}
+          >
+            Reset the crop
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

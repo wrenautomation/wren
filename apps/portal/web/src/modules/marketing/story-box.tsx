@@ -8,9 +8,10 @@
 import type { Platform } from "@wren/core/content";
 import { ACTIONS, Button, cx, PlatformMark, Section } from "@wren/ui";
 import { useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { ApiError } from "../../api.js";
 import { useCall } from "../../load.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { contentDesk } from "./desk.js";
 
 type Go = "draft" | "slot" | "now";
 const WHERE = ["instagram", "facebook"] as const satisfies readonly Platform[];
@@ -32,8 +33,7 @@ interface Result {
   held?: string;
 }
 
-const desk = <T,>(handler: string, input: Record<string, unknown>) =>
-  call<T>("console/call", { service: "ContentDesk", handler, key: "default", input });
+const desk = contentDesk;
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const day = (at: string) =>
   new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric" });

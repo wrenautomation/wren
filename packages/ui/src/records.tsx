@@ -49,7 +49,7 @@ import { CardHead, CardStrip, FormSwitch, GRID, morphTo, RecordCard } from "./ca
 import { type CardOption, cardOf, type ListForm, listFormOf, listFormParam } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
-import { DraftBox, type DraftHandle, DraftText, type RecordDraft } from "./draft.js";
+import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
 import { type LiveText, liveText } from "./draft-save.js";
 import {
   ASK_FOCUS,
@@ -107,10 +107,11 @@ import {
   rowTarget,
 } from "./record-access.js";
 import { recordHead } from "./record-head.js";
-import { patchRecord } from "./record-patch.js";
+import { detailPatch, patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
-import { answersOf, onWrite, patchedSince, rememberRead } from "./save/cache.js";
+import { answersOf, onWrite, patchedSince, rememberRead, writeThrough } from "./save/cache.js";
 import { tick } from "./save/clock.js";
+import { SaveScope, useSavePage } from "./save/react.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { sortTip } from "./view-says.js";
 
@@ -194,9 +195,19 @@ export interface RecordExtras {
 
 /**
  * Run one of the record's `inline` actions from its extras (a video's editor): its handler on
- * this record with `input`, then the record read again. It throws what the handler refused.
+ * this record with `input`, then the record read again. With `patch`, the action's answer
+ * patches the page instead (`patch(detail, answer)` answers the new detail and row fields, or
+ * null to read again). It throws what the handler refused.
  */
-export type RecordAct = (action: string, input?: Record<string, unknown>) => Promise<unknown>;
+export type RecordAct = (
+  action: string,
+  input?: Record<string, unknown>,
+  o?: { patch?: ActPatch | undefined },
+) => Promise<unknown>;
+export type ActPatch = (
+  detail: unknown,
+  answer: unknown,
+) => { detail?: unknown; row?: Record<string, unknown> } | null;
 
 /** Actions a record's head may show, by the ids its type lists. */
 export interface RecordActs {
@@ -229,7 +240,10 @@ export interface RecordTemplateProps {
   sections?: ShopSections | undefined;
   /** A Shop card's art, across its top in place of the icon: what the record does, drawn. */
   art?: ((row: Row) => ReactNode) | undefined;
-  extras?: ((detail: unknown, row: Row, act: RecordAct) => RecordExtras) | undefined;
+  /** `readAt`: the tick its read left (`useLoad`'s `at`), for the extras' own `useSaved`. */
+  extras?:
+    | ((detail: unknown, row: Row, act: RecordAct, readAt: number) => RecordExtras)
+    | undefined;
   acts?: RecordActs | undefined;
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
   head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined;
@@ -2540,8 +2554,6 @@ export function RecordBody({
     () => (access ? access.issues({ record: meta.id, id }) : Promise.resolve(null)),
     api,
   );
-  /** The draft box, when the record holds one: what's typed is saved before any head action. */
-  const draftBox = useRef<DraftHandle | null>(null);
   /** What's typed in that box now, for a live preview beside it; this record's only. */
   const [typed] = useState(liveText);
   const [lit, pickMark] = useSourcePick();
@@ -2550,16 +2562,25 @@ export function RecordBody({
   // Where this row sits, for what its head may show: the YouTube editor acts on YouTube's alone.
   const here: Target = got.data ? rowTarget(meta, got.data.row, api.access?.client ?? "") : {};
   if (!api.access) delete here.client;
-  const act: RecordAct = async (action, input = {}) => {
+  /** Every box on this record: a head action saves them all first. */
+  const boxes = useSavePage();
+  const act: RecordAct = async (action, input = {}, o = {}) => {
     const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
     if (!a || !acts || !got.data) throw new Error("You can't do that here.");
     const rowId = got.data.row.id as string | number;
     const out = await acts.call(a.handler, { ids: [rowId], ...input });
-    acted([rowId]);
+    const patch = o.patch;
+    // The answer says what changed: the page shows it with no read again.
+    if (patch && patch(got.data.detail, out))
+      writeThrough(
+        api,
+        detailPatch(meta.id, rowId, (detail) => patch(detail, out)),
+      );
+    else acted([rowId]);
     return out;
   };
   // A type with no `load` still gets its extras, with no detail.
-  const more = got.data && extras ? extras(got.data.detail, got.data.row, act) : {};
+  const more = got.data && extras ? extras(got.data.detail, got.data.row, act, got.at) : {};
   const state = got.data?.edit ?? null;
   /**
    * The version the next edit names: a save's answer moves it at once, before the page draws
@@ -2740,11 +2761,9 @@ export function RecordBody({
   const inline = box ? actsOf(meta, acts, true, here).filter((a) => applies(a, row)) : [];
   // A blocked send (a carousel's Approve) leaves the box without one; the head says why.
   const sendAction = box?.send ? shown.find((a) => a.id === box.send && runs(a, row)) : undefined;
-  /** A head action runs on the saved draft: what's typed in the box goes first. */
+  /** A head action runs on what's saved: every box on the page (words, fields, slides) goes first. */
   const runHead = (a: Action) =>
-    void (draftBox.current?.flush() ?? Promise.resolve(true)).then(
-      (ok) => ok && run(a, [row.id], startOf(a, row)),
-    );
+    void boxes.flush().then((ok) => ok && run(a, [row.id], startOf(a, row)));
   const tabs: { id: string; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
     ...related.flatMap((r) => {
@@ -2770,7 +2789,7 @@ export function RecordBody({
     (t) => t.name.many === tab && related.some((r) => r.record === t.id),
   );
 
-  return (
+  const view = (
     <article className="grid gap-5 max-[900px]:pb-(--dock-h,0px)">
       <header className="grid gap-3">
         {more.hero}
@@ -2798,7 +2817,7 @@ export function RecordBody({
                 // A phone: at the thumb. In a sheet it stays at the screen's foot down to half
                 // height, moving as the sheet does (--sheet-y), then rides down with it.
                 docked &&
-                  "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-10 max-[900px]:flex-nowrap max-[900px]:overflow-x-auto max-[900px]:border-t max-[900px]:border-(--ui-hair) max-[900px]:[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] max-[900px]:px-4 max-[900px]:pt-2 max-[900px]:pb-[calc(8px+env(safe-area-inset-bottom))] max-[900px]:[scrollbar-width:none] max-[900px]:[transform:translate3d(0,calc(-1*min(var(--sheet-y,0px),var(--sheet-mid,0px))),0)] max-[900px]:[transition:transform_var(--sheet-t,0ms)_cubic-bezier(0.32,0.72,0,1)] max-[900px]:[&>*]:flex-none",
+                  "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-10 max-[900px]:border-t max-[900px]:border-(--ui-hair) max-[900px]:[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] max-[900px]:px-4 max-[900px]:pt-2 max-[900px]:pb-[calc(8px+env(safe-area-inset-bottom))] max-[900px]:[transform:translate3d(0,calc(-1*min(var(--sheet-y,0px),var(--sheet-mid,0px))),0)] max-[900px]:[transition:transform_var(--sheet-t,0ms)_cubic-bezier(0.32,0.72,0,1)] max-[900px]:[&>*]:flex-none",
               )}
             >
               {shown.map((a, i) => (
@@ -2993,7 +3012,6 @@ export function RecordBody({
               }
               at={got.at}
               send={sendAction ? () => runHead(sendAction) : undefined}
-              handle={draftBox}
               between={more.form}
               framed={!more.aside}
               onText={more.aside ? typed.set : undefined}
@@ -3033,6 +3051,7 @@ export function RecordBody({
       )}
     </article>
   );
+  return <SaveScope page={boxes}>{view}</SaveScope>;
 }
 
 /**

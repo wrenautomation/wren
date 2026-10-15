@@ -7,7 +7,13 @@
 import type { DraftTurn } from "@wren/core/ask";
 import type { DraftRecordView } from "@wren/core/draft-record";
 import type { Row } from "@wren/core/records/serve";
-import type { Action, DraftEditor, MessageKind, RecordExtras } from "@wren/ui";
+import {
+  type Action,
+  type DraftEditor,
+  type MessageKind,
+  type RecordExtras,
+  twinRecord,
+} from "@wren/ui";
 import type { ListPage } from "../../module.js";
 import { DraftVersions } from "./versions.js";
 
@@ -18,6 +24,30 @@ export const DRAFT_SET = "marketing.draftSet";
 export const DRAFT_ASK = "marketing.draftAsk";
 export const DRAFT_UNDO = "marketing.draftUndo";
 export const DRAFT_BOX = [DRAFT_SET, DRAFT_ASK, DRAFT_UNDO];
+
+/** Only the fields given, renamed: a post's `text` is To approve's `body`. */
+const moved = (fields: Record<string, unknown>, names: Record<string, string>) =>
+  Object.fromEntries(
+    Object.entries(names).flatMap(([from, to]) => (from in fields ? [[to, fields[from]]] : [])),
+  );
+/**
+ * A post draft is `marketing.draft` 3 on Drafts and `draft:3` in To approve: words saved on one
+ * patch the other, version too, so a yes from either list names the words just saved.
+ */
+twinRecord("marketing.draft", (id, f) => ({
+  record: "marketing.approval",
+  id: `draft:${id}`,
+  fields: moved(f, { text: "body", version: "version" }),
+}));
+twinRecord("marketing.approval", (id, f) =>
+  id.startsWith("draft:")
+    ? {
+        record: "marketing.draft",
+        id: id.slice("draft:".length),
+        fields: moved(f, { body: "text", version: "version" }),
+      }
+    : null,
+);
 
 /**
  * Save, Ask Claude and Undo on one page's drafts. `handler` names the page's kind: the Inbox's ids

@@ -8,6 +8,7 @@ import {
   addCut,
   captionLines,
   cropCentre,
+  cropsSchema,
   cropWindow,
   FRAME,
   formatFor,
@@ -19,9 +20,11 @@ import {
   overlaysOnCut,
   playFrom,
   rewriteLine,
+  shortCrop,
   snapTime,
   trimCuts,
 } from "./finish.js";
+import { coverRect } from "./finish-look.js";
 import { cutTracks, FPS, filmstrip, frameAt, probe, sourceProxy } from "./media.js";
 import { verticalWindow } from "./props.js";
 import type { Cut, Word } from "./schema.js";
@@ -47,6 +50,60 @@ describe("crop windows", () => {
 
   it("answers the centre a drag really lands on", () => {
     expect(cropCentre(1920, 1080, FRAME.square, { x: 0.99, y: 0.1 })).toEqual({ x: 0.719, y: 0.5 });
+  });
+});
+
+describe("a crop per Short", () => {
+  it("keeps every older crops shape", () => {
+    expect(cropsSchema.parse({})).toEqual({});
+    expect(cropsSchema.parse({ vertical: { x: 0.2, y: 0.5 }, square: { x: 0.3, y: 0.4 } })).toEqual(
+      {
+        vertical: { x: 0.2, y: 0.5 },
+        square: { x: 0.3, y: 0.4 },
+      },
+    );
+    expect(
+      cropsSchema.parse({ shorts: { "2": { x: 0.7, y: 0.5 } }, vertical: { x: 0.2, y: 0.5 } }),
+    ).toEqual({ shorts: { "2": { x: 0.7, y: 0.5 } }, vertical: { x: 0.2, y: 0.5 } });
+  });
+
+  it("takes a Short by its number only", () => {
+    for (const bad of ["0", "13", "two", "1.5", ""])
+      expect(cropsSchema.safeParse({ shorts: { [bad]: { x: 0.5, y: 0.5 } } }).success).toBe(false);
+    expect(cropsSchema.safeParse({ shorts: { "1": { x: 2, y: 0.5 } } }).success).toBe(false);
+    expect(cropsSchema.safeParse({ shorts: { "1": { x: 0.5, y: 0.5, z: 1 } } }).success).toBe(
+      false,
+    );
+  });
+
+  it("falls back from its own crop to the vertical one to none", () => {
+    const crops = { vertical: { x: 0.2, y: 0.5 }, shorts: { "2": { x: 0.8, y: 0.4 } } };
+    expect(shortCrop(crops, 2)).toEqual({ x: 0.8, y: 0.4 });
+    expect(shortCrop(crops, 1)).toEqual({ x: 0.2, y: 0.5 });
+    expect(shortCrop({ square: { x: 0.1, y: 0.1 } }, 1)).toBeNull();
+    expect(shortCrop(undefined, 1)).toBeNull();
+  });
+});
+
+describe("a face in a frame", () => {
+  it("covers the frame on the face box, or where a crop centres it", () => {
+    // A 1080x1920 cam file, its whole picture in a 1080x960 box: scaled to the width.
+    expect(coverRect([1080, 1920], null, 1080, 960)).toEqual([0, -480, 1080, 1920]);
+    // A box in a wide recording: the box fills the frame.
+    const [l, t, w, h] = coverRect([1920, 1080], [1200, 200, 400, 400], 1080, 960);
+    expect([w, h]).toEqual([5184, 2916]);
+    expect([l, t]).toEqual([(1080 - 1080) / 2 - 1200 * 2.7, (960 - 1080) / 2 - 200 * 2.7]);
+    // A crop centres the frame on a point and stays inside the picture.
+    expect(coverRect([1920, 1080], null, 1080, 1920, { x: 0.5, y: 0.5 })).toEqual([
+      -(1920 * (1920 / 1080) - 1080) / 2,
+      0,
+      1920 * (1920 / 1080),
+      1920,
+    ]);
+    const edge = coverRect([1920, 1080], null, 1080, 1920, { x: 0, y: 0.5 });
+    expect(edge[0]).toBe(0);
+    const far = coverRect([1920, 1080], null, 1080, 1920, { x: 1, y: 0.5 });
+    expect(far[0]).toBeCloseTo(1080 - 1920 * (1920 / 1080));
   });
 });
 

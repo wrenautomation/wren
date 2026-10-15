@@ -3,11 +3,33 @@
  * state; `SaveStatus` is the one status line; `SaveConflict` asks Keep mine or Use theirs;
  * `useKeptForm` keeps a dialog's typing until it is sent.
  */
-import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Button } from "../controls.js";
 import { type Conflict, Saver, type SaverOptions, type SaveState, type Status } from "./engine.js";
 import { browserEnv } from "./env.js";
 import { readForm, writeForm } from "./journal.js";
+import { SavePage } from "./page.js";
+
+const PageBoxes = createContext<SavePage | null>(null);
+
+/** The page `useSaved` boxes inside it join: `page.flush()` saves them all. */
+export function SaveScope({ page, children }: { page: SavePage; children: ReactNode }) {
+  return <PageBoxes.Provider value={page}>{children}</PageBoxes.Provider>;
+}
+
+/** A page for `SaveScope`, kept across renders. */
+export function useSavePage(): SavePage {
+  return useMemo(() => new SavePage(), []);
+}
 
 export interface Saved<T> extends SaveState<T> {
   /** His change: journaled now, saved after a pause. */
@@ -34,10 +56,15 @@ export function useSaved<T>(o: SaverOptions<T>): Saved<T> {
     onConflict: o.onConflict,
     conflictOf: o.conflictOf,
   });
+  const page = useContext(PageBoxes);
   useEffect(() => {
     saver.open();
-    return () => saver.close();
-  }, [saver]);
+    const off = page?.add(saver);
+    return () => {
+      off?.();
+      saver.close();
+    };
+  }, [saver, page]);
   useEffect(() => {
     saver.read(o.server, { version: o.version, at: o.at });
   }, [saver, o.server, o.version, o.at]);
