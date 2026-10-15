@@ -2582,6 +2582,8 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     const meta = {
       ...(host ? { host } : {}),
       ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
+      // With the Page id too, no `me/accounts` read before a post, list or inbox pass.
+      ...(settings.metaIgId ? { igId: settings.metaIgId } : {}),
     };
     const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt, ...arm });
     return {

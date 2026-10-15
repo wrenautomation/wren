@@ -415,3 +415,54 @@ describe("facebook Page comments", () => {
     ]);
   });
 });
+
+describe("a configured Page: /me/accounts is not read", () => {
+  const accounts = (calls: Array<[string, string, unknown]>) =>
+    calls.filter((c) => c[1] === "/me/accounts").length;
+  const answers = {
+    "GET /me/accounts": pages,
+    "POST /ig9/media": () => ({ id: "c1" }),
+    "POST /ig9/media_publish": () => ({ id: "p1" }),
+    "GET /ig9/media": () => ({ data: [] }),
+    "GET /ig9": () => ({ followers_count: 5 }),
+    "POST /111/messages": () => ({ message_id: "m1" }),
+    "POST /111/feed": () => ({ id: "111_1" }),
+    "GET /111/posts": () => ({ data: [] }),
+  };
+  const passOver = async (ch: ReturnType<typeof instagramContent>) => {
+    await ch.publish({ text: "x", media: { kind: "image", source: "https://i.test/a.png" } });
+    await ch.list();
+    await ch.activity?.();
+    await ch.audience?.();
+    await ch.accountInsights?.();
+    await ch.privateReply?.("c9", "hi");
+  };
+
+  it("Instagram with the Page and account ids: no listing in a whole pass", async () => {
+    const { sites, calls } = fakeSites(answers);
+    await passOver(instagramContent(sites, { now, pageId: "111", igId: "ig9" }));
+    expect(accounts(calls)).toBe(0);
+    expect(calls.filter((c) => c[1] === "/ig9")).toHaveLength(3);
+  });
+
+  it("Instagram with the Page id alone lists once, then reuses it", async () => {
+    const { sites, calls } = fakeSites(answers);
+    await passOver(instagramContent(sites, { now, pageId: "111" }));
+    expect(accounts(calls)).toBe(1);
+  });
+
+  it("Instagram with neither lists once", async () => {
+    const { sites, calls } = fakeSites(answers);
+    await passOver(instagramContent(sites, { now }));
+    expect(accounts(calls)).toBe(1);
+  });
+
+  it("Facebook with the Page id: publish, list and a private reply never list Pages", async () => {
+    const { sites, calls } = fakeSites(answers);
+    const fb = facebookContent(sites, { now, pageId: "111" });
+    await fb.publish({ text: "hello" });
+    await fb.list();
+    await fb.privateReply?.("c9", "hi");
+    expect(accounts(calls)).toBe(0);
+  });
+});

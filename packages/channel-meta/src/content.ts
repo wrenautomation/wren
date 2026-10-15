@@ -44,6 +44,11 @@ export interface MetaContentOptions {
   host?: MediaHost;
   /** The Page (`me/accounts` lists them); the first Page when absent. */
   pageId?: string;
+  /**
+   * The Page's Instagram account. With `pageId` too, nothing is listed: Instagram needs both to
+   * skip the `me/accounts` read, Facebook needs `pageId` alone.
+   */
+  igId?: string;
   /** Between the container and its publish: the Graph API needs a moment for a video. */
   sleep?: (ms: number) => Promise<void>;
   /**
@@ -62,11 +67,14 @@ interface Edge<T> {
   data?: T[];
 }
 
-/** The Page and its Instagram account, read once per channel. */
+/**
+ * The Page, and the Page with its Instagram account. Configured ids answer without a call;
+ * otherwise `me/accounts` is read once per channel.
+ */
 function pageOf_(sites: SiteClient, o: MetaContentOptions) {
-  let page: Promise<Page> | null = null;
-  return () => {
-    page ??= sites.call<Edge<Page>>("meta", "GET", "/me/accounts", {}).then((r) => {
+  let listed: Promise<Page> | null = null;
+  const list = () => {
+    listed ??= sites.call<Edge<Page>>("meta", "GET", "/me/accounts", {}).then((r) => {
       const pages = r.data ?? [];
       const hit = o.pageId ? pages.find((p) => p.id === o.pageId) : pages[0];
       if (!hit)
@@ -77,7 +85,21 @@ function pageOf_(sites: SiteClient, o: MetaContentOptions) {
         );
       return hit;
     });
-    return page;
+    return listed;
+  };
+  const known = (): Page | null =>
+    o.pageId
+      ? { id: o.pageId, ...(o.igId ? { instagram_business_account: { id: o.igId } } : {}) }
+      : null;
+  return {
+    page: (): Promise<Page> => {
+      const p = known();
+      return p ? Promise.resolve(p) : list();
+    },
+    withIg: (): Promise<Page> => {
+      const p = known();
+      return p?.instagram_business_account ? Promise.resolve(p) : list();
+    },
   };
 }
 
@@ -158,9 +180,9 @@ const VIDEO_POLL_MS = 10_000;
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const sleep = o.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
-  const page = pageOf_(sites, o);
+  const pages = pageOf_(sites, o);
   const igUser = async () => {
-    const p = await page();
+    const p = await pages.withIg();
     if (!p.instagram_business_account?.id)
       throw new Error(`meta: Page ${p.id} has no Instagram professional account linked`);
     return p.instagram_business_account.id;
@@ -355,7 +377,8 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("meta", "POST", `/${commentId}/replies`, { message: text });
     },
-    privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
+    privateReply: (commentId: string, text: string) =>
+      privateReply(sites, pages.page, commentId, text),
     async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
       const r = await inbox();
       const rows = (r.tags?.data ?? []).map((m) => ({
@@ -436,7 +459,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
 
 export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
-  const page = pageOf_(sites, o);
+  const { page } = pageOf_(sites, o);
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
   const urlOf = (postId: string) => `https://www.facebook.com/${postId}`;
