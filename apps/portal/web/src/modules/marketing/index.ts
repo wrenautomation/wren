@@ -1645,11 +1645,14 @@ export const marketing: Module = {
       wide: true,
     },
     EXPLORE_PAGE,
-    // Every post draft in one list: edit, approve, out.
+    // Every post draft, one row per platform: each draft's own page (Pieces links here). Off the
+    // tabs: Pieces shows each thing made once, its platforms under it, so the list isn't N copies.
     {
       id: "drafts",
       label: "Drafts",
       about: "Every post draft: edit it, approve it, it goes out.",
+      hidden: true,
+      lights: "pieces",
       template: "list",
       record: "marketing.draft",
       card: DRAFT_CARD,
@@ -1975,7 +1978,7 @@ export const marketing: Module = {
         {
           label: "Drafts waiting",
           record: "marketing.draft",
-          href: "/marketing/drafts?view=waiting",
+          href: "/marketing/pieces?show=waiting&sort=waiting",
           needs: true,
         },
         {
