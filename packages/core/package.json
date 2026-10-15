@@ -7,7 +7,6 @@
     ".": "./src/index.ts",
     "./access": "./src/access.ts",
     "./audit": "./src/audit.ts",
-    "./automation-templates": "./src/automation-templates.ts",
     "./automations": "./src/automations.ts",
     "./cache": "./src/cache.ts",
     "./calendar": "./src/calendar.ts",
