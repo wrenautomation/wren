@@ -26,8 +26,11 @@ A card is a note, so it already has a body, comments, history, sharing and `@` l
 - routes: `NotesConsole` `boards`, `board`, `boardCreate|Save|Share|General|Archive`, `task`, `taskMoves`, `taskAdd|Move|Edit|Close|Block`, `taskFromLine`, `taskExport`, `taskImport`, `needsYou`, `driveTitle` (`packages/notes/src/console-boards.ts:129`, roles in `console-routes.ts:51`); the writes are journaled
 - record type `notes.task` (`packages/notes/src/task-records.ts:23`), served by the notes `records*` routes and, for Wren's team, the console's generic records; the List view and record backlinks read it
 - "Needs you" = open cards owned by you and due today or earlier, plus cards waiting on a card you own (`needsYou`, `tasks.ts:268`); it shows as the Board tab's badge and in Today
-- Make card: checklist lines of a note become cards on the viewer's default board; the card body names the source note (`note:<id>`) and the line gets a "Card: <column>" chip (`taskFromLine`, `console-boards.ts:471`; `apps/portal/web/src/modules/notes/cards.ts`). ⌘K "card: <title>" and the Quick note "Card" switch make one directly
-- sheets: Export CSV builds a file from `taskExport` rows (title, column, owner, due, blocked by, link); Import takes a CSV or a pasted tab table, maps columns once, and updates by link when the link holds a card of that board, else makes a card (`taskImport`, `console-boards.ts:541`; pure parser and writer in `packages/notes/src/sheet.ts`, cells starting `= + - @` get a leading `'`). Bad owner, column or due warns and keeps the row
+- Make card: checklist lines of a note become cards on the viewer's default board; the card body names the source note (`note:<id>`) and the line gets a "Card: <column>" chip (`taskFromLine`; `apps/portal/web/src/modules/notes/cards.ts`). The chip shows the card's current column, read for all of a note's cards at once (`cardChips`; `packages/notes/src/chips.ts`). ⌘K "card: <title>" and the Quick note "Card" switch make one directly
+- Turn into cards: Claude reads a note and proposes cards (`cardsPropose`, `packages/notes/src/propose.ts`): owners only from people the note @-mentions, real days, at most 30. Writes nothing; the picks go through `taskFromLine` with owner, due and board (`apps/portal/web/src/modules/notes/propose.tsx`). The worker wires the model as `NotesDeps.write`, null on the fake LLM
+- labels: `notes.labels` (migration `0264_boards_labels`), edited in the card strip, on card faces, a Label filter, the CSV "labels" column, `wren tasks --label`
+- owner names: `ownerName` (`packages/notes/src/types.ts`) for every face, filter, List, Timeline and the CLI; `agent:claude` reads "Claude"
+- sheets: Export CSV builds a file from `taskExport` rows (title, column, owner, due, labels, blocked by, link); Import takes a CSV or a pasted tab table, maps columns once, and updates by link when the link holds a card of that board, else makes a card (`taskImport`, `console-boards.ts:541`; pure parser and writer in `packages/notes/src/sheet.ts`, cells starting `= + - @` get a leading `'`). Bad owner, column or due warns and keeps the row
 - pasted file links: a Drive, Docs, Sheets, Slides, Dropbox or OneDrive link becomes a labelled link; a Google file is renamed to its title (`driveTitle`, `NoteDrive.title`, `packages/notes/src/drive.ts`; `apps/portal/web/src/modules/notes/filelinks.ts`)
 - clients: a board shared to `client:<id>` shows as Board in that client's Notes, read from main, and its cards follow the board's role
 - not here: sprints, points, swimlanes, WIP limits, automations, Gantt, two-way Sheets sync
@@ -38,7 +41,7 @@ A card is a note, so it already has a body, comments, history, sharing and `@` l
 - **served by:** [[platform/records]] (`notes.task`)
 - **feeds:** `wren tasks` (`apps/cli/src/tasks.ts:70`), agents write as `agent:<name>`
 - **shows on:** record pages, as a "Card: <column>" tag in the Notes backlinks (`apps/portal/web/src/modules/notes/backlinks.tsx`)
-- **looks-like-but-is-not:** [[leads/sent-log]] and the Inbox "To approve" (cards never send); Ask Claude never writes a card unasked
+- **looks-like-but-is-not:** [[leads/sent-log]] and the Inbox "To approve" (cards never send); Turn into cards never writes before Add
 
 ## If you change this
 
@@ -55,7 +58,7 @@ A card is a note, so it already has a body, comments, history, sharing and `@` l
 |---|---|
 | Notes → Board (`apps/portal/web/src/modules/notes/board.tsx`) | columns, drag, filters, List toggle, Board settings, Export CSV, Import |
 | the doc page (`card.tsx`) | task strip (column, owner, due, board, blocked by, blocks) and the Timeline panel |
-| editor toolbar, ⌘K, Quick note | Make card, New card |
+| editor toolbar, note menu, ⌘K, Quick note | Make card, Turn into cards with Claude, New card |
 | `wren tasks ready\|ls\|show\|add\|move\|assign\|due\|close\|reopen\|comment\|block` (`apps/cli/src/tasks.ts`) | agents; `--json`, `--agent <name>` |
 
 ## See

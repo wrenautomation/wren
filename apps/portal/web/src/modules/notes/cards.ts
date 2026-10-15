@@ -35,6 +35,57 @@ export function cardLines(editor: Editor): { node: PmNode; end: number }[] {
   return out;
 }
 
+type Made = { id: string; column: string | null };
+
+/** A link to each card at the end of its line. */
+export function putChips(editor: Editor, at: { end: number; card: Made | undefined }[]): void {
+  const mention = editor.schema.nodes.mention;
+  if (!mention) return;
+  // Back to front, so the places already found stay true.
+  const tr = editor.state.tr;
+  for (const { end, card } of [...at].sort((a, b) => b.end - a.end)) {
+    if (!card) continue;
+    tr.insert(end, [
+      editor.schema.text(" "),
+      mention.create({ id: `note:${card.id}`, label: `${CARD_LABEL}${card.column ?? ""}` }),
+    ]);
+  }
+  if (tr.docChanged) editor.view.dispatch(tr);
+}
+
+/** A line's words as the note's text has them: a mention reads `@<label>`. */
+const lineText = (n: PmNode) => {
+  let out = "";
+  n.forEach((c) => {
+    out += c.isText ? (c.text ?? "") : c.type.name === "mention" ? `@${c.attrs.label ?? ""}` : "";
+  });
+  return out;
+};
+const clean = (s: string) =>
+  s
+    .replace(/^\s*(?:[-*]\s*)?(?:\[[ xX]\]\s*)?/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+/** Where each of these lines ends in the note, if it's there and has no card yet. */
+export function linesNamed(editor: Editor, lines: (string | null)[]): (number | null)[] {
+  const ends = new Map<string, number>();
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isTextblock) return true;
+    const key = clean(lineText(node));
+    if (key && !hasCard(node) && !ends.has(key)) ends.set(key, pos + node.nodeSize - 1);
+    return false;
+  });
+  const used = new Set<number>();
+  return lines.map((l) => {
+    const end = l ? ends.get(clean(l)) : undefined;
+    if (end === undefined || used.has(end)) return null;
+    used.add(end);
+    return end;
+  });
+}
+
 /** Make the cards, then put a link on each line. Returns how many were made. */
 export async function makeCards(editor: Editor, client: string, noteId: string): Promise<number> {
   const lines = cardLines(editor);
@@ -47,20 +98,10 @@ export async function makeCards(editor: Editor, client: string, noteId: string):
       id: noteId,
       lines: lines.map((l) => l.node.textContent),
     });
-    // Back to front, so the places already found stay true.
-    const tr = editor.state.tr;
-    const mention = editor.schema.nodes.mention;
-    const fresh = editor.state.doc;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const at = lines[i];
-      const card = out.cards[i];
-      if (!at || !card || !mention) continue;
-      tr.insert(at.end, [
-        editor.schema.text(" "),
-        mention.create({ id: `note:${card.id}`, label: `${CARD_LABEL}${card.column}` }),
-      ]);
-    }
-    if (tr.doc !== fresh) editor.view.dispatch(tr);
+    putChips(
+      editor,
+      lines.map((at, i) => ({ end: at.end, card: out.cards[i] })),
+    );
     say.done(
       out.cards.length === 1
         ? `Made a card on ${out.board}.`

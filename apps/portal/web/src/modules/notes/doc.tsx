@@ -41,6 +41,7 @@ import { makeCards } from "./cards.js";
 import { type Anchor, anchorOf, CommentsPanel, goTo, showThreads } from "./comments.js";
 import { type Heading, type Mode, NoteEditor, outlineOf, wordsIn } from "./editor.js";
 import { download, downloadDocx, fileName } from "./files.js";
+import { ProposeCards } from "./propose.js";
 import { ShareDialog } from "./share.js";
 import { NoteSync, type SyncState } from "./sync.js";
 import { makeDrafts, SopDialog, selectedWords } from "./turn.js";
@@ -217,6 +218,7 @@ function Doc({
   const [sharing, setSharing] = useState(false);
   /** The words going to an SOP; null while its dialog is shut. */
   const [sopFor, setSopFor] = useState<string | null>(null);
+  const [proposing, setProposing] = useState(false);
   const [list, setList] = useState<NoteVersions | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [people, setPeople] = useState<NotePeople | null>(null);
@@ -502,6 +504,9 @@ function Doc({
                       label: "Make cards from the lines picked",
                       run: () => void makeCards(editor, client, note.id),
                     },
+                    ...(demo
+                      ? []
+                      : [{ label: "Turn into cards with Claude", run: () => setProposing(true) }]),
                   ]
                 : []),
               null,
@@ -685,6 +690,14 @@ function Doc({
           open={sharing}
           onOpenChange={setSharing}
           onChanged={reopen}
+        />
+      ) : null}
+      {proposing && editor ? (
+        <ProposeCards
+          client={client}
+          noteId={note.id}
+          editor={editor}
+          onClose={() => setProposing(false)}
         />
       ) : null}
       {sopFor !== null ? (
