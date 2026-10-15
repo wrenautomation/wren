@@ -83,16 +83,22 @@ export const mailBounces = pgTable(
 );
 
 /**
- * Each sending mailbox's last check: the next one reads from here. The sent log counts an email
- * delivered only once a check ran 48 hours after it went, so a mailbox nobody reads never claims it.
+ * A workspace's sending mailboxes and their last check, one row each: the next check reads from
+ * here. The sent log counts an email delivered only once a check ran 48 hours after it went, so a
+ * mailbox nobody reads never claims it. A mailbox stays here after the workspace picks another
+ * sender, and is read for `BOUNCE_LATE_MS` after it last sent (`lastSenderAt`): late bounces
+ * still come back to it.
  */
 export const mailBounceReads = pgTable(
   "mail_bounce_reads",
   {
     mailbox: varchar("mailbox", { length: 320 }).notNull(),
-    readAt: timestamp("read_at", { withTimezone: true }).notNull(),
+    /** Null until the mailbox's first check. */
+    readAt: timestamp("read_at", { withTimezone: true }),
     /** The last pass's counts. */
     stats: jsonb("stats"),
+    /** The last moment this mailbox was the workspace's sender (or last known to be). */
+    lastSenderAt: timestamp("last_sender_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [primaryKey({ columns: [t.mailbox], name: "pk_mail_bounce_reads" })],
 );

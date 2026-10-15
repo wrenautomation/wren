@@ -1,11 +1,13 @@
 /**
  * `BounceScheduler/all`: marketing email bounces, read hourly from every sending mailbox
  * (`../inbox/marketing-bounces.ts`). Wren's own (portal@'s mailbox) into main; each client's,
- * the one it picked in Account → Messaging, into the client's own database. A client's mailbox
- * connected to send only can't be read: it is skipped, and Account → Messaging says so. No
- * workspace's failure stops another's.
+ * the one it picked in Account → Messaging, into the client's own database, and the ones it
+ * picked before, for as long as late bounces can come. A client's mailbox connected to send only
+ * can't be read: it is skipped, and Account → Messaging says so. No workspace's or mailbox's
+ * failure stops another's.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { bounceMailboxes, noteBounceSender } from "@wren/core/bounces";
 import type { Mailbox } from "@wren/core/mailbox";
 import { readMessageSettings } from "@wren/core/message-settings";
 import { makeLoopObject, runPass } from "@wren/core/restate";
@@ -31,8 +33,10 @@ export interface BounceSchedulerDeps {
 }
 
 export interface BouncePassStats {
-  /** Each workspace read: `wren`, or the client's id. */
+  /** Each workspace's current sender read: `wren`, or the client's id. */
   read: Record<string, BounceReadStats>;
+  /** A client's earlier senders, read for their late bounces. */
+  earlier: Array<{ client: string } & BounceReadStats>;
   skipped: Array<{ client: string; mailbox: string; why: string }>;
   failed: Array<{ client: string; mailbox: string; error: string }>;
 }
@@ -40,9 +44,16 @@ export interface BouncePassStats {
 /** Why a client's sender isn't read, in the words the pass keeps. */
 export const SEND_ONLY = "connected to send only: its bounces can't be read";
 
-/** One pass over Wren's mailbox and every client's sender. */
+/** Why an earlier sender isn't read, in the words the pass keeps. */
+export const GONE = "not connected to read: its late bounces can't be read";
+
+/**
+ * One pass over Wren's mailbox and every client's senders: the one it picked now, and any it
+ * picked within `BOUNCE_LATE_MS` before (a bounce can come back long after the send, to the
+ * mailbox that sent it).
+ */
 export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise<BouncePassStats> {
-  const out: BouncePassStats = { read: {}, skipped: [], failed: [] };
+  const out: BouncePassStats = { read: {}, earlier: [], skipped: [], failed: [] };
   const fail = (client: string, mailbox: string, err: unknown) =>
     out.failed.push({ client, mailbox, error: String(err).slice(0, 300) });
   if (d.wren) {
@@ -53,20 +64,39 @@ export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise
     }
   }
   for (const client of await d.clients()) {
-    let sender = "*";
     try {
       const cdb = d.clientDb(client);
-      const picked = (await readMessageSettings(cdb)).sender;
-      if (!picked) continue;
-      sender = picked.trim().toLowerCase();
-      const box = (await d.boxesOf(client)).find((b) => b.address.toLowerCase() === sender);
-      if (!box) {
-        out.skipped.push({ client, mailbox: sender, why: SEND_ONLY });
-        continue;
+      const picked = (await readMessageSettings(cdb)).sender?.trim().toLowerCase() ?? null;
+      const boxes = await d.boxesOf(client);
+      const boxOf = (address: string) => boxes.find((b) => b.address.toLowerCase() === address);
+      // Each mailbox on its own, so one that won't read doesn't stop the next.
+      if (picked) {
+        const box = boxOf(picked);
+        if (!box) out.skipped.push({ client, mailbox: picked, why: SEND_ONLY });
+        else {
+          try {
+            await noteBounceSender(cdb, box.address, now);
+            out.read[client] = await readBounces(cdb, box, now);
+          } catch (err) {
+            fail(client, picked, err);
+          }
+        }
       }
-      out.read[client] = await readBounces(cdb, box, now);
+      for (const earlier of await bounceMailboxes(cdb, now)) {
+        if (earlier === picked) continue;
+        const box = boxOf(earlier);
+        if (!box) {
+          out.skipped.push({ client, mailbox: earlier, why: GONE });
+          continue;
+        }
+        try {
+          out.earlier.push({ client, ...(await readBounces(cdb, box, now)) });
+        } catch (err) {
+          fail(client, earlier, err);
+        }
+      }
     } catch (err) {
-      fail(client, sender, err);
+      fail(client, "*", err);
     }
   }
   return out;

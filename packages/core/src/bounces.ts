@@ -17,7 +17,7 @@
 import { randomUUID } from "node:crypto";
 import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import {
   type BounceClass,
   type BounceMatch,
@@ -28,6 +28,13 @@ import { addSuppression } from "./suppress.js";
 
 /** How far back a report's address finds its send: mail servers give up within five days. */
 export const BOUNCE_LOOKBACK_MS = 7 * 86_400_000;
+
+/**
+ * How long a mailbox is read after it last sent. A server retries for up to five days before it
+ * returns a report, and the report may sit in the listing a while; the rest is a week of margin
+ * for a loop that was off or a connection that lapsed.
+ */
+export const BOUNCE_LATE_MS = 14 * 86_400_000;
 
 /** One delivery report, as read from the mailbox. */
 export interface BounceReport {
@@ -208,12 +215,42 @@ export async function recordBounce(db: Queryable, r: BounceReport): Promise<Boun
   });
 }
 
+/** A mailbox as the check records keep it: addresses differ by case between a setting and a connection. */
+const readKey = (mailbox: string): string => mailbox.trim().toLowerCase();
+
+/**
+ * This mailbox is the workspace's sender at `at`. It stays readable for `BOUNCE_LATE_MS` after
+ * the last time this is said, which is how a bounce to a sender the workspace has since dropped
+ * still gets read. Never moves back; keeps an earlier check where it stands.
+ */
+export async function noteBounceSender(db: Queryable, mailbox: string, at: Date): Promise<void> {
+  await db
+    .insert(mailBounceReads)
+    .values({ mailbox: readKey(mailbox), readAt: null, lastSenderAt: at })
+    .onConflictDoUpdate({
+      target: mailBounceReads.mailbox,
+      set: {
+        lastSenderAt: sql`greatest(${mailBounceReads.lastSenderAt}, excluded.last_sender_at)`,
+      },
+    });
+}
+
+/** The mailboxes that sent within `BOUNCE_LATE_MS` of `now`, newest sender first. */
+export async function bounceMailboxes(db: Queryable, now: Date): Promise<string[]> {
+  const got = await db
+    .select({ mailbox: mailBounceReads.mailbox })
+    .from(mailBounceReads)
+    .where(gt(mailBounceReads.lastSenderAt, new Date(now.getTime() - BOUNCE_LATE_MS)))
+    .orderBy(desc(mailBounceReads.lastSenderAt));
+  return got.map((g) => g.mailbox);
+}
+
 /** When this mailbox was last checked, or null before its first check. */
 export async function bouncesReadAt(db: Queryable, mailbox: string): Promise<Date | null> {
   const [r] = await db
     .select({ at: mailBounceReads.readAt })
     .from(mailBounceReads)
-    .where(eq(mailBounceReads.mailbox, mailbox));
+    .where(eq(mailBounceReads.mailbox, readKey(mailbox)));
   return r?.at ?? null;
 }
 
@@ -226,7 +263,7 @@ export async function markBouncesRead(
 ): Promise<void> {
   await db
     .insert(mailBounceReads)
-    .values({ mailbox, readAt: at, stats })
+    .values({ mailbox: readKey(mailbox), readAt: at, stats })
     .onConflictDoUpdate({
       target: mailBounceReads.mailbox,
       set: {

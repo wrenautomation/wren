@@ -8,6 +8,7 @@
  * no network.
  */
 import { readFileSync } from "node:fs";
+import { BOUNCE_LATE_MS } from "@wren/core/bounces";
 import {
   type BroadcastMail,
   decideBroadcast,
@@ -29,7 +30,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { gmailMailbox, graphMailbox } from "../../src/access/mailbox.js";
 import { BOUNCE_QUERY } from "../../src/inbox/marketing-bounces.js";
-import { readAllBounces, SEND_ONLY } from "../../src/restate/bounce-scheduler.js";
+import { GONE, readAllBounces, SEND_ONLY } from "../../src/restate/bounce-scheduler.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -444,5 +445,93 @@ describe("clients' mailboxes", () => {
     expect(await run(pg.db, sql`select id from mail_bounces`)).toEqual([]);
     expect(await run(open("beta"), sql`select id from mail_bounces`)).toEqual([]);
     expect(await run(open("beta"), sql`select mailbox from mail_bounce_reads`)).toEqual([]);
+  });
+
+  /** A fresh client with this sender picked, and a pass over just it with these mailboxes connected. */
+  async function clientWith(id: string, sender: string) {
+    await addClient(pg.db, pg.url, { id, name: id, products: {} });
+    const cdb = cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
+    await saveMessageSettings(cdb, { sender }, BY);
+    const pass = (boxes: Mailbox[], at: Date) =>
+      readAllBounces(
+        {
+          db: pg.db,
+          wren: null,
+          clientDb: () => cdb,
+          clients: async () => [id],
+          boxesOf: async () => boxes,
+        },
+        at,
+      );
+    return { cdb, pass };
+  }
+
+  it("after a client changes sender, a late bounce to the old mailbox is still read", async () => {
+    const { cdb, pass } = await clientWith("cove", "ann@cove.example");
+    const mailed = await broadcastTo(cdb, ["lost@patient.example"]);
+    const quiet = fakeMail({});
+    // Ann is the sender and nothing has come back yet.
+    expect((await pass([quiet.gmail("ann@cove.example")], NOW)).read.cove).toMatchObject({
+      mailbox: "ann@cove.example",
+      listed: 0,
+    });
+    // The client picks Cy. Ann's mailbox, still connected, gets the late report.
+    await saveMessageSettings(cdb, { sender: "cy@cove.example" }, BY);
+    const late = fakeMail({
+      g1: {
+        raw: report(
+          "gmail_dsn_hard",
+          mailed.get("lost@patient.example") as string,
+          "lost@patient.example",
+          "nobody@example.com",
+        ),
+        at: new Date(NOW.getTime() + HOUR),
+      },
+    });
+    const done = await pass(
+      [quiet.gmail("cy@cove.example"), late.gmail("ann@cove.example")],
+      new Date(NOW.getTime() + 2 * HOUR),
+    );
+    expect(done.read.cove).toMatchObject({ mailbox: "cy@cove.example", listed: 0 });
+    expect(done.earlier).toMatchObject([
+      { client: "cove", mailbox: "ann@cove.example", suppressed: 1 },
+    ]);
+    expect(done.failed).toEqual([]);
+    expect(await suppressed(cdb)).toMatchObject([
+      { value: "lost@patient.example", reason: "bounce" },
+    ]);
+    expect(await stateOf(cdb, "lost@patient.example")).toBe("bounced");
+    // Each mailbox keeps its own check, in the workspace's own database.
+    expect(
+      await run(
+        cdb,
+        sql`select mailbox, read_at is not null as read from mail_bounce_reads order by mailbox`,
+      ),
+    ).toEqual([
+      { mailbox: "ann@cove.example", read: true },
+      { mailbox: "cy@cove.example", read: true },
+    ]);
+  });
+
+  it("an earlier sender is read for the late window, then dropped", async () => {
+    const { cdb, pass } = await clientWith("dune", "ann@dune.example");
+    // The change itself notes Ann as an earlier sender: no pass saw her first.
+    await saveMessageSettings(cdb, { sender: "cy@dune.example" }, BY);
+    const quiet = fakeMail({});
+    const boxes = [quiet.gmail("cy@dune.example"), quiet.gmail("ann@dune.example")];
+    const inside = await pass(boxes, new Date(Date.now() + BOUNCE_LATE_MS - HOUR));
+    expect(inside.earlier.map((e) => e.mailbox)).toEqual(["ann@dune.example"]);
+    const past = await pass(boxes, new Date(Date.now() + BOUNCE_LATE_MS + HOUR));
+    expect(past.earlier).toEqual([]);
+    expect(past.read.dune).toMatchObject({ mailbox: "cy@dune.example" });
+  });
+
+  it("an earlier sender that is no longer connected is skipped, not failed", async () => {
+    const { cdb, pass } = await clientWith("edge", "ann@edge.example");
+    await saveMessageSettings(cdb, { sender: "cy@edge.example" }, BY);
+    const done = await pass([fakeMail({}).gmail("cy@edge.example")], new Date());
+    expect(done.skipped).toEqual([{ client: "edge", mailbox: "ann@edge.example", why: GONE }]);
+    expect(done.failed).toEqual([]);
+    expect(done.read.edge).toMatchObject({ mailbox: "cy@edge.example" });
   });
 });

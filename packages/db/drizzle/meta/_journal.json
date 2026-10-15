@@ -1821,6 +1821,13 @@
       "when": 1792011205951,
       "tag": "0259_pay_money",
       "breakpoints": true
+    },
+    {
+      "idx": 260,
+      "version": "7",
+      "when": 1792028607685,
+      "tag": "0260_bounce_senders",
+      "breakpoints": true
     }
   ]
 }

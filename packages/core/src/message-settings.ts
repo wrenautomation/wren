@@ -10,6 +10,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { and, count, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { noteBounceSender } from "./bounces.js";
 import { profileOf } from "./profiles.js";
 import { marketingSends, messageSettings, type SendChannel } from "./schema.js";
 import { normalizeValue } from "./suppress.js";
@@ -104,6 +105,8 @@ export async function saveMessageSettings(
       target: messageSettings.id,
       set: { ...next, updatedBy: by.slice(0, 200), updatedAt: new Date() },
     });
+  // The sender it leaves still gets bounces for what it sent (`BOUNCE_LATE_MS`).
+  if (now.sender && now.sender !== next.sender) await noteBounceSender(db, now.sender, new Date());
   return next;
 }
 
