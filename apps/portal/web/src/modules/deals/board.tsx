@@ -188,7 +188,7 @@ function Column({
         <h2
           className={cx(
             "m-0 text-[13.5px] font-semibold",
-            stage.kind === "won" && "text-(--ui-good)",
+            stage.kind === "won" && "text-(--ui-good-ink)",
             stage.kind === "lost" && "text-(--ui-ink-3)",
           )}
         >

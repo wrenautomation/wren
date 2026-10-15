@@ -221,7 +221,8 @@ describe("setLook", () => {
         installed: ["other", "reactivation"],
         role: "owner",
         can: ["read", "act", "money", "manage", "comment"],
-        flags: {},
+        // Migration 0268 seeds post_now, off for every client but wren_test.
+        flags: { post_now: "off" },
       },
     ]);
     await api().setLook({ viewer, client: "acme", look: null });
