@@ -111,7 +111,8 @@ Input: an OBS recording. One file (OBS scene, cam already placed; give --cam onc
 Shorts can crop it), or a folder with the recording and the camera file. For the camera file:
 OBS > Tools > Source Record on the camera source, same folder as the main recording. The two are
 lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and camera files, lined
-up by Cap's start times. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
+up by Cap's start times. Needs: brew install whisper-cpp, the model in ~/.cache/wren/whisper, and
+WhisperX in ~/.cache/wren/whisperx (the error says how), which re-times each word; --no-align skips it.`;
 
 /** What `render --only` takes: a format, or the Shorts or thumbnails alone. */
 const PARTS = RENDER_PARTS;
@@ -182,11 +183,19 @@ export function registerStudio(
     .option("--cam <x,y,w,h>", "one-file recordings: the cam box in pixels")
     .option("--offset <s>", "camera minus main seconds, when the camera file has no audio", Number)
     .option("--model <file>", "a whisper.cpp model other than large-v3-turbo")
+    .option("--no-align", "keep whisper's word times (skip the WhisperX pass)")
     .addHelpText("after", OBS_NOTE)
     .action(
       async (
         input: string,
-        o: { script?: string; account?: string; cam?: string; offset?: number; model?: string },
+        o: {
+          script?: string;
+          account?: string;
+          cam?: string;
+          offset?: number;
+          model?: string;
+          align: boolean;
+        },
       ) => {
         const camBox = o.cam?.split(",").map(Number);
         if (camBox && (camBox.length !== 4 || camBox.some((n) => !(n >= 0))))
@@ -208,6 +217,7 @@ export function registerStudio(
             ...(camBox ? { camBox: camBox as [number, number, number, number] } : {}),
             ...(o.offset !== undefined ? { offsetS: o.offset } : {}),
             ...(o.model ? { model: resolve(o.model) } : {}),
+            ...(o.align ? {} : { align: false }),
             log: (l) => console.log(l),
           }),
         );

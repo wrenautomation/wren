@@ -135,6 +135,8 @@ export interface AddOptions {
   /** Camera minus main seconds, when the camera file has no audio to sync by. */
   offsetS?: number;
   model?: string;
+  /** false: whisper's own word times, no WhisperX pass. */
+  align?: boolean;
   log?: (line: string) => void;
 }
 
@@ -181,12 +183,15 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
       db,
       { command: "video add", argv: { input, main: main.path, cam: cam?.path ?? null } },
       async () => {
-        log("transcribing (whisper.cpp)");
+        log(
+          o.align === false ? "transcribing (whisper.cpp)" : "transcribing (whisper.cpp, WhisperX)",
+        );
         const wav = join(dir, "audio-16k.wav");
         await wav16k(main.path, wav, o.ffmpeg);
         const started = Date.now();
         const heard = await transcribe(wav, {
           ...(o.model ? { model: o.model } : {}),
+          ...(o.align === false ? { align: false } : {}),
           ...(known.length ? { prompt: known.join(", ") } : {}),
         });
         log(`${heard.length} words in ${((Date.now() - started) / 1000).toFixed(1)}s`);

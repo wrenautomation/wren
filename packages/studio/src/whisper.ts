@@ -2,12 +2,14 @@
  * whisper.cpp on this Mac's GPU (Metal): `brew install whisper-cpp`, the large-v3-turbo model in a
  * cache outside the repo. One word per segment (`-ml 1 -sow`), so each word keeps its own times.
  * Silero VAD splits on pauses first, which keeps words from smearing across the long ones.
+ * Then WhisperX re-times the same words (align.ts) unless `align: false`.
  */
 import { execFile } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { alignWords } from "./align.js";
 import type { Word } from "./schema.js";
 
 const run = promisify(execFile);
@@ -32,7 +34,14 @@ export function wordsOf(json: WhisperJson): Word[] {
 
 export async function transcribe(
   wav: string,
-  opts: { model?: string; bin?: string; language?: string; prompt?: string } = {},
+  opts: {
+    model?: string;
+    bin?: string;
+    language?: string;
+    prompt?: string;
+    /** Re-time the words with WhisperX (default on). */
+    align?: boolean;
+  } = {},
 ): Promise<Word[]> {
   const model = opts.model ?? WHISPER_MODEL;
   await access(model).catch(() => {
@@ -68,5 +77,7 @@ export async function transcribe(
   ).catch((e: Error & { code?: string }) => {
     throw e.code === "ENOENT" ? new Error("whisper-cli not found: brew install whisper-cpp") : e;
   });
-  return wordsOf(JSON.parse(await readFile(`${out}.json`, "utf8")) as WhisperJson);
+  const words = wordsOf(JSON.parse(await readFile(`${out}.json`, "utf8")) as WhisperJson);
+  if (opts.align === false) return words;
+  return alignWords(wav, words, opts.language ? { language: opts.language } : {});
 }

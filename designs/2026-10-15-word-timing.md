@@ -33,3 +33,39 @@ Filler (um/uh) detection. Diarization. Swapping the transcriber.
 ## Report
 
 The numbers table, the call, commits.
+
+## Result (2026-10-15)
+
+Call: **WhisperX wins.** It ships as `align.ts`, on by default behind `transcribe()`. DTW loses; no code kept.
+
+Clips (kept outside the repo, in `~/.cache/wren/timing`): a 43 s Short span, a 60 s long-form minute, and a 60 s minute picked for the most pauses (the only one with many silence cuts). Truth: 10 ms energy, a speech core 25 dB under the take's p95 level (50 ms or longer, so clicks don't count), edges where it drops 35 dB under, pauses of 250 ms or more. 36 edges were checked on a spectrogram, picked where the candidates disagreed most. The first, floor-based threshold counted breaths and mouth clicks as speech; this one doesn't. Truth can still end ~200 ms early on a soft voiced tail, and it counts an untranscribed um as speech. Errors are after `fitWords`, which is what gets stored.
+
+Pause edges, all three clips (135 edges):
+
+| | start p50 | start p90 | end p50 | end p90 | **all p90** | words in a pause |
+|---|---|---|---|---|---|---|
+| now | 190 ms | 1030 | 90 | 580 | **900** | 52 |
+| dtw | 150 | 720 | 90 | 760 | **730** (-19%) | 44 |
+| whisperx | 19 | 512 | 37 | 163 | **356** (-60%) | 9 |
+
+All-edge p90 per clip: Short 650 / 450 / 356, long-form 440 / 410 / 244, pauses 1310 / 1170 / 512 (now / dtw / whisperx).
+
+Silence cuts from `cuts.ts`, pause clip (truth gives 24 cuts, 14.9 s of dead air kept):
+
+| | cuts | speech clipped | dead air kept |
+|---|---|---|---|
+| now | 13 | 0 ms | 26.4 s |
+| dtw | 16 | 0 ms | 28.8 s |
+| whisperx | 23 | 0 ms | 15.9 s |
+
+Whole 13 min take (same truth rule, not spectrogram-checked): p90 550 → 260 ms, cuts 19 → 37 (truth 38), dead air kept 163.8 → 156.3 s, nothing clipped.
+
+Wall time on this Mac (busy, load ~30): whisper 4-6 s a minute clip; dtw needs flash attention off (`-nfa`), 3-18 s; WhisperX adds ~8 s a clip, ~6 s of it model load. The 13 min take: whisper 110 s, align 46 s more, 0.2x realtime. Python peaks at ~1.5 GB while it runs.
+
+Where WhisperX still misses: a word whisper heard wrong, or an um it left out. The aligner then stretches a neighbour over the um or puts a start early. Those are the p90 tail. DTW gives one time per token, so ends still come from whisper's segments and stay smeared.
+
+## What shipped
+
+- `packages/studio/src/align.ts`: `alignSegments` (sentence or 15 s runs, half a second of pad, never past a neighbour), the WhisperX call (one `align` per segment, CPU, 4 threads), `mergeAligned` (aligner times; a word it can't place keeps whisper's, clamped so nothing overlaps). Same `Word[]`, same count.
+- `transcribe(wav, { align })`: on unless `align: false`. `wren video add --no-align` skips it.
+- Setup, outside the repo: `uv venv --python 3.11 ~/.cache/wren/whisperx/.venv && uv pip install --python ~/.cache/wren/whisperx/.venv/bin/python whisperx==3.8.6`. The wav2vec2 base model (~360 MB) downloads on first run. No HF token, no diarization.
