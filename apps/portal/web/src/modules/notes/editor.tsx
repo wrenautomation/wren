@@ -4,6 +4,7 @@
  */
 import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import { makeChips } from "@wren/notes/chips";
 import type { NoteJson } from "@wren/notes/types";
 import { cx, Icon, Input, say, tipProps } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -747,6 +748,11 @@ export function NoteEditor({
   const heldMention = useRef<Menu | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   const resolve = useMemo(() => resolverOf(client, id), [client, id]);
+  // The note's card chips read where each card is now, all in one call.
+  const chips = useMemo(
+    () => makeChips((ids) => notes(client, "cardChips", { ids }).then((r) => r.cards)),
+    [client],
+  );
   const editorRef = useRef<Editor | null>(null);
 
   const putImages = async (files: File[], at?: number) => {
@@ -771,6 +777,7 @@ export function NoteEditor({
       extensions: extensionsOf({
         doc,
         resolve,
+        cards: chips,
         slash: menuRender(setMenu, heldMenu),
         image: () => picker.current?.click(),
         mention: {

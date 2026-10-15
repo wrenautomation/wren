@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./chips": "./src/chips.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
     "./diff": "./src/diff.ts",

@@ -54,6 +54,7 @@ export const NOTES_CONSOLE_ROUTES = {
   board: "read",
   task: "read",
   taskMoves: "read",
+  cardChips: "read",
   taskExport: "read",
   recordsTypes: "read",
   recordsList: "read",
@@ -71,6 +72,8 @@ export const NOTES_CONSOLE_ROUTES = {
   taskClose: "act",
   taskBlock: "act",
   taskFromLine: "act",
+  // Claude proposes cards from a note; nothing is written until the picks go to taskFromLine.
+  cardsPropose: "act",
   taskImport: "act",
 } as const satisfies Record<string, Need>;
 
@@ -117,5 +120,6 @@ export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[
   "taskClose",
   "taskBlock",
   "taskFromLine",
+  "cardsPropose",
   "taskImport",
 ];

@@ -9,6 +9,7 @@ import { createDb, type DbHandle, migrate } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { notesApi } from "../../src/console.js";
+import { createNote } from "../../src/store.js";
 
 let pg: TestPostgres;
 let acme: DbHandle;
@@ -171,6 +172,105 @@ describe("board and cards", () => {
     expect((await api().home({ viewer: ADA, view: "all" })).notes.map((x) => x.name)).toEqual([
       "Launch plan",
     ]);
+  });
+
+  it("turns a note into proposed cards, then adds the picks with owner, due and board", async () => {
+    const note = await createNote(pg.db, {
+      owner: "ada@example.test",
+      by: "ada@example.test",
+      title: "Launch plan",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Book the venue, " },
+              { type: "mention", attrs: { id: "person:oz@example.test", label: "Oz" } },
+            ],
+          },
+          { type: "paragraph", content: [{ type: "text", text: "Order the signs" }] },
+        ],
+      },
+    });
+    const asked: string[] = [];
+    const model = (cards: unknown[]) => async (p: string) => {
+      asked.push(p);
+      return JSON.stringify({ cards });
+    };
+    const withModel = (write: ((p: string) => Promise<string>) | null) =>
+      notesApi({ main: pg.db, open: () => acme.db, zone: "UTC", write });
+    const proposed = await withModel(
+      model([
+        {
+          title: "Book the venue",
+          owner: "oz@example.test",
+          due: "2026-10-20",
+          line: "Book the venue, @Oz",
+        },
+        { title: "Order the signs", owner: "ghost@example.test", line: "Order the signs" },
+      ]),
+    ).cardsPropose({ viewer: ADA, id: note.id });
+    expect(asked[0]).toContain("oz@example.test (shown as @Oz)");
+    expect(proposed.cards).toEqual([
+      {
+        title: "Book the venue",
+        owner: "oz@example.test",
+        due: "2026-10-20",
+        line: "Book the venue, @Oz",
+      },
+      { title: "Order the signs", owner: null, due: null, line: "Order the signs" },
+    ]);
+    // Nothing written yet: the Work board is empty.
+    const { boards } = await api().boards({ viewer: ADA });
+    const work = boards[0]?.id as string;
+    expect((await api().board({ viewer: ADA, id: work })).cards).toEqual([]);
+    await refused(withModel(null).cardsPropose({ viewer: ADA, id: note.id }), 503);
+    await refused(withModel(model([])).cardsPropose({ viewer: ADA, id: note.id }), 422);
+
+    const other = await api().boardCreate({ viewer: ADA, name: "Launch" });
+    const made = await api().taskFromLine({
+      viewer: ADA,
+      id: note.id,
+      board: other.id,
+      lines: proposed.cards.map(({ title, owner, due }) => ({ title, owner, due })),
+    });
+    expect(made.board).toBe("Launch");
+    const first = await api().task({ viewer: ADA, id: made.cards[0]?.id as string });
+    expect([first.assignee, first.due]).toEqual(["oz@example.test", "2026-10-20"]);
+  });
+
+  it("reads where a note's cards stand now, in one call, for the cards a viewer may open", async () => {
+    const n = await api().create({ viewer: ADA, title: "Launch plan" });
+    const made = await api().taskFromLine({ viewer: ADA, id: n.id, lines: ["Book", "Order"] });
+    const [a, b] = made.cards;
+    const ids = [a?.id, b?.id] as string[];
+    const column = async (viewer: unknown) =>
+      Object.fromEntries(
+        (await api().cardChips({ viewer: viewer as never, ids })).cards.map((c) => [
+          c.id,
+          [c.column, c.closed],
+        ]),
+      );
+    expect(await column(ADA)).toEqual({
+      [ids[0] as string]: ["To do", false],
+      [ids[1] as string]: ["To do", false],
+    });
+    await api().taskMove({ viewer: ADA, id: ids[0], column: "doing" });
+    await api().taskMove({ viewer: ADA, id: ids[1], column: "done" });
+    expect(await column(ADA)).toEqual({
+      [ids[0] as string]: ["Doing", false],
+      [ids[1] as string]: ["Done", true],
+    });
+    // A private board's card isn't read for someone it isn't shared with; unknown ids are skipped.
+    const priv = await api().boardCreate({ viewer: ADA, name: "Private" });
+    const hidden = await api().taskAdd({ viewer: ADA, title: "Hidden", board: priv.id });
+    const seen = await api().cardChips({
+      viewer: OZ,
+      ids: [hidden.id, ids[0] as string, "00000000-0000-4000-8000-000000000000"],
+    });
+    expect(seen.cards.map((c) => c.id)).toEqual([ids[0]]);
+    expect((await api().cardChips({ viewer: ADA, ids: ["nope"] })).cards).toEqual([]);
   });
 
   it("serves the cards as records", async () => {

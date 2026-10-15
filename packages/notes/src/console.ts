@@ -127,6 +127,8 @@ export interface NotesDeps {
   mail?: { send: SendMention; portal: string } | undefined;
   /** Selected words made real elsewhere; each left out says it's off here. */
   turns?: NoteTurns | undefined;
+  /** The model, for Turn into cards; left out or null, it says it's off here. */
+  write?: ((prompt: string) => Promise<string>) | null | undefined;
 }
 
 /** Where selected words go: Marketing's drafts, an SOP. The worker wires them; notes can't import them. */
@@ -368,7 +370,7 @@ export function notesApi(deps: NotesDeps) {
   const sharesOut = async (db: Db, id: string) =>
     (await sharesOf(db, id)).map((s) => ({ who: s.who, role: s.role, by: s.by, at: iso(s.at) }));
 
-  const boards = boardsApi({ main, placeOf, readerOf, byOf, locate });
+  const boards = boardsApi({ main, placeOf, readerOf, byOf, locate, write: deps.write ?? null });
 
   /** The cards as records, over this workspace's database, for the Board's List. */
   const cardRecords = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
@@ -1310,10 +1312,32 @@ const INPUTS = {
     blockedBy: ID.describe("The card it waits on"),
     on: z.boolean().optional().describe("False stops waiting"),
   },
+  cardChips: {
+    ids: z
+      .array(ID)
+      .min(1)
+      .max(100)
+      .describe("A note's cards: where each stands now, for the chips on its lines"),
+  },
   taskFromLine: {
     id: ID.describe("The note the lines are in"),
-    lines: z.array(z.string().max(500)).min(1).max(50).describe("One card each"),
+    lines: z
+      .array(
+        z.union([
+          z.string().max(500),
+          z.object({
+            title: z.string().max(500),
+            owner: z.string().max(320).nullable().optional(),
+            due: z.string().max(10).nullable().optional(),
+          }),
+        ]),
+      )
+      .min(1)
+      .max(50)
+      .describe("One card each: a line, or a Turn into cards pick with its owner and due"),
+    board: ID.optional().describe("The board; the Work board when left out"),
   },
+  cardsPropose: { id: ID.describe("The note Claude reads") },
   taskImport: {
     id: ID.describe("The board's id"),
     rows: z
@@ -1402,6 +1426,7 @@ export function makeNotesConsole(deps: NotesDeps) {
       task: read("task"),
       taskMoves: read("taskMoves"),
       taskExport: read("taskExport"),
+      cardChips: read("cardChips"),
       recordsTypes: read("recordsTypes"),
       recordsList: read("recordsList"),
       recordsGet: read("recordsGet"),
@@ -1418,6 +1443,8 @@ export function makeNotesConsole(deps: NotesDeps) {
       taskClose: write("taskClose", "task close"),
       taskBlock: write("taskBlock", "task block"),
       taskFromLine: write("taskFromLine", "task from line"),
+      // Journaled, so a retry never asks the model twice.
+      cardsPropose: write("cardsPropose", "propose cards"),
       taskImport: write("taskImport", "task import"),
     },
   });

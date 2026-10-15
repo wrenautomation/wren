@@ -16,6 +16,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
+import { type Chips, chipCardId, chipWords } from "@wren/notes/chips";
 import { Y_BODY } from "@wren/notes/types";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -207,6 +208,92 @@ const NoteImage = Image.extend<
   },
 });
 
+// ---- Card chips ------------------------------------------------------------------------------
+
+const chipKey = new PluginKey("card-chips");
+
+/** The card ids behind a doc's "Card: <column>" chips. */
+function chipIds(doc: PmNode): string[] {
+  const out = new Set<string>();
+  doc.descendants((n) => {
+    if (n.type.name !== "mention") return;
+    const id = chipCardId(n.attrs);
+    if (id) out.add(id);
+  });
+  return [...out];
+}
+
+/**
+ * A mention whose words come from the page: a card's chip shows the column the card is in now
+ * (Finish pass, live chip). The cards of a note are read together once it renders, again when new
+ * chips arrive and when the tab comes back to the front. Until then, or if a card can't be read,
+ * the chip shows the words saved in the note. Other mentions render as before.
+ */
+const LiveMention = Mention.extend({
+  addOptions() {
+    return { ...this.parent?.(), chips: null } as never;
+  },
+  addNodeView() {
+    const chips = (this.options as unknown as { chips: Chips | null }).chips;
+    return ({ node }) => {
+      let current = node;
+      const dom = document.createElement("span");
+      dom.setAttribute("data-type", "mention");
+      dom.className = "note-mention";
+      const show = () => {
+        const { id, label } = current.attrs as { id?: string; label?: string };
+        dom.setAttribute("data-id", String(id ?? ""));
+        dom.setAttribute("data-label", String(label ?? ""));
+        const card = chips ? chipCardId(current.attrs) : null;
+        const now = card && chips ? chips.get(card) : undefined;
+        dom.classList.toggle("note-mention-done", !!now?.closed);
+        dom.textContent = card ? chipWords(String(label ?? ""), now) : `@${label ?? id ?? ""}`;
+        if (now?.closed) dom.title = "Done";
+        else dom.removeAttribute("title");
+      };
+      show();
+      const stop = chips?.watch(show);
+      return {
+        dom,
+        update: (n: PmNode) => {
+          if (n.type !== current.type) return false;
+          current = n;
+          show();
+          return true;
+        },
+        destroy: () => stop?.(),
+      };
+    };
+  },
+  addProseMirrorPlugins() {
+    const chips = (this.options as unknown as { chips: Chips | null }).chips;
+    const parent = this.parent?.() ?? [];
+    if (!chips) return parent;
+    return [
+      ...parent,
+      new Plugin({
+        key: chipKey,
+        view: (view) => {
+          chips.ask(chipIds(view.state.doc));
+          const back = () => {
+            if (document.visibilityState === "visible") chips.refresh();
+          };
+          document.addEventListener("visibilitychange", back);
+          let last = view.state.doc;
+          return {
+            update: (v) => {
+              if (v.state.doc === last) return;
+              last = v.state.doc;
+              chips.ask(chipIds(last));
+            },
+            destroy: () => document.removeEventListener("visibilitychange", back),
+          };
+        },
+      }),
+    ];
+  },
+});
+
 // ---- All of it -------------------------------------------------------------------------------
 
 export function extensionsOf(o: {
@@ -222,6 +309,8 @@ export function extensionsOf(o: {
   suggest?: { by: string; on: () => boolean; onBlocked: () => void } | undefined;
   /** Comments' highlights; a click picks the thread. */
   comments?: { onPick: (id: string) => void } | undefined;
+  /** Where the note's cards stand now, for the chips on its lines. */
+  cards?: Chips | undefined;
 }): AnyExtension[] {
   return [
     StarterKit.configure({
@@ -237,7 +326,8 @@ export function extensionsOf(o: {
     TableHeader,
     TableCell,
     NoteImage.configure({ resolve: o.resolve, allowBase64: false } as never),
-    Mention.configure({
+    LiveMention.configure({
+      chips: o.cards ?? null,
       HTMLAttributes: { class: "note-mention" },
       renderText: ({ node }: { node: { attrs: { label?: string; id?: string } } }) =>
         `@${node.attrs.label ?? node.attrs.id}`,

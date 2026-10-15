@@ -5,11 +5,11 @@
  */
 import type { Editor } from "@tiptap/core";
 import type { Node as PmNode } from "@tiptap/pm/model";
+import { CARD_LABEL } from "@wren/notes/chips";
 import { say } from "@wren/ui";
 import { notes } from "./api.js";
 
-/** A line that already has a card carries a link whose label starts with this. */
-export const CARD_LABEL = "Card: ";
+export { CARD_LABEL };
 
 const hasCard = (n: PmNode) => {
   let found = false;

@@ -22,7 +22,9 @@ import {
   shareBoard,
   TaskRefusal,
 } from "./boards.js";
-import { nameOf } from "./doc.js";
+import { CHIPS_PER_READ } from "./chips.js";
+import { linksOf, nameOf } from "./doc.js";
+import { type Mentioned, proposePrompt, readProposal } from "./propose.js";
 import type { Board, Note } from "./schema.js";
 import { cardIdIn } from "./sheet.js";
 import { isNoteId } from "./store.js";
@@ -73,6 +75,8 @@ export interface Hooks {
     home: string;
     as: Omit<Reader, "cap">;
   }>;
+  /** The model, for Turn into cards; null where none runs. */
+  write: ((prompt: string) => Promise<string>) | null;
 }
 
 const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
@@ -469,27 +473,64 @@ export function boardsApi(h: Hooks) {
     },
 
     /**
-     * Cards from a note's lines (a checklist item each): on the workspace's Work board, each
-     * body pointing back at the note. The web puts the card's link on the line.
+     * Turn into cards: Claude reads the note and proposes cards, owners only from the people it
+     * @-mentions. Writes nothing; the person ticks which to add (`taskFromLine`).
      */
-    async taskFromLine(req: Req<{ id?: unknown; lines?: unknown }>) {
+    async cardsPropose(req: Req<{ id?: unknown }>) {
+      if (!h.write) throw new PortalRefusal("Claude isn't set up here", 503);
+      const { note, place } = await h.locate(req, req.id, "view");
+      const reader = await h.readerOf(req, place);
+      if (reader.cap !== "edit") throw new PortalRefusal("your role can't do that", 403);
+      if (!note.text.trim()) throw new PortalRefusal("the note has no words yet", 400);
+      const owners: Mentioned[] = linksOf(note.body)
+        .filter((l) => l.target.startsWith("person:"))
+        .map((l) => ({ id: l.target.slice("person:".length).toLowerCase(), label: l.label }));
+      const raw = await h.write(
+        proposePrompt({
+          title: note.title,
+          text: note.text,
+          owners,
+          today: new Date().toISOString().slice(0, 10),
+        }),
+      );
+      const cards = readProposal(raw, { text: note.text, owners: owners.map((o) => o.id) });
+      if (!cards.length) throw new PortalRefusal("Claude found no cards in this note", 422);
+      return { cards };
+    },
+
+    /**
+     * Cards from a note's lines (a checklist item each), or from Turn into cards' picks with an
+     * owner and due: on the board named, else the workspace's Work board, each body pointing back
+     * at the note. The web puts the card's link on the line.
+     */
+    async taskFromLine(req: Req<{ id?: unknown; lines?: unknown; board?: unknown }>) {
       const { note } = await h.locate(req, req.id, "view");
       const by = h.byOf(req);
       const place = await h.placeOf(req);
       const reader = await h.readerOf(req, place);
       if (reader.cap !== "edit") throw new PortalRefusal("your role can't do that", 403);
       const lines = (Array.isArray(req.lines) ? req.lines : [])
-        .map((l) =>
-          String(l)
-            .replace(/^\s*(?:[-*]\s*)?(?:\[[ xX]\]\s*)?/, "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 300),
-        )
-        .filter(Boolean)
+        .map((l) => {
+          const o: Record<string, unknown> = l && typeof l === "object" ? { ...l } : { title: l };
+          return {
+            title: String(o.title ?? "")
+              .replace(/^\s*(?:[-*]\s*)?(?:\[[ xX]\]\s*)?/, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 300),
+            assignee: typeof o.owner === "string" ? o.owner : null,
+            due: typeof o.due === "string" ? o.due : null,
+          };
+        })
+        .filter((l) => l.title)
         .slice(0, 50);
       if (!lines.length) throw new PortalRefusal("pick a line with words", 400);
-      const board = await defaultBoard(place.db, by);
+      let board = await defaultBoard(place.db, by);
+      if (req.board) {
+        const at = await locateBoard(req, req.board, "edit");
+        if (at.db !== place.db) throw new PortalRefusal("pick a board in this workspace", 400);
+        board = at.board;
+      }
       const label = nameOf(note.title, note.text);
       const body: NoteJson = {
         type: "doc",
@@ -504,8 +545,10 @@ export function boardsApi(h: Hooks) {
         ],
       };
       const cards = [];
-      for (const title of lines) {
-        const made = await refuse(() => createTask(place.db, { board, title, by, body }));
+      for (const { title, assignee, due } of lines) {
+        const made = await refuse(() =>
+          createTask(place.db, { board, title, by, body, assignee, due }),
+        );
         cards.push({
           id: made.id,
           title,
@@ -515,6 +558,32 @@ export function boardsApi(h: Hooks) {
         });
       }
       return { cards, board: board.name };
+    },
+
+    /**
+     * Where a note's cards stand now, for the "Card: <column>" chips: one read for all of them,
+     * only the cards this viewer may open. A card not listed (gone, archived, not theirs) keeps the
+     * words saved in the note.
+     */
+    async cardChips(req: Req<{ ids?: unknown }>) {
+      const ids = [...new Set((Array.isArray(req.ids) ? req.ids : []).filter(isNoteId))].slice(
+        0,
+        CHIPS_PER_READ,
+      );
+      if (!ids.length) return { cards: [] };
+      const place = await h.placeOf(req);
+      const reader = await h.readerOf(req, place);
+      const rows = await listTasks(place.db, { ids, reader, limit: ids.length });
+      const columns = new Map<string, Board["columns"]>();
+      for (const id of new Set(rows.map((r) => r.boardId)))
+        columns.set(id, (await boardById(place.db, id))?.columns ?? []);
+      return {
+        cards: rows.map((r) => ({
+          id: r.id,
+          column: columns.get(r.boardId)?.find((c) => c.id === r.columnId)?.name ?? r.columnId,
+          closed: r.closedAt !== null,
+        })),
+      };
     },
 
     /** A board's cards as rows for a sheet: the web writes the CSV. */

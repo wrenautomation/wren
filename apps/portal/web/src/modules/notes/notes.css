@@ -202,6 +202,11 @@
 .note-body img.ProseMirror-selectednode {
   outline: 2px solid var(--ui-active);
 }
+/* A card's chip once the card is done. */
+.note-body .note-mention.note-mention-done {
+  background: var(--ui-good-tint);
+  color: var(--ui-good-ink);
+}
 .note-body .ProseMirror-selectednode.note-mention {
   outline: 2px solid var(--ui-active);
 }

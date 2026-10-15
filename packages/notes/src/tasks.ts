@@ -181,6 +181,8 @@ export interface TaskFilter {
   blocked?: boolean;
   /** Only cards that carry this label. */
   label?: string;
+  /** Only these cards. */
+  ids?: string[];
   q?: string;
   /** Cards this reader may open; none lists every card (the CLI). */
   reader?: Omit<Reader, "cap">;
@@ -208,6 +210,7 @@ export async function listTasks(db: Queryable, f: TaskFilter = {}): Promise<Task
         ? sql`${openBlockers} > 0`
         : sql`${openBlockers} = 0`,
     f.label?.trim() ? arrayContains(notes.labels, labelsOf(f.label)) : undefined,
+    f.ids ? (f.ids.length ? inArray(notes.id, f.ids) : sql`false`) : undefined,
     f.q?.trim()
       ? or(
           sql`${notes.search} @@ websearch_to_tsquery('english', ${f.q.trim()})`,

@@ -882,6 +882,11 @@ export async function buildServices(
       },
       sop: (o: Parameters<NoteTurns["sop"]>[0]) => askNoteSop(db, o.db, o),
     },
+    // Turn into cards: Claude proposes, the person picks. Only where a real model runs.
+    write:
+      settings.llm === "fake"
+        ? null
+        : (p: string) => llm.complete(p, { maxTokens: 4000 }).then((r) => r.text),
     drive: googleDrive({
       token: () => {
         driveToken ??= serviceAccountToken(driveKeyOf(), { scopes: [DRIVE_READ_SCOPE] });
