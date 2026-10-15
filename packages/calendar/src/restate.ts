@@ -37,6 +37,7 @@ import {
   bookingById,
   cancelBooking,
   claim,
+  heldBy,
   mirror,
   moveBooking,
   SlotTaken,
@@ -361,6 +362,20 @@ export function calendarFlows(deps: CalendarDeps) {
       application: req.application?.trim() || null,
       source,
     };
+    // Booked already, by them, at this time: the same answer again, nothing mailed twice.
+    const again = await ctx.run("again", async () => {
+      const b = await heldBy(db, deps.calendar, start, email);
+      return b ? b.id : null;
+    });
+    if (again !== null)
+      return ctx.run("view", async () => {
+        const b = await bookingById(db, again);
+        if (!b) throw new Error(`booking ${again} is gone`);
+        return {
+          ...viewOf(b, rules.title, now),
+          manage: manageUrl(deps.site, secret, again, scope),
+        };
+      });
     const id = await ctx.run("claim", async () => {
       try {
         const row = await claim(db, { calendar: deps.calendar, rules, start, booker, now, busy });

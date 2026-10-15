@@ -19,6 +19,7 @@ import {
   type Booker,
   cancelBooking,
   claim,
+  heldBy,
   mirror,
   moveBooking,
   SlotTaken,
@@ -100,7 +101,11 @@ describe("claim", () => {
       now: NOW,
       busy: [],
     });
+    // Their own 10:00 is theirs to find again (a lost answer); a cancelled one isn't.
+    expect((await heldBy(pg.db, "wren", AT_10, " ANA@firm.example"))?.id).toBe(first.id);
+    expect(await heldBy(pg.db, "wren", AT_10, "b@firm.example")).toBeNull();
     await cancelBooking(pg.db, { id: first.id, by: "booker", reason: null, now: NOW });
+    expect(await heldBy(pg.db, "wren", AT_10, "ana@firm.example")).toBeNull();
     await take(AT_10, { email: "next@firm.example" });
   });
 });

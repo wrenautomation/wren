@@ -152,6 +152,30 @@ export async function claim(
   }
 }
 
+/**
+ * This booker's own booking at exactly this time, still booked: a second Book after a lost answer
+ * is that booking again, not "taken".
+ */
+export async function heldBy(
+  db: Queryable,
+  calendar: string,
+  start: Date,
+  email: string,
+): Promise<CalendarBooking | null> {
+  const [row] = await db
+    .select()
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.calendar, calendar),
+        eq(bookings.start, start),
+        eq(bookings.email, email.trim().toLowerCase()),
+        eq(bookings.state, "booked"),
+      ),
+    );
+  return row ?? null;
+}
+
 export async function bookingById(db: Queryable, id: number): Promise<CalendarBooking | null> {
   const [row] = await db.select().from(bookings).where(eq(bookings.id, id));
   return row ?? null;
