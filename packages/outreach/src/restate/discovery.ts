@@ -268,8 +268,11 @@ async function readsPass(
   for (let at = 0; at < due.length; at += SUBS_PER_READ) {
     const group = due.slice(at, at + SUBS_PER_READ);
     // Back to the oldest last read in the group (a day for a new place), so no post is missed.
+    // The journal hands `threadsAt` back as text, so it's read through Date.
     const since = Math.min(
-      ...group.map((p) => p.threadsAt?.getTime() ?? now.getTime() - 24 * HOUR),
+      ...group.map((p) =>
+        p.threadsAt ? new Date(p.threadsAt).getTime() : now.getTime() - 24 * HOUR,
+      ),
     );
     await reading(`r/${group.map((p) => p.subreddit).join("+")} new`, async () => {
       const posts = await r.latest(
