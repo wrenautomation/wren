@@ -19,6 +19,7 @@ import {
   X_POST_MAX,
 } from "@wren/core/content/thread";
 import { recordDraft } from "@wren/core/draft-record";
+import { staleRefusal } from "@wren/core/refusal";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
@@ -450,18 +451,6 @@ export const listEdits = (db: Queryable, o: { type?: DraftType; limit?: number }
   draftEdits(db, { ...(o.type ? { records: editRecords(o.type) } : {}), limit: o.limit ?? 5 });
 
 /**
- * The draft moved since the box read it: a conflict, so the page shows both and drops neither
- * (`code: "conflict"` on the wire, as `@wren/core`'s stale refusals).
- */
-export class StaleDraft extends Error {
-  readonly code = "conflict";
-  constructor() {
-    super("This draft changed since you opened it. Look again.");
-    this.name = "StaleDraft";
-  }
-}
-
-/**
  * Write `text` over the draft as one `runs` row that keeps what it replaced: `run` when one is
  * open (an ask), else a new one. `expect`: write only over this text, so a hand edit made
  * meanwhile is never lost.
@@ -486,7 +475,8 @@ export async function writeDraft(
   return atomic(db, async (tx) => {
     const now = await kind.read(tx, id);
     if (!now) throw new Error(GONE);
-    if (o.expect !== undefined && now.draft !== o.expect) throw new StaleDraft();
+    // The draft moved since the box read it: a coded conflict, so the page shows both.
+    if (o.expect !== undefined && now.draft !== o.expect) throw staleRefusal("draft");
     if (text && text.length > now.max)
       throw new Error(
         `"${now.title}": it is ${text.length} characters, over the ${now.max} it can take. Cut it down.`,

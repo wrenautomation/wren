@@ -9,6 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService, draftAnswerOf } from "@wren/core/ask";
+import { PortalRefusal, terminalOf } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
@@ -20,7 +21,6 @@ import {
   askPrompt,
   DRAFT_ASK_REF,
   readDraft,
-  StaleDraft,
   undoDraft,
   writeDraft,
 } from "../draft-ask.js";
@@ -51,9 +51,9 @@ type DraftAskService = { answer: (ctx: restate.Context, req: { id: string }) => 
 const whoOf = byOf;
 /** A refusal is the person's to fix: it fails the call instead of retrying. */
 const refuse = (err: unknown, code = 409) =>
-  err instanceof StaleDraft
-    ? // A save over words that moved: the page shows both (Keep mine / Use theirs).
-      new restate.TerminalError(err.message, { errorCode: 409, metadata: { code: err.code } })
+  err instanceof PortalRefusal
+    ? // A save over words that moved carries code conflict: the page shows Keep mine / Use theirs.
+      terminalOf(err)
     : new restate.TerminalError((err as Error).message, { errorCode: code });
 
 export function makeDraftAsk(db: Db) {

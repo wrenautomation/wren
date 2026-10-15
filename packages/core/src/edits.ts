@@ -16,6 +16,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { type ZodType, z } from "zod";
 import { PortalRefusal } from "./portal.js";
 import type { RecordEdits, RecordType, Values } from "./records.js";
+import { staleRefusal } from "./refusal.js";
 import { type ChangeVia, changes, runs } from "./schema.js";
 
 export type { Values };
@@ -128,8 +129,7 @@ export async function editRecord(
   return serializable(db, async (tx) => {
     const now = await e.read(tx, id);
     if (!now) throw new PortalRefusal(`no such ${type.name.one}`, 404);
-    if (o.expect && versionOf(now) !== o.expect)
-      throw new PortalRefusal(`this ${type.name.one} changed since you opened it; look again`, 409);
+    if (o.expect && versionOf(now) !== o.expect) throw staleRefusal(type.name.one);
     const keys = Object.keys(patch).filter((k) => !same(now[k], patch[k]));
     if (!keys.length) return { values: now, version: versionOf(now), change: null };
     const problem = await e.check?.(patch, now, tx, id);

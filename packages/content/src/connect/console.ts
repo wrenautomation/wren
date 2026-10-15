@@ -118,6 +118,12 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
     /** Where the person signs in as the account. */
     async connect(req: PortalRequest & { platform: SocialPlatform }): Promise<{ url: string }> {
       const c = await writer(req);
+      // The sandbox is synthetic: no real account ever signs in to it.
+      if (c.sandbox)
+        throw new PortalRefusal(
+          "The sandbox can't connect a real account. Connect it on the client itself.",
+          403,
+        );
       const url = await access.connect({ client: c.id, platform: req.platform, by: by(req) });
       return { url };
     },

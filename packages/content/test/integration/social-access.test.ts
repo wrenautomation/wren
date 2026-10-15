@@ -120,6 +120,8 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   await addClient(pg.db, pg.url, { id: "kappa", name: "Kappa", products });
   await addClient(pg.db, pg.url, { id: "lambda", name: "Lambda", products });
+  await addClient(pg.db, pg.url, { id: "sandbox", name: "Sandbox", sandbox: true });
+  await addMember(pg.db, "sandbox", AMY, { role: "owner" });
   await pg.db.execute(sql`insert into operators (email, role) values (${ADMIN}, 'admin')`);
   await addMember(pg.db, "kappa", AMY, { role: "owner" });
   await addMember(pg.db, "kappa", BO, { role: "member" });
@@ -178,6 +180,13 @@ describe("connect", () => {
     await expect(api().connect({ ...as(ADMIN, "wren"), platform: "x" })).rejects.toBeInstanceOf(
       PortalRefusal,
     );
+  });
+
+  it("the sandbox never connects a real account", async () => {
+    await expect(api().connect({ ...as(AMY, "sandbox"), platform: "x" })).rejects.toMatchObject({
+      status: 403,
+      message: expect.stringMatching(/sandbox can't connect/),
+    });
   });
 
   it("the page says each platform's state before anything connects", async () => {
