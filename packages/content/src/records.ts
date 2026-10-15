@@ -20,7 +20,7 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { postAnalytics } from "./analytics/records.js";
 import { DRAFT_CALLS } from "./draft-calls.js";
 import { PLATFORM_SPECS } from "./platforms.js";
@@ -45,6 +45,39 @@ const PLATFORM_STATES: Record<string, State> = cued(
 );
 
 /** What a preview needs past the row: the whole text, the platform's name, cap and feed cut. */
+/** The same idea's other drafts, a platform each: the editor shows them beside this one. */
+export interface Sibling {
+  id: string;
+  platform: Platform;
+  title: string;
+  state: DraftStatus;
+}
+export async function siblingsOf(db: Queryable, draftId: string): Promise<Sibling[]> {
+  const [d] = await db
+    .select({ ideaId: contentDrafts.ideaId })
+    .from(contentDrafts)
+    .where(eq(contentDrafts.id, draftId));
+  if (!d) return [];
+  const rows = await db
+    .select({
+      id: contentDrafts.id,
+      platform: contentDrafts.platform,
+      title: contentDrafts.title,
+      text: contentDrafts.text,
+      state: contentDrafts.status,
+    })
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.ideaId, d.ideaId), ne(contentDrafts.id, draftId)))
+    .orderBy(asc(contentDrafts.createdAt))
+    .limit(20);
+  return rows.map((r) => ({
+    id: r.id,
+    platform: r.platform,
+    title: r.title || r.text.split("\n")[0]?.slice(0, 120) || "Untitled",
+    state: r.state,
+  }));
+}
+
 async function postOf(db: Queryable, draftId: string) {
   const [d] = await db
     .select({
@@ -152,8 +185,17 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       error: text("Last error"),
       scheduled: date("Posts at"),
       created: date("Drafted"),
+      // Its slot once scheduled, else when it was drafted: what "Up next" sorts by.
+      due: date("Due", { listed: false }),
     },
     views: [
+      {
+        id: "next",
+        label: "Up next",
+        where: { state: ["draft", "failed", "approved", "publishing"] },
+        sort: "due",
+        at: "due",
+      },
       {
         id: "waiting",
         label: "Waiting on you",
@@ -207,6 +249,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       shape: await shapeView(db, id, signer),
       ask: await draftTurns(db, "draft", id),
       record: await recordOfPage(db, "draft", id),
+      siblings: await siblingsOf(db, id),
     }),
   });
 

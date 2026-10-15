@@ -34,6 +34,7 @@ import { postExtras, postLooks } from "./posts.js";
 import { withProof } from "./proof.js";
 import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
+import { withSiblings } from "./siblings.js";
 import { SLIDES } from "./slides.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
@@ -1636,12 +1637,15 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.draft",
       empty: {
+        next: "Nothing waits on you or is scheduled. Make something in Write.",
         waiting: "No draft waits on you.",
         scheduled: "Nothing is scheduled.",
         rejected: "Nothing was turned down.",
       },
       actions: DRAFT_ACTIONS,
-      extras: withDraft(POST_DRAFT, withShape()),
+      // One editor for a post wherever it was opened: words, fields, preview, versions, and the
+      // same idea on its other platforms.
+      extras: withDraft(POST_DRAFT, withSiblings(withShape())),
     },
     {
       id: "content",

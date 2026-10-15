@@ -788,6 +788,7 @@ export const draftPeople = pgView("draft_people", {
  * Every draft not yet out (`marketing.draft`): waiting on a person, scheduled, failed or turned
  * down. `title` reads as a post's does; `written` says whether a person changed the model's words.
  * `missing` is what a person must still pick before the yes (TikTok's privacy or disclosure).
+ * `due` is when it goes or would go: its slot once scheduled, else when it was drafted.
  */
 export const marketingDraftRecords = pgView("marketing_draft_records", {
   id: text("id"),
@@ -805,6 +806,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   missing: text("missing"),
   scheduled: timestamp("scheduled", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
+  due: timestamp("due", { withTimezone: true }),
 }).as(sql`
   select d.id::text id, d.platform::text platform,
     coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
@@ -822,7 +824,8 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
         and coalesce(d.extra->>'yourBrand', '') <> 'true'
         and coalesce(d.extra->>'brandedContent', '') <> 'true' then 'disclosure'
       end missing,
-    d.scheduled_for scheduled, d.created_at created
+    d.scheduled_for scheduled, d.created_at created,
+    coalesce(d.scheduled_for, d.created_at) due
   from content_drafts d
   where d.status <> 'published'`);
 
