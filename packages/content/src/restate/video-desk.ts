@@ -51,7 +51,10 @@ export const VIDEO_DESK = { name: "VideoDesk" } as const;
 /** The Mac's render, as autobrowse's desk serves it; no import from that repo. */
 export const STUDIO = { name: "studio" } as const;
 export type StudioService = {
-  render: (ctx: restate.Context, req: { id: number; only?: string }) => Promise<{ ms: number }>;
+  render: (
+    ctx: restate.Context,
+    req: { id: number; only?: string; again?: boolean },
+  ) => Promise<{ ms: number }>;
 };
 
 const ID = { id: z.number().int().positive(), viewer: PORTAL_FIELDS.viewer };
@@ -61,7 +64,10 @@ type Passed = { id: number; by: string; note: string | null };
 type Self = {
   answer: (ctx: restate.Context, req: { run: string }) => Promise<void>;
   editing: (ctx: restate.Context, req: { run: string }) => Promise<void>;
-  rendering: (ctx: restate.Context, req: { id: number; only?: string }) => Promise<void>;
+  rendering: (
+    ctx: restate.Context,
+    req: { id: number; only?: string; again?: boolean },
+  ) => Promise<void>;
 };
 
 /** A refusal is the person's to fix: it fails the call instead of retrying (a conflict keeps its code). */
@@ -223,11 +229,18 @@ export function makeVideoDesk(db: Db) {
 
       /**
        * Queue a render on the Mac: cut, render what changed, previews to S3. Its state shows on
-       * the row. `only` narrows it to one format, the Shorts or the thumbnails.
+       * the row. `only` narrows it to one format, the Shorts or the thumbnails; `again` renders
+       * every output again, whatever its hash says.
        */
       render: serviceHandler(
-        { input: z.looseObject({ ...ID, only: z.enum(RENDER_PARTS).optional() }) },
-        async (ctx: restate.Context, req: One & { only?: string }) => {
+        {
+          input: z.looseObject({
+            ...ID,
+            only: z.enum(RENDER_PARTS).optional(),
+            again: z.boolean().optional().describe("Render every output again, changed or not"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { only?: string; again?: boolean }) => {
           await ctx.run("queue", () =>
             told(
               (async () => {
@@ -245,6 +258,7 @@ export function makeVideoDesk(db: Db) {
           ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({
             id: req.id,
             ...(req.only ? { only: req.only } : {}),
+            ...(req.again ? { again: true } : {}),
           });
           return { queued: true };
         },
@@ -308,11 +322,12 @@ export function makeVideoDesk(db: Db) {
       // Only `render` sends it: waits on the Mac, and says why when the render fails.
       rendering: restate.handlers.handler(
         { ingressPrivate: true },
-        async (ctx: restate.Context, req: { id: number; only?: string }) => {
+        async (ctx: restate.Context, req: { id: number; only?: string; again?: boolean }) => {
           try {
             await ctx.serviceClient<StudioService>(STUDIO).render({
               id: req.id,
               ...(req.only ? { only: req.only } : {}),
+              ...(req.again ? { again: true } : {}),
             });
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;

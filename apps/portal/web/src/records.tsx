@@ -344,6 +344,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("VideoDesk", "ask", { id: num(id), message }),
   "marketing/videoUndo": (id) => handlerCall("VideoDesk", "undo", { id: num(id) }),
   "marketing/videoRender": (id) => handlerCall("VideoDesk", "render", { id: num(id) }),
+  // Every output again, whatever its hash says.
+  "marketing/videoRenderAgain": (id) =>
+    handlerCall("VideoDesk", "render", { id: num(id), again: true }),
   // The editing agent and his verdicts (designs/2026-10-13-video-review.md).
   "marketing/videoAgent": (id, { note }) =>
     handlerCall("VideoDesk", "edit", { id: num(id), note: note || null }),

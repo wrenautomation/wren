@@ -458,6 +458,15 @@ const VIDEO_ACTIONS: Action[] = [
     when: { state: ["added", "edited", "rendered"] },
     done: said("Queued. The Mac renders it; it waits while the Mac is off."),
   },
+  {
+    id: "marketing.videoRenderAgain",
+    label: "Render again",
+    handler: "marketing/videoRenderAgain",
+    confirm:
+      "Render every part again, even the ones that haven't changed? It takes longer than Render.",
+    when: { state: ["added", "edited", "rendered"] },
+    done: said("Queued. The Mac renders it all again; it waits while the Mac is off."),
+  },
   // The page's editor runs these from inside the detail (videos.tsx), never from the head.
   ...(
     [

@@ -407,7 +407,10 @@ const verdictSaved = async <T extends { id: string }, S>(
   try {
     const rows = await f();
     const moved = saved(rows);
-    return { done: rows.map((d) => d.id), ...(moved == null ? {} : { saved: moved as NonNullable<S> }) };
+    return {
+      done: rows.map((d) => d.id),
+      ...(moved == null ? {} : { saved: moved as NonNullable<S> }),
+    };
   } catch (err) {
     // A coded refusal (words that moved since the page drew them) keeps its code.
     if (err instanceof PortalRefusal) throw terminalOf(err);

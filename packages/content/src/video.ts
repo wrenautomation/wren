@@ -963,6 +963,7 @@ export const videoRecord = (signer?: VideoSigner) => {
     thumbs: (db, ids) => videoThumbs(db, ids, signer),
     actions: [
       "marketing.videoRender",
+      "marketing.videoRenderAgain",
       "marketing.videoApprove",
       "marketing.videoApproveShort",
       "marketing.videoApproveVertical",
