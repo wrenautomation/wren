@@ -6,8 +6,8 @@
  */
 import type { Module, ModulePage } from "../../module.js";
 import { broadcastsPage, recipientsPage } from "./broadcasts.js";
-import { channelsPage } from "./channels.js";
 import { PERSON_CARD } from "./cards.js";
+import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
 import { addToSegment, membersPage, segmentsPage } from "./segments.js";
 import { sentPage } from "./sent.js";

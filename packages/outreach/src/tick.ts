@@ -22,7 +22,7 @@
  * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
  * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
-import { SiteCallError } from "@wren/core/content";
+import { mayHavePosted, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import {
   campaignOfRef,
@@ -512,7 +512,13 @@ export async function recordFailure(
     hold(stats, "retry");
     return;
   }
-  if (err instanceof SiteCallError && err.status >= 400 && err.status < 500) {
+  // A send that may have gone through is no refusal: its fate is unknown, never resent.
+  if (
+    err instanceof SiteCallError &&
+    err.status >= 400 &&
+    err.status < 500 &&
+    !mayHavePosted(err.message)
+  ) {
     await db
       .update(reachMessages)
       .set({ state: "failed", stateReason: text })
