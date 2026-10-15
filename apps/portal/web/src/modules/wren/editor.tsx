@@ -8,6 +8,7 @@ import { DOOR_TRIGGERS, UNTIL_WORDS, untilOf } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import {
+  ACTIONS,
   Button,
   cx,
   DictateField,
@@ -25,7 +26,6 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { shown } from "../../pulse.js";
-import { useOnce } from "../../unsaved.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
 import { boxOf, roleOfPart } from "./canvas.js";
@@ -812,7 +812,6 @@ export function AskGraph({
   const askBox = useRef<HTMLInputElement>(null);
   const [run, setRun] = useState<string | null>(pending);
   const [error, setError] = useState<string | null>(null);
-  const once = useOnce();
   useEffect(() => {
     if (!run) return;
     let live = true;
@@ -842,7 +841,7 @@ export function AskGraph({
         e.preventDefault();
         if (!message.trim() || run) return;
         // One ask at a time: Enter twice before the first answers asks once.
-        void once(async () => {
+        void ACTIONS.run(`workflow-ask:${client ?? ""}:${workflow}`, async () => {
           setError(null);
           try {
             const got = await call<{ id: string }>("console/workflowAsk", {
@@ -974,16 +973,21 @@ function SaveTemplate({
       : !mayManage
         ? "Saving a template takes manage on Workflows."
         : null;
-  const once = useOnce();
   const save = () =>
-    once(async () => {
+    ACTIONS.run(`workflow-template:${client ?? ""}:${workflow}`, async (requestId) => {
       setBusy(true);
       setError(null);
       const sent = { title, blurb };
       try {
         const got = await call<{ id: string; name: string; updated: boolean }>(
           "console/workflowTemplateSave",
-          { workflow, name: sent.title, blurb: sent.blurb, ...(client ? { client } : {}) },
+          {
+            workflow,
+            name: sent.title,
+            blurb: sent.blurb,
+            ...(client ? { client } : {}),
+            requestId,
+          },
         );
         setDone(got);
         // Cleared only if he hasn't typed on meanwhile.

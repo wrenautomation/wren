@@ -9,6 +9,7 @@ import { DOOR_TRIGGERS } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage, RecordsStat } from "@wren/core/records/serve";
 import { isMade, type Wire } from "@wren/core/workflows";
 import {
+  ACTIONS,
   Alert,
   BarsChart,
   Button,
@@ -23,17 +24,19 @@ import {
   type Place,
   RecordPanel,
   type RecordsApi,
+  SaveConflict,
   Section,
   say,
+  statusWords,
+  useSaved,
   useTypes,
 } from "@wren/ui";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { shown } from "../../pulse.js";
 import { href, navigate } from "../../route.js";
-import { dropUnsaved, keepUnsaved, unsavedOf, useOnce } from "../../unsaved.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
 import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
 import {
@@ -111,6 +114,8 @@ type Detail = {
   templates?: SavedTemplate[];
 };
 const EMPTY: Draft = { wires: [], steps: [] };
+/** What the editor saves: the graph, and a made workflow's name. */
+type Kept = { draft: Draft; name: string };
 /** How far Undo goes back. */
 const UNDO_MOST = 50;
 
@@ -252,7 +257,6 @@ export function Workflows({ params, team, can }: PageProps) {
           client={client}
           team={team}
           mayManage={!can || can.includes("manage")}
-          fresh={!trail.loading}
           onSaved={() => setNonce((n) => n + 1)}
         />
       )}
@@ -358,7 +362,6 @@ function Canvas({
   client,
   team,
   mayManage,
-  fresh: read,
   onSaved,
 }: {
   w: Drawn;
@@ -371,8 +374,6 @@ function Canvas({
   team: boolean;
   /** May see a door's whole token and rotate it. */
   mayManage: boolean;
-  /** This read is the server's now, not the device's last one. */
-  fresh: boolean;
   onSaved: () => void;
 }) {
   const broken = d.broken ?? [];
@@ -385,7 +386,7 @@ function Canvas({
   const code = d.code ?? EMPTY;
   // The draft kept on the server, or what's live when there's none.
   const stored = d.draft ? (d.draft.edits ?? code) : first;
-  const [draft, setDraftNow] = useState<Draft | null>(null);
+  const [editing, setEditing] = useState(false);
   const [undo, setUndo] = useState<Draft[]>([]);
   const [picked, setPicked] = useState<{ from: string; to: string } | null>(null);
   const [sel, setSel] = useState<string | null>(null);
@@ -395,8 +396,6 @@ function Canvas({
   const [error, setError] = useState<string | null>(null);
   // The builder's first ask (`?ask=`), waited on as the editor opens; cleared once answered.
   const [pending, setPending] = useState<string | null>(params.get("ask"));
-  // A made workflow's name, saved with the draft.
-  const [name, setName] = useState(w.name);
   // Claude's answer on the graph: shown as a diff over the draft until he accepts or rejects it.
   const [proposal, setProposal] = useState<{ reply: string; patch: Draft | null } | null>(null);
   // Publishing a workflow that sends or spends asks its id typed back: the server names the effects.
@@ -404,41 +403,50 @@ function Canvas({
   // Test workflow: its panel, and the steps of the last dry run, lit until the draft changes.
   const [testing, setTesting] = useState(false);
   const [tested, setTested] = useState<{ steps: readonly DryStep[]; from: string } | null>(null);
-  // The newest save the editor opened on (draft or live, 0 for none). Save, Publish and Discard
-  // send it, and the server refuses one over a save made since: a conflict, never an overwrite.
-  const base = useRef<number | null>(null);
-  const [conflict, setConflict] = useState(false);
-  // The live draft and name, for what a save sent against what he typed meanwhile.
-  const live = useRef<{ draft: Draft | null; name: string }>({ draft, name });
-  live.current = { draft, name };
-  const once = useOnce();
-  // Typing not yet saved stays on this device, so a reload or a closed tab gives it back.
-  const journal = `workflow:${client ?? ""}:${w.id}`;
-  const dirty = !!draft && (changesOf(stored, draft) > 0 || (made && name.trim() !== w.name));
-  useEffect(() => {
-    if (draft && dirty) keepUnsaved(journal, String(base.current ?? 0), { draft, name });
-  }, [draft, dirty, journal, name]);
-  /** Open the editor on `x`, or on what was typed before a reload, over the base it was typed on. */
-  const begin = (x: Draft) => {
-    const kept = unsavedOf<{ draft: Draft; name?: string }>(journal);
-    if (kept) {
-      base.current = Number(kept.base) || 0;
-      setDraftNow(kept.value.draft);
-      if (typeof kept.value.name === "string") setName(kept.value.name);
-      say.done("Your unsaved changes are back.");
-    } else {
-      base.current = Math.max(d.draft?.id ?? 0, d.versions?.[0]?.id ?? 0);
-      setDraftNow(x);
-    }
+  // The draft (and a made workflow's name) as he edits it, through the save engine: kept on this
+  // device as he goes, so a reload or a closed tab gives it back; saved on Save draft and before
+  // Publish, over the newest save the editor read (draft or live). One made elsewhere since is a
+  // conflict with Keep mine / Use theirs, never an overwrite.
+  const server = useMemo<Kept>(() => ({ draft: stored, name: w.name }), [stored, w.name]);
+  const version = String(Math.max(d.draft?.id ?? 0, d.versions?.[0]?.id ?? 0));
+  // The newest save this editor made: Publish and Discard name it until the read catches up.
+  const savedAs = useRef(0);
+  const kept = useSaved<Kept>({
+    key: team ? `workflow:${client ?? ""}:${w.id}` : null,
+    server,
+    version,
+    delay: null,
+    same: (a, b) => changesOf(a.draft, b.draft) === 0 && (!made || a.name.trim() === b.name.trim()),
+    save: async (v, { expect, request }) => {
+      const out = await call<{ id: number }>("console/workflowSave", {
+        ...body(v),
+        ...(typeof expect === "string" ? { expect: Number(expect) } : {}),
+        requestId: request,
+      });
+      savedAs.current = Math.max(savedAs.current, out.id);
+      return { version: String(out.id) };
+    },
+    onSaved: () => onSaved(),
+    onConflict: () => onSaved(),
+  });
+  const expectNow = () => Math.max(savedAs.current, Number(version));
+  // The value now, between renders: two changes in one tick both land.
+  const live = useRef(kept.value);
+  live.current = kept.value;
+  const put = (patch: Partial<Kept>) => {
+    const next = { ...live.current, ...patch };
+    live.current = next;
+    kept.set(next);
   };
-  /** The server holds `sent` as save `id`: the base moves; the device copy goes unless he typed on. */
-  const landed = (id: number, sent: Draft) => {
-    if (id) base.current = id;
-    const now = live.current;
-    if (now.draft === sent) dropUnsaved(journal);
-    else if (now.draft) keepUnsaved(journal, String(base.current ?? 0), now);
+  const draft = editing ? kept.value.draft : null;
+  const name = kept.value.name;
+  const setName = (n: string) => put({ name: n });
+  const setDraftNow = (next: Draft) => {
+    put({ draft: next });
+    setEditing(true);
   };
-  const expect = () => (base.current === null ? {} : { expect: base.current });
+  const dirty = editing && kept.dirty;
+  const actionKey = `${client ?? ""}:${w.id}`;
   /** Every change to the draft goes through here, so Undo can step back. */
   const setDraft = (next: Draft) => {
     if (draft) setUndo((u) => [...u.slice(-(UNDO_MOST - 1)), draft]);
@@ -502,20 +510,20 @@ function Canvas({
 
   // `?edit=1` (a made workflow from the builder) opens on its draft, once; `?test=1` (Test run
   // on Automations) opens the tester on it too.
-  // Typing kept from before a reload opens it too. Only on the server's read, never the device's
-  // last one: that could be older than a save since.
+  // Typing kept from before a reload (or a conflict over it) opens it too.
   const opened = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: begin reads this render's journal
+  const back = kept.restored && (kept.dirty || !!kept.conflict);
   useEffect(() => {
     const test = params.get("test") === "1";
-    if (opened.current || !team || !read) return;
-    if (params.get("edit") !== "1" && !test && !unsavedOf(journal)) return;
+    if (opened.current || !team) return;
+    if (params.get("edit") !== "1" && !test && !back) return;
     opened.current = true;
-    begin(stored);
+    setEditing(true);
+    if (back) say.done("Your unsaved changes are back.");
     if (test) setTesting(true);
-  }, [team, read, params, stored]);
+  }, [team, params, back]);
 
-  const back = () => {
+  const undoOne = () => {
     const last = undo.at(-1);
     if (!last) return;
     setUndo((u) => u.slice(0, -1));
@@ -533,7 +541,7 @@ function Canvas({
         setAdding(true);
       } else if (e.key === "z" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
         e.preventDefault();
-        back();
+        undoOne();
       }
     };
     window.addEventListener("keydown", key);
@@ -579,24 +587,28 @@ function Canvas({
     setProposal({ reply, patch });
   }, []);
 
-  const body = (x: Draft) => ({
+  const body = ({ draft: x, name: n }: Kept) => ({
     workflow: w.id,
     ...(client ? { client } : {}),
     wires: x.wires,
     steps: x.steps,
     ...(x.settings ? { settings: x.settings } : {}),
     ...(x.retry ? { retry: x.retry } : {}),
-    ...(made && name.trim() && name.trim() !== w.name ? { name: name.trim() } : {}),
+    ...(made && n.trim() && n.trim() !== w.name ? { name: n.trim() } : {}),
   });
   /** A made workflow gone; the server refuses while it's live. */
   const drop = () =>
-    once(async () => {
+    ACTIONS.run(`workflow-delete:${actionKey}`, async (requestId) => {
       if (!window.confirm(`Delete ${w.name}? Its drafts go too.`)) return;
       setBusy(true);
       setError(null);
       try {
-        await call("console/workflowDelete", { workflow: w.id, ...(client ? { client } : {}) });
-        dropUnsaved(journal);
+        await call("console/workflowDelete", {
+          workflow: w.id,
+          ...(client ? { client } : {}),
+          requestId,
+        });
+        put(server);
         navigate(href(PAGE, { path: null, ask: null, edit: null }, params));
       } catch (err) {
         failed(err);
@@ -604,48 +616,12 @@ function Canvas({
       setBusy(false);
     });
   const failed = (err: unknown) => {
-    // Saved elsewhere since he opened it: both stay, he picks.
-    if (err instanceof ApiError && err.conflict) return setConflict(true);
     const m = err instanceof Error ? err.message : String(err);
     if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
     else setError(m);
   };
-  /** Save the draft as it is now; what he types meanwhile stays in the editor. */
-  const keep = () =>
-    once(async () => {
-      const sent = live.current.draft;
-      if (!sent) return;
-      setBusy(true);
-      setError(null);
-      setConflict(false);
-      try {
-        const out = await call<{ id: number }>("console/workflowSave", {
-          ...body(sent),
-          ...expect(),
-        });
-        landed(out.id, sent);
-        onSaved();
-      } catch (err) {
-        failed(err);
-      }
-      setBusy(false);
-    });
-  /** Changed elsewhere: his draft goes over it, as a draft he can look at before Publish. */
-  const keepMine = () => {
-    base.current = null;
-    void keep();
-  };
-  /** Changed elsewhere: his typing goes, the editor shuts on what's saved now. */
-  const takeTheirs = () => {
-    dropUnsaved(journal);
-    close();
-    onSaved();
-  };
   const close = () => {
-    base.current = null;
-    setConflict(false);
-    setName(w.name);
-    setDraftNow(null);
+    setEditing(false);
     setUndo([]);
     setProposal(null);
     setChoices([]);
@@ -657,23 +633,17 @@ function Canvas({
     setTesting(false);
     setTested(null);
   };
-  /** Publish: kept first when it changed since, then live. A sending one asks its id typed. */
+  /** Publish: saved first when it changed since, then live. A sending one asks its id typed. */
   // What he types while it publishes stays open as the next draft, never dropped by the close.
   const publish = (typed?: string) =>
-    once(async () => {
-      const sent = live.current.draft;
-      if (!sent) return;
+    ACTIONS.run(`workflow-publish:${actionKey}`, async (requestId) => {
+      if (!editing) return;
       setBusy(true);
       setError(null);
-      setConflict(false);
       try {
-        if (!d.draft || changesOf(stored, sent) > 0 || (made && name.trim() !== w.name)) {
-          const out = await call<{ id: number }>("console/workflowSave", {
-            ...body(sent),
-            ...expect(),
-          });
-          landed(out.id, sent);
-        }
+        // A conflict or a refusal on the save shows on the bar; nothing publishes.
+        if (!(await kept.flush())) return;
+        const sent = live.current;
         const out = await call<{
           id?: number;
           asked?: string;
@@ -681,17 +651,18 @@ function Canvas({
         }>("console/workflowPublish", {
           workflow: w.id,
           ...(client ? { client } : {}),
-          ...expect(),
+          expect: expectNow(),
           ...(typed ? { confirm: typed } : {}),
+          requestId,
         });
-        landed(out.id ?? 0, sent);
+        if (out.id) savedAs.current = Math.max(savedAs.current, out.id);
         // A client's template: it waits in To approve, not live yet.
         if (out.asked) say.done("Asked. It goes live once approved in To approve.");
         if (out.doors?.length) {
           setFresh(Object.fromEntries(out.doors.map((x) => [x.node, x.token])));
           say.done("Published. Its door URL is over the canvas.");
         }
-        if (live.current.draft === sent) close();
+        if (live.current === sent) close();
         else {
           setConfirm(null);
           say.done("Published. What you changed since is still open.");
@@ -700,28 +671,31 @@ function Canvas({
       } catch (err) {
         failed(err);
         onSaved();
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     });
   const discard = () =>
-    once(async () => {
-      if (dirty && !window.confirm("Throw away your changes?")) return;
+    ACTIONS.run(`workflow-discard:${actionKey}`, async (requestId) => {
+      if (kept.dirty && !window.confirm("Throw away your changes?")) return;
       if (d.draft) {
         setBusy(true);
         try {
           await call("console/workflowDiscard", {
             workflow: w.id,
             ...(client ? { client } : {}),
-            ...expect(),
+            expect: expectNow(),
+            requestId,
           });
         } catch (err) {
-          setBusy(false);
           return failed(err);
+        } finally {
+          setBusy(false);
         }
-        setBusy(false);
         onSaved();
       }
-      dropUnsaved(journal);
+      // Nothing typed over what's saved: the device copy goes.
+      put(server);
       close();
     });
 
@@ -768,6 +742,7 @@ function Canvas({
 
   if (draft) {
     const unsaved = dirty;
+    const saving = kept.status === "saving";
     const problems = [...problemsOf(draft), ...(unsaved ? [] : (d.draft?.problems ?? []))];
     const side = sel ? (
       <NodePanel
@@ -801,14 +776,17 @@ function Canvas({
         <EditBar
           changes={changesOf(first, draft)}
           problems={[...new Set(problems)]}
-          note={unsaved ? "Not saved" : d.draft ? `Saved ${dayLabel(d.draft.at)}` : null}
+          note={
+            statusWords(kept.status, kept.error) ??
+            (unsaved ? "Not saved" : d.draft ? `Saved ${dayLabel(d.draft.at)}` : null)
+          }
         >
           {adding ? null : (
             <Button tone="secondary" size="dense" onClick={() => setAdding(true)}>
               Add node <kbd className="ml-1 text-[11px] text-(--ui-ink-3)">/</kbd>
             </Button>
           )}
-          <Button tone="quiet" size="dense" onClick={back} disabled={!undo.length || busy}>
+          <Button tone="quiet" size="dense" onClick={undoOne} disabled={!undo.length || busy}>
             Undo
           </Button>
           <Button
@@ -869,7 +847,13 @@ function Canvas({
               Discard
             </Button>
           )}
-          <Button tone="secondary" size="dense" busy={busy} onClick={keep} disabled={!unsaved}>
+          <Button
+            tone="secondary"
+            size="dense"
+            busy={saving}
+            onClick={() => void kept.flush()}
+            disabled={!unsaved || saving}
+          >
             Save draft
           </Button>
           <Button
@@ -916,18 +900,17 @@ function Canvas({
           </form>
         ) : null}
         {error ? <Alert className="mb-3">{error}</Alert> : null}
-        {conflict ? (
-          <Alert className="mb-3">
-            <span className="flex flex-wrap items-center gap-2">
-              Changed elsewhere since you opened it.
-              <Button tone="secondary" size="dense" busy={busy} onClick={keepMine}>
-                Keep mine
-              </Button>
-              <Button tone="quiet" size="dense" onClick={takeTheirs}>
-                Use theirs
-              </Button>
-            </span>
-          </Alert>
+        {kept.conflict ? (
+          <div className="mb-3">
+            <SaveConflict
+              conflict={kept.conflict}
+              show={(t) =>
+                `Their draft differs from yours in ${changesOf(t.draft, kept.value.draft)} places.`
+              }
+              onKeepMine={() => void kept.keepMine()}
+              onTakeTheirs={kept.takeTheirs}
+            />
+          </div>
         ) : null}
         {proposal ? (
           <Proposal
@@ -1048,7 +1031,7 @@ function Canvas({
             tone="secondary"
             size="dense"
             className="max-[900px]:hidden"
-            onClick={() => begin(d.draft ? (d.draft.edits ?? code) : first)}
+            onClick={() => setEditing(true)}
           >
             {d.draft ? "Open draft" : "Edit"}
           </Button>
