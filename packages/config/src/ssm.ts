@@ -49,29 +49,54 @@ const skippable = (err: unknown) => {
   return name === "ParameterNotFound" || name.startsWith("AccessDenied") ? name : null;
 };
 
+interface LoadOptions {
+  ssm?: SsmReader;
+  env?: NodeJS.ProcessEnv;
+  log?: (line: string) => void;
+  /** The names this caller uses: once they're all set, the rest of the list isn't read. */
+  need?: readonly string[];
+}
+
 /**
  * Load each named parameter in order. No name = nothing to load (local runs, tests). The first
  * must load; a later one may not exist or be readable yet (it's skipped and named in the log), so
  * a list can ship before its parameter and grant do. Logs names only, never values.
  */
-export async function loadSsmEnv(
-  list: string | undefined,
-  o: { ssm?: SsmReader; env?: NodeJS.ProcessEnv; log?: (line: string) => void } = {},
-): Promise<string[]> {
+export async function loadSsmEnv(list: string | undefined, o: LoadOptions = {}): Promise<string[]> {
   const names = paramNames(list);
-  if (!names.length) return [];
+  const [first, ...rest] = names;
+  if (!first) return [];
   const ssm = o.ssm ?? new SSMClient({});
+  const env = o.env ?? process.env;
+  const log = o.log ?? console.warn;
+  // Each read is a KMS decrypt per cold start: a caller that names its keys stops at the first
+  // parameter that holds them all, and reads the rest only when one is missing.
+  if (o.need) {
+    const applied = applyEnv(await readParameter(first, ssm), env);
+    if (o.need.every((name) => env[name] !== undefined)) return applied;
+    return [...applied, ...(await loadInOrder(rest, false, ssm, env, log))];
+  }
+  return loadInOrder(names, true, ssm, env, log);
+}
+
+async function loadInOrder(
+  names: string[],
+  firstRequired: boolean,
+  ssm: SsmReader,
+  env: NodeJS.ProcessEnv,
+  log: (line: string) => void,
+): Promise<string[]> {
   // Read at once (each is a round trip at cold start), applied in order: the first wins.
   const read = await Promise.allSettled(names.map((name) => readParameter(name, ssm)));
   const applied: string[] = [];
   for (const [i, r] of read.entries()) {
     if (r.status === "rejected") {
       const why = skippable(r.reason);
-      if (i === 0 || !why) throw r.reason;
-      (o.log ?? console.warn)(`ssm env: ${names[i]} ${why}, skipped`);
+      if ((i === 0 && firstRequired) || !why) throw r.reason;
+      log(`ssm env: ${names[i]} ${why}, skipped`);
       continue;
     }
-    applied.push(...applyEnv(r.value, o.env));
+    applied.push(...applyEnv(r.value, env));
   }
   return applied;
 }

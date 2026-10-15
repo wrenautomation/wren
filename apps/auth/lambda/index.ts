@@ -18,7 +18,20 @@ import { IP_HEADER } from "../src/headers.js";
 import { fromEdge, toRequest, toResult, type UrlEvent, type UrlResult } from "./http.js";
 import { type KeyResult, keyIntake } from "./keys.js";
 
-await loadSsmEnv(process.env.WREN_SSM_ENV_PARAM);
+// The secrets this function reads. They sit in the first parameter, so env-2 costs no KMS decrypt
+// per cold start; one moved there is still found (a missing name loads the rest of the list).
+const SECRETS = [
+  "WREN_AUTH_SECRET",
+  "WREN_AUTH_EDGE_SECRET",
+  "WREN_DATABASE_URL",
+  "WREN_GOOGLE_SERVICE_ACCOUNT",
+  "WREN_AUTH_GOOGLE_CLIENT_ID",
+  "WREN_AUTH_GOOGLE_CLIENT_SECRET",
+  "WREN_AUTH_MICROSOFT_CLIENT_ID",
+  "WREN_AUTH_MICROSOFT_CLIENT_SECRET",
+  "WREN_PORTAL_ORIGIN",
+];
+await loadSsmEnv(process.env.WREN_SSM_ENV_PARAM, { need: SECRETS });
 
 const need = (name: string): string => {
   const v = process.env[name];

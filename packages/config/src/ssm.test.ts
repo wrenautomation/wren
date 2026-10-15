@@ -100,4 +100,29 @@ describe("loadSsmEnv", () => {
     expect(kms.decrypts).toBe(2);
     expect(env.WREN_KEYSTORE_KEY).toBe("k1:synthetic");
   });
+
+  it("a caller that names its keys stops at the first parameter that holds them", async () => {
+    const { ssm, kms } = fakeSsm({
+      "/wren/test/env": { A: "1", B: "1" },
+      "/wren/test/env-2": { C: "2" },
+    });
+    const env: NodeJS.ProcessEnv = {};
+    await loadSsmEnv("/wren/test/env,/wren/test/env-2", { ssm, env, need: ["A", "B"] });
+    expect(env).toEqual({ A: "1", B: "1" });
+    expect(kms.decrypts).toBe(1);
+  });
+
+  it("a named key the first parameter lacks loads the rest; a later one may still be missing", async () => {
+    const { ssm, kms } = fakeSsm({
+      "/wren/test/env": { A: "1" },
+      "/wren/test/env-2": { C: "2" },
+    });
+    const env: NodeJS.ProcessEnv = {};
+    const log: string[] = [];
+    const list = "/wren/test/env,/wren/test/env-2,/wren/test/env-3";
+    await loadSsmEnv(list, { ssm, env, need: ["A", "C"], log: (l) => log.push(l) });
+    expect(env).toEqual({ A: "1", C: "2" });
+    expect(kms.decrypts).toBe(2);
+    expect(log).toEqual(["ssm env: /wren/test/env-3 ParameterNotFound, skipped"]);
+  });
 });
