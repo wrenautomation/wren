@@ -199,31 +199,56 @@ export function DraftBox({
   // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
   const live = useRef({ dirty, server });
   live.current = { dirty, server };
-  // Only a new server text resets the box.
+  /** The words and the saved base as they are now, not as a render saw them: a save queued behind another must start from where that one left off. */
+  const textNow = useRef(text);
+  textNow.current = text;
+  const baseNow = useRef(base);
+  /** Saved texts this box wrote over: a read that left before the save and lands after it is old, never shown. */
+  const passed = useRef(new Set<string>());
+  /** Saves the page hasn't read back yet: told on leaving the box, not on each pause. */
+  const unread = useRef(false);
+  const rebase = (b: string) => {
+    baseNow.current = b;
+    setBase(b);
+  };
+  // Only a new server text resets the box, and only the words that differ: trailing spaces he typed stay.
   useEffect(() => {
-    if (live.current.dirty) return;
-    setBase(server);
-    setText(server);
+    if (live.current.dirty || passed.current.has(server.trim())) return;
+    rebase(server);
+    setText((t) => (t.trim() === server.trim() ? t : server));
   }, [server]);
 
-  const flush = async (next?: string): Promise<boolean> => {
+  /** Save what's typed. Quiet saves (a pause, the tab hiding) don't make the page read it again. */
+  const flush = async (next?: string, quiet = false): Promise<boolean> => {
     if (pending.current) await pending.current;
-    const now = next ?? text;
-    if (!save || now.trim() === base.trim()) return true;
+    const now = next ?? textNow.current;
+    const from = baseNow.current;
+    if (!save || now.trim() === from.trim()) {
+      if (!quiet && unread.current) {
+        unread.current = false;
+        changed([id]);
+      }
+      return true;
+    }
     const words = now.trim();
     const job = (async () => {
       setSaved("saving");
       try {
-        await call(save.handler, { ids: [id], text: words, expect: base.trim() ? base : null });
-        setBase(words);
-        setText(words);
+        await call(save.handler, { ids: [id], text: words, expect: from.trim() ? from : null });
+        passed.current.add(from.trim());
+        passed.current.delete(words);
+        rebase(words);
         setSaved("saved");
-        changed([id]);
+        if (quiet) unread.current = true;
+        else {
+          unread.current = false;
+          changed([id]);
+        }
         return true;
       } catch (err) {
         setSaved("failed");
         // Someone (Claude) changed it meanwhile: his words stay in the box, a second save keeps them.
-        setBase(live.current.server);
+        rebase(live.current.server);
         toast.error(
           `${err instanceof Error ? err.message : String(err)}. Your words are still in the box.`,
         );
@@ -241,21 +266,30 @@ export function DraftBox({
   if (handle) handle.current = { flush: () => flush() };
   const flushNow = useRef(flush);
   flushNow.current = flush;
+  const tellPage = useRef(changed);
+  tellPage.current = changed;
+  // Leaving the record: what saved quietly is read once, so the list shows it.
+  useEffect(
+    () => () => {
+      if (unread.current) tellPage.current([id]);
+    },
+    [id],
+  );
 
   // It saves as he types, and when the tab hides or closes. A failed save waits for his ⌘S:
   // its words would land over someone else's change.
   // biome-ignore lint/correctness/useExhaustiveDependencies: each key restarts the wait.
   useEffect(() => {
     if (!save || !dirty || saved === "failed" || saved === "saving") return;
-    const t = setTimeout(() => void flushNow.current(), AUTOSAVE_MS);
+    const t = setTimeout(() => void flushNow.current(undefined, true), AUTOSAVE_MS);
     return () => clearTimeout(t);
   }, [save, dirty, saved, text]);
   useEffect(() => {
     if (!save) return;
     const away = () => {
-      if (document.visibilityState === "hidden") void flushNow.current();
+      if (document.visibilityState === "hidden") void flushNow.current(undefined, true);
     };
-    const gone = () => void flushNow.current();
+    const gone = () => void flushNow.current(undefined, true);
     document.addEventListener("visibilitychange", away);
     addEventListener("pagehide", gone);
     return () => {

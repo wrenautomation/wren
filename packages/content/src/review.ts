@@ -17,7 +17,7 @@ import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { postedLink, refuseUnlinked } from "./funnel.js";
-import { PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
+import { named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 
@@ -221,21 +221,23 @@ async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<
     try {
       fieldsOf(r.platform, r.extra);
     } catch (err) {
-      return [`${r.id}: ${(err as Error).message}`];
+      return [`${named(r)}: ${(err as Error).message}`];
     }
     const unfit = isCarousel(r) ? carouselUnfit(r) : null;
-    if (unfit) return [`${r.id}: carousel: ${unfit}`];
+    if (unfit) return [`${named(r)}: the carousel ${unfit}`];
     const clash = mediaUnfit(r.platform, r.extra, r.media);
-    if (clash) return [`${r.id}: ${clash}`];
+    if (clash) return [`${named(r)}: ${clash}`];
     const missing = missingFields(r.platform, r.extra, r.title);
-    return missing.length > 0 ? [`${r.id} needs ${missing.join(", ")}`] : [];
+    return missing.length > 0
+      ? [`${named(r)}: fill in ${missing.join(", ")} in its fields first`]
+      : [];
   });
   // A thread is checked as it goes out: each post inside 280, the last one with its link.
   for (const r of rows.filter(isThread)) {
     const unfit = threadUnfit(threadPosts(r.text), await postedLink(db, r));
-    if (unfit) lacking.push(`${r.id}: ${unfit}`);
+    if (unfit) lacking.push(`${named(r)}: ${unfit}`);
   }
-  if (lacking.length > 0) throw new Error(`cannot approve: ${lacking.join("; ")}`);
+  if (lacking.length > 0) throw new Error(`Can't approve yet. ${lacking.join(". ")}.`);
   await refuseUnlinked(db, rows);
 }
 

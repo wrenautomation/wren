@@ -9,7 +9,7 @@ import { kindOf } from "@wren/core/content/shapes";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { named, PLATFORM_SPECS } from "./platforms.js";
 import {
   type ContentDraft,
   contentDrafts,
@@ -380,19 +380,21 @@ export async function refuseUnlinked(db: Queryable, rows: readonly FunnelRow[]):
     if (r.pointsTo === "page") {
       // A client's post carries no page link (the note says so): nothing to wait on.
       if (ctx.client) continue;
-      if (!f.page) waiting.push(`${r.id}: pick the page it points to, or turn the link off`);
+      if (!f.page) waiting.push(`${named(r)}: pick the page it points to, or turn the link off`);
       else if (!f.page.live)
-        waiting.push(`${r.id}: its page /o/${f.page.slug} isn't live; approve it in Sites first`);
+        waiting.push(
+          `${named(r)}: its page /o/${f.page.slug} isn't live; approve it in Sites first`,
+        );
       continue;
     }
     if (f.link) continue;
     waiting.push(
       f.video
-        ? `${r.id}: its video isn't on YouTube yet; approve once it is, or turn the link off`
-        : `${r.id}: pick the video it points to, or turn the link off`,
+        ? `${named(r)}: its video isn't on YouTube yet; approve once it is, or turn the link off`
+        : `${named(r)}: pick the video it points to, or turn the link off`,
     );
   }
-  if (waiting.length > 0) throw new Error(`cannot approve: ${waiting.join("; ")}`);
+  if (waiting.length > 0) throw new Error(`Can't approve yet. ${waiting.join(". ")}.`);
 }
 
 /** Stage, target and link in one line, for the CLI. */
