@@ -297,25 +297,47 @@ async function readsPass(
     const posts = d.ours
       ? await step("our posts", async () => [...((await d.ours?.()) ?? [])])
       : [];
-    for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS, now)))
-      await reading(`draft ${t.id}`, async () => {
-        const read = await r.thread(t.id);
+    // A spent signed-out cap doesn't hold drafts: the thread is read signed in as the account
+    // that will comment there (its own read cap), and the author's card is left out.
+    const accounts = new Map(
+      await step("draft accounts", async () =>
+        (
+          await db
+            .select({ id: reachAccounts.id, account: reachAccounts.account })
+            .from(reachAccounts)
+            .where(eq(reachAccounts.platform, "reddit"))
+        ).map((a) => [a.id, a.account] as const),
+      ),
+    );
+    for (const t of await step("to draft", () => threadsToDraft(db, DRAFTS_PER_PASS, now))) {
+      const as = t.accountId ? accounts.get(t.accountId) : undefined;
+      try {
+        const read = await r.thread(t.id).catch((err) => {
+          if (!capped(err) || !as) throw err;
+          s.capped = true;
+          return reader(deps.sitesFor(ctx), as).thread(t.id);
+        });
         const op =
-          t.author === "[deleted]"
+          t.author === "[deleted]" || s.capped
             ? null
             : await readPerson(r, db, llm, t.author, {
                 audience: audience.about,
                 now,
                 step,
               }).catch((err) => {
-                if (capped(err)) throw err;
+                if (capped(err)) s.capped = true;
                 return null;
               });
         const out = await step(`draft ${t.id}`, () =>
           draftThread(db, llm, t.id, { read, op, facts, truths, voice: d.voice, ours, posts }),
         );
         if (out === "drafted") s.drafted++;
-      });
+      } catch (err) {
+        if (isVendorStop(err)) s.stopped ??= err.why;
+        s.errors.push(`draft ${t.id}: ${errorText(err)}`);
+        if (capped(err)) break;
+      }
+    }
   }
   // Wren's own pass with autoSend: drafted threads onto each account's spaced slots.
   if (audience.autoSend && !clientOfKey(ctx.key)) {

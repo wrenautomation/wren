@@ -75,11 +75,20 @@ export const subredditsIn = (urls: readonly string[]): string[] => [
   ...new Set(urls.flatMap((u) => SUB_URL.exec(u)?.[1]?.toLowerCase() ?? [])),
 ];
 
-export function reader(sites: SiteClient): Reader {
-  const out = signedOut(sites);
+/**
+ * Reads signed out, or with `as` signed in as that account of ours: the Data API on its own
+ * read cap, for when the signed-out one is spent.
+ */
+export function reader(sites: SiteClient, as?: string): Reader {
+  const out: SiteClient = as
+    ? {
+        call: (site, method, path, input) => sites.call(site, method, path, input, as),
+        via: (site, method, path) => sites.via(site, method, path),
+      }
+    : signedOut(sites);
   const call = <T>(path: string, input: Record<string, unknown> = {}) =>
     out.call<T>(REDDIT_SITE, "GET", path, { raw_json: 1, ...input });
-  const asPeople = redditOutreach(out, { account: PUBLIC_SITE });
+  const asPeople = redditOutreach(out, { account: as ?? PUBLIC_SITE });
   return {
     person: (handle) => asPeople.enrich(handle),
     async searchPlaces(topic) {

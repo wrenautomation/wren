@@ -300,7 +300,11 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
 export async function threadsToDraft(db: Queryable, limit: number, now = new Date()) {
   if (!(await modelDrafts(db))) return [];
   return db
-    .select({ id: redditThreads.id, author: redditThreads.author })
+    .select({
+      id: redditThreads.id,
+      author: redditThreads.author,
+      accountId: redditThreads.accountId,
+    })
     .from(redditThreads)
     .where(
       and(
