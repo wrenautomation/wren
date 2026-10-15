@@ -373,7 +373,6 @@ export function ViewTabs({
   const sv = place.params.get("sv");
   const lines = saved?.lines ?? [];
   const narrow = useNarrow();
-  const row = useRef<HTMLElement>(null);
   if (!meta.views.length && !lines.length) return null;
   const all: (MoreView & { saved?: SavedViewLine; at?: number })[] = [
     ...meta.views.map((v, i) => ({
@@ -426,11 +425,10 @@ export function ViewTabs({
     );
   return (
     <nav
-      ref={row}
       className="relative flex gap-6 overflow-x-auto border-b border-(--ui-hair)"
       aria-label="Views"
     >
-      <TabBar nav={row} on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
+      <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
           <span key={v.id} className={cn(TAB, "gap-1", tabTone(v.on))}>

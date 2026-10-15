@@ -17,7 +17,7 @@ import {
   say,
   TabBar,
 } from "@wren/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -34,10 +34,9 @@ type Tab = (typeof TABS)[number][0];
 
 /** The three views, as links: Explore is a list page of its own. */
 export function FeedTabs({ on }: { on: Tab }) {
-  const row = useRef<HTMLElement>(null);
   return (
-    <nav ref={row} aria-label="Feed" className="relative flex gap-1 border-(--ui-hair) border-b">
-      <TabBar nav={row} on={on} row="feed" />
+    <nav aria-label="Feed" className="relative flex gap-1 border-(--ui-hair) border-b">
+      <TabBar on={on} row="feed" />
       {TABS.map(([id, label, href]) => (
         <a
           key={id}

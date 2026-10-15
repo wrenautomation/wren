@@ -2535,7 +2535,6 @@ export function RecordBody({
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
   /** An action changed this record: its states wash once they are read again. */
   const [changed, setChanged] = useState(false);
-  const sections = useRef<HTMLElement>(null);
   const acted = (ids: (string | number)[]) => {
     got.retry();
     setChanged(ids.length > 0);
@@ -2906,11 +2905,10 @@ export function RecordBody({
       {more.top}
 
       <nav
-        ref={sections}
         className="relative flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
         aria-label="Sections"
       >
-        <TabBar nav={sections} on={tab} row={`sections:${meta.id}`} />
+        <TabBar on={tab} row={`sections:${meta.id}`} />
         {tabs.map((t) => (
           <a
             key={t.id}
