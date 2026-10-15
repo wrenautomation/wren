@@ -2135,6 +2135,8 @@ export const marketing: Module = {
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
+/** A client's Post now: only where its portal flag is on (an app reviewer's workspace). */
+const POST_NOW = { id: "marketing.postNow", flag: "post_now" } as const;
 /** A client's own draft edits (its post's fields and files), saved from inside the detail. */
 const EDITS = new Set(fieldActions(OPEN).map((a) => a.id));
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
@@ -2210,7 +2212,11 @@ export const clientMarketing: Module = {
     CLIENT_APPROVE,
     // The draft's own settings and preview (a TikTok post's Direct Post panel), as Wren's.
     asClient("drafts", {
-      actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id) || EDITS.has(a.id)),
+      actions: DRAFT_ACTIONS.filter(
+        (a) => VERDICTS.has(a.id) || EDITS.has(a.id) || a.id === POST_NOW.id,
+      ).map((a) =>
+        a.id === POST_NOW.id ? { ...a, requires: { ...a.requires, flag: POST_NOW.flag } } : a,
+      ),
       extras: withShape(),
     }),
     asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),

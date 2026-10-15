@@ -22,7 +22,8 @@ which review.
   accounts and mailboxes, Limited Use (Google data only to models that don't train on it) and
   YouTube API Services; terms bind YouTube's terms; `/data-deletion` is Meta's instructions URL.
   Every check passes against its build. Push = deploy, so it waits.
-- Reviewers sign in to the test client `wren_test` at portal.wrenautomationreviews.com as
+- Reviewers sign in to the test client `wren_test` (at portal.wrenautomationreviews.com, or at
+  app.wrenautomation.com for TikTok, whose only redirect is there) as
   william+review@wrenautomation.com (owner) with a password, no code. The password is in autobrowse
   creds `wren-review` (`autobrowse creds copy wren-review` when filing).
 
@@ -47,3 +48,9 @@ which review.
 - 2026-10-09: Google data gets its own model slot (`WREN_GOOGLE_LLM`, default none) over a
   per-call flag: the rule holds with no spend, and turning it on is one env value. Scoped to
   client threads; Wren's own data never passes through the app being reviewed.
+- 2026-10-15: TikTok's screencast runs on app.wrenautomation.com: every callback is on the one
+  portal origin, so a sign-in started on the reviews domain lands back on app. Account → Social
+  shows each account's avatar and a TikTok's followers, likes, videos and newest videos' views,
+  so `user.info.stats` and `video.list` are used where the reviewer looks. The post step uses Post
+  now (next pass, within 15 minutes) behind the `post_now` portal flag, on for `wren_test` only;
+  Meta's and Google's packets still name the reviews domain, though their callbacks land on app. too.

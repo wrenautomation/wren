@@ -104,8 +104,10 @@ const GOOGLE_WHY: Record<string, string> = {
 
 const TIKTOK_WHY: Record<string, string> = {
   "user.info.basic": "Shows which TikTok account is connected (name and avatar).",
-  "user.info.stats": "Reads follower and like counts for the business's reports.",
-  "video.list": "Reads the account's videos and their views for reports.",
+  "user.info.stats":
+    "Shows the account's follower, like and video counts on its Social page and in reports.",
+  "video.list":
+    "Lists the account's newest videos with their views on its Social page and in reports.",
   "video.upload": "Sends an approved video to the creator's TikTok inbox as a draft.",
   "video.publish":
     "Posts an approved video directly, with the settings the creator picks on the post page.",
@@ -300,16 +302,18 @@ export const REVIEWS: readonly Review[] = [
     ],
     scopes: why(TIKTOK_WHY, SOCIAL.tiktok.scopes),
     video: [
-      `Sign in at ${REVIEWER_PORTAL} (show the address bar: the domain is the one on the app).`,
-      "Account, Social: Connect TikTok; TikTok's authorize page lists each scope; authorize.",
-      "Back in Wren: the account shows Connected with its name and avatar (user.info.basic).",
-      "Marketing, Content: open a video post for TikTok. Its post page shows the creator's name and avatar, the privacy choice with nothing picked, comments, duet and stitch all off, and the commercial content disclosure.",
-      "Pick a privacy level, tick the declaration, post. Show it on TikTok (video.publish, video.upload).",
-      "Marketing, Reports: followers and the video's views (user.info.stats, video.list).",
+      `Sign in at ${PORTAL} with the reviewer login. Keep the address bar in view, since that domain is the app's and its redirect's.`,
+      "Account, Social: Connect TikTok. TikTok's authorize page lists each scope. Authorize.",
+      "Back on Account, Social, the account shows Connected with its name and avatar (user.info.basic). Below them are its followers, likes and video count (user.info.stats) and its newest videos with their views (video.list).",
+      "Marketing, Drafts: open a TikTok video draft. Its post page shows the creator's name and avatar and the privacy choice with nothing picked. Comments, duet and stitch are off, and the commercial content disclosure is there.",
+      "Pick a privacy level, tick the declaration and press Post now. It posts on the next pass, within 15 minutes (video.publish, video.upload).",
+      "Keep recording or cut to the end of the wait. The draft shows Posted. Open the video on TikTok.",
+      "Back on Account, Social, the new video is first in the newest videos, with its views (video.list).",
     ],
     open: [
       "Record on the production domain; TikTok rejects a localhost demo.",
-      "The TikTok sandbox draft must show app.wrenautomation.com's redirect (the reviews domain's is not registered); remove the stale /oauth/callback URI.",
+      "TikTok's only redirect is on app.wrenautomation.com, so record there. A sign-in started on portal.wrenautomationreviews.com comes back to app.wrenautomation.com. Remove the stale /oauth/callback URI.",
+      "Post now shows only where the post_now portal flag is on. Before recording, turn it on for wren_test and turn on wren_test's content.posting sends. Without the sends, the post waits.",
       "The recording browser needs www.tiktok.com signed in as the sandbox target user (wrenautomation). `autobrowse login tiktok` reports signed in but tiktok.com still shows Log in.",
     ],
   },

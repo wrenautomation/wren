@@ -3,6 +3,7 @@ import {
   callbackOf,
   checkReview,
   DELETION,
+  PORTAL,
   PRIVACY,
   packetOf,
   REVIEWS,
@@ -97,5 +98,18 @@ describe("app reviews", () => {
     expect(text).toMatch(/## Screencast\n\n1\. /);
     expect(text).toContain("- TODO key X: missing");
     expect(packetOf(meta, null)).not.toContain("## Checks");
+  });
+
+  it("TikTok's screencast runs on the redirect's domain and shows each scope used", () => {
+    const t = reviewOf("tiktok-app");
+    if (!t) throw new Error("no tiktok-app");
+    expect(t.filed).toBeNull();
+    expect(t.video[0]).toContain(`Sign in at ${PORTAL} `);
+    expect(callbackOf("tiktok").startsWith(PORTAL)).toBe(true);
+    const shots = t.video.join(" ");
+    for (const scope of ["user.info.basic", "user.info.stats", "video.list", "video.publish"])
+      expect(shots).toContain(scope);
+    expect(shots).toContain("Post now");
+    expect(shots).not.toContain("Marketing, Reports");
   });
 });
