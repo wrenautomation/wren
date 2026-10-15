@@ -4,6 +4,9 @@
  * snapshot row. On the first pass of a Monday it sends "what worked" for the week. Cheap and
  * read-only on the platforms, so a miss just waits for the next pass.
  *
+ * A pass reads each platform's due posts in one `metricsMany` where the channel has one (a
+ * timeline, a listing or a batch query holds many posts), and a post it left out alone.
+ *
  * `ContentMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
  * own database. No Monday report: that goes to Wren's lane.
  *
@@ -37,6 +40,7 @@ import { writeDigest } from "../analytics/digest.js";
 import { writeAccountInsights, writeInsights, writeReportDays } from "../analytics/store.js";
 import { clientContent } from "../clients.js";
 import { formatWhatWorked, metricsDue, recordMetrics, whatWorked } from "../metrics.js";
+import type { ContentDraft } from "../schema.js";
 
 export const METRICS_KEY = "default";
 const REPORTED = "reported";
@@ -60,6 +64,14 @@ type ContentService = {
     ctx: restate.Context,
     req: { platform: Platform; id: string; client?: string | null },
   ) => Promise<Metrics>;
+  metricsMany: (
+    ctx: restate.Context,
+    req: {
+      platform: Platform;
+      posts: { id: string; kind?: string | null }[];
+      client?: string | null;
+    },
+  ) => Promise<Metrics[] | null>;
   insights: (
     ctx: restate.Context,
     req: {
@@ -143,15 +155,38 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const db = client && deps.clientDb ? deps.clientDb(client) : deps.db;
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
+    // One read a platform for all its due posts, where the channel has one: the counts come
+    // back by id. A post it left out, or a platform whose batch refused, is read alone below.
+    const batched = new Map<string, Metrics>();
+    const byPlatform = new Map<Platform, ContentDraft[]>();
+    for (const d of due)
+      if (d.publishedId) byPlatform.set(d.platform, [...(byPlatform.get(d.platform) ?? []), d]);
+    for (const [platform, drafts] of byPlatform) {
+      try {
+        const got = await content.metricsMany({
+          platform,
+          posts: drafts.map((d) => ({
+            id: d.publishedId as string,
+            kind: typeof d.extra?.kind === "string" ? d.extra.kind : null,
+          })),
+          ...(client ? { client } : {}),
+        });
+        for (const m of got ?? []) batched.set(`${platform}:${m.id}`, m);
+      } catch (err) {
+        if (!(err instanceof restate.TerminalError)) throw err;
+      }
+    }
     for (const draft of due) {
       const id = draft.publishedId;
       if (!id) continue;
       try {
-        const m = await content.metrics({
-          platform: draft.platform,
-          id,
-          ...(client ? { client } : {}),
-        });
+        const m =
+          batched.get(`${draft.platform}:${id}`) ??
+          (await content.metrics({
+            platform: draft.platform,
+            id,
+            ...(client ? { client } : {}),
+          }));
         await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, m));
         // Insights after the counts: a refusal here costs the deeper numbers, never the look.
         let i: Insights | null = null;
