@@ -150,6 +150,14 @@ handler, `autobrowseDo({ url, token })` from a laptop: one verb, autobrowse rout
 it (site API → compiled workflow → its agent, which compiles what it did for next
 time). `restateSites(ctx)` stays for calls that need the official API shape.
 
+## Boards
+
+Notes has a kanban Board. A card is a note, so it keeps a body, comments and history. Agents work the same board through `wren tasks`, and write as `agent:claude` (`--agent <name>` for another).
+
+`wren tasks ready` lists open cards that are the agent's or nobody's and have nothing open blocking them (`--board`, `--limit`). `ls` filters by `--board`, `--column`, `--owner` and `--all` (closed too). `show <id>`, `add <title>` (`--board`, `--column`, `--owner`, `--due`, `--blocked-by`, `--body`), `move <id> <column>`, `assign <id> <owner|none>`, `due <id> <day|none>`, `close <id> --why <words>`, `reopen <id>`, `comment <id> <text>` and `block <id> <other> [--off]` do what they say. Most take `--json`. When an agent moves or closes a card a person owns, the card lands in Review and the command says so.
+
+On the page, Board has Export CSV and Import. Import takes a CSV or a table pasted from Sheets, asks which column is which once, and updates the card when a row's link points at one.
+
 ## SOPs
 
 `wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`

@@ -63,6 +63,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a keyword, the engine checks, or how proposals reach the site | [[search/keyword]], [[search/proposal]] | [[processes/search-loop]], [[processes/migrate]] |
 | a Restate service name or handler | [[platform/restate-services]] | [[platform/loop-object]], [[platform/cli]], [[platform/phone-worker]], `docs/restate-operations.md` |
 | the loop primitive | [[platform/loop-object]] | every scheduler |
+| a board, a card, a column, the Timeline, or the CSV a board exports | [[platform/boards]] | [[platform/notes]] (a card is a note), [[platform/records]] (`notes.task`), `wren tasks`, `apps/portal/web/src/modules/notes/` |
 | a table (any) | [[platform/db-schema]] | [[processes/migrate]], the table's card |
 | the worker or its build | [[platform/worker]] | [[processes/deploy]] |
 | CLI commands | [[platform/cli]] | `README.md`, `walkthrough/` |
