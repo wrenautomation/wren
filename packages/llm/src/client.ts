@@ -40,6 +40,8 @@ export interface LlmClient {
 }
 
 const DEFAULT_MAX_TOKENS = 2048;
+/** The gateway's Gemini spends output tokens thinking first; 400 asked came back as 27 chars. */
+const GATEWAY_THINKING = 4096;
 
 /**
  * API-level failure (bad key, quota, malformed response): the caller should stop
@@ -103,6 +105,12 @@ export class AiSdkLlm implements LlmClient {
     readonly provider: string,
     readonly modelId: string,
     private readonly model: LanguageModel,
+    /**
+     * Tokens added to every `maxTokens` for a model that thinks inside its output budget (the
+     * gateway's Gemini): a caller's budget is for the answer, so a 400-token draft isn't cut off
+     * mid-JSON by its own reasoning.
+     */
+    private readonly thinking = 0,
   ) {
     this.name = provider === "anthropic" ? modelId : `${provider}:${modelId}`;
   }
@@ -115,7 +123,7 @@ export class AiSdkLlm implements LlmClient {
         model: this.model,
         ...(opts.system ? { system: wellFormed(opts.system) } : {}),
         prompt: wellFormed(prompt),
-        maxOutputTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
+        maxOutputTokens: (opts.maxTokens ?? DEFAULT_MAX_TOKENS) + this.thinking,
       });
     } catch (err) {
       const cause = rootCause(err);
@@ -273,6 +281,7 @@ export function makeLlm(
       "gateway",
       modelId,
       createOpenAICompatible({ name: "gateway", baseURL, apiKey })(modelId),
+      GATEWAY_THINKING,
     );
   }
   const [provider, ...rest] = name.split(":");
