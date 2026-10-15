@@ -11,6 +11,7 @@ import type { TemplateListRow, TemplateOpen, TemplateSaved } from "@wren/core/te
 import type { TemplateDetail } from "@wren/core/templates/edits";
 import { folderLabel, labelOf, nameLabel, nameParts } from "@wren/core/templates/labels";
 import {
+  ACTIONS,
   Browser,
   BrowserRow,
   Button,
@@ -30,6 +31,7 @@ import {
   type TagTone,
   Textarea,
   useCopy,
+  useKeptForm,
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -639,10 +641,22 @@ function Editor({
     number: d.opened,
     words: opened?.source ?? "",
   });
-  const [words, setWords] = useState(base.words);
+  // What's typed stays on this device until it's saved: a reload or a closed tab gives it back.
+  const kept = useKeptForm(mayWrite ? `template:${d.ref}` : null, base.words);
+  const [words, setShown] = useState(() => kept.values.words ?? base.words);
+  const setWords = (w: string) => {
+    setShown(w);
+    kept.set("words", w);
+  };
+  /** Not his typing (theirs, a discard): shown, and nothing kept. */
+  const showWords = (w: string) => {
+    setShown(w);
+    kept.clear();
+  };
   const wordsBox = useRef<HTMLTextAreaElement>(null);
   const [why, setWhy] = useState("");
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const [conflict, setConflict] = useState<Head | null>(null);
   const dirty = words !== base.words;
   // Someone else's save comes in on a reload: follow it while nothing here is changed.
@@ -650,7 +664,7 @@ function Editor({
     if (dirty || d.opened === base.number) return;
     const w = (d.draft ?? d.live)?.source ?? "";
     setBase({ number: d.opened, words: w });
-    setWords(w);
+    setShown(w);
   }, [d, dirty, base.number]);
   const [sample, setSample] = useState<Sample | null>(null);
   useEffect(() => {
@@ -667,31 +681,42 @@ function Editor({
   }, [d.ref, words]);
 
   const save = async (expect: number | null) => {
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
+    const sent = { words, why };
     try {
-      const got = await call<TemplateSaved>("templates/save", {
-        ref: d.ref,
-        words,
-        why: why.trim() || null,
-        expect,
-      });
+      const got = await ACTIONS.run(`template-save:${d.ref}`, (requestId) =>
+        call<TemplateSaved>("templates/save", {
+          ref: d.ref,
+          words: sent.words,
+          why: sent.why.trim() || null,
+          expect,
+          requestId,
+        }),
+      );
       if (got.conflict) return setConflict(got.conflict);
       const n = got.saved?.draft?.number ?? null;
-      setBase({ number: got.saved?.opened ?? n, words });
+      setBase({ number: got.saved?.opened ?? n, words: sent.words });
       setConflict(null);
-      setWhy("");
+      // Only what was sent is done with: typing since stays, and stays kept.
+      if (live.current.words === sent.words) kept.clear();
+      if (live.current.why === sent.why) setWhy("");
       say.done(`Saved as version ${n}. Nothing sends until it's live.`);
       onSaved();
     } catch (err) {
       say.failed(err);
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
+  const live = useRef({ words, why });
+  live.current = { words, why };
   const reload = () => {
     if (!conflict) return;
     setBase({ number: conflict.number, words: conflict.source });
-    setWords(conflict.source);
+    showWords(conflict.source);
     setConflict(null);
     onSaved();
   };
@@ -744,7 +769,7 @@ function Editor({
       <label className="grid min-w-0 gap-1.5">
         <span className={`text-[13px] ${QUIET}`}>
           {opened ? `Version ${opened.number}` : "No words yet"}
-          {dirty ? ", changed" : ""}
+          {dirty ? (kept.restored ? ", your unsaved changes are back" : ", changed") : ""}
         </span>
         <DictateField target={wordsBox} off={!mayWrite}>
           <Textarea
@@ -789,7 +814,7 @@ function Editor({
               tone="quiet"
               size="dense"
               onClick={() => {
-                setWords(base.words);
+                showWords(base.words);
                 setConflict(null);
               }}
             >
