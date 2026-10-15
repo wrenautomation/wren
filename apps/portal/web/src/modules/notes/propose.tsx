@@ -19,6 +19,8 @@ import { SELECT } from "./card.js";
 import { linesNamed, putChips } from "./cards.js";
 
 type Pick = {
+  /** Stable across edits: the order Claude gave. */
+  key: string;
   title: string;
   owner: string | null;
   due: string | null;
@@ -46,7 +48,7 @@ export function ProposeCards({
   useEffect(() => {
     let live = true;
     notes(client, "cardsPropose", { id: noteId })
-      .then((r) => live && setPicks(r.cards.map((c) => ({ ...c, on: true }))))
+      .then((r) => live && setPicks(r.cards.map((c, i) => ({ ...c, key: `p${i}`, on: true }))))
       .catch((e: unknown) => live && setFailed(e instanceof Error ? e.message : String(e)));
     notes(client, "boards")
       .then((r) => {
@@ -116,7 +118,7 @@ export function ProposeCards({
           <>
             <ul className="m-0 flex max-h-[50vh] list-none flex-col gap-2 overflow-y-auto p-0">
               {picks.map((p, i) => (
-                <li key={`${i}-${p.line ?? ""}`} className="flex items-start gap-2">
+                <li key={p.key} className="flex items-start gap-2">
                   <input
                     type="checkbox"
                     className="mt-2.5"
