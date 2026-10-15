@@ -5,7 +5,7 @@
  * each day. Wren's own workspace only: the search reads as Wren's accounts.
  */
 import { Button, clipProps, cx, Input, say } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { changed, learn } from "./api.js";
 import { Avatar } from "./kinds.js";
@@ -45,25 +45,35 @@ export function FindCreators() {
   const [only, setOnly] = useState<Site[]>([]);
   const [busy, setBusy] = useState(false);
   const [found, setFound] = useState<Found | null>(null);
+  /**
+   * Follows pressed this visit, by address: they outlive a new search, so a follow still out (or
+   * one a search read before it landed) never shows Follow again.
+   */
   const [following, setFollowing] = useState<Record<string, "busy" | "done">>({});
+  const pressed = useRef(new Set<string>());
+  const searching = useRef(false);
 
   const search = async (e: FormEvent) => {
     e.preventDefault();
-    if (!q.trim() || busy) return;
+    if (!q.trim() || searching.current) return;
+    searching.current = true;
     setBusy(true);
     try {
       setFound(
         await reach<Found>("findCreators", { q: q.trim(), ...(only.length ? { only } : {}) }),
       );
-      setFollowing({});
     } catch (err) {
       say.failed(err);
     } finally {
+      searching.current = false;
       setBusy(false);
     }
   };
 
   const follow = async (h: Hit) => {
+    // Once per press: a second click while it's out, or after it worked, does nothing.
+    if (pressed.current.has(h.follow)) return;
+    pressed.current.add(h.follow);
     setFollowing((f) => ({ ...f, [h.follow]: "busy" }));
     try {
       if (h.site === "linkedin") {
@@ -76,6 +86,7 @@ export function FindCreators() {
       }
       setFollowing((f) => ({ ...f, [h.follow]: "done" }));
     } catch (err) {
+      pressed.current.delete(h.follow);
       setFollowing(({ [h.follow]: _, ...f }) => f);
       say.failed(err);
     }
