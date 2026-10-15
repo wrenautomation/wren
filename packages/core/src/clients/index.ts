@@ -39,6 +39,8 @@ export interface NewClient {
   accounts?: Record<string, string>;
   products?: Record<string, unknown>;
   demo?: boolean;
+  /** The sandbox View as opens: synthetic, never sends or spends (designs/2026-10-14-view-as.md). */
+  sandbox?: boolean;
 }
 
 /**
@@ -90,6 +92,7 @@ export async function addClient(
         accounts: input.accounts ?? {},
         products: input.products ?? {},
         demo: input.demo ?? false,
+        sandbox: input.sandbox ?? false,
       })
       .onConflictDoNothing();
     await registerAccounts(tx, input.id, input.accounts, by ?? "clients");
@@ -429,6 +432,8 @@ export const teamRecord = defineRecord({
 export const CHANGE_FIELDS = {
   at: date("When"),
   who: actor("Who"),
+  /** View as, Act: whom they acted as. */
+  as: text("As"),
   madeBy: status(
     {
       person: { label: "Person", tone: "good" },
@@ -506,6 +511,7 @@ export const clientRecord = defineRecord({
     kind: status({
       client: { label: "Client", tone: "good" },
       demo: { label: "Demo", tone: "neutral" },
+      sandbox: { label: "Sandbox", tone: "neutral" },
     }),
     members: number(),
     sends: text("Sends"),

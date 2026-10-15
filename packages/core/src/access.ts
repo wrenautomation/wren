@@ -483,3 +483,47 @@ export function sentence(g: Grant, now = new Date(), zone?: string): string {
   }
   return `${s}.`;
 }
+
+/**
+ * View as (designs/2026-10-14-view-as.md): which client, who to be there, Look or Act. Every
+ * call from a tab under View as carries it; the guard (`viewAsOf`) decides.
+ */
+export interface ViewAs {
+  /** A client's id, or `wren` for a teammate. */
+  client: string;
+  /** A person there. With `role` left out too: the client's owner, else someone new as owner. */
+  email?: string;
+  /** A role with nobody in it yet: "someone new as member". */
+  role?: RoleId;
+  /** Act: do what they could, logged as you. Left out or false: Look, reads only. */
+  act?: boolean;
+}
+
+const VIEW_CLIENT = /^[a-z][a-z0-9_]{0,39}$/;
+
+/**
+ * A View as off the wire: null when there is none, `"bad"` when it's there but not one. No
+ * imports, so the edge Worker checks the same shape the guard does.
+ */
+export function viewAsShape(raw: unknown): ViewAs | null | "bad" {
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw !== "object" || Array.isArray(raw)) return "bad";
+  const r = raw as Record<string, unknown>;
+  if (typeof r.client !== "string" || !VIEW_CLIENT.test(r.client)) return "bad";
+  const text = (v: unknown, max: number) =>
+    v === undefined || v === null || v === ""
+      ? undefined
+      : typeof v === "string" && v.trim() && v.length <= max
+        ? v.trim()
+        : null;
+  const email = text(r.email, 254);
+  const role = text(r.role, 64);
+  if (email === null || role === null || (email && role)) return "bad";
+  if (r.act !== undefined && typeof r.act !== "boolean") return "bad";
+  return {
+    client: r.client,
+    ...(email ? { email: email.toLowerCase() } : {}),
+    ...(role ? { role } : {}),
+    act: r.act === true,
+  };
+}

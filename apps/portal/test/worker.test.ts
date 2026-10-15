@@ -277,21 +277,36 @@ describe("the app host", () => {
     });
   });
 
-  it("view as passes reads on and refuses every write", async () => {
+  it("view as: Look passes reads on and refuses writes; Act goes on; a bad shape is refused", async () => {
     const t = await token({ email: "ops@wren.example", operator: true });
     const auth = { authorization: `Bearer ${t}` };
-    const read = await worker.fetch(
-      post("app.test", "delivery/me", { viewAs: "a@b.test" }, auth),
-      env(),
-    );
+    const look = { client: "acme", email: "a@b.test" };
+    const read = await worker.fetch(post("app.test", "delivery/me", { viewAs: look }, auth), env());
     expect(read.status).toBe(200);
-    expect(restate[0]?.body).toMatchObject({ viewAs: "a@b.test" });
+    expect(restate[0]?.body).toMatchObject({ viewAs: look });
     const write = await worker.fetch(
-      post("app.test", "delivery/invite", { viewAs: "a@b.test", email: "c@d.test" }, auth),
+      post("app.test", "delivery/invite", { viewAs: look, email: "c@d.test" }, auth),
       env(),
     );
     expect(write.status).toBe(403);
     expect(restate).toHaveLength(1);
+    const act = await worker.fetch(
+      post(
+        "app.test",
+        "delivery/invite",
+        { viewAs: { ...look, act: true }, email: "c@d.test" },
+        auth,
+      ),
+      env(),
+    );
+    expect(act.status).toBe(200);
+    expect(restate).toHaveLength(2);
+    const bad = await worker.fetch(
+      post("app.test", "delivery/me", { viewAs: "a@b.test" }, auth),
+      env(),
+    );
+    expect(bad.status).toBe(400);
+    expect(restate).toHaveLength(2);
   });
 
   it("refuses a token with the wrong audience, issuer, expiry, key or signature", async () => {

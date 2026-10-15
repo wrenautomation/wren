@@ -54,7 +54,7 @@ Citations: `packages/core/src/clients/schema.ts:62`, `packages/core/src/clients/
 | Team → Roles, Grants; Account → Roles, Grants (`apps/portal/web/src/modules/access/index.ts`) | `manage`: New role, Copy, Add a grant, Give to, Remove; Add grant, End now |
 | Inbox → Issues, Access asks; Account → Issues, Access asks | anyone signed in: "Waiting on you" is what they can resolve or grant |
 | Team → Access review; Account → Access review (`access.review` in `packages/core/src/access-records.ts`) | `manage`: per person, each app's line from `can` across channels, and grants ending this week |
-| View as (`viewAs` on any request; `viewAsOf` in `packages/core/src/portal.ts`) | read only: the Worker refuses it on writes, the guard swaps the viewer for `read` routes. An admin views as a teammate; an admin or owner as a person in clients they manage. The web keeps it per tab (`viewAs` in `apps/portal/web/src/api.ts`) with a bar on top |
+| View as (`viewAs: {client, email?, role?, act}` on any request; `viewAsOf` in `packages/core/src/portal.ts`, designs/2026-10-14-view-as.md) | Wren's team only. Look reads only (the Worker and the guard refuse writes); Act, an admin's, writes under that person's role and grants, the audit log naming the operator as `actor` and whom as `acting_as`. A role with nobody in it is viewed as `new.<role>@view-as.invalid`; it Acts only in the sandbox. One client per tab (`viewing` in `apps/portal/web/src/api.ts`); the strip, picker and ⌘K item are `apps/portal/web/src/view-as.tsx` |
 | `ConsolePortal.setLook` (need `manage`) | an owner sets their own client's look, an admin any client's |
 
 ## See

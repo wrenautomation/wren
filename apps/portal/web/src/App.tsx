@@ -2,8 +2,8 @@
  * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is Today: what waits
  * across every app. The sidebar holds every app under its area (areas.ts); the open one unfolds
  * into its pages (/<app>/<page>), tabs on a phone. A viewer with one app (the demo) skips Today
- * and lands in it. Wren's team starts in Wren's own workspace, its apps on Wren's records; the
- * switcher moves to the demo or a client.
+ * and lands in it. Wren's team is in Wren's own workspace, its apps on Wren's records; View as
+ * opens a client, or a person there, in this tab (./view-as.tsx).
  */
 
 import type { Permission, Who } from "@wren/core/access";
@@ -42,7 +42,7 @@ import {
 } from "@wren/ui";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
-import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
+import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
 import { areasOf, dockOf, phoneTabsOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
@@ -59,6 +59,7 @@ import { HandSwitch, keepOf, TemplatePage } from "./records.js";
 import { href, navigate, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
 import { ClientToday, WrenToday } from "./today.js";
+import { openViewAs, VIEW_AS_HREF, ViewAsPicker, ViewAsStrip } from "./view-as.js";
 import { appTotal, useWaiting } from "./waiting.js";
 
 const STAMP = "/wren-icon.png";
@@ -66,7 +67,6 @@ const WORKSPACE_KEY = "wren.portal.workspace";
 const THEME_KEY = "wren.portal.theme";
 /** The look last shown, painted by public/look.js before `me` answers on the next load. */
 const LOOK_KEY = "wren.portal.look";
-const AS_CLIENT_KEY = "wren.portal.asClient";
 /** A link under the Layout settings. */
 const MORE_LINK =
   "text-(--ui-ink-2) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:text-(--ui-ink)";
@@ -283,8 +283,6 @@ export function App() {
   // A link in our mail names its client (`?client=acme`): open that one, and stay on it.
   const named = route.params.get("client");
   const [client, setClient] = useState<string | null>(() => named ?? recall(WORKSPACE_KEY));
-  // Wren's team can look as the client would: no internal notes, no team tools.
-  const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
   // Dictation's timings go to Voice > Latency, for Wren's team only (`voice/dictated`).
@@ -295,17 +293,20 @@ export function App() {
         ? (run) => void call("voice/dictated", { run }).catch(() => {})
         : null;
   }, [operator, me.data?.demo]);
-  // An address names its app, and the app its workspace; else the last one picked (Wren first).
-  const atWren = !named && (client === null || client === WREN.id);
+  // An address names its app, and the app its workspace. Wren's team is at Wren unless a link
+  // names a client; a client's person, at the last one opened.
+  const atWren = !named && (operator || client === null || client === WREN.id);
   // Marketing is both a client's app and Wren's: the one for the workspace already picked.
   const kind =
     MODULES.find((m) => m.id === route.path[0] && teamOnly(m) === atWren) ??
     MODULES.find((m) => m.id === route.path[0]);
   const wren = operator && (kind ? teamOnly(kind) : atWren);
-  const team = operator && (wren || !asClient);
+  const team = operator;
   const onDemo = me.data ? me.data.demo : null;
   const clients = me.data?.clients ?? [];
-  const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
+  const current = wren
+    ? WREN
+    : (clients.find((c) => c.id === (operator ? named : client)) ?? clients[0] ?? null);
   const installed = new Set(current && "installed" in current ? current.installed : []);
   // What this login holds here: in Wren's apps its team role's, in a client's that client's.
   const canAt = (id: string | undefined) =>
@@ -354,7 +355,7 @@ export function App() {
   const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
   // Quick capture (N, ⌘K "Note: …") where this login has Notes, never on a sample or under View as.
   const noteAt =
-    current && !sample && !viewingAs && apps.some((m) => m.id === "notes") ? current.id : null;
+    current && !sample && !viewing && apps.some((m) => m.id === "notes") ? current.id : null;
   const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
   // workflows, templates, pages, Learn's items); never on a sample.
@@ -460,17 +461,24 @@ export function App() {
     );
   if (at.kind !== "page" && at.kind !== "launcher") return null;
 
-  const pick = (id: string) => {
-    setClient(id);
-    keep(WORKSPACE_KEY, id);
-    // Wren's apps and a client's never share an address: the other kind starts at its Today.
-    if ((id === WREN.id) !== wren) navigate("/");
-  };
   const demo = onDemo ?? false;
-  const flip = () => {
-    setAsClient(team);
-    keep(AS_CLIENT_KEY, team ? "1" : "0");
-  };
+  // A client's person in more than one opens another from ⌘K.
+  const others: PaletteItem[] = operator
+    ? []
+    : clients
+        .filter((c) => c.id !== current?.id)
+        .map((c) => ({ label: `Open ${c.name}`, group: "Clients", href: `/?client=${c.id}` }));
+  const viewAsItem: PaletteItem[] =
+    operator || viewing
+      ? [
+          {
+            label: "View as…",
+            group: "Wren",
+            href: VIEW_AS_HREF,
+            hint: "A client or a person there",
+          },
+        ]
+      : [];
   // The demo firm stays the demo on the app host too: its actions run in the browser.
   const props = (id: string): PageProps => ({
     client: id,
@@ -561,17 +569,15 @@ export function App() {
           brand={{ name: "Wren", href: home, stamp: STAMP }}
           workspace={{
             current,
-            options: operator ? [WREN, ...clients] : clients,
             chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
             href: account ? firstOf(account) : undefined,
-            label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
-            onPick: pick,
+            label: "Account",
           }}
           launcher={launcher}
           home={launcher ? { label: "Today", href: launcher } : undefined}
           areas={areas}
           dock={dock}
-          bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
+          bar={viewing ? <ViewAsStrip me={me.data} /> : undefined}
           pins={railPins}
           app={
             open
@@ -599,13 +605,9 @@ export function App() {
           }
           actions={
             <>
-              {operator && !wren ? (
-                <Button tone="quiet" size="sm" onClick={flip}>
-                  {/* A phone's top bar keeps room for the workspace's name. */}
-                  <span className="sm:hidden">{team ? "As client" : "Team view"}</span>
-                  <span className="max-sm:hidden">
-                    {team ? "View as client" : "Back to team view"}
-                  </span>
+              {operator && !viewing && onDemo === false ? (
+                <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
+                  View as
                 </Button>
               ) : null}
               {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
@@ -701,6 +703,7 @@ export function App() {
         </AppShell>
       </ShowRawErrors>
       <Toasts />
+      {operator || viewing ? <ViewAsPicker /> : null}
       {noteAt && quick ? <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} /> : null}
       {!operator && onDemo === false && current && current.id !== WREN.id ? (
         <SurveyCard client={current.id} />
@@ -710,8 +713,8 @@ export function App() {
           <CommandPalette
             open={jump}
             onOpenChange={setJump}
-            items={jumps(apps, launcher, keys)}
-            onPick={(href) => navigate(href)}
+            items={[...jumps(apps, launcher, keys), ...viewAsItem, ...others]}
+            onPick={(href) => (href === VIEW_AS_HREF ? openViewAs() : navigate(href))}
             capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
             card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
             find={finder}
@@ -725,27 +728,6 @@ export function App() {
         </Suspense>
       )}
     </SnippetsProvider>
-  );
-}
-
-/** The strip on top under View as: who, that it reads only, and the way back. */
-function ViewingAs({ email }: { email: string }) {
-  return (
-    <div
-      role="status"
-      className="flex min-h-10 flex-none flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-(--ui-ink) px-4 py-1.5 text-[14px] text-(--ui-on-ink)"
-    >
-      <span className="min-w-0 break-all">
-        Viewing as <strong className="font-medium">{email}</strong>. Read only.
-      </span>
-      <button
-        type="button"
-        className="cursor-pointer rounded-(--ui-radius) border border-solid border-current/40 bg-transparent px-2.5 py-0.5 text-[13px] text-inherit hover:bg-white/10"
-        onClick={() => viewAs(null)}
-      >
-        Stop
-      </button>
-    </div>
   );
 }
 

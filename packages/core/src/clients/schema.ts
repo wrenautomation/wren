@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -67,6 +68,11 @@ export const clients = pgTable(
      * every draft waits and nothing leaves. Only an admin sets it (`wren clients set --live`).
      */
     sends: text("sends").array().default(sql`'{}'::text[]`).notNull(),
+    /**
+     * The sandbox: a blank client to see day one through View as (designs/2026-10-14-view-as.md).
+     * Synthetic, wiped on demand, never contacted: no accounts, no sends, no buys, held here.
+     */
+    sandbox: boolean("sandbox").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -74,6 +80,10 @@ export const clients = pgTable(
     unique("uq_clients_database").on(t.database),
     oneOf("ck_clients_setup_mode", t.setupMode, SETUP_MODES),
     oneOf("ck_clients_approver", t.approver, APPROVERS),
+    check(
+      "ck_clients_sandbox_quiet",
+      sql`NOT ${t.sandbox} OR (${t.sends} = '{}' AND NOT ${t.buysOk} AND ${t.accounts} = '{}'::jsonb AND NOT ${t.demo})`,
+    ),
   ],
 );
 
@@ -389,7 +399,8 @@ export const clientRecords = pgView("client_records", {
   lastSeen: timestamp("last_seen", { withTimezone: true }),
   added: timestamp("added", { withTimezone: true }),
 }).as(sql`
-  select c.id::text id, c.name, case when c.demo then 'demo' else 'client' end kind,
+  select c.id::text id, c.name,
+    case when c.demo then 'demo' when c.sandbox then 'sandbox' else 'client' end kind,
     (select string_agg(k, ', ' order by k) from jsonb_object_keys(c.products) k) products,
     (select count(*) from client_members m where m.client_id = c.id) members,
     case when cardinality(c.sends) = 0 then 'Off. An admin turns them on.'

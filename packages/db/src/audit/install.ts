@@ -55,7 +55,8 @@ export const AUDIT_TABLE_STATEMENTS = [
     new_values jsonb,
     db_user text NOT NULL DEFAULT SESSION_USER,
     app text NOT NULL DEFAULT current_setting('application_name'),
-    actor text DEFAULT NULLIF(current_setting('wren.actor', true), '')
+    actor text DEFAULT NULLIF(current_setting('wren.actor', true), ''),
+    acting_as text DEFAULT NULLIF(current_setting('wren.as', true), '')
   )`,
   "CREATE INDEX ix_audit_events_era_tx ON audit_events (era, tx, id)",
   "CREATE INDEX ix_audit_events_table_at ON audit_events (table_name, at)",
@@ -75,6 +76,10 @@ export const AUDIT_TABLE_STATEMENTS = [
 /** Replaced on every migrate: the current definition always wins. */
 export const AUDIT_FUNCTION_STATEMENTS = [
   ERA_FUNCTION,
+  // View as, Act (designs/2026-10-14-view-as.md): whom the actor was acting as. A log made before
+  // gains the column here; metadata only, no rewrite.
+  "ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS acting_as text",
+  "ALTER TABLE audit_events ALTER COLUMN acting_as SET DEFAULT NULLIF(current_setting('wren.as', true), '')",
   // One function for every audited table. Row trigger: TG_ARGV = the primary key's columns.
   // Statement trigger: TRUNCATE. SECURITY DEFINER: a client login cannot write the log itself.
   `CREATE OR REPLACE FUNCTION audit_row() RETURNS trigger
@@ -130,11 +135,16 @@ export const AUDIT_FUNCTION_STATEMENTS = [
   END
   $fn$`,
   // An event as one unambiguous line (a JSON array), hashed. Time as epoch seconds,
-  // so the session's time zone never changes the line.
+  // so the session's time zone never changes the line. `acting_as` joins the line only when set,
+  // so every event sealed before it existed hashes as it did.
   `CREATE OR REPLACE FUNCTION audit_event_hash(e audit_events) RETURNS bytea
   LANGUAGE sql STABLE SET search_path = pg_catalog, public, pg_temp AS $fn$
-    SELECT sha256(convert_to(jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
-      e.table_name, e.op, e.row_key, e.old_values, e.new_values, e.db_user, e.app, e.actor)::text, 'UTF8'))
+    SELECT sha256(convert_to((CASE WHEN e.acting_as IS NULL
+      THEN jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
+        e.table_name, e.op, e.row_key, e.old_values, e.new_values, e.db_user, e.app, e.actor)
+      ELSE jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
+        e.table_name, e.op, e.row_key, e.old_values, e.new_values, e.db_user, e.app, e.actor,
+        e.acting_as) END)::text, 'UTF8'))
   $fn$`,
   // Seal every event of the transactions finished since the last seal: all below
   // (this server's era, the oldest transaction still running). No new event can
@@ -227,6 +237,7 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     CASE WHEN e.actor IS NULL THEN 'pipeline' WHEN e.actor LIKE 'claude%' THEN 'agent'
       ELSE 'person' END made_by,
     e.app via,
+    e.acting_as "as",
     e.table_name "table",
     CASE WHEN e.table_name LIKE 'books.%'
         OR e.table_name IN ('delivery.invoices', 'delivery.agreements', 'ad_launches') THEN 'money'

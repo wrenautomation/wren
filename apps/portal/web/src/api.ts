@@ -265,25 +265,58 @@ async function fresh(url: string): Promise<string | null> {
 
 const VIEW_AS = "wren.viewAs";
 
-/** View as: the person this tab looks as, read only. Every call carries it; the server checks. */
-export const viewingAs: string | null = (() => {
+/**
+ * View as (designs/2026-10-14-view-as.md): which client this tab looks at, as whom, Look or Act.
+ * One tab only (session storage). Every call carries it; the server decides.
+ */
+export interface ViewAsTab {
+  /** A client's id, or `wren` for a teammate. */
+  client: string;
+  email?: string;
+  role?: string;
+  act?: boolean;
+  /** The picker's say, kept in the tab only: this login may Act (an admin). */
+  mayAct?: boolean;
+}
+
+export const viewing: ViewAsTab | null = (() => {
   try {
-    return sessionStorage.getItem(VIEW_AS) || null;
+    const v = JSON.parse(sessionStorage.getItem(VIEW_AS) ?? "null") as ViewAsTab | null;
+    return v && typeof v === "object" && typeof v.client === "string" ? v : null;
   } catch {
     return null;
   }
 })();
 
-/** Start or stop View as. The app opens again from the top, as that person or as you. */
-export function viewAs(email: string | null) {
+/** Under View as, Look: this tab reads only. Null when it may change things (yours, or Act). */
+export const viewingAs: string | null =
+  viewing && !viewing.act ? (viewing.email ?? viewing.role ?? viewing.client) : null;
+
+/** Start, change or stop View as. The app opens again from the top, as them or as you. */
+export function viewAs(v: ViewAsTab | null) {
   try {
-    if (email) sessionStorage.setItem(VIEW_AS, email);
+    if (v) sessionStorage.setItem(VIEW_AS, JSON.stringify(v));
     else sessionStorage.removeItem(VIEW_AS);
   } catch {
     // No session storage: nothing to look as.
   }
   location.assign("/");
 }
+
+/** A call as yourself, whatever this tab views as: the View as picker's. */
+export const callAsMe = <T>(path: string, body: Record<string, unknown> = {}): Promise<T> =>
+  call<T>(path, { ...body, viewAs: null });
+
+/** What the server reads of it. */
+const wire = viewing && {
+  client: viewing.client,
+  ...(viewing.email ? { email: viewing.email } : {}),
+  ...(viewing.role ? { role: viewing.role } : {}),
+  act: viewing.act === true,
+};
+/** The body as sent: with this tab's View as, unless the call says its own. */
+const viewed = (body: Record<string, unknown>) =>
+  wire && !("viewAs" in body) ? { ...body, viewAs: wire } : body;
 
 /** Answers read once per load and shared: a product's record types never change under a page. */
 const SHARED = /(^|\/)recordsTypes$/;
@@ -373,7 +406,7 @@ function send<T>(path: string, body: Record<string, unknown>, retried: boolean):
     return new Promise<T>((ok, fail) => {
       into.push({
         path,
-        body: viewingAs ? { ...body, viewAs: viewingAs } : body,
+        body: viewed(body),
         ok: ok as (v: unknown) => void,
         fail,
       });
@@ -396,7 +429,7 @@ async function sendNow<T>(
         "content-type": "application/json",
         ...(t ? { authorization: `Bearer ${t}` } : {}),
       },
-      body: JSON.stringify(viewingAs ? { ...body, viewAs: viewingAs } : body),
+      body: JSON.stringify(viewed(body)),
     });
   } catch {
     tellAutotrack(path, body, 0);

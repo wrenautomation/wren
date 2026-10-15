@@ -16,7 +16,7 @@ import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type Reach, reach } from "./access.js";
 import { type EditState, editState } from "./edits.js";
-import { isDemo, isOperator, PortalRefusal, type PortalRequest } from "./portal.js";
+import { isDemo, isOperator, PortalRefusal, type PortalRequest, viewingAs } from "./portal.js";
 import {
   allowed,
   BadAsk,
@@ -514,7 +514,7 @@ export function fenceFor(req: PortalRequest, client: string): Fence | undefined 
  */
 export function meOf(req: PortalRequest): Me | null {
   const v = req.viewer;
-  if (isDemo(v) || (typeof req.viewAs === "string" && req.viewAs !== "")) return null;
+  if (isDemo(v) || viewingAs(req)) return null;
   return { email: v.email.trim().toLowerCase(), team: isOperator(v) };
 }
 

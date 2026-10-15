@@ -23,7 +23,7 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
-import { socketToken, viewingAs } from "../../api.js";
+import { socketToken, viewing } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { navigate } from "../../route.js";
@@ -259,7 +259,7 @@ function Doc({
         },
         // A commenter's copy isn't kept: a change the server refused would come back on reload.
         keepLocal: !demo && note.role !== "comment",
-        live: demo || viewingAs ? null : socketToken,
+        live: demo || viewing ? null : socketToken,
       }),
     [],
   );

@@ -643,6 +643,8 @@ export function deliveryApi(deps: DeliveryDeps) {
     /** Let an email sign in and see this client; again changes their role. */
     invite: (req: PortalRequest & { email: string; role?: RoleId }) =>
       write(deps, req, "people", async (db, c, v) => {
+        // The sandbox never mails anyone (designs/2026-10-14-view-as.md).
+        if (c.sandbox) throw new PortalRefusal("The sandbox takes no real people.", 403);
         const email = emailOf(req.email);
         const role = await roleOf(db, c.id, req.role);
         if (role !== "owner") await keepAnOwner(db, c.id, email);

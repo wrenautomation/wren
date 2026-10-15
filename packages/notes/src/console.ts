@@ -13,10 +13,12 @@ import {
   canAt,
   isDemo,
   isOperator,
+  lookingOnly,
   PortalRefusal,
   type PortalRequest,
   pickClient,
   portalService,
+  viewingAs,
   whoIs,
 } from "@wren/core/portal";
 import { metaOf } from "@wren/core/records";
@@ -232,7 +234,7 @@ export function notesApi(deps: NotesDeps) {
     const v = req.viewer;
     if (isDemo(v)) return { email: "", team: false, inWorkspace: true, client: place.ws, cap };
     const team = isOperator(v);
-    const viewing = typeof req.viewAs === "string" && req.viewAs !== "";
+    const viewing = viewingAs(req);
     return {
       email: viewing ? "" : v.email.toLowerCase(),
       team,
@@ -258,8 +260,7 @@ export function notesApi(deps: NotesDeps) {
   /** The person a change is by: never the demo, never under View as. */
   const byOf = (req: PortalRequest): string => {
     if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
-    if (typeof req.viewAs === "string" && req.viewAs)
-      throw new PortalRefusal("View as is read-only", 403);
+    if (lookingOnly(req)) throw new PortalRefusal("Look reads only", 403);
     return req.viewer.email.toLowerCase();
   };
 

@@ -4,7 +4,7 @@
  * reaches its own clients. The edge Worker sets the viewer; the browser can't.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Db } from "@wren/db";
+import { actingAs, type Db } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   type Cap,
@@ -14,18 +14,21 @@ import {
   granted,
   type Need,
   needOf,
+  PERMISSIONS,
   type Permission,
   type RoleId,
   type RouteApps,
   routeAt,
   type Target,
+  type ViewAs,
+  viewAsShape,
   type Who,
   WREN,
 } from "./access.js";
 import { normalEmail, touchMember } from "./clients/index.js";
 import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
 import { evaluateFlags, subjectOf } from "./flags.js";
-import { grantsFor } from "./grants.js";
+import { grantsFor, roleFits } from "./grants.js";
 import { PortalRefusal } from "./refusal.js";
 import { handlerForm, serviceHandler } from "./restate/form.js";
 import { flags } from "./schema.js";
@@ -37,13 +40,35 @@ export interface TeamSeat {
 }
 
 /**
+ * Who a View as came to, set by the guard on the viewer it hands a handler
+ * (designs/2026-10-14-view-as.md). The viewer's own `email` is then the person looked as.
+ */
+export interface Viewing {
+  /** The real person signed in: the actor in the audit log. */
+  by: string;
+  /** The client looked at, or `wren` for a teammate. */
+  client: string;
+  /** Act: changes go through, logged as `by` acting as this. Else Look, reads only. */
+  act: boolean;
+  /** Their email, or "someone new as member". */
+  who: string;
+  /** Their role there. */
+  role: RoleId;
+  /** In words, for the audit log: `amy@acme.test at acme`. */
+  label: string;
+  /** The sandbox: nothing there ever sends or spends. */
+  sandbox: boolean;
+}
+
+/**
  * An email our sign-in vouched for, or anyone on the demo host. `operator` comes from the token;
  * the access guard overwrites it, and sets `team` and `access`, from a fresh read before any
  * handler runs. `access` is the whole answer, grants and all, that `canAt` checks targets with.
- * `cap` is an access token's limit, set by the Worker; it stays on through View as.
+ * `cap` is an access token's limit, set by the Worker; it stays on through View as. `as` is set
+ * by the guard under View as.
  */
 export type Viewer =
-  | { email: string; operator?: boolean; team?: TeamSeat; access?: Who; cap?: Cap }
+  | { email: string; operator?: boolean; team?: TeamSeat; access?: Who; cap?: Cap; as?: Viewing }
   | { demo: true };
 export type SignedViewer = Exclude<Viewer, { demo: true }>;
 
@@ -53,9 +78,19 @@ export interface PortalRequest {
   client?: string;
   /** An operator looking as the client would: no internal notes, no team tools. */
   asClient?: boolean;
-  /** View as: an admin or owner reads as one of their people, read only (`viewAsOf`). */
-  viewAs?: string;
+  /** View as: which client, who there, Look or Act (`ViewAs`); the guard decides (`viewAsOf`). */
+  viewAs?: ViewAs | unknown;
 }
+
+/** The View as a call carries, read leniently: anything there that isn't a sound Act is a Look. */
+export function viewAsIn(req: PortalRequest): ViewAs | null {
+  const v = viewAsShape(req.viewAs);
+  return v === "bad" ? { client: "", act: false } : v;
+}
+/** Under View as at all: nobody's own things, no device cache, no seen mark. */
+export const viewingAs = (req: PortalRequest): boolean => viewAsIn(req) !== null;
+/** Under View as, Look: a change is refused. */
+export const lookingOnly = (req: PortalRequest): boolean => viewAsIn(req)?.act === false;
 
 export { PortalRefusal, type RefusalStatus } from "./refusal.js";
 
@@ -133,11 +168,18 @@ export async function guard<R extends PortalRequest>(
   const named = typeof req.client === "string" ? req.client : undefined;
   if (!req.viewer || typeof req.viewer !== "object") throw new PortalRefusal("sign in", 403);
   const asked = (req as PortalRequest).viewAs;
-  const viewer =
+  const viewing =
     asked === undefined || asked === null || asked === ""
-      ? req.viewer
-      : capOf(req.viewer, await viewAsOf(main, req.viewer, asked, permission));
-  const who = await whoIs(main, viewer, wren ? undefined : named);
+      ? null
+      : await viewAsOf(main, req.viewer, asked, permission);
+  const viewer = viewing ? capOf(req.viewer, viewing.viewer) : req.viewer;
+  const as = viewing?.viewer.as;
+  // View as is one client at a time: a call naming another is refused.
+  if (as && as.client !== WREN && named !== undefined && named !== as.client)
+    throw new PortalRefusal("View as is for one client at a time", 403);
+  const who = viewing
+    ? narrowed(viewing.who, isDemo(req.viewer) ? undefined : req.viewer.cap)
+    : await whoIs(main, viewer, wren ? undefined : named);
   // `wren` is for the team: a client's people naming no client stay on their own.
   const team = who !== null && "team" in who;
   const client = wren ? WREN : (named ?? (unnamed === "wren" && team ? WREN : undefined));
@@ -171,11 +213,13 @@ export async function guard<R extends PortalRequest>(
           team: { role: who.team, clients: who.clients },
           access: who,
           ...(viewer.cap ? { cap: viewer.cap } : {}),
+          ...(as ? { as } : {}),
         }
       : {
           email: viewer.email,
           ...(who ? { access: who } : {}),
           ...(viewer.cap ? { cap: viewer.cap } : {}),
+          ...(as ? { as } : {}),
         };
   return { ...req, viewer: fresh };
 }
@@ -184,35 +228,155 @@ export async function guard<R extends PortalRequest>(
 const capOf = (real: Viewer, as: SignedViewer): SignedViewer =>
   !isDemo(real) && real.cap ? { ...as, cap: real.cap } : as;
 
+/** `who` under a token's cap too: both limits hold. */
+function narrowed(who: Who, cap: Cap | undefined): Who {
+  if (!cap || !who || "demo" in who) return who;
+  const own = who.cap;
+  const apps =
+    own?.apps && cap.apps ? own.apps.filter((a) => cap.apps?.includes(a)) : (own?.apps ?? cap.apps);
+  return {
+    ...who,
+    cap: {
+      verbs: own ? own.verbs.filter((v) => cap.verbs.includes(v)) : cap.verbs,
+      ...(apps ? { apps } : {}),
+    },
+  };
+}
+
+/** The sandbox's limit: everything but `effect`, so nothing there sends or spends. */
+const SANDBOX_CAP: Cap = { verbs: PERMISSIONS.filter((p) => p !== "effect") };
+
+/** The address a role-only View as goes by: never a real one. */
+const someoneNew = (role: string) =>
+  `new.${role.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}@view-as.invalid`;
+
 /**
- * View as (designs/2026-10-06-scoped-access.md): the person `as`, for a route that only reads.
- * An admin may view as a teammate; an admin or owner as a client's person, when they manage
- * every client that person is in, so nothing beyond their own workspaces shows.
+ * View as (designs/2026-10-14-view-as.md): who the real viewer becomes for this call, and what
+ * that person holds, read fresh. Wren's team only: any client its seat reaches, as a person
+ * there, a role with nobody in it yet, or (no one named) its owner. Look reads only; Act is an
+ * admin's, and a role-only Act only in the sandbox, so a real client's rows never carry a made-up
+ * author. An admin views as a teammate too.
  */
 export async function viewAsOf(
   main: Db,
   real: Viewer,
-  as: unknown,
+  raw: unknown,
   permission: Permission,
-): Promise<SignedViewer> {
+): Promise<{ viewer: SignedViewer & { as: Viewing }; who: Who }> {
   if (isDemo(real)) throw new PortalRefusal("the demo is read-only", 403);
-  if (typeof as !== "string" || as.length > 254) throw new PortalRefusal("view as: say who", 400);
-  if (permission !== "read") throw new PortalRefusal("view as is read-only", 403);
-  const email = normalEmail(as);
-  if (await teamSeat(main, email)) {
-    if (!can(await whoIs(main, real), "team", WREN))
-      throw new PortalRefusal("only an admin views as a teammate", 403);
-    return { email, operator: true };
+  const v = viewAsShape(raw);
+  if (v === null || v === "bad") throw new PortalRefusal("view as: say which client", 400);
+  if (!v.act && permission !== "read")
+    throw new PortalRefusal("Look reads only. Switch to Act to change things.", 403);
+  const me = await whoIs(main, real);
+  if (me === null || !("team" in me)) throw new PortalRefusal("View as is for Wren's team", 403);
+  const admin = can(me, "team", WREN);
+  if (v.act && !admin) throw new PortalRefusal("only an admin acts as someone", 403);
+  const by = normalEmail(real.email);
+  const seen = (client: string, words: string, role: RoleId, sandbox: boolean): Viewing => ({
+    by,
+    client,
+    act: v.act === true,
+    who: words,
+    role,
+    label: `${words} at ${client}`,
+    sandbox,
+  });
+
+  if (v.client === WREN) {
+    if (!admin) throw new PortalRefusal("only an admin views as a teammate", 403);
+    let email = v.email;
+    let role = v.role;
+    if (email) {
+      const seat = await teamSeat(main, email);
+      if (!seat) throw new PortalRefusal("no such teammate", 404);
+      role = seat.role;
+      const grants = await grantsFor(main, email, seat.role);
+      const who: Who = {
+        team: seat.role,
+        clients: seat.clients,
+        ...(grants.length ? { grants } : {}),
+      };
+      return {
+        viewer: { email, operator: true, as: seen(WREN, email, seat.role, false) },
+        who,
+      };
+    }
+    if (!role || !(await roleFits(main, role, WREN)))
+      throw new PortalRefusal("view as: a teammate or one of Wren's roles", 400);
+    if (v.act)
+      throw new PortalRefusal("Someone new acts only in the sandbox. Pick a person to Act.", 403);
+    email = someoneNew(role);
+    const grants = await grantsFor(main, email, role);
+    return {
+      viewer: {
+        email,
+        operator: true,
+        as: seen(WREN, `someone new as ${role}`, role, false),
+      },
+      who: { team: role, clients: null, ...(grants.length ? { grants } : {}) },
+    };
   }
-  const where = await main
-    .select({ client: clientMembers.clientId })
-    .from(clientMembers)
-    .where(eq(clientMembers.email, email));
-  if (!where.length) throw new PortalRefusal("no such person", 404);
-  for (const { client } of where)
-    if (!can(await whoIs(main, real, client), "manage", { client }))
-      throw new PortalRefusal("you can view as your own people only", 403);
-  return { email };
+
+  const [client] = await main.select().from(clients).where(eq(clients.id, v.client));
+  if (!client) throw new PortalRefusal("no such client", 404);
+  if (!can(me, "read", { client: client.id }))
+    throw new PortalRefusal("that client isn't one of yours", 403);
+  let email = v.email;
+  let role = v.role;
+  if (!email && !role) {
+    const [owner] = await main
+      .select({ email: clientMembers.email })
+      .from(clientMembers)
+      .where(and(eq(clientMembers.clientId, client.id), eq(clientMembers.role, "owner")))
+      .orderBy(asc(clientMembers.email))
+      .limit(1);
+    if (owner) email = owner.email;
+    else role = "owner";
+  }
+  let viewing: Viewing;
+  if (email) {
+    const [m] = await main
+      .select({ role: clientMembers.role })
+      .from(clientMembers)
+      .where(and(eq(clientMembers.clientId, client.id), eq(clientMembers.email, email)));
+    if (!m) throw new PortalRefusal("no such person there", 404);
+    role = m.role;
+    viewing = seen(client.id, email, m.role, client.sandbox);
+  } else {
+    if (!role || !(await roleFits(main, role, client.id)))
+      throw new PortalRefusal("view as: one of that client's roles", 400);
+    if (v.act && !client.sandbox)
+      throw new PortalRefusal("Someone new acts only in the sandbox. Pick a person to Act.", 403);
+    email = someoneNew(role);
+    viewing = seen(client.id, `someone new as ${role}`, role, client.sandbox);
+  }
+  const grants = await grantsFor(main, email, role as RoleId, client.id);
+  const who: Who = {
+    member: role as RoleId,
+    client: client.id,
+    ...(grants.length ? { grants } : {}),
+    ...(client.sandbox ? { cap: SANDBOX_CAP } : {}),
+  };
+  return { viewer: { email, as: viewing }, who };
+}
+
+/**
+ * `ctx` with each `run` step held to `who`: Restate runs a step's closure from its own loop, so
+ * the call's View as wouldn't reach the audit log from inside one otherwise.
+ */
+function actingCtx<C extends restate.Context>(ctx: C, who: { actor: string; as: string }): C {
+  const run = (a: unknown, b?: unknown, c?: unknown) =>
+    typeof a === "function"
+      ? ctx.run(() => actingAs(who, a as () => Promise<unknown>))
+      : ctx.run(a as string, () => actingAs(who, b as () => Promise<unknown>), c as never);
+  return new Proxy(ctx, {
+    get(t, k) {
+      if (k === "run") return run;
+      const v = Reflect.get(t, k, t);
+      return typeof v === "function" ? v.bind(t) : v;
+    },
+  });
 }
 
 /** A portal handler as Restate calls it; `never` takes any request type. */
@@ -245,8 +409,14 @@ export function portalService<
       req: PortalRequest,
     ) => Promise<unknown>;
     const need = o.routes[key] as Need;
-    const run = async (ctx: restate.Context, req: PortalRequest) =>
-      fn(ctx, await answer(() => guard(o.main, need, req, o.unnamed, routeAt(o.apps, key))));
+    const run = async (ctx: restate.Context, req: PortalRequest) => {
+      const fresh = await answer(() => guard(o.main, need, req, o.unnamed, routeAt(o.apps, key)));
+      // Under View as, every change this call makes is logged as the real person acting as them.
+      const as = isDemo(fresh.viewer) ? undefined : fresh.viewer.as;
+      if (!as) return fn(ctx, fresh);
+      const who = { actor: as.by, as: as.label };
+      return actingAs(who, () => fn(actingCtx(ctx, who), fresh));
+    };
     const form = handlerForm(fn);
     handlers[key] = form ? serviceHandler(form, run) : run;
   }
@@ -304,6 +474,9 @@ export const extraGrants = (who: Who): readonly Grant[] =>
 export async function clientsFor(main: Db, viewer: Viewer): Promise<Client[]> {
   if (isDemo(viewer))
     return main.select().from(clients).where(eq(clients.demo, true)).orderBy(asc(clients.id));
+  // View as a client's person: that client alone, whatever else they're in.
+  if (viewer.as && viewer.as.client !== WREN)
+    return main.select().from(clients).where(eq(clients.id, viewer.as.client));
   if (viewer.operator) {
     const scope = viewer.team?.role === "admin" ? null : viewer.team?.clients;
     return main
@@ -369,6 +542,17 @@ export interface Me {
   operator: boolean;
   /** A team login's role, and what it may do in Wren's own apps. */
   team?: { role: RoleId; wren: Permission[]; flags: Record<string, string>; grants?: Grant[] };
+  /** Under View as: who this is, where, and whether changes go through (designs/2026-10-14-view-as.md). */
+  as?: {
+    client: string;
+    /** The client's name, or Wren's. */
+    name: string;
+    /** Their email, or "someone new as member". */
+    who: string;
+    role: RoleId;
+    act: boolean;
+    sandbox: boolean;
+  };
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
@@ -382,6 +566,10 @@ export async function portalMe(
   const mine = await clientsFor(main, viewer);
   if (!isDemo(viewer) && touch) await touchMember(main, viewer.email);
   const team = isDemo(viewer) ? undefined : viewer.team;
+  // Under View as, what the guard read is the whole answer: a role-only view has no rows to read.
+  const viewing = isDemo(viewer) ? undefined : viewer.as;
+  const held = viewing && !isDemo(viewer) ? viewer.access : undefined;
+  const member = held && "member" in held ? held : null;
   const seat = isOperator(viewer)
     ? {
         team: team?.role ?? "admin",
@@ -392,18 +580,23 @@ export async function portalMe(
   const roles = new Map(
     seat || isDemo(viewer)
       ? []
-      : (
-          await main
-            .select({ client: clientMembers.clientId, role: clientMembers.role })
-            .from(clientMembers)
-            .where(eq(clientMembers.email, normalEmail(viewer.email)))
-        ).map((r) => [r.client, r.role]),
+      : member
+        ? [[member.client, member.member]]
+        : (
+            await main
+              .select({ client: clientMembers.clientId, role: clientMembers.role })
+              .from(clientMembers)
+              .where(eq(clientMembers.email, normalEmail(viewer.email)))
+          ).map((r) => [r.client, r.role]),
   );
   const extras = new Map<string, Grant[]>();
-  if (!seat && !isDemo(viewer))
+  if (member) extras.set(member.client, [...(member.grants ?? [])]);
+  else if (!seat && !isDemo(viewer))
     for (const [id, role] of roles) extras.set(id, await grantsFor(main, viewer.email, role, id));
   const whoAt = (id: string): Who => {
     if (isDemo(viewer)) return { demo: true };
+    // The sandbox's cap and the like ride on what the guard read.
+    if (held) return member && member.client !== id ? null : held;
     if (seat) return seat;
     const role = roles.get(id);
     return role ? { member: role, client: id, grants: extras.get(id) ?? [] } : null;
@@ -431,6 +624,21 @@ export async function portalMe(
     }),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
+    ...(viewing
+      ? {
+          as: {
+            client: viewing.client,
+            name:
+              viewing.client === WREN
+                ? "Wren"
+                : (mine.find((c) => c.id === viewing.client)?.name ?? viewing.client),
+            who: viewing.who,
+            role: viewing.role,
+            act: viewing.act,
+            sandbox: viewing.sandbox,
+          },
+        }
+      : {}),
     ...(seat
       ? {
           team: {

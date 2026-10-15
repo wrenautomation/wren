@@ -7,9 +7,11 @@
  */
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { Db, Queryable } from "../index.js";
+import { actingNow } from "./acting.js";
 import { AUDIT_FUNCTION_STATEMENTS, AUDIT_GUARD, AUDIT_TABLE_STATEMENTS } from "./install.js";
 import { type AuditEvent, auditEvents } from "./schema.js";
 
+export * from "./acting.js";
 export * from "./schema.js";
 
 /**
@@ -278,9 +280,13 @@ export async function verifyAudit(db: Queryable): Promise<AuditCheck> {
 /**
  * Set who is acting for the rest of this transaction (`audit_events.actor`).
  * Call first inside `db.transaction(...)`; outside one it lasts one statement.
+ * Under View as, Act (`actingAs`), the real person is the actor and `acting_as` says whom as.
  */
 export async function setAuditActor(tx: Queryable, actor: string): Promise<void> {
-  await tx.execute(sql`select set_config('wren.actor', ${actor}, true)`);
+  const v = actingNow();
+  await tx.execute(
+    sql`select set_config('wren.actor', ${v?.actor ?? actor}, true), set_config('wren.as', ${v?.as ?? ""}, true)`,
+  );
 }
 
 /** The newest events, newest first; `table` narrows to one table. */

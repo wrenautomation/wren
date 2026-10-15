@@ -7,9 +7,10 @@ import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/cor
 import type { RecordsPage } from "@wren/core/records/serve";
 import { Alert, Button, Input, Loading } from "@wren/ui";
 import { type FormEvent, useState } from "react";
-import { call, viewAs, viewingAs } from "../../api.js";
+import { call, type Me, viewing, viewingAs } from "../../api.js";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
+import { openViewAs } from "../../view-as.js";
 import { ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
 
 /** A console call in this workspace: Wren's own, or the client's. */
@@ -48,6 +49,7 @@ export function PersonAccess({
   role: string;
 }) {
   const [nonce, setNonce] = useState(0);
+  const me = useCall("me", () => call<Me>("delivery/me"));
   const [adding, setAdding] = useState(false);
   const [history, setHistory] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -121,11 +123,16 @@ export function PersonAccess({
           <h4 className="text-[13px] font-medium text-(--ui-ink-2)">
             Role: {String(theirs?.name ?? role)}
           </h4>
-          {viewingAs ? null : (
-            <Button size="sm" tone="quiet" onClick={() => viewAs(email)}>
+          {/* View as is Wren's team's: the picker opens on this person. */}
+          {me.data?.operator && !viewing ? (
+            <Button
+              size="sm"
+              tone="quiet"
+              onClick={() => openViewAs({ client: client === WREN.id ? "wren" : client, email })}
+            >
               View as
             </Button>
-          )}
+          ) : null}
         </div>
         {lines.length ? (
           lines.map((l) => <p key={l}>{l}</p>)

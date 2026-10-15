@@ -1,7 +1,7 @@
 /** Loading a portal call into a component. */
 import { onWrite, type Patch, useLoad, writeThrough } from "@wren/ui";
 import { useEffect, useState } from "react";
-import { ApiError, device, deviceOwner, viewingAs } from "./api.js";
+import { ApiError, device, deviceOwner, viewing } from "./api.js";
 import { readSnapshot, writeSnapshot } from "./snapshot.js";
 
 export type Load<T> = {
@@ -27,7 +27,7 @@ export function patchCalls(patch: Patch) {
 /** Answers kept on the device: the last load's, then this one's (never under View as). */
 const KEPT_MAX = 200;
 const kept = new Map<string, unknown>(
-  viewingAs
+  viewing
     ? []
     : (() => {
         const d = device();
@@ -42,7 +42,7 @@ function keep(key: string, data: unknown) {
 function save() {
   const d = device();
   const who = deviceOwner();
-  if (!d || !who || viewingAs) return;
+  if (!d || !who || viewing) return;
   writeSnapshot(d, who, Date.now(), [...kept]);
 }
 onWrite(PORTAL, (patch) => {

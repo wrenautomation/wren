@@ -17,13 +17,13 @@ One trigger function on every table of every schema (`public`, `books`, any new 
 
 ## Shape
 
-- `audit_events` (`packages/db/src/audit/schema.ts:26`): `era, tx, table_name, op, row_key, old_values, new_values, db_user, app, actor`; `audit_seals` (`:62`); `audit_eras` (`:78`)
+- `audit_events` (`packages/db/src/audit/schema.ts:26`): `era, tx, table_name, op, row_key, old_values, new_values, db_user, app, actor, acting_as` (View as, Act: whom the `actor` acted as, from `wren.as`; `setAuditActor` reads `actingAs` in `packages/db/src/audit/acting.ts`, opened per call by `portalService`; the event hash takes it only when set, so old seals verify); `audit_seals` (`:62`); `audit_eras` (`:78`)
 - The SQL: `audit_era()` (`packages/db/src/audit/install.ts:17`); `audit_row()`, `audit_seal()`, `audit_verify()` (`:76`)
 - `installAudit` ends every `migrate()` (`packages/db/src/audit/index.ts:87`, `packages/db/src/index.ts:79`); `syncAuditTriggers` (`packages/db/src/audit/index.ts:114`); skip lists `AUDIT_SKIPPED`, `AUDIT_SKIPPED_SCHEMAS` (`:20`, `:39`); outside `public` a table is logged as `schema.table` (`auditName`, `:44`)
 - `sealAudit`, `verifyAudit`, `setAuditActor` (`:190`, `:222`, `:249`)
 - `AuditSealer/all`: every database, 4 at a time, every 15 min (`packages/core/src/audit.ts:47`, `:78`); registered in `apps/worker/src/services.ts:369`, off until started
 - CLI `wren [--client id] audit show|seal|verify|sealer` (`apps/cli/src/main.ts:127`)
-- `audit_changes` view (`packages/db/src/audit/install.ts:221`, rebuilt each migrate; index on `at`, `:218`): the last 7 days as who, made by (person, agent, pipeline), area (money, client, team, data) and an update's field diff as words ("domain verified at: empty → 2026-10-07 06:45 UTC"; a JSON value reads "updated"; a delete names its row by name, title, subject, label or email when it logged them, else empty; an insert logs its key alone, so its change is empty, as What already says Added)
+- `audit_changes` view (`packages/db/src/audit/install.ts:221`, rebuilt each migrate; index on `at`, `:218`): the last 7 days as who, made by (person, agent, pipeline), as (View as), area (money, client, team, data) and an update's field diff as words ("domain verified at: empty → 2026-10-07 06:45 UTC"; a JSON value reads "updated"; a delete names its row by name, title, subject, label or email when it logged them, else empty; an insert logs its key alone, so its change is empty, as What already says Added)
 - Read as records: `console.change` (`packages/core/src/clients/index.ts:387`, need `team`) for main; `delivery.change` (`packages/delivery/src/records.ts:510`, need `manage`) for one client's rows via `clientChanges` (`:53`), never Wren's own rows (`TEAM_TABLES`, `:33`: flags, health ratings and overrides, pulses, moments)
 - `AUDIT_SKIPPED` lists machine-written tables (nine more since 2026-10-06: about 109k to 32k events a day); Friday review reports `audit_events` size and flags 10M rows, when to partition by month. Audit PKs are named `pk_audit_*`; `installAudit` renames legacy `*_pkey` keys
 

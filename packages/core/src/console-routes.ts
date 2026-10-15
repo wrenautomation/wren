@@ -73,6 +73,10 @@ export const CONSOLE_ROUTES = {
   tokenMake: "read",
   tokenRevoke: "read",
   addClient: "wren:manage",
+  // View as (designs/2026-10-14-view-as.md): who the picker offers, and the sandbox, an admin's.
+  viewAsList: "wren:read",
+  sandboxMake: "wren:manage",
+  sandboxReset: "wren:manage",
   // Any handler needs `run` over all of Wren, or `act` on the row its record type declares the
   // call for (`callOn`). A handler with an effect needs `effect` too.
   call: "wren:act",
@@ -147,6 +151,8 @@ export const CONSOLE_APPS = {
   snippetAdd: "library",
   snippetRemove: "library",
   addClient: "clients",
+  sandboxMake: "clients",
+  sandboxReset: "clients",
   setLook: "account",
   install: "marketplace",
   configure: "marketplace",
@@ -223,6 +229,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "tokenMake",
   "tokenRevoke",
   "addClient",
+  "sandboxMake",
+  "sandboxReset",
   "call",
   "setLook",
   "install",

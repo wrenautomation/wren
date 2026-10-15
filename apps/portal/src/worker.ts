@@ -30,6 +30,7 @@
  */
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
+import { viewAsShape } from "@wren/core/access";
 import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
@@ -142,10 +143,11 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   // A key goes to /api/keys/stage; a route that takes its ref never gets the key itself.
   const rawKey = rawKeyRefusal(`${name}/${route}`, input);
   if (rawKey) return rawKey;
-  // View as reads only; the guard checks who may (`viewAsOf`).
-  const viewAs = (input as { viewAs?: unknown }).viewAs;
-  if (viewAs !== undefined && viewAs !== null && viewAs !== "" && svc.writes.has(route))
-    return json({ error: "View as is read-only." }, 403);
+  // View as: Look reads only, Act goes on; the guard checks who may (`viewAsOf`).
+  const viewAs = viewAsShape((input as { viewAs?: unknown }).viewAs);
+  if (viewAs === "bad") return json({ error: "View as: say which client." }, 400);
+  if (viewAs && !viewAs.act && svc.writes.has(route))
+    return json({ error: "Look reads only. Switch to Act to change things." }, 403);
   // An action's request id (`requestId`): sent again on a double click or a retry, it runs once.
   const { requestId, ...unkeyed } = input as { requestId?: unknown } & Record<string, unknown>;
   if (requestId !== undefined && requestId !== null && !REQUEST_ID.test(String(requestId)))

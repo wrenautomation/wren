@@ -16,7 +16,7 @@ import {
   saveCustomField,
 } from "./custom-fields.js";
 import type { CustomField, CustomValue } from "./custom-schema.js";
-import { answer, PortalRefusal, type PortalRequest } from "./portal.js";
+import { answer, lookingOnly, PortalRefusal, type PortalRequest } from "./portal.js";
 import { CUSTOM_RECORDS } from "./records.js";
 
 type Input = PortalRequest & Record<string, unknown>;
@@ -46,7 +46,7 @@ export function customApi(main: Db) {
     req: PortalRequest,
     fn: (tx: Queryable, owner: string | null, by: string) => Promise<T>,
   ) => {
-    if (req.viewAs) throw new PortalRefusal("view as is read-only", 403);
+    if (lookingOnly(req)) throw new PortalRefusal("Look reads only", 403);
     const { owner, by } = await at(req, "manage");
     return serializable(main, async (tx) => {
       await setAuditActor(tx, by);

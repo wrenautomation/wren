@@ -17,6 +17,7 @@
     "./ask": "./src/ask.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
+    "./view-as": "./src/view-as.ts",
     "./door": "./src/door.ts",
     "./draft-record": "./src/draft-record.ts",
     "./sent-url": "./src/sent-url.ts",

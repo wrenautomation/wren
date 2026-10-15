@@ -71,7 +71,8 @@ import {
   TEMPLATES_CONSOLE_APPS,
   TEMPLATES_CONSOLE_ROUTES,
 } from "@wren/core/templates/console-routes";
-import { cachedDb, clientDatabaseName, createDb } from "@wren/db";
+import { viewAsApi } from "@wren/core/view-as";
+import { actingAs, cachedDb, clientDatabaseName, createDb } from "@wren/db";
 import { dealsConsoleApi } from "@wren/deals/console";
 import { DEALS_CONSOLE_APPS, DEALS_CONSOLE_ROUTES } from "@wren/deals/console-routes";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
@@ -195,63 +196,67 @@ const SERVICES: Record<
   console: {
     routes: Object.keys(CONSOLE_ROUTES),
     guard: { needs: CONSOLE_ROUTES, apps: CONSOLE_APPS, unnamed: "wren" },
-    api: consoleApi({
-      main,
-      views: EMAIL_CONSOLE_VIEWS,
-      components: COMPONENTS,
-      workflows: WORKFLOWS,
-      setups: SETUPS,
-      records: [
-        askRecord,
-        // The Clients app's list, with each client's Templates, Components and Accounts.
-        clientRecord,
-        // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
-        ...copyRecords(settings.smsSenderName),
-        // The Library's Media (no bucket here: listed, not played) and SOPs.
-        mediaRecord(),
-        sopRecord,
-        // Inbox > Calls and Email replies, and a client's page (/clients/all/<id>), as the worker
-        // registers them; Wren's own bookings for the Calendar's counts and Today.
-        callRecord,
-        replyRecord,
-        ...CALENDAR_RECORDS,
-        clientRecord,
-        // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
-        // companies. Videos have no media host here: no playback.
-        ...marketingNumbers(media),
-        videoRecord(),
-        firmRecord,
-        // Voice's calls and Latency, as the worker registers them.
-        ...VOICE_RECORDS,
-        // Clients' health and flags.
-        ...HEALTH_RECORDS,
-        // The Inbox's Mentions: the signed-in person's own.
-        ...NOTES_RECORDS,
-        // Learn, with the SOP library read from the local folders.
-        ...LEARN_RECORDS,
-        sopRecordFor(resolve(rootDir, settings.sopsDir)),
-        ...SITES_RECORDS,
-        // Every message we sent (People → Sent), and Wren's segments.
-        ...SENT_RECORDS,
-        ...SEGMENT_RECORDS,
-        ...BROADCAST_RECORDS,
-        // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
-        // for the lander's log (the worker reads it live), two lines for any visitor.
-        ...profileRecords(WORKFLOWS, {
-          visits: async (v) =>
-            v.length
-              ? [
-                  { at: new Date().toISOString(), text: "Saw /pricing, 2 min", href: null },
-                  {
-                    at: new Date(Date.now() - 864e5).toISOString(),
-                    text: "Saw /, 40 sec, from google",
-                    href: null,
-                  },
-                ]
-              : [],
-        }),
-      ],
-    }),
+    api: {
+      // View as's picker and the sandbox (designs/2026-10-14-view-as.md).
+      ...viewAsApi({ main, mainUrl: settings.databaseUrl, components: COMPONENTS }),
+      ...consoleApi({
+        main,
+        views: EMAIL_CONSOLE_VIEWS,
+        components: COMPONENTS,
+        workflows: WORKFLOWS,
+        setups: SETUPS,
+        records: [
+          askRecord,
+          // The Clients app's list, with each client's Templates, Components and Accounts.
+          clientRecord,
+          // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
+          ...copyRecords(settings.smsSenderName),
+          // The Library's Media (no bucket here: listed, not played) and SOPs.
+          mediaRecord(),
+          sopRecord,
+          // Inbox > Calls and Email replies, and a client's page (/clients/all/<id>), as the worker
+          // registers them; Wren's own bookings for the Calendar's counts and Today.
+          callRecord,
+          replyRecord,
+          ...CALENDAR_RECORDS,
+          clientRecord,
+          // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
+          // companies. Videos have no media host here: no playback.
+          ...marketingNumbers(media),
+          videoRecord(),
+          firmRecord,
+          // Voice's calls and Latency, as the worker registers them.
+          ...VOICE_RECORDS,
+          // Clients' health and flags.
+          ...HEALTH_RECORDS,
+          // The Inbox's Mentions: the signed-in person's own.
+          ...NOTES_RECORDS,
+          // Learn, with the SOP library read from the local folders.
+          ...LEARN_RECORDS,
+          sopRecordFor(resolve(rootDir, settings.sopsDir)),
+          ...SITES_RECORDS,
+          // Every message we sent (People → Sent), and Wren's segments.
+          ...SENT_RECORDS,
+          ...SEGMENT_RECORDS,
+          ...BROADCAST_RECORDS,
+          // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
+          // for the lander's log (the worker reads it live), two lines for any visitor.
+          ...profileRecords(WORKFLOWS, {
+            visits: async (v) =>
+              v.length
+                ? [
+                    { at: new Date().toISOString(), text: "Saw /pricing, 2 min", href: null },
+                    {
+                      at: new Date(Date.now() - 864e5).toISOString(),
+                      text: "Saw /, 40 sec, from google",
+                      href: null,
+                    },
+                  ]
+                : [],
+          }),
+        ],
+      }),
+    },
   },
   // Accounts and vendors. Steps move on the spine, which isn't here: a write saves, nothing runs.
   accounts: {
@@ -547,20 +552,24 @@ async function callApi(
   ];
   if (!svc?.routes.includes(call) || !handler) return { status: 404, body: { error: "not found" } };
   try {
-    if (!guarded) return { status: 200, body: await handler(input) };
+    // A call under View as is guarded too: the guard decides who it's as.
+    const viewing = input.viewAs !== undefined && input.viewAs !== null;
+    if (!guarded && !viewing) return { status: 200, body: await handler(input) };
     const g = svc.guard;
     const need = (g.needs as Record<string, Need>)[call] as Need;
+    const fresh = await guard(
+      main,
+      need,
+      input as unknown as Parameters<typeof guard>[2],
+      g.unnamed,
+      routeAt(g.apps, call),
+    );
+    const as = "as" in fresh.viewer ? fresh.viewer.as : undefined;
     return {
       status: 200,
-      body: await handler(
-        await guard(
-          main,
-          need,
-          input as unknown as Parameters<typeof guard>[2],
-          g.unnamed,
-          routeAt(g.apps, call),
-        ),
-      ),
+      body: await (as
+        ? actingAs({ actor: as.by, as: as.label }, () => handler(fresh))
+        : handler(fresh)),
     };
   } catch (err) {
     if (err instanceof PortalRefusal) return { status: err.status, body: { message: err.message } };

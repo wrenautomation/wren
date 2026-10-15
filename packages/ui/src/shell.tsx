@@ -143,17 +143,16 @@ export interface WorkspaceOption {
   name: string;
 }
 
+/** Whose portal this is: one name, never a switcher (View as moves between clients). */
 export interface Workspace {
   /** Null while it loads. */
   current: WorkspaceOption | null;
-  options: WorkspaceOption[];
   /** A chip after the name that links somewhere ("Sample company", to what's real in it). */
   chip?: { label: string; href: string } | undefined;
-  /** With one option, the name links here (the client's account). */
+  /** The name links here (the client's account). */
   href?: string | undefined;
-  /** What the name leads to, or the switcher picks ("Account", "Client"). */
+  /** What the name leads to ("Account"). */
   label: string;
-  onPick: (id: string) => void;
 }
 
 export interface Brand {
@@ -323,7 +322,7 @@ export function AppShell({
             </span>
           )}
           <div className={cx("flex min-w-0 items-center gap-1.5", folded && "min-[901px]:hidden")}>
-            <WorkspacePick workspace={workspace} />
+            <WorkspaceName workspace={workspace} />
           </div>
           {workspace.chip ? (
             <a
@@ -465,7 +464,7 @@ export function AppShell({
             <AppsSheet
               head={
                 <>
-                  <WorkspacePick workspace={workspace} />
+                  <WorkspaceName workspace={workspace} />
                   {workspace.chip ? (
                     <a
                       className="flex-none bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline"
@@ -1190,11 +1189,11 @@ function AppHead({
 }
 
 const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
-const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-focus)`;
+const WS_LINK = `${WS} ${HOVER} no-underline`;
 
-/** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
-function WorkspacePick({ workspace }: { workspace: Workspace }) {
-  const { current, options, href, label, onPick } = workspace;
+/** Whose workspace this is: its name, a link when it has one. */
+function WorkspaceName({ workspace }: { workspace: Workspace }) {
+  const { current, href, label } = workspace;
   if (!current)
     return (
       <span className={WS} aria-busy="true">
@@ -1206,31 +1205,12 @@ function WorkspacePick({ workspace }: { workspace: Workspace }) {
       {current.name}
     </span>
   );
-  if (options.length < 2)
-    return href ? (
-      <a className={WS_PICK} href={href} {...tipProps(label)}>
-        {face}
-      </a>
-    ) : (
-      <span className={WS}>{face}</span>
-    );
-  return (
-    <label className={WS_PICK}>
+  return href ? (
+    <a className={WS_LINK} href={href} {...tipProps(label)}>
       {face}
-      <Icon name="down" className="flex-none text-(--ui-ink-2)" />
-      <select
-        className="absolute inset-0 w-full cursor-pointer opacity-0"
-        value={current.id}
-        onChange={(e) => onPick(e.target.value)}
-        aria-label={label}
-      >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    </a>
+  ) : (
+    <span className={WS}>{face}</span>
   );
 }
 

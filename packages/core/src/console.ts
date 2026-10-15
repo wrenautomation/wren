@@ -233,6 +233,7 @@ import {
 } from "./template-install.js";
 import { codeLabel } from "./template-labels.js";
 import { listTokens, makeToken, revokeToken } from "./tokens.js";
+import { SANDBOX, viewAsApi, viewAsHandlers } from "./view-as.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import { deleteWorkflowTemplate, saveWorkflowTemplate } from "./workflow-templates.js";
 import {
@@ -2888,6 +2889,7 @@ export function consoleApi({
       const id = typeof req.id === "string" ? req.id.trim() : "";
       if (!CLIENT_ID.test(id))
         throw new PortalRefusal("id: a lowercase letter, then up to 39 of a-z, 0-9, _", 400);
+      if (id === SANDBOX) throw new PortalRefusal("that id is View as's sandbox", 400);
       const name = typeof req.name === "string" ? req.name.trim() : "";
       if (!name || name.length > 200) throw new PortalRefusal("say the client's name", 400);
       return { id, name, by: (req.viewer as SignedViewer).email };
@@ -3705,6 +3707,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     handlers: {
       ...accessHandlers(api),
       ...customHandlers(api),
+      ...viewAsHandlers(viewAsApi(deps)),
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
       agents: (_: restate.Context, req: PortalRequest) => answer(() => api.agents(req)),
