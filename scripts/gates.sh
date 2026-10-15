@@ -64,6 +64,8 @@ case "${1:-all}" in
   integration) integration ;;
   schema) schema ;;
   drift) drift ;;
+  # lint's source checks without biome and the full typecheck (the push script runs those its own way).
+  checks) cli && offers && map && isolation && writes && edits && drift ;;
   all) lint && unit && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|unit|schema|drift|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
 esac
