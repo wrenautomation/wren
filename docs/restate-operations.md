@@ -105,7 +105,7 @@ restate deployments list
 ```
 
 Admin queries go to `$U/admin/query` with the same bearer (SQL over `sys_invocation`,
-`state`), and so do the dead-letter queue's two writes (`PATCH /admin/invocations/<id>/resume`,
+`state`), and so do the dead-letter queue's two writes (`PATCH /admin/invocations/<id>/resume?deployment=latest`,
 `/kill`); the full admin API answers on 127.0.0.1:9070 on the box only (SSM).
 
 ### Dead letters
@@ -117,7 +117,7 @@ once (designs/2026-10-11-dead-letters.md).
 ```sh
 wren dlq list [--all] [--json]   # open letters, oldest first
 wren dlq show <id>               # the error and the journal, step by step
-wren dlq retry <id>              # resume where it stopped (after the fix is deployed)
+wren dlq retry <id>              # resume where it stopped, on the newest deployment
 wren dlq kill <id>               # give up; its caller sees the error
 wren dlq drop <id>               # handled some other way; Restate left alone
 wren dlq sweep start|status|sync # the loop

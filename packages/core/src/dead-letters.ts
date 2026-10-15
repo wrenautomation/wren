@@ -21,7 +21,7 @@ import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 export const DEAD_LETTERS_KEY = "all";
 export const DEAD_LETTERS_EVERY_MS = 10 * 60_000;
 
-/** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume`. */
+/** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume?deployment=latest`. */
 export type RestateAdminPatch = (path: string) => Promise<void>;
 
 export const restateAdminPatch =
@@ -270,11 +270,16 @@ const ENDS: Record<DeadLetterAct, DeadLetterEnd> = {
   kill: "killed",
   drop: "dropped",
 };
-const ADMIN: Partial<Record<DeadLetterAct, string>> = { retry: "resume", kill: "kill" };
+// A retry runs on the newest deployment: pinned to the one it started on, a call replays the bug
+// the fix shipped for and pauses again (10-11, 10-13, 10-15).
+const ADMIN: Partial<Record<DeadLetterAct, string>> = {
+  retry: "resume?deployment=latest",
+  kill: "kill",
+};
 
 /**
- * End one open letter. `retry` resumes the invocation where it stopped (on the deployment
- * it was pinned to); `kill` ends it with an error its caller sees; `drop` only closes the
+ * End one open letter. `retry` resumes the invocation where it stopped, on the newest
+ * deployment (a journal the new code can't replay pauses it again); `kill` ends it with an error its caller sees; `drop` only closes the
  * row. A retry that pauses again comes back as the same letter, reopened.
  */
 export async function endDeadLetter(

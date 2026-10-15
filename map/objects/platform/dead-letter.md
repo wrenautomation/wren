@@ -19,7 +19,7 @@ A paused call holds its object's lock and moves only when someone acts, so it mu
 
 - Table `dead_letters` (`dead-letter-schema.ts:26`): `invocation_id` unique, `target`, `key`, `error`, `invoked_by`, `paused_at`, `told_at`, `ended_at`, `end` (`retried`, `killed`, `dropped`, `cleared`), `ended_by`. Main only. Migration 0225
 - Sweep `deadLetterPass` (`dead-letters.ts:162`): SQL over `sys_invocation` where `status = 'paused'` (`:37`); the error from the journal when the row has none, else the `Paused` event's last failure; a retried letter that paused again reopens (same id); open rows no longer paused close as `cleared`; one Discord warning per batch of new letters, except desk calls Restate could not deliver (`deskUnreachable`, `:115`: the Mac asleep), posted silent
-- `endDeadLetter` (`dead-letters.ts:280`): `retry` = admin `PATCH /invocations/<id>/resume`, `kill` = `/kill`, `drop` = the row only
+- `endDeadLetter` (`dead-letters.ts:285`): `retry` = admin `PATCH /invocations/<id>/resume?deployment=latest` (the newest code, not the deployment it was pinned to), `kill` = `/kill`, `drop` = the row only
 - Loop `DeadLetters/all` (`dead-letters.ts:305`), every 10 minutes; wired only when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services.ts:2016`)
 - Caddy passes exactly those two PATCH routes with the ingress bearer (`deploy/scripts/box-restate.sh:59`)
 

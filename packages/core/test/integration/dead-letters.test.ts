@@ -87,7 +87,7 @@ describe("deadLetterPass", () => {
     };
     const ended = await endDeadLetter({ main: pg.db, patch }, row.id, "retry", "ada", NOW);
     expect(ended).toMatchObject({ end: "retried", endedBy: "ada" });
-    expect(patched).toEqual(["/invocations/inv_c/resume"]);
+    expect(patched).toEqual(["/invocations/inv_c/resume?deployment=latest"]);
     await expect(endDeadLetter({ main: pg.db, patch }, row.id, "kill", "ada")).rejects.toThrow(
       /already ended/,
     );
