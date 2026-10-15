@@ -681,7 +681,7 @@ async function eachOf(
 }
 
 /** A page's actions as the portal runs them: one record's handler per id, else as named. */
-const callOf =
+export const callOf =
   (client: string | null) =>
   async (handler: string, input: Input): Promise<unknown> => {
     const one = (client && CLIENT_ONE[handler]) || ONE[handler];

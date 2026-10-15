@@ -4,6 +4,7 @@
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
+import { POST_NOW as POST_NOW_FLAG } from "@wren/core/marketing/console-routes";
 import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
@@ -2136,7 +2137,7 @@ export const marketing: Module = {
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
 /** A client's Post now: only where its portal flag is on (an app reviewer's workspace). */
-const POST_NOW = { id: "marketing.postNow", flag: "post_now" } as const;
+const POST_NOW = { id: "marketing.postNow", flag: POST_NOW_FLAG } as const;
 /** A client's own draft edits (its post's fields and files), saved from inside the detail. */
 const EDITS = new Set(fieldActions(OPEN).map((a) => a.id));
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */

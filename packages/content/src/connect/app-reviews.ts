@@ -313,7 +313,7 @@ export const REVIEWS: readonly Review[] = [
     open: [
       "Record on the production domain; TikTok rejects a localhost demo.",
       "TikTok's only redirect is on app.wrenautomation.com, so record there. A sign-in started on portal.wrenautomationreviews.com comes back to app.wrenautomation.com. Remove the stale /oauth/callback URI.",
-      "Post now shows only where the post_now portal flag is on. Before recording, turn it on for wren_test and turn on wren_test's content.posting sends. Without the sends, the post waits.",
+      "Post now shows only where the post_now portal flag is on. Migration 0268 turns it on for wren_test. Before recording, turn on wren_test's content.posting sends, or the post waits.",
       "The recording browser needs www.tiktok.com signed in as the sandbox target user (wrenautomation). `autobrowse login tiktok` reports signed in but tiktok.com still shows Log in.",
     ],
   },

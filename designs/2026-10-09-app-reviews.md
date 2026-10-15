@@ -52,5 +52,6 @@ which review.
   portal origin, so a sign-in started on the reviews domain lands back on app. Account → Social
   shows each account's avatar and a TikTok's followers, likes, videos and newest videos' views,
   so `user.info.stats` and `video.list` are used where the reviewer looks. The post step uses Post
-  now (next pass, within 15 minutes) behind the `post_now` portal flag, on for `wren_test` only;
+  now (next pass, within 15 minutes) behind the `post_now` portal flag, seeded on for `wren_test`
+  only by migration 0268; `approveDraft` with `now` checks the same flag, so the call agrees;
   Meta's and Google's packets still name the reviews domain, though their callbacks land on app. too.

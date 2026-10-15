@@ -1877,6 +1877,13 @@
       "when": 1792042333895,
       "tag": "0267_video_finish",
       "breakpoints": true
+    },
+    {
+      "idx": 268,
+      "version": "7",
+      "when": 1792042416786,
+      "tag": "0268_post_now_flag",
+      "breakpoints": true
     }
   ]
 }

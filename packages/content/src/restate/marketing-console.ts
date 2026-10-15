@@ -12,9 +12,12 @@ import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
+import { flagsFor } from "@wren/core/flag-store";
+import { subjectOf } from "@wren/core/flags";
 import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
+  POST_NOW,
 } from "@wren/core/marketing/console-routes";
 import {
   accessOf,
@@ -277,6 +280,20 @@ export function marketingConsoleApi({
     /** The client's desk key, or the refusal: never the demo, installed, its approver only. */
     deciding: async (req: PortalRequest): Promise<string> => (await decide(req)).key,
     /**
+     * As `deciding`, for a yes that posts on the next pass (Post now): only where the `post_now`
+     * portal flag is on for this login, as the button shows. Wren's team passes, as with any flag.
+     */
+    decidingNow: async (req: PortalRequest): Promise<string> => {
+      const { client, key, who } = await decide(req);
+      if (who && "team" in who) return key;
+      const v = req.viewer;
+      const on = isDemo(v)
+        ? "off"
+        : ((await flagsFor(db, subjectOf(who, v.email, client.id)))[POST_NOW] ?? "off");
+      if (on === "off") throw new PortalRefusal("Post now isn't on for this workspace", 403);
+      return key;
+    },
+    /**
      * A promo of the client's YouTube post, checked before it starts: its approver, its plan and
      * model gate open, the post a video approved to go up. The platforms are its own logins'.
      */
@@ -307,7 +324,7 @@ export function marketingConsoleApi({
       !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client.id) : accessOf(req);
     if (!mayApprove(who, client.id, client.approver))
       throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
-    return { client, key: clientKey(client.id, DESK_UNIT) };
+    return { client, key: clientKey(client.id, DESK_UNIT), who };
   }
 }
 
@@ -461,7 +478,9 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
       approveDraft: serviceHandler(APPROVE, (ctx: restate.Context, req: ApproveRequest) =>
         answer(async () => {
           const ids = idsOf(req.ids);
-          const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+          const key = await ctx.run("check", () =>
+            answer(() => (req.now ? api.decidingNow(req) : api.deciding(req))),
+          );
           return desk(() =>
             deskOf(ctx, key).approve({
               ids,

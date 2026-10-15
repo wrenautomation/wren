@@ -95,3 +95,10 @@ export const MARKETING_CONSOLE_WRITES: readonly MarketingConsoleRoute[] = [
   "reportDelete",
   "reportRun",
 ];
+
+/**
+ * The portal flag that opens Post now on a client's drafts (a yes that posts on the next pass,
+ * not the next slot): the button needs it, and so does `approveDraft` with `now`. Seeded by
+ * migration on for the app reviewers' test client only.
+ */
+export const POST_NOW = "post_now";

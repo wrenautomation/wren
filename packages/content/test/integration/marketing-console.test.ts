@@ -9,6 +9,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, addOperator, updateClient } from "@wren/core/clients";
+import { flags } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -68,6 +69,8 @@ beforeAll(async () => {
   });
   await addClient(pg.db, pg.url, { id: "lambda", name: "Lambda", products });
   await addClient(pg.db, pg.url, { id: "mu", name: "Mu", products: { "content.posting": {} } });
+  await addClient(pg.db, pg.url, { id: "rho", name: "Rho", products });
+  await updateClient(pg.db, "rho", { approver: "client" });
   await addClient(pg.db, pg.url, {
     id: "omicron",
     name: "Omicron",
@@ -87,6 +90,7 @@ beforeAll(async () => {
   await addMember(pg.db, "omicron", "oli@omicron.test", { role: "owner" });
   await addMember(pg.db, "kappa", "amy@kappa.test", { role: "owner" });
   await addMember(pg.db, "lambda", "lee@lambda.test", { role: "owner" });
+  await addMember(pg.db, "rho", "ria@rho.test", { role: "owner" });
   await addOperator(pg.db, "op@example.test");
   kappa = open("kappa");
   lambda = open("lambda");
@@ -204,6 +208,27 @@ describe("a draft's verdict", () => {
     ).rejects.toThrow("the client approves these");
     await svc().rejectDraft({ ...member("lee@lambda.test"), client: "lambda", ids: [String(id)] });
     expect(await states(lambda)).toEqual(["Lambda closed its books in a day: rejected"]);
+  });
+
+  it("Post now: only where the post_now flag is on; then it waits on no slot", async () => {
+    const rho = open("rho");
+    const id = await draft(rho, "Rho posts now");
+    const now = { ...member("ria@rho.test"), client: "rho", ids: [id], now: true };
+    // The migration seeds the flag on for the reviewers' test client alone.
+    const [seeded] = await pg.db.select().from(flags).where(eq(flags.key, "post_now"));
+    expect(seeded?.rules).toEqual([{ variant: "on", clients: ["wren_test"] }]);
+    await expect(svc().approveDraft(now)).rejects.toThrow("Post now isn't on for this workspace");
+    expect(await states(rho)).toEqual(["Rho posts now: draft"]);
+    await pg.db
+      .update(flags)
+      .set({ rules: [{ variant: "on", clients: ["wren_test", "rho"] }] })
+      .where(eq(flags.key, "post_now"));
+    expect(await svc().approveDraft(now)).toEqual({ done: [id] });
+    const [row] = await rho
+      .select({ status: contentDrafts.status, at: contentDrafts.scheduledFor })
+      .from(contentDrafts)
+      .where(eq(contentDrafts.id, id));
+    expect(row).toEqual({ status: "approved", at: null });
   });
 
   it("a redraft waits on the client's own model gate", async () => {
