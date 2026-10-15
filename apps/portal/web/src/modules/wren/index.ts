@@ -373,6 +373,7 @@ export const inbox: Module = {
           href: "/inbox/asks?view=waiting",
           needs: true,
         },
+        { label: "Mail rules", record: "watch.rule", href: "/inbox/rules" },
       ],
       top: [
         {
@@ -397,10 +398,13 @@ export const inbox: Module = {
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     APPROVAL_PAGE,
     DONE_PAGE,
-    ...inboxPages(),
+    // Off the tabs, each still a tile on the Overview and a link: issues, access asks, mentions,
+    // email replies (Waiting on you's Email view), calls and mail rules (from Your mail).
+    ...inboxPages().map((p) => ({ ...p, hidden: true as const })),
     {
       id: "mentions",
       label: "Mentions",
+      hidden: true,
       about: "Notes where someone tagged you with @.",
       template: "list",
       record: "notes.mention",
@@ -416,6 +420,7 @@ export const inbox: Module = {
     {
       id: "replies",
       label: "Email replies",
+      hidden: true,
       about: "Warm email replies, each with a drafted answer.",
       template: "queue",
       record: "email.reply",
@@ -426,7 +431,7 @@ export const inbox: Module = {
       },
       actions: REPLY_ACTIONS,
     },
-    callsPage("Calls booked on cal.com or our calendar show here."),
+    { ...callsPage("Calls booked on cal.com or our calendar show here."), hidden: true },
     {
       id: "mail",
       label: "Your mail",
@@ -444,6 +449,7 @@ export const inbox: Module = {
     {
       id: "rules",
       label: "Mail rules",
+      hidden: true,
       about: "Rules that hide email you don't need to see.",
       template: "list",
       record: "watch.rule",
