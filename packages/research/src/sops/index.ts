@@ -382,7 +382,7 @@ export async function videoSource(
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  opts: { geminiKeys: readonly string[]; fetchFn?: typeof fetch },
+  opts: { geminiKeys: readonly string[]; fetchFn?: typeof fetch; ffmpeg?: string },
 ): Promise<Source> {
   if (!opts.geminiKeys.length)
     throw new Error(`${url}: no captions off YouTube, so it needs GEMINI keys to transcribe`);
@@ -405,13 +405,21 @@ export async function videoSource(
       extractor_key?: string;
       description?: string;
       uploader?: string;
+      width?: number;
+      height?: number;
     };
     const file = (await readdir(dir)).find((f) => f.endsWith(".mp4"));
     if (!file) throw new Error(`${url}: yt-dlp wrote no mp4`);
-    const bytes = await readFile(join(dir, file));
-    // ponytail: inline only, about 4 min at 540p. Longer needs the Files API, pinned to one key's project.
-    if (bytes.length > INLINE_MAX)
-      throw new Error(`${url}: ${(bytes.length / 1e6).toFixed(1)} MB at 540p, over the inline cap`);
+    let bytes = await readFile(join(dir, file));
+    // Over the inline cap: made small enough to fit. Inline only; the Files API would pin one key's project.
+    if (bytes.length > INLINE_MAX) {
+      const big = bytes.length;
+      bytes = await shrink(join(dir, file), join(dir, "small.mp4"), info, opts.ffmpeg);
+      if (bytes.length > INLINE_MAX)
+        throw new Error(
+          `${url}: ${(big / 1e6).toFixed(1)} MB at 540p, still ${(bytes.length / 1e6).toFixed(1)} MB made small, over the inline cap`,
+        );
+    }
     const video = { inlineData: { mimeType: "video/mp4", data: bytes.toString("base64") } };
     const ask = (text: string) => ({ contents: [{ parts: [video, { text }] }] });
     // Two asks, so a screen Gemini won't recite never costs the speech.
@@ -459,6 +467,31 @@ export async function videoSource(
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+/**
+ * A video re-encoded to fit `INLINE_MAX`: short side 360, 15 fps, mono speech, and a bitrate
+ * that spends 85% of the cap over its length (four minutes when yt-dlp didn't say).
+ */
+async function shrink(
+  src: string,
+  out: string,
+  info: { duration?: number; width?: number; height?: number },
+  ffmpeg = process.env.WREN_FFMPEG ?? "ffmpeg",
+): Promise<Buffer> {
+  const seconds = info.duration && info.duration > 0 ? info.duration : 240;
+  const audio = 48_000;
+  const video = Math.max(120_000, Math.floor((INLINE_MAX * 8 * 0.85) / seconds - audio));
+  const tall = (info.height ?? 1) >= (info.width ?? 0);
+  await run(ffmpeg, [
+    ...["-y", "-loglevel", "error", "-i", src],
+    ...["-vf", tall ? "scale=360:-2" : "scale=-2:360", "-r", "15"],
+    ...["-c:v", "libx264", "-preset", "veryfast", "-b:v", String(video)],
+    ...["-maxrate", String(video), "-bufsize", String(video * 2)],
+    ...["-c:a", "aac", "-b:a", String(audio), "-ac", "1"],
+    ...["-movflags", "+faststart", out],
+  ]);
+  return readFile(out);
 }
 
 const AUDIO_MAX = 600_000_000;
