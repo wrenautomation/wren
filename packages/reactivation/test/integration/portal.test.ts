@@ -323,20 +323,20 @@ describe("logins", () => {
   it("an operator sees every client by its real name, and real names on a real list", async () => {
     expect(await me(operator)).toEqual({
       clients: [
-        { id: "acme", name: "Acme Staffing", installed: [], can: [...PERMISSIONS], flags: {} },
-        { id: "beta", name: "Beta Search", installed: [], can: [...PERMISSIONS], flags: {} },
+        { id: "acme", name: "Acme Staffing", installed: [], can: [...PERMISSIONS], flags: { post_now: "off" } },
+        { id: "beta", name: "Beta Search", installed: [], can: [...PERMISSIONS], flags: { post_now: "off" } },
         {
           id: "demo",
           name: "Northside Talent",
           demo: true,
           installed: [],
           can: [...PERMISSIONS],
-          flags: {},
+          flags: { post_now: "off" },
         },
       ],
       demo: false,
       operator: true,
-      team: { role: "admin", wren: [...PERMISSIONS], flags: {} },
+      team: { role: "admin", wren: [...PERMISSIONS], flags: { post_now: "off" } },
     });
     const acme = await api.recordsList({ ...operator, client: "acme", record: PERSON, q: "Doe" });
     expect(acme.rows.map((r) => r.name)).toEqual(["Jane Doe"]);
@@ -371,7 +371,7 @@ describe("logins", () => {
           installed: [],
           role: "member",
           can: ["read", "act", "comment"],
-          flags: {},
+          flags: { post_now: "off" },
         },
       ],
       demo: false,

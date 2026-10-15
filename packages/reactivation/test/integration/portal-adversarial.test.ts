@@ -98,7 +98,7 @@ describe("who sees which client", () => {
         installed: [],
         role: "member",
         can: ["read", "act", "comment"],
-        flags: {},
+        flags: { post_now: "off" },
       },
     ]);
   });
