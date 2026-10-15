@@ -10,6 +10,7 @@ import {
   cx,
   Empty,
   Input,
+  LATEST,
   LoadFailed,
   Loading,
   PAGE_TITLE,
@@ -24,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
+import { toast } from "@wren/ui/lib/toast";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -177,8 +179,49 @@ function Follow() {
   );
 }
 
+/**
+ * A select saved as it changes: his pick shows at once, its writes go one at a time with the
+ * newest last (two quick picks never land out of order), and a refusal puts the saved one back.
+ */
+function usePicked<T extends string>(
+  key: string,
+  server: T,
+  send: (v: T) => Promise<unknown>,
+  line: string,
+): [T, (v: T) => void] {
+  const [mine, setMine] = useState<T | null>(null);
+  // A new read: what it says stands once nothing of his is on its way.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new read clears his pick.
+  useEffect(() => {
+    if (!LATEST.busy(key)) setMine(null);
+  }, [server]);
+  const set = (v: T) => {
+    setMine(v);
+    void LATEST.write(key, v, send).then((r) => {
+      if (r.status === "saved") toast.success(line);
+      else if (r.status === "failed") {
+        say.failed(r.error);
+        if (!LATEST.busy(key)) setMine(null);
+      }
+    });
+  };
+  return [mine ?? server, set];
+}
+
 function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
   const [stopping, setStopping] = useState(false);
+  const [alertPick, pick] = usePicked<AlertPick>(
+    `learn.pick:${s.id}`,
+    s.alert ?? "top",
+    (v) => learn.pick(s.id, v),
+    "Saved",
+  );
+  const [tell, setTell] = usePicked<string>(
+    `learn.tell:${s.id}`,
+    s.tell,
+    (v) => learn.tell(s.id, v),
+    "Saved for everyone",
+  );
   const facts = [
     s.fresh ? `${s.fresh} new` : null,
     `${s.items} ${s.items === 1 ? "item" : "items"}`,
@@ -233,8 +276,8 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
           </label>
           <select
             id={`alert-${s.id}`}
-            value={s.alert ?? "top"}
-            onChange={(e) => void act(learn.pick(s.id, e.target.value as AlertPick), "Saved")}
+            value={alertPick}
+            onChange={(e) => pick(e.target.value as AlertPick)}
             className="h-8 cursor-pointer border border-(--ui-hair) bg-transparent px-2 text-(--ui-ink) outline-none"
           >
             {PICKS.map(([id, label]) => (
@@ -250,8 +293,8 @@ function SourceCard({ s, may }: { s: SourceRow; may: boolean }) {
               </label>
               <select
                 id={`tell-${s.id}`}
-                value={s.tell}
-                onChange={(e) => void act(learn.tell(s.id, e.target.value), "Saved for everyone")}
+                value={tell}
+                onChange={(e) => setTell(e.target.value)}
                 className="h-8 cursor-pointer border border-(--ui-hair) bg-transparent px-2 text-(--ui-ink) outline-none"
               >
                 {TELLS.map(([id, label]) => (
