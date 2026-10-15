@@ -3,8 +3,45 @@
  * only: the Remotion entry and the Studio page both draw from these, so the preview matches the
  * render.
  */
-import type { CSSProperties } from "react";
 import type { WordState } from "./caption-styles.js";
+
+type Len = number | string;
+/**
+ * The CSS these looks set, typed so React's `style` takes it. No import of React's types here:
+ * they stub the DOM's element types for every package that reaches this file.
+ */
+export interface CSSProperties {
+  position?: "absolute" | "relative";
+  display?: "flex" | "inline-block";
+  flexDirection?: "column";
+  justifyContent?: string;
+  alignItems?: string;
+  textAlign?: "center";
+  overflow?: "hidden";
+  inset?: Len;
+  left?: Len;
+  right?: Len;
+  top?: Len;
+  bottom?: Len;
+  width?: Len;
+  height?: Len;
+  maxWidth?: Len;
+  padding?: Len;
+  paddingBottom?: Len;
+  borderRadius?: Len;
+  font?: string;
+  color?: string;
+  background?: string;
+  opacity?: number;
+  transform?: string;
+  transformOrigin?: string;
+  clipPath?: string;
+  verticalAlign?: string;
+  boxShadow?: string;
+  textShadow?: string;
+  WebkitTextStroke?: string;
+  paintOrder?: string;
+}
 
 export const OVERLAY_SIZES = ["s", "m", "l"] as const;
 export type OverlaySize = (typeof OVERLAY_SIZES)[number];
