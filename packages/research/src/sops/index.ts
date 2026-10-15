@@ -410,7 +410,7 @@ export async function videoSource(
     };
     const file = (await readdir(dir)).find((f) => f.endsWith(".mp4"));
     if (!file) throw new Error(`${url}: yt-dlp wrote no mp4`);
-    let bytes = await readFile(join(dir, file));
+    let bytes: Buffer = await readFile(join(dir, file));
     // Over the inline cap: made small enough to fit. Inline only; the Files API would pin one key's project.
     if (bytes.length > INLINE_MAX) {
       const big = bytes.length;
