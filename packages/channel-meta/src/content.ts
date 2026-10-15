@@ -212,7 +212,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     }
     const parent = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
       media_type: "CAROUSEL",
-      children: children.join(","),
+      children,
       caption: post.text,
       ...(collaborators?.length ? { collaborators } : {}),
     });

@@ -117,7 +117,7 @@ describe("instagram content channel", () => {
         if (i?.media_type === "CAROUSEL") {
           expect(i).toEqual({
             media_type: "CAROUSEL",
-            children: "k0,k1,k2,k3,k4",
+            children: ["k0", "k1", "k2", "k3", "k4"],
             caption: "five slides",
           });
           return { id: "parent" };
