@@ -21,12 +21,15 @@ import {
   DELIVERABLE_KINDS,
   type DeliverableKind,
   deliveryHome,
+  disputeInvoice,
   ENGAGEMENT_STATUSES,
   type Engagement,
   type EngagementStatus,
   type EngagementView,
   engagementOf,
   hideUpdate,
+  INVOICE_DISPUTES,
+  type InvoiceDispute,
   type InvoiceView,
   invoicesOf,
   markDone,
@@ -35,6 +38,7 @@ import {
   onboard,
   postUpdate,
   recordResult,
+  refundInvoice,
   requestAccess,
   setEngagementSource,
   setEngagementStatus,
@@ -91,7 +95,7 @@ const centsOf = (v: string): number => {
 };
 
 const renderInvoice = (i: InvoiceView) =>
-  `  ${i.number} ${i.status.toUpperCase()} · ${i.currency} ${(i.cents / 100).toFixed(2)} · ${i.description} · issued ${i.issuedOn}, due ${i.dueOn}${i.paidOn ? `, paid ${i.paidOn}` : ""}`;
+  `  ${i.number} ${i.status.toUpperCase()} · ${i.currency} ${(i.cents / 100).toFixed(2)} · ${i.description} · issued ${i.issuedOn}, due ${i.dueOn}${i.paidOn ? `, paid ${i.paidOn}` : ""}${i.refundedCents ? `, refunded ${(i.refundedCents / 100).toFixed(2)}` : ""}${i.dispute ? `, dispute ${i.dispute}` : ""}`;
 
 export function renderEngagement(clientId: string, e: EngagementView): string[] {
   const out = [`${clientId} · ${e.offer.name} (#${e.id}) · from ${e.startsOn} · ${e.status}`];
@@ -162,6 +166,17 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         );
         return fn(tx, e, author);
       });
+    });
+  /** A refund or dispute on one of the client's invoices, from an operator. */
+  const reversal = <T>(
+    opts: Opts,
+    fn: (tx: Queryable, clientId: string, author: string) => Promise<T>,
+  ): Promise<T> =>
+    withMainDb(async (main) => {
+      const id = clientId();
+      await getClient(main, id);
+      const author = await authorOf(main, opts.by);
+      return serializable(main, (tx) => fn(tx, id, author));
     });
   const clientId = () => {
     const id = program.opts<{ client?: string }>().client;
@@ -543,6 +558,34 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         ),
       );
       console.log(i.paidOn ? `${i.number} paid ${i.paidOn}` : `${i.number} open`);
+    });
+
+  by(cmd.command("refund <number> <amount>"))
+    .description(
+      "Money handed back on a paid invoice, the total so far in dollars (0 clears it). All of a setup fee pauses the plan",
+    )
+    .action(async (number: string, amount: string, opts: Opts) => {
+      const r = await reversal(opts, (tx, id, author) =>
+        refundInvoice(tx, id, number, centsOf(amount), author),
+      );
+      console.log(
+        `${r.invoice.number} refunded ${(r.invoice.refundedCents / 100).toFixed(2)} of ${(r.invoice.cents / 100).toFixed(2)}${r.paused ? ": the plan is paused" : ""}`,
+      );
+    });
+
+  by(cmd.command("dispute <number> <state>"))
+    .description(
+      `A chargeback on a paid invoice: ${INVOICE_DISPUTES.join(", ")}, or none. Open flags it for you; lost on a setup fee pauses the plan`,
+    )
+    .action(async (number: string, state: string, opts: Opts) => {
+      if (state !== "none" && !INVOICE_DISPUTES.includes(state as InvoiceDispute))
+        throw new Error(`a dispute is ${INVOICE_DISPUTES.join(", ")} or none`);
+      const r = await reversal(opts, (tx, id, author) =>
+        disputeInvoice(tx, id, number, state === "none" ? null : (state as InvoiceDispute), author),
+      );
+      console.log(
+        `${r.invoice.number} dispute ${r.invoice.dispute ?? "none"}${r.paused ? ": the plan is paused" : ""}`,
+      );
     });
 
   cmd

@@ -1835,6 +1835,13 @@
       "when": 1792028962043,
       "tag": "0261_pay_webhook_note",
       "breakpoints": true
+    },
+    {
+      "idx": 262,
+      "version": "7",
+      "when": 1792029330784,
+      "tag": "0262_invoice_reversals",
+      "breakpoints": true
     }
   ]
 }

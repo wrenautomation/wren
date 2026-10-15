@@ -9,7 +9,7 @@ import { usageLines } from "@wren/books/schema";
 import { CHANNELS, type Channel, clients } from "@wren/core/clients";
 import { PortalRefusal } from "@wren/core/refusal";
 import { VENDORS } from "@wren/core/vendors";
-import type { Queryable } from "@wren/db";
+import { type Queryable, setAuditActor } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -34,8 +34,10 @@ import {
   type Engagement,
   type EngagementStatus,
   engagements,
+  INVOICE_DISPUTES,
   INVOICE_STATUSES,
   type Invoice,
+  type InvoiceDispute,
   type InvoiceLine,
   type InvoiceStatus,
   interests,
@@ -1002,6 +1004,124 @@ export async function markInvoice(
   return row;
 }
 
+/**
+ * A setup fee that still holds: paid, and not refunded in full or lost to a chargeback. The
+ * forward gate (`startIfReady`) starts the plan on it; the reverse (`stopIfReversed`) ends it.
+ */
+const setupHolds = and(
+  eq(invoices.setup, true),
+  eq(invoices.status, "paid"),
+  lt(invoices.refundedCents, invoices.cents),
+  sql`${invoices.dispute} is distinct from 'lost'`,
+);
+
+/** Why a paid invoice no longer stands, or null while it does. A partial refund or open dispute doesn't end it. */
+const reversal = (i: Pick<Invoice, "cents" | "refundedCents" | "dispute">): string | null =>
+  i.dispute === "lost"
+    ? "lost to a chargeback"
+    : i.refundedCents >= i.cents
+      ? "refunded in full"
+      : null;
+
+/**
+ * The reverse of `startIfReady`: a running plan whose setup fee was refunded in full or lost to a
+ * chargeback is paused. A partial refund leaves it running, and so does an open dispute (that one
+ * is a flag, see `problems`). The pause is the engagement's own `paused` status; nothing resumes
+ * it but `wren delivery engagement active`, once the money is settled. An onboarding plan needs
+ * no pause: `startIfReady` won't start it without a fee that holds.
+ */
+export async function stopIfReversed(db: Queryable, e: Engagement, by: string): Promise<boolean> {
+  if (e.status !== "active") return false;
+  const paid = await db
+    .select()
+    .from(invoices)
+    .where(
+      and(eq(invoices.engagementId, e.id), eq(invoices.setup, true), eq(invoices.status, "paid")),
+    );
+  const gone = paid.find((i) => reversal(i) !== null);
+  if (!gone) return false;
+  const [stopped] = await db
+    .update(engagements)
+    .set({ status: "paused" })
+    .where(and(eq(engagements.id, e.id), eq(engagements.status, "active")))
+    .returning({ id: engagements.id });
+  if (!stopped) return false;
+  await postUpdate(db, e, {
+    body: `Paused: setup invoice ${gone.number} was ${reversal(gone)}. Resume with \`wren delivery engagement active\` once it's settled.`,
+    author: by,
+    internal: true,
+  });
+  return true;
+}
+
+/** A paid invoice of the client's, by number: only a payment can be handed back or disputed. */
+async function paidInvoice(db: Queryable, clientId: string, number: string): Promise<Invoice> {
+  const [row] = await db
+    .select()
+    .from(invoices)
+    .where(and(eq(invoices.number, number.trim()), ofClient(db, invoices.engagementId, clientId)));
+  if (!row) throw missing(`invoice '${number}'`);
+  if (row.status !== "paid")
+    throw new DeliveryRefusal(
+      `invoice ${row.number} isn't paid: nothing to refund or dispute`,
+      409,
+    );
+  return row;
+}
+
+/** What a reversal did: the invoice as it stands, and whether it paused the plan. */
+export interface Reversed {
+  invoice: Invoice;
+  paused: boolean;
+}
+
+/** The total handed back on a paid invoice, in cents (0 clears it). In full, a setup fee's plan pauses. */
+export async function refundInvoice(
+  db: Queryable,
+  clientId: string,
+  number: string,
+  refundedCents: number,
+  by: string,
+): Promise<Reversed> {
+  // Who did it, on every row this changes (the audit log); the caller's transaction holds it.
+  await setAuditActor(db, by);
+  const i = await paidInvoice(db, clientId, number);
+  if (!Number.isSafeInteger(refundedCents) || refundedCents < 0 || refundedCents > i.cents)
+    throw bad(`the refund is the total handed back, 0 to ${i.cents} cents`);
+  const [invoice] = await db
+    .update(invoices)
+    .set({ refundedCents })
+    .where(eq(invoices.id, i.id))
+    .returning();
+  if (!invoice) throw missing(`invoice '${number}'`);
+  return { invoice, paused: await reverseGate(db, clientId, invoice, by) };
+}
+
+/** A chargeback on a paid invoice: open, won or lost (null clears it). Lost, a setup fee's plan pauses. */
+export async function disputeInvoice(
+  db: Queryable,
+  clientId: string,
+  number: string,
+  dispute: InvoiceDispute | null,
+  by: string,
+): Promise<Reversed> {
+  // Who did it, on every row this changes (the audit log); the caller's transaction holds it.
+  await setAuditActor(db, by);
+  const i = await paidInvoice(db, clientId, number);
+  if (dispute !== null && !INVOICE_DISPUTES.includes(dispute))
+    throw bad(`a dispute is ${INVOICE_DISPUTES.join(", ")}`);
+  const [invoice] = await db
+    .update(invoices)
+    .set({ dispute })
+    .where(eq(invoices.id, i.id))
+    .returning();
+  if (!invoice) throw missing(`invoice '${number}'`);
+  return { invoice, paused: await reverseGate(db, clientId, invoice, by) };
+}
+
+const reverseGate = async (db: Queryable, clientId: string, i: Invoice, by: string) =>
+  i.setup && (await stopIfReversed(db, await engagementOf(db, clientId, i.engagementId), by));
+
 // --- onboarding: the contract, the setup fee, access ---------------------------
 
 const cents = (dollars: number) => Math.round(dollars * 100);
@@ -1168,9 +1288,7 @@ export async function startIfReady(
     const [paid] = await db
       .select({ id: invoices.id })
       .from(invoices)
-      .where(
-        and(eq(invoices.engagementId, e.id), eq(invoices.setup, true), eq(invoices.status, "paid")),
-      );
+      .where(and(eq(invoices.engagementId, e.id), setupHolds));
     if (!paid) return false;
   }
   const startsOn = today > e.startsOn ? today : e.startsOn;
@@ -1464,13 +1582,7 @@ export async function deliveryHome(
     db
       .select({ id: invoices.engagementId })
       .from(invoices)
-      .where(
-        and(
-          inArray(invoices.engagementId, ids),
-          eq(invoices.setup, true),
-          eq(invoices.status, "paid"),
-        ),
-      ),
+      .where(and(inArray(invoices.engagementId, ids), setupHolds)),
     db
       .select()
       .from(moments)
@@ -1687,6 +1799,8 @@ export type InvoiceView = Pick<
   | "issuedOn"
   | "dueOn"
   | "paidOn"
+  | "refundedCents"
+  | "dispute"
   | "link"
   | "lines"
 > & {
@@ -1717,6 +1831,8 @@ export async function invoicesOf(
     issuedOn: i.issuedOn,
     dueOn: i.dueOn,
     paidOn: i.paidOn,
+    refundedCents: i.refundedCents,
+    dispute: i.dispute,
     link: i.link,
     lines: i.lines,
     status: i.status === "open" && i.dueOn < today ? "overdue" : i.status,

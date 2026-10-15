@@ -136,7 +136,7 @@ export const clientFlags = delivery.table(
     engagementId: integer("engagement_id"),
     side: varchar("side", { length: 12, enum: FLAG_SIDES }).notNull(),
     source: varchar("source", { length: 12, enum: FLAG_SOURCES }).notNull(),
-    /** "quiet", "step:<key>", "invoice:<id>", "health:at-risk", "person:<n>". */
+    /** "quiet", "step:<key>", "invoice:<id>", "dispute:<id>", "health:at-risk", "person:<n>". */
     cause: varchar("cause", { length: 80 }).notNull(),
     what: text("what").notNull(),
     /** What to do, for the alert only (it may name a command); never on screen. */

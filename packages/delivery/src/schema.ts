@@ -343,6 +343,10 @@ export type Comment = typeof comments.$inferSelect;
 export const INVOICE_STATUSES = ["open", "paid", "void"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
+/** A chargeback on an invoice's payment: `open` until the card issuer decides, then `won` or `lost`. */
+export const INVOICE_DISPUTES = ["open", "won", "lost"] as const;
+export type InvoiceDispute = (typeof INVOICE_DISPUTES)[number];
+
 /**
  * One line of an invoice as the client reads it: "Monthly fee", "Texts, October". A usage line
  * names its vendor and month, so voiding the invoice can put that usage back to draft.
@@ -378,6 +382,10 @@ export const invoices = delivery.table(
     remindedAt: timestamp("reminded_at", { withTimezone: true }),
     /** The setup fee: paying it (with the contract signed) starts the plan. */
     setup: boolean("setup").default(false).notNull(),
+    /** Money handed back, a running total (as Stripe counts a refund). All of it reverses the setup gate. */
+    refundedCents: integer("refunded_cents").default(0).notNull(),
+    /** A chargeback on the payment; lost, it reverses the setup gate. Null: none. */
+    dispute: varchar("dispute", { length: 8, enum: INVOICE_DISPUTES }),
     /** The month a recurring bill is for, `2026-11` (D15): one per engagement, void ones aside. */
     period: varchar("period", { length: 7 }),
     /** How many per-unit fees it bills ("meetings booked"); what's billed stops at the cap. */
@@ -398,7 +406,9 @@ export const invoices = delivery.table(
     unique("uq_invoices_number").on(t.number),
     index("ix_invoices_engagement").on(t.engagementId),
     oneOf("ck_invoices_status", t.status, INVOICE_STATUSES),
+    oneOf("ck_invoices_dispute", t.dispute, INVOICE_DISPUTES),
     check("ck_invoices_cents", sql`${t.cents} > 0`),
+    check("ck_invoices_refunded", sql`${t.refundedCents} between 0 and ${t.cents}`),
     check("ck_invoices_currency", sql`${t.currency} ~ '^[A-Z]{3}$'`),
     check("ck_invoices_paid", sql`(${t.status} = 'paid') = (${t.paidOn} is not null)`),
   ],

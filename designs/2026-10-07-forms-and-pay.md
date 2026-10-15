@@ -328,5 +328,9 @@ above. New form makes the form the workspace's: a client's in theirs, Wren's in 
   the Stripe panel (`pay_accounts.note`): which events to add, and the read access a restricted
   key needs. It clears once the endpoint hears them all.
 - 2026-10-14: delivery invoices stay Wise and manual. Stripe invoices or subscriptions for Wren's
-  own billing are William's call (money). A refunded setup invoice doesn't pause an engagement;
-  that reverse gate isn't built.
+  own billing are William's call (money).
+- 2026-10-14: the reverse gate (wa-2hf). A setup invoice refunded in full or lost to a chargeback
+  pauses a running engagement, the same `paused` the forward gate leaves; a partial refund doesn't.
+  An open dispute flags urgent and pauses nothing. It is recorded by hand (`wren delivery refund`,
+  `dispute`), since delivery invoices are Wise. It never resumes itself: `wren delivery engagement
+  active` once settled. A fee handed back also stops an onboarding plan from starting.

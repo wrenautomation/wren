@@ -1115,6 +1115,23 @@ async function problems(
       clientId,
       what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) unpaid, due ${i.dueOn}`,
     });
+  // A chargeback still open: answer it before the card issuer decides. A lost one pauses the
+  // plan by itself (`stopIfReversed`); an open one only asks for a look.
+  const disputed = await main
+    .select({ i: invoices, clientId: engagements.clientId })
+    .from(invoices)
+    .innerJoin(engagements, eq(engagements.id, invoices.engagementId))
+    .where(eq(invoices.dispute, "open"))
+    .orderBy(asc(invoices.id));
+  for (const { i, clientId } of disputed)
+    found.push({
+      engagementId: i.engagementId,
+      about: `dispute:${i.id}`,
+      clientId,
+      what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) is disputed with the card issuer`,
+      how: `Send the issuer our evidence, then \`wren delivery dispute ${i.number} won\` or \`lost\``,
+      urgent: true,
+    });
   found.push(...(await billing(main, today)));
   return found;
 }
