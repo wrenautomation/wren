@@ -6,6 +6,7 @@
  */
 import type { Module, ModulePage } from "../../module.js";
 import { broadcastsPage, recipientsPage } from "./broadcasts.js";
+import { PERSON_CARD } from "./cards.js";
 import { importPage } from "./import.js";
 import { addToSegment, membersPage, segmentsPage } from "./segments.js";
 import { sentPage } from "./sent.js";
@@ -19,6 +20,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
     about: "Everyone, once each, however many addresses they use.",
     template: "list",
     record: "people.profile",
+    card: PERSON_CARD,
     empty: {
       all: "People show here once a lead, a text, a form or a booking names them.",
       email: "Nobody with an email yet.",

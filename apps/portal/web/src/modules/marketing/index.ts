@@ -18,7 +18,16 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { AutoReplyPage } from "./auto-reply.js";
-import { APPROVAL_CARD, ASKED_REPLY_CARD, DRAFT_CARD, POST_CARD, VIDEO_CARD } from "./cards.js";
+import {
+  APPROVAL_CARD,
+  ASKED_REPLY_CARD,
+  COMMENT_CARD,
+  DRAFT_CARD,
+  ENGAGE_CARD,
+  INBOX_CARD,
+  POST_CARD,
+  VIDEO_CARD,
+} from "./cards.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { copyExtras, dmExtras, dmLooks } from "./dms.js";
@@ -1037,6 +1046,7 @@ const ENGAGE_PAGE: ListPage = {
   group: "Content",
   template: "list",
   record: "marketing.engage",
+  card: ENGAGE_CARD,
   columns: ["who", "platform", "type", "state", "held", "proof", "at"],
   empty: {
     waiting: "Nothing waits on a reply. Paste a link above to add one.",
@@ -1132,6 +1142,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   about: "Messages, comments and replies waiting on you, from every channel.",
   template: "list",
   record: "marketing.inbox",
+  card: INBOX_CARD,
   // Their words preview under who; Kind, Where and Open sit on the thread itself.
   columns: ["who", "platform", "type", "state", "postTitle", "assignee", "at"],
   empty: {
@@ -1701,6 +1712,7 @@ export const marketing: Module = {
       group: "Content",
       template: "list",
       record: "marketing.comment",
+      card: COMMENT_CARD,
       // Their words preview under who; Where, On and Open sit on the comment itself.
       columns: ["who", "platform", "kind", "postTitle", "sort", "state", "at"],
       empty: {

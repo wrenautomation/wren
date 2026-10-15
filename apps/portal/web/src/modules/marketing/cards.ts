@@ -13,13 +13,47 @@ export const DRAFT_CARD: CardSpec = {
   media: "wide",
 };
 
-/** What waits on a yes: what it is, its words, and when it goes. */
+/**
+ * What waits on a yes: what it is, then what we would send (our reply, else the post's words),
+ * where it goes and when. A queue he works through, so a phone opens it as cards.
+ */
 export const APPROVAL_CARD: CardSpec = {
   mark: "platform",
   badge: "kind",
-  body: "body",
-  facts: ["state", "postTitle", "sendAt", "held", "due"],
+  body: ["draft", "body"],
+  facts: ["state", "postTitle", "place", "sendAt", "held", "due"],
   media: "wide",
+  phone: "cards",
+};
+
+/**
+ * Engage: the thread or post first, the reply we drafted under it (else their words), who and
+ * where, when it is due, and whether a stranger sees it. His daily queue, so a phone opens it as
+ * cards.
+ */
+export const ENGAGE_CARD: CardSpec = {
+  title: ["postTitle", "who"],
+  mark: "platform",
+  badge: "state",
+  body: ["draft", "body"],
+  facts: ["who", "place", "body", "due", "held", "proof"],
+  phone: "cards",
+};
+
+/** Waiting on you: who wrote and how, what they said, our draft reply, and how long ago. */
+export const INBOX_CARD: CardSpec = {
+  mark: "platform",
+  badge: "type",
+  body: "body",
+  facts: ["postTitle", "draft", "assignee", "at"],
+};
+
+/** A comment on our posts: who and where, what they said, our draft answer. */
+export const COMMENT_CARD: CardSpec = {
+  mark: "platform",
+  badge: "state",
+  body: "body",
+  facts: ["postTitle", "sort", "draft", "at"],
 };
 
 /** A client's To approve: the same, with who picked it. */

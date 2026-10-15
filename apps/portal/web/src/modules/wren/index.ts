@@ -20,6 +20,7 @@ import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
 import { Automations, NewAutomation } from "./automations.js";
+import { LOOP_CARD } from "./cards.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
 import { FLAG_ACTIONS } from "./flags.js";
@@ -497,6 +498,7 @@ export const loops: Module = {
       about: "Every loop, and whether it's running or failing.",
       template: "list",
       record: "console.loop",
+      card: LOOP_CARD,
       empty: { failing: "Nothing is failing.", stopped: "Every loop is running." },
       actions: LOOP_ACTIONS,
     },
